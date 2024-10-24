@@ -1,6 +1,6 @@
 using Metalama.Patterns.Wpf.Implementation;
 namespace Metalama.Patterns.Wpf.AspectTests.CommandTests.Callbacks;
-public class ExecuteAsyncMethod
+public class ExecuteMethodAsync
 {
     [Command]
     private Task ExecuteInstanceNoParametersAsync() => Task.CompletedTask;
@@ -18,7 +18,7 @@ public class ExecuteAsyncMethod
     private Task ExecuteInstanceWithCancellationTokenAndParameterAsync( int v, CancellationToken cancellationToken ) => Task.CompletedTask;
     [Command]
     private static Task ExecuteStaticWithCancellationTokenAndParameterAsync( int v, CancellationToken cancellationToken ) => Task.CompletedTask;
-    public ExecuteAsyncMethod()
+  public ExecuteMethodAsync()
     {
     InstanceNoParametersCommand = new AsyncDelegateCommand((_, _) =>
     {
