@@ -49,7 +49,7 @@ internal sealed class ClassicDesignTimeObservabilityStrategyImpl : DesignTimeObs
         var isOverride = this._baseOnPropertyChangedOverridableMethod != null;
 
         var template = this._baseOnPropertyChangedOverridableMethod == null
-                       || this._baseOnPropertyChangedOverridableMethod.Parameters[0].Type.Is( SpecialType.String )
+                       || this._baseOnPropertyChangedOverridableMethod.Parameters[0].Type.Equals( SpecialType.String )
             ? nameof(OnPropertyChangedString)
             : nameof(OnPropertyChangedObject);
 

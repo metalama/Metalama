@@ -10,7 +10,7 @@ namespace Metalama.Patterns.Caching.AspectTests.CacheAttributeTests.ParameterFil
 public class TheCacheParameterClassifier : ICacheParameterClassifier
 {
     public CacheParameterClassification GetClassification( IParameter parameter )
-        => parameter.Type.Is( typeof(IDisposable) ) ? CacheParameterClassification.ExcludeFromCacheKey : CacheParameterClassification.Default;
+        => parameter.Type.IsConvertibleTo( typeof(IDisposable) ) ? CacheParameterClassification.ExcludeFromCacheKey : CacheParameterClassification.Default;
 }
 
 public class Fabric : ProjectFabric

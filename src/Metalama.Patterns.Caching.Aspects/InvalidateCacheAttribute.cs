@@ -406,7 +406,7 @@ public sealed class InvalidateCacheAttribute : MethodAspect
                 }
 
                 // Check that the type is compatible.
-                if ( !invalidatingMethodParameter.Type.Is( invalidatedMethodParameter.Type ) )
+                if ( !invalidatingMethodParameter.Type.IsConvertibleTo( invalidatedMethodParameter.Type ) )
                 {
                     matchingErrorsDictionary.Add(
                         invalidatedMethod.Name,

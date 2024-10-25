@@ -16,13 +16,13 @@ public sealed class TrimAttribute : ContractAspect
 {
     public override void BuildEligibility( IEligibilityBuilder<IFieldOrPropertyOrIndexer> builder )
     {
-        builder.Type().MustBe( typeof(string) );
+        builder.Type().MustEqual( SpecialType.String );
         base.BuildEligibility( builder );
     }
 
     public override void BuildEligibility( IEligibilityBuilder<IParameter> builder )
     {
-        builder.Type().MustBe( typeof(string) );
+        builder.Type().MustEqual( SpecialType.String );
         base.BuildEligibility( builder );
     }
 

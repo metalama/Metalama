@@ -99,7 +99,7 @@ internal static class DependencyPropertyNamingConventionMatcher
                 }
                 else if ( !method.IsStatic
                           && (p[0].Type.SpecialType == SpecialType.Object
-                              || propertyType.Is( p[0].Type )
+                              || propertyType.IsConvertibleTo( p[0].Type )
                               || (p[0].Type.TypeKind == TypeKind.TypeParameter && method.TypeParameters.Count == 1)) )
                 {
                     return ChangeHandlerSignatureKind.InstanceValue;
@@ -120,10 +120,10 @@ internal static class DependencyPropertyNamingConventionMatcher
                 else if ( allowOldValue
                           && !method.IsStatic
                           && (p[0].Type.SpecialType == SpecialType.Object
-                              || propertyType.Is( p[0].Type )
+                              || propertyType.IsConvertibleTo( p[0].Type )
                               || (p[0].Type.TypeKind == TypeKind.TypeParameter && method.TypeParameters.Count == 1))
                           && (p[1].Type.SpecialType == SpecialType.Object
-                              || propertyType.Is( p[1].Type )
+                              || propertyType.IsConvertibleTo( p[1].Type )
                               || (p[1].Type.TypeKind == TypeKind.TypeParameter && method.TypeParameters.Count == 1)) )
                 {
                     return ChangeHandlerSignatureKind.InstanceOldValueAndNewValue;
@@ -160,7 +160,7 @@ internal static class DependencyPropertyNamingConventionMatcher
             case 1:
 
                 if ( p[0].Type.SpecialType == SpecialType.Object
-                     || propertyType.Is( p[0].Type )
+                     || propertyType.IsConvertibleTo( p[0].Type )
                      || (p[0].Type.TypeKind == TypeKind.TypeParameter && method.TypeParameters.Count == 1) )
                 {
                     return method.IsStatic ? ValidationHandlerSignatureKind.StaticValue : ValidationHandlerSignatureKind.InstanceValue;
@@ -172,7 +172,7 @@ internal static class DependencyPropertyNamingConventionMatcher
 
                 if ( p[0].Type.Equals( assets.DependencyProperty )
                      && (p[1].Type.SpecialType == SpecialType.Object
-                         || propertyType.Is( p[1].Type )
+                         || propertyType.IsConvertibleTo( p[1].Type )
                          || (p[1].Type.TypeKind == TypeKind.TypeParameter && method.TypeParameters.Count == 1)) )
                 {
                     return method.IsStatic
@@ -184,7 +184,7 @@ internal static class DependencyPropertyNamingConventionMatcher
                               || p[0].Type.Equals( declaringType )
                               || p[0].Type.Equals( assets.DependencyObject ))
                           && (p[1].Type.SpecialType == SpecialType.Object
-                              || propertyType.Is( p[1].Type )
+                              || propertyType.IsConvertibleTo( p[1].Type )
                               || (p[1].Type.TypeKind == TypeKind.TypeParameter && method.TypeParameters.Count == 1)) )
                 {
                     return ValidationHandlerSignatureKind.StaticInstanceAndValue;
@@ -200,7 +200,7 @@ internal static class DependencyPropertyNamingConventionMatcher
                          || p[1].Type.Equals( declaringType )
                          || p[1].Type.Equals( assets.DependencyObject ))
                      && (p[2].Type.SpecialType == SpecialType.Object
-                         || propertyType.Is( p[2].Type )
+                         || propertyType.IsConvertibleTo( p[2].Type )
                          || (p[2].Type.TypeKind == TypeKind.TypeParameter && method.TypeParameters.Count == 1)) )
                 {
                     return ValidationHandlerSignatureKind.StaticDependencyPropertyAndInstanceAndValue;

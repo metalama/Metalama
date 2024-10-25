@@ -81,7 +81,7 @@ public sealed partial class CommandAttribute : Attribute, IAspect<IMethod>
 
     void IEligible<IMethod>.BuildEligibility( IEligibilityBuilder<IMethod> builder )
     {
-        builder.ReturnType().MustBe( typeof(void) );
+        builder.ReturnType().MustEqual( SpecialType.Void );
         builder.MustSatisfy( m => m.Parameters.Count is 0 or 1, m => $"{m} must have zero or one parameter" );
         builder.MustNotHaveRefOrOutParameter();
         builder.MustSatisfy( m => m.TypeParameters.Count == 0, m => $"{m} must not be generic" );

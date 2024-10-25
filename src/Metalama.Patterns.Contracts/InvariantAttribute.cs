@@ -26,7 +26,7 @@ public sealed class InvariantAttribute : MethodAspect
     public override void BuildEligibility( IEligibilityBuilder<IMethod> builder )
     {
         builder.MustNotBeStatic();
-        builder.ReturnType().MustBe( typeof(void) );
+        builder.ReturnType().MustEqual( SpecialType.Void );
         builder.MustSatisfy( m => m.Parameters.Count == 0, o => $"{o} must not have any parameters" );
     }
 

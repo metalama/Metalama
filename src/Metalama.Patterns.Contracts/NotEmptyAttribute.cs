@@ -67,7 +67,7 @@ public sealed class NotEmptyAttribute : ContractBaseAttribute
         }
         else if ( targetType is INamedType namedType )
         {
-            if ( namedType.Definition.Is( typeof(ImmutableArray<>) ) )
+            if ( namedType.Definition.IsConvertibleTo( typeof(ImmutableArray<>) ) )
             {
                 if ( !value!.IsDefault && value.IsEmpty )
                 {
@@ -134,7 +134,7 @@ public sealed class NotEmptyAttribute : ContractBaseAttribute
     {
         var typeOfICollection = (INamedType) TypeFactory.GetType( typeof(ICollection) );
 
-        if ( targetType.Is( typeOfICollection ) )
+        if ( targetType.IsConvertibleTo( typeOfICollection ) )
         {
             var countProperty = typeOfICollection.Properties.OfName( nameof(ICollection.Count) ).Single();
             targetType.TryFindImplementationForInterfaceMember( countProperty, out var countPropertyImpl );

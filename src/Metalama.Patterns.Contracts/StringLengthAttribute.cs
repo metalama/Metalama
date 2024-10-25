@@ -53,14 +53,14 @@ public sealed class StringLengthAttribute : ContractBaseAttribute
     public override void BuildEligibility( IEligibilityBuilder<IFieldOrPropertyOrIndexer> builder )
     {
         base.BuildEligibility( builder );
-        builder.Type().MustBe<string>();
+        builder.Type().MustBeConvertibleTo<string>();
     }
 
     /// <inheritdoc/>
     public override void BuildEligibility( IEligibilityBuilder<IParameter> builder )
     {
         base.BuildEligibility( builder );
-        builder.Type().MustBe<string>();
+        builder.Type().MustBeConvertibleTo<string>();
     }
 
     /// <inheritdoc/>

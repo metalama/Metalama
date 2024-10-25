@@ -62,11 +62,11 @@ internal sealed class ClassicObservabilityStrategyImpl : IObservabilityStrategy
 
         this._baseImplementsInpc =
             target.BaseType != null && (
-                target.BaseType.Is( this.Assets.INotifyPropertyChanged )
+                target.BaseType.IsConvertibleTo( this.Assets.INotifyPropertyChanged )
                 || (target.BaseType is { BelongsToCurrentProject: true }
                     && target.BaseType.Definition.Enhancements().HasAspect( typeof(ObservableAttribute) )));
 
-        this._targetImplementsInpc = this._baseImplementsInpc || target.Is( this.Assets.INotifyPropertyChanged );
+        this._targetImplementsInpc = this._baseImplementsInpc || target.IsConvertibleTo( this.Assets.INotifyPropertyChanged );
         (this._baseOnPropertyChangedInvocableMethod, this._baseOnPropertyChangedOverridableMethod) = GetOnPropertyChangedMethods( target );
         this._baseOnChildPropertyChangedMethod = GetOnChildPropertyChangedMethod( target );
         this._baseOnObservablePropertyChangedMethod = GetOnObservablePropertyChangedMethod( target, this.Assets );
@@ -189,7 +189,7 @@ internal sealed class ClassicObservabilityStrategyImpl : IObservabilityStrategy
         var isOverride = this._baseOnPropertyChangedOverridableMethod != null;
 
         var template = this._baseOnPropertyChangedOverridableMethod == null
-                       || this._baseOnPropertyChangedOverridableMethod.Parameters[0].Type.Is( SpecialType.String )
+                       || this._baseOnPropertyChangedOverridableMethod.Parameters[0].Type.IsConvertibleTo( SpecialType.String )
             ? nameof(Templates.OnPropertyChangedString)
             : nameof(Templates.OnPropertyChangedObject);
 

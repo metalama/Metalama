@@ -271,7 +271,7 @@ internal sealed partial class DependencyPropertyAspectBuilder
                 case ValidationHandlerSignatureKind.StaticDependencyPropertyAndInstanceAndValue:
                     method.Invoke(
                         dependencyPropertyField.Value,
-                        instanceExpr.Type.Is( method.Parameters[1].Type, ConversionKind.Reference )
+                        instanceExpr.Type.IsConvertibleTo( method.Parameters[1].Type, ConversionKind.Reference )
                             ? instanceExpr.Value
                             : meta.Cast( declaringType, instanceExpr.Value ),
                         method.Parameters[2].Type.SpecialType == SpecialType.Object ? valueExpr.Value : meta.Cast( propertyType, valueExpr.Value ) );
@@ -280,7 +280,7 @@ internal sealed partial class DependencyPropertyAspectBuilder
 
                 case ValidationHandlerSignatureKind.StaticInstanceAndValue:
                     method.Invoke(
-                        instanceExpr.Type.Is( method.Parameters[0].Type, ConversionKind.Reference )
+                        instanceExpr.Type.IsConvertibleTo( method.Parameters[0].Type, ConversionKind.Reference )
                             ? instanceExpr.Value
                             : meta.Cast( declaringType, instanceExpr.Value ),
                         method.Parameters[1].Type.SpecialType == SpecialType.Object ? valueExpr.Value : meta.Cast( propertyType, valueExpr.Value ) );
@@ -345,7 +345,7 @@ internal sealed partial class DependencyPropertyAspectBuilder
                 case ChangeHandlerSignatureKind.StaticDependencyPropertyAndInstance:
                     method.Invoke(
                         dependencyPropertyField.Value,
-                        instanceExpr.Type.Is( method.Parameters[1].Type, ConversionKind.Reference )
+                        instanceExpr.Type.IsConvertibleTo( method.Parameters[1].Type, ConversionKind.Reference )
                             ? instanceExpr.Value
                             : meta.Cast( declaringType, instanceExpr.Value ) );
 
@@ -353,7 +353,7 @@ internal sealed partial class DependencyPropertyAspectBuilder
 
                 case ChangeHandlerSignatureKind.StaticInstance:
                     method.Invoke(
-                        instanceExpr.Type.Is( method.Parameters[0].Type, ConversionKind.Reference )
+                        instanceExpr.Type.IsConvertibleTo( method.Parameters[0].Type, ConversionKind.Reference )
                             ? instanceExpr.Value
                             : meta.Cast( declaringType, instanceExpr.Value ) );
 

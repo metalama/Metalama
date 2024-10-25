@@ -31,7 +31,7 @@ internal sealed class InpcInstrumentationKindLookup
                     // None of the special types implement INPC.
                     return InpcInstrumentationKind.None;
                 }
-                else if ( namedType.Is( this._assets.INotifyPropertyChanged ) )
+                else if ( namedType.IsConvertibleTo( this._assets.INotifyPropertyChanged ) )
                 {
                     if ( namedType.TryFindImplementationForInterfaceMember( this._assets.PropertyChangedEventOfINotifyPropertyChanged, out var member )
                          && member.IsExplicitInterfaceImplementation )
