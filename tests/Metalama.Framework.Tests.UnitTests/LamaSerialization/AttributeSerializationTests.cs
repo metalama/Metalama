@@ -44,7 +44,7 @@ public class AttributeSerializationTests : SerializationTestsBase
 
                             """;
 
-        using var testContext = this.CreateTestContext( code );
+        using var testContext = this.CreateTestContextWithCode( code );
 
         var attribute = testContext.Compilation.Types.OfName( "C" ).Single().Attributes.Single();
 
@@ -72,7 +72,7 @@ public class AttributeSerializationTests : SerializationTestsBase
 
                             """;
 
-        using var testContext = this.CreateTestContext( code );
+        using var testContext = this.CreateTestContextWithCode( code );
 
         var compilationModel1 = testContext.Compilation;
         var attribute1 = compilationModel1.Types.OfName( "C" ).Single().Attributes.Single();

@@ -26,7 +26,7 @@ public abstract class FrameworkBaseTestClass : UnitTestClass, IDisposable
     public void Dispose()
     {
         // We generally don't want to see any exceptions reported during the test.
-        Assert.Empty( this._exceptionReporter.ReportedExceptions.Where( e => e is not ConnectionLostException ) );
+        Assert.DoesNotContain( this._exceptionReporter.ReportedExceptions, e => e is not ConnectionLostException );
     }
 
     protected override void ConfigureServices( IAdditionalServiceCollection services )

@@ -10,6 +10,7 @@ using Metalama.Testing.UnitTesting;
 using System;
 using System.Collections;
 using System.IO;
+using System.Runtime.CompilerServices;
 using Xunit;
 
 namespace Metalama.Framework.Tests.UnitTests.LamaSerialization
@@ -28,16 +29,26 @@ namespace Metalama.Framework.Tests.UnitTests.LamaSerialization
             serviceProvider = serviceProvider.WithService( new BuiltInSerializerFactoryProvider( serviceProvider ) );
             this.ServiceProvider = serviceProvider;
         }
-        
+
         protected override TestContext CreateTestContextCore( TestContextOptions contextOptions, IAdditionalServiceCollection services )
             => new SerializationTestContext( contextOptions, services );
 
-        [MustDisposeResource]
-        protected new SerializationTestContext CreateTestContext() => (SerializationTestContext) base.CreateTestContext();
+        // ReSharper disable ExplicitCallerInfoArgument
 
         [MustDisposeResource]
-        protected SerializationTestContext CreateTestContext( string code )
-            => (SerializationTestContext) base.CreateTestContext( new SerializationTestContextOptions { Code = code } );
+        protected new SerializationTestContext CreateTestContext(
+            [CallerFilePath] string? callerFile = null,
+            [CallerMemberName] string? callerMemberName = null )
+            => (SerializationTestContext) base.CreateTestContext( callerFile, callerMemberName );
+
+        [MustDisposeResource]
+        protected SerializationTestContext CreateTestContextWithCode(
+            string code,
+            [CallerFilePath] string? callerFile = null,
+            [CallerMemberName] string? callerMemberName = null )
+            => (SerializationTestContext) base.CreateTestContext( new SerializationTestContextOptions { Code = code }, null, callerFile, callerMemberName );
+
+        // ReSharper restore ExplicitCallerInfoArgument
 
         protected T? TestSerialization<T>( T? instance, Func<T?, T?, bool>? assert = null, bool testEquality = true )
         {

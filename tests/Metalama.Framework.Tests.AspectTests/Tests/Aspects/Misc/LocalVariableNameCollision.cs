@@ -5,7 +5,7 @@ using System.Collections.Generic;
 
 namespace Metalama.Framework.Tests.Integration.Tests.Aspects.LocalVariableNameCollision;
 
-#pragma warning disable CS0168, CS0164
+#pragma warning disable CS0168, CS0164, CS0618, CS0219
 
 class Aspect : OverrideMethodAspect
 {

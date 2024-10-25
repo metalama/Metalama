@@ -12,7 +12,7 @@ public class DeclarationRefSerializationTests : SerializationTestsBase
     public void SymbolRef()
     {
         const string code = "public class C;";
-        using var testContext = this.CreateTestContext( code );
+        using var testContext = this.CreateTestContextWithCode( code );
         var initialRef = testContext.Compilation.Types.Single().ToRef();
 
         var roundtripRef = TestSerialization( testContext, initialRef, testEquality: false );

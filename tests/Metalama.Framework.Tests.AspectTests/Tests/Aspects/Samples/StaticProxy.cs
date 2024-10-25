@@ -3,6 +3,8 @@ using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using System;
 
+#pragma warning disable CS8618
+
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Samples.StaticProxy;
 
 public class ProxyAspect : TypeAspect
