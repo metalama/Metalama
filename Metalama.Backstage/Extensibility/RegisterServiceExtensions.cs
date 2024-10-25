@@ -175,10 +175,14 @@ public static class RegisterServiceExtensions
             serviceProviderBuilder.AddService( typeof(ILockingProcessDetector), _ => new LockingProcessDetector() );
         }
 
+        if ( options.AddDumperService || options.AddSupportServices )
+        {
+            serviceProviderBuilder.AddService( typeof(IMiniDumper), serviceProvider => new MiniDumper( serviceProvider ) );
+        }
+
         // Add support services.
         if ( options.AddSupportServices )
         {
-            serviceProviderBuilder.AddService( typeof(IMiniDumper), serviceProvider => new MiniDumper( serviceProvider ) );
             serviceProviderBuilder.AddTelemetryServices();
         }
 

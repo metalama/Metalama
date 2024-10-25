@@ -25,6 +25,8 @@ public record BackstageInitializationOptions( IApplicationInfo ApplicationInfo )
     /// Gets a value indicating whether logging and telemetry services should be registered.
     /// </summary>
     public bool AddSupportServices { get; init; }
+    
+    public bool AddDumperService { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether licensing services should be registered.
