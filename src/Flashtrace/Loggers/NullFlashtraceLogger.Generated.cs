@@ -2,7 +2,7 @@
 // To edit, go to NullLogger.Generated.tt.
 // To transform, run RunT4.ps1.
 
- 
+#pragma warning disable LAMA0320 
     
 
 using Flashtrace.Contexts;

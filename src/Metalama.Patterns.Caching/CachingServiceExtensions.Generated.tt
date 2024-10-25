@@ -5,6 +5,8 @@
 <#@ template debug="false" hostspecific="false" language="C#" #>
 <#@ output extension=".cs" #>
 
+#pragma warning disable LAMA0320
+
 #nullable enable
 
 using System;

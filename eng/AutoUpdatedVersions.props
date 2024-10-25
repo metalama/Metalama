@@ -2,11 +2,11 @@
 <Project>
 
     <PropertyGroup>
-        <MetalamaVersion>2025.0.1-preview</MetalamaVersion>
-        <MetalamaExtensionsVersion>2025.0.1-preview</MetalamaExtensionsVersion>
-        <MetalamaBackstageVersion>2025.0.1-preview</MetalamaBackstageVersion>
-        <MetalamaCompilerVersion>2025.0.1-preview</MetalamaCompilerVersion>
-        <MetalamaFrameworkRunTimeVersion>2025.0.1-preview</MetalamaFrameworkRunTimeVersion>
+        <MetalamaVersion>2025.0.2-preview</MetalamaVersion>
+        <MetalamaExtensionsVersion>2025.0.2-preview</MetalamaExtensionsVersion>
+        <MetalamaBackstageVersion>2025.0.2-preview</MetalamaBackstageVersion>
+        <MetalamaCompilerVersion>2025.0.2-preview</MetalamaCompilerVersion>
+        <MetalamaFrameworkRunTimeVersion>2025.0.2-preview</MetalamaFrameworkRunTimeVersion>
     </PropertyGroup>
 
 </Project>

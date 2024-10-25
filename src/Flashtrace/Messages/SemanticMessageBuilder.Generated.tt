@@ -6,6 +6,8 @@
 <#@ output extension=".cs" #>
 <#@ include file="..\Common.ttinclude" #>
 
+#pragma warning disable LAMA0320
+
 #nullable enable
 
 using System.Runtime.CompilerServices;

@@ -6,6 +6,8 @@
 <#@ Output extension=".cs" #>
 <#@ include file="..\Common.ttinclude" #>
 
+#pragma warning disable LAMA0320
+
 using Flashtrace.Contexts;
 using Flashtrace.Records;
 using Microsoft.Extensions.Logging;

@@ -2,7 +2,7 @@
 // To edit, go to FormattedMessageBuilder.Generated.tt.
 // To transform, run RunT4.ps1.
 
- 
+#pragma warning disable LAMA0320 
     
 
 #nullable enable

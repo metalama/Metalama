@@ -6,6 +6,8 @@
 <#@ template debug="false" hostspecific="false" language="C#" #>
 <#@ output extension=".cs" #>
 
+#pragma warning disable LAMA0320
+
 using System.Threading.Tasks;
 
 namespace Metalama.Patterns.Caching.TestHelpers

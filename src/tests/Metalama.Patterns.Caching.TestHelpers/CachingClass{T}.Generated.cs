@@ -3,6 +3,7 @@
 // To transform, run this: "C:\Program Files (x86)\Common Files\Microsoft Shared\TextTemplating\14.0\TextTransform.exe" CachingClass.Generated.tt
 // The transformation is not automatic because we are in a shared project.
 
+#pragma warning disable LAMA0320
 
 using System.Threading.Tasks;
 
