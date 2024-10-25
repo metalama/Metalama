@@ -11,12 +11,7 @@
         <!--  Project dependency X does not contain an inclusive lower bound. Include a lower bound in the dependency version to ensure consistent restore results. -->
         <WarningsAsErrors>$(WarningsAsErrors);NU1604</WarningsAsErrors>
 
-        <!-- Package has known vulnerability -->
-        <NoWarn>$(NoWarn); NU1903; NU1902</NoWarn>
-
         <EnforceExtendedAnalyzerRules>True</EnforceExtendedAnalyzerRules>
-
-        <NuGetAuditMode>Direct</NuGetAuditMode>
     </PropertyGroup>
 
 
