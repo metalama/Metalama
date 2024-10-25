@@ -207,7 +207,8 @@ public static class ResourceExtractor
         var inputBytes = Encoding.UTF8.GetBytes( input );
         var hashBytes = sha256.ComputeHash( inputBytes );
 
-        return Convert.ToBase64String( hashBytes );
+        // Replace '/' with '_' to avoid exception on Unix.
+        return Convert.ToBase64String( hashBytes ).Replace( '/', '_' );
     }
 
     private static void ExtractEmbeddedAssemblies( Assembly currentAssembly )
