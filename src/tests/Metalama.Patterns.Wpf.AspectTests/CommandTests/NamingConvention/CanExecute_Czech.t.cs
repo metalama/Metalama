@@ -18,8 +18,8 @@ public class MojeOkno : Window
   public bool MůžemeSnížit => this.Počitadlo > 0;
   public MojeOkno()
   {
-    ZvýšeníPříkaz = new DelegateCommand(() => VykonatZvýšení(), () => MůžemeVykonatZvýšení);
-    SnížitPříkaz = new DelegateCommand(() => Snížit(), () => MůžemeSnížit);
+    ZvýšeníPříkaz = DelegateCommandFactory.CreateDelegateCommand(VykonatZvýšení, () => MůžemeVykonatZvýšení);
+    SnížitPříkaz = DelegateCommandFactory.CreateDelegateCommand(Snížit, () => MůžemeSnížit);
   }
   public DelegateCommand SnížitPříkaz { get; }
   public DelegateCommand ZvýšeníPříkaz { get; }

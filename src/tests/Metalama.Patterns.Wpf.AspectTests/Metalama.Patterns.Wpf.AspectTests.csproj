@@ -33,6 +33,18 @@
       <DependentUpon>$([System.String]::Copy('MustHaveZeroOrOneParameter').Substring( %(Filename.IndexOf('.') ).cs</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Compile Update="CommandTests\Callbacks\CanExecuteMethodBackground.cs">
+      <DependentUpon>$([System.String]::Copy('CanExecuteMethod').Substring( %(Filename.IndexOf('.') ).cs</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="CommandTests\Callbacks\CanExecutePropertyBackground.cs">
+      <DependentUpon>$([System.String]::Copy('CanExecuteProperty').Substring( %(Filename.IndexOf('.') ).cs</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="CommandTests\Callbacks\ExecuteMethodBackground.cs">
+      <DependentUpon>$([System.String]::Copy('ExecuteMethod').Substring( %(Filename.IndexOf('.') ).cs</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
   </ItemGroup>
 
 </Project>

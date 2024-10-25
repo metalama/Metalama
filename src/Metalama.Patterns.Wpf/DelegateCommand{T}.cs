@@ -18,7 +18,7 @@ public sealed class DelegateCommand<T> : BaseDelegateCommand
     /// <summary>
     /// Initializes a new instance of the <see cref="DelegateCommand{T}"/> class, without <see cref="INotifyPropertyChanged"/> integration.
     /// </summary>
-    public DelegateCommand( Action<T> execute, Func<T, bool>? canExecute )
+    internal DelegateCommand( Action<T> execute, Func<T, bool>? canExecute )
     {
         this._execute = execute;
         this._canExecute = canExecute;
@@ -27,7 +27,7 @@ public sealed class DelegateCommand<T> : BaseDelegateCommand
     /// <summary>
     /// Initializes a new instance of the <see cref="DelegateCommand{T}"/> class, with <see cref="INotifyPropertyChanged"/> integration.
     /// </summary>
-    public DelegateCommand(
+    internal DelegateCommand(
         Action<T> execute,
         Func<T, bool> canExecute,
         INotifyPropertyChanged canExecutePropertyChangeNotifier,

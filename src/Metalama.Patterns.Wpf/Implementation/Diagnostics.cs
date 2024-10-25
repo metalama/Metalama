@@ -114,4 +114,13 @@ internal static class Diagnostics
                 "No {0} naming conventioned matched '{1}'.",
                 "No configured naming convention matched.",
                 _category );
+
+    public static readonly DiagnosticDefinition<IMethod>
+        CancellationInNonAsyncNotSupported =
+            new(
+                "LAMA5208",
+                Error,
+                "The '{0}' method has a CancellationToken parameter, but is neither returns a Task nor has the Background property set to true.",
+                "The method has a CancellationToken parameter, but is neither returns a Task nor has the Background property set to true.",
+                _category );
 }

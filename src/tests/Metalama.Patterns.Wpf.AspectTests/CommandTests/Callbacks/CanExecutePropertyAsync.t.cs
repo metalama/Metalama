@@ -9,14 +9,8 @@ public class CanExecutePropertysync
   private static bool CanExecuteStatic => true;
   public CanExecutePropertysync()
   {
-    InstanceCommand = new AsyncDelegateCommand(_ =>
-    {
-      return ExecuteInstanceAsync();
-    }, () => CanExecuteInstance, false, false);
-    StaticCommand = new AsyncDelegateCommand(_ =>
-    {
-      return ExecuteStaticAsync();
-    }, () => CanExecuteStatic, false, false);
+    InstanceCommand = DelegateCommandFactory.CreateAsyncDelegateCommand(ExecuteInstanceAsync, () => CanExecuteInstance, false, false);
+    StaticCommand = DelegateCommandFactory.CreateAsyncDelegateCommand(ExecuteStaticAsync, () => CanExecuteStatic, false, false);
   }
   public AsyncDelegateCommand InstanceCommand { get; }
   public AsyncDelegateCommand StaticCommand { get; }

@@ -17,7 +17,7 @@ public sealed class AsyncDelegateCommand : BaseAsyncDelegateCommand
     /// <summary>
     /// Initializes a new instance of the <see cref="AsyncDelegateCommand"/> class, without <see cref="INotifyPropertyChanged"/> integration.
     /// </summary>
-    public AsyncDelegateCommand(
+    internal AsyncDelegateCommand(
         Func<CancellationToken, Task> execute,
         Func<bool>? canExecute,
         bool supportsCancellation,
@@ -30,7 +30,7 @@ public sealed class AsyncDelegateCommand : BaseAsyncDelegateCommand
     /// <summary>
     /// Initializes a new instance of the <see cref="AsyncDelegateCommand"/> class, with <see cref="INotifyPropertyChanged"/> integration.
     /// </summary>
-    public AsyncDelegateCommand(
+    internal AsyncDelegateCommand(
         Func<CancellationToken, Task> execute,
         Func<bool> canExecute,
         INotifyPropertyChanged canExecutePropertyChangeNotifier,

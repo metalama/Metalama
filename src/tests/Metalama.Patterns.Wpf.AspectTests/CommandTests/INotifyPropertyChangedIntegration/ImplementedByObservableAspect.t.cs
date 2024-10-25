@@ -29,7 +29,7 @@ public class ImplementedByObservableAspect : INotifyPropertyChanged
   }
   public ImplementedByObservableAspect()
   {
-    Foo1Command = new DelegateCommand(() => ExecuteFoo1(), () => CanExecuteFoo1, this, "CanExecuteFoo1");
+    Foo1Command = DelegateCommandFactory.CreateDelegateCommand(ExecuteFoo1, () => CanExecuteFoo1, this, "CanExecuteFoo1");
   }
   public DelegateCommand Foo1Command { get; }
   protected virtual void OnPropertyChanged(string propertyName)
@@ -62,7 +62,7 @@ public class ImplementedByBase : ImplementedByObservableAspect
   }
   public ImplementedByBase()
   {
-    Foo2Command = new DelegateCommand(() => ExecuteFoo2(), () => CanExecuteFoo2, this, "CanExecuteFoo2");
+    Foo2Command = DelegateCommandFactory.CreateDelegateCommand(ExecuteFoo2, () => CanExecuteFoo2, this, "CanExecuteFoo2");
   }
   public DelegateCommand Foo2Command { get; }
   protected override void OnPropertyChanged(string propertyName)

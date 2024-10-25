@@ -22,5 +22,17 @@ public partial class AsyncCommandTestClass
         cancellationToken.ThrowIfCancellationRequested();
     }
 
+    [Command]
+    private async Task NonCancellableAsync()
+    {
+        await this.Barrier.SignalAndWait();
+    }
+
+    [Command( CanExecuteProperty = nameof(CanExecuteCancellableWithCanExecute) )]
+    private async Task NonCancellableWithCanExecuteAsync()
+    {
+        await this.Barrier.SignalAndWait();
+    }
+
     public bool CanExecuteCancellableWithCanExecute { get; set; }
 }

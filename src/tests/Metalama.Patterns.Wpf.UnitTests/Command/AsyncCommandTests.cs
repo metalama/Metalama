@@ -10,7 +10,7 @@ public class AsyncCommandTests
     public AsyncCommandTestClass Instance { get; } = new();
 
     [Fact]
-    public async Task ExecuteAndCompleteAsync()
+    public async Task ExecuteCancellableAndCompleteAsync()
     {
         Assert.True( this.Instance.CancellableCommand.CanExecute );
         Assert.False( this.Instance.CancellableCommand.CanCancel );
@@ -35,6 +35,34 @@ public class AsyncCommandTests
         Assert.False( this.Instance.CancellableCommand.IsRunning );
         Assert.False( this.Instance.CancellableCommand.IsCancellationRequested );
         Assert.NotNull( this.Instance.CancellableCommand.ExecutionTask );
+    }
+
+    [Fact]
+    public async Task ExecuteNonCancellableAndCompleteAsync()
+    {
+        Assert.True( this.Instance.NonCancellableCommand.CanExecute );
+        Assert.False( this.Instance.NonCancellableCommand.CanCancel );
+        Assert.False( this.Instance.NonCancellableCommand.IsRunning );
+        Assert.False( this.Instance.NonCancellableCommand.IsCancellationRequested );
+        Assert.Null( this.Instance.NonCancellableCommand.ExecutionTask );
+
+        this.Instance.NonCancellableCommand.Execute();
+
+        Assert.False( this.Instance.NonCancellableCommand.CanExecute );
+        Assert.False( this.Instance.NonCancellableCommand.CanCancel );
+        Assert.True( this.Instance.NonCancellableCommand.IsRunning );
+        Assert.False( this.Instance.NonCancellableCommand.IsCancellationRequested );
+        Assert.NotNull( this.Instance.NonCancellableCommand.ExecutionTask );
+
+        await this.Instance.Barrier.SignalAndWait();
+
+        await this.Instance.NonCancellableCommand.ExecutionTask;
+
+        Assert.True( this.Instance.NonCancellableCommand.CanExecute );
+        Assert.False( this.Instance.NonCancellableCommand.CanCancel );
+        Assert.False( this.Instance.NonCancellableCommand.IsRunning );
+        Assert.False( this.Instance.NonCancellableCommand.IsCancellationRequested );
+        Assert.NotNull( this.Instance.NonCancellableCommand.ExecutionTask );
     }
 
     [Fact]

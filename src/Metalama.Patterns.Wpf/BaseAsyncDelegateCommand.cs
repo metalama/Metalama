@@ -1,6 +1,5 @@
 // Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
-using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.Windows.Input;
 
@@ -11,13 +10,11 @@ namespace Metalama.Patterns.Wpf;
 /// </summary>
 public abstract class BaseAsyncDelegateCommand : BaseDelegateCommand, IAsyncCommand
 {
-    private static volatile int _nextExecutionId;
-
     private readonly bool _supportsCancellation;
     private readonly bool _supportsConcurrentExecution;
     private static readonly string[] _allProperties = [nameof(ExecutionTask), nameof(IsRunning), nameof(IsCancellationRequested), nameof(CanCancel)];
     private static readonly string[] _cancellationProperties = [nameof(CanCancel), nameof(IsCancellationRequested)];
-    private ConcurrentDictionary<int, CancellationTokenSource>? _cancellationTokenSources;
+    private CancellationTokenSource? _cancellationTokenSource;
 
     private protected BaseAsyncDelegateCommand(
         INotifyPropertyChanged canExecutePropertyChangeNotifier,
@@ -44,16 +41,14 @@ public abstract class BaseAsyncDelegateCommand : BaseDelegateCommand, IAsyncComm
     public bool CanCancel => this._supportsCancellation && this.IsRunning;
 
     /// <summary>
-    /// Gets a value indicating whether the <see cref="Cancel"/> method was called and the current command
-    /// execution is still running.
+    /// Gets a value indicating whether the <see cref="Cancel"/> method was called for the last task.
     /// </summary>
-    public bool IsCancellationRequested
-        => this._cancellationTokenSources != null && this._cancellationTokenSources.Values.Any( t => t.IsCancellationRequested );
+    public bool IsCancellationRequested => this._cancellationTokenSource is { IsCancellationRequested: true };
 
     /// <summary>
-    /// Gets a value indicating whether any command is executing.
+    /// Gets a value indicating whether the last execution task (i.e., <see cref="ExecutionTask"/>) is still running.
     /// </summary>
-    public bool IsRunning => this._cancellationTokenSources is { IsEmpty: false };
+    public bool IsRunning => this.ExecutionTask is { Status: not (TaskStatus.Canceled or TaskStatus.Faulted or TaskStatus.RanToCompletion) };
 
     /// <summary>
     /// Gets the <see cref="Task"/> representing the last execution of the command.
@@ -98,16 +93,12 @@ public abstract class BaseAsyncDelegateCommand : BaseDelegateCommand, IAsyncComm
 
     private async Task ExecuteAsync( object? parameter )
     {
-        var taskId = Interlocked.Increment( ref _nextExecutionId );
-
         CancellationTokenSource? cancellationTokenSource;
 
         if ( this._supportsCancellation )
         {
-            // Store the CancellationTokenSource into a local variable because another task may
-            cancellationTokenSource = new CancellationTokenSource();
-
-            LazyInitializer.EnsureInitialized( ref this._cancellationTokenSources )!.TryAdd( taskId, cancellationTokenSource );
+            // Store the CancellationTokenSource into a local variable because another task may be created.
+            this._cancellationTokenSource = cancellationTokenSource = new CancellationTokenSource();
         }
         else
         {
@@ -120,9 +111,13 @@ public abstract class BaseAsyncDelegateCommand : BaseDelegateCommand, IAsyncComm
         }
         finally
         {
-            cancellationTokenSource?.Dispose();
+            if ( cancellationTokenSource != null )
+            {
+                cancellationTokenSource.Dispose();
 
-            this._cancellationTokenSources!.TryRemove( taskId, out _ );
+                // If the current execution is still the last one, reset the current CancellationTokenSource.
+                Interlocked.CompareExchange( ref this._cancellationTokenSource, null, cancellationTokenSource );
+            }
 
             this.OnPropertiesChanged( _allProperties );
         }
@@ -134,12 +129,9 @@ public abstract class BaseAsyncDelegateCommand : BaseDelegateCommand, IAsyncComm
     public void Cancel()
     {
         // We don't throw any exception in case there is nothing to cancel to avoid races with the CanCancel property.
-        if ( this._cancellationTokenSources is { Count: > 0 } )
+        if ( this._cancellationTokenSource != null )
         {
-            foreach ( var task in this._cancellationTokenSources!.Values )
-            {
-                task.Cancel();
-            }
+            this._cancellationTokenSource.Cancel();
 
             this.OnPropertiesChanged( _cancellationProperties );
         }

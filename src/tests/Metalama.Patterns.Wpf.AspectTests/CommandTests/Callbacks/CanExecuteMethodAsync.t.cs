@@ -15,22 +15,10 @@ public class CanExecuteMethodAsync
   private static bool CanExecuteStaticWithParameter(int v) => true;
   public CanExecuteMethodAsync()
   {
-    InstanceNoParametersCommand = new AsyncDelegateCommand(_ =>
-    {
-      return ExecuteInstanceNoParametersAsync();
-    }, () => CanExecuteInstanceNoParameters(), false, false);
-    StaticNoParametersCommand = new AsyncDelegateCommand(_ =>
-    {
-      return ExecuteStaticNoParametersAsync();
-    }, () => CanExecuteStaticNoParameters(), false, false);
-    InstanceWithParameterCommand = new AsyncDelegateCommand<int>((arg, _) =>
-    {
-      return ExecuteInstanceWithParameterAsync(arg);
-    }, parameter => CanExecuteInstanceWithParameter(parameter), false, false);
-    StaticWithParameterCommand = new AsyncDelegateCommand<int>((arg_1, _) =>
-    {
-      return ExecuteStaticWithParameterAsync(arg_1);
-    }, parameter_1 => CanExecuteStaticWithParameter(parameter_1), false, false);
+    InstanceNoParametersCommand = DelegateCommandFactory.CreateAsyncDelegateCommand(ExecuteInstanceNoParametersAsync, CanExecuteInstanceNoParameters, false, false);
+    StaticNoParametersCommand = DelegateCommandFactory.CreateAsyncDelegateCommand(ExecuteStaticNoParametersAsync, CanExecuteStaticNoParameters, false, false);
+    InstanceWithParameterCommand = DelegateCommandFactory.CreateAsyncDelegateCommand<int>(ExecuteInstanceWithParameterAsync, CanExecuteInstanceWithParameter, false, false);
+    StaticWithParameterCommand = DelegateCommandFactory.CreateAsyncDelegateCommand<int>(ExecuteStaticWithParameterAsync, CanExecuteStaticWithParameter, false, false);
   }
   public AsyncDelegateCommand InstanceNoParametersCommand { get; }
   public AsyncDelegateCommand<int> InstanceWithParameterCommand { get; }

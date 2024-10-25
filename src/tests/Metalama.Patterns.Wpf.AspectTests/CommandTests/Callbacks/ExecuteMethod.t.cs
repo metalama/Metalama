@@ -19,10 +19,10 @@ public class ExecuteMethod
   }
   public ExecuteMethod()
   {
-    InstanceNoParametersCommand = new DelegateCommand(() => ExecuteInstanceNoParameters(), null);
-    StaticNoParametersCommand = new DelegateCommand(() => ExecuteStaticNoParameters(), null);
-    InstanceWithParameterCommand = new DelegateCommand<int>(parameter => ExecuteInstanceWithParameter(parameter), null);
-    StaticWithParameterCommand = new DelegateCommand<int>(parameter_1 => ExecuteStaticWithParameter(parameter_1), null);
+    InstanceNoParametersCommand = DelegateCommandFactory.CreateDelegateCommand(ExecuteInstanceNoParameters, null);
+    StaticNoParametersCommand = DelegateCommandFactory.CreateDelegateCommand(ExecuteStaticNoParameters, null);
+    InstanceWithParameterCommand = DelegateCommandFactory.CreateDelegateCommand<int>(ExecuteInstanceWithParameter, null);
+    StaticWithParameterCommand = DelegateCommandFactory.CreateDelegateCommand<int>(ExecuteStaticWithParameter, null);
   }
   public DelegateCommand InstanceNoParametersCommand { get; }
   public DelegateCommand<int> InstanceWithParameterCommand { get; }

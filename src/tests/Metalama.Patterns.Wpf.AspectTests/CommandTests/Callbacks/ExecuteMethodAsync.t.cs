@@ -19,38 +19,14 @@ public class ExecuteMethodAsync
   private static Task ExecuteStaticWithCancellationTokenAndParameterAsync(int v, CancellationToken cancellationToken) => Task.CompletedTask;
   public ExecuteMethodAsync()
   {
-    InstanceNoParametersCommand = new AsyncDelegateCommand(_ =>
-    {
-      return ExecuteInstanceNoParametersAsync();
-    }, null, false, false);
-    StaticNoParametersCommand = new AsyncDelegateCommand(_ =>
-    {
-      return ExecuteStaticNoParametersAsync();
-    }, null, false, false);
-    InstanceWithParameterCommand = new AsyncDelegateCommand<int>((arg, _) =>
-    {
-      return ExecuteInstanceWithParameterAsync(arg);
-    }, null, false, false);
-    StaticWithParameterCommand = new AsyncDelegateCommand<int>((arg_1, _) =>
-    {
-      return ExecuteStaticWithParameterAsync(arg_1);
-    }, null, false, false);
-    InstanceWithCancellationTokenCommand = new AsyncDelegateCommand(ct =>
-    {
-      return ExecuteInstanceWithCancellationTokenAsync(ct);
-    }, null, true, false);
-    StaticWithCancellationTokenCommand = new AsyncDelegateCommand(ct_1 =>
-    {
-      return ExecuteStaticWithCancellationTokenAsync(ct_1);
-    }, null, true, false);
-    InstanceWithCancellationTokenAndParameterCommand = new AsyncDelegateCommand<int>((arg_2, ct_2) =>
-    {
-      return ExecuteInstanceWithCancellationTokenAndParameterAsync(arg_2, ct_2);
-    }, null, true, false);
-    StaticWithCancellationTokenAndParameterCommand = new AsyncDelegateCommand<int>((arg_3, ct_3) =>
-    {
-      return ExecuteStaticWithCancellationTokenAndParameterAsync(arg_3, ct_3);
-    }, null, true, false);
+    InstanceNoParametersCommand = DelegateCommandFactory.CreateAsyncDelegateCommand(ExecuteInstanceNoParametersAsync, null, false, false);
+    StaticNoParametersCommand = DelegateCommandFactory.CreateAsyncDelegateCommand(ExecuteStaticNoParametersAsync, null, false, false);
+    InstanceWithParameterCommand = DelegateCommandFactory.CreateAsyncDelegateCommand<int>(ExecuteInstanceWithParameterAsync, null, false, false);
+    StaticWithParameterCommand = DelegateCommandFactory.CreateAsyncDelegateCommand<int>(ExecuteStaticWithParameterAsync, null, false, false);
+    InstanceWithCancellationTokenCommand = DelegateCommandFactory.CreateAsyncDelegateCommand(ExecuteInstanceWithCancellationTokenAsync, null, false, false);
+    StaticWithCancellationTokenCommand = DelegateCommandFactory.CreateAsyncDelegateCommand(ExecuteStaticWithCancellationTokenAsync, null, false, false);
+    InstanceWithCancellationTokenAndParameterCommand = DelegateCommandFactory.CreateAsyncDelegateCommand<int>(ExecuteInstanceWithCancellationTokenAndParameterAsync, null, false, false);
+    StaticWithCancellationTokenAndParameterCommand = DelegateCommandFactory.CreateAsyncDelegateCommand<int>(ExecuteStaticWithCancellationTokenAndParameterAsync, null, false, false);
   }
   public AsyncDelegateCommand InstanceNoParametersCommand { get; }
   public AsyncDelegateCommand<int> InstanceWithCancellationTokenAndParameterCommand { get; }
