@@ -49,14 +49,11 @@ public static class SymbolExtensions
 
         switch ( symbol )
         {
-            case IMethodSymbol { AssociatedSymbol: not null } methodSymbol:
-                return GetReferenceOfShortestPath( symbol ) ?? GetReferenceOfShortestPath( methodSymbol.AssociatedSymbol );
+            case IMethodSymbol { AssociatedSymbol: { } associatedSymbol }:
+                return GetReferenceOfShortestPath( symbol ) ?? GetReferenceOfShortestPath( associatedSymbol );
 
-            case IMethodSymbol { IsPartialDefinition: true, PartialImplementationPart: { } partialDefinitionSymbol }:
-                return GetReferenceOfShortestPath( partialDefinitionSymbol );
-
-            case IMethodSymbol { IsPartialDefinition: true, PartialImplementationPart: null }:
-                return GetReferenceOfShortestPath( symbol );
+            case IMethodSymbol { IsPartialDefinition: true, PartialImplementationPart: { } partialImplementationSymbol }:
+                return GetReferenceOfShortestPath( partialImplementationSymbol );
 
             default:
                 return GetReferenceOfShortestPath( symbol );

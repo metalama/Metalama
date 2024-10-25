@@ -1,8 +1,10 @@
 ﻿// Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
+using Metalama.Compiler;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Diagnostics;
 using Metalama.Framework.Engine.Aspects;
+using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.Diagnostics;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
@@ -37,12 +39,22 @@ internal class GeneratedCodeAnalyzer : DiagnosticAnalyzer
 
     private void AnalyzeSymbol( SymbolAnalysisContext context )
     {
-#if ROSLYN_4_4_0_OR_GREATER // Roslyn 4.0 doesn't have IsGeneratedCode, so just do nothing in that case.
+        var tree = context.Symbol.GetClosestPrimaryDeclarationSyntax()?.SyntaxTree;
 
-        // IsGeneratedCode is based on heuristics, so it's not going to be exactly the same as files produced by source generators, but I can't think of a better way to do this.
-        if ( !context.IsGeneratedCode )
+        if ( MetalamaCompilerInfo.IsActive )
         {
-            return;
+            if ( tree == null || !SourceGeneratedCodeTracker.IsGenerated( tree ) )
+            {
+                return;
+            }
+        }
+        else
+        {
+            // At design time, source generated files have relative paths, other files seem to have absolute paths.
+            if ( !context.IsGeneratedCode || Path.IsPathRooted( tree?.FilePath ) )
+            {
+                return;
+            }
         }
 
         var iAspect = context.Compilation.GetTypeByMetadataName( typeof( IAspect ).FullName! );
@@ -69,6 +81,5 @@ internal class GeneratedCodeAnalyzer : DiagnosticAnalyzer
                 context.ReportDiagnostic( diagnostic );
             }
         }
-#endif
     }
 }
