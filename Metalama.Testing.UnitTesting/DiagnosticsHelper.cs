@@ -1,13 +1,15 @@
 ﻿// Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
-#if NET6_0_OR_GREATER || NETFRAMEWORK
-using JetBrains.Profiler.SelfApi;
 using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Extensibility;
+using System.Threading;
+
+#if NET6_0_OR_GREATER || NETFRAMEWORK
+using JetBrains.Profiler.SelfApi;
 using Metalama.Backstage.Utilities;
 using Metalama.Framework.Engine;
 using System.IO;
-using System.Threading;
+#endif
 
 namespace Metalama.Testing.UnitTesting;
 
@@ -20,6 +22,7 @@ internal static class DiagnosticsHelper
         if ( Interlocked.Increment( ref _miniDumps ) == 1 )
         {
             var dumper = BackstageServiceFactory.ServiceProvider.GetBackstageService<IMiniDumper>();
+
             return dumper?.Write();
         }
         else
@@ -30,6 +33,7 @@ internal static class DiagnosticsHelper
         }
     }
 
+#if NET6_0_OR_GREATER || NETFRAMEWORK
     public static void CaptureDotMemoryDumpAndThrow()
     {
         DotMemory.Init();
@@ -41,5 +45,5 @@ internal static class DiagnosticsHelper
 
         throw new AssertionFailedException( $"A memory leak was detected. Inspect the dump file in '{path}'." );
     }
-}
 #endif
+}
