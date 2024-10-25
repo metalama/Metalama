@@ -84,11 +84,17 @@ public sealed partial class CommandAttribute : Attribute, IAspect<IMethod>
     /// Its default value is <c>false</c>, which means that the <see cref="ICommand.CanExecute"/> method will return <c>false</c> if another execution is still running.
     /// This property is ignored if the execution method is non-<see cref="Task"/> and the <see cref="Background"/> property is left to <c>false</c>.
     /// </summary>
+    /// <remarks>
+    /// <para>When <see cref="SupportsConcurrentExecution"/> is <c>true</c>, the <see cref="BaseAsyncDelegateCommand.ExecutionTask"/> is set
+    /// to the last started task, and the <see cref="BaseAsyncDelegateCommand.Cancel"/> only cancels the last started task. To track or cancel individual executions,
+    /// use the <see cref="DelegateCommandExecution"/> returned by the <see cref="AsyncDelegateCommand.Execute"/> method.</para>
+    /// </remarks>
     public bool SupportsConcurrentExecution { get; set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether the command will execute in a background thread. The default value is <c>false</c>, meaning that the command will be
-    /// executed in the UI thread. If this property is set to <c>true</c>, a property of type <see cref="AsyncDelegateCommand"/> is generated, even for non-<see cref="Task"/> execution methods.
+    /// executed in the UI thread. If this property is set to <c>true</c>, a property of type <see cref="AsyncDelegateCommand"/> is generated,
+    /// even for non-<see cref="Task"/> execution methods.
     /// </summary>
     public bool Background { get; set; }
 

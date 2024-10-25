@@ -79,25 +79,17 @@ public abstract class BaseAsyncDelegateCommand : BaseDelegateCommand, IAsyncComm
 
     private protected abstract Task InnerExecuteAsync( object? parameter, CancellationToken cancellationToken );
 
-    private protected void OuterExecute( object? parameter )
+    private protected DelegateCommandExecution OuterExecute( object? parameter )
     {
         if ( !this.OuterCanExecute( parameter ) )
         {
             throw new InvalidOperationException( "The command cannot be executed." );
         }
 
-        this.ExecutionTask = this.ExecuteAsync( parameter );
-
-        this.OnPropertiesChanged( _allProperties );
-    }
-
-    private async Task ExecuteAsync( object? parameter )
-    {
         CancellationTokenSource? cancellationTokenSource;
 
         if ( this._supportsCancellation )
         {
-            // Store the CancellationTokenSource into a local variable because another task may be created.
             this._cancellationTokenSource = cancellationTokenSource = new CancellationTokenSource();
         }
         else
@@ -105,6 +97,17 @@ public abstract class BaseAsyncDelegateCommand : BaseDelegateCommand, IAsyncComm
             cancellationTokenSource = null;
         }
 
+        var task = this.ExecuteAsync( parameter, cancellationTokenSource );
+
+        this.ExecutionTask = task;
+
+        this.OnPropertiesChanged( _allProperties );
+
+        return new DelegateCommandExecution( cancellationTokenSource, task );
+    }
+
+    private async Task ExecuteAsync( object? parameter, CancellationTokenSource? cancellationTokenSource )
+    {
         try
         {
             await this.InnerExecuteAsync( parameter, cancellationTokenSource?.Token ?? CancellationToken.None );

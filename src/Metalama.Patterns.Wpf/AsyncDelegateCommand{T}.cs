@@ -41,9 +41,7 @@ public sealed class AsyncDelegateCommand<T> : BaseAsyncDelegateCommand
         this._execute = execute;
         this._canExecute = canExecute;
     }
-
-    public new Task<T>? ExecutionTask => (Task<T>?) base.ExecutionTask;
-
+    
     /// <summary>
     /// Gets a value indicating whether the <see cref="Execute"/> command can be called with a given parameter.
     /// </summary>
@@ -53,7 +51,7 @@ public sealed class AsyncDelegateCommand<T> : BaseAsyncDelegateCommand
     /// Executes the command with a given parameter.
     /// </summary>
     /// <param name="parameter"></param>
-    public void Execute( T parameter ) => this.OuterExecute( parameter );
+    public DelegateCommandExecution Execute( T parameter ) => this.OuterExecute( parameter );
 
     private protected override bool InnerCanExecute( object? parameter ) => this._canExecute == null || this._canExecute.Invoke( (T) parameter! );
 

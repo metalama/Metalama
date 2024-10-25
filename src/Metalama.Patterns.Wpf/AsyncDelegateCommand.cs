@@ -50,7 +50,7 @@ public sealed class AsyncDelegateCommand : BaseAsyncDelegateCommand
     /// <summary>
     /// Executed the command.
     /// </summary>
-    public void Execute() => this.OuterExecute( null );
+    public DelegateCommandExecution Execute() => this.OuterExecute( null );
 
     private protected override bool InnerCanExecute( object? parameter ) => this._canExecute == null || this._canExecute.Invoke();
 
