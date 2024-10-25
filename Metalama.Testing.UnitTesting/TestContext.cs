@@ -27,6 +27,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+using Xunit.Abstractions;
 
 namespace Metalama.Testing.UnitTesting;
 
@@ -166,9 +167,7 @@ public class TestContext : IDisposable, ITempFileManager, IApplicationInfoProvid
     private async void OnTimeout()
 #pragma warning restore VSTHRD100
     {
-        var logger = this.ServiceProvider.GetLoggerFactory().GetLogger( "TestRunner" );
-
-        logger.Error?.Log( $"Test timeout. It has been running {this._stopwatch?.Elapsed}. Cancelling." );
+        this.TestOutputWriter?.WriteLine( $"Test timeout. It has been running {this._stopwatch?.Elapsed}. Cancelling." );
 
         // Wait a few seconds before taking a dump and killing the process.
         await Task.Delay( TimeSpan.FromSeconds( 10 ), default );
@@ -361,6 +360,8 @@ public class TestContext : IDisposable, ITempFileManager, IApplicationInfoProvid
     /// Gets the test name, for diagnostics.
     /// </summary>
     public string? TestName { get; internal set; }
+    
+    internal ITestOutputHelper? TestOutputWriter { get; set; }
 
     protected virtual void Dispose( bool disposing )
     {

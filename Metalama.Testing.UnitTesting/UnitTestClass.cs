@@ -117,6 +117,7 @@ namespace Metalama.Testing.UnitTesting
                 this.GetMockServices( services ) );
 
             context.TestName = $"{callerFile}:{callerMemberName}";
+            context.TestOutputWriter = this._testOutputHelper;
 
             return context;
         }
