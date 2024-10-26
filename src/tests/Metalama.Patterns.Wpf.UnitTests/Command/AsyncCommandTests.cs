@@ -141,4 +141,14 @@ public class AsyncCommandTests
         Assert.False( this.Instance.CancellableWithCanExecuteCommand.IsCancellationRequested );
         Assert.NotNull( this.Instance.CancellableWithCanExecuteCommand.ExecutionTask );
     }
+
+    [Fact]
+    public async Task ExecutedEventAsync()
+    {
+        var executedTokens = new List<DelegateCommandExecution>();
+        this.Instance.CanExecuteCancellableWithCanExecute = true;
+        this.Instance.CancellableWithCanExecuteCommand.Executed += token => executedTokens.Add( token );
+        this.Instance.CancellableWithCanExecuteCommand.Execute();
+        Assert.NotEmpty( executedTokens );
+    }
 }

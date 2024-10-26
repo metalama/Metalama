@@ -1,3 +1,5 @@
+// Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
+
 namespace Metalama.Patterns.Wpf;
 
 /// <summary>
@@ -7,7 +9,7 @@ namespace Metalama.Patterns.Wpf;
 public readonly struct DelegateCommandExecution
 {
     private readonly CancellationTokenSource? _cancellationTokenSource;
-    
+
     public Task Task { get; }
 
     public void Cancel()
@@ -21,7 +23,7 @@ public readonly struct DelegateCommandExecution
             throw new InvalidOperationException();
         }
     }
-    
+
     public bool IsCancellationRequested => this._cancellationTokenSource?.IsCancellationRequested ?? false;
 
     internal DelegateCommandExecution( CancellationTokenSource? cancellationTokenSource, Task task )

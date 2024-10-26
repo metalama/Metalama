@@ -55,6 +55,11 @@ public abstract class BaseAsyncDelegateCommand : BaseDelegateCommand, IAsyncComm
     /// </summary>
     public Task? ExecutionTask { get; private set; }
 
+    /// <summary>
+    /// Event raised when the <see cref="AsyncDelegateCommand{T}.Execute"/> method is called.
+    /// </summary>
+    public event Action<DelegateCommandExecution>? Executed;
+
     void ICommand.Execute( object? parameter ) => this.OuterExecute( parameter );
 
     bool ICommand.CanExecute( object? parameter ) => this.OuterCanExecute( parameter );
@@ -103,7 +108,10 @@ public abstract class BaseAsyncDelegateCommand : BaseDelegateCommand, IAsyncComm
 
         this.OnPropertiesChanged( _allProperties );
 
-        return new DelegateCommandExecution( cancellationTokenSource, task );
+        var token = new DelegateCommandExecution( cancellationTokenSource, task );
+        this.Executed?.Invoke( token );
+
+        return token;
     }
 
     private async Task ExecuteAsync( object? parameter, CancellationTokenSource? cancellationTokenSource )
