@@ -6,7 +6,7 @@
 
 using System;
 
-namespace Metalama.Framework.Tests.Integration.Tests.Aspects.Bugs.Bug33813;
+namespace Metalama.Framework.Tests.Integration.Tests.Aspects.Bugs.Bug34583;
 
 public class MyAttribute : Attribute
 {
