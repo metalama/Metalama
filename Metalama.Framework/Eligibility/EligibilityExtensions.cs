@@ -226,12 +226,20 @@ public static partial class EligibilityExtensions
             } );
 
     /// <summary>
-    /// Requires the target method to not be partial.
+    /// Requires the target method not to be partial.
     /// </summary>
     public static void MustNotBePartial( this IEligibilityBuilder<IMethod> eligibilityBuilder )
         => eligibilityBuilder.MustSatisfy(
             m => !m.IsPartial,
             method => $"{method} must not be partial" );
+
+    /// <summary>
+    /// Requires the target declaration not to be partial.
+    /// </summary>
+    public static void MustNotBePartial( this IEligibilityBuilder<IMemberOrNamedType> eligibilityBuilder )
+        => eligibilityBuilder.MustSatisfy(
+            d => !d.IsPartial,
+            declaration => $"{declaration} must not be partial" );
 
     /// <summary>
     /// Requires the target property or indexer to be writable.

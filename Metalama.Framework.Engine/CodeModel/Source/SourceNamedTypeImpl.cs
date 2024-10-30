@@ -318,7 +318,7 @@ internal sealed class SourceNamedTypeImpl : SourceMemberOrNamedType, INamedTypeI
                 _ => default
             };
 
-            return modifiers.Any( m => m.IsKind( SyntaxKind.PartialKeyword ) );
+            return modifiers.Any( SyntaxKind.PartialKeyword );
         }
     }
 

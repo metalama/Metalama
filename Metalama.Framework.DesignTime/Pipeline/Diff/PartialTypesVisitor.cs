@@ -56,12 +56,9 @@ internal sealed class PartialTypesVisitor : CSharpSyntaxVisitor<ImmutableArray<B
 
     private static ImmutableArray<BaseTypeDeclarationSyntax> VisitBaseTypeDeclaration( BaseTypeDeclarationSyntax type )
     {
-        foreach ( var modifier in type.Modifiers )
+        if ( type.Modifiers.Any( SyntaxKind.PartialKeyword ) )
         {
-            if ( modifier.IsKind( SyntaxKind.PartialKeyword ) )
-            {
-                return ImmutableArray.Create( type );
-            }
+            return ImmutableArray.Create( type );
         }
 
         return ImmutableArray<BaseTypeDeclarationSyntax>.Empty;

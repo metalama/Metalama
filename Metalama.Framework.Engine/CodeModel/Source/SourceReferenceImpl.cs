@@ -62,6 +62,22 @@ internal sealed class SourceReferenceImpl : ISourceReferenceImpl
 #pragma warning restore LAMA0830
 
     public bool IsImplementationPart( in SourceReference sourceReference )
-        => !(sourceReference.NodeOrTokenInternal is MethodDeclarationSyntax { Body: null, ExpressionBody: null } method &&
-             method.Modifiers.Any( m => m.IsKind( SyntaxKind.PartialKeyword ) ));
+    {
+        if ( sourceReference.NodeOrTokenInternal is MethodDeclarationSyntax { Body: null, ExpressionBody: null } method &&
+            method.Modifiers.Any( SyntaxKind.PartialKeyword ) )
+        {
+            return false;
+        }
+
+#if ROSLYN_4_12_0_OR_GREATER
+        if ( sourceReference.NodeOrTokenInternal is PropertyDeclarationSyntax { ExpressionBody: null, AccessorList.Accessors: { } accessors } property &&
+            property.Modifiers.Any( SyntaxKind.PartialKeyword ) &&
+            accessors.All( a => a is { Body: null, ExpressionBody: null } ) )
+        {
+            return false;
+        }
+#endif
+
+        return true;
+    }
 }

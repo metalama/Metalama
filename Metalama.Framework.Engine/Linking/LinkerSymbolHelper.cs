@@ -15,10 +15,17 @@ internal static class LinkerSymbolHelper
             symbol = genericDefinition;
         }
 
-        if ( symbol is IMethodSymbol { PartialDefinitionPart: { } partialDefinition } )
+        if ( symbol is IMethodSymbol { PartialDefinitionPart: { } methodPartialDefinition } )
         {
-            symbol = partialDefinition;
+            symbol = methodPartialDefinition;
         }
+
+#if ROSLYN_4_12_0_OR_GREATER
+        if ( symbol is IPropertySymbol { PartialDefinitionPart: { } propertyPartialDefinition } )
+        {
+            symbol = propertyPartialDefinition;
+        }
+#endif
 
         return symbol;
     }

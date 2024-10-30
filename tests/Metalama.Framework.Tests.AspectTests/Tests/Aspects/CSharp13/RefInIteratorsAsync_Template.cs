@@ -7,7 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace Metalama.Framework.Tests.Integration.Tests.Aspects.CSharp13.RefInIteratorsAsync_Template;
+namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.CSharp13.RefInIteratorsAsync_Template;
 
 #if ROSLYN_4_12_0_OR_GREATER
 

@@ -19,6 +19,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 
+#if ROSLYN_4_12_0_OR_GREATER
+using System.Collections.Immutable;
+#endif
+
 namespace Metalama.Framework.Engine.CodeModel.Source
 {
     internal sealed class SourceProperty : SourcePropertyOrIndexer, IPropertyImpl
@@ -26,7 +30,14 @@ namespace Metalama.Framework.Engine.CodeModel.Source
         public SourceProperty( IPropertySymbol symbol, CompilationModel compilation, GenericContext? genericContextForSymbolMapping ) : base(
             symbol,
             compilation,
-            genericContextForSymbolMapping ) { }
+            genericContextForSymbolMapping ) 
+        {
+#if ROSLYN_4_12_0_OR_GREATER
+            Invariant.Assert(
+                symbol.PartialDefinitionPart == null,
+                "Cannot use partial implementation to instantiate the SourceProperty class." );
+#endif
+        }
 
         public FieldOrPropertyInfo ToFieldOrPropertyInfo() => CompileTimeFieldOrPropertyInfo.Create( this );
 
@@ -59,6 +70,10 @@ namespace Metalama.Framework.Engine.CodeModel.Source
             => this.PropertySymbol == this.PropertySymbol.OriginalDefinition
                 ? this
                 : this.Compilation.Factory.GetProperty( this.PropertySymbol.OriginalDefinition );
+
+#if ROSLYN_4_12_0_OR_GREATER
+        public override bool IsPartial => this.PropertySymbol.IsPartialDefinition || this.PropertySymbol.PartialDefinitionPart != null;
+#endif
 
         IRef<IFieldOrProperty> IFieldOrProperty.ToRef() => this.Ref;
 
@@ -106,6 +121,29 @@ namespace Metalama.Framework.Engine.CodeModel.Source
         }
 
         bool IExpression.IsAssignable => this.Writeability != Writeability.None;
+
+#if ROSLYN_4_12_0_OR_GREATER
+        [Memo]
+        public override ImmutableArray<SourceReference> Sources => this.GetSourcesImpl();
+
+        private ImmutableArray<SourceReference> GetSourcesImpl()
+        {
+            if ( this.PropertySymbol.PartialImplementationPart != null )
+            {
+                var sources = ImmutableArray.CreateBuilder<SourceReference>( 2 );
+                sources.Add( new SourceReference( this.PropertySymbol.DeclaringSyntaxReferences[0].GetSyntax(), SourceReferenceImpl.Instance ) );
+
+                sources.Add(
+                    new SourceReference( this.PropertySymbol.PartialImplementationPart.DeclaringSyntaxReferences[0].GetSyntax(), SourceReferenceImpl.Instance ) );
+
+                return sources.MoveToImmutable();
+            }
+            else
+            {
+                return base.Sources;
+            }
+        }
+#endif
 
         [Memo]
         private IFullRef<IProperty> Ref => this.RefFactory.FromSymbolBasedDeclaration<IProperty>( this );

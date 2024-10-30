@@ -4,7 +4,7 @@ using Metalama.Framework.Code;
 using System;
 using System.IO;
 
-namespace Metalama.Framework.Tests.Integration.Tests.Aspects.Misc.MultipleConstraints;
+namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Misc.MultipleConstraints;
 
 internal class MyAspect : TypeAspect
 {

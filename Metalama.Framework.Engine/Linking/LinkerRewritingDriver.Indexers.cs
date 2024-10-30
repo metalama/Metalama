@@ -32,7 +32,25 @@ namespace Metalama.Framework.Engine.Linking
         {
             if ( this.InjectionRegistry.IsOverrideTarget( symbol ) )
             {
+#if ROSLYN_4_12_0_OR_GREATER
+                if ( symbol is { IsPartialDefinition: true, PartialImplementationPart: { } } )
+                {
+                    // This is a partial indexer declaration that is not to be transformed.
+                    return [indexerDeclaration];
+                }
+#endif
+
                 var members = new List<MemberDeclarationSyntax>();
+
+#if ROSLYN_4_12_0_OR_GREATER
+                if ( symbol is { IsPartialDefinition: true, PartialImplementationPart: null } )
+                {
+                    // This is a partial indexer declaration that did not have any body.
+                    // Keep it as is and add a new declaration that will contain the override.
+                    members.Add( indexerDeclaration );
+                }
+#endif
+
                 var lastOverride = (IPropertySymbol) this.InjectionRegistry.GetLastOverride( symbol );
 
                 if ( this.AnalysisRegistry.IsInlined( lastOverride.ToSemantic( IntermediateSymbolSemanticKind.Default ) ) )
@@ -162,15 +180,23 @@ namespace Metalama.Framework.Engine.Linking
                         _ => context.ElasticEndOfLineTriviaList.AddRange( accessorListLeadingTrivia )
                     };
 
-                return
-                    indexerDeclaration.PartialUpdate(
-                        accessorList: AccessorList(
-                                Token( accessorListLeadingTrivia, SyntaxKind.OpenBraceToken, accessorStartingTrivia ),
-                                List( transformedAccessors ),
-                                Token( accessorEndingTrivia, SyntaxKind.CloseBraceToken, accessorListTrailingTrivia ) )
-                            .WithGeneratedCodeAnnotation( FormattingAnnotations.SystemGeneratedCodeAnnotation ),
-                        expressionBody: null,
-                        semicolonToken: default(SyntaxToken) );
+                var result = indexerDeclaration.PartialUpdate(
+                    accessorList: AccessorList(
+                            Token( accessorListLeadingTrivia, SyntaxKind.OpenBraceToken, accessorStartingTrivia ),
+                            List( transformedAccessors ),
+                            Token( accessorEndingTrivia, SyntaxKind.CloseBraceToken, accessorListTrailingTrivia ) )
+                        .WithGeneratedCodeAnnotation( FormattingAnnotations.SystemGeneratedCodeAnnotation ),
+                    expressionBody: null,
+                    semicolonToken: default(SyntaxToken) );
+
+#if ROSLYN_4_12_0_OR_GREATER
+                if ( symbol is { IsPartialDefinition: true, PartialImplementationPart: null } )
+                {
+                    result = RemoveAttributesForPartialImplementation( result );
+                }
+#endif
+
+                return result;
             }
 
             AccessorDeclarationSyntax GetLinkedAccessor(
@@ -218,6 +244,21 @@ namespace Metalama.Framework.Engine.Linking
                     semicolonToken: default(SyntaxToken) );
             }
         }
+
+#if ROSLYN_4_12_0_OR_GREATER
+        private static IndexerDeclarationSyntax RemoveAttributesForPartialImplementation( IndexerDeclarationSyntax declaration )
+        {
+            return
+                declaration.PartialUpdate(
+                    attributeLists: List<AttributeListSyntax>(),
+                    parameterList: declaration.ParameterList.PartialUpdate(
+                        parameters: SeparatedList(
+                            declaration.ParameterList.Parameters.SelectAsArray( p => p.PartialUpdate( attributeLists: List<AttributeListSyntax>() ) ) ) ),
+                    accessorList: declaration.AccessorList?.PartialUpdate(
+                        accessors: List(
+                            declaration.AccessorList.Accessors.SelectAsArray( a => a.PartialUpdate( attributeLists: List<AttributeListSyntax>() ) ) ) ) );
+        }
+#endif
 
         private static BlockSyntax GetImplicitIndexerGetterBody( IMethodSymbol symbol, SyntaxGenerationContext context )
             => context.SyntaxGenerator.FormattedBlock(

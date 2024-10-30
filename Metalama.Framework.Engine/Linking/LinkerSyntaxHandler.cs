@@ -6,45 +6,29 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Metalama.Framework.Engine.Linking;
 
-internal sealed class LinkerSyntaxHandler
+internal static class LinkerSyntaxHandler
 {
-    private readonly LinkerInjectionRegistry _injectionRegistry;
+    public static SyntaxNode GetCanonicalRootNode( IMethodSymbol symbol, LinkerInjectionRegistry injectionRegistry )
+        => GetCanonicalRootNodeOrNull( symbol, injectionRegistry ) ?? throw new AssertionFailedException( $"'{symbol}' is not an override target." );
 
-    public LinkerSyntaxHandler( LinkerInjectionRegistry injectionRegistry )
-    {
-        this._injectionRegistry = injectionRegistry;
-    }
-
-    public SyntaxNode GetCanonicalRootNode( IMethodSymbol symbol )
+    public static SyntaxNode? GetCanonicalRootNodeOrNull( IMethodSymbol symbol, LinkerInjectionRegistry injectionRegistry )
     {
         var declaration = symbol.GetPrimaryDeclarationSyntax();
 
-        if ( this._injectionRegistry.IsOverrideTarget( symbol ) )
+        if ( injectionRegistry.IsOverrideTarget( symbol ) )
         {
             switch ( declaration )
             {
                 case MethodDeclarationSyntax methodDecl:
-                    // Partial methods without declared body have empty implicit body.
+                    // Partial methods without declared body have the whole declaration as body.
                     return methodDecl.Body ?? (SyntaxNode?) methodDecl.ExpressionBody ?? methodDecl;
 
-                case ConstructorDeclarationSyntax constructorDecl:
-                    return (SyntaxNode?) constructorDecl.Body
-                           ?? constructorDecl.ExpressionBody ?? throw new AssertionFailedException( $"'{symbol}' has no implementation." );
-
-                case DestructorDeclarationSyntax destructorDecl:
-                    return (SyntaxNode?) destructorDecl.Body
-                           ?? destructorDecl.ExpressionBody ?? throw new AssertionFailedException( $"'{symbol}' has no implementation." );
-
-                case OperatorDeclarationSyntax operatorDecl:
-                    return (SyntaxNode?) operatorDecl.Body
-                           ?? operatorDecl.ExpressionBody ?? throw new AssertionFailedException( $"'{symbol}' has no implementation." );
-
-                case ConversionOperatorDeclarationSyntax operatorDecl:
-                    return (SyntaxNode?) operatorDecl.Body
-                           ?? operatorDecl.ExpressionBody ?? throw new AssertionFailedException( $"'{symbol}' has no implementation." );
+                case BaseMethodDeclarationSyntax otherMethodDecl:
+                    return (SyntaxNode?) otherMethodDecl.Body
+                           ?? otherMethodDecl.ExpressionBody ?? throw new AssertionFailedException( $"'{symbol}' has no implementation." );
 
                 case AccessorDeclarationSyntax accessorDecl:
-                    // Accessors with no body are auto-properties, in which case we have a substitution for the whole accessor declaration.
+                    // Accessors with no body are auto-properties or partial properties, in which case we have a substitution for the whole accessor declaration.
                     Invariant.Assert( !symbol.IsAbstract );
 
                     return accessorDecl.Body ?? (SyntaxNode?) accessorDecl.ExpressionBody ?? accessorDecl;
@@ -57,26 +41,24 @@ internal sealed class LinkerSyntaxHandler
                     // Event field accessors start replacement as variableDecls.
                     return variableDecl;
 
-                case ParameterSyntax parameterSyntax:
+                case ParameterSyntax { Parent.Parent: RecordDeclarationSyntax } positionalProperty:
                     // Record positional property.
-                    return parameterSyntax;
+                    return positionalProperty;
 
                 default:
-                    throw new AssertionFailedException( $"Unexpected symbol: '{symbol}'." );
+                    throw new AssertionFailedException( $"Unexpected override target symbol: '{symbol}'." );
             }
         }
 
-        if ( this._injectionRegistry.IsOverride( symbol ) )
+        if ( injectionRegistry.IsOverride( symbol ) )
         {
             switch ( declaration )
             {
-                case MethodDeclarationSyntax methodDecl:
+                case BaseMethodDeclarationSyntax methodDecl:
+                    Invariant.Assert( methodDecl is MethodDeclarationSyntax or ConstructorDeclarationSyntax or DestructorDeclarationSyntax );
+
                     return (SyntaxNode?) methodDecl.Body
                            ?? methodDecl.ExpressionBody ?? throw new AssertionFailedException( $"'{symbol}' has no implementation." );
-
-                case ConstructorDeclarationSyntax constructorDecl:
-                    return (SyntaxNode?) constructorDecl.Body
-                           ?? constructorDecl.ExpressionBody ?? throw new AssertionFailedException( $"'{symbol}' has no implementation." );
 
                 case AccessorDeclarationSyntax accessorDecl:
                     return (SyntaxNode?) accessorDecl.Body
@@ -87,6 +69,6 @@ internal sealed class LinkerSyntaxHandler
             }
         }
 
-        throw new AssertionFailedException( $"'{symbol}' is not an override target." );
+        return null;
     }
 }

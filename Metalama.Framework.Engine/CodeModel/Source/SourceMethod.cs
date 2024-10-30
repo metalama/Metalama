@@ -36,7 +36,7 @@ internal sealed class SourceMethod : SourceMethodBase, IMethodImpl
 
         Invariant.Assert(
             symbol.PartialDefinitionPart == null,
-            "Cannot use partial implementation to instantiate the Method class." );
+            "Cannot use partial implementation to instantiate the SourceMethod class." );
     }
 
     [Memo]

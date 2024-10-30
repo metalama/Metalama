@@ -181,15 +181,7 @@ internal sealed class ReturnStatementSubstitution : SyntaxNodeSubstitution
                     expression );
             }
 
-            return
-                ExpressionStatement(
-                        AssignmentExpression(
-                            SyntaxKind.SimpleAssignmentExpression,
-                            identifier,
-                            Token( TriviaList( ElasticSpace ), SyntaxKind.EqualsToken, TriviaList( ElasticSpace ) ),
-                            expression ),
-                        Token( default, SyntaxKind.SemicolonToken, substitutionContext.SyntaxGenerationContext.ElasticEndOfLineTriviaList ) )
-                    .WithGeneratedCodeAnnotation( FormattingAnnotations.SystemGeneratedCodeAnnotation );
+            return SyntaxFactoryEx.AssignmentStatement( identifier, expression, substitutionContext.SyntaxGenerationContext );
         }
 
         GotoStatementSyntax CreateGotoStatement()

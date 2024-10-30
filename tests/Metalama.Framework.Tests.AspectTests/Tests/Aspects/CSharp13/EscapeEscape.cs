@@ -8,7 +8,7 @@ using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using System;
 
-namespace Metalama.Framework.Tests.Integration.Tests.Aspects.CSharp13.EscapeEscape;
+namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.CSharp13.EscapeEscape;
 
 // C# 13 feature: Escape sequence \e for the escape character
 

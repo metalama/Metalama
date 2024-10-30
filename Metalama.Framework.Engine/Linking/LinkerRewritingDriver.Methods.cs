@@ -143,7 +143,7 @@ namespace Metalama.Framework.Engine.Linking
                         _ => throw new AssertionFailedException( $"Unexpected method declaration: {methodDeclaration}" )
                     };
 
-                var ret = methodDeclaration
+                var result = methodDeclaration
                     .PartialUpdate(
                         expressionBody: null,
                         modifiers: modifiers,
@@ -157,10 +157,10 @@ namespace Metalama.Framework.Engine.Linking
 
                 if ( symbol is { IsPartialDefinition: true, PartialImplementationPart: null } )
                 {
-                    ret = RemoveAttributesForPartialImplementation( ret );
+                    result = RemoveAttributesForPartialImplementation( result );
                 }
 
-                return ret;
+                return result;
             }
         }
 

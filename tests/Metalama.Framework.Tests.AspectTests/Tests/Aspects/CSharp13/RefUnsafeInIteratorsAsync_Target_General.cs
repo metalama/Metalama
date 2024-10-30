@@ -8,7 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace Metalama.Framework.Tests.Integration.Tests.Aspects.CSharp13.RefUnsafeInIteratorsAsync_Target_General;
+namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.CSharp13.RefUnsafeInIteratorsAsync_Target_General;
 
 class TheAspect : OverrideMethodAspect
 {

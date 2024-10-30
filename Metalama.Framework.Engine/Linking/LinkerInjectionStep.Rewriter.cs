@@ -1141,12 +1141,12 @@ internal sealed partial class LinkerInjectionStep
             var semanticModel = this._semanticModelProvider.GetSemanticModel( originalNode.SyntaxTree );
             var symbol = semanticModel.GetDeclaredSymbol( originalNode );
 
-            if ( symbol != null && symbol is not { PartialImplementationPart: not null } )
+            if ( symbol is { PartialImplementationPart: null } )
             {
                 var method = this._compilation.RefFactory.FromSymbol<IMethod>( symbol );
                 var entryStatements = this._transformationCollection.GetInjectedEntryStatements( method );
 
-                node = (MethodDeclarationSyntax) InjectStatementsIntoMemberDeclaration( method, entryStatements, Array.Empty<StatementSyntax>(), node );
+                node = (MethodDeclarationSyntax) InjectStatementsIntoMemberDeclaration( method, entryStatements, [], node );
             }
 
             // Rewrite attributes.
@@ -1236,7 +1236,13 @@ internal sealed partial class LinkerInjectionStep
             var symbol = semanticModel.GetDeclaredSymbol( originalNode ).AssertSymbolNotNull();
             var property = this._compilation.RefFactory.FromSymbol<IProperty>( symbol );
 
-            if ( symbol is { SetMethod: { } setMethodSymbol } )
+            if ( symbol is
+                {
+                    SetMethod: { } setMethodSymbol,
+#if ROSLYN_4_12_0_OR_GREATER
+                    PartialImplementationPart: null
+#endif
+                } )
             {
                 var setter = this._compilation.RefFactory.FromSymbol<IMethod>( setMethodSymbol );
 
@@ -1245,7 +1251,7 @@ internal sealed partial class LinkerInjectionStep
                 node = (PropertyDeclarationSyntax) InjectStatementsIntoMemberDeclaration(
                     setter,
                     entryStatements,
-                    Array.Empty<StatementSyntax>(),
+                    [],
                     node );
             }
 
@@ -1276,7 +1282,12 @@ internal sealed partial class LinkerInjectionStep
             var semanticModel = this._semanticModelProvider.GetSemanticModel( originalNode.SyntaxTree );
             var symbol = semanticModel.GetDeclaredSymbol( originalNode );
 
-            if ( symbol != null )
+            if ( symbol is
+                {
+#if ROSLYN_4_12_0_OR_GREATER
+                    PartialImplementationPart: null
+#endif
+                } )
             {
                 var indexer = this.RefFactory.FromSymbol<IIndexer>( symbol );
 
@@ -1288,7 +1299,7 @@ internal sealed partial class LinkerInjectionStep
                     node = (IndexerDeclarationSyntax) InjectStatementsIntoMemberDeclaration(
                         getter,
                         entryStatements,
-                        Array.Empty<StatementSyntax>(),
+                        [],
                         node );
                 }
 
@@ -1300,7 +1311,7 @@ internal sealed partial class LinkerInjectionStep
                     node = (IndexerDeclarationSyntax) InjectStatementsIntoMemberDeclaration(
                         setter,
                         entryStatements,
-                        Array.Empty<StatementSyntax>(),
+                        [],
                         node );
                 }
             }

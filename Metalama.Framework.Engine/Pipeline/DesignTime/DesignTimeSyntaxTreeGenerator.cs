@@ -339,7 +339,7 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
             foreach ( var member in injectedMembers )
             {
                 if ( member is TypeDeclarationSyntax typeDeclaration
-                     && typeDeclaration.Modifiers.All( m => !m.IsKind( SyntaxKind.PartialKeyword ) ) )
+                     && !typeDeclaration.Modifiers.Any( SyntaxKind.PartialKeyword ) )
                 {
                     yield return
                         member.WithModifiers( member.Modifiers.Add( Token( TriviaList( ElasticSpace ), SyntaxKind.PartialKeyword, TriviaList() ) ) );
