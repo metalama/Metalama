@@ -351,7 +351,7 @@ internal sealed partial class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl
     }
 
     private Advice.AdviceConstructorParameters<TDeclaration> GetAdviceConstructorParameters<TDeclaration>( TDeclaration target )
-        where TDeclaration : IDeclaration
+        where TDeclaration : class, IDeclaration
     {
         if ( this._templateClassInstance == null )
         {

@@ -132,7 +132,7 @@ namespace Metalama.Framework.Engine.Linking.Substitution
                         BlockSyntax DiscardBlock()
                         {
                             var returnTypeSyntax =
-                                substitutionContext.SyntaxGenerationContext.SyntaxGenerator.Type( this._originalContainingSymbol.ReturnType );
+                                substitutionContext.SyntaxGenerationContext.SyntaxGenerator.TypeSyntax( this._originalContainingSymbol.ReturnType );
 
                             return syntaxGenerator.FormattedBlock(
                                     SyntaxFactoryEx.DiscardStatement(

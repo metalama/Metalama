@@ -254,7 +254,7 @@ namespace Metalama.Framework.Engine.Templating
                 switch ( type )
                 {
                     case IdentifierNameSyntax { IsVar: true }:
-                        variableType = this.SyntaxSerializationContext.SyntaxGenerator.Type( Microsoft.CodeAnalysis.SpecialType.System_Object );
+                        variableType = this.SyntaxSerializationContext.SyntaxGenerator.TypeSyntax( Microsoft.CodeAnalysis.SpecialType.System_Object );
 
                         variableValue = SyntaxFactoryEx.Null;
 

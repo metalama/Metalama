@@ -20,21 +20,21 @@ namespace Metalama.Framework.Engine.CodeModel;
 
 public sealed partial class CompilationModel
 {
-    private ImmutableDictionary<IFullRef<INamedType>, FieldUpdatableCollection> _fields;
-    private ImmutableDictionary<IFullRef<INamedType>, MethodUpdatableCollection> _methods;
-    private ImmutableDictionary<IFullRef<INamedType>, ConstructorUpdatableCollection> _constructors;
-    private ImmutableDictionary<IFullRef<INamedType>, EventUpdatableCollection> _events;
-    private ImmutableDictionary<IFullRef<INamedType>, PropertyUpdatableCollection> _properties;
-    private ImmutableDictionary<IFullRef<INamedType>, IndexerUpdatableCollection> _indexers;
-    private ImmutableDictionary<IFullRef<INamedType>, InterfaceUpdatableCollection> _interfaceImplementations;
-    private ImmutableDictionary<IFullRef<INamedType>, AllInterfaceUpdatableCollection> _allInterfaceImplementations;
-    private ImmutableDictionary<IFullRef<IHasParameters>, ParameterUpdatableCollection> _parameters;
-    private ImmutableDictionary<IFullRef<IDeclaration>, AttributeUpdatableCollection> _attributes;
-    private ImmutableDictionary<IFullRef<INamedType>, ConstructorBuilderData> _staticConstructors;
-    private ImmutableDictionary<IFullRef<INamedType>, MethodBuilderData> _finalizers;
-    private ImmutableDictionary<IFullRef<INamespaceOrNamedType>, TypeUpdatableCollection> _namedTypesByParent;
-    private ImmutableDictionary<IFullRef<INamespace>, NamespaceUpdatableCollection> _namespaces;
-    private TypeUpdatableCollection? _topLevelNamedTypes;
+    private ImmutableDictionary<Ref<INamedType>, FieldUpdatableCollection> _fields;
+    private ImmutableDictionary<Ref<INamedType>, ISourceMemberCollection<IMethod>> _methods;
+    private ImmutableDictionary<Ref<INamedType>, ConstructorUpdatableCollection> _constructors;
+    private ImmutableDictionary<Ref<INamedType>, EventUpdatableCollection> _events;
+    private ImmutableDictionary<Ref<INamedType>, PropertyUpdatableCollection> _properties;
+    private ImmutableDictionary<Ref<INamedType>, IndexerUpdatableCollection> _indexers;
+    private ImmutableDictionary<Ref<INamedType>, InterfaceUpdatableCollection> _interfaceImplementations;
+    private ImmutableDictionary<Ref<INamedType>, AllInterfaceUpdatableCollection> _allInterfaceImplementations;
+    private ImmutableDictionary<Ref<IHasParameters>, ParameterUpdatableCollection> _parameters;
+    private ImmutableDictionary<Ref<IDeclaration>, AttributeUpdatableCollection> _attributes;
+    private ImmutableDictionary<Ref<INamedType>, IConstructorBuilder> _staticConstructors;
+    private ImmutableDictionary<Ref<INamedType>, IMethodBuilder> _finalizers;
+    private ImmutableDictionary<Ref<INamespaceOrNamedType>, TypeUpdatableCollection> _namedTypes;
+    private ImmutableDictionary<Ref<INamespace>, NamespaceUpdatableCollection> _namespaces;
+    private ImmutableDictionary<string, NamespaceBuilder> _namespaceBuilders;
 
     internal ImmutableDictionaryOfArray<IRef<IDeclaration>, AnnotationInstance> Annotations { get; private set; }
 
@@ -95,13 +95,37 @@ public sealed partial class CompilationModel
 
     internal bool Contains( NamespaceBuilder namespaceBuilder )
     {
-        var containingNamespace = namespaceBuilder.ContainingNamespace ?? namespaceBuilder.ContainingNamespace ?? throw new AssertionFailedException();
-
-        return this._namespaces.TryGetValue(
-                   containingNamespace.ToFullRef(),
-                   out var namespaces )
-               && namespaces.Contains( namespaceBuilder.ToRef() );
+        // Anomaly with namespaces: many instances of the NamespaceBuilder class can represent the same entity, so we rely on the full name.
+        return this._namespaceBuilders.ContainsKey( namespaceBuilder.FullName );
     }
+
+
+    private bool Contains( DeclarationBuilder builder )
+        => builder switch
+        {
+            FieldBuilder fieldBuilder => this.Contains( fieldBuilder ),
+            MethodBuilder methodBuilder => this.Contains( methodBuilder ),
+            ConstructorBuilder constructorBuilder => this.Contains( constructorBuilder ),
+            EventBuilder eventBuilder => this.Contains( eventBuilder ),
+            PropertyBuilder propertyBuilder => this.Contains( propertyBuilder ),
+            IndexerBuilder indexerBuilder => this.Contains( indexerBuilder ),
+            BaseParameterBuilder parameterBuilder => this.Contains( parameterBuilder ),
+            _ => throw new AssertionFailedException( $"Unexpected declaration type {builder.GetType()}." )
+        };
+
+    // TODO: Check why the next method is never used.
+    // Resharper disable UnusedMember.Global
+
+    internal bool Contains( ParameterBuilder parameterBuilder )
+    {
+        if ( parameterBuilder.IsReturnParameter )
+        {
+            return this.Contains( (DeclarationBuilder) parameterBuilder.DeclaringMember );
+        }
+        else if ( parameterBuilder.DeclaringMember is DeclarationBuilder declarationBuilder )
+        {
+            return this.Contains( declarationBuilder ) && ((IHasParameters) declarationBuilder).Parameters.Contains( parameterBuilder );
+        }
 
     private TCollection GetMemberCollection<TOwner, TCollection>(
         ref ImmutableDictionary<IFullRef<TOwner>, TCollection> dictionary,
@@ -461,12 +485,21 @@ public sealed partial class CompilationModel
 
                 break;
 
-            case NamespaceBuilderData @namespace:
-                var namespaces = this.GetNamespaceCollection(
-                    @namespace.ContainingDeclaration.AssertNotNull().As<INamespace>(),
-                    true );
+            case NamespaceBuilder @namespace:
+                // Anomaly with namespaces:
+                // Aspects on different types of the same depth can independently introduce identical namespaces.
+                // This must be resolved here.
+                // It means we will have several instances of NamespaceBuilder pointing to the same entity.
 
-                namespaces.Add( @namespace.ToRef() );
+                if ( !this._namespaceBuilders.ContainsKey( @namespace.FullName ) )
+                {
+                    var namespaces = this.GetNamespaceCollection(
+                        @namespace.ContainingNamespace.AssertNotNull().ToValueTypedRef().As<INamespace>(),
+                        true );
+
+                    namespaces.Add( ((INamespace) @namespace).ToMemberRef() );
+                    this._namespaceBuilders = this._namespaceBuilders.Add( @namespace.FullName, @namespace );
+                }
 
                 break;
 

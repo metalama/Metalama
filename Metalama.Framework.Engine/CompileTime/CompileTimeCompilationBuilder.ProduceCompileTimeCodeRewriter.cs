@@ -129,11 +129,11 @@ namespace Metalama.Framework.Engine.CompileTime
                 this._typeOfRewriter = new TypeOfRewriter( this._syntaxGenerationContext );
 
                 this._originalNameTypeSyntax = (NameSyntax)
-                    this._syntaxGenerationContext.SyntaxGenerator.Type(
+                    this._syntaxGenerationContext.SyntaxGenerator.TypeSyntax(
                         this._syntaxGenerationContext.ReflectionMapper.GetTypeSymbol( typeof(OriginalIdAttribute) ) );
 
                 this._originalPathTypeSyntax = (NameSyntax)
-                    this._syntaxGenerationContext.SyntaxGenerator.Type(
+                    this._syntaxGenerationContext.SyntaxGenerator.TypeSyntax(
                         this._syntaxGenerationContext.ReflectionMapper.GetTypeSymbol( typeof(OriginalPathAttribute) ) );
 
                 this._fabricType = compilationContext.ReflectionMapper.GetTypeSymbol( typeof(Fabric) );
@@ -561,8 +561,8 @@ namespace Metalama.Framework.Engine.CompileTime
                                 var newMethod = MethodDeclaration(
                                         default,
                                         default,
-                                        syntaxGenerator.Type( method.ReturnType ),
-                                        ExplicitInterfaceSpecifier( (NameSyntax) syntaxGenerator.Type( implementedInterface ) ),
+                                        syntaxGenerator.TypeSyntax( method.ReturnType ),
+                                        ExplicitInterfaceSpecifier( (NameSyntax) syntaxGenerator.TypeSyntax( implementedInterface ) ),
                                         Identifier( method.Name ),
                                         default,
                                         ParameterList(
@@ -571,7 +571,7 @@ namespace Metalama.Framework.Engine.CompileTime
                                                     p => Parameter(
                                                         default,
                                                         default,
-                                                        syntaxGenerator.Type( p.Type ),
+                                                        syntaxGenerator.TypeSyntax( p.Type ),
                                                         Identifier( p.Name ),
                                                         default ) ) ) ),
                                         default,
@@ -1019,7 +1019,7 @@ namespace Metalama.Framework.Engine.CompileTime
                                             TokenList(),
                                             rewrittenProperty.Type,
                                             ExplicitInterfaceSpecifier(
-                                                (NameSyntax) this._syntaxGenerationContext.SyntaxGenerator.Type( interfaceProperty.ContainingType ) ),
+                                                (NameSyntax) this._syntaxGenerationContext.SyntaxGenerator.TypeSyntax( interfaceProperty.ContainingType ) ),
                                             rewrittenProperty.Identifier,
                                             AccessorList(
                                                 List(

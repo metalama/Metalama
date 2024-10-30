@@ -117,7 +117,7 @@ internal sealed class MethodInvoker : Invoker<IMethod>, IMethodInvoker
                 {
                     name = GenericName(
                         Identifier( this.GetCleanTargetMemberName() ),
-                        TypeArgumentList( SeparatedList( this.Member.TypeArguments.SelectAsImmutableArray( t => context.SyntaxGenerator.Type( t ) ) ) ) );
+                        TypeArgumentList( SeparatedList( this.Member.TypeArguments.SelectAsImmutableArray( t => context.SyntaxGenerator.TypeSyntax( t ) ) ) ) );
                 }
                 else
                 {

@@ -46,7 +46,7 @@ internal abstract class MetalamaMethodBaseSerializer<TInput, TOutput> : ObjectSe
                 serializationContext );
 
         var allBindingFlags = SyntaxUtility.CreateBindingFlags( method, serializationContext );
-        var reflectionHelperTypeSyntax = serializationContext.SyntaxGenerator.Type( serializationContext.GetTypeSymbol( typeof(ReflectionHelper) ) );
+        var reflectionHelperTypeSyntax = serializationContext.SyntaxGenerator.TypeSyntax( serializationContext.GetTypeSymbol( typeof(ReflectionHelper) ) );
 
         ExpressionSyntax parameterTypeArray;
 
@@ -70,7 +70,7 @@ internal abstract class MetalamaMethodBaseSerializer<TInput, TOutput> : ObjectSe
         {
             parameterTypeArray = MemberAccessExpression(
                 SyntaxKind.SimpleMemberAccessExpression,
-                serializationContext.SyntaxGenerator.Type( serializationContext.GetTypeSymbol( typeof(Type) ) ),
+                serializationContext.SyntaxGenerator.TypeSyntax( serializationContext.GetTypeSymbol( typeof(Type) ) ),
                 IdentifierName( nameof(Type.EmptyTypes) ) );
         }
 

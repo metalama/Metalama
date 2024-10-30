@@ -30,13 +30,13 @@ namespace Metalama.Framework.Engine.Templating
 
             public ReflectionMapper ReflectionMapper { get; }
 
-            public TypeSyntax Type( Type type ) => this.SyntaxGenerationContext.SyntaxGenerator.Type( this.ReflectionMapper.GetTypeSymbol( type ) );
+            public TypeSyntax Type( Type type ) => this.SyntaxGenerationContext.SyntaxGenerator.TypeSyntax( this.ReflectionMapper.GetTypeSymbol( type ) );
 
             public TypeSyntax Type( ITypeSymbol type )
                 => type switch
                 {
                     IArrayTypeSymbol arrayType => this.SyntaxGenerationContext.SyntaxGenerator.ArrayTypeExpression(
-                        this.SyntaxGenerationContext.SyntaxGenerator.Type( arrayType.ElementType ) ),
+                        this.SyntaxGenerationContext.SyntaxGenerator.TypeSyntax( arrayType.ElementType ) ),
                     _ => this.SyntaxGenerationContext.SyntaxGenerator.TypeOrNamespace( type )
                 };
 

@@ -57,7 +57,7 @@ internal sealed class IntroduceFieldTransformation : IntroduceMemberTransformati
                 AdviceSyntaxGenerator.GetAttributeLists( fieldBuilder, context ),
                 fieldBuilder.GetSyntaxModifierList(),
                 VariableDeclaration(
-                    syntaxGenerator.Type( fieldBuilder.Type )
+                    syntaxGenerator.TypeSyntax( fieldBuilder.Type )
                         .WithOptionalTrailingTrivia( ElasticSpace, context.SyntaxGenerationContext.Options ),
                     SingletonSeparatedList(
                         VariableDeclarator(

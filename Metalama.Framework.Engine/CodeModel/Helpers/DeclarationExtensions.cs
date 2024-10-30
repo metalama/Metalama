@@ -176,7 +176,7 @@ public static class DeclarationExtensions
                         if ( arg.IsReferenceable == false )
                         {
                             // If we know that the expression is not referenceable, throw. If have a doubt, assume it is.
-                            
+
                             throw new DiagnosticException(
                                 GeneralDiagnosticDescriptors.CannotPassExpressionToByRefParameter.CreateRoslynDiagnostic(
                                     null,
@@ -208,7 +208,7 @@ public static class DeclarationExtensions
     {
         if ( declaration.IsStatic )
         {
-            return context.SyntaxGenerator.Type( declaration.DeclaringType ).WithSimplifierAnnotationIfNecessary( context.SyntaxGenerationContext );
+            return context.SyntaxGenerator.TypeExpression( declaration.DeclaringType ).WithSimplifierAnnotationIfNecessary( context.SyntaxGenerationContext );
         }
 
         var definition = declaration.Definition;
@@ -218,7 +218,7 @@ public static class DeclarationExtensions
             return
                 SyntaxFactory.ParenthesizedExpression(
                         SyntaxFactory.CastExpression(
-                            context.SyntaxGenerator.Type( definition.GetExplicitInterfaceImplementation().DeclaringType ),
+                            context.SyntaxGenerator.TypeSyntax( definition.GetExplicitInterfaceImplementation().DeclaringType ),
                             instance.Syntax ) )
                     .WithSimplifierAnnotationIfNecessary( context.SyntaxGenerationContext );
         }

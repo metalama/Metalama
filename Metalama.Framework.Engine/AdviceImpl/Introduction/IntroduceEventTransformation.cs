@@ -70,7 +70,7 @@ internal sealed class IntroduceEventTransformation : IntroduceMemberTransformati
                     eventBuilder.GetSyntaxModifierList(),
                     Token( TriviaList(), SyntaxKind.EventKeyword, TriviaList( ElasticSpace ) ),
                     VariableDeclaration(
-                        syntaxGenerator.Type( eventBuilder.Type )
+                        syntaxGenerator.TypeSyntax( eventBuilder.Type )
                             .WithOptionalTrailingTrivia( ElasticSpace, context.SyntaxGenerationContext.Options ),
                         SeparatedList(
                         [
@@ -86,11 +86,11 @@ internal sealed class IntroduceEventTransformation : IntroduceMemberTransformati
                     AdviceSyntaxGenerator.GetAttributeLists( eventBuilder, context ),
                     eventBuilder.GetSyntaxModifierList(),
                     Token( TriviaList(), SyntaxKind.EventKeyword, TriviaList( ElasticSpace ) ),
-                    syntaxGenerator.Type( eventBuilder.Type )
+                    syntaxGenerator.TypeSyntax( eventBuilder.Type )
                         .WithOptionalTrailingTrivia( ElasticSpace, context.SyntaxGenerationContext.Options ),
                     eventBuilder.ExplicitInterfaceImplementations.Count > 0
                         ? ExplicitInterfaceSpecifier(
-                                (NameSyntax) syntaxGenerator.Type( eventBuilder.ExplicitInterfaceImplementations.Single().DeclaringType ) )
+                                (NameSyntax) syntaxGenerator.TypeSyntax( eventBuilder.ExplicitInterfaceImplementations.Single().DeclaringType ) )
                             .WithOptionalTrailingTrivia( ElasticSpace, context.SyntaxGenerationContext.Options )
                         : null,
                     eventBuilder.GetCleanName(),
@@ -166,7 +166,7 @@ internal sealed class IntroduceEventTransformation : IntroduceMemberTransformati
                         => context.SyntaxGenerator.FormattedBlock(
                             ExpressionStatement(
                                 context.AspectReferenceSyntaxProvider.GetEventFieldInitializerExpression(
-                                    syntaxGenerator.Type( eventBuilder.Type ),
+                                    syntaxGenerator.TypeSyntax( eventBuilder.Type ),
                                     initializerExpression ) ) ),
                     _ => context.SyntaxGenerator.FormattedBlock()
                 };

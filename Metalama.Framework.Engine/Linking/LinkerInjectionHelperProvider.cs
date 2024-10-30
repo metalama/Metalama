@@ -101,8 +101,8 @@ internal sealed class LinkerInjectionHelperProvider
                 Identifier( operatorKind.ToOperatorMethodName() ),
                 TypeArgumentList(
                     SeparatedList(
-                        parameterTypes.Select( p => syntaxGenerator.Type( p ) )
-                            .Append( syntaxGenerator.Type( returnType ) ) ) ) ) );
+                        parameterTypes.Select( p => syntaxGenerator.TypeSyntax( p ) )
+                            .Append( syntaxGenerator.TypeSyntax( returnType ) ) ) ) ) );
 
     public TypeSyntax GetSourceType() => QualifiedName( IdentifierName( HelperTypeName ), IdentifierName( _sourceCodeTypeName ) );
 
@@ -119,7 +119,7 @@ internal sealed class LinkerInjectionHelperProvider
         IAspectClass aspectType,
         int ordinal )
     {
-        var aspectTypeSyntax = context.SyntaxGenerator.Type( this._finalCompilationModel.Factory.GetTypeByReflectionType( aspectType.Type ) );
+        var aspectTypeSyntax = context.SyntaxGenerator.TypeSyntax( this._finalCompilationModel.Factory.GetTypeByReflectionType( aspectType.Type ) );
 
         switch ( ordinal )
         {

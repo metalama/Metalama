@@ -173,7 +173,7 @@ internal class SyntaxBuilderImpl : ISyntaxBuilderImpl
 
     public void AppendTypeName( IType type, StringBuilder stringBuilder )
     {
-        var code = this.SyntaxGenerator.Type( type ).ToString();
+        var code = this.SyntaxGenerator.TypeSyntax( type ).ToString();
         stringBuilder.Append( code );
     }
 

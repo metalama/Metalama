@@ -48,7 +48,7 @@ internal sealed class AspectReferenceEmptySubstitution : AspectReferenceRenaming
 
         ExpressionSyntax expression =
             targetSymbol.IsStatic
-                ? substitutionContext.SyntaxGenerationContext.SyntaxGenerator.Type( targetSymbol.ContainingType )
+                ? substitutionContext.SyntaxGenerationContext.SyntaxGenerator.TypeSyntax( targetSymbol.ContainingType )
                 : ThisExpression();
 
         return currentNode.PartialUpdate(

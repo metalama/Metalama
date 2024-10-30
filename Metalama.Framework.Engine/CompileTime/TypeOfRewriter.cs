@@ -22,7 +22,7 @@ internal sealed class TypeOfRewriter
         this._syntaxGenerationContext = syntaxGenerationContext;
 
         this._compileTimeTypeName = (NameSyntax)
-            syntaxGenerationContext.SyntaxGenerator.Type( syntaxGenerationContext.ReflectionMapper.GetTypeSymbol( typeof(TypeOfResolver) ) );
+            syntaxGenerationContext.SyntaxGenerator.TypeSyntax( syntaxGenerationContext.ReflectionMapper.GetTypeSymbol( typeof(TypeOfResolver) ) );
     }
 
     public ExpressionSyntax RewriteTypeOf( ITypeSymbol typeSymbol, ExpressionSyntax? substitutions = null )
