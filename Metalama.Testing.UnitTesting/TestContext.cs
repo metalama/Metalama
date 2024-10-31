@@ -26,7 +26,6 @@ using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
-using System.Threading.Tasks;
 using Xunit.Abstractions;
 
 namespace Metalama.Testing.UnitTesting;
@@ -37,11 +36,9 @@ namespace Metalama.Testing.UnitTesting;
 [PublicAPI]
 public class TestContext : IDisposable, ITempFileManager, IApplicationInfoProvider, IDateTimeProvider
 {
-    private readonly TestContextOptions _contextOptions;
     private static readonly IApplicationInfo _applicationInfo = new TestApiApplicationInfo();
     private readonly ITempFileManager _backstageTempFileManager;
     private readonly bool _isRoot;
-    private readonly Stopwatch? _stopwatch;
     private readonly IDisposable? _throttlingHandle;
     private readonly StackTrace _stackTrace = new();
 
@@ -49,9 +46,6 @@ public class TestContext : IDisposable, ITempFileManager, IApplicationInfoProvid
     private readonly StrongBox<CompileTimeDomain?> _domain;
 
     private readonly CancellationTokenSource? _timeoutCancellationTokenSource;
-    private readonly CancellationTokenRegistration? _timeoutAction;
-
-    private bool _isDisposed;
 
     internal TestProjectOptions ProjectOptions { get; }
 
@@ -95,23 +89,16 @@ public class TestContext : IDisposable, ITempFileManager, IApplicationInfoProvid
         TestContextOptions contextOptions,
         IAdditionalServiceCollection? additionalServices = null )
     {
-        this._contextOptions = contextOptions;
-
         if ( !Debugger.IsAttached )
         {
             this._timeoutCancellationTokenSource = new CancellationTokenSource( contextOptions.Timeout );
-            this._timeoutAction = this._timeoutCancellationTokenSource.Token.Register( this.OnTimeout );
         }
         else
         {
-            // We don't kill tests when a debugger is attached because it's then normal that a test runs during a long time.
+            // We don't cancel tests when a debugger is attached because it's then normal that a test runs during a long time.
         }
 
         this._throttlingHandle = TestThrottlingHelper.StartTest( contextOptions.RequiresExclusivity );
-
-        // Start the Stopwatch only after we get after the throttle wall.
-        this._stopwatch = Stopwatch.StartNew();
-
         this._domain = new StrongBox<CompileTimeDomain?>();
         this._isRoot = true;
 
@@ -160,34 +147,6 @@ public class TestContext : IDisposable, ITempFileManager, IApplicationInfoProvid
             GC.SuppressFinalize( this );
 
             throw;
-        }
-    }
-
-#pragma warning disable VSTHRD100
-    private async void OnTimeout()
-#pragma warning restore VSTHRD100
-    {
-        this.TestOutputWriter?.WriteLine( $"Test timeout. It has been running {this._stopwatch?.Elapsed}. Cancelling." );
-
-        // Wait a few seconds before taking a dump and killing the process.
-        await Task.Delay( TimeSpan.FromSeconds( 10 ), default );
-
-        if ( this._isDisposed )
-        {
-            // The test has completed or was properly cancelled.
-            return;
-        }
-
-        // The process must be killed. We do FailFast to skip the ProcessExit event, which would raise other exceptions.
-        var dumpFile = DiagnosticsHelper.CaptureMiniDumpOnce();
-
-        if ( dumpFile != null )
-        {
-            Environment.FailFast( $"A test has timed out after {this._contextOptions.Timeout}. A dump file was captured: '{dumpFile}'. Test name: '{this.TestName}'." );
-        }
-        else
-        {
-            Environment.FailFast( $"A test has timed out after {this._contextOptions.Timeout}. No dump file was captured. Test name: '{this.TestName}'." );
         }
     }
 
@@ -372,7 +331,6 @@ public class TestContext : IDisposable, ITempFileManager, IApplicationInfoProvid
             this.ProjectOptions.Dispose();
             this._domain.Value?.Dispose();
             this._timeoutCancellationTokenSource?.Dispose();
-            this._timeoutAction?.Dispose();
             this._throttlingHandle?.Dispose();
         }
 
