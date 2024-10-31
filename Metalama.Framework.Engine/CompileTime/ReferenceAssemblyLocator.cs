@@ -72,7 +72,7 @@ internal sealed class ReferenceAssemblyLocator
     /// <summary>
     /// Gets the name (without path and extension) of all standard assemblies, including Metalama, Roslyn and .NET standard.
     /// </summary>
-    public ImmutableHashSet<string> StandardAssemblyNames { get; }
+    internal ImmutableHashSet<string> StandardAssemblyNames { get; }
 
     /// <summary>
     /// Gets the full path of reference system assemblies (.NET Standard and Roslyn). 
@@ -82,20 +82,20 @@ internal sealed class ReferenceAssemblyLocator
     /// <summary>
     /// Gets the full path of executable system assemblies for the current platform.
     /// </summary>
-    public ImmutableArray<string> AdditionalCompileTimeAssemblyPaths { get; }
+    internal ImmutableArray<string> AdditionalCompileTimeAssemblyPaths { get; }
 
-    public ImmutableDictionary<string, AssemblyIdentity> StandardAssemblyIdentities { get; }
+    internal ImmutableDictionary<string, AssemblyIdentity> StandardAssemblyIdentities { get; }
 
-    public bool IsStandardAssemblyName( string assemblyName )
+    internal bool IsStandardAssemblyName( string assemblyName )
         => string.Equals( assemblyName, "System.Private.CoreLib", StringComparison.OrdinalIgnoreCase )
            || this.StandardAssemblyNames.Contains( assemblyName );
 
     /// <summary>
     /// Gets the full path of all standard assemblies, including Metalama, Roslyn and .NET standard.
     /// </summary>
-    public ImmutableArray<MetadataReference> StandardCompileTimeMetadataReferences { get; }
+    internal ImmutableArray<MetadataReference> StandardCompileTimeMetadataReferences { get; }
 
-    public ReferenceAssemblyLocator( in ProjectServiceProvider serviceProvider, string additionalPackageReferences )
+    internal ReferenceAssemblyLocator( in ProjectServiceProvider serviceProvider, string additionalPackageReferences, ITempFileManager tempFileManager )
     {
         this._logger = serviceProvider.GetLoggerFactory().GetLogger( nameof(ReferenceAssemblyLocator) );
 
@@ -146,8 +146,7 @@ internal sealed class ReferenceAssemblyLocator
                 ? "default"
                 : HashUtilities.HashString( $"{additionalPackageReferences}\n{targetFrameworksString}\n{additionalNugetSources}\n{RoslynApiVersion.Current}" );
 
-        this._cacheDirectory = serviceProvider.Global.GetRequiredBackstageService<ITempFileManager>()
-            .GetTempDirectory( TempDirectories.AssemblyLocator, CleanUpStrategy.WhenUnused, projectHash );
+        this._cacheDirectory = tempFileManager.GetTempDirectory( TempDirectories.AssemblyLocator, CleanUpStrategy.WhenUnused, projectHash );
 
         // Get Metalama implementation contract assemblies (but not the public API, for which we need a special compile-time build).
         var metalamaImplementationAssemblies =
@@ -285,7 +284,7 @@ internal sealed class ReferenceAssemblyLocator
         return string.Join( Environment.NewLine, resolvedPackages.OrderBy( x => x.Key ).Select( x => x.Value ) );
     }
 
-    public bool IsSystemType( INamedTypeSymbol namedType )
+    internal bool IsSystemType( INamedTypeSymbol namedType )
     {
         var ns = namedType.ContainingNamespace.IsGlobalNamespace ? "" : namedType.ContainingNamespace.GetFullName().AssertNotNull();
 

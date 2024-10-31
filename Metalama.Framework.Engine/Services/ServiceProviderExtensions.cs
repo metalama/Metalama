@@ -17,7 +17,7 @@ public static class ServiceProviderExtensions
     /// been initialized yet.
     /// </summary>
     internal static ReferenceAssemblyLocator GetReferenceAssemblyLocator( this ProjectServiceProvider serviceProvider )
-        => serviceProvider.Global.GetRequiredService<ReferenceAssemblyLocatorProvider>().GetInstance( serviceProvider );
+        => serviceProvider.Global.GetRequiredService<IReferenceAssemblyLocatorProvider>().GetInstance( serviceProvider );
 
     public static T GetRequiredBackstageService<T>( this GlobalServiceProvider serviceProvider )
         where T : class, IBackstageService

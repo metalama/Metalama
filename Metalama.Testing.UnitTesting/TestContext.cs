@@ -72,20 +72,14 @@ public class TestContext : IDisposable, ITempFileManager, IApplicationInfoProvid
     /// do not call this constructor directly, but instead the <see cref="UnitTestClass.CreateTestContext(IAdditionalServiceCollection,string?,string?)"/>
     /// method.
     /// </summary>
-    public TestContext( TestContextOptions contextOptions ) : this( contextOptions, null ) { }
-
-    [Obsolete( "Instead of supplying the testName parameter, set the ProjectName property of TestContextOptions." )]
-    public TestContext(
-        TestContextOptions contextOptions,
-        IAdditionalServiceCollection? additionalServices = null,
-        string? testName = null ) : this( contextOptions with { ProjectName = testName }, additionalServices ) { }
+    protected internal TestContext( TestContextOptions contextOptions ) : this( contextOptions, null ) { }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="TestContext"/> class and specify an optional <see cref="IAdditionalServiceCollection"/>. Tests typically
     /// do not call this constructor directly, but instead the <see cref="UnitTestClass.CreateTestContext(IAdditionalServiceCollection,string?,string?)"/>
     /// method.
     /// </summary>
-    public TestContext(
+    protected internal TestContext(
         TestContextOptions contextOptions,
         IAdditionalServiceCollection? additionalServices = null )
     {
