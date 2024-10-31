@@ -54,22 +54,7 @@ internal sealed class IntroducedNamespace : IntroducedNamedDeclaration, INamespa
             this,
             this.Compilation.GetNamespaceCollection( this.NamedDeclarationBuilderData.ToFullRef().As<INamespace>() ) );
 
-    public bool IsPartial
-    {
-        get
-        {
-            var existingNamespace = this.Compilation.GlobalNamespace.GetDescendant( this.FullName );
-
-            if ( existingNamespace != null )
-            {
-                return existingNamespace.IsPartial;
-            }
-            else
-            {
-                return false;
-            }
-        }
-    }
+    public bool IsPartial => false;
 
     public INamespace GetDescendant( string ns ) => throw new NotImplementedException();
 
