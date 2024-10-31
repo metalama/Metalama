@@ -1,0 +1,12 @@
+// Warning CS0414 on `field`: `The field 'SomeClassForTargetType2.field' is assigned but its value is never used`
+namespace A.B.C.D.E.F
+{
+  class SomeClassForTargetType2
+  {
+    private static global::System.Int32 field;
+    private static void SomeMethod()
+    {
+      global::A.B.C.D.E.F.SomeClassForTargetType2.field = 5;
+    }
+  }
+}

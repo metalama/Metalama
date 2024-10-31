@@ -358,10 +358,10 @@ namespace Metalama.Framework.Engine.Templating
                 _category,
                 Error );
 
-        internal static readonly DiagnosticDefinition<ISymbol> PartialTemplateMethodsForbidden
+        internal static readonly DiagnosticDefinition<ISymbol> PartialTemplatesForbidden
             = new(
                 "LAMA0252",
-                "Template methods cannot be partial",
+                "Templates cannot be partial",
                 "'{0}' cannot be partial because it is a template.",
                 _category,
                 Error );

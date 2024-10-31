@@ -1,5 +1,5 @@
 [MyAspect]
-internal class C : global::Metalama.Framework.Tests.Integration.Tests.Aspects.Misc.MultipleConstraints.I
+internal class C : global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Misc.MultipleConstraints.I
 {
   public void IM<T1, T2, T3, T4>()
     where T1 : class, new()

@@ -56,12 +56,9 @@ internal sealed class PartialTypesHasher : CSharpSyntaxVisitor<int?>
 
     private static int? VisitBaseTypeDeclaration( BaseTypeDeclarationSyntax type )
     {
-        foreach ( var modifier in type.Modifiers )
+        if ( type.Modifiers.Any( SyntaxKind.PartialKeyword ) )
         {
-            if ( modifier.IsKind( SyntaxKind.PartialKeyword ) )
-            {
-                return type.Identifier.GetHashCode();
-            }
+            return type.Identifier.GetHashCode();
         }
 
         return null;

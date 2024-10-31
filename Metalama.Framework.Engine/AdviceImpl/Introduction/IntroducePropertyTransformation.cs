@@ -68,9 +68,9 @@ internal class IntroducePropertyTransformation : IntroduceMemberTransformation<P
                 AdviceSyntaxGenerator.GetAttributeLists( propertyBuilder, context )
                     .AddRange( GetAdditionalAttributeLists() ),
                 propertyBuilder.GetSyntaxModifierList(),
-                syntaxGenerator.Type( propertyBuilder.Type ).WithOptionalTrailingTrivia( ElasticSpace, context.SyntaxGenerationContext.Options ),
+                syntaxGenerator.TypeSyntax( propertyBuilder.Type ).WithOptionalTrailingTrivia( ElasticSpace, context.SyntaxGenerationContext.Options ),
                 propertyBuilder.ExplicitInterfaceImplementations.Count > 0
-                    ? ExplicitInterfaceSpecifier( (NameSyntax) syntaxGenerator.Type( propertyBuilder.ExplicitInterfaceImplementations.Single().DeclaringType ) )
+                    ? ExplicitInterfaceSpecifier( (NameSyntax) syntaxGenerator.TypeSyntax( propertyBuilder.ExplicitInterfaceImplementations.Single().DeclaringType ) )
                     : null,
                 propertyBuilder.GetCleanName(),
                 GenerateAccessorList(),

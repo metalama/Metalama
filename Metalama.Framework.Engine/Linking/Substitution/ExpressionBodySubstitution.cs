@@ -92,7 +92,7 @@ namespace Metalama.Framework.Engine.Linking.Substitution
                         {
                             if ( this._originalContainingSymbol.ReturnsVoid )
                             {
-                                // Both referencing and target methods return void, expression can be simply changed to 
+                                // Both referencing and target methods return void, expression can be simply changed to an expression statement.
 
                                 return
                                     syntaxGenerator.FormattedBlock( ExpressionStatement( arrowExpressionClause.Expression ) )
@@ -107,26 +107,17 @@ namespace Metalama.Framework.Engine.Linking.Substitution
                         {
                             if ( this._returnVariableIdentifier != null )
                             {
-                                return
-                                    syntaxGenerator.FormattedBlock(
-                                            ExpressionStatement(
-                                                AssignmentExpression(
-                                                    SyntaxKind.SimpleAssignmentExpression,
-                                                    IdentifierName( this._returnVariableIdentifier ),
-                                                    Token( TriviaList( ElasticSpace ), SyntaxKind.EqualsToken, TriviaList( ElasticSpace ) ),
-                                                    arrowExpressionClause.Expression ),
-                                                Token(
-                                                    TriviaList(),
-                                                    SyntaxKind.SemicolonToken,
-                                                    substitutionContext.SyntaxGenerationContext.ElasticEndOfLineTriviaList ) ) )
-                                        .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock );
+                                return syntaxGenerator.FormattedBlock(
+                                    SyntaxFactoryEx.AssignmentStatement(
+                                        IdentifierName( this._returnVariableIdentifier ),
+                                        arrowExpressionClause.Expression,
+                                        syntaxGenerator.SyntaxGenerationContext ) )
+                                    .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock );
                             }
                             else
                             {
                                 if ( this._originalContainingSymbol.ReturnsVoid )
                                 {
-                                    Invariant.Assert( this._returnVariableIdentifier == null );
-
                                     return
                                         syntaxGenerator.FormattedBlock( ExpressionStatement( arrowExpressionClause.Expression ) )
                                             .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock );
@@ -141,7 +132,7 @@ namespace Metalama.Framework.Engine.Linking.Substitution
                         BlockSyntax DiscardBlock()
                         {
                             var returnTypeSyntax =
-                                substitutionContext.SyntaxGenerationContext.SyntaxGenerator.Type( this._originalContainingSymbol.ReturnType );
+                                substitutionContext.SyntaxGenerationContext.SyntaxGenerator.TypeSyntax( this._originalContainingSymbol.ReturnType );
 
                             return syntaxGenerator.FormattedBlock(
                                     SyntaxFactoryEx.DiscardStatement(

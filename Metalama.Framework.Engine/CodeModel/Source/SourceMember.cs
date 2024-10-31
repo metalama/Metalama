@@ -37,6 +37,9 @@ namespace Metalama.Framework.Engine.CodeModel.Source
             => this.Symbol switch
             {
                 IMethodSymbol { IsPartialDefinition: true, PartialImplementationPart: null } => false,
+#if ROSLYN_4_12_0_OR_GREATER
+                IPropertySymbol { IsPartialDefinition: true, PartialImplementationPart: null } => false,
+#endif
                 IFieldSymbol { IsConst: true } => false,
                 { IsAbstract: true } => false,
                 { IsExtern: true } => false,

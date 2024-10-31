@@ -177,19 +177,11 @@ internal sealed class ReturnStatementSubstitution : SyntaxNodeSubstitution
                 identifier = SyntaxFactoryEx.DiscardIdentifier();
 
                 expression = syntaxGenerator.SafeCastExpression(
-                    syntaxGenerator.Type( this._originalContainingSymbol.ReturnType ),
+                    syntaxGenerator.TypeSyntax( this._originalContainingSymbol.ReturnType ),
                     expression );
             }
 
-            return
-                ExpressionStatement(
-                        AssignmentExpression(
-                            SyntaxKind.SimpleAssignmentExpression,
-                            identifier,
-                            Token( TriviaList( ElasticSpace ), SyntaxKind.EqualsToken, TriviaList( ElasticSpace ) ),
-                            expression ),
-                        Token( default, SyntaxKind.SemicolonToken, substitutionContext.SyntaxGenerationContext.ElasticEndOfLineTriviaList ) )
-                    .WithGeneratedCodeAnnotation( FormattingAnnotations.SystemGeneratedCodeAnnotation );
+            return SyntaxFactoryEx.AssignmentStatement( identifier, expression, substitutionContext.SyntaxGenerationContext );
         }
 
         GotoStatementSyntax CreateGotoStatement()

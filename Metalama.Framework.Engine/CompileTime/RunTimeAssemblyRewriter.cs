@@ -388,7 +388,7 @@ namespace Metalama.Compiler
         var compiledTemplateAttributeType = (INamedTypeSymbol) syntaxFactory.ReflectionMapper.GetTypeSymbol( typeof(CompiledTemplateAttribute) );
         var accessibilityType = (INamedTypeSymbol) syntaxFactory.ReflectionMapper.GetTypeSymbol( typeof(Accessibility) );
 
-        var attribute = Attribute( (NameSyntax) syntaxFactory.SyntaxGenerator.Type( compiledTemplateAttributeType ) )
+        var attribute = Attribute( (NameSyntax) syntaxFactory.SyntaxGenerator.TypeSyntax( compiledTemplateAttributeType ) )
             .WithArgumentList(
                 AttributeArgumentList(
                     SeparatedList(

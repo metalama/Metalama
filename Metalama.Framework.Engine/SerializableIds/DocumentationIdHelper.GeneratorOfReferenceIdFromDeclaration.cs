@@ -45,6 +45,25 @@ internal static partial class DocumentationIdHelper
             this._builder.Append( EncodeName( ns.Name ) );
         }
 
+        public void Visit( ICompilationElement compilationElement )
+        {
+            switch ( compilationElement )
+            {
+                case IType type:
+                    this.Visit( type );
+
+                    break;
+
+                case INamespace @namespace:
+                    this.Visit( @namespace );
+
+                    break;
+
+                default:
+                    throw new AssertionFailedException();
+            }
+        }
+
         public bool Visit( INamespace ns )
         {
             if ( ns.IsGlobalNamespace )

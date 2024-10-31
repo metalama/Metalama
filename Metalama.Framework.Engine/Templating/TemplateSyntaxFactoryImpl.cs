@@ -254,7 +254,7 @@ namespace Metalama.Framework.Engine.Templating
                 switch ( type )
                 {
                     case IdentifierNameSyntax { IsVar: true }:
-                        variableType = this.SyntaxSerializationContext.SyntaxGenerator.Type( Microsoft.CodeAnalysis.SpecialType.System_Object );
+                        variableType = this.SyntaxSerializationContext.SyntaxGenerator.TypeSyntax( Microsoft.CodeAnalysis.SpecialType.System_Object );
 
                         variableValue = SyntaxFactoryEx.Null;
 
@@ -462,10 +462,11 @@ namespace Metalama.Framework.Engine.Templating
             return new TypedExpressionSyntaxImpl( syntax, expressionType, syntaxSerializationContext.CompilationModel );
         }
 
-        public TypedExpressionSyntax RunTimeExpression( IUserExpression syntax, string? type = null ) => syntax.ToTypedExpressionSyntax( this.SyntaxSerializationContext );
+        public TypedExpressionSyntax RunTimeExpression( IUserExpression syntax, string? type = null )
+            => syntax.ToTypedExpressionSyntax( this.SyntaxSerializationContext );
 
         public IUserExpression GetUserExpression( object value ) => this.GetUserExpression( value, null );
-        
+
         private IUserExpression GetUserExpression( object value, string? type )
         {
             switch ( value )
@@ -482,7 +483,9 @@ namespace Metalama.Framework.Engine.Templating
                     {
                         if ( type != null )
                         {
-                            expressionType = new SerializableTypeId( type ).Resolve( this._templateExpansionContext.Compilation.AssertNotNull(), this._templateExpansionContext.TemplateGenericArguments );
+                            expressionType = new SerializableTypeId( type ).Resolve(
+                                this._templateExpansionContext.Compilation.AssertNotNull(),
+                                this._templateExpansionContext.TemplateGenericArguments );
                         }
                         else
                         {
@@ -491,7 +494,7 @@ namespace Metalama.Framework.Engine.Templating
                     }
 
                     return new SyntaxUserExpression( expression, expressionType );
-                
+
                 case TypedExpressionSyntax typedExpressionSyntax:
                     return typedExpressionSyntax.ToUserExpression( this.Compilation );
 
@@ -509,7 +512,9 @@ namespace Metalama.Framework.Engine.Templating
 
             if ( expressionType == null && type != null )
             {
-                expressionType = new SerializableTypeId( type ).Resolve( this._templateExpansionContext.Compilation.AssertNotNull(), this._templateExpansionContext.TemplateGenericArguments );
+                expressionType = new SerializableTypeId( type ).Resolve(
+                    this._templateExpansionContext.Compilation.AssertNotNull(),
+                    this._templateExpansionContext.TemplateGenericArguments );
             }
 
             return this._templateExpansionContext.SyntaxGenerator.SuppressNullableWarningExpression( operand, expressionType );
@@ -647,7 +652,7 @@ namespace Metalama.Framework.Engine.Templating
         {
             var localVariableName = this._templateExpansionContext.LexicalScope.GetUniqueIdentifier( name );
 
-            var variableType = this.SyntaxSerializationContext.SyntaxGenerator.Type( type );
+            var variableType = this.SyntaxSerializationContext.SyntaxGenerator.TypeSyntax( type );
 
             var declarator = SyntaxFactory.VariableDeclarator( localVariableName );
 

@@ -109,6 +109,11 @@ internal abstract class DeclarationBuilder : IDeclarationBuilderImpl
 
     public virtual void Freeze()
     {
+        if ( this.IsFrozen )
+        {
+            return;
+        }
+        
         this.IsFrozen = true;
 
         this.EnsureReferenceCreated();

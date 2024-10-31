@@ -93,16 +93,17 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
         this._typeOfRewriter = new TypeOfRewriter( syntaxGenerationContext );
 
         this._templateTypeArgumentType =
-            syntaxGenerationContext.SyntaxGenerator.Type( this.MetaSyntaxFactory.ReflectionMapper.GetTypeSymbol( typeof(TemplateTypeArgument) ) );
+            syntaxGenerationContext.SyntaxGenerator.TypeSyntax( this.MetaSyntaxFactory.ReflectionMapper.GetTypeSymbol( typeof(TemplateTypeArgument) ) );
 
         this._templateSyntaxFactoryType =
-            syntaxGenerationContext.SyntaxGenerator.Type( this.MetaSyntaxFactory.ReflectionMapper.GetTypeSymbol( typeof(ITemplateSyntaxFactory) ) );
+            syntaxGenerationContext.SyntaxGenerator.TypeSyntax( this.MetaSyntaxFactory.ReflectionMapper.GetTypeSymbol( typeof(ITemplateSyntaxFactory) ) );
 
         this._dictionaryOfTypeSyntaxType =
-            syntaxGenerationContext.SyntaxGenerator.Type( this.MetaSyntaxFactory.ReflectionMapper.GetTypeSymbol( typeof(Dictionary<string, TypeSyntax>) ) );
+            syntaxGenerationContext.SyntaxGenerator.TypeSyntax(
+                this.MetaSyntaxFactory.ReflectionMapper.GetTypeSymbol( typeof(Dictionary<string, TypeSyntax>) ) );
 
         this._dictionaryOfITypeType =
-            syntaxGenerationContext.SyntaxGenerator.Type( this.MetaSyntaxFactory.ReflectionMapper.GetTypeSymbol( typeof(Dictionary<string, IType>) ) );
+            syntaxGenerationContext.SyntaxGenerator.TypeSyntax( this.MetaSyntaxFactory.ReflectionMapper.GetTypeSymbol( typeof(Dictionary<string, IType>) ) );
 
         this._iExpressionSymbol = this._runTimeCompilation.GetTypeByMetadataName( typeof(IExpression).FullName! ).AssertSymbolNotNull();
     }

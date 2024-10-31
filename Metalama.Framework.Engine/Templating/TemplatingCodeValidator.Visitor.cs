@@ -418,7 +418,7 @@ namespace Metalama.Framework.Engine.Templating
                     if ( this._currentTemplateInfo is { IsNone: false } )
                     {
                         this.Report(
-                            TemplatingDiagnosticDescriptors.PartialTemplateMethodsForbidden.CreateRoslynDiagnostic(
+                            TemplatingDiagnosticDescriptors.PartialTemplatesForbidden.CreateRoslynDiagnostic(
                                 partialKeyword.GetLocation(),
                                 this._currentDeclaration! ) );
                     }
@@ -469,6 +469,15 @@ namespace Metalama.Framework.Engine.Templating
                 {
                     this.VerifyModifiers( node.Modifiers );
                     base.VisitPropertyDeclaration( node );
+                }
+            }
+
+            public override void VisitIndexerDeclaration( IndexerDeclarationSyntax node )
+            {
+                using ( this.WithDeclaration( node ) )
+                {
+                    this.VerifyModifiers( node.Modifiers );
+                    base.VisitIndexerDeclaration( node );
                 }
             }
 

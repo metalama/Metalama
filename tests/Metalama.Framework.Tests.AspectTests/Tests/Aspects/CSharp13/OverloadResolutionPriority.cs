@@ -14,7 +14,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Metalama.Framework.Tests.Integration.Tests.Aspects.CSharp13.OverloadResolutionPriority;
+namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.CSharp13.OverloadResolutionPriority;
 
 public class TheAspect : TypeAspect
 {

@@ -53,18 +53,27 @@ internal static class SymbolNormalizer
         }
     }
 
-    public static (ISymbol Symbol, GenericContext Context) GetCanonicalSymbol( ISymbol symbol, GenericContext genericContext, RefFactory refFactory )
+    private static (ISymbol Symbol, GenericContext Context) GetCanonicalSymbol(
+        IPropertySymbol propertySymbol,
+        GenericContext genericContext,
+        RefFactory refFactory )
     {
-        switch ( symbol.Kind )
+#if ROSLYN_4_12_0_OR_GREATER
+        if ( propertySymbol.PartialImplementationPart != null )
         {
-            case SymbolKind.Method:
-                return GetCanonicalSymbol( (IMethodSymbol) symbol, genericContext, refFactory );
-
-            case SymbolKind.NamedType:
-                return GetCanonicalSymbol( (INamedTypeSymbol) symbol, genericContext, refFactory );
-
-            default:
-                return (symbol, genericContext);
+            propertySymbol = propertySymbol.PartialImplementationPart;
         }
+#endif
+
+        return (propertySymbol, genericContext);
     }
+
+    public static (ISymbol Symbol, GenericContext Context) GetCanonicalSymbol( ISymbol symbol, GenericContext genericContext, RefFactory refFactory )
+        => symbol.Kind switch
+        {
+            SymbolKind.Method => GetCanonicalSymbol( (IMethodSymbol) symbol, genericContext, refFactory ),
+            SymbolKind.Property => GetCanonicalSymbol( (IPropertySymbol) symbol, genericContext, refFactory ),
+            SymbolKind.NamedType => GetCanonicalSymbol( (INamedTypeSymbol) symbol, genericContext, refFactory ),
+            _ => (symbol, genericContext),
+        };
 }

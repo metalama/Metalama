@@ -35,6 +35,7 @@ public sealed partial class CompilationModel
     private ImmutableDictionary<IFullRef<INamespaceOrNamedType>, TypeUpdatableCollection> _namedTypesByParent;
     private ImmutableDictionary<IFullRef<INamespace>, NamespaceUpdatableCollection> _namespaces;
     private TypeUpdatableCollection? _topLevelNamedTypes;
+    private ImmutableDictionary<string, NamespaceBuilderData> _namespaceBuilders;
 
     internal ImmutableDictionaryOfArray<IRef<IDeclaration>, AnnotationInstance> Annotations { get; private set; }
 
@@ -95,12 +96,8 @@ public sealed partial class CompilationModel
 
     internal bool Contains( NamespaceBuilder namespaceBuilder )
     {
-        var containingNamespace = namespaceBuilder.ContainingNamespace ?? namespaceBuilder.ContainingNamespace ?? throw new AssertionFailedException();
-
-        return this._namespaces.TryGetValue(
-                   containingNamespace.ToFullRef(),
-                   out var namespaces )
-               && namespaces.Contains( namespaceBuilder.ToRef() );
+        // Anomaly with namespaces: many instances of the NamespaceBuilder class can represent the same entity, so we rely on the full name.
+        return this._namespaceBuilders.ContainsKey( namespaceBuilder.FullName );
     }
 
     private TCollection GetMemberCollection<TOwner, TCollection>(
@@ -461,12 +458,21 @@ public sealed partial class CompilationModel
 
                 break;
 
-            case NamespaceBuilderData @namespace:
-                var namespaces = this.GetNamespaceCollection(
-                    @namespace.ContainingDeclaration.AssertNotNull().As<INamespace>(),
-                    true );
+            case NamespaceBuilderData ns:
+                // Anomaly with namespaces:
+                // Aspects on different types of the same depth can independently introduce identical namespaces.
+                // This must be resolved here.
+                // It means we will have several instances of NamespaceBuilder pointing to the same entity.
 
-                namespaces.Add( @namespace.ToRef() );
+                if ( !this._namespaceBuilders.ContainsKey( ns.FullName ) )
+                {
+                    var namespaces = this.GetNamespaceCollection(
+                        ns.ContainingDeclaration.AssertNotNull().As<INamespace>(),
+                        true );
+
+                    namespaces.Add( ns.ToRef() );
+                    this._namespaceBuilders = this._namespaceBuilders.Add( ns.FullName, ns );
+                }
 
                 break;
 

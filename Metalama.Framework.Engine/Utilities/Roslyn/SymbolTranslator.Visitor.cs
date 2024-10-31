@@ -63,7 +63,7 @@ internal sealed partial class SymbolTranslator
 
             if ( namedType == null )
             {
-                return namedType;
+                return null;
             }
 
             var candidates = namedType.GetMembers( symbol.Name )
@@ -108,24 +108,20 @@ internal sealed partial class SymbolTranslator
 
                 return partialImplementation?.PartialDefinitionPart;
             }
-            else
+
+            var translated = this.TranslateNonUniquelyNamedTypeMember( symbol );
+
+            if ( translated == null )
             {
-                var translated = this.TranslateNonUniquelyNamedTypeMember( symbol );
-
-                if ( translated == null )
-                {
-                    return null;
-                }
-
-                if ( symbol.PartialDefinitionPart != null )
-                {
-                    return ((IMethodSymbol) translated).PartialImplementationPart;
-                }
-                else
-                {
-                    return translated;
-                }
+                return null;
             }
+
+            if ( symbol.PartialDefinitionPart != null )
+            {
+                return ((IMethodSymbol) translated).PartialImplementationPart;
+            }
+
+            return translated;
         }
 
         public override ISymbol? VisitNamedType( INamedTypeSymbol symbol )
@@ -291,7 +287,33 @@ internal sealed partial class SymbolTranslator
             return this._parent._targetCompilationContext.Compilation.CreatePointerTypeSymbol( pointedAtType );
         }
 
-        public override ISymbol? VisitProperty( IPropertySymbol symbol ) => this.TranslateNonUniquelyNamedTypeMember( symbol );
+        public override ISymbol? VisitProperty( IPropertySymbol symbol )
+        {
+#if ROSLYN_4_12_0_OR_GREATER
+            if ( symbol.PartialImplementationPart != null )
+            {
+                var partialImplementation = this.Translate( symbol.PartialImplementationPart );
+
+                return partialImplementation?.PartialDefinitionPart;
+            }
+#endif
+
+            var translated = this.TranslateNonUniquelyNamedTypeMember( symbol );
+
+#if ROSLYN_4_12_0_OR_GREATER
+            if ( translated == null )
+            {
+                return null;
+            }
+
+            if ( symbol.PartialDefinitionPart != null )
+            {
+                return ((IPropertySymbol) translated).PartialImplementationPart;
+            }
+#endif
+
+            return translated;
+        }
 
         public override ISymbol? VisitTypeParameter( ITypeParameterSymbol symbol )
         {

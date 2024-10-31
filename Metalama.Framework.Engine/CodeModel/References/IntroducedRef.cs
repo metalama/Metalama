@@ -201,7 +201,7 @@ internal sealed partial class IntroducedRef<T> : FullRef<T>, IIntroducedRef
             comparison is RefComparison.Structural or RefComparison.StructuralIncludeNullability,
             "Compilation mistmatch in a non-structural comparison." );
 
-        if ( !ReferenceEquals( this.BuilderData, otherRef.BuilderData ) )
+        if ( !this.BuilderData.Equals( otherRef.BuilderData ) )
         {
             return false;
         }

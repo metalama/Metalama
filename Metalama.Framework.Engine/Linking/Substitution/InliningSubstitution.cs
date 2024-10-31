@@ -38,7 +38,7 @@ namespace Metalama.Framework.Engine.Linking.Substitution
                 statements.Add(
                     LocalDeclarationStatement(
                             VariableDeclaration(
-                                syntaxGenerator.Type( GetReturnType( this._specification.AspectReference.OriginalSymbol ) ),
+                                syntaxGenerator.TypeSyntax( GetReturnType( this._specification.AspectReference.OriginalSymbol ) ),
                                 SingletonSeparatedList( VariableDeclarator( this._specification.ReturnVariableIdentifier.AssertNotNull() ) ) ) )
                         .WithOptionalTrailingLineFeed( context.SyntaxGenerationContext )
                         .WithGeneratedCodeAnnotation( FormattingAnnotations.SystemGeneratedCodeAnnotation ) );

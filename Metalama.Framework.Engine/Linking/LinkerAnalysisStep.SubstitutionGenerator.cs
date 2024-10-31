@@ -26,7 +26,6 @@ internal sealed partial class LinkerAnalysisStep
     {
         private readonly LinkerAnalysisStep _parent;
         private readonly CompilationContext _intermediateCompilationContext;
-        private readonly LinkerSyntaxHandler _syntaxHandler;
         private readonly LinkerInjectionRegistry _injectionRegistry;
         private readonly HashSet<IntermediateSymbolSemantic> _nonInlinedSemantics;
         private readonly IReadOnlyDictionary<IntermediateSymbolSemantic<IMethodSymbol>, IReadOnlyList<ResolvedAspectReference>> _nonInlinedReferences;
@@ -51,7 +50,6 @@ internal sealed partial class LinkerAnalysisStep
         public SubstitutionGenerator(
             LinkerAnalysisStep parent,
             CompilationContext intermediateCompilationContext,
-            LinkerSyntaxHandler syntaxHandler,
             LinkerInjectionRegistry injectionRegistry,
             HashSet<IntermediateSymbolSemantic> inlinedSemantics,
             HashSet<IntermediateSymbolSemantic> nonInlinedSemantics,
@@ -67,7 +65,6 @@ internal sealed partial class LinkerAnalysisStep
             this._concurrentTaskRunner = parent._serviceProvider.GetRequiredService<IConcurrentTaskRunner>();
             this._parent = parent;
             this._intermediateCompilationContext = intermediateCompilationContext;
-            this._syntaxHandler = syntaxHandler;
             this._injectionRegistry = injectionRegistry;
             this._nonInlinedSemantics = nonInlinedSemantics;
             this._nonInlinedReferences = nonInlinedReferences;
@@ -258,7 +255,7 @@ internal sealed partial class LinkerAnalysisStep
                 if ( inliningSpecification.TargetSemantic.Kind == IntermediateSymbolSemanticKind.Default )
                 {
                     var referencedSymbol = inliningSpecification.TargetSemantic.Symbol;
-                    var root = this._syntaxHandler.GetCanonicalRootNode( referencedSymbol );
+                    var root = LinkerSyntaxHandler.GetCanonicalRootNode( referencedSymbol, this._injectionRegistry );
 
                     switch ( root )
                     {
@@ -476,29 +473,26 @@ internal sealed partial class LinkerAnalysisStep
             IMethodSymbol targetSymbol,
             bool usingSimpleInlining,
             string? returnVariableIdentifier )
-        {
-            switch (root, targetSymbol)
+            => root switch
             {
-                case (ArrowExpressionClauseSyntax arrowExpressionClause, _):
-                    return new ExpressionBodySubstitution(
-                        this._intermediateCompilationContext,
-                        arrowExpressionClause,
-                        referencingSymbol,
-                        targetSymbol,
-                        usingSimpleInlining,
-                        returnVariableIdentifier );
+                ArrowExpressionClauseSyntax arrowExpressionClause => new ExpressionBodySubstitution(
+                    this._intermediateCompilationContext,
+                    arrowExpressionClause,
+                    referencingSymbol,
+                    targetSymbol,
+                    usingSimpleInlining,
+                    returnVariableIdentifier ),
 
-                case (MethodDeclarationSyntax { Body: null, ExpressionBody: null } emptyVoidPartialMethod, _):
-                    Invariant.Assert( returnVariableIdentifier == null );
+                MethodDeclarationSyntax { Body: null, ExpressionBody: null } emptyPartialMethod
+                    => new EmptyPartialMethodSubstitution( this._intermediateCompilationContext, emptyPartialMethod, usingSimpleInlining, returnVariableIdentifier ),
 
-                    return new EmptyVoidPartialMethodSubstitution( this._intermediateCompilationContext, emptyVoidPartialMethod );
+                AccessorDeclarationSyntax { Body: null, ExpressionBody: null } emptyPartialAccessor
+                    => new EmptyPartialAccessorSubstitution( this._intermediateCompilationContext, emptyPartialAccessor, usingSimpleInlining, returnVariableIdentifier ),
 
-                case (ParameterSyntax { Parent: ParameterListSyntax { Parent: RecordDeclarationSyntax } } recordParameter, _):
-                    return new RecordParameterSubstitution( this._intermediateCompilationContext, recordParameter, targetSymbol, returnVariableIdentifier );
+                ParameterSyntax { Parent: ParameterListSyntax { Parent: RecordDeclarationSyntax } } recordParameter
+                    => new RecordParameterSubstitution( this._intermediateCompilationContext, recordParameter, targetSymbol, returnVariableIdentifier ),
 
-                default:
-                    throw new AssertionFailedException( $"Unexpected combination: ('{root}', '{targetSymbol}')." );
-            }
-        }
+                _ => throw new AssertionFailedException( $"Unexpected syntax: '{root}'." ),
+            };
     }
 }

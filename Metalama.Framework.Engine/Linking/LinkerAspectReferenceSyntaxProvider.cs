@@ -47,7 +47,7 @@ internal sealed class LinkerAspectReferenceSyntaxProvider : AspectReferenceSynta
                 SingletonSeparatedList(
                     Argument(
                         ObjectCreationExpression(
-                            syntaxGenerator.Type( overriddenConstructor.DeclaringType ),
+                            syntaxGenerator.TypeSyntax( overriddenConstructor.DeclaringType ),
                             ArgumentList(
                                 SeparatedList(
                                     overriddenConstructor.Parameters
@@ -141,7 +141,7 @@ internal sealed class LinkerAspectReferenceSyntaxProvider : AspectReferenceSynta
             expression =
                 ParenthesizedExpression(
                     syntaxGenerator.SafeCastExpression(
-                        syntaxGenerator.Type( implementedInterfaceMember.DeclaringType ),
+                        syntaxGenerator.TypeSyntax( implementedInterfaceMember.DeclaringType ),
                         ThisExpression() ) );
         }
         else
@@ -186,7 +186,7 @@ internal sealed class LinkerAspectReferenceSyntaxProvider : AspectReferenceSynta
                         SyntaxKind.SimpleMemberAccessExpression,
                         ParenthesizedExpression(
                             syntaxGenerator.SafeCastExpression(
-                                syntaxGenerator.Type( implementedInterfaceMember.DeclaringType ),
+                                syntaxGenerator.TypeSyntax( implementedInterfaceMember.DeclaringType ),
                                 ThisExpression() ) ),
                         memberName )
                     .WithSimplifierAnnotationIfNecessary( syntaxGenerator.SyntaxGenerationContext );
@@ -205,7 +205,7 @@ internal sealed class LinkerAspectReferenceSyntaxProvider : AspectReferenceSynta
             expression =
                 MemberAccessExpression(
                         SyntaxKind.SimpleMemberAccessExpression,
-                        syntaxGenerator.Type( targetDeclaration.DeclaringType ),
+                        syntaxGenerator.TypeExpression( targetDeclaration.DeclaringType ),
                         memberName )
                     .WithSimplifierAnnotationIfNecessary( syntaxGenerator.SyntaxGenerationContext );
         }

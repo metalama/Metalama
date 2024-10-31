@@ -339,7 +339,7 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
             foreach ( var member in injectedMembers )
             {
                 if ( member is TypeDeclarationSyntax typeDeclaration
-                     && typeDeclaration.Modifiers.All( m => !m.IsKind( SyntaxKind.PartialKeyword ) ) )
+                     && !typeDeclaration.Modifiers.Any( SyntaxKind.PartialKeyword ) )
                 {
                     yield return
                         member.WithModifiers( member.Modifiers.Add( Token( TriviaList( ElasticSpace ), SyntaxKind.PartialKeyword, TriviaList() ) ) );
@@ -474,7 +474,7 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                                                         Argument(
                                                             NameColon( p.Name ),
                                                             GetArgumentRefToken( p ),
-                                                            DefaultExpression( syntaxGenerationContext.SyntaxGenerator.Type( p.Type ) ) ) ) ) ) ),
+                                                            DefaultExpression( syntaxGenerationContext.SyntaxGenerator.TypeSyntax( p.Type ) ) ) ) ) ) ),
                                 Block() ) );
                     }
                 }

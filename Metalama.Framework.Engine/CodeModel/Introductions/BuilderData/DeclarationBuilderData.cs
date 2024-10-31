@@ -13,6 +13,8 @@ using System.Collections.Immutable;
 
 namespace Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 
+#pragma warning disable CS0659
+
 internal abstract class DeclarationBuilderData
 {
     public abstract DeclarationKind DeclarationKind { get; }
@@ -63,4 +65,8 @@ internal abstract class DeclarationBuilderData
     protected virtual InsertPosition GetInsertPosition() => throw new NotSupportedException();
 
     public string ToDisplayString( CodeDisplayFormat? codeDisplayFormat = null ) => this.ToDeclarationFullRef().Definition.ToDisplayString( codeDisplayFormat );
+
+    public virtual bool Equals( DeclarationBuilderData other ) => ReferenceEquals( this, other );
+
+    public override bool Equals( object? obj ) => obj is DeclarationBuilderData other && this.Equals( other );
 }

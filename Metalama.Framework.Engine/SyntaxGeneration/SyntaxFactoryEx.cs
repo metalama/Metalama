@@ -2,6 +2,7 @@
 
 using JetBrains.Annotations;
 using Metalama.Framework.Engine.Diagnostics;
+using Metalama.Framework.Engine.Formatting;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -196,4 +197,20 @@ internal static partial class SyntaxFactoryEx
 
     public static StatementSyntax EmptyStatement
         => SyntaxFactory.ExpressionStatement( EmptyExpression, SyntaxFactory.MissingToken( SyntaxKind.SemicolonToken ) );
+
+    public static ExpressionStatementSyntax AssignmentStatement(
+        ExpressionSyntax left,
+        ExpressionSyntax right,
+        SyntaxGenerationContext syntaxGenerationContext )
+        => SyntaxFactory.ExpressionStatement(
+                SyntaxFactory.AssignmentExpression(
+                    SyntaxKind.SimpleAssignmentExpression,
+                    left,
+                    SyntaxFactory.Token(
+                        SyntaxFactory.TriviaList( SyntaxFactory.ElasticSpace ),
+                        SyntaxKind.EqualsToken,
+                        SyntaxFactory.TriviaList( SyntaxFactory.ElasticSpace ) ),
+                    right ),
+                SyntaxFactory.Token( default, SyntaxKind.SemicolonToken, syntaxGenerationContext.ElasticEndOfLineTriviaList ) )
+            .WithGeneratedCodeAnnotation( FormattingAnnotations.SystemGeneratedCodeAnnotation );
 }

@@ -10,7 +10,7 @@ using Metalama.Framework.Code;
 using System;
 using System.Threading;
 
-namespace Metalama.Framework.Tests.Integration.Tests.Aspects.CSharp13.LockType;
+namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.CSharp13.LockType;
 
 public class TheAspect : OverrideMethodAspect
 {

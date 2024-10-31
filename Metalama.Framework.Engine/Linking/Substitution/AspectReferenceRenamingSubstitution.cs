@@ -92,7 +92,7 @@ internal abstract partial class AspectReferenceRenamingSubstitution : SyntaxNode
         return
             MemberAccessExpression(
                 SyntaxKind.SimpleMemberAccessExpression,
-                substitutionContext.SyntaxGenerationContext.SyntaxGenerator.Type( targetSymbol.ContainingType ),
+                substitutionContext.SyntaxGenerationContext.SyntaxGenerator.TypeSyntax( targetSymbol.ContainingType ),
                 IdentifierName( this.GetTargetMemberName() ) );
     }
 

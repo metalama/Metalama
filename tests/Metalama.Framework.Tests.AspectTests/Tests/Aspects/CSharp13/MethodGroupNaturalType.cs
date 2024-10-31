@@ -8,7 +8,7 @@ using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using System;
 
-namespace Metalama.Framework.Tests.Integration.Tests.Aspects.CSharp13.MethodGroupNaturalType;
+namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.CSharp13.MethodGroupNaturalType;
 
 public class TheAspect : OverrideMethodAspect
 {

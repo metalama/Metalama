@@ -8,7 +8,7 @@
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 
-namespace Metalama.Framework.Tests.Integration.Tests.Aspects.CSharp13.RefStructInterfaces_Basic;
+namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.CSharp13.RefStructInterfaces_Basic;
 
 class TheAspect : TypeAspect
 {

@@ -4,7 +4,7 @@ using Metalama.Framework.Code;
 using System;
 using System.IO;
 
-namespace Metalama.Framework.Tests.Integration.Tests.Aspects.Nullable.NullableConstraint;
+namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Nullable.NullableConstraint;
 
 internal class MyAspect : TypeAspect
 {

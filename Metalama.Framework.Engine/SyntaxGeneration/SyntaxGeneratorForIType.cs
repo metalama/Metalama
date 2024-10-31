@@ -27,15 +27,17 @@ internal partial class SyntaxGeneratorForIType
 
     private readonly SyntaxGenerationOptions _generationOptions;
     private readonly TypeSyntaxGeneratorVisitor _typeSyntaxGeneratorVisitor;
+    private readonly ExpressionSyntaxGeneratorVisitor _typeExpressionSyntaxGeneratorVisitor;
 
     public SyntaxGeneratorForIType( SyntaxGenerationOptions generationOptions )
     {
         this._generationOptions = generationOptions;
         this._typeSyntaxGeneratorVisitor = new TypeSyntaxGeneratorVisitor( this );
+        this._typeExpressionSyntaxGeneratorVisitor = new ExpressionSyntaxGeneratorVisitor( this );
     }
 
     // Based on Roslyn ITypeSymbolExtensions.GenerateTypeSyntax.
-    internal TypeSyntax TypeExpression( IType type )
+    internal TypeSyntax TypeSyntax( IType type )
     {
         var syntax = this._typeSyntaxGeneratorVisitor.Visit( type )
             .WithAdditionalAnnotations( Simplifier.Annotation );
@@ -57,28 +59,27 @@ internal partial class SyntaxGeneratorForIType
         return syntax;
     }
 
-    // Copy of Microsoft.CodeAnalysis.CSharp.Shared.Lightup.NullableSyntaxAnnotationEx.
-    private static class NullableSyntaxAnnotationEx
+    internal ExpressionSyntax TypeExpression( IType type )
     {
-        public static SyntaxAnnotation? Oblivious { get; }
+        var syntax = this._typeExpressionSyntaxGeneratorVisitor.Visit( type )
+            .WithAdditionalAnnotations( Simplifier.Annotation );
 
-        public static SyntaxAnnotation? AnnotatedOrNotAnnotated { get; }
-
-        static NullableSyntaxAnnotationEx()
+        if ( type.IsReferenceType == true )
         {
-            var nullableSyntaxAnnotation = typeof(Workspace).Assembly.GetType(
-                "Microsoft.CodeAnalysis.CodeGeneration.NullableSyntaxAnnotation",
-                throwOnError: false );
-
-            if ( nullableSyntaxAnnotation != null )
+            var additionalAnnotation = type.IsNullable switch
             {
-                Oblivious = (SyntaxAnnotation?) nullableSyntaxAnnotation.GetField( nameof(Oblivious), BindingFlags.Static | BindingFlags.Public )
-                    ?.GetValue( null );
+                null => NullableSyntaxAnnotationEx.Oblivious,
+                true or false => NullableSyntaxAnnotationEx.AnnotatedOrNotAnnotated
+            };
 
-                AnnotatedOrNotAnnotated = (SyntaxAnnotation?) nullableSyntaxAnnotation
-                    .GetField( nameof(AnnotatedOrNotAnnotated), BindingFlags.Static | BindingFlags.Public )
-                    ?.GetValue( null );
+            if ( additionalAnnotation is not null )
+            {
+                syntax = syntax.WithAdditionalAnnotations( additionalAnnotation );
             }
         }
+
+        return syntax;
     }
+
+    // Copy of Microsoft.CodeAnalysis.CSharp.Shared.Lightup.NullableSyntaxAnnotationEx.
 }

@@ -43,14 +43,6 @@
         <Compile Remove="$(MSBuildThisFileDirectory)/Tests/**/__*.cs" />
         <!-- But still show them in solution explorer -->
         <None Include="$(MSBuildThisFileDirectory)/Tests/**/__*.cs" />
-        <Compile Update="Tests\Aspects\Contracts\Property_ImplicitSetter.cs">
-          <DependentUpon>$([System.String]::Copy('Property_Set').Substring( %(Filename.IndexOf('.') ).cs</DependentUpon>
-          <SubType>Code</SubType>
-        </Compile>
-        <Compile Update="Tests\Aspects\Annotations\AddAnnotationToDifferentType.cs">
-          <DependentUpon>$([System.String]::Copy('AddAnnotation').Substring( %(Filename.IndexOf('.') ).cs</DependentUpon>
-          <SubType>Code</SubType>
-        </Compile>
     </ItemGroup>
 
     <ItemGroup>

@@ -77,7 +77,7 @@ internal sealed class AspectReferenceBaseSubstitution : AspectReferenceRenamingS
 
             return currentNode
                 .WithExpression(
-                    substitutionContext.SyntaxGenerationContext.SyntaxGenerator.Type( hiddenSymbol.ContainingType )
+                    substitutionContext.SyntaxGenerationContext.SyntaxGenerator.TypeSyntax( hiddenSymbol.ContainingType )
                         .WithTriviaFromIfNecessary( currentNode.Expression, this._syntaxGenerationOptions ) );
         }
         else

@@ -12,7 +12,6 @@ using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Tests.UnitTests.Utilities;
 using Metalama.Testing.UnitTesting;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -1526,21 +1525,21 @@ class C {}
         {
             using var testContext = this.CreateTestContext();
 
-            const string code = @"
-public partial class C
-{
-    public void NonPartial() {}
-    partial void PartialVoid_NoImpl();
-    partial void PartialVoid_Impl();
-    public partial int PartialNonVoid();
-}
+            const string code = """
+                public partial class C
+                {
+                    public void NonPartial() {}
+                    partial void PartialVoid_NoImpl();
+                    partial void PartialVoid_Impl();
+                    public partial int PartialNonVoid();
+                }
 
-public partial class C
-{
-    partial void PartialVoid_Impl() {}
-    public partial int PartialNonVoid() => 42;
-}
-";
+                public partial class C
+                {
+                    partial void PartialVoid_Impl() {}
+                    public partial int PartialNonVoid() => 42;
+                }
+                """;
 
             var compilation = testContext.CreateCompilationModel( code );
             var nonPartial = compilation.Types.ElementAt( 0 ).Methods.OfName( "NonPartial" ).Single();
@@ -1566,6 +1565,90 @@ public partial class C
             // Ensure declarations of both parts are the same.
             Assert.Same( compilation.Factory.GetMethod( partialDefinition ), compilation.Factory.GetMethod( partialImplementation ) );
         }
+
+#if ROSLYN_4_12_0_OR_GREATER
+        [Fact]
+        public void PartialProperties()
+        {
+            using var testContext = this.CreateTestContext();
+
+            const string code = """
+                partial class C
+                {
+                    int P { get; set; }
+                    partial int PartialP { get; set; }
+                    partial int PartialP { get => 0; set {} }
+                }
+                """;
+
+            var compilation = testContext.CreateCompilationModel( code );
+            var type = compilation.Types.Single();
+
+            var intType = compilation.Factory.GetSpecialType( SpecialType.Int32 );
+            var stringType = compilation.Factory.GetSpecialType( SpecialType.String );
+
+            var nonPartialProperty = type.Properties.OfName( "P" ).Single();
+            var partialProperty = type.Properties.OfName( "PartialP" ).Single();
+
+            Assert.False( nonPartialProperty.IsPartial );
+            Assert.True( partialProperty.IsPartial );
+
+            var partialDefinition = (IPropertySymbol) type.GetSymbol().AssertSymbolNotNull().GetMembers( "PartialP" ).Single();
+            var partialImplementation = partialDefinition.PartialImplementationPart;
+
+            Assert.NotSame( partialDefinition, partialImplementation );
+
+            // Ensure references of both parts are the same.
+            var partialImplementationRef = partialDefinition.ToRef( compilation.RefFactory );
+            var partialDefinitionRef = partialImplementation.ToRef( compilation.RefFactory );
+            Assert.Same( partialImplementationRef, partialDefinitionRef );
+
+            // Ensure declarations of both parts are the same.
+            Assert.Same( compilation.Factory.GetProperty( partialDefinition ), compilation.Factory.GetProperty( partialImplementation ) );
+        }
+
+        [Fact]
+        public void PartialIndexers()
+        {
+            using var testContext = this.CreateTestContext();
+
+            const string code = """
+                partial class C
+                {
+                    int this[int i] { get => 0; set {} }
+                    partial int this[string s] { get; set; }
+                    partial int this[string s] { get => 0; set {} }
+                }
+                """;
+
+            var compilation = testContext.CreateCompilationModel( code );
+            var type = compilation.Types.Single();
+
+            var intType = compilation.Factory.GetSpecialType( SpecialType.Int32 );
+            var stringType = compilation.Factory.GetSpecialType( SpecialType.String );
+
+            var nonPartialIndexer = type.Indexers.OfExactSignature( [intType] );
+            var partialIndexer = type.Indexers.OfExactSignature( [stringType] );
+
+            Assert.False( nonPartialIndexer.IsPartial );
+            Assert.True( partialIndexer.IsPartial );
+
+            var partialDefinition = type.GetSymbol().AssertSymbolNotNull().GetMembers( "this[]" )
+                .Cast<IPropertySymbol>()
+                .Single( i => i.Parameters.Single().Type.SpecialType == Microsoft.CodeAnalysis.SpecialType.System_String );
+            var partialImplementation = partialDefinition.PartialImplementationPart;
+
+            Assert.NotSame( partialDefinition, partialImplementation );
+
+            // Ensure references of both parts are the same.
+            var partialImplementationRef = partialDefinition.ToRef( compilation.RefFactory );
+            var partialDefinitionRef = partialImplementation.ToRef( compilation.RefFactory );
+            Assert.Same( partialImplementationRef, partialDefinitionRef );
+
+            // Ensure declarations of both parts are the same.
+            Assert.Same( compilation.Factory.GetProperty( partialDefinition ), compilation.Factory.GetProperty( partialImplementation ) );
+        }
+#endif
 
         [Fact]
         public void HasImplementation()
@@ -1679,25 +1762,25 @@ public partial class B
         }
 
         [Fact]
-        private void SourceReferences()
+        private void SourceReferencesToMethods()
         {
             using var testContext = this.CreateTestContext();
 
-            const string code = @"
-public partial class C
-{
-    public void NonPartial() {}
-    partial void PartialVoid_NoImpl();
-    partial void PartialVoid_Impl();
-    public partial int PartialNonVoid();
-}
+            const string code = """
+                public partial class C
+                {
+                    public void NonPartial() {}
+                    partial void PartialVoid_NoImpl();
+                    partial void PartialVoid_Impl();
+                    public partial int PartialNonVoid();
+                }
 
-public partial class C
-{
-    partial void PartialVoid_Impl() {}
-    public partial int PartialNonVoid() => 42;
-}
-";
+                public partial class C
+                {
+                    partial void PartialVoid_Impl() {}
+                    public partial int PartialNonVoid() => 42;
+                }
+                """;
 
             var compilation = testContext.CreateCompilationModel( code );
             var type = compilation.Types.Single();
@@ -1707,6 +1790,30 @@ public partial class C
             Assert.True( partialMethod.HasImplementation );
             Assert.Single( partialMethod.Sources, s => s.IsImplementationPart );
         }
+
+#if ROSLYN_4_12_0_OR_GREATER
+        [Fact]
+        private void SourceReferencesToProperties()
+        {
+            using var testContext = this.CreateTestContext();
+            const string code = """
+                public partial class C
+                {
+                    public int P { get; set; }
+                    partial int PartialP { get; set; }
+                    partial int PartialP { get => 0; set {} }
+                }
+                """;
+
+            var compilation = testContext.CreateCompilationModel( code );
+            var type = compilation.Types.Single();
+            Assert.Single( type.Sources );
+            var partialProperty = type.Properties["PartialP"];
+            Assert.Equal( 2, partialProperty.Sources.Length );
+            Assert.True( partialProperty.HasImplementation );
+            Assert.Single( partialProperty.Sources, s => s.IsImplementationPart );
+        }
+#endif
 
         [Fact]
         public void RecordImplicitPropertyInitializer()

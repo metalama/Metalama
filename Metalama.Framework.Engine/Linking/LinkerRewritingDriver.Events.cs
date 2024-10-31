@@ -104,7 +104,12 @@ namespace Metalama.Framework.Engine.Linking
                 var removeAccessorDeclaration = (AccessorDeclarationSyntax) symbol.RemoveMethod.AssertNotNull().GetPrimaryDeclarationSyntax().AssertNotNull();
 
                 var transformedAdd = GetLinkedAccessor( semanticKind, addAccessorDeclaration, symbol.AddMethod.AssertNotNull(), isOverrideOrOverrideTarget );
-                var transformedRemove = GetLinkedAccessor( semanticKind, removeAccessorDeclaration, symbol.RemoveMethod.AssertNotNull(), isOverrideOrOverrideTarget );
+
+                var transformedRemove = GetLinkedAccessor(
+                    semanticKind,
+                    removeAccessorDeclaration,
+                    symbol.RemoveMethod.AssertNotNull(),
+                    isOverrideOrOverrideTarget );
 
                 var (accessorListLeadingTrivia, accessorStartingTrivia, accessorEndingTrivia, accessorListTrailingTrivia) = eventDeclaration switch
                 {
@@ -182,7 +187,7 @@ namespace Metalama.Framework.Engine.Linking
                         MemberAccessExpression(
                                 SyntaxKind.SimpleMemberAccessExpression,
                                 symbol.IsStatic
-                                    ? context.SyntaxGenerator.Type( symbol.ContainingType )
+                                    ? context.SyntaxGenerator.TypeSyntax( symbol.ContainingType )
                                     : ThisExpression(),
                                 IdentifierName( GetBackingFieldName( (IEventSymbol) symbol.AssociatedSymbol.AssertNotNull() ) ) )
                             .WithSimplifierAnnotationIfNecessary( context ),
@@ -197,7 +202,7 @@ namespace Metalama.Framework.Engine.Linking
                         MemberAccessExpression(
                                 SyntaxKind.SimpleMemberAccessExpression,
                                 symbol.IsStatic
-                                    ? context.SyntaxGenerator.Type( symbol.ContainingType )
+                                    ? context.SyntaxGenerator.TypeSyntax( symbol.ContainingType )
                                     : ThisExpression(),
                                 IdentifierName( GetBackingFieldName( (IEventSymbol) symbol.AssociatedSymbol.AssertNotNull() ) ) )
                             .WithSimplifierAnnotationIfNecessary( context ),

@@ -123,6 +123,29 @@ public static class MethodCollectionExtensions
     }
 
     /// <summary>
+    /// Gets an indexer that exactly matches the specified signature.
+    /// </summary>
+    /// <param name="indexers">A collection of indexers.</param>
+    /// <param name="parameterTypes">List of parameter types.</param>
+    /// <param name="refKinds">List of parameter reference kinds, or <c>null</c> if all parameters should be by-value.</param>
+    /// <returns>An <see cref="IIndexer"/> that matches the given signature.</returns>
+    public static IIndexer? OfExactSignature(
+        this IIndexerCollection indexers,
+        IReadOnlyList<IType> parameterTypes,
+        IReadOnlyList<RefKind>? refKinds = null )
+    {
+        return indexers.OfExactSignature(
+            (parameterTypes, refKinds),
+            null,
+            parameterTypes.Count,
+            GetParameter,
+            null );
+
+        static (IType Type, RefKind RefKind) GetParameter( (IReadOnlyList<IType> ParameterTypes, IReadOnlyList<RefKind>? RefKinds) context, int index )
+            => (context.ParameterTypes[index], context.RefKinds?[index] ?? RefKind.None);
+    }
+
+    /// <summary>
     /// Gets an indexer that exactly matches the signature of the specified method.
     /// </summary>
     /// <param name="indexers">A collection of indexers.</param>
