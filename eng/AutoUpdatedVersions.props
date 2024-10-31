@@ -3,8 +3,8 @@
 
     <PropertyGroup>
         <MetalamaBackstageVersion>2025.0.3-preview</MetalamaBackstageVersion>
-        <MetalamaCompilerVersion>2025.0.2-preview</MetalamaCompilerVersion>
-        <MetalamaVersion>2025.0.3-preview</MetalamaVersion>
+        <MetalamaCompilerVersion>2025.0.3-preview</MetalamaCompilerVersion>
+        <MetalamaVersion>2025.0.4-preview</MetalamaVersion>
         <MetalamaFrameworkRunTimeVersion>2025.0.2-preview</MetalamaFrameworkRunTimeVersion>
     </PropertyGroup>
 
