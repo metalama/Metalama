@@ -324,8 +324,6 @@ public class TestContext : IDisposable, ITempFileManager, IApplicationInfoProvid
 
     protected virtual void Dispose( bool disposing )
     {
-        this._isDisposed = true;
-
         if ( this._isRoot )
         {
             this.ProjectOptions.Dispose();
