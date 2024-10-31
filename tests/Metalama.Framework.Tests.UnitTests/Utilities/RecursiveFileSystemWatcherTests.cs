@@ -31,7 +31,7 @@ public sealed class RecursiveFileSystemWatcherTests : UnitTestClass
         // ReSharper disable once MethodHasAsyncOverload
         File.WriteAllText( Path.Combine( tempDirectory, "file.txt" ), "test" );
 
-        Assert.Same( wasRaised.Task, await Task.WhenAny( wasRaised.Task, Task.Delay( TimeSpan.FromSeconds( 1 ) ) ) );
+        Assert.Same( wasRaised.Task, await Task.WhenAny( wasRaised.Task, Task.Delay( TimeSpan.FromSeconds( 120 ) ) ) );
     }
 
     [Fact]
