@@ -38,7 +38,7 @@ internal sealed class IntroduceParameterTransformation : BaseSyntaxTreeTransform
         var syntax = SyntaxFactory.Parameter(
             default,
             default,
-            syntaxGenerationContext.SyntaxGenerator.Type( this.Parameter.Type )
+            syntaxGenerationContext.SyntaxGenerator.TypeSyntax( this.Parameter.Type )
                 .WithOptionalTrailingTrivia( SyntaxFactory.ElasticSpace, syntaxGenerationContext.Options ),
             SyntaxFactory.Identifier( this.Parameter.Name.AssertNotNull() ),
             null );

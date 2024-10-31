@@ -474,7 +474,7 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                                                         Argument(
                                                             NameColon( p.Name ),
                                                             GetArgumentRefToken( p ),
-                                                            DefaultExpression( syntaxGenerationContext.SyntaxGenerator.Type( p.Type ) ) ) ) ) ) ),
+                                                            DefaultExpression( syntaxGenerationContext.SyntaxGenerator.TypeSyntax( p.Type ) ) ) ) ) ) ),
                                 Block() ) );
                     }
                 }

@@ -89,7 +89,7 @@ namespace Metalama.Framework.Engine.Linking.Inlining
             return syntaxGenerationContext.SyntaxGenerator.FormattedBlock(
                     LocalDeclarationStatement(
                             VariableDeclaration(
-                                syntaxGenerationContext.SyntaxGenerator.Type( specification.DestinationSemantic.Symbol.ReturnType ),
+                                syntaxGenerationContext.SyntaxGenerator.TypeSyntax( specification.DestinationSemantic.Symbol.ReturnType ),
                                 SingletonSeparatedList( VariableDeclarator( Identifier( specification.ReturnVariableIdentifier.AssertNotNull() ) ) ) ) )
                         .NormalizeWhitespaceIfNecessary( syntaxGenerationContext )
                         .WithOptionalTrailingLineFeed( syntaxGenerationContext ),

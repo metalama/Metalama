@@ -18,10 +18,13 @@ internal sealed class NamespaceBuilder : NamedDeclarationBuilder, INamespace
     public IntroducedRef<INamespace> Ref { get; }
 
     public NamespaceBuilder( AspectLayerInstance aspectLayerInstance, INamespace containingNamespace, string name ) : base( aspectLayerInstance )
-    {
+    {   
+        Invariant.Assert( !name.ContainsOrdinal( '.' ) );
+        
         this._name = name;
         this.ContainingNamespace = containingNamespace;
         this.Ref = new IntroducedRef<INamespace>( this.Compilation.RefFactory );
+        this.Freeze();
     }
 
     public override string Name

@@ -47,7 +47,7 @@ internal sealed class AspectReferenceSourceSubstitution : AspectReferenceRenamin
 
         var expression =
             targetSymbol.IsStatic
-                ? substitutionContext.SyntaxGenerationContext.SyntaxGenerator.Type( targetSymbol.ContainingType )
+                ? substitutionContext.SyntaxGenerationContext.SyntaxGenerator.TypeSyntax( targetSymbol.ContainingType )
                 : this.AspectReference.HasCustomReceiver
                     ? currentNode.Expression
                     : SyntaxFactory.ThisExpression();

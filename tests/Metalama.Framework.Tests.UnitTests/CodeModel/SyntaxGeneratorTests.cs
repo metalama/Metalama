@@ -74,7 +74,8 @@ namespace Metalama.Framework.Tests.UnitTests.CodeModel
             var compilation = testContext.CreateCompilationModel( code );
             var fieldType = compilation.Types.Single().Fields.Single().Type;
 
-            var syntaxGenerator = compilation.CompilationContext.GetSyntaxGenerationContext( SyntaxGenerationOptions.Formatted, isNullOblivious: !nullable ).SyntaxGenerator;
+            var syntaxGenerator = compilation.CompilationContext.GetSyntaxGenerationContext( SyntaxGenerationOptions.Formatted, isNullOblivious: !nullable )
+                .SyntaxGenerator;
 
             var typeOf = syntaxGenerator.TypeOfExpression( fieldType ).ToString();
 
@@ -128,19 +129,76 @@ namespace Metalama.Framework.Tests.UnitTests.CodeModel
             var compilation = testContext.CreateCompilationModel( code );
             var fieldType = compilation.Types.Single().Fields.Single().Type;
 
-            var syntaxGenerator = compilation.CompilationContext.GetSyntaxGenerationContext( SyntaxGenerationOptions.Formatted, isNullOblivious: !nullable ).SyntaxGenerator;
+            var syntaxGenerator = compilation.CompilationContext.GetSyntaxGenerationContext( SyntaxGenerationOptions.Formatted, isNullOblivious: !nullable )
+                .SyntaxGenerator;
 
-            var typeSyntax = syntaxGenerator.Type( fieldType ).ToString();
+            var typeSyntax = syntaxGenerator.TypeSyntax( fieldType ).ToString();
 
             this._logger.WriteLine( $"Actual using symbols: {typeSyntax}" );
 
             Assert.Equal( expectedTypeOf, typeSyntax );
 
-            var typeSyntax2 = syntaxGenerator.Type( fieldType, bypassSymbols: true ).ToString();
+            var typeSyntax2 = syntaxGenerator.TypeSyntax( fieldType, bypassSymbols: true ).ToString();
 
             this._logger.WriteLine( $"Actual using IType: {typeSyntax2}" );
 
             Assert.Equal( expectedTypeOf, typeSyntax2 );
+        }
+
+        [Theory]
+
+        // With nullable context.
+        [InlineData( "int", "global::System.Int32", true )]
+        [InlineData( "string", "global::System.String", true )]
+        [InlineData( "List<string?>", "global::System.Collections.Generic.List<global::System.String?>", true )]
+        [InlineData( "List<string?>.Enumerator", "global::System.Collections.Generic.List<global::System.String?>.Enumerator", true )]
+        [InlineData( "List<string>?", "global::System.Collections.Generic.List<global::System.String>", true )]
+        [InlineData(
+            "List<List<string?>>",
+            "global::System.Collections.Generic.List<global::System.Collections.Generic.List<global::System.String?>>",
+            true )]
+        [InlineData( "List<string[]?>", "global::System.Collections.Generic.List<global::System.String[]?>", true )]
+        [InlineData( "List<string?[]?>?", "global::System.Collections.Generic.List<global::System.String?[]?>", true )]
+        [InlineData( "List<int[]?>", "global::System.Collections.Generic.List<global::System.Int32[]?>", true )]
+        [InlineData( "List<int?[]>", "global::System.Collections.Generic.List<global::System.Int32?[]>", true )]
+
+        // Without nullable context.
+        [InlineData( "int?", "global::System.Int32?", false )]
+        [InlineData( "string?", "global::System.String", false )]
+        [InlineData( "List<string?>", "global::System.Collections.Generic.List<global::System.String>", false )]
+        [InlineData( "List<string?>.Enumerator", "global::System.Collections.Generic.List<global::System.String>.Enumerator", false )]
+        [InlineData( "List<string>?", "global::System.Collections.Generic.List<global::System.String>", false )]
+        [InlineData(
+            "List<List<string?>>",
+            "global::System.Collections.Generic.List<global::System.Collections.Generic.List<global::System.String>>",
+            false )]
+        [InlineData( "List<string[]?>", "global::System.Collections.Generic.List<global::System.String[]>", false )]
+        [InlineData( "List<string?[]?>?", "global::System.Collections.Generic.List<global::System.String[]>", false )]
+        [InlineData( "List<int[]?>", "global::System.Collections.Generic.List<global::System.Int32[]>", false )]
+        [InlineData( "List<int?[]>", "global::System.Collections.Generic.List<global::System.Int32?[]>", false )]
+        public void TypeExpression( string type, string expectedTypeOf, bool nullableContext )
+        {
+            using var testContext = this.CreateTestContext();
+
+            var code = $"using System.Collections.Generic; class T {{ {type} field; }} ";
+            var compilation = testContext.CreateCompilationModel( code );
+            var fieldType = compilation.Types.Single().Fields.Single().Type;
+
+            var syntaxGenerator = compilation.CompilationContext
+                .GetSyntaxGenerationContext( SyntaxGenerationOptions.Formatted, isNullOblivious: !nullableContext )
+                .SyntaxGenerator;
+
+            var typeSyntax = syntaxGenerator.TypeExpression( fieldType );
+
+            this._logger.WriteLine( $"Actual using symbols: {typeSyntax}" );
+
+            Assert.Equal( expectedTypeOf, typeSyntax.ToString() );
+
+            var typeSyntax2 = syntaxGenerator.TypeExpression( fieldType, bypassSymbols: true );
+
+            this._logger.WriteLine( $"Actual using IType: {typeSyntax2}" );
+
+            Assert.Equal( expectedTypeOf, typeSyntax2.ToString() );
         }
 
         [Fact]
@@ -154,14 +212,14 @@ namespace Metalama.Framework.Tests.UnitTests.CodeModel
 
             var syntaxGenerator = compilation.CompilationContext.GetSyntaxGenerationContext( SyntaxGenerationOptions.Formatted ).SyntaxGenerator;
 
-            var typeSyntax = syntaxGenerator.Type( type ).ToString();
+            var typeSyntax = syntaxGenerator.TypeSyntax( type ).ToString();
 
             this._logger.WriteLine( $"Actual using symbols: {typeSyntax}" );
 
             const string expected = "global::System.Collections.Generic.Dictionary<TKey,TValue>";
             Assert.Equal( expected, typeSyntax );
 
-            var typeSyntax2 = syntaxGenerator.Type( type, bypassSymbols: true ).ToString();
+            var typeSyntax2 = syntaxGenerator.TypeSyntax( type, bypassSymbols: true ).ToString();
 
             this._logger.WriteLine( $"Actual using IType: {typeSyntax2}" );
 

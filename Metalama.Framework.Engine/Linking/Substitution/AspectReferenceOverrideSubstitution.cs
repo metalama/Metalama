@@ -62,7 +62,7 @@ internal sealed class AspectReferenceOverrideSubstitution : AspectReferenceRenam
                 return
                     MemberAccessExpression(
                             SyntaxKind.SimpleMemberAccessExpression,
-                            substitutionContext.SyntaxGenerationContext.SyntaxGenerator.Type( targetSymbol.ContainingType ),
+                            substitutionContext.SyntaxGenerationContext.SyntaxGenerator.TypeSyntax( targetSymbol.ContainingType ),
                             RewriteName( currentNode.Name, this.GetTargetMemberName() ) )
                         .WithTriviaFromIfNecessary( currentNode, substitutionContext.SyntaxGenerationContext.Options );
             }

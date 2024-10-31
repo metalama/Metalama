@@ -22,7 +22,7 @@ internal sealed class TemplateTypeArgumentFactory
 
     public static TemplateTypeArgument Create( IType type, string name, SyntaxGenerationContext context )
     {
-        var syntax = context.SyntaxGenerator.Type( type ).AssertNotNull();
+        var syntax = context.SyntaxGenerator.TypeSyntax( type ).AssertNotNull();
         var syntaxForTypeOf = context.SyntaxGenerator.TypeOfExpression( type ).Type;
 
         return new TemplateTypeArgument( name, type, syntax, syntaxForTypeOf );

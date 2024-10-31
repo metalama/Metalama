@@ -239,7 +239,7 @@ namespace Metalama.Framework.Engine.Linking
                         : generationContext.SyntaxGenerator.FormattedBlock(
                             ReturnStatement(
                                 SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.ReturnKeyword ),
-                                DefaultExpression( generationContext.SyntaxGenerator.Type( resultType ) ),
+                                DefaultExpression( generationContext.SyntaxGenerator.TypeSyntax( resultType ) ),
                                 Token( SyntaxKind.SemicolonToken ) ) );
 
             return this.GetSpecialImplMethod( method, emptyBody, null, symbol, GetEmptyImplMemberName( symbol ), generationContext );

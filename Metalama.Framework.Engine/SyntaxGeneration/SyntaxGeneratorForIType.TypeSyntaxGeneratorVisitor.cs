@@ -3,10 +3,6 @@
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.Types;
 using Metalama.Framework.Engine.CodeModel.Helpers;
-using Metalama.Framework.Engine.CodeModel.Visitors;
-using Metalama.Framework.Engine.SerializableIds;
-using Metalama.Framework.Engine.Utilities.Roslyn;
-using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
@@ -20,55 +16,9 @@ namespace Metalama.Framework.Engine.SyntaxGeneration;
 internal sealed partial class SyntaxGeneratorForIType
 {
     // Based on Roslyn TypeSyntaxGeneratorVisitor.
-    private sealed class TypeSyntaxGeneratorVisitor : TypeVisitor<TypeSyntax>
+    private sealed class TypeSyntaxGeneratorVisitor : AbstractGeneratorVisitor<TypeSyntax>
     {
-        private readonly SyntaxGeneratorForIType _syntaxGeneratorForIType;
-
-        public TypeSyntaxGeneratorVisitor( SyntaxGeneratorForIType syntaxGeneratorForIType )
-        {
-            this._syntaxGeneratorForIType = syntaxGeneratorForIType;
-        }
-
-        protected override TypeSyntax DefaultVisit( IType type ) => throw new AssertionFailedException();
-
-        private TTypeSyntax AddInformationTo<TTypeSyntax>( TTypeSyntax syntax, IType type )
-            where TTypeSyntax : TypeSyntax
-        {
-            var generationOptions = this._syntaxGeneratorForIType._generationOptions;
-
-            if ( generationOptions.TriviaMatters )
-            {
-                syntax = syntax
-                    .WithRequiredLeadingTrivia( syntax.GetLeadingTrivia().Insert( 0, SyntaxFactory.ElasticMarker ) )
-                    .WithRequiredTrailingTrivia( syntax.GetTrailingTrivia().Add( SyntaxFactory.ElasticMarker ) );
-            }
-
-            if ( generationOptions.AddFormattingAnnotations )
-            {
-                syntax = syntax.WithAdditionalAnnotations( SymbolAnnotation.Create( type ) );
-            }
-
-            return syntax;
-        }
-
-        private TTypeSyntax AddInformationTo<TTypeSyntax>( TTypeSyntax syntax, INamespace ns )
-            where TTypeSyntax : TypeSyntax
-        {
-            var generationOptions = this._syntaxGeneratorForIType._generationOptions;
-
-            if ( generationOptions.TriviaMatters )
-            {
-                syntax = syntax
-                    .WithRequiredLeadingTrivia( syntax.GetLeadingTrivia().Insert( 0, SyntaxFactory.ElasticMarker ) )
-                    .WithRequiredTrailingTrivia( syntax.GetTrailingTrivia().Add( SyntaxFactory.ElasticMarker ) );
-            }
-
-            syntax = syntax.WithAdditionalAnnotations( SymbolAnnotation.Create( ns ) );
-
-            return syntax;
-        }
-
-        private static IdentifierNameSyntax ToIdentifierName( string identifier ) => (IdentifierNameSyntax) RoslynSyntaxGenerator.IdentifierName( identifier );
+        public TypeSyntaxGeneratorVisitor( SyntaxGeneratorForIType syntaxGeneratorForIType ) : base( syntaxGeneratorForIType ) { }
 
         protected override TypeSyntax VisitArrayType( IArrayType type )
         {
@@ -98,7 +48,7 @@ internal sealed partial class SyntaxGeneratorForIType
                 }
             }
 
-            var elementTypeSyntax = this._syntaxGeneratorForIType.TypeExpression( underlyingType );
+            var elementTypeSyntax = this.SyntaxGenerator.TypeSyntax( underlyingType );
             var ranks = new List<ArrayRankSpecifierSyntax>();
 
             var arrayType = type;
@@ -126,7 +76,7 @@ internal sealed partial class SyntaxGeneratorForIType
 
         protected override TypeSyntax VisitFunctionPointerType( IFunctionPointerType functionPointerType ) => throw new NotImplementedException();
 
-        private TypeSyntax CreateSimpleTypeSyntax( INamedType type )
+        public TypeSyntax CreateSimpleTypeSyntax( INamedType type )
         {
             var syntax = this.TryCreateSpecializedNamedTypeSyntax( type );
 
@@ -150,7 +100,7 @@ internal sealed partial class SyntaxGeneratorForIType
                 return ToIdentifierName( type.Name );
             }
 
-            var typeArguments = type.TypeArguments.SelectAsArray( this._syntaxGeneratorForIType.TypeExpression );
+            var typeArguments = type.TypeArguments.SelectAsArray( this.SyntaxGenerator.TypeSyntax );
 
             return SyntaxFactory.GenericName(
                 ToIdentifierName( type.Name ).Identifier,
@@ -182,7 +132,7 @@ internal sealed partial class SyntaxGeneratorForIType
 
                 if ( innerType.TypeKind != TypeKind.Pointer )
                 {
-                    return this.AddInformationTo( SyntaxFactory.NullableType( this._syntaxGeneratorForIType.TypeExpression( innerType ) ), type );
+                    return this.AddInformationTo( SyntaxFactory.NullableType( this.SyntaxGenerator.TypeSyntax( innerType ) ), type );
                 }
             }
 
@@ -278,7 +228,7 @@ internal sealed partial class SyntaxGeneratorForIType
 
         protected override TypeSyntax VisitPointerType( IPointerType type )
         {
-            return this.AddInformationTo( SyntaxFactory.PointerType( this._syntaxGeneratorForIType.TypeExpression( type.PointedAtType ) ), type );
+            return this.AddInformationTo( SyntaxFactory.PointerType( this.SyntaxGenerator.TypeSyntax( type.PointedAtType ) ), type );
         }
 
         protected override TypeSyntax VisitTypeParameter( ITypeParameter type )
@@ -293,16 +243,6 @@ internal sealed partial class SyntaxGeneratorForIType
             }
 
             return typeSyntax;
-        }
-
-        // Copied from Roslyn.
-        internal static class SymbolAnnotation
-        {
-            private const string _kind = "SymbolId";
-
-            public static SyntaxAnnotation Create( IType type ) => new( _kind, DocumentationIdHelper.CreateReferenceId( type ) );
-
-            public static SyntaxAnnotation Create( INamespace ns ) => new( _kind, DocumentationIdHelper.CreateReferenceId( ns ) );
         }
     }
 }

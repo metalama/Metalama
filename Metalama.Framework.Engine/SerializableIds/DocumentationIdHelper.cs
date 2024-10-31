@@ -40,7 +40,7 @@ namespace Metalama.Framework.Engine.SerializableIds
         /// Creates an id string used to reference type symbols (not strictly declarations, includes
         /// arrays, pointers, type parameters, etc.)
         /// </summary>
-        public static string CreateReferenceId( IType type )
+        public static string CreateReferenceId( ICompilationElement type )
         {
             if ( type == null )
             {
@@ -50,24 +50,6 @@ namespace Metalama.Framework.Engine.SerializableIds
             using var builder = StringBuilderPool.Default.Allocate();
             var generator = new GeneratorOfReferenceIdFromDeclaration( builder.Value, typeParameterContext: null );
             generator.Visit( type );
-
-            return builder.Value.ToString();
-        }
-
-        /// <summary>
-        /// Creates an id string used to reference type symbols (not strictly declarations, includes
-        /// arrays, pointers, type parameters, etc.)
-        /// </summary>
-        public static string CreateReferenceId( INamespace ns )
-        {
-            if ( ns == null )
-            {
-                throw new ArgumentNullException( nameof(ns) );
-            }
-
-            using var builder = StringBuilderPool.Default.Allocate();
-            var generator = new GeneratorOfReferenceIdFromDeclaration( builder.Value, typeParameterContext: null );
-            generator.Visit( ns );
 
             return builder.Value.ToString();
         }

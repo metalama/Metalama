@@ -368,7 +368,7 @@ namespace Metalama.Framework.Engine.Linking
                         MemberAccessExpression(
                                 SyntaxKind.SimpleMemberAccessExpression,
                                 symbol.IsStatic
-                                    ? generationContext.SyntaxGenerator.Type( symbol.ContainingType )
+                                    ? generationContext.SyntaxGenerator.TypeSyntax( symbol.ContainingType )
                                     : ThisExpression(),
                                 IdentifierName( GetBackingFieldName( (IPropertySymbol) symbol.AssociatedSymbol.AssertNotNull() ) ) )
                             .WithSimplifierAnnotationIfNecessary( generationContext ),
@@ -383,7 +383,7 @@ namespace Metalama.Framework.Engine.Linking
                             MemberAccessExpression(
                                     SyntaxKind.SimpleMemberAccessExpression,
                                     symbol.IsStatic
-                                        ? generationContext.SyntaxGenerator.Type( symbol.ContainingType )
+                                        ? generationContext.SyntaxGenerator.TypeSyntax( symbol.ContainingType )
                                         : ThisExpression(),
                                     IdentifierName( GetBackingFieldName( (IPropertySymbol) symbol.AssociatedSymbol.AssertNotNull() ) ) )
                                 .WithSimplifierAnnotationIfNecessary( generationContext ),

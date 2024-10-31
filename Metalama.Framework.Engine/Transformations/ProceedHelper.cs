@@ -28,7 +28,7 @@ internal static class ProceedHelper
         IMethod overriddenMethod )
     {
         TypeSyntax GetRuntimeAspectHelperTypeSyntax()
-            => generationContext.SyntaxGenerator.Type( generationContext.ReflectionMapper.GetTypeSymbol( typeof(RunTimeAspectHelper) ) );
+            => generationContext.SyntaxGenerator.TypeSyntax( generationContext.ReflectionMapper.GetTypeSymbol( typeof(RunTimeAspectHelper) ) );
 
         switch ( selectedTemplateKind )
         {
@@ -223,7 +223,7 @@ internal static class ProceedHelper
                     SyntaxKind.SimpleMemberAccessExpression,
                     ParenthesizedExpression(
                         generationContext.SyntaxGenerator.SafeCastExpression(
-                            generationContext.SyntaxGenerator.Type( implementedInterfaceMember.DeclaringType ),
+                            generationContext.SyntaxGenerator.TypeSyntax( implementedInterfaceMember.DeclaringType ),
                             ThisExpression() ) ),
                     memberName );
             }
@@ -240,7 +240,7 @@ internal static class ProceedHelper
             expression =
                 MemberAccessExpression(
                     SyntaxKind.SimpleMemberAccessExpression,
-                    generationContext.SyntaxGenerator.Type( targetMember.DeclaringType ),
+                    generationContext.SyntaxGenerator.TypeExpression( targetMember.DeclaringType ),
                     memberName );
         }
 

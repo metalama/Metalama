@@ -177,7 +177,7 @@ internal sealed class ReturnStatementSubstitution : SyntaxNodeSubstitution
                 identifier = SyntaxFactoryEx.DiscardIdentifier();
 
                 expression = syntaxGenerator.SafeCastExpression(
-                    syntaxGenerator.Type( this._originalContainingSymbol.ReturnType ),
+                    syntaxGenerator.TypeSyntax( this._originalContainingSymbol.ReturnType ),
                     expression );
             }
 

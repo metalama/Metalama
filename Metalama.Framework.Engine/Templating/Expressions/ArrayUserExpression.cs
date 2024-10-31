@@ -27,7 +27,7 @@ namespace Metalama.Framework.Engine.Templating.Expressions
 
             var generator = syntaxSerializationContext.SyntaxGenerator;
 
-            return generator.ArrayCreationExpression( generator.Type( this._itemType ), items );
+            return generator.ArrayCreationExpression( generator.TypeSyntax( this._itemType ), items );
         }
 
         protected override bool CanBeNull => false;

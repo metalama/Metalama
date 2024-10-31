@@ -198,7 +198,7 @@ internal sealed partial class LinkerInjectionStep
 
                 if ( method.ReturnType.Equals( SpecialType.Void ) )
                 {
-                    returnType = syntaxGenerationContext.SyntaxGenerator.Type(
+                    returnType = syntaxGenerationContext.SyntaxGenerator.TypeSyntax(
                         syntaxGenerationContext.CompilationContext.ReflectionMapper.GetTypeSymbol( typeof(ValueTask) ) );
                 }
             }
@@ -268,7 +268,7 @@ internal sealed partial class LinkerInjectionStep
                 body = Block( ExpressionStatement( proceedExpression ) );
             }
 
-            returnType ??= syntaxGenerationContext.SyntaxGenerator.Type( method.ReturnType );
+            returnType ??= syntaxGenerationContext.SyntaxGenerator.TypeSyntax( method.ReturnType );
 
             return MethodDeclaration(
                 List<AttributeListSyntax>(),

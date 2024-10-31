@@ -223,7 +223,8 @@ internal sealed class SerializerGenerator : ISerializerGenerator
                 ParameterList(
                     SingletonSeparatedList(
                         Parameter( Identifier( argumentReaderParameterName ) )
-                            .WithType( this._context.SyntaxGenerator.Type( this._context.ReflectionMapper.GetTypeSymbol( typeof(IArgumentsReader) ) ) ) ) ),
+                            .WithType(
+                                this._context.SyntaxGenerator.TypeSyntax( this._context.ReflectionMapper.GetTypeSymbol( typeof(IArgumentsReader) ) ) ) ) ),
                 hasDeserializingBaseConstructor
                     ? ConstructorInitializer(
                         SyntaxKind.BaseConstructorInitializer,
@@ -284,7 +285,7 @@ internal sealed class SerializerGenerator : ISerializerGenerator
 
         var baseType = this.HasPendingBaseSerializer( serializableType.Type, baseSerializerType )
             ? SimpleBaseType( CreatePendingSerializerType( serializableType.Type.BaseType.AssertNotNull() ) )
-            : SimpleBaseType( this._context.SyntaxGenerator.Type( baseSerializerType ) );
+            : SimpleBaseType( this._context.SyntaxGenerator.TypeSyntax( baseSerializerType ) );
 
         // TODO: CompilerGenerated attribute.
         return ClassDeclaration(
@@ -298,7 +299,7 @@ internal sealed class SerializerGenerator : ISerializerGenerator
 
         TypeSyntax CreatePendingSerializerType( ITypeSymbol declaringType )
         {
-            return QualifiedName( (NameSyntax) this._context.SyntaxGenerator.Type( declaringType ), IdentifierName( _serializerTypeName ) );
+            return QualifiedName( (NameSyntax) this._context.SyntaxGenerator.TypeSyntax( declaringType ), IdentifierName( _serializerTypeName ) );
         }
     }
 
@@ -453,7 +454,7 @@ internal sealed class SerializerGenerator : ISerializerGenerator
                 this._context.SyntaxGenerator.FormattedBlock(
                     ThrowStatement(
                         ObjectCreationExpression(
-                            this._context.SyntaxGenerator.Type( this._context.ReflectionMapper.GetTypeSymbol( typeof(InvalidOperationException) ) ),
+                            this._context.SyntaxGenerator.TypeSyntax( this._context.ReflectionMapper.GetTypeSymbol( typeof(InvalidOperationException) ) ),
                             ArgumentList(
                                 SingletonSeparatedList(
                                     Argument(
@@ -672,13 +673,13 @@ internal sealed class SerializerGenerator : ISerializerGenerator
         => MethodDeclaration(
             List<AttributeListSyntax>(),
             TokenList( Token( SyntaxKind.PublicKeyword ).WithTrailingTrivia( Space ), Token( SyntaxKind.OverrideKeyword ).WithTrailingTrivia( Space ) ),
-            this._context.SyntaxGenerator.Type( methodSymbol.ReturnType ).WithTrailingTrivia( Space ),
+            this._context.SyntaxGenerator.TypeSyntax( methodSymbol.ReturnType ).WithTrailingTrivia( Space ),
             null,
             Identifier( methodSymbol.Name ),
             null,
             ParameterList(
                 SeparatedList(
-                    methodSymbol.Parameters.Select( p => Parameter( Identifier( p.Name ) ).WithType( this._context.SyntaxGenerator.Type( p.Type ) ) ) ) ),
+                    methodSymbol.Parameters.Select( p => Parameter( Identifier( p.Name ) ).WithType( this._context.SyntaxGenerator.TypeSyntax( p.Type ) ) ) ) ),
             List<TypeParameterConstraintClauseSyntax>(),
             body,
             null );
@@ -751,7 +752,7 @@ internal sealed class SerializerGenerator : ISerializerGenerator
                                 argumentsReaderExpression,
                                 GenericName(
                                     Identifier( nameof(IArgumentsReader.GetValue) ),
-                                    TypeArgumentList( SingletonSeparatedList( this._context.SyntaxGenerator.Type( memberType ) ) ) ) ),
+                                    TypeArgumentList( SingletonSeparatedList( this._context.SyntaxGenerator.TypeSyntax( memberType ) ) ) ) ),
                             ArgumentList(
                                 SeparatedList(
                                 [
