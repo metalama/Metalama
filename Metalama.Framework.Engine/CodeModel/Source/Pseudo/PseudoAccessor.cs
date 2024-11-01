@@ -110,7 +110,7 @@ internal abstract class PseudoAccessor : IMethodImpl
 
     public SerializableDeclarationId ToSerializableId() => this.DeclaringMember.GetSerializableId( this.MethodKind.ToDeclarationRefTargetKind() );
 
-    public IAssembly DeclaringAssembly => this.DeclaringMember.DeclaringAssembly;
+    public IAssembly? DeclaringAssembly => this.DeclaringMember.DeclaringAssembly;
 
     public IDeclarationOrigin Origin => this.DeclaringMember.Origin;
 

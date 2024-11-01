@@ -123,7 +123,7 @@ internal sealed class CompilationHelpers : ICompilationHelpers
 
         bool DerivesFromWithFirstLevel( INamedType type )
         {
-            if ( type.BaseType != null && !type.BaseType.DeclaringAssembly.Equals( type.DeclaringAssembly ) )
+            if ( type.BaseType != null && !Equals( type.BaseType.DeclaringAssembly, type.DeclaringAssembly ) )
             {
                 if ( IsEqualOrDerivesFromWithAnyDegree( type.BaseType.Definition ) )
                 {
@@ -133,7 +133,7 @@ internal sealed class CompilationHelpers : ICompilationHelpers
 
             foreach ( var i in type.ImplementedInterfaces )
             {
-                if ( !i.DeclaringAssembly.Equals( type.DeclaringAssembly ) && IsEqualOrDerivesFromWithAnyDegree( i.Definition ) )
+                if ( !Equals( i.DeclaringAssembly, type.DeclaringAssembly ) && IsEqualOrDerivesFromWithAnyDegree( i.Definition ) )
                 {
                     return true;
                 }

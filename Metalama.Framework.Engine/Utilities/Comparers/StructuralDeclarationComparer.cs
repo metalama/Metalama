@@ -942,7 +942,7 @@ internal sealed class StructuralDeclarationComparer : IEqualityComparer<ICompila
         if ( options.HasFlagFast( StructuralComparerOptions.ContainingAssembly ) )
         {
             // Version should not differ often.
-            h = HashCode.Combine( h, (compilationElement as IDeclaration)?.DeclaringAssembly.Identity.Name );
+            h = HashCode.Combine( h, (compilationElement as IDeclaration)?.DeclaringAssembly?.Identity.Name );
         }
 
         return h;

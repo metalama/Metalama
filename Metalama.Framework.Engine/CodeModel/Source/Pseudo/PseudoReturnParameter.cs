@@ -49,7 +49,7 @@ internal class PseudoReturnParameter : BaseDeclaration, IParameterImpl
 
     public bool IsReturnParameter => true;
 
-    public override IAssembly DeclaringAssembly => this._declaringMethod.DeclaringAssembly;
+    public override IAssembly? DeclaringAssembly => this._declaringMethod.DeclaringAssembly;
 
     IDeclarationOrigin IDeclaration.Origin => this._declaringMethod.Origin;
 

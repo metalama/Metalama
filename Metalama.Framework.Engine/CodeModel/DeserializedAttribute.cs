@@ -65,7 +65,7 @@ internal class DeserializedAttribute : IAttributeImpl
 
     SerializableDeclarationId IDeclaration.ToSerializableId() => throw new NotSupportedException();
 
-    IAssembly IDeclaration.DeclaringAssembly => this.ContainingDeclaration.DeclaringAssembly;
+    IAssembly? IDeclaration.DeclaringAssembly => this.ContainingDeclaration.DeclaringAssembly;
 
     IDeclarationOrigin IDeclaration.Origin => DeclarationOrigin.External;
 

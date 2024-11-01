@@ -62,7 +62,7 @@ namespace Metalama.Framework.Engine.CodeModel
 
         internal abstract DeclarationImplementationKind ImplementationKind { get; }
 
-        public abstract IAssembly DeclaringAssembly { get; }
+        public abstract IAssembly? DeclaringAssembly { get; }
 
         public abstract IDeclarationOrigin Origin { get; }
 

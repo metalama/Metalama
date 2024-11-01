@@ -39,7 +39,8 @@ namespace Metalama.Framework.Engine.CodeModel.Source
         protected virtual IDeclaration GetDefinitionDeclaration() => this;
 
         [Memo]
-        public override IAssembly DeclaringAssembly => this.Compilation.Factory.GetAssembly( this.Symbol.ContainingAssembly );
+        public override IAssembly? DeclaringAssembly
+            => this.Symbol.ContainingAssembly is { } containingAssembly ? this.Compilation.Factory.GetAssembly( containingAssembly ) : null;
 
         public override string ToString()
         {

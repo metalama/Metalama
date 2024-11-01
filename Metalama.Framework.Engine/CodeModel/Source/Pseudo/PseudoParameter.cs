@@ -89,7 +89,7 @@ namespace Metalama.Framework.Engine.CodeModel.Source.Pseudo
 
         internal override DeclarationImplementationKind ImplementationKind => DeclarationImplementationKind.Pseudo;
 
-        public override IAssembly DeclaringAssembly => this.DeclaringMember.DeclaringAssembly;
+        public override IAssembly? DeclaringAssembly => this.DeclaringMember.DeclaringAssembly;
 
         public override Location? DiagnosticLocation => this.DeclaringMember.GetDiagnosticLocation();
 

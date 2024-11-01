@@ -252,5 +252,7 @@ namespace Metalama.Framework.Code
         /// <remarks>The method does not descent into accessors, custom attributes, parameters, or type parameters.</remarks>
         public static IEnumerable<IDeclaration> ContainedDescendantsAndSelf( this IDeclaration declaration )
             => declaration.SelectManyRecursive( d => d.ContainedChildren(), true );
+
+        internal static bool IsExternalOrNull( this IAssembly? assembly ) => assembly == null || assembly.IsExternal;
     }
 }

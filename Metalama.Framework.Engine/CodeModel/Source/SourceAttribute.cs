@@ -52,7 +52,7 @@ internal sealed class SourceAttribute : IAttributeImpl
 
     public SerializableDeclarationId ToSerializableId() => throw new NotSupportedException();
 
-    public IAssembly DeclaringAssembly => this.ContainingDeclaration.DeclaringAssembly;
+    public IAssembly? DeclaringAssembly => this.ContainingDeclaration.DeclaringAssembly;
 
     IDeclarationOrigin IDeclaration.Origin => this.ContainingDeclaration.Origin;
 

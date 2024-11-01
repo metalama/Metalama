@@ -41,7 +41,7 @@ namespace Metalama.Framework.Code
         /// Gets the declaring assembly, which can be the current <see cref="ICompilationElement.Compilation"/>
         /// or a reference assembly.
         /// </summary>
-        IAssembly DeclaringAssembly { get; }
+        IAssembly? DeclaringAssembly { get; }
 
         /// <summary>
         /// Gets the origin of the current declaration.

@@ -66,7 +66,7 @@ public sealed class ReferenceEnd
     /// <summary>
     /// Gets the <see cref="IAssembly"/> (or <see cref="ICompilation"/>) for which the analysis was performed.
     /// </summary>
-    public IAssembly Assembly => this.Declaration.DeclaringAssembly;
+    public IAssembly? Assembly => this.Declaration.DeclaringAssembly;
 
     internal ReferenceEnd( IDeclaration declaration, ReferenceGranularity granularity )
     {

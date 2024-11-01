@@ -56,7 +56,7 @@ public static class DeclarationExtensions
             IEventSymbol => DeclarationKind.Event,
             ITypeSymbol => DeclarationKind.Type,
             IModuleSymbol => DeclarationKind.Compilation,
-            _ => throw new ArgumentException( $"Unexpected symbol: {symbol.GetType().Name}.", nameof(symbol) )
+            _ => throw new ArgumentException( $"Unexpected symbol: {symbol?.GetType().Name}.", nameof(symbol) )
         };
 
     /// <summary>
