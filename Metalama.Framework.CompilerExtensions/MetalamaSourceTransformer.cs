@@ -12,14 +12,9 @@ namespace Metalama.Framework.CompilerExtensions
     [DisplayName( "Metalama.Framework" )] // This name is used in telemetry. Changing it causes inconsistent data.
     public sealed class MetalamaSourceTransformer : ISourceTransformerWithServices
     {
-        private readonly ISourceTransformerWithServices _impl;
-
-        public MetalamaSourceTransformer()
-        {
-            this._impl = (ISourceTransformerWithServices) ResourceExtractor.CreateInstance(
-                "Metalama.Framework.Engine",
-                "Metalama.Framework.Engine.Pipeline.SourceTransformer" );
-        }
+        private readonly ISourceTransformerWithServices _impl = (ISourceTransformerWithServices) ResourceExtractor.CreateInstance(
+            "Metalama.Framework.Engine",
+            "Metalama.Framework.Engine.Pipeline.SourceTransformer" );
 
         public IServiceProvider? InitializeServices( InitializeServicesContext context ) => this._impl.InitializeServices( context );
 

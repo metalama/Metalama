@@ -43,8 +43,8 @@ namespace Metalama.Framework.DesignTime
             = WellKnownTemplateWarningSuppressions.SuppressionDescriptors.ToDictionary(
                 x => x.Key,
                 x => new SuppressionDescriptor(
-                    x.Value.SuppressedDiagnosticId,
-                    x.Value.SuppressedDiagnosticId,
+                    x.Value.DiagnosticId,
+                    x.Value.DiagnosticId,
                     x.Value.Justification ?? "The warning is not relevant in a T# template." ) );
 
         private readonly DesignTimeDiagnosticDefinitions _designTimeDiagnosticDefinitions;

@@ -1,39 +1,80 @@
 ﻿// Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
 using Metalama.Framework.Diagnostics;
+using Microsoft.CodeAnalysis;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace Metalama.Framework.Engine.Templating;
 
+public record WellKnownTemplateWarningSuppression( string DiagnosticId, string? Justification, SymbolKind[] EligibleSymbolKinds )
+{
+    public SuppressionDefinition Definition { get; } = new( DiagnosticId, Justification );
+
+    public bool RequiresBody { get; init; }
+    
+    public bool AppliesToConstructor { get; init; }
+}
+
 public static class WellKnownTemplateWarningSuppressions
 {
-    public static readonly IReadOnlyDictionary<string, SuppressionDefinition> SuppressionDescriptors =
+    private static readonly SymbolKind[] _anyTemplate = [SymbolKind.Method, SymbolKind.Property, SymbolKind.Event, SymbolKind.Field];
+
+    public static readonly IReadOnlyDictionary<string, WellKnownTemplateWarningSuppression> SuppressionDescriptors =
         new[]
         {
             // CA1822 - Mark members as static    
-            new SuppressionDefinition( "CA1822", "Member may use generate code that references non-static members." ),
+            new WellKnownTemplateWarningSuppression(
+                "CA1822",
+                "Member may use generate code that references non-static members.",
+                [SymbolKind.Method, SymbolKind.Property] ),
 
             // IDE0031 - Use null propagation
-            new SuppressionDefinition(
+            new WellKnownTemplateWarningSuppression(
                 "IDE0031",
-                "Null propagation of compile-time variables to members returning a run-time value is not supported." ),
+                "Null propagation of compile-time variables to members returning a run-time value is not supported.",
+                _anyTemplate ) { RequiresBody = true },
 
             // IDE0053 - Use expression body for lambdas
-            new SuppressionDefinition( "IDE0053", "Lambda expressions returning a dynamic type are not supported in templates." ),
+            new WellKnownTemplateWarningSuppression( "IDE0053", "Lambda expressions returning a dynamic type are not supported in templates.", _anyTemplate )
+            {
+                RequiresBody = true
+            },
+
+            // IDE1005 - Use conditional delegate call
+            new WellKnownTemplateWarningSuppression( "IDE1005", "Lambda expressions returning a dynamic type are not supported in templates.", _anyTemplate )
+            {
+                RequiresBody = true
+            },
 
             // IDE0059 - Unnecessary assignment of a value
-            new SuppressionDefinition(
+            new WellKnownTemplateWarningSuppression(
                 "IDE0059",
-                "Parameters in a contract or initializer template are likely to be used by the overridden member." ),
+                "Parameters in a contract or initializer template are likely to be used by the overridden member.",
+                _anyTemplate ) { RequiresBody = true },
 
             // CS0628 - New protected member declared in sealed type
-            new SuppressionDefinition( "CS0628", "The target type of the aspect may be non-sealed." ),
+            new WellKnownTemplateWarningSuppression( "CS0628", "The target type of the aspect may be non-sealed.", _anyTemplate ),
 
             // CS8618: Non-nullable property 'property' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the property as nullable.
-            new SuppressionDefinition( "CS8618", "A template property may be initialized by the target code." ),
+            new WellKnownTemplateWarningSuppression(
+                "CS8618",
+                "A template property may be initialized by the target code.",
+                [SymbolKind.Property, SymbolKind.Field, SymbolKind.Event] ) { AppliesToConstructor = true },
 
             // CS0169: Field is never used
-            new SuppressionDefinition( "CS0169", "A template field may be used by the target code." )
-        }.ToDictionary( d => d.SuppressedDiagnosticId, d => d );
+            new WellKnownTemplateWarningSuppression( "CS0169", "A template field may be used by the target code.", _anyTemplate ),
+
+            // CS0649 - Field is never assigned
+            new WellKnownTemplateWarningSuppression(
+                "CS0649",
+                "A template field may be assigned by the target code.",
+                [SymbolKind.Field, SymbolKind.Property, SymbolKind.Event] ),
+
+            // IDE0044: Add readonly modifier
+            new WellKnownTemplateWarningSuppression( "IDE0044", "A template field may be set by target code.", [SymbolKind.Field] ),
+
+            // CS9113: Parameter is unread.
+            new WellKnownTemplateWarningSuppression( "CS9113", "A template parameter may be read by target code.", [SymbolKind.Method] )
+        }.ToDictionary( d => d.DiagnosticId, d => d );
 }
