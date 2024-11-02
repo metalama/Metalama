@@ -32,6 +32,7 @@ internal class TestResult : IDisposable
 
     private readonly List<TestSyntaxTree> _syntaxTrees = new();
     private bool _frozen;
+    private ConcurrentBag<ScopedSuppression>? _diagnosticSuppressions = new();
 
     public TestInput? TestInput { get; set; }
 
@@ -88,7 +89,7 @@ internal class TestResult : IDisposable
         }
     }
 
-    public ConcurrentBag<ScopedSuppression> DiagnosticSuppressions { get; } = new();
+    public ConcurrentBag<ScopedSuppression> DiagnosticSuppressions => this._diagnosticSuppressions ?? throw new ObjectDisposedException( nameof(TestResult) );
 
     public void AddDiagnosticSuppressions( IEnumerable<ScopedSuppression> suppressions )
     {
@@ -296,6 +297,40 @@ internal class TestResult : IDisposable
         }
 
         return text;
+    }
+
+    private (ISymbol? Symbol, string CompilationName) GetDeclarationUnderDiagnostic( Diagnostic diagnostic )
+    {
+        var syntaxTree = diagnostic.Location.SourceTree;
+
+        if ( syntaxTree == null )
+        {
+            return default;
+        }
+
+        var compilation =
+            new[] { (this.InputCompilation, "input"), (this.OutputCompilation, "output") }.FirstOrDefault( c => c.Item1!.ContainsSyntaxTree( syntaxTree ) );
+
+        if ( compilation.Item1 == null )
+        {
+            return default;
+        }
+
+        var semanticModel = compilation.Item1.GetSemanticModel( syntaxTree );
+
+        var node = syntaxTree.GetRoot().FindNode( diagnostic.Location.SourceSpan, getInnermostNodeForTie: true );
+
+        for ( var n = node; n != null; n = n.Parent )
+        {
+            var symbol = semanticModel.GetDeclaredSymbol( node );
+
+            if ( symbol != null )
+            {
+                return (symbol, compilation.Item2);
+            }
+        }
+
+        return default;
     }
 
     /// <summary>
@@ -524,7 +559,17 @@ internal class TestResult : IDisposable
         }
         else
         {
-            message += $"on `{this.GetTextUnderDiagnostic( d )}`";
+            message += $" on `{this.GetTextUnderDiagnostic( d )}`";
+        }
+
+        if ( testInputOptions.IncludeDeclarationInDiagnosticReport == true )
+        {
+            var symbol = this.GetDeclarationUnderDiagnostic( d );
+
+            if ( symbol.Symbol != null )
+            {
+                message += $"in `{symbol.Symbol}` ({symbol.CompilationName} compilation)";
+            }
         }
 
         if ( testInputOptions.RemoveDiagnosticMessage != true )
@@ -569,6 +614,8 @@ internal class TestResult : IDisposable
         // A Task<TestResult> may be non-collectable for some time after task completion (not sure why), so disposing
         // the TestResult makes sure we don't have a GC reference to the assembly even if we still have a reference to the TestResult.
 
+        this._frozen = true;
+
         this._syntaxTrees.Clear();
         this.OutputCompilation = null;
         this.OutputProject = null;
@@ -577,11 +624,13 @@ internal class TestResult : IDisposable
         this.IntermediateLinkerCompilation = null;
         this.InitialCompilationModel = null;
 
-        // Diagnostics may have reference to declarations, and must be collected too.
+        // Diagnostics and suppressions may have reference to declarations, and must be collected too.
         this.PipelineDiagnostics.Clear();
         this.InputCompilationDiagnostics.Clear();
         this.OutputCompilationDiagnostics.Clear();
         this.CompileTimeCompilationDiagnostics.Clear();
+        this._diagnosticSuppressions = null!;
+
         this.TestContext?.Dispose();
         this.TestContext = null;
     }

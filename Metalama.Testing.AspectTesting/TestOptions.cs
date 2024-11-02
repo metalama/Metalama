@@ -322,6 +322,8 @@ public class TestOptions
     /// The default value is <c>false</c>. To enable this option in a test, add this comment to your test file: <c>// @IncludeLineNumberInDiagnosticReport</c>.
     /// </summary>
     public bool? IncludeLineNumberInDiagnosticReport { get; set; }
+    
+    public bool? IncludeDeclarationInDiagnosticReport { get; set; }
 
     /// <summary>
     /// Gets or sets a value indicating that the test output should not include the transformed code, but only the diagnostics.
@@ -466,6 +468,8 @@ public class TestOptions
         this.CheckMemoryLeaks ??= baseOptions.CheckMemoryLeaks;
 
         this.IncludeLineNumberInDiagnosticReport ??= baseOptions.IncludeLineNumberInDiagnosticReport;
+
+        this.IncludeDeclarationInDiagnosticReport ??= baseOptions.IncludeDeclarationInDiagnosticReport;
 
         this.RemoveOutputCode ??= baseOptions.RemoveOutputCode;
 
@@ -774,6 +778,11 @@ public class TestOptions
 
                 case "IncludeLineNumberInDiagnosticReport":
                     this.IncludeLineNumberInDiagnosticReport = true;
+
+                    break;
+                
+                case "IncludeDeclarationInDiagnosticReport":
+                    this.IncludeDeclarationInDiagnosticReport = true;
 
                     break;
 

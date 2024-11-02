@@ -30,10 +30,10 @@ public static class WellKnownTemplateWarningSuppressions
             // CS0628 - New protected member declared in sealed type
             new SuppressionDefinition( "CS0628", "The target type of the aspect may be non-sealed." ),
 
-            //  CS8618: Non-nullable property 'property' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the property as nullable.
+            // CS8618: Non-nullable property 'property' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the property as nullable.
             new SuppressionDefinition( "CS8618", "A template property may be initialized by the target code." ),
 
-            //  CS0169: Field is never used
+            // CS0169: Field is never used
             new SuppressionDefinition( "CS0169", "A template field may be used by the target code." )
         }.ToDictionary( d => d.SuppressedDiagnosticId, d => d );
 }
