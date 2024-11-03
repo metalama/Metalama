@@ -176,10 +176,14 @@ internal sealed partial class CompileTimeProjectRepository
                 return true;
             }
 
+            this._logger.Trace?.Log( $"TryGetCompileTimeProjectFromCompilation('{compilationContext.SourceCompilation.AssemblyName}')" );
+
             List<CompileTimeProject> referencedProjects = [this._frameworkProject];
 
             foreach ( var reference in runTimeCompilation.References )
             {
+                this._logger.Trace?.Log( $"Considering reference '{reference.Display}'." );
+
                 if ( this.TryGetCompileTimeProject(
                         reference,
                         diagnosticSink,
@@ -224,6 +228,8 @@ internal sealed partial class CompileTimeProjectRepository
             }
 
             this._projects.Add( runTimeCompilation.Assembly.Identity, compileTimeProject );
+
+            this._logger.Trace?.Log( $"TryGetCompileTimeProjectFromCompilation('{compilationContext.SourceCompilation.AssemblyName}'): successful" );
 
             return true;
         }
@@ -285,18 +291,24 @@ internal sealed partial class CompileTimeProjectRepository
             {
                 compileTimeProject = null;
 
+                this._logger.Trace?.Log( $"'{assemblyPath}' is a standard assembly." );
+
                 return true;
             }
 
             // Look in our cache.
             if ( this._projects.TryGetValue( assemblyIdentity, out compileTimeProject ) )
             {
+                this._logger.Trace?.Log( $"'{assemblyPath}' was found in cache." );
+
                 return true;
             }
 
             // LoadFromAssemblyPath throws for mscorlib
             if ( Path.GetFileNameWithoutExtension( assemblyPath ) == typeof(object).Assembly.GetName().Name )
             {
+                this._logger.Trace?.Log( $"'{assemblyPath}' is the system assembly." );
+
                 goto finish;
             }
 
@@ -307,11 +319,15 @@ internal sealed partial class CompileTimeProjectRepository
                  assemblyFileName.StartsWith( "System.", StringComparison.OrdinalIgnoreCase ) ||
                  assemblyFileName.StartsWith( "Microsoft.CodeAnalysis", StringComparison.OrdinalIgnoreCase ) )
             {
+                this._logger.Trace?.Log( $"'{assemblyPath}' is a system assembly." );
+
                 goto finish;
             }
 
             if ( !MetadataReader.TryGetMetadata( assemblyPath, out var metadataInfo ) )
             {
+                this._logger.Warning?.Log( $"Could not read metadata from '{assemblyPath}'." );
+
                 goto finish;
             }
 
