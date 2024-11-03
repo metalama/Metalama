@@ -193,6 +193,7 @@ internal sealed partial class CompileTimeProjectRepository
                 {
                     if ( referencedProject != null )
                     {
+                        this._logger.Trace?.Log( $"Adding a compile-time reference: '{reference.Display}'." );
                         referencedProjects.Add( referencedProject );
                     }
                 }
@@ -346,7 +347,7 @@ internal sealed partial class CompileTimeProjectRepository
                         out compileTimeProject,
                         cancellationToken ) )
                 {
-                    this._logger.Warning?.Log( $"TryDeserializeCompileTimeProject failed." );
+                    this._logger.Warning?.Log( $"TryDeserializeCompileTimeProject('{assemblyPath}') failed." );
 
                     // Coverage: ignore
 
@@ -366,8 +367,8 @@ internal sealed partial class CompileTimeProjectRepository
                         this._cacheableTemplateDiscoveryContextProvider,
                         out compileTimeProject ) )
                 {
-                    this._logger.Trace?.Log(
-                        $"The assembly '{assemblyIdentity}' will not be included in the compile-time compilation despite having an [assembly: CompileTime] attribute "
+                    this._logger.Warning?.Log(
+                        $"The assembly '{assemblyPath}' will not be included in the compile-time compilation despite having an [assembly: CompileTime] attribute "
                         +
                         "because it has no compile-time embedded resource and it is not loaded as an analyzer." );
                 }
