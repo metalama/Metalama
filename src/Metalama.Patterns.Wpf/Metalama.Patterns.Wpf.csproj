@@ -15,8 +15,6 @@
     </PackageDescription>
 
     <PackageTags>Metalama PostSharp WPF dependency property DependencyProperty command</PackageTags>    
-
-    <MetalamaFormatCompileTimeCode>True</MetalamaFormatCompileTimeCode>
   </PropertyGroup>
 
   <ItemGroup>
