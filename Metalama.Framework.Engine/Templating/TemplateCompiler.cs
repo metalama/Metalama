@@ -145,7 +145,7 @@ namespace Metalama.Framework.Engine.Templating
 
             var sourceDiagnostics = semanticModel.GetDiagnostics( sourceSyntaxRoot.Span, cancellationToken );
 
-            var errors = sourceDiagnostics.Where( d => d.Severity == DiagnosticSeverity.Error );
+            var errors = sourceDiagnostics.Where( d => d.Severity == DiagnosticSeverity.Error && !d.IsWarningAsError );
 
             // ReSharper disable PossibleMultipleEnumeration
             if ( errors.Any() )
@@ -161,7 +161,7 @@ namespace Metalama.Framework.Engine.Templating
                 if ( this._logger.Trace != null )
                 {
                     this._logger.Trace.Log(
-                        $"Cannot create a compile-time assembly for '{semanticModel.SyntaxTree.FilePath}' because there are diagnostics in the source code:" );
+                        $"Cannot create a compile-time assembly for '{semanticModel.SyntaxTree.FilePath}' because there are errors in the source code:" );
 
                     foreach ( var error in errors )
                     {
