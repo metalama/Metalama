@@ -39,6 +39,22 @@ internal sealed class IntroduceNamedTypeTransformation : IntroduceDeclarationTra
             baseList = null;
         }
 
+        var typeArgs =
+            introducedType.TypeParameters.Count == 0
+            ? null
+            : TypeParameterList(
+                SeparatedList(
+                    introducedType.TypeParameters.SelectAsReadOnlyList( tp =>
+                        TypeParameter(
+                            List<AttributeListSyntax>(),
+                            tp.Variance switch
+                            {
+                                VarianceKind.In => Token( SyntaxKind.InKeyword ),
+                                VarianceKind.Out => Token( SyntaxKind.OutKeyword ),
+                                _ => default
+                            },
+                            Identifier( tp.Name ) ) ) ) );
+
         var type =
             (this.BuilderData.TypeKind switch
             {
@@ -47,9 +63,7 @@ internal sealed class IntroduceNamedTypeTransformation : IntroduceDeclarationTra
                         AdviceSyntaxGenerator.GetAttributeLists( introducedType, context ),
                         introducedType.GetSyntaxModifierList(),
                         Identifier( introducedType.Name ),
-                        introducedType.TypeParameters.Count == 0
-                            ? null
-                            : TypeParameterList( SeparatedList( introducedType.TypeParameters.SelectAsReadOnlyList( tp => TypeParameter( Identifier( tp.Name ) ) ) ) ),
+                        typeArgs,
                         baseList,
                         context.SyntaxGenerator.ConstraintClauses(introducedType),
                         List<MemberDeclarationSyntax>() ),
@@ -58,9 +72,7 @@ internal sealed class IntroduceNamedTypeTransformation : IntroduceDeclarationTra
                         AdviceSyntaxGenerator.GetAttributeLists( introducedType, context ),
                         introducedType.GetSyntaxModifierList(),
                         Identifier( introducedType.Name ),
-                        introducedType.TypeParameters.Count == 0
-                            ? null
-                            : TypeParameterList( SeparatedList( introducedType.TypeParameters.SelectAsReadOnlyList( tp => TypeParameter( Identifier( tp.Name ) ) ) ) ),
+                        typeArgs,
                         baseList,
                         context.SyntaxGenerator.ConstraintClauses( introducedType ),
                         List<MemberDeclarationSyntax>() ),
@@ -69,9 +81,7 @@ internal sealed class IntroduceNamedTypeTransformation : IntroduceDeclarationTra
                         AdviceSyntaxGenerator.GetAttributeLists( introducedType, context ),
                         introducedType.GetSyntaxModifierList(),
                         Identifier( introducedType.Name ),
-                        introducedType.TypeParameters.Count == 0
-                            ? null
-                            : TypeParameterList( SeparatedList( introducedType.TypeParameters.SelectAsReadOnlyList( tp => TypeParameter( Identifier( tp.Name ) ) ) ) ),
+                        typeArgs,
                         baseList,
                         context.SyntaxGenerator.ConstraintClauses( introducedType ),
                         List<MemberDeclarationSyntax>() ),

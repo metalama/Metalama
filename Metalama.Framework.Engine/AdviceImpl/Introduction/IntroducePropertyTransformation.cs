@@ -148,13 +148,15 @@ internal class IntroducePropertyTransformation : IntroduceMemberTransformation<P
                 propertyBuilder.GetMethod.Accessibility.AddTokens( tokens );
             }
 
+            var hasNoBody = propertyBuilder.IsAutoPropertyOrField is true || propertyBuilder.IsAbstract;
+
             return
                 AccessorDeclaration(
                     SyntaxKind.GetAccessorDeclaration,
                     AdviceSyntaxGenerator.GetAttributeLists( propertyBuilder.GetMethod, context ),
                     TokenList( tokens ),
                     Token( SyntaxKind.GetKeyword ),
-                    propertyBuilder.IsAutoPropertyOrField is true
+                    hasNoBody
                         ? null
                         : syntaxGenerator.FormattedBlock(
                             ReturnStatement(
@@ -166,7 +168,7 @@ internal class IntroducePropertyTransformation : IntroduceMemberTransformation<P
                                         : propertyBuilder.Type.ToNullable() ),
                                 Token( TriviaList(), SyntaxKind.SemicolonToken, context.SyntaxGenerationContext.ElasticEndOfLineTriviaList ) ) ),
                     null,
-                    propertyBuilder.IsAutoPropertyOrField is true ? Token( SyntaxKind.SemicolonToken ) : default );
+                    hasNoBody ? Token( SyntaxKind.SemicolonToken ) : default );
         }
 
         AccessorDeclarationSyntax GenerateSetAccessor()
@@ -178,6 +180,8 @@ internal class IntroducePropertyTransformation : IntroduceMemberTransformation<P
                 propertyBuilder.SetMethod.Accessibility.AddTokens( tokens );
             }
 
+            var hasNoBody = propertyBuilder.IsAutoPropertyOrField is true || propertyBuilder.IsAbstract;
+
             return
                 AccessorDeclaration(
                     this.BuilderData.HasInitOnlySetter ? SyntaxKind.InitAccessorDeclaration : SyntaxKind.SetAccessorDeclaration,
@@ -186,11 +190,9 @@ internal class IntroducePropertyTransformation : IntroduceMemberTransformation<P
                     this.BuilderData.HasInitOnlySetter
                         ? Token( TriviaList(), SyntaxKind.InitKeyword, TriviaList( ElasticSpace ) )
                         : Token( TriviaList(), SyntaxKind.SetKeyword, TriviaList( ElasticSpace ) ),
-                    propertyBuilder.IsAutoPropertyOrField is true
-                        ? null
-                        : syntaxGenerator.FormattedBlock(),
+                    hasNoBody ? null : syntaxGenerator.FormattedBlock(),
                     null,
-                    propertyBuilder.IsAutoPropertyOrField is true ? Token( SyntaxKind.SemicolonToken ) : default );
+                    hasNoBody ? Token( SyntaxKind.SemicolonToken ) : default );
         }
 
         IEnumerable<AttributeListSyntax> GetAdditionalAttributeLists()

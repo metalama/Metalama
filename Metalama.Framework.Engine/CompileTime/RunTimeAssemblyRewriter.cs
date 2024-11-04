@@ -254,7 +254,7 @@ namespace Metalama.Compiler
     }
 
     private bool MustReplaceByThrow( ISymbol symbol )
-        => this._removeCompileTimeOnlyCode && !symbol.IsAbstract && !symbol.IsExtern
+        => this._removeCompileTimeOnlyCode && !symbol.IsAbstract
                                            && (this.SymbolClassifier.GetTemplatingScope( symbol ).GetExpressionExecutionScope()
                                                == TemplatingScope.CompileTimeOnly ||
                                                !this.SymbolClassifier.GetTemplateInfo( symbol ).IsNone);

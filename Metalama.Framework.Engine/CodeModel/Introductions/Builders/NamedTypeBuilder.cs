@@ -53,6 +53,12 @@ internal sealed class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBui
         this.Ref = new IntroducedRef<INamedType>( this.Compilation.RefFactory );
 
         this.BaseType = ((CompilationModel) this.ContainingNamespace.Compilation).Factory.GetSpecialType( SpecialType.Object );
+
+        if (this.TypeKind == TypeKind.Interface)
+        {
+            // Interfaces are always abstract.
+            this.IsAbstract = true;
+        }
     }
 
     protected override void FreezeChildren()

@@ -348,6 +348,7 @@ public static class DeclarationExtensions
         => symbol switch
         {
             { IsAbstract: true } => false,
+            { IsExtern: true } => false,
             { DeclaringSyntaxReferences: { Length: > 0 } syntaxReferences } =>
                 syntaxReferences.All(
                     sr =>

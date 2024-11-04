@@ -6,6 +6,7 @@ using Metalama.Framework.Code.Comparers;
 using Metalama.Framework.Code.Types;
 using Metalama.Framework.Engine.CodeModel.Abstractions;
 using Metalama.Framework.Engine.CodeModel.Collections;
+using Metalama.Framework.Engine.CodeModel.GenericContexts;
 using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 using Metalama.Framework.Engine.CodeModel.Introductions.ConstructedTypes;
 using Metalama.Framework.Engine.CodeModel.References;
@@ -231,7 +232,15 @@ internal sealed class IntroducedNamedType : IntroducedMemberOrNamedType, INamedT
     public INamedType ToNullable()
         => this.IsNullable == true ? this : this.Compilation.Factory.GetNamedType( this.NamedTypeBuilderData, this.GenericContext, true );
 
-    public INamedType MakeGenericInstance( IReadOnlyList<IType> typeArguments ) => throw new NotImplementedException();
+    public INamedType MakeGenericInstance( IReadOnlyList<IType> typeArguments )
+    {
+        var genericContext = new IntroducedGenericContext(
+            typeArguments.SelectAsImmutableArray( t => t.ToFullRef() ),
+            this.ToFullDeclarationRef(),
+            this.GenericContext as IntroducedGenericContext );
+
+        return this.Compilation.Factory.GetNamedType( this.NamedTypeBuilderData, genericContext );
+    }
 
     public bool Equals( IType? other ) => this.Compilation.Comparers.Default.Equals( this, other );
 

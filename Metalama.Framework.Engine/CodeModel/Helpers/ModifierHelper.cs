@@ -199,7 +199,7 @@ internal static class ModifierHelper
                 AddToken( SyntaxKind.NewKeyword );
             }
             
-            if ( namedType.IsAbstract )
+            if ( namedType.IsAbstract && namedType.TypeKind != Code.TypeKind.Interface )
             {
                 AddToken( SyntaxKind.AbstractKeyword );
             }

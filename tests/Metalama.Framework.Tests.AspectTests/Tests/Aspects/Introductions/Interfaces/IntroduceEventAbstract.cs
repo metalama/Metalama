@@ -2,24 +2,25 @@
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using System;
+using System.Linq;
 
-namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Introductions.Interfaces.IntroducePropertyVirtual;
+namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Introductions.Interfaces.IntroduceEventAbstract;
 
 public class IntroductionAttribute : TypeAspect
 {
     public override void BuildAspect(IAspectBuilder<INamedType> builder)
     {
         var @interface = builder.Advice.IntroduceInterface(builder.Target, "ITest");
-        var interfaceProperty = builder.Advice.IntroduceProperty(@interface.Declaration, nameof(TestProperty));
+        var interfaceEvent = builder.Advice.IntroduceEvent(@interface.Declaration, nameof(TestEvent) );
 
         // Implementation type
         var implementation = builder.Advice.IntroduceClass(builder.Target, "TestImplementation");
         builder.Advice.ImplementInterface(implementation.Declaration, @interface.Declaration);
         var constructor = builder.Advice.IntroduceConstructor(implementation.Declaration, nameof(Constructor));
-        builder.Advice.IntroduceProperty(implementation.Declaration, nameof(TestPropertyImplementation), buildProperty: b => { b.Name = "TestProperty"; });
+        builder.Advice.IntroduceEvent(implementation.Declaration, nameof(TestEventImplementation), buildEvent: b => { b.Name = "TestEvent"; });
 
         var usage = builder.Advice.IntroduceClass(builder.Target, "TestUsage");
-        builder.Advice.IntroduceMethod(usage.Declaration, nameof(TestUsageMethod), args: new { T = @interface.Declaration, property = interfaceProperty.Declaration, implConstructor = constructor.Declaration });
+        builder.Advice.IntroduceMethod(usage.Declaration, nameof(TestUsageMethod), args: new { T = @interface.Declaration, @event = interfaceEvent.Declaration, implConstructor = constructor.Declaration });
     }
 
     [Template]
@@ -28,39 +29,26 @@ public class IntroductionAttribute : TypeAspect
     }
 
     [Template]
-    public int TestProperty
-    {
-        get
-        {
-            Console.WriteLine("Default");
-            return 0;
-        }
-
-        set
-        {
-            Console.WriteLine("Default");
-        }
-    }
+    public extern event EventHandler TestEvent;
 
     [Template]
-    public int TestPropertyImplementation
+    public event EventHandler TestEventImplementation
     {
-        get
+        add
         {
             Console.WriteLine("Implementation");
-            return 0;
         }
 
-        set
+        remove
         {
             Console.WriteLine("Implementation");
         }
     }
 
     [Template]
-    public T TestUsageMethod<[CompileTime] T>(T instance, [CompileTime] IProperty property, [CompileTime] IConstructor implConstructor)
+    public T TestUsageMethod<[CompileTime] T>(T instance, [CompileTime] IEvent @event, [CompileTime] IConstructor implConstructor)
     {
-        property.With(instance).Value = property.With(instance).Value + 1;
+        @event.Add((EventHandler)((s, ea) => { Console.WriteLine("Handler"); }));
         return implConstructor.Invoke();
     }
 }

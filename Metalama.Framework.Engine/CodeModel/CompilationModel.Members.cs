@@ -112,7 +112,7 @@ public sealed partial class CompilationModel
         where TCollection : IUpdatableCollection
     {
         Invariant.Assert( !(requestMutableCollection && !this.IsMutable) );
-        Invariant.Assert( declaration.IsDefinition );
+        Invariant.Assert( declaration is IGeneric { IsGeneric: true } or { IsDefinition: true } );
 
         // If the model is mutable, we need to return a mutable collection because it may be mutated after the
         // front-end collection is returned.

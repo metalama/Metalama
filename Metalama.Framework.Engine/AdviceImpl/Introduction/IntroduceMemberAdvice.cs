@@ -165,6 +165,27 @@ internal abstract class IntroduceMemberAdvice<TTemplate, TIntroduced, TBuilder> 
                     this ) );
         }
 
+        // Check that template without a body (i.e. abstract method) is not introduced to a non-abstract type.
+        if ( this.Template?.TemplateClassMember.TemplateInfo.HasNoBody == true && !targetDeclaration.IsAbstract )
+        {
+            diagnosticAdder.Report(
+                AdviceDiagnosticDescriptors.CannotIntroduceAbstractMemberToNonAbstractType.CreateRoslynDiagnostic(
+                    targetDeclaration.GetDiagnosticLocation(),
+                    (this.AspectInstance.AspectClass.ShortName, builder, targetDeclaration),
+                    this ) );
+        }
+
+        // Check that template without body is not used OverrideStrategy.Override.
+        if ( this.Template?.TemplateClassMember.TemplateInfo.HasNoBody == true
+             && this.OverrideStrategy is OverrideStrategy.Override or OverrideStrategy.New)
+        {
+            diagnosticAdder.Report(
+                AdviceDiagnosticDescriptors.CannotIntroduceAbstractMemberWithOverrideStrategy.CreateRoslynDiagnostic(
+                    targetDeclaration.GetDiagnosticLocation(),
+                    (this.AspectInstance.AspectClass.ShortName, builder, this.OverrideStrategy),
+                    this ) );
+        }
+
         // Check that virtual member is not introduced to a sealed type or a struct.
         if ( targetDeclaration is { IsSealed: true } or { DeclaringType.TypeKind: TypeKind.Struct or TypeKind.RecordStruct }
              && builder.IsVirtual )

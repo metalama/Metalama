@@ -259,5 +259,21 @@ namespace Metalama.Framework.Engine.Advising
                 "The aspect '{0}' cannot introduce type '{1}' into '{2}' because the type already exists.",
                 _category,
                 Error );
+
+        internal static readonly DiagnosticDefinition<(string AspectType, IDeclaration Member, IDeclaration TargetType)>
+            CannotIntroduceAbstractMemberToNonAbstractType = new(
+                "LAMA0532",
+                "Cannot introduce abstract member into a non-abstract type.",
+                "The aspect '{0}' cannot introduce abstract member '{1}' into type '{2}' because it is not abstract.",
+                _category,
+                Error );
+
+        internal static readonly DiagnosticDefinition<(string AspectType, IDeclaration Member, OverrideStrategy OverrideStrategy)>
+            CannotIntroduceAbstractMemberWithOverrideStrategy = new(
+                "LAMA0533",
+                "Cannot introduce abstract member with override strategy Override.",
+                "The aspect '{0}' cannot introduce abstract member '{1}' with override strategy '{2}'.",
+                _category,
+                Error );
     }
 }
