@@ -4,6 +4,11 @@
         <!-- We suppress all warnings present in WellKnownTemplateWarningSuppressions because the suppressor does not run in aspect tests,
              and it's harmless to disable these warnings in tests. -->
         <NoWarn>$(NoWarn);CA1822;IDE0031;IDE0053;IDE1005;IDE0059;CS0628;CS8618;CS0169;CS0649;IDE0044;CS9113</NoWarn>
+        
+        <!-- Also suppress warnings from Microsoft.VisualStudio.Threading.Analyzers -->
+        <NoWarn>$(NoWarn);VSTHRD001;VSTHRD002;VSTHRD003;VSTHRD004;VSTHRD010;VSTHRD011;VSTHRD012;VSTHRD102;VSTHRD103;
+            VSTHRD104;VSTHRD105;VSTHRD107;VSTHRD108;VSTHRD109;VSTHRD110;VSTHRD112;VSTHRD114;VSTHRD100;VSTHRD101;
+            VSTHRD106;VSTHRD111;VSTHRD113;VSTHRD200</NoWarn>
     </PropertyGroup>
     
     <ItemGroup>

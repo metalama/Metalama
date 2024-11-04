@@ -208,7 +208,6 @@ public sealed class DiagnosticSuppressorTests : FrameworkBaseTestClass
         Assert.Equal( "code.cs(19,9): warning CS0169: The field 'TargetClass._field' is never used", suppression.SuppressedDiagnostic.ToString() );
     }
     
-    
     [Fact]
     public async Task SuppressTemplateWarnings()
     {
