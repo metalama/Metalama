@@ -77,15 +77,21 @@ internal sealed class SourceAttribute : IAttributeImpl
 
     ICompilation ICompilationElement.Compilation => this.Compilation;
 
+    // NOTE: at design time, Roslyn may give symbols of inconsistent compilations in AttributeData, and therefore they should be mapped.
+    
     [Memo]
     public INamedType Type
         => this.Compilation.Factory.GetNamedType(
-            this.AttributeData.AttributeClass.AssertSymbolNullNotImplemented( UnsupportedFeatures.IntroducedAttributeTypes ) );
+            this.GetCompilationContext()
+                .SymbolTranslator.Translate( this.AttributeData.AttributeClass.AssertSymbolNotNull( "Unresolved attribute type." ) )
+                .AssertSymbolNotNull() );
 
     [Memo]
     public IConstructor Constructor
         => this.Compilation.Factory.GetConstructor(
-            this.AttributeData.AttributeConstructor.AssertSymbolNullNotImplemented( UnsupportedFeatures.IntroducedAttributeTypes ) );
+            this.GetCompilationContext()
+                .SymbolTranslator.Translate( this.AttributeData.AttributeConstructor.AssertSymbolNotNull( "Unresolved attribute constructor." ) )
+                .AssertSymbolNotNull() );
 
     [Memo]
     public ImmutableArray<TypedConstant> ConstructorArguments
