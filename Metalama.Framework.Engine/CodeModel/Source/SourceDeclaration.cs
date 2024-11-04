@@ -45,10 +45,6 @@ namespace Metalama.Framework.Engine.CodeModel.Source
                 ? this.Compilation.Factory.GetAssembly( containingAssembly )
                 : this.Symbol switch
                 {
-                    // We consider array types and the dynamic type to be in the corlib.
-                    IArrayTypeSymbol or IDynamicTypeSymbol => this.Compilation.Factory.GetAssembly(
-                        this.Compilation.RoslynCompilation.ObjectType.ContainingAssembly ),
-
                     // Error types sometimes do and sometimes don't have a containing assembly. If they don't, we use the current compilation.
                     IErrorTypeSymbol => this.Compilation,
 
