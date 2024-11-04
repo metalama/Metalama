@@ -5,10 +5,6 @@ using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Eligibility;
 
-#pragma warning disable CA1001
-#pragma warning disable CS0628 // New protected member declared in sealed type
-#pragma warning disable CA1822
-
 namespace Metalama.Patterns.Contracts;
 
 /// <summary>

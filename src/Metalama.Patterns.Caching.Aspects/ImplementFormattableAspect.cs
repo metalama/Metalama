@@ -12,9 +12,7 @@ namespace Metalama.Patterns.Caching.Aspects;
 internal sealed class ImplementFormattableAspect : TypeAspect
 {
     [Template]
-#pragma warning disable CS0628 // New protected member declared in sealed type
     protected void FormatCacheKey( UnsafeStringBuilder stringBuilder, IFormatterRepository formatterRepository )
-#pragma warning restore CS0628 // New protected member declared in sealed type
     {
         if ( meta.Target.Method.OverriddenMethod != null )
         {

@@ -275,13 +275,11 @@ public sealed partial class CommandAttribute : Attribute, IAspect<IMethod>
     }
 
     // ReSharper disable once UnassignedGetOnlyAutoProperty
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
     [Template]
     private static dynamic CommandProperty { get; }
 
     [Template]
     private static dynamic AsyncCommandProperty { get; }
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 
     [Template]
     private void InitializeCommandWithoutParameter(
@@ -307,8 +305,6 @@ public sealed partial class CommandAttribute : Attribute, IAspect<IMethod>
             }
         }
 
-#pragma warning disable IDE0053
-
 // ReSharper disable ConvertToLambdaExpression
 
         var executeExpression = ExpressionFactory.Parse( executeMethod.Name );
@@ -328,11 +324,9 @@ public sealed partial class CommandAttribute : Attribute, IAspect<IMethod>
                 else
                 {
                     // ReSharper disable once MergeConditionalExpression
-#pragma warning disable IDE0031 // Use null propagation
                     commandProperty.Value = DelegateCommandFactory.CreateDelegateCommand(
                         executeExpression.Value!,
                         canExecuteExpression == null ? null : canExecuteExpression.Value );
-#pragma warning restore IDE0031 // Use null propagation
                 }
             }
             else
@@ -349,12 +343,10 @@ public sealed partial class CommandAttribute : Attribute, IAspect<IMethod>
                 else
                 {
                     // ReSharper disable once MergeConditionalExpression
-#pragma warning disable IDE0031 // Use null propagation
                     commandProperty.Value = DelegateCommandFactory.CreateBackgroundDelegateCommand(
                         executeExpression.Value!,
                         canExecuteExpression == null ? null : canExecuteExpression.Value,
                         this.SupportsConcurrentExecution );
-#pragma warning restore IDE0031 // Use null propagation
                 }
             }
         }
@@ -373,18 +365,15 @@ public sealed partial class CommandAttribute : Attribute, IAspect<IMethod>
             else
             {
                 // ReSharper disable once MergeConditionalExpression
-#pragma warning disable IDE0031 // Use null propagation
                 commandProperty.Value = DelegateCommandFactory.CreateAsyncDelegateCommand(
                     executeExpression.Value!,
                     canExecuteExpression == null ? null : canExecuteExpression.Value,
                     this.SupportsConcurrentExecution,
                     this.Background );
-#pragma warning restore IDE0031 // Use null propagation
             }
         }
 
 // ReSharper restore ConvertToLambdaExpression        
-#pragma warning restore IDE0053
     }
 
     [Template]
@@ -413,8 +402,6 @@ public sealed partial class CommandAttribute : Attribute, IAspect<IMethod>
             }
         }
 
-#pragma warning disable IDE0053
-
 // ReSharper disable ConvertToLambdaExpression
 
         var executeExpression = ExpressionFactory.Parse( executeMethod.Name );
@@ -434,11 +421,9 @@ public sealed partial class CommandAttribute : Attribute, IAspect<IMethod>
                 else
                 {
                     // ReSharper disable once MergeConditionalExpression
-#pragma warning disable IDE0031 // Use null propagation
                     commandProperty.Value = DelegateCommandFactory.CreateDelegateCommand<T>(
                         executeExpression.Value!,
                         canExecuteExpression == null ? null : canExecuteExpression.Value );
-#pragma warning restore IDE0031 // Use null propagation
                 }
             }
             else
@@ -455,12 +440,10 @@ public sealed partial class CommandAttribute : Attribute, IAspect<IMethod>
                 else
                 {
                     // ReSharper disable once MergeConditionalExpression
-#pragma warning disable IDE0031 // Use null propagation
                     commandProperty.Value = DelegateCommandFactory.CreateBackgroundDelegateCommand<T>(
                         executeExpression.Value!,
                         canExecuteExpression == null ? null : canExecuteExpression.Value,
                         this.SupportsConcurrentExecution );
-#pragma warning restore IDE0031 // Use null propagation
                 }
             }
         }
@@ -479,17 +462,14 @@ public sealed partial class CommandAttribute : Attribute, IAspect<IMethod>
             else
             {
                 // ReSharper disable once MergeConditionalExpression
-#pragma warning disable IDE0031 // Use null propagation
                 commandProperty.Value = DelegateCommandFactory.CreateAsyncDelegateCommand<T>(
                     executeExpression.Value!,
                     canExecuteExpression == null ? null : canExecuteExpression.Value,
                     this.SupportsConcurrentExecution,
                     this.Background );
-#pragma warning restore IDE0031 // Use null propagation
             }
         }
 
 // ReSharper restore ConvertToLambdaExpression        
-#pragma warning restore IDE0053
     }
 }

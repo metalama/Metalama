@@ -6,7 +6,7 @@
         <Nullable>enable</Nullable>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <!-- XML comment analysis is disabled due to project configuration ; more types in one file analysis is ignored. -->
-        <!-- TODO: Enable IDE0028 and IDE1005 and refactor collection initialization and delegate invacations. -->
+        <!-- TODO: Enable IDE0028 and IDE1005 and refactor collection initialization and delegate invocations. -->
         <NoWarn>$(NoWarn);SA0001;SA1402;IDE0028;IDE1005</NoWarn>
 
     

@@ -26,7 +26,13 @@ object DebugBuild : BuildType({
 
     name = "Build [Debug]"
 
-    artifactRules = "+:artifacts/publish/public/**/*=>artifacts/publish/public\n+:artifacts/publish/private/**/*=>artifacts/publish/private\n+:artifacts/testResults/**/*=>artifacts/testResults\n+:artifacts/logs/**/*=>logs\n"
+    artifactRules = 
+        """
+            +:artifacts/publish/public/**/*=>artifacts/publish/public
+            +:artifacts/publish/private/**/*=>artifacts/publish/private
+            +:artifacts/testResults/**/*=>artifacts/testResults
+            +:artifacts/logs/**/*=>logs
+        """
 
     params {
         text("BuildArguments", "", label = "Build Arguments", description = "Arguments to append to the 'Build' build step.", allowEmpty = true)

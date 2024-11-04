@@ -264,12 +264,8 @@ public sealed class CacheAttribute : CachingBaseAttribute, IAspect<IMethod>
             // 3. It is not tested.
             GetCancellationTokenParameter() ?? ExpressionFactory.Parse( "default" );
 
-    // ReSharper disable InconsistentNaming
-    // ReSharper disable UnusedParameter.Global
-#pragma warning disable SA1313
-
     [Template]
-    public static TReturnType? OverrideMethod<[CompileTime] TReturnType>( IField registrationField, IType TValue /* not used */, IField? cachingServiceField )
+    public static TReturnType? OverrideMethod<[CompileTime] TReturnType>( IField registrationField, IField? cachingServiceField )
     {
         static object? Invoke( object? instance, object?[] args )
         {
@@ -289,7 +285,6 @@ public sealed class CacheAttribute : CachingBaseAttribute, IAspect<IMethod>
     [Template]
     public static Task<TValue?> OverrideMethodAsyncTask<[CompileTime] TValue>(
         IField registrationField,
-        IType TReturnType /* not used */,
         IField? cachingServiceField )
     {
         var cancellationTokenExpression = GetCancellationTokenExpression();
@@ -314,7 +309,6 @@ public sealed class CacheAttribute : CachingBaseAttribute, IAspect<IMethod>
     [Template]
     public static ValueTask<TValue?> OverrideMethodAsyncValueTask<[CompileTime] TValue>(
         IField registrationField,
-        IType TReturnType /* not used */,
         IField? cachingServiceField )
     {
         var cancellationTokenExpression = GetCancellationTokenExpression();
@@ -340,7 +334,6 @@ public sealed class CacheAttribute : CachingBaseAttribute, IAspect<IMethod>
     [Template]
     public static IAsyncEnumerable<TValue>? OverrideMethodAsyncEnumerable<[CompileTime] TValue>(
         IField registrationField,
-        IType TReturnType /* not used */,
         IField? cachingServiceField )
     {
         var cancellationTokenExpression = GetCancellationTokenExpression();
@@ -376,11 +369,9 @@ public sealed class CacheAttribute : CachingBaseAttribute, IAspect<IMethod>
         return AsyncEnumerableHelper.AsAsyncEnumerable( task );
     }
 
-    // ReSharper disable once UnusedMember.Global
     [Template]
     public static IAsyncEnumerator<TValue>? OverrideMethodAsyncEnumerator<[CompileTime] TValue>(
         IField registrationField,
-        IType TReturnType /* not used */,
         IField? cachingServiceField )
     {
         var cancellationTokenExpression = GetCancellationTokenExpression();
@@ -420,5 +411,4 @@ public sealed class CacheAttribute : CachingBaseAttribute, IAspect<IMethod>
 
     // ReSharper restore InconsistentNaming
     // ReSharper restore UnusedParameter.Global
-#pragma warning restore SA1313
 }

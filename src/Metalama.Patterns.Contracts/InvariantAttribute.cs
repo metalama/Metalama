@@ -31,9 +31,7 @@ public sealed class InvariantAttribute : MethodAspect
     }
 
     [Introduce( Accessibility = Accessibility.Protected, IsVirtual = true, WhenExists = OverrideStrategy.Override )]
-#pragma warning disable CA1822
     internal void VerifyInvariants()
-#pragma warning restore CA1822
     {
         meta.Proceed();
 
