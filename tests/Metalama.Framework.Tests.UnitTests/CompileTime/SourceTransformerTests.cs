@@ -14,21 +14,23 @@ namespace Metalama.Framework.Tests.UnitTests.CompileTime;
 
 public sealed class SourceTransformerTests : UnitTestClass
 {
-    private TestTransformerContext RunTransformer( string code, string? dependencyCode = null )
+    private TestTransformerContext RunTransformer( string code, string? dependencyCode = null, bool warnAsErrors = false )
     {
         var additionalServices = new AdditionalServiceCollection();
         additionalServices.AddGlobalService<IUserDiagnosticRegistrationService>( new TestUserDiagnosticRegistrationService() );
         using var testContext = this.CreateTestContext( additionalServices );
 
-        var compilation = TestCompilationFactory.CreateCSharpCompilation( code, dependencyCode );
+        var compilation = TestCompilationFactory.CreateCSharpCompilation( code, dependencyCode, warnAsErrors: warnAsErrors );
         var context = new TestTransformerContext( compilation, testContext.ProjectOptions, testContext.ServiceProvider.Global );
         SourceTransformer.Execute( context );
 
         return context;
     }
 
-    [Fact]
-    public void TestSuppressions()
+    [Theory]
+    [InlineData( false )]
+    [InlineData( true )]
+    public void TestSuppressions( bool warnAsErrors )
     {
         const string code = """
                             using Metalama.Framework.Advising;
@@ -52,7 +54,7 @@ public sealed class SourceTransformerTests : UnitTestClass
                             }
                             """;
 
-        var context = this.RunTransformer( code );
+        var context = this.RunTransformer( code, warnAsErrors: warnAsErrors );
         var diagnostics = context.Compilation.GetDiagnostics();
 
         var suppressionRunner = new DiagnosticFilterRunner(

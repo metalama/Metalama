@@ -62,22 +62,25 @@ public static class TestCompilationFactory
         bool addMetalamaReferences = true,
         OutputKind outputKind = OutputKind.DynamicallyLinkedLibrary,
         ImmutableArray<string> implicitUsings = default,
-        NullableContextOptions nullableContextOptions = NullableContextOptions.Enable )
+        NullableContextOptions nullableContextOptions = NullableContextOptions.Enable,
+        bool warnAsErrors = false )
         => CreateEmptyCSharpCompilation(
             name,
             GetMetadataReferences( additionalAssemblies, addMetalamaReferences ),
             outputKind,
             implicitUsings,
-            nullableContextOptions );
+            nullableContextOptions,
+            warnAsErrors );
 
     public static CSharpCompilation CreateEmptyCSharpCompilation(
         string? name,
         IEnumerable<MetadataReference> metadataReferences,
         OutputKind outputKind = OutputKind.DynamicallyLinkedLibrary,
         ImmutableArray<string> implicitUsings = default,
-        NullableContextOptions nullableContextOptions = NullableContextOptions.Enable )
+        NullableContextOptions nullableContextOptions = NullableContextOptions.Enable,
+        bool warnAsErrors = false )
         => CSharpCompilation.Create( name ?? "test_" + RandomIdGenerator.GenerateId() )
-            .WithOptions( GetCompilationOptions( outputKind, implicitUsings, nullableContextOptions ) )
+            .WithOptions( GetCompilationOptions( outputKind, implicitUsings, nullableContextOptions, warnAsErrors ) )
             .AddReferences( metadataReferences );
 
     public static IReadOnlyList<PortableExecutableReference> GetMetadataReferences(
@@ -128,7 +131,8 @@ public static class TestCompilationFactory
     public static CSharpCompilationOptions GetCompilationOptions(
         OutputKind outputKind = OutputKind.DynamicallyLinkedLibrary,
         ImmutableArray<string> implicitUsings = default,
-        NullableContextOptions nullableContextOptions = NullableContextOptions.Enable )
+        NullableContextOptions nullableContextOptions = NullableContextOptions.Enable,
+        bool warnAsErrors = false )
         => new(
             outputKind,
             allowUnsafe: true,
@@ -136,7 +140,8 @@ public static class TestCompilationFactory
             usings: implicitUsings.IsDefault
                 ? ImmutableArray<string>.Empty
                 : implicitUsings,
-            metadataImportOptions: MetadataImportOptions.All );
+            metadataImportOptions: MetadataImportOptions.All,
+            generalDiagnosticOption: warnAsErrors ? ReportDiagnostic.Error : ReportDiagnostic.Default );
 
     public static CSharpCompilation CreateCSharpCompilation(
         string code,
@@ -146,7 +151,8 @@ public static class TestCompilationFactory
         string? name = null,
         bool addMetalamaReferences = true,
         IEnumerable<string>? preprocessorSymbols = null,
-        OutputKind outputKind = OutputKind.DynamicallyLinkedLibrary )
+        OutputKind outputKind = OutputKind.DynamicallyLinkedLibrary,
+        bool warnAsErrors = false )
         => CreateCSharpCompilation(
             new Dictionary<string, string> { { RandomIdGenerator.GenerateId() + ".cs", code } },
             dependentCode,
@@ -155,7 +161,8 @@ public static class TestCompilationFactory
             name,
             addMetalamaReferences,
             preprocessorSymbols,
-            outputKind );
+            outputKind,
+            warnAsErrors );
 
     public static CSharpCompilation CreateCSharpCompilation(
         IReadOnlyDictionary<string, string> code,
@@ -165,7 +172,8 @@ public static class TestCompilationFactory
         string? name = null,
         bool addMetalamaReferences = true,
         IEnumerable<string>? preprocessorSymbols = null,
-        OutputKind outputKind = OutputKind.DynamicallyLinkedLibrary )
+        OutputKind outputKind = OutputKind.DynamicallyLinkedLibrary,
+        bool warnAsErrors = false )
         => CreateCSharpCompilation(
             code,
             dependentCode == null ? null : ImmutableDictionary.Create<string, string>().Add( "dependent.cs", dependentCode ),
@@ -174,7 +182,8 @@ public static class TestCompilationFactory
             name,
             addMetalamaReferences,
             preprocessorSymbols,
-            outputKind );
+            outputKind,
+            warnAsErrors );
 
     public static CSharpCompilation CreateCSharpCompilation(
         IReadOnlyDictionary<string, string> code,
@@ -184,18 +193,22 @@ public static class TestCompilationFactory
         string? name = null,
         bool addMetalamaReferences = true,
         IEnumerable<string>? preprocessorSymbols = null,
-        OutputKind outputKind = OutputKind.DynamicallyLinkedLibrary )
+        OutputKind outputKind = OutputKind.DynamicallyLinkedLibrary,
+        bool warnAsErrors = false )
     {
         var additionalAssemblies = new[] { typeof(FieldOrPropertyInfo).Assembly, typeof(UnitTestClass).Assembly };
 
         var parseOptions = GetParseOptions( preprocessorSymbols );
 
-        var mainRoslynCompilation = CreateEmptyCSharpCompilation( name, additionalAssemblies, addMetalamaReferences, outputKind )
+        var mainRoslynCompilation = CreateEmptyCSharpCompilation( name, additionalAssemblies, addMetalamaReferences, outputKind, warnAsErrors: warnAsErrors )
             .AddSyntaxTrees( code.SelectAsArray( c => SyntaxFactory.ParseSyntaxTree( c.Value, path: c.Key, options: parseOptions ) ) );
 
         if ( dependentCode != null )
         {
-            var dependentCompilation = CreateEmptyCSharpCompilation( name == null ? null : null + ".Dependency", additionalAssemblies )
+            var dependentCompilation = CreateEmptyCSharpCompilation(
+                    name == null ? null : null + ".Dependency",
+                    additionalAssemblies,
+                    warnAsErrors: warnAsErrors )
                 .AddSyntaxTrees( dependentCode.SelectAsArray( c => SyntaxFactory.ParseSyntaxTree( c.Value, path: c.Key, options: parseOptions ) ) );
 
             mainRoslynCompilation = mainRoslynCompilation.AddReferences( dependentCompilation.ToMetadataReference() );
@@ -206,7 +219,7 @@ public static class TestCompilationFactory
             mainRoslynCompilation = mainRoslynCompilation.AddReferences( additionalReferences );
         }
 
-        if ( !ignoreErrors )
+        if ( !ignoreErrors && !warnAsErrors )
         {
             AssertNoError( mainRoslynCompilation );
         }
