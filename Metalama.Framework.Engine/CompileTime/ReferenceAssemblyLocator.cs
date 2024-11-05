@@ -384,6 +384,7 @@ internal sealed class ReferenceAssemblyLocator
                      <OutputType>Exe</OutputType>
                      <LangVersion>latest</LangVersion>
                      <RestoreAdditionalProjectSources>{additionalNugetSources}</RestoreAdditionalProjectSources>
+                     <RestoreIgnoreFailedSources>true</RestoreIgnoreFailedSources>
                    </PropertyGroup>
                    <ItemGroup>
                      <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="{RoslynApiVersion.Current.ToNuGetVersionString()}" />
