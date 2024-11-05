@@ -548,14 +548,14 @@ internal class TestResult : IDisposable
 
     private IEnumerable<string> GetDiagnosticComments( Diagnostic d )
     {
-        var message = $"// {d.Severity} {d.Id} ";
+        var message = $"// {d.Severity} {d.Id}";
 
         var testInputOptions = this.TestInput!.Options;
 
         if ( testInputOptions.IncludeLineNumberInDiagnosticReport == true )
         {
             message +=
-                $"at line {d.Location.GetLineSpan().StartLinePosition.Line + 1}";
+                $" at line {d.Location.GetLineSpan().StartLinePosition.Line + 1}";
         }
         else
         {
@@ -568,7 +568,7 @@ internal class TestResult : IDisposable
 
             if ( symbol.Symbol != null )
             {
-                message += $"in `{symbol.Symbol}` ({symbol.CompilationName} compilation)";
+                message += $" in `{symbol.Symbol}` ({symbol.CompilationName} compilation)";
             }
         }
 
