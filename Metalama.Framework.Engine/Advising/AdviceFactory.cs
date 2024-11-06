@@ -1517,7 +1517,7 @@ internal sealed partial class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl
         {
             this.ValidateNotExplicitInterfaceImplementation( AdviceKind.IntroduceType );
 
-            return AsAdviser(
+            return AsClassAdviser(
                 this,
                 new IntroduceNamedTypeAdvice(
                         this.GetAdviceConstructorParameters( targetNamespaceOrType ),
@@ -1529,7 +1529,7 @@ internal sealed partial class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl
         }
     }
 
-    public IClassIntroductionAdviceResult IntroduceInterface(
+    public IInterfaceIntroductionAdviceResult IntroduceInterface(
         INamespaceOrNamedType targetNamespaceOrType,
         string name,
         OverrideStrategy whenExists = OverrideStrategy.Default,
@@ -1539,7 +1539,7 @@ internal sealed partial class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl
         {
             this.ValidateNotExplicitInterfaceImplementation( AdviceKind.IntroduceType );
 
-            return AsAdviser(
+            return AsInterfaceAdviser(
                 this,
                 new IntroduceNamedTypeAdvice(
                         this.GetAdviceConstructorParameters( targetNamespaceOrType ),
@@ -1594,8 +1594,11 @@ internal sealed partial class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl
         }
     }
 
-    private static IClassIntroductionAdviceResult AsAdviser( AdviceFactory<T> adviceFactory, IIntroductionAdviceResult<INamedType> result )
+    private static IClassIntroductionAdviceResult AsClassAdviser( AdviceFactory<T> adviceFactory, IIntroductionAdviceResult<INamedType> result )
         => new ClassIntroductionAdviceResult( adviceFactory, result );
+
+    private static IInterfaceIntroductionAdviceResult AsInterfaceAdviser( AdviceFactory<T> adviceFactory, IIntroductionAdviceResult<INamedType> result )
+        => new InterfaceIntroductionAdviceResult( adviceFactory, result );
 
     private static INamespaceIntroductionAdviceResult AsAdviser( AdviceFactory<T> adviceFactory, IIntroductionAdviceResult<INamespace> result )
         => new NamespaceIntroductionAdviceResult( adviceFactory, result );

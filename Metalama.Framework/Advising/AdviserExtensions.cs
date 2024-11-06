@@ -1084,8 +1084,7 @@ public static class AdviserExtensions
             whenExists,
             buildType );
 
-    // TODO: Result.
-    public static IClassIntroductionAdviceResult IntroduceInterface(
+    public static IInterfaceIntroductionAdviceResult IntroduceInterface(
         this IAdviser<INamespaceOrNamedType> adviser,
         string name,
         OverrideStrategy whenExists = OverrideStrategy.Default,

@@ -781,7 +781,7 @@ namespace Metalama.Framework.Advising
             Action<INamedTypeBuilder>? buildType = null );
 
         // TODO: Specific result type? Or rename to ITypeIntroductionAdviceResult?
-        IClassIntroductionAdviceResult IntroduceInterface(
+        IInterfaceIntroductionAdviceResult IntroduceInterface(
             INamespaceOrNamedType targetNamespaceOrType,
             string name,
             OverrideStrategy whenExists = OverrideStrategy.Default,
