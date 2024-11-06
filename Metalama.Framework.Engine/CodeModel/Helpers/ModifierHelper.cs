@@ -81,8 +81,8 @@ internal static class ModifierHelper
         }
 
         // Private void partial methods skip accessibility to make implementation non-mandatory.
-        if ( member is not IMethod { IsPartial: true, Accessibility: Accessibility.Private, ReturnType: { SpecialType: Code.SpecialType.Void } }
-             && (categories & ModifierCategories.Accessibility) != 0 )
+        if ( (categories & ModifierCategories.Accessibility) != 0
+             && member is not IMethod { IsPartial: true, Accessibility: Accessibility.Private, ReturnType: { SpecialType: Code.SpecialType.Void } } )
         {
             AddAccessibilityTokens( member, tokens );
         }

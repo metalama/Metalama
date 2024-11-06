@@ -247,7 +247,7 @@ namespace Metalama.Framework.Engine.Advising
         internal static readonly DiagnosticDefinition<(string AspectType, string Parameter, IDeclaration TargetDeclaration, string ExistingParameterName)>
             CannotIntroduceParameterAlreadyExists = new(
                 "LAMA0530",
-                "Cannot parameter when a parameter with the same name already exists.",
+                "Cannot introduce a parameter when a parameter with the same name already exists.",
                 "The aspect '{0}' cannot introduce parameter '{1}' to '{2}' because the target declaration already has a parameter '{3}'.",
                 _category,
                 Error );
@@ -263,16 +263,16 @@ namespace Metalama.Framework.Engine.Advising
         internal static readonly DiagnosticDefinition<(string AspectType, IDeclaration Member, IDeclaration TargetType)>
             CannotIntroduceAbstractMemberToNonAbstractType = new(
                 "LAMA0532",
-                "Cannot introduce abstract member into a non-abstract type.",
-                "The aspect '{0}' cannot introduce abstract member '{1}' into type '{2}' because it is not abstract.",
+                "Cannot introduce an abstract member into a non-abstract type.",
+                "The aspect '{0}' cannot introduce the abstract member '{1}' into type '{2}' because it is not abstract.",
                 _category,
                 Error );
 
         internal static readonly DiagnosticDefinition<(string AspectType, IDeclaration Member, OverrideStrategy OverrideStrategy)>
             CannotIntroduceAbstractMemberWithOverrideStrategy = new(
                 "LAMA0533",
-                "Cannot introduce abstract member with override strategy Override.",
-                "The aspect '{0}' cannot introduce abstract member '{1}' with override strategy '{2}'.",
+                "Cannot introduce an abstract member with override strategy Override.",
+                "The aspect '{0}' cannot introduce the abstract member '{1}' with override strategy '{2}'.",
                 _category,
                 Error );
 
