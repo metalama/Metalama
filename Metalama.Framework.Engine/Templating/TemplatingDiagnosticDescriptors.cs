@@ -507,8 +507,8 @@ namespace Metalama.Framework.Engine.Templating
         internal static readonly DiagnosticDefinition<ISymbol> ExtensionMethodTemplateNotSupported
             = new(
                 "LAMA0271",
-                "Extension method templates are not supported.",
-                "The template '{0}' is an extension method, which is not supported. To introduce an extension method, mark the first parameter of the introduced method with the [This] attribute or programmatically set its IParameterBuilder.IsThis property.",
+                "Template can't be an extension method.",
+                "The template '{0}' can't be an extension method. To introduce an extension method, mark the first parameter of the method with the [This] attribute or programmatically set its IParameterBuilder.IsThis property.",
                 _category,
                 Error );
 
