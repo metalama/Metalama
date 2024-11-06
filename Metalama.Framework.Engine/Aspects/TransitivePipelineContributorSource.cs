@@ -191,27 +191,27 @@ internal sealed class TransitivePipelineContributorSource : IAspectSource, IVali
 
     public bool TryGetOptions( IDeclaration declaration, string optionsType, [NotNullWhen( true )] out IHierarchicalOptions? options )
     {
-        if ( !this._manifests.TryGetValue( ((AssemblyIdentityModel) declaration.DeclaringAssembly.Identity).Identity, out var manifest ) )
+        if ( this._manifests.TryGetValue( ((AssemblyIdentityModel) declaration.DeclaringAssembly.Identity).Identity, out var manifest ) )
+        {
+            return manifest.InheritableOptions.TryGetValue( new HierarchicalOptionsKey( optionsType, declaration.ToSerializableId() ), out options );
+        }
+        else
         {
             options = null;
 
             return false;
         }
-        else
-        {
-            return manifest.InheritableOptions.TryGetValue( new HierarchicalOptionsKey( optionsType, declaration.ToSerializableId() ), out options );
-        }
     }
 
     public ImmutableArray<IAnnotation> GetAnnotations( IDeclaration declaration )
     {
-        if ( !this._manifests.TryGetValue( ((AssemblyIdentityModel) declaration.DeclaringAssembly.Identity).Identity, out var manifest ) )
+        if ( this._manifests.TryGetValue( ((AssemblyIdentityModel) declaration.DeclaringAssembly.Identity).Identity, out var manifest ) )
         {
-            return ImmutableArray<IAnnotation>.Empty;
+            return manifest.Annotations[declaration.ToSerializableId()];
         }
         else
         {
-            return manifest.Annotations[declaration.ToSerializableId()];
+            return ImmutableArray<IAnnotation>.Empty;
         }
     }
 }
