@@ -309,6 +309,11 @@ internal static class ModifierHelper
             tokens.Add( SyntaxFactoryEx.TokenWithTrailingSpace( syntaxKind ) );
         }
 
+        if ( parameter.IsThis )
+        {
+            AddToken( SyntaxKind.ThisKeyword );
+        }
+
         switch ( parameter.RefKind )
         {
             case RefKind.None:

@@ -22,9 +22,14 @@ namespace Metalama.Framework.Code
         TypedConstant? DefaultValue { get; }
 
         /// <summary>
-        /// Gets a value indicating whether the parameter has the <c>params</c> modifier.
+        /// Gets a value indicating whether the parameter has the <see langword="params" /> modifier.
         /// </summary>
         bool IsParams { get; }
+
+        /// <summary>
+        /// Gets a value indicating whether the parameter has the <see langword="this" /> modifier, meaning that the containing method is an extension method.
+        /// </summary>
+        bool IsThis { get; }
 
         /// <summary>
         /// Gets the parent <see cref="IMethod"/>, <see cref="IConstructor"/> or <see cref="IIndexer"/>.

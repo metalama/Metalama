@@ -1,5 +1,7 @@
 // Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
+using Metalama.Framework.Aspects;
+
 namespace Metalama.Framework.Code.DeclarationBuilders;
 
 /// <summary>
@@ -34,4 +36,12 @@ public interface IParameterBuilder : IParameter, IDeclarationBuilder
     /// Gets or sets a value indicating whether the parameter has the <c>params</c> modifier.
     /// </summary>
     new bool IsParams { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the parameter has the <see langword="this" /> modifier, meaning that the containing method is an extension method.
+    /// </summary>
+    /// <remarks>
+    /// For templates, you can also use <see cref="ThisAttribute"/>.
+    /// </remarks>
+    new bool IsThis { get; set; }
 }

@@ -28,6 +28,8 @@ internal abstract class BaseParameterBuilder : NamedDeclarationBuilder, IParamet
 
     public abstract bool IsParams { get; set; }
 
+    public abstract bool IsThis { get; set; }
+
     public abstract IHasParameters DeclaringMember { get; }
 
     public abstract ParameterInfo ToParameterInfo();

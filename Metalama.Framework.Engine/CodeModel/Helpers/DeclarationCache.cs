@@ -18,6 +18,7 @@ internal sealed class DeclarationCache : IDeclarationCache
         this._compilation = compilation;
     }
 
+    /// <remarks>The delegate passed to this method should not close over any state (e.g. if it's a lambda, it should be <see langword="static"/>).</remarks>
     public T GetOrAdd<T>( Func<ICompilation, T> func )
         where T : class
     {
@@ -49,15 +50,15 @@ internal sealed class DeclarationCache : IDeclarationCache
     }
 
     [Memo]
-    public INamedType SystemObjectType => this.GetOrAdd( c => c.Factory.GetSpecialType( SpecialType.Object ) );
+    public INamedType SystemObjectType => this.GetOrAdd( static c => c.Factory.GetSpecialType( SpecialType.Object ) );
 
     [Memo]
-    public INamedType SystemVoidType => this.GetOrAdd( c => c.Factory.GetSpecialType( SpecialType.Void ) );
+    public INamedType SystemVoidType => this.GetOrAdd( static c => c.Factory.GetSpecialType( SpecialType.Void ) );
 
     // ReSharper disable once InconsistentNaming
     [Memo]
-    public INamedType ITemplateAttributeType => this.GetOrAdd( c => c.Factory.GetSpecialType( InternalSpecialType.ITemplateAttribute ) );
+    public INamedType ITemplateAttributeType => this.GetOrAdd( static c => c.Factory.GetSpecialType( InternalSpecialType.ITemplateAttribute ) );
 
     [Memo]
-    public INamedType SystemStringType => this.GetOrAdd( c => c.Factory.GetSpecialType( SpecialType.String ) );
+    public INamedType SystemStringType => this.GetOrAdd( static c => c.Factory.GetSpecialType( SpecialType.String ) );
 }

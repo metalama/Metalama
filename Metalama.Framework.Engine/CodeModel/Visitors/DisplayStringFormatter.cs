@@ -116,6 +116,11 @@ internal class DisplayStringFormatter : CompilationElementVisitor
                 this.Append( "params " );
             }
 
+            if ( parameter.IsThis )
+            {
+                this.Append( "this " );
+            }
+
             switch ( parameter.RefKind )
             {
                 case RefKind.None:
