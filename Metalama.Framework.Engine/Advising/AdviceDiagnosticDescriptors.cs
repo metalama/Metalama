@@ -20,7 +20,7 @@ namespace Metalama.Framework.Engine.Advising
         internal static readonly DiagnosticDefinition<(string AspectType, IDeclaration Member, IDeclaration TargetType, IDeclaration DeclaringType)>
             CannotIntroduceMemberAlreadyExists = new(
                 "LAMA0500",
-                "Cannot introduce member into a type because it already exists.",
+                "Cannot introduce a member into a type because it already exists.",
                 "The aspect '{0}' cannot introduce member '{1}' into type '{2}' because it is already defined in type '{3}'. Use a different OverrideStrategy or skip the member.",
                 _category,
                 Error );
@@ -28,7 +28,7 @@ namespace Metalama.Framework.Engine.Advising
         internal static readonly DiagnosticDefinition<(string AspectType, IDeclaration Member, IDeclaration TargetType, IDeclaration DeclaringType)>
             CannotIntroduceOverrideOfSealed = new(
                 "LAMA0502",
-                "Cannot introduce member into a type because it is sealed in a base class.",
+                "Cannot introduce a member into a type because it is sealed in a base class.",
                 "The aspect '{0}' cannot introduce member '{1}' into type '{2}' because it is already defined in type '{3}' " +
                 "and is static, non-virtual or sealed.",
                 _category,
@@ -38,7 +38,7 @@ namespace Metalama.Framework.Engine.Advising
                 ReturnType)>
             CannotIntroduceDifferentExistingReturnType = new(
                 "LAMA0503",
-                "Cannot introduce member into a type because it has a different type or return type.",
+                "Cannot introduce a member into a type because it has a different type or return type.",
                 "The aspect '{0}' cannot introduce member '{1}' into type '{2}' because it is already defined in type '{3}' " +
                 "and has a different type or return type '{4}'.",
                 _category,
@@ -47,7 +47,7 @@ namespace Metalama.Framework.Engine.Advising
         internal static readonly DiagnosticDefinition<(string AspectType, IDeclaration Member, IDeclaration TargetType, IDeclaration DeclaringType)>
             CannotIntroduceWithDifferentStaticity = new(
                 "LAMA0504",
-                "Cannot introduce member into a type because the type already contains a member of the same name or signature but with a different staticity.",
+                "Cannot introduce a member into a type because the type already contains a member of the same name or signature but with a different staticity.",
                 "The aspect '{0}' cannot introduce member '{1}' into type '{2}' because it is already defined in type '{3}' and " +
                 "its IsStatic flag is opposite of the introduced member.",
                 _category,
@@ -56,7 +56,7 @@ namespace Metalama.Framework.Engine.Advising
         internal static readonly DiagnosticDefinition<(string AspectType, IDeclaration Member, IDeclaration TargetType)>
             CannotIntroduceInstanceMember = new(
                 "LAMA0505",
-                "Cannot introduce instance member into a static type.",
+                "Cannot introduce an instance member into a static type.",
                 "The aspect '{0}' cannot introduce instance member '{1}' into a type '{2}' because it is static.",
                 _category,
                 Error );
@@ -64,7 +64,7 @@ namespace Metalama.Framework.Engine.Advising
         internal static readonly DiagnosticDefinition<(string AspectType, IDeclaration Member, IDeclaration TargetType, DeclarationKind DeclarationKind)>
             CannotIntroduceWithDifferentKind = new(
                 "LAMA0506",
-                "Cannot introduce member into a type because another member of a different kind already exists.",
+                "Cannot introduce a member into a type because another member of a different kind already exists.",
                 "The aspect '{0}' cannot introduce member '{1}' into type '{2}' because there is already a {3} of the same name declared in the type or in a base type.",
                 _category,
                 Error );
@@ -72,7 +72,7 @@ namespace Metalama.Framework.Engine.Advising
         internal static readonly DiagnosticDefinition<(string AspectType, IDeclaration Member)>
             CannotIntroduceStaticVirtualMember = new(
                 "LAMA0507",
-                "Cannot introduce virtual member because it is also static.",
+                "Cannot introduce a virtual member because it is also static.",
                 "The aspect '{0}' cannot introduce virtual member '{1}' because it is also static.",
                 _category,
                 Error );
@@ -80,7 +80,7 @@ namespace Metalama.Framework.Engine.Advising
         internal static readonly DiagnosticDefinition<(string AspectType, IDeclaration Member)>
             CannotIntroduceStaticSealedMember = new(
                 "LAMA0508",
-                "Cannot introduce sealed member because it is also static.",
+                "Cannot introduce a sealed member because it is also static.",
                 "The aspect '{0}' cannot introduce sealed member '{1}' because it is also static.",
                 _category,
                 Error );
@@ -166,7 +166,7 @@ namespace Metalama.Framework.Engine.Advising
         internal static readonly DiagnosticDefinition<(string AspectType, INamedType InterfaceType, IMember TargetMember)>
             ImplicitInterfaceImplementationHasToBePublic = new(
                 "LAMA0519",
-                "Cannot implement interface implicitly using non-public member.",
+                "Cannot implement an interface implicitly using non-public member.",
                 "The aspect '{0}' cannot implicitly implement interface '{1}' using member '{2}', because it is not public.",
                 _category,
                 Error );
@@ -207,7 +207,7 @@ namespace Metalama.Framework.Engine.Advising
         internal static readonly DiagnosticDefinition<(string AspectType, IDeclaration Member, IDeclaration TargetType)>
             CannotIntroduceVirtualToTargetType = new(
                 "LAMA0525",
-                "Cannot introduce virtual member into a static type, sealed type or a struct.",
+                "Cannot introduce a virtual member into a static type, sealed type or a struct.",
                 "The aspect '{0}' cannot introduce virtual member '{1}' into a type '{2}' because it is static, sealed or a struct.",
                 _category,
                 Error );
@@ -215,7 +215,7 @@ namespace Metalama.Framework.Engine.Advising
         internal static readonly DiagnosticDefinition<(string AspectType, IDeclaration Member, IDeclaration TargetType)>
             CannotIntroduceIndexerWithoutParameters = new(
                 "LAMA0526",
-                "Cannot introduce indexer without any parameter.",
+                "Cannot introduce an indexer without any parameter.",
                 "The aspect '{0}' cannot introduce indexer '{1}' into type '{2}' because it has no parameter.",
                 _category,
                 Error );
@@ -223,7 +223,7 @@ namespace Metalama.Framework.Engine.Advising
         internal static readonly DiagnosticDefinition<(string AspectType, IDeclaration Member, IDeclaration TargetType)>
             CannotIntroduceStaticIndexer = new(
                 "LAMA0527",
-                "Cannot introduce static indexer.",
+                "Cannot introduce a static indexer.",
                 "The aspect '{0}' cannot introduce indexer '{1}' into type '{2}' because it is static.",
                 _category,
                 Error );
@@ -247,7 +247,7 @@ namespace Metalama.Framework.Engine.Advising
         internal static readonly DiagnosticDefinition<(string AspectType, string Parameter, IDeclaration TargetDeclaration, string ExistingParameterName)>
             CannotIntroduceParameterAlreadyExists = new(
                 "LAMA0530",
-                "Cannot parameter when a parameter with the same name already exists.",
+                "Cannot introduce a parameter when a parameter with the same name already exists.",
                 "The aspect '{0}' cannot introduce parameter '{1}' to '{2}' because the target declaration already has a parameter '{3}'.",
                 _category,
                 Error );
@@ -257,6 +257,38 @@ namespace Metalama.Framework.Engine.Advising
                 "LAMA0531",
                 "Cannot introduce a new type because a type with the same name and type parameters already exists.",
                 "The aspect '{0}' cannot introduce type '{1}' into '{2}' because the type already exists.",
+                _category,
+                Error );
+
+        internal static readonly DiagnosticDefinition<(string AspectType, IDeclaration Member, IDeclaration TargetType)>
+            CannotIntroduceAbstractMemberToNonAbstractType = new(
+                "LAMA0532",
+                "Cannot introduce an abstract member into a non-abstract type.",
+                "The aspect '{0}' cannot introduce the abstract member '{1}' into type '{2}' because it is not abstract.",
+                _category,
+                Error );
+
+        internal static readonly DiagnosticDefinition<(string AspectType, IDeclaration Member, OverrideStrategy OverrideStrategy)>
+            CannotIntroduceAbstractMemberWithOverrideStrategy = new(
+                "LAMA0533",
+                "Cannot introduce an abstract member with override strategy Override.",
+                "The aspect '{0}' cannot introduce the abstract member '{1}' with override strategy '{2}'.",
+                _category,
+                Error );
+
+        internal static readonly DiagnosticDefinition<(string AspectType, IDeclaration Member, IDeclaration TargetType)>
+            CannotIntroduceFieldIntoInterface = new(
+                "LAMA0534",
+                "Cannot introduce a field into an interface.",
+                "The aspect '{0}' cannot introduce the field '{1}' into interface type '{2}'.",
+                _category,
+                Error );
+
+        internal static readonly DiagnosticDefinition<(string AspectType, IDeclaration Member, IDeclaration TargetType)>
+            CannotIntroducePartialMemberToNonPartialType = new(
+                "LAMA0535",
+                "Cannot introduce a partial member into a non-partial type.",
+                "The aspect '{0}' cannot introduce the partial member '{1}' into type '{2}' because it is not partial.",
                 _category,
                 Error );
     }

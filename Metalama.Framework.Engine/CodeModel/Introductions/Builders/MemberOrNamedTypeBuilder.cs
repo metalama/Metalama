@@ -17,6 +17,7 @@ internal abstract class MemberOrNamedTypeBuilder : NamedDeclarationBuilder, IMem
     private bool _usesNewKeyword;
     private bool _isAbstract;
     private bool _isStatic;
+    private bool _isPartial;
     private string _name;
 
     public bool IsSealed
@@ -91,6 +92,17 @@ internal abstract class MemberOrNamedTypeBuilder : NamedDeclarationBuilder, IMem
         }
     }
 
+    public bool IsPartial
+    {
+        get => this._isPartial;
+        set
+        {
+            this.CheckNotFrozen();
+
+            this._isPartial = value;
+        }
+    }
+
     public override string Name
     {
         get => this._name;
@@ -113,6 +125,4 @@ internal abstract class MemberOrNamedTypeBuilder : NamedDeclarationBuilder, IMem
     IMemberOrNamedType IMemberOrNamedType.Definition => this;
 
     IRef<IMemberOrNamedType> IMemberOrNamedType.ToRef() => throw new NotSupportedException();
-
-    bool IMemberOrNamedType.IsPartial => false;
 }

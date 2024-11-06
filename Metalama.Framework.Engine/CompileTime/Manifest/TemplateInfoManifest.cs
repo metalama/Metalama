@@ -11,9 +11,12 @@ internal class TemplateInfoManifest
 
     public bool IsAbstract { get; }
 
-    public TemplateInfoManifest( TemplateAttributeType attributeType, bool isAbstract )
+    public bool HasNoBody { get; }
+
+    public TemplateInfoManifest( TemplateAttributeType attributeType, bool isAbstract, bool hasNoBody )
     {
         this.AttributeType = attributeType;
         this.IsAbstract = isAbstract;
+        this.HasNoBody = hasNoBody;
     }
 }

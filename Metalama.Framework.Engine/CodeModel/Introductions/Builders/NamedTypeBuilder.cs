@@ -27,18 +27,21 @@ namespace Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 
 internal sealed class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBuilder, INamedTypeImpl, IMemberOrNamedTypeBuilderImpl
 {
-    private bool _isPartial;
     private INamedType? _baseType;
+
+    public TypeKind TypeKind { get; }
 
     public IntroducedRef<INamedType> Ref { get; }
 
     public TypeParameterBuilderList TypeParameters { get; } = [];
 
-    public NamedTypeBuilder( AspectLayerInstance aspectLayerInstance, INamespaceOrNamedType declaringNamespaceOrType, string name ) : base(
+    public NamedTypeBuilder( AspectLayerInstance aspectLayerInstance, INamespaceOrNamedType declaringNamespaceOrType, string name, TypeKind typeKind ) : base(
         aspectLayerInstance,
         declaringNamespaceOrType as INamedType,
         name )
     {
+        this.TypeKind = typeKind;
+
         this.ContainingNamespace = declaringNamespaceOrType switch
         {
             INamespace @namespace => @namespace,
@@ -49,6 +52,12 @@ internal sealed class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBui
         this.Ref = new IntroducedRef<INamedType>( this.Compilation.RefFactory );
 
         this.BaseType = ((CompilationModel) this.ContainingNamespace.Compilation).Factory.GetSpecialType( SpecialType.Object );
+
+        if (this.TypeKind == TypeKind.Interface)
+        {
+            // Interfaces are always abstract.
+            this.IsAbstract = true;
+        }
     }
 
     protected override void FreezeChildren()
@@ -73,17 +82,6 @@ internal sealed class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBui
 
     public override IDeclaration ContainingDeclaration => (IDeclaration?) this.DeclaringType ?? this.ContainingNamespace;
 
-    public bool IsPartial
-    {
-        get => this._isPartial;
-        set
-        {
-            this.CheckNotFrozen();
-
-            this._isPartial = value;
-        }
-    }
-
     public bool HasDefaultConstructor => true;
 
     public INamedType? BaseType
@@ -92,6 +90,11 @@ internal sealed class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBui
         set
         {
             this.CheckNotFrozen();
+
+            if (this.TypeKind == TypeKind.Interface && value?.SpecialType != SpecialType.Object )
+            {
+                throw new InvalidOperationException( "Interfaces cannot have a base type." );
+            }
 
             this._baseType = value;
         }
@@ -180,8 +183,6 @@ internal sealed class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBui
     public INamedType Definition => this;
 
     public INamedType UnderlyingType => this;
-
-    public TypeKind TypeKind => TypeKind.Class;
 
     public SpecialType SpecialType => SpecialType.None;
 

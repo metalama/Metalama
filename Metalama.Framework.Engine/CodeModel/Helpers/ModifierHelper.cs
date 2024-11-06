@@ -80,7 +80,9 @@ internal static class ModifierHelper
             tokens.Add( SyntaxFactoryEx.TokenWithTrailingSpace( syntaxKind ) );
         }
 
-        if ( (categories & ModifierCategories.Accessibility) != 0 )
+        // Private void partial methods skip accessibility to make implementation non-mandatory.
+        if ( (categories & ModifierCategories.Accessibility) != 0
+             && member is not IMethod { IsPartial: true, Accessibility: Accessibility.Private, ReturnType: { SpecialType: Code.SpecialType.Void } } )
         {
             AddAccessibilityTokens( member, tokens );
         }
@@ -95,6 +97,16 @@ internal static class ModifierHelper
             AddToken( SyntaxKind.StaticKeyword );
         }
 
+        if ( member.IsPartial && (categories & ModifierCategories.Partial) != 0 )
+        {
+            AddToken( SyntaxKind.PartialKeyword );
+        }
+
+        if ( member.IsExtern && (categories & ModifierCategories.Extern) != 0 )
+        {
+            AddToken( SyntaxKind.ExternKeyword );
+        }
+
         if ( (categories & ModifierCategories.Inheritance) != 0 )
         {
             if ( member.HasNewKeyword == true )
@@ -102,17 +114,40 @@ internal static class ModifierHelper
                 AddToken( SyntaxKind.NewKeyword );
             }
 
-            if ( member.IsOverride )
+            if ( member.DeclaringType is { TypeKind: Code.TypeKind.Interface } )
             {
-                AddToken( SyntaxKind.OverrideKeyword );
+                Invariant.Assert( !member.IsOverride );
+                Invariant.Implies( member.IsAbstract, member.Accessibility is not Accessibility.Private );
+                Invariant.Implies( member.IsVirtual, member.Accessibility is not Accessibility.Private );
+
+                // Interface instance methods are automatically abstract or virtual depending on presence of the body.
+                // Override keyword is not allowed in interfaces.
+                if ( member.IsStatic )
+                {
+                    if ( member.IsAbstract )
+                    {
+                        AddToken( SyntaxKind.AbstractKeyword );
+                    }
+                    else if ( member.IsVirtual )
+                    {
+                        AddToken( SyntaxKind.VirtualKeyword );
+                    }
+                }
             }
-            else if ( member.IsAbstract )
+            else
             {
-                AddToken( SyntaxKind.AbstractKeyword );
-            }
-            else if ( member.IsVirtual )
-            {
-                AddToken( SyntaxKind.VirtualKeyword );
+                if ( member.IsOverride )
+                {
+                    AddToken( SyntaxKind.OverrideKeyword );
+                }
+                else if ( member.IsAbstract )
+                {
+                    AddToken( SyntaxKind.AbstractKeyword );
+                }
+                else if ( member.IsVirtual )
+                {
+                    AddToken( SyntaxKind.VirtualKeyword );
+                }
             }
 
             if ( member.IsSealed )
@@ -176,7 +211,7 @@ internal static class ModifierHelper
                 AddToken( SyntaxKind.NewKeyword );
             }
             
-            if ( namedType.IsAbstract )
+            if ( namedType.IsAbstract && namedType.TypeKind != Code.TypeKind.Interface )
             {
                 AddToken( SyntaxKind.AbstractKeyword );
             }
@@ -255,7 +290,11 @@ internal static class ModifierHelper
                 break;
 
             case Accessibility.Public:
-                AddToken( SyntaxKind.PublicKeyword );
+                if (member.DeclaringType is not { TypeKind: Code.TypeKind.Interface })
+                {
+                    // Idiomatically, public accessor is skipped in interfaces.
+                    AddToken( SyntaxKind.PublicKeyword );
+                }
 
                 break;
         }

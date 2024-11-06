@@ -220,11 +220,11 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                 members = members.AddRange(
                     CreateInjectedConstructors( initialCompilationModel, finalCompilationModel, syntaxGenerationContext, declaringType ) );
 
-                // Create a class.
-                var classDeclaration = CreatePartialType( declaringType, baseList, members );
+                // Create a type.
+                var typeDeclaration = CreatePartialType( declaringType, baseList, members );
 
-                // Add the class to its nesting type.
-                var topDeclaration = (MemberDeclarationSyntax) classDeclaration;
+                // Add the type to its nesting type.
+                var topDeclaration = (MemberDeclarationSyntax) typeDeclaration;
 
                 for ( var containingType = declaringType.DeclaringType; containingType != null; containingType = containingType.DeclaringType )
                 {

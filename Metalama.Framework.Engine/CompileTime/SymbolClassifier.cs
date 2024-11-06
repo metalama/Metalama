@@ -180,6 +180,11 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                 {
                     return templateInfo.AsAbstract();
                 }
+                else if (symbol.IsExtern)
+                {
+                    // Extern members indicate template without body.
+                    return templateInfo.WithoutBody();
+                }
                 else
                 {
                     return templateInfo;

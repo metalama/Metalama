@@ -1,8 +1,7 @@
-[Introduction]
-public class TargetClass : global::Metalama.Framework.Tests.AspectTests.TestInputs.Aspects.Introductions.Interfaces.Simple.IInterface
+[IntroductionAttribute]
+public class TargetType
 {
-  public void Foo()
+  interface ITest
   {
-    global::System.Console.WriteLine("Introduced interface member");
   }
 }

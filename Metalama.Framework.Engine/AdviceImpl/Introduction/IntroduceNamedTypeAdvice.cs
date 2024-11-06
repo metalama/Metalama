@@ -14,6 +14,7 @@ namespace Metalama.Framework.Engine.AdviceImpl.Introduction;
 internal sealed class IntroduceNamedTypeAdvice : IntroduceDeclarationAdvice<INamedType, NamedTypeBuilder>
 {
     private readonly string _explicitName;
+    private readonly TypeKind _typeKind;
 
     public override AdviceKind AdviceKind => AdviceKind.IntroduceType;
 
@@ -23,16 +24,18 @@ internal sealed class IntroduceNamedTypeAdvice : IntroduceDeclarationAdvice<INam
         AdviceConstructorParameters<INamespaceOrNamedType> parameters,
         string explicitName,
         OverrideStrategy overrideStrategy,
-        Action<NamedTypeBuilder>? buildAction )
+        Action<NamedTypeBuilder>? buildAction, 
+        TypeKind typeKind )
         : base( parameters, buildAction )
     {
         this._explicitName = explicitName;
         this.OverrideStrategy = overrideStrategy;
+        this._typeKind = typeKind;
     }
 
     protected override NamedTypeBuilder CreateBuilder( in AdviceImplementationContext context )
     {
-        return new NamedTypeBuilder( this.AspectLayerInstance, (INamespaceOrNamedType) this.TargetDeclaration.AssertNotNull(), this._explicitName );
+        return new NamedTypeBuilder( this.AspectLayerInstance, (INamespaceOrNamedType) this.TargetDeclaration.AssertNotNull(), this._explicitName, this._typeKind );
     }
 
     protected override IntroductionAdviceResult<INamedType> ImplementCore( NamedTypeBuilder builder, in AdviceImplementationContext context )

@@ -31,7 +31,6 @@ namespace Metalama.Framework.Aspects
         public bool IsVirtual
         {
             get => this._properties.IsVirtual.GetValueOrDefault();
-
             set => this._properties = this._properties with { IsVirtual = value };
         }
 
@@ -45,6 +44,24 @@ namespace Metalama.Framework.Aspects
         {
             get => this._properties.IsRequired.GetValueOrDefault();
             set => this._properties = this._properties with { IsRequired = value };
+        }
+
+        public bool IsAbstract
+        {
+            get => this._properties.IsAbstract.GetValueOrDefault();
+            set => this._properties = this._properties with { IsAbstract = value };
+        }
+
+        public bool IsPartial
+        {
+            get => this._properties.IsPartial.GetValueOrDefault();
+            set => this._properties = this._properties with { IsPartial = value };
+        }
+
+        public bool IsExtern
+        {
+            get => this._properties.IsExtern.GetValueOrDefault();
+            set => this._properties = this._properties with { IsExtern = value };
         }
 
         /// <summary>

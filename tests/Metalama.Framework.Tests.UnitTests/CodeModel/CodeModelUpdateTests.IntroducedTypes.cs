@@ -20,14 +20,14 @@ public sealed partial class CodeModelUpdateTests
 
         var compilation = testContext.CreateCompilationModel( "class Outer;" ).CreateMutableClone();
 
-        var type = new NamedTypeBuilder( null!, compilation.GlobalNamespace, "C" );
+        var type = new NamedTypeBuilder( null!, compilation.GlobalNamespace, "C", TypeKind.Class );
         type.Freeze();
         compilation.AddTransformation( type.CreateTransformation() );
 
         Assert.Single( compilation.GlobalNamespace.Types.OfName( "C" ) );
         Assert.Single( compilation.Types.OfName( "C" ) );
 
-        var nestedType = new NamedTypeBuilder( null!, compilation.Types.OfName( "Outer" ).Single(), "Inner" );
+        var nestedType = new NamedTypeBuilder( null!, compilation.Types.OfName( "Outer" ).Single(), "Inner", TypeKind.Class );
         nestedType.Freeze();
         compilation.AddTransformation( nestedType.CreateTransformation() );
 
@@ -46,7 +46,7 @@ public sealed partial class CodeModelUpdateTests
         nsBuilder.Freeze();
         compilation.AddTransformation( nsBuilder.CreateTransformation() );
 
-        var typeBuilder = new NamedTypeBuilder( null!, nsBuilder, "C" );
+        var typeBuilder = new NamedTypeBuilder( null!, nsBuilder, "C", TypeKind.Class );
         typeBuilder.Freeze();
         compilation.AddTransformation( typeBuilder.CreateTransformation() );
 
@@ -76,7 +76,7 @@ class C
         var type1 = Assert.Single( mutableCompilation1.Types );
 
         // Add a type.
-        var typeBuilder = new NamedTypeBuilder( null!, type1, "T" );
+        var typeBuilder = new NamedTypeBuilder( null!, type1, "T", TypeKind.Class );
         typeBuilder.Freeze();
         mutableCompilation1.AddTransformation( typeBuilder.CreateTransformation() );
 
@@ -119,7 +119,7 @@ class C
         var type1 = Assert.Single( mutableCompilation1.Types );
 
         // Add a type.
-        var typeBuilder = new NamedTypeBuilder( null!, type1, "T" );
+        var typeBuilder = new NamedTypeBuilder( null!, type1, "T", TypeKind.Class );
         typeBuilder.Freeze();
         mutableCompilation1.AddTransformation( typeBuilder.CreateTransformation() );
 
@@ -162,7 +162,7 @@ class C
         var type1 = Assert.Single( mutableCompilation1.Types );
 
         // Add a type.
-        var typeBuilder = new NamedTypeBuilder( null!, type1, "T" );
+        var typeBuilder = new NamedTypeBuilder( null!, type1, "T", TypeKind.Class );
         typeBuilder.Freeze();
         mutableCompilation1.AddTransformation( typeBuilder.CreateTransformation() );
 
@@ -202,7 +202,7 @@ class C
         var type1 = Assert.Single( mutableCompilation1.Types );
 
         // Add a type.
-        var typeBuilder = new NamedTypeBuilder( null!, type1, "T" );
+        var typeBuilder = new NamedTypeBuilder( null!, type1, "T", TypeKind.Class );
         typeBuilder.Freeze();
         mutableCompilation1.AddTransformation( typeBuilder.CreateTransformation() );
 
@@ -240,10 +240,10 @@ class C
 
         var target = initialCompilation.Types.OfName( "Target" ).Single();
 
-        var baseType = new NamedTypeBuilder( null!, target, "B" );
+        var baseType = new NamedTypeBuilder( null!, target, "B", TypeKind.Class );
         baseType.Freeze();
 
-        var derivedType = new NamedTypeBuilder( null!, target, "C" ) { BaseType = baseType };
+        var derivedType = new NamedTypeBuilder( null!, target, "C", TypeKind.Class ) { BaseType = baseType };
         derivedType.Freeze();
 
         var interfaceType = initialCompilation.Types.OfName( "I" ).Single();
@@ -292,7 +292,7 @@ class C<TC> : B<TC>
         var immutableCompilation1 = testContext.CreateCompilationModel( code );
 
         // Add a type.
-        var typeBuilder = new NamedTypeBuilder( null!, immutableCompilation1.GlobalNamespace, "Introduced" );
+        var typeBuilder = new NamedTypeBuilder( null!, immutableCompilation1.GlobalNamespace, "Introduced", TypeKind.Class );
         typeBuilder.Freeze();
 
         var finalCompilation = immutableCompilation1.WithTransformations( [typeBuilder.CreateTransformation()] );

@@ -17,6 +17,8 @@ internal sealed class TemplateSymbolManifest : ITemplateInfo
 
     bool ITemplateInfo.IsAbstract => this.TemplateInfo?.IsAbstract ?? false;
 
+    bool ITemplateInfo.HasNoBody => this.TemplateInfo?.HasNoBody ?? false;
+
     TemplateAttributeType ITemplateInfo.AttributeType => this.TemplateInfo?.AttributeType ?? TemplateAttributeType.None;
 
     bool ITemplateInfo.IsNone => this.TemplateInfo == null || this.TemplateInfo.AttributeType == TemplateAttributeType.None;
@@ -128,7 +130,7 @@ internal sealed class TemplateSymbolManifest : ITemplateInfo
             => new(
                 this._symbol.GetSerializableId().Id,
                 this._scope?.ToExecutionScope(),
-                this._templateInfo == null ? null : new TemplateInfoManifest( this._templateInfo.AttributeType, this._templateInfo.IsAbstract ),
+                this._templateInfo == null ? null : new TemplateInfoManifest( this._templateInfo.AttributeType, this._templateInfo.IsAbstract, this._templateInfo.HasNoBody ),
                 this._usedApiVersion,
                 this._children?.ToDictionary( x => x.Key, x => (IReadOnlyList<TemplateSymbolManifest>) x.Value.SelectAsArray( b => b.Build() ) ) );
     }

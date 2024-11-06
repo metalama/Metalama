@@ -22,7 +22,7 @@ internal class NamedTypeBuilderData : MemberOrNamedTypeBuilderData
     // Only classes are supported at the moment, so the following members can return a constant value.
 
 #pragma warning disable CA1822
-    public TypeKind TypeKind => TypeKind.Class;
+    public TypeKind TypeKind { get; }
 
     public bool IsReadOnly => false;
 
@@ -36,6 +36,7 @@ internal class NamedTypeBuilderData : MemberOrNamedTypeBuilderData
         this.TypeParameters = builder.TypeParameters.ToImmutable( this._ref );
         this.ImplementedInterfaces = builder.ImplementedInterfaces.SelectAsImmutableArray( i => i.ToFullRef() );
         this.Attributes = builder.Attributes.ToImmutable( this._ref );
+        this.TypeKind = builder.TypeKind;
     }
 
     protected override IFullRef<IDeclaration> ToDeclarationFullRef() => this._ref;

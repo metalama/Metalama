@@ -25,6 +25,11 @@ namespace Metalama.Framework.Code
         bool IsOverride { get; }
 
         /// <summary>
+        /// Gets a value indicating whether the member has an external implementation, i.e. has the <c>extern</c> modifier.
+        /// </summary>
+        bool IsExtern { get; }
+
+        /// <summary>
         /// Gets a value indicating whether the member is an explicit implementation of an interface member.
         /// </summary>
         bool IsExplicitInterfaceImplementation { get; }

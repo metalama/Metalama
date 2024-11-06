@@ -31,4 +31,9 @@ public interface IMemberOrNamedTypeBuilder : IMemberOrNamedType, IDeclarationBui
     /// Gets or sets a value indicating whether the member is <c>abstract</c>.
     /// </summary>
     new bool IsAbstract { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the member is <c>partial</c>.
+    /// </summary>
+    new bool IsPartial { get; set; }
 }

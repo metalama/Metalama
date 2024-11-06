@@ -10,6 +10,8 @@ internal interface ITemplateInfo
 
     bool IsAbstract { get; }
 
+    bool HasNoBody { get; }
+
     TemplateAttributeType AttributeType { get; }
 
     bool IsNone { get; }

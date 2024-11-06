@@ -35,7 +35,7 @@ internal class IntroducePropertyTransformation : IntroduceMemberTransformation<P
 
     public override IEnumerable<InjectedMember> GetInjectedMembers( MemberInjectionContext context )
     {
-        var propertyBuilder = this.BuilderData.ToRef().GetTarget( context.FinalCompilation );
+        var finalProperty = this.BuilderData.ToRef().GetTarget( context.FinalCompilation );
         var syntaxGenerator = context.SyntaxGenerationContext.SyntaxGenerator;
 
         // TODO: What if non-auto property has the initializer template?
@@ -43,10 +43,10 @@ internal class IntroducePropertyTransformation : IntroduceMemberTransformation<P
         // If template fails to expand, we will still generate the field, albeit without the initializer.
 
         _ = AdviceSyntaxGenerator.GetInitializerExpressionOrMethod(
-            propertyBuilder,
+            finalProperty,
             this.AspectLayerInstance,
             context,
-            propertyBuilder.Type,
+            finalProperty.Type,
             this.BuilderData.InitializerExpression,
             this._template?.GetInitializerTemplate()?.As<IFieldOrProperty>() ?? this.BuilderData.InitializerTemplate,
             out var initializerExpression,
@@ -55,24 +55,26 @@ internal class IntroducePropertyTransformation : IntroduceMemberTransformation<P
         // TODO: This should be handled by the linker.
         // If we are introducing a field into a struct in C# 10, it must have an explicit default value.
         if ( initializerExpression == null
-             && propertyBuilder is { IsAutoPropertyOrField: true, DeclaringType.TypeKind: TypeKind.Struct or TypeKind.RecordStruct }
+             && finalProperty is { IsAutoPropertyOrField: true, DeclaringType.TypeKind: TypeKind.Struct or TypeKind.RecordStruct }
              && context.SyntaxGenerationContext.RequiresStructFieldInitialization )
         {
             initializerExpression = SyntaxFactoryEx.Default;
         }
 
+        var hasNoBody = finalProperty.IsAutoPropertyOrField is true || finalProperty.IsAbstract || finalProperty.IsPartial || finalProperty.IsExtern;
+
         // TODO: Creating the ref to get attributes is a temporary fix for promoted field until there is a correct injection context that has compilation that includes the builder.
         //       now the reference to promoted field is resolved to the original field, which has incorrect attributes.
         var property =
             PropertyDeclaration(
-                AdviceSyntaxGenerator.GetAttributeLists( propertyBuilder, context )
+                AdviceSyntaxGenerator.GetAttributeLists( finalProperty, context )
                     .AddRange( GetAdditionalAttributeLists() ),
-                propertyBuilder.GetSyntaxModifierList(),
-                syntaxGenerator.TypeSyntax( propertyBuilder.Type ).WithOptionalTrailingTrivia( ElasticSpace, context.SyntaxGenerationContext.Options ),
-                propertyBuilder.ExplicitInterfaceImplementations.Count > 0
-                    ? ExplicitInterfaceSpecifier( (NameSyntax) syntaxGenerator.TypeSyntax( propertyBuilder.ExplicitInterfaceImplementations.Single().DeclaringType ) )
+                finalProperty.GetSyntaxModifierList(),
+                syntaxGenerator.TypeSyntax( finalProperty.Type ).WithOptionalTrailingTrivia( ElasticSpace, context.SyntaxGenerationContext.Options ),
+                finalProperty.ExplicitInterfaceImplementations.Count > 0
+                    ? ExplicitInterfaceSpecifier( (NameSyntax) syntaxGenerator.TypeSyntax( finalProperty.ExplicitInterfaceImplementations.Single().DeclaringType ) )
                     : null,
-                propertyBuilder.GetCleanName(),
+                finalProperty.GetCleanName(),
                 GenerateAccessorList(),
                 null,
                 initializerExpression != null
@@ -110,7 +112,7 @@ internal class IntroducePropertyTransformation : IntroduceMemberTransformation<P
 
         AccessorListSyntax GenerateAccessorList()
         {
-            switch (propertyBuilder.IsAutoPropertyOrField, propertyBuilder.Writeability, propertyBuilder.GetMethod, propertyBuilder.SetMethod)
+            switch (finalProperty.IsAutoPropertyOrField, finalProperty.Writeability, finalProperty.GetMethod, finalProperty.SetMethod)
             {
                 // Properties with both accessors.
                 case (false, _, not null, not null):
@@ -143,54 +145,52 @@ internal class IntroducePropertyTransformation : IntroduceMemberTransformation<P
         {
             var tokens = new List<SyntaxToken>();
 
-            if ( propertyBuilder.GetMethod!.Accessibility != propertyBuilder.Accessibility )
+            if ( finalProperty.GetMethod!.Accessibility != finalProperty.Accessibility )
             {
-                propertyBuilder.GetMethod.Accessibility.AddTokens( tokens );
+                finalProperty.GetMethod.Accessibility.AddTokens( tokens );
             }
 
             return
                 AccessorDeclaration(
                     SyntaxKind.GetAccessorDeclaration,
-                    AdviceSyntaxGenerator.GetAttributeLists( propertyBuilder.GetMethod, context ),
+                    AdviceSyntaxGenerator.GetAttributeLists( finalProperty.GetMethod, context ),
                     TokenList( tokens ),
                     Token( SyntaxKind.GetKeyword ),
-                    propertyBuilder.IsAutoPropertyOrField is true
+                    hasNoBody
                         ? null
                         : syntaxGenerator.FormattedBlock(
                             ReturnStatement(
                                 SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.ReturnKeyword ),
                                 syntaxGenerator.SuppressNullableWarningExpression(
-                                    syntaxGenerator.DefaultExpression( propertyBuilder.Type ),
-                                    propertyBuilder.Type.IsReferenceType == false
-                                        ? propertyBuilder.Type
-                                        : propertyBuilder.Type.ToNullable() ),
+                                    syntaxGenerator.DefaultExpression( finalProperty.Type ),
+                                    finalProperty.Type.IsReferenceType == false
+                                        ? finalProperty.Type
+                                        : finalProperty.Type.ToNullable() ),
                                 Token( TriviaList(), SyntaxKind.SemicolonToken, context.SyntaxGenerationContext.ElasticEndOfLineTriviaList ) ) ),
                     null,
-                    propertyBuilder.IsAutoPropertyOrField is true ? Token( SyntaxKind.SemicolonToken ) : default );
+                    hasNoBody ? Token( SyntaxKind.SemicolonToken ) : default );
         }
 
         AccessorDeclarationSyntax GenerateSetAccessor()
         {
             var tokens = new List<SyntaxToken>();
 
-            if ( propertyBuilder.SetMethod!.Accessibility != propertyBuilder.Accessibility )
+            if ( finalProperty.SetMethod!.Accessibility != finalProperty.Accessibility )
             {
-                propertyBuilder.SetMethod.Accessibility.AddTokens( tokens );
+                finalProperty.SetMethod.Accessibility.AddTokens( tokens );
             }
 
             return
                 AccessorDeclaration(
                     this.BuilderData.HasInitOnlySetter ? SyntaxKind.InitAccessorDeclaration : SyntaxKind.SetAccessorDeclaration,
-                    AdviceSyntaxGenerator.GetAttributeLists( propertyBuilder.SetMethod, context ),
+                    AdviceSyntaxGenerator.GetAttributeLists( finalProperty.SetMethod, context ),
                     TokenList( tokens ),
                     this.BuilderData.HasInitOnlySetter
                         ? Token( TriviaList(), SyntaxKind.InitKeyword, TriviaList( ElasticSpace ) )
                         : Token( TriviaList(), SyntaxKind.SetKeyword, TriviaList( ElasticSpace ) ),
-                    propertyBuilder.IsAutoPropertyOrField is true
-                        ? null
-                        : syntaxGenerator.FormattedBlock(),
+                    hasNoBody ? null : syntaxGenerator.FormattedBlock(),
                     null,
-                    propertyBuilder.IsAutoPropertyOrField is true ? Token( SyntaxKind.SemicolonToken ) : default );
+                    hasNoBody ? Token( SyntaxKind.SemicolonToken ) : default );
         }
 
         IEnumerable<AttributeListSyntax> GetAdditionalAttributeLists()

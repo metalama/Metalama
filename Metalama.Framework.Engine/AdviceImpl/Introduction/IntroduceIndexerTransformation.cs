@@ -24,20 +24,20 @@ internal sealed class IntroduceIndexerTransformation : IntroduceMemberTransforma
 
     public override IEnumerable<InjectedMember> GetInjectedMembers( MemberInjectionContext context )
     {
-        var indexer = this.BuilderData.ToRef().GetTarget( context.FinalCompilation );
+        var finalIndexer = this.BuilderData.ToRef().GetTarget( context.FinalCompilation );
 
         var syntaxGenerator = context.SyntaxGenerationContext.SyntaxGenerator;
 
         var indexerSyntax =
             IndexerDeclaration(
-                AdviceSyntaxGenerator.GetAttributeLists( indexer, context ),
-                indexer.GetSyntaxModifierList(),
-                syntaxGenerator.TypeSyntax( indexer.Type ).WithOptionalTrailingTrivia( ElasticSpace, context.SyntaxGenerationContext.Options ),
-                indexer.ExplicitInterfaceImplementations.Count > 0
-                    ? ExplicitInterfaceSpecifier( (NameSyntax) syntaxGenerator.TypeSyntax( indexer.ExplicitInterfaceImplementations.Single().DeclaringType ) )
+                AdviceSyntaxGenerator.GetAttributeLists( finalIndexer, context ),
+                finalIndexer.GetSyntaxModifierList(),
+                syntaxGenerator.TypeSyntax( finalIndexer.Type ).WithOptionalTrailingTrivia( ElasticSpace, context.SyntaxGenerationContext.Options ),
+                finalIndexer.ExplicitInterfaceImplementations.Count > 0
+                    ? ExplicitInterfaceSpecifier( (NameSyntax) syntaxGenerator.TypeSyntax( finalIndexer.ExplicitInterfaceImplementations.Single().DeclaringType ) )
                     : null,
                 Token( SyntaxKind.ThisKeyword ),
-                context.SyntaxGenerator.ParameterList( indexer, context.FinalCompilation ),
+                context.SyntaxGenerator.ParameterList( finalIndexer, context.FinalCompilation ),
                 GenerateAccessorList(),
                 null,
                 default );
@@ -53,7 +53,7 @@ internal sealed class IntroduceIndexerTransformation : IntroduceMemberTransforma
 
         AccessorListSyntax GenerateAccessorList()
         {
-            switch (indexer.Writeability, indexer.GetMethod, indexer.SetMethod)
+            switch (finalIndexer.Writeability, finalIndexer.GetMethod, finalIndexer.SetMethod)
             {
                 // Indexers with both accessors.
                 case (_, not null, not null):
@@ -76,46 +76,54 @@ internal sealed class IntroduceIndexerTransformation : IntroduceMemberTransforma
         {
             var tokens = new List<SyntaxToken>();
 
-            if ( indexer.GetMethod!.Accessibility != indexer.Accessibility )
+            if ( finalIndexer.GetMethod!.Accessibility != finalIndexer.Accessibility )
             {
-                indexer.GetMethod.Accessibility.AddTokens( tokens );
+                finalIndexer.GetMethod.Accessibility.AddTokens( tokens );
             }
+
+            var hasNoBody = finalIndexer.IsAbstract;
 
             return
                 AccessorDeclaration(
                     SyntaxKind.GetAccessorDeclaration,
-                    AdviceSyntaxGenerator.GetAttributeLists( indexer.GetMethod, context ),
+                    AdviceSyntaxGenerator.GetAttributeLists( finalIndexer.GetMethod, context ),
                     TokenList( tokens ),
                     Token( SyntaxKind.GetKeyword ),
-                    syntaxGenerator.FormattedBlock(
-                        ReturnStatement(
-                            Token( TriviaList(), SyntaxKind.ReturnKeyword, TriviaList( ElasticSpace ) ),
-                            DefaultExpression( syntaxGenerator.TypeSyntax( indexer.Type ) ),
-                            Token( TriviaList(), SyntaxKind.SemicolonToken, context.SyntaxGenerationContext.ElasticEndOfLineTriviaList ) ) ),
+                    hasNoBody
+                        ? null
+                        : syntaxGenerator.FormattedBlock(
+                            ReturnStatement(
+                                Token( TriviaList(), SyntaxKind.ReturnKeyword, TriviaList( ElasticSpace ) ),
+                                DefaultExpression( syntaxGenerator.TypeSyntax( finalIndexer.Type ) ),
+                                Token( TriviaList(), SyntaxKind.SemicolonToken, context.SyntaxGenerationContext.ElasticEndOfLineTriviaList ) ) ),
                     null,
-                    default );
+                    hasNoBody ? Token( SyntaxKind.SemicolonToken ) : default );
         }
 
         AccessorDeclarationSyntax GenerateSetAccessor()
         {
             var tokens = new List<SyntaxToken>();
 
-            if ( indexer.SetMethod!.Accessibility != indexer.Accessibility )
+            if ( finalIndexer.SetMethod!.Accessibility != finalIndexer.Accessibility )
             {
-                indexer.SetMethod.Accessibility.AddTokens( tokens );
+                finalIndexer.SetMethod.Accessibility.AddTokens( tokens );
             }
+
+            var hasNoBody = finalIndexer.IsAbstract;
 
             return
                 AccessorDeclaration(
                     this.BuilderData.HasInitOnlySetter ? SyntaxKind.InitAccessorDeclaration : SyntaxKind.SetAccessorDeclaration,
-                    AdviceSyntaxGenerator.GetAttributeLists( indexer.SetMethod, context ),
+                    AdviceSyntaxGenerator.GetAttributeLists( finalIndexer.SetMethod, context ),
                     TokenList( tokens ),
                     this.BuilderData.HasInitOnlySetter
                         ? Token( TriviaList(), SyntaxKind.InitKeyword, TriviaList( ElasticSpace ) )
                         : Token( TriviaList(), SyntaxKind.SetKeyword, TriviaList( ElasticSpace ) ),
-                    context.SyntaxGenerator.FormattedBlock(),
+                    hasNoBody
+                        ? null
+                        : context.SyntaxGenerator.FormattedBlock(),
                     null,
-                    default );
+                    hasNoBody ? Token( SyntaxKind.SemicolonToken ) : default );
         }
     }
 }

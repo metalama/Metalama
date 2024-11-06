@@ -98,7 +98,7 @@ internal sealed class IntroducedAccessor : IntroducedDeclaration, IMethodImpl
 
     IMember IMember.Definition => this.Definition;
 
-    bool IMethod.IsExtern => false;
+    bool IMember.IsExtern => false;
 
     public IMethodInvoker With( InvokerOptions options ) => new MethodInvoker( this, options );
 

@@ -96,10 +96,10 @@ internal sealed class RewriterHelper
 
     public MethodDeclarationSyntax WithThrowNotSupportedExceptionBody( MethodDeclarationSyntax method, string message, SyntaxGenerationContext context )
     {
-        // Method does not have a body (e.g. because it's abstract) , so there is nothing to replace.
-        if ( method.Body == null && method.ExpressionBody == null )
+        // Method does not have a body (e.g. because it's abstract), so there is nothing to replace.
+        if ( method.Modifiers.Any( x => x.IsKind( SyntaxKind.AbstractKeyword ) ) )
         {
-            throw new ArgumentException( "Should not be called with a method without a body.", nameof(method) );
+            throw new ArgumentException( "Should not be called with a method without a body.", nameof( method ) );
         }
 
         // Otherwise we need to preserve "asyncness" and "iteratorness" of the method.
@@ -135,6 +135,7 @@ internal sealed class RewriterHelper
                             isIterator
                                 ? null
                                 : ArrowExpressionClause( GetNotSupportedExceptionExpression( message ) ) )
+                        .WithModifiers( TokenList( method.Modifiers.Where( m => !m.IsKind( SyntaxKind.ExternKeyword ) ) ) )
                         .WithSemicolonToken( isIterator ? default : Token( SyntaxKind.SemicolonToken ) )
                         .NormalizeWhitespace( eol: EndOfLineHelper.DetermineEndOfLineStyleFast( method.SyntaxTree ) )
                         .WithLeadingTrivia( method.GetLeadingTrivia() )
@@ -158,6 +159,7 @@ internal sealed class RewriterHelper
                 return this.RewriteThrowNotSupported(
                     property
                         .WithExpressionBody( property.ExpressionBody?.WithExpression( GetNotSupportedExceptionExpression( message ) ) )
+                        .WithModifiers( TokenList( property.Modifiers.Where( m => !m.IsKind( SyntaxKind.ExternKeyword ) ) ) )
                         .NormalizeWhitespace( eol: EndOfLineHelper.DetermineEndOfLineStyleFast( property.SyntaxTree ) )
                         .WithLeadingTrivia( property.GetLeadingTrivia() )
                         .WithTrailingTrivia( LineFeed, LineFeed ) );
@@ -176,6 +178,7 @@ internal sealed class RewriterHelper
                                             .WithExpressionBody( ArrowExpressionClause( GetNotSupportedExceptionExpression( message ) ) )
                                             .WithSemicolonToken( Token( SyntaxKind.SemicolonToken ) ) ) ) ) )
                         .WithInitializer( null )
+                        .WithModifiers( TokenList( property.Modifiers.Where( m => !m.IsKind( SyntaxKind.ExternKeyword ) ) ) )
                         .NormalizeWhitespace( eol: EndOfLineHelper.DetermineEndOfLineStyleFast( property.SyntaxTree ) )
                         .WithLeadingTrivia( property.GetLeadingTrivia() )
                         .WithTrailingTrivia( LineFeed, LineFeed ) );
@@ -214,6 +217,7 @@ internal sealed class RewriterHelper
                                                     .WithBody( null )
                                                     .WithExpressionBody( ArrowExpressionClause( GetNotSupportedExceptionExpression( message ) ) )
                                                     .WithSemicolonToken( Token( SyntaxKind.SemicolonToken ) ) ) ) ) )
+                        .WithModifiers( TokenList( @event.Modifiers.Where( m => !m.IsKind( SyntaxKind.ExternKeyword ) ) ) )
                         .NormalizeWhitespace( eol: EndOfLineHelper.DetermineEndOfLineStyleFast( @event.SyntaxTree ) )
                         .WithLeadingTrivia( @event.GetLeadingTrivia() )
                         .WithTrailingTrivia( LineFeed, LineFeed ) );

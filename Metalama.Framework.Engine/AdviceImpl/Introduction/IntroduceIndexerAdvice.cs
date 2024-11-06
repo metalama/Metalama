@@ -96,6 +96,13 @@ internal sealed class IntroduceIndexerAdvice : IntroduceMemberAdvice<IIndexer, I
                 ? this._getTemplate.TemplateMember.Accessibility
                 : this._setTemplate.AssertNotNull().TemplateMember.Accessibility;
 
+        // Extern template denotes an abstract member of an interface.
+        builder.IsAbstract = 
+            this.TargetDeclaration.TypeKind is TypeKind.Interface 
+            && (this._getTemplate != null
+                ? getTemplateDeclaration.AssertNotNull().IsExtern
+                : setTemplateDeclaration.AssertNotNull().IsExtern);
+
         if ( this._getTemplate != null )
         {
             Invariant.Assert( getTemplateDeclaration != null );
@@ -190,15 +197,19 @@ internal sealed class IntroduceIndexerAdvice : IntroduceMemberAdvice<IIndexer, I
 
             builder.Freeze();
 
-            // Introduce and override using the template.
-            var overrideIndexerTransformation = new OverrideIndexerTransformation(
-                this.AspectLayerInstance,
-                builder.ToFullRef(),
-                this._getTemplate?.ForIntroduction( builder.GetMethod ),
-                this._setTemplate?.ForIntroduction( builder.SetMethod ) );
-
             context.AddTransformation( builder.CreateTransformation() );
-            context.AddTransformation( overrideIndexerTransformation );
+
+            if ( (this._getTemplate ?? this._setTemplate)?.TemplateMember.TemplateClassMember.TemplateInfo.HasNoBody != true )
+            {
+                // Introduce and override using the template.
+                var overrideIndexerTransformation = new OverrideIndexerTransformation(
+                    this.AspectLayerInstance,
+                    builder.ToFullRef(),
+                    this._getTemplate?.ForIntroduction( builder.GetMethod ),
+                    this._setTemplate?.ForIntroduction( builder.SetMethod ) );
+
+                context.AddTransformation( overrideIndexerTransformation );
+            }
 
             return this.CreateSuccessResult( AdviceOutcome.Default, builder );
         }
@@ -257,14 +268,18 @@ internal sealed class IntroduceIndexerAdvice : IntroduceMemberAdvice<IIndexer, I
                         builder.OverriddenIndexer = existingIndexer;
                         builder.Freeze();
 
-                        var overrideIndexerTransformation = new OverrideIndexerTransformation(
-                            this.AspectLayerInstance,
-                            builder.ToFullRef(),
-                            this._getTemplate?.ForIntroduction( builder.GetMethod ),
-                            this._setTemplate?.ForIntroduction( builder.SetMethod ) );
-
                         context.AddTransformation( builder.CreateTransformation() );
-                        context.AddTransformation( overrideIndexerTransformation );
+
+                        if ( (this._getTemplate ?? this._setTemplate)?.TemplateMember.TemplateClassMember.TemplateInfo.HasNoBody != true )
+                        {
+                            var overrideIndexerTransformation = new OverrideIndexerTransformation(
+                                this.AspectLayerInstance,
+                                builder.ToFullRef(),
+                                this._getTemplate?.ForIntroduction( builder.GetMethod ),
+                                this._setTemplate?.ForIntroduction( builder.SetMethod ) );
+
+                            context.AddTransformation( overrideIndexerTransformation );
+                        }
 
                         return this.CreateSuccessResult( AdviceOutcome.New, builder );
                     }

@@ -70,8 +70,6 @@ internal sealed class SourceMethod : SourceMethodBase, IMethodImpl
 
     public override bool IsPartial => this.MethodSymbol.IsPartialDefinition || this.MethodSymbol.PartialDefinitionPart != null;
 
-    public bool IsExtern => this.MethodSymbol.IsExtern;
-
     public IMethodInvoker With( InvokerOptions options ) => new MethodInvoker( this, options );
 
     public IMethodInvoker With( object? target, InvokerOptions options = default ) => new MethodInvoker( this, options, target );

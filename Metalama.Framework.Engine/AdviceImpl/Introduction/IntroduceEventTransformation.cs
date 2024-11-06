@@ -36,13 +36,13 @@ internal sealed class IntroduceEventTransformation : IntroduceMemberTransformati
     public override IEnumerable<InjectedMember> GetInjectedMembers( MemberInjectionContext context )
     {
         var syntaxGenerator = context.SyntaxGenerationContext.SyntaxGenerator;
-        var eventBuilder = this.BuilderData.ToRef().GetTarget( context.FinalCompilation );
+        var finalEvent = this.BuilderData.ToRef().GetTarget( context.FinalCompilation );
 
         _ = AdviceSyntaxGenerator.GetInitializerExpressionOrMethod(
-            eventBuilder,
+            finalEvent,
             this.AspectLayerInstance,
             context,
-            eventBuilder.Type,
+            finalEvent.Type,
             this.BuilderData.InitializerExpression,
             this._template?.GetInitializerTemplate(),
             out var initializerExpression,
@@ -55,27 +55,29 @@ internal sealed class IntroduceEventTransformation : IntroduceMemberTransformati
         // If we are introducing a field into a struct in C# 10, it must have an explicit default value.
         if ( initializerExpression == null
              && isEventField
-             && eventBuilder is { DeclaringType.TypeKind: TypeKind.Struct or TypeKind.RecordStruct }
+             && finalEvent is { DeclaringType.TypeKind: TypeKind.Struct or TypeKind.RecordStruct }
              && context.SyntaxGenerationContext.RequiresStructFieldInitialization )
         {
             initializerExpression = SyntaxFactoryEx.Default;
         }
 
+        var hasNoBody = isEventField is true || finalEvent.IsAbstract || this._template?.TemplateClassMember.TemplateInfo.HasNoBody == true;
+
         // TODO: If the user adds (different) attributes to event field's accessors, we cannot use event fields.
 
         MemberDeclarationSyntax @event =
-            isEventField && eventBuilder is { ExplicitInterfaceImplementations.Count: 0 }
+            hasNoBody && finalEvent is { ExplicitInterfaceImplementations.Count: 0 }
                 ? EventFieldDeclaration(
-                    AdviceSyntaxGenerator.GetAttributeLists( eventBuilder, context ).AddRange( GetAdditionalAttributeListsForEventField() ),
-                    eventBuilder.GetSyntaxModifierList(),
+                    AdviceSyntaxGenerator.GetAttributeLists( finalEvent, context ).AddRange( GetAdditionalAttributeListsForEventField() ),
+                    finalEvent.GetSyntaxModifierList(),
                     Token( TriviaList(), SyntaxKind.EventKeyword, TriviaList( ElasticSpace ) ),
                     VariableDeclaration(
-                        syntaxGenerator.TypeSyntax( eventBuilder.Type )
+                        syntaxGenerator.TypeSyntax( finalEvent.Type )
                             .WithOptionalTrailingTrivia( ElasticSpace, context.SyntaxGenerationContext.Options ),
                         SeparatedList(
                         [
                             VariableDeclarator(
-                                Identifier( TriviaList(), eventBuilder.Name, TriviaList( ElasticSpace ) ),
+                                Identifier( TriviaList(), finalEvent.Name, TriviaList( ElasticSpace ) ),
                                 null,
                                 initializerExpression != null
                                     ? EqualsValueClause( initializerExpression )
@@ -83,21 +85,21 @@ internal sealed class IntroduceEventTransformation : IntroduceMemberTransformati
                         ] ) ),
                     Token( SyntaxKind.SemicolonToken ) )
                 : EventDeclaration(
-                    AdviceSyntaxGenerator.GetAttributeLists( eventBuilder, context ),
-                    eventBuilder.GetSyntaxModifierList(),
+                    AdviceSyntaxGenerator.GetAttributeLists( finalEvent, context ),
+                    finalEvent.GetSyntaxModifierList(),
                     Token( TriviaList(), SyntaxKind.EventKeyword, TriviaList( ElasticSpace ) ),
-                    syntaxGenerator.TypeSyntax( eventBuilder.Type )
+                    syntaxGenerator.TypeSyntax( finalEvent.Type )
                         .WithOptionalTrailingTrivia( ElasticSpace, context.SyntaxGenerationContext.Options ),
-                    eventBuilder.ExplicitInterfaceImplementations.Count > 0
+                    finalEvent.ExplicitInterfaceImplementations.Count > 0
                         ? ExplicitInterfaceSpecifier(
-                                (NameSyntax) syntaxGenerator.TypeSyntax( eventBuilder.ExplicitInterfaceImplementations.Single().DeclaringType ) )
+                                (NameSyntax) syntaxGenerator.TypeSyntax( finalEvent.ExplicitInterfaceImplementations.Single().DeclaringType ) )
                             .WithOptionalTrailingTrivia( ElasticSpace, context.SyntaxGenerationContext.Options )
                         : null,
-                    eventBuilder.GetCleanName(),
+                    finalEvent.GetCleanName(),
                     GenerateAccessorList(),
                     default );
 
-        if ( isEventField && eventBuilder is { ExplicitInterfaceImplementations.Count: > 0 } )
+        if ( isEventField && finalEvent is { ExplicitInterfaceImplementations.Count: > 0 } )
         {
             // Add annotation to the explicit annotation that the linker should treat this an event field.
             if ( initializerExpression != null )
@@ -131,21 +133,21 @@ internal sealed class IntroduceEventTransformation : IntroduceMemberTransformati
 
         AccessorListSyntax GenerateAccessorList()
         {
-            switch (Adder: eventBuilder.AddMethod, Remover: eventBuilder.RemoveMethod)
+            switch (Adder: finalEvent.AddMethod, Remover: finalEvent.RemoveMethod)
             {
                 case (not null, not null):
                     return AccessorList(
                         List(
                         [
-                            GenerateAccessor( eventBuilder.AddMethod, SyntaxKind.AddAccessorDeclaration ),
-                            GenerateAccessor( eventBuilder.RemoveMethod, SyntaxKind.RemoveAccessorDeclaration )
+                            GenerateAccessor( finalEvent.AddMethod, SyntaxKind.AddAccessorDeclaration ),
+                            GenerateAccessor( finalEvent.RemoveMethod, SyntaxKind.RemoveAccessorDeclaration )
                         ] ) );
 
                 case (not null, null):
-                    return AccessorList( List( [GenerateAccessor( eventBuilder.AddMethod, SyntaxKind.AddAccessorDeclaration )] ) );
+                    return AccessorList( List( [GenerateAccessor( finalEvent.AddMethod, SyntaxKind.AddAccessorDeclaration )] ) );
 
                 case (null, not null):
-                    return AccessorList( List( [GenerateAccessor( eventBuilder.RemoveMethod, SyntaxKind.RemoveAccessorDeclaration )] ) );
+                    return AccessorList( List( [GenerateAccessor( finalEvent.RemoveMethod, SyntaxKind.RemoveAccessorDeclaration )] ) );
 
                 default:
                     throw new AssertionFailedException( "Both accessors are null." );
@@ -161,12 +163,12 @@ internal sealed class IntroduceEventTransformation : IntroduceMemberTransformati
                 {
                     // Special case - explicit interface implementation event field with initialized.
                     // Hide initializer expression into the single statement of the add.
-                    { MethodKind: MethodKind.EventAdd } when isEventField && eventBuilder is { ExplicitInterfaceImplementations.Count: > 0 }
+                    { MethodKind: MethodKind.EventAdd } when isEventField && finalEvent is { ExplicitInterfaceImplementations.Count: > 0 }
                                                                           && initializerExpression != null
                         => context.SyntaxGenerator.FormattedBlock(
                             ExpressionStatement(
                                 context.AspectReferenceSyntaxProvider.GetEventFieldInitializerExpression(
-                                    syntaxGenerator.TypeSyntax( eventBuilder.Type ),
+                                    syntaxGenerator.TypeSyntax( finalEvent.Type ),
                                     initializerExpression ) ) ),
                     _ => context.SyntaxGenerator.FormattedBlock()
                 };
@@ -194,7 +196,7 @@ internal sealed class IntroduceEventTransformation : IntroduceMemberTransformati
 
             // Here we take attributes only for add method because we presume it's the same.
 
-            foreach ( var attribute in eventBuilder.AddMethod.Attributes )
+            foreach ( var attribute in finalEvent.AddMethod.Attributes )
             {
                 attributes.Add(
                     AttributeList(

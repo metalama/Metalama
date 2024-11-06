@@ -1084,6 +1084,17 @@ public static class AdviserExtensions
             whenExists,
             buildType );
 
+    public static IClassIntroductionAdviceResult IntroduceInterface(
+        this IAdviser<INamespaceOrNamedType> adviser,
+        string name,
+        OverrideStrategy whenExists = OverrideStrategy.Default,
+        Action<INamedTypeBuilder>? buildType = null )
+        => ((IAdviserInternal) adviser).AdviceFactory.IntroduceInterface(
+            adviser.Target,
+            name,
+            whenExists,
+            buildType );
+
     public static IAdviser<INamespace> WithNamespace( this IAdviser<ICompilation> adviser, string name )
         => ((IAdviserInternal) adviser).AdviceFactory.WithNamespace(
             adviser.Target.GlobalNamespace,

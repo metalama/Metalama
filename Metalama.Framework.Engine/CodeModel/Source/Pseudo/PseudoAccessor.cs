@@ -128,7 +128,7 @@ internal abstract class PseudoAccessor : IMethodImpl
 
     IMember IMember.Definition => this;
 
-    bool IMethod.IsExtern => false;
+    bool IMember.IsExtern => false;
 
     public IMethodInvoker With( InvokerOptions options ) => new MethodInvoker( this, options );
 

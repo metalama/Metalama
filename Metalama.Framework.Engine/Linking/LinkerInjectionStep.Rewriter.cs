@@ -219,9 +219,7 @@ internal sealed partial class LinkerInjectionStep
             // Add new attributes.
             foreach ( var attribute in finalModelAttributes )
             {
-#pragma warning disable CS0618 // Type or member is obsolete
                 if ( attribute is IntroducedAttributeRef builderAttributeRef && isPrimaryNode( builderAttributeRef.BuilderData, originalDeclaringNode ) )
-#pragma warning restore CS0618 // Type or member is obsolete
                 {
                     syntaxGenerationContext ??= this.GetSyntaxGenerationContext( originalDeclaringNode );
 

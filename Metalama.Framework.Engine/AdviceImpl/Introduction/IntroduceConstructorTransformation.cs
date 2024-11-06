@@ -32,6 +32,11 @@ internal sealed class IntroduceConstructorTransformation
 
     public override IEnumerable<InjectedMember> GetInjectedMembers( MemberInjectionContext context )
     {
+        if (this.BuilderData.IsImplicitlyDeclared)
+        {
+            return [];
+        }
+
         // TODO: We must generate the code based on our _initial_ compilation because the last compilation may already contain introduced
         // parameters, but these parameters will be added by the linker. We would have duplicates by adding them here.
         // However, if we resolve to the initial compilation, we may get the replaced (implicit) constructor instead of the new one.
@@ -100,7 +105,7 @@ internal sealed class IntroduceConstructorTransformation
     public override InsertPosition InsertPosition => this.ReplacedMember?.ToInsertPosition() ?? this.BuilderData.InsertPosition;
 
     public override TransformationObservability Observability
-        => this.ReplacedMember == null
+        => this.ReplacedMember == null && !this.BuilderData.IsImplicitlyDeclared
             ? TransformationObservability.Always
             : TransformationObservability.CompileTimeOnly;
 

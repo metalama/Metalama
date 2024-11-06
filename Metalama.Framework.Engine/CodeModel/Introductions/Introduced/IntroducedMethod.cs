@@ -98,8 +98,6 @@ internal sealed class IntroducedMethod : IntroducedMember, IMethodImpl
 
     protected override IMemberOrNamedType GetDefinition() => this.Definition;
 
-    bool IMethod.IsExtern => false;
-
     public IMethodInvoker With( InvokerOptions options ) => new MethodInvoker( this, options );
 
     public IMethodInvoker With( object? target, InvokerOptions options = default ) => new MethodInvoker( this, options, target );

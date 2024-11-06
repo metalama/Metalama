@@ -780,6 +780,12 @@ namespace Metalama.Framework.Advising
             OverrideStrategy whenExists = OverrideStrategy.Default,
             Action<INamedTypeBuilder>? buildType = null );
 
+        IClassIntroductionAdviceResult IntroduceInterface(
+            INamespaceOrNamedType targetNamespaceOrType,
+            string name,
+            OverrideStrategy whenExists = OverrideStrategy.Default,
+            Action<INamedTypeBuilder>? buildType = null );
+
         IAdviser<INamespace> WithNamespace(
             INamespace targetNamespace,
             string name );

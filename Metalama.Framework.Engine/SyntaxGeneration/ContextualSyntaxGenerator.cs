@@ -260,11 +260,11 @@ internal sealed partial class ContextualSyntaxGenerator
                             Argument( expressionFunc( p ).AssertNotNull() ) ) ) );
 #pragma warning restore CA1822 // Can be made static
 
-    public SyntaxList<TypeParameterConstraintClauseSyntax> ConstraintClauses( IMethod method )
+    public SyntaxList<TypeParameterConstraintClauseSyntax> ConstraintClauses( IGeneric methodOrType )
     {
         List<TypeParameterConstraintClauseSyntax>? clauses = null;
 
-        foreach ( var genericParameter in method.TypeParameters )
+        foreach ( var genericParameter in methodOrType.TypeParameters )
         {
             List<TypeParameterConstraintSyntax>? constraints = null;
 

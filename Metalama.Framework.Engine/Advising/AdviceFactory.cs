@@ -507,6 +507,7 @@ internal sealed partial class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl
 
             var advice = new IntroduceMethodAdvice(
                 this.GetAdviceConstructorParameters( targetType ),
+                null,
                 template.PartialForIntroduction( this.GetArgsReader( args ) ),
                 scope,
                 whenExists,
@@ -1522,7 +1523,30 @@ internal sealed partial class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl
                         this.GetAdviceConstructorParameters( targetNamespaceOrType ),
                         name,
                         whenExists,
-                        buildType )
+                        buildType,
+                        TypeKind.Class )
+                    .Execute( this._state ) );
+        }
+    }
+
+    public IClassIntroductionAdviceResult IntroduceInterface(
+        INamespaceOrNamedType targetNamespaceOrType,
+        string name,
+        OverrideStrategy whenExists = OverrideStrategy.Default,
+        Action<INamedTypeBuilder>? buildType = null )
+    {
+        using ( this.WithNonUserCode() )
+        {
+            this.ValidateNotExplicitInterfaceImplementation( AdviceKind.IntroduceType );
+
+            return AsAdviser(
+                this,
+                new IntroduceNamedTypeAdvice(
+                        this.GetAdviceConstructorParameters( targetNamespaceOrType ),
+                        name,
+                        whenExists,
+                        buildType,
+                        TypeKind.Interface )
                     .Execute( this._state ) );
         }
     }

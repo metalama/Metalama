@@ -62,6 +62,22 @@ internal sealed class IntroduceFieldAdvice : IntroduceMemberAdvice<IField, IFiel
         }
     }
 
+    protected override void ValidateBuilder( FieldBuilder builder, IDiagnosticAdder diagnosticAdder )
+    {
+        base.ValidateBuilder( builder, diagnosticAdder );
+
+        if ( this.TargetDeclaration is { TypeKind: TypeKind.Interface } )
+        {
+            diagnosticAdder.Report(
+                AdviceDiagnosticDescriptors.CannotIntroduceFieldIntoInterface.CreateRoslynDiagnostic(
+                    this.TargetDeclaration.GetDiagnosticLocation(),
+                    (this.AspectInstance.AspectClass.ShortName, builder, this.TargetDeclaration),
+                    this ) );
+
+            return;
+        }
+    }
+
     public override AdviceKind AdviceKind => AdviceKind.IntroduceField;
 
     protected override IntroductionAdviceResult<IField> ImplementCore( FieldBuilder builder, in AdviceImplementationContext context )

@@ -15,6 +15,7 @@ internal abstract class MemberBuilderData : MemberOrNamedTypeBuilderData
         this.IsVirtual = builder.IsVirtual;
         this.IsAsync = builder.IsAsync;
         this.IsOverride = builder.IsOverride;
+        this.IsExtern = builder.IsExtern;
     }
 
     public bool IsVirtual { get; }
@@ -22,6 +23,8 @@ internal abstract class MemberBuilderData : MemberOrNamedTypeBuilderData
     public bool IsAsync { get; }
 
     public bool IsOverride { get; }
+
+    public bool IsExtern { get; }
 
     public abstract IRef<IMember>? OverriddenMember { get; }
 

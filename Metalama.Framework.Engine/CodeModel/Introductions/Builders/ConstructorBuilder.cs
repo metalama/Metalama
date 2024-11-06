@@ -17,6 +17,7 @@ namespace Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 
 internal sealed class ConstructorBuilder : MethodBaseBuilder, IConstructorBuilder, IConstructorImpl
 {
+    private readonly bool _isImplicitlyDeclared;
     private ConstructorInitializerKind _initializerKind;
     private ConstructorBuilderData? _builderData;
     private IFullRef<IConstructor>? _ref;
@@ -25,10 +26,11 @@ internal sealed class ConstructorBuilder : MethodBaseBuilder, IConstructorBuilde
     public IFullRef<IConstructor> Ref
         => this._ref ?? throw new InvalidOperationException( "Cannot create a reference to a ConstructorBuilder until it is frozen." );
 
-    public ConstructorBuilder( AspectLayerInstance aspectLayerInstance, INamedType declaringType )
+    public ConstructorBuilder( AspectLayerInstance aspectLayerInstance, INamedType declaringType, bool isImplicitlyDeclared = false )
         : base( aspectLayerInstance, declaringType, null! )
     {
         this.InitializerArguments = [];
+        this._isImplicitlyDeclared = isImplicitlyDeclared;
     }
 
     /// <summary>
@@ -51,6 +53,8 @@ internal sealed class ConstructorBuilder : MethodBaseBuilder, IConstructorBuilde
     }
 
     public IConstructor? ReplacedImplicitConstructor { get; set; }
+
+    public override bool IsImplicitlyDeclared => this._isImplicitlyDeclared;
 
     public ConstructorInitializerKind InitializerKind
     {

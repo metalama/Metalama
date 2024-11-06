@@ -21,6 +21,11 @@ namespace Metalama.Framework.Engine.CompileTime
         public bool IsAbstract { get; }
 
         /// <summary>
+        /// Gets a value indicating whether the template member does not have a body (introductions of partial and abstract methods).
+        /// </summary>
+        public bool HasNoBody { get; }
+
+        /// <summary>
         /// Gets a value indicating whether the template member can be referenced from a template as run-time code,
         /// which is typically the case with introductions.
         /// </summary>
@@ -54,12 +59,13 @@ namespace Metalama.Framework.Engine.CompileTime
             this.AttributeType = TemplateAttributeType.None;
         }
 
-        private TemplateInfo( TemplateInfo prototype, bool isAbstract )
+        private TemplateInfo( TemplateInfo prototype, bool isAbstract, bool hasNoBody )
         {
             this.Attribute = prototype.Attribute;
             this.AttributeType = prototype.AttributeType;
             this.SymbolId = prototype.SymbolId;
             this.IsAbstract = isAbstract;
+            this.HasNoBody = hasNoBody;
         }
 
         public TemplateInfo( TemplateAttributeType attributeType, bool isAbstract )
@@ -71,7 +77,9 @@ namespace Metalama.Framework.Engine.CompileTime
         /// <summary>
         /// Returns a copy of the current <see cref="TemplateInfo"/>, but with the <see cref="IsAbstract"/> property set to <c>true</c>.
         /// </summary>
-        public TemplateInfo AsAbstract() => new( this, true );
+        public TemplateInfo AsAbstract() => new( this, true, false );
+
+        public TemplateInfo WithoutBody() => new( this, false, true );
 
         public override string ToString() => $"Type={this.AttributeType}, Attribute={this.Attribute}";
     }

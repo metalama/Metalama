@@ -83,12 +83,56 @@ internal abstract class IntroduceMemberAdvice<TTemplate, TIntroduced, TBuilder> 
         var templateAttributeProperties = templateAttribute?.Properties;
         var templateDeclaration = this.Template?.GetDeclaration( this.SourceCompilation );
 
-        builder.Accessibility = this.Template?.Accessibility ?? Accessibility.Private;
-        builder.IsSealed = templateAttributeProperties?.IsSealed ?? templateDeclaration?.IsSealed ?? false;
-        builder.IsVirtual = templateAttributeProperties?.IsVirtual ?? templateDeclaration?.IsVirtual ?? false;
+        var isInterfaceMember = this.TargetDeclaration.TypeKind is TypeKind.Interface;
+        var isAbstractTypeMember = this.TargetDeclaration.IsAbstract;
+
+        // Extern templates have to be used with members without bodies (abstract, partial, extern).
+        var isTemplateWithoutBody = this.Template?.TemplateClassMember.TemplateInfo.HasNoBody == true;
+        var isExplicitlyAbstractOrPartialOrExtern = 
+            templateAttributeProperties?.IsAbstract == true
+            || templateAttributeProperties?.IsPartial == true
+            || templateAttributeProperties?.IsExtern == true;
+
+        // Without a template, interface members start as public, other type members as private.
+        builder.Accessibility =
+            this.Template?.Accessibility
+            ?? Accessibility.Private;
+
+        // In abstract context, extern members are implicitly abstract for convenience, otherwise one of the other
+        // values has to be specified.
+        var isImplicitlyAbstract =
+            isTemplateWithoutBody
+            && !isExplicitlyAbstractOrPartialOrExtern
+            && builder.Accessibility != Accessibility.Private
+            && (isInterfaceMember || isAbstractTypeMember);
+
+        builder.IsSealed = 
+            templateAttributeProperties?.IsSealed 
+            ?? templateDeclaration?.IsSealed 
+            ?? false;
+
+        // Non-private extern template implicitly denotes an abstract member of an interface or abstract class.
+        builder.IsAbstract =
+            isAbstractTypeMember && (templateAttributeProperties?.IsAbstract == true || isImplicitlyAbstract);
+
+        builder.IsPartial = 
+            isTemplateWithoutBody 
+            && templateAttributeProperties?.IsPartial == true;
+
+        builder.IsExtern =
+            isTemplateWithoutBody
+            && templateAttributeProperties?.IsExtern == true;
+
+        // All abstract members are automatically virtual.
+        // Interface members that do not have templates are by default virtual.
+        builder.IsVirtual =
+            builder.IsAbstract
+            || (templateAttributeProperties?.IsVirtual
+                ?? templateDeclaration?.IsVirtual
+                ?? (isInterfaceMember && builder.Accessibility != Accessibility.Private));
 
         // Handle the introduction scope.
-
+        // By default, interface members are static because the scope is default and there is no template.
         builder.IsStatic = this._scope switch
         {
             IntroductionScope.Default => templateDeclaration is { IsStatic: true },
@@ -119,7 +163,7 @@ internal abstract class IntroduceMemberAdvice<TTemplate, TIntroduced, TBuilder> 
         var targetDeclaration = this.TargetDeclaration;
 
         // Check that static member is not virtual.
-        if ( builder is { IsStatic: true, IsVirtual: true } )
+        if ( builder is { IsStatic: true, IsVirtual: true, DeclaringType.TypeKind: not TypeKind.Interface } )
         {
             diagnosticAdder.Report(
                 AdviceDiagnosticDescriptors.CannotIntroduceStaticVirtualMember.CreateRoslynDiagnostic(
@@ -145,6 +189,37 @@ internal abstract class IntroduceMemberAdvice<TTemplate, TIntroduced, TBuilder> 
                 AdviceDiagnosticDescriptors.CannotIntroduceInstanceMember.CreateRoslynDiagnostic(
                     targetDeclaration.GetDiagnosticLocation(),
                     (this.AspectInstance.AspectClass.ShortName, builder, targetDeclaration),
+                    this ) );
+        }
+
+        // Check that abstract member is not introduced to a non-abstract type.
+        if ( builder.IsAbstract && !targetDeclaration.IsAbstract )
+        {
+            diagnosticAdder.Report(
+                AdviceDiagnosticDescriptors.CannotIntroduceAbstractMemberToNonAbstractType.CreateRoslynDiagnostic(
+                    targetDeclaration.GetDiagnosticLocation(),
+                    (this.AspectInstance.AspectClass.ShortName, builder, targetDeclaration),
+                    this ) );
+        }
+
+        // Check that partial member is not introduced to a non-partial type.
+        if ( builder.IsAbstract && !targetDeclaration.IsAbstract )
+        {
+            diagnosticAdder.Report(
+                AdviceDiagnosticDescriptors.CannotIntroduceAbstractMemberToNonAbstractType.CreateRoslynDiagnostic(
+                    targetDeclaration.GetDiagnosticLocation(),
+                    (this.AspectInstance.AspectClass.ShortName, builder, targetDeclaration),
+                    this ) );
+        }
+
+        // Check that template without body is not used OverrideStrategy.Override.
+        if ( builder.IsAbstract
+             && this.OverrideStrategy is OverrideStrategy.Override or OverrideStrategy.New)
+        {
+            diagnosticAdder.Report(
+                AdviceDiagnosticDescriptors.CannotIntroduceAbstractMemberWithOverrideStrategy.CreateRoslynDiagnostic(
+                    targetDeclaration.GetDiagnosticLocation(),
+                    (this.AspectInstance.AspectClass.ShortName, builder, this.OverrideStrategy),
                     this ) );
         }
 

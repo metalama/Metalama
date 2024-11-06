@@ -121,11 +121,10 @@ internal sealed partial class LinkerAnalysisStep
                                                                       ?? throw new AssertionFailedException( $"'{containingSymbol}' has no implementation." ),
                             OperatorDeclarationSyntax @operator => @operator.Body
                                                                    ?? (SyntaxNode?) @operator.ExpressionBody
-                                                                   ?? throw new AssertionFailedException( $"'{containingSymbol}' has no implementation." ),
+                                                                   ?? @operator,
                             ConversionOperatorDeclarationSyntax conversionOperator => conversionOperator.Body
                                                                                       ?? (SyntaxNode?) conversionOperator.ExpressionBody
-                                                                                      ?? throw new AssertionFailedException(
-                                                                                          $"'{containingSymbol}' has no implementation." ),
+                                                                                      ?? conversionOperator,
                             AccessorDeclarationSyntax accessor => accessor.Body
                                                                   ?? (SyntaxNode?) accessor.ExpressionBody
                                                                   ?? accessor ?? throw new AssertionFailedException(

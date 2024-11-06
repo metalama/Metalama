@@ -101,9 +101,13 @@ namespace Metalama.Framework.Engine.Linking
 
                 return [GetLinkedDeclaration( IntermediateSymbolSemanticKind.Default )];
             }
-            else
+            else if ( this.AnalysisRegistry.HasAnySubstitutions( symbol ) )
             {
                 return [GetLinkedDeclaration( IntermediateSymbolSemanticKind.Default )];
+            }
+            else
+            {
+                return [indexerDeclaration];
             }
 
             MemberDeclarationSyntax GetLinkedDeclaration( IntermediateSymbolSemanticKind semanticKind )

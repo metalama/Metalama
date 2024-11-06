@@ -14,6 +14,8 @@ internal sealed class NullTemplateInfo : ITemplateInfo
 
     public bool IsAbstract => false;
 
+    public bool HasNoBody => false;
+
     public TemplateAttributeType AttributeType => TemplateAttributeType.None;
 
     public bool IsNone => true;

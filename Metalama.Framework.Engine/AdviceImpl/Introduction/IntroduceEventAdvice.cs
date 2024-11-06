@@ -176,7 +176,8 @@ internal sealed class IntroduceEventAdvice : IntroduceMemberAdvice<IEvent, IEven
 
         var existingDeclaration = targetDeclaration.FindClosestUniquelyNamedMember( builder.Name );
 
-        var hasNoOverrideSemantics = eventTemplateDeclaration != null && eventTemplateDeclaration.IsEventField() == true;
+        var hasNoBody = this.Template?.TemplateClassMember.TemplateInfo.HasNoBody == true;
+        var hasNoOverrideSemantics = hasNoBody || (eventTemplateDeclaration != null && eventTemplateDeclaration.IsEventField() == true);
 
         if ( existingDeclaration == null )
         {

@@ -79,7 +79,7 @@ public static partial class EligibilityRuleFactory
         builder =>
         {
             builder.MustSatisfy(
-                t => t.TypeKind is TypeKind.Class or TypeKind.RecordClass or TypeKind.Struct or TypeKind.RecordStruct,
+                t => t.TypeKind is TypeKind.Class or TypeKind.RecordClass or TypeKind.Struct or TypeKind.RecordStruct or TypeKind.Interface,
                 t => $"'{t}' must be a class, record class, struct, or record struct" );
 
             builder.MustBeExplicitlyDeclared();

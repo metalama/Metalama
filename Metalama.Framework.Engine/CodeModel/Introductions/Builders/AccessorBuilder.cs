@@ -125,11 +125,19 @@ internal sealed partial class AccessorBuilder : DeclarationBuilder, IMethodBuild
 
     IMemberOrNamedType IMemberOrNamedType.Definition => this;
 
-    public bool IsPartial => false;
+    public bool IsPartial
+    {
+        get => this.ContainingMember.IsPartial;
+        set => throw new InvalidOperationException( "Accessor's IsPartial cannot be directly set." );
+    }
 
     public bool HasImplementation => true;
 
-    bool IMethod.IsExtern => false;
+    public bool IsExtern
+    {
+        get => this.ContainingMember.IsExtern;
+        set => throw new InvalidOperationException( "Accessor's IsExtern cannot be directly set." );
+    }
 
     public IMethodInvoker With( InvokerOptions options ) => new MethodInvoker( this, options );
 

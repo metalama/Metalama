@@ -36,6 +36,8 @@ internal sealed class IntroducedConstructor : IntroducedMember, IConstructorImpl
 
     public override bool IsExplicitInterfaceImplementation => false;
 
+    public override bool IsImplicitlyDeclared => this._builderData.IsImplicitlyDeclared;
+
     [Memo]
     public IParameterList Parameters
         => new ParameterList(

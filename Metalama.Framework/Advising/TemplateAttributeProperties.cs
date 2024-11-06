@@ -11,4 +11,7 @@ public sealed record TemplateAttributeProperties(
     Accessibility? Accessibility = null,
     bool? IsVirtual = null,
     bool? IsSealed = null,
-    bool? IsRequired = null );
+    bool? IsRequired = null,
+    bool? IsAbstract = null,
+    bool? IsPartial = null,
+    bool? IsExtern = null );

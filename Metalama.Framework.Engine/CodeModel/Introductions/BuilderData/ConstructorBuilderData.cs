@@ -20,6 +20,8 @@ internal class ConstructorBuilderData : MemberBuilderData
 
     public ConstructorInitializerKind InitializerKind { get; }
 
+    public bool IsImplicitlyDeclared { get; }
+
     public ImmutableArray<(IExpression Expression, string? ParameterName)> InitializerArguments { get; }
 
     protected override IFullRef<IDeclaration> ToDeclarationFullRef() => this._ref;
@@ -39,6 +41,7 @@ internal class ConstructorBuilderData : MemberBuilderData
         this.InitializerKind = builder.InitializerKind;
         this.InitializerArguments = ImmutableArray.ToImmutableArray( builder.InitializerArguments );
         this.Attributes = builder.Attributes.ToImmutable( this._ref );
+        this.IsImplicitlyDeclared = builder.IsImplicitlyDeclared;
     }
 
     public override IRef<IMember>? OverriddenMember => null;

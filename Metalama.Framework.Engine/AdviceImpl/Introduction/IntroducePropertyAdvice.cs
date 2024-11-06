@@ -239,7 +239,11 @@ internal sealed class IntroducePropertyAdvice : IntroduceMemberAdvice<IProperty,
                     this._setTemplate?.ForIntroduction( builder.SetMethod ) );
 
                 context.AddTransformation( builder.CreateTransformation( this.Template ) );
-                context.AddTransformation( overriddenProperty );
+
+                if ( this.Template?.TemplateClassMember.TemplateInfo.HasNoBody != true )
+                {
+                    context.AddTransformation( overriddenProperty );
+                }
             }
 
             return this.CreateSuccessResult( AdviceOutcome.Default, builder );
@@ -316,7 +320,11 @@ internal sealed class IntroducePropertyAdvice : IntroduceMemberAdvice<IProperty,
                             this._setTemplate?.ForIntroduction( builder.SetMethod ) );
 
                         context.AddTransformation( builder.CreateTransformation( this.Template ) );
-                        context.AddTransformation( overriddenProperty );
+
+                        if ( this.Template?.TemplateClassMember.TemplateInfo.HasNoBody != true )
+                        {
+                            context.AddTransformation( overriddenProperty );
+                        }
 
                         return this.CreateSuccessResult( AdviceOutcome.New, builder );
                     }

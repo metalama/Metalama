@@ -33,6 +33,8 @@ namespace Metalama.Framework.Engine.CodeModel.Source
 
         public bool IsOverride => this.Symbol.IsOverride;
 
+        public bool IsExtern => this.Symbol.IsExtern;
+
         public bool HasImplementation
             => this.Symbol switch
             {

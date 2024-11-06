@@ -5,9 +5,6 @@ namespace Metalama.Framework.Engine
     internal static class UnsupportedFeatures
     {
         public const string IntroducedAttributeTypes = "Introduced attribute types.";
-        public const string IntroducedTypeComparison = "Introduced type comparison.";
-        public const string IntroducedInterfaceImplementation = "Introduced interface implementation.";
-        public const string ConstructedIntroducedTypes = "Constructed introduced types.";
         public const string DerivedFabricsOnIntroducedTypes = "Derived fabrics on introduced types.";
         public const string IntroducedTypeSerialization = "Introduced type serialization.";
         public const string IntroducedTypeReflectionWrappers = "Introduced type reflection wrappers.";
@@ -15,7 +12,7 @@ namespace Metalama.Framework.Engine
         public const string IntroducedTypeStateMachines = "Introduced type state machines.";
         public const string Uncategorized = "Uncategorized";
 
-        public const string IntroducedFunctionPointerComparison = "Comparison of function pointers in introduced members";
-        public const string FunctionPointerMapping = "Generic mapping of function pointers";
+        public const string IntroducedFunctionPointerComparison = "Comparison of function pointers in introduced members.";
+        public const string FunctionPointerMapping = "Generic mapping of function pointers.";
     }
 }

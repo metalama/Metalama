@@ -26,7 +26,9 @@ internal abstract class IntroducedMember : IntroducedMemberOrNamedType, IMemberI
 
     public bool IsOverride => this.MemberBuilderData.IsOverride;
 
-    public bool HasImplementation => !this.IsAbstract; // TODO - partials?
+    public bool HasImplementation => !this.IsAbstract && !this.IsExtern && !this.IsPartial;
+
+    public bool IsExtern => this.MemberBuilderData.IsExtern;
 
     public sealed override bool CanBeInherited => (this.IsAbstract || this.IsVirtual || this.IsOverride) && !this.IsSealed;
 

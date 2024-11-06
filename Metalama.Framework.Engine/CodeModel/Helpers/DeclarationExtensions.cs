@@ -348,6 +348,7 @@ public static class DeclarationExtensions
         => symbol switch
         {
             { IsAbstract: true } => false,
+            { IsExtern: true } => false,
 #if ROSLYN_4_12_0_OR_GREATER
             { IsPartialDefinition: true } => false, // Partial property can't be implemented as an auto-property.
 #endif
