@@ -106,7 +106,9 @@ public class DefaultProjectOptions : IProjectOptions
 
     public virtual string? TransformedFilesOutputPath => null;
 
-    // IProjectoptions is currently not used as a dictionary key, so we can throw here.
+    public virtual ImmutableArray<string> SourceGeneratorAttributes => ImmutableArray<string>.Empty;
+
+    // IProjectOptions is currently not used as a dictionary key, so we can throw here.
     public sealed override int GetHashCode() => throw new NotImplementedException();
 
     public sealed override bool Equals( object? obj ) => this.Equals( obj as IProjectOptions );

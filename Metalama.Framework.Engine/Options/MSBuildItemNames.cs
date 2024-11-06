@@ -10,4 +10,6 @@ namespace Metalama.Framework.Engine.Options;
 public static class MSBuildItemNames
 {
     public const string MetalamaCompileTimePackage = nameof(MetalamaCompileTimePackage);
+
+    public const string MetalamaSourceGeneratorAttribute = nameof(MetalamaSourceGeneratorAttribute);
 }

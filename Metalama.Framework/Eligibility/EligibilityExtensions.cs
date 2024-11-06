@@ -5,6 +5,7 @@ using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Eligibility.Implementation;
+using Metalama.Framework.Options;
 using Metalama.Framework.Project;
 using System;
 using System.Collections.Generic;
@@ -584,6 +585,31 @@ public static partial class EligibilityExtensions
         => eligibilityBuilder.MustSatisfy(
             d => !d.Enhancements().HasAspect( aspectType ),
             d => $"{d} must not have an aspect of type {aspectType.Name}" );
+
+    public static void MustHaveAttributeOfType( this IEligibilityBuilder<IDeclaration> eligibilityBuilder, Type attributeType )
+        => eligibilityBuilder.MustSatisfy(
+            d => d.Attributes.Any( attributeType ),
+            d => $"{d} must have an attribute of type {attributeType.Name}" );
+
+    public static void MustNotHaveAttributeOfType( this IEligibilityBuilder<IDeclaration> eligibilityBuilder, Type attributeType )
+        => eligibilityBuilder.MustSatisfy(
+            d => !d.Attributes.Any( attributeType ),
+            d => $"{d} must not have an attribute of type {attributeType.Name}" );
+
+    internal static void MustNotBePartialMemberWithSourceGeneratorAttribute( this IEligibilityBuilder<IMember> eligibilityBuilder )
+        => eligibilityBuilder.MustSatisfy(
+            m =>
+            {
+                if ( !m.IsPartial )
+                {
+                    return true;
+                }
+
+                var sourceGeneratorAttributes = m.Compilation.Project.ServiceProvider.GetRequiredService<IBaseProjectOptions>().SourceGeneratorAttributes;
+
+                return !sourceGeneratorAttributes.Any( sga => m.Attributes.Any( da => da.Type.FullName == sga ) );
+            },
+            m => $"{m} must not be a partial member marked with source generator attribute" );
 
     /// <summary>
     /// Determines whether the given declaration is an eligible target for a specified aspect type given as a type parameter.

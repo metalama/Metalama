@@ -34,6 +34,20 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <!-- Source generator attributes targeting members present in .Net 9 (dotnet/runtime and dotnet/extensions): -->
+        <MetalamaSourceGeneratorAttribute Include="Microsoft.Extensions.Diagnostics.Metrics.CounterAttribute" />
+        <MetalamaSourceGeneratorAttribute Include="Microsoft.Extensions.Diagnostics.Metrics.GaugeAttribute" />
+        <MetalamaSourceGeneratorAttribute Include="Microsoft.Extensions.Diagnostics.Metrics.HistogramAttribute" />
+        <MetalamaSourceGeneratorAttribute Include="Microsoft.Extensions.Logging.LoggerMessageAttribute" />
+        <MetalamaSourceGeneratorAttribute Include="System.Runtime.InteropServices.JavaScript.JSExportAttribute" />
+        <MetalamaSourceGeneratorAttribute Include="System.Runtime.InteropServices.JavaScript.JSImportAttribute" />
+        <MetalamaSourceGeneratorAttribute Include="System.Runtime.InteropServices.LibraryImportAttribute" />
+        <MetalamaSourceGeneratorAttribute Include="System.Text.RegularExpressions.GeneratedRegexAttribute" />
+
+        <!-- ASP.NET Core 9 (dotnet/aspnetcore) does not ship any attribute-based source generators. -->
+    </ItemGroup>
+
+    <ItemGroup>
         <MetalamaTransformedCodeAnalyzer Include="Metalama.Framework.CompilerExtensions.MetalamaGeneratedCodeAnalyzer" />
     </ItemGroup>
 

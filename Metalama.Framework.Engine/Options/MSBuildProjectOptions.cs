@@ -110,12 +110,7 @@ public partial class MSBuildProjectOptions : DefaultProjectOptions
     public override bool RequiresCodeCoverageAnnotations => this._transformerOptions.RequiresCodeCoverageAnnotations;
 
     [Memo]
-    public override ImmutableArray<string> CompileTimePackages
-        => this.GetStringOption( MSBuildPropertyNames.MetalamaCompileTimePackages, "" )!
-            .Split( ',' )
-            .SelectAsReadOnlyList( p => p.Trim() )
-            .Where( p => !string.IsNullOrEmpty( p ) )
-            .ToImmutableArray();
+    public override ImmutableArray<string> CompileTimePackages => this.GetListOption( MSBuildPropertyNames.MetalamaCompileTimePackages );
 
     [Memo]
     public override string? ProjectAssetsFile => this.GetStringOption( MSBuildPropertyNames.ProjectAssetsFile );
@@ -159,6 +154,9 @@ public partial class MSBuildProjectOptions : DefaultProjectOptions
     [Memo]
     public override string? AssemblyLocatorHooksDirectory => this.GetStringOption( MSBuildPropertyNames.MetalamaAssemblyLocatorHooksDirectory );
 
+    [Memo]
+    public override ImmutableArray<string> SourceGeneratorAttributes => this.GetListOption( MSBuildPropertyNames.MetalamaSourceGeneratorAttributes );
+
     public override bool TryGetProperty( string name, [NotNullWhen( true )] out string? value )
     {
         value = this.GetStringOption( name );
@@ -196,6 +194,7 @@ public partial class MSBuildProjectOptions : DefaultProjectOptions
         return null;
     }
 
+    [return: NotNullIfNotNull( nameof(defaultValue) )]
     private string? GetStringOption( string name, string? defaultValue = null )
     {
         if ( this._source.TryGetValue( name, out var flagString ) )
@@ -205,6 +204,13 @@ public partial class MSBuildProjectOptions : DefaultProjectOptions
 
         return defaultValue;
     }
+
+    private ImmutableArray<string> GetListOption( string name )
+        => this.GetStringOption( name, string.Empty )
+            .Split( ',' )
+            .SelectAsReadOnlyList( p => p.Trim() )
+            .Where( p => !string.IsNullOrEmpty( p ) )
+            .ToImmutableArray();
 
     public override bool Equals( IProjectOptions? other )
     {
