@@ -52,6 +52,8 @@ namespace Metalama.Framework.Engine.CodeModel.Source.Pseudo
 
         public bool IsParams => false;
 
+        public bool IsThis => false;
+
         public override IDeclarationOrigin Origin => this.DeclaringMember.Origin;
 
         public override IDeclaration ContainingDeclaration => this.DeclaringAccessor;

@@ -46,6 +46,8 @@ internal sealed class IntroducedParameter : IntroducedDeclaration, IParameterImp
 
     public bool IsParams => this._parameterBuilder.IsParams;
 
+    public bool IsThis => this._parameterBuilder.IsThis;
+
     public IHasParameters DeclaringMember { get; }
 
     public override IDeclaration ContainingDeclaration => this.DeclaringMember;

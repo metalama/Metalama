@@ -628,6 +628,26 @@ class C
         }
 
         [Fact]
+        public void ParameterModifiers()
+        {
+            using var testContext = this.CreateTestContext();
+            const string code = """
+                static class C
+                {
+                    static void M(this object o1, object o2, params object[] o3) { }
+                }
+                """;
+
+            var compilation = testContext.CreateCompilationModel( code );
+
+            var type = Assert.Single( compilation.Types );
+            var method = Assert.Single( type.Methods );
+
+            Assert.Equal( [true, false, false], method.Parameters.SelectAsReadOnlyCollection( p => p.IsThis ) );
+            Assert.Equal( [false, false, true], method.Parameters.SelectAsReadOnlyCollection( p => p.IsParams ) );
+        }
+
+        [Fact]
         public void ParameterDefaultValue()
         {
             using var testContext = this.CreateTestContext();

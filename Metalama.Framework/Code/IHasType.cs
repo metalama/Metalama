@@ -16,8 +16,8 @@ namespace Metalama.Framework.Code
         IType Type { get; }
 
         /// <summary>
-        /// Gets the <see cref="Metalama.Framework.Code.RefKind"/> of the expression, member, or parameter
-        /// (i.e. <see cref="Code.RefKind.Ref"/>, <see cref="Code.RefKind.Out"/>, ...).
+        /// Gets the <see cref="Code.RefKind"/> of the expression, member, or parameter
+        /// (i.e. <see cref="RefKind.Ref"/>, <see cref="RefKind.Out"/>, ...).
         /// </summary>
         RefKind RefKind { get; }
     }

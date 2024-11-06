@@ -34,10 +34,14 @@ namespace Metalama.Framework.Engine.CodeModel.Source
 
         IHasParameters IParameter.DeclaringMember => (IHasParameters) this.DeclaringMember;
 
-        public SourceParameter( IParameterSymbol symbol, CompilationModel compilation, GenericContext? genericContextForSymbolMapping ) : base(
-            compilation,
-            genericContextForSymbolMapping )
+        public SourceParameter( IParameterSymbol symbol, CompilationModel compilation, GenericContext? genericContextForSymbolMapping )
+            : base( compilation, genericContextForSymbolMapping )
         {
+            if ( symbol.IsThis )
+            {
+                throw new ArgumentException( $"The hidden this parameter '{symbol}' cannot be represented in Metalama code model." );
+            }
+
             this._parameterSymbol = symbol;
         }
 
@@ -62,6 +66,8 @@ namespace Metalama.Framework.Engine.CodeModel.Source
         public int Index => this._parameterSymbol.Ordinal;
 
         public bool IsParams => this._parameterSymbol.IsParams;
+
+        public bool IsThis => this.Index == 0 && this._parameterSymbol.ContainingSymbol is IMethodSymbol { IsExtensionMethod: true };
 
         public override IDeclaration ContainingDeclaration => this.DeclaringMember;
 

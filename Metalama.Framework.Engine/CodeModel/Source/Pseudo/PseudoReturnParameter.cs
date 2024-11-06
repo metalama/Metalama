@@ -43,6 +43,8 @@ internal class PseudoReturnParameter : BaseDeclaration, IParameterImpl
 
     public bool IsParams => false;
 
+    public bool IsThis => false;
+
     public IHasParameters DeclaringMember => this._declaringMethod;
 
     public ParameterInfo ToParameterInfo() => CompileTimeReturnParameterInfo.Create( this );

@@ -83,7 +83,13 @@ internal partial class AccessorBuilder
                 _ => this.Indexer.Parameters[this._index.AssertNotNull()].IsParams
             };
             set => throw new NotSupportedException(
-                    $"Setting the params modifier of indexer accessor {this._accessor} parameter {this.Index} is not supported. Set the params modifier on the indexer parameter instead." );
+                    $"Setting the 'params' modifier of indexer accessor {this._accessor} parameter {this.Index} is not supported. Set the params modifier on the indexer parameter instead." );
+        }
+
+        public override bool IsThis
+        {
+            get => false;
+            set => throw new NotSupportedException( "Cannot set the 'this' modifier on an indexer parameter." );
         }
 
         public override string Name

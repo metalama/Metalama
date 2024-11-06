@@ -21,6 +21,8 @@ internal class ParameterBuilderData : NamedDeclarationBuilderData
 
     public bool IsParams { get; }
 
+    public bool IsThis { get; }
+
     public ParameterBuilderData( BaseParameterBuilder builder, IFullRef<IDeclaration> containingDeclaration ) : base( builder, containingDeclaration )
     {
         Invariant.Assert( builder.Type is not { TypeKind: TypeKind.Dynamic } );
@@ -32,6 +34,7 @@ internal class ParameterBuilderData : NamedDeclarationBuilderData
         this.Index = builder.Index;
         this.DefaultValue = builder.DefaultValue.ToRef();
         this.IsParams = builder.IsParams;
+        this.IsThis = builder.IsThis;
         this.Attributes = builder.Attributes.ToImmutable( this._ref );
     }
 

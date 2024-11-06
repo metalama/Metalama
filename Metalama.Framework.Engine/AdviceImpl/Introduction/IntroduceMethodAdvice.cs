@@ -88,6 +88,8 @@ internal sealed class IntroduceMethodAdvice : IntroduceMemberAdvice<IMethod, IMe
                 templateParameter.DefaultValue );
 
             parameterBuilder.IsParams = templateParameter.IsParams;
+            parameterBuilder.IsThis = templateParameter.Attributes.Any(
+                templateParameter.Compilation.Cache.GetOrAdd( static c => c.Factory.GetTypeByReflectionName( typeof(ThisAttribute).FullName! ) ) );
 
             CopyTemplateAttributes( templateParameter, parameterBuilder, serviceProvider );
         }

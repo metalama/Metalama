@@ -6,6 +6,7 @@ using Metalama.Framework.Engine.CodeModel.Abstractions;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 using Metalama.Framework.Engine.CodeModel.References;
+using Metalama.Framework.Engine.Utilities;
 using System;
 using System.Reflection;
 using RefKind = Metalama.Framework.Code.RefKind;
@@ -20,6 +21,7 @@ internal sealed class ParameterBuilder : BaseParameterBuilder
     private RefKind _refKind;
     private IType _type;
     private bool _isParams;
+    private bool _isThis;
 
     public ParameterBuilder(
         IHasParameters declaringMember,
@@ -108,15 +110,59 @@ internal sealed class ParameterBuilder : BaseParameterBuilder
         {
             this.CheckNotFrozen();
 
-            if ( this.IsReturnParameter )
+            if ( value )
             {
-                throw new NotSupportedException( "Cannot set the params modifier on a return parameter." );
+                if ( this.IsReturnParameter )
+                {
+                    throw new NotSupportedException( "Cannot set the 'params' modifier on a return parameter." );
+                }
+
+                // We could check here if the parameter is the last one, but that wouldn't prevent the user from adding more parameters afterwards.
+                // So we'll let the C# compiler handle this.
             }
 
-            // We could check here if the parameter is the last one, but that wouldn't prevent the user from adding more parameters afterwards.
-            // So we'll let the C# compiler handle this.
-
             this._isParams = value;
+        }
+    }
+
+    public override bool IsThis
+    {
+        get => this._isThis;
+        set
+        {
+            this.CheckNotFrozen();
+
+            if ( value )
+            {
+                if ( this.IsReturnParameter )
+                {
+                    throw new NotSupportedException( "Cannot set the 'this' modifier on a return parameter." );
+                }
+
+                if ( this.Index != 0 )
+                {
+                    throw new NotSupportedException( "Cannot set the 'this' modifier on a parameter that is not the first one." );
+                }
+
+                if ( this.DeclaringMember is not IMethod method )
+                {
+                    throw new NotSupportedException( MetalamaStringFormatter.Format( $"Cannot set the 'this' modifier on a parameter contained in {this.DeclaringMember.DeclarationKind}. Only methods are allowed." ) );
+                }
+
+                if ( method.MethodKind is not MethodKind.Default )
+                {
+                    throw new NotSupportedException( MetalamaStringFormatter.Format( $"Cannot set the 'this' modifier on a parameter contained in {method.MethodKind}. Only regular methods are allowed." ) );
+                }
+
+                // We don't check that the method is static, because that can be set afterwards, but we can check the type.
+
+                if ( !method.DeclaringType.IsStatic )
+                {
+                    throw new NotSupportedException( "Cannot set the 'this' modifier on a parameter of a method that's not declared in a static class." );
+                }
+            }
+
+            this._isThis = value;
         }
     }
 

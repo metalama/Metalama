@@ -32,7 +32,13 @@ internal partial class AccessorBuilder
         public sealed override bool IsParams
         {
             get => false;
-            set => throw new NotSupportedException( "Cannot set the params modifier on accessor parameter." );
+            set => throw new NotSupportedException( "Cannot set the 'params' modifier on accessor parameter." );
+        }
+
+        public sealed override bool IsThis
+        {
+            get => false;
+            set => throw new NotSupportedException( "Cannot set the 'this' modifier on accessor parameter." );
         }
 
         public override DeclarationKind DeclarationKind => DeclarationKind.Parameter;
