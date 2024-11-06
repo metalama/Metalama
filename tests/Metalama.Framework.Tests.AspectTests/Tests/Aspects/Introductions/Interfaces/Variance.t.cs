@@ -1,4 +1,3 @@
-// Warning CS0168 on `t`: `The variable 't' is declared but never used`
 [IntroductionAttribute]
 public class TargetType
 {

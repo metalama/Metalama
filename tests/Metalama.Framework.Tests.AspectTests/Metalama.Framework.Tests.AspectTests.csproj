@@ -65,24 +65,6 @@
             <_Parameter2>$(PostSharpEngineeringDataDirectory)</_Parameter2>
         </AssemblyAttribute>
     </ItemGroup>
-
-    <ItemGroup>
-      <Compile Update="Tests\Aspects\Introductions\Interfaces\Accessibility.cs">
-        <DependentUpon>$([System.String]::Copy('%(Filename)').Substring( %(Filename.IndexOf('.') ).cs</DependentUpon>
-      </Compile>
-      <Compile Update="Tests\Aspects\Introductions\Interfaces\Hierarchy.cs">
-        <DependentUpon>$([System.String]::Copy('%(Filename)').Substring( %(Filename.IndexOf('.') ).cs</DependentUpon>
-      </Compile>
-      <Compile Update="Tests\Aspects\Introductions\Interfaces\IntroduceIndexerAbstract.cs">
-        <DependentUpon>$([System.String]::Copy('%(Filename)').Substring( %(Filename.IndexOf('.') ).cs</DependentUpon>
-      </Compile>
-      <Compile Update="Tests\Aspects\Introductions\Interfaces\IntroduceIndexerPrivate.cs">
-        <DependentUpon>$([System.String]::Copy('%(Filename)').Substring( %(Filename.IndexOf('.') ).cs</DependentUpon>
-      </Compile>
-      <Compile Update="Tests\Aspects\Introductions\Interfaces\IntroduceIndexerVirtual.cs">
-        <DependentUpon>$([System.String]::Copy('%(Filename)').Substring( %(Filename.IndexOf('.') ).cs</DependentUpon>
-      </Compile>
-    </ItemGroup>
     
     
 </Project>

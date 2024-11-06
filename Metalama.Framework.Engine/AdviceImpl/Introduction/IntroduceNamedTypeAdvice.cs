@@ -4,7 +4,6 @@ using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Advising;
-using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 using Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 using Metalama.Framework.Engine.Diagnostics;
 using System;
@@ -62,7 +61,6 @@ internal sealed class IntroduceNamedTypeAdvice : IntroduceDeclarationAdvice<INam
             builder.Freeze();
 
             context.AddTransformation( builder.CreateTransformation() );
-            //context.AddTransformation( this.CreateDefaultConstructorTransformation( builder ) );
 
             return this.CreateSuccessResult( AdviceOutcome.Default, builder );
         }
@@ -84,7 +82,6 @@ internal sealed class IntroduceNamedTypeAdvice : IntroduceDeclarationAdvice<INam
                     builder.HasNewKeyword = builder.IsNew = true;
                     builder.Freeze();
                     context.AddTransformation( builder.CreateTransformation() );
-                    //context.AddTransformation( this.CreateDefaultConstructorTransformation( builder ) );
 
                     return this.CreateSuccessResult( AdviceOutcome.Default, builder );
 
@@ -92,13 +89,5 @@ internal sealed class IntroduceNamedTypeAdvice : IntroduceDeclarationAdvice<INam
                     throw new AssertionFailedException( $"Unexpected OverrideStrategy: {this.OverrideStrategy}." );
             }
         }
-    }
-
-    private IntroduceConstructorTransformation CreateDefaultConstructorTransformation( INamedType type )
-    {
-        var builder = new ConstructorBuilder( this.AspectLayerInstance, type, true );
-        builder.Freeze();
-
-        return new IntroduceConstructorTransformation( this.AspectLayerInstance, builder.BuilderData );
     }
 }

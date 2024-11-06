@@ -17,10 +17,10 @@ namespace Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 
 internal sealed class ConstructorBuilder : MethodBaseBuilder, IConstructorBuilder, IConstructorImpl
 {
+    private readonly bool _isImplicitlyDeclared;
     private ConstructorInitializerKind _initializerKind;
     private ConstructorBuilderData? _builderData;
     private IFullRef<IConstructor>? _ref;
-    private readonly bool _isImplicitlyDeclared;
 
     // In ConstructorBuilders, references cannot be created until freeze because it depends on the ReplacedImplicitConstructor property.
     public IFullRef<IConstructor> Ref

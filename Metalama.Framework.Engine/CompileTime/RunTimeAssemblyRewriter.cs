@@ -207,7 +207,9 @@ namespace Metalama.Compiler
             ( n, variables ) => n.WithDeclaration( n.Declaration.WithVariables( SeparatedList( variables ) ) ) );
 
     public override SyntaxNode VisitEventFieldDeclaration( EventFieldDeclarationSyntax node )
-        => throw new AssertionFailedException( "Should not be called directly." );
+        => this.VisitFieldOrEventFieldDeclaration(
+            node,
+            ( n, variables ) => n.WithDeclaration( n.Declaration.WithVariables( SeparatedList( variables ) ) ) );
 
     private T VisitFieldOrEventFieldDeclaration<T>( T node, Func<T, List<VariableDeclaratorSyntax>, T> replaceVariables )
         where T : BaseFieldDeclarationSyntax
@@ -251,10 +253,16 @@ namespace Metalama.Compiler
             // Extern event fields need to be rewritten to many events with throwing bodies.
 
             var members = new List<MemberDeclarationSyntax>();
+            var variables = new List<VariableDeclaratorSyntax>();
+            var semanticModel = this.SemanticModelProvider.GetSemanticModel( node.SyntaxTree );
 
             foreach ( var variable in node.Declaration.Variables )
             {
-                members.Add(
+                var symbol = semanticModel.GetDeclaredSymbol( variable )!;
+
+                if ( this.MustReplaceByThrow( symbol ) )
+                {
+                    members.Add(
                     this._rewriterHelper.WithThrowNotSupportedExceptionBody(
                         EventDeclaration(
                             node.AttributeLists,
@@ -273,6 +281,16 @@ namespace Metalama.Compiler
                                     ] ) ),
                             default ),
                         "Compile-time-only code cannot be called at run-time." ) );
+                }
+                else
+                {
+                    variables.Add( variable );
+                }
+            }
+
+            if ( variables.Count > 0 )
+            {
+                members.Add( node.WithDeclaration( node.Declaration.WithVariables( SeparatedList( variables ) ) ) );
             }
 
             return members;

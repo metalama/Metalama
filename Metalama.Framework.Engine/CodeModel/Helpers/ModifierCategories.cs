@@ -17,7 +17,7 @@ namespace Metalama.Framework.Engine.CodeModel.Helpers
         Required = 128,
         Const = 256,
         Partial = 512,
-        Extern = 512,
+        Extern = 1024,
         All = Accessibility | Inheritance | Async | Static | ReadOnly | Unsafe | Volatile | Required | Const | Partial | Extern
     }
 }

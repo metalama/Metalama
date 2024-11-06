@@ -1,4 +1,3 @@
-// Warning CS0626 on `TestEvent`: `Method, operator, or accessor 'IntroductionAttribute.TestEvent.remove' is marked external and has no attributes on it. Consider adding a DllImport attribute to specify the external implementation.`
 [IntroductionAttribute]
 public class TargetType
 {

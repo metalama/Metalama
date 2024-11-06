@@ -695,7 +695,7 @@ internal abstract partial class BaseTestRunner
 
         var actuallyWrittenFiles = new HashSet<string>( StringComparer.OrdinalIgnoreCase );
 
-        // First run the diff tool on all files so we popupate DiffEngineTray for all files before failing.
+        // First run the diff tool on all files so we populate DiffEngineTray for all files before failing.
         var hasDifference = false;
 
         foreach ( var syntaxTree in testResult.SyntaxTrees )

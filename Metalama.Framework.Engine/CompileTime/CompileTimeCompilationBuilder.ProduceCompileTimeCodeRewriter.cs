@@ -733,11 +733,6 @@ namespace Metalama.Framework.Engine.CompileTime
 
                     return true;
                 }
-                //else if (symbol.IsExtern)
-                //{
-                //    // Extern members indicate a template without a body, i.e. non-expandable template.
-                //    return true;
-                //}
                 else 
                 {
                     return false;
@@ -796,7 +791,7 @@ namespace Metalama.Framework.Engine.CompileTime
                     {
                         yield return node;
                     }
-                    else if ( methodSymbol.IsOverride && methodSymbol.OverriddenMethod!.IsAbstract )
+                    else if ( (methodSymbol.IsOverride && methodSymbol.OverriddenMethod!.IsAbstract) || methodSymbol.IsExtern )
                     {
                         yield return this._helper.WithThrowNotSupportedExceptionBody(
                             node,
@@ -828,6 +823,11 @@ namespace Metalama.Framework.Engine.CompileTime
                 var templateInfo = this.SymbolClassifier.GetTemplateInfo( propertySymbol );
 
                 this.AddToManifestIfNecessary( propertySymbol, templateInfo, null, propertySymbol.GetMethod, propertySymbol.SetMethod );
+
+                if ( templateInfo.HasNoBody )
+                {
+                    yield break;
+                }
 
                 var propertyIsTemplate = !templateInfo.IsNone;
                 var propertyOrAccessorsAreTemplate = propertyIsTemplate;
@@ -1186,6 +1186,11 @@ namespace Metalama.Framework.Engine.CompileTime
                 var templateInfo = this.SymbolClassifier.GetTemplateInfo( symbol );
 
                 this.AddToManifestIfNecessary( symbol, templateInfo );
+
+                if ( templateInfo.HasNoBody )
+                {
+                    yield break;
+                }
 
                 var isTemplate = !templateInfo.IsNone;
 

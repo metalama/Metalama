@@ -780,8 +780,7 @@ namespace Metalama.Framework.Advising
             OverrideStrategy whenExists = OverrideStrategy.Default,
             Action<INamedTypeBuilder>? buildType = null );
 
-        // TODO: Specific result type? Or rename to ITypeIntroductionAdviceResult?
-        IInterfaceIntroductionAdviceResult IntroduceInterface(
+        IClassIntroductionAdviceResult IntroduceInterface(
             INamespaceOrNamedType targetNamespaceOrType,
             string name,
             OverrideStrategy whenExists = OverrideStrategy.Default,

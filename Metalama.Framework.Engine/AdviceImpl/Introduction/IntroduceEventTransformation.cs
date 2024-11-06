@@ -61,7 +61,7 @@ internal sealed class IntroduceEventTransformation : IntroduceMemberTransformati
             initializerExpression = SyntaxFactoryEx.Default;
         }
 
-        var hasNoBody = isEventField is true || finalEvent.IsAbstract || finalEvent.IsPartial || finalEvent.IsExtern;
+        var hasNoBody = isEventField is true || finalEvent.IsAbstract || this._template?.TemplateClassMember.TemplateInfo.HasNoBody == true;
 
         // TODO: If the user adds (different) attributes to event field's accessors, we cannot use event fields.
 

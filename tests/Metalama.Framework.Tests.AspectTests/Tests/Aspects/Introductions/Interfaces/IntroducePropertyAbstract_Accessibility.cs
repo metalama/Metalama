@@ -8,6 +8,8 @@ using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using System;
 
+#pragma warning disable CS0626
+
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Introductions.Interfaces.IntroducePropertyAbstract_Accessibility;
 
 public class IntroductionAttribute : TypeAspect

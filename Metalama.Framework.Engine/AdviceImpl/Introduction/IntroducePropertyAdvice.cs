@@ -243,7 +243,6 @@ internal sealed class IntroducePropertyAdvice : IntroduceMemberAdvice<IProperty,
                 if ( this.Template?.TemplateClassMember.TemplateInfo.HasNoBody != true )
                 {
                     context.AddTransformation( overriddenProperty );
-
                 }
             }
 

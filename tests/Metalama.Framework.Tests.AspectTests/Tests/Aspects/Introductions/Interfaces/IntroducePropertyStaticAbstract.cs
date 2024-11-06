@@ -10,6 +10,8 @@ using Metalama.Framework.Code.SyntaxBuilders;
 using System;
 using System.Linq;
 
+#pragma warning disable CS0626
+
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Introductions.Interfaces.IntroducePropertyStaticAbstract;
 
 public class IntroductionAttribute : TypeAspect

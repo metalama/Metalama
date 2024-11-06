@@ -27,7 +27,6 @@ namespace Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 
 internal sealed class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBuilder, INamedTypeImpl, IMemberOrNamedTypeBuilderImpl
 {
-    private bool _isPartial;
     private INamedType? _baseType;
 
     public TypeKind TypeKind { get; }
@@ -82,17 +81,6 @@ internal sealed class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBui
     }
 
     public override IDeclaration ContainingDeclaration => (IDeclaration?) this.DeclaringType ?? this.ContainingNamespace;
-
-    public bool IsPartial
-    {
-        get => this._isPartial;
-        set
-        {
-            this.CheckNotFrozen();
-
-            this._isPartial = value;
-        }
-    }
 
     public bool HasDefaultConstructor => true;
 

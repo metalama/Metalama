@@ -3,6 +3,8 @@ using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.SyntaxBuilders;
 
+#pragma warning disable CS0168
+
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Introductions.Interfaces.Variance;
 
 public class IntroductionAttribute : TypeAspect

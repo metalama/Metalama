@@ -36,17 +36,6 @@ internal sealed class IntroduceFieldAdvice : IntroduceMemberAdvice<IField, IFiel
     {
         base.InitializeBuilderCore( builder, templateAttributeProperties, in context );
 
-        if (this.TargetDeclaration is { TypeKind: TypeKind.Interface } )
-        {
-            context.Diagnostics.Report(
-                AdviceDiagnosticDescriptors.CannotIntroduceFieldIntoInterface.CreateRoslynDiagnostic(
-                    this.TargetDeclaration.GetDiagnosticLocation(),
-                    (this.AspectInstance.AspectClass.ShortName, builder, this.TargetDeclaration),
-                    this ) );
-
-            return;
-        }
-
         var templateDeclaration = this.Template?.GetDeclaration( this.SourceCompilation );
         builder.IsRequired = templateAttributeProperties?.IsRequired ?? templateDeclaration?.IsRequired ?? false;
 
@@ -70,6 +59,22 @@ internal sealed class IntroduceFieldAdvice : IntroduceMemberAdvice<IField, IFiel
         if ( targetType.TypeKind is TypeKind.Struct or TypeKind.RecordStruct && targetType.IsReadOnly )
         {
             builder.Writeability = Writeability.ConstructorOnly;
+        }
+    }
+
+    protected override void ValidateBuilder( FieldBuilder builder, IDiagnosticAdder diagnosticAdder )
+    {
+        base.ValidateBuilder( builder, diagnosticAdder );
+
+        if ( this.TargetDeclaration is { TypeKind: TypeKind.Interface } )
+        {
+            diagnosticAdder.Report(
+                AdviceDiagnosticDescriptors.CannotIntroduceFieldIntoInterface.CreateRoslynDiagnostic(
+                    this.TargetDeclaration.GetDiagnosticLocation(),
+                    (this.AspectInstance.AspectClass.ShortName, builder, this.TargetDeclaration),
+                    this ) );
+
+            return;
         }
     }
 

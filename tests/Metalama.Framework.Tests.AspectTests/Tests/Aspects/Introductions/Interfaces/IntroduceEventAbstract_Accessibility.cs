@@ -1,7 +1,14 @@
-﻿using Metalama.Framework.Advising;
+﻿#if TEST_OPTIONS
+// @RequiredConstant(NET6_0_OR_GREATER)
+#endif
+
+#if NET6_0_OR_GREATER
+using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using System;
+
+#pragma warning disable CS0626
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Introductions.Interfaces.IntroduceEventAbstract_Accessibility;
 
@@ -36,3 +43,4 @@ public class IntroductionAttribute : TypeAspect
 // <target>
 [IntroductionAttribute]
 public class TargetType { }
+#endif
