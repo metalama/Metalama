@@ -1,7 +1,7 @@
 // Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
 using Metalama.Framework.Engine.Formatting;
-using Metalama.Framework.Options;
+using Metalama.Framework.Services;
 using System;
 using System.Collections.Immutable;
 
@@ -11,7 +11,7 @@ namespace Metalama.Framework.Engine.Options;
 /// Exposes project options (typically defined in MSBuild or .editorconfig) in a strongly-typed manner.
 /// The production implementation is <see cref="MSBuildProjectOptions"/> but tests can provide their own implementation.
 /// </summary>
-public interface IProjectOptions : IBaseProjectOptions, IEquatable<IProjectOptions>
+public interface IProjectOptions : IProjectService, IEquatable<IProjectOptions>
 {
     /// <summary>
     /// Gets the path to a file that gets touched when the project is built.
@@ -186,4 +186,10 @@ public interface IProjectOptions : IBaseProjectOptions, IEquatable<IProjectOptio
     /// and/or Metalama.AssemblyLocator.Build.targets files are stored.
     /// </summary>
     string? AssemblyLocatorHooksDirectory { get; }
+
+    /// <summary>
+    /// Gets names of attribute types that are considered to be affected by source generators.
+    /// Partial members marked with these attributes are not eligible for overriding by Metalama aspects.
+    /// </summary>
+    ImmutableArray<string> SourceGeneratorAttributes { get; }
 }

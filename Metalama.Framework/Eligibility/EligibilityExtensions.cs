@@ -5,8 +5,8 @@ using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Eligibility.Implementation;
-using Metalama.Framework.Options;
 using Metalama.Framework.Project;
+using Metalama.Framework.Services;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -598,17 +598,7 @@ public static partial class EligibilityExtensions
 
     internal static void MustNotBePartialMemberWithSourceGeneratorAttribute( this IEligibilityBuilder<IMember> eligibilityBuilder )
         => eligibilityBuilder.MustSatisfy(
-            m =>
-            {
-                if ( !m.IsPartial )
-                {
-                    return true;
-                }
-
-                var sourceGeneratorAttributes = m.Compilation.Project.ServiceProvider.GetRequiredService<IBaseProjectOptions>().SourceGeneratorAttributes;
-
-                return !sourceGeneratorAttributes.Any( sga => m.Attributes.Any( da => da.Type.FullName == sga ) );
-            },
+            m => !m.Compilation.Project.ServiceProvider.GetRequiredService<ISourceGeneratorDetectionService>().IsWellKnownGeneratedDeclaration( m ),
             m => $"{m} must not be a partial member marked with source generator attribute" );
 
     /// <summary>
