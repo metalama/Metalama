@@ -67,7 +67,7 @@ internal sealed class TemplateMemberGenericContext : GenericContext
 
     internal override IType Map( ITypeParameter typeParameter ) => this.MapTypeParameter( typeParameter.Index, typeParameter.Name );
 
-    internal override IType Map( ITypeParameterSymbol typeParameterSymbol, CompilationModel compilation )
+    protected override IType Map( ITypeParameterSymbol typeParameterSymbol, CompilationModel compilation )
         => this.MapTypeParameter( typeParameterSymbol.Ordinal, typeParameterSymbol.Name );
 
     internal override GenericContext Map( GenericContext genericContext, RefFactory refFactory ) => throw new NotSupportedException();

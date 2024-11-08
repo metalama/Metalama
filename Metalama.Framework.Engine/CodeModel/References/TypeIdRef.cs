@@ -7,7 +7,7 @@ using System;
 
 namespace Metalama.Framework.Engine.CodeModel.References;
 
-internal class TypeIdRef<T> : DurableRef<T>
+internal sealed class TypeIdRef<T> : DurableRef<T>
     where T : class, ICompilationElement
 {
     private TypeIdRef( string id ) : base( id )

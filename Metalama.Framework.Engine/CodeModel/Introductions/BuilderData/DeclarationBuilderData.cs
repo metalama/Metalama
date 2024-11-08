@@ -66,7 +66,7 @@ internal abstract class DeclarationBuilderData
 
     public string ToDisplayString( CodeDisplayFormat? codeDisplayFormat = null ) => this.ToDeclarationFullRef().Definition.ToDisplayString( codeDisplayFormat );
 
-    public virtual bool Equals( DeclarationBuilderData other ) => ReferenceEquals( this, other );
+    public virtual bool Equals( DeclarationBuilderData? other ) => ReferenceEquals( this, other );
 
     public override bool Equals( object? obj ) => obj is DeclarationBuilderData other && this.Equals( other );
 }

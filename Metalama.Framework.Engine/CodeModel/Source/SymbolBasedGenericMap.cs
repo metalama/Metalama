@@ -11,14 +11,14 @@ namespace Metalama.Framework.Engine.CodeModel.Source
     {
         private readonly ImmutableArray<ITypeSymbol> _typeArguments;
 
-        public SymbolBasedGenericMap( ImmutableArray<ITypeSymbol> typeArguments )
+        private SymbolBasedGenericMap( ImmutableArray<ITypeSymbol> typeArguments )
         {
             this._typeArguments = typeArguments;
         }
 
         public static readonly SymbolBasedGenericMap Empty = new( ImmutableArray<ITypeSymbol>.Empty );
 
-        public bool IsEmpty => this._typeArguments.IsDefaultOrEmpty;
+        private bool IsEmpty => this._typeArguments.IsDefaultOrEmpty;
 
         [return: NotNullIfNotNull( nameof(type) )]
         public T? SubstituteSymbol<T>( T? type, Compilation compilation )
@@ -71,16 +71,9 @@ namespace Metalama.Framework.Engine.CodeModel.Source
             }
         }
 
-        private sealed class Mapper : SymbolVisitor<ITypeSymbol>
+        private sealed class Mapper( in SymbolBasedGenericMap genericMap, Compilation compilation ) : SymbolVisitor<ITypeSymbol>
         {
-            private readonly SymbolBasedGenericMap _genericMap;
-            private readonly Compilation _compilation;
-
-            public Mapper( in SymbolBasedGenericMap genericMap, Compilation compilation )
-            {
-                this._genericMap = genericMap;
-                this._compilation = compilation;
-            }
+            private readonly SymbolBasedGenericMap _genericMap = genericMap;
 
             public override ITypeSymbol DefaultVisit( ISymbol symbol ) => throw new AssertionFailedException( $"Visitor not implemented for {symbol.Kind}." );
 
@@ -94,7 +87,7 @@ namespace Metalama.Framework.Engine.CodeModel.Source
                 }
                 else
                 {
-                    return this._compilation.CreateArrayTypeSymbol( mappedElementType, symbol.Rank, symbol.ElementNullableAnnotation );
+                    return compilation.CreateArrayTypeSymbol( mappedElementType, symbol.Rank, symbol.ElementNullableAnnotation );
                 }
             }
 
@@ -138,7 +131,7 @@ namespace Metalama.Framework.Engine.CodeModel.Source
                 }
                 else
                 {
-                    return this._compilation.CreatePointerTypeSymbol( mappedPointedAtType );
+                    return compilation.CreatePointerTypeSymbol( mappedPointedAtType );
                 }
             }
 

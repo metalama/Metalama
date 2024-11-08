@@ -13,7 +13,7 @@ namespace Metalama.Framework.Engine.CodeModel.GenericContexts;
 
 public abstract partial class GenericContext : IEquatable<GenericContext?>, IGenericContext
 {
-    public static GenericContext Empty { get; } = new NullGenericContext();
+    internal static GenericContext Empty { get; } = new NullGenericContext();
 
     public bool IsEmptyOrIdentity => this.Kind == GenericContextKind.Null;
 
@@ -26,7 +26,7 @@ public abstract partial class GenericContext : IEquatable<GenericContext?>, IGen
 
     internal abstract IType Map( ITypeParameter typeParameter );
 
-    internal abstract IType Map( ITypeParameterSymbol typeParameterSymbol, CompilationModel compilation );
+    protected abstract IType Map( ITypeParameterSymbol typeParameterSymbol, CompilationModel compilation );
 
     internal IFullRef<IType> Map( ITypeSymbol typeSymbol, RefFactory refFactory )
     {

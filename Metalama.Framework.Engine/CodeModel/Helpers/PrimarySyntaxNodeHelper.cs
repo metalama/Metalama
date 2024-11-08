@@ -17,7 +17,7 @@ namespace Metalama.Framework.Engine.CodeModel.Helpers
                 _ => null
             };
 
-        internal static ISymbol? GetClosestSymbol( this IDeclaration declaration )
+        private static ISymbol? GetClosestSymbol( this IDeclaration declaration )
         {
             for ( var d = declaration; d != null && d.DeclarationKind != DeclarationKind.Namespace; d = d.ContainingDeclaration )
             {

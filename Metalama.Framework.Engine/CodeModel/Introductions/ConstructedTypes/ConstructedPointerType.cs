@@ -9,14 +9,10 @@ using System;
 
 namespace Metalama.Framework.Engine.CodeModel.Introductions.ConstructedTypes;
 
-internal class ConstructedPointerType : ConstructedType, IPointerType
+internal sealed class ConstructedPointerType( CompilationModel compilation, IFullRef<IType> pointedAtType )
+    : ConstructedType( compilation ), IPointerType
 {
-    private readonly IFullRef<IType> _pointedAtType;
-
-    public ConstructedPointerType( CompilationModel compilation, IFullRef<IType> pointedAtType ) : base( compilation )
-    {
-        this._pointedAtType = pointedAtType;
-    }
+    private readonly IFullRef<IType> _pointedAtType = pointedAtType;
 
     public override ICompilationElement Translate( CompilationModel newCompilation, IGenericContext? genericContext = null, Type? interfaceType = null )
     {
@@ -67,7 +63,4 @@ internal class ConstructedPointerType : ConstructedType, IPointerType
     protected override IType ToNullableCore() => throw new NotSupportedException();
 
     protected override IType ToNonNullableCore() => throw new NotSupportedException();
-
-    protected override ConstructedType ForCompilation( CompilationModel compilation )
-        => ReferenceEquals( compilation, this.Compilation ) ? this : new ConstructedPointerType( compilation, this._pointedAtType );
 }

@@ -100,7 +100,7 @@ internal sealed class CompileTimeProject : IProjectService
     private IReadOnlyDictionary<string, CompileTimeProject> ClosureProjectsByCompileTimeAssemblyName
         => this.ClosureProjects.ToDictionary( p => p.CompileTimeIdentity.Name, p => p );
 
-    public bool TryGetProjectByRunTimeAssemblyName( string runTimeName, [NotNullWhen( true )] out CompileTimeProject? project )
+    private bool TryGetProjectByRunTimeAssemblyName( string runTimeName, [NotNullWhen( true )] out CompileTimeProject? project )
         => this.ClosureProjectsByRunTimeAssemblyName.TryGetValue( runTimeName, out project );
 
     public bool TryGetProjectByCompileTimeAssemblyName( string runTimeName, [NotNullWhen( true )] out CompileTimeProject? project )

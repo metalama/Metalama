@@ -72,7 +72,7 @@ internal sealed partial class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl
 
     // We use return lazy object readers because these methods can be called before the BuildAspect method is called,
     // for declarative advice.
-    internal IObjectReader GetTagsReader( object? tags ) => this._state.AspectBuilderState.AssertNotNull().GetTagsReader( tags );
+    private IObjectReader GetTagsReader( object? tags ) => this._state.AspectBuilderState.AssertNotNull().GetTagsReader( tags );
 
     private IObjectReader GetArgsReader( object? args ) => this._objectReaderFactory.GetReader( args );
 

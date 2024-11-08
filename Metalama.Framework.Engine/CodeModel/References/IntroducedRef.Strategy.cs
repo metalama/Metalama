@@ -20,7 +20,7 @@ internal sealed partial class IntroducedRef<T>
         }
     }
 
-    public override void EnumerateAllImplementedInterfaces( CompilationModel compilation, Action<IFullRef<INamedType>> add )
+    public override void EnumerateAllImplementedInterfaces( Action<IFullRef<INamedType>> add )
     {
         Invariant.Assert( this is IRef<INamedType> );
 
@@ -32,7 +32,7 @@ internal sealed partial class IntroducedRef<T>
         }
     }
 
-    public override void EnumerateImplementedInterfaces( CompilationModel compilation, Action<IFullRef<INamedType>> add )
+    public override void EnumerateImplementedInterfaces( Action<IFullRef<INamedType>> add )
     {
         Invariant.Assert( this is IRef<INamedType> );
 

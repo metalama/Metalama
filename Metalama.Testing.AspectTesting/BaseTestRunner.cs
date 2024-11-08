@@ -280,7 +280,7 @@ internal abstract partial class BaseTestRunner
                     return (project, null);
                 }
 
-                var transformedSyntaxRoot = this.PreprocessSyntaxRoot( prunedSyntaxRoot, testResult );
+                var transformedSyntaxRoot = prunedSyntaxRoot;
                 var document = project.AddDocument( fileName, transformedSyntaxRoot, filePath: fileName );
 
                 return (document.Project, document);
@@ -544,18 +544,7 @@ internal abstract partial class BaseTestRunner
         return (MetadataReference.CreateFromFile( outputPath ), project);
     }
 
-    /// <summary>
-    /// Processes syntax root of the test file before it is added to the test project.
-    /// </summary>
-    /// <param name="syntaxRoot"></param>
-    /// <param name="testResult"></param>
-    /// <returns></returns>
-    private protected virtual SyntaxNode PreprocessSyntaxRoot( SyntaxNode syntaxRoot, TestResult testResult ) => syntaxRoot;
-
-    private protected virtual Compilation PreprocessCompilation( Compilation initialCompilation, TestResult testResult )
-    {
-        return initialCompilation;
-    }
+    private protected virtual Compilation PreprocessCompilation( Compilation initialCompilation, TestResult testResult ) => initialCompilation;
 
     private static void ValidateCustomAttributes( Compilation compilation )
     {
@@ -887,10 +876,10 @@ internal abstract partial class BaseTestRunner
                 if ( suppressions.Any(
                         s => s.Suppression.Definition.SuppressedDiagnosticId == diagnostic.Id
                              && s.GetScopeSymbolOrNull( compilationWithDesignTimeTrees.GetCompilationContext() )
-                                 ?.DeclaringSyntaxReferences.Any(
+                                 .DeclaringSyntaxReferences.Any(
                                      r =>
                                          r.SyntaxTree == diagnostic.Location.SourceTree &&
-                                         r.Span.Contains( diagnostic.Location.SourceSpan ) ) == true ) )
+                                         r.Span.Contains( diagnostic.Location.SourceSpan ) ) ) )
                 {
                     return;
                 }

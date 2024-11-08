@@ -12,16 +12,10 @@ using System.Linq;
 
 namespace Metalama.Framework.Engine.Aspects;
 
-internal class TemplateClassMemberBuilder : ITemplateClassMemberBuilder
+internal sealed class TemplateClassMemberBuilder( ProjectServiceProvider serviceProvider ) : ITemplateClassMemberBuilder
 {
-    private readonly ITemplateInfoService _symbolClassificationService;
-    private readonly TemplateAttributeFactory _templateAttributeFactory;
-
-    public TemplateClassMemberBuilder( ProjectServiceProvider serviceProvider )
-    {
-        this._symbolClassificationService = serviceProvider.GetRequiredService<ITemplateInfoService>();
-        this._templateAttributeFactory = serviceProvider.GetRequiredService<TemplateAttributeFactory>();
-    }
+    private readonly ITemplateInfoService _symbolClassificationService = serviceProvider.GetRequiredService<ITemplateInfoService>();
+    private readonly TemplateAttributeFactory _templateAttributeFactory = serviceProvider.GetRequiredService<TemplateAttributeFactory>();
 
     public bool TryGetMembers(
         TemplateClass templateClass,

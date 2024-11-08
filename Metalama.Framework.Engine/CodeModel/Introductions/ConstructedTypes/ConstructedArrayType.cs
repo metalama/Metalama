@@ -10,16 +10,10 @@ using TypeKind = Metalama.Framework.Code.TypeKind;
 
 namespace Metalama.Framework.Engine.CodeModel.Introductions.ConstructedTypes;
 
-internal class ConstructedArrayType : ConstructedType, IArrayType
+internal sealed class ConstructedArrayType( CompilationModel compilation, IFullRef<IType> elementType, int rank, bool? isNullable = false )
+    : ConstructedType( compilation ), IArrayType
 {
-    private readonly IFullRef<IType> _elementType;
-
-    public ConstructedArrayType( CompilationModel compilation, IFullRef<IType> elementType, int rank, bool? isNullable = false ) : base( compilation )
-    {
-        this._elementType = elementType;
-        this.Rank = rank;
-        this.IsNullable = isNullable;
-    }
+    private readonly IFullRef<IType> _elementType = elementType;
 
     public override ICompilationElement Translate( CompilationModel newCompilation, IGenericContext? genericContext = null, Type? interfaceType = null )
     {
@@ -41,11 +35,11 @@ internal class ConstructedArrayType : ConstructedType, IArrayType
 
     public override bool? IsReferenceType => true;
 
-    public override bool? IsNullable { get; }
+    public override bool? IsNullable { get; } = isNullable;
 
     public IType ElementType => this._elementType.GetTarget( this.Compilation );
 
-    public int Rank { get; }
+    public int Rank { get; } = rank;
 
     public override bool Equals( IType? otherType, TypeComparison typeComparison )
     {
@@ -93,7 +87,4 @@ internal class ConstructedArrayType : ConstructedType, IArrayType
     protected override IType ToNullableCore() => this.ToNullable();
 
     protected override IType ToNonNullableCore() => this.ToNonNullable();
-
-    protected override ConstructedType ForCompilation( CompilationModel compilation )
-        => ReferenceEquals( compilation, this.Compilation ) ? this : new ConstructedArrayType( compilation, this._elementType, this.Rank, this.IsNullable );
 }

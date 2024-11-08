@@ -267,7 +267,7 @@ namespace Metalama.Framework.Tests.TemplateTests.Runner
                     compilationModel,
                     template.ForIntroduction( templateMethodDeclaration ) );
 
-                var expandSuccessful = driver.TryExpandDeclaration( expansionContext, Array.Empty<object>(), out var output );
+                var expandSuccessful = driver.TryExpandDeclaration( expansionContext, [], out var output );
 
                 testResult.PipelineDiagnostics.Report( expansionContext.DiagnosticSink.ToImmutable().ReportedDiagnostics );
 
@@ -387,7 +387,7 @@ namespace Metalama.Framework.Tests.TemplateTests.Runner
             }
         }
 
-        class TestTemplateClassMemberBuilder : ITemplateClassMemberBuilder
+        private sealed class TestTemplateClassMemberBuilder : ITemplateClassMemberBuilder
         {
             public bool TryGetMembers(
                 TemplateClass templateClass,
@@ -402,23 +402,21 @@ namespace Metalama.Framework.Tests.TemplateTests.Runner
             }
         }
 
-        class TestTemplateClass : TemplateClass
+        private sealed class TestTemplateClass : TemplateClass
         {
-            private readonly Type _templateType;
-
             internal TestTemplateClass(
                 ProjectServiceProvider serviceProvider,
                 ITemplateReflectionContext templateReflectionContext,
                 INamedTypeSymbol templateTypeSymbol,
-                Type templateType) : base( serviceProvider, templateReflectionContext, templateTypeSymbol, ThrowingDiagnosticAdder.Instance, null, templateType.Name )
+                Type templateType )
+                : base( serviceProvider, templateReflectionContext, templateTypeSymbol, ThrowingDiagnosticAdder.Instance, null, templateType.Name )
             {
-                this._templateType = templateType;
+                this.Type = templateType;
             }
 
-            internal override Type Type => this._templateType;
+            internal override Type Type { get; }
 
-            public override string FullName => this._templateType.FullName;
+            public override string FullName => this.Type.FullName!;
         }
-   
     }
 }

@@ -9,5 +9,5 @@ internal sealed class FakeWorkspaceProvider : WorkspaceProvider
 {
     public FakeWorkspaceProvider( GlobalServiceProvider serviceProvider ) : base( serviceProvider ) { }
 
-    public override Task<Workspace> GetWorkspaceAsync( CancellationToken cancellationToken = default ) => throw new NotSupportedException();
+    protected override Task<Workspace> GetWorkspaceAsync( CancellationToken cancellationToken = default ) => throw new NotSupportedException();
 }

@@ -9,7 +9,7 @@ using Xunit;
 
 namespace Metalama.Framework.Tests.UnitTests.CodeModel;
 
-public class GenericContextTests : UnitTestClass
+public sealed class GenericContextTests : UnitTestClass
 {
     [Fact]
     public void NonGenericTypeNestedInGenericType()

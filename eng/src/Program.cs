@@ -29,7 +29,9 @@ var product = new Product( MetalamaDependencies.Metalama )
                 // Test payloads should not be formatted because it would break the test output comparison.
                 // In some cases, formatting or redundant keywords may be intentional.
                 "Tests\\Metalama.Framework.Tests.AspectTests\\Tests\\**\\*",
-                "Tests\\Metalama.Framework.Tests.AspectTests.Internals\\Tests\\**\\*",
+                "Tests\\Metalama.Framework.Tests.LinkerTests\\Tests\\**\\*",
+                "Tests\\Metalama.Framework.Tests.TemplateTests\\Tests\\**\\*",
+
 
                 // XML formatting seems to be conflicting.
                 "**\\*.props", "**\\*.targets", "**\\*.csproj", "**\\*.md", "**\\*.xml", "**\\*.config"

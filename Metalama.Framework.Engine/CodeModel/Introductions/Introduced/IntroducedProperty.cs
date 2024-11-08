@@ -14,36 +14,28 @@ using System.Collections.Generic;
 
 namespace Metalama.Framework.Engine.CodeModel.Introductions.Introduced;
 
-internal class IntroducedProperty : IntroducedPropertyOrIndexer, IPropertyImpl
+internal sealed class IntroducedProperty( PropertyBuilderData builderData, CompilationModel compilation, IGenericContext genericContext )
+    : IntroducedPropertyOrIndexer( compilation, genericContext ), IPropertyImpl
 {
-    public PropertyBuilderData PropertyBuilderData { get; }
+    public override DeclarationBuilderData BuilderData => builderData;
 
-    public IntroducedProperty( PropertyBuilderData builderData, CompilationModel compilation, IGenericContext genericContext ) : base(
-        compilation,
-        genericContext )
-    {
-        this.PropertyBuilderData = builderData;
-    }
+    protected override NamedDeclarationBuilderData NamedDeclarationBuilderData => builderData;
 
-    public override DeclarationBuilderData BuilderData => this.PropertyBuilderData;
+    protected override MemberOrNamedTypeBuilderData MemberOrNamedTypeBuilderData => builderData;
 
-    protected override NamedDeclarationBuilderData NamedDeclarationBuilderData => this.PropertyBuilderData;
-
-    protected override MemberOrNamedTypeBuilderData MemberOrNamedTypeBuilderData => this.PropertyBuilderData;
-
-    protected override MemberBuilderData MemberBuilderData => this.PropertyBuilderData;
+    protected override MemberBuilderData MemberBuilderData => builderData;
 
     public override bool IsExplicitInterfaceImplementation => this.ExplicitInterfaceImplementations.Count > 0;
 
-    protected override PropertyOrIndexerBuilderData PropertyOrIndexerBuilderData => this.PropertyBuilderData;
+    protected override PropertyOrIndexerBuilderData PropertyOrIndexerBuilderData => builderData;
 
-    public bool? IsAutoPropertyOrField => this.PropertyBuilderData.IsAutoPropertyOrField;
-
-    [Memo]
-    public IProperty? OverriddenProperty => this.MapDeclaration( this.PropertyBuilderData.OverriddenProperty );
+    public bool? IsAutoPropertyOrField => builderData.IsAutoPropertyOrField;
 
     [Memo]
-    public IProperty Definition => this.Compilation.Factory.GetProperty( this.PropertyBuilderData ).AssertNotNull();
+    public IProperty? OverriddenProperty => this.MapDeclaration( builderData.OverriddenProperty );
+
+    [Memo]
+    public IProperty Definition => this.Compilation.Factory.GetProperty( builderData ).AssertNotNull();
 
     protected override IMemberOrNamedType GetDefinition() => this.Definition;
 
@@ -52,7 +44,7 @@ internal class IntroducedProperty : IntroducedPropertyOrIndexer, IPropertyImpl
 
     IRef<IProperty> IProperty.ToRef() => this.Ref;
 
-    public override IFullRef<IMember> ToMemberFullRef() => this.Ref;
+    protected override IFullRef<IMember> ToMemberFullRef() => this.Ref;
 
     IRef<IFieldOrProperty> IFieldOrProperty.ToRef() => this.Ref;
 
@@ -60,13 +52,13 @@ internal class IntroducedProperty : IntroducedPropertyOrIndexer, IPropertyImpl
 
     // TODO: When an interface is introduced, explicit implementation should appear here.
     [Memo]
-    public IReadOnlyList<IProperty> ExplicitInterfaceImplementations => this.MapDeclarationList( this.PropertyBuilderData.ExplicitInterfaceImplementations );
+    public IReadOnlyList<IProperty> ExplicitInterfaceImplementations => this.MapDeclarationList( builderData.ExplicitInterfaceImplementations );
 
     public FieldOrPropertyInfo ToFieldOrPropertyInfo() => CompileTimeFieldOrPropertyInfo.Create( this );
 
-    public bool IsRequired => this.PropertyBuilderData.IsRequired;
+    public bool IsRequired => builderData.IsRequired;
 
-    public IExpression? InitializerExpression => this.PropertyBuilderData.InitializerExpression;
+    public IExpression? InitializerExpression => builderData.InitializerExpression;
 
     public IFieldOrPropertyInvoker With( InvokerOptions options ) => new FieldOrPropertyInvoker( this, options );
 
@@ -87,7 +79,7 @@ internal class IntroducedProperty : IntroducedPropertyOrIndexer, IPropertyImpl
     {
         using ( StackOverflowHelper.Detect() )
         {
-            return this.MapDeclaration( this.PropertyBuilderData.OriginalField );
+            return this.MapDeclaration( builderData.OriginalField );
         }
     }
 }

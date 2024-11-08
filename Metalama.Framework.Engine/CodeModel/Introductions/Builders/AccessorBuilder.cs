@@ -27,9 +27,10 @@ internal sealed partial class AccessorBuilder : DeclarationBuilder, IMethodBuild
 {
     public IntroducedRef<IMethod> Ref { get; }
 
-    public MemberBuilder ContainingMember { get; }
+    private readonly MemberBuilder _containingMember;
 
     private Accessibility? _accessibility;
+    
     private bool _isIteratorMethod;
 
     public bool? IsIteratorMethod => this._isIteratorMethod;
@@ -40,7 +41,7 @@ internal sealed partial class AccessorBuilder : DeclarationBuilder, IMethodBuild
 
     public AccessorBuilder( MemberBuilder containingDeclaration, MethodKind methodKind, bool isImplicit ) : base( containingDeclaration.AspectLayerInstance )
     {
-        this.ContainingMember = containingDeclaration;
+        this._containingMember = containingDeclaration;
         this._accessibility = null;
         this.MethodKind = methodKind;
         this.IsImplicitlyDeclared = isImplicit;
@@ -98,7 +99,7 @@ internal sealed partial class AccessorBuilder : DeclarationBuilder, IMethodBuild
 
     [Memo]
     public IParameterBuilderList Parameters
-        => (this.ContainingMember, this.MethodKind) switch
+        => (ContainingMember: this._containingMember, this.MethodKind) switch
         {
             // TODO: Indexer parameters (need to have special IParameterList implementation that would mirror adding parameters to the indexer property).
             (IIndexer, MethodKind.PropertyGet) => new IndexerAccessorParameterBuilderList( this ),
@@ -127,7 +128,7 @@ internal sealed partial class AccessorBuilder : DeclarationBuilder, IMethodBuild
 
     public bool IsPartial
     {
-        get => this.ContainingMember.IsPartial;
+        get => this._containingMember.IsPartial;
         set => throw new InvalidOperationException( "Accessor's IsPartial cannot be directly set." );
     }
 
@@ -135,7 +136,7 @@ internal sealed partial class AccessorBuilder : DeclarationBuilder, IMethodBuild
 
     public bool IsExtern
     {
-        get => this.ContainingMember.IsExtern;
+        get => this._containingMember.IsExtern;
         set => throw new InvalidOperationException( "Accessor's IsExtern cannot be directly set." );
     }
 
@@ -153,7 +154,7 @@ internal sealed partial class AccessorBuilder : DeclarationBuilder, IMethodBuild
 
     public Accessibility Accessibility
     {
-        get => this._accessibility ?? this.ContainingMember.Accessibility;
+        get => this._accessibility ?? this._containingMember.Accessibility;
 
         set
         {
@@ -208,7 +209,7 @@ internal sealed partial class AccessorBuilder : DeclarationBuilder, IMethodBuild
         get
         {
             // The name of indexer is "this[]", but the names of its accessors should be e.g. "get_Item".
-            var parentName = this.ContainingMember is IndexerBuilder ? "Item" : this.ContainingMember.Name;
+            var parentName = this._containingMember is IndexerBuilder ? "Item" : this._containingMember.Name;
 
             return this.MethodKind switch
             {
@@ -225,43 +226,43 @@ internal sealed partial class AccessorBuilder : DeclarationBuilder, IMethodBuild
 
     public bool IsStatic
     {
-        get => this.ContainingMember.IsStatic;
+        get => this._containingMember.IsStatic;
         set => throw new NotSupportedException( "Cannot directly change staticity of an accessor." );
     }
 
     public bool IsVirtual
     {
-        get => this.ContainingMember.IsVirtual;
+        get => this._containingMember.IsVirtual;
         set => throw new NotSupportedException( "Cannot directly change the IsVirtual property of an accessor." );
     }
 
     public bool IsSealed
     {
-        get => this.ContainingMember.IsSealed;
+        get => this._containingMember.IsSealed;
         set => throw new NotSupportedException( "Cannot directly change the IsSealed property of an accessor." );
     }
 
     public bool IsAbstract
     {
-        get => this.ContainingMember.IsAbstract;
+        get => this._containingMember.IsAbstract;
         set => throw new InvalidOperationException();
     }
 
     public bool IsReadOnly => false;
 
-    public bool IsOverride => this.ContainingMember.IsOverride;
+    public bool IsOverride => this._containingMember.IsOverride;
 
-    public bool IsNew => this.ContainingMember.IsNew;
+    public bool IsNew => this._containingMember.IsNew;
 
     public bool? HasNewKeyword => false;
 
     public bool IsAsync => false;
 
-    public INamedType DeclaringType => this.ContainingMember.DeclaringType;
+    public INamedType DeclaringType => this._containingMember.DeclaringType;
 
-    public override bool IsDesignTimeObservable => this.ContainingMember.IsDesignTimeObservable;
+    public override bool IsDesignTimeObservable => this._containingMember.IsDesignTimeObservable;
 
-    public override IDeclaration ContainingDeclaration => this.ContainingMember;
+    public override IDeclaration ContainingDeclaration => this._containingMember;
 
     public override DeclarationKind DeclarationKind => DeclarationKind.Method;
 
@@ -287,9 +288,6 @@ internal sealed partial class AccessorBuilder : DeclarationBuilder, IMethodBuild
     public IParameterBuilder AddParameter( string name, Type type, RefKind refKind = RefKind.None, TypedConstant? defaultValue = null )
         => throw new NotSupportedException( "Cannot directly add parameters to accessors." );
 
-    public IGeneric ConstructGenericInstance( IReadOnlyList<IType> typeArguments )
-        => throw new NotSupportedException( "Cannot add generic parameters to accessors." );
-
     public IReadOnlyList<IMethod> ExplicitInterfaceImplementations
         => (containingDeclaration: this.ContainingDeclaration, this.MethodKind) switch
         {
@@ -313,7 +311,7 @@ internal sealed partial class AccessorBuilder : DeclarationBuilder, IMethodBuild
 
     public MethodInfo ToMethodInfo() => throw new NotImplementedException();
 
-    IHasAccessors IMethod.DeclaringMember => (IHasAccessors) this.ContainingMember;
+    IHasAccessors IMethod.DeclaringMember => (IHasAccessors) this._containingMember;
 
     public MethodBase ToMethodBase() => throw new NotImplementedException();
 
@@ -340,8 +338,6 @@ internal sealed partial class AccessorBuilder : DeclarationBuilder, IMethodBuild
 
     IMethod IMethod.MakeGenericInstance( IReadOnlyList<IType> typeArguments ) => throw new NotSupportedException();
 
-    public new IRef<IMethod> ToRef() => this.Ref;
-
     IRef<IMethod> IMethod.ToRef() => this.Ref;
 
     IRef<IMember> IMember.ToRef() => this.Ref;
@@ -351,6 +347,4 @@ internal sealed partial class AccessorBuilder : DeclarationBuilder, IMethodBuild
     protected override IFullRef<IDeclaration> ToFullDeclarationRef() => this.Ref;
 
     protected override void EnsureReferenceInitialized() => this.Ref.BuilderData = new MethodBuilderData( this, this.ContainingDeclaration.ToFullRef() );
-
-    public MethodBuilderData BuilderData => (MethodBuilderData) this.Ref.BuilderData;
 }

@@ -37,7 +37,7 @@ namespace Metalama.Framework.Engine.Templating.Expressions
 
         bool IExpression.IsAssignable => this.IsAssignable ?? false;
 
-        public virtual bool? IsAssignable => null;
+        protected virtual bool? IsAssignable => null;
 
         private protected virtual bool? IsReferenceable => null;
 
@@ -59,8 +59,7 @@ namespace Metalama.Framework.Engine.Templating.Expressions
                         new SyntaxSerializationContext(
                             compilation,
                             compilation.CompilationContext.GetSyntaxGenerationContext( SyntaxGenerationOptions.Formatted, isNullOblivious: false ),
-                            null ),
-                        null )
+                            null ) )
                     .NormalizeWhitespace()
                     .ToString();
         }

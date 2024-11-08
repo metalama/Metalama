@@ -24,7 +24,7 @@ public sealed class IntrospectionAspectRelationship
     /// <summary>
     /// Initializes a new instance of the <see cref="IntrospectionAspectRelationship"/> class.
     /// </summary>
-    public IntrospectionAspectRelationship( AspectPredecessorKind kind, IIntrospectionAspectPredecessor instance )
+    internal IntrospectionAspectRelationship( AspectPredecessorKind kind, IIntrospectionAspectPredecessor instance )
     {
         this.Kind = kind;
         this.Instance = instance;

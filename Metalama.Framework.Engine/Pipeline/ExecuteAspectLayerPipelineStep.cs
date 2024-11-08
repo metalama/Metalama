@@ -26,16 +26,11 @@ namespace Metalama.Framework.Engine.Pipeline;
 /// <summary>
 /// The <see cref="PipelineStep"/> that runs the default layer of each aspect. It runs the aspect initializer method.
 /// </summary>
-internal sealed class ExecuteAspectLayerPipelineStep : PipelineStep
+internal sealed class ExecuteAspectLayerPipelineStep( PipelineStepsState parent, PipelineStepId stepId, OrderedAspectLayer aspectLayer )
+    : PipelineStep( parent, stepId, aspectLayer )
 {
-    private readonly List<AspectInstance> _aspectInstances = new();
-    private readonly IConcurrentTaskRunner _concurrentTaskRunner;
-
-    public ExecuteAspectLayerPipelineStep( PipelineStepsState parent, PipelineStepId stepId, OrderedAspectLayer aspectLayer )
-        : base( parent, stepId, aspectLayer )
-    {
-        this._concurrentTaskRunner = parent.PipelineConfiguration.ServiceProvider.GetRequiredService<IConcurrentTaskRunner>();
-    }
+    private readonly List<AspectInstance> _aspectInstances = [];
+    private readonly IConcurrentTaskRunner _concurrentTaskRunner = parent.PipelineConfiguration.ServiceProvider.GetRequiredService<IConcurrentTaskRunner>();
 
     public void AddAspectInstance( in ResolvedAspectInstance aspectInstance )
     {
@@ -241,7 +236,7 @@ internal sealed class ExecuteAspectLayerPipelineStep : PipelineStep
                 if ( x.TargetDeclaration is IMethod xMethod && y.TargetDeclaration is IMethod yMethod )
                 {
                     Invariant.Assert(
-                        xMethod.DeclaringType == yMethod.DeclaringType
+                        ReferenceEquals( xMethod.DeclaringType, yMethod.DeclaringType )
                         && xMethod.DeclaringType.TypeKind is TypeKind.RecordClass or TypeKind.RecordStruct
                         && xMethod.IsImplicitlyDeclared && yMethod.IsImplicitlyDeclared );
 

@@ -5,7 +5,7 @@ using Xunit.Abstractions;
 
 namespace Metalama.Testing.AspectTesting;
 
-internal class AspectTestRunnerFactory : ITestRunnerFactory
+internal sealed class AspectTestRunnerFactory : ITestRunnerFactory
 {
     public BaseTestRunner CreateTestRunner(
         GlobalServiceProvider serviceProvider,

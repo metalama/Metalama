@@ -13,52 +13,42 @@ using System.Linq;
 
 namespace Metalama.Framework.Engine.CodeModel.Introductions.Introduced;
 
-internal sealed class IntroducedAttribute : IntroducedDeclaration, IAttribute
+internal sealed class IntroducedAttribute( AttributeBuilderData builder, CompilationModel compilation, IGenericContext genericContext )
+    : IntroducedDeclaration( compilation, genericContext ), IAttribute
 {
-    private readonly AttributeBuilderData _builderDataData;
-
-    public IntroducedAttribute( AttributeBuilderData builder, CompilationModel compilation, IGenericContext genericContext ) : base(
-        compilation,
-        genericContext )
-    {
-        this._builderDataData = builder;
-    }
-
     IDeclaration IAttribute.ContainingDeclaration => this.ContainingDeclaration.AssertNotNull();
 
     [Memo]
-    private AttributeRef Ref => this._builderDataData.ToRef();
+    private AttributeRef Ref => builder.ToRef();
 
     public IRef<IAttribute> ToRef() => this.Ref;
 
     private protected override IFullRef<IDeclaration> ToFullDeclarationRef() => throw new NotSupportedException();
 
-    private protected override IRef<IDeclaration> ToDeclarationRef() => this.Ref;
-
-    public override DeclarationBuilderData BuilderData => this._builderDataData;
+    public override DeclarationBuilderData BuilderData => builder;
 
     [Memo]
     public INamedType Type => this.Constructor.DeclaringType;
 
     [Memo]
-    public IConstructor Constructor => this.MapDeclaration( this._builderDataData.Constructor ).AssertNotNull();
+    public IConstructor Constructor => this.MapDeclaration( builder.Constructor ).AssertNotNull();
 
     [Memo]
     public ImmutableArray<TypedConstant> ConstructorArguments
-        => this._builderDataData.ConstructorArguments.Select( a => a.ToTypedConstant( this.Compilation ) )
+        => builder.ConstructorArguments.Select( a => a.ToTypedConstant( this.Compilation ) )
             .ToImmutableArray();
 
     [Memo]
     public INamedArgumentList NamedArguments
         => new NamedArgumentList(
-            this._builderDataData.NamedArguments.SelectAsArray(
+            builder.NamedArguments.SelectAsArray(
                 a => new KeyValuePair<string, TypedConstant>(
                     a.Key,
                     a.Value.ForCompilation( this.Compilation ) ) ) );
 
     int IAspectPredecessor.PredecessorDegree => 0;
 
-    IRef<IDeclaration> IAspectPredecessor.TargetDeclaration => this._builderDataData.ContainingDeclaration;
+    IRef<IDeclaration> IAspectPredecessor.TargetDeclaration => builder.ContainingDeclaration;
 
     ImmutableArray<AspectPredecessor> IAspectPredecessor.Predecessors => ImmutableArray<AspectPredecessor>.Empty;
 

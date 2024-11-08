@@ -62,7 +62,7 @@ internal static class DeclarationExtensions
                         SignatureTypeComparer.Instance.Equals(
                             amp.p.Type,
                             other.Parameters[amp.i].Type )
-                           && amp.p.RefKind == other.Parameters[amp.i].RefKind );
+                        && amp.p.RefKind == other.Parameters[amp.i].RefKind );
 
     /// <summary>
     /// Determines whether the event's signature is equal to the signature of the given event.

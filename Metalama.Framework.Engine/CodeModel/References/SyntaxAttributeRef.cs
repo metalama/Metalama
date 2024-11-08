@@ -87,7 +87,7 @@ internal sealed class SyntaxAttributeRef : AttributeRef
         }
     }
 
-    public override bool TryGetTarget( CompilationModel compilation, IGenericContext? genericContext, [NotNullWhen( true )] out IAttribute? attribute )
+    public override bool TryGetTarget( CompilationModel compilation, [NotNullWhen( true )] out IAttribute? attribute )
     {
         var resolved = this.ResolveAttributeData( this.AttributeSyntax );
 

@@ -1,5 +1,6 @@
 // Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
+using JetBrains.Annotations;
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.CompileTime.Serialization.Serializers;
 using Microsoft.CodeAnalysis;
@@ -15,6 +16,7 @@ namespace Metalama.Framework.Engine.CodeModel.References
     internal abstract class AttributeRef : IRef<IAttribute>, IEquatable<AttributeRef>, IRefImpl
     {
         // Note: These references are not necessarily full refs in case of deserialization.
+        [PublicAPI]
         public abstract IRef<IDeclaration> ContainingDeclaration { get; }
 
         public abstract IRef<INamedType> AttributeType { get; }
@@ -25,9 +27,9 @@ namespace Metalama.Framework.Engine.CodeModel.References
 
         IRef<TOut> IRef.As<TOut>() => this as IRef<TOut> ?? throw new NotSupportedException();
 
-        public IAttribute GetTarget( ICompilation compilation, IGenericContext? genericContext = null )
+        public IAttribute GetTarget( ICompilation compilation )
         {
-            if ( !this.TryGetTarget( (CompilationModel) compilation, genericContext, out var attribute ) )
+            if ( !this.TryGetTarget( (CompilationModel) compilation, out var attribute ) )
             {
                 throw new AssertionFailedException( "Attempt to resolve an invalid custom attribute." );
             }
@@ -35,15 +37,13 @@ namespace Metalama.Framework.Engine.CodeModel.References
             return attribute;
         }
 
-        public IDurableRef<IAttribute> ToDurable() => throw new NotSupportedException();
-
         public bool IsDurable => false;
 
-        IRef IRefImpl.ToDurable() => this.ToDurable();
+        IRef IRefImpl.ToDurable() => throw new NotSupportedException();
 
         ICompilationElement? IRef.GetTargetInterface( ICompilation compilation, Type? interfaceType, IGenericContext? genericContext, bool throwIfMissing )
         {
-            var target = this.GetTargetOrNull( compilation, genericContext );
+            var target = this.GetTargetOrNull( compilation );
 
             if ( target == null && throwIfMissing )
             {
@@ -53,9 +53,9 @@ namespace Metalama.Framework.Engine.CodeModel.References
             return target;
         }
 
-        public IAttribute? GetTargetOrNull( ICompilation compilation, IGenericContext? genericContext = null )
+        private IAttribute? GetTargetOrNull( ICompilation compilation )
         {
-            if ( !this.TryGetTarget( (CompilationModel) compilation, genericContext, out var attribute ) )
+            if ( !this.TryGetTarget( (CompilationModel) compilation, out var attribute ) )
             {
                 return null;
             }
@@ -63,13 +63,9 @@ namespace Metalama.Framework.Engine.CodeModel.References
             return attribute;
         }
 
-        public IRef<TOut> As<TOut>()
-            where TOut : class, ICompilationElement
-            => this as IRef<TOut> ?? throw new InvalidCastException();
-
         protected abstract AttributeSyntax? AttributeSyntax { get; }
 
-        public abstract bool TryGetTarget( CompilationModel compilation, IGenericContext? genericContext, [NotNullWhen( true )] out IAttribute? attribute );
+        public abstract bool TryGetTarget( CompilationModel compilation, [NotNullWhen( true )] out IAttribute? attribute );
 
         public abstract bool TryGetAttributeSerializationDataKey( [NotNullWhen( true )] out object? serializationDataKey );
 

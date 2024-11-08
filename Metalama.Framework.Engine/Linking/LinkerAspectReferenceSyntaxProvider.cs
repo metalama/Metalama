@@ -51,12 +51,12 @@ internal sealed class LinkerAspectReferenceSyntaxProvider : AspectReferenceSynta
                             ArgumentList(
                                 SeparatedList(
                                     overriddenConstructor.Parameters
-                                    .SelectAsArray( p =>
-                                        Argument(
-                                            NameColon(
-                                                IdentifierName( p.Name ) ),
-                                            p.RefKind.InvocationRefKindToken(),
-                                            IdentifierName( p.Name ) ) ) ) ),
+                                        .SelectAsArray(
+                                            p =>
+                                                Argument(
+                                                    NameColon( IdentifierName( p.Name ) ),
+                                                    p.RefKind.InvocationRefKindToken(),
+                                                    IdentifierName( p.Name ) ) ) ) ),
                             null ) ) ) ) );
 
     public override ExpressionSyntax GetPropertyReference(

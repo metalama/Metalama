@@ -22,24 +22,24 @@ internal class GeneratedCodeAnalyzer : DiagnosticAnalyzer
 {
     private const string _diagnosticCategory = "Metalama.GeneratedCodeAnalyzer";
 
-    internal static readonly DiagnosticDefinition<(string AspectType, ISymbol Target, string Addendum)> AspectAppliedToGeneratedCode = new(
+    private static readonly DiagnosticDefinition<(string AspectType, ISymbol Target, string Addendum)> _aspectAppliedToGeneratedCode = new(
         "LAMA0320",
         "Aspect can't be applied to source generated code.",
         "The aspect '{0}' can't be applied to '{1}', because it's in source generated code.{2}",
         _diagnosticCategory,
         Severity.Warning );
 
-    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create( AspectAppliedToGeneratedCode.ToRoslynDescriptor() );
+    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create( _aspectAppliedToGeneratedCode.ToRoslynDescriptor() );
 
     public override void Initialize( AnalysisContext context )
     {
         context.EnableConcurrentExecution();
         context.ConfigureGeneratedCodeAnalysis( GeneratedCodeAnalysisFlags.Analyze | GeneratedCodeAnalysisFlags.ReportDiagnostics );
 
-        context.RegisterSymbolAction( this.AnalyzeSymbol, SymbolKind.Event, SymbolKind.Field, SymbolKind.Method, SymbolKind.NamedType, SymbolKind.Parameter, SymbolKind.Property );
+        context.RegisterSymbolAction( AnalyzeSymbol, SymbolKind.Event, SymbolKind.Field, SymbolKind.Method, SymbolKind.NamedType, SymbolKind.Parameter, SymbolKind.Property );
     }
 
-    private void AnalyzeSymbol( SymbolAnalysisContext context )
+    private static void AnalyzeSymbol( SymbolAnalysisContext context )
     {
         var tree = context.Symbol.GetClosestPrimaryDeclarationSyntax()?.SyntaxTree;
 
@@ -58,13 +58,13 @@ internal class GeneratedCodeAnalyzer : DiagnosticAnalyzer
         else if ( isGenerated == null )
         {
             // At design time, source generated files have relative paths, other files seem to have absolute paths.
-            if ( !context.IsGeneratedCode || Path.IsPathRooted( tree?.FilePath ) )
+            if ( !context.IsGeneratedCode || Path.IsPathRooted( tree.FilePath ) )
             {
                 return;
             }
         }
 
-        var iAspect = context.Compilation.GetTypeByMetadataName( typeof( IAspect ).FullName! );
+        var iAspect = context.Compilation.GetTypeByMetadataName( typeof(IAspect).FullName! );
 
         var symbol = context.Symbol;
 
@@ -81,7 +81,7 @@ internal class GeneratedCodeAnalyzer : DiagnosticAnalyzer
                     addendum = " For Razor files, consider extracting the relevant code to code behind.";
                 }
 
-                var diagnostic = AspectAppliedToGeneratedCode.CreateRoslynDiagnostic(
+                var diagnostic = _aspectAppliedToGeneratedCode.CreateRoslynDiagnostic(
                     location,
                     (AttributeHelper.GetShortName( attribute.AttributeClass!.MetadataName ), symbol, addendum) );
 

@@ -16,29 +16,23 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Metalama.Framework.Engine.AdviceImpl.Override;
 
-internal sealed class OverrideIndexerTransformation : OverrideIndexerBaseTransformation
+internal sealed class OverrideIndexerTransformation(
+    AspectLayerInstance aspectLayerInstance,
+    IFullRef<IIndexer> overriddenDeclaration,
+    BoundTemplateMethod? getTemplate,
+    BoundTemplateMethod? setTemplate )
+    : OverrideIndexerBaseTransformation( aspectLayerInstance, overriddenDeclaration )
 {
-    private BoundTemplateMethod? GetTemplate { get; }
+    private BoundTemplateMethod? GetTemplate { get; } = getTemplate;
 
-    private BoundTemplateMethod? SetTemplate { get; }
-
-    public OverrideIndexerTransformation(
-        AspectLayerInstance aspectLayerInstance,
-        IFullRef<IIndexer> overriddenDeclaration,
-        BoundTemplateMethod? getTemplate,
-        BoundTemplateMethod? setTemplate )
-        : base( aspectLayerInstance, overriddenDeclaration )
-    {
-        this.GetTemplate = getTemplate;
-        this.SetTemplate = setTemplate;
-    }
+    private BoundTemplateMethod? SetTemplate { get; } = setTemplate;
 
     public override IEnumerable<InjectedMember> GetInjectedMembers( MemberInjectionContext context )
     {
         var templateExpansionError = false;
         BlockSyntax? getAccessorBody = null;
 
-        var overriddenDeclaration = this.OverriddenPropertyOrIndexer.GetTarget( this.InitialCompilation );
+        var overriddenDeclaration = this.OverriddenIndexer.GetTarget( this.InitialCompilation );
 
         if ( overriddenDeclaration.GetMethod != null )
         {

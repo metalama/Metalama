@@ -130,8 +130,7 @@ namespace Metalama.Framework.Engine.CodeModel.Source.Pseudo
 
         internal override ICompilationElement Translate(
             CompilationModel newCompilation,
-            IGenericContext? genericContext = null,
-            Type? interfaceType = null )
+            IGenericContext? genericContext = null )
             => newCompilation.Factory.Translate( this.DeclaringMember, genericContext ).AssertNotNull().Parameters[this.Index];
     }
 }

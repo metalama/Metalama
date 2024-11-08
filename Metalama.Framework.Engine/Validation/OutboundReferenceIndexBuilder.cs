@@ -14,20 +14,12 @@ using System.Threading;
 
 namespace Metalama.Framework.Engine.Validation;
 
-internal sealed class OutboundReferenceIndexBuilder : ReferenceIndexBuilder
+internal sealed class OutboundReferenceIndexBuilder( ProjectServiceProvider serviceProvider ) : ReferenceIndexBuilder
 {
     private readonly ConcurrentQueue<OutboundReference> _references = new();
-    private readonly ProjectServiceProvider _serviceProvider;
-    private readonly IConcurrentTaskRunner _concurrentTaskRunner;
-    private readonly ITaskRunner _taskRunner;
+    private readonly IConcurrentTaskRunner _concurrentTaskRunner = serviceProvider.GetRequiredService<IConcurrentTaskRunner>();
+    private readonly ITaskRunner _taskRunner = serviceProvider.Global.GetRequiredService<ITaskRunner>();
     private bool _frozen;
-
-    public OutboundReferenceIndexBuilder( ProjectServiceProvider serviceProvider )
-    {
-        this._serviceProvider = serviceProvider;
-        this._concurrentTaskRunner = serviceProvider.GetRequiredService<IConcurrentTaskRunner>();
-        this._taskRunner = serviceProvider.Global.GetRequiredService<ITaskRunner>();
-    }
 
     protected override void AddReferenceCore( ISymbol referencedSymbol, ISymbol referencingSymbol, SyntaxNodeOrToken node, ReferenceKinds referenceKind )
     {
@@ -46,9 +38,9 @@ internal sealed class OutboundReferenceIndexBuilder : ReferenceIndexBuilder
         return this._references;
     }
 
-    public void IndexSyntaxNode( SyntaxNode node, SemanticModel semanticModel, CancellationToken cancellationToken = default )
+    private void IndexSyntaxNode( SyntaxNode node, SemanticModel semanticModel, CancellationToken cancellationToken = default )
     {
-        var walker = new ReferenceIndexWalker( this._serviceProvider, cancellationToken, this, ReferenceIndexerOptions.All, semanticModel );
+        var walker = new ReferenceIndexWalker( serviceProvider, this, ReferenceIndexerOptions.All, semanticModel, cancellationToken );
         walker.Visit( node );
     }
 

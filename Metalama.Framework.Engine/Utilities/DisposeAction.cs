@@ -4,18 +4,10 @@ using System;
 
 namespace Metalama.Framework.Engine.Utilities
 {
-    public readonly struct DisposeAction : IDisposable
+    public readonly struct DisposeAction( Action action ) : IDisposable
     {
-        private readonly Action? _action;
+        private readonly Action? _action = action;
 
-        public DisposeAction( Action action )
-        {
-            this._action = action;
-        }
-
-        public void Dispose()
-        {
-            this._action?.Invoke();
-        }
+        public void Dispose() => this._action?.Invoke();
     }
 }

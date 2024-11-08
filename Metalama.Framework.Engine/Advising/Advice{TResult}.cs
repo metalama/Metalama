@@ -6,18 +6,15 @@ using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Transformations;
 using Microsoft.CodeAnalysis;
-using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 
 namespace Metalama.Framework.Engine.Advising;
 
-internal abstract class Advice<TResult> : Advice
+internal abstract class Advice<TResult>( Advice.AdviceConstructorParameters parameters ) : Advice( parameters )
     where TResult : AdviceResult, new()
 {
-    protected Advice( AdviceConstructorParameters parameters ) : base( parameters ) { }
-
     public TResult Execute( IAdviceExecutionContext context )
     {
         List<ITransformation> transformations = new();
@@ -76,17 +73,11 @@ internal abstract class Advice<TResult> : Advice
     protected TResult CreateFailedResult( ImmutableArray<Diagnostic> diagnostics )
         => new() { Diagnostics = diagnostics, Outcome = AdviceOutcome.Error, AdviceKind = this.AdviceKind };
 
-    internal readonly struct AdviceImplementationContext
+    internal readonly struct AdviceImplementationContext(
+        DiagnosticBag diagnostics,
+        IAdviceExecutionContext adviceExecutionContext,
+        List<ITransformation> transformations )
     {
-        private readonly List<ITransformation> _transformations;
-
-        public AdviceImplementationContext( DiagnosticBag diagnostics, IAdviceExecutionContext adviceExecutionContext, List<ITransformation> transformations )
-        {
-            this._transformations = transformations;
-            this.Diagnostics = diagnostics;
-            this.AdviceExecutionContext = adviceExecutionContext;
-        }
-
         public void ThrowIfAnyError()
         {
             if ( this.Diagnostics.HasError() )
@@ -97,33 +88,16 @@ internal abstract class Advice<TResult> : Advice
             }
         }
 
-        public CompilationModel MutableCompilation => this.AdviceExecutionContext.MutableCompilation;
+        public CompilationModel MutableCompilation => adviceExecutionContext.MutableCompilation;
 
-        public IAdviceExecutionContext AdviceExecutionContext { get; }
+        public ProjectServiceProvider ServiceProvider => adviceExecutionContext.ServiceProvider;
 
-        public ProjectServiceProvider ServiceProvider => this.AdviceExecutionContext.ServiceProvider;
-
-        public DiagnosticBag Diagnostics { get; }
+        public DiagnosticBag Diagnostics { get; } = diagnostics;
 
         public void AddTransformation( ITransformation transformation )
         {
-            this.AdviceExecutionContext.SetOrders( transformation );
-            this._transformations.Add( transformation );
-        }
-    }
-
-    internal readonly struct ImplementationContext
-    {
-        private readonly Action<ITransformation> _addTransformation;
-
-        public ImplementationContext( Action<ITransformation> addTransformation )
-        {
-            this._addTransformation = addTransformation;
-        }
-
-        public void AddTransformation( ITransformation transformation )
-        {
-            this._addTransformation( transformation );
+            adviceExecutionContext.SetOrders( transformation );
+            transformations.Add( transformation );
         }
     }
 }

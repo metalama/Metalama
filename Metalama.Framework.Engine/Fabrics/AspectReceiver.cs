@@ -678,7 +678,7 @@ namespace Metalama.Framework.Engine.Fabrics
                             }
                         } ) ) );
 
-        public IAspectReceiver<TOut, TTag> OfType<TOut>()
+        private IAspectReceiver<TOut, TTag> OfType<TOut>()
             where TOut : class, IDeclaration
             => this.AddChild(
                 new ChildAspectReceiver<TOut, TTag>(

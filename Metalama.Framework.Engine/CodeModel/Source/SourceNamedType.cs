@@ -538,7 +538,7 @@ namespace Metalama.Framework.Engine.CodeModel.Source
 
             for ( var i = 0; i < types.Count; i++ )
             {
-                if ( types[i] != this.TypeArguments[i] )
+                if ( !ReferenceEquals( types[i], this.TypeArguments[i] ) )
                 {
                     hasDifference = true;
 

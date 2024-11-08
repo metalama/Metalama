@@ -10,7 +10,7 @@ using System.Linq;
 
 namespace Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 
-internal class ConstructorBuilderData : MemberBuilderData
+internal sealed class ConstructorBuilderData : MemberBuilderData
 {
     private readonly IFullRef<IConstructor> _ref;
 
@@ -39,14 +39,12 @@ internal class ConstructorBuilderData : MemberBuilderData
         this.Parameters = builder.Parameters.ToImmutable( this._ref );
         this.ReplacedImplicitConstructor = builder.ReplacedImplicitConstructor?.ToFullRef();
         this.InitializerKind = builder.InitializerKind;
-        this.InitializerArguments = ImmutableArray.ToImmutableArray( builder.InitializerArguments );
+        this.InitializerArguments = builder.InitializerArguments.ToImmutableArray();
         this.Attributes = builder.Attributes.ToImmutable( this._ref );
         this.IsImplicitlyDeclared = builder.IsImplicitlyDeclared;
     }
 
     public override IRef<IMember>? OverriddenMember => null;
-
-    public override IReadOnlyList<IRef<IMember>> ExplicitInterfaceImplementationMembers => [];
 
     public override IEnumerable<DeclarationBuilderData> GetOwnedDeclarations() => base.GetOwnedDeclarations().Concat( this.Parameters );
 }

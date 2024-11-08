@@ -9,18 +9,11 @@ using System;
 
 namespace Metalama.Framework.Engine.AdviceImpl.Introduction;
 
-internal abstract class IntroduceDeclarationAdvice<TIntroduced, TBuilder> : Advice<IntroductionAdviceResult<TIntroduced>>
+internal abstract class IntroduceDeclarationAdvice<TIntroduced, TBuilder>( Advice.AdviceConstructorParameters parameters, Action<TBuilder>? buildAction )
+    : Advice<IntroductionAdviceResult<TIntroduced>>( parameters )
     where TIntroduced : class, IDeclaration
     where TBuilder : DeclarationBuilder, TIntroduced
 {
-    private readonly Action<TBuilder>? _buildAction;
-
-    protected IntroduceDeclarationAdvice( AdviceConstructorParameters parameters, Action<TBuilder>? buildAction )
-        : base( parameters )
-    {
-        this._buildAction = buildAction;
-    }
-
     protected IntroductionAdviceResult<TIntroduced> CreateSuccessResult( AdviceOutcome outcome, TIntroduced introducedMember )
     {
         return new IntroductionAdviceResult<TIntroduced>( this.AdviceKind, outcome, introducedMember.ToRef().As<TIntroduced>(), null );
@@ -35,25 +28,25 @@ internal abstract class IntroduceDeclarationAdvice<TIntroduced, TBuilder> : Advi
 
     protected sealed override IntroductionAdviceResult<TIntroduced> Implement( in AdviceImplementationContext context )
     {
-        var builder = this.CreateBuilder( context );
+        var builder = this.CreateBuilder();
         context.ThrowIfAnyError();
 
         this.InitializeBuilder( builder, in context );
 
-        this._buildAction?.Invoke( builder );
+        buildAction?.Invoke( builder );
 
-        this.CompleteBuilder( builder, in context );
+        this.CompleteBuilder( builder );
 
         this.ValidateBuilder( builder, context.Diagnostics );
 
         return this.ImplementCore( builder, in context );
     }
 
-    protected abstract TBuilder CreateBuilder( in AdviceImplementationContext context );
+    protected abstract TBuilder CreateBuilder();
 
     protected virtual void InitializeBuilder( TBuilder builder, in AdviceImplementationContext context ) { }
 
-    protected virtual void CompleteBuilder( TBuilder builder, in AdviceImplementationContext context ) { }
+    protected virtual void CompleteBuilder( TBuilder builder ) { }
 
     protected abstract IntroductionAdviceResult<TIntroduced> ImplementCore( TBuilder builder, in AdviceImplementationContext context );
 

@@ -15,27 +15,25 @@ using System;
 
 namespace Metalama.Framework.Engine.AdviceImpl.Introduction;
 
-internal sealed class IntroduceMethodAdvice : IntroduceMemberAdvice<IMethod, IMethod, MethodBuilder>
+internal sealed class IntroduceMethodAdvice(
+    Advice.AdviceConstructorParameters<INamedType> parameters,
+    string? explicitName,
+    PartiallyBoundTemplateMethod template,
+    IntroductionScope scope,
+    OverrideStrategy overrideStrategy,
+    Action<IMethodBuilder>? buildAction,
+    INamedType? explicitlyImplementedInterfaceType )
+    : IntroduceMemberAdvice<IMethod, IMethod, MethodBuilder>(
+        parameters,
+        explicitName,
+        template.TemplateMember,
+        scope,
+        overrideStrategy,
+        buildAction,
+        explicitlyImplementedInterfaceType )
 {
-    private readonly PartiallyBoundTemplateMethod _template;
-
-    public IntroduceMethodAdvice(
-        AdviceConstructorParameters<INamedType> parameters,
-        string? explicitName,
-        PartiallyBoundTemplateMethod template,
-        IntroductionScope scope,
-        OverrideStrategy overrideStrategy,
-        Action<IMethodBuilder>? buildAction,
-        INamedType? explicitlyImplementedInterfaceType )
-        : base( parameters, explicitName, template.TemplateMember, scope, overrideStrategy, buildAction, explicitlyImplementedInterfaceType )
-    {
-        this._template = template;
-    }
-
-    protected override MethodBuilder CreateBuilder( in AdviceImplementationContext context )
-    {
-        return new MethodBuilder( this.AspectLayerInstance, this.TargetDeclaration, this.MemberName );
-    }
+    protected override MethodBuilder CreateBuilder()
+        => new( this.AspectLayerInstance, this.TargetDeclaration, this.MemberName );
 
     protected override void InitializeBuilderCore(
         MethodBuilder builder,
@@ -50,7 +48,7 @@ internal sealed class IntroduceMethodAdvice : IntroduceMemberAdvice<IMethod, IMe
 
         builder.IsAsync = templateDeclaration.IsAsync;
 
-        var typeRewriter = TemplateTypeRewriter.Get( this._template );
+        var typeRewriter = TemplateTypeRewriter.Get( template );
 
         // Handle iterator info.
         builder.SetIsIteratorMethod( this.Template.IsIteratorMethod );
@@ -89,6 +87,7 @@ internal sealed class IntroduceMethodAdvice : IntroduceMemberAdvice<IMethod, IMe
                 templateParameter.DefaultValue );
 
             parameterBuilder.IsParams = templateParameter.IsParams;
+
             parameterBuilder.IsThis = templateParameter.Attributes.Any(
                 templateParameter.Compilation.Cache.GetOrAdd( static c => c.Factory.GetTypeByReflectionName( typeof(ThisAttribute).FullName! ) ) );
 
@@ -155,7 +154,7 @@ internal sealed class IntroduceMethodAdvice : IntroduceMemberAdvice<IMethod, IMe
             var overriddenMethod = new OverrideMethodTransformation(
                 this.AspectLayerInstance,
                 builder.ToFullRef(),
-                this._template.ForIntroduction( builder ) );
+                template.ForIntroduction( builder ) );
 
             if ( !hasNoBody )
             {
@@ -214,7 +213,7 @@ internal sealed class IntroduceMethodAdvice : IntroduceMemberAdvice<IMethod, IMe
                         var overriddenMethod = new OverrideMethodTransformation(
                             this.AspectLayerInstance,
                             builder.ToFullRef(),
-                            this._template.AssertNotNull().ForIntroduction( builder ) );
+                            template.AssertNotNull().ForIntroduction( builder ) );
 
                         context.AddTransformation( builder.ToTransformation() );
 
@@ -244,7 +243,7 @@ internal sealed class IntroduceMethodAdvice : IntroduceMemberAdvice<IMethod, IMe
                         var overriddenMethod = new OverrideMethodTransformation(
                             this.AspectLayerInstance,
                             existingMethod.ToFullRef(),
-                            this._template.AssertNotNull().ForIntroduction( existingMethod ) );
+                            template.AssertNotNull().ForIntroduction( existingMethod ) );
 
                         context.AddTransformation( overriddenMethod );
 
@@ -271,7 +270,7 @@ internal sealed class IntroduceMethodAdvice : IntroduceMemberAdvice<IMethod, IMe
                         var overriddenMethod = new OverrideMethodTransformation(
                             this.AspectLayerInstance,
                             builder.ToFullRef(),
-                            this._template.AssertNotNull().ForIntroduction( builder ) );
+                            template.AssertNotNull().ForIntroduction( builder ) );
 
                         context.AddTransformation( builder.ToTransformation() );
                         context.AddTransformation( overriddenMethod );

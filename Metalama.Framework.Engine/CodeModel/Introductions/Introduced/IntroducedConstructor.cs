@@ -48,7 +48,7 @@ internal sealed class IntroducedConstructor : IntroducedMember, IConstructorImpl
 
     IRef<IMethodBase> IMethodBase.ToRef() => this.ToRef();
 
-    public override IFullRef<IMember> ToMemberFullRef() => this.Ref;
+    protected override IFullRef<IMember> ToMemberFullRef() => this.Ref;
 
     [Memo]
     private IFullRef<IConstructor> Ref

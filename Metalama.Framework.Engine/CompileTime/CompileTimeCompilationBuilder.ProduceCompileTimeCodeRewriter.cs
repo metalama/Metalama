@@ -759,7 +759,7 @@ namespace Metalama.Framework.Engine.CompileTime
                     yield break;
                 }
 
-                if (templateInfo.HasNoBody)
+                if ( templateInfo.HasNoBody )
                 {
                     yield break;
                 }

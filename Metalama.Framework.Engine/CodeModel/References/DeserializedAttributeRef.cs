@@ -8,36 +8,29 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Metalama.Framework.Engine.CodeModel.References;
 
-internal sealed class DeserializedAttributeRef : AttributeRef
+internal sealed class DeserializedAttributeRef( AttributeSerializationData data ) : AttributeRef
 {
-    private readonly AttributeSerializationData _serializationData;
+    public override IRef<IDeclaration> ContainingDeclaration => data.ContainingDeclaration;
 
-    public DeserializedAttributeRef( AttributeSerializationData serializationData )
+    public override IRef<INamedType> AttributeType => data.Type;
+
+    public override bool TryGetTarget( CompilationModel compilation, [NotNullWhen( true )] out IAttribute? attribute )
     {
-        this._serializationData = serializationData;
-    }
-
-    public override IRef<IDeclaration> ContainingDeclaration => this._serializationData.ContainingDeclaration;
-
-    public override IRef<INamedType> AttributeType => this._serializationData.Type;
-
-    public override bool TryGetTarget( CompilationModel compilation, IGenericContext? genericContext, [NotNullWhen( true )] out IAttribute? attribute )
-    {
-        attribute = compilation.Factory.GetDeserializedAttribute( this._serializationData );
+        attribute = compilation.Factory.GetDeserializedAttribute( data );
 
         return true;
     }
 
     public override bool TryGetAttributeSerializationDataKey( [NotNullWhen( true )] out object? serializationDataKey )
     {
-        serializationDataKey = this._serializationData;
+        serializationDataKey = data;
 
         return true;
     }
 
     public override bool TryGetAttributeSerializationData( [NotNullWhen( true )] out AttributeSerializationData? serializationData )
     {
-        serializationData = this._serializationData;
+        serializationData = data;
 
         return true;
     }
@@ -46,5 +39,5 @@ internal sealed class DeserializedAttributeRef : AttributeRef
 
     protected override AttributeSyntax? AttributeSyntax => null;
 
-    protected override int GetHashCodeCore() => this._serializationData.GetHashCode();
+    protected override int GetHashCodeCore() => data.GetHashCode();
 }

@@ -8,7 +8,7 @@ using Xunit;
 
 namespace Metalama.Framework.Tests.UnitTests.Templating;
 
-public class PreprocessorFixerTests : UnitTestClass
+public sealed class PreprocessorFixerTests : UnitTestClass
 {
     [Fact]
     public void DisabledText()

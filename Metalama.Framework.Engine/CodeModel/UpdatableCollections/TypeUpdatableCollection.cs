@@ -1,6 +1,7 @@
 ﻿// Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
 using Metalama.Framework.Code;
+using Metalama.Framework.Code.Comparers;
 using System.Collections.Generic;
 
 namespace Metalama.Framework.Engine.CodeModel.UpdatableCollections;
@@ -15,7 +16,7 @@ internal sealed class TypeUpdatableCollection : NonUniquelyNamedUpdatableCollect
         compilation,
         compilation.ToRef() ) { }
 
-    protected override IEqualityComparer<IRef<INamedType>> MemberRefComparer => this.Compilation.CompilationContext.NamedTypeRefComparer;
+    protected override IEqualityComparer<IRef<INamedType>> MemberRefComparer => RefEqualityComparer<INamedType>.Default;
 
     protected override DeclarationKind ItemsDeclarationKind => DeclarationKind.NamedType;
 }

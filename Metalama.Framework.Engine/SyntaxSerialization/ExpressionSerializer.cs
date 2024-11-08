@@ -7,12 +7,10 @@ using System;
 
 namespace Metalama.Framework.Engine.SyntaxSerialization
 {
-    internal sealed class ExpressionSerializer : ObjectSerializer<IExpression>
+    internal sealed class ExpressionSerializer( SyntaxSerializationService service ) : ObjectSerializer<IExpression>( service )
     {
-        public ExpressionSerializer( SyntaxSerializationService service ) : base( service ) { }
-
         public override ExpressionSyntax Serialize( IExpression obj, SyntaxSerializationContext serializationContext )
-            => obj.ToExpressionSyntax( serializationContext, null );
+            => obj.ToExpressionSyntax( serializationContext );
 
         public override Type? OutputType => null;
     }

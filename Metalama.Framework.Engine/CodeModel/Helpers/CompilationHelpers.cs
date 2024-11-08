@@ -13,22 +13,16 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Metalama.Framework.Engine.CodeModel.Helpers;
 
-internal sealed class CompilationHelpers : ICompilationHelpers
+internal sealed class CompilationHelpers( in ProjectServiceProvider serviceProvider, CompilationContext compilationContext )
+    : ICompilationHelpers
 {
-    private readonly ProjectServiceProvider _serviceProvider;
-    private readonly CompilationContext _compilationContext;
+    private readonly ProjectServiceProvider _serviceProvider = serviceProvider;
     private AttributeDeserializer? _attributeDeserializer;
-
-    public CompilationHelpers( in ProjectServiceProvider serviceProvider, CompilationContext compilationContext )
-    {
-        this._serviceProvider = serviceProvider;
-        this._compilationContext = compilationContext;
-    }
 
     // The service is not always available in tests, so we get it lazily.
     private AttributeDeserializer GetAttributeDeserializer()
         => this._attributeDeserializer ??=
-            this._serviceProvider.GetRequiredService<UserCodeAttributeDeserializer.Provider>().Get( this._compilationContext );
+            this._serviceProvider.GetRequiredService<UserCodeAttributeDeserializer.Provider>().Get( compilationContext );
 
     public IteratorInfo GetIteratorInfo( IMethod method ) => method.GetIteratorInfoImpl();
 
@@ -46,7 +40,7 @@ internal sealed class CompilationHelpers : ICompilationHelpers
 
     public bool DerivesFrom( INamedType left, INamedType right, DerivedTypesOptions options = DerivedTypesOptions.Default )
     {
-        if ( right.Definition != right )
+        if ( !ReferenceEquals( right.Definition, right ) )
         {
             throw new ArgumentOutOfRangeException( nameof(right), "The type must not be a generic type instance." );
         }

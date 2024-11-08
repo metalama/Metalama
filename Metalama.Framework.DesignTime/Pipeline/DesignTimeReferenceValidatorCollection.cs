@@ -3,7 +3,6 @@
 using Metalama.Framework.Code.Collections;
 using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.Collections;
-using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Metalama.Framework.Engine.Validation;
 using Microsoft.CodeAnalysis;
@@ -67,7 +66,7 @@ internal sealed class DesignTimeReferenceValidatorCollection
 
     public Builder ToBuilder() => new( this._ownValidators.ToBuilder() );
 
-    public ImmutableArray<TransitiveValidatorInstance> ToTransitiveValidatorInstances( CompilationContext compilationContext )
+    public ImmutableArray<TransitiveValidatorInstance> ToTransitiveValidatorInstances()
     {
         var builder = ImmutableArray.CreateBuilder<TransitiveValidatorInstance>();
 
@@ -75,25 +74,18 @@ internal sealed class DesignTimeReferenceValidatorCollection
         {
             foreach ( var validator in this._ownValidators[key] )
             {
-                builder.Add( validator.ToTransitiveValidatorInstance( compilationContext ) );
+                builder.Add( validator.ToTransitiveValidatorInstance() );
             }
         }
 
         return builder.ToImmutable();
     }
 
-    public sealed class Builder
+    public sealed class Builder( ImmutableDictionaryOfArray<SymbolDictionaryKey, DesignTimeReferenceValidatorInstance>.Builder builder )
     {
-        private readonly ImmutableDictionaryOfArray<SymbolDictionaryKey, DesignTimeReferenceValidatorInstance>.Builder _builder;
-
-        public Builder( ImmutableDictionaryOfArray<SymbolDictionaryKey, DesignTimeReferenceValidatorInstance>.Builder builder )
-        {
-            this._builder = builder;
-        }
-
         public void Remove( DesignTimeReferenceValidatorInstance validator )
         {
-            if ( !this._builder.Remove( validator.ValidatedDeclaration, validator ) )
+            if ( !builder.Remove( validator.ValidatedDeclaration, validator ) )
             {
 #if DEBUG
                 throw new AssertionFailedException( "Cannot remove validator." );
@@ -101,11 +93,11 @@ internal sealed class DesignTimeReferenceValidatorCollection
             }
         }
 
-        public void Add( DesignTimeReferenceValidatorInstance validator ) => this._builder.Add( validator.ValidatedDeclaration, validator );
+        public void Add( DesignTimeReferenceValidatorInstance validator ) => builder.Add( validator.ValidatedDeclaration, validator );
 
         public DesignTimeReferenceValidatorCollection ToImmutable( IEnumerable<DesignTimeReferenceValidatorCollection> childCollections )
         {
-            var ownValidators = this._builder.ToImmutable();
+            var ownValidators = builder.ToImmutable();
 
             return new DesignTimeReferenceValidatorCollection(
                 new ReferenceIndexerOptions( ownValidators.SelectMany( x => x ) ),

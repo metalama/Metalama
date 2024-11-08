@@ -95,9 +95,9 @@ internal abstract class Invoker<T>
 
         public TypedExpressionSyntaxImpl TypedExpressionSyntax { get; }
 
-        public bool RequiresConditionalAccess { get; init; }
+        public bool RequiresConditionalAccess { get; }
 
-        public AspectReferenceSpecification AspectReferenceSpecification { get; init; }
+        public AspectReferenceSpecification AspectReferenceSpecification { get; }
 
         public ReceiverExpressionSyntax WithSyntax( ExpressionSyntax syntax )
             => new( syntax, this.RequiresConditionalAccess, this.AspectReferenceSpecification );

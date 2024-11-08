@@ -4,7 +4,7 @@ using System.Globalization;
 
 namespace Metalama.Framework.Engine.Linking.Inlining;
 
-internal record struct InliningId( int Value )
+internal readonly record struct InliningId( int Value )
 {
     public override string ToString() => this.Value.ToString( CultureInfo.InvariantCulture );
 }

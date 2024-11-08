@@ -292,7 +292,7 @@ public class UserCodeExecutionContext : IExecutionContextInternal
             {
                 var declaringType = declaration.GetTopmostNamedType();
 
-                if ( declaringType != null && declaringType != this._targetType )
+                if ( declaringType != null && !declaringType.Equals( this._targetType ) )
                 {
                     this._dependencyCollector.AddDependency(
                         declaringType.GetSymbol().AssertSymbolNullNotImplemented( UnsupportedFeatures.Uncategorized ),

@@ -33,7 +33,7 @@ internal class BaseCompileTimeSerializationBinder
             .ToImmutableDictionary( x => x.Key, x => x.OrderByDescending( a => a.Version ).First().ToString() );
     }
 
-    public BaseCompileTimeSerializationBinder( in ProjectServiceProvider serviceProvider )
+    protected BaseCompileTimeSerializationBinder( in ProjectServiceProvider serviceProvider )
     {
         this._logger = serviceProvider.GetLoggerFactory().GetLogger( "Serialization" );
     }

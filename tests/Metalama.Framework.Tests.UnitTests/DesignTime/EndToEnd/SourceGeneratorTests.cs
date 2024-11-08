@@ -9,7 +9,7 @@ using Xunit;
 
 namespace Metalama.Framework.Tests.UnitTests.DesignTime.EndToEnd;
 
-public class SourceGeneratorTests : FrameworkBaseTestClass
+public sealed class SourceGeneratorTests : FrameworkBaseTestClass
 {
     [Fact]
     public void RemovingTargetRemovesGenerated()

@@ -11,12 +11,12 @@ namespace Metalama.Framework.Engine.Advising;
 /// It is used to bind type parameters of introduction templates before the final declaration is known.
 /// The template may become invalid after binding to the final target declaration.
 /// </summary>
-internal sealed class PartiallyBoundTemplateMethod
+internal sealed class PartiallyBoundTemplateMethod( TemplateMember<IMethod> template, object?[] typeArguments, IObjectReader? argumentReader )
 {
     /// <summary>
     /// Gets the template member of the aspect.
     /// </summary>
-    public TemplateMember<IMethod> TemplateMember { get; }
+    public TemplateMember<IMethod> TemplateMember { get; } = template;
 
     /// <summary>
     /// Gets the template declaration.
@@ -26,22 +26,10 @@ internal sealed class PartiallyBoundTemplateMethod
     /// <summary>
     /// Gets arguments of the template.
     /// </summary>
-    public IObjectReader? TemplateArguments { get; }
+    public IObjectReader? TemplateArguments { get; } = argumentReader;
 
     /// <summary>
     /// Gets bound template type arguments.
     /// </summary>
-    public object?[] TypeArguments { get; }
-
-    public TemplateProvider TemplateProvider => this.TemplateMember.TemplateProvider;
-
-    public PartiallyBoundTemplateMethod(
-        TemplateMember<IMethod> template,
-        object?[] typeArguments,
-        IObjectReader? argumentReader )
-    {
-        this.TemplateMember = template;
-        this.TemplateArguments = argumentReader;
-        this.TypeArguments = typeArguments;
-    }
+    public object?[] TypeArguments { get; } = typeArguments;
 }

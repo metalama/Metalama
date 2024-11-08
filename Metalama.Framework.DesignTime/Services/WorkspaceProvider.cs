@@ -10,18 +10,13 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Metalama.Framework.DesignTime.Services;
 
-public abstract class WorkspaceProvider : IGlobalService, IDisposable
+public abstract class WorkspaceProvider( GlobalServiceProvider serviceProvider ) : IGlobalService, IDisposable
 {
     private readonly TimeBasedCache<ProjectKey, ProjectId> _projectKeyToProjectIdMap = new( TimeSpan.FromMinutes( 10 ) );
 
-    protected ILogger Logger { get; }
+    protected ILogger Logger { get; } = serviceProvider.GetLoggerFactory().GetLogger( "WorkspaceProvider" );
 
-    protected WorkspaceProvider( GlobalServiceProvider serviceProvider )
-    {
-        this.Logger = serviceProvider.GetLoggerFactory().GetLogger( "WorkspaceProvider" );
-    }
-
-    public abstract Task<Workspace> GetWorkspaceAsync( CancellationToken cancellationToken = default );
+    protected abstract Task<Workspace> GetWorkspaceAsync( CancellationToken cancellationToken = default );
 
     internal bool TryGetWorkspace( [NotNullWhen( true )] out Workspace? workspace )
     {

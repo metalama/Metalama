@@ -329,7 +329,7 @@ internal sealed partial class LinkerRewritingDriver
                         constructorDeclaration.ParameterList.Parameters.RemoveAt(
                             constructorDeclaration.ParameterList.Parameters switch
                             {
-                                [ .., { Identifier: { ValueText: AspectReferenceSyntaxProvider.LinkerOverrideParamName } }, _ ] 
+                                [.., { Identifier.ValueText: AspectReferenceSyntaxProvider.LinkerOverrideParamName }, _] 
                                     => constructorDeclaration.ParameterList.Parameters.Count - 2,
                                 _ => constructorDeclaration.ParameterList.Parameters.Count - 1,
                             } ) )

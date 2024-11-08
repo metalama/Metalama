@@ -10,16 +10,12 @@ using Microsoft.CodeAnalysis;
 
 namespace Metalama.Framework.Engine.CodeModel.Source
 {
-    internal abstract class SourceDeclaration : SymbolBasedDeclaration
+    internal abstract class SourceDeclaration( CompilationModel compilation, GenericContext? genericContextForSymbolMapping )
+        : SymbolBasedDeclaration( genericContextForSymbolMapping )
     {
-        protected SourceDeclaration( CompilationModel compilation, GenericContext? genericContextForSymbolMapping ) : base( genericContextForSymbolMapping )
-        {
-            this.Compilation = compilation;
-        }
-
         protected virtual void OnUsingDeclaration() { }
 
-        public override CompilationModel Compilation { get; }
+        public override CompilationModel Compilation { get; } = compilation;
 
         public override IAttributeCollection Attributes
         {
@@ -48,7 +44,7 @@ namespace Metalama.Framework.Engine.CodeModel.Source
                     // Error types sometimes do and sometimes don't have a containing assembly. If they don't, we use the current compilation.
                     IErrorTypeSymbol => this.Compilation,
 
-                    _ => throw new AssertionFailedException( $"Unexpected symbol '{this.Symbol}' (Kind={this.Symbol?.Kind}) without a declaring assembly." )
+                    _ => throw new AssertionFailedException( $"Unexpected symbol '{this.Symbol}' without a declaring assembly." )
                 };
 
         public override string ToString()

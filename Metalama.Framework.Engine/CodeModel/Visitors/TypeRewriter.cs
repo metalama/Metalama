@@ -1,5 +1,6 @@
 ﻿// Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
+using JetBrains.Annotations;
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.Types;
 using Metalama.Framework.Engine.CodeModel.Abstractions;
@@ -15,13 +16,14 @@ namespace Metalama.Framework.Engine.CodeModel.Visitors
     /// </summary>
     internal abstract class TypeRewriter
     {
+        [PublicAPI]
         protected static TypeRewriter Null { get; } = new NullRewriter();
 
         internal virtual IType Visit( IArrayType arrayType )
         {
             var elementType = this.Visit( arrayType.ElementType );
 
-            if ( elementType == arrayType.ElementType )
+            if ( ReferenceEquals( elementType, arrayType.ElementType ) )
             {
                 return arrayType;
             }
@@ -43,7 +45,7 @@ namespace Metalama.Framework.Engine.CodeModel.Visitors
         {
             var pointedAtType = this.Visit( pointerType.PointedAtType );
 
-            if ( pointedAtType == pointerType.PointedAtType )
+            if ( ReferenceEquals( pointedAtType, pointerType.PointedAtType ) )
             {
                 return pointerType;
             }
@@ -75,7 +77,7 @@ namespace Metalama.Framework.Engine.CodeModel.Visitors
             if ( namedType.DeclaringType != null )
             {
                 var mappedDeclaringType = (INamedType) this.Visit( namedType.DeclaringType );
-                hasChange |= mappedDeclaringType != namedType.DeclaringType;
+                hasChange |= !ReferenceEquals( mappedDeclaringType, namedType.DeclaringType );
                 typeDefinition = mappedDeclaringType.Types.OfName( namedType.Name ).Single( t => t.TypeParameters.Count == namedType.TypeParameters.Count );
 
                 if ( namedType.TypeArguments.Count == 0 )
@@ -94,7 +96,7 @@ namespace Metalama.Framework.Engine.CodeModel.Visitors
             {
                 var t = namedType.TypeArguments[index];
                 var argumentType = this.Visit( t );
-                hasChange |= argumentType != t;
+                hasChange |= !ReferenceEquals( argumentType, t );
                 typeArguments[index] = argumentType;
             }
 

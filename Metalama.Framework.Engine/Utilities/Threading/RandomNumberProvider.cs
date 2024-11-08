@@ -4,7 +4,7 @@ using System;
 
 namespace Metalama.Framework.Engine.Utilities.Threading;
 
-public class RandomNumberProvider : IRandomNumberProvider
+public sealed class RandomNumberProvider : IRandomNumberProvider
 {
     private readonly Random _random;
 

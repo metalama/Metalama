@@ -30,25 +30,6 @@ namespace Metalama.Framework.Engine.Advising
                 interpretedKind );
 
         public static TemplateMember<T> Create<T>(
-            ISymbol symbol,
-            TemplateClassMember templateClassMember,
-            TemplateProvider templateProvider,
-            IAdviceAttribute adviceAttribute,
-            IObjectReader tags,
-            RefFactory refFactory,
-            TemplateKind selectedKind,
-            TemplateKind interpretedKind )
-            where T : class, IMemberOrNamedType
-            => new(
-                refFactory.FromSymbol<T>( symbol ),
-                templateClassMember,
-                templateProvider,
-                adviceAttribute,
-                tags,
-                selectedKind,
-                interpretedKind );
-
-        public static TemplateMember<T> Create<T>(
             T implementation,
             TemplateClassMember templateClassMember,
             TemplateProvider templateProvider,

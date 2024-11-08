@@ -65,10 +65,10 @@ internal sealed class ReferenceIndexWalker : SafeSyntaxWalker
 
     public ReferenceIndexWalker(
         ProjectServiceProvider serviceProvider,
-        CancellationToken cancellationToken,
         ReferenceIndexBuilder referenceIndexBuilder,
         ReferenceIndexerOptions options,
-        SemanticModel semanticModel )
+        SemanticModel semanticModel,
+        CancellationToken cancellationToken )
     {
         // This class cannot run concurrently on many threads.
         this._cancellationToken = cancellationToken;
@@ -980,25 +980,17 @@ internal sealed class ReferenceIndexWalker : SafeSyntaxWalker
         }
     }
 
-    private readonly struct DeclarationContextCookie : IDisposable
+    private readonly struct DeclarationContextCookie( ReferenceIndexWalker parent, ISymbol? previousDeclaration, SyntaxNode? previousNode )
+        : IDisposable
     {
-        private readonly ReferenceIndexWalker? _parent;
-        private readonly ISymbol? _previousDeclaration;
-        private readonly SyntaxNode? _previousNode;
-
-        public DeclarationContextCookie( ReferenceIndexWalker parent, ISymbol? previousDeclaration, SyntaxNode? previousNode )
-        {
-            this._parent = parent;
-            this._previousDeclaration = previousDeclaration;
-            this._previousNode = previousNode;
-        }
+        private readonly ReferenceIndexWalker? _parent = parent;
 
         public void Dispose()
         {
             if ( this._parent != null )
             {
-                this._parent._currentDeclarationSymbol = this._previousDeclaration;
-                this._parent._currentDeclarationNode = this._previousNode;
+                this._parent._currentDeclarationSymbol = previousDeclaration;
+                this._parent._currentDeclarationNode = previousNode;
             }
         }
     }

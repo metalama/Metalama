@@ -631,7 +631,9 @@ class C
         public void ParameterModifiers()
         {
             using var testContext = this.CreateTestContext();
-            const string code = """
+
+            const string code =
+                """
                 static class C
                 {
                     static void M(this object o1, object o2, params object[] o3) { }
@@ -1604,9 +1606,6 @@ class C {}
             var compilation = testContext.CreateCompilationModel( code );
             var type = compilation.Types.Single();
 
-            var intType = compilation.Factory.GetSpecialType( SpecialType.Int32 );
-            var stringType = compilation.Factory.GetSpecialType( SpecialType.String );
-
             var nonPartialProperty = type.Properties.OfName( "P" ).Single();
             var partialProperty = type.Properties.OfName( "PartialP" ).Single();
 
@@ -1653,9 +1652,12 @@ class C {}
             Assert.False( nonPartialIndexer.IsPartial );
             Assert.True( partialIndexer.IsPartial );
 
-            var partialDefinition = type.GetSymbol().AssertSymbolNotNull().GetMembers( "this[]" )
+            var partialDefinition = type.GetSymbol()
+                .AssertSymbolNotNull()
+                .GetMembers( "this[]" )
                 .Cast<IPropertySymbol>()
                 .Single( i => i.Parameters.Single().Type.SpecialType == Microsoft.CodeAnalysis.SpecialType.System_String );
+
             var partialImplementation = partialDefinition.PartialImplementationPart;
 
             Assert.NotSame( partialDefinition, partialImplementation );
@@ -1816,7 +1818,9 @@ public partial class B
         private void SourceReferencesToProperties()
         {
             using var testContext = this.CreateTestContext();
-            const string code = """
+
+            const string code =
+                """
                 public partial class C
                 {
                     public int P { get; set; }

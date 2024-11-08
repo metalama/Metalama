@@ -180,7 +180,7 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                 {
                     return templateInfo.AsAbstract();
                 }
-                else if (symbol.IsExtern)
+                else if ( symbol.IsExtern )
                 {
                     // Extern members indicate template without body.
                     return templateInfo.WithoutBody();
@@ -412,16 +412,7 @@ internal sealed class SymbolClassifier : ISymbolClassifier
             // Don't use cache when we are tracing.
         }
 
-        SymbolClassifierTracer? tracer;
-
-        if ( parentTracer != null )
-        {
-            tracer = parentTracer.CreateChild( symbol );
-        }
-        else
-        {
-            tracer = null;
-        }
+        var tracer = parentTracer?.CreateChild( symbol );
 
         var symbolsBeingProcessedIncludingCurrent = symbolsBeingProcessed.Insert( symbol );
 

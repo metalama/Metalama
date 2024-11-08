@@ -19,29 +19,18 @@ namespace Metalama.Framework.Engine.AdviceImpl.Override;
 /// <summary>
 /// Represents a method override, which redirects to another method without requiring template expansion.
 /// </summary>
-internal sealed class RedirectMethodTransformation : OverrideMemberTransformation
+internal sealed class RedirectMethodTransformation( Advice advice, IFullRef<IMethod> overriddenMethod, IFullRef<IMethod> targetMethod )
+    : OverrideMemberTransformation( advice.AspectLayerInstance, overriddenMethod )
 {
-    private readonly IFullRef<IMethod> _targetMethod;
-
-    public IFullRef<IMethod> OverriddenMethod { get; }
-
-    public RedirectMethodTransformation( Advice advice, IFullRef<IMethod> overriddenDeclaration, IFullRef<IMethod> targetMethod )
-        : base( advice.AspectLayerInstance, overriddenDeclaration )
-    {
-        this._targetMethod = targetMethod;
-        this.OverriddenMethod = overriddenDeclaration;
-    }
-
-    public override IFullRef<IMember> OverriddenDeclaration => this.OverriddenMethod;
+    public override IFullRef<IMember> OverriddenDeclaration => overriddenMethod;
 
     public override IEnumerable<InjectedMember> GetInjectedMembers( MemberInjectionContext context )
     {
-        var overriddenDeclaration = this.OverriddenMethod.GetTarget( this.InitialCompilation );
+        var overriddenDeclaration = overriddenMethod.GetTarget( this.InitialCompilation );
 
         var body =
             context.SyntaxGenerationContext.SyntaxGenerator.FormattedBlock(
-                overriddenDeclaration.ReturnType
-                != overriddenDeclaration.Compilation.GetCompilationModel().Cache.SystemVoidType
+                overriddenDeclaration.ReturnType.SpecialType != SpecialType.Void
                     ? ReturnStatement(
                         SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.ReturnKeyword ),
                         GetInvocationExpression(),
@@ -85,11 +74,11 @@ internal sealed class RedirectMethodTransformation : OverrideMemberTransformatio
         {
             var expression =
                 overriddenDeclaration.IsStatic
-                    ? (ExpressionSyntax) IdentifierName( this._targetMethod.Name.AssertNotNull() )
+                    ? (ExpressionSyntax) IdentifierName( targetMethod.Name.AssertNotNull() )
                     : MemberAccessExpression(
                         SyntaxKind.SimpleMemberAccessExpression,
                         ThisExpression(),
-                        IdentifierName( this._targetMethod.Name.AssertNotNull() ) );
+                        IdentifierName( targetMethod.Name.AssertNotNull() ) );
 
             return expression
                 .WithAspectReferenceAnnotation( this.AspectLayerId, AspectReferenceOrder.Previous );

@@ -3,7 +3,6 @@
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.Comparers;
 using Metalama.Framework.Engine.CodeModel.Helpers;
-using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.Utilities.Comparers;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
@@ -76,7 +75,7 @@ internal sealed partial class DeclarationEqualityComparer : IDeclarationComparer
 
     bool ITypeComparer.IsConvertibleTo( IType left, IType right, ConversionKind kind ) => this.IsConvertibleTo( left, right, kind );
 
-    public bool IsConvertibleTo( IType left, IType right, ConversionKind kind ) => this.IsConvertibleTo( left, right, kind, bypassSymbols: false );
+    private bool IsConvertibleTo( IType left, IType right, ConversionKind kind ) => this.IsConvertibleTo( left, right, kind, bypassSymbols: false );
 
     bool ITypeComparer.IsConvertibleTo( IType left, Type right, ConversionKind kind ) => this.IsConvertibleTo( left, right, kind );
 
@@ -129,13 +128,6 @@ internal sealed partial class DeclarationEqualityComparer : IDeclarationComparer
 
         return this._conversions.HasConversion( left, right, kind );
     }
-
-#pragma warning disable CA1822
-    [Obsolete]
-    public bool Is( IRef<IType> left, IType right, ConversionKind kind ) => this.IsConvertibleTo( left, right, kind );
-
-    public bool IsConvertibleTo( IRef<IType> left, IType right, ConversionKind kind ) => left.AsFullRef().IsConvertibleTo( right, kind );
-#pragma warning restore CA1822
 
     bool ITypeComparer.Is( IType left, Type right, ConversionKind kind ) => this.IsConvertibleTo( left, right, kind );
 

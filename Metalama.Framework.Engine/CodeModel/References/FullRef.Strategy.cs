@@ -18,9 +18,9 @@ internal abstract partial class FullRef<T>
 
     public abstract void EnumerateAttributes( CompilationModel compilation, Action<AttributeRef> add );
 
-    public abstract void EnumerateAllImplementedInterfaces( CompilationModel compilation, Action<IFullRef<INamedType>> add );
+    public abstract void EnumerateAllImplementedInterfaces( Action<IFullRef<INamedType>> add );
 
-    public abstract void EnumerateImplementedInterfaces( CompilationModel compilation, Action<IFullRef<INamedType>> add );
+    public abstract void EnumerateImplementedInterfaces( Action<IFullRef<INamedType>> add );
 
     public abstract IEnumerable<IFullRef> GetMembersOfName( string name, DeclarationKind kind, CompilationModel compilation );
 

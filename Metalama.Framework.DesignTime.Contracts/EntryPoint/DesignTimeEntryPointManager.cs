@@ -125,7 +125,7 @@ namespace Metalama.Framework.DesignTime.Contracts.EntryPoint
                     // Otherwise we will try to create the mutex.
                     try
                     {
-                        return MutexAcl.Create( false, mutexName, out _, MutexAcl.AllowUsingMutexToEveryone );
+                        return MutexAcl.Create( false, mutexName, MutexAcl.AllowUsingMutexToEveryone );
                     }
                     catch ( UnauthorizedAccessException )
                     {

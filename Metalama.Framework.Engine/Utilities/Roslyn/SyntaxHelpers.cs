@@ -27,6 +27,7 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
 
             return WithAdditionalParameters( parameterList, additionalParameterSyntax );
         }
+        
         public static ParameterListSyntax WithAdditionalParameters(
             this ParameterListSyntax parameterList,
             params IReadOnlyList<ParameterSyntax> additionalParameters )

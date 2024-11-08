@@ -66,7 +66,7 @@ internal sealed class IntroducedMethod : IntroducedMember, IMethodImpl
 
     public IMethod MakeGenericInstance( IReadOnlyList<IType> typeArguments ) => throw new NotImplementedException();
 
-    public override IFullRef<IMember> ToMemberFullRef() => this.Ref;
+    protected override IFullRef<IMember> ToMemberFullRef() => this.Ref;
 
     public IRef<IMethod> ToRef() => this.Ref;
 

@@ -8,24 +8,19 @@ using StreamJsonRpc;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
 using Xunit;
 using Xunit.Abstractions;
 
 namespace Metalama.Framework.Tests.UnitTests;
 
-public abstract class FrameworkBaseTestClass : UnitTestClass, IDisposable
+public abstract class FrameworkBaseTestClass( ITestOutputHelper? logger = null ) : UnitTestClass( logger ), IDisposable
 {
-    private readonly TestExceptionReporter _exceptionReporter;
-
-    protected FrameworkBaseTestClass( ITestOutputHelper? logger = null ) : base( logger )
-    {
-        this._exceptionReporter = new TestExceptionReporter();
-    }
+    private readonly TestExceptionReporter _exceptionReporter = new();
 
     public void Dispose()
     {
         // We generally don't want to see any exceptions reported during the test.
+        // ReSharper disable once ParameterOnlyUsedForPreconditionCheck.Local
         Assert.DoesNotContain( this._exceptionReporter.ReportedExceptions, e => e is not ConnectionLostException );
     }
 

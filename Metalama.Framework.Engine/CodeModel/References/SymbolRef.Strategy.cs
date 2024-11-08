@@ -55,7 +55,7 @@ internal sealed partial class SymbolRef<T>
         }
     }
 
-    public override void EnumerateAllImplementedInterfaces( CompilationModel compilation, Action<IFullRef<INamedType>> add )
+    public override void EnumerateAllImplementedInterfaces( Action<IFullRef<INamedType>> add )
     {
         Invariant.Assert( this is IRef<INamedType> );
         var namedTypeSymbol = (INamedTypeSymbol) this.Symbol;
@@ -71,7 +71,7 @@ internal sealed partial class SymbolRef<T>
         }
     }
 
-    public override void EnumerateImplementedInterfaces( CompilationModel compilation, Action<IFullRef<INamedType>> add )
+    public override void EnumerateImplementedInterfaces( Action<IFullRef<INamedType>> add )
     {
         Invariant.Assert( this is IRef<INamedType> );
 

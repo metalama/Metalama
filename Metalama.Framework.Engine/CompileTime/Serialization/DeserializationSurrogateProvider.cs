@@ -6,7 +6,7 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Metalama.Framework.Engine.CompileTime.Serialization;
 
-internal class DeserializationSurrogateProvider : IDeserializationSurrogateProvider
+internal sealed class DeserializationSurrogateProvider : IDeserializationSurrogateProvider
 {
     public bool TryGetDeserializationSurrogate( string typeName, [NotNullWhen( true )] out Type? surrogateType )
     {

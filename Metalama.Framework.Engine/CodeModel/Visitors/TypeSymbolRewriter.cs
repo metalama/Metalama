@@ -1,21 +1,16 @@
 ﻿// Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
+using JetBrains.Annotations;
 using Microsoft.CodeAnalysis;
 using System;
 using System.Linq;
 
 namespace Metalama.Framework.Engine.CodeModel.Visitors;
 
-internal abstract class TypeSymbolRewriter
+internal abstract class TypeSymbolRewriter( Compilation compilation )
 {
+    [PublicAPI]
     protected static TypeSymbolRewriter Null { get; } = new NullRewriter();
-
-    private readonly Compilation _compilation;
-
-    protected TypeSymbolRewriter( Compilation compilation )
-    {
-        this._compilation = compilation;
-    }
 
     internal virtual ITypeSymbol Visit( IArrayTypeSymbol arrayTypeSymbol )
     {
@@ -27,7 +22,7 @@ internal abstract class TypeSymbolRewriter
         }
         else
         {
-            return this._compilation.CreateArrayTypeSymbol( elementTypeSymbol, arrayTypeSymbol.Rank, elementTypeSymbol.NullableAnnotation );
+            return compilation.CreateArrayTypeSymbol( elementTypeSymbol, arrayTypeSymbol.Rank, elementTypeSymbol.NullableAnnotation );
         }
     }
 
@@ -59,7 +54,7 @@ internal abstract class TypeSymbolRewriter
         }
         else
         {
-            return this._compilation.CreatePointerTypeSymbol( pointedAtTypeSymbol );
+            return compilation.CreatePointerTypeSymbol( pointedAtTypeSymbol );
         }
     }
 
@@ -108,10 +103,8 @@ internal abstract class TypeSymbolRewriter
 
     internal virtual ITypeSymbol Visit( ITypeParameterSymbol typeSymbolParameter ) => typeSymbolParameter;
 
-    private sealed class NullRewriter : TypeSymbolRewriter
+    private sealed class NullRewriter() : TypeSymbolRewriter( null! )
     {
-        public NullRewriter() : base( null! ) { }
-
         public override ITypeSymbol Visit( ITypeSymbol elementTypeSymbol ) => elementTypeSymbol;
 
         internal override ITypeSymbol Visit( IArrayTypeSymbol arrayTypeSymbol ) => arrayTypeSymbol;

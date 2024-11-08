@@ -98,5 +98,5 @@ internal sealed class RemoteWorkspaceProvider : WorkspaceProvider
     }
 
 #pragma warning disable VSTHRD003
-    public override Task<Workspace> GetWorkspaceAsync( CancellationToken cancellationToken = default ) => this._workspace;
+    protected override Task<Workspace> GetWorkspaceAsync( CancellationToken cancellationToken = default ) => this._workspace;
 }

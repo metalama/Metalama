@@ -22,9 +22,10 @@ namespace Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 internal sealed class PropertyBuilder : PropertyOrIndexerBuilder, IPropertyBuilder, IPropertyImpl
 {
     private readonly List<IAttributeData> _fieldAttributes;
-    private IExpression? _initializerExpression;
 
-    public IntroducedRef<IProperty> Ref { get; }
+    private readonly IntroducedRef<IProperty> _ref;
+
+    private IExpression? _initializerExpression;
 
     public PropertyBuilder(
         AspectLayerInstance aspectLayerInstance,
@@ -44,7 +45,7 @@ internal sealed class PropertyBuilder : PropertyOrIndexerBuilder, IPropertyBuild
         Invariant.Assert( !(!hasSetter && hasImplicitSetter) );
         Invariant.Assert( !(!isAutoProperty && hasImplicitSetter) );
 
-        this.Ref = new IntroducedRef<IProperty>( this.Compilation.RefFactory );
+        this._ref = new IntroducedRef<IProperty>( this.Compilation.RefFactory );
         this.IsAutoPropertyOrField = isAutoProperty;
         this.HasInitOnlySetter = hasInitOnlySetter;
         this._fieldAttributes = [];
@@ -126,22 +127,22 @@ internal sealed class PropertyBuilder : PropertyOrIndexerBuilder, IPropertyBuild
 
     public void SetExplicitInterfaceImplementation( IProperty interfaceProperty ) => this.ExplicitInterfaceImplementations = [interfaceProperty];
 
-    IRef<IProperty> IProperty.ToRef() => this.Ref;
+    IRef<IProperty> IProperty.ToRef() => this._ref;
 
-    protected override IFullRef<IMember> ToMemberFullRef() => this.Ref;
+    protected override IFullRef<IMember> ToMemberFullRef() => this._ref;
 
-    protected override IFullRef<IDeclaration> ToFullDeclarationRef() => this.Ref;
+    protected override IFullRef<IDeclaration> ToFullDeclarationRef() => this._ref;
 
-    IRef<IFieldOrProperty> IFieldOrProperty.ToRef() => this.Ref;
+    IRef<IFieldOrProperty> IFieldOrProperty.ToRef() => this._ref;
 
-    public new IFullRef<IProperty> ToRef() => this.Ref;
+    public new IFullRef<IProperty> ToRef() => this._ref;
 
     protected override void EnsureReferenceInitialized()
     {
-        this.Ref.BuilderData = new PropertyBuilderData( this.AssertFrozen(), this.DeclaringType.ToFullRef() );
+        this._ref.BuilderData = new PropertyBuilderData( this.AssertFrozen(), this.DeclaringType.ToFullRef() );
     }
 
-    public PropertyBuilderData BuilderData => (PropertyBuilderData) this.Ref.BuilderData;
+    public PropertyBuilderData BuilderData => (PropertyBuilderData) this._ref.BuilderData;
 
     public bool? IsDesignTimeObservableOverride { get; init; }
 

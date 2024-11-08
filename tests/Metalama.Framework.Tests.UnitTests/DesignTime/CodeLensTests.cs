@@ -4,7 +4,6 @@ using Metalama.Framework.DesignTime.CodeLens;
 using Metalama.Framework.Engine.Pipeline.DesignTime;
 using Metalama.Framework.Engine.SerializableIds;
 using Metalama.Framework.Engine.Services;
-using Metalama.Framework.Engine.Utilities.Roslyn;
 using Metalama.Framework.Project;
 using Metalama.Framework.Tests.UnitTests.DesignTime.Mocks;
 using System.Collections.Generic;
@@ -17,10 +16,8 @@ namespace Metalama.Framework.Tests.UnitTests.DesignTime;
 
 #pragma warning disable VSTHRD200
 
-public sealed class CodeLensTests : DesignTimeTestBase
+public sealed class CodeLensTests( ITestOutputHelper? testOutputHelper ) : DesignTimeTestBase( testOutputHelper )
 {
-    public CodeLensTests( ITestOutputHelper? testOutputHelper ) : base( testOutputHelper ) { }
-
     protected override void ConfigureServices( IAdditionalServiceCollection services )
     {
         base.ConfigureServices( services );

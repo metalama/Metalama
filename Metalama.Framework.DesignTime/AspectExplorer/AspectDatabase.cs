@@ -184,6 +184,7 @@ public sealed class AspectDatabase : IGlobalService, IRpcApi
                             {
                                 var transformedDeclaration = transformation.IntroducedDeclaration ?? transformation.TargetDeclaration;
 
+                                // ReSharper disable once RedundantSuppressNullableWarningExpression
                                 return new AspectDatabaseAspectTransformation(
                                     GetSerializableIdForOriginalDeclaration( transformation.TargetDeclaration ),
                                     transformation.ToString()!,

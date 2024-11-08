@@ -177,7 +177,7 @@ internal sealed partial class ContextualSyntaxGenerator
         }
     }
 
-    public ExpressionSyntax DefaultExpression( IFullRef<IType>? type )
+    private ExpressionSyntax DefaultExpression( IFullRef<IType>? type )
         => type == null
             ? Default
             : SyntaxFactory.DefaultExpression( this.TypeSyntax( type ) )
@@ -559,7 +559,7 @@ internal sealed partial class ContextualSyntaxGenerator
         }
     }
 
-    public ExpressionSyntax TypeExpression( ITypeSymbol symbol )
+    private ExpressionSyntax TypeExpression( ITypeSymbol symbol )
     {
         if ( this.SyntaxGenerationContext.HasCompilationContext && symbol.BelongsToCompilation( this.SyntaxGenerationContext.CompilationContext ) == true )
         {
@@ -761,7 +761,7 @@ internal sealed partial class ContextualSyntaxGenerator
         };
     }
 
-    public ExpressionSyntax TypedConstantExpression( TypedConstant typedConstant, IType? targetType = null )
+    private ExpressionSyntax TypedConstantExpression( TypedConstant typedConstant, IType? targetType = null )
     {
         if ( typedConstant.IsNullOrDefault )
         {
@@ -876,7 +876,7 @@ internal sealed partial class ContextualSyntaxGenerator
         bool removeDefaultValues )
         => SeparatedList( parameters.SelectAsReadOnlyList( p => this.Parameter( p, compilation, removeDefaultValues ) ) );
 
-    public ParameterSyntax Parameter( IParameter parameter, CompilationModel compilation, bool removeDefaultValue )
+    private ParameterSyntax Parameter( IParameter parameter, CompilationModel compilation, bool removeDefaultValue )
     {
         // We intentionally generate non-literal values to be more tolerant to invalid inputs.
         var equalsValueClause = removeDefaultValue || parameter.DefaultValue == null

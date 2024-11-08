@@ -12,20 +12,15 @@ using TypeKind = Metalama.Framework.Code.TypeKind;
 
 namespace Metalama.Framework.Engine.CodeModel.Introductions.ConstructedTypes;
 
-internal abstract class ConstructedType : ITypeImpl
+internal abstract class ConstructedType( CompilationModel compilation ) : ITypeImpl
 {
-    protected ConstructedType( CompilationModel compilation )
-    {
-        this.Compilation = compilation;
-    }
-
     ICompilation ICompilationElement.Compilation => this.Compilation;
 
     public abstract ICompilationElement Translate( CompilationModel newCompilation, IGenericContext? genericContext = null, Type? interfaceType = null );
 
     public abstract IType Accept( TypeRewriter visitor );
 
-    public CompilationModel Compilation { get; }
+    public CompilationModel Compilation { get; } = compilation;
 
     DeclarationKind ICompilationElement.DeclarationKind => DeclarationKind.Type;
 
@@ -63,7 +58,7 @@ internal abstract class ConstructedType : ITypeImpl
             _ => false
         };
 
-    public IArrayType MakeArrayType( int rank = 1 ) => new ConstructedArrayType( this.Compilation, this.ToTypeFullRef(), rank, false );
+    public IArrayType MakeArrayType( int rank = 1 ) => new ConstructedArrayType( this.Compilation, this.ToTypeFullRef(), rank, isNullable: false );
 
     public IPointerType MakePointerType() => new ConstructedPointerType( this.Compilation, this.ToTypeFullRef() );
 
@@ -74,8 +69,6 @@ internal abstract class ConstructedType : ITypeImpl
     protected abstract IType ToNullableCore();
 
     protected abstract IType ToNonNullableCore();
-
-    protected abstract ConstructedType ForCompilation( CompilationModel compilation );
 
     public abstract int GetHashCode( TypeComparison refComparison );
 

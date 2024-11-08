@@ -22,7 +22,7 @@ using MethodKind = Metalama.Framework.Code.MethodKind;
 
 namespace Metalama.Framework.Engine.AdviceImpl;
 
-internal class AdviceSyntaxGenerator
+internal static class AdviceSyntaxGenerator
 {
     public static SyntaxList<AttributeListSyntax> GetAttributeLists(
         IDeclaration declaration,
@@ -34,41 +34,30 @@ internal class AdviceSyntaxGenerator
             context.FinalCompilation,
             attributeTargetSyntaxKind );
 
-        if ( declaration is IMethod method )
+        switch ( declaration )
         {
-            attributes = attributes.AddRange(
-                context.SyntaxGenerator.AttributesForDeclaration(
-                    method.ReturnParameter.ToFullRef(),
-                    context.FinalCompilation,
-                    SyntaxKind.ReturnKeyword ) );
-
-            if ( method.MethodKind is MethodKind.EventAdd or MethodKind.EventRemove or MethodKind.PropertySet )
-            {
+            case IMethod method:
                 attributes = attributes.AddRange(
                     context.SyntaxGenerator.AttributesForDeclaration(
-                        method.Parameters[0].ToFullRef(),
+                        method.ReturnParameter.ToFullRef(),
                         context.FinalCompilation,
-                        SyntaxKind.ParamKeyword ) );
-            }
-        }
-        else if ( declaration is IProperty { IsAutoPropertyOrField: true } )
-        {
-            // TODO: field-level attributes
-        }
+                        SyntaxKind.ReturnKeyword ) );
 
-        return attributes;
-    }
+                if ( method.MethodKind is MethodKind.EventAdd or MethodKind.EventRemove or MethodKind.PropertySet )
+                {
+                    attributes = attributes.AddRange(
+                        context.SyntaxGenerator.AttributesForDeclaration(
+                            method.Parameters[0].ToFullRef(),
+                            context.FinalCompilation,
+                            SyntaxKind.ParamKeyword ) );
+                }
 
-    // TODO: This is temporary overload (see the callsite for reason).
-    public static SyntaxList<AttributeListSyntax> GetAttributeLists(
-        IFullRef<IDeclaration> declarationRef,
-        MemberInjectionContext context,
-        SyntaxKind attributeTargetSyntaxKind = SyntaxKind.None )
-    {
-        var attributes = context.SyntaxGenerator.AttributesForDeclaration(
-            declarationRef,
-            context.FinalCompilation,
-            attributeTargetSyntaxKind );
+                break;
+
+            case IProperty { IsAutoPropertyOrField: true }:
+                // TODO: field-level attributes
+                break;
+        }
 
         return attributes;
     }

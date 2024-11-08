@@ -16,16 +16,17 @@ using TypeKind = Metalama.Framework.Code.TypeKind;
 
 namespace Metalama.Framework.Engine.CodeModel.Source.ConstructedTypes
 {
-    internal abstract class SymbolConstructedType<T> : ITypeImpl, ISymbolBasedCompilationElement
+    internal abstract class SymbolConstructedType<T>( T symbol, CompilationModel compilation, GenericContext genericContextForSymbolMapping )
+        : ITypeImpl, ISymbolBasedCompilationElement
         where T : ITypeSymbol
     {
-        public GenericContext GenericContextForSymbolMapping { get; }
+        protected GenericContext GenericContextForSymbolMapping { get; } = genericContextForSymbolMapping;
 
         public bool SymbolMustBeMapped => !this.GenericContextForSymbolMapping.IsEmptyOrIdentity;
 
         IGenericContext ISymbolBasedCompilationElement.GenericContextForSymbolMapping => this.GenericContextForSymbolMapping;
 
-        public CompilationModel Compilation { get; }
+        public CompilationModel Compilation { get; } = compilation;
 
         DeclarationKind ICompilationElement.DeclarationKind => DeclarationKind.Type;
 
@@ -37,14 +38,7 @@ namespace Metalama.Framework.Engine.CodeModel.Source.ConstructedTypes
 
         ISymbol ISymbolBasedCompilationElement.Symbol => this.Symbol;
 
-        protected T Symbol { get; }
-
-        protected SymbolConstructedType( T symbol, CompilationModel compilation, GenericContext genericContextForSymbolMapping )
-        {
-            this.GenericContextForSymbolMapping = genericContextForSymbolMapping;
-            this.Compilation = compilation;
-            this.Symbol = symbol;
-        }
+        protected T Symbol { get; } = symbol;
 
         public string ToDisplayString( CodeDisplayFormat? format = null, CodeDisplayContext? context = null )
             => DisplayStringFormatter.Format( this, format, context, this.GenericContextForSymbolMapping );

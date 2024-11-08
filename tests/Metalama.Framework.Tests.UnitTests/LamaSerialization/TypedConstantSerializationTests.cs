@@ -6,7 +6,7 @@ using Xunit;
 
 namespace Metalama.Framework.Tests.UnitTests.LamaSerialization;
 
-public class TypedConstantSerializationTests : SerializationTestsBase
+public sealed class TypedConstantSerializationTests : SerializationTestsBase
 {
     private static void RoundtripTest( SerializationTestContext testContext, TypedConstant typedConstant )
     {

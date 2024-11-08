@@ -8,30 +8,21 @@ using System.Linq;
 
 namespace Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 
-internal abstract class PropertyOrIndexerBuilderData : MemberBuilderData
+internal abstract class PropertyOrIndexerBuilderData( PropertyOrIndexerBuilder builder, IFullRef<INamedType> containingDeclaration )
+    : MemberBuilderData( builder, containingDeclaration )
 {
-    protected PropertyOrIndexerBuilderData( PropertyOrIndexerBuilder builder, IFullRef<INamedType> containingDeclaration ) : base(
-        builder,
-        containingDeclaration )
-    {
-        this.Type = builder.Type.ToRef();
-        this.HasInitOnlySetter = builder.HasInitOnlySetter;
-        this.RefKind = builder.RefKind;
-        this.Writeability = builder.Writeability;
-    }
+    public IRef<IType> Type { get; } = builder.Type.ToRef();
 
-    public IRef<IType> Type { get; }
+    public bool HasInitOnlySetter { get; } = builder.HasInitOnlySetter;
 
-    public bool HasInitOnlySetter { get; }
-
-    public RefKind RefKind { get; set; }
+    public RefKind RefKind { get; } = builder.RefKind;
 
     // Accessors are abstract because we can't initialize them from the constructor because we don't have a reference to ourselves yet.
     public abstract MethodBuilderData? GetMethod { get; }
 
     public abstract MethodBuilderData? SetMethod { get; }
 
-    public Writeability Writeability { get; }
+    public Writeability Writeability { get; } = builder.Writeability;
 
     public override IEnumerable<DeclarationBuilderData> GetOwnedDeclarations()
     {

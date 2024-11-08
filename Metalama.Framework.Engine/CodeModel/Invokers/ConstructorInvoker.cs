@@ -16,10 +16,8 @@ using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace Metalama.Framework.Engine.CodeModel.Invokers;
 
-internal sealed class ConstructorInvoker : Invoker<IConstructor>, IConstructorInvoker
+internal sealed class ConstructorInvoker( IConstructor constructor ) : Invoker<IConstructor>( constructor, InvokerOptions.Final, null ), IConstructorInvoker
 {
-    public ConstructorInvoker( IConstructor constructor ) : base( constructor, InvokerOptions.Final, null ) { }
-
     public object Invoke( params object?[]? args )
     {
         if ( this.Member.IsStatic )
@@ -104,79 +102,59 @@ internal sealed class ConstructorInvoker : Invoker<IConstructor>, IConstructorIn
         return expression;
     }
 
-    private sealed class ObjectCreationExpression : UserExpression, IObjectCreationExpression
+    private sealed class ObjectCreationExpression( IConstructor constructor, Func<SyntaxSerializationContext, IEnumerable<ExpressionSyntax>> argumentFactory )
+        : UserExpression, IObjectCreationExpression
     {
-        private readonly IConstructor _constructor;
-        private readonly Func<SyntaxSerializationContext, IEnumerable<ExpressionSyntax>> _argumentFactory;
-
-        public override IType Type => this._constructor.DeclaringType;
-
-        public ObjectCreationExpression( IConstructor constructor, Func<SyntaxSerializationContext, IEnumerable<ExpressionSyntax>> argumentFactory )
-        {
-            this._constructor = constructor;
-            this._argumentFactory = argumentFactory;
-        }
+        public override IType Type => constructor.DeclaringType;
 
         protected override ExpressionSyntax ToSyntax( SyntaxSerializationContext syntaxSerializationContext, IType? targetType = null )
-        {
-            return CreateObjectCreationExpression(
-                syntaxSerializationContext.SyntaxGenerator.TypeSyntax( this._constructor.DeclaringType ),
-                this._argumentFactory( syntaxSerializationContext )
-                .Select( ( e, i ) =>
-                    Argument(
-                        NameColon( IdentifierName( this._constructor.Parameters[i].Name ) ),
-                        this._constructor.Parameters[i].RefKind.InvocationRefKindToken(),
-                        e ) ),
+            => CreateObjectCreationExpression(
+                syntaxSerializationContext.SyntaxGenerator.TypeSyntax( constructor.DeclaringType ),
+                argumentFactory( syntaxSerializationContext )
+                    .Select(
+                        ( e, i ) =>
+                            Argument(
+                                NameColon( IdentifierName( constructor.Parameters[i].Name ) ),
+                                constructor.Parameters[i].RefKind.InvocationRefKindToken(),
+                                e ) ),
                 null );
-        }
 
         public IExpression WithObjectInitializer( params (IFieldOrProperty FieldOrProperty, IExpression Value)[] initializationExpressions )
             => new ObjectCreationExpressionWithObjectInitializer(
-                this._constructor,
-                this._argumentFactory,
+                constructor,
+                argumentFactory,
                 initializationExpressions.SelectAsReadOnlyList( x => (x.FieldOrProperty.Name, x.Value) ) );
 
         public IExpression WithObjectInitializer( params (string FieldOrPropertyName, IExpression Value)[] initializationExpressions )
-            => new ObjectCreationExpressionWithObjectInitializer( this._constructor, this._argumentFactory, initializationExpressions );
+            => new ObjectCreationExpressionWithObjectInitializer( constructor, argumentFactory, initializationExpressions );
     }
 
-    private sealed class ObjectCreationExpressionWithObjectInitializer : UserExpression
+    private sealed class ObjectCreationExpressionWithObjectInitializer(
+        IConstructor constructor,
+        Func<SyntaxSerializationContext, IEnumerable<ExpressionSyntax>> argumentFactory,
+        IReadOnlyList<(string FieldOrPropertyName, IExpression Value)> initializers )
+        : UserExpression
     {
-        private readonly IConstructor _constructor;
-        private readonly Func<SyntaxSerializationContext, IEnumerable<ExpressionSyntax>> _argumentFactory;
-        private readonly IReadOnlyList<(string FieldOrPropertyName, IExpression Value)> _initializers;
-
-        public override IType Type => this._constructor.DeclaringType;
-
-        public ObjectCreationExpressionWithObjectInitializer(
-            IConstructor constructor,
-            Func<SyntaxSerializationContext, IEnumerable<ExpressionSyntax>> argumentFactory,
-            IReadOnlyList<(string FieldOrPropertyName, IExpression Value)> initializers )
-        {
-            this._constructor = constructor;
-            this._argumentFactory = argumentFactory;
-            this._initializers = initializers;
-        }
+        public override IType Type => constructor.DeclaringType;
 
         protected override ExpressionSyntax ToSyntax( SyntaxSerializationContext syntaxSerializationContext, IType? targetType = null )
-        {
-            return CreateObjectCreationExpression(
-                syntaxSerializationContext.SyntaxGenerator.TypeSyntax( this._constructor.DeclaringType ),
-                this._argumentFactory( syntaxSerializationContext )
-                .Select( ( e, i ) =>
-                    Argument(
-                        NameColon( IdentifierName( this._constructor.Parameters[i].Name ) ),
-                        this._constructor.Parameters[i].RefKind.InvocationRefKindToken(),
-                        e ) ),
+            => CreateObjectCreationExpression(
+                syntaxSerializationContext.SyntaxGenerator.TypeSyntax( constructor.DeclaringType ),
+                argumentFactory( syntaxSerializationContext )
+                    .Select(
+                        ( e, i ) =>
+                            Argument(
+                                NameColon( IdentifierName( constructor.Parameters[i].Name ) ),
+                                constructor.Parameters[i].RefKind.InvocationRefKindToken(),
+                                e ) ),
                 InitializerExpression(
                     SyntaxKind.ObjectInitializerExpression,
                     SeparatedList<ExpressionSyntax>(
-                        this._initializers.SelectAsArray(
+                        initializers.SelectAsArray(
                             i =>
                                 AssignmentExpression(
                                     SyntaxKind.SimpleAssignmentExpression,
                                     IdentifierName( i.FieldOrPropertyName ),
                                     i.Value.ToExpressionSyntax( syntaxSerializationContext ) ) ) ) ) );
-        }
     }
 }

@@ -1,23 +1,21 @@
 ﻿// Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
 using Metalama.Framework.Code;
+
+#if NET5_0_OR_GREATER
 using System;
+#endif
 
 namespace Metalama.Framework.Engine.CodeModel.References;
 
-internal abstract class DurableRef<T> : BaseRef<T>, IDurableRef<T>
+internal abstract class DurableRef<T>( string id ) : BaseRef<T>, IDurableRef<T>
     where T : class, ICompilationElement
 {
-    public string Id { get; }
+    public string Id { get; } = id;
 
     public abstract IFullRef ToFullRef( RefFactory refFactory );
 
-    protected DurableRef( string id )
-    {
-        this.Id = id;
-    }
-
-    public override IDurableRef<T> ToDurable() => this;
+    protected override IDurableRef<T> ToDurable() => this;
 
     public override bool IsDurable => true;
 

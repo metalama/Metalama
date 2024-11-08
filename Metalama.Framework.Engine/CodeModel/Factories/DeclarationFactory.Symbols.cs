@@ -191,15 +191,17 @@ public partial class DeclarationFactory
     public IProperty GetProperty( IPropertySymbol propertySymbol, GenericContext? genericContext = null )
     {
 #if ROSLYN_4_12_0_OR_GREATER
+
         // Standardize on the partial definition part for partial properties.
         propertySymbol = propertySymbol.PartialDefinitionPart ?? propertySymbol;
+        
 #endif
 
         return this.GetDeclarationFromSymbol<IProperty, IPropertySymbol>(
-                propertySymbol,
-                genericContext,
-                static ( in CreateFromSymbolArgs<IPropertySymbol> args ) =>
-                    new SourceProperty( args.Symbol, args.Compilation, args.GenericContext ) );
+            propertySymbol,
+            genericContext,
+            static ( in CreateFromSymbolArgs<IPropertySymbol> args ) =>
+                new SourceProperty( args.Symbol, args.Compilation, args.GenericContext ) );
     }
 
     public IIndexer GetIndexer( IPropertySymbol propertySymbol, GenericContext? genericContext = null )

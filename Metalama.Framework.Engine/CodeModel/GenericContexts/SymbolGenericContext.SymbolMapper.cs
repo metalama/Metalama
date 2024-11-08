@@ -8,14 +8,9 @@ namespace Metalama.Framework.Engine.CodeModel.GenericContexts;
 
 internal partial class SymbolGenericContext
 {
-    private sealed class SymbolMapper : SymbolVisitor<ISymbol>
+    private sealed class SymbolMapper( SymbolGenericContext parent ) : SymbolVisitor<ISymbol>
     {
-        private readonly TypeSymbolMapper _typeSymbolMapper;
-
-        public SymbolMapper( SymbolGenericContext parent )
-        {
-            this._typeSymbolMapper = parent.TypeSymbolMapperInstance;
-        }
+        private readonly TypeSymbolMapper _typeSymbolMapper = parent.TypeSymbolMapperInstance;
 
         private T MapMember<T>( T symbol )
             where T : ISymbol
@@ -27,7 +22,7 @@ internal partial class SymbolGenericContext
 
             if ( memberInTypeInstance.Kind == SymbolKind.Method )
             {
-                var contextMethodSymbol = this._typeSymbolMapper.GenericContext.MethodSymbol;
+                var contextMethodSymbol = this._typeSymbolMapper.GenericContext._methodSymbol;
 
                 if ( contextMethodSymbol != null )
                 {

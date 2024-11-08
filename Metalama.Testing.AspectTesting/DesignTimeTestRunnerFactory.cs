@@ -3,17 +3,15 @@
 using Metalama.Framework.Engine.Services;
 using Xunit.Abstractions;
 
-namespace Metalama.Testing.AspectTesting
+namespace Metalama.Testing.AspectTesting;
+
+internal sealed class DesignTimeTestRunnerFactory : ITestRunnerFactory
 {
-    // ReSharper disable once UnusedType.Global
-    internal class DesignTimeTestRunnerFactory : ITestRunnerFactory
-    {
-        public BaseTestRunner CreateTestRunner(
-            GlobalServiceProvider serviceProvider,
-            string? projectDirectory,
-            TestProjectReferences references,
-            ITestOutputHelper? logger,
-            ILicenseKeyProvider? licenseKeyProvider )
-            => new DesignTimeTestRunner( serviceProvider, projectDirectory, references, logger, licenseKeyProvider );
-    }
+    public BaseTestRunner CreateTestRunner(
+        GlobalServiceProvider serviceProvider,
+        string? projectDirectory,
+        TestProjectReferences references,
+        ITestOutputHelper? logger,
+        ILicenseKeyProvider? licenseKeyProvider )
+        => new DesignTimeTestRunner( serviceProvider, projectDirectory, references, logger, licenseKeyProvider );
 }

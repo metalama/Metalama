@@ -10,10 +10,9 @@ using System.Collections.Generic;
 
 namespace Metalama.Framework.Engine.CodeModel.Introductions.Introduced;
 
-internal abstract class IntroducedMember : IntroducedMemberOrNamedType, IMemberImpl
+internal abstract class IntroducedMember( CompilationModel compilation, IGenericContext genericContext )
+    : IntroducedMemberOrNamedType( compilation, genericContext ), IMemberImpl
 {
-    protected IntroducedMember( CompilationModel compilation, IGenericContext genericContext ) : base( compilation, genericContext ) { }
-
     protected abstract MemberBuilderData MemberBuilderData { get; }
 
     public abstract bool IsExplicitInterfaceImplementation { get; }
@@ -51,5 +50,5 @@ internal abstract class IntroducedMember : IntroducedMemberOrNamedType, IMemberI
 
     IRef<IMember> IMember.ToRef() => this.ToMemberFullRef();
 
-    public abstract IFullRef<IMember> ToMemberFullRef();
+    protected abstract IFullRef<IMember> ToMemberFullRef();
 }

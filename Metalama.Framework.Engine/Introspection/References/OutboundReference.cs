@@ -12,7 +12,7 @@ using System.Linq;
 
 namespace Metalama.Framework.Engine.Introspection.References;
 
-internal class OutboundReference(
+internal sealed class OutboundReference(
     ISymbol referencedSymbol,
     ISymbol referencingSymbol,
     IEnumerable<Validation.OutboundReference> references,

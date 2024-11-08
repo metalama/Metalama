@@ -4,17 +4,12 @@ using Metalama.Framework.Serialization;
 
 namespace Metalama.Framework.Engine.CompileTime.Serialization.Serializers;
 
-internal class AttributeSerializationDataSerializer : ReferenceTypeSerializer<AttributeSerializationData>
+internal sealed class AttributeSerializationDataSerializer : ReferenceTypeSerializer<AttributeSerializationData>
 {
-    public override AttributeSerializationData CreateInstance( IArgumentsReader constructorArguments )
-    {
-        return new AttributeSerializationData( constructorArguments );
-    }
+    public override AttributeSerializationData CreateInstance( IArgumentsReader constructorArguments ) => new( constructorArguments );
 
     public override void SerializeObject( AttributeSerializationData obj, IArgumentsWriter constructorArguments, IArgumentsWriter initializationArguments )
-    {
-        obj.Serialize( constructorArguments );
-    }
+        => obj.Serialize( constructorArguments );
 
     public override void DeserializeFields( AttributeSerializationData obj, IArgumentsReader initializationArguments ) { }
 }

@@ -128,9 +128,6 @@ public partial class DerivedTypeIndex
         public void AddDerivedType( IFullRef<INamedType> baseType, IFullRef<INamedType> derivedType )
             => this._relationships.Add( new NamedTypeRef( baseType ), new NamedTypeRef( derivedType ) );
 
-        public void AddDerivedType( INamedType baseType, INamedType derivedType )
-            => this._relationships.Add( new NamedTypeRef( baseType.ToFullRef() ), new NamedTypeRef( derivedType.ToFullRef() ) );
-
         public DerivedTypeIndex ToImmutable()
         {
             return new DerivedTypeIndex(

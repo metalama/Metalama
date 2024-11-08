@@ -35,10 +35,8 @@ using Xunit.Abstractions;
 
 namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline;
 
-public sealed class DesignTimePipelineTests : FrameworkBaseTestClass
+public sealed class DesignTimePipelineTests( ITestOutputHelper logger ) : FrameworkBaseTestClass( logger )
 {
-    public DesignTimePipelineTests( ITestOutputHelper logger ) : base( logger ) { }
-
     private static CSharpCompilation CreateCSharpCompilation(
         IReadOnlyDictionary<string, string> code,
         string? assemblyName = null,
@@ -1894,7 +1892,10 @@ class D{version}
 
         var code = new Dictionary<string, string>
         {
-            ["options.cs"] = options, ["aspect.cs"] = aspect, ["optionsAttribute.cs"] = "", ["target.cs"] = target,
+            ["options.cs"] = options,
+            ["aspect.cs"] = aspect,
+            ["optionsAttribute.cs"] = "",
+            ["target.cs"] = target,
 #if NETFRAMEWORK
             ["isexternalinit.cs"] = "namespace System.Runtime.CompilerServices { internal static class IsExternalInit; }"
 #endif

@@ -7,28 +7,22 @@ using System.Linq;
 
 namespace Metalama.Framework.Engine.CodeModel.UpdatableCollections;
 
-internal abstract class MemberUpdatableCollection<T> : DeclarationUpdatableCollection<T>
+internal abstract class MemberUpdatableCollection<T>( CompilationModel compilation, IRef containingDeclaration )
+    : DeclarationUpdatableCollection<T>( compilation )
     where T : class, INamedDeclaration
 {
-    protected MemberUpdatableCollection( CompilationModel compilation, IRef containingDeclaration ) : base( compilation )
-    {
-        this.ContainingDeclaration = containingDeclaration;
-    }
-
-    protected IRef ContainingDeclaration { get; }
-
     protected abstract DeclarationKind ItemsDeclarationKind { get; }
 
-    protected virtual IEnumerable<IFullRef<T>> GetMemberRefsOfName( string name )
-        => this.ContainingDeclaration.AsFullRef()
+    protected IEnumerable<IFullRef<T>> GetMemberRefsOfName( string name )
+        => containingDeclaration.AsFullRef()
             .GetMembersOfName(
                 name,
                 this.ItemsDeclarationKind,
                 this.Compilation )
             .Cast<IFullRef<T>>();
 
-    protected virtual IEnumerable<IFullRef<T>> GetMemberRefs()
-        => this.ContainingDeclaration.AsFullRef()
+    protected IEnumerable<IFullRef<T>> GetMemberRefs()
+        => containingDeclaration.AsFullRef()
             .GetMembers( this.ItemsDeclarationKind, this.Compilation )
             .Cast<IFullRef<T>>();
 }

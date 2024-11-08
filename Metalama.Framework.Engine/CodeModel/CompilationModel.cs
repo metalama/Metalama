@@ -159,7 +159,7 @@ namespace Metalama.Framework.Engine.CodeModel
 
         IProject ICompilation.Project => this.Project;
 
-        public CompilationContext CompilationContext { get; }
+        internal CompilationContext CompilationContext { get; }
 
         public PartialCompilation PartialCompilation { get; }
 
@@ -473,7 +473,7 @@ namespace Metalama.Framework.Engine.CodeModel
                     .Select(
                         a =>
                         {
-                            if ( !a.TryGetTarget( this, default, out var target ) )
+                            if ( !a.TryGetTarget( this, out var target ) )
                             {
                                 // Skipped by WhereNotNull.
                                 return null;

@@ -29,7 +29,7 @@ namespace Metalama.Framework.Engine.Templating.Expressions
 
         public override IType Type { get; }
 
-        public override bool? IsAssignable { get; }
+        protected override bool? IsAssignable { get; }
 
         private protected override bool? IsReferenceable { get; }
 

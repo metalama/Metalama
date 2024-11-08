@@ -18,28 +18,21 @@ using MethodKind = Metalama.Framework.Code.MethodKind;
 
 namespace Metalama.Framework.Engine.AdviceImpl.Override;
 
-internal abstract class OverrideIndexerBaseTransformation : OverridePropertyOrIndexerTransformation
+internal abstract class OverrideIndexerBaseTransformation(
+    AspectLayerInstance aspectLayerInstance,
+    IFullRef<IIndexer> overriddenDeclaration )
+    : OverridePropertyOrIndexerTransformation( aspectLayerInstance, overriddenDeclaration )
 {
-    private readonly IFullRef<IIndexer> _overriddenIndexer;
+    protected IFullRef<IIndexer> OverriddenIndexer { get; } = overriddenDeclaration;
 
-    protected OverrideIndexerBaseTransformation(
-        AspectLayerInstance aspectLayerInstance,
-        IFullRef<IIndexer> overriddenDeclaration )
-        : base( aspectLayerInstance, overriddenDeclaration )
-    {
-        this._overriddenIndexer = overriddenDeclaration;
-    }
-
-    protected override IFullRef<IPropertyOrIndexer> OverriddenPropertyOrIndexer => this._overriddenIndexer;
-
-    public override IFullRef<IMember> OverriddenDeclaration => this._overriddenIndexer;
+    public override IFullRef<IMember> OverriddenDeclaration => this.OverriddenIndexer;
 
     protected IEnumerable<InjectedMember> GetInjectedMembersImpl(
         MemberInjectionContext context,
         BlockSyntax? getAccessorBody,
         BlockSyntax? setAccessorBody )
     {
-        var overriddenDeclaration = this._overriddenIndexer.GetTarget( this.InitialCompilation );
+        var overriddenDeclaration = this.OverriddenIndexer.GetTarget( this.InitialCompilation );
 
         var setAccessorDeclarationKind =
             overriddenDeclaration.Writeability is Writeability.InitOnly or Writeability.ConstructorOnly
@@ -121,13 +114,13 @@ internal abstract class OverrideIndexerBaseTransformation : OverridePropertyOrIn
         => TransformationHelper.CreateIndexerProceedGetExpression(
             context.AspectReferenceSyntaxProvider,
             context.SyntaxGenerationContext,
-            this._overriddenIndexer.GetTarget( context.FinalCompilation ),
+            this.OverriddenIndexer.GetTarget( context.FinalCompilation ),
             this.AspectLayerId );
 
     protected override ExpressionSyntax CreateProceedSetExpression( MemberInjectionContext context )
         => TransformationHelper.CreateIndexerProceedSetExpression(
             context.AspectReferenceSyntaxProvider,
             context.SyntaxGenerationContext,
-            this._overriddenIndexer.GetTarget( context.FinalCompilation ),
+            this.OverriddenIndexer.GetTarget( context.FinalCompilation ),
             this.AspectLayerId );
 }

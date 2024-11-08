@@ -1,5 +1,6 @@
 ﻿// Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
+using JetBrains.Annotations;
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.Collections;
 using Metalama.Framework.Code.Types;
@@ -13,7 +14,8 @@ using System.Text;
 
 namespace Metalama.Framework.Engine.CodeModel.Visitors;
 
-internal class DisplayStringFormatter : CompilationElementVisitor
+// TODO: implement formatting based on CodeDisplayFormat
+internal sealed class DisplayStringFormatter : CompilationElementVisitor
 {
     private readonly GenericContext? _genericContext;
     private readonly CodeDisplayFormat _format;
@@ -84,7 +86,11 @@ internal class DisplayStringFormatter : CompilationElementVisitor
         this._format = format ?? CodeDisplayFormat.ShortDiagnosticMessage;
     }
 
-    public static string Format( ICompilationElement element, CodeDisplayFormat? format, CodeDisplayContext? context, GenericContext? genericContext = null )
+    public static string Format(
+        ICompilationElement element,
+        CodeDisplayFormat? format,
+        [PublicAPI] CodeDisplayContext? context,
+        GenericContext? genericContext = null )
     {
         using ( StackOverflowHelper.Detect() )
         {
@@ -215,14 +221,7 @@ internal class DisplayStringFormatter : CompilationElementVisitor
             this.Append( "@" );
         }
 
-        if ( declaration.IsReturnParameter )
-        {
-            this.Append( "<return>" );
-        }
-        else
-        {
-            this.Append( declaration.Name );
-        }
+        this.Append( declaration.IsReturnParameter ? "<return>" : declaration.Name );
     }
 
     public override void VisitIndexer( IIndexer declaration )
@@ -343,49 +342,55 @@ internal class DisplayStringFormatter : CompilationElementVisitor
 
     protected override void VisitNamedType( INamedType namedType )
     {
-        if ( namedType.SpecialType != 0 && _specialType.TryGetValue( namedType.SpecialType, out var specialType ) )
+        switch ( namedType )
         {
-            this.Append( specialType );
-        }
-        else if ( namedType is { Name: nameof(ValueTuple), ContainingNamespace.FullName: "System" } )
-        {
-            this.Append( "(" );
+            case { SpecialType: not 0 } when _specialType.TryGetValue( namedType.SpecialType, out var specialType ):
+                this.Append( specialType );
 
-            for ( var index = 0; index < namedType.TypeArguments.Count; index++ )
-            {
-                if ( index > 0 )
+                break;
+
+            case { Name: nameof(ValueTuple), ContainingNamespace.FullName: "System" }:
+                this.Append( "(" );
+
+                for ( var index = 0; index < namedType.TypeArguments.Count; index++ )
                 {
-                    this.Append( ", " );
+                    if ( index > 0 )
+                    {
+                        this.Append( ", " );
+                    }
+
+                    var typeArgument = namedType.TypeArguments[index];
+                    this.Visit( typeArgument );
                 }
 
-                var typeArgument = namedType.TypeArguments[index];
-                this.Visit( typeArgument );
-            }
+                this.Append( ")" );
 
-            this.Append( ")" );
-        }
-        else if ( namedType is { Name: nameof(Nullable), ContainingNamespace.FullName: "System" , TypeParameters.Count: 1 } )
-        {
-            this.Visit( namedType.TypeArguments[0] );
+                break;
+
+            case { Name: nameof(Nullable), ContainingNamespace.FullName: "System", TypeParameters.Count: 1 }:
+                this.Visit( namedType.TypeArguments[0] );
             
-            // The trailing ? is appended lower in this method.
-        }
-        else
-        {
-            if ( namedType.DeclaringType != null )
-            {
-                this.VisitNamedType( namedType.DeclaringType );
-                this.Append( "." );
-            }
+                // The trailing ? is appended lower in this method.
+                
+                break;
 
-            this.Append( namedType.Name );
+            default:
+                if ( namedType.DeclaringType != null )
+                {
+                    this.VisitNamedType( namedType.DeclaringType );
+                    this.Append( "." );
+                }
 
-            if ( namedType.TypeArguments.Count > 0 )
-            {
-                this.Append( "<" );
-                this.VisitTypeArgumentList( namedType.TypeArguments );
-                this.Append( ">" );
-            }
+                this.Append( namedType.Name );
+
+                if ( namedType.TypeArguments.Count > 0 )
+                {
+                    this.Append( "<" );
+                    this.VisitTypeArgumentList( namedType.TypeArguments );
+                    this.Append( ">" );
+                }
+
+                break;
         }
 
         if ( namedType.IsNullable == true )

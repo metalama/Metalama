@@ -15,7 +15,7 @@ internal sealed class NullGenericContext : GenericContext
 
     internal override IType Map( ITypeParameter typeParameter ) => typeParameter;
 
-    internal override IType Map( ITypeParameterSymbol typeParameterSymbol, CompilationModel compilation )
+    protected override IType Map( ITypeParameterSymbol typeParameterSymbol, CompilationModel compilation )
         => compilation.Factory.GetIType( typeParameterSymbol );
 
     internal override GenericContext Map( GenericContext genericContext, RefFactory refFactory ) => Empty;

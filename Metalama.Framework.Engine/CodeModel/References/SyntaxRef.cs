@@ -10,16 +10,10 @@ using System;
 
 namespace Metalama.Framework.Engine.CodeModel.References;
 
-internal sealed partial class SyntaxRef<T> : FullRef<T>
+internal sealed partial class SyntaxRef<T>( SyntaxNode syntaxNode, RefTargetKind targetKind, RefFactory refFactory ) : FullRef<T>( refFactory )
     where T : class, ICompilationElement
 {
-    public SyntaxNode SyntaxNode { get; }
-
-    public SyntaxRef( SyntaxNode syntaxNode, RefTargetKind targetKind, RefFactory refFactory ) : base( refFactory )
-    {
-        this.SyntaxNode = syntaxNode.AssertNotNull();
-        this.TargetKind = targetKind;
-    }
+    private readonly SyntaxNode _syntaxNode = syntaxNode.AssertNotNull();
 
     public override FullRef<T> WithGenericContext( GenericContext genericContext ) => throw new NotImplementedException();
 
@@ -27,20 +21,20 @@ internal sealed partial class SyntaxRef<T> : FullRef<T>
 
     public override IFullRef<T> DefinitionRef => this;
 
-    public override RefTargetKind TargetKind { get; }
+    public override RefTargetKind TargetKind { get; } = targetKind;
 
     public override IFullRef ContainingDeclaration => throw new NotImplementedException();
 
     public override IFullRef<INamedType> DeclaringType => throw new NotImplementedException();
 
-    protected override ISymbol GetSymbolIgnoringRefKind( CompilationContext compilationContext, bool ignoreAssemblyKey = false )
+    protected override ISymbol GetSymbolIgnoringRefKind( CompilationContext compilationContext )
     {
         Invariant.Assert( this.CompilationContext == compilationContext );
 
         return this.Symbol;
     }
 
-    public override SyntaxTree PrimarySyntaxTree => this.SyntaxNode.SyntaxTree;
+    public override SyntaxTree PrimarySyntaxTree => this._syntaxNode.SyntaxTree;
 
     [Memo]
     private ISymbol Symbol => this.GetSymbol();
@@ -48,13 +42,13 @@ internal sealed partial class SyntaxRef<T> : FullRef<T>
     private ISymbol GetSymbol()
     {
         var semanticModel =
-            this.CompilationContext.SemanticModelProvider.GetSemanticModel( this.SyntaxNode.SyntaxTree )
-            ?? throw new AssertionFailedException( $"Cannot get a semantic model for '{this.SyntaxNode.SyntaxTree.FilePath}'." );
+            this.CompilationContext.SemanticModelProvider.GetSemanticModel( this._syntaxNode.SyntaxTree )
+            ?? throw new AssertionFailedException( $"Cannot get a semantic model for '{this._syntaxNode.SyntaxTree.FilePath}'." );
 
-        return (this.SyntaxNode is LambdaExpressionSyntax
-                   ? semanticModel.GetSymbolInfo( this.SyntaxNode ).Symbol
-                   : semanticModel.GetDeclaredSymbol( this.SyntaxNode ))
-               ?? throw new AssertionFailedException( $"Cannot get a symbol for {this.SyntaxNode.GetType().Name}." );
+        return (this._syntaxNode is LambdaExpressionSyntax
+                   ? semanticModel.GetSymbolInfo( this._syntaxNode ).Symbol
+                   : semanticModel.GetDeclaredSymbol( this._syntaxNode ))
+               ?? throw new AssertionFailedException( $"Cannot get a symbol for {this._syntaxNode.GetType().Name}." );
     }
 
     protected override ICompilationElement? Resolve(
@@ -76,12 +70,12 @@ internal sealed partial class SyntaxRef<T> : FullRef<T>
     public override string ToString()
         => this.TargetKind switch
         {
-            RefTargetKind.Default => this.SyntaxNode.GetType().Name,
-            _ => $"{this.SyntaxNode.GetType().Name}:{this.TargetKind}"
+            RefTargetKind.Default => this._syntaxNode.GetType().Name,
+            _ => $"{this._syntaxNode.GetType().Name}:{this.TargetKind}"
         };
 
     protected override IFullRef<TOut> CastAsFullRef<TOut>()
-        => this as IFullRef<TOut> ?? new SyntaxRef<TOut>( this.SyntaxNode, this.TargetKind, this.RefFactory );
+        => this as IFullRef<TOut> ?? new SyntaxRef<TOut>( this._syntaxNode, this.TargetKind, this.RefFactory );
 
     public override bool Equals( IRef? other, RefComparison comparison )
     {
@@ -103,7 +97,7 @@ internal sealed partial class SyntaxRef<T> : FullRef<T>
             throw new NotSupportedException( "A SyntaxRef can only be compared to another SyntaxRef." );
         }
 
-        return this.SyntaxNode == syntaxRef.SyntaxNode && this.TargetKind == syntaxRef.TargetKind;
+        return this._syntaxNode == syntaxRef._syntaxNode && this.TargetKind == syntaxRef.TargetKind;
     }
 
     public override int GetHashCode( RefComparison comparison )
@@ -113,7 +107,7 @@ internal sealed partial class SyntaxRef<T> : FullRef<T>
             throw new ArgumentOutOfRangeException( nameof(comparison), "Only RefComparison.Default is supported for SyntaxRef." );
         }
 
-        return HashCode.Combine( this.SyntaxNode, this.TargetKind );
+        return HashCode.Combine( this._syntaxNode, this.TargetKind );
     }
 
     public override DeclarationKind DeclarationKind => throw new NotSupportedException();

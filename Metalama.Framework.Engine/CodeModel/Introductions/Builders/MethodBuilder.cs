@@ -125,7 +125,7 @@ internal sealed class MethodBuilder : MethodBaseBuilder, IMethodBuilderImpl
 
     IType IMethod.ReturnType => this.ReturnParameter.Type;
 
-    public BaseParameterBuilder ReturnParameter { get; set; }
+    public BaseParameterBuilder ReturnParameter { get; }
 
     IParameter IMethod.ReturnParameter => this.ReturnParameter;
 

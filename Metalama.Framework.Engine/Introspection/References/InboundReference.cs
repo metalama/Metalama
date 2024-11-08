@@ -13,7 +13,7 @@ using System.Linq;
 
 namespace Metalama.Framework.Engine.Introspection.References;
 
-internal class InboundReference( ISymbol referencedSymbol, ReferencingSymbolInfo referencingSymbolInfo, CompilationModel compilation )
+internal sealed class InboundReference( ISymbol referencedSymbol, ReferencingSymbolInfo referencingSymbolInfo, CompilationModel compilation )
     : IIntrospectionReference
 {
     [Memo]

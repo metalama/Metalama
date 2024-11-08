@@ -46,8 +46,7 @@ public static class DeclarationExtensions
                     MethodKind.Destructor => DeclarationKind.Finalizer,
                     _ => DeclarationKind.Method
                 },
-            IPropertySymbol { Parameters.Length: 0 } => DeclarationKind.Property,
-            IPropertySymbol { Parameters.Length: > 0 } => DeclarationKind.Indexer,
+            IPropertySymbol { Parameters.Length: var parameters } => parameters == 0 ? DeclarationKind.Property : DeclarationKind.Indexer,
             IFieldSymbol => DeclarationKind.Field,
             ITypeParameterSymbol => DeclarationKind.TypeParameter,
             IAssemblySymbol assemblySymbol when assemblySymbol.Equals( compilationContext.Compilation.Assembly ) => DeclarationKind.Compilation,
@@ -56,7 +55,7 @@ public static class DeclarationExtensions
             IEventSymbol => DeclarationKind.Event,
             ITypeSymbol => DeclarationKind.Type,
             IModuleSymbol => DeclarationKind.Compilation,
-            _ => throw new ArgumentException( $"Unexpected symbol: {symbol?.GetType().Name}.", nameof(symbol) )
+            _ => throw new ArgumentException( $"Unexpected symbol: {symbol.GetType().Name}.", nameof(symbol) )
         };
 
     /// <summary>
@@ -420,7 +419,7 @@ public static class DeclarationExtensions
         }
     }
 
-    public static ImmutableArray<SyntaxReference> GetDeclaringSyntaxReferences( this IDeclaration declaration )
+    internal static ImmutableArray<SyntaxReference> GetDeclaringSyntaxReferences( this IDeclaration declaration )
         => ((IDeclarationImpl) declaration).DeclaringSyntaxReferences;
 
     /// <summary>

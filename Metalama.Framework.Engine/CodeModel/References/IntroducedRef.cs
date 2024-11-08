@@ -109,7 +109,7 @@ internal sealed partial class IntroducedRef<T> : FullRef<T>, IIntroducedRef
 
     public override SerializableDeclarationId ToSerializableId() => this.ConstructedDeclaration.ToSerializableId();
 
-    protected override ISymbol GetSymbolIgnoringRefKind( CompilationContext compilationContext, bool ignoreAssemblyKey = false )
+    protected override ISymbol GetSymbolIgnoringRefKind( CompilationContext compilationContext )
         => throw new NotSupportedException();
 
     public override ISymbol GetClosestContainingSymbol()

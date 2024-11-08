@@ -7,7 +7,7 @@ using Metalama.Framework.Aspects;
 namespace Metalama.Framework.Code
 {
     /// <summary>
-    /// Special types, such as <see cref="void"/>.
+    /// Special types, such as <see cref="Void"/>.
     /// </summary>
     [CompileTime]
     public enum SpecialType
@@ -18,7 +18,7 @@ namespace Metalama.Framework.Code
         None,
 
         /// <summary>
-        /// <see cref="void" />.
+        /// <see cref="Void" />.
         /// </summary>
         Void,
 

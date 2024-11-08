@@ -20,15 +20,10 @@ using SpecialType = Metalama.Framework.Code.SpecialType;
 
 namespace Metalama.Framework.Engine.AdviceImpl.Override;
 
-internal abstract class OverrideMethodBaseTransformation : OverrideMemberTransformation
+internal abstract class OverrideMethodBaseTransformation( AspectLayerInstance aspectLayerInstance, IFullRef<IMethod> targetMethod )
+    : OverrideMemberTransformation( aspectLayerInstance, targetMethod )
 {
-    public IFullRef<IMethod> OverriddenMethod { get; }
-
-    protected OverrideMethodBaseTransformation( AspectLayerInstance aspectLayerInstance, IFullRef<IMethod> targetMethod )
-        : base( aspectLayerInstance, targetMethod )
-    {
-        this.OverriddenMethod = targetMethod;
-    }
+    protected IFullRef<IMethod> OverriddenMethod { get; } = targetMethod;
 
     public override IFullRef<IMember> OverriddenDeclaration => this.OverriddenMethod;
 

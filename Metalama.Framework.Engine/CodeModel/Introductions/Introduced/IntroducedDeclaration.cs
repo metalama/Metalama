@@ -25,19 +25,13 @@ namespace Metalama.Framework.Engine.CodeModel.Introductions.Introduced;
 /// The base class for the read-only facade of introduced declarations, represented by <see cref="DeclarationBuilder"/>. Facades
 /// are consistent with the consuming <see cref="CompilationModel"/>, while builders are consistent with the producing <see cref="CompilationModel"/>. 
 /// </summary>
-internal abstract class IntroducedDeclaration : BaseDeclaration
+internal abstract class IntroducedDeclaration( CompilationModel compilation, IGenericContext genericContext ) : BaseDeclaration
 {
-    protected IntroducedDeclaration( CompilationModel compilation, IGenericContext genericContext )
-    {
-        this.Compilation = compilation;
-        this.GenericContext = genericContext.AsGenericContext();
-    }
-
-    public override CompilationModel Compilation { get; }
+    public override CompilationModel Compilation { get; } = compilation;
 
     public abstract DeclarationBuilderData BuilderData { get; }
 
-    internal override GenericContext GenericContext { get; }
+    internal override GenericContext GenericContext { get; } = genericContext.AsGenericContext();
 
     public sealed override string ToDisplayString( CodeDisplayFormat? format = null, CodeDisplayContext? context = null )
         => DisplayStringFormatter.Format( this, format, context, this.GenericContext );
@@ -115,8 +109,7 @@ internal abstract class IntroducedDeclaration : BaseDeclaration
 
     internal override ICompilationElement Translate(
         CompilationModel newCompilation,
-        IGenericContext? genericContext = null,
-        Type? interfaceType = null )
+        IGenericContext? genericContext = null )
     {
         GenericContext combinedGenericContext;
 

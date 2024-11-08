@@ -7,7 +7,7 @@ using Metalama.Framework.Engine.CodeModel.References;
 
 namespace Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 
-internal class ParameterBuilderData : NamedDeclarationBuilderData
+internal sealed class ParameterBuilderData : NamedDeclarationBuilderData
 {
     private readonly IntroducedRef<IParameter> _ref;
 

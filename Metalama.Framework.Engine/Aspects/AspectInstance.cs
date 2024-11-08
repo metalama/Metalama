@@ -54,17 +54,6 @@ namespace Metalama.Framework.Engine.Aspects
         internal AspectInstance( IAspect aspect, IDeclaration targetDeclaration, AspectClass aspectClass, in AspectPredecessor predecessor ) :
             this( aspect, targetDeclaration, aspectClass, ImmutableArray.Create( predecessor ) ) { }
 
-        // This constructor is used by linker tests.
-        internal AspectInstance( IAspect aspect, AspectClass aspectClass )
-        {
-            this.Aspect = aspect;
-            this.AspectClass = aspectClass;
-            this.TargetDeclaration = null!;
-
-            this.TemplateInstances = ImmutableDictionary.Create<TemplateClass, TemplateClassInstance>()
-                .Add( aspectClass, new TemplateClassInstance( TemplateProvider.FromInstance( aspect ), aspectClass ) );
-        }
-
         internal AspectInstance(
             IAspect aspect,
             IDeclaration targetDeclaration,

@@ -34,14 +34,11 @@ namespace Metalama.Framework.Engine.CodeModel
 
         internal abstract ICompilationElement? Translate(
             CompilationModel newCompilation,
-            IGenericContext? genericContext = null,
-            Type? interfaceType = null );
+            IGenericContext? genericContext = null );
 
         ICompilation ICompilationElement.Compilation => this.Compilation;
 
         IRef<IDeclaration> IDeclaration.ToRef() => this.ToFullDeclarationRef();
-
-        private protected virtual IRef<IDeclaration> ToDeclarationRef() => this.ToFullDeclarationRef();
 
         /// <summary>
         /// Returns an <see cref="IRef{T}"/> for the topmost interface supported by the type, i.e. not the base <see cref="IDeclaration"/>

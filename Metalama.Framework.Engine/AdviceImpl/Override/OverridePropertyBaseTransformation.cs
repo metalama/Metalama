@@ -17,21 +17,12 @@ using MethodKind = Metalama.Framework.Code.MethodKind;
 
 namespace Metalama.Framework.Engine.AdviceImpl.Override;
 
-internal abstract class OverridePropertyBaseTransformation : OverridePropertyOrIndexerTransformation
+internal abstract class OverridePropertyBaseTransformation( AspectLayerInstance aspectLayerInstance, IFullRef<IProperty> overriddenProperty )
+    : OverridePropertyOrIndexerTransformation( aspectLayerInstance, overriddenProperty )
 {
-    public IFullRef<IProperty> OverriddenProperty { get; }
-
-    protected OverridePropertyBaseTransformation(
-        AspectLayerInstance aspectLayerInstance,
-        IFullRef<IProperty> overriddenProperty )
-        : base( aspectLayerInstance, overriddenProperty )
-    {
-        this.OverriddenProperty = overriddenProperty;
-    }
+    protected IFullRef<IProperty> OverriddenProperty { get; } = overriddenProperty;
 
     public override IFullRef<IMember> OverriddenDeclaration => this.OverriddenProperty;
-
-    protected override IFullRef<IPropertyOrIndexer> OverriddenPropertyOrIndexer => this.OverriddenProperty;
 
     protected IEnumerable<InjectedMember> GetInjectedMembersImpl(
         MemberInjectionContext context,

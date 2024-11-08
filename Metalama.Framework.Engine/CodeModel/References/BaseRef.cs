@@ -1,5 +1,6 @@
 ﻿// Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
+using JetBrains.Annotations;
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.Comparers;
 using Metalama.Framework.Engine.CodeModel.GenericContexts;
@@ -33,7 +34,7 @@ internal abstract class BaseRef<T> : IRefImpl, IRef<T>
     
     public virtual SerializableDeclarationId ToSerializableId( CompilationContext compilationContext ) => this.ToSerializableId();
 
-    public abstract IDurableRef<T> ToDurable();
+    protected abstract IDurableRef<T> ToDurable();
 
     public abstract bool IsDurable { get; }
 
@@ -42,6 +43,7 @@ internal abstract class BaseRef<T> : IRefImpl, IRef<T>
     public T GetTarget( ICompilation compilation, IGenericContext? genericContext = null )
         => (T) this.GetTargetImpl( compilation, true, genericContext, typeof(T) )!;
 
+    [PublicAPI]
     public T? GetTargetOrNull( ICompilation compilation, IGenericContext? genericContext = null )
         => (T?) this.GetTargetImpl( compilation, false, genericContext, typeof(T) );
 

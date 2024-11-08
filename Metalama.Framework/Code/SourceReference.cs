@@ -1,5 +1,6 @@
 // Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
+using JetBrains.Annotations;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Diagnostics;
 using System;
@@ -10,6 +11,7 @@ namespace Metalama.Framework.Code;
 /// Represents a syntax node in source code. Using <c>Metalama.Framework.Sdk</c> you can use <c>ToSyntaxNodeOrToken</c> to convert it to a Roslyn object.
 /// </summary>
 [CompileTime]
+[PublicAPI]
 public readonly struct SourceReference : IDiagnosticLocation
 {
     private readonly ISourceReferenceImpl _sourceReferenceImpl;

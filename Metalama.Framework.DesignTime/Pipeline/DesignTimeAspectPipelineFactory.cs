@@ -47,9 +47,9 @@ public class DesignTimeAspectPipelineFactory : IDisposable, IAspectPipelineConfi
     private readonly ITaskRunner _taskRunner;
     private readonly DesignTimeExceptionHandler _exceptionHandler;
 
-    public ServiceProvider<IGlobalService> ServiceProvider { get; }
+    internal ServiceProvider<IGlobalService> ServiceProvider { get; }
 
-    public CompileTimeDomain Domain { get; }
+    internal CompileTimeDomain Domain { get; }
 
     public DesignTimeAspectPipelineFactory( ServiceProvider<IGlobalService> serviceProvider, CompileTimeDomain domain )
     {
@@ -267,7 +267,7 @@ public class DesignTimeAspectPipelineFactory : IDisposable, IAspectPipelineConfi
         return pipeline;
     }
 
-    public async ValueTask ResumePipelinesAsync( AsyncExecutionContext executionContext, bool executePipelineNow, CancellationToken cancellationToken )
+    internal async ValueTask ResumePipelinesAsync( AsyncExecutionContext executionContext, bool executePipelineNow, CancellationToken cancellationToken )
     {
         Logger.DesignTime.Trace?.Log( "Received ICompileTimeCodeEditingStatusService.OnEditingCompileTimeCodeCompleted." );
 
@@ -349,7 +349,7 @@ public class DesignTimeAspectPipelineFactory : IDisposable, IAspectPipelineConfi
         return this.ExecuteAsync( compilation, executionContext, cancellationToken );
     }
 
-    public virtual bool TryGetMetalamaVersion( Compilation compilation, [NotNullWhen( true )] out Version? version )
+    internal virtual bool TryGetMetalamaVersion( Compilation compilation, [NotNullWhen( true )] out Version? version )
         => this._projectClassifier.TryGetMetalamaVersion( compilation, out version );
 
     internal Task<FallibleResultWithDiagnostics<DesignTimeAspectPipelineResultAndState>> ExecuteAsync(

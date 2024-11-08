@@ -108,10 +108,10 @@ namespace Metalama.Framework.Engine.Linking.Substitution
                             if ( this._returnVariableIdentifier != null )
                             {
                                 return syntaxGenerator.FormattedBlock(
-                                    SyntaxFactoryEx.AssignmentStatement(
-                                        IdentifierName( this._returnVariableIdentifier ),
-                                        arrowExpressionClause.Expression,
-                                        syntaxGenerator.SyntaxGenerationContext ) )
+                                        SyntaxFactoryEx.AssignmentStatement(
+                                            IdentifierName( this._returnVariableIdentifier ),
+                                            arrowExpressionClause.Expression,
+                                            syntaxGenerator.SyntaxGenerationContext ) )
                                     .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock );
                             }
                             else

@@ -24,10 +24,8 @@ namespace Metalama.Framework.Eligibility;
 [PublicAPI]
 public static partial class EligibilityExtensions
 {
-    private static readonly List<(Type Type, string Name)> _interfaceNames = new()
-    {
-        // The order is significant: the most significant should come first.
-
+    private static readonly List<(Type Type, string Name)> _interfaceNames =
+    [
         (typeof(IMethod), "method"),
         (typeof(IField), "field"),
         (typeof(INamedType), "type"),
@@ -47,7 +45,7 @@ public static partial class EligibilityExtensions
         (typeof(IHasParameters), "property, indexer or event"),
         (typeof(IMember), "method, constructor, field, property, indexer or event"),
         (typeof(IMemberOrNamedType), "method, constructor, field, property, indexer, event or type")
-    };
+    ];
 
     /// <summary>
     /// Gets an <see cref="IEligibilityBuilder"/> for the declaring type of the member validated by the given <see cref="IEligibilityBuilder"/>.
@@ -355,7 +353,7 @@ public static partial class EligibilityExtensions
     [Obsolete( "This method has been renamed IsInstanceOfType." )]
     public static void MustBeOfType<T>( this IEligibilityBuilder<T> eligibilityBuilder, Type type )
         where T : class
-        => MustBeInstanceOfType<T>( eligibilityBuilder, type );
+        => MustBeInstanceOfType( eligibilityBuilder, type );
 
     /// <summary>
     /// Requires the validated object to be of a certain type of metadata object, e.g. an <see cref="IField"/> or <see cref="IMethod"/>.

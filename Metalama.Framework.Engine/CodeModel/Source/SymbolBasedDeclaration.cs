@@ -10,7 +10,6 @@ using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using System;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
@@ -27,7 +26,7 @@ namespace Metalama.Framework.Engine.CodeModel.Source
 
         public abstract ISymbol Symbol { get; }
 
-        public GenericContext GenericContextForSymbolMapping { get; }
+        internal GenericContext GenericContextForSymbolMapping { get; }
 
         public bool SymbolMustBeMapped => !this.GenericContextForSymbolMapping.IsEmptyOrIdentity;
 
@@ -128,8 +127,7 @@ namespace Metalama.Framework.Engine.CodeModel.Source
 
         internal override ICompilationElement? Translate(
             CompilationModel newCompilation,
-            IGenericContext? genericContext = null,
-            Type? interfaceType = null )
+            IGenericContext? genericContext = null )
         {
             using ( StackOverflowHelper.Detect() )
             {

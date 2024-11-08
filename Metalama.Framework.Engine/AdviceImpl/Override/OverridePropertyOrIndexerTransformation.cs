@@ -9,15 +9,11 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Metalama.Framework.Engine.AdviceImpl.Override;
 
-internal abstract class OverridePropertyOrIndexerTransformation : OverrideMemberTransformation
+internal abstract class OverridePropertyOrIndexerTransformation(
+    AspectLayerInstance aspectLayerInstance,
+    IFullRef<IPropertyOrIndexer> overriddenPropertyOrIndexer )
+    : OverrideMemberTransformation( aspectLayerInstance, overriddenPropertyOrIndexer )
 {
-    protected abstract IFullRef<IPropertyOrIndexer> OverriddenPropertyOrIndexer { get; }
-
-    protected OverridePropertyOrIndexerTransformation(
-        AspectLayerInstance aspectLayerInstance,
-        IFullRef<IPropertyOrIndexer> overriddenPropertyOrIndexer )
-        : base( aspectLayerInstance, overriddenPropertyOrIndexer ) { }
-
     /// <summary>
     /// Creates a trivial passthrough body for cases where we have template only for one accessor kind.
     /// </summary>

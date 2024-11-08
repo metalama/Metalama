@@ -3,7 +3,6 @@
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.SerializableIds;
-using Metalama.Framework.Engine.Utilities.Roslyn;
 using Metalama.Testing.UnitTesting;
 using System;
 using System.Collections.Generic;
@@ -14,10 +13,8 @@ using SymbolEqualityComparer = Microsoft.CodeAnalysis.SymbolEqualityComparer;
 
 namespace Metalama.Framework.Tests.UnitTests.Utilities;
 
-public sealed class SerializableTypeIdTests : UnitTestClass
+public sealed class SerializableTypeIdTests( ITestOutputHelper? testOutputHelper ) : UnitTestClass( testOutputHelper )
 {
-    public SerializableTypeIdTests( ITestOutputHelper? testOutputHelper ) : base( testOutputHelper ) { }
-
     [Theory]
     [InlineData( typeof(int) )]
     [InlineData( typeof(void) )]

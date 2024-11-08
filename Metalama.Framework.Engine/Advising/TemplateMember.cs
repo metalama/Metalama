@@ -23,6 +23,7 @@ internal abstract class TemplateMember
 
     protected CompilationModel GetTemplateReflectionCompilation( CompilationModel compilationModel )
         => this.TemplateClassMember.TemplateClass.GetTemplateReflectionCompilation( compilationModel );
+
     public TemplateClassMember TemplateClassMember { get; }
 
     public ISymbol Symbol => this.GetDeclarationRef().Symbol;

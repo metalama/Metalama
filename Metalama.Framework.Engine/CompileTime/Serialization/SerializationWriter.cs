@@ -15,37 +15,30 @@ using System.Runtime.CompilerServices;
 
 namespace Metalama.Framework.Engine.CompileTime.Serialization;
 
-internal sealed class SerializationWriter
+internal sealed class SerializationWriter(
+    in ProjectServiceProvider serviceProvider,
+    Stream stream,
+    CompileTimeSerializer formatter,
+    bool shouldReportExceptionCause )
 {
-    private readonly SerializationBinaryWriter _binaryWriter;
+    private readonly SerializationBinaryWriter _binaryWriter = new( new BinaryWriter( stream ) );
 
     private readonly Queue<SerializationQueueItem<object>> _serializationQueue = new();
 
-    private readonly ProjectServiceProvider _serviceProvider;
-    private readonly CompileTimeSerializer _formatter;
-    private readonly bool _shouldReportExceptionCause;
+    private readonly ProjectServiceProvider _serviceProvider = serviceProvider;
 
     private readonly Dictionary<Type, AssemblyTypeName> _typeNameCache = new();
     private readonly Dictionary<ITypeSymbol, AssemblyTypeName> _typeSymbolNameCache = new();
     private readonly Dictionary<object, ObjectInfo> _objects = new( new CanonicalComparer() );
 
-    private readonly UserCodeInvoker _userCodeInvoker;
-
-    public SerializationWriter( in ProjectServiceProvider serviceProvider, Stream stream, CompileTimeSerializer formatter, bool shouldReportExceptionCause )
-    {
-        this._serviceProvider = serviceProvider;
-        this._formatter = formatter;
-        this._shouldReportExceptionCause = shouldReportExceptionCause;
-        this._binaryWriter = new SerializationBinaryWriter( new BinaryWriter( stream ) );
-        this._userCodeInvoker = serviceProvider.GetRequiredService<UserCodeInvoker>();
-    }
+    private readonly UserCodeInvoker _userCodeInvoker = serviceProvider.GetRequiredService<UserCodeInvoker>();
 
     public void Serialize( object? obj )
     {
         this._binaryWriter.WriteCompressedInteger( SerializationProtocol.CurrentVersion );
 
         // Assertion was added after importing code from PostSharp.
-        var cause = this._shouldReportExceptionCause ? SerializationCause.Root( obj.AssertNotNull().GetType() ) : null;
+        var cause = shouldReportExceptionCause ? SerializationCause.Root( obj.AssertNotNull().GetType() ) : null;
 
         this._serializationQueue.Enqueue( new SerializationQueueItem<object>( obj, cause ) );
 
@@ -82,9 +75,9 @@ internal sealed class SerializationWriter
         {
             CallOnSerialization( obj );
 
-            var serializer = type.IsArray ? null : this._formatter.SerializerProvider.GetSerializer( type, cause );
+            var serializer = type.IsArray ? null : formatter.SerializerProvider.GetSerializer( type, cause );
 
-            objectInfo = new ObjectInfo( this._formatter, obj, this._objects.Count + 1 );
+            objectInfo = new ObjectInfo( formatter, obj, this._objects.Count + 1 );
 
             if ( !type.IsArray )
             {
@@ -122,7 +115,7 @@ internal sealed class SerializationWriter
     {
         if ( type is CompileTimeType compileTimeType )
         {
-            var typeSymbol = (ITypeSymbol) compileTimeType.Target.GetSymbol( this._formatter.Compilation.AssertNotNull() ).AssertNotNull();
+            var typeSymbol = (ITypeSymbol) compileTimeType.Target.GetSymbol( formatter.Compilation.AssertNotNull() ).AssertNotNull();
             this.WriteType( typeSymbol, cause, intrinsicType );
 
             return;
@@ -307,7 +300,7 @@ internal sealed class SerializationWriter
 
         if ( !this._typeNameCache.TryGetValue( type, out var assemblyTypeName ) )
         {
-            this._formatter.Binder.BindToName( type, out var typeName, out var assemblyName );
+            formatter.Binder.BindToName( type, out var typeName, out var assemblyName );
 
             if ( CompileTimeCompilationBuilder.IsCompileTimeAssemblyName( assemblyName ) )
             {
@@ -331,7 +324,7 @@ internal sealed class SerializationWriter
 
         if ( !this._typeSymbolNameCache.TryGetValue( typeSymbol, out var assemblyTypeName ) )
         {
-            this._formatter.Binder.BindToName( typeSymbol, out var typeName, out var assemblyName );
+            formatter.Binder.BindToName( typeSymbol, out var typeName, out var assemblyName );
             assemblyTypeName = new AssemblyTypeName( typeName, assemblyName );
 
             this._typeSymbolNameCache.Add( typeSymbol, assemblyTypeName );
@@ -374,7 +367,7 @@ internal sealed class SerializationWriter
         }
         else
         {
-            this.WriteArguments( objectInfo.ConstructorArguments, true, cause, objectType );
+            this.WriteArguments( objectInfo.ConstructorArguments, true, cause );
 
             // we write construction objects inline because they can be needed during construction
         }
@@ -403,7 +396,7 @@ internal sealed class SerializationWriter
         {
             if ( intrinsicType == SerializationIntrinsicType.Class )
             {
-                this.WriteArguments( objectInfo.InitializationArguments, false, cause, type );
+                this.WriteArguments( objectInfo.InitializationArguments, false, cause );
             }
         }
     }
@@ -556,16 +549,16 @@ internal sealed class SerializationWriter
     private void WriteStruct( object value, SerializationCause? cause )
     {
         var type = value.GetType();
-        var serializer = this._formatter.SerializerProvider.GetSerializer( type, cause );
-        var arguments = new Arguments( this._formatter );
+        var serializer = formatter.SerializerProvider.GetSerializer( type, cause );
+        var arguments = new Arguments( formatter );
 
         this.TrySerialize( serializer, value, arguments, ThrowingArguments.Instance, cause );
 
         // structs have one phase serializers so we have to write initialization data inline
-        this.WriteArguments( arguments, true, cause, type );
+        this.WriteArguments( arguments, true, cause );
     }
 
-    private void WriteArguments( Arguments arguments, bool writeInitializationArgumentsInline, SerializationCause? cause, Type owningType )
+    private void WriteArguments( Arguments arguments, bool writeInitializationArgumentsInline, SerializationCause? cause )
     {
         var count = 0;
 
@@ -593,7 +586,7 @@ internal sealed class SerializationWriter
 
                 this._binaryWriter.WriteDottedString( argument.Key );
 
-                var newCause = cause?.WithFieldAccess( owningType, argument.Key );
+                var newCause = cause?.WithFieldAccess( argument.Key );
 
                 this.WriteTypedValue( argument.Value, writeInitializationArgumentsInline, newCause );
             }
@@ -699,27 +692,19 @@ internal sealed class SerializationWriter
         }
     }
 
-    private sealed class ObjectInfo
+    private sealed class ObjectInfo( CompileTimeSerializer serializer, object o, int objectId )
     {
-        public object Object { get; }
+        public object Object { get; } = o;
 
-        public int ObjectId { get; }
+        public int ObjectId { get; } = objectId;
 
-        public Arguments ConstructorArguments { get; }
+        public Arguments ConstructorArguments { get; } = new( serializer );
 
-        public Arguments InitializationArguments { get; }
+        public Arguments InitializationArguments { get; } = new( serializer );
 
         public bool ConstructionDataWritten { get; set; }
 
         public bool InitializationArgumentsWritten { get; set; }
-
-        public ObjectInfo( CompileTimeSerializer serializer, object o, int objectId )
-        {
-            this.InitializationArguments = new Arguments( serializer );
-            this.ConstructorArguments = new Arguments( serializer );
-            this.Object = o;
-            this.ObjectId = objectId;
-        }
     }
 
     private sealed class CanonicalComparer : IEqualityComparer<object>
@@ -729,16 +714,10 @@ internal sealed class SerializationWriter
         public int GetHashCode( object obj ) => RuntimeHelpers.GetHashCode( obj );
     }
 
-    private sealed class Arguments : IArgumentsWriter, ISerializationContext
+    private sealed class Arguments( CompileTimeSerializer serializer ) : IArgumentsWriter, ISerializationContext
     {
-        private readonly CompileTimeSerializer _serializer;
         private Dictionary<string, object?>? _values;
         private Dictionary<string, object?>? _contextProperties;
-
-        public Arguments( CompileTimeSerializer serializer )
-        {
-            this._serializer = serializer;
-        }
 
         public void SetValue( string name, object? value, string? scope = null )
         {
@@ -759,7 +738,7 @@ internal sealed class SerializationWriter
         public IReadOnlyDictionary<string, object?> Values
             => (IReadOnlyDictionary<string, object?>?) this._values ?? ImmutableDictionary<string, object?>.Empty;
 
-        public CompilationContext CompilationContext => this._serializer.CompilationContext;
+        public CompilationContext CompilationContext => serializer.CompilationContext;
 
         public Dictionary<string, object?> ContextProperties => this._contextProperties ??= new Dictionary<string, object?>( StringComparer.Ordinal );
     }

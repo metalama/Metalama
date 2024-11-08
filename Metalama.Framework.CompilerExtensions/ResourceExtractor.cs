@@ -250,7 +250,7 @@ public static class ResourceExtractor
 
         // We cannot use MutexHelper because of dependencies on an embedded assembly.
 
-        using var extractMutex = MutexAcl.Create( false, mutexName, out _, MutexAcl.AllowUsingMutexToEveryone );
+        using var extractMutex = MutexAcl.Create( false, mutexName, MutexAcl.AllowUsingMutexToEveryone );
 
         try
         {

@@ -6,34 +6,24 @@ using Metalama.Framework.Introspection;
 
 namespace Metalama.Framework.Workspaces;
 
-internal class UserDiagnostic : IIntrospectionDiagnostic
+internal sealed class UserDiagnostic( Severity severity, string id, string message, string? filePath, int? line, IDeclaration? declaration, object? details )
+    : IIntrospectionDiagnostic
 {
-    public UserDiagnostic( Severity severity, string id, string message, string? filePath, int? line, IDeclaration? declaration, object? details )
-    {
-        this.Id = id;
-        this.Message = message;
-        this.FilePath = filePath;
-        this.Line = line;
-        this.Declaration = declaration;
-        this.Severity = severity;
-        this.Details = details;
-    }
-
     public ICompilation? Compilation => this.Declaration?.Compilation;
 
-    public string Id { get; }
+    public string Id { get; } = id;
 
-    public string Message { get; }
+    public string Message { get; } = message;
 
-    public string? FilePath { get; }
+    public string? FilePath { get; } = filePath;
 
-    public int? Line { get; }
+    public int? Line { get; } = line;
 
-    public IDeclaration? Declaration { get; }
+    public IDeclaration? Declaration { get; } = declaration;
 
-    public Severity Severity { get; }
+    public Severity Severity { get; } = severity;
 
     public IntrospectionDiagnosticSource Source => IntrospectionDiagnosticSource.User;
 
-    public object? Details { get; }
+    public object? Details { get; } = details;
 }

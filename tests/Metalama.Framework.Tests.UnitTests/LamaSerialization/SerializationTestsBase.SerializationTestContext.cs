@@ -11,13 +11,12 @@ namespace Metalama.Framework.Tests.UnitTests.LamaSerialization;
 
 public abstract partial class SerializationTestsBase
 {
-    protected class SerializationTestContext : TestContext
+    protected sealed class SerializationTestContext : TestContext
     {
         private readonly DisposeAction _disposeAction;
 
-        public SerializationTestContext( TestContextOptions contextOptions, IAdditionalServiceCollection? additionalServices = null ) : base(
-            contextOptions,
-            additionalServices )
+        public SerializationTestContext( TestContextOptions contextOptions, IAdditionalServiceCollection? additionalServices = null )
+            : base( contextOptions, additionalServices )
         {
             var specializedOptions = contextOptions as SerializationTestContextOptions;
 

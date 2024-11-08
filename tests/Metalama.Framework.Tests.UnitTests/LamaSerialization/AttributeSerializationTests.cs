@@ -8,7 +8,7 @@ using Xunit;
 
 namespace Metalama.Framework.Tests.UnitTests.LamaSerialization;
 
-public class AttributeSerializationTests : SerializationTestsBase
+public sealed class AttributeSerializationTests : SerializationTestsBase
 {
     [Fact]
     public void RoundtripTest()

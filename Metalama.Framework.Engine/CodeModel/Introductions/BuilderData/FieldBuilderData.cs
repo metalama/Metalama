@@ -5,11 +5,10 @@ using Metalama.Framework.Engine.Advising;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 using Metalama.Framework.Engine.CodeModel.References;
-using System.Collections.Generic;
 
 namespace Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 
-internal class FieldBuilderData : MemberBuilderData
+internal sealed class FieldBuilderData : MemberBuilderData
 {
     private readonly IntroducedRef<IField> _ref;
 
@@ -59,6 +58,4 @@ internal class FieldBuilderData : MemberBuilderData
     public override DeclarationKind DeclarationKind => DeclarationKind.Field;
 
     public override IRef<IMember>? OverriddenMember => null;
-
-    public override IReadOnlyList<IRef<IMember>> ExplicitInterfaceImplementationMembers => [];
 }

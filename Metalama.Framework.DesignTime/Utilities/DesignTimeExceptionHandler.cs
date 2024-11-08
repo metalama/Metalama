@@ -9,14 +9,9 @@ using Metalama.Framework.Services;
 
 namespace Metalama.Framework.DesignTime.Utilities
 {
-    public class DesignTimeExceptionHandler : IGlobalService
+    public sealed class DesignTimeExceptionHandler( ServiceProvider<IGlobalService> serviceProvider ) : IGlobalService
     {
-        private readonly IExceptionReporter? _exceptionReporter;
-
-        public DesignTimeExceptionHandler( ServiceProvider<IGlobalService> serviceProvider )
-        {
-            this._exceptionReporter = serviceProvider.GetBackstageService<IExceptionReporter>();
-        }
+        private readonly IExceptionReporter? _exceptionReporter = serviceProvider.GetBackstageService<IExceptionReporter>();
 
         // It is critical that OperationCanceledException is NOT handled, i.e. this exception should flow to the caller, otherwise VS will be satisfied
         // with the incomplete results it received, and cache them. 

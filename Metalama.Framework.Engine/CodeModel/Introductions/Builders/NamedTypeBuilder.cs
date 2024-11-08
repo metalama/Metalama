@@ -53,7 +53,7 @@ internal sealed class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBui
 
         this.BaseType = ((CompilationModel) this.ContainingNamespace.Compilation).Factory.GetSpecialType( SpecialType.Object );
 
-        if (this.TypeKind == TypeKind.Interface)
+        if ( this.TypeKind == TypeKind.Interface )
         {
             // Interfaces are always abstract.
             this.IsAbstract = true;
@@ -91,7 +91,7 @@ internal sealed class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBui
         {
             this.CheckNotFrozen();
 
-            if (this.TypeKind == TypeKind.Interface && value?.SpecialType != SpecialType.Object )
+            if ( this.TypeKind == TypeKind.Interface && value?.SpecialType != SpecialType.Object )
             {
                 throw new InvalidOperationException( "Interfaces cannot have a base type." );
             }
@@ -270,8 +270,6 @@ internal sealed class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBui
         };
 
     IRef<INamedType> INamedType.ToRef() => this.Ref;
-
-    public new IFullRef<INamedType> ToRef() => this.Ref;
 
     IRef<INamespaceOrNamedType> INamespaceOrNamedType.ToRef() => this.Ref;
 

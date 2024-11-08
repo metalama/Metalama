@@ -1,14 +1,16 @@
 ﻿// Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
+using JetBrains.Annotations;
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.Types;
 using System;
 
 namespace Metalama.Framework.Engine.CodeModel.Visitors;
 
+[PublicAPI]
 internal abstract class CompilationElementVisitor
 {
-    public int RecursionDepth { get; private set; }
+    protected int RecursionDepth { get; private set; }
 
     public virtual void Visit( ICompilationElement element )
     {
@@ -155,7 +157,7 @@ internal abstract class CompilationElementVisitor
 
         this.RecursionDepth--;
     }
-
+    
     protected abstract void DefaultVisit( ICompilationElement element );
 
     public virtual void VisitNamespace( INamespace declaration ) => this.DefaultVisit( declaration );

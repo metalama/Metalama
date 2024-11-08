@@ -432,14 +432,8 @@ internal sealed partial class DesignTimeAspectPipelineResult : ITransitiveAspect
 
             builder.Introductions ??= ImmutableArray.CreateBuilder<IntroducedSyntaxTree>();
 
-            if ( introduction.SourceSyntaxTree == null )
-            {
-                builder.Introductions.Add( new IntroducedSyntaxTree( introduction.Name, null, introduction.GeneratedSyntaxTree ) );
-            }
-            else
-            {
-                builder.Introductions.Add( introduction );
-            }
+            builder.Introductions.Add(
+                introduction.SourceSyntaxTree == null ? new IntroducedSyntaxTree( introduction.Name, null, introduction.GeneratedSyntaxTree ) : introduction );
         }
 
         var compilationContext = compilation.CompilationContext;
@@ -561,6 +555,8 @@ internal sealed partial class DesignTimeAspectPipelineResult : ITransitiveAspect
             builder.Transformations ??= ImmutableArray.CreateBuilder<DesignTimeTransformation>();
 
             var formattable = transformation.ToDisplayString();
+            
+            // ReSharper disable once RedundantSuppressNullableWarningExpression
             var description = formattable != null ? MetalamaStringFormatter.Format( formattable ) : transformation.ToString()!;
 
             builder.Transformations.Add(
@@ -660,7 +656,7 @@ internal sealed partial class DesignTimeAspectPipelineResult : ITransitiveAspect
         {
             var manifest = TransitiveAspectsManifest.Create(
                 this._inheritableAspects.SelectMany( g => g ).ToImmutableArray(),
-                this.ReferenceValidators.ToTransitiveValidatorInstances( compilationContext ),
+                this.ReferenceValidators.ToTransitiveValidatorInstances(),
                 this.InheritableOptions,
                 this.Annotations );
 

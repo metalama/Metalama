@@ -16,14 +16,9 @@ namespace Metalama.Framework.Engine.CodeModel.References;
 /// <summary>
 /// Specialization of <see cref="BaseRef{T}"/> for references bound to a <see cref="CompilationContext"/>.
 /// </summary>
-internal abstract partial class FullRef<T> : BaseRef<T>, IFullRef<T>
+internal abstract partial class FullRef<T>( RefFactory refFactory ) : BaseRef<T>, IFullRef<T>
     where T : class, ICompilationElement
 {
-    protected FullRef( RefFactory refFactory )
-    {
-        this.RefFactory = refFactory;
-    }
-
     public new IFullRef<TOut> As<TOut>()
         where TOut : class, ICompilationElement
         => this.CastAsFullRef<TOut>();
@@ -35,7 +30,7 @@ internal abstract partial class FullRef<T> : BaseRef<T>, IFullRef<T>
 
     public sealed override bool IsDurable => false;
 
-    public CompilationContext CompilationContext => this.RefFactory.CompilationContext;
+    protected CompilationContext CompilationContext => this.RefFactory.CompilationContext;
 
     IFullRef<T> IFullRef<T>.WithGenericContext( GenericContext genericContext ) => this.WithGenericContext( genericContext );
 
@@ -67,7 +62,7 @@ internal abstract partial class FullRef<T> : BaseRef<T>, IFullRef<T>
 
     public abstract FullRef<T> WithGenericContext( GenericContext genericContext );
 
-    public RefFactory RefFactory { get; }
+    public RefFactory RefFactory { get; } = refFactory;
 
     public ResolvedAttributeRef GetAttributes()
     {
@@ -101,19 +96,19 @@ internal abstract partial class FullRef<T> : BaseRef<T>, IFullRef<T>
     [Memo]
     private DeclarationIdRef<T> CompilationNeutralRef => new( this.ToSerializableId() );
 
-    public sealed override IDurableRef<T> ToDurable() => this.CompilationNeutralRef;
+    protected sealed override IDurableRef<T> ToDurable() => this.CompilationNeutralRef;
 
     public override SerializableDeclarationId ToSerializableId()
     {
-        var symbol = this.GetSymbolIgnoringRefKind( this.RefFactory.CompilationContext, true );
+        var symbol = this.GetSymbolIgnoringRefKind( this.RefFactory.CompilationContext );
 
         return symbol.GetSerializableId( this.TargetKind );
     }
 
     protected override ISymbol GetSymbol( CompilationContext compilationContext, bool ignoreAssemblyKey = false )
-        => this.ApplyRefKind( this.GetSymbolIgnoringRefKind( compilationContext, ignoreAssemblyKey ) );
+        => this.ApplyRefKind( this.GetSymbolIgnoringRefKind( compilationContext ) );
 
-    protected abstract ISymbol GetSymbolIgnoringRefKind( CompilationContext compilationContext, bool ignoreAssemblyKey = false );
+    protected abstract ISymbol GetSymbolIgnoringRefKind( CompilationContext compilationContext );
 
     public virtual ISymbol GetClosestContainingSymbol() => this.GetSymbolIgnoringRefKind( this.CompilationContext );
 

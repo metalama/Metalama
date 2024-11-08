@@ -28,7 +28,7 @@ internal sealed class DelegateUserExpression : UserExpression
 
     public override IType Type { get; }
 
-    public override bool? IsAssignable { get; }
+    protected override bool? IsAssignable { get; }
 
     private protected override bool? IsReferenceable { get; }
 

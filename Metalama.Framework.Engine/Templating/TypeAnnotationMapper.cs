@@ -18,12 +18,11 @@ internal static class TypeAnnotationMapper
 {
     public const string ExpressionTypeSymbolAnnotationKind = "Metalama.ExpressionType";
 
-    // ReSharper disable once MemberCanBePrivate.Global
-    public const string ExpressionITypeAnnotationKind = "Metalama.ExpressionIType";
-    public const string ExpressionIsReferenceableAnnotationKind = "Metalama.ExpressionIsReferenceable";
+    private const string _expressionITypeAnnotationKind = "Metalama.ExpressionIType";
+    private const string _expressionIsReferenceableAnnotationKind = "Metalama.ExpressionIsReferenceable";
 
-    private static readonly SyntaxAnnotation _expressionIsReferenceableAnnotation = new( ExpressionIsReferenceableAnnotationKind, "true" );
-    private static readonly SyntaxAnnotation _expressionIsNotReferenceableAnnotation = new( ExpressionIsReferenceableAnnotationKind, "false" );
+    private static readonly SyntaxAnnotation _expressionIsReferenceableAnnotation = new( _expressionIsReferenceableAnnotationKind, "true" );
+    private static readonly SyntaxAnnotation _expressionIsNotReferenceableAnnotation = new( _expressionIsReferenceableAnnotationKind, "false" );
     private static readonly ConditionalWeakTable<SyntaxAnnotation, WeakReference<ITypeSymbol>> _annotationToSymbolMap = new();
     private static readonly ConditionalWeakTable<ITypeSymbol, List<SyntaxAnnotation>> _symbolToAnnotationsMap = new();
     private static readonly ConditionalWeakTable<SyntaxAnnotation, WeakReference<IType>> _annotationToITypeMap = new();
@@ -161,14 +160,14 @@ internal static class TypeAnnotationMapper
             return AddExpressionTypeAnnotation( node, symbol );
         }
 
-        var existingAnnotation = node.GetAnnotations( ExpressionITypeAnnotationKind ).SingleOrDefault();
+        var existingAnnotation = node.GetAnnotations( _expressionITypeAnnotationKind ).SingleOrDefault();
 
         if ( existingAnnotation != null && type.Compilation.Comparers.IncludeNullability.Equals( GetTypeFromAnnotation( existingAnnotation ), type ) )
         {
             return node;
         }
 
-        var syntaxAnnotation = GetOrCreateAnnotation( ExpressionITypeAnnotationKind, type );
+        var syntaxAnnotation = GetOrCreateAnnotation( _expressionITypeAnnotationKind, type );
 
         Invariant.Assert( type.Compilation.Comparers.IncludeNullability.Equals( GetTypeFromAnnotation( syntaxAnnotation ), type ) );
 
@@ -192,7 +191,7 @@ internal static class TypeAnnotationMapper
             return true;
         }
 
-        var typeAnnotation = node.GetAnnotations( ExpressionITypeAnnotationKind ).FirstOrDefault();
+        var typeAnnotation = node.GetAnnotations( _expressionITypeAnnotationKind ).FirstOrDefault();
 
         if ( typeAnnotation != null )
         {
@@ -212,7 +211,7 @@ internal static class TypeAnnotationMapper
     }
 
     public static bool? GetExpressionIsReferenceableFromAnnotation( ExpressionSyntax expressionSyntax )
-        => expressionSyntax.GetAnnotations( ExpressionIsReferenceableAnnotationKind )?.FirstOrDefault()?.Data switch
+        => expressionSyntax.GetAnnotations( _expressionIsReferenceableAnnotationKind ).FirstOrDefault()?.Data switch
         {
             null => null,
             "true" => true,

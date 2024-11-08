@@ -10,7 +10,7 @@ using Xunit;
 
 namespace Metalama.Framework.Tests.UnitTests.LamaSerialization;
 
-public class DeserializationSurrogateTests : SerializationTestsBase
+public sealed class DeserializationSurrogateTests : SerializationTestsBase
 {
     protected override void ConfigureServices( IAdditionalServiceCollection services )
     {
@@ -50,14 +50,9 @@ public class DeserializationSurrogateTests : SerializationTestsBase
         string Id { get; }
     }
 
-    private struct SerializationStruct : IInterface
+    private readonly struct SerializationStruct( string id ) : IInterface
     {
-        public string Id { get; }
-
-        public SerializationStruct( string id )
-        {
-            this.Id = id;
-        }
+        public string Id { get; } = id;
 
         [UsedImplicitly]
         public class Serializer : ValueTypeSerializer<SerializationStruct>

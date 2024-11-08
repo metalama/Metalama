@@ -40,7 +40,7 @@ internal sealed class IntroduceEventAdvice : IntroduceMemberAdvice<IEvent, IEven
         this._removeTemplate = removeTemplate;
     }
 
-    protected override EventBuilder CreateBuilder( in AdviceImplementationContext context )
+    protected override EventBuilder CreateBuilder()
     {
         var templateDeclaration = this.Template?.GetDeclaration( this.SourceCompilation );
 

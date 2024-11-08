@@ -17,13 +17,13 @@ namespace Metalama.Framework.Engine.CodeModel.GenericContexts;
 /// <summary>
 /// Implements a <see cref="GenericContext"/> where all type parameters are mapped to symbols.
 /// </summary>
-internal partial class SymbolGenericContext : GenericContext
+internal sealed partial class SymbolGenericContext : GenericContext
 {
     private readonly CompilationContext _compilationContext;
 
     public INamedTypeSymbol NamedTypeSymbol { get; }
 
-    public IMethodSymbol? MethodSymbol { get; }
+    private readonly IMethodSymbol? _methodSymbol;
 
     private SymbolGenericContext( INamedTypeSymbol namedTypeSymbol, IMethodSymbol? methodSymbol, CompilationContext compilationContext )
     {
@@ -32,7 +32,7 @@ internal partial class SymbolGenericContext : GenericContext
         Invariant.Assert( methodSymbol == null || !methodSymbol.IsDefinitionSafe() );
 
         this.NamedTypeSymbol = namedTypeSymbol;
-        this.MethodSymbol = methodSymbol;
+        this._methodSymbol = methodSymbol;
         this._compilationContext = compilationContext;
     }
 
@@ -108,12 +108,12 @@ internal partial class SymbolGenericContext : GenericContext
                     return typeParameter;
                 }
 
-            case TypeParameterKind.Method when this.MethodSymbol == null:
+            case TypeParameterKind.Method when this._methodSymbol == null:
                 // Cannot map it.
                 return typeParameter;
 
             case TypeParameterKind.Method:
-                return this.MethodSymbol.TypeArguments[typeParameter.Ordinal];
+                return this._methodSymbol.TypeArguments[typeParameter.Ordinal];
 
             default:
                 throw new AssertionFailedException();
@@ -197,13 +197,13 @@ internal partial class SymbolGenericContext : GenericContext
                         return typeParameter;
                     }
 
-                case Code.TypeParameterKind.Method when this.MethodSymbol == null:
+                case Code.TypeParameterKind.Method when this._methodSymbol == null:
                     // Cannot map it.
                     return typeParameter;
 
                 case Code.TypeParameterKind.Method:
                     {
-                        var typeArgument = this.MethodSymbol.TypeArguments[typeParameter.Index];
+                        var typeArgument = this._methodSymbol.TypeArguments[typeParameter.Index];
 
                         if ( typeArgument is ITypeParameterSymbol { TypeParameterKind: TypeParameterKind.Method } typeArgumentAsTypeParameter
                              && typeArgumentAsTypeParameter.Ordinal == typeParameter.Index )
@@ -223,14 +223,14 @@ internal partial class SymbolGenericContext : GenericContext
         }
     }
 
-    internal override IType Map( ITypeParameterSymbol typeParameterSymbol, CompilationModel compilation )
+    protected override IType Map( ITypeParameterSymbol typeParameterSymbol, CompilationModel compilation )
     {
         return compilation.Factory.GetIType( this.MapToSymbol( typeParameterSymbol ) );
     }
 
     internal override GenericContext Map( GenericContext genericContext, RefFactory refFactory )
     {
-        return MapRecursive( this.MethodSymbol ?? (ISymbol) this.NamedTypeSymbol );
+        return MapRecursive( this._methodSymbol ?? (ISymbol) this.NamedTypeSymbol );
 
         IntroducedGenericContext MapRecursive( ISymbol symbol )
         {
@@ -294,9 +294,9 @@ internal partial class SymbolGenericContext : GenericContext
     protected override int GetHashCodeCore() => SymbolEqualityComparer.IncludeNullability.GetHashCode( this.NamedTypeSymbol );
 
     public override string ToString()
-        => (this.NamedTypeSymbol, this.MethodSymbol) switch
+        => (this.NamedTypeSymbol, MethodSymbol: this._methodSymbol) switch
         {
-            (_, not null) => $"SymbolGenericContext Method={{{this.MethodSymbol.ToDebugString()}}}",
+            (_, not null) => $"SymbolGenericContext Method={{{this._methodSymbol.ToDebugString()}}}",
             _ => $"SymbolGenericContext Type={{{this.NamedTypeSymbol.ToDebugString()}}}"
         };
 }

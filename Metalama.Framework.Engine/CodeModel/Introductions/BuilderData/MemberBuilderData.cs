@@ -4,31 +4,21 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Code.DeclarationBuilders;
 using Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 using Metalama.Framework.Engine.CodeModel.References;
-using System.Collections.Generic;
 
 namespace Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 
-internal abstract class MemberBuilderData : MemberOrNamedTypeBuilderData
+internal abstract class MemberBuilderData( IMemberBuilder builder, IFullRef<IDeclaration> containingDeclaration )
+    : MemberOrNamedTypeBuilderData( (IMemberOrNamedTypeBuilderImpl) builder, containingDeclaration )
 {
-    protected MemberBuilderData( IMemberBuilder builder, IFullRef<IDeclaration> containingDeclaration ) : base( (IMemberOrNamedTypeBuilderImpl) builder, containingDeclaration )
-    {
-        this.IsVirtual = builder.IsVirtual;
-        this.IsAsync = builder.IsAsync;
-        this.IsOverride = builder.IsOverride;
-        this.IsExtern = builder.IsExtern;
-    }
+    public bool IsVirtual { get; } = builder.IsVirtual;
 
-    public bool IsVirtual { get; }
+    public bool IsAsync { get; } = builder.IsAsync;
 
-    public bool IsAsync { get; }
+    public bool IsOverride { get; } = builder.IsOverride;
 
-    public bool IsOverride { get; }
-
-    public bool IsExtern { get; }
+    public bool IsExtern { get; } = builder.IsExtern;
 
     public abstract IRef<IMember>? OverriddenMember { get; }
-
-    public abstract IReadOnlyList<IRef<IMember>> ExplicitInterfaceImplementationMembers { get; }
 
     public new IFullRef<INamedType> DeclaringType => (IFullRef<INamedType>) this.ContainingDeclaration;
     

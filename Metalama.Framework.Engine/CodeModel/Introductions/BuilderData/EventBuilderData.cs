@@ -9,7 +9,7 @@ using System.Linq;
 
 namespace Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 
-internal class EventBuilderData : MemberBuilderData
+internal sealed class EventBuilderData : MemberBuilderData
 {
     private readonly IFullRef<IEvent> _ref;
 
@@ -18,8 +18,6 @@ internal class EventBuilderData : MemberBuilderData
     public IRef<INamedType> Type { get; }
 
     public bool IsEventField { get; }
-
-    public RefKind RefKind { get; }
 
     public MethodBuilderData AddMethod { get; }
 
@@ -35,9 +33,10 @@ internal class EventBuilderData : MemberBuilderData
     {
         this._ref = builder.Ref;
 
+        Invariant.Assert( builder.RefKind == RefKind.None );
+
         this.FieldAttributes = builder.FieldAttributes.ToImmutableArray();
         this.Type = builder.Type.ToRef();
-        this.RefKind = builder.RefKind;
         this.AddMethod = new MethodBuilderData( builder.AddMethod, this._ref );
         this.RemoveMethod = new MethodBuilderData( builder.RemoveMethod, this._ref );
         this.OverriddenEvent = builder.OverriddenEvent?.ToRef();
@@ -54,8 +53,6 @@ internal class EventBuilderData : MemberBuilderData
     public override DeclarationKind DeclarationKind => DeclarationKind.Event;
 
     public override IRef<IMember>? OverriddenMember => this.OverriddenEvent;
-
-    public override IReadOnlyList<IRef<IMember>> ExplicitInterfaceImplementationMembers => this.ExplicitInterfaceImplementations;
 
     public override IEnumerable<DeclarationBuilderData> GetOwnedDeclarations() => base.GetOwnedDeclarations().Concat( [this.AddMethod, this.RemoveMethod] );
 }
