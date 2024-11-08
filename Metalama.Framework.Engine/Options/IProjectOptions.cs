@@ -186,4 +186,10 @@ public interface IProjectOptions : IProjectService, IEquatable<IProjectOptions>
     /// and/or Metalama.AssemblyLocator.Build.targets files are stored.
     /// </summary>
     string? AssemblyLocatorHooksDirectory { get; }
+
+    /// <summary>
+    /// Gets names of attribute types that are considered to be affected by source generators.
+    /// Partial members marked with these attributes are not eligible for overriding by Metalama aspects.
+    /// </summary>
+    ImmutableArray<string> SourceGeneratorAttributes { get; }
 }

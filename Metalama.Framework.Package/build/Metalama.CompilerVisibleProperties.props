@@ -30,6 +30,7 @@
         <CompilerVisibleProperty Include="MetalamaTemplateLanguageVersion"/>
         <CompilerVisibleProperty Include="MetalamaIgnoreUserLicenses"/>
         <CompilerVisibleProperty Include="MetalamaAssemblyLocatorHooksDirectory"/>
+        <CompilerVisibleProperty Include="MetalamaSourceGeneratorAttributes"/>
     </ItemGroup>
 
     <!-- More properties are already exported by Metalama.Compiler and don't need to be exported a second time. -->

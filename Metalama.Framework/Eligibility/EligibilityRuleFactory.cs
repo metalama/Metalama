@@ -43,6 +43,7 @@ public static partial class EligibilityRuleFactory
             builder.MustBeExplicitlyDeclared();
             builder.MustNotBeRef();
             builder.MustSatisfy( m => !m.IsExtern, m => $"'{m}' must not be extern" );
+            builder.MustNotBePartialMemberWithSourceGeneratorAttribute();
             builder.DeclaringType().AddRule( _overrideDeclaringTypeRule );
         } );
 
@@ -53,6 +54,7 @@ public static partial class EligibilityRuleFactory
             builder.MustBeExplicitlyDeclared();
             builder.MustSatisfy( d => d is not IField { Writeability: Writeability.None }, d => $"{d} must not be a constant" );
             builder.MustNotBeRef();
+            builder.MustNotBePartialMemberWithSourceGeneratorAttribute();
             builder.DeclaringType().AddRule( _overrideDeclaringTypeRule );
         } );
 

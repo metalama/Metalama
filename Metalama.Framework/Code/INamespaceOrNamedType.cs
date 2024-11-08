@@ -10,7 +10,7 @@ namespace Metalama.Framework.Code;
 public interface INamespaceOrNamedType : INamedDeclaration
 {
     /// <summary>
-    /// Gets the full name of the namespace, or an empty string if this is the global namespace.
+    /// Gets the full name of the namespace or type, or an empty string if this is the global namespace.
     /// The separator for nested types is the dot, and there is no suffix for generic types.
     /// </summary>
     string FullName { get; }

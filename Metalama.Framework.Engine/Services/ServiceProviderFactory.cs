@@ -145,7 +145,8 @@ public static class ServiceProviderFactory
             .WithServiceConditional( sp => new SystemAttributeDeserializer.Provider( sp ) )
             .WithService( provider => new ClassifyingCompilationContextFactory( provider ) )
             .WithService( provider => new ObjectReaderFactory( provider ) )
-            .WithService( provider => new ProjectIntrospectionService( provider ) );
+            .WithService( provider => new ProjectIntrospectionService( provider ) )
+            .WithService( provider => new SourceGeneratorDetectionService( provider ) );
 
         if ( projectOptions.FormatCompileTimeCode || projectOptions.CodeFormattingOptions == CodeFormattingOptions.Formatted || projectOptions.WriteHtml )
         {

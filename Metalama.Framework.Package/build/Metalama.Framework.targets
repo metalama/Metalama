@@ -19,6 +19,7 @@
 
         <!-- Convert items to properties -->
         <MetalamaCompileTimePackages>@(MetalamaCompileTimePackage, ',')</MetalamaCompileTimePackages>
+        <MetalamaSourceGeneratorAttributes>@(MetalamaSourceGeneratorAttribute, ',')</MetalamaSourceGeneratorAttributes>
 
         <!-- Elevating CS8032: An instance of analyzer X cannot be created. 
              We elevate this warning to an error because otherwise, if Metalama.Framework fails to load, the compilation will be incorrect while there
