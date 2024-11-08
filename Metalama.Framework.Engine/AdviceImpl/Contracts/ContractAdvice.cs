@@ -14,15 +14,12 @@ internal abstract class ContractAdvice<T> : Advice<AddContractAdviceResult<T>>
 
     protected TemplateMember<IMethod> Template { get; }
 
-    protected IObjectReader Tags { get; }
-
     protected IObjectReader TemplateArguments { get; }
 
     protected ContractAdvice(
         AdviceConstructorParameters<T> parameters,
         TemplateMember<IMethod> template,
         ContractDirection direction,
-        IObjectReader tags,
         IObjectReader templateArguments )
         : base( parameters )
     {
@@ -30,7 +27,6 @@ internal abstract class ContractAdvice<T> : Advice<AddContractAdviceResult<T>>
 
         this.Direction = direction;
         this.Template = template;
-        this.Tags = tags;
         this.TemplateArguments = templateArguments;
     }
 

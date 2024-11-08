@@ -1378,7 +1378,6 @@ internal sealed partial class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl
                 this.GetAdviceConstructorParameters( targetParameter ),
                 boundTemplate,
                 kind,
-                this.GetTagsReader( tags ),
                 this.GetArgsReader( args ) );
 
             return advice.Execute( this._state );
@@ -1403,7 +1402,6 @@ internal sealed partial class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl
                 this.GetAdviceConstructorParameters( targetMember ),
                 boundTemplate,
                 direction,
-                this.GetTagsReader( tags ),
                 this.GetArgsReader( args ) );
 
             return advice.Execute( this._state );

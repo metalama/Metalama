@@ -9,16 +9,13 @@ using Metalama.Framework.Engine.CodeModel.References;
 
 namespace Metalama.Framework.Engine.AdviceImpl.Contracts;
 
-internal sealed class FieldOrPropertyOrIndexerContractAdvice : ContractAdvice<IFieldOrPropertyOrIndexer>
+internal sealed class FieldOrPropertyOrIndexerContractAdvice(
+    Advice.AdviceConstructorParameters<IFieldOrPropertyOrIndexer> parameters,
+    TemplateMember<IMethod> template,
+    ContractDirection direction,
+    IObjectReader templateArguments )
+    : ContractAdvice<IFieldOrPropertyOrIndexer>( parameters, template, direction, templateArguments )
 {
-    public FieldOrPropertyOrIndexerContractAdvice(
-        AdviceConstructorParameters<IFieldOrPropertyOrIndexer> parameters,
-        TemplateMember<IMethod> template,
-        ContractDirection direction,
-        IObjectReader tags,
-        IObjectReader templateArguments )
-        : base( parameters, template, direction, tags, templateArguments ) { }
-
     protected override AddContractAdviceResult<IFieldOrPropertyOrIndexer> Implement( in AdviceImplementationContext context )
     {
         var serviceProvider = context.ServiceProvider;
@@ -48,8 +45,7 @@ internal sealed class FieldOrPropertyOrIndexerContractAdvice : ContractAdvice<IF
                         null,
                         this.Direction,
                         this.Template,
-                        this.TemplateArguments,
-                        this.TemplateProvider ) );
+                        this.TemplateArguments ) );
 
                 return CreateSuccessResult( indexer );
 
@@ -65,8 +61,7 @@ internal sealed class FieldOrPropertyOrIndexerContractAdvice : ContractAdvice<IF
                     property.ToFullRef(),
                     this.Direction,
                     this.Template,
-                    this.TemplateArguments,
-                    this.TemplateProvider ) );
+                    this.TemplateArguments ) );
 
             return CreateSuccessResult( property );
         }

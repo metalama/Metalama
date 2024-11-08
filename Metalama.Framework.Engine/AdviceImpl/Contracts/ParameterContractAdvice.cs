@@ -7,16 +7,13 @@ using Metalama.Framework.Engine.CodeModel.References;
 
 namespace Metalama.Framework.Engine.AdviceImpl.Contracts;
 
-internal sealed class ParameterContractAdvice : ContractAdvice<IParameter>
+internal sealed class ParameterContractAdvice(
+    Advice.AdviceConstructorParameters<IParameter> parameters,
+    TemplateMember<IMethod> template,
+    ContractDirection direction,
+    IObjectReader templateArguments )
+    : ContractAdvice<IParameter>( parameters, template, direction, templateArguments )
 {
-    public ParameterContractAdvice(
-        AdviceConstructorParameters<IParameter> parameters,
-        TemplateMember<IMethod> template,
-        ContractDirection direction,
-        IObjectReader tags,
-        IObjectReader templateArguments )
-        : base( parameters, template, direction, tags, templateArguments ) { }
-
     protected override AddContractAdviceResult<IParameter> Implement( in AdviceImplementationContext context )
     {
         var targetDeclaration = this.TargetDeclaration;
@@ -31,8 +28,7 @@ internal sealed class ParameterContractAdvice : ContractAdvice<IParameter>
                         parameter.ToFullRef(),
                         this.Direction,
                         this.Template,
-                        this.TemplateArguments,
-                        this.TemplateProvider ) );
+                        this.TemplateArguments ) );
 
                 return CreateSuccessResult( parameter );
 
@@ -44,8 +40,7 @@ internal sealed class ParameterContractAdvice : ContractAdvice<IParameter>
                         parameter.ToFullRef(),
                         this.Direction,
                         this.Template,
-                        this.TemplateArguments,
-                        this.TemplateProvider ) );
+                        this.TemplateArguments ) );
 
                 return CreateSuccessResult( parameter );
 
@@ -57,8 +52,7 @@ internal sealed class ParameterContractAdvice : ContractAdvice<IParameter>
                         parameter.ToFullRef(),
                         this.Direction,
                         this.Template,
-                        this.TemplateArguments,
-                        this.TemplateProvider ) );
+                        this.TemplateArguments ) );
 
                 return CreateSuccessResult( parameter );
 
