@@ -13,9 +13,20 @@
         <EnableWindowsTargeting>True</EnableWindowsTargeting>
     </PropertyGroup>
 
+    <!-- It seems the WinRT source generator runs when it shouldn't and causes bogus warnings, see https://github.com/dotnet/sdk/issues/44026, so we disable it. -->
+    <!-- This can be removed once that bug is fixed. -->
+	<Target Name="DisableWinRTSourceGenerator" BeforeTargets="CoreCompile">
+		<ItemGroup>
+			<Analyzer Remove="@(Analyzer)"
+					  Condition="'%(FileName)%(Extension)' == 'WinRT.SourceGenerator.dll'"/>
+		</ItemGroup>
+	</Target>    
+
     <ItemGroup>
         <PackageReference Include="JetBrains.Annotations" />
         <PackageReference Include="Microsoft.Toolkit.Uwp.Notifications" />
+        <!-- Explicitly reference this transitive dependency, so that we get the updated version. -->
+        <PackageReference Include="System.Drawing.Common" />
         <PackageReference Include="Microsoft.Web.WebView2" />
         <PackageReference Include="Spectre.Console.Cli" />
         <PackageReference Include="Newtonsoft.Json" />
