@@ -40,9 +40,9 @@ public static class MutexHelper
         return new MutexHandle( mutex, name, logger );
     }
 
-    public static bool WithGlobalLock( string name, TimeSpan timeout, [NotNullWhen( true )] out IDisposable? mutexHandle, ILogger? logger = null )
+    internal static bool WithLock( string name, string? prefix, TimeSpan timeout, [NotNullWhen( true )] out IDisposable? mutexHandle, ILogger? logger = null )
     {
-        var mutex = OpenOrCreateGlobalMutex( name, logger );
+        var mutex = OpenOrCreateMutex( name, prefix, logger );
 
         bool acquired;
 

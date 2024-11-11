@@ -197,7 +197,6 @@ namespace Metalama.Backstage.Testing
                 .AddSingleton( _ => new RandomNumberGenerator( 0 ) )
 
                 // We must always have a single instance of the file system even if we use CloneServiceCollection.
-                // ReSharper disable once NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
                 .AddSingleton<IFileSystem>( serviceProvider => this._uniqueFileSystem ??= new TestFileSystem( serviceProvider ) )
                 .AddSingleton<IEnvironmentVariableProvider>( this.EnvironmentVariableProvider )
                 .AddSingleton<IRecoverableExceptionService>( new TestRecoverableExceptionService() )
