@@ -16,6 +16,7 @@ internal class LogFileWriter
     private const int _finishingStatus = 2;
     private static readonly Stopwatch _stopwatch = Stopwatch.StartNew();
 
+    private readonly LoggerFactory _loggerFactory;
     private readonly IFileSystem _fileSystem;
     private readonly object _textWriterSync = new();
     private readonly ConcurrentQueue<string> _messageQueue = new();
@@ -26,31 +27,24 @@ internal class LogFileWriter
     // ReSharper disable once UnusedAutoPropertyAccessor.Global
     public string Scope { get; }
 
-    public string? LogFile { get; }
+    public string LogFile { get; }
+    
+    public bool IsFailed { get; private set; }
 
     public LogFileWriter( LoggerFactory loggerFactory, string scope )
     {
+        this._loggerFactory = loggerFactory;
         this._fileSystem = loggerFactory.FileSystem;
         this.Scope = scope;
+        var scopeWithDash = string.IsNullOrEmpty( scope ) ? "" : "-" + scope;
 
-        try
-        {
-            var scopeWithDash = string.IsNullOrEmpty( scope ) ? "" : "-" + scope;
-
-            // The filename must be unique because several instances of the current assembly (of different versions) may be loaded in the process.
-            this.LogFile = Path.Combine(
-                loggerFactory.LogDirectory!,
-                $"Metalama-{loggerFactory.ProcessKind}{scopeWithDash}-{Guid.NewGuid()}.log" );
-        }
-        catch
-        {
-            // Don't fail if we cannot initialize the log.
-        }
+        // The filename must be unique because several instances of the current assembly (of different versions) may be loaded in the process.
+        this.LogFile = $"Metalama-{loggerFactory.ProcessKind}{scopeWithDash}-{Guid.NewGuid()}.log";
     }
 
     private void WriteBufferedMessagesToFile( object? state )
     {
-        if ( this.LogFile == null )
+        if ( this.IsFailed )
         {
             return;
         }
@@ -66,7 +60,23 @@ internal class LogFileWriter
         {
             try
             {
-                this._textWriter ??= this._fileSystem.CreateTextFile( this.LogFile );
+                if ( this._textWriter == null )
+                {
+                    try
+                    {
+                        var directory = this._loggerFactory.GetLogDirectory();
+                        var logFilePath = Path.Combine( directory, this.LogFile );
+                        this._textWriter = this._fileSystem.CreateTextFile( logFilePath );
+                    }
+                    catch
+                    {
+                        // Don't fail if we cannot initialize the log.
+                        
+                        this.IsFailed = true;
+
+                        return;
+                    }
+                }
 
                 // Process enqueued messages.
                 var lastFlush = _stopwatch.ElapsedMilliseconds;
@@ -119,7 +129,7 @@ internal class LogFileWriter
         }
 
         // If there was an error initializing the log file, do not attempt to write anything.
-        if ( this.LogFile == null )
+        if ( this.IsFailed )
         {
             return;
         }
@@ -134,7 +144,7 @@ internal class LogFileWriter
 
     public void Flush()
     {
-        if ( this.LogFile == null )
+        if ( this.IsFailed )
         {
             return;
         }

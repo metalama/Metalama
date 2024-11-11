@@ -109,6 +109,27 @@ public class CleanUpTests : TestsBase
         }
     }
 
+    private void AssertOnlyCleanupFilesRemained( string directory )
+        => Assert.Single(
+            this.FileSystem.GetFiles( directory, "*.*", SearchOption.AllDirectories ).Select( Path.GetFileName ).Distinct(),
+            f => f == "cleanup.json" );
+    
+    private void TestIndividualFilesAreDeleted( string directory, CleanUpStrategy strategy, TempFileManager tempFileManager )
+    {
+        this.AssertOnlyCleanupFilesRemained( directory );
+
+        var directoryDeletionDelay = strategy switch
+        {
+            CleanUpStrategy.Always => TimeSpan.FromHours( 4 ),
+            CleanUpStrategy.FileOneMonthAfterCreation => TimeSpan.FromDays( 30 ),
+            _ => throw new InvalidOperationException( $"The strategy '{strategy}' is invalid for '{nameof(this.TestIndividualFilesAreDeleted)}' method." )
+        };
+        
+        this.Time.AddTime( directoryDeletionDelay );
+        tempFileManager.CleanTempDirectories( true );
+        Assert.False( this.FileSystem.DirectoryExists( directory ) );
+    }
+
     [Fact]
     public void Clean_All()
     {
@@ -147,7 +168,7 @@ public class CleanUpTests : TestsBase
                 case CleanUpStrategy.FileOneMonthAfterCreation:
                     // Assert always cleaned directories are empty.
                     // Assert the same for FileOneMonthAfterCreation - this strategy is tested by IndividualFilesGetDeletedAfterOneMonth test.
-                    Assert.False( this.FileSystem.DirectoryExists( cacheDirectoryPath ) );
+                    this.AssertOnlyCleanupFilesRemained( cacheDirectoryPath );
 
                     break;
 
@@ -177,11 +198,18 @@ public class CleanUpTests : TestsBase
             switch ( cacheDirectory.Value )
             {
                 case CleanUpStrategy.WhenUnused:
+                    Assert.False( this.FileSystem.DirectoryExists( cacheDirectoryPath ) );
+
+                    break;
+                    
                 case CleanUpStrategy.Always:
                 case CleanUpStrategy.FileOneMonthAfterCreation:
                     // Assert always cleaned directories and outdated directories are empty.
-                    // Assert the same for FileOneMonthAfterCreation - this strategy is tested by IndividualFilesGetDeletedAfterOneMonth test.
-                    Assert.False( this.FileSystem.DirectoryExists( cacheDirectoryPath ) );
+                    // Assert the same for FileOneMonthAfterCreation - this strategy is tested by IndividualFilesGetDeletedAfterOneMonth test.                    
+                    if ( this.FileSystem.DirectoryExists( cacheDirectoryPath ) )
+                    {
+                        this.AssertOnlyCleanupFilesRemained( cacheDirectoryPath );
+                    }
 
                     break;
 
@@ -221,7 +249,10 @@ public class CleanUpTests : TestsBase
                 case CleanUpStrategy.FileOneMonthAfterCreation:
                     // Assert always cleaned directories are empty.
                     // Assert the same for FileOneMonthAfterCreation - this strategy is tested by IndividualFilesGetDeletedAfterOneMonth test.
-                    Assert.False( this.FileSystem.DirectoryExists( cacheDirectoryPath ) );
+                    if ( this.FileSystem.DirectoryExists( cacheDirectoryPath ) )
+                    {
+                        this.AssertOnlyCleanupFilesRemained( cacheDirectoryPath );
+                    }
 
                     break;
 
@@ -261,9 +292,9 @@ public class CleanUpTests : TestsBase
         // Clean-up command should be able to clean the deep structured directories.
         var tempFileManager = new TempFileManager( this.ServiceProvider );
         tempFileManager.CleanTempDirectories( true );
+        var deepDirectory = Path.Combine( this._standardDirectories.TempDirectory, "DeepDirectory" );
 
-        // Assert cleanup leaves no leftover cleanup files in deep directory structure.
-        Assert.False( this.FileSystem.DirectoryExists( Path.Combine( this._standardDirectories.TempDirectory, "DeepDirectory" ) ) );
+        this.TestIndividualFilesAreDeleted( deepDirectory, CleanUpStrategy.Always, tempFileManager );
     }
 
     [Fact]

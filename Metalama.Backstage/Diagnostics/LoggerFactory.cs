@@ -3,7 +3,6 @@
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Infrastructure;
 using Metalama.Backstage.Maintenance;
-using Metalama.Backstage.Utilities;
 using System;
 using System.Collections.Concurrent;
 
@@ -13,37 +12,25 @@ namespace Metalama.Backstage.Diagnostics
     {
         private readonly ConcurrentDictionary<string, ILogger> _loggers = new( StringComparer.OrdinalIgnoreCase );
         private readonly ConcurrentDictionary<string, LogFileWriter> _logFileWriters = new();
+        private readonly ITempFileManager _tempFileManager;
 
         public LoggerFactory(
             IServiceProvider serviceProvider,
             DiagnosticsConfiguration configuration,
             ProcessKind processKind )
         {
+            this._tempFileManager = serviceProvider.GetRequiredBackstageService<ITempFileManager>();
+            
             this.DateTimeProvider = serviceProvider.GetRequiredBackstageService<IDateTimeProvider>();
             this.FileSystem = serviceProvider.GetRequiredBackstageService<IFileSystem>();
 
             this.Configuration = configuration;
             this.ProcessKind = processKind;
 
-            var tempFileManager = serviceProvider.GetRequiredBackstageService<ITempFileManager>();
-
             this.ShouldLogWarningsAndInfos = configuration.Logging.Processes.TryGetValue( processKind.ToString(), out var enabled ) && enabled;
-
-            this.LogDirectory = tempFileManager.GetTempDirectory( "Logs", CleanUpStrategy.Always );
-
-            RetryHelper.Retry(
-                () =>
-                {
-                    if ( !this.FileSystem.DirectoryExists( this.LogDirectory ) )
-                    {
-                        this.FileSystem.CreateDirectory( this.LogDirectory );
-                    }
-                } );
         }
 
         internal bool ShouldLogWarningsAndInfos { get; }
-
-        public string LogDirectory { get; }
 
         internal DiagnosticsConfiguration Configuration { get; }
 
@@ -52,6 +39,8 @@ namespace Metalama.Backstage.Diagnostics
         internal IFileSystem FileSystem { get; }
 
         public ProcessKind ProcessKind { get; }
+        
+        public string GetLogDirectory() => this._tempFileManager.GetTempDirectory( "Logs", CleanUpStrategy.Always );
 
         public IDisposable EnterScope( string scope ) => LoggingContext.EnterScope( scope, this.CloseScope );
 
