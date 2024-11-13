@@ -2,12 +2,17 @@
 
     <PropertyGroup>
         <RepoDirectory>$(MSBuildThisFileDirectory)</RepoDirectory>
-        <RepoKind>GitHub</RepoKind> <!-- Valid values: AzureRepos | GitHub -->
+        <RepoKind>GitHub</RepoKind>
+    </PropertyGroup>
+
+    <Import Sdk="PostSharp.Engineering.Sdk" Project="BuildOptions.props"/>
+
+    <PropertyGroup>
+        <LangVersion>12</LangVersion>
     </PropertyGroup>
 
     <Import Project="eng\Versions.props"/>
     <Import Project="eng\Packaging.props"/>
-    <Import Sdk="PostSharp.Engineering.Sdk" Project="BuildOptions.props"/>
     <Import Sdk="PostSharp.Engineering.Sdk" Project="StrongName.props"/>
     <Import Sdk="PostSharp.Engineering.Sdk" Project="SourceLink.props"/>
 
