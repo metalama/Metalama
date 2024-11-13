@@ -110,10 +110,11 @@ public class CleanUpTests : TestsBase
     }
 
     private void AssertOnlyCleanupFilesRemained( string directory )
-        => Assert.Single(
-            this.FileSystem.GetFiles( directory, "*.*", SearchOption.AllDirectories ).Select( Path.GetFileName ).Distinct(),
-            f => f == "cleanup.json" );
-    
+    {
+        var file = Assert.Single( this.FileSystem.GetFiles( directory, "*.*", SearchOption.AllDirectories ).Select( Path.GetFileName ).Distinct() );
+        Assert.Equal( "cleanup.json", file );
+    }
+
     private void TestIndividualFilesAreDeleted( string directory, CleanUpStrategy strategy, TempFileManager tempFileManager )
     {
         this.AssertOnlyCleanupFilesRemained( directory );

@@ -331,7 +331,6 @@ public class TempFileManager : ITempFileManager
     {
         var threshold = this._time.UtcNow.Add( -age );
         
-        var remainsAnyFile = false;
         var preventDirectoryDeletion = false;
         
         foreach ( var file in this._fileSystem.GetFiles( directory ) )
@@ -357,7 +356,7 @@ public class TempFileManager : ITempFileManager
                 catch ( Exception e )
                 {
                     this._logger.Warning?.Log( $"Cannot delete '{file}': {e.Message}" );
-                    remainsAnyFile = true;
+                    preventDirectoryDeletion = true;
                 }
             }
             else
@@ -370,17 +369,14 @@ public class TempFileManager : ITempFileManager
                 else
                 {
                     this._logger.Trace?.Log( $"Not deleting '{file}'. It has been last written less than {age} ago at {lastWriteTime:s}." );
-                    remainsAnyFile = true;
+                    preventDirectoryDeletion = true;
                 }
             }
         }
         
-        if ( remainsAnyFile || preventDirectoryDeletion )
+        if ( preventDirectoryDeletion )
         {
-            if ( remainsAnyFile )
-            {
-                this._logger.Trace?.Log( $"There are files remaining in the '{directory}' directory. The directory will not be deleted." );
-            }
+            this._logger.Trace?.Log( $"The directory '{directory}' will not be deleted." );
         }
         else
         {
