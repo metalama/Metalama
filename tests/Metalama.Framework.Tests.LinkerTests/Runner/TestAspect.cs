@@ -4,6 +4,4 @@ using Metalama.Framework.Aspects;
 
 namespace Metalama.Framework.Tests.LinkerTests.Runner;
 
-internal class TestAspect : IAspect
-{
-}
+internal sealed class TestAspect : IAspect;

@@ -11,7 +11,6 @@ using Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.Linking;
 using Metalama.Framework.Engine.SerializableIds;
-using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Transformations;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
@@ -30,25 +29,17 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
 {
     internal partial class LinkerTestInputBuilder
     {
-        private sealed class TestTypeRewriter : SafeSyntaxRewriter
+        private sealed class TestTypeRewriter( TestRewriter owner ) : SafeSyntaxRewriter
         {
-            private readonly TestRewriter _owner;
-            private readonly Stack<(TypeDeclarationSyntax Type, List<MemberDeclarationSyntax> Members)> _currentTypeStack;
+            private readonly Stack<(TypeDeclarationSyntax Type, List<MemberDeclarationSyntax> Members)> _currentTypeStack = new();
             private InsertPositionRecord? _currentInsertPosition;
-            private readonly Dictionary<IFullRef<IField>, IFullRef<IProperty>> _promotions;
-
-            public TestTypeRewriter( TestRewriter owner )
-            {
-                this._owner = owner;
-                this._currentTypeStack = new Stack<(TypeDeclarationSyntax, List<MemberDeclarationSyntax>)>();
-                this._promotions = new Dictionary<IFullRef<IField>, IFullRef<IProperty>>(RefEqualityComparer.Default);
-            }
+            private readonly Dictionary<IFullRef<IField>, IFullRef<IProperty>> _promotions = new( RefEqualityComparer.Default );
 
             public override SyntaxNode? VisitClassDeclaration( ClassDeclarationSyntax node )
             {
                 var rewrittenNode = this.RewriteTypeDeclaration( node, n => base.VisitClassDeclaration( n ), ( n, m ) => n.WithMembers( List( m ) ) );
 
-                if ( this._currentTypeStack.Count > 0 && rewrittenNode != null )
+                if ( this._currentTypeStack.Count > 0 )
                 {
                     this._currentTypeStack.Peek().Members.Add( rewrittenNode );
 
@@ -64,7 +55,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
             {
                 var rewrittenNode = this.RewriteTypeDeclaration( node, n => base.VisitRecordDeclaration( n ), ( n, m ) => n.WithMembers( List( m ) ) );
 
-                if ( this._currentTypeStack.Count > 0 && rewrittenNode != null )
+                if ( this._currentTypeStack.Count > 0 )
                 {
                     this._currentTypeStack.Peek().Members.Add( rewrittenNode );
 
@@ -80,7 +71,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
             {
                 var rewrittenNode = this.RewriteTypeDeclaration( node, n => base.VisitStructDeclaration( n ), ( n, m ) => n.WithMembers( List( m ) ) );
 
-                if ( this._currentTypeStack.Count > 0 && rewrittenNode != null )
+                if ( this._currentTypeStack.Count > 0 )
                 {
                     this._currentTypeStack.Peek().Members.Add( rewrittenNode );
 
@@ -109,14 +100,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
 
                 this._currentTypeStack.Pop();
 
-                if ( this._currentTypeStack.Count > 0 )
-                {
-                    this._currentInsertPosition = new InsertPositionRecord( InsertPositionRelation.After, nodeId );
-                }
-                else
-                {
-                    this._currentInsertPosition = null;
-                }
+                this._currentInsertPosition = this._currentTypeStack.Count > 0 ? new InsertPositionRecord( InsertPositionRelation.After, nodeId ) : null;
 
                 return rewrittenNode;
             }
@@ -156,12 +140,12 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
                 return null;
             }
 
-            private MemberDeclarationSyntax[] RewriteMemberDeclaration<T>( T node )
+            private IEnumerable<MemberDeclarationSyntax> RewriteMemberDeclaration<T>( T node )
                 where T : MemberDeclarationSyntax
             {
                 if ( HasPseudoAttribute( node ) )
                 {
-                    var semanticModel = this._owner.InputCompilation.SemanticModelProvider.GetSemanticModel( node.SyntaxTree );
+                    var semanticModel = owner.InputCompilation.SemanticModelProvider.GetSemanticModel( node.SyntaxTree );
 
                     var newMembers = this.ProcessPseudoAttributeNode( semanticModel, node );
                     var newMemberList = new List<MemberDeclarationSyntax>();
@@ -197,9 +181,10 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
                 return node.AttributeLists.SelectMany( x => x.Attributes ).Any( x => x.Name.ToString().StartsWith( "Pseudo", StringComparison.Ordinal ) );
             }
 
-            private (MemberDeclarationSyntax Node, bool IsPseudoMember)[] ProcessPseudoAttributeNode( SemanticModel semanticModel, MemberDeclarationSyntax node )
+            private IEnumerable<(MemberDeclarationSyntax Node, bool IsPseudoMember)> ProcessPseudoAttributeNode(
+                SemanticModel semanticModel,
+                MemberDeclarationSyntax node )
             {
-                var newAttributeLists = new List<AttributeListSyntax>();
                 AttributeSyntax? pseudoIntroductionAttribute = null;
                 AttributeSyntax? pseudoOverrideAttribute = null;
                 AttributeSyntax? pseudoReplacedAttribute = null;
@@ -262,7 +247,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
                 if ( pseudoIntroductionAttribute != null )
                 {
                     // Introduction will create a temporary declaration, that will help us to provide values for IMethod member.
-                    this.ProcessPseudoIntroduction( semanticModel, node, newAttributeLists, pseudoIntroductionAttribute, notInlineable, notDiscardable, pseudoReplacedAttribute, pseudoReplacementAttribute );
+                    this.ProcessPseudoIntroduction( semanticModel, node, [], pseudoIntroductionAttribute, notInlineable, notDiscardable, pseudoReplacedAttribute, pseudoReplacementAttribute );
 
                     return [];
                 }
@@ -270,17 +255,17 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
                 {
                     Invariant.Assert( pseudoReplacedAttribute == null && pseudoReplacementAttribute == null );
 
-                    this.ProcessPseudoOverride( semanticModel, node, newAttributeLists, pseudoOverrideAttribute, notInlineable, notDiscardable );
+                    this.ProcessPseudoOverride( semanticModel, node, [], pseudoOverrideAttribute, notInlineable, notDiscardable );
 
                     return [];
                 }
                 else if ( pseudoReplacedAttribute != null )
                 {
-                    return [(node.WithAttributeLists( List( newAttributeLists ) ), false)];
+                    return [(node.WithAttributeLists( List<AttributeListSyntax>() ), false)];
                 }
                 else
                 {
-                    var transformedNode = node.WithAttributeLists( List( newAttributeLists ) );
+                    var transformedNode = node.WithAttributeLists( List<AttributeListSyntax>() );
 
                     if ( notInlineable || notDiscardable )
                     {
@@ -299,14 +284,14 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
                         transformedNode = transformedNode.WithLinkerDeclarationFlags( flags );
                     }
 
-                    return [ (transformedNode, false) ];
+                    return [(transformedNode, false)];
                 }
             }
 
             private void ProcessPseudoIntroduction(
                 SemanticModel semanticModel,
                 MemberDeclarationSyntax node,
-                List<AttributeListSyntax> newAttributeLists,
+                IEnumerable<AttributeListSyntax> newAttributeLists,
                 AttributeSyntax introductionAttribute,
                 bool notInlineable,
                 bool notDiscardable,
@@ -346,14 +331,12 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
 
                 var introductionSyntax = node.WithAttributeLists( List( newAttributeLists ) );
 
-                string? memberNameOverride = null;
-
                 if ( replacementAttribute != null )
                 {
                     Invariant.Assert( replacedAttribute == null );
                     Invariant.Assert( replacementAttribute.ArgumentList?.Arguments.Count == 1 );
 
-                    memberNameOverride = ((InvocationExpressionSyntax) replacementAttribute.ArgumentList.Arguments[0].Expression).ArgumentList.Arguments[0]
+                    var memberNameOverride = ((InvocationExpressionSyntax) replacementAttribute.ArgumentList.Arguments[0].Expression).ArgumentList.Arguments[0]
                         .ToString();
 
                     introductionSyntax = GetFinalIntroductionSyntax( introductionSyntax, memberNameOverride );
@@ -361,7 +344,6 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
                 else if ( replacedAttribute != null )
                 {
                     Invariant.Assert( replacementAttribute == null );
-                    memberNameOverride = GetReplacedMemberName( introducedElementName );
                 }
 
                 if ( notInlineable || notDiscardable )
@@ -382,13 +364,13 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
                 }
 
                 var insertPositionRecord = this._currentInsertPosition.AssertNotNull();
-                var aspectLayer = this._owner.GetOrAddAspectLayer( aspectName.AssertNotNull(), layerName );
+                var aspectLayer = owner.GetOrAddAspectLayer( aspectName.AssertNotNull(), layerName );
 
                 TestTransformationBase CreateTransformation( CompilationModel compilationModel )
                 {
                     var declaringTypeRef = DurableRefFactory.FromSymbolId<INamedType>( SymbolId.Create( symbol.ContainingType ) );
                     var declaringType = declaringTypeRef.GetTarget( compilationModel );
-                    var aspectLayerInstance = this.CreateTestAspectLayerInstance( compilationModel.CompilationContext, declaringType, aspectLayer );
+                    var aspectLayerInstance = CreateTestAspectLayerInstance( declaringType, aspectLayer );
 
                     MemberBuilder builder;
                     IField? replacedField = null;
@@ -427,7 +409,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
                                 var nameofArgument = argument.ArgumentList.Arguments[0];
                                 var nameofArgumentInfo = semanticModel.GetSymbolInfo( nameofArgument.Expression );
                                 var replacedFieldSymbol = nameofArgumentInfo.Symbol.AssertNotNull();
-                                replacedField = (IField)this._owner.Builder.TranslateOriginalSymbol( replacedFieldSymbol ).GetTarget( compilationModel );
+                                replacedField = (IField) owner.Builder.TranslateOriginalSymbol( replacedFieldSymbol ).GetTarget( compilationModel );
                             }
 
                             var propertyBuilder =
@@ -482,7 +464,6 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
                             throw new NotSupportedException();
                     }
 
-
                     builder.Name = introducedElementName;
                     builder.Accessibility = symbol.DeclaredAccessibility.ToOurAccessibility();
                     builder.IsStatic = symbol.IsStatic;
@@ -504,14 +485,14 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
                         _ => throw new NotSupportedException()
                     };
 
-                    if (replacedField != null)
+                    if ( replacedField != null )
                     {
                         this._promotions[replacedField.ToFullRef()] = builderData.ToFullRef().As<IProperty>();
                     }
 
-                    this._owner.Builder.RegisterBuilderDataForSymbol( symbol, builderData );
+                    owner.Builder.RegisterBuilderDataForSymbol( symbol, builderData );
 
-                    var insertPosition = this._owner.Builder.TranslateInsertPosition( compilationModel.CompilationContext, insertPositionRecord );
+                    var insertPosition = owner.Builder.TranslateInsertPosition( insertPositionRecord );
 
                     if ( replacementAttribute != null )
                     {
@@ -534,7 +515,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
                     }
                 }
 
-                this._owner.Builder.AddTransformationFactory( CreateTransformation );
+                owner.Builder.AddTransformationFactory( CreateTransformation );
             }
 
             private static MemberDeclarationSyntax GetFinalIntroductionSyntax( MemberDeclarationSyntax introductionSyntax, string? memberNameOverride )
@@ -563,7 +544,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
             private void ProcessPseudoOverride(
                 SemanticModel semanticModel,
                 MemberDeclarationSyntax node,
-                List<AttributeListSyntax> newAttributeLists,
+                IEnumerable<AttributeListSyntax> newAttributeLists,
                 AttributeSyntax overrideAttribute,
                 bool notInlineable,
                 bool notDiscardable )
@@ -577,35 +558,41 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
                 var argument = (InvocationExpressionSyntax) overrideAttribute.ArgumentList.Arguments[0].Expression;
                 var nameofArgument = argument.ArgumentList.Arguments[0];
                 var nameofArgumentInfo = semanticModel.GetSymbolInfo( nameofArgument.Expression );
+
                 var overriddenDeclarationSymbol =
                     nameofArgumentInfo switch
                     {
-                        { 
-                            CandidateReason: CandidateReason.MemberGroup, 
-                            CandidateSymbols: [{ ContainingType.TypeKind: Microsoft.CodeAnalysis.TypeKind.Interface } interfaceMemberSymbol] 
-                        } => 
-                            semanticModel.GetDeclaredSymbol( node ).ContainingType.FindImplementationForInterfaceMember( interfaceMemberSymbol ).AssertNotNull(),
-                        { 
-                            CandidateReason: CandidateReason.MemberGroup, 
-                            CandidateSymbols: { Length: > 1 } symbols 
-                        } when
+                        {
+                                CandidateReason: CandidateReason.MemberGroup,
+                                CandidateSymbols: [{ ContainingType.TypeKind: Microsoft.CodeAnalysis.TypeKind.Interface } interfaceMemberSymbol]
+                            } =>
+                            semanticModel.GetDeclaredSymbol( node )
+                                .ContainingType.FindImplementationForInterfaceMember( interfaceMemberSymbol )
+                                .AssertNotNull(),
+                        {
+                                CandidateReason: CandidateReason.MemberGroup,
+                                CandidateSymbols: { Length: > 1 } symbols
+                            } when
                             symbols.All( s => s is IMethodSymbol { ContainingType.TypeKind: Microsoft.CodeAnalysis.TypeKind.Interface } )
                             && node is MethodDeclarationSyntax { ParameterList.Parameters: { } parameters }
                             && symbols.Count( s => ((IMethodSymbol) s).Parameters.Length == parameters.Count ) == 1 =>
-                                semanticModel.GetDeclaredSymbol( node ).ContainingType.FindImplementationForInterfaceMember( 
-                                    symbols.Single( s => ((IMethodSymbol) s).Parameters.Length == parameters.Count ))
+                            semanticModel.GetDeclaredSymbol( node )
+                                .ContainingType.FindImplementationForInterfaceMember(
+                                    symbols.Single( s => ((IMethodSymbol) s).Parameters.Length == parameters.Count ) )
                                 .AssertNotNull(),
                         { Symbol: { ContainingType.TypeKind: Microsoft.CodeAnalysis.TypeKind.Interface } interfaceMemberSymbol } =>
-                            semanticModel.GetDeclaredSymbol(node).ContainingType.FindImplementationForInterfaceMember( interfaceMemberSymbol ).AssertNotNull(),
+                            semanticModel.GetDeclaredSymbol( node )
+                                .ContainingType.FindImplementationForInterfaceMember( interfaceMemberSymbol )
+                                .AssertNotNull(),
                         { CandidateReason: CandidateReason.MemberGroup, CandidateSymbols: [{ } symbol] } => symbol,
                         { CandidateReason: CandidateReason.MemberGroup, CandidateSymbols: { Length: > 1 } symbols }
                             when
-                                symbols.All( s => s is IMethodSymbol )
-                                && node is MethodDeclarationSyntax { ParameterList.Parameters: { } parameters }
-                                && symbols.Count( s => ((IMethodSymbol) s).Parameters.Length == parameters.Count ) == 1 =>
-                                    symbols.Single( s => ((IMethodSymbol) s).Parameters.Length == parameters.Count ),
+                            symbols.All( s => s is IMethodSymbol )
+                            && node is MethodDeclarationSyntax { ParameterList.Parameters: { } parameters }
+                            && symbols.Count( s => ((IMethodSymbol) s).Parameters.Length == parameters.Count ) == 1 =>
+                            symbols.Single( s => ((IMethodSymbol) s).Parameters.Length == parameters.Count ),
                         { Symbol: { } symbol } => symbol,
-                        _ => throw new AssertionFailedException("Unsupported"),
+                        _ => throw new AssertionFailedException( "Unsupported" ),
                     };
 
                 var aspectName = overrideAttribute.ArgumentList.Arguments[1].ToString().Trim( '\"' );
@@ -696,19 +683,19 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
                 }
 
                 var insertPositionRecord = this._currentInsertPosition.AssertNotNull();
-                var aspectLayer = this._owner.GetOrAddAspectLayer( aspectName.AssertNotNull(), layerName );
+                var aspectLayer = owner.GetOrAddAspectLayer( aspectName.AssertNotNull(), layerName );
 
                 TestTransformationBase CreateTransformation( CompilationModel compilationModel )
                 {
-                    var overriddenDeclaration = this._owner.Builder.TranslateOriginalSymbol( overriddenDeclarationSymbol ).GetTarget( compilationModel );
+                    var overriddenDeclaration = owner.Builder.TranslateOriginalSymbol( overriddenDeclarationSymbol ).GetTarget( compilationModel );
 
-                    if ( overriddenDeclaration is IField overriddenField && this._promotions.TryGetValue( overriddenField.ToFullRef(), out var promotedField))
+                    if ( overriddenDeclaration is IField overriddenField && this._promotions.TryGetValue( overriddenField.ToFullRef(), out var promotedField ) )
                     {
                         overriddenDeclaration = promotedField.GetTarget( compilationModel );
                     }
 
-                    var aspectLayerInstance = this.CreateTestAspectLayerInstance( compilationModel.CompilationContext, overriddenDeclaration, aspectLayer );
-                    var insertPosition = this._owner.Builder.TranslateInsertPosition( compilationModel.CompilationContext, insertPositionRecord );
+                    var aspectLayerInstance = CreateTestAspectLayerInstance( overriddenDeclaration, aspectLayer );
+                    var insertPosition = owner.Builder.TranslateInsertPosition( insertPositionRecord );
 
                     return new TestOverrideDeclarationTransformation(
                         aspectLayerInstance,
@@ -717,10 +704,10 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
                         overrideSyntax );
                 }
 
-                this._owner.Builder.AddTransformationFactory( CreateTransformation );
+                owner.Builder.AddTransformationFactory( CreateTransformation );
             }
 
-            private AspectLayerInstance CreateTestAspectLayerInstance( CompilationContext compilationContext, IDeclaration targetDeclaration, AspectLayerId aspectLayer )
+            private static AspectLayerInstance CreateTestAspectLayerInstance( IDeclaration targetDeclaration, AspectLayerId aspectLayer )
             {
                 var fakeAspectInstance = 
                     new AspectInstance( 

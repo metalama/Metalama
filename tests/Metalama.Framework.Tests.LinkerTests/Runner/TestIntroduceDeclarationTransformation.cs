@@ -4,37 +4,24 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 using Metalama.Framework.Engine.CodeModel.Helpers;
-using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.Transformations;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Metalama.Framework.Tests.LinkerTests.Runner;
 
 /// <summary>
 /// Represents a test transformation that takes syntax of a PseudoIntroduction-marked member and injects it.
 /// </summary>
-internal class TestIntroduceDeclarationTransformation : TestTransformationBase, IIntroduceDeclarationTransformation
+internal class TestIntroduceDeclarationTransformation(
+    AspectLayerInstance aspectLayerInstance,
+    InsertPosition insertPosition,
+    DeclarationBuilderData declarationBuilderData,
+    MemberDeclarationSyntax syntax )
+    : TestTransformationBase( aspectLayerInstance, insertPosition ), IIntroduceDeclarationTransformation
 {
-    private readonly MemberDeclarationSyntax _syntax;
-
-    public DeclarationBuilderData DeclarationBuilderData { get; }
-
-    public TestIntroduceDeclarationTransformation(
-        AspectLayerInstance aspectLayerInstance, 
-        InsertPosition insertPosition, 
-        DeclarationBuilderData declarationBuilderData,
-        MemberDeclarationSyntax syntax )
-        : base( aspectLayerInstance, insertPosition )
-    {
-        this.DeclarationBuilderData = declarationBuilderData;
-        this._syntax = syntax;
-    }
+    public DeclarationBuilderData DeclarationBuilderData { get; } = declarationBuilderData;
 
     public override TransformationObservability Observability => TransformationObservability.Always;
 
@@ -44,6 +31,6 @@ internal class TestIntroduceDeclarationTransformation : TestTransformationBase, 
 
     public override IEnumerable<InjectedMember> GetInjectedMembers( MemberInjectionContext context )
     {
-        yield return new InjectedMember( this, this._syntax, this.AspectLayerId, InjectedMemberSemantic.Introduction, this.DeclarationBuilderData.ContainingDeclaration );
+        yield return new InjectedMember( this, syntax, this.AspectLayerId, InjectedMemberSemantic.Introduction, this.DeclarationBuilderData.ContainingDeclaration );
     }
 }

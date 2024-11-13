@@ -14,26 +14,26 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner;
 /// <summary>
 /// A base class for test transformations that inject processed syntax instead of running templates.
 /// </summary>
-internal abstract class TestTransformationBase : IInjectMemberTransformation
+internal abstract class TestTransformationBase( AspectLayerInstance aspectLayerInstance, InsertPosition insertPosition ) : IInjectMemberTransformation
 {
-    public InsertPosition InsertPosition { get; }
+    public InsertPosition InsertPosition { get; } = insertPosition;
 
-    public AspectLayerInstance AspectLayerInstance { get; }
+    public AspectLayerInstance AspectLayerInstance { get; } = aspectLayerInstance;
+
     public AspectLayerId AspectLayerId => this.AspectLayerInstance.AspectLayerId;
+
     public IAspectInstanceInternal AspectInstance => this.AspectLayerInstance.AspectInstance;
 
     public int OrderWithinPipeline { get; set; }
+
     public int OrderWithinPipelineStepAndType { get; set; }
+
     public int OrderWithinPipelineStepAndTypeAndAspectInstance { get; set; }
 
-    public TestTransformationBase( AspectLayerInstance aspectLayerInstance, InsertPosition insertPosition )
-    {
-        this.AspectLayerInstance = aspectLayerInstance;
-        this.InsertPosition = insertPosition;
-    }
-
     public abstract TransformationObservability Observability { get; }
+
     public abstract IRef<IDeclaration> TargetDeclaration { get; }
+
     public abstract SyntaxTree TransformedSyntaxTree { get; }
 
     public IAspectClass AspectClass => throw new NotSupportedException();
@@ -42,8 +42,5 @@ internal abstract class TestTransformationBase : IInjectMemberTransformation
 
     public abstract IEnumerable<InjectedMember> GetInjectedMembers( MemberInjectionContext context );
 
-    public FormattableString? ToDisplayString()
-    {
-        return $"Test";
-    }
+    public FormattableString ToDisplayString() => $"Test";
 }
