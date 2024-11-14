@@ -3,16 +3,20 @@
     <PropertyGroup>
         <RepoDirectory>$(MSBuildThisFileDirectory)</RepoDirectory>
         <RepoKind>GitHub</RepoKind>
-        <Nullable>enable</Nullable>
-        <GenerateDocumentationFile>true</GenerateDocumentationFile>
-        <NoWarn>$(NoWarn),IDE0051,IDE0052</NoWarn>
-        <LangVersion>10.0</LangVersion>
     </PropertyGroup>
-
+    
     <Import Project="eng\Versions.props"/>
     <Import Project="eng\Packaging.props"/>
-    <Import Sdk="PostSharp.Engineering.Sdk" Project="BuildOptions.props"/>
     <Import Sdk="PostSharp.Engineering.Sdk" Project="StrongName.props"/>
+    <Import Sdk="PostSharp.Engineering.Sdk" Project="BuildOptions.props"/>
     <Import Sdk="PostSharp.Engineering.Sdk" Project="SourceLink.props"/>
+
+    <PropertyGroup>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <NoWarn>$(NoWarn),IDE0051,IDE0052</NoWarn>
+
+        <!-- The latest version supported by Metalama Compiler may be higher that the latest version supported by Metalama Framework. -->
+        <LangVersion>$(LangMaxVersion)</LangVersion>
+    </PropertyGroup>
 
 </Project>
