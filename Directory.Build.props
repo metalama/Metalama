@@ -2,17 +2,7 @@
 
     <PropertyGroup>
         <RepoDirectory>$(MSBuildThisFileDirectory)</RepoDirectory>
-        <RepoKind>GitHub</RepoKind> <!-- Valid values: AzureRepos | GitHub -->
-        <Nullable>enable</Nullable>
-        <GenerateDocumentationFile>true</GenerateDocumentationFile>
-        <!-- XML comment analysis is disabled due to project configuration ; more types in one file analysis is ignored. -->
-        <!-- TODO: Enable IDE0028 and IDE1005 and refactor collection initialization and delegate invocations. -->
-        <NoWarn>$(NoWarn);SA0001;SA1402;IDE0028;IDE1005</NoWarn>
-
-    
-        
-       <!-- <MetalamaFormatCompileTimeCode>True</MetalamaFormatCompileTimeCode> -->
-
+        <RepoKind>GitHub</RepoKind>
     </PropertyGroup>
 
     <Import Project="eng\Versions.props"/>
@@ -20,6 +10,18 @@
     <Import Sdk="PostSharp.Engineering.Sdk" Project="BuildOptions.props"/>
     <Import Sdk="PostSharp.Engineering.Sdk" Project="StrongName.props"/>
     <Import Sdk="PostSharp.Engineering.Sdk" Project="SourceLink.props"/>
+
+    <PropertyGroup>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <!-- XML comment analysis is disabled due to project configuration ; more types in one file analysis is ignored. -->
+        <!-- TODO: Enable IDE0028 and IDE1005 and refactor collection initialization and delegate invocations. -->
+        <NoWarn>$(NoWarn);SA0001;SA1402;IDE0028;IDE1005</NoWarn>
+
+        <!-- <MetalamaFormatCompileTimeCode>True</MetalamaFormatCompileTimeCode> -->
+
+        <!-- The latest version supported by Metalama Compiler may be higher that the latest version supported by Metalama Framework. -->
+        <LangVersion>$(LangMaxVersion)</LangVersion>
+    </PropertyGroup>
 
 
 </Project>
