@@ -2,7 +2,7 @@
 
     <PropertyGroup>
         <RepoDirectory>$(MSBuildThisFileDirectory)</RepoDirectory>
-        <RepoKind>GitHub</RepoKind> <!-- Valid values: AzureRepos | GitHub -->
+        <RepoKind>GitHub</RepoKind>
     </PropertyGroup>
 
     <Import Project="eng\Versions.props"/>
@@ -11,5 +11,9 @@
     <Import Sdk="PostSharp.Engineering.Sdk" Project="StrongName.props"/>
     <Import Sdk="PostSharp.Engineering.Sdk" Project="SourceLink.props"/>
 
+    <PropertyGroup>
+        <!-- The latest version supported by Metalama Compiler may be higher that the latest version supported by Metalama Framework. -->
+        <LangVersion>$(LangMaxVersion)</LangVersion>
+    </PropertyGroup>
 
 </Project>
