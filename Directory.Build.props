@@ -27,6 +27,12 @@
     <Import Project="Metalama.Framework.Package/build/Metalama.CompilerVisibleProperties.props"/>
 
     <Import Sdk="PostSharp.Engineering.Sdk" Project="BuildOptions.props"/>
+
+    <PropertyGroup>
+        <!-- Metalama 2024.2 doesn't support C# 13, and PostSharp.Engineering defaults to latest, so we have to explicitly specify C# 12 here, now that Roslyn 4.12 is merged into Metalama.Compiler. -->
+        <LangVersion>12</LangVersion>
+    </PropertyGroup>
+
     <Import Sdk="PostSharp.Engineering.Sdk" Project="SourceLink.props"/>
 
     <ItemGroup>

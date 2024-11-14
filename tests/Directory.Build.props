@@ -11,9 +11,6 @@
 
         <AddAssemblyMetadataAttributes>False</AddAssemblyMetadataAttributes>
 
-        <!-- Metalama 2024.2 doesn't support C# 13, and PostSharp.Engineering defaults to latest, so we have to explicitly specify C# 12 here, now that we're using .Net 9 SDK. -->
-        <LangVersion>12</LangVersion>
-
     </PropertyGroup>
 
 </Project>
