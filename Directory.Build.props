@@ -5,21 +5,21 @@
         <RepoKind>GitHub</RepoKind>
     </PropertyGroup>
 
+    <Import Project="eng\Versions.props"/>
+    <Import Project="eng\Packaging.props"/>
     <Import Sdk="PostSharp.Engineering.Sdk" Project="BuildOptions.props"/>
+    <Import Sdk="PostSharp.Engineering.Sdk" Project="StrongName.props"/>
+    <Import Sdk="PostSharp.Engineering.Sdk" Project="SourceLink.props"/>
 
     <PropertyGroup>
-        <Nullable>enable</Nullable>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <!-- XML comment analysis is disabled due to project configuration ; more types in one file analysis is ignored. -->
         <!-- TODO: Enable IDE0028 and IDE1005 and refactor collection initialization and delegate invacations. -->
         <NoWarn>$(NoWarn);SA0001;SA1402;IDE0028;IDE1005</NoWarn>
-        <LangVersion>12</LangVersion>
+        
+        <!-- The latest version supported by Metalama Compiler may be higher that the latest version supported by Metalama Framework. -->
+        <LangVersion>$(LangMaxVersion)</LangVersion>
     </PropertyGroup>
-
-    <Import Project="eng\Versions.props"/>
-    <Import Project="eng\Packaging.props"/>
-    <Import Sdk="PostSharp.Engineering.Sdk" Project="StrongName.props"/>
-    <Import Sdk="PostSharp.Engineering.Sdk" Project="SourceLink.props"/>
 
 
 </Project>
