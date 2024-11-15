@@ -10,6 +10,7 @@
         <Deterministic>False</Deterministic>
 
         <AddAssemblyMetadataAttributes>False</AddAssemblyMetadataAttributes>
+
     </PropertyGroup>
 
 </Project>

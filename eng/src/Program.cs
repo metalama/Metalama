@@ -21,7 +21,7 @@ var product = new Product( MetalamaDependencies.Metalama )
             SolutionFilterPathForInspectCode = "Metalama.LatestRoslyn.slnf",
             SupportsTestCoverage = true,
             CanFormatCode = true,
-            
+
             // We don't run the tests for the whole solution because they are too slow and redundant. See #34277.
             TestMethod = BuildMethod.None,
             FormatExclusions =
@@ -39,18 +39,13 @@ var product = new Product( MetalamaDependencies.Metalama )
         },
         new DotNetSolution( "Metalama.LatestRoslyn.slnf" )
         {
-            SupportsTestCoverage = false,
-            CanFormatCode = false,
-            IsTestOnly = true
+            SupportsTestCoverage = false, CanFormatCode = false, IsTestOnly = true
         },
         new DotNetSolution( "Tests\\Metalama.Framework.TestApp\\Metalama.Framework.TestApp.sln" )
         {
             IsTestOnly = true, TestMethod = BuildMethod.Build
         },
-        new ManyDotNetSolutions( "Tests\\Standalone" )
-        {
-            IsTestOnly = true
-        }
+        new ManyDotNetSolutions( "Tests\\Standalone" ) { IsTestOnly = true }
     ],
     PublicArtifacts = Pattern.Create(
         "Metalama.Framework.$(PackageVersion).nupkg",
@@ -74,7 +69,10 @@ var product = new Product( MetalamaDependencies.Metalama )
         MetalamaDependencies.MetalamaFrameworkRunTime.ToDependency()
     ],
     SourceDependencies = [MetalamaDependencies.MetalamaFrameworkPrivate],
-    ExportedProperties = { { @"Directory.Packages.props", new[] { "RoslynApiMaxVersion" } } },
+    ExportedProperties =
+    {
+        { "Directory.Packages.props", ["RoslynApiMaxVersion"] }, { "Directory.Build.props", ["LangMaxVersion"] }
+    },
     Configurations = Product.DefaultConfigurations
         .WithValue(
             BuildConfiguration.Debug,
@@ -90,7 +88,10 @@ var product = new Product( MetalamaDependencies.Metalama )
                     $@"-:%system.teamcity.build.tempDir%/Metalama/CrashReports/**/*.dmp=>logs"
                 ]
             } ),
-    SupportedProperties = { { "PrepareStubs", "The prepare command generates stub files, instead of actual implementations." } },
+    SupportedProperties =
+    {
+        { "PrepareStubs", "The prepare command generates stub files, instead of actual implementations." }
+    },
 };
 
 product.PrepareCompleted += OnPrepareCompleted;
