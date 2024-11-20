@@ -1,5 +1,6 @@
 // Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
+using JetBrains.Annotations;
 using System.ComponentModel;
 using System.Windows.Input;
 
@@ -8,6 +9,7 @@ namespace Metalama.Patterns.Wpf;
 /// <summary>
 /// Represents an <see cref="ICommand"/> that is executed asynchronously.
 /// </summary>
+[PublicAPI]
 public interface IAsyncCommand : ICommand, INotifyPropertyChanged
 {
     /// <summary>

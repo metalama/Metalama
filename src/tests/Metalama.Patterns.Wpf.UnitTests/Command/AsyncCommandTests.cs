@@ -5,150 +5,150 @@ using Xunit;
 
 namespace Metalama.Patterns.Wpf.UnitTests.Command;
 
-public class AsyncCommandTests
+public sealed class AsyncCommandTests
 {
-    public AsyncCommandTestClass Instance { get; } = new();
+    private readonly AsyncCommandTestClass _instance = new();
 
     [Fact]
     public async Task ExecuteCancellableAndCompleteAsync()
     {
-        Assert.True( this.Instance.CancellableCommand.CanExecute );
-        Assert.False( this.Instance.CancellableCommand.CanCancel );
-        Assert.False( this.Instance.CancellableCommand.IsRunning );
-        Assert.False( this.Instance.CancellableCommand.IsCancellationRequested );
-        Assert.Null( this.Instance.CancellableCommand.ExecutionTask );
+        Assert.True( this._instance.CancellableCommand.CanExecute );
+        Assert.False( this._instance.CancellableCommand.CanCancel );
+        Assert.False( this._instance.CancellableCommand.IsRunning );
+        Assert.False( this._instance.CancellableCommand.IsCancellationRequested );
+        Assert.Null( this._instance.CancellableCommand.ExecutionTask );
 
-        this.Instance.CancellableCommand.Execute();
+        this._instance.CancellableCommand.Execute();
 
-        Assert.False( this.Instance.CancellableCommand.CanExecute );
-        Assert.True( this.Instance.CancellableCommand.CanCancel );
-        Assert.True( this.Instance.CancellableCommand.IsRunning );
-        Assert.False( this.Instance.CancellableCommand.IsCancellationRequested );
-        Assert.NotNull( this.Instance.CancellableCommand.ExecutionTask );
+        Assert.False( this._instance.CancellableCommand.CanExecute );
+        Assert.True( this._instance.CancellableCommand.CanCancel );
+        Assert.True( this._instance.CancellableCommand.IsRunning );
+        Assert.False( this._instance.CancellableCommand.IsCancellationRequested );
+        Assert.NotNull( this._instance.CancellableCommand.ExecutionTask );
 
-        await this.Instance.Barrier.SignalAndWait();
+        await this._instance.Barrier.SignalAndWait();
 
-        await this.Instance.CancellableCommand.ExecutionTask;
+        await this._instance.CancellableCommand.ExecutionTask;
 
-        Assert.True( this.Instance.CancellableCommand.CanExecute );
-        Assert.False( this.Instance.CancellableCommand.CanCancel );
-        Assert.False( this.Instance.CancellableCommand.IsRunning );
-        Assert.False( this.Instance.CancellableCommand.IsCancellationRequested );
-        Assert.NotNull( this.Instance.CancellableCommand.ExecutionTask );
+        Assert.True( this._instance.CancellableCommand.CanExecute );
+        Assert.False( this._instance.CancellableCommand.CanCancel );
+        Assert.False( this._instance.CancellableCommand.IsRunning );
+        Assert.False( this._instance.CancellableCommand.IsCancellationRequested );
+        Assert.NotNull( this._instance.CancellableCommand.ExecutionTask );
     }
 
     [Fact]
     public async Task ExecuteNonCancellableAndCompleteAsync()
     {
-        Assert.True( this.Instance.NonCancellableCommand.CanExecute );
-        Assert.False( this.Instance.NonCancellableCommand.CanCancel );
-        Assert.False( this.Instance.NonCancellableCommand.IsRunning );
-        Assert.False( this.Instance.NonCancellableCommand.IsCancellationRequested );
-        Assert.Null( this.Instance.NonCancellableCommand.ExecutionTask );
+        Assert.True( this._instance.NonCancellableCommand.CanExecute );
+        Assert.False( this._instance.NonCancellableCommand.CanCancel );
+        Assert.False( this._instance.NonCancellableCommand.IsRunning );
+        Assert.False( this._instance.NonCancellableCommand.IsCancellationRequested );
+        Assert.Null( this._instance.NonCancellableCommand.ExecutionTask );
 
-        this.Instance.NonCancellableCommand.Execute();
+        this._instance.NonCancellableCommand.Execute();
 
-        Assert.False( this.Instance.NonCancellableCommand.CanExecute );
-        Assert.False( this.Instance.NonCancellableCommand.CanCancel );
-        Assert.True( this.Instance.NonCancellableCommand.IsRunning );
-        Assert.False( this.Instance.NonCancellableCommand.IsCancellationRequested );
-        Assert.NotNull( this.Instance.NonCancellableCommand.ExecutionTask );
+        Assert.False( this._instance.NonCancellableCommand.CanExecute );
+        Assert.False( this._instance.NonCancellableCommand.CanCancel );
+        Assert.True( this._instance.NonCancellableCommand.IsRunning );
+        Assert.False( this._instance.NonCancellableCommand.IsCancellationRequested );
+        Assert.NotNull( this._instance.NonCancellableCommand.ExecutionTask );
 
-        await this.Instance.Barrier.SignalAndWait();
+        await this._instance.Barrier.SignalAndWait();
 
-        await this.Instance.NonCancellableCommand.ExecutionTask;
+        await this._instance.NonCancellableCommand.ExecutionTask;
 
-        Assert.True( this.Instance.NonCancellableCommand.CanExecute );
-        Assert.False( this.Instance.NonCancellableCommand.CanCancel );
-        Assert.False( this.Instance.NonCancellableCommand.IsRunning );
-        Assert.False( this.Instance.NonCancellableCommand.IsCancellationRequested );
-        Assert.NotNull( this.Instance.NonCancellableCommand.ExecutionTask );
+        Assert.True( this._instance.NonCancellableCommand.CanExecute );
+        Assert.False( this._instance.NonCancellableCommand.CanCancel );
+        Assert.False( this._instance.NonCancellableCommand.IsRunning );
+        Assert.False( this._instance.NonCancellableCommand.IsCancellationRequested );
+        Assert.NotNull( this._instance.NonCancellableCommand.ExecutionTask );
     }
 
     [Fact]
     public async Task ExecuteAndCancelAsync()
     {
-        Assert.True( this.Instance.CancellableCommand.CanExecute );
-        Assert.False( this.Instance.CancellableCommand.CanCancel );
-        Assert.False( this.Instance.CancellableCommand.IsRunning );
-        Assert.False( this.Instance.CancellableCommand.IsCancellationRequested );
-        Assert.Null( this.Instance.CancellableCommand.ExecutionTask );
+        Assert.True( this._instance.CancellableCommand.CanExecute );
+        Assert.False( this._instance.CancellableCommand.CanCancel );
+        Assert.False( this._instance.CancellableCommand.IsRunning );
+        Assert.False( this._instance.CancellableCommand.IsCancellationRequested );
+        Assert.Null( this._instance.CancellableCommand.ExecutionTask );
 
-        this.Instance.CancellableCommand.Execute();
+        this._instance.CancellableCommand.Execute();
 
-        Assert.False( this.Instance.CancellableCommand.CanExecute );
-        Assert.True( this.Instance.CancellableCommand.CanCancel );
-        Assert.True( this.Instance.CancellableCommand.IsRunning );
-        Assert.False( this.Instance.CancellableCommand.IsCancellationRequested );
-        Assert.NotNull( this.Instance.CancellableCommand.ExecutionTask );
+        Assert.False( this._instance.CancellableCommand.CanExecute );
+        Assert.True( this._instance.CancellableCommand.CanCancel );
+        Assert.True( this._instance.CancellableCommand.IsRunning );
+        Assert.False( this._instance.CancellableCommand.IsCancellationRequested );
+        Assert.NotNull( this._instance.CancellableCommand.ExecutionTask );
 
-        this.Instance.CancellableCommand.Cancel();
+        this._instance.CancellableCommand.Cancel();
 
-        this.Instance.CancellableCommand.Cancel();
+        this._instance.CancellableCommand.Cancel();
 
-        Assert.False( this.Instance.CancellableCommand.CanExecute );
-        Assert.True( this.Instance.CancellableCommand.CanCancel );
-        Assert.True( this.Instance.CancellableCommand.IsRunning );
-        Assert.True( this.Instance.CancellableCommand.IsCancellationRequested );
+        Assert.False( this._instance.CancellableCommand.CanExecute );
+        Assert.True( this._instance.CancellableCommand.CanCancel );
+        Assert.True( this._instance.CancellableCommand.IsRunning );
+        Assert.True( this._instance.CancellableCommand.IsCancellationRequested );
 
-        await this.Instance.Barrier.SignalAndWait();
+        await this._instance.Barrier.SignalAndWait();
 
-        await Assert.ThrowsAsync<OperationCanceledException>( () => this.Instance.CancellableCommand.ExecutionTask );
+        await Assert.ThrowsAsync<OperationCanceledException>( () => this._instance.CancellableCommand.ExecutionTask );
 
-        Assert.True( this.Instance.CancellableCommand.CanExecute );
-        Assert.False( this.Instance.CancellableCommand.CanCancel );
-        Assert.False( this.Instance.CancellableCommand.IsRunning );
-        Assert.False( this.Instance.CancellableCommand.IsCancellationRequested );
-        Assert.NotNull( this.Instance.CancellableCommand.ExecutionTask );
+        Assert.True( this._instance.CancellableCommand.CanExecute );
+        Assert.False( this._instance.CancellableCommand.CanCancel );
+        Assert.False( this._instance.CancellableCommand.IsRunning );
+        Assert.False( this._instance.CancellableCommand.IsCancellationRequested );
+        Assert.NotNull( this._instance.CancellableCommand.ExecutionTask );
     }
 
     [Fact]
     public async Task CannotExecuteAsync()
     {
-        Assert.False( this.Instance.CancellableWithCanExecuteCommand.CanExecute );
-        this.Instance.CanExecuteCancellableWithCanExecute = true;
-        Assert.True( this.Instance.CancellableWithCanExecuteCommand.CanExecute );
+        Assert.False( this._instance.CancellableWithCanExecuteCommand.CanExecute );
+        this._instance.CanExecuteCancellableWithCanExecute = true;
+        Assert.True( this._instance.CancellableWithCanExecuteCommand.CanExecute );
 
-        Assert.False( this.Instance.CancellableWithCanExecuteCommand.CanCancel );
-        Assert.False( this.Instance.CancellableWithCanExecuteCommand.IsRunning );
-        Assert.False( this.Instance.CancellableWithCanExecuteCommand.IsCancellationRequested );
-        Assert.Null( this.Instance.CancellableWithCanExecuteCommand.ExecutionTask );
+        Assert.False( this._instance.CancellableWithCanExecuteCommand.CanCancel );
+        Assert.False( this._instance.CancellableWithCanExecuteCommand.IsRunning );
+        Assert.False( this._instance.CancellableWithCanExecuteCommand.IsCancellationRequested );
+        Assert.Null( this._instance.CancellableWithCanExecuteCommand.ExecutionTask );
 
-        this.Instance.CancellableWithCanExecuteCommand.Execute();
+        this._instance.CancellableWithCanExecuteCommand.Execute();
 
-        Assert.False( this.Instance.CancellableWithCanExecuteCommand.CanExecute );
-        Assert.True( this.Instance.CancellableWithCanExecuteCommand.CanCancel );
-        Assert.True( this.Instance.CancellableWithCanExecuteCommand.IsRunning );
-        Assert.False( this.Instance.CancellableWithCanExecuteCommand.IsCancellationRequested );
-        Assert.NotNull( this.Instance.CancellableWithCanExecuteCommand.ExecutionTask );
+        Assert.False( this._instance.CancellableWithCanExecuteCommand.CanExecute );
+        Assert.True( this._instance.CancellableWithCanExecuteCommand.CanCancel );
+        Assert.True( this._instance.CancellableWithCanExecuteCommand.IsRunning );
+        Assert.False( this._instance.CancellableWithCanExecuteCommand.IsCancellationRequested );
+        Assert.NotNull( this._instance.CancellableWithCanExecuteCommand.ExecutionTask );
 
-        this.Instance.CancellableWithCanExecuteCommand.Cancel();
+        this._instance.CancellableWithCanExecuteCommand.Cancel();
 
-        this.Instance.CancellableWithCanExecuteCommand.Cancel();
+        this._instance.CancellableWithCanExecuteCommand.Cancel();
 
-        Assert.False( this.Instance.CancellableWithCanExecuteCommand.CanExecute );
-        Assert.True( this.Instance.CancellableWithCanExecuteCommand.CanCancel );
-        Assert.True( this.Instance.CancellableWithCanExecuteCommand.IsRunning );
-        Assert.True( this.Instance.CancellableWithCanExecuteCommand.IsCancellationRequested );
+        Assert.False( this._instance.CancellableWithCanExecuteCommand.CanExecute );
+        Assert.True( this._instance.CancellableWithCanExecuteCommand.CanCancel );
+        Assert.True( this._instance.CancellableWithCanExecuteCommand.IsRunning );
+        Assert.True( this._instance.CancellableWithCanExecuteCommand.IsCancellationRequested );
 
-        await this.Instance.Barrier.SignalAndWait();
+        await this._instance.Barrier.SignalAndWait();
 
-        await Assert.ThrowsAsync<OperationCanceledException>( () => this.Instance.CancellableWithCanExecuteCommand.ExecutionTask );
+        await Assert.ThrowsAsync<OperationCanceledException>( () => this._instance.CancellableWithCanExecuteCommand.ExecutionTask );
 
-        Assert.True( this.Instance.CancellableWithCanExecuteCommand.CanExecute );
-        Assert.False( this.Instance.CancellableWithCanExecuteCommand.CanCancel );
-        Assert.False( this.Instance.CancellableWithCanExecuteCommand.IsRunning );
-        Assert.False( this.Instance.CancellableWithCanExecuteCommand.IsCancellationRequested );
-        Assert.NotNull( this.Instance.CancellableWithCanExecuteCommand.ExecutionTask );
+        Assert.True( this._instance.CancellableWithCanExecuteCommand.CanExecute );
+        Assert.False( this._instance.CancellableWithCanExecuteCommand.CanCancel );
+        Assert.False( this._instance.CancellableWithCanExecuteCommand.IsRunning );
+        Assert.False( this._instance.CancellableWithCanExecuteCommand.IsCancellationRequested );
+        Assert.NotNull( this._instance.CancellableWithCanExecuteCommand.ExecutionTask );
     }
 
     [Fact]
     public async Task ExecutedEventAsync()
     {
         var executedTokens = new List<DelegateCommandExecution>();
-        this.Instance.CanExecuteCancellableWithCanExecute = true;
-        this.Instance.CancellableWithCanExecuteCommand.Executed += token => executedTokens.Add( token );
-        this.Instance.CancellableWithCanExecuteCommand.Execute();
+        this._instance.CanExecuteCancellableWithCanExecute = true;
+        this._instance.CancellableWithCanExecuteCommand.Executed += token => executedTokens.Add( token );
+        this._instance.CancellableWithCanExecuteCommand.Execute();
         Assert.NotEmpty( executedTokens );
     }
 }

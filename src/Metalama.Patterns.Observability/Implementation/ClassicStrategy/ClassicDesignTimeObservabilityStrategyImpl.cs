@@ -10,7 +10,6 @@ namespace Metalama.Patterns.Observability.Implementation.ClassicStrategy;
 
 internal sealed class ClassicDesignTimeObservabilityStrategyImpl : DesignTimeObservabilityStrategy
 {
-    private readonly IMethod? _baseOnPropertyChangedInvocableMethod;
     private readonly IMethod? _baseOnPropertyChangedOverridableMethod;
     private readonly IMethod? _baseOnChildPropertyChangedMethod;
     private readonly IMethod? _baseOnObservablePropertyChangedMethod;
@@ -24,7 +23,7 @@ internal sealed class ClassicDesignTimeObservabilityStrategyImpl : DesignTimeObs
         var target = builder.Target;
         var elements = builder.Target.Compilation.Cache.GetOrAdd( _ => new Assets() );
 
-        (this._baseOnPropertyChangedInvocableMethod, this._baseOnPropertyChangedOverridableMethod) =
+        (_, this._baseOnPropertyChangedOverridableMethod) =
             ClassicObservabilityStrategyImpl.GetOnPropertyChangedMethods( target );
 
         this._baseOnChildPropertyChangedMethod = ClassicObservabilityStrategyImpl.GetOnChildPropertyChangedMethod( target );

@@ -46,8 +46,7 @@ internal sealed partial class DependencyPropertyAspectBuilder
                                 || this._attribute.ValidateMethod != null;
 
         var namingConventions = hasExplicitNaming
-            ?
-            [
+            ? [
                 new ExplicitDependencyPropertyNamingConvention(
                     this._attribute.RegistrationField,
                     this._attribute.PropertyChangedMethod,

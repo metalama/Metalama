@@ -381,7 +381,7 @@ internal sealed class DependenciesRedisCachingBackend : RedisCachingBackend
         {
             itemList = this.Database.ListRange( valueKey, flags: this.Configuration.ReadCommandFlags );
 
-            if ( itemList == null || itemList.Length == 0 )
+            if ( itemList == null! || itemList.Length == 0 )
             {
                 return null;
             }
@@ -419,7 +419,7 @@ internal sealed class DependenciesRedisCachingBackend : RedisCachingBackend
         {
             itemList = await this.Database.ListRangeAsync( valueKey, flags: this.Configuration.ReadCommandFlags );
 
-            if ( itemList == null || itemList.Length == 0 )
+            if ( itemList == null! || itemList.Length == 0 )
             {
                 return null;
             }

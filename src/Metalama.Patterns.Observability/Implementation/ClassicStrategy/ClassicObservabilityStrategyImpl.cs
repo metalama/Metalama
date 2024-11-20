@@ -225,14 +225,9 @@ internal sealed class ClassicObservabilityStrategyImpl : IObservabilityStrategy
 
         this._onPropertyChangedOverridableMethod.Value = result.Declaration;
 
-        if ( this._baseOnPropertyChangedOverridableMethod == this._baseOnPropertyChangedInvocableMethod )
-        {
-            this._onPropertyChangedInvocableMethod.Value = result.Declaration;
-        }
-        else
-        {
-            this._onPropertyChangedInvocableMethod.Value = this._baseOnPropertyChangedInvocableMethod!;
-        }
+        this._onPropertyChangedInvocableMethod.Value = this._baseOnPropertyChangedOverridableMethod == this._baseOnPropertyChangedInvocableMethod
+            ? result.Declaration
+            : this._baseOnPropertyChangedInvocableMethod!;
 
         // Ensure that all required fields are generated in advance of template execution.
         // The node selection logic mirrors that of the template's loops and conditions.
@@ -269,7 +264,7 @@ internal sealed class ClassicObservabilityStrategyImpl : IObservabilityStrategy
                     {
                         var rootPropertyNode = node.Root;
 
-                        if ( rootPropertyNode.ReferencedFieldOrProperty.DeclaringType == this.CurrentType )
+                        if ( rootPropertyNode.ReferencedFieldOrProperty.DeclaringType.Equals( this.CurrentType ) )
                         {
                             return false;
                         }
@@ -887,8 +882,8 @@ internal sealed class ClassicObservabilityStrategyImpl : IObservabilityStrategy
                     ReturnType.SpecialType: SpecialType.Void,
                     Parameters: [{ Type.SpecialType: SpecialType.String }, { } p1, { } p2]
                 }
-                && p1.Type == assets.NullableINotifyPropertyChanged
-                && p2.Type == assets.NullableINotifyPropertyChanged );
+                && p1.Type.Equals( assets.NullableINotifyPropertyChanged )
+                && p2.Type.Equals( assets.NullableINotifyPropertyChanged ) );
 
     /// <summary>
     /// Validates the the intrinsic characteristics of the given <see cref="IFieldOrProperty"/>, reporting diagnostics if applicable. 

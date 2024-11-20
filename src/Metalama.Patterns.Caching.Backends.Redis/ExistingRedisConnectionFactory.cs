@@ -4,7 +4,7 @@ using StackExchange.Redis;
 
 namespace Metalama.Patterns.Caching.Backends.Redis;
 
-internal class ExistingRedisConnectionFactory( IConnectionMultiplexer connection ) : IRedisConnectionFactory
+internal sealed class ExistingRedisConnectionFactory( IConnectionMultiplexer connection ) : IRedisConnectionFactory
 {
     public IConnectionMultiplexer GetConnection( IServiceProvider? serviceProvider ) => connection;
 

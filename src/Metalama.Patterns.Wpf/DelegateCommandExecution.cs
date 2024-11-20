@@ -1,11 +1,14 @@
 // Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
+using JetBrains.Annotations;
+
 namespace Metalama.Patterns.Wpf;
 
 /// <summary>
 /// Represents a distinct execution of an <see cref="AsyncDelegateCommand"/>, exposing its <see cref="Task"/>,
 /// and allowing to cancel it.
 /// </summary>
+[PublicAPI]
 public readonly struct DelegateCommandExecution
 {
     private readonly CancellationTokenSource? _cancellationTokenSource;

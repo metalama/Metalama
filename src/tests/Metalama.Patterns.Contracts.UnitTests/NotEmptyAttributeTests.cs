@@ -166,8 +166,7 @@ public sealed class NotEmptyAttributeTests
     {
         var cut = new NotEmptyTestClass();
 
-        var e = Assert.Throws<ArgumentException>(
-            () => cut.Array( [] ) );
+        Assert.Throws<ArgumentException>( () => cut.Array( [] ) );
     }
 
     [Fact]

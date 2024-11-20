@@ -10,33 +10,25 @@ using Xunit.Abstractions;
 namespace Metalama.Patterns.Caching.Tests.Backends.Single;
 
 // ReSharper disable once UnusedType.Global
-public class SimpleRedisCacheBackendTests : BaseCacheBackendTests, IAssemblyFixture<RedisAssemblyFixture>
+public class SimpleRedisCacheBackendTests(
+    CachingClassFixture cachingClassFixture,
+    RedisAssemblyFixture redisAssemblyFixture,
+    ITestOutputHelper testOutputHelper )
+    : BaseCacheBackendTests( cachingClassFixture, testOutputHelper ), IAssemblyFixture<RedisAssemblyFixture>
 {
-    private readonly RedisAssemblyFixture _redisAssemblyFixture;
-
-    public SimpleRedisCacheBackendTests(
-        CachingClassFixture cachingClassFixture,
-        RedisAssemblyFixture redisAssemblyFixture,
-        ITestOutputHelper testOutputHelper ) : base(
-        cachingClassFixture,
-        testOutputHelper )
-    {
-        this._redisAssemblyFixture = redisAssemblyFixture;
-    }
-
     protected override void AddServices( ServiceCollection serviceCollection )
     {
         base.AddServices( serviceCollection );
-        serviceCollection.AddSingleton<IRedisBackendObserver>( this.Observer );
+        serviceCollection.AddSingleton<IRedisBackendObserver>( this._observer );
     }
 
-    internal RedisBackendObserver Observer { get; } = new();
+    private readonly RedisBackendObserver _observer = new();
 
     protected override void Cleanup()
     {
         base.Cleanup();
 
-        AssertEx.Equal( 0, this.Observer.ActiveNotificationThreads, "RedisNotificationQueue.NotificationProcessingThreads" );
+        AssertEx.Equal( 0, this._observer.ActiveNotificationThreads, "RedisNotificationQueue.NotificationProcessingThreads" );
     }
 
     protected override bool TestDependencies => false;
@@ -51,6 +43,6 @@ public class SimpleRedisCacheBackendTests : BaseCacheBackendTests, IAssemblyFixt
     private async Task<CheckAfterDisposeCachingBackend> CreateBackendAsync( string? keyPrefix )
     {
         return new CheckAfterDisposeCachingBackend(
-            await RedisFactory.CreateBackendAsync( this.ClassFixture, this._redisAssemblyFixture, serviceProvider: this.ServiceProvider, prefix: keyPrefix ) );
+            await RedisFactory.CreateBackendAsync( this.ClassFixture, redisAssemblyFixture, serviceProvider: this.ServiceProvider, prefix: keyPrefix ) );
     }
 }

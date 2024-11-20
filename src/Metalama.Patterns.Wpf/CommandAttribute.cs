@@ -295,14 +295,9 @@ public sealed partial class CommandAttribute : Attribute, IAspect<IMethod>
 
         if ( canExecuteMethod != null || canExecuteProperty != null )
         {
-            if ( canExecuteMethod != null )
-            {
-                canExecuteExpression = ExpressionFactory.Parse( canExecuteMethod.Name );
-            }
-            else
-            {
-                canExecuteExpression = ExpressionFactory.Capture( new Func<bool>( () => (bool) canExecuteProperty!.Value! ) );
-            }
+            canExecuteExpression = canExecuteMethod != null
+                ? ExpressionFactory.Parse( canExecuteMethod.Name )
+                : ExpressionFactory.Capture( new Func<bool>( () => (bool) canExecuteProperty!.Value! ) );
         }
 
 // ReSharper disable ConvertToLambdaExpression
@@ -392,14 +387,9 @@ public sealed partial class CommandAttribute : Attribute, IAspect<IMethod>
 
         if ( canExecuteMethod != null || canExecuteProperty != null )
         {
-            if ( canExecuteMethod != null )
-            {
-                canExecuteExpression = ExpressionFactory.Parse( canExecuteMethod.Name );
-            }
-            else
-            {
-                canExecuteExpression = ExpressionFactory.Capture( new Func<T, bool>( _ => (bool) canExecuteProperty!.Value! ) );
-            }
+            canExecuteExpression = canExecuteMethod != null
+                ? ExpressionFactory.Parse( canExecuteMethod.Name )
+                : ExpressionFactory.Capture( new Func<T, bool>( _ => (bool) canExecuteProperty!.Value! ) );
         }
 
 // ReSharper disable ConvertToLambdaExpression

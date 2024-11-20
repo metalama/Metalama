@@ -12,11 +12,14 @@ namespace Metalama.Patterns.Caching.Backends.Redis;
 /// instances of local caches.
 /// </summary>
 [PublicAPI]
-internal sealed class RedisCacheSynchronizer : CacheSynchronizer
+internal sealed class RedisCacheSynchronizer(
+    CachingBackend underlyingBackend,
+    RedisCacheSynchronizerConfiguration configuration )
+    : CacheSynchronizer( underlyingBackend, configuration )
 {
-    private readonly bool _ownsConnection;
-    private readonly RedisChannel _channel;
-    private readonly TimeSpan _connectionTimeout;
+    private readonly bool _ownsConnection = configuration.OwnsConnection;
+    private readonly RedisChannel _channel = new( configuration.ChannelName, RedisChannel.PatternMode.Literal );
+    private readonly TimeSpan _connectionTimeout = configuration.ConnectionTimeout;
 
     private IConnectionMultiplexer? _connection;
 
@@ -27,27 +30,13 @@ internal sealed class RedisCacheSynchronizer : CacheSynchronizer
     /// </summary>
     private IConnectionMultiplexer Connection => this._connection ?? throw new InvalidOperationException( "The component is not initialized." );
 
-    public RedisCacheSynchronizer(
-        CachingBackend underlyingBackend,
-        RedisCacheSynchronizerConfiguration configuration ) : base( underlyingBackend, configuration )
-    {
-        this._ownsConnection = configuration.OwnsConnection;
-        this._connectionTimeout = configuration.ConnectionTimeout;
-        this._channel = new RedisChannel( configuration.ChannelName, RedisChannel.PatternMode.Literal );
-    }
-
     protected override void InitializeCore()
     {
         var redisConnectionFactory = ((RedisCacheSynchronizerConfiguration) this.Configuration).ConnectionFactory;
 
-        if ( redisConnectionFactory != null )
-        {
-            this._connection = redisConnectionFactory.GetConnection( this.ServiceProvider );
-        }
-        else
-        {
-            this._connection = this.ServiceProvider.GetRequiredService<IConnectionMultiplexer>();
-        }
+        this._connection = redisConnectionFactory != null!
+            ? redisConnectionFactory.GetConnection( this.ServiceProvider )
+            : this.ServiceProvider.GetRequiredService<IConnectionMultiplexer>();
 
         this.NotificationQueueProcessor = RedisNotificationQueueProcessor.Create(
             this.ToString(),
@@ -64,7 +53,7 @@ internal sealed class RedisCacheSynchronizer : CacheSynchronizer
     {
         var configuration = (RedisCacheSynchronizerConfiguration) this.Configuration;
 
-        if ( configuration.ConnectionFactory != null )
+        if ( configuration.ConnectionFactory != null! )
         {
             this._connection =
                 await configuration.ConnectionFactory.GetConnectionAsync(

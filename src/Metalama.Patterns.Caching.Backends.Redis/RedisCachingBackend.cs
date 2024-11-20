@@ -91,14 +91,9 @@ internal class RedisCachingBackend : CachingBackend
 
     protected override void InitializeCore()
     {
-        if ( this.Configuration.ConnectionFactory != null )
-        {
-            this._connection = this.Configuration.ConnectionFactory.GetConnection( this.ServiceProvider );
-        }
-        else
-        {
-            this._connection = this.ServiceProvider.GetRequiredService<IConnectionMultiplexer>();
-        }
+        this._connection = this.Configuration.ConnectionFactory != null!
+            ? this.Configuration.ConnectionFactory.GetConnection( this.ServiceProvider )
+            : this.ServiceProvider.GetRequiredService<IConnectionMultiplexer>();
 
         this._database = this._databaseFactory( this._connection );
         this._keyBuilder = new RedisKeyBuilder( this.Database, this.Configuration );

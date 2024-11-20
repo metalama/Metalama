@@ -19,10 +19,7 @@ public sealed class BackgroundTaskSchedulerObserver : IBackgroundTaskSchedulerOb
         return id;
     }
 
-    public void OnTaskCompleted( int observedTaskId )
-    {
-        this._pendingBackgroundTasks.TryRemove( observedTaskId, out _ );
-    }
+    public void OnTaskCompleted( int observedTaskId ) => this._pendingBackgroundTasks.TryRemove( observedTaskId, out _ );
 
-    public IEnumerable<StackTrace> PendingTasks => this._pendingBackgroundTasks.Values;
+    internal IEnumerable<StackTrace> PendingTasks => this._pendingBackgroundTasks.Values;
 }

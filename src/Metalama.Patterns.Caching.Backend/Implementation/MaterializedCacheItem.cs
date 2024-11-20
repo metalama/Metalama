@@ -1,5 +1,6 @@
 // Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
+using JetBrains.Annotations;
 using Metalama.Patterns.Caching.Backends;
 using Metalama.Patterns.Caching.Serializers;
 using System.Collections.Immutable;
@@ -62,6 +63,7 @@ internal sealed record MaterializedCacheItem : CacheItem, ICacheItemConfiguratio
     /// <summary>
     /// Gets the absolute expiration of the cache item.
     /// </summary>
+    [PublicAPI]
     public DateTime? AbsoluteExpiration { get; }
 
     bool? ICacheItemConfiguration.AutoReload => false;

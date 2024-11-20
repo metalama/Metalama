@@ -2,6 +2,8 @@
 
 using Metalama.Framework.Aspects;
 
+namespace Metalama.Patterns.Wpf.Implementation.NamingConvention;
+
 [CompileTime]
 internal enum NamingConventionOutcome
 {

@@ -232,7 +232,7 @@ public class RedisCacheBackendTests : BaseCacheBackendTests, IAssemblyFixture<Re
         var servers = connection.GetEndPoints().Select( endpoint => connection.GetServer( endpoint ) ).ToList();
         var keys = servers.SelectMany( server => server.Keys( pattern: prefix + "*" ) ).ToList();
 
-        var filteredKeys = keys.Select( k => k.ToString() ).Where( k => k?.IndexOf( ":gc:", StringComparison.Ordinal ) == -1 ).ToList();
+        var filteredKeys = keys.Select( k => k.ToString() ).Where( k => k.IndexOf( ":gc:", StringComparison.Ordinal ) == -1 ).ToList();
 
         return filteredKeys;
     }

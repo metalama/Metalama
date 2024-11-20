@@ -6,10 +6,8 @@ using Xunit.Abstractions;
 
 namespace Metalama.Patterns.Caching.Tests;
 
-public class AsyncEnumeratorTests : AsyncEnumTestsBase
+public sealed class AsyncEnumeratorTests( ITestOutputHelper testOutputHelper ) : AsyncEnumTestsBase( testOutputHelper )
 {
-    public AsyncEnumeratorTests( ITestOutputHelper testOutputHelper ) : base( testOutputHelper ) { }
-
     [Fact]
     public void DoesNotBlockOnUnawaitedMethod()
     {

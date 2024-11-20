@@ -97,7 +97,7 @@ internal sealed class ClassicObservableExpression : ObservableExpression
                 false => InpcBaseHandling.NotApplicable,
 
                 true when this.IsRoot =>
-                    fieldOrProperty.DeclaringType == builder.CurrentType
+                    fieldOrProperty.DeclaringType.Equals( builder.CurrentType )
                         ? InpcBaseHandling.NotApplicable
                         : builder.Context.HasInheritedOnChildPropertyChangedPropertyPath( this.DottedPropertyPath )
                             ? InpcBaseHandling.OnChildPropertyChanged
