@@ -879,6 +879,7 @@ internal sealed partial class ContextualSyntaxGenerator
     public ParameterSyntax Parameter( IParameter parameter, CompilationModel compilation, bool removeDefaultValue )
     {
         // We intentionally generate non-literal values to be more tolerant to invalid inputs.
+        // Also, it's required to generate the correct syntax for enum values (other than 0).
         var equalsValueClause = removeDefaultValue || parameter.DefaultValue == null
             ? null
             : EqualsValueClause( this.TypedConstantExpression( parameter.DefaultValue.Value, parameter.Type ) );
