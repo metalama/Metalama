@@ -1,10 +1,8 @@
 ﻿// Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
 using LINQPad.Extensibility.DataContext;
-using Metalama.Framework.Code.Collections;
 using Metalama.Framework.Workspaces;
 using Metalama.Testing.UnitTesting;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -16,18 +14,11 @@ namespace Metalama.LinqPad.Tests;
 
 #pragma warning disable VSTHRD200
 
-public sealed class SchemaTests : UnitTestClass
+public sealed class SchemaTests( ITestOutputHelper logger ) : UnitTestClass
 {
-    private readonly ITestOutputHelper _logger;
-
     static SchemaTests()
     {
         Initializer.Initialize();
-    }
-
-    public SchemaTests( ITestOutputHelper logger )
-    {
-        this._logger = logger;
     }
 
     [Fact]
@@ -41,7 +32,7 @@ public sealed class SchemaTests : UnitTestClass
         xml.Add( new XElement( "schema", schema.Select( item => (object) ConvertToXml( item ) ) ) );
 
         var xmlString = xml.ToString();
-        this._logger.WriteLine( xmlString );
+        logger.WriteLine( xmlString );
     }
 
     [Fact( Skip = "Cannot get MSBuildLocator to work." )]
@@ -74,7 +65,7 @@ public sealed class SchemaTests : UnitTestClass
         var xml = new XDocument();
         xml.Add( new XElement( "schema", schema.Select( item => (object) ConvertToXml( item ) ) ) );
         var xmlString = xml.ToString();
-        this._logger.WriteLine( xmlString );
+        logger.WriteLine( xmlString );
     }
 
     private static XElement ConvertToXml( ExplorerItem item )

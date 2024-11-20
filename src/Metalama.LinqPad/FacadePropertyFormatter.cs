@@ -91,8 +91,6 @@ namespace Metalama.LinqPad
             }
         }
 
-        public static object? CreateHyperlink( object? value ) => value == null ? null : CreateHyperlinkTestable( value ).View;
-
         private static (object? View, object? ViewModel) CreateHyperlinkTestable( object value )
         {
             string? summary;

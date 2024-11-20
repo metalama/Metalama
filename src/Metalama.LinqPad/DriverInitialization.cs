@@ -7,7 +7,6 @@ using Metalama.Framework.Engine.Utilities.Diagnostics;
 using Metalama.Framework.Workspaces;
 using Microsoft.CodeAnalysis.MSBuild;
 using System.IO;
-using System.Reflection;
 
 namespace Metalama.LinqPad;
 
@@ -62,10 +61,8 @@ internal static class DriverInitialization
         }
     }
 
-    private class LinqPadApplicationInfo : ApplicationInfoBase
+    private class LinqPadApplicationInfo() : ApplicationInfoBase( typeof(LinqPadApplicationInfo).Assembly )
     {
-        public LinqPadApplicationInfo() : base( typeof(LinqPadApplicationInfo).Assembly ) { }
-
         public override string Name => "Metalama.LinqPad";
     }
 }

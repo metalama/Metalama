@@ -3,6 +3,4 @@ using JetBrains.Annotations;
 namespace Metalama.LinqPad;
 
 [PublicAPI]
-public abstract class MetalamaScratchpadDataContext
-{
-}
+public abstract class MetalamaScratchpadDataContext;

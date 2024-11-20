@@ -3,7 +3,6 @@
 using JetBrains.Annotations;
 using LINQPad;
 using Metalama.Framework.Workspaces;
-using System;
 
 namespace Metalama.LinqPad
 {
@@ -19,7 +18,7 @@ namespace Metalama.LinqPad
         protected readonly Workspace workspace;
 #pragma warning restore SA1401, IDE1006
 
-        public MetalamaWorkspaceDataContext( string path, bool reportWorkspaceErrors )
+        protected MetalamaWorkspaceDataContext( string path, bool reportWorkspaceErrors )
         {
             DriverInitialization.Initialize();
 
