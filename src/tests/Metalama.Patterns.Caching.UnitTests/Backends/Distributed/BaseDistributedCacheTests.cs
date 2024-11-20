@@ -116,7 +116,7 @@ public abstract class BaseDistributedCacheTests : BaseCachingTests, IClassFixtur
         }
     }
 
-    [Fact( Timeout = _timeout )]
+    [Fact]
     public void TestInvalidateDependencyIdenticalItems()
     {
         if ( !this.TestDependencies )

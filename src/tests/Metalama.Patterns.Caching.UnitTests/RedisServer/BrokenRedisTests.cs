@@ -47,7 +47,7 @@ public sealed class BrokenRedisTests
         GC.WaitForPendingFinalizers();
     }
 
-    [Fact( Timeout = 20000 )]
+    [Fact]
     public void TestRedisAbortsConnection()
     {
         AssertEx.Throws<RedisConnectionException>( () => _ = CreateConnection( true ) );

@@ -13,7 +13,7 @@ namespace Metalama.Patterns.Caching.Tests
 {
     public sealed class SizeCalculatorTests : BaseCachingTests
     {
-        [Fact( Timeout = 5000 )]
+        [Fact]
         public void TestSizeCalculator()
         {
             var backend =
@@ -36,7 +36,7 @@ namespace Metalama.Patterns.Caching.Tests
             EvictEventually( backend, "A" );
         }
 
-        [Fact( Timeout = 5000 )]
+        [Fact]
         public void TestPriorities()
         {
             var backend =

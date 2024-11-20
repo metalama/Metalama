@@ -104,7 +104,7 @@ namespace Metalama.Patterns.Caching.TestHelpers
             Assert.Empty( this.BackgroundTaskSchedulerObserver.PendingTasks );
         }
 
-        [Fact( Timeout = Timeout )]
+        [Fact]
         public void TestMiss()
         {
             using ( var cache = this.CreateBackend() )
@@ -142,7 +142,7 @@ namespace Metalama.Patterns.Caching.TestHelpers
             }
         }
 
-        [Fact( Timeout = Timeout )]
+        [Fact]
         public void TestSet()
         {
             using ( var cache = this.CreateBackend() )
@@ -216,7 +216,7 @@ namespace Metalama.Patterns.Caching.TestHelpers
             }
         }
 
-        [Fact( Timeout = Timeout )]
+        [Fact]
         public void TestAbsoluteExpiration()
         {
             while ( true )
@@ -403,7 +403,7 @@ namespace Metalama.Patterns.Caching.TestHelpers
             }
         }
 
-        [Fact( Timeout = Timeout )]
+        [Fact]
         public void TestRemovalEventByExpiration()
         {
             using ( var cache = this.CreateBackend() )
@@ -486,7 +486,7 @@ namespace Metalama.Patterns.Caching.TestHelpers
             }
         }
 
-        [Fact( Timeout = Timeout )]
+        [Fact]
         public void TestRemovalEventByEviction()
         {
             using ( var cache = this.CreateBackend() )
@@ -562,7 +562,6 @@ namespace Metalama.Patterns.Caching.TestHelpers
 
         [Fact]
 
-        // [Timeout( Timeout )]
         public void TestRemovalEventByDependency()
         {
             if ( !this.TestDependencies )
@@ -687,7 +686,7 @@ namespace Metalama.Patterns.Caching.TestHelpers
             }
         }
 
-        [Fact( Timeout = Timeout )]
+        [Fact]
         public void TestDependency()
         {
             if ( !this.TestDependencies )
@@ -762,7 +761,7 @@ namespace Metalama.Patterns.Caching.TestHelpers
             }
         }
 
-        [Fact( Timeout = Timeout )]
+        [Fact]
         public void TestSharedDependency()
         {
             if ( !this.TestDependencies )
@@ -827,7 +826,7 @@ namespace Metalama.Patterns.Caching.TestHelpers
             }
         }
 
-        [Fact( Timeout = Timeout )]
+        [Fact]
         public void TestReplace()
         {
             using ( var cache = this.CreateBackend() )
@@ -885,7 +884,7 @@ namespace Metalama.Patterns.Caching.TestHelpers
             }
         }
 
-        [Fact( Timeout = Timeout )]
+        [Fact]
         public void TestSetItemWithDependencyWithoutSupport()
         {
             using ( var cache = this.CreateBackend() )
@@ -925,7 +924,7 @@ namespace Metalama.Patterns.Caching.TestHelpers
             }
         }
 
-        [Fact( Timeout = Timeout )]
+        [Fact]
         public void TestInvalidateDependencyWithoutSupport()
         {
             using ( var cache = this.CreateBackend() )
@@ -965,7 +964,7 @@ namespace Metalama.Patterns.Caching.TestHelpers
             }
         }
 
-        [Fact( Timeout = Timeout )]
+        [Fact]
         public void TestContainsDependencyWithoutSupport()
         {
             using ( var cache = this.CreateBackend() )
