@@ -93,15 +93,7 @@ internal class LicenseConsumer : ILicenseConsumer
         void ReportMessage( LicensingMessage message )
         {
             messagesBuilder.Add( message );
-
-            if ( message.IsError )
-            {
-                logger.Error?.Log( message.Text );
-            }
-            else
-            {
-                logger.Warning?.Log( message.Text );
-            }
+            logger.Warning?.Log( message.Text );
         }
     }
 
@@ -110,7 +102,7 @@ internal class LicenseConsumer : ILicenseConsumer
     {
         if ( this._license == null )
         {
-            this._logger.Error?.Log( "No license provided." );
+            this._logger.Warning?.Log( "No license provided." );
 
             return false;
         }
@@ -124,7 +116,7 @@ internal class LicenseConsumer : ILicenseConsumer
              && this._licensedNamespace != null
              && !this._licensedNamespace.AllowsNamespace( consumerProjectName ) )
         {
-            this._logger.Error?.Log(
+            this._logger.Warning?.Log(
                 $"Project '{consumerProjectName}' is not licensed. Your license is limited to project names beginning with '{this._licensedNamespace.AllowedNamespace}'." );
 
             return false;
@@ -132,7 +124,7 @@ internal class LicenseConsumer : ILicenseConsumer
 
         if ( !requirement.IsFulfilledBy( this._license ) )
         {
-            this._logger.Error?.Log( $"License requirement '{requirement}' is not licensed." );
+            this._logger.Warning?.Log( $"License requirement '{requirement}' is not licensed." );
 
             return false;
         }
