@@ -277,7 +277,7 @@ public static class ProcessUtilities
             }
             catch ( Exception e )
             {
-                logger.Error?.Log( $"Could not read '{path}' file: {e.Message}" );
+                logger.Trace?.Log( $"Could not read '{path}' file: {e.Message}" );
 
                 return null;
             }
