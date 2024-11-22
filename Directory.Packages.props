@@ -10,7 +10,7 @@
     <PostSharpPackageVersion>2024.1.6</PostSharpPackageVersion>
     <!-- RoslynApiMinVersion is the minimal version of the Roslyn API we support. -->
     <RoslynApiMinVersion>4.4.0</RoslynApiMinVersion>
-    <RoslynApiMaxVersion>4.12.0-1.final</RoslynApiMaxVersion>
+    <RoslynApiMaxVersion>4.12.0-3.final</RoslynApiMaxVersion>
     <!-- RoslynVersion is the version of Roslyn that should be referenced by the Workspaces package. -->
     <RoslynVersion>4.12.0-3.final</RoslynVersion>
     <!-- xUnitApiVersion is the version of xUnit against which we build the testing framework -->
