@@ -170,9 +170,11 @@ public sealed class DiagnosticSuppressorTests : FrameworkBaseTestClass
 
         var suppression = Assert.Single( suppressions );
 
+#if ROSLYN_4_12_0_OR_GREATER // The diagnostic message has changed between Roslyn 4.8 and 4.12
         Assert.Equal(
-            "code.cs(24,12): warning CS8618: Non-nullable field 'o1' must contain a non-null value when exiting constructor. Consider declaring the field as nullable.",
+            "code.cs(24,12): warning CS8618: Non-nullable field 'o1' must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring the field as nullable.",
             suppression.SuppressedDiagnostic.ToString() );
+#endif
     }
 
     [Fact]
