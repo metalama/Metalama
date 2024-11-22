@@ -1,6 +1,9 @@
 #if TEST_OPTIONS
 // @TestScenario(DesignTime)
+// @RequiredConstant(ROSLYN_4_4_0_OR_GREATER)
 #endif
+
+#if ROSLYN_4_4_0_OR_GREATER
 
 using System;
 using Metalama.Framework.Advising;
@@ -43,3 +46,5 @@ public class TestAspect<T, U> : TypeAspect
 internal partial class TargetClass
 {
 }
+
+#endif

@@ -1,12 +1,13 @@
 # Updating Roslyn
 
-1. Update Metalama.Compiler first.
-2. Study the new C# syntax features. We IGNORE any experimental feature. They are not supported. If the new Roslyn only has new experimental features, there is nothing to do in this repo.
-3. Add the `Syntax.xml` file from Roslyn to `source-dependencies/Metalama.Framework.Private/Metalama.Framework.GenerateMetaSyntaxRewriter`
-4. Edit `source-dependencies/Metalama.Framework.Private/Metalama.Framework.GenerateMetaSyntaxRewriter/Program.cs` to include this file.
-5. Run `build.ps1 prepare -p PrepareStubs=True`.
-6. Run `build.ps1 prepare`.
-7. Inside `build/RoslynVersion`:
+1. Update Metalama.Compiler first. 
+2. Update `RoslynVersion` and `RoslynApiMaxVersion` in `Directory.packages.props` and possibly `ThisRoslynVersion` in `build/RoslynVersion/Roslyn.<LAST_VERSION>.props` (when updating between pre-release versions of Roslyn).
+3. Study the new C# syntax features. We IGNORE any experimental feature. They are not supported. If the new Roslyn only has new experimental features, there is nothing to do in this repo.
+4. Add the `Syntax.xml` file from Roslyn to `source-dependencies/Metalama.Framework.Private/Metalama.Framework.GenerateMetaSyntaxRewriter`
+5. Edit `source-dependencies/Metalama.Framework.Private/Metalama.Framework.GenerateMetaSyntaxRewriter/Program.cs` to include this file.
+6. Run `build.ps1 prepare -p PrepareStubs=True`.
+7. Run `build.ps1 prepare`.
+8. Inside `build/RoslynVersion`:
     1. Create a `.props` file for the new version. Copy from the previous latest version and just change the version number.
     2. Update the `Latest.imports` to point to the new version.
     3. In the `Roslyn.*.props` file of the _previous_ version, set the `ThisRoslynVersionProjectSuffix` property to something like `.4.0.1` and _mind the leading period_, it is necessary.

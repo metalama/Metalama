@@ -15,5 +15,5 @@ class Foo
 {
     // <target>
     [Aspect]
-    public static char[] M() => [ '0' ];
+    public static char[] M() => new[] { '0' };
 }
