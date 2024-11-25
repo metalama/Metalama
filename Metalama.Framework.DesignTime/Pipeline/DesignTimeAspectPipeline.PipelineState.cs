@@ -485,7 +485,7 @@ internal sealed partial class DesignTimeAspectPipeline
                     var errors = getConfigurationResult.Diagnostics.Where( d => d.Severity == DiagnosticSeverity.Error ).ToReadOnlyList();
 
                     state._pipeline.Logger.Trace?.Log(
-                        $"TryGetConfiguration('{compilation.Compilation.AssemblyName}') failed: {errors.Count} errors reported." );
+                        $"GetConfiguration('{compilation.Compilation.AssemblyName}') failed: {errors.Count} errors reported." );
 
                     foreach ( var diagnostic in errors )
                     {
