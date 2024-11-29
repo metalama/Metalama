@@ -89,13 +89,13 @@ namespace Metalama.Framework.DesignTime
                 var compilation = context.SemanticModel.Compilation;
 
                 this._logger.Trace?.Log(
-                    $"DesignTimeAnalyzer.AnalyzeSemanticModel('{syntaxTreeFilePath}', CompilationId = {DebuggingHelper.GetObjectId( compilation )}) started." );
+                    $"TheDiagnosticAnalyzer.AnalyzeSemanticModel('{syntaxTreeFilePath}', CompilationId = {DebuggingHelper.GetObjectId( compilation )}) started." );
 
                 var projectOptions = context.ProjectOptions;
 
                 if ( !projectOptions.IsDesignTimeEnabled )
                 {
-                    this._logger.Trace?.Log( $"DesignTimeAnalyzer.AnalyzeSemanticModel: design time experience is disabled." );
+                    this._logger.Trace?.Log( $"TheDiagnosticAnalyzer.AnalyzeSemanticModel: design time experience is disabled." );
 
                     return;
                 }
@@ -152,7 +152,7 @@ namespace Metalama.Framework.DesignTime
                 if ( !pipelineResult.IsSuccessful )
                 {
                     this._logger.Trace?.Log(
-                        $"DesignTimeAnalyzer.AnalyzeSemanticModel('{syntaxTreeFilePath}', CompilationId = {DebuggingHelper.GetObjectId( compilation )}): the pipeline failed. It returned {pipelineResult.Diagnostics.Length} diagnostics." );
+                        $"TheDiagnosticAnalyzer.AnalyzeSemanticModel('{syntaxTreeFilePath}', CompilationId = {DebuggingHelper.GetObjectId( compilation )}): the pipeline failed. It returned {pipelineResult.Diagnostics.Length} diagnostics." );
 
                     diagnostics = filteredPipelineDiagnostics;
                     suppressions = Enumerable.Empty<IScopedSuppression>();
@@ -216,7 +216,7 @@ namespace Metalama.Framework.DesignTime
                 }
 
                 this._logger.Trace?.Log(
-                    $"DesignTimeAnalyzer.AnalyzeSemanticModel('{syntaxTreeFilePath}', CompilationId = {DebuggingHelper.GetObjectId( compilation )}): completed. {diagnosticCount} diagnostic(s) reported." );
+                    $"TheDiagnosticAnalyzer.AnalyzeSemanticModel('{syntaxTreeFilePath}', CompilationId = {DebuggingHelper.GetObjectId( compilation )}): completed. {diagnosticCount} diagnostic(s) reported." );
             }
             catch ( Exception e )
             {

@@ -75,5 +75,29 @@ namespace Metalama.Framework.Engine.Utilities
 
             return s;
         }
+
+        internal static bool AnySegmentEquals( this string input, char[] separators, string item )
+        {
+            var index = 0;
+
+            while ( index < input.Length )
+            {
+                var nextIndex = input.IndexOfAny( separators, index );
+                
+                if ( nextIndex == -1 )
+                {
+                    nextIndex = input.Length;
+                }
+
+                if ( input.AsSpan()[index..nextIndex].SequenceEqual( item.AsSpan() ) )
+                {
+                    return true;
+                }
+
+                index = nextIndex + 1;
+            }
+            
+            return false;
+        }
     }
 }
