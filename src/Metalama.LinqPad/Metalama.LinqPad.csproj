@@ -29,7 +29,7 @@
 
         <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
             <_Parameter1>Package:Microsoft.CodeAnalysis.Workspaces.MSBuild</_Parameter1>
-            <_Parameter2>$(RoslynVersion)</_Parameter2>
+            <_Parameter2>$(RoslynMaxVersion)</_Parameter2>
         </AssemblyAttribute>
 
     </ItemGroup>
