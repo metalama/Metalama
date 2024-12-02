@@ -19,14 +19,24 @@ namespace Metalama.Framework.Engine.AdviceImpl.Override;
 /// <summary>
 /// Represents a method override, which redirects to another method without requiring template expansion.
 /// </summary>
-internal sealed class RedirectMethodTransformation( Advice advice, IFullRef<IMethod> overriddenMethod, IFullRef<IMethod> targetMethod )
-    : OverrideMemberTransformation( advice.AspectLayerInstance, overriddenMethod )
+internal sealed class RedirectMethodTransformation : OverrideMemberTransformation
 {
-    public override IFullRef<IMember> OverriddenDeclaration => overriddenMethod;
+    private readonly IFullRef<IMethod> _targetMethod;
+
+    private readonly IFullRef<IMethod> _overriddenMethod;
+
+    public RedirectMethodTransformation( Advice advice, IFullRef<IMethod> overriddenDeclaration, IFullRef<IMethod> targetMethod )
+        : base( advice.AspectLayerInstance, overriddenDeclaration )
+    {
+        this._targetMethod = targetMethod;
+        this._overriddenMethod = overriddenDeclaration;
+    }
+
+    public override IFullRef<IMember> OverriddenDeclaration => this._overriddenMethod;
 
     public override IEnumerable<InjectedMember> GetInjectedMembers( MemberInjectionContext context )
     {
-        var overriddenDeclaration = overriddenMethod.GetTarget( this.InitialCompilation );
+        var overriddenDeclaration = this._overriddenMethod.GetTarget( this.InitialCompilation );
 
         var body =
             context.SyntaxGenerationContext.SyntaxGenerator.FormattedBlock(
@@ -74,11 +84,11 @@ internal sealed class RedirectMethodTransformation( Advice advice, IFullRef<IMet
         {
             var expression =
                 overriddenDeclaration.IsStatic
-                    ? (ExpressionSyntax) IdentifierName( targetMethod.Name.AssertNotNull() )
+                    ? (ExpressionSyntax) IdentifierName( this._targetMethod.Name.AssertNotNull() )
                     : MemberAccessExpression(
                         SyntaxKind.SimpleMemberAccessExpression,
                         ThisExpression(),
-                        IdentifierName( targetMethod.Name.AssertNotNull() ) );
+                        IdentifierName( this._targetMethod.Name.AssertNotNull() ) );
 
             return expression
                 .WithAspectReferenceAnnotation( this.AspectLayerId, AspectReferenceOrder.Previous );

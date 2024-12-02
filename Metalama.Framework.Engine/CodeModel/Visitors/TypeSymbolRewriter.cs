@@ -7,10 +7,17 @@ using System.Linq;
 
 namespace Metalama.Framework.Engine.CodeModel.Visitors;
 
-internal abstract class TypeSymbolRewriter( Compilation compilation )
+internal abstract class TypeSymbolRewriter
 {
     [PublicAPI]
     protected static TypeSymbolRewriter Null { get; } = new NullRewriter();
+
+    private readonly Compilation _compilation;
+
+    protected TypeSymbolRewriter( Compilation compilation )
+    {
+        this._compilation = compilation;
+    }
 
     internal virtual ITypeSymbol Visit( IArrayTypeSymbol arrayTypeSymbol )
     {
@@ -22,7 +29,7 @@ internal abstract class TypeSymbolRewriter( Compilation compilation )
         }
         else
         {
-            return compilation.CreateArrayTypeSymbol( elementTypeSymbol, arrayTypeSymbol.Rank, elementTypeSymbol.NullableAnnotation );
+            return this._compilation.CreateArrayTypeSymbol( elementTypeSymbol, arrayTypeSymbol.Rank, elementTypeSymbol.NullableAnnotation );
         }
     }
 
@@ -54,7 +61,7 @@ internal abstract class TypeSymbolRewriter( Compilation compilation )
         }
         else
         {
-            return compilation.CreatePointerTypeSymbol( pointedAtTypeSymbol );
+            return this._compilation.CreatePointerTypeSymbol( pointedAtTypeSymbol );
         }
     }
 
@@ -103,8 +110,10 @@ internal abstract class TypeSymbolRewriter( Compilation compilation )
 
     internal virtual ITypeSymbol Visit( ITypeParameterSymbol typeSymbolParameter ) => typeSymbolParameter;
 
-    private sealed class NullRewriter() : TypeSymbolRewriter( null! )
+    private sealed class NullRewriter : TypeSymbolRewriter
     {
+        public NullRewriter() : base( null! ) { }
+
         public override ITypeSymbol Visit( ITypeSymbol elementTypeSymbol ) => elementTypeSymbol;
 
         internal override ITypeSymbol Visit( IArrayTypeSymbol arrayTypeSymbol ) => arrayTypeSymbol;

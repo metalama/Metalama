@@ -4,7 +4,10 @@
         <OutputType>WinExe</OutputType>
         <TargetFramework>net8.0-windows</TargetFramework>
         <UseWPF>true</UseWPF>
-        <NoWarn>$(NoWarn);CS8002;NU1903</NoWarn>
+        <NoWarn>$(NoWarn);CS8002</NoWarn>
+        <!-- Disable warnings about vulnerabilities in transitive dependencies. -->
+        <!-- This is okay, since this code does not interact with users. -->
+        <NoWarn>$(NoWarn);NU1903</NoWarn>
         <GenerateDocumentationFile>False</GenerateDocumentationFile>
         <EnableWindowsTargeting>True</EnableWindowsTargeting>
     </PropertyGroup>

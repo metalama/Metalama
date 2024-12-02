@@ -16,8 +16,10 @@ namespace Metalama.Framework.Tests.UnitTests.DesignTime;
 
 #pragma warning disable VSTHRD200
 
-public sealed class CodeLensTests( ITestOutputHelper? testOutputHelper ) : DesignTimeTestBase( testOutputHelper )
+public sealed class CodeLensTests : DesignTimeTestBase
 {
+    public CodeLensTests( ITestOutputHelper? testOutputHelper ) : base( testOutputHelper ) { }
+
     protected override void ConfigureServices( IAdditionalServiceCollection services )
     {
         base.ConfigureServices( services );

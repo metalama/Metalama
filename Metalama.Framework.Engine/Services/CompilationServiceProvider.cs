@@ -6,12 +6,17 @@ using System;
 
 namespace Metalama.Framework.Engine.Services;
 
-internal abstract class CompilationServiceProvider<T>( in ProjectServiceProvider serviceProvider ) : IProjectService, IDisposable
+internal abstract class CompilationServiceProvider<T> : IProjectService, IDisposable
     where T : ICompilationService
 {
-    protected ProjectServiceProvider ServiceProvider { get; } = serviceProvider;
+    protected ProjectServiceProvider ServiceProvider { get; }
 
     private readonly WeakCache<CompilationContext, T> _cache = new();
+
+    protected CompilationServiceProvider( in ProjectServiceProvider serviceProvider )
+    {
+        this.ServiceProvider = serviceProvider;
+    }
 
     public T Get( CompilationContext compilationContext )
         => this._cache.GetOrAdd( compilationContext, this.Create );

@@ -6,22 +6,34 @@ using Metalama.Framework.Engine.CodeModel.References;
 
 namespace Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 
-internal abstract class MemberOrNamedTypeBuilderData( IMemberOrNamedTypeBuilderImpl builder, IFullRef<IDeclaration> containingDeclaration )
-    : NamedDeclarationBuilderData( builder, containingDeclaration )
+internal abstract class MemberOrNamedTypeBuilderData : NamedDeclarationBuilderData
 {
-    public Accessibility Accessibility { get; } = builder.Accessibility;
+    protected MemberOrNamedTypeBuilderData( IMemberOrNamedTypeBuilderImpl builder, IFullRef<IDeclaration> containingDeclaration ) : base(
+        builder,
+        containingDeclaration )
+    {
+        this.Accessibility = builder.Accessibility;
+        this.IsSealed = builder.IsSealed;
+        this.IsNew = builder.IsNew;
+        this.HasNewKeyword = builder.HasNewKeyword.AssertNotNull();
+        this.IsAbstract = builder.IsAbstract;
+        this.IsStatic = builder.IsStatic;
+        this.IsPartial = builder.IsPartial;
+    }
 
-    public bool IsSealed { get; } = builder.IsSealed;
+    public Accessibility Accessibility { get; }
 
-    public bool IsNew { get; } = builder.IsNew;
+    public bool IsSealed { get; }
 
-    public bool HasNewKeyword { get; } = builder.HasNewKeyword.AssertNotNull();
+    public bool IsNew { get; }
 
-    public bool IsAbstract { get; } = builder.IsAbstract;
+    public bool HasNewKeyword { get; }
 
-    public bool IsStatic { get; } = builder.IsStatic;
+    public bool IsAbstract { get; }
 
-    public bool IsPartial { get; } = builder.IsPartial;
+    public bool IsStatic { get; }
+
+    public bool IsPartial { get; }
 
     public override IFullRef<INamedType>? DeclaringType => this.ContainingDeclaration as IFullRef<INamedType>;
 }

@@ -8,12 +8,17 @@ using System;
 
 namespace Metalama.Framework.Engine.CodeModel.References;
 
-internal abstract class DurableRef<T>( string id ) : BaseRef<T>, IDurableRef<T>
+internal abstract class DurableRef<T> : BaseRef<T>, IDurableRef<T>
     where T : class, ICompilationElement
 {
-    public string Id { get; } = id;
+    public string Id { get; }
 
     public abstract IFullRef ToFullRef( RefFactory refFactory );
+
+    protected DurableRef( string id )
+    {
+        this.Id = id;
+    }
 
     protected override IDurableRef<T> ToDurable() => this;
 

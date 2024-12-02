@@ -16,9 +16,11 @@ using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace Metalama.Framework.Engine.AdviceImpl.Introduction;
 
-internal sealed class IntroduceMethodTransformation( AspectLayerInstance aspectLayerInstance, MethodBuilderData introducedDeclaration )
-    : IntroduceMemberTransformation<MethodBuilderData>( aspectLayerInstance, introducedDeclaration )
+internal sealed class IntroduceMethodTransformation : IntroduceMemberTransformation<MethodBuilderData>
 {
+    public IntroduceMethodTransformation( AspectLayerInstance aspectLayerInstance, MethodBuilderData introducedDeclaration )
+        : base( aspectLayerInstance, introducedDeclaration ) { }
+
     public override IEnumerable<InjectedMember> GetInjectedMembers( MemberInjectionContext context )
     {
         var finalMethod = this.BuilderData.ToRef().GetTarget( context.FinalCompilation );

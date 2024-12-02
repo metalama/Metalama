@@ -35,8 +35,10 @@ using Xunit.Abstractions;
 
 namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline;
 
-public sealed class DesignTimePipelineTests( ITestOutputHelper logger ) : FrameworkBaseTestClass( logger )
+public sealed class DesignTimePipelineTests : FrameworkBaseTestClass
 {
+    public DesignTimePipelineTests( ITestOutputHelper logger ) : base( logger ) { }
+
     private static CSharpCompilation CreateCSharpCompilation(
         IReadOnlyDictionary<string, string> code,
         string? assemblyName = null,

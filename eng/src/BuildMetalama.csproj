@@ -8,7 +8,10 @@
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <LangVersion>latest</LangVersion>
         <Nullable>enable</Nullable>
-        <NoWarn>$(NoWarn),CS8002,SA1114,SA1115,NU1903,NU1904</NoWarn>
+        <NoWarn>$(NoWarn),CS8002,SA1114,SA1115</NoWarn>
+        <!-- Disable warnings about vulnerabilities in transitive dependencies. -->
+        <!-- This is generally okay, since this code does not interact with users. -->
+        <NoWarn>$(NoWarn),NU1903,NU1904</NoWarn>
     </PropertyGroup>
 
     <ItemGroup>

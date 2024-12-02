@@ -14,14 +14,22 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner;
 /// <summary>
 /// Represents a test transformation that takes syntax of a PseudoOverride-marked member and injects it.
 /// </summary>
-internal sealed class TestOverrideDeclarationTransformation(
-    AspectLayerInstance aspectLayerInstance,
-    InsertPosition insertPosition,
-    IFullRef<IDeclaration> overriddenDeclaration,
-    MemberDeclarationSyntax syntax )
-    : TestTransformationBase( aspectLayerInstance, insertPosition ), IOverrideDeclarationTransformation
+internal class TestOverrideDeclarationTransformation : TestTransformationBase, IOverrideDeclarationTransformation
 {
-    public IFullRef<IDeclaration> OverriddenDeclaration { get; } = overriddenDeclaration;
+    private readonly MemberDeclarationSyntax _syntax;
+
+    public IFullRef<IDeclaration> OverriddenDeclaration { get; }
+
+    public TestOverrideDeclarationTransformation(
+        AspectLayerInstance aspectLayerInstance, 
+        InsertPosition insertPosition, 
+        IFullRef<IDeclaration> overriddenDeclaration, 
+        MemberDeclarationSyntax syntax )
+        : base( aspectLayerInstance, insertPosition )
+    {
+        this.OverriddenDeclaration = overriddenDeclaration;
+        this._syntax = syntax;
+    }
 
     public override TransformationObservability Observability => TransformationObservability.None;
 
@@ -31,6 +39,6 @@ internal sealed class TestOverrideDeclarationTransformation(
 
     public override IEnumerable<InjectedMember> GetInjectedMembers( MemberInjectionContext context )
     {
-        yield return new InjectedMember( this, syntax, this.AspectLayerId, InjectedMemberSemantic.Override, this.OverriddenDeclaration );
+        yield return new InjectedMember( this, this._syntax, this.AspectLayerId, InjectedMemberSemantic.Override, this.OverriddenDeclaration );
     }
 }

@@ -19,11 +19,19 @@ using TypedConstant = Metalama.Framework.Code.TypedConstant;
 
 namespace Metalama.Framework.Engine.CodeModel;
 
-internal sealed class DeserializedAttribute( AttributeSerializationData serializationData, CompilationModel compilation ) : IAttributeImpl
+internal sealed class DeserializedAttribute : IAttributeImpl
 {
+    private readonly AttributeSerializationData _serializationData;
+
+    public DeserializedAttribute( AttributeSerializationData serializationData, CompilationModel compilation )
+    {
+        this._serializationData = serializationData;
+        this._compilation = compilation;
+    }
+
     string IDisplayable.ToDisplayString( CodeDisplayFormat? format, CodeDisplayContext? context ) => throw new NotImplementedException();
 
-    private readonly CompilationModel _compilation = compilation;
+    private readonly CompilationModel _compilation;
 
     public ICompilationElement Translate(
         CompilationModel newCompilation,
@@ -46,10 +54,10 @@ internal sealed class DeserializedAttribute( AttributeSerializationData serializ
     bool IEquatable<IDeclaration>.Equals( IDeclaration? other ) => throw new NotImplementedException();
 
     [Memo]
-    public IDeclaration ContainingDeclaration => serializationData.ContainingDeclaration.GetTarget( this._compilation );
+    public IDeclaration ContainingDeclaration => this._serializationData.ContainingDeclaration.GetTarget( this._compilation );
 
     [Memo]
-    private AttributeRef AttributeRef => new DeserializedAttributeRef( serializationData );
+    private AttributeRef AttributeRef => new DeserializedAttributeRef( this._serializationData );
 
     IRef<IDeclaration> IDeclaration.ToRef() => this.AttributeRef;
 
@@ -76,19 +84,19 @@ internal sealed class DeserializedAttribute( AttributeSerializationData serializ
     public IGenericContext GenericContext => this.ContainingDeclaration.GenericContext;
 
     [Memo]
-    public INamedType Type => serializationData.Type.GetTarget( this._compilation );
+    public INamedType Type => this._serializationData.Type.GetTarget( this._compilation );
 
     [Memo]
-    public IConstructor Constructor => serializationData.Constructor.GetTarget( this._compilation );
+    public IConstructor Constructor => this._serializationData.Constructor.GetTarget( this._compilation );
 
     [Memo]
     public ImmutableArray<TypedConstant> ConstructorArguments
-        => serializationData.ConstructorArguments.SelectAsImmutableArray( x => x.ToTypedConstant( this._compilation ) );
+        => this._serializationData.ConstructorArguments.SelectAsImmutableArray( x => x.ToTypedConstant( this._compilation ) );
 
     [Memo]
     public INamedArgumentList NamedArguments
         => new NamedArgumentList(
-            serializationData.NamedArguments.SelectAsMutableList(
+            this._serializationData.NamedArguments.SelectAsMutableList(
                 x => new KeyValuePair<string, TypedConstant>( x.Key, x.Value.ToTypedConstant( this._compilation ) ) ) );
 
     int IAspectPredecessor.PredecessorDegree => 0;
@@ -98,7 +106,7 @@ internal sealed class DeserializedAttribute( AttributeSerializationData serializ
     ImmutableArray<AspectPredecessor> IAspectPredecessor.Predecessors => ImmutableArray<AspectPredecessor>.Empty;
 
     FormattableString IAspectPredecessorImpl.FormatPredecessor( ICompilation compilation )
-        => $"Attribute of type '{serializationData.Type}' on '{serializationData.ContainingDeclaration}'";
+        => $"Attribute of type '{this._serializationData.Type}' on '{this._serializationData.ContainingDeclaration}'";
 
     Location? IAspectPredecessorImpl.GetDiagnosticLocation( Compilation compilation ) => null;
 

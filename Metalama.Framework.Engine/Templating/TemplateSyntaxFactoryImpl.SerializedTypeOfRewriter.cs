@@ -9,8 +9,15 @@ namespace Metalama.Framework.Engine.Templating;
 
 internal sealed partial class TemplateSyntaxFactoryImpl
 {
-    private sealed class SerializedTypeOfRewriter( Dictionary<string, TypeSyntax> substitutions ) : SafeSyntaxRewriter
+    private sealed class SerializedTypeOfRewriter : SafeSyntaxRewriter
     {
+        private readonly Dictionary<string, TypeSyntax> _substitutions;
+
+        public SerializedTypeOfRewriter( Dictionary<string, TypeSyntax> substitutions )
+        {
+            this._substitutions = substitutions;
+        }
+
         public override SyntaxNode VisitIdentifierName( IdentifierNameSyntax node )
         {
             if ( node.Parent is QualifiedNameSyntax or AliasQualifiedNameSyntax )
@@ -19,7 +26,7 @@ internal sealed partial class TemplateSyntaxFactoryImpl
                 return node;
             }
 
-            if ( substitutions.TryGetValue( node.Identifier.Text, out var substitution ) )
+            if ( this._substitutions.TryGetValue( node.Identifier.Text, out var substitution ) )
             {
                 return substitution;
             }

@@ -6,13 +6,18 @@ using System;
 namespace Metalama.Testing.AspectTesting;
 
 /// <summary>
-/// An attribute that must be used in the <see cref="TestScenario.LiveTemplate"/> and <see cref="TestScenario.LiveTemplatePreview"/>
+/// A custom that must be used in the <see cref="TestScenario.LiveTemplate"/> and <see cref="TestScenario.LiveTemplatePreview"/>
 /// to mark the declaration to which the aspect must be applied. The presence of this attribute simulates the use of the refactoring
 /// context menu.
 /// </summary>
 [AttributeUsage( AttributeTargets.All )]
 [PublicAPI]
-public class TestLiveTemplateAttribute( Type aspectType ) : Attribute
+public class TestLiveTemplateAttribute : Attribute
 {
-    public Type AspectType { get; } = aspectType;
+    public TestLiveTemplateAttribute( Type aspectType )
+    {
+        this.AspectType = aspectType;
+    }
+
+    public Type AspectType { get; }
 }

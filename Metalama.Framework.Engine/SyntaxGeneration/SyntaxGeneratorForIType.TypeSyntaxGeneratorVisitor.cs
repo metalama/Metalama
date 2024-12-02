@@ -17,9 +17,10 @@ namespace Metalama.Framework.Engine.SyntaxGeneration;
 internal sealed partial class SyntaxGeneratorForIType
 {
     // Based on Roslyn TypeSyntaxGeneratorVisitor.
-    private sealed class TypeSyntaxGeneratorVisitor( SyntaxGeneratorForIType syntaxGeneratorForIType )
-        : AbstractGeneratorVisitor<TypeSyntax>( syntaxGeneratorForIType )
+    private sealed class TypeSyntaxGeneratorVisitor : AbstractGeneratorVisitor<TypeSyntax>
     {
+        public TypeSyntaxGeneratorVisitor( SyntaxGeneratorForIType syntaxGeneratorForIType ) : base( syntaxGeneratorForIType ) { }
+
         protected override TypeSyntax VisitArrayType( IArrayType type )
         {
             IType underlyingType = type;

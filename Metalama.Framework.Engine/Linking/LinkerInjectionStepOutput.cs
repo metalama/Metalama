@@ -9,52 +9,64 @@ using System.Collections.Generic;
 
 namespace Metalama.Framework.Engine.Linking
 {
-    internal sealed class LinkerInjectionStepOutput(
-        UserDiagnosticSink diagnosticSink,
-        CompilationModel sourceCompilationModel,
-        CompilationModel inputCompilationModel,
-        PartialCompilation intermediateCompilation,
-        LinkerInjectionRegistry injectionRegistry,
-        LinkerLateTransformationRegistry lateTransformationRegistry,
-        IReadOnlyList<OrderedAspectLayer> orderedAspectLayers,
-        IProjectOptions? projectOptions )
+    internal sealed class LinkerInjectionStepOutput
     {
+        public LinkerInjectionStepOutput(
+            UserDiagnosticSink diagnosticSink,
+            CompilationModel sourceCompilationModel,
+            CompilationModel inputCompilationModel,
+            PartialCompilation intermediateCompilation,
+            LinkerInjectionRegistry injectionRegistry,
+            LinkerLateTransformationRegistry lateTransformationRegistry,
+            IReadOnlyList<OrderedAspectLayer> orderedAspectLayers,
+            IProjectOptions? projectOptions )
+        {
+            this.DiagnosticSink = diagnosticSink;
+            this.SourceCompilationModel = sourceCompilationModel;
+            this.InputCompilationModel = inputCompilationModel;
+            this.IntermediateCompilation = intermediateCompilation;
+            this.InjectionRegistry = injectionRegistry;
+            this.LateTransformationRegistry = lateTransformationRegistry;
+            this.OrderedAspectLayers = orderedAspectLayers;
+            this.ProjectOptions = projectOptions;
+        }
+
         /// <summary>
         /// Gets the diagnostic sink.
         /// </summary>
-        public UserDiagnosticSink DiagnosticSink { get; } = diagnosticSink;
+        public UserDiagnosticSink DiagnosticSink { get; }
 
-        public CompilationModel SourceCompilationModel { get; } = sourceCompilationModel;
+        public CompilationModel SourceCompilationModel { get; }
 
         /// <summary>
         /// Gets the final compilation model.
         /// </summary>
         [PublicAPI]
-        public CompilationModel InputCompilationModel { get; } = inputCompilationModel;
+        public CompilationModel InputCompilationModel { get; }
 
         /// <summary>
         /// Gets the intermediate compilation.
         /// </summary>
-        public PartialCompilation IntermediateCompilation { get; } = intermediateCompilation;
+        public PartialCompilation IntermediateCompilation { get; }
 
         /// <summary>
         /// Gets the introduction registry.
         /// </summary>
-        public LinkerInjectionRegistry InjectionRegistry { get; } = injectionRegistry;
+        public LinkerInjectionRegistry InjectionRegistry { get; }
 
         /// <summary>
         /// Gets the registry of late transformations that are performed during linking.
         /// </summary>
-        public LinkerLateTransformationRegistry LateTransformationRegistry { get; } = lateTransformationRegistry;
+        public LinkerLateTransformationRegistry LateTransformationRegistry { get; }
 
         /// <summary>
         /// Gets a list of ordered aspect layers.
         /// </summary>
-        public IReadOnlyList<OrderedAspectLayer> OrderedAspectLayers { get; } = orderedAspectLayers;
+        public IReadOnlyList<OrderedAspectLayer> OrderedAspectLayers { get; }
 
         /// <summary>
         /// Gets project options.
         /// </summary>
-        public IProjectOptions? ProjectOptions { get; } = projectOptions;
+        public IProjectOptions? ProjectOptions { get; }
     }
 }

@@ -12,15 +12,20 @@ using TypeKind = Metalama.Framework.Code.TypeKind;
 
 namespace Metalama.Framework.Engine.CodeModel.Introductions.ConstructedTypes;
 
-internal abstract class ConstructedType( CompilationModel compilation ) : ITypeImpl
+internal abstract class ConstructedType : ITypeImpl
 {
+    protected ConstructedType( CompilationModel compilation )
+    {
+        this.Compilation = compilation;
+    }
+
     ICompilation ICompilationElement.Compilation => this.Compilation;
 
     public abstract ICompilationElement Translate( CompilationModel newCompilation, IGenericContext? genericContext = null, Type? interfaceType = null );
 
     public abstract IType Accept( TypeRewriter visitor );
 
-    public CompilationModel Compilation { get; } = compilation;
+    public CompilationModel Compilation { get; }
 
     DeclarationKind ICompilationElement.DeclarationKind => DeclarationKind.Type;
 

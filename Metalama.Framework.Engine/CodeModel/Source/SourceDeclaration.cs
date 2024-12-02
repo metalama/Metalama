@@ -10,12 +10,16 @@ using Microsoft.CodeAnalysis;
 
 namespace Metalama.Framework.Engine.CodeModel.Source
 {
-    internal abstract class SourceDeclaration( CompilationModel compilation, GenericContext? genericContextForSymbolMapping )
-        : SymbolBasedDeclaration( genericContextForSymbolMapping )
+    internal abstract class SourceDeclaration : SymbolBasedDeclaration
     {
+        protected SourceDeclaration( CompilationModel compilation, GenericContext? genericContextForSymbolMapping ) : base( genericContextForSymbolMapping )
+        {
+            this.Compilation = compilation;
+        }
+
         protected virtual void OnUsingDeclaration() { }
 
-        public override CompilationModel Compilation { get; } = compilation;
+        public override CompilationModel Compilation { get; }
 
         public override IAttributeCollection Attributes
         {

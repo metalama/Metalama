@@ -8,9 +8,10 @@ using System;
 
 namespace Metalama.Framework.Engine.CodeModel.Collections;
 
-internal sealed class AllImplementedInterfacesCollection( INamedTypeImpl declaringType, AllInterfaceUpdatableCollection source )
-    : DeclarationCollection<INamedType>( declaringType, source ), IImplementedInterfaceCollection
+internal sealed class AllImplementedInterfacesCollection : DeclarationCollection<INamedType>, IImplementedInterfaceCollection
 {
+    public AllImplementedInterfacesCollection( INamedTypeImpl declaringType, AllInterfaceUpdatableCollection source ) : base( declaringType, source ) { }
+
     public bool Contains( INamedType namedType ) => ((AllInterfaceUpdatableCollection) this.Source).Contains( namedType.ToRef() );
 
     public bool Contains( Type type )

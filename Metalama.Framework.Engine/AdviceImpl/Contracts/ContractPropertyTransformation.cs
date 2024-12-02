@@ -13,26 +13,32 @@ using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace Metalama.Framework.Engine.AdviceImpl.Contracts;
 
-internal sealed class ContractPropertyTransformation(
-    AspectLayerInstance aspectLayerInstance,
-    IFullRef<IProperty> targetProperty,
-    ContractDirection contractDirection,
-    TemplateMember<IMethod> template,
-    IObjectReader templateArguments )
-    : ContractBaseTransformation(
+internal sealed class ContractPropertyTransformation : ContractBaseTransformation
+{
+    private readonly IFullRef<IProperty> _targetProperty;
+
+    public ContractPropertyTransformation(
+        AspectLayerInstance aspectLayerInstance,
+        IFullRef<IProperty> targetProperty,
+        ContractDirection contractDirection,
+        TemplateMember<IMethod> template,
+        IObjectReader templateArguments ) : base(
         aspectLayerInstance,
         targetProperty,
         contractDirection,
         template,
         templateArguments )
-{
-    public override IFullRef<IMember> TargetMember => targetProperty;
+    {
+        this._targetProperty = targetProperty;
+    }
+
+    public override IFullRef<IMember> TargetMember => this._targetProperty;
 
     public override IReadOnlyList<InsertedStatement> GetInsertedStatements( InsertStatementTransformationContext context )
     {
         Invariant.Assert( this.ContractTarget.Equals( this.TargetMember ) );
 
-        var targetMember = targetProperty.GetTarget( context.FinalCompilation );
+        var targetMember = this._targetProperty.GetTarget( context.FinalCompilation );
 
         Invariant.Assert( this.ContractDirection is ContractDirection.Output or ContractDirection.Input or ContractDirection.Both );
 

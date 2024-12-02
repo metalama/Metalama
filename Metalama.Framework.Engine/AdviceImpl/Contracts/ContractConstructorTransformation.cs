@@ -13,20 +13,26 @@ using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace Metalama.Framework.Engine.AdviceImpl.Contracts;
 
-internal sealed class ContractConstructorTransformation(
-    AspectLayerInstance aspectLayerInstance,
-    IFullRef<IConstructor> targetConstructor,
-    IFullRef<IParameter> contractTarget,
-    ContractDirection contractDirection,
-    TemplateMember<IMethod> template,
-    IObjectReader templateArguments )
-    : ContractBaseTransformation(
+internal sealed class ContractConstructorTransformation : ContractBaseTransformation
+{
+    private readonly IFullRef<IConstructor> _targetConstructor;
+
+    public ContractConstructorTransformation(
+        AspectLayerInstance aspectLayerInstance,
+        IFullRef<IConstructor> targetConstructor,
+        IFullRef<IParameter> contractTarget,
+        ContractDirection contractDirection,
+        TemplateMember<IMethod> template,
+        IObjectReader templateArguments ) : base(
         aspectLayerInstance,
         contractTarget,
         contractDirection,
         template,
         templateArguments )
-{
+    {
+        this._targetConstructor = targetConstructor;
+    }
+
     public override IReadOnlyList<InsertedStatement> GetInsertedStatements( InsertStatementTransformationContext context )
     {
         switch ( this.ContractTarget.GetTarget( context.FinalCompilation ) )
@@ -86,7 +92,7 @@ internal sealed class ContractConstructorTransformation(
         }
     }
 
-    public override IFullRef<IMember> TargetMember => targetConstructor;
+    public override IFullRef<IMember> TargetMember => this._targetConstructor;
 
     public override FormattableString ToDisplayString() => $"Add default contract to constructor '{this.TargetMember}'";
 }

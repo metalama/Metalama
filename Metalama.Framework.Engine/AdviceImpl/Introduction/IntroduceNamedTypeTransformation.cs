@@ -15,9 +15,12 @@ using SpecialType = Metalama.Framework.Code.SpecialType;
 
 namespace Metalama.Framework.Engine.AdviceImpl.Introduction;
 
-internal sealed class IntroduceNamedTypeTransformation( AspectLayerInstance aspectLayerInstance, NamedTypeBuilderData introducedDeclaration )
-    : IntroduceDeclarationTransformation<NamedTypeBuilderData>( aspectLayerInstance, introducedDeclaration )
+internal sealed class IntroduceNamedTypeTransformation : IntroduceDeclarationTransformation<NamedTypeBuilderData>
 {
+    public IntroduceNamedTypeTransformation( AspectLayerInstance aspectLayerInstance, NamedTypeBuilderData introducedDeclaration ) : base(
+        aspectLayerInstance,
+        introducedDeclaration ) { }
+
     public override TransformationObservability Observability => TransformationObservability.Always;
 
     public override IEnumerable<InjectedMember> GetInjectedMembers( MemberInjectionContext context )

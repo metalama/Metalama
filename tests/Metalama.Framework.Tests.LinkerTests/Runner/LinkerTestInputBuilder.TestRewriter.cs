@@ -66,10 +66,10 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
         /// Catalogues all transformations defined by [Pseudo] attributes and removes them from syntax trees. 
         /// Also marks non-pseudo nodes with IDs, which are later used to create insert positions.
         /// </summary>
-        private sealed class TestRewriter( LinkerTestInputBuilder builder, CompilationContext inputCompilation ) : SafeSyntaxRewriter
+        private sealed class TestRewriter : SafeSyntaxRewriter
         {
-            private readonly List<AspectLayerId> _aspectLayers = new();
-            private readonly Dictionary<AspectLayerId, int> _aspectLayerOrder = new();
+            private readonly List<AspectLayerId> _aspectLayers;
+            private readonly Dictionary<AspectLayerId, int> _aspectLayerOrder;
 
             public IReadOnlyList<AspectLayerId> OrderedAspectLayers
                 => this._aspectLayers.ToOrderedList(
@@ -83,9 +83,18 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
                         return int.MaxValue;
                     } );
 
-            public CompilationContext InputCompilation { get; } = inputCompilation;
+            public CompilationContext InputCompilation { get; }
 
-            public LinkerTestInputBuilder Builder { get; } = builder;
+            public LinkerTestInputBuilder Builder { get; }
+            
+            public TestRewriter( LinkerTestInputBuilder builder, CompilationContext inputCompilation )
+            {
+                this.Builder = builder;
+                this.InputCompilation = inputCompilation;
+
+                this._aspectLayers = new List<AspectLayerId>();
+                this._aspectLayerOrder = new Dictionary<AspectLayerId, int>();
+            }
 
             public override SyntaxNode? VisitUsingDirective( UsingDirectiveSyntax node )
             {

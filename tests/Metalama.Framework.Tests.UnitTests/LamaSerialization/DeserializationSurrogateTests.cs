@@ -50,9 +50,14 @@ public sealed class DeserializationSurrogateTests : SerializationTestsBase
         string Id { get; }
     }
 
-    private readonly struct SerializationStruct( string id ) : IInterface
+    private struct SerializationStruct : IInterface
     {
-        public string Id { get; } = id;
+        public string Id { get; }
+
+        public SerializationStruct( string id )
+        {
+            this.Id = id;
+        }
 
         [UsedImplicitly]
         public class Serializer : ValueTypeSerializer<SerializationStruct>

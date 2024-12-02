@@ -725,8 +725,15 @@ internal sealed partial class TemplateExpansionContext : UserCodeExecutionContex
         }
     }
 
-    private sealed class DisposeCookie( Action action ) : IDisposable
+    private sealed class DisposeCookie : IDisposable
     {
-        public void Dispose() => action();
+        private readonly Action _action;
+
+        public DisposeCookie( Action action )
+        {
+            this._action = action;
+        }
+
+        public void Dispose() => this._action();
     }
 }

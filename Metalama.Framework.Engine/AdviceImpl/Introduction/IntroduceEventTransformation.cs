@@ -19,14 +19,20 @@ using TypeKind = Metalama.Framework.Code.TypeKind;
 
 namespace Metalama.Framework.Engine.AdviceImpl.Introduction;
 
-internal sealed class IntroduceEventTransformation(
-    AspectLayerInstance aspectLayerInstance,
-    EventBuilderData introducedDeclaration,
-    TemplateMember<IEvent>? template )
-    : IntroduceMemberTransformation<EventBuilderData>(
+internal sealed class IntroduceEventTransformation : IntroduceMemberTransformation<EventBuilderData>
+{
+    private readonly TemplateMember<IEvent>? _template;
+
+    public IntroduceEventTransformation(
+        AspectLayerInstance aspectLayerInstance,
+        EventBuilderData introducedDeclaration,
+        TemplateMember<IEvent>? template ) : base(
         aspectLayerInstance,
         introducedDeclaration )
-{
+    {
+        this._template = template;
+    }
+
     public override IEnumerable<InjectedMember> GetInjectedMembers( MemberInjectionContext context )
     {
         var syntaxGenerator = context.SyntaxGenerationContext.SyntaxGenerator;
@@ -38,7 +44,7 @@ internal sealed class IntroduceEventTransformation(
             context,
             finalEvent.Type,
             this.BuilderData.InitializerExpression,
-            template?.GetInitializerTemplate(),
+            this._template?.GetInitializerTemplate(),
             out var initializerExpression,
             out var initializerMethod );
 
@@ -55,7 +61,7 @@ internal sealed class IntroduceEventTransformation(
             initializerExpression = SyntaxFactoryEx.Default;
         }
 
-        var hasNoBody = isEventField || finalEvent.IsAbstract || template?.TemplateClassMember.TemplateInfo.HasNoBody == true;
+        var hasNoBody = isEventField || finalEvent.IsAbstract || this._template?.TemplateClassMember.TemplateInfo.HasNoBody == true;
 
         // TODO: If the user adds (different) attributes to event field's accessors, we cannot use event fields.
 

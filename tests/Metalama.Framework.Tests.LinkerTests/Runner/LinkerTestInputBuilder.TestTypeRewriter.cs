@@ -29,12 +29,20 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
 {
     internal partial class LinkerTestInputBuilder
     {
-        private sealed class TestTypeRewriter( TestRewriter owner ) : SafeSyntaxRewriter
+        private sealed class TestTypeRewriter : SafeSyntaxRewriter
         {
-            private readonly Stack<(TypeDeclarationSyntax Type, List<MemberDeclarationSyntax> Members)> _currentTypeStack = new();
+            private readonly TestRewriter _owner;
+            private readonly Stack<(TypeDeclarationSyntax Type, List<MemberDeclarationSyntax> Members)> _currentTypeStack;
             private InsertPositionRecord? _currentInsertPosition;
-            private readonly Dictionary<IFullRef<IField>, IFullRef<IProperty>> _promotions = new( RefEqualityComparer.Default );
+            private readonly Dictionary<IFullRef<IField>, IFullRef<IProperty>> _promotions;
 
+            public TestTypeRewriter( TestRewriter owner )
+            {
+                this._owner = owner;
+                this._currentTypeStack = new Stack<(TypeDeclarationSyntax, List<MemberDeclarationSyntax>)>();
+                this._promotions = new Dictionary<IFullRef<IField>, IFullRef<IProperty>>( RefEqualityComparer.Default );
+            }
+            
             public override SyntaxNode? VisitClassDeclaration( ClassDeclarationSyntax node )
             {
                 var rewrittenNode = this.RewriteTypeDeclaration( node, n => base.VisitClassDeclaration( n ), ( n, m ) => n.WithMembers( List( m ) ) );
@@ -145,7 +153,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
             {
                 if ( HasPseudoAttribute( node ) )
                 {
-                    var semanticModel = owner.InputCompilation.SemanticModelProvider.GetSemanticModel( node.SyntaxTree );
+                    var semanticModel = this._owner.InputCompilation.SemanticModelProvider.GetSemanticModel( node.SyntaxTree );
 
                     var newMembers = this.ProcessPseudoAttributeNode( semanticModel, node );
                     var newMemberList = new List<MemberDeclarationSyntax>();
@@ -173,7 +181,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
                 node = AssignNodeId( node, nodeId );
                 this._currentInsertPosition = new InsertPositionRecord( InsertPositionRelation.After, nodeId );
 
-                return new[] { node };
+                return [node];
             }
 
             private static bool HasPseudoAttribute( MemberDeclarationSyntax node )
@@ -364,7 +372,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
                 }
 
                 var insertPositionRecord = this._currentInsertPosition.AssertNotNull();
-                var aspectLayer = owner.GetOrAddAspectLayer( aspectName.AssertNotNull(), layerName );
+                var aspectLayer = this._owner.GetOrAddAspectLayer( aspectName.AssertNotNull(), layerName );
 
                 TestTransformationBase CreateTransformation( CompilationModel compilationModel )
                 {
@@ -409,7 +417,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
                                 var nameofArgument = argument.ArgumentList.Arguments[0];
                                 var nameofArgumentInfo = semanticModel.GetSymbolInfo( nameofArgument.Expression );
                                 var replacedFieldSymbol = nameofArgumentInfo.Symbol.AssertNotNull();
-                                replacedField = (IField) owner.Builder.TranslateOriginalSymbol( replacedFieldSymbol ).GetTarget( compilationModel );
+                                replacedField = (IField) this._owner.Builder.TranslateOriginalSymbol( replacedFieldSymbol ).GetTarget( compilationModel );
                             }
 
                             var propertyBuilder =
@@ -490,9 +498,9 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
                         this._promotions[replacedField.ToFullRef()] = builderData.ToFullRef().As<IProperty>();
                     }
 
-                    owner.Builder.RegisterBuilderDataForSymbol( symbol, builderData );
+                    this._owner.Builder.RegisterBuilderDataForSymbol( symbol, builderData );
 
-                    var insertPosition = owner.Builder.TranslateInsertPosition( insertPositionRecord );
+                    var insertPosition = this._owner.Builder.TranslateInsertPosition( insertPositionRecord );
 
                     if ( replacementAttribute != null )
                     {
@@ -515,7 +523,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
                     }
                 }
 
-                owner.Builder.AddTransformationFactory( CreateTransformation );
+                this._owner.Builder.AddTransformationFactory( CreateTransformation );
             }
 
             private static MemberDeclarationSyntax GetFinalIntroductionSyntax( MemberDeclarationSyntax introductionSyntax, string? memberNameOverride )
@@ -683,11 +691,11 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
                 }
 
                 var insertPositionRecord = this._currentInsertPosition.AssertNotNull();
-                var aspectLayer = owner.GetOrAddAspectLayer( aspectName.AssertNotNull(), layerName );
+                var aspectLayer = this._owner.GetOrAddAspectLayer( aspectName.AssertNotNull(), layerName );
 
                 TestTransformationBase CreateTransformation( CompilationModel compilationModel )
                 {
-                    var overriddenDeclaration = owner.Builder.TranslateOriginalSymbol( overriddenDeclarationSymbol ).GetTarget( compilationModel );
+                    var overriddenDeclaration = this._owner.Builder.TranslateOriginalSymbol( overriddenDeclarationSymbol ).GetTarget( compilationModel );
 
                     if ( overriddenDeclaration is IField overriddenField && this._promotions.TryGetValue( overriddenField.ToFullRef(), out var promotedField ) )
                     {
@@ -695,7 +703,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
                     }
 
                     var aspectLayerInstance = CreateTestAspectLayerInstance( overriddenDeclaration, aspectLayer );
-                    var insertPosition = owner.Builder.TranslateInsertPosition( insertPositionRecord );
+                    var insertPosition = this._owner.Builder.TranslateInsertPosition( insertPositionRecord );
 
                     return new TestOverrideDeclarationTransformation(
                         aspectLayerInstance,
@@ -704,7 +712,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
                         overrideSyntax );
                 }
 
-                owner.Builder.AddTransformationFactory( CreateTransformation );
+                this._owner.Builder.AddTransformationFactory( CreateTransformation );
             }
 
             private static AspectLayerInstance CreateTestAspectLayerInstance( IDeclaration targetDeclaration, AspectLayerId aspectLayer )
@@ -714,7 +722,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
                         new TestAspect(), 
                         targetDeclaration, 
                         new TestAspectClass( aspectLayer.AspectName ), 
-                        Enumerable.Empty<TemplateClassInstance>(), 
+                        [], 
                         ImmutableArray<AspectPredecessor>.Empty );
 
                 var aspectLayerInstance = new AspectLayerInstance( fakeAspectInstance, aspectLayer.LayerName, null! /* TODO */ );

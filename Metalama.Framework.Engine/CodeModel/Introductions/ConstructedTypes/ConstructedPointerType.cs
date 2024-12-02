@@ -9,10 +9,14 @@ using System;
 
 namespace Metalama.Framework.Engine.CodeModel.Introductions.ConstructedTypes;
 
-internal sealed class ConstructedPointerType( CompilationModel compilation, IFullRef<IType> pointedAtType )
-    : ConstructedType( compilation ), IPointerType
+internal class ConstructedPointerType : ConstructedType, IPointerType
 {
-    private readonly IFullRef<IType> _pointedAtType = pointedAtType;
+    private readonly IFullRef<IType> _pointedAtType;
+
+    public ConstructedPointerType( CompilationModel compilation, IFullRef<IType> pointedAtType ) : base( compilation )
+    {
+        this._pointedAtType = pointedAtType;
+    }
 
     public override ICompilationElement Translate( CompilationModel newCompilation, IGenericContext? genericContext = null, Type? interfaceType = null )
     {
@@ -56,9 +60,7 @@ internal sealed class ConstructedPointerType( CompilationModel compilation, IFul
     }
 
     public override int GetHashCode( TypeComparison typeComparison )
-    {
-        return HashCode.Combine( this._pointedAtType.GetHashCode( typeComparison.ToRefComparison() ), 541 );
-    }
+        => HashCode.Combine( this._pointedAtType.GetHashCode( typeComparison.ToRefComparison() ), 541 );
 
     protected override IType ToNullableCore() => throw new NotSupportedException();
 

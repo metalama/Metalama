@@ -13,16 +13,22 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Metalama.Framework.Engine.CodeModel.Helpers;
 
-internal sealed class CompilationHelpers( in ProjectServiceProvider serviceProvider, CompilationContext compilationContext )
-    : ICompilationHelpers
+internal sealed class CompilationHelpers : ICompilationHelpers
 {
-    private readonly ProjectServiceProvider _serviceProvider = serviceProvider;
+    private readonly ProjectServiceProvider _serviceProvider;
+    private readonly CompilationContext _compilationContext;
     private AttributeDeserializer? _attributeDeserializer;
+
+    public CompilationHelpers( in ProjectServiceProvider serviceProvider, CompilationContext compilationContext )
+    {
+        this._serviceProvider = serviceProvider;
+        this._compilationContext = compilationContext;
+    }
 
     // The service is not always available in tests, so we get it lazily.
     private AttributeDeserializer GetAttributeDeserializer()
         => this._attributeDeserializer ??=
-            this._serviceProvider.GetRequiredService<UserCodeAttributeDeserializer.Provider>().Get( compilationContext );
+            this._serviceProvider.GetRequiredService<UserCodeAttributeDeserializer.Provider>().Get( this._compilationContext );
 
     public IteratorInfo GetIteratorInfo( IMethod method ) => method.GetIteratorInfoImpl();
 

@@ -10,10 +10,16 @@ using System;
 
 namespace Metalama.Framework.Engine.CodeModel.References;
 
-internal sealed partial class SyntaxRef<T>( SyntaxNode syntaxNode, RefTargetKind targetKind, RefFactory refFactory ) : FullRef<T>( refFactory )
+internal sealed partial class SyntaxRef<T> : FullRef<T>
     where T : class, ICompilationElement
 {
-    private readonly SyntaxNode _syntaxNode = syntaxNode.AssertNotNull();
+    private readonly SyntaxNode _syntaxNode;
+
+    public SyntaxRef( SyntaxNode syntaxNode, RefTargetKind targetKind, RefFactory refFactory ) : base( refFactory )
+    {
+        this._syntaxNode = syntaxNode.AssertNotNull();
+        this.TargetKind = targetKind;
+    }
 
     public override FullRef<T> WithGenericContext( GenericContext genericContext ) => throw new NotImplementedException();
 
@@ -21,7 +27,7 @@ internal sealed partial class SyntaxRef<T>( SyntaxNode syntaxNode, RefTargetKind
 
     public override IFullRef<T> DefinitionRef => this;
 
-    public override RefTargetKind TargetKind { get; } = targetKind;
+    public override RefTargetKind TargetKind { get; }
 
     public override IFullRef ContainingDeclaration => throw new NotImplementedException();
 

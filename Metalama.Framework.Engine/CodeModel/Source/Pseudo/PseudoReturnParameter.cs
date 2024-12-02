@@ -22,9 +22,16 @@ using TypedConstant = Metalama.Framework.Code.TypedConstant;
 
 namespace Metalama.Framework.Engine.CodeModel.Source.Pseudo;
 
-internal sealed class PseudoReturnParameter( SourceMethod declaringMethod, IMethodSymbol methodSymbol ) : BaseDeclaration, IParameterImpl
+internal sealed class PseudoReturnParameter : BaseDeclaration, IParameterImpl
 {
-    private readonly IMethodSymbol _methodSymbol = methodSymbol;
+    private readonly SourceMethod _declaringMethod;
+    private readonly IMethodSymbol _methodSymbol;
+
+    public PseudoReturnParameter( SourceMethod declaringMethod, IMethodSymbol methodSymbol )
+    {
+        this._methodSymbol = methodSymbol;
+        this._declaringMethod = declaringMethod;
+    }
 
     public RefKind RefKind => this._methodSymbol.RefKind.ToOurRefKind();
 
@@ -38,34 +45,34 @@ internal sealed class PseudoReturnParameter( SourceMethod declaringMethod, IMeth
 
     public bool IsThis => false;
 
-    public IHasParameters DeclaringMember => declaringMethod;
+    public IHasParameters DeclaringMember => this._declaringMethod;
 
     public ParameterInfo ToParameterInfo() => CompileTimeReturnParameterInfo.Create( this );
 
     public bool IsReturnParameter => true;
 
-    public override IAssembly DeclaringAssembly => declaringMethod.DeclaringAssembly;
+    public override IAssembly DeclaringAssembly => this._declaringMethod.DeclaringAssembly;
 
-    IDeclarationOrigin IDeclaration.Origin => declaringMethod.Origin;
+    IDeclarationOrigin IDeclaration.Origin => this._declaringMethod.Origin;
 
-    public override IDeclaration ContainingDeclaration => declaringMethod;
+    public override IDeclaration ContainingDeclaration => this._declaringMethod;
 
     public override DeclarationKind DeclarationKind => DeclarationKind.Parameter;
 
     public override CompilationModel Compilation => this.ContainingDeclaration.AssertNotNull().GetCompilationModel();
 
-    public override Location? DiagnosticLocation => declaringMethod.GetDiagnosticLocation();
+    public override Location? DiagnosticLocation => this._declaringMethod.GetDiagnosticLocation();
 
-    public override ImmutableArray<SyntaxReference> DeclaringSyntaxReferences => declaringMethod.DeclaringSyntaxReferences;
+    public override ImmutableArray<SyntaxReference> DeclaringSyntaxReferences => this._declaringMethod.DeclaringSyntaxReferences;
 
-    public override bool CanBeInherited => declaringMethod.CanBeInherited;
+    public override bool CanBeInherited => this._declaringMethod.CanBeInherited;
 
     public override string ToDisplayString( CodeDisplayFormat? format = null, CodeDisplayContext? context = null )
-        => declaringMethod.ToDisplayString( format, context ) + "/" + this.Name;
+        => this._declaringMethod.ToDisplayString( format, context ) + "/" + this.Name;
 
-    public override IDeclarationOrigin Origin => declaringMethod.Origin;
+    public override IDeclarationOrigin Origin => this._declaringMethod.Origin;
 
-    protected override int GetHashCodeCore() => declaringMethod.GetHashCode() + 7;
+    protected override int GetHashCodeCore() => this._declaringMethod.GetHashCode() + 7;
 
     bool IExpression.IsAssignable => throw new NotSupportedException( "Cannot use the return parameter as an expression." );
 
@@ -79,8 +86,8 @@ internal sealed class PseudoReturnParameter( SourceMethod declaringMethod, IMeth
     [Memo]
     private IFullRef<IParameter> Ref
         => this.RefFactory.FromSymbol<IParameter>(
-            declaringMethod.GetSymbol().AssertSymbolNotNull(),
-            declaringMethod.GenericContextForSymbolMapping,
+            this._declaringMethod.GetSymbol().AssertSymbolNotNull(),
+            this._declaringMethod.GenericContextForSymbolMapping,
             RefTargetKind.Return );
 
     private protected override IFullRef<IDeclaration> ToFullDeclarationRef() => this.Ref;
@@ -91,23 +98,23 @@ internal sealed class PseudoReturnParameter( SourceMethod declaringMethod, IMeth
 
     internal override DeclarationImplementationKind ImplementationKind => DeclarationImplementationKind.Pseudo;
 
-    public IType Type => declaringMethod.ReturnType;
+    public IType Type => this._declaringMethod.ReturnType;
 
     public override bool Equals( IDeclaration? other )
         => other is PseudoReturnParameter methodReturnParameter &&
            this._methodSymbol.Equals( methodReturnParameter._methodSymbol );
 
-    public override bool IsImplicitlyDeclared => declaringMethod.IsImplicitlyDeclared;
+    public override bool IsImplicitlyDeclared => this._declaringMethod.IsImplicitlyDeclared;
 
     public override ImmutableArray<SourceReference> Sources => ImmutableArray<SourceReference>.Empty;
 
     internal override ICompilationElement? Translate(
         CompilationModel newCompilation,
         IGenericContext? genericContext = null )
-        => ((IMethod?) declaringMethod.Translate( newCompilation, genericContext ))?.ReturnParameter;
+        => ((IMethod?) this._declaringMethod.Translate( newCompilation, genericContext ))?.ReturnParameter;
 
     public override IEnumerable<IDeclaration> GetDerivedDeclarations( DerivedTypesOptions options = default )
-        => declaringMethod.GetDerivedDeclarations( options ).Select( d => ((IMethod) d).ReturnParameter );
+        => this._declaringMethod.GetDerivedDeclarations( options ).Select( d => ((IMethod) d).ReturnParameter );
 
     [Memo]
     public override IAttributeCollection Attributes
@@ -117,5 +124,5 @@ internal sealed class PseudoReturnParameter( SourceMethod declaringMethod, IMeth
                 .Select( a => new SymbolAttributeRef( a, this.ToFullDeclarationRef(), this.Compilation.RefFactory ) )
                 .ToReadOnlyList() );
 
-    public override SyntaxTree? PrimarySyntaxTree => declaringMethod.PrimarySyntaxTree;
+    public override SyntaxTree? PrimarySyntaxTree => this._declaringMethod.PrimarySyntaxTree;
 }

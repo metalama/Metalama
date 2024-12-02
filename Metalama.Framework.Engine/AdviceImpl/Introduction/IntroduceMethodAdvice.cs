@@ -15,25 +15,24 @@ using System;
 
 namespace Metalama.Framework.Engine.AdviceImpl.Introduction;
 
-internal sealed class IntroduceMethodAdvice(
-    Advice.AdviceConstructorParameters<INamedType> parameters,
-    string? explicitName,
-    PartiallyBoundTemplateMethod template,
-    IntroductionScope scope,
-    OverrideStrategy overrideStrategy,
-    Action<IMethodBuilder>? buildAction,
-    INamedType? explicitlyImplementedInterfaceType )
-    : IntroduceMemberAdvice<IMethod, IMethod, MethodBuilder>(
-        parameters,
-        explicitName,
-        template.TemplateMember,
-        scope,
-        overrideStrategy,
-        buildAction,
-        explicitlyImplementedInterfaceType )
+internal sealed class IntroduceMethodAdvice : IntroduceMemberAdvice<IMethod, IMethod, MethodBuilder>
 {
-    protected override MethodBuilder CreateBuilder()
-        => new( this.AspectLayerInstance, this.TargetDeclaration, this.MemberName );
+    private readonly PartiallyBoundTemplateMethod _template;
+
+    public IntroduceMethodAdvice(
+        AdviceConstructorParameters<INamedType> parameters,
+        string? explicitName,
+        PartiallyBoundTemplateMethod template,
+        IntroductionScope scope,
+        OverrideStrategy overrideStrategy,
+        Action<IMethodBuilder>? buildAction,
+        INamedType? explicitlyImplementedInterfaceType )
+        : base( parameters, explicitName, template.TemplateMember, scope, overrideStrategy, buildAction, explicitlyImplementedInterfaceType )
+    {
+        this._template = template;
+    }
+
+    protected override MethodBuilder CreateBuilder() => new( this.AspectLayerInstance, this.TargetDeclaration, this.MemberName );
 
     protected override void InitializeBuilderCore(
         MethodBuilder builder,
@@ -48,7 +47,7 @@ internal sealed class IntroduceMethodAdvice(
 
         builder.IsAsync = templateDeclaration.IsAsync;
 
-        var typeRewriter = TemplateTypeRewriter.Get( template );
+        var typeRewriter = TemplateTypeRewriter.Get( this._template );
 
         // Handle iterator info.
         builder.SetIsIteratorMethod( this.Template.IsIteratorMethod );
@@ -154,7 +153,7 @@ internal sealed class IntroduceMethodAdvice(
             var overriddenMethod = new OverrideMethodTransformation(
                 this.AspectLayerInstance,
                 builder.ToFullRef(),
-                template.ForIntroduction( builder ) );
+                this._template.ForIntroduction( builder ) );
 
             if ( !hasNoBody )
             {
@@ -213,7 +212,7 @@ internal sealed class IntroduceMethodAdvice(
                         var overriddenMethod = new OverrideMethodTransformation(
                             this.AspectLayerInstance,
                             builder.ToFullRef(),
-                            template.AssertNotNull().ForIntroduction( builder ) );
+                            this._template.AssertNotNull().ForIntroduction( builder ) );
 
                         context.AddTransformation( builder.ToTransformation() );
 
@@ -243,7 +242,7 @@ internal sealed class IntroduceMethodAdvice(
                         var overriddenMethod = new OverrideMethodTransformation(
                             this.AspectLayerInstance,
                             existingMethod.ToFullRef(),
-                            template.AssertNotNull().ForIntroduction( existingMethod ) );
+                            this._template.AssertNotNull().ForIntroduction( existingMethod ) );
 
                         context.AddTransformation( overriddenMethod );
 
@@ -270,7 +269,7 @@ internal sealed class IntroduceMethodAdvice(
                         var overriddenMethod = new OverrideMethodTransformation(
                             this.AspectLayerInstance,
                             builder.ToFullRef(),
-                            template.AssertNotNull().ForIntroduction( builder ) );
+                            this._template.AssertNotNull().ForIntroduction( builder ) );
 
                         context.AddTransformation( builder.ToTransformation() );
                         context.AddTransformation( overriddenMethod );

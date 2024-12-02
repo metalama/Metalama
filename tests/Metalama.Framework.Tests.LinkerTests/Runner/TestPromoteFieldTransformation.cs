@@ -12,13 +12,18 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner;
 /// <summary>
 /// Represents a test transformation that takes syntax of a PseudoOverride-marked member and injects it.
 /// </summary>
-internal sealed class TestPromoteFieldTransformation(
-    AspectLayerInstance aspectLayerInstance,
-    InsertPosition insertPosition,
-    IFullRef<IField> promotedField,
-    PropertyBuilderData builderData,
-    MemberDeclarationSyntax syntax )
-    : TestIntroduceDeclarationTransformation( aspectLayerInstance, insertPosition, builderData, syntax ), IReplaceMemberTransformation
+internal class TestPromoteFieldTransformation : TestIntroduceDeclarationTransformation, IReplaceMemberTransformation
 {
-    public IFullRef<IMember>? ReplacedMember { get; } = promotedField;
+    public IFullRef<IMember>? ReplacedMember { get; set; }
+
+    public TestPromoteFieldTransformation(
+        AspectLayerInstance aspectLayerInstance, 
+        InsertPosition insertPosition, 
+        IFullRef<IField> promotedField, 
+        PropertyBuilderData builderData,
+        MemberDeclarationSyntax syntax )
+        : base( aspectLayerInstance, insertPosition, builderData, syntax )
+    {
+        this.ReplacedMember = promotedField;
+    }
 }

@@ -16,9 +16,14 @@ namespace Metalama.Framework.Engine.CodeModel.References;
 /// <summary>
 /// Specialization of <see cref="BaseRef{T}"/> for references bound to a <see cref="CompilationContext"/>.
 /// </summary>
-internal abstract partial class FullRef<T>( RefFactory refFactory ) : BaseRef<T>, IFullRef<T>
+internal abstract partial class FullRef<T> : BaseRef<T>, IFullRef<T>
     where T : class, ICompilationElement
 {
+    protected FullRef( RefFactory refFactory )
+    {
+        this.RefFactory = refFactory;
+    }
+
     public new IFullRef<TOut> As<TOut>()
         where TOut : class, ICompilationElement
         => this.CastAsFullRef<TOut>();
@@ -62,7 +67,7 @@ internal abstract partial class FullRef<T>( RefFactory refFactory ) : BaseRef<T>
 
     public abstract FullRef<T> WithGenericContext( GenericContext genericContext );
 
-    public RefFactory RefFactory { get; } = refFactory;
+    public RefFactory RefFactory { get; }
 
     public ResolvedAttributeRef GetAttributes()
     {

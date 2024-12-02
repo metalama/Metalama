@@ -24,6 +24,7 @@ namespace Metalama.Framework.Eligibility;
 [PublicAPI]
 public static partial class EligibilityExtensions
 {
+    // The order is significant: the most significant should come first.
     private static readonly List<(Type Type, string Name)> _interfaceNames =
     [
         (typeof(IMethod), "method"),

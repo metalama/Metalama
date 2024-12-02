@@ -13,20 +13,26 @@ using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace Metalama.Framework.Engine.AdviceImpl.Contracts;
 
-internal sealed class ContractIndexerTransformation(
-    AspectLayerInstance aspectLayerInstance,
-    IFullRef<IIndexer> targetIndexer,
-    IFullRef<IParameter>? indexerParameter,
-    ContractDirection contractDirection,
-    TemplateMember<IMethod> template,
-    IObjectReader templateArguments )
-    : ContractBaseTransformation(
+internal sealed class ContractIndexerTransformation : ContractBaseTransformation
+{
+    private readonly IFullRef<IIndexer> _targetIndexer;
+
+    public ContractIndexerTransformation(
+        AspectLayerInstance aspectLayerInstance,
+        IFullRef<IIndexer> targetIndexer,
+        IFullRef<IParameter>? indexerParameter,
+        ContractDirection contractDirection,
+        TemplateMember<IMethod> template,
+        IObjectReader templateArguments ) : base(
         aspectLayerInstance,
         (IFullRef<IDeclaration>?) indexerParameter ?? targetIndexer,
         contractDirection,
         template,
         templateArguments )
-{
+    {
+        this._targetIndexer = targetIndexer;
+    }
+
     public override IReadOnlyList<InsertedStatement> GetInsertedStatements( InsertStatementTransformationContext context )
     {
         switch ( this.ContractTarget.GetTarget( this.InitialCompilation ) )
@@ -35,7 +41,7 @@ internal sealed class ContractIndexerTransformation(
                 {
                     Invariant.Assert( this.ContractTarget.Equals( this.TargetMember ) );
 
-                    var targetMember = targetIndexer.GetTarget( context.FinalCompilation );
+                    var targetMember = this._targetIndexer.GetTarget( context.FinalCompilation );
 
                     Invariant.Assert( this.ContractDirection is ContractDirection.Output or ContractDirection.Input or ContractDirection.Both );
 
@@ -157,7 +163,7 @@ internal sealed class ContractIndexerTransformation(
         }
     }
 
-    public override IFullRef<IMember> TargetMember => targetIndexer;
+    public override IFullRef<IMember> TargetMember => this._targetIndexer;
 
     public override FormattableString ToDisplayString()
         => $"Add default contract to indexer '{this.TargetDeclaration.Definition.ToDisplayString( CodeDisplayFormat.MinimallyQualified )}'";

@@ -6,14 +6,17 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Metalama.Framework.Engine.Linking.Substitution;
 
-internal sealed class EmptyPartialAccessorSubstitution(
-    CompilationContext compilationContext,
-    AccessorDeclarationSyntax rootNode,
-    bool usingSimpleInlining,
-    string? returnVariableIdentifier )
-    : EmptyPartialMemberSubstitution( compilationContext, usingSimpleInlining, returnVariableIdentifier )
+internal sealed class EmptyPartialAccessorSubstitution : EmptyPartialMemberSubstitution
 {
-    public override SyntaxNode ReplacedNode => rootNode;
+    private readonly AccessorDeclarationSyntax _rootNode;
+
+    public EmptyPartialAccessorSubstitution( CompilationContext compilationContext, AccessorDeclarationSyntax rootNode, bool usingSimpleInlining, string? returnVariableIdentifier )
+        : base( compilationContext, usingSimpleInlining, returnVariableIdentifier )
+    {
+        this._rootNode = rootNode;
+    }
+
+    public override SyntaxNode ReplacedNode => this._rootNode;
 
     public override SyntaxNode Substitute( SyntaxNode currentNode, SubstitutionContext substitutionContext )
         => currentNode switch

@@ -12,71 +12,80 @@ namespace Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 
 internal partial class AccessorBuilder
 {
-    private sealed class IndexerParameterBuilder( AccessorBuilder accessor, int? index )
-        : BaseParameterBuilder( accessor.Compilation, accessor.AspectLayerInstance )
+    private sealed class IndexerParameterBuilder : BaseParameterBuilder
     {
-        private IndexerBuilder Indexer => (IndexerBuilder) accessor._containingMember;
+        private readonly int? _index;
+
+        private readonly AccessorBuilder _accessor;
+
+        public IndexerParameterBuilder( AccessorBuilder accessor, int? index ) : base( accessor.Compilation, accessor.AspectLayerInstance )
+        {
+            this._accessor = accessor;
+            this._index = index;
+        }
+
+        private IndexerBuilder Indexer => (IndexerBuilder) this._accessor._containingMember;
 
         public override int Index
-            => (accessor.MethodKind, _index: index) switch
+            => (this._accessor.MethodKind, this._index) switch
             {
                 (MethodKind.PropertySet, null) => this.Indexer.Parameters.Count,
-                _ => index.AssertNotNull()
+                _ => this._index.AssertNotNull()
             };
 
         public override TypedConstant? DefaultValue
         {
             get
-                => accessor.MethodKind switch
+                => this._accessor.MethodKind switch
                 {
-                    MethodKind.PropertySet when index == null => null,
-                    _ => this.Indexer.Parameters[index.AssertNotNull()].DefaultValue
+                    MethodKind.PropertySet when this._index == null => null,
+                    _ => this.Indexer.Parameters[this._index.AssertNotNull()].DefaultValue
                 };
 
             set
                 => throw new NotSupportedException(
-                    $"Setting the default value of indexer accessor {accessor} parameter {this.Index} is not supported. Set the default value on the indexer parameter instead." );
+                    $"Setting the default value of indexer accessor {this._accessor} parameter {this.Index} is not supported. Set the default value on the indexer parameter instead." );
         }
 
         public override IType Type
         {
             get
-                => accessor.MethodKind switch
+                => this._accessor.MethodKind switch
                 {
-                    MethodKind.PropertySet when index == null => this.Indexer.Type,
-                    _ => this.Indexer.Parameters[index.AssertNotNull()].Type
+                    MethodKind.PropertySet when this._index == null => this.Indexer.Type,
+                    _ => this.Indexer.Parameters[this._index.AssertNotNull()].Type
                 };
 
             set
                 => throw new NotSupportedException(
-                    $"Setting the type of indexer accessor {accessor} parameter {this.Index} is not supported. Set the type on the indexer parameter instead." );
+                    $"Setting the type of indexer accessor {this._accessor} parameter {this.Index} is not supported. Set the type on the indexer parameter instead." );
         }
 
         public override RefKind RefKind
         {
             get
-                => accessor.MethodKind switch
+                => this._accessor.MethodKind switch
                 {
-                    MethodKind.PropertySet when index == null => this.Indexer.RefKind,
-                    _ => this.Indexer.Parameters[index.AssertNotNull()].RefKind
+                    MethodKind.PropertySet when this._index == null => this.Indexer.RefKind,
+                    _ => this.Indexer.Parameters[this._index.AssertNotNull()].RefKind
                 };
 
             set
                 => throw new NotSupportedException(
-                    $"Setting the ref kind of indexer accessor {accessor} parameter {this.Index} is not supported. Set the ref kind on the indexer parameter instead." );
+                    $"Setting the ref kind of indexer accessor {this._accessor} parameter {this.Index} is not supported. Set the ref kind on the indexer parameter instead." );
         }
 
         public override bool IsParams
         {
             get
-                => accessor.MethodKind switch
+                => this._accessor.MethodKind switch
                 {
-                    MethodKind.PropertySet when index == null => false,
-                    _ => this.Indexer.Parameters[index.AssertNotNull()].IsParams
+                    MethodKind.PropertySet when this._index == null => false,
+                    _ => this.Indexer.Parameters[this._index.AssertNotNull()].IsParams
                 };
             set
                 => throw new NotSupportedException(
-                    $"Setting the 'params' modifier of indexer accessor {accessor} parameter {this.Index} is not supported. Set the params modifier on the indexer parameter instead." );
+                    $"Setting the 'params' modifier of indexer accessor {this._accessor} parameter {this.Index} is not supported. Set the params modifier on the indexer parameter instead." );
         }
 
         public override bool IsThis
@@ -88,18 +97,18 @@ internal partial class AccessorBuilder
         public override string Name
         {
             get
-                => accessor.MethodKind switch
+                => this._accessor.MethodKind switch
                 {
-                    MethodKind.PropertySet when index == null => "value",
-                    _ => this.Indexer.Parameters[index.AssertNotNull()].Name
+                    MethodKind.PropertySet when this._index == null => "value",
+                    _ => this.Indexer.Parameters[this._index.AssertNotNull()].Name
                 };
 
             set
                 => throw new NotSupportedException(
-                    $"Setting the name of indexer accessor {accessor} parameter {this.Index} is not supported. Set the name on the indexer parameter instead." );
+                    $"Setting the name of indexer accessor {this._accessor} parameter {this.Index} is not supported. Set the name on the indexer parameter instead." );
         }
 
-        public override IHasParameters DeclaringMember => accessor;
+        public override IHasParameters DeclaringMember => this._accessor;
 
         public override bool IsReturnParameter => false;
 

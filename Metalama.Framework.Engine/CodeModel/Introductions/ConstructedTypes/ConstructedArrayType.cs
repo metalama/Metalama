@@ -10,10 +10,16 @@ using TypeKind = Metalama.Framework.Code.TypeKind;
 
 namespace Metalama.Framework.Engine.CodeModel.Introductions.ConstructedTypes;
 
-internal sealed class ConstructedArrayType( CompilationModel compilation, IFullRef<IType> elementType, int rank, bool? isNullable = false )
-    : ConstructedType( compilation ), IArrayType
+internal class ConstructedArrayType : ConstructedType, IArrayType
 {
-    private readonly IFullRef<IType> _elementType = elementType;
+    private readonly IFullRef<IType> _elementType;
+
+    public ConstructedArrayType( CompilationModel compilation, IFullRef<IType> elementType, int rank, bool? isNullable = false ) : base( compilation )
+    {
+        this._elementType = elementType;
+        this.Rank = rank;
+        this.IsNullable = isNullable;
+    }
 
     public override ICompilationElement Translate( CompilationModel newCompilation, IGenericContext? genericContext = null, Type? interfaceType = null )
     {
@@ -35,11 +41,11 @@ internal sealed class ConstructedArrayType( CompilationModel compilation, IFullR
 
     public override bool? IsReferenceType => true;
 
-    public override bool? IsNullable { get; } = isNullable;
+    public override bool? IsNullable { get; }
 
     public IType ElementType => this._elementType.GetTarget( this.Compilation );
 
-    public int Rank { get; } = rank;
+    public int Rank { get; }
 
     public override bool Equals( IType? otherType, TypeComparison typeComparison )
     {

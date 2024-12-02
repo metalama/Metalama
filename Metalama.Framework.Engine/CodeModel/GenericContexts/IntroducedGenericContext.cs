@@ -11,15 +11,21 @@ namespace Metalama.Framework.Engine.CodeModel.GenericContexts;
 /// <summary>
 /// Implements a <see cref="GenericContext"/> that may map parameters to introduced types (instead of just symbols).
 /// </summary>
-internal sealed class IntroducedGenericContext(
-    ImmutableArray<IFullRef<IType>> typeArguments,
-    IFullRef<IDeclaration> definition,
-    IntroducedGenericContext? parentContext )
-    : GenericContext
+internal class IntroducedGenericContext : GenericContext
 {
-    private readonly ImmutableArray<IFullRef<IType>> _typeArguments = typeArguments;
-    private readonly IntroducedGenericContext? _parentContext = parentContext;
-    private readonly IFullRef<IDeclaration> _definition = definition;
+    private readonly ImmutableArray<IFullRef<IType>> _typeArguments;
+    private readonly IntroducedGenericContext? _parentContext;
+    private readonly IFullRef<IDeclaration> _definition;
+
+    public IntroducedGenericContext(
+        ImmutableArray<IFullRef<IType>> typeArguments,
+        IFullRef<IDeclaration> definition,
+        IntroducedGenericContext? parentContext )
+    {
+        this._typeArguments = typeArguments;
+        this._parentContext = parentContext;
+        this._definition = definition;
+    }
 
     internal override GenericContextKind Kind => GenericContextKind.Introduced;
 

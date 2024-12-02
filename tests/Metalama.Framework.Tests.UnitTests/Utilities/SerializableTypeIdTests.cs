@@ -13,8 +13,10 @@ using SymbolEqualityComparer = Microsoft.CodeAnalysis.SymbolEqualityComparer;
 
 namespace Metalama.Framework.Tests.UnitTests.Utilities;
 
-public sealed class SerializableTypeIdTests( ITestOutputHelper? testOutputHelper ) : UnitTestClass( testOutputHelper )
+public sealed class SerializableTypeIdTests : UnitTestClass
 {
+    public SerializableTypeIdTests( ITestOutputHelper? testOutputHelper ) : base( testOutputHelper ) { }
+
     [Theory]
     [InlineData( typeof(int) )]
     [InlineData( typeof(void) )]

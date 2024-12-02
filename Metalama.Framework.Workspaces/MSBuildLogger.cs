@@ -5,8 +5,15 @@ using ILogger = Metalama.Backstage.Diagnostics.ILogger;
 
 namespace Metalama.Framework.Workspaces;
 
-internal sealed class MSBuildLogger( ILogger logger ) : Microsoft.Build.Framework.ILogger
+internal sealed class MSBuildLogger : Microsoft.Build.Framework.ILogger
 {
+    private readonly ILogger _logger;
+
+    public MSBuildLogger( ILogger logger )
+    {
+        this._logger = logger;
+    }
+
     public void Initialize( IEventSource eventSource )
     {
         eventSource.MessageRaised += this.OnMessageRaised;
@@ -18,22 +25,22 @@ internal sealed class MSBuildLogger( ILogger logger ) : Microsoft.Build.Framewor
     {
         if ( e.Importance == MessageImportance.Low )
         {
-            logger.Trace?.Log( $"{e.Code} {e.Message}" );
+            this._logger.Trace?.Log( $"{e.Code} {e.Message}" );
         }
         else
         {
-            logger.Info?.Log( $"{e.Code} {e.Message}" );
+            this._logger.Info?.Log( $"{e.Code} {e.Message}" );
         }
     }
 
     private void OnWarningRaised( object sender, BuildWarningEventArgs e )
     {
-        logger.Warning?.Log( $"{e.Code} {e.Message}" );
+        this._logger.Warning?.Log( $"{e.Code} {e.Message}" );
     }
 
     private void OnErrorRaised( object sender, BuildErrorEventArgs e )
     {
-        logger.Error?.Log( $"{e.Code} {e.Message}" );
+        this._logger.Error?.Log( $"{e.Code} {e.Message}" );
     }
 
     public void Shutdown() { }

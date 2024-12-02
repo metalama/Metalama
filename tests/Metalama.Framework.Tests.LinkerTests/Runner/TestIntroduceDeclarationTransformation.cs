@@ -14,14 +14,22 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner;
 /// <summary>
 /// Represents a test transformation that takes syntax of a PseudoIntroduction-marked member and injects it.
 /// </summary>
-internal class TestIntroduceDeclarationTransformation(
-    AspectLayerInstance aspectLayerInstance,
-    InsertPosition insertPosition,
-    DeclarationBuilderData declarationBuilderData,
-    MemberDeclarationSyntax syntax )
-    : TestTransformationBase( aspectLayerInstance, insertPosition ), IIntroduceDeclarationTransformation
+internal class TestIntroduceDeclarationTransformation : TestTransformationBase, IIntroduceDeclarationTransformation
 {
-    public DeclarationBuilderData DeclarationBuilderData { get; } = declarationBuilderData;
+    private readonly MemberDeclarationSyntax _syntax;
+
+    public DeclarationBuilderData DeclarationBuilderData { get; }
+
+    public TestIntroduceDeclarationTransformation(
+        AspectLayerInstance aspectLayerInstance, 
+        InsertPosition insertPosition, 
+        DeclarationBuilderData declarationBuilderData,
+        MemberDeclarationSyntax syntax )
+        : base( aspectLayerInstance, insertPosition )
+    {
+        this.DeclarationBuilderData = declarationBuilderData;
+        this._syntax = syntax;
+    }
 
     public override TransformationObservability Observability => TransformationObservability.Always;
 
@@ -31,6 +39,6 @@ internal class TestIntroduceDeclarationTransformation(
 
     public override IEnumerable<InjectedMember> GetInjectedMembers( MemberInjectionContext context )
     {
-        yield return new InjectedMember( this, syntax, this.AspectLayerId, InjectedMemberSemantic.Introduction, this.DeclarationBuilderData.ContainingDeclaration );
+        yield return new InjectedMember( this, this._syntax, this.AspectLayerId, InjectedMemberSemantic.Introduction, this.DeclarationBuilderData.ContainingDeclaration );
     }
 }

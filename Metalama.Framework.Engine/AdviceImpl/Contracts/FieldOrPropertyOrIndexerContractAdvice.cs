@@ -9,13 +9,15 @@ using Metalama.Framework.Engine.CodeModel.References;
 
 namespace Metalama.Framework.Engine.AdviceImpl.Contracts;
 
-internal sealed class FieldOrPropertyOrIndexerContractAdvice(
-    Advice.AdviceConstructorParameters<IFieldOrPropertyOrIndexer> parameters,
-    TemplateMember<IMethod> template,
-    ContractDirection direction,
-    IObjectReader templateArguments )
-    : ContractAdvice<IFieldOrPropertyOrIndexer>( parameters, template, direction, templateArguments )
+internal sealed class FieldOrPropertyOrIndexerContractAdvice : ContractAdvice<IFieldOrPropertyOrIndexer>
 {
+    public FieldOrPropertyOrIndexerContractAdvice(
+        AdviceConstructorParameters<IFieldOrPropertyOrIndexer> parameters,
+        TemplateMember<IMethod> template,
+        ContractDirection direction,
+        IObjectReader templateArguments )
+        : base( parameters, template, direction, templateArguments ) { }
+
     protected override AddContractAdviceResult<IFieldOrPropertyOrIndexer> Implement( in AdviceImplementationContext context )
     {
         var serviceProvider = context.ServiceProvider;

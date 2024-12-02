@@ -980,17 +980,25 @@ internal sealed class ReferenceIndexWalker : SafeSyntaxWalker
         }
     }
 
-    private readonly struct DeclarationContextCookie( ReferenceIndexWalker parent, ISymbol? previousDeclaration, SyntaxNode? previousNode )
-        : IDisposable
+    private readonly struct DeclarationContextCookie : IDisposable
     {
-        private readonly ReferenceIndexWalker? _parent = parent;
+        private readonly ReferenceIndexWalker? _parent;
+        private readonly ISymbol? _previousDeclaration;
+        private readonly SyntaxNode? _previousNode;
+
+        public DeclarationContextCookie( ReferenceIndexWalker parent, ISymbol? previousDeclaration, SyntaxNode? previousNode )
+        {
+            this._parent = parent;
+            this._previousDeclaration = previousDeclaration;
+            this._previousNode = previousNode;
+        }
 
         public void Dispose()
         {
             if ( this._parent != null )
             {
-                this._parent._currentDeclarationSymbol = previousDeclaration;
-                this._parent._currentDeclarationNode = previousNode;
+                this._parent._currentDeclarationSymbol = this._previousDeclaration;
+                this._parent._currentDeclarationNode = this._previousNode;
             }
         }
     }

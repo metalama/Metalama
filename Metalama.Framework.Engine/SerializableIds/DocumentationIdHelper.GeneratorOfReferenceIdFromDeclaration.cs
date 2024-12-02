@@ -9,9 +9,17 @@ namespace Metalama.Framework.Engine.SerializableIds;
 
 internal static partial class DocumentationIdHelper
 {
-    private sealed class GeneratorOfReferenceIdFromDeclaration( StringBuilder builder, IDeclaration? typeParameterContext )
+    private sealed class GeneratorOfReferenceIdFromDeclaration
     {
-        public IDeclaration? TypeParameterContext { get; } = typeParameterContext;
+        private readonly StringBuilder _builder;
+
+        public GeneratorOfReferenceIdFromDeclaration( StringBuilder builder, IDeclaration? typeParameterContext )
+        {
+            this._builder = builder;
+            this.TypeParameterContext = typeParameterContext;
+        }
+
+        public IDeclaration? TypeParameterContext { get; }
 
         private void BuildDottedName( INamedType namedType )
         {
@@ -21,20 +29,20 @@ internal static partial class DocumentationIdHelper
 
             if ( success )
             {
-                builder.Append( '.' );
+                this._builder.Append( '.' );
             }
 
-            builder.Append( EncodeName( namedType.Name ) );
+            this._builder.Append( EncodeName( namedType.Name ) );
         }
 
         private void BuildDottedName( INamespace ns )
         {
             if ( this.Visit( ns.ContainingNamespace.AssertNotNull() ) )
             {
-                builder.Append( '.' );
+                this._builder.Append( '.' );
             }
 
-            builder.Append( EncodeName( ns.Name ) );
+            this._builder.Append( EncodeName( ns.Name ) );
         }
 
         public void Visit( ICompilationElement compilationElement )
@@ -110,24 +118,24 @@ internal static partial class DocumentationIdHelper
             {
                 if ( namedType.IsCanonicalGenericInstance )
                 {
-                    builder.Append( '`' );
-                    builder.Append( namedType.TypeParameters.Count );
+                    this._builder.Append( '`' );
+                    this._builder.Append( namedType.TypeParameters.Count );
                 }
                 else if ( namedType.TypeArguments.Count > 0 )
                 {
-                    builder.Append( '{' );
+                    this._builder.Append( '{' );
 
                     for ( int i = 0, n = namedType.TypeArguments.Count; i < n; i++ )
                     {
                         if ( i > 0 )
                         {
-                            builder.Append( ',' );
+                            this._builder.Append( ',' );
                         }
 
                         this.Visit( namedType.TypeArguments[i] );
                     }
 
-                    builder.Append( '}' );
+                    this._builder.Append( '}' );
                 }
             }
 
@@ -138,30 +146,30 @@ internal static partial class DocumentationIdHelper
         {
             _ = dynamicType;
 
-            builder.Append( "System.Object" );
+            this._builder.Append( "System.Object" );
         }
 
         private void Visit( IArrayType arrayType )
         {
             this.Visit( arrayType.ElementType );
 
-            builder.Append( '[' );
+            this._builder.Append( '[' );
 
             for ( int i = 0, n = arrayType.Rank; i < n; i++ )
             {
                 if ( i > 0 )
                 {
-                    builder.Append( ',' );
+                    this._builder.Append( ',' );
                 }
             }
 
-            builder.Append( ']' );
+            this._builder.Append( ']' );
         }
 
         private void Visit( IPointerType pointerType )
         {
             this.Visit( pointerType.PointedAtType );
-            builder.Append( '*' );
+            this._builder.Append( '*' );
         }
 
         private void Visit( ITypeParameter typeParameter )
@@ -169,23 +177,23 @@ internal static partial class DocumentationIdHelper
             if ( !this.IsInScope( typeParameter ) )
             {
                 // reference to type parameter not in scope, make explicit scope reference
-                var declarer = new GeneratorOfDeclarationIdFromDeclaration( builder );
+                var declarer = new GeneratorOfDeclarationIdFromDeclaration( this._builder );
                 declarer.Visit( typeParameter.ContainingDeclaration.AssertNotNull() );
-                builder.Append( ':' );
+                this._builder.Append( ':' );
             }
 
             if ( typeParameter.ContainingDeclaration is IMethod )
             {
-                builder.Append( "``" );
-                builder.Append( typeParameter.Index );
+                this._builder.Append( "``" );
+                this._builder.Append( typeParameter.Index );
             }
             else
             {
                 // get count of all type parameter preceding the declaration of the type parameters containing symbol.
                 var container = typeParameter.ContainingDeclaration?.ContainingDeclaration;
                 var b = GetTotalTypeParameterCount( container as INamedType );
-                builder.Append( '`' );
-                builder.Append( b + typeParameter.Index );
+                this._builder.Append( '`' );
+                this._builder.Append( b + typeParameter.Index );
             }
         }
 

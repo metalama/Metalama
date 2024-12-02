@@ -14,11 +14,11 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner;
 /// <summary>
 /// A base class for test transformations that inject processed syntax instead of running templates.
 /// </summary>
-internal abstract class TestTransformationBase( AspectLayerInstance aspectLayerInstance, InsertPosition insertPosition ) : IInjectMemberTransformation
+internal abstract class TestTransformationBase : IInjectMemberTransformation
 {
-    public InsertPosition InsertPosition { get; } = insertPosition;
+    public InsertPosition InsertPosition { get; }
 
-    public AspectLayerInstance AspectLayerInstance { get; } = aspectLayerInstance;
+    public AspectLayerInstance AspectLayerInstance { get; }
 
     public AspectLayerId AspectLayerId => this.AspectLayerInstance.AspectLayerId;
 
@@ -29,6 +29,12 @@ internal abstract class TestTransformationBase( AspectLayerInstance aspectLayerI
     public int OrderWithinPipelineStepAndType { get; set; }
 
     public int OrderWithinPipelineStepAndTypeAndAspectInstance { get; set; }
+
+    protected TestTransformationBase( AspectLayerInstance aspectLayerInstance, InsertPosition insertPosition )
+    {
+        this.AspectLayerInstance = aspectLayerInstance;
+        this.InsertPosition = insertPosition;
+    }
 
     public abstract TransformationObservability Observability { get; }
 

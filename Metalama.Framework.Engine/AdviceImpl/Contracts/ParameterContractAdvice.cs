@@ -7,13 +7,15 @@ using Metalama.Framework.Engine.CodeModel.References;
 
 namespace Metalama.Framework.Engine.AdviceImpl.Contracts;
 
-internal sealed class ParameterContractAdvice(
-    Advice.AdviceConstructorParameters<IParameter> parameters,
-    TemplateMember<IMethod> template,
-    ContractDirection direction,
-    IObjectReader templateArguments )
-    : ContractAdvice<IParameter>( parameters, template, direction, templateArguments )
+internal sealed class ParameterContractAdvice : ContractAdvice<IParameter>
 {
+    public ParameterContractAdvice(
+        AdviceConstructorParameters<IParameter> parameters,
+        TemplateMember<IMethod> template,
+        ContractDirection direction,
+        IObjectReader templateArguments )
+        : base( parameters, template, direction, templateArguments ) { }
+
     protected override AddContractAdviceResult<IParameter> Implement( in AdviceImplementationContext context )
     {
         var targetDeclaration = this.TargetDeclaration;

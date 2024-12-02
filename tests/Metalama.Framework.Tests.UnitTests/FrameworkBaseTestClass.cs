@@ -13,9 +13,14 @@ using Xunit.Abstractions;
 
 namespace Metalama.Framework.Tests.UnitTests;
 
-public abstract class FrameworkBaseTestClass( ITestOutputHelper? logger = null ) : UnitTestClass( logger ), IDisposable
+public abstract class FrameworkBaseTestClass : UnitTestClass, IDisposable
 {
-    private readonly TestExceptionReporter _exceptionReporter = new();
+    private readonly TestExceptionReporter _exceptionReporter;
+
+    protected FrameworkBaseTestClass( ITestOutputHelper? logger = null ) : base( logger )
+    {
+        this._exceptionReporter = new TestExceptionReporter();
+    }
 
     public void Dispose()
     {

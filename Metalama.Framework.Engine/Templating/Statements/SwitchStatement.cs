@@ -13,8 +13,17 @@ using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace Metalama.Framework.Engine.Templating.Statements;
 
-internal sealed class SwitchStatement( IExpression expression, ImmutableArray<SwitchStatementSection> sections ) : IStatementImpl
+internal sealed class SwitchStatement : IStatementImpl
 {
+    private readonly IExpression _expression;
+    private readonly ImmutableArray<SwitchStatementSection> _sections;
+
+    public SwitchStatement( IExpression expression, ImmutableArray<SwitchStatementSection> sections )
+    {
+        this._expression = expression;
+        this._sections = sections;
+    }
+
     public StatementSyntax GetSyntax( TemplateSyntaxFactoryImpl? templateSyntaxFactory )
     {
         if ( templateSyntaxFactory == null )
@@ -22,9 +31,9 @@ internal sealed class SwitchStatement( IExpression expression, ImmutableArray<Sw
             throw new InvalidOperationException( $"{nameof(SwitchStatementBuilder)} is not available in the current context." );
         }
 
-        var sections1 = new List<SwitchSectionSyntax>();
+        var sections = new List<SwitchSectionSyntax>();
 
-        foreach ( var switchCase in sections )
+        foreach ( var switchCase in this._sections )
         {
             SwitchLabelSyntax label;
             WhenClauseSyntax? when;
@@ -34,7 +43,7 @@ internal sealed class SwitchStatement( IExpression expression, ImmutableArray<Sw
                 when = WhenClause(
                     ((IUserExpression) switchCase.When).ToTypedExpressionSyntax(
                         templateSyntaxFactory.SyntaxSerializationContext,
-                        expression.Type.Compilation.Factory.GetSpecialType( SpecialType.Boolean ) ) );
+                        this._expression.Type.Compilation.Factory.GetSpecialType( SpecialType.Boolean ) ) );
             }
             else
             {
@@ -84,10 +93,10 @@ internal sealed class SwitchStatement( IExpression expression, ImmutableArray<Sw
 
             var section = SwitchSection( SingletonList( label ), List( statements ) );
 
-            sections1.Add( section );
+            sections.Add( section );
         }
 
-        var switchExpression = ((IUserExpression) expression).ToTypedExpressionSyntax( templateSyntaxFactory.SyntaxSerializationContext ).Syntax;
+        var switchExpression = ((IUserExpression) this._expression).ToTypedExpressionSyntax( templateSyntaxFactory.SyntaxSerializationContext ).Syntax;
 
         if ( switchExpression is TupleExpressionSyntax tuple )
         {
@@ -95,6 +104,6 @@ internal sealed class SwitchStatement( IExpression expression, ImmutableArray<Sw
             switchExpression = tuple.WithArguments( SeparatedList( tuple.Arguments.SelectAsReadOnlyCollection( a => a.WithNameColon( null ) ) ) );
         }
 
-        return SwitchStatement( switchExpression, List( sections1 ) );
+        return SwitchStatement( switchExpression, List( sections ) );
     }
 }

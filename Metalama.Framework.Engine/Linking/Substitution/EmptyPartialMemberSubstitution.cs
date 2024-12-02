@@ -9,14 +9,23 @@ using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace Metalama.Framework.Engine.Linking.Substitution;
 
-internal abstract class EmptyPartialMemberSubstitution( CompilationContext compilationContext, bool usingSimpleInlining, string? returnVariableIdentifier )
-    : SyntaxNodeSubstitution( compilationContext )
+internal abstract class EmptyPartialMemberSubstitution : SyntaxNodeSubstitution
 {
+    private readonly bool _usingSimpleInlining;
+    private readonly string? _returnVariableIdentifier;
+
+    protected EmptyPartialMemberSubstitution( CompilationContext compilationContext, bool usingSimpleInlining, string? returnVariableIdentifier )
+        : base( compilationContext )
+    {
+        this._usingSimpleInlining = usingSimpleInlining;
+        this._returnVariableIdentifier = returnVariableIdentifier;
+    }
+
     protected SyntaxNode Substitute( SubstitutionContext substitutionContext )
     {
         var syntaxGenerator = substitutionContext.SyntaxGenerationContext.SyntaxGenerator;
 
-        if ( usingSimpleInlining )
+        if ( this._usingSimpleInlining )
         {
             // Uses the simple inlining, i.e. generating simple return statement without any changes for non-void methods.
             if ( this.IsVoid )
@@ -35,11 +44,11 @@ internal abstract class EmptyPartialMemberSubstitution( CompilationContext compi
             }
         }
 
-        if ( returnVariableIdentifier != null )
+        if ( this._returnVariableIdentifier != null )
         {
             return syntaxGenerator.FormattedBlock(
                     SyntaxFactoryEx.AssignmentStatement(
-                        IdentifierName( returnVariableIdentifier ),
+                        IdentifierName( this._returnVariableIdentifier ),
                         SyntaxFactoryEx.Default,
                         substitutionContext.SyntaxGenerationContext ) )
                 .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock );

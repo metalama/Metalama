@@ -71,9 +71,16 @@ namespace Metalama.Framework.Engine.CodeModel.Source
             }
         }
 
-        private sealed class Mapper( in SymbolBasedGenericMap genericMap, Compilation compilation ) : SymbolVisitor<ITypeSymbol>
+        private sealed class Mapper : SymbolVisitor<ITypeSymbol>
         {
-            private readonly SymbolBasedGenericMap _genericMap = genericMap;
+            private readonly SymbolBasedGenericMap _genericMap;
+            private readonly Compilation _compilation;
+
+            public Mapper( in SymbolBasedGenericMap genericMap, Compilation compilation )
+            {
+                this._genericMap = genericMap;
+                this._compilation = compilation;
+            }
 
             public override ITypeSymbol DefaultVisit( ISymbol symbol ) => throw new AssertionFailedException( $"Visitor not implemented for {symbol.Kind}." );
 
@@ -87,7 +94,7 @@ namespace Metalama.Framework.Engine.CodeModel.Source
                 }
                 else
                 {
-                    return compilation.CreateArrayTypeSymbol( mappedElementType, symbol.Rank, symbol.ElementNullableAnnotation );
+                    return this._compilation.CreateArrayTypeSymbol( mappedElementType, symbol.Rank, symbol.ElementNullableAnnotation );
                 }
             }
 
@@ -131,7 +138,7 @@ namespace Metalama.Framework.Engine.CodeModel.Source
                 }
                 else
                 {
-                    return compilation.CreatePointerTypeSymbol( mappedPointedAtType );
+                    return this._compilation.CreatePointerTypeSymbol( mappedPointedAtType );
                 }
             }
 

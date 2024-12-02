@@ -19,7 +19,7 @@ internal class SystemTypeResolver : CurrentAppDomainTypeResolver
 
     private readonly ReferenceAssemblyLocator _referenceAssemblyLocator;
 
-    protected SystemTypeResolver( in ProjectServiceProvider serviceProvider, CompilationContext compilationContext )
+    public SystemTypeResolver( in ProjectServiceProvider serviceProvider, CompilationContext compilationContext )
         : base( serviceProvider, compilationContext )
     {
         this._referenceAssemblyLocator = serviceProvider.GetReferenceAssemblyLocator();
@@ -45,8 +45,10 @@ internal class SystemTypeResolver : CurrentAppDomainTypeResolver
         }
     }
 
-    public class Provider( in ProjectServiceProvider serviceProvider ) : CompilationServiceProvider<SystemTypeResolver>( serviceProvider )
+    public class Provider : CompilationServiceProvider<SystemTypeResolver>
     {
+        public Provider( in ProjectServiceProvider serviceProvider ) : base( serviceProvider ) { }
+
         protected override SystemTypeResolver Create( CompilationContext compilationContext ) => new( this.ServiceProvider, compilationContext );
     }
 }

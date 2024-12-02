@@ -12,9 +12,11 @@ using System.Linq;
 
 namespace Metalama.Framework.Engine.Advising;
 
-internal abstract class Advice<TResult>( Advice.AdviceConstructorParameters parameters ) : Advice( parameters )
+internal abstract class Advice<TResult> : Advice
     where TResult : AdviceResult, new()
 {
+    protected Advice( AdviceConstructorParameters parameters ) : base( parameters ) { }
+
     public TResult Execute( IAdviceExecutionContext context )
     {
         List<ITransformation> transformations = new();
@@ -73,11 +75,19 @@ internal abstract class Advice<TResult>( Advice.AdviceConstructorParameters para
     protected TResult CreateFailedResult( ImmutableArray<Diagnostic> diagnostics )
         => new() { Diagnostics = diagnostics, Outcome = AdviceOutcome.Error, AdviceKind = this.AdviceKind };
 
-    internal readonly struct AdviceImplementationContext(
-        DiagnosticBag diagnostics,
-        IAdviceExecutionContext adviceExecutionContext,
-        List<ITransformation> transformations )
+    internal readonly struct AdviceImplementationContext
     {
+        private readonly List<ITransformation> _transformations;
+        
+        private readonly IAdviceExecutionContext _adviceExecutionContext;
+
+        public AdviceImplementationContext( DiagnosticBag diagnostics, IAdviceExecutionContext adviceExecutionContext, List<ITransformation> transformations )
+        {
+            this._transformations = transformations;
+            this.Diagnostics = diagnostics;
+            this._adviceExecutionContext = adviceExecutionContext;
+        }
+
         public void ThrowIfAnyError()
         {
             if ( this.Diagnostics.HasError() )
@@ -88,16 +98,16 @@ internal abstract class Advice<TResult>( Advice.AdviceConstructorParameters para
             }
         }
 
-        public CompilationModel MutableCompilation => adviceExecutionContext.MutableCompilation;
+        public CompilationModel MutableCompilation => this._adviceExecutionContext.MutableCompilation;
 
-        public ProjectServiceProvider ServiceProvider => adviceExecutionContext.ServiceProvider;
+        public ProjectServiceProvider ServiceProvider => this._adviceExecutionContext.ServiceProvider;
 
-        public DiagnosticBag Diagnostics { get; } = diagnostics;
+        public DiagnosticBag Diagnostics { get; }
 
         public void AddTransformation( ITransformation transformation )
         {
-            adviceExecutionContext.SetOrders( transformation );
-            transformations.Add( transformation );
+            this._adviceExecutionContext.SetOrders( transformation );
+            this._transformations.Add( transformation );
         }
     }
 }

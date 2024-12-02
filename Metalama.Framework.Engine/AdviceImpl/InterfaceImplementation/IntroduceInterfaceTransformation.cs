@@ -13,18 +13,24 @@ using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace Metalama.Framework.Engine.AdviceImpl.InterfaceImplementation;
 
-internal sealed class IntroduceInterfaceTransformation(
-    AspectLayerInstance implementInterfaceAspectLayerInstance,
-    IFullRef<INamedType> targetType,
-    IFullRef<INamedType> interfaceType,
-    Dictionary<IMember, IMember> memberMap )
-    : BaseSyntaxTreeTransformation( implementInterfaceAspectLayerInstance, targetType ), IIntroduceInterfaceTransformation, IInjectInterfaceTransformation
+internal sealed class IntroduceInterfaceTransformation : BaseSyntaxTreeTransformation, IIntroduceInterfaceTransformation, IInjectInterfaceTransformation
 {
-    public IFullRef<INamedType> InterfaceType { get; } = interfaceType;
+    public IFullRef<INamedType> InterfaceType { get; }
 
-    public IFullRef<INamedType> TargetType { get; } = targetType;
+    public IFullRef<INamedType> TargetType { get; }
 
-    public IReadOnlyDictionary<IMember, IMember> MemberMap { get; } = memberMap;
+    public IReadOnlyDictionary<IMember, IMember> MemberMap { get; }
+
+    public IntroduceInterfaceTransformation(
+        AspectLayerInstance implementInterfaceAspectLayerInstance,
+        IFullRef<INamedType> targetType,
+        IFullRef<INamedType> interfaceType,
+        Dictionary<IMember, IMember> memberMap ) : base( implementInterfaceAspectLayerInstance, targetType )
+    {
+        this.TargetType = targetType;
+        this.InterfaceType = interfaceType;
+        this.MemberMap = memberMap;
+    }
 
     public BaseTypeSyntax GetSyntax( SyntaxGenerationContext context )
     {

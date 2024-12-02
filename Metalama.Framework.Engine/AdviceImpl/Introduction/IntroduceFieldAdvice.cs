@@ -13,26 +13,18 @@ using System;
 
 namespace Metalama.Framework.Engine.AdviceImpl.Introduction;
 
-internal sealed class IntroduceFieldAdvice(
-    Advice.AdviceConstructorParameters<INamedType> parameters,
-    string? explicitName,
-    TemplateMember<IField>? fieldTemplate,
-    IntroductionScope scope,
-    OverrideStrategy overrideStrategy,
-    Action<IFieldBuilder>? buildAction )
-    : IntroduceMemberAdvice<IField, IField, FieldBuilder>(
-        parameters,
-        explicitName,
-        fieldTemplate,
-        scope,
-        overrideStrategy,
-        buildAction,
-        explicitlyImplementedInterfaceType: null )
+internal sealed class IntroduceFieldAdvice : IntroduceMemberAdvice<IField, IField, FieldBuilder>
 {
-    protected override FieldBuilder CreateBuilder()
-    {
-        return new FieldBuilder( this.AspectLayerInstance, this.TargetDeclaration, this.MemberName );
-    }
+    public IntroduceFieldAdvice(
+        AdviceConstructorParameters<INamedType> parameters,
+        string? explicitName,
+        TemplateMember<IField>? fieldTemplate,
+        IntroductionScope scope,
+        OverrideStrategy overrideStrategy,
+        Action<IFieldBuilder>? buildAction )
+        : base( parameters, explicitName, fieldTemplate, scope, overrideStrategy, buildAction, explicitlyImplementedInterfaceType: null ) { }
+
+    protected override FieldBuilder CreateBuilder() => new( this.AspectLayerInstance, this.TargetDeclaration, this.MemberName );
 
     protected override void InitializeBuilderCore(
         FieldBuilder builder,

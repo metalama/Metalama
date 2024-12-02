@@ -25,27 +25,42 @@ using Accessibility = Metalama.Framework.Code.Accessibility;
 
 namespace Metalama.Framework.Engine.AdviceImpl.InterfaceImplementation;
 
-internal sealed partial class ImplementInterfaceAdvice(
-    Advice.AdviceConstructorParameters<INamedType> parameters,
-    INamedType type,
-    OverrideStrategy overrideStrategy,
-    IObjectReader tags,
-    IAdviceFactoryImpl adviceFactory,
-    TemplateProvider templateProvider )
-    : Advice<ImplementInterfaceAdviceResult>( parameters )
+internal sealed partial class ImplementInterfaceAdvice : Advice<ImplementInterfaceAdviceResult>
 {
-    private readonly List<InterfaceSpecification> _interfaceSpecifications = [];
+    private readonly List<InterfaceSpecification> _interfaceSpecifications;
+    private readonly INamedType _interfaceType;
+    private readonly OverrideStrategy _overrideStrategy;
+    private readonly IObjectReader _tags;
+    private readonly IAdviceFactoryImpl _adviceFactory;
+    private readonly TemplateProvider _templateProvider;
 
     private new INamedType TargetDeclaration => (INamedType) base.TargetDeclaration;
+
+    public ImplementInterfaceAdvice(
+        AdviceConstructorParameters<INamedType> parameters,
+        INamedType interfaceType,
+        OverrideStrategy overrideStrategy,
+        IObjectReader tags,
+        IAdviceFactoryImpl adviceFactory,
+        TemplateProvider templateProvider )
+        : base( parameters )
+    {
+        this._interfaceType = interfaceType;
+        this._overrideStrategy = overrideStrategy;
+        this._interfaceSpecifications = [];
+        this._tags = tags;
+        this._adviceFactory = adviceFactory;
+        this._templateProvider = templateProvider;
+    }
 
     public override AdviceKind AdviceKind => AdviceKind.ImplementInterface;
 
     private void Initialize( in AdviceImplementationContext context )
     {
-        var interfaceType = type.ForCompilation( context.MutableCompilation );
+        var interfaceType = this._interfaceType.ForCompilation( context.MutableCompilation );
         var contextCopy = context;
 
-        switch ( overrideStrategy )
+        switch ( this._overrideStrategy )
         {
             case OverrideStrategy.Fail:
             case OverrideStrategy.Ignore:
@@ -58,7 +73,7 @@ internal sealed partial class ImplementInterfaceAdvice(
                         this.GetDiagnosticLocation(),
                         (this.AspectInstance.AspectClass.ShortName, InterfaceType: interfaceType,
                          this.TargetDeclaration,
-                         overrideStrategy),
+                         this._overrideStrategy),
                         this ) );
 
                 break;
@@ -203,7 +218,7 @@ internal sealed partial class ImplementInterfaceAdvice(
 
                 if ( method != null && TryGetInterfaceMemberTemplate( method, out var classMember ) )
                 {
-                    return TemplateMemberFactory.Create( method, classMember, templateProvider, tags );
+                    return TemplateMemberFactory.Create( method, classMember, this._templateProvider, this._tags );
                 }
 
                 return null;
@@ -215,7 +230,7 @@ internal sealed partial class ImplementInterfaceAdvice(
 
                 if ( property != null && TryGetInterfaceMemberTemplate( property, out var classMember ) )
                 {
-                    return TemplateMemberFactory.Create( property, classMember, templateProvider, tags );
+                    return TemplateMemberFactory.Create( property, classMember, this._templateProvider, this._tags );
                 }
 
                 return null;
@@ -227,7 +242,7 @@ internal sealed partial class ImplementInterfaceAdvice(
 
                 if ( @event != null && TryGetInterfaceMemberTemplate( @event, out var classMember ) )
                 {
-                    return TemplateMemberFactory.Create( @event, classMember, templateProvider, tags );
+                    return TemplateMemberFactory.Create( @event, classMember, this._templateProvider, this._tags );
                 }
 
                 return null;
@@ -272,7 +287,7 @@ internal sealed partial class ImplementInterfaceAdvice(
 
             if ( targetType.AllImplementedInterfaces.Any( t => t.Equals( interfaceType ) ) )
             {
-                switch ( overrideStrategy )
+                switch ( this._overrideStrategy )
                 {
                     case OverrideStrategy.Ignore:
                         implementedInterfaces.Add( new ImplementationResult( interfaceType, InterfaceImplementationOutcome.Ignore ) );
@@ -298,14 +313,14 @@ internal sealed partial class ImplementInterfaceAdvice(
                                 interfaceType,
                                 InterfaceImplementationOutcome.Implement,
                                 this.TargetDeclaration,
-                                adviceFactory ) );
+                                this._adviceFactory ) );
 
                         skipInterfaceBaseList = true;
 
                         break;
 
                     default:
-                        throw new AssertionFailedException( $"Unexpected OverrideStrategy: {overrideStrategy}." );
+                        throw new AssertionFailedException( $"Unexpected OverrideStrategy: {this._overrideStrategy}." );
                 }
             }
             else
@@ -315,7 +330,7 @@ internal sealed partial class ImplementInterfaceAdvice(
                         interfaceType,
                         InterfaceImplementationOutcome.Implement,
                         this.TargetDeclaration,
-                        adviceFactory ) );
+                        this._adviceFactory ) );
 
                 skipInterfaceBaseList = false;
             }
@@ -376,7 +391,7 @@ internal sealed partial class ImplementInterfaceAdvice(
 
                                         continue;
 
-                                    case InterfaceMemberOverrideStrategy.Default when overrideStrategy != OverrideStrategy.Override:
+                                    case InterfaceMemberOverrideStrategy.Default when this._overrideStrategy != OverrideStrategy.Override:
                                     case InterfaceMemberOverrideStrategy.Fail:
                                         diagnostics.Report(
                                             AdviceDiagnosticDescriptors.ImplicitInterfaceMemberAlreadyExists.CreateRoslynDiagnostic(
@@ -386,7 +401,7 @@ internal sealed partial class ImplementInterfaceAdvice(
 
                                         continue;
 
-                                    case InterfaceMemberOverrideStrategy.Default when overrideStrategy == OverrideStrategy.Override:
+                                    case InterfaceMemberOverrideStrategy.Default when this._overrideStrategy == OverrideStrategy.Override:
                                         if ( existingMethod.Accessibility != Accessibility.Public )
                                         {
                                             diagnostics.Report(
@@ -510,7 +525,7 @@ internal sealed partial class ImplementInterfaceAdvice(
 
                                         continue;
 
-                                    case InterfaceMemberOverrideStrategy.Default when overrideStrategy != OverrideStrategy.Override:
+                                    case InterfaceMemberOverrideStrategy.Default when this._overrideStrategy != OverrideStrategy.Override:
                                     case InterfaceMemberOverrideStrategy.Fail:
                                         diagnostics.Report(
                                             AdviceDiagnosticDescriptors.ImplicitInterfaceMemberAlreadyExists.CreateRoslynDiagnostic(
@@ -520,7 +535,7 @@ internal sealed partial class ImplementInterfaceAdvice(
 
                                         continue;
 
-                                    case InterfaceMemberOverrideStrategy.Default when overrideStrategy == OverrideStrategy.Override:
+                                    case InterfaceMemberOverrideStrategy.Default when this._overrideStrategy == OverrideStrategy.Override:
                                         if ( existingProperty.Accessibility != Accessibility.Public )
                                         {
                                             diagnostics.Report(
@@ -578,7 +593,7 @@ internal sealed partial class ImplementInterfaceAdvice(
                                         break;
 
                                     default:
-                                        throw new NotImplementedException( $"The strategy OverrideStrategy.{overrideStrategy} is not implemented." );
+                                        throw new NotImplementedException( $"The strategy OverrideStrategy.{this._overrideStrategy} is not implemented." );
                                 }
 #pragma warning restore CS0618
                             }
@@ -773,7 +788,7 @@ internal sealed partial class ImplementInterfaceAdvice(
 
                                         continue;
 
-                                    case InterfaceMemberOverrideStrategy.Default when overrideStrategy != OverrideStrategy.Override:
+                                    case InterfaceMemberOverrideStrategy.Default when this._overrideStrategy != OverrideStrategy.Override:
                                     case InterfaceMemberOverrideStrategy.Fail:
                                         diagnostics.Report(
                                             AdviceDiagnosticDescriptors.ImplicitInterfaceMemberAlreadyExists.CreateRoslynDiagnostic(
@@ -783,7 +798,7 @@ internal sealed partial class ImplementInterfaceAdvice(
 
                                         continue;
 
-                                    case InterfaceMemberOverrideStrategy.Default when overrideStrategy == OverrideStrategy.Override:
+                                    case InterfaceMemberOverrideStrategy.Default when this._overrideStrategy == OverrideStrategy.Override:
                                         if ( existingEvent.Accessibility != Accessibility.Public )
                                         {
                                             diagnostics.Report(
@@ -837,7 +852,7 @@ internal sealed partial class ImplementInterfaceAdvice(
                                         break;
 
                                     default:
-                                        throw new NotImplementedException( $"The strategy OverrideStrategy.{overrideStrategy} is not implemented." );
+                                        throw new NotImplementedException( $"The strategy OverrideStrategy.{this._overrideStrategy} is not implemented." );
                                 }
 #pragma warning restore CS0618
                             }

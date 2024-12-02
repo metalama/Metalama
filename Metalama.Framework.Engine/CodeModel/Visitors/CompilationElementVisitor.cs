@@ -157,7 +157,7 @@ internal abstract class CompilationElementVisitor
 
         this.RecursionDepth--;
     }
-    
+
     protected abstract void DefaultVisit( ICompilationElement element );
 
     public virtual void VisitNamespace( INamespace declaration ) => this.DefaultVisit( declaration );

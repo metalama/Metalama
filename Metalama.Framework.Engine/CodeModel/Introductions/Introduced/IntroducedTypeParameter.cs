@@ -13,14 +13,24 @@ using System.Collections.Generic;
 
 namespace Metalama.Framework.Engine.CodeModel.Introductions.Introduced;
 
-internal sealed class IntroducedTypeParameter(
-    TypeParameterBuilderData builder,
-    CompilationModel compilation,
-    IGenericContext genericContext,
-    bool? isNullableOverride )
-    : IntroducedDeclaration( compilation, genericContext ), ITypeParameter
+internal sealed class IntroducedTypeParameter : IntroducedDeclaration, ITypeParameter
 {
-    public override DeclarationBuilderData BuilderData => builder;
+    private readonly TypeParameterBuilderData _typeParameterBuilderData;
+    private readonly bool? _isNullableOverride;
+
+    public IntroducedTypeParameter(
+        TypeParameterBuilderData builder,
+        CompilationModel compilation,
+        IGenericContext genericContext,
+        bool? isNullableOverride ) : base(
+        compilation,
+        genericContext )
+    {
+        this._typeParameterBuilderData = builder;
+        this._isNullableOverride = isNullableOverride;
+    }
+
+    public override DeclarationBuilderData BuilderData => this._typeParameterBuilderData;
 
     public TypeKind TypeKind => TypeKind.TypeParameter;
 
@@ -28,9 +38,9 @@ internal sealed class IntroducedTypeParameter(
 
     public Type ToType() => throw new NotImplementedException();
 
-    public bool? IsReferenceType => builder.IsReferenceType;
+    public bool? IsReferenceType => this._typeParameterBuilderData.IsReferenceType;
 
-    public bool? IsNullable => isNullableOverride ?? builder.IsNullable;
+    public bool? IsNullable => this._isNullableOverride ?? this._typeParameterBuilderData.IsNullable;
 
     bool IType.Equals( SpecialType specialType ) => false;
 
@@ -49,7 +59,7 @@ internal sealed class IntroducedTypeParameter(
         }
         else if ( this.IsReferenceType ?? true )
         {
-            return this.Compilation.Factory.GetTypeParameter( builder, this.GenericContext, true );
+            return this.Compilation.Factory.GetTypeParameter( this._typeParameterBuilderData, this.GenericContext, true );
         }
         else
         {
@@ -58,7 +68,7 @@ internal sealed class IntroducedTypeParameter(
     }
 
     public ITypeParameter ToNonNullable()
-        => this.IsNullable == false ? this : this.Compilation.Factory.GetTypeParameter( builder, this.GenericContext );
+        => this.IsNullable == false ? this : this.Compilation.Factory.GetTypeParameter( this._typeParameterBuilderData, this.GenericContext );
 
     IType IType.ToNullable() => this.ToNullable();
 
@@ -66,22 +76,22 @@ internal sealed class IntroducedTypeParameter(
 
     ICompilation ICompilationElement.Compilation => this.Compilation;
 
-    public string Name => builder.Name;
+    public string Name => this._typeParameterBuilderData.Name;
 
-    public int Index => builder.Index;
+    public int Index => this._typeParameterBuilderData.Index;
 
     [Memo]
-    public IReadOnlyList<IType> TypeConstraints => this.MapDeclarationList( builder.TypeConstraints );
+    public IReadOnlyList<IType> TypeConstraints => this.MapDeclarationList( this._typeParameterBuilderData.TypeConstraints );
 
-    public TypeKindConstraint TypeKindConstraint => builder.TypeKindConstraint;
+    public TypeKindConstraint TypeKindConstraint => this._typeParameterBuilderData.TypeKindConstraint;
 
-    public bool AllowsRefStruct => builder.AllowsRefStruct;
+    public bool AllowsRefStruct => this._typeParameterBuilderData.AllowsRefStruct;
 
-    public VarianceKind Variance => builder.Variance;
+    public VarianceKind Variance => this._typeParameterBuilderData.Variance;
 
-    public bool? IsConstraintNullable => builder.IsConstraintNullable;
+    public bool? IsConstraintNullable => this._typeParameterBuilderData.IsConstraintNullable;
 
-    public bool HasDefaultConstructorConstraint => builder.HasDefaultConstructorConstraint;
+    public bool HasDefaultConstructorConstraint => this._typeParameterBuilderData.HasDefaultConstructorConstraint;
 
     private IFullRef<ITypeParameter> Ref => this.RefFactory.FromIntroducedDeclaration<ITypeParameter>( this );
 
@@ -107,7 +117,7 @@ internal sealed class IntroducedTypeParameter(
     public bool Equals( Type? otherType, TypeComparison typeComparison = TypeComparison.Default )
         => otherType != null && this.Equals( this.Compilation.Factory.GetTypeByReflectionType( otherType ), typeComparison );
 
-    public override int GetHashCode() => builder.GetHashCode();
+    public override int GetHashCode() => this._typeParameterBuilderData.GetHashCode();
 
     public override bool CanBeInherited => ((IDeclarationImpl) this.ContainingDeclaration.AssertNotNull()).CanBeInherited;
 

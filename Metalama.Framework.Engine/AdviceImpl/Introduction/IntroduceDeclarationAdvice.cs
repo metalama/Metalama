@@ -9,11 +9,18 @@ using System;
 
 namespace Metalama.Framework.Engine.AdviceImpl.Introduction;
 
-internal abstract class IntroduceDeclarationAdvice<TIntroduced, TBuilder>( Advice.AdviceConstructorParameters parameters, Action<TBuilder>? buildAction )
-    : Advice<IntroductionAdviceResult<TIntroduced>>( parameters )
+internal abstract class IntroduceDeclarationAdvice<TIntroduced, TBuilder> : Advice<IntroductionAdviceResult<TIntroduced>>
     where TIntroduced : class, IDeclaration
     where TBuilder : DeclarationBuilder, TIntroduced
 {
+    private readonly Action<TBuilder>? _buildAction;
+
+    protected IntroduceDeclarationAdvice( AdviceConstructorParameters parameters, Action<TBuilder>? buildAction )
+        : base( parameters )
+    {
+        this._buildAction = buildAction;
+    }
+
     protected IntroductionAdviceResult<TIntroduced> CreateSuccessResult( AdviceOutcome outcome, TIntroduced introducedMember )
     {
         return new IntroductionAdviceResult<TIntroduced>( this.AdviceKind, outcome, introducedMember.ToRef().As<TIntroduced>(), null );
@@ -33,7 +40,7 @@ internal abstract class IntroduceDeclarationAdvice<TIntroduced, TBuilder>( Advic
 
         this.InitializeBuilder( builder, in context );
 
-        buildAction?.Invoke( builder );
+        this._buildAction?.Invoke( builder );
 
         this.CompleteBuilder( builder );
 
