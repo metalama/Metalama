@@ -41,24 +41,6 @@ internal static class DriverInitialization
             }
 
             DiagnosticReporter.ReportAction = diagnostics => diagnostics.Dump( "Error List" );
-
-            LinkBuildHost();
-        }
-    }
-
-    private static void LinkBuildHost()
-    {
-        var baseDirectory = Path.GetDirectoryName( typeof(MSBuildWorkspace).Assembly.Location );
-
-        foreach ( var buildHost in new[] { "BuildHost-netcore", "BuildHost-net472" } )
-        {
-            var buildHostTargetDirectory = Path.Combine( baseDirectory, buildHost );
-
-            if ( !Directory.Exists( buildHostTargetDirectory ) )
-            {
-                var buildHostSourceDirectory = Path.Combine( baseDirectory, "..", "..", "contentFiles", "any", "any", buildHost );
-                Directory.CreateSymbolicLink( buildHostTargetDirectory, buildHostSourceDirectory );
-            }
         }
     }
 

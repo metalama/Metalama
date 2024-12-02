@@ -15,6 +15,6 @@
     <PackageVersion Include="LINQPad.Reference" Version="1.4.0-preview.1" />
     <PackageVersion Include="Metalama.Framework.Sdk" Version="$(MetalamaVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Logging" Version="8.0.1" />
-    <PackageVersion Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" Version="$(RoslynVersion)" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" Version="$(RoslynMaxVersion)" />
   </ItemGroup>
 </Project>

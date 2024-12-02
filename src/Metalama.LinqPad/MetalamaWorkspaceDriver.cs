@@ -91,10 +91,10 @@ namespace {nameSpace}
                 Compile( source, assemblyToBuild.CodeBase!, cxInfo );
 #pragma warning restore SYSLIB0044
 
-                var workspace = WorkspaceCollection.Default.Load( connectionData.Project );
-
+                // We intentinally do NOT load the workspace because the object explorer process does not copy
+                // content assemblies, and the hack of copying them to the lib directory is not reliable.
                 var schemaFactory = new SchemaFactory( FormatTypeName );
-                var projectSchema = schemaFactory.GetSchema( "workspace", workspace );
+                var projectSchema = schemaFactory.GetSchema( "workspace" );
 
                 return projectSchema;
             }

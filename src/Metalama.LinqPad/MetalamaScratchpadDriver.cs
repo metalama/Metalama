@@ -161,8 +161,6 @@ namespace {nameSpace}
 
         public override void InitializeContext( IConnectionInfo cxInfo, object context, QueryExecutionManager executionManager )
         {
-            Debugger.Launch();
-
             Util.HtmlHead.AddStyles( "a.error { color: red !important; } span.null, .empty { color: #888 !important; }" );
 
             base.InitializeContext( cxInfo, context, executionManager );
@@ -184,7 +182,7 @@ namespace {nameSpace}
             var packageName = "Metalama.Framework.Workspaces";
             var packageVersion = AssemblyMetadataReader.GetInstance( typeof(WorkspaceCollection).Assembly ).PackageVersion;
 
-            // We must explicitly add a reference to the Workspace
+            // We must explicitly add a reference to the Workspace so that content files are copied to the shadow directory.
             dependencyInfo.AddNuGetPackages( [(packageName, packageVersion)] );
         }
 
