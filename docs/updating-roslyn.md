@@ -1,7 +1,7 @@
 # Updating Roslyn
 
 1. Update Metalama.Compiler first. 
-2. Update `RoslynVersion` and `RoslynApiMaxVersion` in `Directory.packages.props` and possibly `ThisRoslynVersion` in `build/RoslynVersion/Roslyn.<LAST_VERSION>.props` (when updating between pre-release versions of Roslyn).
+2. Update `RoslynMaxVersion` and `RoslynApiMaxVersion` in `Directory.packages.props` and possibly `ThisRoslynVersion` in `build/RoslynVersion/Roslyn.<LAST_VERSION>.props` (when updating between pre-release versions of Roslyn).
 3. Study the new C# syntax features. We IGNORE any experimental feature. They are not supported. If the new Roslyn only has new experimental features, there is nothing to do in this repo.
 4. Add the `Syntax.xml` file from Roslyn to `source-dependencies/Metalama.Framework.Private/Metalama.Framework.GenerateMetaSyntaxRewriter`
 5. Edit `source-dependencies/Metalama.Framework.Private/Metalama.Framework.GenerateMetaSyntaxRewriter/Program.cs` to include this file.

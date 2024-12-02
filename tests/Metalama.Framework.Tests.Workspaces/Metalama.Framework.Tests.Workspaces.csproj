@@ -17,7 +17,7 @@
         <ProjectReference Include="../../Metalama.Testing.UnitTesting/Metalama.Testing.UnitTesting.csproj" />
 
         <!-- This reference must be repeated in this project because it is marked as private in Metalama.Framework.Workspaces -->
-        <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" VersionOverride="$(RoslynVersion)"  />
+        <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" VersionOverride="$(RoslynMaxVersion)"  />
     </ItemGroup>
 
 

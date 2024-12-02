@@ -11,8 +11,8 @@
     <!-- RoslynApiMinVersion is the minimal version of the Roslyn API we support. -->
     <RoslynApiMinVersion>4.0.1</RoslynApiMinVersion>
     <RoslynApiMaxVersion>4.8.0</RoslynApiMaxVersion>
-    <!-- RoslynVersion is the version of Roslyn that should be referenced by the Workspaces package. -->
-    <RoslynVersion>4.11.0</RoslynVersion>
+    <!-- RoslynMaxVersion is the version of Roslyn that should be referenced by the Workspaces package. -->
+    <RoslynMaxVersion>4.11.0</RoslynMaxVersion>
     <!-- xUnitApiVersion is the version of xUnit against which we build the testing framework -->
     <xUnitApiVersion>2.4.2</xUnitApiVersion>
     <MicrosoftBuildVersion>17.10.4</MicrosoftBuildVersion>
@@ -35,8 +35,6 @@
     <PackageVersion Include="Microsoft.Build.Locator" Version="1.7.8" />
     <PackageVersion Include="Microsoft.CSharp" Version="4.7.0" />
     <PackageVersion Include="Microsoft.Extensions.Logging.Console" Version="6.0.0" />
-    <PackageVersion Include="Microsoft.Net.Compilers.Toolset" Version="$(RoslynVersion)" />
-    <PackageVersion Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" Version="$(RoslynVersion)" />
     <!-- This version is also used in Metalama.Framework.Private\Directory.Packages.props. -->
     <!-- The version of Microsoft.VisualStudio.Threading must match the one used by StreamJsonRpc -->
     <PackageVersion Include="Microsoft.VisualStudio.Threading" Version="16.8.55" />

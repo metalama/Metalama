@@ -26,15 +26,15 @@
 
     <ItemGroup>
         <PackageReference Include="System.Linq.Parallel" />
-        <PackageReference Include="Microsoft.CodeAnalysis.Common" VersionOverride="$(RoslynVersion)" />
-        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" VersionOverride="$(RoslynVersion)" />
-        <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" VersionOverride="$(RoslynVersion)" />
-        <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Features" VersionOverride="$(RoslynVersion)" />
+        <PackageReference Include="Microsoft.CodeAnalysis.Common" VersionOverride="$(RoslynMaxVersion)" />
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" VersionOverride="$(RoslynMaxVersion)" />
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" VersionOverride="$(RoslynMaxVersion)" />
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Features" VersionOverride="$(RoslynMaxVersion)" />
         <PackageReference Include="Newtonsoft.Json" VersionOverride="13.0.3" />
 
         <PackageReference Include="Microsoft.Build.Locator" />
 
-        <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" VersionOverride="$(RoslynVersion)"  GeneratePathProperty="True" PrivateAssets="all" />
+        <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" VersionOverride="$(RoslynMaxVersion)"  GeneratePathProperty="True" PrivateAssets="all" />
         
         <!-- The following references handle [Memo] -->
         <ProjectReference Include="../source-dependencies/Metalama.Framework.Private/src/Metalama.SourceTransformer/Metalama.SourceTransformer.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" Condition="Exists('../source-dependencies/Metalama.Framework.Private')" />
