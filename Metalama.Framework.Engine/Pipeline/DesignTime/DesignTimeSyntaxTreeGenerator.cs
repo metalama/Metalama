@@ -629,9 +629,9 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                                                             " ",
                                                             " ",
                                                             TriviaList() ) ) ) ) )
-                                    .WithStartTag( XmlElementStartTag( XmlName( Identifier( "generated" ) ) ) )
+                                    .WithStartTag( XmlElementStartTag( XmlName( Identifier( "auto-generated" ) ) ) )
                                     .WithEndTag(
-                                        XmlElementEndTag( XmlName( Identifier( "generated" ) ) )
+                                        XmlElementEndTag( XmlName( Identifier( "auto-generated" ) ) )
                                             .WithGreaterThanToken( Token( SyntaxKind.GreaterThanToken ) ) ),
                                 XmlText()
                                     .WithTextTokens(

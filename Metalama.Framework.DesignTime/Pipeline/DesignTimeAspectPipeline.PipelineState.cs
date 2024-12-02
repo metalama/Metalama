@@ -481,16 +481,16 @@ internal sealed partial class DesignTimeAspectPipeline
 
             if ( !getConfigurationResult.IsSuccessful )
             {
-                if ( state._pipeline.Logger.Error != null )
+                if ( state._pipeline.Logger.Trace != null )
                 {
                     var errors = getConfigurationResult.Diagnostics.Where( d => d.Severity == DiagnosticSeverity.Error ).ToReadOnlyList();
 
-                    state._pipeline.Logger.Error?.Log(
-                        $"TryGetConfiguration('{compilation.Compilation.AssemblyName}') failed: {errors.Count} errors reported." );
+                    state._pipeline.Logger.Trace?.Log(
+                        $"GetConfiguration('{compilation.Compilation.AssemblyName}') failed: {errors.Count} errors reported." );
 
                     foreach ( var diagnostic in errors )
                     {
-                        state._pipeline.Logger.Error?.Log( diagnostic.ToString() );
+                        state._pipeline.Logger.Trace?.Log( diagnostic.ToString() );
                     }
                 }
 

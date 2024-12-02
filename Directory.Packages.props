@@ -5,14 +5,14 @@
   </PropertyGroup>
   <!-- Set versions of dependencies that need special treatment or consist of multiple packages of the same version. -->
   <PropertyGroup>
-    <PostSharpEngineeringVersion Condition="'$(PostSharpEngineeringVersion)'==''">2023.2.140</PostSharpEngineeringVersion>
+    <PostSharpEngineeringVersion Condition="'$(PostSharpEngineeringVersion)'==''">2023.2.150</PostSharpEngineeringVersion>
     <!-- This cannot be called just "PostSharpVersion", because that conflicts with a property used by PostSharp. -->
     <PostSharpPackageVersion>2024.1.6</PostSharpPackageVersion>
     <!-- RoslynApiMinVersion is the minimal version of the Roslyn API we support. -->
     <RoslynApiMinVersion>4.4.0</RoslynApiMinVersion>
-    <RoslynApiMaxVersion>4.12.0-1.final</RoslynApiMaxVersion>
-    <!-- RoslynVersion is the version of Roslyn from which Metalama is forked.  It is imported from the Metalama.Compiler repo.-->
-    <!--<RoslynVersion>IMPORTED!</RoslynVersion>-->
+    <RoslynApiMaxVersion>4.12.0-3.final</RoslynApiMaxVersion>
+    <!-- RoslynMaxVersion is the version of Roslyn that should be referenced by the Workspaces package. -->
+    <RoslynMaxVersion>4.12.0-3.final</RoslynMaxVersion>
     <!-- xUnitApiVersion is the version of xUnit against which we build the testing framework -->
     <xUnitApiVersion>2.4.2</xUnitApiVersion>
     <MicrosoftBuildVersion>17.10.4</MicrosoftBuildVersion>
@@ -44,8 +44,6 @@
     <PackageVersion Include="Microsoft.Build.Locator" Version="1.7.8" />
     <PackageVersion Include="Microsoft.CSharp" Version="4.7.0" />
     <PackageVersion Include="Microsoft.Extensions.Logging.Console" Version="8.0.1" />
-    <PackageVersion Include="Microsoft.Net.Compilers.Toolset" Version="$(RoslynVersion)" />
-    <PackageVersion Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" Version="$(RoslynVersion)" />
     <!-- The version of Microsoft.VisualStudio.Threading must match the one used by StreamJsonRpc -->
     <PackageVersion Include="Microsoft.VisualStudio.Threading" Version="17.6.40" />
     <PackageVersion Include="Microsoft.VisualStudio.Threading.Analyzers" Version="17.6.40" />

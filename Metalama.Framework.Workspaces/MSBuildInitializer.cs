@@ -34,7 +34,7 @@ internal static class MSBuildInitializer
         }
         else if ( !MSBuildLocator.CanRegister )
         {
-            throw new InvalidOperationException( "MSBuildLocator cannot be initialized because MSBuild assemblies are already loaded." );
+            throw new MSBuildInitializationException( "MSBuildLocator cannot be initialized because MSBuild assemblies are already loaded." );
         }
 
         if ( !Path.IsPathFullyQualified( projectDirectory ) )
@@ -60,13 +60,17 @@ internal static class MSBuildInitializer
             instances.Add( instance );
         }
 
-        if ( instances.Count == 0 )
-        {
-            throw new DotNetSdkLoadException(
-                $"Could not find a .NET SDK for {RuntimeInformation.RuntimeIdentifier} {RuntimeInformation.ProcessArchitecture}. Did you select the right .NET version and processor architecture?" );
-        }
+        _visualStudioInstance = instances.OrderByDescending( i => i.Version )
+            .Where( HasMatchingProcessorArchitecture )
+            .FirstOrDefault();
 
-        _visualStudioInstance = instances.OrderByDescending( i => i.Version ).First();
+        if ( _visualStudioInstance == null )
+        {
+            throw new MSBuildInitializationException(
+                $"Cannot find a .NET SDK compatible with the current runtime (.NET {Environment.Version} {RuntimeInformation.RuntimeIdentifier}) for the project in '{projectDirectory}'. "
+                +
+                "Consider installing a compatible SDK, or run the process with a different runtime." ) { HasArchitectureMismatch = instances.Count > 0 };
+        }
 
         _logger.Trace?.Log( $"Registering MSBuild instance {_visualStudioInstance.Name} {_visualStudioInstance.Version}." );
 
@@ -75,6 +79,39 @@ internal static class MSBuildInitializer
         AppDomain.CurrentDomain.AssemblyLoad += OnAssemblyLoad;
         AppDomain.CurrentDomain.AssemblyResolve += OnAssemblyResolve;
         AppDomain.CurrentDomain.FirstChanceException += OnFirstChanceException;
+    }
+
+    private static bool HasMatchingProcessorArchitecture( VisualStudioInstance instance )
+    {
+        var versionFile = Path.Combine( instance.MSBuildPath, ".version" );
+
+        if ( !File.Exists( versionFile ) )
+        {
+            _logger.Warning?.Log( $"Could not find the file '{versionFile}'." );
+
+            return false;
+        }
+
+        var versionLines = File.ReadAllLines( versionFile );
+
+        if ( versionFile.Length < 3 )
+        {
+            _logger.Warning?.Log( $"Version file {versionFile} is invalid." );
+
+            return false;
+        }
+
+        var platform = versionLines[2].Trim();
+        var expectedPlatform = RuntimeInformation.RuntimeIdentifier;
+
+        if ( !string.Equals( platform, expectedPlatform, StringComparison.OrdinalIgnoreCase ) )
+        {
+            _logger.Trace?.Log( $"The SDK '{instance.MSBuildPath}' is for platform '{platform}' instead of '{expectedPlatform}'." );
+
+            return false;
+        }
+
+        return true;
     }
 
     private static void OnFirstChanceException( object? sender, FirstChanceExceptionEventArgs e )

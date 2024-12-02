@@ -4,7 +4,7 @@ using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.SyntaxBuilders;
 
-namespace Metalama.Framework.Tests.AspectTests.Aspects.Bugs.Bug30076
+namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Bugs.Bug30076
 {
     //The logging of parameters requires a little more work if we are to get anything meaningful back.
     //We'll use an interpolated string to render the parameter(s) and result.

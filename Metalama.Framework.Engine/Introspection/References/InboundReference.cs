@@ -26,7 +26,7 @@ internal sealed class InboundReference( ISymbol referencedSymbol, ReferencingSym
 
     [Memo]
     public IReadOnlyList<IntrospectionReferenceDetail> Details
-        => referencingSymbolInfo.Nodes.SelectAsReadOnlyList(
+        => referencingSymbolInfo.Nodes.SelectAsImmutableArray(
             n => new IntrospectionReferenceDetail(
                 this,
                 n.ReferenceKind,

@@ -104,8 +104,8 @@ internal static partial class SyntaxFactoryEx
         => SyntaxFactory.LiteralExpression( SyntaxKind.NumericLiteralExpression, LiteralImpl( i, options ) );
 
     [PublicAPI]
-    public static LiteralExpressionSyntax LiteralExpression( char c, ObjectDisplayOptions options = ObjectDisplayOptions.None )
-        => SyntaxFactory.LiteralExpression( SyntaxKind.CharacterLiteralExpression, LiteralImpl( c, options ) );
+    public static LiteralExpressionSyntax LiteralExpression( char c )
+        => SyntaxFactory.LiteralExpression( SyntaxKind.CharacterLiteralExpression, SyntaxFactory.Literal( c ) );
 
     [PublicAPI]
     public static LiteralExpressionSyntax LiteralExpression( bool b )
@@ -139,18 +139,18 @@ internal static partial class SyntaxFactoryEx
             byte b => LiteralExpression( (int) b, options ),
             sbyte b => LiteralExpression( (int) b, options ),
             string s => LiteralExpression( s ),
-            char s => LiteralExpression( s, options ),
-            int s => LiteralExpression( s, options ),
-            uint s => LiteralExpression( s, options ),
-            long s => LiteralExpression( s, options ),
-            ulong s => LiteralExpression( s, options ),
+            char c => LiteralExpression( c ),
+            int i => LiteralExpression( i, options ),
+            uint i => LiteralExpression( i, options ),
+            long l => LiteralExpression( l, options ),
+            ulong l => LiteralExpression( l, options ),
             short s => LiteralExpression( (int) s, options ),
             ushort s => LiteralExpression( (int) s, options ),
-            double s => LiteralExpression( s, options ),
-            float s => LiteralExpression( s, options ),
+            double d => LiteralExpression( d, options ),
+            float f => LiteralExpression( f, options ),
 
             // force type suffix for decimal, since code like "decimal d = 3.14;" is not valid
-            decimal s => LiteralExpression( s, options | ObjectDisplayOptions.IncludeTypeSuffix ),
+            decimal d => LiteralExpression( d, options | ObjectDisplayOptions.IncludeTypeSuffix ),
             bool b => LiteralExpression( b ),
             _ => null
         };
