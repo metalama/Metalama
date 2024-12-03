@@ -1,7 +1,6 @@
 // Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
 using Metalama.Backstage.Diagnostics;
-using Metalama.Framework.DesignTime.Pipeline.Dependencies;
 using Metalama.Framework.DesignTime.Rpc;
 using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.Utilities;
@@ -65,8 +64,6 @@ namespace Metalama.Framework.DesignTime.Pipeline.Diff
 
             var syntaxTreesBuilder = ImmutableDictionary.CreateBuilder<string, SyntaxTreeVersion>( StringComparer.Ordinal );
 
-            var partialTypesBuilder = ImmutableHashSet.CreateBuilder<TypeDependencyKey>();
-
             var generatedSyntaxTrees = new List<SyntaxTree>();
 
             foreach ( var syntaxTree in compilation.SyntaxTrees )
@@ -109,11 +106,6 @@ namespace Metalama.Framework.DesignTime.Pipeline.Diff
                 var syntaxTreeVersion = strategy.GetSyntaxTreeVersion( syntaxTree, compilation );
 
                 syntaxTreesBuilder.Add( syntaxTree.FilePath, syntaxTreeVersion );
-
-                foreach ( var partialType in syntaxTreeVersion.PartialTypes )
-                {
-                    partialTypesBuilder.Add( partialType );
-                }
             }
 
             var syntaxTreeVersions = syntaxTreesBuilder.ToImmutable();

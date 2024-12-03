@@ -12,9 +12,9 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner;
 /// <summary>
 /// Represents a test transformation that takes syntax of a PseudoOverride-marked member and injects it.
 /// </summary>
-internal class TestPromoteFieldTransformation : TestIntroduceDeclarationTransformation, IReplaceMemberTransformation
+internal sealed class TestPromoteFieldTransformation : TestIntroduceDeclarationTransformation, IReplaceMemberTransformation
 {
-    public IFullRef<IMember>? ReplacedMember { get; set; }
+    public IFullRef<IMember>? ReplacedMember { get; }
 
     public TestPromoteFieldTransformation(
         AspectLayerInstance aspectLayerInstance, 

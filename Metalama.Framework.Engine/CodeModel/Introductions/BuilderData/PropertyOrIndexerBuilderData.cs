@@ -24,7 +24,7 @@ internal abstract class PropertyOrIndexerBuilderData : MemberBuilderData
 
     public bool HasInitOnlySetter { get; }
 
-    public RefKind RefKind { get; set; }
+    public RefKind RefKind { get; }
 
     // Accessors are abstract because we can't initialize them from the constructor because we don't have a reference to ourselves yet.
     public abstract MethodBuilderData? GetMethod { get; }

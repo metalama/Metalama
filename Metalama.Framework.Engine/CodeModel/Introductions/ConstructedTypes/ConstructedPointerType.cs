@@ -9,7 +9,7 @@ using System;
 
 namespace Metalama.Framework.Engine.CodeModel.Introductions.ConstructedTypes;
 
-internal class ConstructedPointerType : ConstructedType, IPointerType
+internal sealed class ConstructedPointerType : ConstructedType, IPointerType
 {
     private readonly IFullRef<IType> _pointedAtType;
 

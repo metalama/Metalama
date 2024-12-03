@@ -14,7 +14,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner;
 /// <summary>
 /// Represents a test transformation that takes syntax of a PseudoOverride-marked member and injects it.
 /// </summary>
-internal class TestOverrideDeclarationTransformation : TestTransformationBase, IOverrideDeclarationTransformation
+internal sealed class TestOverrideDeclarationTransformation : TestTransformationBase, IOverrideDeclarationTransformation
 {
     private readonly MemberDeclarationSyntax _syntax;
 

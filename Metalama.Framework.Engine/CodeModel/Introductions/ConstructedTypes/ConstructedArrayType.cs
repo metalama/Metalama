@@ -10,7 +10,7 @@ using TypeKind = Metalama.Framework.Code.TypeKind;
 
 namespace Metalama.Framework.Engine.CodeModel.Introductions.ConstructedTypes;
 
-internal class ConstructedArrayType : ConstructedType, IArrayType
+internal sealed class ConstructedArrayType : ConstructedType, IArrayType
 {
     private readonly IFullRef<IType> _elementType;
 
