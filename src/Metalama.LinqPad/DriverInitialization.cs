@@ -61,8 +61,10 @@ internal static class DriverInitialization
         }
     }
 
-    private class LinqPadApplicationInfo() : ApplicationInfoBase( typeof(LinqPadApplicationInfo).Assembly )
+    private class LinqPadApplicationInfo : ApplicationInfoBase
     {
+        public LinqPadApplicationInfo() : base( typeof(LinqPadApplicationInfo).Assembly ) { }
+
         public override string Name => "Metalama.LinqPad";
     }
 }

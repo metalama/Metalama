@@ -14,11 +14,18 @@ namespace Metalama.LinqPad.Tests;
 
 #pragma warning disable VSTHRD200
 
-public sealed class SchemaTests( ITestOutputHelper logger ) : UnitTestClass
+public sealed class SchemaTests : UnitTestClass
 {
+    private readonly ITestOutputHelper _logger;
+
     static SchemaTests()
     {
         Initializer.Initialize();
+    }
+
+    public SchemaTests( ITestOutputHelper logger )
+    {
+        this._logger = logger;
     }
 
     [Fact]
@@ -32,7 +39,7 @@ public sealed class SchemaTests( ITestOutputHelper logger ) : UnitTestClass
         xml.Add( new XElement( "schema", schema.Select( item => (object) ConvertToXml( item ) ) ) );
 
         var xmlString = xml.ToString();
-        logger.WriteLine( xmlString );
+        this._logger.WriteLine( xmlString );
     }
 
     [Fact( Skip = "Cannot get MSBuildLocator to work." )]
@@ -65,7 +72,7 @@ public sealed class SchemaTests( ITestOutputHelper logger ) : UnitTestClass
         var xml = new XDocument();
         xml.Add( new XElement( "schema", schema.Select( item => (object) ConvertToXml( item ) ) ) );
         var xmlString = xml.ToString();
-        logger.WriteLine( xmlString );
+        this._logger.WriteLine( xmlString );
     }
 
     private static XElement ConvertToXml( ExplorerItem item )
