@@ -8,20 +8,28 @@ using Xunit.Abstractions;
 namespace Metalama.Patterns.Caching.Tests.Backends.Distributed;
 
 // ReSharper disable once UnusedType.Global
-public class RedisDistributedCachingBackendTests(
-    CachingClassFixture cachingClassFixture,
-    RedisAssemblyFixture redisAssemblyFixture,
-    ITestOutputHelper testOutputHelper )
-    : BaseDistributedCacheTests( cachingClassFixture, testOutputHelper ), IAssemblyFixture<RedisAssemblyFixture>
+public class RedisDistributedCachingBackendTests : BaseDistributedCacheTests, IAssemblyFixture<RedisAssemblyFixture>
 {
+    private readonly RedisAssemblyFixture _redisAssemblyFixture;
+
+    public RedisDistributedCachingBackendTests(
+        CachingClassFixture cachingClassFixture,
+        RedisAssemblyFixture redisAssemblyFixture,
+        ITestOutputHelper testOutputHelper ) : base(
+        cachingClassFixture,
+        testOutputHelper )
+    {
+        this._redisAssemblyFixture = redisAssemblyFixture;
+    }
+
     protected override async Task<CachingBackend[]> CreateBackendsAsync()
     {
         var prefix = Guid.NewGuid().ToString();
 
         return
         [
-            await RedisFactory.CreateBackendAsync( this.ClassFixture, redisAssemblyFixture, this.ServiceProvider, prefix, supportsDependencies: true ),
-            await RedisFactory.CreateBackendAsync( this.ClassFixture, redisAssemblyFixture, this.ServiceProvider, prefix, supportsDependencies: true )
+            await RedisFactory.CreateBackendAsync( this.ClassFixture, this._redisAssemblyFixture, this.ServiceProvider, prefix, supportsDependencies: true ),
+            await RedisFactory.CreateBackendAsync( this.ClassFixture, this._redisAssemblyFixture, this.ServiceProvider, prefix, supportsDependencies: true )
         ];
     }
 
@@ -29,7 +37,7 @@ public class RedisDistributedCachingBackendTests(
 
     protected override void ConnectToRedisIfRequired()
     {
-        var redisTestInstance = redisAssemblyFixture.TestInstance;
+        var redisTestInstance = this._redisAssemblyFixture.TestInstance;
         this.ClassFixture.Endpoint = redisTestInstance.Endpoint;
     }
 }

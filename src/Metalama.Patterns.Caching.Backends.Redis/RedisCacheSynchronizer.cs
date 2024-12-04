@@ -12,14 +12,11 @@ namespace Metalama.Patterns.Caching.Backends.Redis;
 /// instances of local caches.
 /// </summary>
 [PublicAPI]
-internal sealed class RedisCacheSynchronizer(
-    CachingBackend underlyingBackend,
-    RedisCacheSynchronizerConfiguration configuration )
-    : CacheSynchronizer( underlyingBackend, configuration )
+internal sealed class RedisCacheSynchronizer : CacheSynchronizer
 {
-    private readonly bool _ownsConnection = configuration.OwnsConnection;
-    private readonly RedisChannel _channel = new( configuration.ChannelName, RedisChannel.PatternMode.Literal );
-    private readonly TimeSpan _connectionTimeout = configuration.ConnectionTimeout;
+    private readonly bool _ownsConnection;
+    private readonly RedisChannel _channel;
+    private readonly TimeSpan _connectionTimeout;
 
     private IConnectionMultiplexer? _connection;
 
@@ -29,6 +26,15 @@ internal sealed class RedisCacheSynchronizer(
     /// Gets the Redis <see cref="IConnectionMultiplexer"/> used by the current <see cref="RedisCacheSynchronizer"/>.
     /// </summary>
     private IConnectionMultiplexer Connection => this._connection ?? throw new InvalidOperationException( "The component is not initialized." );
+
+    public RedisCacheSynchronizer(
+        CachingBackend underlyingBackend,
+        RedisCacheSynchronizerConfiguration configuration ) : base( underlyingBackend, configuration )
+    {
+        this._ownsConnection = configuration.OwnsConnection;
+        this._connectionTimeout = configuration.ConnectionTimeout;
+        this._channel = new RedisChannel( configuration.ChannelName, RedisChannel.PatternMode.Literal );
+    }
 
     protected override void InitializeCore()
     {

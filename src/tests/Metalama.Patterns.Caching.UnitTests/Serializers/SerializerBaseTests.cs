@@ -5,16 +5,23 @@ using Xunit;
 
 namespace Metalama.Patterns.Caching.Tests.Serializers
 {
-    public abstract class SerializerBaseTests( ICachingSerializer serializer )
+    public abstract class SerializerBaseTests
     {
+        private readonly ICachingSerializer _serializer;
+
+        protected SerializerBaseTests( ICachingSerializer serializer )
+        {
+            this._serializer = serializer;
+        }
+
         private object? RoundTrip( object? cacheItem )
         {
             var memoryStream = new MemoryStream();
             var writer = new BinaryWriter( memoryStream );
-            serializer.Serialize( cacheItem, writer );
+            this._serializer.Serialize( cacheItem, writer );
             memoryStream.Seek( 0, SeekOrigin.Begin );
             var reader = new BinaryReader( memoryStream );
-            var newCacheItem = serializer.Deserialize( reader );
+            var newCacheItem = this._serializer.Deserialize( reader );
 
             return newCacheItem;
         }

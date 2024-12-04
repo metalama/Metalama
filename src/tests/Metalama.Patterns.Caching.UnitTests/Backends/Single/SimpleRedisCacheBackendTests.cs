@@ -10,12 +10,20 @@ using Xunit.Abstractions;
 namespace Metalama.Patterns.Caching.Tests.Backends.Single;
 
 // ReSharper disable once UnusedType.Global
-public class SimpleRedisCacheBackendTests(
-    CachingClassFixture cachingClassFixture,
-    RedisAssemblyFixture redisAssemblyFixture,
-    ITestOutputHelper testOutputHelper )
-    : BaseCacheBackendTests( cachingClassFixture, testOutputHelper ), IAssemblyFixture<RedisAssemblyFixture>
+public class SimpleRedisCacheBackendTests : BaseCacheBackendTests, IAssemblyFixture<RedisAssemblyFixture>
 {
+    private readonly RedisAssemblyFixture _redisAssemblyFixture;
+
+    public SimpleRedisCacheBackendTests(
+        CachingClassFixture cachingClassFixture,
+        RedisAssemblyFixture redisAssemblyFixture,
+        ITestOutputHelper testOutputHelper ) : base(
+        cachingClassFixture,
+        testOutputHelper )
+    {
+        this._redisAssemblyFixture = redisAssemblyFixture;
+    }
+
     protected override void AddServices( ServiceCollection serviceCollection )
     {
         base.AddServices( serviceCollection );
@@ -43,6 +51,6 @@ public class SimpleRedisCacheBackendTests(
     private async Task<CheckAfterDisposeCachingBackend> CreateBackendAsync( string? keyPrefix )
     {
         return new CheckAfterDisposeCachingBackend(
-            await RedisFactory.CreateBackendAsync( this.ClassFixture, redisAssemblyFixture, serviceProvider: this.ServiceProvider, prefix: keyPrefix ) );
+            await RedisFactory.CreateBackendAsync( this.ClassFixture, this._redisAssemblyFixture, serviceProvider: this.ServiceProvider, prefix: keyPrefix ) );
     }
 }
