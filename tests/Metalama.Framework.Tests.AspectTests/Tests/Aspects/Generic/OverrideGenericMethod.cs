@@ -1,7 +1,7 @@
 using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 
-namespace Metalama.Framework.Tests.PublicPipeline.Aspects.Generic.OverrideGenericMethod
+namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Generic.OverrideGenericMethod
 {
     internal class Aspect : OverrideMethodAspect
     {
