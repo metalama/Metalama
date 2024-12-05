@@ -12,7 +12,7 @@ using System.Linq;
 
 namespace Metalama.Framework.Engine.CompileTime.Serialization.Serializers;
 
-internal class AttributeSerializationData
+internal sealed class AttributeSerializationData
 {
     public IRef<IDeclaration> ContainingDeclaration { get; }
 

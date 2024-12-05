@@ -45,13 +45,13 @@ internal sealed class IntroducedTypeParameter : IntroducedDeclaration, ITypePara
     bool IType.Equals( SpecialType specialType ) => false;
 
     public bool Equals( IType? otherType, TypeComparison typeComparison )
-        => otherType is IntroducedTypeParameter otherBuildTypeParameter && otherBuildTypeParameter.BuilderData == this.BuilderData;
+        => otherType is IntroducedTypeParameter otherBuildTypeParameter && otherBuildTypeParameter.BuilderData.Equals( this.BuilderData );
 
     public IArrayType MakeArrayType( int rank = 1 ) => new ConstructedArrayType( this.Compilation, this.Ref, rank );
 
     public IPointerType MakePointerType() => new ConstructedPointerType( this.Compilation, this.Ref );
 
-    public IType ToNullable()
+    private IType ToNullable()
     {
         if ( this.IsNullable == true )
         {

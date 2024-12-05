@@ -19,7 +19,7 @@ namespace Metalama.Framework.Engine.CompileTime.Serialization
 
         public static SerializationCause Root( Type type ) => new( type.Name, null );
 
-        public SerializationCause WithFieldAccess( Type type, string fieldName ) => new( "." + fieldName, this );
+        public SerializationCause WithFieldAccess( string fieldName ) => new( "." + fieldName, this );
 
         public SerializationCause WithArrayAccess( params int[] indices )
         {

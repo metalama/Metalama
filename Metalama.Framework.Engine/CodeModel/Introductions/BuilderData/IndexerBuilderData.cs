@@ -11,7 +11,7 @@ using System.Linq;
 
 namespace Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 
-internal class IndexerBuilderData : PropertyOrIndexerBuilderData
+internal sealed class IndexerBuilderData : PropertyOrIndexerBuilderData
 {
     private readonly IntroducedRef<IIndexer> _ref;
 
@@ -48,8 +48,6 @@ internal class IndexerBuilderData : PropertyOrIndexerBuilderData
     public override DeclarationKind DeclarationKind => DeclarationKind.Indexer;
 
     public override IRef<IMember> OverriddenMember => throw new NotImplementedException();
-
-    public override IReadOnlyList<IRef<IMember>> ExplicitInterfaceImplementationMembers => this.ExplicitInterfaceImplementations;
 
     public override MethodBuilderData? GetMethod { get; }
 

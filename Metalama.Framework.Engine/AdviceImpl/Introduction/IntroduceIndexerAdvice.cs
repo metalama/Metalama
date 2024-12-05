@@ -38,7 +38,7 @@ internal sealed class IntroduceIndexerAdvice : IntroduceMemberAdvice<IIndexer, I
         this._setTemplate = setTemplate;
     }
 
-    protected override IndexerBuilder CreateBuilder( in AdviceImplementationContext context )
+    protected override IndexerBuilder CreateBuilder()
     {
         var hasGet = this._getTemplate != null;
         var hasSet = this._setTemplate != null;

@@ -11,7 +11,7 @@ namespace Metalama.Framework.Engine.CodeModel.GenericContexts;
 /// <summary>
 /// Implements a <see cref="GenericContext"/> that may map parameters to introduced types (instead of just symbols).
 /// </summary>
-internal class IntroducedGenericContext : GenericContext
+internal sealed class IntroducedGenericContext : GenericContext
 {
     private readonly ImmutableArray<IFullRef<IType>> _typeArguments;
     private readonly IntroducedGenericContext? _parentContext;
@@ -47,7 +47,7 @@ internal class IntroducedGenericContext : GenericContext
         }
     }
 
-    internal override IType Map( ITypeParameterSymbol typeParameterSymbol, CompilationModel compilation )
+    protected override IType Map( ITypeParameterSymbol typeParameterSymbol, CompilationModel compilation )
     {
         // We must be called only in the context of the symbol-based declaration, otherwise there could be no ITypeParameterSymbol.
         var ourDefinitionSymbol = this._definition.Definition.GetSymbol().AssertSymbolNotNull();

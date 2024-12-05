@@ -18,15 +18,15 @@ internal sealed class ConstructorInliner : Inliner
         IMethodSymbol contextConstructor,
         ObjectCreationExpressionSyntax objectCreationExpression )
     {
-        (var expectedNumberOfParameters, var argumentMapFunc) =
+        var (expectedNumberOfParameters, argumentMapFunc) =
             contextConstructor.Parameters switch
             {
-                [.., { Name: AspectReferenceSyntaxProvider.LinkerOverrideParamName }, { IsParams: true }] => 
-                    (contextConstructor.Parameters.Length - 1, i => i < contextConstructor.Parameters.Length - 2 ? i : i + 1 ),
+                [.., { Name: AspectReferenceSyntaxProvider.LinkerOverrideParamName }, { IsParams: true }] =>
+                    (contextConstructor.Parameters.Length - 1, i => i < contextConstructor.Parameters.Length - 2 ? i : i + 1),
                 [.., { Name: AspectReferenceSyntaxProvider.LinkerOverrideParamName }] =>
-                    (contextConstructor.Parameters.Length - 1, i => i ),
-                _ => 
-                    (contextConstructor.Parameters.Length, (Func<int, int>)(i => i)),
+                    (contextConstructor.Parameters.Length - 1, i => i),
+                _ =>
+                    (contextConstructor.Parameters.Length, (Func<int, int>) (i => i)),
             };
 
         return
@@ -34,7 +34,9 @@ internal sealed class ConstructorInliner : Inliner
             && (objectCreationExpression.ArgumentList?.Arguments
                     .Select( ( x, i ) => (Argument: x.Expression, Index: i) )
                     .All(
-                        a => SymbolEqualityComparer.Default.Equals( semanticModel.GetSymbolInfo( a.Argument ).Symbol, contextConstructor.Parameters[argumentMapFunc(a.Index)] ) )
+                        a => SymbolEqualityComparer.Default.Equals(
+                            semanticModel.GetSymbolInfo( a.Argument ).Symbol,
+                            contextConstructor.Parameters[argumentMapFunc( a.Index )] ) )
                 ?? false);
     }
 

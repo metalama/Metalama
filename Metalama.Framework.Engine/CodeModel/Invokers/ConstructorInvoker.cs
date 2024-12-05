@@ -118,17 +118,16 @@ internal sealed class ConstructorInvoker : Invoker<IConstructor>, IConstructorIn
         }
 
         protected override ExpressionSyntax ToSyntax( SyntaxSerializationContext syntaxSerializationContext, IType? targetType = null )
-        {
-            return CreateObjectCreationExpression(
+            => CreateObjectCreationExpression(
                 syntaxSerializationContext.SyntaxGenerator.TypeSyntax( this._constructor.DeclaringType ),
                 this._argumentFactory( syntaxSerializationContext )
-                .Select( ( e, i ) =>
-                    Argument(
-                        NameColon( IdentifierName( this._constructor.Parameters[i].Name ) ),
-                        this._constructor.Parameters[i].RefKind.InvocationRefKindToken(),
-                        e ) ),
+                    .Select(
+                        ( e, i ) =>
+                            Argument(
+                                NameColon( IdentifierName( this._constructor.Parameters[i].Name ) ),
+                                this._constructor.Parameters[i].RefKind.InvocationRefKindToken(),
+                                e ) ),
                 null );
-        }
 
         public IExpression WithObjectInitializer( params (IFieldOrProperty FieldOrProperty, IExpression Value)[] initializationExpressions )
             => new ObjectCreationExpressionWithObjectInitializer(
@@ -159,15 +158,15 @@ internal sealed class ConstructorInvoker : Invoker<IConstructor>, IConstructorIn
         }
 
         protected override ExpressionSyntax ToSyntax( SyntaxSerializationContext syntaxSerializationContext, IType? targetType = null )
-        {
-            return CreateObjectCreationExpression(
+            => CreateObjectCreationExpression(
                 syntaxSerializationContext.SyntaxGenerator.TypeSyntax( this._constructor.DeclaringType ),
                 this._argumentFactory( syntaxSerializationContext )
-                .Select( ( e, i ) =>
-                    Argument(
-                        NameColon( IdentifierName( this._constructor.Parameters[i].Name ) ),
-                        this._constructor.Parameters[i].RefKind.InvocationRefKindToken(),
-                        e ) ),
+                    .Select(
+                        ( e, i ) =>
+                            Argument(
+                                NameColon( IdentifierName( this._constructor.Parameters[i].Name ) ),
+                                this._constructor.Parameters[i].RefKind.InvocationRefKindToken(),
+                                e ) ),
                 InitializerExpression(
                     SyntaxKind.ObjectInitializerExpression,
                     SeparatedList<ExpressionSyntax>(
@@ -177,6 +176,5 @@ internal sealed class ConstructorInvoker : Invoker<IConstructor>, IConstructorIn
                                     SyntaxKind.SimpleAssignmentExpression,
                                     IdentifierName( i.FieldOrPropertyName ),
                                     i.Value.ToExpressionSyntax( syntaxSerializationContext ) ) ) ) ) );
-        }
     }
 }

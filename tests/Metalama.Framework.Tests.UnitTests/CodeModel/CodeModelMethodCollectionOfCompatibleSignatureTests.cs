@@ -5,7 +5,6 @@ using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Tests.UnitTests.Utilities;
 using Metalama.Testing.UnitTesting;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using Xunit;
 
@@ -65,7 +64,7 @@ class C
             var matchedMethods7 = type.Methods.OfCompatibleSignature( "Foo", argumentTypes: new[] { objectType, intType } ).ToArray();
             Assert.Equal( new[] { type.Methods.ElementAt( 4 ) }, matchedMethods7 );
             var matchedMethods8 = type.Methods.OfCompatibleSignature( "Foo", argumentTypes: new[] { objectType, objectType, objectType } ).ToArray();
-            Assert.Equal( Array.Empty<IMethod>(), matchedMethods8 );
+            Assert.Equal( [], matchedMethods8 );
         }
 
         [Fact]
@@ -324,46 +323,47 @@ class C
         public void Matches_ParamsCollections()
         {
             using var testContext = this.CreateTestContext();
+
             const string code = """
-                using System;
-                using System.Collections.Generic;
-                using System.Collections.Immutable;
-                using System.Runtime.CompilerServices;
+                                using System;
+                                using System.Collections.Generic;
+                                using System.Collections.Immutable;
+                                using System.Runtime.CompilerServices;
 
-                class C
-                {
-                    public void Foo() { } // 0
-                    public void Foo(int x) { } // 1
-                    public void Foo(int x, int y) { } // 2
+                                class C
+                                {
+                                    public void Foo() { } // 0
+                                    public void Foo(int x) { } // 1
+                                    public void Foo(int x, int y) { } // 2
+                                
+                                    public void Foo(params int[] a) { } // 3
+                                    public void Foo(params List<int> l) { } // 4
+                                    public void Foo(params Span<int> s) { } // 5
+                                    public void Foo(params ReadOnlySpan<int> s) { } // 6
+                                    public void Foo(params ImmutableArray<int> a) { } // 7
+                                    public void Foo(params CustomNonEnumerableCollection c) { } // 8
+                                }
 
-                    public void Foo(params int[] a) { } // 3
-                    public void Foo(params List<int> l) { } // 4
-                    public void Foo(params Span<int> s) { } // 5
-                    public void Foo(params ReadOnlySpan<int> s) { } // 6
-                    public void Foo(params ImmutableArray<int> a) { } // 7
-                    public void Foo(params CustomNonEnumerableCollection c) { } // 8
-                }
+                                [CollectionBuilder(typeof(CustomNonEnumerableCollection), "Create")]
+                                public class CustomNonEnumerableCollection
+                                {
+                                    public static CustomNonEnumerableCollection Create(ReadOnlySpan<int> s) => null!;
+                                
+                                    public IEnumerator<int> GetEnumerator() => null!;
+                                }
 
-                [CollectionBuilder(typeof(CustomNonEnumerableCollection), "Create")]
-                public class CustomNonEnumerableCollection
-                {
-                    public static CustomNonEnumerableCollection Create(ReadOnlySpan<int> s) => null!;
-
-                    public IEnumerator<int> GetEnumerator() => null!;
-                }
-
-                namespace System.Runtime.CompilerServices
-                {
-                    class CollectionBuilderAttribute(Type collectionType, string factoryMethod) : Attribute;
-                }
-                """;
+                                namespace System.Runtime.CompilerServices
+                                {
+                                    class CollectionBuilderAttribute(Type collectionType, string factoryMethod) : Attribute;
+                                }
+                                """;
 
             var compilation = testContext.CreateCompilationModel( code );
             var type = compilation.Types.OfName( "C" ).Single();
             var intType = compilation.Factory.GetTypeByReflectionType( typeof(int) );
-            var listIntType = compilation.Factory.GetTypeByReflectionType( typeof(List<int>) );
 
-            IMethod[] paramsMethods = [
+            IMethod[] paramsMethods =
+            [
                 type.Methods.ElementAt( 3 ),
                 type.Methods.ElementAt( 4 ),
                 type.Methods.ElementAt( 5 ),
@@ -375,7 +375,7 @@ class C
             var matchedMethods1 = type.Methods.OfCompatibleSignature( "Foo", Array.Empty<IType>() );
             Assert.Equal( [type.Methods.ElementAt( 0 ), .. paramsMethods], matchedMethods1 );
 
-            var matchedMethods2 = type.Methods.OfCompatibleSignature( "Foo", [ intType ] );
+            var matchedMethods2 = type.Methods.OfCompatibleSignature( "Foo", [intType] );
             Assert.Equal( [type.Methods.ElementAt( 1 ), .. paramsMethods], matchedMethods2 );
 
             var matchedMethods3 = type.Methods.OfCompatibleSignature( "Foo", [intType, intType] );
@@ -442,7 +442,7 @@ class C : B
             var matchedMethods8 = typeC.AllMethods.OfCompatibleSignature( "Trw", Array.Empty<IType>() ).ToArray();
             Assert.Equal( new[] { typeC.Methods.ElementAt( 1 ) }, matchedMethods8 );
             var matchedMethods9 = typeC.AllMethods.OfCompatibleSignature( "Xyzzy", Array.Empty<IType>() ).ToArray();
-            Assert.Equal( Array.Empty<IMethod>(), matchedMethods9 );
+            Assert.Equal( [], matchedMethods9 );
         }
     }
 }

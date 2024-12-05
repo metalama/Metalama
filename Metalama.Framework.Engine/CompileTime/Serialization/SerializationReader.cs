@@ -174,7 +174,7 @@ internal sealed class SerializationReader
         {
             string fieldName = this._binaryReader.ReadDottedString();
 
-            var newCause = cause?.WithFieldAccess( type, fieldName );
+            var newCause = cause?.WithFieldAccess( fieldName );
             var value = this.ReadTypedValue( initializeObjects, newCause );
 
             fields.Values!.Add( fieldName, value );

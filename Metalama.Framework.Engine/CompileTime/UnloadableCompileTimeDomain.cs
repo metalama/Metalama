@@ -42,8 +42,6 @@ namespace Metalama.Framework.Engine.CompileTime
             this._taskRunner = serviceProvider.GetRequiredService<ITaskRunner>();
         }
 
-        public event Action? Unloaded;
-
         public event Action<string>? UnloadError;
 
         public override Assembly LoadAssembly( string path )
@@ -79,19 +77,7 @@ namespace Metalama.Framework.Engine.CompileTime
         }
 
         [ExcludeFromCodeCoverage]
-        public Task UnloadAndWaitAsync()
-        {
-            // Must call the base Dispose method to clear the base cache.
-            this.Dispose( true );
-
-            return this._unloadedTask.Task;
-        }
-
-        [ExcludeFromCodeCoverage]
-        private void WaitForDisposal()
-        {
-            this._taskRunner.RunSynchronously( this.WaitForDisposalAsync );
-        }
+        private void WaitForDisposal() => this._taskRunner.RunSynchronously( this.WaitForDisposalAsync );
 
         [ExcludeFromCodeCoverage]
         private Task WaitForDisposalAsync()
@@ -136,7 +122,6 @@ namespace Metalama.Framework.Engine.CompileTime
                     {
                         this._unloadedTask.SetResult( true );
 
-                        this.Unloaded?.Invoke();
                         this.Observer?.OnDomainUnloaded( this );
 
                         return;

@@ -56,7 +56,7 @@ internal sealed class IntroducedIndexer : IntroducedPropertyOrIndexer, IIndexerI
 
     public IRef<IIndexer> ToRef() => this.Ref;
 
-    public override IFullRef<IMember> ToMemberFullRef() => this.Ref;
+    protected override IFullRef<IMember> ToMemberFullRef() => this.Ref;
 
     private protected override IFullRef<IDeclaration> ToFullDeclarationRef() => this.Ref;
 

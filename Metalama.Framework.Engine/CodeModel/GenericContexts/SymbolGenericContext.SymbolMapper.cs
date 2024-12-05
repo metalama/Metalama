@@ -27,7 +27,7 @@ internal partial class SymbolGenericContext
 
             if ( memberInTypeInstance.Kind == SymbolKind.Method )
             {
-                var contextMethodSymbol = this._typeSymbolMapper.GenericContext.MethodSymbol;
+                var contextMethodSymbol = this._typeSymbolMapper.GenericContext._methodSymbol;
 
                 if ( contextMethodSymbol != null )
                 {

@@ -58,12 +58,12 @@ internal interface IFullRef : IRefImpl
     /// <summary>
     /// Enumerates all interfaces implemented in source code or in the builder, but not introduced interfaces. Only for named types.
     /// </summary>
-    void EnumerateAllImplementedInterfaces( CompilationModel compilation, Action<IFullRef<INamedType>> add );
+    void EnumerateAllImplementedInterfaces( Action<IFullRef<INamedType>> add );
 
     /// <summary>
     /// Enumerates all interfaces implemented in source code or in the builder, but not introduced interfaces. Only for named types.
     /// </summary>
-    void EnumerateImplementedInterfaces( CompilationModel compilation, Action<IFullRef<INamedType>> add );
+    void EnumerateImplementedInterfaces( Action<IFullRef<INamedType>> add );
 
     /// <summary>
     /// Gets all members of a given name declared in source code (but not introduced ones). For builders, this returns an empty collection.

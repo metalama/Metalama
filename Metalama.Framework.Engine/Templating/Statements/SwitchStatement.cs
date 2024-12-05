@@ -96,7 +96,7 @@ internal sealed class SwitchStatement : IStatementImpl
             sections.Add( section );
         }
 
-        var switchExpression = ((IUserExpression) this._expression).ToTypedExpressionSyntax( templateSyntaxFactory.SyntaxSerializationContext, null ).Syntax;
+        var switchExpression = ((IUserExpression) this._expression).ToTypedExpressionSyntax( templateSyntaxFactory.SyntaxSerializationContext ).Syntax;
 
         if ( switchExpression is TupleExpressionSyntax tuple )
         {
@@ -104,8 +104,6 @@ internal sealed class SwitchStatement : IStatementImpl
             switchExpression = tuple.WithArguments( SeparatedList( tuple.Arguments.SelectAsReadOnlyCollection( a => a.WithNameColon( null ) ) ) );
         }
 
-        return SwitchStatement(
-            switchExpression,
-            List( sections ) );
+        return SwitchStatement( switchExpression, List( sections ) );
     }
 }

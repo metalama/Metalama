@@ -1,5 +1,6 @@
 ﻿// Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
+using JetBrains.Annotations;
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.CodeModel.Abstractions;
 using Metalama.Framework.Engine.CodeModel.Introductions.Introduced;
@@ -24,16 +25,9 @@ internal static class CodeModelInternalExtensions
 
     public static RefFactory GetRefFactory( this ICompilationElement declaration ) => ((CompilationModel) declaration.Compilation).RefFactory;
 
-    [Obsolete( "Use the Compilation property." )]
-    public static CompilationModel GetCompilationModel( this ICompilationElementImpl declaration ) => declaration.Compilation;
-
     public static CompilationContext GetCompilationContext( this ICompilationElementImpl declaration ) => declaration.Compilation.CompilationContext;
 
     public static CompilationContext GetCompilationContext( this ICompilationElement declaration ) => declaration.GetCompilationModel().CompilationContext;
-
-    // Resharper disable UnusedMember.Global
-    [Obsolete( "Redundant call" )]
-    public static CompilationModel GetCompilationModel( this CompilationModel compilation ) => compilation;
 
     public static AttributeData GetAttributeData( this IAttribute attribute )
     {
@@ -89,6 +83,7 @@ internal static class CodeModelInternalExtensions
         }
     }
 
+    [PublicAPI]
     public static InsertPosition ToInsertPosition( this IDeclaration declaration )
     {
         using ( StackOverflowHelper.Detect() )

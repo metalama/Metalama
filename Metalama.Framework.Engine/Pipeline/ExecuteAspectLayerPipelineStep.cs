@@ -28,7 +28,7 @@ namespace Metalama.Framework.Engine.Pipeline;
 /// </summary>
 internal sealed class ExecuteAspectLayerPipelineStep : PipelineStep
 {
-    private readonly List<AspectInstance> _aspectInstances = new();
+    private readonly List<AspectInstance> _aspectInstances = [];
     private readonly IConcurrentTaskRunner _concurrentTaskRunner;
 
     public ExecuteAspectLayerPipelineStep( PipelineStepsState parent, PipelineStepId stepId, OrderedAspectLayer aspectLayer )
@@ -241,7 +241,7 @@ internal sealed class ExecuteAspectLayerPipelineStep : PipelineStep
                 if ( x.TargetDeclaration is IMethod xMethod && y.TargetDeclaration is IMethod yMethod )
                 {
                     Invariant.Assert(
-                        xMethod.DeclaringType == yMethod.DeclaringType
+                        ReferenceEquals( xMethod.DeclaringType, yMethod.DeclaringType )
                         && xMethod.DeclaringType.TypeKind is TypeKind.RecordClass or TypeKind.RecordStruct
                         && xMethod.IsImplicitlyDeclared && yMethod.IsImplicitlyDeclared );
 

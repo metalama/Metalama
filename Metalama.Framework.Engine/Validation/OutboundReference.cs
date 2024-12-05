@@ -5,4 +5,4 @@ using Microsoft.CodeAnalysis;
 
 namespace Metalama.Framework.Engine.Validation;
 
-internal record OutboundReference( ISymbol ReferencedSymbol, ISymbol ReferencingSymbol, SyntaxNodeOrToken Node, ReferenceKinds ReferenceKind );
+internal sealed record OutboundReference( ISymbol ReferencedSymbol, ISymbol ReferencingSymbol, SyntaxNodeOrToken Node, ReferenceKinds ReferenceKind );

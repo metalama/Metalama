@@ -2,20 +2,16 @@
 
 using System;
 
-namespace Metalama.Framework.Engine.Utilities
+namespace Metalama.Framework.Engine.Utilities;
+
+public readonly struct DisposeAction : IDisposable
 {
-    public readonly struct DisposeAction : IDisposable
+    private readonly Action? _action;
+
+    internal DisposeAction( Action action )
     {
-        private readonly Action? _action;
-
-        public DisposeAction( Action action )
-        {
-            this._action = action;
-        }
-
-        public void Dispose()
-        {
-            this._action?.Invoke();
-        }
+        this._action = action;
     }
+
+    public void Dispose() => this._action?.Invoke();
 }

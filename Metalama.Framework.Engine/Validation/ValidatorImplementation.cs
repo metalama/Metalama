@@ -19,7 +19,7 @@ public readonly struct ValidatorImplementation
             _ => throw new AssertionFailedException( $"Unexpected predecessor type: {predecessor.GetType()}." )
         };
 
-    public static ValidatorImplementation Create( object implementation, IAspectState? aspectState = null ) => new( implementation, aspectState );
+    internal static ValidatorImplementation Create( object implementation, IAspectState? aspectState = null ) => new( implementation, aspectState );
 
     private ValidatorImplementation( IAspectInstance aspectInstance )
     {

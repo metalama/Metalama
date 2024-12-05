@@ -63,7 +63,7 @@ internal abstract class ConstructedType : ITypeImpl
             _ => false
         };
 
-    public IArrayType MakeArrayType( int rank = 1 ) => new ConstructedArrayType( this.Compilation, this.ToTypeFullRef(), rank, false );
+    public IArrayType MakeArrayType( int rank = 1 ) => new ConstructedArrayType( this.Compilation, this.ToTypeFullRef(), rank, isNullable: false );
 
     public IPointerType MakePointerType() => new ConstructedPointerType( this.Compilation, this.ToTypeFullRef() );
 
@@ -74,8 +74,6 @@ internal abstract class ConstructedType : ITypeImpl
     protected abstract IType ToNullableCore();
 
     protected abstract IType ToNonNullableCore();
-
-    protected abstract ConstructedType ForCompilation( CompilationModel compilation );
 
     public abstract int GetHashCode( TypeComparison refComparison );
 

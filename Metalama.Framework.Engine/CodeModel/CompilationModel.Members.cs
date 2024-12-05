@@ -5,7 +5,6 @@ using Metalama.Framework.Engine.AdviceImpl.Attributes;
 using Metalama.Framework.Engine.AdviceImpl.InterfaceImplementation;
 using Metalama.Framework.Engine.AdviceImpl.Introduction;
 using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
-using Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.CodeModel.UpdatableCollections;
 using Metalama.Framework.Engine.Collections;
@@ -40,65 +39,6 @@ public sealed partial class CompilationModel
     internal ImmutableDictionaryOfArray<IRef<IDeclaration>, AnnotationInstance> Annotations { get; private set; }
 
     private bool IsMutable { get; }
-
-    internal bool Contains( FieldBuilderData fieldBuilder )
-        => (this._fields.TryGetValue( fieldBuilder.DeclaringType, out var fields )
-            && fields.Contains( fieldBuilder.ToRef() ))
-           || this.IsRedirected( fieldBuilder.ToRef() );
-
-    internal bool Contains( MethodBuilderData methodBuilder )
-        => methodBuilder switch
-        {
-            { MethodKind: MethodKind.Finalizer } =>
-                this._finalizers.TryGetValue( methodBuilder.DeclaringType, out var finalizer )
-                && finalizer == methodBuilder,
-            _ =>
-                this._methods.TryGetValue( methodBuilder.DeclaringType, out var methods )
-                && methods.Contains( methodBuilder.ToRef() )
-        };
-
-    internal bool Contains( ConstructorBuilderData constructorBuilder )
-        => (this._constructors.TryGetValue( constructorBuilder.DeclaringType, out var constructors )
-            && constructors.Contains( constructorBuilder.ToRef() ))
-           || (this._staticConstructors.TryGetValue( constructorBuilder.DeclaringType, out var staticConstructors )
-               && staticConstructors == constructorBuilder);
-
-    internal bool Contains( EventBuilderData eventBuilder )
-        => this._events.TryGetValue( eventBuilder.DeclaringType, out var events )
-           && events.Contains( eventBuilder.ToRef() );
-
-    internal bool Contains( PropertyBuilderData propertyBuilder )
-        => this._properties.TryGetValue( propertyBuilder.DeclaringType, out var properties )
-           && properties.Contains( propertyBuilder.ToRef() );
-
-    internal bool Contains( IndexerBuilderData indexerBuilder )
-        => this._indexers.TryGetValue( indexerBuilder.DeclaringType, out var indexers )
-           && indexers.Contains( indexerBuilder.ToRef() );
-
-    internal bool Contains( ParameterBuilderData parameterBuilder )
-        => parameterBuilder.ContainingDeclaration switch
-        {
-            null => false,
-            _ => this._parameters.TryGetValue( parameterBuilder.ContainingDeclaration.As<IHasParameters>(), out var parameters )
-                 && parameters.Contains( parameterBuilder.ToRef() )
-        };
-
-    internal bool Contains( NamedTypeBuilder namedTypeBuilder )
-    {
-        var namespaceOrNamedType = (INamespaceOrNamedType?) namedTypeBuilder.DeclaringType
-                                   ?? namedTypeBuilder.ContainingNamespace ?? throw new AssertionFailedException();
-
-        return this._namedTypesByParent.TryGetValue(
-                   namespaceOrNamedType.ToFullRef(),
-                   out var namedTypes )
-               && namedTypes.Contains( namedTypeBuilder.ToRef() );
-    }
-
-    internal bool Contains( NamespaceBuilder namespaceBuilder )
-    {
-        // Anomaly with namespaces: many instances of the NamespaceBuilder class can represent the same entity, so we rely on the full name.
-        return this._namespaceBuilders.ContainsKey( namespaceBuilder.FullName );
-    }
 
     private TCollection GetMemberCollection<TOwner, TCollection>(
         ref ImmutableDictionary<IFullRef<TOwner>, TCollection> dictionary,
@@ -204,7 +144,7 @@ public sealed partial class CompilationModel
             parent,
             static ( c, t ) => new TypeUpdatableCollection( c, t ) );
 
-    internal TypeUpdatableCollection GetTopLevelNamedTypeCollection( bool mutable = false )
+    private TypeUpdatableCollection GetTopLevelNamedTypeCollection( bool mutable = false )
     {
         if ( this._topLevelNamedTypes != null )
         {
@@ -264,6 +204,7 @@ public sealed partial class CompilationModel
         }
 
         // Replaced declaration should be always removed before adding the replacement.
+        // ReSharper disable once ConvertIfStatementToSwitchStatement
         if ( transformation is IReplaceMemberTransformation replaceMember )
         {
             this.AddReplaceMemberTransformation( replaceMember );

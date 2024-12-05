@@ -38,7 +38,7 @@ namespace Metalama.Framework.Engine.CodeModel
             public override ImmutableHashSet<INamespaceSymbol> Namespaces
                 => this.Compilation.SourceModule.GlobalNamespace.SelectManyRecursive( n => n.GetNamespaceMembers() ).ToImmutableHashSet();
 
-            public override bool IsSyntaxTreeObserved( string syntaxTreePath ) => true;
+            internal override bool IsSyntaxTreeObserved( string syntaxTreePath ) => true;
 
             public override bool IsPartial => false;
 

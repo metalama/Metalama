@@ -88,6 +88,7 @@ internal abstract class IntroduceMemberAdvice<TTemplate, TIntroduced, TBuilder> 
 
         // Extern templates have to be used with members without bodies (abstract, partial, extern).
         var isTemplateWithoutBody = this.Template?.TemplateClassMember.TemplateInfo.HasNoBody == true;
+
         var isExplicitlyAbstractOrPartialOrExtern = 
             templateAttributeProperties?.IsAbstract == true
             || templateAttributeProperties?.IsPartial == true
@@ -149,9 +150,9 @@ internal abstract class IntroduceMemberAdvice<TTemplate, TIntroduced, TBuilder> 
         this.InitializeBuilderCore( builder, templateAttributeProperties, in context );
     }
 
-    protected override void CompleteBuilder( TBuilder builder, in AdviceImplementationContext context )
+    protected override void CompleteBuilder( TBuilder builder )
     {
-        base.CompleteBuilder( builder, in context );
+        base.CompleteBuilder( builder );
 
         SetBuilderExplicitInterfaceImplementation( builder, this._explicitlyImplementedInterfaceType );
     }
@@ -203,10 +204,10 @@ internal abstract class IntroduceMemberAdvice<TTemplate, TIntroduced, TBuilder> 
         }
 
         // Check that partial member is not introduced to a non-partial type.
-        if ( builder.IsAbstract && !targetDeclaration.IsAbstract )
+        if ( builder.IsPartial && !targetDeclaration.IsPartial )
         {
             diagnosticAdder.Report(
-                AdviceDiagnosticDescriptors.CannotIntroduceAbstractMemberToNonAbstractType.CreateRoslynDiagnostic(
+                AdviceDiagnosticDescriptors.CannotIntroducePartialMemberToNonPartialType.CreateRoslynDiagnostic(
                     targetDeclaration.GetDiagnosticLocation(),
                     (this.AspectInstance.AspectClass.ShortName, builder, targetDeclaration),
                     this ) );
@@ -214,7 +215,7 @@ internal abstract class IntroduceMemberAdvice<TTemplate, TIntroduced, TBuilder> 
 
         // Check that template without body is not used OverrideStrategy.Override.
         if ( builder.IsAbstract
-             && this.OverrideStrategy is OverrideStrategy.Override or OverrideStrategy.New)
+             && this.OverrideStrategy is OverrideStrategy.Override or OverrideStrategy.New )
         {
             diagnosticAdder.Report(
                 AdviceDiagnosticDescriptors.CannotIntroduceAbstractMemberWithOverrideStrategy.CreateRoslynDiagnostic(

@@ -58,11 +58,11 @@ public partial class GenericContext
             }
         }
 
-        public override IType? VisitPointerType( IPointerTypeSymbol symbol ) => this.Visit( symbol.PointedAtType )!.MakePointerType();
+        public override IType VisitPointerType( IPointerTypeSymbol symbol ) => this.Visit( symbol.PointedAtType )!.MakePointerType();
 
-        public override IType? VisitFunctionPointerType( IFunctionPointerTypeSymbol symbol )
+        public override IType VisitFunctionPointerType( IFunctionPointerTypeSymbol symbol )
             => throw new NotImplementedException( UnsupportedFeatures.FunctionPointerMapping );
 
-        public override IType? VisitTypeParameter( ITypeParameterSymbol symbol ) => this._parent.Map( symbol, this._compilation );
+        public override IType VisitTypeParameter( ITypeParameterSymbol symbol ) => this._parent.Map( symbol, this._compilation );
     }
 }

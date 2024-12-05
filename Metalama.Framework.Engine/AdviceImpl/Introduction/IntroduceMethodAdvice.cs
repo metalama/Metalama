@@ -32,10 +32,7 @@ internal sealed class IntroduceMethodAdvice : IntroduceMemberAdvice<IMethod, IMe
         this._template = template;
     }
 
-    protected override MethodBuilder CreateBuilder( in AdviceImplementationContext context )
-    {
-        return new MethodBuilder( this.AspectLayerInstance, this.TargetDeclaration, this.MemberName );
-    }
+    protected override MethodBuilder CreateBuilder() => new( this.AspectLayerInstance, this.TargetDeclaration, this.MemberName );
 
     protected override void InitializeBuilderCore(
         MethodBuilder builder,
@@ -89,6 +86,7 @@ internal sealed class IntroduceMethodAdvice : IntroduceMemberAdvice<IMethod, IMe
                 templateParameter.DefaultValue );
 
             parameterBuilder.IsParams = templateParameter.IsParams;
+
             parameterBuilder.IsThis = templateParameter.Attributes.Any(
                 templateParameter.Compilation.Cache.GetOrAdd( static c => c.Factory.GetTypeByReflectionName( typeof(ThisAttribute).FullName! ) ) );
 

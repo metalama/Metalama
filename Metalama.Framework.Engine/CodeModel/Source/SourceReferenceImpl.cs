@@ -63,21 +63,21 @@ internal sealed class SourceReferenceImpl : ISourceReferenceImpl
 
     public bool IsImplementationPart( in SourceReference sourceReference )
     {
-        if ( sourceReference.NodeOrTokenInternal is MethodDeclarationSyntax { Body: null, ExpressionBody: null } method &&
-            method.Modifiers.Any( SyntaxKind.PartialKeyword ) )
+        switch ( sourceReference.NodeOrTokenInternal )
         {
-            return false;
-        }
+            case MethodDeclarationSyntax { Body: null, ExpressionBody: null } method when
+                method.Modifiers.Any( SyntaxKind.PartialKeyword ):
+                return false;
 
 #if ROSLYN_4_12_0_OR_GREATER
-        if ( sourceReference.NodeOrTokenInternal is PropertyDeclarationSyntax { ExpressionBody: null, AccessorList.Accessors: { } accessors } property &&
-            property.Modifiers.Any( SyntaxKind.PartialKeyword ) &&
-            accessors.All( a => a is { Body: null, ExpressionBody: null } ) )
-        {
-            return false;
-        }
+            case PropertyDeclarationSyntax { ExpressionBody: null, AccessorList.Accessors: var accessors } property when
+                accessors.All( a => a is { Body: null, ExpressionBody: null } ) &&
+                property.Modifiers.Any( SyntaxKind.PartialKeyword ):
+                return false;
 #endif
 
-        return true;
+            default:
+                return true;
+        }
     }
 }

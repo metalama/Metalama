@@ -59,18 +59,6 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
                 nameof(name),
                 $"Cannot find a type '{name}' in compilation '{compilation.AssemblyName}" );
 
-        internal static IAssemblySymbol? GetAssembly( this Compilation compilation, AssemblyIdentity assemblyName )
-        {
-            if ( compilation.Assembly.Identity.Equals( assemblyName ) )
-            {
-                return compilation.Assembly;
-            }
-            else
-            {
-                return compilation.SourceModule.ReferencedAssemblySymbols.FirstOrDefault( a => a.Identity.Equals( assemblyName ) );
-            }
-        }
-
         internal static IAssemblySymbol? GetAssembly( this Compilation compilation, string assemblyName )
         {
             if ( compilation.Assembly.Name == assemblyName )

@@ -14,7 +14,7 @@ internal partial class AccessorBuilder
 
         public override IType Type
         {
-            get => ((IHasType) this.Accessor.ContainingMember).Type;
+            get => ((IHasType) this.Accessor._containingMember).Type;
 
             set => throw new NotSupportedException( "Cannot directly change accessor's parameter type." );
         }
@@ -22,12 +22,12 @@ internal partial class AccessorBuilder
         public override RefKind RefKind
         {
             get
-                => this.Accessor.ContainingMember switch
+                => this.Accessor._containingMember switch
                 {
                     PropertyBuilder propertyBuilder => propertyBuilder.RefKind,
                     IndexerBuilder indexerBuilder => indexerBuilder.RefKind,
                     FieldBuilder fieldBuilder => fieldBuilder.RefKind,
-                    _ => throw new AssertionFailedException( $"Unexpected containing member: '{this.Accessor.ContainingMember}'." )
+                    _ => throw new AssertionFailedException( $"Unexpected containing member: '{this.Accessor._containingMember}'." )
                 };
 
             set => throw new NotSupportedException( "Cannot directly change accessor's parameter reference kind." );

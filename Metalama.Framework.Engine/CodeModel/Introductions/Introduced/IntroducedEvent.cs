@@ -68,7 +68,7 @@ internal sealed class IntroducedEvent : IntroducedMember, IEventImpl
 
     public IRef<IEvent> ToRef() => this.Ref;
 
-    public override IFullRef<IMember> ToMemberFullRef() => this.Ref;
+    protected override IFullRef<IMember> ToMemberFullRef() => this.Ref;
 
     public IExpression? InitializerExpression => this.EventBuilderData.InitializerExpression;
 

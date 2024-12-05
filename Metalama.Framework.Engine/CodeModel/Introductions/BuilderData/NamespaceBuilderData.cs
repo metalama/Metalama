@@ -9,7 +9,7 @@ using System.Collections.Immutable;
 
 namespace Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 
-internal class NamespaceBuilderData : NamedDeclarationBuilderData
+internal sealed class NamespaceBuilderData : NamedDeclarationBuilderData
 {
     private readonly IntroducedRef<INamespace> _ref;
 
@@ -32,6 +32,6 @@ internal class NamespaceBuilderData : NamedDeclarationBuilderData
 
     public override int GetHashCode() => this.FullName.GetHashCodeOrdinal();
 
-    public override bool Equals( DeclarationBuilderData other )
+    public override bool Equals( DeclarationBuilderData? other )
         => other is NamespaceBuilderData otherNs && this.FullName.Equals( otherNs.FullName, StringComparison.Ordinal );
 }

@@ -35,7 +35,7 @@ internal sealed class SymbolAttributeRef : AttributeRef
             this._attributeData.AttributeClass.AssertSymbolNotNull()
                 .TranslateIfNecessary( this._refFactory.CompilationContext ) );
 
-    public override bool TryGetTarget( CompilationModel compilation, IGenericContext? genericContext, [NotNullWhen( true )] out IAttribute? attribute )
+    public override bool TryGetTarget( CompilationModel compilation, [NotNullWhen( true )] out IAttribute? attribute )
     {
         if ( !this._attributeData.IsValid() )
         {

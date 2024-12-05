@@ -110,9 +110,9 @@ internal sealed partial class ImplementInterfaceAdvice : Advice<ImplementInterfa
         {
             // Prepare all interface types that need to be introduced.
             var interfacesToIntroduce =
-            new[] { (InterfaceType: interfaceType, IsTopLevel: true) }
-                .Concat( interfaceType.AllImplementedInterfaces.SelectAsImmutableArray( i => (InterfaceType: i, IsTopLevel: false) ) )
-                .ToDictionary( x => x.InterfaceType, x => x.IsTopLevel, this.SourceCompilation.Comparers.Default );
+                new[] { (InterfaceType: interfaceType, IsTopLevel: true) }
+                    .Concat( interfaceType.AllImplementedInterfaces.SelectAsImmutableArray( i => (InterfaceType: i, IsTopLevel: false) ) )
+                    .ToDictionary( x => x.InterfaceType, x => x.IsTopLevel, this.SourceCompilation.Comparers.Default );
 
             // No explicit member specification was given, we have to detect introduced members corresponding to all interface members.
             foreach ( var pair in interfacesToIntroduce )
@@ -635,11 +635,11 @@ internal sealed partial class ImplementInterfaceAdvice : Advice<ImplementInterfa
                                     var missingAccessor =
                                         (getMethodMissingFromTemplate, setMethodMissingFromTemplate, setInitOnlyInTemplate, setInitOnlyInInterface) switch
                                         {
-                                            (true, _, _, _ ) => "get",              // Missing getter.
-                                            (false, true, _, false ) => "set",      // Missing setter.
-                                            (false, true, _, true ) => "init",      // Missing init-only setter.
-                                            (false, false, true, false ) => "set",  // Interface has setter, template has init-only setter.
-                                            (false, false, false, true ) => "init", // Interface has init-only setter, template has setter.
+                                            (true, _, _, _) => "get",              // Missing getter.
+                                            (false, true, _, false) => "set",      // Missing setter.
+                                            (false, true, _, true) => "init",      // Missing init-only setter.
+                                            (false, false, true, false) => "set",  // Interface has setter, template has init-only setter.
+                                            (false, false, false, true) => "init", // Interface has init-only setter, template has setter.
                                             _ => null
                                         };
 
@@ -659,9 +659,9 @@ internal sealed partial class ImplementInterfaceAdvice : Advice<ImplementInterfa
                                     var unexpectedAccessor =
                                         (isExplicit, getMethodUnexpectedInTemplate, setMethodUnexpectedInTemplate, setInitOnlyInTemplate) switch
                                         {
-                                            (true, true, _, _ ) => "get",         // Unexpected getter.
-                                            (true, false, true, false ) => "set", // Unexpected setter.
-                                            (true, false, true, true ) => "init", // Unexpected init-only setter.
+                                            (true, true, _, _) => "get",         // Unexpected getter.
+                                            (true, false, true, false) => "set", // Unexpected setter.
+                                            (true, false, true, true) => "init", // Unexpected init-only setter.
                                             _ => null
                                         };
 
@@ -1061,26 +1061,12 @@ internal sealed partial class ImplementInterfaceAdvice : Advice<ImplementInterfa
 
             if ( propertyBuilder.GetMethod != null )
             {
-                if ( interfaceProperty.GetMethod != null )
-                {
-                    propertyBuilder.GetMethod.Accessibility = Accessibility.Public;
-                }
-                else
-                {
-                    propertyBuilder.GetMethod.Accessibility = getAccessibility;
-                }
+                propertyBuilder.GetMethod.Accessibility = interfaceProperty.GetMethod != null ? Accessibility.Public : getAccessibility;
             }
 
             if ( propertyBuilder.SetMethod != null )
             {
-                if ( interfaceProperty.SetMethod != null )
-                {
-                    propertyBuilder.SetMethod.Accessibility = Accessibility.Public;
-                }
-                else
-                {
-                    propertyBuilder.SetMethod.Accessibility = setAccessibility;
-                }
+                propertyBuilder.SetMethod.Accessibility = interfaceProperty.SetMethod != null ? Accessibility.Public : setAccessibility;
             }
         }
 

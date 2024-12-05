@@ -10,7 +10,7 @@ using System.Linq;
 
 namespace Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 
-internal class MethodBuilderData : MemberBuilderData
+internal sealed class MethodBuilderData : MemberBuilderData
 {
     private readonly IFullRef<IMethod> _ref;
 
@@ -55,8 +55,6 @@ internal class MethodBuilderData : MemberBuilderData
         this.OperatorKind = builder.OperatorKind;
         this.Attributes = builder.Attributes.ToImmutable( this._ref );
     }
-
-    public override IReadOnlyList<IRef<IMember>> ExplicitInterfaceImplementationMembers => this.ExplicitInterfaceImplementations;
 
     protected override IFullRef<IDeclaration> ToDeclarationFullRef() => this._ref;
 

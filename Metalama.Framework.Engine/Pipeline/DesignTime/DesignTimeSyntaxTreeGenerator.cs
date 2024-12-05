@@ -204,7 +204,7 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
 
                         case IInjectInterfaceTransformation injectInterfaceTransformation:
                             baseList ??= BaseList();
-                            baseList = baseList.AddTypes( injectInterfaceTransformation.GetSyntax( syntaxGenerationContext, finalCompilationModel ) );
+                            baseList = baseList.AddTypes( injectInterfaceTransformation.GetSyntax( syntaxGenerationContext ) );
 
                             break;
 

@@ -26,30 +26,29 @@ internal sealed class AggregateAspectInstance : IAspectInstanceInternal
     {
         var instancesList = aspectInstances.ToMutableList();
 
-        if ( instancesList.Count == 0 )
+        switch ( instancesList.Count )
         {
-            throw new AssertionFailedException( "The collection is empty." );
-        }
-        else if ( instancesList.Count == 1 )
-        {
-            return instancesList[0];
-        }
-        else
-        {
-            instancesList.Sort();
+            case 0:
+                throw new AssertionFailedException( "The collection is empty." );
 
-            var firstInstance = instancesList[0];
-            instancesList.RemoveAt( 0 );
+            case 1:
+                return instancesList[0];
 
-            return new AggregateAspectInstance( firstInstance, instancesList );
+            default:
+                {
+                    instancesList.Sort();
+
+                    var firstInstance = instancesList[0];
+                    instancesList.RemoveAt( 0 );
+
+                    return new AggregateAspectInstance( firstInstance, instancesList );
+                }
         }
     }
 
     public IAspect Aspect => this._primaryInstance.Aspect;
 
-    IRef<IDeclaration> IAspectPredecessor.TargetDeclaration => this.TargetDeclaration;
-
-    public IRef<IDeclaration> TargetDeclaration => this._primaryInstance.TargetDeclaration;
+    IRef<IDeclaration> IAspectPredecessor.TargetDeclaration => this._primaryInstance.TargetDeclaration;
 
     public IAspectClassImpl AspectClass => this._primaryInstance.AspectClass;
 

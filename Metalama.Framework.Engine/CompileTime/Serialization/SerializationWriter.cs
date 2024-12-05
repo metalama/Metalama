@@ -374,7 +374,7 @@ internal sealed class SerializationWriter
         }
         else
         {
-            this.WriteArguments( objectInfo.ConstructorArguments, true, cause, objectType );
+            this.WriteArguments( objectInfo.ConstructorArguments, true, cause );
 
             // we write construction objects inline because they can be needed during construction
         }
@@ -403,7 +403,7 @@ internal sealed class SerializationWriter
         {
             if ( intrinsicType == SerializationIntrinsicType.Class )
             {
-                this.WriteArguments( objectInfo.InitializationArguments, false, cause, type );
+                this.WriteArguments( objectInfo.InitializationArguments, false, cause );
             }
         }
     }
@@ -562,10 +562,10 @@ internal sealed class SerializationWriter
         this.TrySerialize( serializer, value, arguments, ThrowingArguments.Instance, cause );
 
         // structs have one phase serializers so we have to write initialization data inline
-        this.WriteArguments( arguments, true, cause, type );
+        this.WriteArguments( arguments, true, cause );
     }
 
-    private void WriteArguments( Arguments arguments, bool writeInitializationArgumentsInline, SerializationCause? cause, Type owningType )
+    private void WriteArguments( Arguments arguments, bool writeInitializationArgumentsInline, SerializationCause? cause )
     {
         var count = 0;
 
@@ -593,7 +593,7 @@ internal sealed class SerializationWriter
 
                 this._binaryWriter.WriteDottedString( argument.Key );
 
-                var newCause = cause?.WithFieldAccess( owningType, argument.Key );
+                var newCause = cause?.WithFieldAccess( argument.Key );
 
                 this.WriteTypedValue( argument.Value, writeInitializationArgumentsInline, newCause );
             }

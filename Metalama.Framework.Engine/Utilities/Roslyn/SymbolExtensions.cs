@@ -201,8 +201,6 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
                 _ => ImmutableArray<IParameterSymbol>.Empty
             };
 
-        internal static SymbolId GetSymbolId( this ISymbol? symbol ) => SymbolId.Create( symbol );
-
         internal static bool HasDefaultConstructor( this INamedTypeSymbol type )
             => type.TypeKind == TypeKind.Struct ||
                (type is { TypeKind: TypeKind.Class, IsAbstract: false } &&
@@ -313,7 +311,7 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
             return symbol;
         }
 
-        public static bool TryGetNamedArgument( this AttributeData attribute, string name, out TypedConstant value )
+        internal static bool TryGetNamedArgument( this AttributeData attribute, string name, out TypedConstant value )
         {
             foreach ( var argument in attribute.NamedArguments )
             {

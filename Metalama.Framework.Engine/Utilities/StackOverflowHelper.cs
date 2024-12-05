@@ -5,12 +5,13 @@ using System.Threading;
 
 namespace Metalama.Framework.Engine.Utilities;
 
-public static class StackOverflowHelper
+internal static class StackOverflowHelper
 {
 #if DEBUG
     private static readonly ThreadLocal<int> _threadLocal = new();
 #endif
-    public static Cookie Detect()
+
+    internal static Cookie Detect()
     {
 #if DEBUG
         _threadLocal.Value++;

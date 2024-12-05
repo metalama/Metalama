@@ -79,7 +79,7 @@ internal class SyntaxBuilderImpl : ISyntaxBuilderImpl
 
     public IStatement CreateExpressionStatement( IExpression expression )
         => new UserStatement(
-            SyntaxFactory.ExpressionStatement( ((UserExpression) expression).ToExpressionSyntax( this.CreateSyntaxSerializationContext(), null ) ) );
+            SyntaxFactory.ExpressionStatement( ((UserExpression) expression).ToExpressionSyntax( this.CreateSyntaxSerializationContext() ) ) );
 
     private SyntaxSerializationContext CreateSyntaxSerializationContext() => new( this.Compilation, this._syntaxGenerationContext, this._currentType );
 
@@ -184,7 +184,7 @@ internal class SyntaxBuilderImpl : ISyntaxBuilderImpl
 
     public void AppendExpression( IExpression expression, StringBuilder stringBuilder )
         => stringBuilder.Append(
-            expression.ToExpressionSyntax( this.CreateSyntaxSerializationContext(), null )
+            expression.ToExpressionSyntax( this.CreateSyntaxSerializationContext() )
                 .NormalizeWhitespace()
                 .ToFullString() );
 

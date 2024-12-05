@@ -15,9 +15,8 @@ internal sealed class FieldOrPropertyOrIndexerContractAdvice : ContractAdvice<IF
         AdviceConstructorParameters<IFieldOrPropertyOrIndexer> parameters,
         TemplateMember<IMethod> template,
         ContractDirection direction,
-        IObjectReader tags,
         IObjectReader templateArguments )
-        : base( parameters, template, direction, tags, templateArguments ) { }
+        : base( parameters, template, direction, templateArguments ) { }
 
     protected override AddContractAdviceResult<IFieldOrPropertyOrIndexer> Implement( in AdviceImplementationContext context )
     {
@@ -48,8 +47,7 @@ internal sealed class FieldOrPropertyOrIndexerContractAdvice : ContractAdvice<IF
                         null,
                         this.Direction,
                         this.Template,
-                        this.TemplateArguments,
-                        this.TemplateProvider ) );
+                        this.TemplateArguments ) );
 
                 return CreateSuccessResult( indexer );
 
@@ -65,8 +63,7 @@ internal sealed class FieldOrPropertyOrIndexerContractAdvice : ContractAdvice<IF
                     property.ToFullRef(),
                     this.Direction,
                     this.Template,
-                    this.TemplateArguments,
-                    this.TemplateProvider ) );
+                    this.TemplateArguments ) );
 
             return CreateSuccessResult( property );
         }

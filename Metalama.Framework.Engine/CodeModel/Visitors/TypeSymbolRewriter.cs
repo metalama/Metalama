@@ -1,5 +1,6 @@
 ﻿// Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
+using JetBrains.Annotations;
 using Microsoft.CodeAnalysis;
 using System;
 using System.Linq;
@@ -8,6 +9,7 @@ namespace Metalama.Framework.Engine.CodeModel.Visitors;
 
 internal abstract class TypeSymbolRewriter
 {
+    [PublicAPI]
     protected static TypeSymbolRewriter Null { get; } = new NullRewriter();
 
     private readonly Compilation _compilation;

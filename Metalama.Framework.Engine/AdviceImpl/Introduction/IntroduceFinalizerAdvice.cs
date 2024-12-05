@@ -32,7 +32,7 @@ internal sealed class IntroduceFinalizerAdvice : IntroduceMemberAdvice<IMethod, 
         this._template = template;
     }
 
-    protected override MethodBuilder CreateBuilder( in AdviceImplementationContext context )
+    protected override MethodBuilder CreateBuilder()
     {
         return new MethodBuilder( this.AspectLayerInstance, this.TargetDeclaration, "Finalize", DeclarationKind.Finalizer );
     }

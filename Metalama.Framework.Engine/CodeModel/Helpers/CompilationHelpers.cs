@@ -46,7 +46,7 @@ internal sealed class CompilationHelpers : ICompilationHelpers
 
     public bool DerivesFrom( INamedType left, INamedType right, DerivedTypesOptions options = DerivedTypesOptions.Default )
     {
-        if ( right.Definition != right )
+        if ( !ReferenceEquals( right.Definition, right ) )
         {
             throw new ArgumentOutOfRangeException( nameof(right), "The type must not be a generic type instance." );
         }

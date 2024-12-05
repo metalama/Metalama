@@ -1,5 +1,6 @@
 ﻿// Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
+using JetBrains.Annotations;
 using System;
 
 namespace Metalama.Testing.AspectTesting;
@@ -10,7 +11,13 @@ namespace Metalama.Testing.AspectTesting;
 /// context menu.
 /// </summary>
 [AttributeUsage( AttributeTargets.All )]
+[PublicAPI]
 public class TestLiveTemplateAttribute : Attribute
 {
-    public TestLiveTemplateAttribute( Type aspectType ) { }
+    public TestLiveTemplateAttribute( Type aspectType )
+    {
+        this.AspectType = aspectType;
+    }
+
+    public Type AspectType { get; }
 }

@@ -234,7 +234,7 @@ internal sealed partial class SyntaxGeneratorForIType
 
         protected override TypeSyntax VisitTypeParameter( ITypeParameter type )
         {
-            if (!type.GenericContext.IsEmptyOrIdentity)
+            if ( !type.GenericContext.IsEmptyOrIdentity )
             {
                 return this.Visit( ((GenericContext) type.GenericContext).Map( type ) );
             }

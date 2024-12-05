@@ -5,20 +5,20 @@ namespace Metalama.Framework.DesignTime.Utilities;
 /// <summary>
 /// Variation of <see cref="FileSystemWatcher"/> that can handle missing parent directories.
 /// </summary>
-internal class RecursiveFileSystemWatcher : IDisposable
+internal sealed class RecursiveFileSystemWatcher : IDisposable
 {
     // Ensures that _watcher and EnableRaisingEvents are synchronized.
     private readonly object _lock = new();
+
+    private readonly string _path;
+
+    private readonly string _filter;
 
     private FileSystemWatcher? _watcher;
 
     private RecursiveFileSystemWatcher? _parentDirectoryWatcher;
 
     private bool _enableRaisingEvents;
-
-    public string Path { get; }
-
-    public string Filter { get; }
 
     public bool EnableRaisingEvents
     {
@@ -43,8 +43,8 @@ internal class RecursiveFileSystemWatcher : IDisposable
 
     public RecursiveFileSystemWatcher( string path, string filter )
     {
-        this.Path = path ?? throw new ArgumentNullException( nameof(path) );
-        this.Filter = filter;
+        this._path = path ?? throw new ArgumentNullException( nameof(path) );
+        this._filter = filter;
 
         if ( Directory.Exists( path ) )
         {
@@ -52,12 +52,12 @@ internal class RecursiveFileSystemWatcher : IDisposable
         }
         else
         {
-            var parentDirectory = System.IO.Path.GetDirectoryName( path )
+            var parentDirectory = Path.GetDirectoryName( path )
                                   ?? throw new ArgumentException(
                                       $"Couldn't start watching for the parent directory to be created: it seems the directory '{path}' doesn't exist, but it's a root directory.",
                                       nameof(path) );
 
-            this._parentDirectoryWatcher = new RecursiveFileSystemWatcher( parentDirectory, System.IO.Path.GetFileName( path ) );
+            this._parentDirectoryWatcher = new RecursiveFileSystemWatcher( parentDirectory, Path.GetFileName( path ) );
 
             void OnParentDirectoryCreated( object? s, FileSystemEventArgs? e )
             {
@@ -89,7 +89,7 @@ internal class RecursiveFileSystemWatcher : IDisposable
 
     private void CreateWatcher()
     {
-        var watcher = new FileSystemWatcher( this.Path, this.Filter );
+        var watcher = new FileSystemWatcher( this._path, this._filter );
 
         watcher.Changed += ( _, e ) => this.Changed?.Invoke( this, e );
         watcher.Created += ( _, e ) => this.Created?.Invoke( this, e );

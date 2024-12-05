@@ -8,7 +8,7 @@ using System.Linq;
 
 namespace Metalama.Framework.Engine.Services;
 
-internal class SourceGeneratorDetectionService( in ProjectServiceProvider serviceProvider ) : ISourceGeneratorDetectionService
+internal sealed class SourceGeneratorDetectionService( in ProjectServiceProvider serviceProvider ) : ISourceGeneratorDetectionService
 {
     private readonly ImmutableArray<string> _sourceGeneratorAttributes = serviceProvider.GetRequiredService<IProjectOptions>().SourceGeneratorAttributes;
 

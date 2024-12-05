@@ -14,10 +14,8 @@ namespace Metalama.Framework.Engine.CodeModel.Source.ConstructedTypes
 {
     internal sealed class SymbolPointerType : SymbolConstructedType<IPointerTypeSymbol>, IPointerType
     {
-        internal SymbolPointerType( IPointerTypeSymbol typeSymbol, CompilationModel compilation, GenericContext genericContext ) : base(
-            typeSymbol,
-            compilation,
-            genericContext ) { }
+        internal SymbolPointerType( IPointerTypeSymbol typeSymbol, CompilationModel compilation, GenericContext genericContext )
+            : base( typeSymbol, compilation, genericContext ) { }
 
         public override TypeKind TypeKind => TypeKind.Pointer;
 
@@ -28,7 +26,7 @@ namespace Metalama.Framework.Engine.CodeModel.Source.ConstructedTypes
 
         internal ITypeImpl WithPointedAtType( IType pointedAtType )
         {
-            if ( pointedAtType == this.PointedAtType )
+            if ( ReferenceEquals( pointedAtType, this.PointedAtType ) )
             {
                 return this;
             }

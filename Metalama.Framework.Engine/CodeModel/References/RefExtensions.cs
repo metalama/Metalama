@@ -3,11 +3,9 @@
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.Comparers;
 using Metalama.Framework.Engine.CodeModel.GenericContexts;
-using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.Source;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities.Comparers;
-using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Generic;
@@ -27,8 +25,6 @@ public static class RefExtensions
 
     internal static IFullRef<IIndexer> ToFullRef( this IIndexer declaration ) => (IFullRef<IIndexer>) declaration.ToRef();
 
-    internal static IFullRef<INamespace> ToFullRef( this INamespace declaration ) => (IFullRef<INamespace>) declaration.ToRef();
-
     internal static IFullRef<IMember> ToFullRef( this IMember declaration ) => (IFullRef<IMember>) declaration.ToRef();
 
     internal static IFullRef<IParameter> ToFullRef( this IParameter declaration ) => (IFullRef<IParameter>) declaration.ToRef();
@@ -42,9 +38,6 @@ public static class RefExtensions
     internal static IFullRef<IConstructor> ToFullRef( this IConstructor declaration ) => (IFullRef<IConstructor>) declaration.ToRef();
 
     internal static IFullRef<IEvent> ToFullRef( this IEvent declaration ) => (IFullRef<IEvent>) declaration.ToRef();
-
-    internal static IFullRef<INamespaceOrNamedType> ToFullRef( this INamespaceOrNamedType declaration )
-        => (IFullRef<INamespaceOrNamedType>) declaration.ToRef();
 
     internal static IFullRef<T> ToFullRef<T>( this IDeclaration compilationElement )
         where T : class, IDeclaration
@@ -67,14 +60,6 @@ public static class RefExtensions
         where T : class, ICompilationElement
         => (IFullRef<T>) reference.As<T>();
 
-    [Obsolete( "This call is redundant." )]
-    internal static IFullRef AsFullRef( this IFullRef reference ) => reference;
-
-    [Obsolete( "This call is redundant." )]
-    internal static IFullRef<T> AsFullRef<T>( this IFullRef<T> reference )
-        where T : class, ICompilationElement
-        => reference;
-
     internal static bool HasSymbol( this IRef reference ) => reference is ISymbolRef;
 
     internal static IDurableRef<T> ToDurable<T>( this IRef<T> reference )
@@ -86,36 +71,7 @@ public static class RefExtensions
     internal static bool IsConvertibleTo( this IFullRef<IType> type, IType otherType, ConversionKind conversionKind = ConversionKind.Default )
         => type.ConstructedDeclaration.IsConvertibleTo( otherType, conversionKind );
 
-    internal static bool IsConvertibleTo( this IFullRef<IType> type, IFullRef<IType> otherType, ConversionKind conversionKind = ConversionKind.Default )
-        => type.ConstructedDeclaration.IsConvertibleTo( otherType.ConstructedDeclaration, conversionKind );
-
-    [Obsolete( "Use the PrimarySyntaxTree property instead." )]
-    internal static SyntaxTree? GetPrimarySyntaxTree( this IFullRef reference ) => reference.PrimarySyntaxTree;
-
     public static SyntaxTree? GetPrimarySyntaxTree( this IRef reference ) => ((IFullRef) reference).PrimarySyntaxTree;
-
-    public static SyntaxTree? GetPrimarySourceSyntaxTree( this IRef reference )
-        => ((IFullRef) reference).GetClosestContainingSymbol().GetPrimarySyntaxReference()?.SyntaxTree;
-
-    internal static SyntaxTree? GetPrimarySourceSyntaxTree( this IFullRef reference )
-    {
-        var symbol = reference.GetClosestContainingSymbol();
-
-        while ( symbol.DeclaringSyntaxReferences.IsDefaultOrEmpty )
-        {
-            symbol = symbol.ContainingSymbol;
-
-            if ( symbol == null || symbol.Kind == SymbolKind.Namespace )
-            {
-                return null;
-            }
-        }
-
-        return symbol.GetPrimarySyntaxReference()?.SyntaxTree;
-    }
-
-    internal static Type[] GetPossibleDeclarationInterfaceTypes( this ISymbol symbol, CompilationContext compilationContext, RefTargetKind refTargetKind )
-        => symbol.GetDeclarationKind( compilationContext ).GetPossibleDeclarationInterfaceTypes( refTargetKind );
 
     internal static Type[] GetPossibleDeclarationInterfaceTypes( this DeclarationKind declarationKind, RefTargetKind refTargetKind = RefTargetKind.Default )
         => refTargetKind switch
@@ -192,7 +148,7 @@ public static class RefExtensions
             _ => throw new ArgumentOutOfRangeException()
         };
 
-    public static ISymbol? GetOriginalSymbol( this IRef reference )
+    private static ISymbol? GetOriginalSymbol( this IRef reference )
         => reference switch
         {
             ISymbolRef symbolRef => symbolRef.Symbol,

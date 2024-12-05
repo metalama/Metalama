@@ -32,7 +32,7 @@ internal sealed class IntroduceConstructorTransformation
 
     public override IEnumerable<InjectedMember> GetInjectedMembers( MemberInjectionContext context )
     {
-        if (this.BuilderData.IsImplicitlyDeclared)
+        if ( this.BuilderData.IsImplicitlyDeclared )
         {
             return [];
         }

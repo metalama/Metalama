@@ -45,7 +45,7 @@ internal sealed class IntroducePropertyAdvice : IntroduceMemberAdvice<IProperty,
         this._isProgrammaticAutoProperty = propertyTemplate == null && getTemplate == null && setTemplate == null;
     }
 
-    protected override PropertyBuilder CreateBuilder( in AdviceImplementationContext context )
+    protected override PropertyBuilder CreateBuilder()
     {
         var templatePropertyDeclaration = this.Template?.GetDeclaration( this.SourceCompilation );
         var name = this.MemberName;

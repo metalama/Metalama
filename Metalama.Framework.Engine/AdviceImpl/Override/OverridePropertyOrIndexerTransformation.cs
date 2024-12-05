@@ -11,8 +11,6 @@ namespace Metalama.Framework.Engine.AdviceImpl.Override;
 
 internal abstract class OverridePropertyOrIndexerTransformation : OverrideMemberTransformation
 {
-    protected abstract IFullRef<IPropertyOrIndexer> OverriddenPropertyOrIndexer { get; }
-
     protected OverridePropertyOrIndexerTransformation(
         AspectLayerInstance aspectLayerInstance,
         IFullRef<IPropertyOrIndexer> overriddenPropertyOrIndexer )

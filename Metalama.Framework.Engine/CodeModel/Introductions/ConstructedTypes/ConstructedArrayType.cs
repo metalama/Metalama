@@ -10,7 +10,7 @@ using TypeKind = Metalama.Framework.Code.TypeKind;
 
 namespace Metalama.Framework.Engine.CodeModel.Introductions.ConstructedTypes;
 
-internal class ConstructedArrayType : ConstructedType, IArrayType
+internal sealed class ConstructedArrayType : ConstructedType, IArrayType
 {
     private readonly IFullRef<IType> _elementType;
 
@@ -93,7 +93,4 @@ internal class ConstructedArrayType : ConstructedType, IArrayType
     protected override IType ToNullableCore() => this.ToNullable();
 
     protected override IType ToNonNullableCore() => this.ToNonNullable();
-
-    protected override ConstructedType ForCompilation( CompilationModel compilation )
-        => ReferenceEquals( compilation, this.Compilation ) ? this : new ConstructedArrayType( compilation, this._elementType, this.Rank, this.IsNullable );
 }

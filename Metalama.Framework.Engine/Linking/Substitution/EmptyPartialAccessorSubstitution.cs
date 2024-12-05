@@ -11,7 +11,7 @@ internal sealed class EmptyPartialAccessorSubstitution : EmptyPartialMemberSubst
     private readonly AccessorDeclarationSyntax _rootNode;
 
     public EmptyPartialAccessorSubstitution( CompilationContext compilationContext, AccessorDeclarationSyntax rootNode, bool usingSimpleInlining, string? returnVariableIdentifier )
-        : base(compilationContext, usingSimpleInlining, returnVariableIdentifier)
+        : base( compilationContext, usingSimpleInlining, returnVariableIdentifier )
     {
         this._rootNode = rootNode;
     }

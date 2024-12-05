@@ -75,7 +75,7 @@ namespace Metalama.Framework.Engine.CodeModel
             public override ImmutableHashSet<INamespaceSymbol> Namespaces
                 => this.Types.SelectAsReadOnlyCollection( t => t.ContainingNamespace ).ToImmutableHashSet();
 
-            public override bool IsSyntaxTreeObserved( string syntaxTreePath )
+            internal override bool IsSyntaxTreeObserved( string syntaxTreePath )
                 => this._observedSyntaxTreePaths == null || this._observedSyntaxTreePaths.Contains( syntaxTreePath );
 
             public override bool IsPartial => true;

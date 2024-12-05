@@ -12,23 +12,23 @@ internal abstract class MemberUpdatableCollection<T> : DeclarationUpdatableColle
 {
     protected MemberUpdatableCollection( CompilationModel compilation, IRef containingDeclaration ) : base( compilation )
     {
-        this.ContainingDeclaration = containingDeclaration;
+        this._containingDeclaration = containingDeclaration;
     }
 
-    protected IRef ContainingDeclaration { get; }
+    private readonly IRef _containingDeclaration;
 
     protected abstract DeclarationKind ItemsDeclarationKind { get; }
 
-    protected virtual IEnumerable<IFullRef<T>> GetMemberRefsOfName( string name )
-        => this.ContainingDeclaration.AsFullRef()
+    protected IEnumerable<IFullRef<T>> GetMemberRefsOfName( string name )
+        => this._containingDeclaration.AsFullRef()
             .GetMembersOfName(
                 name,
                 this.ItemsDeclarationKind,
                 this.Compilation )
             .Cast<IFullRef<T>>();
 
-    protected virtual IEnumerable<IFullRef<T>> GetMemberRefs()
-        => this.ContainingDeclaration.AsFullRef()
+    protected IEnumerable<IFullRef<T>> GetMemberRefs()
+        => this._containingDeclaration.AsFullRef()
             .GetMembers( this.ItemsDeclarationKind, this.Compilation )
             .Cast<IFullRef<T>>();
 }

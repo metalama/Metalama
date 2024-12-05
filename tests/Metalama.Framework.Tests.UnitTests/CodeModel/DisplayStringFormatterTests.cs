@@ -6,7 +6,7 @@ using Xunit;
 
 namespace Metalama.Framework.Tests.UnitTests.CodeModel;
 
-public class DisplayStringFormatterTests : UnitTestClass
+public sealed class DisplayStringFormatterTests : UnitTestClass
 {
     [Theory]
     [InlineData( "int" )]

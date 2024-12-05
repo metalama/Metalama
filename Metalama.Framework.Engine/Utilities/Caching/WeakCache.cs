@@ -58,7 +58,7 @@ public sealed class WeakCache<TKey, TValue> : ICache<TKey, TValue>
         }
     }
 
-    public TValue GetOrAdd<TPayload>( TKey key, Func<TKey, TPayload, TValue> func, TPayload payload )
+    internal TValue GetOrAdd<TPayload>( TKey key, Func<TKey, TPayload, TValue> func, TPayload payload )
     {
         if ( this.TryGetValue( key, out var value ) )
         {

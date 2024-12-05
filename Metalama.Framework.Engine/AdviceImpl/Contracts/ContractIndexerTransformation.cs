@@ -23,13 +23,11 @@ internal sealed class ContractIndexerTransformation : ContractBaseTransformation
         IFullRef<IParameter>? indexerParameter,
         ContractDirection contractDirection,
         TemplateMember<IMethod> template,
-        IObjectReader templateArguments,
-        TemplateProvider templateProvider ) : base(
+        IObjectReader templateArguments ) : base(
         aspectLayerInstance,
         (IFullRef<IDeclaration>?) indexerParameter ?? targetIndexer,
         contractDirection,
         template,
-        templateProvider,
         templateArguments )
     {
         this._targetIndexer = targetIndexer;

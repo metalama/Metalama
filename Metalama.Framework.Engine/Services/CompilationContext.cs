@@ -1,7 +1,7 @@
 ﻿// Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
+using JetBrains.Annotations;
 using Metalama.Framework.Code;
-using Metalama.Framework.Code.Comparers;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CodeModel.Comparers;
 using Metalama.Framework.Engine.CodeModel.Factories;
@@ -35,7 +35,7 @@ public sealed class CompilationContext : ICompilationServices, ITemplateReflecti
         this.Compilation = compilation;
     }
 
-    public int Id { get; } = Interlocked.Increment( ref _nextId );
+    private readonly int _id = Interlocked.Increment( ref _nextId );
 
     [Memo]
     internal ResolvingCompileTimeTypeFactory CompileTimeTypeFactory => new( this.SerializableTypeIdResolver );
@@ -80,33 +80,6 @@ public sealed class CompilationContext : ICompilationServices, ITemplateReflecti
         => this.Compilation.SourceModule.ReferencedAssemblySymbols.Concat( this.Compilation.Assembly ).ToImmutableDictionary( x => x.Identity, x => x );
 
     [Memo]
-    internal IEqualityComparer<IRef<INamedType>?> NamedTypeRefComparer => RefEqualityComparer<INamedType>.Default;
-
-    [Memo]
-    internal IEqualityComparer<IRef<INamespace>?> NamespaceRefComparer => RefEqualityComparer<INamespace>.Default;
-
-    [Memo]
-    internal IEqualityComparer<IRef<IConstructor>?> ConstructorRefComparer => RefEqualityComparer<IConstructor>.Default;
-
-    [Memo]
-    internal IEqualityComparer<IRef<IEvent>?> EventRefComparer => RefEqualityComparer<IEvent>.Default;
-
-    [Memo]
-    internal IEqualityComparer<IRef<IField>?> FieldRefComparer => RefEqualityComparer<IField>.Default;
-
-    [Memo]
-    internal IEqualityComparer<IRef<IFieldOrProperty>?> FieldOrPropertyRefComparer => RefEqualityComparer<IFieldOrProperty>.Default;
-
-    [Memo]
-    internal IEqualityComparer<IRef<IProperty>?> PropertyRefComparer => RefEqualityComparer<IProperty>.Default;
-
-    [Memo]
-    internal IEqualityComparer<IRef<IIndexer>?> IndexerRefComparer => RefEqualityComparer<IIndexer>.Default;
-
-    [Memo]
-    internal IEqualityComparer<IRef<IMethod>?> MethodRefComparer => RefEqualityComparer<IMethod>.Default;
-
-    [Memo]
     internal IEqualityComparer<IEvent> EventComparer => new MemberComparer<IEvent>( this.Comparers.Default );
 
     [Memo]
@@ -127,6 +100,7 @@ public sealed class CompilationContext : ICompilationServices, ITemplateReflecti
     internal SyntaxGenerationContext GetSyntaxGenerationContext( SyntaxGenerationOptions options, SyntaxNode node )
         => this.GetSyntaxGenerationContext( options, node.SyntaxTree, node.SpanStart );
 
+    [PublicAPI]
     internal SyntaxGenerationContext GetSyntaxGenerationContext( SyntaxGenerationOptions options, IRef reference )
         => reference switch
         {
@@ -188,5 +162,5 @@ public sealed class CompilationContext : ICompilationServices, ITemplateReflecti
     [Memo]
     internal SymbolTranslator SymbolTranslator => new( this );
 
-    public override string ToString() => $"{this.GetType().Name} #{this.Id}, Assembly={this.Compilation.AssemblyName}";
+    public override string ToString() => $"{this.GetType().Name} #{this._id}, Assembly={this.Compilation.AssemblyName}";
 }

@@ -11,7 +11,7 @@ using System.Linq;
 
 namespace Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 
-internal class AttributeBuilderData : DeclarationBuilderData
+internal sealed class AttributeBuilderData : DeclarationBuilderData
 {
     private readonly AttributeRef _ref;
 

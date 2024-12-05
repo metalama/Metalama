@@ -8,7 +8,6 @@ using StreamJsonRpc;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -26,6 +25,7 @@ public abstract class FrameworkBaseTestClass : UnitTestClass, IDisposable
     public void Dispose()
     {
         // We generally don't want to see any exceptions reported during the test.
+        // ReSharper disable once ParameterOnlyUsedForPreconditionCheck.Local
         Assert.DoesNotContain( this._exceptionReporter.ReportedExceptions, e => e is not ConnectionLostException );
     }
 

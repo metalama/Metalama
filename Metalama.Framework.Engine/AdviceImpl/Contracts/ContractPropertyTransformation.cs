@@ -22,13 +22,11 @@ internal sealed class ContractPropertyTransformation : ContractBaseTransformatio
         IFullRef<IProperty> targetProperty,
         ContractDirection contractDirection,
         TemplateMember<IMethod> template,
-        IObjectReader templateArguments,
-        TemplateProvider templateProvider ) : base(
+        IObjectReader templateArguments ) : base(
         aspectLayerInstance,
         targetProperty,
         contractDirection,
         template,
-        templateProvider,
         templateArguments )
     {
         this._targetProperty = targetProperty;

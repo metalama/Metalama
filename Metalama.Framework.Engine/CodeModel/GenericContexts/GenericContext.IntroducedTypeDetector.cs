@@ -10,7 +10,7 @@ namespace Metalama.Framework.Engine.CodeModel.GenericContexts;
 
 public partial class GenericContext
 {
-    public static bool ReferencesAnyIntroducedType( IType type ) => IntroducedTypeDetector.Instance.Visit( type );
+    internal static bool ReferencesAnyIntroducedType( IType type ) => IntroducedTypeDetector.Instance.Visit( type );
 
     private sealed class IntroducedTypeDetector : TypeVisitor<bool>
     {

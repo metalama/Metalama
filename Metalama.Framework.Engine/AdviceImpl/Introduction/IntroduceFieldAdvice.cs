@@ -24,10 +24,7 @@ internal sealed class IntroduceFieldAdvice : IntroduceMemberAdvice<IField, IFiel
         Action<IFieldBuilder>? buildAction )
         : base( parameters, explicitName, fieldTemplate, scope, overrideStrategy, buildAction, explicitlyImplementedInterfaceType: null ) { }
 
-    protected override FieldBuilder CreateBuilder( in AdviceImplementationContext context )
-    {
-        return new FieldBuilder( this.AspectLayerInstance, this.TargetDeclaration, this.MemberName );
-    }
+    protected override FieldBuilder CreateBuilder() => new( this.AspectLayerInstance, this.TargetDeclaration, this.MemberName );
 
     protected override void InitializeBuilderCore(
         FieldBuilder builder,
@@ -73,8 +70,6 @@ internal sealed class IntroduceFieldAdvice : IntroduceMemberAdvice<IField, IFiel
                     this.TargetDeclaration.GetDiagnosticLocation(),
                     (this.AspectInstance.AspectClass.ShortName, builder, this.TargetDeclaration),
                     this ) );
-
-            return;
         }
     }
 

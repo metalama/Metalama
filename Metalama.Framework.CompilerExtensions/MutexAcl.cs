@@ -3,6 +3,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using JetBrains.Annotations;
 using Microsoft.Win32.SafeHandles;
 using System;
 using System.ComponentModel;
@@ -17,7 +18,7 @@ using System.Threading;
 namespace Metalama.Framework.Threading;
 
 // This code is mostly taken from https://github.com/dotnet/runtime/blob/770df102/src/libraries/System.Threading.AccessControl/src/System/Threading/MutexAcl.cs.
-// The one difference is that Create takes mutexSecurity as an SDDL string instead of a MutexSecurity object.
+// The main difference is that Create takes mutexSecurity as an SDDL string instead of a MutexSecurity object.
 internal static class MutexAcl
 {
     // This SDDL form is created by creating the same MutexSecurity as used by MutexHelper
@@ -28,16 +29,15 @@ internal static class MutexAcl
     /// <summary>Gets or creates <see cref="Mutex" /> instance, allowing a <paramref name="mutexSecurity" /> to be optionally specified to set it during the mutex creation.</summary>
     /// <param name="initiallyOwned"><see langword="true" /> to give the calling thread initial ownership of the named system mutex if the named system mutex is created as a result of this call; otherwise, <see langword="false" />.</param>
     /// <param name="name">The optional name of the system mutex. If this argument is set to <see langword="null" /> or <see cref="string.Empty" />, a local mutex is created.</param>
-    /// <param name="createdNew">When this method returns, this argument is always set to <see langword="true" /> if a local mutex is created; that is, when <paramref name="name" /> is <see langword="null" /> or <see cref="string.Empty" />. If <paramref name="name" /> has a valid non-empty value, this argument is set to <see langword="true" /> when the system mutex is created, or it is set to <see langword="false" /> if an existing system mutex is found with that name. This parameter is passed uninitialized.</param>
     /// <param name="mutexSecurity">The optional mutex access control security to apply.</param>
     /// <returns>An object that represents a system mutex, if named, or a local mutex, if nameless.</returns>
     /// <exception cref="ArgumentException">.NET Framework only: The length of the name exceeds the maximum limit.</exception>
     /// <exception cref="WaitHandleCannotBeOpenedException">A mutex handle with system-wide <paramref name="name" /> cannot be created. A mutex handle of a different type might have the same name.</exception>
-    public static unsafe Mutex Create( bool initiallyOwned, string? name, out bool createdNew, string? mutexSecurity )
+    public static unsafe Mutex Create( bool initiallyOwned, string? name, string? mutexSecurity )
     {
         if ( mutexSecurity == null )
         {
-            return new Mutex( initiallyOwned, name, out createdNew );
+            return new Mutex( initiallyOwned, name, out _ );
         }
 
         var mutexFlags = initiallyOwned ? Interop.Kernel32.CREATE_MUTEX_INITIAL_OWNER : 0;
@@ -61,20 +61,18 @@ internal static class MutexAcl
             {
                 handle.SetHandleAsInvalid();
 
-                if ( errorCode == Interop.Errors.ERROR_FILENAME_EXCED_RANGE )
+                switch ( errorCode )
                 {
-                    throw new ArgumentException( "Mutex name too long", nameof(name) );
-                }
+                    case Interop.Errors.ERROR_FILENAME_EXCED_RANGE:
+                        throw new ArgumentException( "Mutex name too long", nameof(name) );
 
-                if ( errorCode == Interop.Errors.ERROR_INVALID_HANDLE )
-                {
-                    throw new WaitHandleCannotBeOpenedException( $"Mutex {name} cannot be opened" );
-                }
+                    case Interop.Errors.ERROR_INVALID_HANDLE:
+                        throw new WaitHandleCannotBeOpenedException( $"Mutex {name} cannot be opened" );
 
-                throw Marshal.GetExceptionForHR( errorCode ) ?? throw new InvalidOperationException( "Handle was invalid, but there was no error" );
+                    default:
+                        throw Marshal.GetExceptionForHR( errorCode ) ?? throw new InvalidOperationException( "Handle was invalid, but there was no error" );
+                }
             }
-
-            createdNew = errorCode != Interop.Errors.ERROR_ALREADY_EXISTS;
 
             return CreateAndReplaceHandle( handle );
         }
@@ -116,30 +114,35 @@ internal static class MutexAcl
             {
                 error = Marshal.GetLastWin32Error();
 
-                if ( error is Interop.Errors.ERROR_INVALID_PARAMETER or Interop.Errors.ERROR_INVALID_ACL or Interop.Errors.ERROR_INVALID_SECURITY_DESCR
-                    or Interop.Errors.ERROR_UNKNOWN_REVISION )
+                switch ( error )
                 {
-                    throw new ArgumentException(
-                        "Invalid SD SDDL form",
-                        nameof(sddlForm) );
-                }
-                else if ( error == Interop.Errors.ERROR_NOT_ENOUGH_MEMORY )
-                {
-#pragma warning disable CA2201 // Do not raise reserved exception types
-                    throw new OutOfMemoryException();
-#pragma warning restore CA2201
-                }
-                else if ( error == Interop.Errors.ERROR_INVALID_SID )
-                {
-                    throw new ArgumentException(
-                        "Invalid SID in SDDL string",
-                        nameof(sddlForm) );
-                }
-                else if ( error != Interop.Errors.ERROR_SUCCESS )
-                {
-                    Debug.Fail( $"Unexpected error out of Win32.ConvertStringSdToSd: {error}" );
+                    case Interop.Errors.ERROR_INVALID_PARAMETER or Interop.Errors.ERROR_INVALID_ACL or Interop.Errors.ERROR_INVALID_SECURITY_DESCR
+                        or Interop.Errors.ERROR_UNKNOWN_REVISION:
+                        throw new ArgumentException(
+                            "Invalid SD SDDL form",
+                            nameof(sddlForm) );
 
-                    throw new Win32Exception( error, $"Unexpected error 0x{error:x8}" );
+                    case Interop.Errors.ERROR_NOT_ENOUGH_MEMORY:
+#pragma warning disable CA2201 // Do not raise reserved exception types
+                        throw new OutOfMemoryException();
+#pragma warning restore CA2201
+
+                    case Interop.Errors.ERROR_INVALID_SID:
+                        throw new ArgumentException(
+                            "Invalid SID in SDDL string",
+                            nameof(sddlForm) );
+
+                    default:
+                        {
+                            if ( error != Interop.Errors.ERROR_SUCCESS )
+                            {
+                                Debug.Fail( $"Unexpected error out of Win32.ConvertStringSdToSd: {error}" );
+
+                                throw new Win32Exception( error, $"Unexpected error 0x{error:x8}" );
+                            }
+
+                            break;
+                        }
                 }
             }
 
@@ -171,7 +174,7 @@ internal static class MutexAcl
     // in a Mutex's ACL is MUTEX_ALL_ACCESS (0x1F0001).
     // You need SYNCHRONIZE to be able to open a handle to a mutex.
     [Flags]
-    internal enum MutexRights
+    private enum MutexRights
     {
         FullControl = 0x1F0001
     }
@@ -213,7 +216,7 @@ internal static class MutexAcl
             }
         }
 
-        internal static class Libraries
+        private static class Libraries
         {
             internal const string Advapi32 = "advapi32.dll";
             internal const string Kernel32 = "kernel32.dll";
@@ -228,6 +231,7 @@ internal static class MutexAcl
         /// as BOOL. It is best to never compare BOOL to TRUE. Always use bResult != BOOL.FALSE
         /// or bResult == BOOL.FALSE .
         /// </remarks>
+        [PublicAPI]
         internal enum BOOL
         {
             FALSE = 0,
@@ -241,7 +245,6 @@ internal static class MutexAcl
             internal const int ERROR_INVALID_HANDLE = 0x6;
             internal const int ERROR_NOT_ENOUGH_MEMORY = 0x8;
             internal const int ERROR_INVALID_PARAMETER = 0x57;
-            internal const int ERROR_ALREADY_EXISTS = 0xB7;
             internal const int ERROR_FILENAME_EXCED_RANGE = 0xCE;
             internal const int ERROR_UNKNOWN_REVISION = 0x519;
             internal const int ERROR_INVALID_ACL = 0x538;

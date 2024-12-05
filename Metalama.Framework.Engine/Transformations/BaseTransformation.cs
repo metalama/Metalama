@@ -25,7 +25,7 @@ internal abstract class BaseTransformation : ITransformation
     /// <summary>
     /// Gets the <see cref="CompilationModel"/> on which the templates should be executed.
     /// </summary>
-    public CompilationModel InitialCompilation => this.AspectLayerInstance.InitialCompilation;
+    protected CompilationModel InitialCompilation => this.AspectLayerInstance.InitialCompilation;
 
     IRef<IDeclaration> ITransformationBase.TargetDeclaration => this.TargetDeclaration;
     

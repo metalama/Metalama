@@ -12,7 +12,7 @@ using System.Linq;
 
 namespace Metalama.Framework.Engine.Aspects;
 
-internal class TemplateClassMemberBuilder : ITemplateClassMemberBuilder
+internal sealed class TemplateClassMemberBuilder : ITemplateClassMemberBuilder
 {
     private readonly ITemplateInfoService _symbolClassificationService;
     private readonly TemplateAttributeFactory _templateAttributeFactory;

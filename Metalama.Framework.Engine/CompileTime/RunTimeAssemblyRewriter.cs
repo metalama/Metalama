@@ -182,21 +182,23 @@ namespace Metalama.Compiler
 
         var newMembers = new List<MemberDeclarationSyntax>();
 
-        foreach (var member in node.Members)
+        foreach ( var member in node.Members )
         {
             switch ( member )
             {
                 case EventFieldDeclarationSyntax eventFieldDeclaration:
-                    newMembers.AddRange(this.TransformEventFieldDeclaration(eventFieldDeclaration ) );
+                    newMembers.AddRange( this.TransformEventFieldDeclaration( eventFieldDeclaration ) );
+
                     break;
+
                 default:
                     newMembers.Add( (MemberDeclarationSyntax) this.Visit( member )! );
+
                     break;
             }
         }
 
-        return
-            node.WithMembers( List( newMembers ) )
+        return node.WithMembers( List( newMembers ) )
             .WithLeadingTrivia( leadingTrivia )
             .WithTrailingTrivia( trailingTrivia );
     }
@@ -263,24 +265,24 @@ namespace Metalama.Compiler
                 if ( this.MustReplaceByThrow( symbol ) )
                 {
                     members.Add(
-                    this._rewriterHelper.WithThrowNotSupportedExceptionBody(
-                        EventDeclaration(
-                            node.AttributeLists,
-                            TokenList( node.Modifiers.Where( m => !m.IsKind( SyntaxKind.ExternKeyword ) ) ),
-                            node.EventKeyword,
-                            node.Declaration.Type,
-                            null,
-                            variable.Identifier,
-                            AccessorList(
-                                List(
+                        this._rewriterHelper.WithThrowNotSupportedExceptionBody(
+                            EventDeclaration(
+                                node.AttributeLists,
+                                TokenList( node.Modifiers.Where( m => !m.IsKind( SyntaxKind.ExternKeyword ) ) ),
+                                node.EventKeyword,
+                                node.Declaration.Type,
+                                null,
+                                variable.Identifier,
+                                AccessorList(
+                                    List(
                                     [
                                         AccessorDeclaration( SyntaxKind.AddAccessorDeclaration )
                                             .WithSemicolonToken( Token( SyntaxKind.SemicolonToken ) ),
                                         AccessorDeclaration( SyntaxKind.RemoveAccessorDeclaration )
                                             .WithSemicolonToken( Token( SyntaxKind.SemicolonToken ) )
                                     ] ) ),
-                            default ),
-                        "Compile-time-only code cannot be called at run-time." ) );
+                                default ),
+                            "Compile-time-only code cannot be called at run-time." ) );
                 }
                 else
                 {
@@ -297,35 +299,7 @@ namespace Metalama.Compiler
         }
         else
         {
-            var variables = new List<VariableDeclaratorSyntax>();
-            ISymbol? lastTemplateSymbol = null;
-            var transformedNode = node;
-
-            foreach ( var variable in node.Declaration.Variables )
-            {
-                var symbol = this.SemanticModelProvider.GetSemanticModel( node.SyntaxTree ).GetDeclaredSymbol( variable )!;
-
-                var transformedVariable = variable;
-
-                if ( this.IsTemplate( symbol ) )
-                {
-                    lastTemplateSymbol = symbol;
-
-                    transformedVariable = variable
-                        .WithInitializer( null )
-                        .WithIncludeInReferenceAssemblyAnnotation();
-                }
-
-                variables.Add( transformedVariable );
-            }
-
-            if ( lastTemplateSymbol != null )
-            {
-                transformedNode = node.WithDeclaration( node.Declaration.WithVariables( SeparatedList( variables ) ) );
-                transformedNode = this.PreserveAndAddAttribute( transformedNode, node, lastTemplateSymbol );
-            }
-
-            return [this.VisitFieldOrEventFieldDeclaration( node, ( n, variables ) => n.WithDeclaration( n.Declaration.WithVariables( SeparatedList( variables ) ) ) )];
+            return [this.VisitFieldOrEventFieldDeclaration( node, ( n, v ) => n.WithDeclaration( n.Declaration.WithVariables( SeparatedList( v ) ) ) )];
         }
     }
 

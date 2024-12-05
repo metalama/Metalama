@@ -8,4 +8,4 @@ namespace Metalama.Framework.Aspects;
 /// When applied to a template method parameter, indicates that the introduced parameter should have the <see langword="this"/> modifier, and that the introduced method should be an extension method.
 /// </summary>
 [AttributeUsage( AttributeTargets.Parameter )]
-public class ThisAttribute : Attribute;
+public sealed class ThisAttribute : Attribute;

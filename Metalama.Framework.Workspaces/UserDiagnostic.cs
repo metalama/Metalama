@@ -6,7 +6,7 @@ using Metalama.Framework.Introspection;
 
 namespace Metalama.Framework.Workspaces;
 
-internal class UserDiagnostic : IIntrospectionDiagnostic
+internal sealed class UserDiagnostic : IIntrospectionDiagnostic
 {
     public UserDiagnostic( Severity severity, string id, string message, string? filePath, int? line, IDeclaration? declaration, object? details )
     {

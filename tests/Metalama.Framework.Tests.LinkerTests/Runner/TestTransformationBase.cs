@@ -19,21 +19,27 @@ internal abstract class TestTransformationBase : IInjectMemberTransformation
     public InsertPosition InsertPosition { get; }
 
     public AspectLayerInstance AspectLayerInstance { get; }
+
     public AspectLayerId AspectLayerId => this.AspectLayerInstance.AspectLayerId;
+
     public IAspectInstanceInternal AspectInstance => this.AspectLayerInstance.AspectInstance;
 
     public int OrderWithinPipeline { get; set; }
+
     public int OrderWithinPipelineStepAndType { get; set; }
+
     public int OrderWithinPipelineStepAndTypeAndAspectInstance { get; set; }
 
-    public TestTransformationBase( AspectLayerInstance aspectLayerInstance, InsertPosition insertPosition )
+    protected TestTransformationBase( AspectLayerInstance aspectLayerInstance, InsertPosition insertPosition )
     {
         this.AspectLayerInstance = aspectLayerInstance;
         this.InsertPosition = insertPosition;
     }
 
     public abstract TransformationObservability Observability { get; }
+
     public abstract IRef<IDeclaration> TargetDeclaration { get; }
+
     public abstract SyntaxTree TransformedSyntaxTree { get; }
 
     public IAspectClass AspectClass => throw new NotSupportedException();
@@ -42,8 +48,5 @@ internal abstract class TestTransformationBase : IInjectMemberTransformation
 
     public abstract IEnumerable<InjectedMember> GetInjectedMembers( MemberInjectionContext context );
 
-    public FormattableString? ToDisplayString()
-    {
-        return $"Test";
-    }
+    public FormattableString ToDisplayString() => $"Test";
 }

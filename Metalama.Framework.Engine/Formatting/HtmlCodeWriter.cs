@@ -415,7 +415,7 @@ public sealed class HtmlCodeWriter : FormattedCodeWriter
         }
     }
 
-    internal enum SyntaxTreeKind
+    private enum SyntaxTreeKind
     {
         Source,
         Transformed,

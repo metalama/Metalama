@@ -110,7 +110,7 @@ internal sealed partial class SymbolRef<T> : FullRef<T>, ISymbolRef<T>
         }
     }
 
-    protected override ISymbol GetSymbolIgnoringRefKind( CompilationContext compilationContext, bool ignoreAssemblyKey = false )
+    protected override ISymbol GetSymbolIgnoringRefKind( CompilationContext compilationContext )
         => compilationContext.SymbolTranslator.Translate( this.Symbol ).AssertSymbolNotNull();
 
     public override SyntaxTree? PrimarySyntaxTree => this.Symbol.GetClosestPrimaryDeclarationSyntax()?.SyntaxTree;

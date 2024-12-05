@@ -145,7 +145,7 @@ namespace Metalama.Framework.Engine.Templating
 
             var sourceDiagnostics = semanticModel.GetDiagnostics( sourceSyntaxRoot.Span, cancellationToken );
 
-            var errors = sourceDiagnostics.Where( d => d.Severity == DiagnosticSeverity.Error && !d.IsWarningAsError );
+            var errors = sourceDiagnostics.Where( d => d is { Severity: DiagnosticSeverity.Error, IsWarningAsError: false } );
 
             // ReSharper disable PossibleMultipleEnumeration
             if ( errors.Any() )

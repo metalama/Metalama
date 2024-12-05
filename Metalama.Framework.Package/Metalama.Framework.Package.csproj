@@ -26,6 +26,11 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <!--- Ignore transtive dependency System.Text.Json 6.0.0 DoS vunerability -->
+        <NuGetAuditSuppress Include=" https://github.com/advisories/GHSA-8g4q-xg66-9fp4" />
+    </ItemGroup>
+
+    <ItemGroup>
         <None Update="buildTransitive/*">
             <Pack>true</Pack>
             <PackagePath></PackagePath>          

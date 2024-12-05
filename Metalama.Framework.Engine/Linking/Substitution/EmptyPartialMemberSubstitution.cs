@@ -21,7 +21,7 @@ internal abstract class EmptyPartialMemberSubstitution : SyntaxNodeSubstitution
         this._returnVariableIdentifier = returnVariableIdentifier;
     }
 
-    protected SyntaxNode Substitute(SubstitutionContext substitutionContext)
+    protected SyntaxNode Substitute( SubstitutionContext substitutionContext )
     {
         var syntaxGenerator = substitutionContext.SyntaxGenerationContext.SyntaxGenerator;
 
@@ -31,15 +31,15 @@ internal abstract class EmptyPartialMemberSubstitution : SyntaxNodeSubstitution
             if ( this.IsVoid )
             {
                 return syntaxGenerator.FormattedBlock()
-                     .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock );
+                    .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock );
             }
             else
             {
                 return syntaxGenerator.FormattedBlock(
-                    ReturnStatement(
-                        SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.ReturnKeyword ),
-                        SyntaxFactoryEx.Default,
-                        Token( SyntaxKind.SemicolonToken ).WithOptionalTrailingLineFeed( substitutionContext.SyntaxGenerationContext ) ) )
+                        ReturnStatement(
+                            SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.ReturnKeyword ),
+                            SyntaxFactoryEx.Default,
+                            Token( SyntaxKind.SemicolonToken ).WithOptionalTrailingLineFeed( substitutionContext.SyntaxGenerationContext ) ) )
                     .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock );
             }
         }
@@ -47,7 +47,10 @@ internal abstract class EmptyPartialMemberSubstitution : SyntaxNodeSubstitution
         if ( this._returnVariableIdentifier != null )
         {
             return syntaxGenerator.FormattedBlock(
-                SyntaxFactoryEx.AssignmentStatement( IdentifierName( this._returnVariableIdentifier ), SyntaxFactoryEx.Default, substitutionContext.SyntaxGenerationContext ) )
+                    SyntaxFactoryEx.AssignmentStatement(
+                        IdentifierName( this._returnVariableIdentifier ),
+                        SyntaxFactoryEx.Default,
+                        substitutionContext.SyntaxGenerationContext ) )
                 .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock );
         }
         else

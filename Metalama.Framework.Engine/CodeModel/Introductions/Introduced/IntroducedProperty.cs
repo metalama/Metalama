@@ -14,36 +14,35 @@ using System.Collections.Generic;
 
 namespace Metalama.Framework.Engine.CodeModel.Introductions.Introduced;
 
-internal class IntroducedProperty : IntroducedPropertyOrIndexer, IPropertyImpl
+internal sealed class IntroducedProperty : IntroducedPropertyOrIndexer, IPropertyImpl
 {
-    public PropertyBuilderData PropertyBuilderData { get; }
+    private readonly PropertyBuilderData _propertyBuilderData;
 
-    public IntroducedProperty( PropertyBuilderData builderData, CompilationModel compilation, IGenericContext genericContext ) : base(
-        compilation,
-        genericContext )
+    public IntroducedProperty( PropertyBuilderData builderData, CompilationModel compilation, IGenericContext genericContext )
+        : base( compilation, genericContext )
     {
-        this.PropertyBuilderData = builderData;
+        this._propertyBuilderData = builderData;
     }
 
-    public override DeclarationBuilderData BuilderData => this.PropertyBuilderData;
+    public override DeclarationBuilderData BuilderData => this._propertyBuilderData;
 
-    protected override NamedDeclarationBuilderData NamedDeclarationBuilderData => this.PropertyBuilderData;
+    protected override NamedDeclarationBuilderData NamedDeclarationBuilderData => this._propertyBuilderData;
 
-    protected override MemberOrNamedTypeBuilderData MemberOrNamedTypeBuilderData => this.PropertyBuilderData;
+    protected override MemberOrNamedTypeBuilderData MemberOrNamedTypeBuilderData => this._propertyBuilderData;
 
-    protected override MemberBuilderData MemberBuilderData => this.PropertyBuilderData;
+    protected override MemberBuilderData MemberBuilderData => this._propertyBuilderData;
 
     public override bool IsExplicitInterfaceImplementation => this.ExplicitInterfaceImplementations.Count > 0;
 
-    protected override PropertyOrIndexerBuilderData PropertyOrIndexerBuilderData => this.PropertyBuilderData;
+    protected override PropertyOrIndexerBuilderData PropertyOrIndexerBuilderData => this._propertyBuilderData;
 
-    public bool? IsAutoPropertyOrField => this.PropertyBuilderData.IsAutoPropertyOrField;
-
-    [Memo]
-    public IProperty? OverriddenProperty => this.MapDeclaration( this.PropertyBuilderData.OverriddenProperty );
+    public bool? IsAutoPropertyOrField => this._propertyBuilderData.IsAutoPropertyOrField;
 
     [Memo]
-    public IProperty Definition => this.Compilation.Factory.GetProperty( this.PropertyBuilderData ).AssertNotNull();
+    public IProperty? OverriddenProperty => this.MapDeclaration( this._propertyBuilderData.OverriddenProperty );
+
+    [Memo]
+    public IProperty Definition => this.Compilation.Factory.GetProperty( this._propertyBuilderData ).AssertNotNull();
 
     protected override IMemberOrNamedType GetDefinition() => this.Definition;
 
@@ -52,7 +51,7 @@ internal class IntroducedProperty : IntroducedPropertyOrIndexer, IPropertyImpl
 
     IRef<IProperty> IProperty.ToRef() => this.Ref;
 
-    public override IFullRef<IMember> ToMemberFullRef() => this.Ref;
+    protected override IFullRef<IMember> ToMemberFullRef() => this.Ref;
 
     IRef<IFieldOrProperty> IFieldOrProperty.ToRef() => this.Ref;
 
@@ -60,13 +59,13 @@ internal class IntroducedProperty : IntroducedPropertyOrIndexer, IPropertyImpl
 
     // TODO: When an interface is introduced, explicit implementation should appear here.
     [Memo]
-    public IReadOnlyList<IProperty> ExplicitInterfaceImplementations => this.MapDeclarationList( this.PropertyBuilderData.ExplicitInterfaceImplementations );
+    public IReadOnlyList<IProperty> ExplicitInterfaceImplementations => this.MapDeclarationList( this._propertyBuilderData.ExplicitInterfaceImplementations );
 
     public FieldOrPropertyInfo ToFieldOrPropertyInfo() => CompileTimeFieldOrPropertyInfo.Create( this );
 
-    public bool IsRequired => this.PropertyBuilderData.IsRequired;
+    public bool IsRequired => this._propertyBuilderData.IsRequired;
 
-    public IExpression? InitializerExpression => this.PropertyBuilderData.InitializerExpression;
+    public IExpression? InitializerExpression => this._propertyBuilderData.InitializerExpression;
 
     public IFieldOrPropertyInvoker With( InvokerOptions options ) => new FieldOrPropertyInvoker( this, options );
 
@@ -87,7 +86,7 @@ internal class IntroducedProperty : IntroducedPropertyOrIndexer, IPropertyImpl
     {
         using ( StackOverflowHelper.Detect() )
         {
-            return this.MapDeclaration( this.PropertyBuilderData.OriginalField );
+            return this.MapDeclaration( this._propertyBuilderData.OriginalField );
         }
     }
 }

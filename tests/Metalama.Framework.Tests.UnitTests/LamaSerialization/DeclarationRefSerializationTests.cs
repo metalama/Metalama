@@ -6,7 +6,7 @@ using Xunit;
 
 namespace Metalama.Framework.Tests.UnitTests.LamaSerialization;
 
-public class DeclarationRefSerializationTests : SerializationTestsBase
+public sealed class DeclarationRefSerializationTests : SerializationTestsBase
 {
     [Fact]
     public void SymbolRef()

@@ -19,8 +19,6 @@ namespace Metalama.Framework.Engine.AdviceImpl.Override;
 
 internal abstract class OverridePropertyBaseTransformation : OverridePropertyOrIndexerTransformation
 {
-    public IFullRef<IProperty> OverriddenProperty { get; }
-
     protected OverridePropertyBaseTransformation(
         AspectLayerInstance aspectLayerInstance,
         IFullRef<IProperty> overriddenProperty )
@@ -28,10 +26,10 @@ internal abstract class OverridePropertyBaseTransformation : OverridePropertyOrI
     {
         this.OverriddenProperty = overriddenProperty;
     }
+    
+    protected IFullRef<IProperty> OverriddenProperty { get; }
 
     public override IFullRef<IMember> OverriddenDeclaration => this.OverriddenProperty;
-
-    protected override IFullRef<IPropertyOrIndexer> OverriddenPropertyOrIndexer => this.OverriddenProperty;
 
     protected IEnumerable<InjectedMember> GetInjectedMembersImpl(
         MemberInjectionContext context,

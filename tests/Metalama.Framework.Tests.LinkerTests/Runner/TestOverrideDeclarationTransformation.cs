@@ -7,18 +7,14 @@ using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.Transformations;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Metalama.Framework.Tests.LinkerTests.Runner;
 
 /// <summary>
 /// Represents a test transformation that takes syntax of a PseudoOverride-marked member and injects it.
 /// </summary>
-internal class TestOverrideDeclarationTransformation : TestTransformationBase, IOverrideDeclarationTransformation
+internal sealed class TestOverrideDeclarationTransformation : TestTransformationBase, IOverrideDeclarationTransformation
 {
     private readonly MemberDeclarationSyntax _syntax;
 

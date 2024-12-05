@@ -416,7 +416,7 @@ internal sealed partial class LinkerRewritingDriver
     /// </summary>
     public IReadOnlyList<MemberDeclarationSyntax> RewriteMember( MemberDeclarationSyntax syntax, ISymbol symbol, SyntaxGenerationContext generationContext )
     {
-        if ( LinkerSyntaxHelper.IsUnsupportedMemberSyntax( syntax) )
+        if ( LinkerSyntaxHelper.IsUnsupportedMemberSyntax( syntax ) )
         {
             // If there is unsupported symbol, we will not rewrite the member.
             return [syntax];

@@ -27,7 +27,7 @@ internal partial class AccessorBuilder
             }
         }
 
-        private IndexerBuilder Indexer => (IndexerBuilder) this._accessor.ContainingMember;
+        private IndexerBuilder Indexer => (IndexerBuilder) this._accessor._containingMember;
 
         public IParameterBuilder this[ string name ]
             => (this._accessor.MethodKind, name) switch

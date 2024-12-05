@@ -49,7 +49,7 @@ public static class WorkspaceHelper
         return Assembly.Load( workspaceImplementationAssemblyName );
     }
 
-    public static Assembly CSharpWorkspacesAssembly { get; }
+    internal static Assembly CSharpWorkspacesAssembly { get; }
 
     public static async Task<(RoslynProject Project, Dictionary<SyntaxTree, DocumentId> SyntaxTreeMap)> CreateProjectFromCompilationAsync(
         Compilation compilation,

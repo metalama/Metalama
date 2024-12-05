@@ -41,7 +41,7 @@ public static class AttributeHelper
         shortName = typeName.TrimSuffix( "Attribute" );
     }
 
-    public static bool IsValid( this AttributeData attributeData )
+    internal static bool IsValid( this AttributeData attributeData )
     {
         if ( attributeData.AttributeConstructor == null )
         {

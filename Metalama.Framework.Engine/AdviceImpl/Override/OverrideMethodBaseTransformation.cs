@@ -22,7 +22,7 @@ namespace Metalama.Framework.Engine.AdviceImpl.Override;
 
 internal abstract class OverrideMethodBaseTransformation : OverrideMemberTransformation
 {
-    public IFullRef<IMethod> OverriddenMethod { get; }
+    protected IFullRef<IMethod> OverriddenMethod { get; }
 
     protected OverrideMethodBaseTransformation( AspectLayerInstance aspectLayerInstance, IFullRef<IMethod> targetMethod )
         : base( aspectLayerInstance, targetMethod )

@@ -1,5 +1,6 @@
 ﻿// Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
+using JetBrains.Annotations;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.SyntaxBuilders;
@@ -70,6 +71,7 @@ public interface ITemplateSyntaxFactory
     TypedExpressionSyntax RunTimeExpression( ExpressionSyntax syntax, string? type = null );
     
     // This is to easily work around errors when we emit a redundant call to RunTimeExpression.
+    [PublicAPI]
     TypedExpressionSyntax RunTimeExpression( IUserExpression syntax, string? type = null );
 
     ExpressionSyntax ConvertToExpressionSyntax( object value );

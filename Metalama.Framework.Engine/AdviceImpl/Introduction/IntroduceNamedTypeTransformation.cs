@@ -41,19 +41,19 @@ internal sealed class IntroduceNamedTypeTransformation : IntroduceDeclarationTra
 
         var typeArgs =
             introducedType.TypeParameters.Count == 0
-            ? null
-            : TypeParameterList(
-                SeparatedList(
-                    introducedType.TypeParameters.SelectAsReadOnlyList( tp =>
-                        TypeParameter(
-                            List<AttributeListSyntax>(),
-                            tp.Variance switch
-                            {
-                                VarianceKind.In => Token( SyntaxKind.InKeyword ),
-                                VarianceKind.Out => Token( SyntaxKind.OutKeyword ),
-                                _ => default
-                            },
-                            Identifier( tp.Name ) ) ) ) );
+                ? null
+                : TypeParameterList(
+                    SeparatedList(
+                        introducedType.TypeParameters.SelectAsReadOnlyList(
+                            tp => TypeParameter(
+                                List<AttributeListSyntax>(),
+                                tp.Variance switch
+                                {
+                                    VarianceKind.In => Token( SyntaxKind.InKeyword ),
+                                    VarianceKind.Out => Token( SyntaxKind.OutKeyword ),
+                                    _ => default
+                                },
+                                Identifier( tp.Name ) ) ) ) );
 
         var type =
             (this.BuilderData.TypeKind switch
@@ -65,7 +65,7 @@ internal sealed class IntroduceNamedTypeTransformation : IntroduceDeclarationTra
                         Identifier( introducedType.Name ),
                         typeArgs,
                         baseList,
-                        context.SyntaxGenerator.ConstraintClauses(introducedType),
+                        context.SyntaxGenerator.ConstraintClauses( introducedType ),
                         List<MemberDeclarationSyntax>() ),
                 TypeKind.Struct =>
                     StructDeclaration(

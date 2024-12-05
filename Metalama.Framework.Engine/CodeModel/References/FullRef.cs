@@ -35,7 +35,7 @@ internal abstract partial class FullRef<T> : BaseRef<T>, IFullRef<T>
 
     public sealed override bool IsDurable => false;
 
-    public CompilationContext CompilationContext => this.RefFactory.CompilationContext;
+    protected CompilationContext CompilationContext => this.RefFactory.CompilationContext;
 
     IFullRef<T> IFullRef<T>.WithGenericContext( GenericContext genericContext ) => this.WithGenericContext( genericContext );
 
@@ -101,19 +101,19 @@ internal abstract partial class FullRef<T> : BaseRef<T>, IFullRef<T>
     [Memo]
     private DeclarationIdRef<T> CompilationNeutralRef => new( this.ToSerializableId() );
 
-    public sealed override IDurableRef<T> ToDurable() => this.CompilationNeutralRef;
+    protected sealed override IDurableRef<T> ToDurable() => this.CompilationNeutralRef;
 
     public override SerializableDeclarationId ToSerializableId()
     {
-        var symbol = this.GetSymbolIgnoringRefKind( this.RefFactory.CompilationContext, true );
+        var symbol = this.GetSymbolIgnoringRefKind( this.RefFactory.CompilationContext );
 
         return symbol.GetSerializableId( this.TargetKind );
     }
 
     protected override ISymbol GetSymbol( CompilationContext compilationContext, bool ignoreAssemblyKey = false )
-        => this.ApplyRefKind( this.GetSymbolIgnoringRefKind( compilationContext, ignoreAssemblyKey ) );
+        => this.ApplyRefKind( this.GetSymbolIgnoringRefKind( compilationContext ) );
 
-    protected abstract ISymbol GetSymbolIgnoringRefKind( CompilationContext compilationContext, bool ignoreAssemblyKey = false );
+    protected abstract ISymbol GetSymbolIgnoringRefKind( CompilationContext compilationContext );
 
     public virtual ISymbol GetClosestContainingSymbol() => this.GetSymbolIgnoringRefKind( this.CompilationContext );
 

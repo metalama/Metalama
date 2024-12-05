@@ -2,4 +2,4 @@
 
 namespace Metalama.Framework.Engine.Services;
 
-public interface ICompilationService;
+internal interface ICompilationService;

@@ -1,5 +1,6 @@
 ﻿// Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
+using JetBrains.Annotations;
 using Metalama.Framework.Engine.AspectOrdering;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.Diagnostics;
@@ -40,6 +41,7 @@ namespace Metalama.Framework.Engine.Linking
         /// <summary>
         /// Gets the final compilation model.
         /// </summary>
+        [PublicAPI]
         public CompilationModel InputCompilationModel { get; }
 
         /// <summary>

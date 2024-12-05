@@ -5,7 +5,7 @@ using ILogger = Metalama.Backstage.Diagnostics.ILogger;
 
 namespace Metalama.Framework.Workspaces;
 
-internal class MSBuildLogger : Microsoft.Build.Framework.ILogger
+internal sealed class MSBuildLogger : Microsoft.Build.Framework.ILogger
 {
     private readonly ILogger _logger;
 

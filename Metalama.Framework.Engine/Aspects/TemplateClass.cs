@@ -35,7 +35,7 @@ public abstract class TemplateClass : IDiagnosticSource
     private readonly ConcurrentDictionary<string, TemplateDriver> _templateDrivers = new( StringComparer.Ordinal );
     private readonly ITemplateReflectionContext? _templateReflectionContext; // TODO: Don't keep a reference because this goes to the pipeline config. But how?
 
-    public TemplateClass? BaseClass { get; }
+    internal TemplateClass? BaseClass { get; }
 
     private protected TemplateClass(
         ProjectServiceProvider serviceProvider,

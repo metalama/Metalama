@@ -7,7 +7,7 @@ using System.Collections.Generic;
 
 namespace Metalama.Framework.Engine.CompileTime.Serialization.Serializers;
 
-internal class AttributeRefSerializer : ReferenceTypeSerializer
+internal sealed class AttributeRefSerializer : ReferenceTypeSerializer
 {
     public override object CreateInstance( Type type, IArgumentsReader constructorArguments )
     {

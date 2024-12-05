@@ -10,13 +10,13 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{34D4F83E-9C04-4175-8DD3-9D65DDF39F69}"
 	ProjectSection(SolutionItems) = preProject
 		.editorconfig = .editorconfig
+		.gitignore = .gitignore
 		Directory.Build.props = Directory.Build.props
 		Directory.Build.targets = Directory.Build.targets
 		Directory.Packages.props = Directory.Packages.props
 		global.json = global.json
 		Build\RoslynVersion\Latest.imports = Build\RoslynVersion\Latest.imports
 		LICENSE.md = LICENSE.md
-		nuget.config = nuget.config
 		README.md = README.md
 		THIRD-PARTY-NOTICES.TXT = THIRD-PARTY-NOTICES.TXT
 		eng\Versions.props = eng\Versions.props

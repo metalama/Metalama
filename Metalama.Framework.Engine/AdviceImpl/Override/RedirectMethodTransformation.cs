@@ -23,25 +23,24 @@ internal sealed class RedirectMethodTransformation : OverrideMemberTransformatio
 {
     private readonly IFullRef<IMethod> _targetMethod;
 
-    public IFullRef<IMethod> OverriddenMethod { get; }
+    private readonly IFullRef<IMethod> _overriddenMethod;
 
     public RedirectMethodTransformation( Advice advice, IFullRef<IMethod> overriddenDeclaration, IFullRef<IMethod> targetMethod )
         : base( advice.AspectLayerInstance, overriddenDeclaration )
     {
         this._targetMethod = targetMethod;
-        this.OverriddenMethod = overriddenDeclaration;
+        this._overriddenMethod = overriddenDeclaration;
     }
 
-    public override IFullRef<IMember> OverriddenDeclaration => this.OverriddenMethod;
+    public override IFullRef<IMember> OverriddenDeclaration => this._overriddenMethod;
 
     public override IEnumerable<InjectedMember> GetInjectedMembers( MemberInjectionContext context )
     {
-        var overriddenDeclaration = this.OverriddenMethod.GetTarget( this.InitialCompilation );
+        var overriddenDeclaration = this._overriddenMethod.GetTarget( this.InitialCompilation );
 
         var body =
             context.SyntaxGenerationContext.SyntaxGenerator.FormattedBlock(
-                overriddenDeclaration.ReturnType
-                != overriddenDeclaration.Compilation.GetCompilationModel().Cache.SystemVoidType
+                overriddenDeclaration.ReturnType.SpecialType != SpecialType.Void
                     ? ReturnStatement(
                         SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.ReturnKeyword ),
                         GetInvocationExpression(),

@@ -1,5 +1,6 @@
 ﻿// Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
+using JetBrains.Annotations;
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CodeModel.References;
@@ -86,14 +87,7 @@ public static partial class SerializableDeclarationIdProvider
                         exception );
                 }
 
-                if ( targetKind == RefTargetKind.Default )
-                {
-                    id = new SerializableDeclarationId( documentationId );
-                }
-                else
-                {
-                    id = new SerializableDeclarationId( $"{documentationId};{targetKind}" );
-                }
+                id = new SerializableDeclarationId( targetKind == RefTargetKind.Default ? documentationId : $"{documentationId};{targetKind}" );
 
                 return true;
         }
@@ -101,6 +95,7 @@ public static partial class SerializableDeclarationIdProvider
 
     /// <summary>Gets the <see cref="SerializableDeclarationId"/> for the declaration as it appears in the unmodified source code.</summary>
     /// <remarks>This is relevant in the case of constructor parameter introduction, which alter the serializable ID of the constructor.</remarks>
+    [PublicAPI]
     public static SerializableDeclarationId GetSourceSerializableId( this IDeclaration declaration )
         => declaration.GetSymbol()?.GetSerializableId() ?? declaration.ToSerializableId();
 }

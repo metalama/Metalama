@@ -20,13 +20,9 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
     internal partial class LinkerTestInputBuilder
     {
         private const string _testNodeIdAnnotationId = "LinkerTestRewriterNodeId";
-        private const string _testTemporaryNodeAnnotationId = "LinkerTestTemporaryNode";
         private static int _nextNodeId;
 
-        private static string AllocateNodeId()
-        {
-            return Interlocked.Increment( ref _nextNodeId ).ToString();
-        }
+        private static string AllocateNodeId() => Interlocked.Increment( ref _nextNodeId ).ToString();
 
         private static T AssignNodeId<T>( T node, string nodeId )
             where T : SyntaxNode
@@ -37,7 +33,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
                 declarator = AssignNodeId( declarator, nodeId );
 
                 return (T) (SyntaxNode) eventFieldDecl
-                    .WithDeclaration( eventFieldDecl.Declaration.WithVariables( SeparatedList( new[] { declarator } ) ) );
+                    .WithDeclaration( eventFieldDecl.Declaration.WithVariables( SeparatedList( [declarator] ) ) );
             }
             else
             {
@@ -64,30 +60,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
             }
         }
 
-        private static IEnumerable<SyntaxNode> GetNodesWithId( SyntaxTree tree )
-        {
-            return tree.GetRoot().GetAnnotatedNodes( _testNodeIdAnnotationId );
-        }
-
-        private static SyntaxNode MarkTemporary( SyntaxNode node )
-        {
-            return node.WithAdditionalAnnotations( new SyntaxAnnotation( _testTemporaryNodeAnnotationId, "temporary" ) );
-        }
-
-        private static bool IsTemporary( SyntaxNode node )
-        {
-            return node.GetAnnotations( _testTemporaryNodeAnnotationId ).Any();
-        }
-
-        private static string GetSymbolHelperName( string name )
-        {
-            return name + "__SymbolHelper";
-        }
-
-        private static string GetReplacedMemberName( string name )
-        {
-            return name + "__Replaced";
-        }
+        private static IEnumerable<SyntaxNode> GetNodesWithId( SyntaxTree tree ) => tree.GetRoot().GetAnnotatedNodes( _testNodeIdAnnotationId );
 
         /// <summary>
         /// Catalogues all transformations defined by [Pseudo] attributes and removes them from syntax trees. 
@@ -98,32 +71,29 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
             private readonly List<AspectLayerId> _aspectLayers;
             private readonly Dictionary<AspectLayerId, int> _aspectLayerOrder;
 
-            public IReadOnlyList<AspectLayerId> OrderedAspectLayers =>
-                this._aspectLayers.ToOrderedList( al =>
-                {
-                    if ( this._aspectLayerOrder.TryGetValue( al, out var order ) )
+            public IReadOnlyList<AspectLayerId> OrderedAspectLayers
+                => this._aspectLayers.ToOrderedList(
+                    al =>
                     {
-                        return order;
-                    }
+                        if ( this._aspectLayerOrder.TryGetValue( al, out var order ) )
+                        {
+                            return order;
+                        }
 
-                    return int.MaxValue;
-                } );
-
-            public ProjectServiceProvider ServiceProvider { get; }
+                        return int.MaxValue;
+                    } );
 
             public CompilationContext InputCompilation { get; }
 
             public LinkerTestInputBuilder Builder { get; }
-
-            public TestRewriter( in ProjectServiceProvider serviceProvider, LinkerTestInputBuilder builder, CompilationContext inputCompilation )
+            
+            public TestRewriter( LinkerTestInputBuilder builder, CompilationContext inputCompilation )
             {
                 this.Builder = builder;
                 this.InputCompilation = inputCompilation;
 
                 this._aspectLayers = new List<AspectLayerId>();
                 this._aspectLayerOrder = new Dictionary<AspectLayerId, int>();
-
-                this.ServiceProvider = serviceProvider;
             }
 
             public override SyntaxNode? VisitUsingDirective( UsingDirectiveSyntax node )
@@ -153,7 +123,6 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
 
             public override SyntaxNode? VisitRecordDeclaration( RecordDeclarationSyntax node )
             {
-
                 var typeRewriter = new TestTypeRewriter( this );
 
                 var newNode = (RecordDeclarationSyntax) typeRewriter.VisitRecordDeclaration( node );
@@ -168,7 +137,6 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
 
             public override SyntaxNode? VisitStructDeclaration( StructDeclarationSyntax node )
             {
-
                 var typeRewriter = new TestTypeRewriter( this );
 
                 var newNode = (StructDeclarationSyntax) typeRewriter.VisitStructDeclaration( node );
@@ -213,7 +181,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
             private TypeDeclarationSyntax ProcessLayerOrderAttributeNode( TypeDeclarationSyntax node )
             {
                 var newAttributeLists = new List<AttributeListSyntax>();
-                int order = 0;
+                var order = 0;
 
                 foreach ( var attributeList in node.AttributeLists )
                 {

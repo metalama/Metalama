@@ -33,8 +33,6 @@ internal sealed class PartiallyBoundTemplateMethod
     /// </summary>
     public object?[] TypeArguments { get; }
 
-    public TemplateProvider TemplateProvider => this.TemplateMember.TemplateProvider;
-
     public PartiallyBoundTemplateMethod(
         TemplateMember<IMethod> template,
         object?[] typeArguments,

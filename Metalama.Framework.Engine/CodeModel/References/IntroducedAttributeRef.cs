@@ -26,7 +26,7 @@ internal sealed class IntroducedAttributeRef : AttributeRef
 
     public override IRef<INamedType> AttributeType => this.BuilderData.Constructor.DeclaringType.AssertNotNull();
 
-    public override bool TryGetTarget( CompilationModel compilation, IGenericContext? genericContext, [NotNullWhen( true )] out IAttribute? attribute )
+    public override bool TryGetTarget( CompilationModel compilation, [NotNullWhen( true )] out IAttribute? attribute )
     {
         attribute = new IntroducedAttribute( this.BuilderData, compilation, GenericContext.Empty );
 

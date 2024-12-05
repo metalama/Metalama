@@ -1,6 +1,7 @@
 ﻿// Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
 using Metalama.Framework.Code;
+using Metalama.Framework.Code.Comparers;
 using Metalama.Framework.Engine.CodeModel.References;
 using System.Collections.Generic;
 
@@ -12,7 +13,7 @@ internal sealed class IndexerUpdatableCollection : NonUniquelyNamedUpdatableColl
         compilation,
         declaringType.As<INamespaceOrNamedType>() ) { }
 
-    protected override IEqualityComparer<IRef<IIndexer>> MemberRefComparer => this.Compilation.CompilationContext.IndexerRefComparer;
+    protected override IEqualityComparer<IRef<IIndexer>> MemberRefComparer => RefEqualityComparer<IIndexer>.Default;
 
     protected override DeclarationKind ItemsDeclarationKind => DeclarationKind.Indexer;
 }

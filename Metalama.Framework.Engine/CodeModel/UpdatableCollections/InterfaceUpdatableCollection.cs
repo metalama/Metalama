@@ -29,6 +29,6 @@ internal sealed class InterfaceUpdatableCollection : DeclarationUpdatableCollect
 
     protected override void PopulateAllItems( Action<IFullRef<INamedType>> action )
     {
-        this._declaringType.AsFullRef().EnumerateImplementedInterfaces( this.Compilation, action );
+        this._declaringType.AsFullRef().EnumerateImplementedInterfaces( action );
     }
 }

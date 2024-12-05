@@ -18,10 +18,8 @@ namespace Metalama.Framework.Engine.AdviceImpl.Introduction;
 
 internal sealed class IntroduceMethodTransformation : IntroduceMemberTransformation<MethodBuilderData>
 {
-    public IntroduceMethodTransformation( AspectLayerInstance aspectLayerInstance, MethodBuilderData introducedDeclaration ) : base(
-        aspectLayerInstance,
-        introducedDeclaration )
-    { }
+    public IntroduceMethodTransformation( AspectLayerInstance aspectLayerInstance, MethodBuilderData introducedDeclaration )
+        : base( aspectLayerInstance, introducedDeclaration ) { }
 
     public override IEnumerable<InjectedMember> GetInjectedMembers( MemberInjectionContext context )
     {
@@ -69,8 +67,8 @@ internal sealed class IntroduceMethodTransformation : IntroduceMemberTransformat
                             context.SyntaxGenerator.ParameterList( finalMethod, context.FinalCompilation ),
                             null,
                             !hasNoBody
-                            ? ArrowExpressionClause( context.SyntaxGenerator.DefaultExpression( finalMethod.ReturnType ) )
-                            : default,
+                                ? ArrowExpressionClause( context.SyntaxGenerator.DefaultExpression( finalMethod.ReturnType ) )
+                                : default,
                             Token( SyntaxKind.SemicolonToken ) );
 
                         return [new InjectedMember( this, syntax, this.AspectLayerId, InjectedMemberSemantic.Introduction, this.BuilderData.ToRef() )];
@@ -90,8 +88,8 @@ internal sealed class IntroduceMethodTransformation : IntroduceMemberTransformat
                             context.SyntaxGenerator.ParameterList( finalMethod, context.FinalCompilation ),
                             null,
                             !hasNoBody
-                            ? ArrowExpressionClause( context.SyntaxGenerator.DefaultExpression( finalMethod.ReturnType ) )
-                            : default,
+                                ? ArrowExpressionClause( context.SyntaxGenerator.DefaultExpression( finalMethod.ReturnType ) )
+                                : default,
                             Token( SyntaxKind.SemicolonToken ) );
 
                         return [new InjectedMember( this, syntax, this.AspectLayerId, InjectedMemberSemantic.Introduction, this.BuilderData.ToRef() )];
@@ -108,25 +106,25 @@ internal sealed class IntroduceMethodTransformation : IntroduceMemberTransformat
                         hasNoBody
                             ? null
                             : syntaxGenerator.FormattedBlock(
-                                !finalMethod.ReturnParameter.Type.IsConvertibleTo( typeof( void ) )
+                                !finalMethod.ReturnParameter.Type.IsConvertibleTo( typeof(void) )
                                     ? finalMethod.GetIteratorInfo().IsIteratorMethod == true
                                         ?
                                         [
                                             syntaxGenerator.FormattedBlock(
-                                        YieldStatement(
-                                            SyntaxKind.YieldBreakStatement,
-                                            List<AttributeListSyntax>(),
-                                            SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.YieldKeyword ),
-                                            SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.BreakKeyword ),
-                                            null,
-                                            Token( TriviaList(), SyntaxKind.SemicolonToken, TriviaList() ) ) )
+                                                YieldStatement(
+                                                    SyntaxKind.YieldBreakStatement,
+                                                    List<AttributeListSyntax>(),
+                                                    SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.YieldKeyword ),
+                                                    SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.BreakKeyword ),
+                                                    null,
+                                                    Token( TriviaList(), SyntaxKind.SemicolonToken, TriviaList() ) ) )
                                         ]
                                         :
                                         [
                                             ReturnStatement(
-                                        SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.ReturnKeyword ),
-                                        DefaultExpression( syntaxGenerator.TypeSyntax( finalMethod.ReturnParameter.Type ) ),
-                                        Token( SyntaxKind.SemicolonToken ) )
+                                                SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.ReturnKeyword ),
+                                                DefaultExpression( syntaxGenerator.TypeSyntax( finalMethod.ReturnParameter.Type ) ),
+                                                Token( SyntaxKind.SemicolonToken ) )
                                         ]
                                     : [] );
 

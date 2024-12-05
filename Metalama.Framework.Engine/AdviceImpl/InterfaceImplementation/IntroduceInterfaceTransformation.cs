@@ -2,7 +2,6 @@
 
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Aspects;
-using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.Transformations;
@@ -33,7 +32,7 @@ internal sealed class IntroduceInterfaceTransformation : BaseSyntaxTreeTransform
         this.MemberMap = memberMap;
     }
 
-    public BaseTypeSyntax GetSyntax( SyntaxGenerationContext context, CompilationModel compilation )
+    public BaseTypeSyntax GetSyntax( SyntaxGenerationContext context )
     {
         // The type already implements the interface members itself.
         return SimpleBaseType( context.SyntaxGenerator.TypeSyntax( this.InterfaceType ) );

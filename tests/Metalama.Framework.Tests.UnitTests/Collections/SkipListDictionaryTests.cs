@@ -205,10 +205,7 @@ namespace Metalama.Framework.Tests.UnitTests.Collections
             Repeat(
                 () =>
                 {
-                    var skipList = new SkipListDictionary<int, int>();
-                    skipList.Add( 10, 10 );
-                    skipList.Add( 20, 20 );
-                    skipList.Add( 30, 30 );
+                    var skipList = new SkipListDictionary<int, int> { { 10, 10 }, { 20, 20 }, { 30, 30 } };
 
                     void AssertHasClosestValue( int requested, int expected )
                     {
@@ -245,6 +242,8 @@ namespace Metalama.Framework.Tests.UnitTests.Collections
             Assert.Equal( 0, skipList.IndexOfKey( 1 ) );
             Assert.Equal( 1, skipList.IndexOfKey( 2 ) );
             Assert.Equal( -1, skipList.IndexOfKey( 0 ) );
+            
+            // ReSharper disable UsageOfDefaultStructEquality
             Assert.Equal( 0, skipList.IndexOf( new KeyValuePair<int, int>( 1, 4 ) ) );
             Assert.Equal( -1, skipList.IndexOf( new KeyValuePair<int, int>( 1, 0 ) ) );
         }
@@ -252,9 +251,7 @@ namespace Metalama.Framework.Tests.UnitTests.Collections
         [Fact]
         public void TestValueCollection()
         {
-            var skipList = new SkipListDictionary<int, int>();
-            skipList[1] = 4;
-            skipList[2] = 8;
+            var skipList = new SkipListDictionary<int, int> { [1] = 4, [2] = 8 };
 
             Assert.Equal( 2, skipList.Values.Count );
             Assert.Equal( 4, skipList.Values[0] );

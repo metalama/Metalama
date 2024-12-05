@@ -19,7 +19,7 @@ namespace Metalama.Framework.Engine.CodeModel.Source.ConstructedTypes
     internal abstract class SymbolConstructedType<T> : ITypeImpl, ISymbolBasedCompilationElement
         where T : ITypeSymbol
     {
-        public GenericContext GenericContextForSymbolMapping { get; }
+        protected GenericContext GenericContextForSymbolMapping { get; }
 
         public bool SymbolMustBeMapped => !this.GenericContextForSymbolMapping.IsEmptyOrIdentity;
 

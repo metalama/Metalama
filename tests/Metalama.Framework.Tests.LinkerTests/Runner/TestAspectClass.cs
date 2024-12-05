@@ -14,9 +14,9 @@ using System.Collections.Immutable;
 
 namespace Metalama.Framework.Tests.LinkerTests.Runner;
 
-internal class TestAspectClass : IAspectClassImpl
+internal sealed class TestAspectClass : IAspectClassImpl
 {
-    public CompileTimeProject? Project => throw new NotImplementedException();
+    public CompileTimeProject Project => throw new NotImplementedException();
 
     public ImmutableArray<TemplateClass> TemplateClasses => throw new NotImplementedException();
 
@@ -32,7 +32,7 @@ internal class TestAspectClass : IAspectClassImpl
 
     public string DisplayName => this.FullName;
 
-    public string? Description => throw new NotImplementedException();
+    public string Description => throw new NotImplementedException();
 
     public bool IsAbstract => throw new NotImplementedException();
 
@@ -46,24 +46,16 @@ internal class TestAspectClass : IAspectClassImpl
 
     public string DiagnosticSourceDescription => throw new NotImplementedException();
 
-    public TestAspectClass(string aspectName)
+    public TestAspectClass( string aspectName )
     {
         this.FullName = aspectName;
         this.GeneratedCodeAnnotation = MetalamaCompilerAnnotations.CreateGeneratedCodeAnnotation( $"aspect '{this.ShortName}'" );
     }
 
-    public EligibleScenarios GetEligibility( IDeclaration obj, bool isInheritable )
-    {
-        throw new NotImplementedException();
-    }
+    public EligibleScenarios GetEligibility( IDeclaration obj, bool isInheritable ) => throw new NotImplementedException();
 
-    public EligibleScenarios GetEligibility( IDeclaration obj )
-    {
-        throw new NotImplementedException();
-    }
+    public EligibleScenarios GetEligibility( IDeclaration obj ) => throw new NotImplementedException();
 
-    public FormattableString? GetIneligibilityJustification( EligibleScenarios requestedEligibility, IDescribedObject<IDeclaration> describedObject )
-    {
-        throw new NotImplementedException();
-    }
+    public FormattableString GetIneligibilityJustification( EligibleScenarios requestedEligibility, IDescribedObject<IDeclaration> describedObject )
+        => throw new NotImplementedException();
 }

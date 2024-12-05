@@ -4,7 +4,6 @@ using Metalama.Framework.DesignTime.CodeLens;
 using Metalama.Framework.Engine.Pipeline.DesignTime;
 using Metalama.Framework.Engine.SerializableIds;
 using Metalama.Framework.Engine.Services;
-using Metalama.Framework.Engine.Utilities.Roslyn;
 using Metalama.Framework.Project;
 using Metalama.Framework.Tests.UnitTests.DesignTime.Mocks;
 using System.Collections.Generic;

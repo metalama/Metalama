@@ -13,9 +13,8 @@ internal sealed class ParameterContractAdvice : ContractAdvice<IParameter>
         AdviceConstructorParameters<IParameter> parameters,
         TemplateMember<IMethod> template,
         ContractDirection direction,
-        IObjectReader tags,
         IObjectReader templateArguments )
-        : base( parameters, template, direction, tags, templateArguments ) { }
+        : base( parameters, template, direction, templateArguments ) { }
 
     protected override AddContractAdviceResult<IParameter> Implement( in AdviceImplementationContext context )
     {
@@ -31,8 +30,7 @@ internal sealed class ParameterContractAdvice : ContractAdvice<IParameter>
                         parameter.ToFullRef(),
                         this.Direction,
                         this.Template,
-                        this.TemplateArguments,
-                        this.TemplateProvider ) );
+                        this.TemplateArguments ) );
 
                 return CreateSuccessResult( parameter );
 
@@ -44,8 +42,7 @@ internal sealed class ParameterContractAdvice : ContractAdvice<IParameter>
                         parameter.ToFullRef(),
                         this.Direction,
                         this.Template,
-                        this.TemplateArguments,
-                        this.TemplateProvider ) );
+                        this.TemplateArguments ) );
 
                 return CreateSuccessResult( parameter );
 
@@ -57,8 +54,7 @@ internal sealed class ParameterContractAdvice : ContractAdvice<IParameter>
                         parameter.ToFullRef(),
                         this.Direction,
                         this.Template,
-                        this.TemplateArguments,
-                        this.TemplateProvider ) );
+                        this.TemplateArguments ) );
 
                 return CreateSuccessResult( parameter );
 

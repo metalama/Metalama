@@ -21,7 +21,7 @@ internal sealed class DeserializedAttributeRef : AttributeRef
 
     public override IRef<INamedType> AttributeType => this._serializationData.Type;
 
-    public override bool TryGetTarget( CompilationModel compilation, IGenericContext? genericContext, [NotNullWhen( true )] out IAttribute? attribute )
+    public override bool TryGetTarget( CompilationModel compilation, out IAttribute attribute )
     {
         attribute = compilation.Factory.GetDeserializedAttribute( this._serializationData );
 

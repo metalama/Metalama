@@ -46,9 +46,9 @@ internal sealed class OutboundReferenceIndexBuilder : ReferenceIndexBuilder
         return this._references;
     }
 
-    public void IndexSyntaxNode( SyntaxNode node, SemanticModel semanticModel, CancellationToken cancellationToken = default )
+    private void IndexSyntaxNode( SyntaxNode node, SemanticModel semanticModel, CancellationToken cancellationToken = default )
     {
-        var walker = new ReferenceIndexWalker( this._serviceProvider, cancellationToken, this, ReferenceIndexerOptions.All, semanticModel );
+        var walker = new ReferenceIndexWalker( this._serviceProvider, this, ReferenceIndexerOptions.All, semanticModel, cancellationToken );
         walker.Visit( node );
     }
 

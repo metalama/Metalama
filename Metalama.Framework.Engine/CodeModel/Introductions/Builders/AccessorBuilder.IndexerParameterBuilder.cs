@@ -24,7 +24,7 @@ internal partial class AccessorBuilder
             this._index = index;
         }
 
-        private IndexerBuilder Indexer => (IndexerBuilder) this._accessor.ContainingMember;
+        private IndexerBuilder Indexer => (IndexerBuilder) this._accessor._containingMember;
 
         public override int Index
             => (this._accessor.MethodKind, this._index) switch
@@ -77,12 +77,14 @@ internal partial class AccessorBuilder
 
         public override bool IsParams
         {
-            get => this._accessor.MethodKind switch
-            {
-                MethodKind.PropertySet when this._index == null => false,
-                _ => this.Indexer.Parameters[this._index.AssertNotNull()].IsParams
-            };
-            set => throw new NotSupportedException(
+            get
+                => this._accessor.MethodKind switch
+                {
+                    MethodKind.PropertySet when this._index == null => false,
+                    _ => this.Indexer.Parameters[this._index.AssertNotNull()].IsParams
+                };
+            set
+                => throw new NotSupportedException(
                     $"Setting the 'params' modifier of indexer accessor {this._accessor} parameter {this.Index} is not supported. Set the params modifier on the indexer parameter instead." );
         }
 

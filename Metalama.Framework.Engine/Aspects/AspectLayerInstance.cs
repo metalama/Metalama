@@ -7,7 +7,7 @@ namespace Metalama.Framework.Engine.Aspects;
 /// <summary>
 /// Represents an aspect layer within an aspect class isntance.
 /// </summary>
-internal class AspectLayerInstance
+internal sealed class AspectLayerInstance
 {
     public AspectLayerInstance( IAspectInstanceInternal aspectInstance, string? layerName, CompilationModel initialCompilation )
     {

@@ -6,7 +6,7 @@ using Metalama.Framework.Serialization;
 
 namespace Metalama.Framework.Engine.CompileTime.Serialization.Serializers;
 
-internal class TypedConstantRefSerializer : ValueTypeSerializer<TypedConstantRef>
+internal sealed class TypedConstantRefSerializer : ValueTypeSerializer<TypedConstantRef>
 {
     public override void SerializeObject( TypedConstantRef obj, IArgumentsWriter constructorArguments )
     {

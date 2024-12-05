@@ -9,7 +9,7 @@ using Metalama.Framework.Services;
 
 namespace Metalama.Framework.DesignTime.Utilities
 {
-    public class DesignTimeExceptionHandler : IGlobalService
+    public sealed class DesignTimeExceptionHandler : IGlobalService
     {
         private readonly IExceptionReporter? _exceptionReporter;
 

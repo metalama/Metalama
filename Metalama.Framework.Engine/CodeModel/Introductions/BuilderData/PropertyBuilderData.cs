@@ -12,7 +12,7 @@ using System.Linq;
 
 namespace Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 
-internal class PropertyBuilderData : PropertyOrIndexerBuilderData
+internal sealed class PropertyBuilderData : PropertyOrIndexerBuilderData
 {
     private readonly IntroducedRef<IProperty> _ref;
 
@@ -75,8 +75,6 @@ internal class PropertyBuilderData : PropertyOrIndexerBuilderData
     public override DeclarationKind DeclarationKind => DeclarationKind.Property;
 
     public override IRef<IMember>? OverriddenMember => this.OverriddenProperty;
-
-    public override IReadOnlyList<IRef<IMember>> ExplicitInterfaceImplementationMembers => this.ExplicitInterfaceImplementations;
 
     protected override InsertPosition GetInsertPosition()
     {

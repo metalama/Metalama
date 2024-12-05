@@ -21,7 +21,7 @@ internal sealed class IntroduceNamespaceAdvice : IntroduceDeclarationAdvice<INam
         this._name = name;
     }
 
-    protected override NamespaceBuilder CreateBuilder( in AdviceImplementationContext context )
+    protected override NamespaceBuilder CreateBuilder()
     {
         var nameParts = this._name.Split( _nsSplitChars );
 

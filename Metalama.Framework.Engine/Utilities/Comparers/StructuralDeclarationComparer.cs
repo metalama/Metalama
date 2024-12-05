@@ -324,7 +324,7 @@ internal sealed class StructuralDeclarationComparer : IEqualityComparer<ICompila
 
     private int CompareNamedTypes( INamedType namedTypeX, INamedType namedTypeY, StructuralComparerOptions options )
     {
-        if ( ReferenceEquals( namedTypeX, namedTypeY) )
+        if ( ReferenceEquals( namedTypeX, namedTypeY ) )
         {
             return 0;
         }
@@ -727,19 +727,23 @@ internal sealed class StructuralDeclarationComparer : IEqualityComparer<ICompila
     {
         var h = 701_142_619; // Random prime.
 
-        if ( compilationElement is IDeclaration declaration )
+        switch ( compilationElement )
         {
-            h = HashCode.Combine( h, true );
+            case IDeclaration declaration:
+                h = HashCode.Combine( h, true );
 
-            // PERF: Cast enum to int otherwise it will be boxed on .NET Framework.
-            h = HashCode.Combine( h, (int) declaration.DeclarationKind );
-        }
-        else if ( compilationElement is IType type )
-        {
-            h = HashCode.Combine( h, false );
+                // PERF: Cast enum to int otherwise it will be boxed on .NET Framework.
+                h = HashCode.Combine( h, (int) declaration.DeclarationKind );
 
-            // PERF: Cast enum to int otherwise it will be boxed on .NET Framework.
-            h = HashCode.Combine( h, (int) type.TypeKind );
+                break;
+
+            case IType type:
+                h = HashCode.Combine( h, false );
+
+                // PERF: Cast enum to int otherwise it will be boxed on .NET Framework.
+                h = HashCode.Combine( h, (int) type.TypeKind );
+
+                break;
         }
 
         switch ( compilationElement )

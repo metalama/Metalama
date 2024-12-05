@@ -9,7 +9,7 @@ using System.Linq;
 
 namespace Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 
-internal class NamedTypeBuilderData : MemberOrNamedTypeBuilderData
+internal sealed class NamedTypeBuilderData : MemberOrNamedTypeBuilderData
 {
     private readonly IntroducedRef<INamedType> _ref;
 
@@ -19,14 +19,18 @@ internal class NamedTypeBuilderData : MemberOrNamedTypeBuilderData
 
     public ImmutableArray<IFullRef<INamedType>> ImplementedInterfaces { get; }
 
-    // Only classes are supported at the moment, so the following members can return a constant value.
-
-#pragma warning disable CA1822
     public TypeKind TypeKind { get; }
 
+    // The following members can return a constant value at the moment.
+
+#pragma warning disable CA1822
+
+    // ReSharper disable once MemberCanBeMadeStatic.Global
     public bool IsReadOnly => false;
 
+    // ReSharper disable once MemberCanBeMadeStatic.Global
     public bool IsRef => false;
+
 #pragma warning restore CA1822
 
     public NamedTypeBuilderData( NamedTypeBuilder builder, IFullRef<IDeclaration> containingDeclaration ) : base( builder, containingDeclaration )

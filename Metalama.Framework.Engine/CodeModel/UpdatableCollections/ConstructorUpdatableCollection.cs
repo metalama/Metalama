@@ -1,6 +1,7 @@
 ﻿// Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
 using Metalama.Framework.Code;
+using Metalama.Framework.Code.Comparers;
 using Metalama.Framework.Engine.CodeModel.References;
 using System.Collections.Generic;
 
@@ -13,7 +14,7 @@ internal sealed class ConstructorUpdatableCollection : NonUniquelyNamedUpdatable
         declaringType.As<INamespaceOrNamedType>() ) { }
 
     // TODO: define implicit constructor
-    protected override IEqualityComparer<IRef<IConstructor>> MemberRefComparer => this.Compilation.CompilationContext.ConstructorRefComparer;
+    protected override IEqualityComparer<IRef<IConstructor>> MemberRefComparer => RefEqualityComparer<IConstructor>.Default;
 
     protected override DeclarationKind ItemsDeclarationKind => DeclarationKind.Constructor;
 }

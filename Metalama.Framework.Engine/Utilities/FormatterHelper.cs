@@ -1,5 +1,6 @@
 // Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
+using JetBrains.Annotations;
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Utilities.Caching;
 using System.Collections.Generic;
@@ -8,10 +9,9 @@ using System.Text;
 
 namespace Metalama.Framework.Engine.Utilities;
 
+[PublicAPI]
 internal static class FormatterHelper
 {
-    // Seems that ReSharper does not recognize the interpolation handler.
-    // ReSharper disable EntityNameCapturedOnly.Global
     public static string Format(
         CodeDisplayFormat? format,
         CodeDisplayContext? context,
@@ -19,16 +19,14 @@ internal static class FormatterHelper
         ref InterpolatedStringHandler handler )
         => handler.ToString();
 
-    // ReSharper enable EntityNameCapturedOnly.Global
-
     [InterpolatedStringHandler]
+    [PublicAPI]
     public readonly ref struct InterpolatedStringHandler
     {
         private readonly CodeDisplayFormat? _format;
         private readonly CodeDisplayContext? _context;
         private readonly ObjectPoolHandle<StringBuilder> _stringBuilder;
 
-        // ReSharper disable UnusedParameter.Local
         public InterpolatedStringHandler( int literalLength, int formattedCount, CodeDisplayFormat? format, CodeDisplayContext? context )
         {
             this._format = format;

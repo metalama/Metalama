@@ -22,7 +22,7 @@ using TypedConstant = Metalama.Framework.Code.TypedConstant;
 
 namespace Metalama.Framework.Engine.CodeModel.Source.Pseudo;
 
-internal class PseudoReturnParameter : BaseDeclaration, IParameterImpl
+internal sealed class PseudoReturnParameter : BaseDeclaration, IParameterImpl
 {
     private readonly SourceMethod _declaringMethod;
     private readonly IMethodSymbol _methodSymbol;
@@ -110,8 +110,7 @@ internal class PseudoReturnParameter : BaseDeclaration, IParameterImpl
 
     internal override ICompilationElement? Translate(
         CompilationModel newCompilation,
-        IGenericContext? genericContext = null,
-        Type? interfaceType = null )
+        IGenericContext? genericContext = null )
         => ((IMethod?) this._declaringMethod.Translate( newCompilation, genericContext ))?.ReturnParameter;
 
     public override IEnumerable<IDeclaration> GetDerivedDeclarations( DerivedTypesOptions options = default )

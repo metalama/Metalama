@@ -6,7 +6,6 @@ using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Transformations;
 using Microsoft.CodeAnalysis;
-using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -79,12 +78,14 @@ internal abstract class Advice<TResult> : Advice
     internal readonly struct AdviceImplementationContext
     {
         private readonly List<ITransformation> _transformations;
+        
+        private readonly IAdviceExecutionContext _adviceExecutionContext;
 
         public AdviceImplementationContext( DiagnosticBag diagnostics, IAdviceExecutionContext adviceExecutionContext, List<ITransformation> transformations )
         {
             this._transformations = transformations;
             this.Diagnostics = diagnostics;
-            this.AdviceExecutionContext = adviceExecutionContext;
+            this._adviceExecutionContext = adviceExecutionContext;
         }
 
         public void ThrowIfAnyError()
@@ -97,33 +98,16 @@ internal abstract class Advice<TResult> : Advice
             }
         }
 
-        public CompilationModel MutableCompilation => this.AdviceExecutionContext.MutableCompilation;
+        public CompilationModel MutableCompilation => this._adviceExecutionContext.MutableCompilation;
 
-        public IAdviceExecutionContext AdviceExecutionContext { get; }
-
-        public ProjectServiceProvider ServiceProvider => this.AdviceExecutionContext.ServiceProvider;
+        public ProjectServiceProvider ServiceProvider => this._adviceExecutionContext.ServiceProvider;
 
         public DiagnosticBag Diagnostics { get; }
 
         public void AddTransformation( ITransformation transformation )
         {
-            this.AdviceExecutionContext.SetOrders( transformation );
+            this._adviceExecutionContext.SetOrders( transformation );
             this._transformations.Add( transformation );
-        }
-    }
-
-    internal readonly struct ImplementationContext
-    {
-        private readonly Action<ITransformation> _addTransformation;
-
-        public ImplementationContext( Action<ITransformation> addTransformation )
-        {
-            this._addTransformation = addTransformation;
-        }
-
-        public void AddTransformation( ITransformation transformation )
-        {
-            this._addTransformation( transformation );
         }
     }
 }

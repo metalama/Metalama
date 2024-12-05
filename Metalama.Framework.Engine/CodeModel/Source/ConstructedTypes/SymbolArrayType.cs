@@ -29,7 +29,7 @@ namespace Metalama.Framework.Engine.CodeModel.Source.ConstructedTypes
 
         internal ITypeImpl WithElementType( IType elementType )
         {
-            if ( elementType == this.ElementType )
+            if ( ReferenceEquals( elementType, this.ElementType ) )
             {
                 return this;
             }

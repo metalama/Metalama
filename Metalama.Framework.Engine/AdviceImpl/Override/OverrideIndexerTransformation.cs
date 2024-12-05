@@ -38,7 +38,7 @@ internal sealed class OverrideIndexerTransformation : OverrideIndexerBaseTransfo
         var templateExpansionError = false;
         BlockSyntax? getAccessorBody = null;
 
-        var overriddenDeclaration = this.OverriddenPropertyOrIndexer.GetTarget( this.InitialCompilation );
+        var overriddenDeclaration = this.OverriddenIndexer.GetTarget( this.InitialCompilation );
 
         if ( overriddenDeclaration.GetMethod != null )
         {

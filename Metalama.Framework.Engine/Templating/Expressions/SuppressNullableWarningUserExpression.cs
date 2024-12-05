@@ -7,7 +7,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Metalama.Framework.Engine.Templating.Expressions;
 
-internal class SuppressNullableWarningUserExpression : UserExpression
+internal sealed class SuppressNullableWarningUserExpression : UserExpression
 {
     private readonly IUserExpression _underlying;
 

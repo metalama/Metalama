@@ -55,7 +55,7 @@ internal sealed class IntroducedField : IntroducedMember, IFieldImpl
 
     IRef<IFieldOrProperty> IFieldOrProperty.ToRef() => this.Ref;
 
-    public override IFullRef<IMember> ToMemberFullRef() => this.Ref;
+    protected override IFullRef<IMember> ToMemberFullRef() => this.Ref;
 
     [Memo]
     public IProperty? OverridingProperty => FieldHelper.GetOverridingProperty( this );

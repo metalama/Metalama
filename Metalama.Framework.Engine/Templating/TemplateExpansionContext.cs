@@ -234,7 +234,8 @@ internal sealed partial class TemplateExpansionContext : UserCodeExecutionContex
         this.TemplateProvider = prototype.TemplateProvider;
     }
 
-    private TemplateExpansionContext( TemplateExpansionContext prototype, TemplateMember<IMethod> methodTemplate ) : base( prototype )
+    private TemplateExpansionContext( TemplateExpansionContext prototype, TemplateMember<IMethod> methodTemplate, TemplateProvider templateProvider )
+        : base( prototype )
     {
         this._methodTemplate = methodTemplate;
         this.SyntaxSerializationService = prototype.SyntaxSerializationService;
@@ -246,7 +247,7 @@ internal sealed partial class TemplateExpansionContext : UserCodeExecutionContex
         this.TemplateGenericArguments = prototype.TemplateGenericArguments;
         this._proceedExpressionProvider = prototype._proceedExpressionProvider;
         this._otherTemplateClassProvider = prototype._otherTemplateClassProvider;
-        this.TemplateProvider = prototype.TemplateProvider;
+        this.TemplateProvider = templateProvider.IsNull ? prototype.TemplateProvider : templateProvider;
     }
 
     public TemplateProvider TemplateProvider { get; }
@@ -636,7 +637,7 @@ internal sealed partial class TemplateExpansionContext : UserCodeExecutionContex
             }
             else
             {
-                return this.CreateReturnStatement( returnUserExpression.ToExpressionSyntax( this.SyntaxSerializationContext, null ), awaitResult );
+                return this.CreateReturnStatement( returnUserExpression.ToExpressionSyntax( this.SyntaxSerializationContext ), awaitResult );
             }
         }
     }
@@ -656,7 +657,8 @@ internal sealed partial class TemplateExpansionContext : UserCodeExecutionContex
 
     public TemplateExpansionContext ForLocalFunction( LocalFunctionInfo localFunctionInfo ) => new( this, localFunctionInfo );
 
-    internal TemplateExpansionContext ForTemplate( TemplateMember<IMethod> template, TemplateProvider templateProvider ) => new( this, template );
+    internal TemplateExpansionContext ForTemplate( TemplateMember<IMethod> template, TemplateProvider templateProvider )
+        => new( this, template, templateProvider );
 
     internal BlockSyntax AddYieldBreakIfNecessary( BlockSyntax block )
     {

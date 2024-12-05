@@ -1,6 +1,5 @@
 ﻿// Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
-using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Diagnostics;
@@ -56,8 +55,6 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
                 .WithService( SyntaxGenerationOptions.Formatted );
 
             serviceProvider = serviceProvider.WithCompileTimeProjectServices( CompileTimeProjectRepository.CreateTestInstance() );
-
-            ((LinkerTestTextResult) testResult).ServiceProvider = serviceProvider;
 
             await base.RunAsync( testInput, testResult, testContext );
 
@@ -117,9 +114,8 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
 
         private protected override Compilation PreprocessCompilation( Compilation initialCompilation, TestResult testResult )
         {
-            var serviceProvider = ((LinkerTestTextResult) testResult).ServiceProvider.AssertNotNull();
             var initialPartialCompilation = PartialCompilation.CreateComplete( initialCompilation );
-            var builder = new LinkerTestInputBuilder( serviceProvider, initialPartialCompilation.CompilationContext );
+            var builder = new LinkerTestInputBuilder( initialPartialCompilation.CompilationContext );
             ((LinkerTestTextResult) testResult).Builder = builder;
 
             // Process all syntax trees.
@@ -140,8 +136,6 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
         private sealed class LinkerTestTextResult : TestResult
         {
             public LinkerTestInputBuilder? Builder { get; set; }
-
-            public ProjectServiceProvider? ServiceProvider { get; set; }
         }
     }
 }

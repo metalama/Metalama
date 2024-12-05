@@ -54,7 +54,7 @@ internal sealed class TestDesignTimeAspectPipelineFactory : DesignTimeAspectPipe
     internal override ValueTask<DesignTimeAspectPipeline?> GetPipelineAndWaitAsync( Compilation compilation, CancellationToken cancellationToken )
         => new( this.GetOrCreatePipeline( this._projectOptions, compilation ) );
 
-    public override bool TryGetMetalamaVersion( Compilation compilation, [NotNullWhen( true )] out Version? version )
+    internal override bool TryGetMetalamaVersion( Compilation compilation, [NotNullWhen( true )] out Version? version )
         => _projectClassifier.TryGetMetalamaVersion( compilation, out version );
 
     public DesignTimeAspectPipeline CreatePipeline( Compilation compilation ) => this.GetOrCreatePipeline( this._projectOptions, compilation ).AssertNotNull();

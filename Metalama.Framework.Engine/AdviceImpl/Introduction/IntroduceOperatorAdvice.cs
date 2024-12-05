@@ -48,7 +48,7 @@ internal sealed class IntroduceOperatorAdvice : IntroduceMemberAdvice<IMethod, I
         this._template = template;
     }
 
-    protected override MethodBuilder CreateBuilder( in AdviceImplementationContext context )
+    protected override MethodBuilder CreateBuilder()
     {
         var builder = new MethodBuilder(
             this.AspectLayerInstance,

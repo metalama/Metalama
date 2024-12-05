@@ -47,7 +47,7 @@ namespace Metalama.Framework.Engine.CodeModel
         /// Returns whether the given path is of interest to the current <see cref="PartialCompilation"/>.
         /// This is used to avoid processing of transformations that affect currently irrelevant syntax trees.
         /// </summary>
-        public abstract bool IsSyntaxTreeObserved( string syntaxTreePath );
+        internal abstract bool IsSyntaxTreeObserved( string syntaxTreePath );
 
         /// <summary>
         /// Gets the types declared in the current subset.

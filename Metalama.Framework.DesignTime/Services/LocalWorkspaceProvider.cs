@@ -15,7 +15,7 @@ public sealed class LocalWorkspaceProvider : WorkspaceProvider
 
     public LocalWorkspaceProvider( GlobalServiceProvider serviceProvider ) : base( serviceProvider ) { }
 
-    public override Task<Workspace> GetWorkspaceAsync( CancellationToken cancellationToken = default )
+    protected override Task<Workspace> GetWorkspaceAsync( CancellationToken cancellationToken = default )
     {
         if ( !this._workspace.Task.IsCompleted )
         {

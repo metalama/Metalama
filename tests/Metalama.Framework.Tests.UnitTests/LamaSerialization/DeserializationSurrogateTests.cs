@@ -10,7 +10,7 @@ using Xunit;
 
 namespace Metalama.Framework.Tests.UnitTests.LamaSerialization;
 
-public class DeserializationSurrogateTests : SerializationTestsBase
+public sealed class DeserializationSurrogateTests : SerializationTestsBase
 {
     protected override void ConfigureServices( IAdditionalServiceCollection services )
     {

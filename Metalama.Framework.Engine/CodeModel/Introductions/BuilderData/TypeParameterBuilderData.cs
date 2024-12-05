@@ -8,7 +8,7 @@ using System.Linq;
 
 namespace Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 
-internal class TypeParameterBuilderData : NamedDeclarationBuilderData
+internal sealed class TypeParameterBuilderData : NamedDeclarationBuilderData
 {
     private readonly IntroducedRef<ITypeParameter> _ref;
 

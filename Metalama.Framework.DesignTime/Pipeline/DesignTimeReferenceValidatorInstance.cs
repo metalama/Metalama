@@ -68,9 +68,9 @@ internal sealed class DesignTimeReferenceValidatorInstance : IReferenceValidator
             this._description,
             this.Granularity );
 
-    public TransitiveValidatorInstance ToTransitiveValidatorInstance( CompilationContext compilationContext )
+    public TransitiveValidatorInstance ToTransitiveValidatorInstance()
         => new(
-            this.ValidatedDeclaration.ToRef( compilationContext ),
+            this.ValidatedDeclaration.ToRef(),
             this.ReferenceKinds,
             this.IncludeDerivedTypes,
             this.Implementation.Implementation,

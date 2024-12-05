@@ -21,6 +21,8 @@ namespace Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 
 internal sealed class TypeParameterBuilder : NamedDeclarationBuilder, ITypeParameterBuilder
 {
+    private readonly IntroducedRef<ITypeParameter> _ref;
+
     private readonly List<IType> _typeConstraints = [];
     private bool _allowsRefStruct;
     private TypeKindConstraint _typeKindConstraint;
@@ -29,13 +31,11 @@ internal sealed class TypeParameterBuilder : NamedDeclarationBuilder, ITypeParam
     private bool _hasDefaultConstructorConstraint;
     private string _name;
 
-    public IntroducedRef<ITypeParameter> Ref { get; }
-
     public TypeParameterBuilder( MethodBuilder containingMethod, int index, string name ) : base( containingMethod.AspectLayerInstance )
     {
         this.ContainingDeclaration = containingMethod;
         this.Index = index;
-        this.Ref = new IntroducedRef<ITypeParameter>( this.Compilation.RefFactory );
+        this._ref = new IntroducedRef<ITypeParameter>( this.Compilation.RefFactory );
         this._name = name;
     }
 
@@ -43,15 +43,13 @@ internal sealed class TypeParameterBuilder : NamedDeclarationBuilder, ITypeParam
     {
         this.ContainingDeclaration = containingType;
         this.Index = index;
-        this.Ref = new IntroducedRef<ITypeParameter>( this.Compilation.RefFactory );
+        this._ref = new IntroducedRef<ITypeParameter>( this.Compilation.RefFactory );
         this._name = name;
     }
 
     public int Index { get; }
 
     public IReadOnlyList<IType> TypeConstraints => this._typeConstraints;
-
-    public IReadOnlyList<IType> ReadOnlyTypeConstraints => this._typeConstraints;
 
     public TypeKindConstraint TypeKindConstraint
     {
@@ -163,15 +161,13 @@ internal sealed class TypeParameterBuilder : NamedDeclarationBuilder, ITypeParam
 
     public IPointerType MakePointerType() => throw new NotImplementedException();
 
-    public ITypeParameter ToNullable() => throw new NotImplementedException();
-
     public ITypeParameter ToNonNullable() => throw new NotImplementedException();
 
-    IType IType.ToNullable() => this.ToNullable();
+    IType IType.ToNullable() => throw new NotImplementedException();
 
     IType IType.ToNonNullable() => this.ToNonNullable();
 
-    IRef<ITypeParameter> ITypeParameter.ToRef() => this.Ref;
+    IRef<ITypeParameter> ITypeParameter.ToRef() => this._ref;
 
     public IType ResolvedType => this;
 
@@ -183,14 +179,10 @@ internal sealed class TypeParameterBuilder : NamedDeclarationBuilder, ITypeParam
             _ => throw new AssertionFailedException()
         };
 
-    protected override IFullRef<IDeclaration> ToFullDeclarationRef() => this.Ref;
+    protected override IFullRef<IDeclaration> ToFullDeclarationRef() => this._ref;
 
-    IRef<IType> IType.ToRef() => this.Ref;
+    IRef<IType> IType.ToRef() => this._ref;
 
-    protected override void EnsureReferenceInitialized()
-    {
-        this.Ref.BuilderData = new TypeParameterBuilderData( this, this.ContainingDeclaration.ToFullRef() );
-    }
-
-    public TypeParameterBuilderData BuilderData => (TypeParameterBuilderData) this.Ref.BuilderData;
+    protected override void EnsureReferenceInitialized() 
+        => this._ref.BuilderData = new TypeParameterBuilderData( this, this.ContainingDeclaration.ToFullRef() );
 }

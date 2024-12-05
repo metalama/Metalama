@@ -99,7 +99,7 @@ internal sealed class RewriterHelper
         // Method does not have a body (e.g. because it's abstract), so there is nothing to replace.
         if ( method.Modifiers.Any( x => x.IsKind( SyntaxKind.AbstractKeyword ) ) )
         {
-            throw new ArgumentException( "Should not be called with a method without a body.", nameof( method ) );
+            throw new ArgumentException( "Should not be called with a method without a body.", nameof(method) );
         }
 
         // Otherwise we need to preserve "asyncness" and "iteratorness" of the method.

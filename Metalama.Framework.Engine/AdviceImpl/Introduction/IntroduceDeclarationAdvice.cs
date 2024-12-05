@@ -35,25 +35,25 @@ internal abstract class IntroduceDeclarationAdvice<TIntroduced, TBuilder> : Advi
 
     protected sealed override IntroductionAdviceResult<TIntroduced> Implement( in AdviceImplementationContext context )
     {
-        var builder = this.CreateBuilder( context );
+        var builder = this.CreateBuilder();
         context.ThrowIfAnyError();
 
         this.InitializeBuilder( builder, in context );
 
         this._buildAction?.Invoke( builder );
 
-        this.CompleteBuilder( builder, in context );
+        this.CompleteBuilder( builder );
 
         this.ValidateBuilder( builder, context.Diagnostics );
 
         return this.ImplementCore( builder, in context );
     }
 
-    protected abstract TBuilder CreateBuilder( in AdviceImplementationContext context );
+    protected abstract TBuilder CreateBuilder();
 
     protected virtual void InitializeBuilder( TBuilder builder, in AdviceImplementationContext context ) { }
 
-    protected virtual void CompleteBuilder( TBuilder builder, in AdviceImplementationContext context ) { }
+    protected virtual void CompleteBuilder( TBuilder builder ) { }
 
     protected abstract IntroductionAdviceResult<TIntroduced> ImplementCore( TBuilder builder, in AdviceImplementationContext context );
 

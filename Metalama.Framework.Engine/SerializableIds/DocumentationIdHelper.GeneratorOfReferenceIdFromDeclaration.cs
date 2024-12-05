@@ -64,7 +64,7 @@ internal static partial class DocumentationIdHelper
             }
         }
 
-        public bool Visit( INamespace ns )
+        private bool Visit( INamespace ns )
         {
             if ( ns.IsGlobalNamespace )
             {

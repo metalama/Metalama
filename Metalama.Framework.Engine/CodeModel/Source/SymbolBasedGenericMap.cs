@@ -11,14 +11,14 @@ namespace Metalama.Framework.Engine.CodeModel.Source
     {
         private readonly ImmutableArray<ITypeSymbol> _typeArguments;
 
-        public SymbolBasedGenericMap( ImmutableArray<ITypeSymbol> typeArguments )
+        private SymbolBasedGenericMap( ImmutableArray<ITypeSymbol> typeArguments )
         {
             this._typeArguments = typeArguments;
         }
 
         public static readonly SymbolBasedGenericMap Empty = new( ImmutableArray<ITypeSymbol>.Empty );
 
-        public bool IsEmpty => this._typeArguments.IsDefaultOrEmpty;
+        private bool IsEmpty => this._typeArguments.IsDefaultOrEmpty;
 
         [return: NotNullIfNotNull( nameof(type) )]
         public T? SubstituteSymbol<T>( T? type, Compilation compilation )

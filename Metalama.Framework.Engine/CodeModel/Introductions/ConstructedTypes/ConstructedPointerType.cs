@@ -9,7 +9,7 @@ using System;
 
 namespace Metalama.Framework.Engine.CodeModel.Introductions.ConstructedTypes;
 
-internal class ConstructedPointerType : ConstructedType, IPointerType
+internal sealed class ConstructedPointerType : ConstructedType, IPointerType
 {
     private readonly IFullRef<IType> _pointedAtType;
 
@@ -60,14 +60,9 @@ internal class ConstructedPointerType : ConstructedType, IPointerType
     }
 
     public override int GetHashCode( TypeComparison typeComparison )
-    {
-        return HashCode.Combine( this._pointedAtType.GetHashCode( typeComparison.ToRefComparison() ), 541 );
-    }
+        => HashCode.Combine( this._pointedAtType.GetHashCode( typeComparison.ToRefComparison() ), 541 );
 
     protected override IType ToNullableCore() => throw new NotSupportedException();
 
     protected override IType ToNonNullableCore() => throw new NotSupportedException();
-
-    protected override ConstructedType ForCompilation( CompilationModel compilation )
-        => ReferenceEquals( compilation, this.Compilation ) ? this : new ConstructedPointerType( compilation, this._pointedAtType );
 }

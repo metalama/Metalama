@@ -61,23 +61,21 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
         private CompilationModel? _initialCompilationModel;
         private Dictionary<string, SyntaxNode>? _syntaxNodeMap;
 
-        public LinkerTestInputBuilder( in ProjectServiceProvider serviceProvider, CompilationContext inputCompilationContext )
+        public LinkerTestInputBuilder( CompilationContext inputCompilationContext )
         {
-            this._rewriter = new TestRewriter( serviceProvider, this, inputCompilationContext );
+            this._rewriter = new TestRewriter( this, inputCompilationContext );
         }
 
-        internal SyntaxNode ProcessSyntaxRoot( SyntaxNode syntaxRoot )
-        {
-            return this._rewriter.Visit( syntaxRoot )!;
-        }
+        internal SyntaxNode ProcessSyntaxRoot( SyntaxNode syntaxRoot ) => this._rewriter.Visit( syntaxRoot )!;
 
-        public AspectLinkerInput ToAspectLinkerInput(CompilationModel initialCompilationModel)
+        public AspectLinkerInput ToAspectLinkerInput( CompilationModel initialCompilationModel )
         {
             this._initialCompilationModel = initialCompilationModel;
 
             this._syntaxNodeMap =
-                this._initialCompilationModel.AssertNotNull().CompilationContext.Compilation.SyntaxTrees.SelectMany( GetNodesWithId )
-                .ToDictionary( GetNodeId );
+                this._initialCompilationModel.AssertNotNull()
+                    .CompilationContext.Compilation.SyntaxTrees.SelectMany( GetNodesWithId )
+                    .ToDictionary( GetNodeId );
 
             var orderedLayers = this._rewriter.OrderedAspectLayers
                 .Select( ( al, i ) => new OrderedAspectLayer( i, al.AspectName.AssertNotNull(), al.LayerName ) )
@@ -90,7 +88,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
 
             var order = 0;
 
-            foreach (var transformationFactory in this._transformationFactories )
+            foreach ( var transformationFactory in this._transformationFactories )
             {
                 var transformation = transformationFactory( mutableCompilationModel );
 
@@ -114,12 +112,10 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
             return linkerInput;
         }
 
-        internal void AddTransformationFactory( Func<CompilationModel, TestTransformationBase> transformationFactoryFunc )
-        {
-            this._transformationFactories.Add( transformationFactoryFunc );
-        }
+        private void AddTransformationFactory( Func<CompilationModel, TestTransformationBase> transformationFactoryFunc )
+            => this._transformationFactories.Add( transformationFactoryFunc );
 
-        internal InsertPosition TranslateInsertPosition( CompilationContext compilationContext, InsertPositionRecord insertPositionRecord )
+        private InsertPosition TranslateInsertPosition( InsertPositionRecord insertPositionRecord )
         {
             switch ( insertPositionRecord )
             {
@@ -127,19 +123,18 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
                     var node = this._syntaxNodeMap.AssertNotNull()[nodeId] switch
                     {
                         MemberDeclarationSyntax memberDeclaration => memberDeclaration,
-                        VariableDeclaratorSyntax variableDeclaration => (MemberDeclarationSyntax)variableDeclaration.Parent.Parent,
+                        VariableDeclaratorSyntax variableDeclaration => (MemberDeclarationSyntax) variableDeclaration.Parent.Parent,
                         _ => throw new AssertionFailedException( $"Unsupported." ),
                     };
 
                     return new InsertPosition( relation, node );
-                case { Relation: var relation, BuilderData: { } builderData }:
-                    return new InsertPosition( relation, builderData );
+
                 default:
                     throw new AssertionFailedException( "Unsupported" );
             }
         }
 
-        internal IFullRef<IDeclaration> TranslateOriginalSymbol( ISymbol overriddenDeclarationSymbol )
+        private IFullRef<IDeclaration> TranslateOriginalSymbol( ISymbol overriddenDeclarationSymbol )
         {
             if ( this._symbolToBuilderDataMap.TryGetValue( overriddenDeclarationSymbol, out var builderData ) )
             {
@@ -148,6 +143,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
 
             var symbolId = SymbolId.Create( overriddenDeclarationSymbol );
             var durableRef = DurableRefFactory.FromSymbolId<IDeclaration>( symbolId );
+
             return durableRef.ToFullRef<IDeclaration>( this._initialCompilationModel.AssertNotNull().RefFactory );
         }
 

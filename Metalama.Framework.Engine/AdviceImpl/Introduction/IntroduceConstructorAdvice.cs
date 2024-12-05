@@ -36,7 +36,7 @@ internal sealed class IntroduceConstructorAdvice : IntroduceMemberAdvice<IMethod
         this._template = template;
     }
 
-    protected override ConstructorBuilder CreateBuilder( in AdviceImplementationContext context )
+    protected override ConstructorBuilder CreateBuilder()
     {
         return new ConstructorBuilder( this.AspectLayerInstance, this.TargetDeclaration );
     }

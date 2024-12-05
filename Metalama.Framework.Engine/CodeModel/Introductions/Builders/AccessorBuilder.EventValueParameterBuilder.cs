@@ -14,7 +14,7 @@ internal partial class AccessorBuilder
 
         public override IType Type
         {
-            get => ((EventBuilder) this.Accessor.ContainingMember).Type;
+            get => ((EventBuilder) this.Accessor._containingMember).Type;
             set => throw new NotSupportedException( "Cannot directly change accessor's value parameter type." );
         }
 

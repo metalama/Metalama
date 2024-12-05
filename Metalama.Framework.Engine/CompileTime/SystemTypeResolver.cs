@@ -19,7 +19,8 @@ internal class SystemTypeResolver : CurrentAppDomainTypeResolver
 
     private readonly ReferenceAssemblyLocator _referenceAssemblyLocator;
 
-    public SystemTypeResolver( in ProjectServiceProvider serviceProvider, CompilationContext compilationContext ) : base( serviceProvider, compilationContext )
+    protected SystemTypeResolver( in ProjectServiceProvider serviceProvider, CompilationContext compilationContext )
+        : base( serviceProvider, compilationContext )
     {
         this._referenceAssemblyLocator = serviceProvider.GetReferenceAssemblyLocator();
     }

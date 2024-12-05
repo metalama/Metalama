@@ -115,8 +115,7 @@ internal abstract class IntroducedDeclaration : BaseDeclaration
 
     internal override ICompilationElement Translate(
         CompilationModel newCompilation,
-        IGenericContext? genericContext = null,
-        Type? interfaceType = null )
+        IGenericContext? genericContext = null )
     {
         GenericContext combinedGenericContext;
 

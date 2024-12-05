@@ -275,7 +275,7 @@ namespace Metalama.Framework.Tests.UnitTests.CodeModel
         [InlineData( (long) 1 )]
         [InlineData( (ulong) 1 )]
         [InlineData( (string) "1" )]
-        [InlineData( [new[] { 1, 2, 3 }] )]
+        [InlineData( new[] { 1, 2, 3 } )]
         [InlineData( [new object?[] { 4, 5, null }] )]
         public void RoundtripValue( object? value )
         {

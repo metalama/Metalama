@@ -56,7 +56,7 @@ internal readonly struct InsertPosition : IEquatable<InsertPosition>
     public bool Equals( InsertPosition other )
         => this.Relation == other.Relation
            && this.SyntaxNode == other.SyntaxNode
-           && this.BuilderData == other.BuilderData
+           && ReferenceEquals( this.BuilderData, other.BuilderData )
            && this.SyntaxTree == other.SyntaxTree;
 
     public override int GetHashCode() => HashCode.Combine( this.Relation, this.SyntaxNode, this.BuilderData, this.SyntaxTree );

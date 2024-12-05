@@ -51,5 +51,5 @@ internal abstract class IntroducedMember : IntroducedMemberOrNamedType, IMemberI
 
     IRef<IMember> IMember.ToRef() => this.ToMemberFullRef();
 
-    public abstract IFullRef<IMember> ToMemberFullRef();
+    protected abstract IFullRef<IMember> ToMemberFullRef();
 }

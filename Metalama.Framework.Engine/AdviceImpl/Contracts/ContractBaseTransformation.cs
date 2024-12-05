@@ -35,21 +35,17 @@ internal abstract class ContractBaseTransformation : BaseSyntaxTreeTransformatio
     /// </summary>
     protected ContractDirection ContractDirection { get; }
 
-    public TemplateProvider TemplateProvider { get; }
-
     protected ContractBaseTransformation(
         AspectLayerInstance aspectLayerInstance,
         IFullRef<IDeclaration> contractTarget,
         ContractDirection contractDirection,
         TemplateMember<IMethod> template,
-        TemplateProvider templateProvider,
         IObjectReader templateArguments ) : base( aspectLayerInstance, contractTarget )
     {
         Invariant.Assert( contractDirection is not ContractDirection.None );
 
         this.ContractTarget = contractTarget;
         this.ContractDirection = contractDirection;
-        this.TemplateProvider = templateProvider;
         this._template = template;
         this._templateArguments = templateArguments;
     }

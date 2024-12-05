@@ -5,6 +5,7 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Aspects;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using MethodKind = Microsoft.CodeAnalysis.MethodKind;
 
 namespace Metalama.Framework.Engine.CompileTime
@@ -26,5 +27,11 @@ namespace Metalama.Framework.Engine.CompileTime
 
         public ImmutableDictionary<string, TemplateClassMemberParameter> IndexedParameters { get; } =
             Parameters.Concat( TypeParameters ).ToImmutableDictionary( x => x.Name, x => x );
+
+        // ImmutableArray doesn't implement value equality, so revert back to reference equality,
+        // instead of the mixed equality that would be provided by the compiler
+        public bool Equals( TemplateClassMember? other ) => ReferenceEquals( this, other );
+
+        public override int GetHashCode() => RuntimeHelpers.GetHashCode( this );
     }
 }

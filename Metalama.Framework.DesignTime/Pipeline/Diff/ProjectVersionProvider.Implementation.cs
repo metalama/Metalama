@@ -208,7 +208,6 @@ internal sealed partial class ProjectVersionProvider
                 Compilation newCompilation )
         {
             var changeListBuilder = ImmutableDictionary.CreateBuilder<string, ReferenceChangeKind>( StringComparer.Ordinal );
-            var referenceListBuilder = ImmutableHashSet.CreateBuilder<string>( StringComparer.Ordinal );
 
             var oldReferences = oldCompilation?.ExternalReferences.OfType<PortableExecutableReference>()
                 .Select( r => r.FilePath )
@@ -239,7 +238,7 @@ internal sealed partial class ProjectVersionProvider
                 }
             }
 
-            return (changeListBuilder.ToImmutable(), referenceListBuilder.ToImmutable());
+            return (changeListBuilder.ToImmutable(), newReferences);
         }
 
         public async ValueTask<CompilationChanges> GetCompilationChangesAsyncCoreAsync(
