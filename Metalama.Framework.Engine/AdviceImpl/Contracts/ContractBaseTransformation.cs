@@ -10,6 +10,7 @@ using Metalama.Framework.Engine.Templating.MetaModel;
 using Metalama.Framework.Engine.Transformations;
 using Metalama.Framework.Introspection;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 
@@ -96,4 +97,16 @@ internal abstract class ContractBaseTransformation : BaseSyntaxTreeTransformatio
     public override IntrospectionTransformationKind TransformationKind => IntrospectionTransformationKind.InsertStatement;
 
     public override string ToString() => $"{this.GetType().Name} ContractTarget={{{this.ContractTarget}}}";
+
+    public override FormattableString ToDisplayString()
+    {
+        var parameter = this.ContractTarget.GetTarget( this.InitialCompilation ) switch
+        {
+            IParameter { IsReturnParameter: true } => "return value",
+            IParameter param => $"parameter '{param.Name}'",
+            var target => $"unexpected declaration '{target}'"
+        };
+
+        return $"Add contract to {parameter} of {this.TargetMember.DeclarationKind} '{this.TargetMember}'";
+    }
 }

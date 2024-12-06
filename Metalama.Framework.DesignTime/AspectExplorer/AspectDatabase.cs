@@ -141,7 +141,8 @@ public sealed class AspectDatabase : IGlobalService, IRpcApi
                     designTimeConfiguration.Value,
                     cancellationToken.ToTestable() );
 
-                aspectInstances = result.AspectInstances.Where( i => !i.IsSkipped ).ToImmutableArray();
+                // We need to call Distinct() here, because aspects with multiple layers show up multiple times.
+                aspectInstances = result.AspectInstances.Where( i => !i.IsSkipped ).Distinct().ToImmutableArray();
             }
             catch ( Exception ex )
             {

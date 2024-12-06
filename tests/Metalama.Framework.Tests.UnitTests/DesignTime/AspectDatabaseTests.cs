@@ -42,7 +42,7 @@ public sealed class AspectDatabaseTests( ITestOutputHelper testOutputHelper ) : 
         const string code =
             """
             using Metalama.Framework.Advising;
-            using Metalama.Framework.Aspects; 
+            using Metalama.Framework.Aspects;
             using Metalama.Framework.Code;
             using Metalama.Framework.Fabrics;
             using System;
@@ -441,5 +441,74 @@ public sealed class AspectDatabaseTests( ITestOutputHelper testOutputHelper ) : 
                     } );
             } );
 #pragma warning restore IDE0053
+    }
+
+    [Fact]
+    public async Task ContractTest()
+    {
+        const string code =
+            """
+            using Metalama.Framework.Aspects;
+            using Metalama.Framework.Code;
+            using System;
+
+            internal class NotNullAttribute : ContractAspect
+            {
+                public override void Validate( dynamic? value )
+                {
+                    if (value is null)
+                    {
+                        throw new ArgumentNullException();
+                    }
+                }
+            }
+
+            class Target
+            {
+                public Target([NotNull] string s) { }
+
+                [NotNull]
+                public string this[[NotNull] string s] => s;
+
+                [NotNull]
+                public string Name { get; set; }
+
+                [return: NotNull]
+                string M([NotNull] string s) => s;
+            }
+            """;
+
+        using var testContext = this.CreateTestContext();
+        using TestDesignTimeAspectPipelineFactory factory = new( testContext );
+
+        var workspaceProvider = factory.ServiceProvider.GetRequiredService<TestWorkspaceProvider>();
+        var projectKey = workspaceProvider.AddOrUpdateProject( "project", new Dictionary<string, string> { ["code.cs"] = code } );
+
+        var aspectDatabase = new AspectDatabase( factory.ServiceProvider );
+
+        var aspectInstances = await aspectDatabase.GetAspectInstancesAsync( projectKey, "project", new SerializableTypeId( "Y:global::NotNullAttribute" ), default );
+        Assert.NotNull( aspectInstances );
+
+        AssertAspectInstances(
+            [
+                "M:Target.#ctor(System.String);Parameter=0",
+                "M:Target.M(System.String)~System.String",
+                "M:Target.M(System.String)~System.String;Parameter=0",
+                "P:Target.Item(System.String)",
+                "P:Target.Item(System.String);Parameter=0",
+                "P:Target.Name"
+            ],
+            aspectInstances );
+
+        AssertAspectTransformations( 
+            [
+                "Add contract to indexer 'Target.this[string]'",
+                "Add contract to parameter 's' of constructor 'Target.Target(string)'",
+                "Add contract to parameter 's' of indexer 'Target.this[string]'",
+                "Add contract to parameter 's' of method 'Target.M(string)'",
+                "Add contract to property 'Name'",
+                "Add contract to return value of method 'Target.M(string)'"
+            ],
+            aspectInstances );
     }
 }

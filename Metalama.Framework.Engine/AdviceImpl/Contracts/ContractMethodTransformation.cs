@@ -109,6 +109,4 @@ internal sealed class ContractMethodTransformation : ContractBaseTransformation
     }
 
     public override IFullRef<IMember> TargetMember => this._targetMethod;
-
-    public override FormattableString ToDisplayString() => $"Add default contract to method '{this.TargetMember}'";
 }
