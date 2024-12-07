@@ -328,7 +328,7 @@ namespace Metalama.Framework.Tests.Integration.Runners
 
             serviceProvider = serviceProvider.WithServices(
                 ExecutionScenario.CompileTime.WithTest(),
-                new OtherTemplateClassProvider( ImmutableDictionary<string, OtherTemplateClass>.Empty ) );
+                new TemplateClassProvider( ImmutableDictionary<string, TemplateClass>.Empty ) );
 
             var metaApi = MetaApi.ForMethod(
                 targetMethod,

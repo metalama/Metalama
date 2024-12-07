@@ -267,12 +267,12 @@ public abstract class AspectPipeline : IDisposable
         var otherTemplateClassFactory = new OtherTemplateClassFactory( compilationModel.CompilationContext );
 
         var otherTemplateClasses = otherTemplateClassFactory.GetClasses(
-                projectServiceProviderWithProject,
-                compileTimeProject,
-                diagnosticAdder )
-            .ToImmutableDictionary( x => x.FullName, x => x );
+            projectServiceProviderWithProject,
+            compileTimeProject,
+            diagnosticAdder );
 
-        projectServiceProviderWithProject = projectServiceProviderWithProject.WithService( new OtherTemplateClassProvider( otherTemplateClasses ) );
+        projectServiceProviderWithProject = projectServiceProviderWithProject.WithService(
+            new TemplateClassProvider( otherTemplateClasses.Concat<TemplateClass>( aspectClasses ).ToImmutableDictionary( x => x.FullName, x => x ) ) );
 
         // Add fabrics.
 

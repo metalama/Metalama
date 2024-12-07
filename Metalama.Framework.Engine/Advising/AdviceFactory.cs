@@ -38,7 +38,7 @@ internal sealed partial class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl
     private readonly INamedType? _explicitlyImplementedInterfaceType;
 
     private readonly ObjectReaderFactory _objectReaderFactory;
-    private readonly OtherTemplateClassProvider _otherTemplateClassProvider;
+    private readonly TemplateClassProvider _templateClassProvider;
 
     private readonly CompilationModel _compilation;
     private readonly IDeclaration _aspectTarget;
@@ -60,7 +60,7 @@ internal sealed partial class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl
         this._explicitlyImplementedInterfaceType = explicitlyImplementedInterfaceType;
 
         this._objectReaderFactory = state.ServiceProvider.GetRequiredService<ObjectReaderFactory>();
-        this._otherTemplateClassProvider = state.ServiceProvider.GetRequiredService<OtherTemplateClassProvider>();
+        this._templateClassProvider = state.ServiceProvider.GetRequiredService<TemplateClassProvider>();
 
         // The AdviceFactory is now always working on the initial compilation.
         // In the future, AdviceFactory could work on a compilation snapshot, however we have no use case for this feature yet.
@@ -85,10 +85,12 @@ internal sealed partial class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl
         => this.WithTemplateClassInstance( templateClassInstance );
 
     public IAdviceFactory WithTemplateProvider( TemplateProvider templateProvider )
-        => this.WithTemplateClassInstance(
+    {
+        return this.WithTemplateClassInstance(
             new TemplateClassInstance(
                 templateProvider,
-                this._otherTemplateClassProvider.Get( templateProvider ) ) );
+                this._templateClassProvider.Get( templateProvider ) ) );
+    }
 
     public IAdviceFactory WithTemplateProvider( ITemplateProvider templateProvider )
         => this.WithTemplateProvider( TemplateProvider.FromInstance( templateProvider ) );
