@@ -126,17 +126,14 @@ public sealed class InvalidateCacheAttribute : MethodAspect
                 return;
             }
 
-            if ( !builder.TryIntroduceDependency(
-                    new DependencyProperties(
-                        builder.Target.DeclaringType,
-                        typeof(ICachingService),
-                        "_cachingService" ),
-                    out cachingServiceField ) )
-            {
-                builder.SkipAspect();
+            var introduceDependencyResult = builder.With( builder.Target.DeclaringType ).IntroduceDependency( typeof(ICachingService) );
 
+            if ( introduceDependencyResult.Outcome == AdviceOutcome.Error )
+            {
                 return;
             }
+            
+            cachingServiceField = introduceDependencyResult.Declaration;
         }
         else
         {
@@ -159,7 +156,7 @@ public sealed class InvalidateCacheAttribute : MethodAspect
                 returnType = asyncInfo.IsAwaitable ? asyncInfo.ResultType : builder.Target.ReturnType,
                 methodsInvalidatedByField = methodsInvalidatedByField.Declaration,
                 invalidatedMethods = invalidatedMethods.Values.OrderBy( x => x.Method.ToString() ),
-                cachingServiceField
+                cachingServiceField 
             } );
     }
 

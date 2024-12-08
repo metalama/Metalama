@@ -144,17 +144,14 @@ public sealed class CacheAttribute : CachingBaseAttribute, IAspect<IMethod>
                 return;
             }
 
-            if ( !builder.TryIntroduceDependency(
-                    new DependencyProperties(
-                        builder.Target.DeclaringType,
-                        typeof(ICachingService),
-                        "_cachingService" ),
-                    out cachingServiceField ) )
+            var introduceDependencyResult = builder.With( builder.Target.DeclaringType ).IntroduceDependency( typeof(ICachingService) );
+            
+            if ( introduceDependencyResult.Outcome == AdviceOutcome.Error )
             {
-                builder.SkipAspect();
-
                 return;
             }
+
+            cachingServiceField = introduceDependencyResult.Declaration;
         }
         else
         {
