@@ -61,21 +61,28 @@ internal sealed class RecursiveFileSystemWatcher : IDisposable
 
             void OnParentDirectoryCreated( object? s, FileSystemEventArgs? e )
             {
-                if ( Directory.Exists( path ) )
+                try
                 {
-                    this.CreateWatcher();
-                    this._parentDirectoryWatcher?.Dispose();
-                    this._parentDirectoryWatcher = null;
-
-                    if ( this.EnableRaisingEvents )
+                    if ( Directory.Exists( path ) )
                     {
-                        // If files were created in the directory before the watcher was created, we need to raise the events for them.
-                        foreach ( var file in Directory.EnumerateFileSystemEntries( path, filter ) )
+                        this.CreateWatcher();
+                        this._parentDirectoryWatcher?.Dispose();
+                        this._parentDirectoryWatcher = null;
+
+                        if ( this.EnableRaisingEvents )
                         {
-                            this.Created?.Invoke( this, new FileSystemEventArgs( WatcherChangeTypes.Created, path, file ) );
-                            this.Changed?.Invoke( this, new FileSystemEventArgs( WatcherChangeTypes.Changed, path, file ) );
+                            // If files were created in the directory before the watcher was created, we need to raise the events for them.
+                            foreach ( var file in Directory.EnumerateFileSystemEntries( path, filter ) )
+                            {
+                                this.Created?.Invoke( this, new FileSystemEventArgs( WatcherChangeTypes.Created, path, file ) );
+                                this.Changed?.Invoke( this, new FileSystemEventArgs( WatcherChangeTypes.Changed, path, file ) );
+                            }
                         }
                     }
+                }
+                catch ( DirectoryNotFoundException )
+                {
+                    // The directory may be deleted in the meantime.
                 }
             }
 
