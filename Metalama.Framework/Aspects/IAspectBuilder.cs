@@ -2,7 +2,6 @@
 
 using Metalama.Framework.Advising;
 using Metalama.Framework.Code;
-using Metalama.Framework.Diagnostics;
 using Metalama.Framework.Eligibility;
 using Metalama.Framework.Project;
 using Metalama.Framework.Serialization;
@@ -16,7 +15,7 @@ namespace Metalama.Framework.Aspects
     /// aspects and validators, or report diagnostics. This is the weakly-typed variant of the <see cref="IAspectBuilder{T}"/> interface.
     /// </summary>
     [CompileTime]
-    public interface IAspectBuilder
+    public interface IAspectBuilder : IAdviser
     {
         /// <summary>
         /// Gets the current <see cref="IProject"/>, which represents the <c>csproj</c> file and allows to share project-local data.
@@ -28,16 +27,6 @@ namespace Metalama.Framework.Aspects
         /// and the <see cref="IAspectInstance.SecondaryInstances"/> of the current aspect.
         /// </summary>
         IAspectInstance AspectInstance { get; }
-
-        /// <summary>
-        /// Gets a service that allows to report or suppress diagnostics.
-        /// </summary>
-        ScopedDiagnosticSink Diagnostics { get; }
-
-        /// <summary>
-        /// Gets the declaration to which the aspect was added.
-        /// </summary>
-        IDeclaration Target { get; }
 
         /// <summary>
         /// Gets an object that allows to create advice, e.g. overriding members, introducing members, or implementing new interfaces.
@@ -81,15 +70,15 @@ namespace Metalama.Framework.Aspects
 
         /// <summary>
         /// Returns a copy of the current <see cref="IAspectBuilder"/>, for use in the current execution context,
-        /// but for a different <see cref="Target"/> declaration.
+        /// but for a different <see cref="IAdviser.Target"/> declaration.
         /// </summary>
-        IAspectBuilder<T> With<T>( T declaration )
+        new IAspectBuilder<T> With<T>( T declaration )
             where T : class, IDeclaration;
 
         [Obsolete( "Use the With method." )]
         IAspectBuilder<T> WithTarget<T>( T newTarget )
             where T : class, IDeclaration;
-        
+
         /// <summary>
         /// Gets or sets the tags passed to all advice added by the current <see cref="IAspect{T}.BuildAspect"/> method. These tags
         /// can be consumed from the <c>meta.Tags</c> property.

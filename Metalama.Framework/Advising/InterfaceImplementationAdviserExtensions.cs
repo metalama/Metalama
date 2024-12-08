@@ -18,7 +18,7 @@ public static class InterfaceImplementationAdviserExtensions
 {
     /// <summary>
     /// Introduces a property to the target type, or overrides the implementation of an existing one, by specifying a property template.
-    /// Use the <see cref="IAdviser{T}.With{TNewDeclaration}"/> method to apply the advice to another declaration than the current one.
+    /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to apply the advice to another declaration than the current one.
     /// </summary>
     /// <param name="adviser">An <see cref="IInterfaceImplementationAdviser"/>.</param>
     /// <param name="template">The name of the property in the aspect class that will be used as a template for the new property.
@@ -53,7 +53,7 @@ public static class InterfaceImplementationAdviserExtensions
 
     /// <summary>
     /// Introduces a property to the target type, or overrides the implementation of an existing one, by specifying individual template methods for each accessor. 
-    /// Use the <see cref="IAdviser{T}.With{TNewDeclaration}"/> method to apply the advice to another declaration than the current one.
+    /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to apply the advice to another declaration than the current one.
     /// </summary>
     /// <param name="adviser">An <see cref="IInterfaceImplementationAdviser"/>.</param>
     /// <param name="name">Name of the introduced property.</param>
@@ -97,7 +97,7 @@ public static class InterfaceImplementationAdviserExtensions
 
     /// <summary>
     /// Introduces an indexer to the target type, or overrides the implementation of an existing one, by specifying individual template methods for each accessor. 
-    /// Use the <see cref="IAdviser{T}.With{TNewDeclaration}"/> method to apply the advice to another declaration than the current one.
+    /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to apply the advice to another declaration than the current one.
     /// </summary>
     /// <param name="adviser">An <see cref="IInterfaceImplementationAdviser"/>.</param>
     /// <param name="indexType">The type of the initial index parameter.</param>
@@ -141,7 +141,7 @@ public static class InterfaceImplementationAdviserExtensions
 
     /// <summary>
     /// Introduces an indexer to the target type, or overrides the implementation of an existing one, by specifying individual template methods for each accessor. 
-    /// Use the <see cref="IAdviser{T}.With{TNewDeclaration}"/> method to apply the advice to another declaration than the current one.
+    /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to apply the advice to another declaration than the current one.
     /// </summary>
     /// <param name="adviser">An <see cref="IInterfaceImplementationAdviser"/>.</param>
     /// <param name="indexType">The type of the initial index parameter.</param>
@@ -185,7 +185,7 @@ public static class InterfaceImplementationAdviserExtensions
 
     /// <summary>
     /// Introduces an indexer to the target type, or overrides the implementation of an existing one, by specifying individual template methods for each accessor. 
-    /// Use the <see cref="IAdviser{T}.With{TNewDeclaration}"/> method to apply the advice to another declaration than the current one.
+    /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to apply the advice to another declaration than the current one.
     /// </summary>
     /// <param name="adviser">An <see cref="IInterfaceImplementationAdviser"/>.</param>
     /// <param name="indices">The types and names of the index parameters.</param>
@@ -229,7 +229,7 @@ public static class InterfaceImplementationAdviserExtensions
 
     /// <summary>
     /// Introduces an indexer to the target type, or overrides the implementation of an existing one, by specifying individual template methods for each accessor. 
-    /// Use the <see cref="IAdviser{T}.With{TNewDeclaration}"/> method to apply the advice to another declaration than the current one.
+    /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to apply the advice to another declaration than the current one.
     /// </summary>
     /// <param name="adviser">An <see cref="IInterfaceImplementationAdviser"/>.</param>
     /// <param name="indices">The types and names of the index parameters.</param>
@@ -273,7 +273,7 @@ public static class InterfaceImplementationAdviserExtensions
 
     /// <summary>
     /// Introduces a new event to the target type, or overrides the implementation of an existing one, by specifying an event template.
-    /// Use the <see cref="IAdviser{T}.With{TNewDeclaration}"/> method to apply the advice to another declaration than the current one.
+    /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to apply the advice to another declaration than the current one.
     /// </summary>
     /// <param name="adviser">An <see cref="IInterfaceImplementationAdviser"/>.</param>
     /// <param name="eventTemplate">The name of the event in the aspect class that must be used as a template for the introduced event. This event
@@ -308,7 +308,7 @@ public static class InterfaceImplementationAdviserExtensions
     /// <summary>
     /// Introduces a new event to the target type, or overrides the implementation of an existing one, by specifying individual template methods
     /// for the adder, the remover, and the raiser.
-    /// Use the <see cref="IAdviser{T}.With{TNewDeclaration}"/> method to apply the advice to another declaration than the current one.
+    /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to apply the advice to another declaration than the current one.
     /// </summary>
     /// <param name="adviser">An <see cref="IInterfaceImplementationAdviser"/>.</param>
     /// <param name="eventName">The name of the introduced event.</param>
@@ -355,7 +355,7 @@ public static class InterfaceImplementationAdviserExtensions
 
     /// <summary>
     /// Introduces a new method or overrides the implementation of the existing one.
-    /// Use the <see cref="IAdviser{T}.With{TNewDeclaration}"/> method to apply the advice to another declaration than the current one.
+    /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to apply the advice to another declaration than the current one.
     /// </summary>
     /// <param name="adviser">An <see cref="IInterfaceImplementationAdviser"/>.</param>
     /// <param name="template">Name of the method of the aspect class that will be used as a template for the introduced method. This method must be

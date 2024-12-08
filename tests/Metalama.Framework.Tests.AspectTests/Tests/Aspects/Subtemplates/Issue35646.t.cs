@@ -1,10 +1,8 @@
-using System;
-
 public class C
 {
-    [ParentAspect]
-    public void M()
-    {
-        Console.WriteLine( "Some template" );
-    }
+  [ParentAspect]
+  public void M()
+  {
+    global::System.Console.WriteLine("Some template");
+  }
 }

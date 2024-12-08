@@ -5,6 +5,7 @@ using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.DeclarationBuilders;
 using Metalama.Framework.Code.SyntaxBuilders;
+using Metalama.Framework.Diagnostics;
 using Metalama.Framework.Eligibility;
 using Metalama.Framework.Engine.AdviceImpl.Attributes;
 using Metalama.Framework.Engine.AdviceImpl.Contracts;
@@ -30,13 +31,14 @@ using TypedConstant = Metalama.Framework.Code.TypedConstant;
 namespace Metalama.Framework.Engine.Advising;
 
 // ReSharper disable once PossibleInterfaceMemberAmbiguity
-internal sealed partial class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl
+internal sealed partial class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagnosticSource, IAdviserInternal
     where T : IDeclaration
 {
     private readonly AdviceFactoryState _state;
     private readonly TemplateClassInstance? _templateClassInstance;
     private readonly string? _layerName;
     private readonly INamedType? _explicitlyImplementedInterfaceType;
+    private readonly UserDiagnosticSink _diagnostics;
 
     private readonly TemplateClassProvider _templateClassProvider;
 
@@ -45,6 +47,10 @@ internal sealed partial class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl
     private readonly INamedType? _aspectTargetType;
     private readonly ObjectReaderFactory _objectReaderFactory;
 
+    public ScopedDiagnosticSink Diagnostics => new( this._diagnostics, this, this.Target, this.Target );
+
+    IDeclaration IAdviser.Target => this.Target;
+
     public T Target { get; }
 
     public AdviceFactory(
@@ -52,13 +58,15 @@ internal sealed partial class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl
         AdviceFactoryState state,
         TemplateClassInstance? templateClassInstance,
         string? layerName,
-        INamedType? explicitlyImplementedInterfaceType )
+        INamedType? explicitlyImplementedInterfaceType,
+        UserDiagnosticSink diagnostics )
     {
         this.Target = target;
         this._state = state;
         this._templateClassInstance = templateClassInstance;
         this._layerName = layerName;
         this._explicitlyImplementedInterfaceType = explicitlyImplementedInterfaceType;
+        this._diagnostics = diagnostics;
 
         this._templateClassProvider = state.ServiceProvider.GetRequiredService<TemplateClassProvider>();
 
@@ -79,7 +87,7 @@ internal sealed partial class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl
     private DisposeAction WithNonUserCode() => this._state.ExecutionContext.WithoutDependencyCollection();
 
     private AdviceFactory<T> WithTemplateClassInstance( TemplateClassInstance templateClassInstance )
-        => new( this.Target, this._state, templateClassInstance, this._layerName, this._explicitlyImplementedInterfaceType );
+        => new( this.Target, this._state, templateClassInstance, this._layerName, this._explicitlyImplementedInterfaceType, this._diagnostics );
 
     IAdviceFactoryImpl IAdviceFactoryImpl.WithTemplateClassInstance( TemplateClassInstance templateClassInstance )
         => this.WithTemplateClassInstance( templateClassInstance );
@@ -96,7 +104,13 @@ internal sealed partial class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl
         => this.WithTemplateProvider( TemplateProvider.FromInstance( templateProvider ) );
 
     public IAdviceFactoryImpl WithExplicitInterfaceImplementation( INamedType explicitlyImplementedInterfaceType )
-        => new AdviceFactory<T>( this.Target, this._state, this._templateClassInstance, this._layerName, explicitlyImplementedInterfaceType );
+        => new AdviceFactory<T>(
+            this.Target,
+            this._state,
+            this._templateClassInstance,
+            this._layerName,
+            explicitlyImplementedInterfaceType,
+            this._diagnostics );
 
     private TemplateProvider TemplateProvider => this._templateClassInstance.AssertNotNull().TemplateProvider;
 
@@ -260,14 +274,20 @@ internal sealed partial class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl
         return selectedTemplate;
     }
 
-    IAdviser<TNewDeclaration> IAdviser<T>.With<TNewDeclaration>( TNewDeclaration declaration ) => this.WithDeclaration( declaration );
+    IAdviser<TNewDeclaration> IAdviser.With<TNewDeclaration>( TNewDeclaration declaration ) => this.WithDeclaration( declaration );
 
     public AdviceFactory<TNewTarget> WithDeclaration<TNewTarget>( TNewTarget target )
         where TNewTarget : IDeclaration
     {
         // We don't validate that the target is "under" the current declaration because some advice type, e.g. annotations, are valid on any target.
 
-        return new AdviceFactory<TNewTarget>( target, this._state, this._templateClassInstance, this._layerName, this._explicitlyImplementedInterfaceType );
+        return new AdviceFactory<TNewTarget>(
+            target,
+            this._state,
+            this._templateClassInstance,
+            this._layerName,
+            this._explicitlyImplementedInterfaceType,
+            this._diagnostics );
     }
 
     public ICompilation MutableCompilation => this._state.MutableCompilation;
@@ -1599,4 +1619,8 @@ internal sealed partial class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl
 
     private static INamespaceIntroductionAdviceResult AsAdviser( AdviceFactory<T> adviceFactory, IIntroductionAdviceResult<INamespace> result )
         => new NamespaceIntroductionAdviceResult( adviceFactory, result );
+
+    string IDiagnosticSource.DiagnosticSourceDescription => this._state.AspectInstance.DiagnosticSourceDescription;
+
+    IAdviceFactory IAdviserInternal.AdviceFactory => this;
 }

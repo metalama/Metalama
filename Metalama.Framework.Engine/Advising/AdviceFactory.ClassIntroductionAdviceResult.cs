@@ -2,6 +2,7 @@
 
 using Metalama.Framework.Advising;
 using Metalama.Framework.Code;
+using Metalama.Framework.Diagnostics;
 
 namespace Metalama.Framework.Engine.Advising;
 
@@ -27,12 +28,16 @@ internal sealed partial class AdviceFactory<T>
 
         public AdviceOutcome Outcome => this._inner.Outcome;
 
+        public ScopedDiagnosticSink Diagnostics => this._origin.Diagnostics;
+
+        IDeclaration IAdviser.Target => this.Target;
+
         public INamedType Target => this._inner.Declaration;
 
         public IAdviceFactory AdviceFactory => this._origin;
 
         public IAdviser<TNewDeclaration> With<TNewDeclaration>( TNewDeclaration declaration )
-            where TNewDeclaration : IDeclaration
+            where TNewDeclaration : class, IDeclaration
             => this._origin.WithDeclaration( declaration );
     }
 }

@@ -81,7 +81,7 @@ namespace Metalama.Framework.Engine.Aspects
 
         IDiagnosticAdder IAspectBuilderInternal.DiagnosticAdder => this._aspectBuilderState.Diagnostics;
 
-        public ScopedDiagnosticSink Diagnostics => new( this._aspectBuilderState.Diagnostics, this, this.Target, this.Target );
+        public ScopedDiagnosticSink Diagnostics => this._adviceFactory.Diagnostics;
 
         public T Target { get; }
 
@@ -92,7 +92,7 @@ namespace Metalama.Framework.Engine.Aspects
                 this,
                 CompilationModelVersion.Current );
 
-        IDeclaration IAspectBuilder.Target => this.Target;
+        IDeclaration IAdviser.Target => this.Target;
 
         public void SkipAspect() => this._aspectBuilderState.AspectInstance.Skip();
 
@@ -193,6 +193,6 @@ namespace Metalama.Framework.Engine.Aspects
 
         T IAdviser<T>.Target => this.Target;
 
-        IAdviser<TNewDeclaration> IAdviser<T>.With<TNewDeclaration>( TNewDeclaration declaration ) => throw new NotImplementedException();
+        IAdviser<TNewDeclaration> IAdviser.With<TNewDeclaration>( TNewDeclaration declaration ) => this.With( declaration );
     }
 }

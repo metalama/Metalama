@@ -171,6 +171,8 @@ internal sealed class IntroducedNamedType : IntroducedMemberOrNamedType, INamedT
 
     public SpecialType SpecialType => SpecialType.None;
 
+    public Type ToType() => throw new NotImplementedException();
+
     public bool? IsReferenceType => this._namedTypeBuilderData.TypeKind is TypeKind.Class or TypeKind.RecordClass;
 
     public bool IsReadOnly => this._namedTypeBuilderData.IsReadOnly;
@@ -180,7 +182,8 @@ internal sealed class IntroducedNamedType : IntroducedMemberOrNamedType, INamedT
     public bool? IsNullable { get; }
 
     [Memo]
-    public ITypeParameterList TypeParameters => new TypeParameterList( this, this._namedTypeBuilderData.TypeParameters.Select( t => t.ToRef() ).ToReadOnlyList() );
+    public ITypeParameterList TypeParameters
+        => new TypeParameterList( this, this._namedTypeBuilderData.TypeParameters.Select( t => t.ToRef() ).ToReadOnlyList() );
 
     [Memo]
     public IReadOnlyList<IType> TypeArguments => this._namedTypeBuilderData.TypeParameters.SelectAsImmutableArray( t => this.MapType( t.ToRef() ) );
@@ -252,8 +255,6 @@ internal sealed class IntroducedNamedType : IntroducedMemberOrNamedType, INamedT
         => Array.Empty<IDeclaration>(); // TODO
 
     public bool IsSubclassOf( INamedType type ) => type.SpecialType == SpecialType.Object;
-
-    public Type ToType() => throw new NotImplementedException( "Reflection types on introduced types are not yet implemented." );
 
     public bool TryFindImplementationForInterfaceMember( IMember interfaceMember, [NotNullWhen( true )] out IMember? implementationMember )
         => throw new NotImplementedException( "TryFindImplementationForInterfaceMember on introduced types is not yet implemented." );

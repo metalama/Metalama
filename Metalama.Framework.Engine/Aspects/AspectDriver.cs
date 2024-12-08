@@ -228,7 +228,8 @@ internal sealed class AspectDriver : IAspectDriver
                 adviceFactoryState,
                 aspectInstance.TemplateInstances.Count == 1 ? aspectInstance.TemplateInstances.Values.Single() : null,
                 layer,
-                explicitlyImplementedInterfaceType: null );
+                null,
+                diagnosticSink );
 
             // Create the AspectBuilder.
             var aspectBuilderState = new AspectBuilderState(
