@@ -1,6 +1,7 @@
 ﻿// Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
 using JetBrains.Annotations;
+using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Diagnostics;
@@ -27,14 +28,13 @@ public interface IDependencyInjectionFramework
     /// type of the aspect.
     /// </summary>
     /// <param name="properties">Information regarding the dependency to inject.</param>
-    /// <param name="aspectBuilder">An <see cref="IAspectBuilder{TAspectTarget}"/> for the target type.</param>
-    /// <param name="dependencyFieldOrProperty"></param>
-    bool TryIntroduceDependency( DependencyProperties properties, IAspectBuilder<INamedType> aspectBuilder, out IFieldOrProperty? dependencyFieldOrProperty );
+    /// <param name="adviser">An <see cref="IAspectBuilder{TAspectTarget}"/> for the target type.</param>
+    IntroduceDependencyResult IntroduceDependency( DependencyProperties properties, IAdviser<INamedType> adviser );
 
     /// <summary>
     /// Processes the <see cref="DependencyAttribute"/> aspect, i.e. changes the target field or property of the aspect into a dependency. 
     /// </summary>
     /// <param name="properties">Information regarding the dependency to inject.</param>
-    /// <param name="aspectBuilder">The <see cref="IAspectBuilder{TAspectTarget}"/> for the field or property to pull.</param>
-    bool TryImplementDependency( DependencyProperties properties, IAspectBuilder<IFieldOrProperty> aspectBuilder );
+    /// <param name="adviser">The <see cref="IAspectBuilder{TAspectTarget}"/> for the field or property to pull.</param>
+    bool TryImplementDependency( DependencyProperties properties, IAdviser<IFieldOrProperty> adviser );
 }

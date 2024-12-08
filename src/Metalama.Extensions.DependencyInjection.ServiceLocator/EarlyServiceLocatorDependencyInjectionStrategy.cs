@@ -1,6 +1,7 @@
 ﻿// Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
 using Metalama.Extensions.DependencyInjection.Implementation;
+using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using System;
@@ -12,14 +13,12 @@ internal class EarlyServiceLocatorDependencyInjectionStrategy : DefaultDependenc
     public EarlyServiceLocatorDependencyInjectionStrategy( DependencyProperties properties ) : base( properties ) { }
 
     protected override bool TryPullDependency(
-        IAspectBuilder<INamedType> aspectBuilder,
+        IAdviser<IConstructor> adviser,
         IFieldOrProperty dependencyFieldOrProperty,
-        IPullStrategy pullStrategy,
-        IConstructor constructor )
+        IPullStrategy pullStrategy )
     {
-        aspectBuilder.Advice.WithTemplateProvider( this )
+        adviser.WithTemplateProvider( this )
             .AddInitializer(
-                constructor,
                 nameof(this.InitializerTemplate),
                 args: new { T = this.Properties.DependencyType, fieldOrProperty = dependencyFieldOrProperty } );
 

@@ -4,7 +4,6 @@ using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using System;
-using System.Diagnostics.CodeAnalysis;
 
 namespace Metalama.Extensions.DependencyInjection.Implementation;
 
@@ -16,14 +15,14 @@ public partial class LazyDependencyInjectionStrategy : DefaultDependencyInjectio
 {
     public LazyDependencyInjectionStrategy( DependencyProperties properties ) : base( properties ) { }
 
-    public override bool TryIntroduceDependency( IAspectBuilder<INamedType> builder, [NotNullWhen( true )] out IFieldOrProperty? fieldOrProperty )
+    public override IntroduceDependencyResult IntroduceDependency( IAdviser<INamedType> adviser )
     {
         var propertyArgs = new TemplateArgs();
 
         // Introduce the visible property, something like `IMyService MyService => this._myServiceCache ??= this._myServiceFunc`.
-        var introducePropertyResult = builder.Advice.WithTemplateProvider( this )
+        var introducePropertyResult = adviser
+            .WithTemplateProvider( this )
             .IntroduceProperty(
-                builder.Target,
                 this.Properties.Name,
                 nameof(GetDependencyTemplate),
                 null,
@@ -36,28 +35,29 @@ public partial class LazyDependencyInjectionStrategy : DefaultDependencyInjectio
                 },
                 args: new { args = propertyArgs } );
 
-        if ( introducePropertyResult.Outcome != AdviceOutcome.Default )
+        switch ( introducePropertyResult.Outcome )
         {
-            // The introduction has been ignored.
-            fieldOrProperty = introducePropertyResult.Declaration;
+            case AdviceOutcome.Ignore:
+                return IntroduceDependencyResult.Ignore( introducePropertyResult.Declaration );
 
-            return true;
+            case AdviceOutcome.Error:
+                return IntroduceDependencyResult.Error;
         }
 
-        this.TryAddFields( builder, introducePropertyResult.Declaration, propertyArgs );
+        if ( !this.TryAddFields( adviser, introducePropertyResult.Declaration, propertyArgs ) )
+        {
+            return IntroduceDependencyResult.Error;
+        }
 
-        fieldOrProperty = introducePropertyResult.Declaration;
-
-        return true;
+        return IntroduceDependencyResult.Success( introducePropertyResult.Declaration );
     }
 
-    private bool TryAddFields( IAspectBuilder<INamedType> builder, IProperty property, TemplateArgs propertyArgs )
+    private bool TryAddFields( IAdviser<INamedType> adviser, IProperty property, TemplateArgs propertyArgs )
     {
         // Introduce a field that stores the Func<>
         var dependencyFieldType = ((INamedType) TypeFactory.GetType( typeof(Func<>) )).WithTypeArguments( property.Type );
 
-        var introduceFuncFieldResult = builder.Advice.IntroduceField(
-            builder.Target,
+        var introduceFuncFieldResult = adviser.IntroduceField(
             property.Name + "Func",
             dependencyFieldType );
 
@@ -66,13 +66,12 @@ public partial class LazyDependencyInjectionStrategy : DefaultDependencyInjectio
             return false;
         }
 
-        SuppressionHelper.SuppressUnusedWarnings( builder, introduceFuncFieldResult.Declaration );
+        SuppressionHelper.SuppressUnusedWarnings( adviser, introduceFuncFieldResult.Declaration );
 
         propertyArgs.DependencyField = introduceFuncFieldResult.Declaration;
 
         // Introduce a field that caches
-        var introduceCacheFieldResult = builder.Advice.IntroduceField(
-            builder.Target,
+        var introduceCacheFieldResult = adviser.IntroduceField(
             property.Name + "Cache",
             property.Type.ToNullable() );
 
@@ -81,25 +80,24 @@ public partial class LazyDependencyInjectionStrategy : DefaultDependencyInjectio
             return false;
         }
 
-        SuppressionHelper.SuppressUnusedWarnings( builder, introduceCacheFieldResult.Declaration );
+        SuppressionHelper.SuppressUnusedWarnings( adviser, introduceCacheFieldResult.Declaration );
 
         propertyArgs.CacheField = introduceCacheFieldResult.Declaration;
 
         var pullStrategy = new PullStrategy( this.Properties, property, introduceFuncFieldResult.Declaration );
 
-        return this.TryPullDependency( builder, propertyArgs.DependencyField, pullStrategy );
+        return this.TryPullDependency( adviser, propertyArgs.DependencyField, pullStrategy );
     }
 
-    public override bool TryImplementDependency( IAspectBuilder<IFieldOrProperty> builder )
+    public override bool TryImplementDependency( IAdviser<IFieldOrProperty> adviser )
     {
         var templateArgs = new TemplateArgs();
 
-        var overrideResult = builder.Advice
+        var overrideResult = adviser
             .WithTemplateProvider( this )
             .OverrideAccessors(
-                builder.Target,
                 nameof(GetDependencyTemplate),
-                builder.Target.Writeability != Writeability.None ? nameof(this.SetDependencyTemplate) : null,
+                adviser.Target.Writeability != Writeability.None ? nameof(this.SetDependencyTemplate) : null,
                 args: new { args = templateArgs } );
 
         if ( overrideResult.Outcome == AdviceOutcome.Error )
@@ -107,9 +105,9 @@ public partial class LazyDependencyInjectionStrategy : DefaultDependencyInjectio
             return false;
         }
 
-        SuppressNonNullableFieldMustContainValue( builder, builder.Target );
+        SuppressNonNullableFieldMustContainValue( adviser, adviser.Target );
 
-        return this.TryAddFields( builder.With( builder.Target.DeclaringType ), overrideResult.Declaration, templateArgs );
+        return this.TryAddFields( adviser.With( adviser.Target.DeclaringType ), overrideResult.Declaration, templateArgs );
     }
 
     public class TemplateArgs

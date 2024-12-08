@@ -1,6 +1,6 @@
 ﻿// Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
-using Metalama.Framework.Aspects;
+using Metalama.Framework.Advising;
 using Metalama.Framework.Code;
 using Metalama.Framework.Diagnostics;
 using System;
@@ -17,18 +17,17 @@ public class DefaultDependencyInjectionFramework : IDependencyInjectionFramework
     public virtual bool CanHandleDependency( DependencyProperties properties, in ScopedDiagnosticSink diagnostics ) => !properties.IsStatic;
 
     /// <inheritdoc />
-    public bool TryIntroduceDependency(
+    public IntroduceDependencyResult IntroduceDependency(
         DependencyProperties properties,
-        IAspectBuilder<INamedType> aspectBuilder,
-        out IFieldOrProperty? dependencyFieldOrProperty )
+        IAdviser<INamedType> adviser )
     {
-        return this.GetStrategy( properties ).TryIntroduceDependency( aspectBuilder, out dependencyFieldOrProperty );
+        return this.GetStrategy( properties ).IntroduceDependency( adviser );
     }
 
     /// <inheritdoc />
-    public bool TryImplementDependency( DependencyProperties properties, IAspectBuilder<IFieldOrProperty> aspectBuilder )
+    public bool TryImplementDependency( DependencyProperties properties, IAdviser<IFieldOrProperty> adviser )
     {
-        return this.GetStrategy( properties ).TryImplementDependency( aspectBuilder );
+        return this.GetStrategy( properties ).TryImplementDependency( adviser );
     }
 
     /// <summary>

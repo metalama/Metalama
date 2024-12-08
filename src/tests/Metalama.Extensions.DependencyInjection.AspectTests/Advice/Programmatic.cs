@@ -13,7 +13,7 @@ public class MyAspect : TypeAspect
 {
     public override void BuildAspect( IAspectBuilder<INamedType> builder )
     {
-        builder.TryIntroduceDependency( new DependencyProperties( builder.Target, typeof(IFormatProvider), "_formatProvider" ), out _ );
+        builder.IntroduceDependency( typeof(IFormatProvider), new DependencyOptions() { MemberName = "_formatProvider" } );
     }
 }
 

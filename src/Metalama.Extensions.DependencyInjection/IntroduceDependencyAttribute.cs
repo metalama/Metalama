@@ -21,16 +21,16 @@ public class IntroduceDependencyAttribute : DeclarativeAdviceAttribute
     private bool? _isLazy;
     private bool? _isRequired;
 
-    protected virtual DependencyProperties ToProperties( IFieldOrProperty templateFieldOrProperty, INamedType targetType )
+    protected virtual DependencyOptions ToOptions( IFieldOrProperty templateFieldOrProperty )
     {
-        return new DependencyProperties(
-            targetType,
-            templateFieldOrProperty.Type,
-            templateFieldOrProperty.Name,
-            templateFieldOrProperty.IsStatic,
-            this._isRequired,
-            this._isLazy,
-            templateFieldOrProperty.DeclarationKind );
+        return new DependencyOptions
+        {
+            IsLazy = this._isLazy,
+            IsRequired = this._isRequired,
+            IsStatic = templateFieldOrProperty.IsStatic,
+            MemberKind = templateFieldOrProperty.DeclarationKind,
+            MemberName = templateFieldOrProperty.Name
+        };
     }
 
     public sealed override void BuildAdvice( IMemberOrNamedType templateMember, string templateMemberId, IAspectBuilder<IDeclaration> builder )
@@ -39,12 +39,9 @@ public class IntroduceDependencyAttribute : DeclarativeAdviceAttribute
         builder.Diagnostics.Suppress( DiagnosticDescriptors.NonNullableFieldMustContainValue, templateMember );
         builder.Diagnostics.Suppress( DiagnosticDescriptors.PrivateMemberIsUnused, templateMember );
 
-        if ( !builder.TryIntroduceDependency(
-                this.ToProperties( (IFieldOrProperty) templateMember, builder.Target.GetClosestNamedType()! ),
-                out _ ) )
-        {
-            builder.SkipAspect();
-        }
+        var templateFieldOrProperty = (IFieldOrProperty) templateMember;
+
+        builder.With( templateFieldOrProperty.DeclaringType ).IntroduceDependency( templateFieldOrProperty.Type, this.ToOptions( templateFieldOrProperty ) );
     }
 
     /// <summary>

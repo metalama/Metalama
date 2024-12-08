@@ -5,7 +5,6 @@ using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using System;
-using System.Diagnostics.CodeAnalysis;
 
 namespace Metalama.Extensions.DependencyInjection.ServiceLocator;
 
@@ -13,14 +12,14 @@ internal class LazyServiceLocatorDependencyInjectionStrategy : DefaultDependency
 {
     public LazyServiceLocatorDependencyInjectionStrategy( DependencyProperties properties ) : base( properties ) { }
 
-    public override bool TryIntroduceDependency( IAspectBuilder<INamedType> builder, [NotNullWhen( true )] out IFieldOrProperty? fieldOrProperty )
+    public override IntroduceDependencyResult IntroduceDependency( IAdviser<INamedType> adviser )
     {
         var propertyArgs = new PropertyArgs();
 
         // Introduce the visible property, something like `IMyService MyService => this._myServiceCache ??= (T) this._serviceProvider.GetService((typeof(T))`.
-        var introducePropertyResult = builder.Advice.WithTemplateProvider( this )
+        var introducePropertyResult = adviser
+            .WithTemplateProvider( this )
             .IntroduceProperty(
-                builder.Target,
                 this.Properties.Name,
                 nameof(GetDependencyTemplate),
                 null,
@@ -33,30 +32,30 @@ internal class LazyServiceLocatorDependencyInjectionStrategy : DefaultDependency
                 },
                 args: new { args = propertyArgs, T = this.Properties.DependencyType } );
 
-        fieldOrProperty = introducePropertyResult.Declaration;
-
-        if ( introducePropertyResult.Outcome != AdviceOutcome.Default )
+        switch ( introducePropertyResult.Outcome )
         {
-            // The introduction has been ignored.
-            return true;
+            case AdviceOutcome.Ignore:
+                return IntroduceDependencyResult.Ignore( introducePropertyResult.Declaration );
+
+            case AdviceOutcome.Error:
+                return IntroduceDependencyResult.Error;
         }
 
-        if ( !this.TryAddFields( builder, introducePropertyResult.Declaration, propertyArgs ) )
+        if ( !this.TryAddFields( adviser, introducePropertyResult.Declaration, propertyArgs ) )
         {
-            return false;
+            return IntroduceDependencyResult.Error;
         }
 
-        return true;
+        return IntroduceDependencyResult.Success( introducePropertyResult.Declaration );
     }
 
-    public override bool TryImplementDependency( IAspectBuilder<IFieldOrProperty> builder )
+    public override bool TryImplementDependency( IAdviser<IFieldOrProperty> builder )
     {
         var propertyArgs = new PropertyArgs();
 
-        var overrideResult = builder.Advice
+        var overrideResult = builder
             .WithTemplateProvider( this )
             .OverrideAccessors(
-                builder.Target,
                 nameof(GetDependencyTemplate),
                 builder.Target.Writeability != Writeability.None ? nameof(this.SetDependencyTemplate) : null,
                 args: new { args = propertyArgs, T = builder.Target.Type } );
@@ -78,12 +77,11 @@ internal class LazyServiceLocatorDependencyInjectionStrategy : DefaultDependency
         return true;
     }
 
-    private bool TryAddFields( IAspectBuilder<INamedType> builder, IProperty property, PropertyArgs propertyArgs )
+    private bool TryAddFields( IAdviser<INamedType> adviser, IProperty property, PropertyArgs propertyArgs )
     {
         // Introduce a field that stores the IServiceProvider.
 
-        var introduceServiceProviderFieldResult = builder.Advice.IntroduceField(
-            builder.Target,
+        var introduceServiceProviderFieldResult = adviser.IntroduceField(
             "_serviceProvider",
             typeof(IServiceProvider),
             whenExists: OverrideStrategy.Ignore );
@@ -97,15 +95,14 @@ internal class LazyServiceLocatorDependencyInjectionStrategy : DefaultDependency
 
         if ( introduceServiceProviderFieldResult.Outcome != AdviceOutcome.Ignore )
         {
-            this.InitializeServiceProvider( builder, propertyArgs.ServiceProviderField );
+            this.InitializeServiceProvider( adviser, propertyArgs.ServiceProviderField );
 
-            SuppressionHelper.SuppressUnusedWarnings( builder, propertyArgs.ServiceProviderField );
-            SuppressNonNullableFieldMustContainValue( builder, propertyArgs.ServiceProviderField );
+            SuppressionHelper.SuppressUnusedWarnings( adviser, propertyArgs.ServiceProviderField );
+            SuppressNonNullableFieldMustContainValue( adviser, propertyArgs.ServiceProviderField );
         }
 
         // Introduce a field that caches the service.
-        var introduceCacheFieldResult = builder.Advice.IntroduceField(
-            builder.Target,
+        var introduceCacheFieldResult = adviser.IntroduceField(
             property.Name + "Cache",
             property.Type.ToNullable() );
 
@@ -116,19 +113,21 @@ internal class LazyServiceLocatorDependencyInjectionStrategy : DefaultDependency
 
         propertyArgs.CacheField = introduceCacheFieldResult.Declaration;
 
-        SuppressionHelper.SuppressUnusedWarnings( builder, propertyArgs.CacheField );
+        SuppressionHelper.SuppressUnusedWarnings( adviser, propertyArgs.CacheField );
 
         return true;
     }
 
-    private void InitializeServiceProvider( IAspectBuilder<INamedType> builder, IField serviceProviderField )
+    private void InitializeServiceProvider( IAdviser<INamedType> adviser, IField serviceProviderField )
     {
-        foreach ( var constructor in builder.Target.Constructors )
+        foreach ( var constructor in adviser.Target.Constructors )
         {
             if ( constructor.InitializerKind != ConstructorInitializerKind.This )
             {
-                builder.Advice.WithTemplateProvider( this )
-                    .AddInitializer( constructor, nameof(Initializer), args: new { serviceProviderField } );
+                adviser
+                    .WithTemplateProvider( this )
+                    .With( constructor )
+                    .AddInitializer( nameof(Initializer), args: new { serviceProviderField } );
             }
         }
     }
