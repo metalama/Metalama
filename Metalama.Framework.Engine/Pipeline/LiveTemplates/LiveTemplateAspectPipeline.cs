@@ -18,7 +18,6 @@ using Metalama.Framework.Services;
 using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Immutable;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -72,12 +71,11 @@ public sealed class LiveTemplateAspectPipeline : AspectPipeline
 
         var result = await pipeline.ExecuteAsync( inputCompilation, diagnosticAdder, pipelineConfiguration, cancellationToken );
 
-        // Enforce licensing
-        var aspectInstance = result.Value.AspectInstanceResults.Single().AspectInstance;
-        var aspectClass = aspectInstance.AspectClass;
-
         if ( result.IsSuccessful )
         {
+            // Enforce licensing
+            var aspectClass = aspectSelector( result.Value.Configuration );
+
             var licenseVerifier = result.Value.Configuration.ServiceProvider.GetService<LicenseVerifier>();
 
             if ( !isComputingPreview && licenseVerifier != null
@@ -87,9 +85,7 @@ public sealed class LiveTemplateAspectPipeline : AspectPipeline
 
                 diagnosticAdder.Report(
                     LicensingDiagnosticDescriptors.CodeActionNotAvailable.CreateRoslynDiagnostic(
-                        aspectInstance.TargetDeclaration.GetSymbol( result.Value.LastCompilation.Compilation )
-                            .AssertNotNull( "Live templates should be always applied on a target." )
-                            .GetDiagnosticLocation(),
+                        targetSymbol.GetDiagnosticLocation(),
                         ($"Apply [{aspectClass.DisplayName}] aspect", aspectClass.DisplayName) ) );
 
                 return default;
