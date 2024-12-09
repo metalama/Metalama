@@ -17,10 +17,10 @@ namespace Metalama.Framework.Aspects
     /// <remarks>
     /// <para>A contract aspect can apply to the input or output data flow, or to both data flows, according to the <see cref="ContractDirection"/> value
     /// passed to the constructor. Since the current class does not know the value of this parameter before it is instantiated, this class cannot
-    /// set the eligibility conditions using the <see cref="BuildEligibility(Metalama.Framework.Eligibility.IEligibilityBuilder{Metalama.Framework.Code.IFieldOrPropertyOrIndexer})"/> method.
+    /// set the eligibility conditions using the <see cref="BuildEligibility(IEligibilityBuilder{IFieldOrPropertyOrIndexer})"/> method.
     /// If a derived class targets a specific <see cref="ContractDirection"/> (i.e. if the choice is not left to the user),
-    /// its implementation of <see cref="BuildEligibility(Metalama.Framework.Eligibility.IEligibilityBuilder{Metalama.Framework.Code.IFieldOrPropertyOrIndexer})"/>
-    /// can call <see cref="BuildEligibilityForDirection(Metalama.Framework.Eligibility.IEligibilityBuilder{Metalama.Framework.Code.IFieldOrPropertyOrIndexer},ContractDirection)"/>
+    /// its implementation of <see cref="BuildEligibility(IEligibilityBuilder{IFieldOrPropertyOrIndexer})"/>
+    /// can call <see cref="BuildEligibilityForDirection(IEligibilityBuilder{IFieldOrPropertyOrIndexer},ContractDirection)"/>
     /// methods. This means that eligibility can be checked upfront by the IDE before suggesting the code actions.
     /// </para>
     /// <para>

@@ -166,5 +166,12 @@ internal sealed class ContractIndexerTransformation : ContractBaseTransformation
     public override IFullRef<IMember> TargetMember => this._targetIndexer;
 
     public override FormattableString ToDisplayString()
-        => $"Add default contract to indexer '{this.TargetDeclaration.Definition.ToDisplayString( CodeDisplayFormat.MinimallyQualified )}'";
+    {
+        if ( this.ContractTarget.GetTarget( this.InitialCompilation ) is IIndexer )
+        {
+            return $"Add contract to indexer '{this._targetIndexer}'";
+        }
+
+        return base.ToDisplayString();
+    }
 }
