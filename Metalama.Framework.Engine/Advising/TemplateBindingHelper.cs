@@ -5,6 +5,7 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Code.Collections;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CodeModel.Helpers;
+using Metalama.Framework.Engine.SyntaxSerialization;
 using Metalama.Framework.Engine.Templating;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.Roslyn;
@@ -174,14 +175,28 @@ internal static class TemplateBindingHelper
     /// <summary>
     /// Binds arguments for a template that is called from another template using meta.InvokeTemplate.
     /// </summary>
-    public static object?[] ArgumentsForCalledTemplate( this TemplateMember<IMethod> template, IObjectReader arguments )
+    public static object?[] ArgumentsForCalledTemplate(
+        this TemplateMember<IMethod> template,
+        IObjectReader arguments,
+        SyntaxSerializationService serializationService,
+        SyntaxSerializationContext serializationContext )
     {
-        // The template must not have run-time parameters.
-        if ( !template.TemplateClassMember.RunTimeParameters.IsEmpty )
+        var runTimeParameterMapping = ImmutableDictionary.CreateBuilder<string, ExpressionSyntax>();
+
+        foreach ( var runTimeParameter in template.TemplateClassMember.RunTimeParameters )
         {
-            throw new InvalidTemplateSignatureException(
-                MetalamaStringFormatter.Format(
-                    $"Cannot use the method '{template.Symbol}' in meta.InvokeTemplate: the method cannot have run-time parameters." ) );
+            if ( arguments.TryGetValue( runTimeParameter.Name, out var argument ) )
+            {
+                var argumentExpression = serializationService.Serialize( argument, serializationContext );
+
+                runTimeParameterMapping.Add( runTimeParameter.Name, argumentExpression );
+            }
+            else
+            {
+                throw new InvalidAdviceParametersException(
+                    MetalamaStringFormatter.Format(
+                        $"No value has been provided for the run-time parameter '{runTimeParameter.Name}' of called template '{template.Symbol}'." ) );
+            }
         }
 
         // The template must not have run-time type parameters.
@@ -192,7 +207,7 @@ internal static class TemplateBindingHelper
                     $"Cannot use the method '{template.Symbol}' in meta.InvokeTemplate: the method cannot have run-time type parameters." ) );
         }
 
-        return GetTemplateArguments( template, arguments, ImmutableDictionary<string, ExpressionSyntax>.Empty );
+        return GetTemplateArguments( template, arguments, runTimeParameterMapping.ToImmutable() );
     }
 
     /// <summary>
@@ -663,8 +678,6 @@ internal static class TemplateBindingHelper
         // Add arguments for optional parameters to the end.
         templateArguments.AddRange( templateOptionalArguments );
 
-        VerifyArguments( template.TemplateMember, compileTimeArguments );
-
         return templateArguments.ToArray();
     }
 
@@ -691,8 +704,6 @@ internal static class TemplateBindingHelper
 
         // Add arguments for optional parameters to the end.
         templateArguments.AddRange( templateOptionalArguments );
-
-        VerifyArguments( template, compileTimeArguments );
 
         return templateArguments.ToArray();
     }
@@ -774,19 +785,6 @@ internal static class TemplateBindingHelper
                 };
 
                 templateArguments.Add( new TemplateTypeArgumentFactory( typeModel, parameter.Name ) );
-            }
-        }
-    }
-
-    private static void VerifyArguments( TemplateMember<IMethod> template, IObjectReader compileTimeArguments )
-    {
-        // Check that all provided properties map to a compile-time parameter.
-        foreach ( var name in compileTimeArguments.Keys )
-        {
-            if ( template.TemplateClassMember.IndexedParameters.TryGetValue( name, out var parameter ) && !parameter.IsCompileTime )
-            {
-                throw new InvalidTemplateSignatureException(
-                    MetalamaStringFormatter.Format( $"The parameter '{name}' of template '{template.Symbol}' is not compile-time." ) );
             }
         }
     }

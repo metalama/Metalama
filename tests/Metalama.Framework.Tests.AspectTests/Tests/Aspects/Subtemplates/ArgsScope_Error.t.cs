@@ -1,0 +1,3 @@
+// CompileTimeAspectPipeline.ExecuteAsync failed.
+// Error LAMA0104 on `stringBuilder`: `The expression 'stringBuilder' is run-time but it is expected to be compile-time because the expression appears in a compile-time expression 'meta.InvokeTemplate'.`
+// Error LAMA0104 on `formatterRepository`: `The expression 'formatterRepository' is run-time but it is expected to be compile-time because the expression appears in a compile-time expression 'meta.InvokeTemplate'.`
