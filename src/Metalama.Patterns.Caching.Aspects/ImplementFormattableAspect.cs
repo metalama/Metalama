@@ -50,10 +50,10 @@ internal sealed class ImplementFormattableAspect : TypeAspect
     [Template]
     private static void FormatFieldOrProperty<[CompileTime] T>(
         IFieldOrProperty fieldOrProperty,
-        IExpression stringBuilder,
-        IExpression formatterRepository )
+        UnsafeStringBuilder stringBuilder,
+        IFormatterRepository formatterRepository )
     {
-        ((IFormatterRepository) formatterRepository.Value!).Get<T>().Format( stringBuilder.Value, fieldOrProperty.Value );
+        formatterRepository.Get<T>().Format( stringBuilder, fieldOrProperty.Value );
     }
 
     [UsedImplicitly]
