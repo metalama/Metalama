@@ -110,7 +110,7 @@ internal sealed class ExecuteAspectLayerPipelineStep : PipelineStep
             // Set the aspect instance order for use by the linker.
             indexWithinType++;
 
-            // Create a snapshot of the compilation.
+            // Create a snapshot of the compilation (before this aspect).
             var mutableCompilationForThisAspect = currentCompilation.CreateMutableClone( $"Temporary mutable clone for {this.AspectLayer}." );
 
             // Execute the aspect.
@@ -124,7 +124,8 @@ internal sealed class ExecuteAspectLayerPipelineStep : PipelineStep
                 indexWithinType,
                 cancellationToken );
 
-            currentCompilation = mutableCompilationForThisAspect.CreateImmutableClone( $"Executing layer {this.AspectLayer}, {indexWithinType}" );
+            // Make the immutable copy.
+            var newCompilation = mutableCompilationForThisAspect.CreateImmutableClone( $"Executing layer {this.AspectLayer}, {indexWithinType}" );
 
             this.Parent.AddDiagnostics( aspectResult.Diagnostics );
 
@@ -132,11 +133,13 @@ internal sealed class ExecuteAspectLayerPipelineStep : PipelineStep
             {
                 case AdviceOutcome.Error:
                 case AdviceOutcome.Ignore:
-                    // We roll back the changes done to the compilation model.
+                    // We don't commit the changes done to the compilation model.
                     break;
 
                 default:
                     // Apply the changes done by the aspects.
+                    currentCompilation = newCompilation;
+
                     this.Parent.AddAspectSources( aspectResult.AspectSources, true, cancellationToken );
                     this.Parent.AddValidatorSources( aspectResult.ValidatorSources );
                     await this.Parent.AddOptionsSourcesAsync( aspectResult.OptionsSources, cancellationToken );
