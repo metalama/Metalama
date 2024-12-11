@@ -118,11 +118,11 @@ internal static class AdviceSyntaxGenerator
         if ( context.SyntaxGenerationContext.IsPartial && (initializerExpression != null || initializerTemplate != null) )
         {
             // At design time when generating the partial code for source generators, we do not expand templates.
-            // This may cause warnings in the constructor (because some fields will not be initialized)
-            // but we will add that later. The main point is that we should not execute the template here.
+            // To prevent warnings in the constructor (because some fields or properties will not be initialized),
+            // we use the default expression when necessary.
 
             initializerMethodSyntax = null;
-            initializerExpressionSyntax = null;
+            initializerExpressionSyntax = member is IHasType { Type: { IsNullable: not true, IsReferenceType: not false } } ? SyntaxFactoryEx.Default : null;
 
             return true;
         }

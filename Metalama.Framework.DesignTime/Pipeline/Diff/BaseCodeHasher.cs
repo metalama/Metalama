@@ -45,6 +45,13 @@ public abstract class BaseCodeHasher : SafeSyntaxWalker
         }
     }
 
+    protected void HashValue<T>( T value )
+        where T : unmanaged
+    {
+        this._hasher.Update( value );
+        this.Log?.AppendLineInvariant( $"Adding '{value}' to the hash." );
+    }
+
     protected void Visit<T>( in SyntaxList<T> list )
         where T : SyntaxNode
     {
