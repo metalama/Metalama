@@ -153,7 +153,7 @@ public static class RefExtensions
         {
             ISymbolRef symbolRef => symbolRef.Symbol,
             IIntroducedRef { ReplacedDeclaration: { } replacedDeclaration } => replacedDeclaration.GetOriginalSymbol(),
-            _ => throw new ArgumentOutOfRangeException()
+            _ => null
         };
 
     public static ISymbol? GetOriginalSymbol( this IDeclaration declaration )
