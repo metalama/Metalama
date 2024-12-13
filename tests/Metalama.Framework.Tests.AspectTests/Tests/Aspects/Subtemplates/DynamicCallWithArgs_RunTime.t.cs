@@ -1,2 +1,6 @@
-// CompileTimeAspectPipeline.ExecuteAsync failed.
-// Error LAMA0041 on `Method`: `'Exception of type 'Metalama.Framework.Aspects.InvalidTemplateSignatureException' thrown while executing the template method 'Aspect.OverrideMethod()' in the context of the aspect 'Metalama.Framework.Tests.AspectTests.Tests.Aspects.Subtemplates.DynamicCallWithArgs_RunTime.Aspect' applied to 'TargetCode.Method()': Cannot use the method 'Aspect.CalledTemplate(int)' in meta.InvokeTemplate: the method cannot have run-time parameters. Exception details are in '(none)'. To attach a debugger to the compiler, use the  '-p:MetalamaDebugCompiler=True' command-line option.`
+[Aspect]
+private void Method()
+{
+  global::System.Console.WriteLine($"called template a={42}, b={13}");
+  return;
+}

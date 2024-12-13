@@ -12,15 +12,14 @@ namespace Metalama.Framework.Code.Collections;
 /// <remarks>
 ///  <para>The order of items in this list is undetermined and may change between versions.</para>
 /// </remarks>
-[InternalImplement]
-[CompileTime]
 public interface IMemberOrNamedTypeCollection<out T> : INamedDeclarationCollection<T>
     where T : IMemberOrNamedType { }
 
 /// <summary>
 /// A collection of named elements.
 /// </summary>
-/// <typeparam name="T"></typeparam>
+[InternalImplement]
+[CompileTime]
 public interface INamedDeclarationCollection<out T> : IReadOnlyCollection<T>
     where T : INamedDeclaration
 {

@@ -565,7 +565,7 @@ namespace Metalama.Framework.Engine.Templating
             var (templateClass, templateMember) = this.GetTemplateDescription( templateName, templateProvider );
 
             var context = this._templateExpansionContext.ForTemplate( templateMember, templateProvider );
-            var templateArguments = templateMember.ArgumentsForCalledTemplate( args );
+            var templateArguments = templateMember.ArgumentsForCalledTemplate( args, context.SyntaxSerializationService, context.SyntaxSerializationContext );
 
             // Add ITemplateSyntaxFactory as the first template argument.
             var allArguments = new object?[templateArguments.Length + 1];
