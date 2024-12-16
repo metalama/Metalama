@@ -2,11 +2,11 @@ using System.Linq;
 using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
-using Metalama.Framework.Tests.AspectTests.Tests.Aspects.MiscSkipAspect;
+using Metalama.Framework.Tests.AspectTests.Tests.Aspects.Misc.SkipAspect;
 
 [assembly: AspectOrder( AspectOrderDirection.RunTime, typeof(IsSkippedAspect), typeof(SkippedAspect) )]
 
-namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.MiscSkipAspect;
+namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Misc.SkipAspect;
 
 public class SkippedAspect : TypeAspect
 {
