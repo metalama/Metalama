@@ -73,7 +73,7 @@ public class Class
                 .OfType<MethodDeclarationSyntax>()
                 .First();
 
-            var newRoot = await this.AddAttributeAsync( "TestAttribute", originalMethodDeclaration );
+            var newRoot = await this.AddAttributeThroughSymbolAsync( "TestAttribute", originalMethodDeclaration );
 
             var resultAttributes = newRoot.DescendantNodesAndSelf()
                 .OfType<MethodDeclarationSyntax>()
@@ -103,7 +103,7 @@ public class Class
                 constructorArguments: new[] { "ARG1", "ARG2" }.ToImmutableList(),
                 namedArguments: new List<(string Name, string Value)> { ("Prop1", "111"), ("Prop2", "222") }.ToImmutableList() );
 
-            var newRoot = await this.AddAttributeAsync( originalMethodDeclaration, attributeDescription );
+            var newRoot = await this.AddAttributeThroughSymbolAsync( originalMethodDeclaration, attributeDescription );
 
             var resultAttributes = newRoot.DescendantNodesAndSelf()
                 .OfType<MethodDeclarationSyntax>()
@@ -127,7 +127,7 @@ public class Class
                 .OfType<ClassDeclarationSyntax>()
                 .First();
 
-            var newRoot = await this.AddAttributeAsync( "TestAttribute", originalDeclaration );
+            var newRoot = await this.AddAttributeThroughSymbolAsync( "TestAttribute", originalDeclaration );
 
             var resultAttributes = newRoot.DescendantNodesAndSelf()
                 .OfType<ClassDeclarationSyntax>()
@@ -151,7 +151,7 @@ public interface IInterface
                 .OfType<InterfaceDeclarationSyntax>()
                 .First();
 
-            var newRoot = await this.AddAttributeAsync( "TestAttribute", originalDeclaration );
+            var newRoot = await this.AddAttributeThroughSymbolAsync( "TestAttribute", originalDeclaration );
 
             var resultAttributes = newRoot.DescendantNodesAndSelf()
                 .OfType<InterfaceDeclarationSyntax>()
@@ -173,7 +173,7 @@ public delegate void Delegate();
                 .OfType<DelegateDeclarationSyntax>()
                 .First();
 
-            var newRoot = await this.AddAttributeAsync( "TestAttribute", originalDeclaration );
+            var newRoot = await this.AddAttributeThroughSymbolAsync( "TestAttribute", originalDeclaration );
 
             var resultAttributes = newRoot.DescendantNodesAndSelf()
                 .OfType<DelegateDeclarationSyntax>()
@@ -197,7 +197,7 @@ public enum Enum
                 .OfType<EnumDeclarationSyntax>()
                 .First();
 
-            var newRoot = await this.AddAttributeAsync( "TestAttribute", originalDeclaration );
+            var newRoot = await this.AddAttributeThroughSymbolAsync( "TestAttribute", originalDeclaration );
 
             var resultAttributes = newRoot.DescendantNodesAndSelf()
                 .OfType<EnumDeclarationSyntax>()
@@ -222,7 +222,7 @@ public class Class
                 .OfType<AccessorDeclarationSyntax>()
                 .First( x => x.Keyword.ValueText == "get" );
 
-            var newRoot = await this.AddAttributeAsync( "TestAttribute", originalDeclaration );
+            var newRoot = await this.AddAttributeThroughSymbolAsync( "TestAttribute", originalDeclaration );
 
             var resultAttributes = newRoot.DescendantNodesAndSelf()
                 .OfType<AccessorDeclarationSyntax>()
@@ -246,7 +246,7 @@ public class Class
                 .OfType<EventDeclarationSyntax>()
                 .First();
 
-            var newRoot = await this.AddAttributeAsync( "TestAttribute", originalDeclaration );
+            var newRoot = await this.AddAttributeThroughSymbolAsync( "TestAttribute", originalDeclaration );
 
             var resultAttributes = newRoot.DescendantNodesAndSelf()
                 .OfType<EventDeclarationSyntax>()
@@ -271,7 +271,7 @@ public class Class
                 .First( x => x.Declaration.Variables.First().Identifier.ToString() == "field" )
                 .Declaration.Variables.First();
 
-            var newRoot = await this.AddAttributeAsync( "TestAttribute", originalDeclaration );
+            var newRoot = await this.AddAttributeThroughSymbolAsync( "TestAttribute", originalDeclaration );
 
             var resultAttributes = newRoot.DescendantNodesAndSelf()
                 .OfType<FieldDeclarationSyntax>()
@@ -295,7 +295,7 @@ public class Class
                 .OfType<VariableDeclaratorSyntax>()
                 .First( x => x.Identifier.ToString() == "field" );
 
-            var newRoot = await this.AddAttributeAsync( "TestAttribute", originalDeclaration );
+            var newRoot = await this.AddAttributeThroughSymbolAsync( "TestAttribute", originalDeclaration );
 
             var resultAttributes = newRoot.DescendantNodesAndSelf()
                 .OfType<FieldDeclarationSyntax>()
@@ -319,7 +319,7 @@ public class Class
                 .OfType<ParameterSyntax>()
                 .First( x => x.Identifier.ToString() == "param2" );
 
-            var newRoot = await this.AddAttributeAsync( "TestAttribute", originalDeclaration );
+            var newRoot = await this.AddAttributeThroughSymbolAsync( "TestAttribute", originalDeclaration );
 
             var resultAttributes = newRoot.DescendantNodesAndSelf()
                 .OfType<ParameterSyntax>()
@@ -363,7 +363,7 @@ namespace Test
                 .OfType<ClassDeclarationSyntax>()
                 .First( x => x.Identifier.ToString() == "Class2" );
 
-            var newRoot = await this.AddAttributeAsync( "TestAttribute", originalDeclaration );
+            var newRoot = await this.AddAttributeThroughSymbolAsync( "TestAttribute", originalDeclaration );
 
             var newSyntax = newRoot.ToFullString();
 
@@ -396,7 +396,7 @@ namespace Test
                 .OfType<ClassDeclarationSyntax>()
                 .First( x => x.Identifier.ToString() == "Class2" );
 
-            var newRoot = await this.AddAttributeAsync( "TestAttribute", originalDeclaration );
+            var newRoot = await this.AddAttributeThroughSymbolAsync( "TestAttribute", originalDeclaration );
 
             AssertEx.EolInvariantEqual( expectedSyntax, newRoot.ToFullString() );
         }
@@ -429,7 +429,7 @@ namespace Test
                 .OfType<ClassDeclarationSyntax>()
                 .First( x => x.Identifier.ToString() == "Class2" );
 
-            var newRoot = await this.AddAttributeAsync( "TestAttribute", originalDeclaration );
+            var newRoot = await this.AddAttributeThroughSymbolAsync( "TestAttribute", originalDeclaration );
 
             AssertEx.EolInvariantEqual( expectedSyntax, newRoot.ToFullString() );
         }
@@ -467,7 +467,7 @@ namespace Test
                 .OfType<ClassDeclarationSyntax>()
                 .First( x => x.Identifier.ToString() == "Class2" );
 
-            var newRoot = await this.AddAttributeAsync( "TestAttribute", originalDeclaration );
+            var newRoot = await this.AddAttributeThroughSymbolAsync( "TestAttribute", originalDeclaration );
 
             AssertEx.EolInvariantEqual( expectedSyntax, newRoot.ToFullString() );
         }
@@ -499,49 +499,125 @@ namespace Test
                 .OfType<ParameterSyntax>()
                 .First( x => x.Identifier.ToString() == "param2" );
 
-            var newRoot = await this.AddAttributeAsync( "TestAttribute", originalDeclaration );
+            var newRoot = await this.AddAttributeThroughSymbolAsync( "TestAttribute", originalDeclaration );
 
             AssertEx.EolInvariantEqual( expectedSyntax, newRoot.ToFullString() );
         }
 
-        [Fact( Skip = "TODO #29087" )]
-        public Task When_AttributeAppliedToAssembly_Then_AttributeIsAddedOnNewLineAfterLeadingCommentAsync()
+        [Fact]
+        public async Task When_AttributeAppliedToAssembly_Then_AttributeIsAddedOnNewLineAfterLeadingCommentAsync()
         {
-            // string syntax = @"// leading comment";
-            //
-            //             string expectedSyntax = @"// leading comment
-            // [assembly: TestAttribute]";
-            //
-            //             SyntaxNode originalRoot = await this.GetSyntaxRootAsync(syntax);
-            //
-            //             SyntaxNode newRoot = await CSharpAttributeHelper.AddAttributeAsync( originalRoot, originalRoot, new AttributeDescription( "TestAttribute" ), this.CancellationTokenSource.Token );
-            //
-            //             Assert.Equal(expectedSyntax, newRoot.ToFullString());
+            var syntax = """// leading comment""";
 
-            return Task.CompletedTask;
+            var expectedSyntax = """
+                // leading comment
+                [assembly: TestAttribute]
+
+                """;
+
+            var originalRoot = await this.GetSyntaxRootAsync( syntax );
+
+            var newRoot = await this.AddAttributeAsync( "TestAttribute", originalRoot );
+
+            Assert.Equal( expectedSyntax, newRoot.ToFullString() );
         }
 
-        [Fact( Skip = "TODO #29087" )]
-        public Task When_AttributeAppliedToAssembly_Then_AttributeIsAddedOnNewLineAfterAlreadyExistingAttributesAsync()
+        [Fact]
+        public async Task When_AttributeAppliedToAssembly_Then_AttributeIsAddedOnNewLineAfterAlreadyExistingAttributesAsync()
         {
-            // string syntax = @"// leading comment
-            // // some comment
-            // [assembly: TestAttribute]
-            // // some other comment";
-            //
-            //             string expectedSyntax = @"// leading comment
-            // // some comment
-            // [assembly: TestAttribute]
-            // // some other comment
-            // [assembly: TestAttribute]";
-            //
-            //             SyntaxNode originalRoot = await this.GetSyntaxRootAsync(syntax);
-            //
-            //             SyntaxNode newRoot = await CSharpAttributeHelper.AddAttributeAsync( originalRoot, originalRoot, new AttributeDescription( "TestAttribute" ), this.CancellationTokenSource.Token );
-            //
-            //             Assert.Equal(expectedSyntax, newRoot.ToFullString());
+            var syntax = """
+                // leading comment
+                // some comment
+                [assembly: TestAttribute]
+                // some other comment
+                """;
 
-            return Task.CompletedTask;
+            var expectedSyntax = """
+                // leading comment
+                // some comment
+                [assembly: TestAttribute]
+                // some other comment
+                [assembly: TestAttribute]
+
+                """;
+
+            var originalRoot = await this.GetSyntaxRootAsync( syntax );
+
+            var newRoot = await this.AddAttributeAsync( "TestAttribute", originalRoot );
+
+            Assert.Equal( expectedSyntax, newRoot.ToFullString() );
+        }
+
+        [Fact]
+        public async Task When_AttributeAppliedToAssembly_Then_AttributeIsAddedBeforeNamespaceAsync()
+        {
+            var syntax = """
+                using System;
+
+                namespace Test
+                {
+                }
+                """;
+
+            var expectedSyntax = """
+                using System;
+
+                [assembly: TestAttribute]
+                
+                namespace Test
+                {
+                }
+                """;
+
+            var originalRoot = await this.GetSyntaxRootAsync( syntax );
+
+            var newRoot = await this.AddAttributeAsync( "TestAttribute", originalRoot );
+
+            Assert.Equal( expectedSyntax, newRoot.ToFullString() );
+        }
+
+        [Fact]
+        public async Task When_AttributeAppliedToAssembly_Then_AttributeIsAddedBeforeFileScopedNamespaceAsync()
+        {
+            var syntax = """
+                namespace Test;
+                """;
+
+            var expectedSyntax = """
+                [assembly: TestAttribute]
+
+                namespace Test;
+                """;
+
+            var originalRoot = await this.GetSyntaxRootAsync( syntax );
+
+            var newRoot = await this.AddAttributeAsync( "TestAttribute", originalRoot );
+
+            Assert.Equal( expectedSyntax, newRoot.ToFullString() );
+        }
+
+        [Fact]
+        public async Task When_AttributeAppliedToAssembly_Then_AttributeIsAddedBeforeClassAsync()
+        {
+            var syntax = """
+                public class Test
+                {
+                }
+                """;
+
+            var expectedSyntax = """
+                [assembly: TestAttribute]
+
+                public class Test
+                {
+                }
+                """;
+
+            var originalRoot = await this.GetSyntaxRootAsync( syntax );
+
+            var newRoot = await this.AddAttributeAsync( "TestAttribute", originalRoot );
+
+            Assert.Equal( expectedSyntax, newRoot.ToFullString() );
         }
 
         [Fact]
@@ -571,23 +647,19 @@ namespace Test
                 .OfType<ParameterSyntax>()
                 .First( x => x.Identifier.ToString() == "param2" );
 
-            var newRoot = await this.AddAttributeAsync( "TestAttribute", originalDeclaration );
+            var newRoot = await this.AddAttributeThroughSymbolAsync( "TestAttribute", originalDeclaration );
 
             AssertEx.EolInvariantEqual( expectedSyntax, newRoot.ToFullString() );
         }
 
-        private Task<SyntaxNode> AddAttributeAsync( string attributeName, SyntaxNode originalMethodDeclaration )
-        {
-            return this.AddAttributeAsync( originalMethodDeclaration, new AttributeDescription( attributeName ) );
-        }
+        private Task<SyntaxNode> AddAttributeThroughSymbolAsync( string attributeName, SyntaxNode originalDeclaration )
+            => this.AddAttributeThroughSymbolAsync( originalDeclaration, new AttributeDescription( attributeName ) );
 
-        private async Task<SyntaxNode> AddAttributeAsync( SyntaxNode syntaxNodeToBeDecorated, AttributeDescription attributeDescription )
+        private async Task<SyntaxNode> AddAttributeThroughSymbolAsync( SyntaxNode syntaxNodeToBeDecorated, AttributeDescription attributeDescription )
         {
-            var semanticModel = await this._testFileDocument!.GetSemanticModelAsync();
+            var (semanticModel, context) = await this.GetModelAndContextAsync( syntaxNodeToBeDecorated );
+
             var symbolToBeDecorated = semanticModel!.GetDeclaredSymbol( syntaxNodeToBeDecorated );
-
-            var context = semanticModel.Compilation.GetCompilationContext()
-                .GetSyntaxGenerationContext( SyntaxGenerationOptions.Formatted, syntaxNodeToBeDecorated );
 
             var resultSolution = await CSharpAttributeHelper.AddAttributeAsync(
                 this._testFileDocument,
@@ -600,6 +672,35 @@ namespace Test
             var resultRoot = await resultDocument!.GetSyntaxRootAsync();
 
             return resultRoot!;
+        }
+
+        private async Task<SyntaxNode> AddAttributeAsync( string attributeName, SyntaxNode syntaxNodeToBeDecorated )
+        {
+            var attributeDescription = new AttributeDescription( attributeName );
+
+            var (_, context) = await this.GetModelAndContextAsync( syntaxNodeToBeDecorated );
+
+            var resultSolution = await CSharpAttributeHelper.AddAttributeAsync(
+                this._testFileDocument,
+                syntaxNodeToBeDecorated,
+                attributeDescription,
+                context,
+                this._cancellationTokenSource.Token );
+
+            var resultDocument = resultSolution.GetDocument( this._testFileDocument.Id );
+            var resultRoot = await resultDocument!.GetSyntaxRootAsync();
+
+            return resultRoot!;
+        }
+
+        private async Task<(SemanticModel, SyntaxGenerationContext)> GetModelAndContextAsync( SyntaxNode syntaxNodeToBeDecorated )
+        {
+            var semanticModel = await this._testFileDocument!.GetSemanticModelAsync();
+
+            var context = semanticModel.Compilation.GetCompilationContext()
+                .GetSyntaxGenerationContext( SyntaxGenerationOptions.Formatted, syntaxNodeToBeDecorated );
+
+            return (semanticModel, context);
         }
 
         private async Task<SyntaxNode> GetSyntaxRootAsync( string syntax )

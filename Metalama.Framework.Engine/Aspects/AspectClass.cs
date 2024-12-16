@@ -380,6 +380,7 @@ public sealed class AspectClass : TemplateClass, IBoundAspectClass, IValidatorDr
             ITypeSymbol { TypeKind: TypeKind.TypeParameter } => typeof(ITypeParameter),
             INamedTypeSymbol => typeof(INamedType),
             IParameterSymbol => typeof(IParameter),
+            IAssemblySymbol => typeof(ICompilation),
             _ => null
         };
 

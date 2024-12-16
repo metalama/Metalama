@@ -940,7 +940,7 @@ internal sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPip
                 continue;
             }
 
-            var enclosingSymbol = (ISymbol?) symbol.GetClosestContainingType() ?? symbol.ContainingAssembly;
+            var enclosingSymbol = (ISymbol?) symbol.GetClosestContainingType() ?? symbol.ContainingAssembly ?? symbol as IAssemblySymbol;
 
             if ( enclosingSymbol == null )
             {

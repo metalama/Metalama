@@ -12,6 +12,7 @@ using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Metalama.Framework.Engine.Utilities.Threading;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 
 namespace Metalama.Framework.DesignTime.CodeFixes;
@@ -81,15 +82,30 @@ public sealed class CodeRefactoringDiscoveryService : ICodeRefactoringDiscoveryS
 
         var symbol = semanticModel.GetDeclaredSymbol( node, cancellationToken );
 
-        if ( symbol == null )
+        switch ( symbol )
         {
-            return ComputeRefactoringResult.Empty;
-        }
+            case null:
+                if ( node is CompilationUnitSyntax )
+                {
+                    // For the compilation unit, show aspects for the assembly.
+                    symbol = compilation.Assembly;
 
-        if ( symbol is { Kind: SymbolKind.Alias } )
-        {
-            // Aliases never have any refactorings.
-            return ComputeRefactoringResult.Empty;
+                    break;
+                }
+                else
+                {
+                    return ComputeRefactoringResult.Empty;
+                }
+
+            case { Kind: SymbolKind.Alias }:
+                // Aliases never have any refactorings.
+                return ComputeRefactoringResult.Empty;
+
+            case { Kind: SymbolKind.Namespace }:
+                // Namespaces don't have attributes, so show aspects for the assembly instead.
+                symbol = compilation.Assembly;
+
+                break;
         }
 
         var eligibleAspects = pipeline.GetEligibleAspects( compilation, symbol, cancellationToken.ToTestable() );

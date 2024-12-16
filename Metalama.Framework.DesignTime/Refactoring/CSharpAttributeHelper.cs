@@ -1,7 +1,6 @@
 ﻿// Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
 using Metalama.Framework.Engine.SyntaxGeneration;
-using Metalama.Framework.Engine.Utilities.Caching;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -29,28 +28,14 @@ namespace Metalama.Framework.DesignTime.Refactoring
                 oldNode = fieldDeclarationSyntax;
             }
 
-            SyntaxNode newRoot;
+            var newNode = AddAttribute( oldNode, attribute, context );
 
-            if ( !oldNode.IsKind( SyntaxKind.CompilationUnit ) )
+            if ( newNode == null )
             {
-                var newNode = AddAttribute( oldNode, attribute );
-
-                if ( newNode == null )
-                {
-                    return null;
-                }
-
-                newRoot = oldRoot.ReplaceNode( oldNode, newNode );
+                return null;
             }
-            else
-            {
-                // Plain text appending works well for GlobalAspects.cs but for more complicated cases (we don't have them at this moment)
-                // it could broke something.
-                // It is not easy or maybe even possible to add an attribute with correct leading trivia and preserve compilation unit trivia at
-                // the same time. More investigation is needed.
-                newRoot = await CSharpSyntaxTree.ParseText( oldRoot.ToFullString() + "\r\n" + CreateAttributeSourceCode( attribute, forAssembly: true ) )
-                    .GetRootAsync( cancellationToken );
-            }
+
+            var newRoot = oldRoot.ReplaceNode( oldNode, newNode );
 
             foreach ( var ns in attribute.Imports )
             {
@@ -75,11 +60,11 @@ namespace Metalama.Framework.DesignTime.Refactoring
             return newRoot;
         }
 
-        private static SyntaxNode? AddAttribute( SyntaxNode oldNode, AttributeDescription attribute )
+        private static SyntaxNode? AddAttribute( SyntaxNode oldNode, AttributeDescription attribute, SyntaxGenerationContext context )
         {
             var newNode = oldNode.WithoutLeadingTrivia();
 
-            var attributeList = CreateAttributeSyntax( attribute )
+            var attributeList = CreateAttributeSyntax( attribute, forAssembly: oldNode.IsKind( SyntaxKind.CompilationUnit ) )
                 .WithAdditionalAnnotations( Formatter.Annotation );
 
             switch ( oldNode.Kind() )
@@ -172,61 +157,37 @@ namespace Metalama.Framework.DesignTime.Refactoring
 
                     break;
 
+                case SyntaxKind.CompilationUnit:
+                    // We use oldNode here, because we need to handle trivia differently.
+                    var compilationUnit = (CompilationUnitSyntax) oldNode;
+
+                    if ( !compilationUnit.Members.Any() )
+                    {
+                        SyntaxTriviaList trivia = default;
+
+                        if ( compilationUnit.EndOfFileToken.HasLeadingTrivia )
+                        {
+                            trivia = compilationUnit.EndOfFileToken.LeadingTrivia;
+                            compilationUnit = compilationUnit.WithEndOfFileToken( compilationUnit.EndOfFileToken.WithLeadingTrivia() );
+                        }
+
+                        // Add a new line if the file is not empty and we don't already have one.
+                        if ( oldNode.FullSpan.Length != 0 && !trivia.LastOrDefault().IsKind( SyntaxKind.EndOfLineTrivia ) )
+                        {
+                            trivia = trivia.AddRange( context.ElasticEndOfLineTriviaList );
+                        }
+
+                        attributeList = attributeList.WithLeadingTrivia( trivia );
+                    }
+
+                    return compilationUnit.AddAttributeLists( attributeList );
+
                 default:
                     return null;
             }
 
             return newNode.WithLeadingTrivia( oldNode.GetLeadingTrivia() );
         }
-
-        // TODO #29087
-        /*
-        internal static async ValueTask<Solution> AddAssemblyAttributeAsync(
-            [Required] Solution currentSolution,
-            [Required] string targetFilePath,
-            [Required] AttributeDescription attribute,
-            CancellationToken cancellationToken )
-        {
-            // In case of a multi-targeted project, we pick one arbitrarily.
-            // The others get reloaded automatically since they share the same source file.
-            var documentId = currentSolution.GetDocumentIdsWithFilePath( targetFilePath ).FirstOrDefault();
-
-            async ValueTask<SyntaxNode> CreateNewRootAsync( SyntaxNode oldRoot )
-            {
-                var newRoot = await AddAttributeAsync( oldRoot, oldRoot, attribute, cancellationToken );
-                newRoot = Formatter.Format( newRoot, Formatter.Annotation, currentSolution.Workspace );
-
-                return newRoot;
-            }
-
-            if ( documentId == null )
-            {
-                // Handle new document that is unknown to Roslyn at this point.
-                var tree = CSharpSyntaxTree.ParseText( File.ReadAllText( targetFilePath ) );
-
-                SyntaxNode oldRoot = tree.GetCompilationUnitRoot();
-                var newRoot = await CreateNewRootAsync( oldRoot );
-
-                using ( var writer = new StreamWriter( targetFilePath ) )
-                {
-                    newRoot.WriteTo( writer );
-                }
-
-                return currentSolution;
-            }
-            else
-            {
-                var currentDocument = currentSolution.GetDocument( documentId );
-
-                var oldRoot = (CompilationUnitSyntax) await currentDocument.GetSyntaxRootAsync( cancellationToken );
-                var newRoot = await CreateNewRootAsync( oldRoot );
-
-                var newSolution = currentSolution.WithDocumentSyntaxRoot( currentDocument.Id, newRoot );
-
-                return newSolution;
-            }
-        }
-        */
 
         public static async ValueTask<Solution> AddAttributeAsync(
             Document document,
@@ -254,55 +215,62 @@ namespace Metalama.Framework.DesignTime.Refactoring
                 return document.Project.Solution;
             }
 
-            newRoot = Formatter.Format( newRoot, Formatter.Annotation, currentSolution.Workspace );
+            newRoot = Formatter.Format( newRoot, Formatter.Annotation, currentSolution.Workspace, cancellationToken: cancellationToken );
 
             var newSolution = currentSolution.WithDocumentSyntaxRoot( document.Id, newRoot );
 
             return newSolution;
         }
 
-        private static string CreateAttributeSourceCode( AttributeDescription attribute, bool forAssembly )
+        public static async ValueTask<Solution> AddAttributeAsync(
+            Document document,
+            SyntaxNode node,
+            AttributeDescription attribute,
+            SyntaxGenerationContext context,
+            CancellationToken cancellationToken )
         {
-            using var stringBuilderHandle = StringBuilderPool.Default.Allocate();
-            var stringBuilder = stringBuilderHandle.Value;
+            var currentSolution = document.Project.Solution;
 
-            stringBuilder.Append( '[' );
+            var oldNode = node;
+            var oldRoot = oldNode.SyntaxTree.GetCompilationUnitRoot( cancellationToken );
 
-            if ( forAssembly )
+            var newRoot = await AddAttributeAsync( oldRoot, oldNode, attribute, context, cancellationToken );
+
+            if ( newRoot == null )
             {
-                stringBuilder.Append( "assembly: " );
+                // Error.
+                return document.Project.Solution;
             }
 
-            stringBuilder.Append( attribute.Name );
+            newRoot = Formatter.Format( newRoot, Formatter.Annotation, currentSolution.Workspace, cancellationToken: cancellationToken );
 
-            IList<(string Name, string Value)> properties = attribute.Properties;
+            var newSolution = currentSolution.WithDocumentSyntaxRoot( document.Id, newRoot );
 
-            var arguments = attribute.Arguments.Concat( properties.Select( property => $"{property.Name}={property.Value}" ) )
-                .ToArray();
-
-            if ( arguments.Any() )
-            {
-                stringBuilder.Append( '(' );
-                stringBuilder.Append( string.Join( ", ", arguments ) );
-                stringBuilder.Append( ')' );
-            }
-
-            stringBuilder.Append( ']' );
-
-            return stringBuilder.ToString();
+            return newSolution;
         }
 
-        private static AttributeListSyntax CreateAttributeSyntax( AttributeDescription attribute )
+        private static AttributeListSyntax CreateAttributeSyntax( AttributeDescription attribute, bool forAssembly = false )
         {
-            var root = CSharpSyntaxTree
-                .ParseText( CreateAttributeSourceCode( attribute, false ) )
-                .GetRoot();
+            var target = forAssembly ? SyntaxFactory.AttributeTargetSpecifier( SyntaxFactory.Identifier( "assembly" ) ) : null;
 
-            var attributeSyntax = ((IncompleteMemberSyntax) root.ChildNodes().First())
-                .AttributeLists.First()
-                .Attributes.First();
+            AttributeArgumentListSyntax? argumentList = null;
 
-            return SyntaxFactory.AttributeList( SyntaxFactory.SeparatedList( new[] { attributeSyntax } ) );
+            if ( attribute.Arguments.Any() || attribute.Properties.Any() )
+            {
+                var arguments = attribute.Arguments.Select( a => SyntaxFactory.AttributeArgument( SyntaxFactory.ParseExpression( a ) ) );
+
+                var properties = attribute.Properties.Select(
+                    property => SyntaxFactory.AttributeArgument(
+                        SyntaxFactory.NameEquals( property.Name ),
+                        nameColon: null,
+                        SyntaxFactory.ParseExpression( property.Value ) ) );
+
+                argumentList = SyntaxFactory.AttributeArgumentList( SyntaxFactory.SeparatedList( arguments.Concat( properties ) ) );
+            }
+
+            return SyntaxFactory.AttributeList(
+                target,
+                SyntaxFactory.SingletonSeparatedList( SyntaxFactory.Attribute( SyntaxFactory.ParseName( attribute.Name ), argumentList ) ) );
         }
     }
 }
