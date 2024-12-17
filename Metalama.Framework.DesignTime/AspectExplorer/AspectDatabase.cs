@@ -180,6 +180,7 @@ public sealed class AspectDatabase : IGlobalService, IRpcApi
                     GetSerializableIdForOriginalDeclaration( aspectInstance.TargetDeclaration ),
                     aspectInstance.Advice
                         .SelectMany( advice => advice.Transformations )
+                        .Where( transformation => transformation.ShouldBeDisplayed() )
                         .Select(
                             transformation =>
                             {

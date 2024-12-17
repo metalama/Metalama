@@ -346,6 +346,11 @@ public sealed class CodeLensServiceImpl : PreviewPipelineBasedService, ICodeLens
             // Add transformations by execution order.
             foreach ( var transformation in instanceTransformations.OrderBy( t => t.Order ) )
             {
+                if ( !transformation.ShouldBeDisplayed() )
+                {
+                    continue;
+                }
+
                 var description = MetalamaStringFormatter.Format( transformation.Description );
 
                 AddEntry( aspectInstance, description );
