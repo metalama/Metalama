@@ -33,7 +33,7 @@ public abstract class ServiceEndpoint
 
     public async ValueTask WaitUntilInitializedAsync( string callerName, CancellationToken cancellationToken = default )
     {
-        if ( this.InitializedTask.Task.IsCompleted )
+        if ( this.InitializedTask.Task.Status == TaskStatus.RanToCompletion )
         {
             return;
         }
