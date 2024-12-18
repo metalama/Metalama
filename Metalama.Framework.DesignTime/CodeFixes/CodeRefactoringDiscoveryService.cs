@@ -76,7 +76,17 @@ public sealed class CodeRefactoringDiscoveryService : ICodeRefactoringDiscoveryS
             return ComputeRefactoringResult.Empty;
         }
 
-        var node = (await syntaxTree.GetRootAsync( cancellationToken )).FindNode( span );
+        var syntaxRoot = await syntaxTree.GetRootAsync( cancellationToken );
+
+        if ( !syntaxRoot.Span.Contains( span ) )
+        {
+            this._logger.Warning?.Log(
+                $"ComputeRefactorings('{projectKey}', '{syntaxTreePath}'): the span '{span}' is not contained in the syntax tree." );
+
+            return ComputeRefactoringResult.Empty;
+        }
+
+        var node = syntaxRoot.FindNode( span );
 
         var semanticModel = compilation.GetCachedSemanticModel( syntaxTree );
 
