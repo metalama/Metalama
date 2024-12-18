@@ -10,12 +10,7 @@ public class BaseClass : IFormattable<CacheKeyFormatting>
   public string? Description { get; }
   void IFormattable<CacheKeyFormatting>.Format(UnsafeStringBuilder stringBuilder, IFormatterRepository formatterRepository)
   {
-    stringBuilder.Append(GetType().FullName);
-    if (formatterRepository.Role is CacheKeyFormatting)
-    {
-      stringBuilder.Append(" ");
-      formatterRepository.Get<string>().Format(stringBuilder, Id);
-    }
+    this.FormatCacheKey(stringBuilder, formatterRepository);
   }
   protected virtual void FormatCacheKey(UnsafeStringBuilder stringBuilder, IFormatterRepository formatterRepository)
   {
