@@ -140,9 +140,20 @@ public sealed class UserCodeInvoker : IProjectService, IGlobalService
 
     public bool TryInvoke<T>( Func<T> func, UserCodeExecutionContext context, [NotNullWhen( true )] out T? result )
     {
+        var adapter = new UserCodeFuncAdapter<T>( func );
+
+        return this.TryInvoke( adapter.UserCodeFunc, ref adapter, context, out result );
+    }
+
+    public bool TryInvoke<TResult, TPayload>(
+        UserCodeFunc<TResult, TPayload> func,
+        ref TPayload payload,
+        UserCodeExecutionContext context,
+        [NotNullWhen( true )] out TResult? result )
+    {
         try
         {
-            result = this.Invoke( func, context, false );
+            result = this.Invoke( func, ref payload, context, false );
 
 #pragma warning disable CS8762 // Parameter must have a non-null value when exiting in some condition.
             return true;

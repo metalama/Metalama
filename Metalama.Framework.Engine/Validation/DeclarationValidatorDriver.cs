@@ -21,7 +21,7 @@ internal sealed class DeclarationValidatorDriver : ValidatorDriver<DeclarationVa
         UserCodeExecutionContext executionContext )
     {
         var invokePayload = new InvokePayload( context, this );
-        invoker.Invoke( InvokePayload.Validate, ref invokePayload, executionContext );
+        invoker.TryInvoke( InvokePayload.Validate, ref invokePayload, executionContext, out _ );
     }
 
     // Intentionally not marking the struct as readonly to avoid defensive copies when passing by ref.

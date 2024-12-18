@@ -18,7 +18,7 @@ internal sealed class ClassBasedReferenceValidatorDriver : ValidatorDriver<Refer
         UserCodeExecutionContext executionContext )
     {
         var invokePayload = new InvokePayload( implementation, context );
-        invoker.Invoke( InvokePayload.Validate, ref invokePayload, executionContext );
+        invoker.TryInvoke( InvokePayload.Validate, ref invokePayload, executionContext, out _ );
     }
 
     internal override UserCodeDescription GetUserCodeMemberInfo( ValidatorInstance validatorInstance )
