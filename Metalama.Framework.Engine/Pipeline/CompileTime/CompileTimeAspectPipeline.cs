@@ -9,9 +9,11 @@ using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Formatting;
 using Metalama.Framework.Engine.Licensing;
 using Metalama.Framework.Engine.Options;
+using Metalama.Framework.Engine.Pipeline.DesignTime;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.Templating;
+using Metalama.Framework.Engine.Transformations;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.Threading;
 using Metalama.Framework.Engine.Validation;
@@ -188,10 +190,24 @@ public sealed class CompileTimeAspectPipeline : AspectPipeline
             // Write HTML (used only when building projects for documentation).
             if ( this.ProjectOptions.WriteHtml )
             {
+                // We must simulate add the syntax trees added at design time to avoid some C# linking errors.
+                var introducedSyntaxTrees = await DesignTimeSyntaxTreeGenerator.GenerateDesignTimeSyntaxTreesAsync(
+                    this.ServiceProvider,
+                    compilation,
+                    result.Value.FirstCompilationModel.AssertNotNull(),
+                    result.Value.LastCompilationModel,
+                    result.Value.Transformations.OfType<ITransformation>(),
+                    new UserDiagnosticSink(),
+                    cancellationToken );
+
+                var compilationWithDesignTimeTrees = (PartialCompilation)
+                    compilation
+                        .AddSyntaxTrees( introducedSyntaxTrees.SelectAsReadOnlyCollection( t => t.GeneratedSyntaxTree ) );
+
                 await HtmlCodeWriter.WriteAllDiffAsync(
                     this.ProjectOptions,
                     this.ServiceProvider,
-                    compilation,
+                    compilationWithDesignTimeTrees,
                     resultPartialCompilation,
                     result.Value.Diagnostics.ReportedDiagnostics );
             }
