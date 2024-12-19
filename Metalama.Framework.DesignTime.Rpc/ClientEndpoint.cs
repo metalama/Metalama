@@ -1,7 +1,10 @@
 // Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
 using StreamJsonRpc;
+using System.Collections.Immutable;
 using System.IO.Pipes;
+using System.Reflection;
+using System.Reflection.Emit;
 
 namespace Metalama.Framework.DesignTime.Rpc;
 
@@ -19,6 +22,36 @@ public abstract class ClientEndpoint<T> : ServiceEndpoint, IDisposable
     protected virtual void ConfigureRpc( JsonRpc rpc ) { }
 
     protected virtual Task OnConnectedAsync( CancellationToken cancellationToken ) => Task.CompletedTask;
+
+    private static bool TryResetJsonRpc()
+    {
+        // HACK: Per https://github.com/microsoft/vs-streamjsonrpc/issues/660,
+        // StreamJsonRpc doesn't handle the case when the same assembly is in different ALCs
+        // (though it doesn't happen always, it probably requires that the assemblies have the same version).
+        // This happens because StreamJsonRpc reuses Reflection.Emit ModuleBuilders.
+        // The workaround is to clear its internal cache of ModuleBuilders and to try again.
+
+        var proxyGenerationType = typeof(JsonRpc).Assembly.GetType( "StreamJsonRpc.ProxyGeneration" );
+
+        var builderLockField = proxyGenerationType?.GetField( "BuilderLock", BindingFlags.Static | BindingFlags.NonPublic );
+
+        if ( builderLockField?.GetValue( null ) is { } builderLock )
+        {
+            lock ( builderLock )
+            {
+                var moduleBuilderCacheField = proxyGenerationType?.GetField( "TransparentProxyModuleBuilderByVisibilityCheck", BindingFlags.Static | BindingFlags.NonPublic );
+
+                if ( moduleBuilderCacheField?.GetValue( null ) is List<(ImmutableHashSet<AssemblyName>, ModuleBuilder)> moduleBuilderCache )
+                {
+                    moduleBuilderCache.Clear();
+
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
 
     public async Task<bool> ConnectAsync( CancellationToken cancellationToken = default )
     {
@@ -39,7 +72,25 @@ public abstract class ClientEndpoint<T> : ServiceEndpoint, IDisposable
             await this._pipeStream.ConnectAsync( cancellationToken );
 
             this._rpc = this.CreateRpc( this._pipeStream );
-            this._server = this._rpc.Attach<T>();
+
+            try
+            {
+                this._server = this._rpc.Attach<T>();
+            }
+            catch ( InvalidCastException ex )
+            {
+                this.Logger.Error?.Log( $"Got InvalidCastException from JsonRpc.Attach, attempting to reset its cache and trying again; {ex}" );
+
+                if ( TryResetJsonRpc() )
+                {
+                    this._server = this._rpc.Attach<T>();
+                }
+                else
+                {
+                    throw;
+                }
+            }
+
             this.ConfigureRpc( this._rpc );
             this._rpc.StartListening();
 
