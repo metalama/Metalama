@@ -400,11 +400,17 @@ internal sealed partial class DesignTimeAspectPipeline
                     cancellationToken,
                     out var configuration );
 
+                var errors = diagnosticAdder.Where( d => d is { Severity: DiagnosticSeverity.Error, IsSuppressed: false } );
+
+                foreach ( var error in errors )
+                {
+                    state._pipeline.Logger.Warning?.Log( $"DesignTimeAspectPipeline.TryGetConfiguration error: {error}" );
+                }
+
                 // Publish compilation errors. This may create some chaos at the receiving end because compilations are unordered.
                 state._pipeline._eventHub?.PublishCompileTimeErrors(
-                    state._pipeline.ProjectKey,
-                    diagnosticAdder
-                        .Where( d => d is { Severity: DiagnosticSeverity.Error, IsSuppressed: false } )
+                    state._pipeline.ProjectKey, 
+                    errors
                         .Select( d => new DiagnosticData( d ) )
                         .ToReadOnlyList() );
 
