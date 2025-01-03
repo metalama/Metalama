@@ -1,6 +1,6 @@
 <Project>
     <PropertyGroup>
         <MainVersion>2025.0.0</MainVersion>
-        <PackageVersionSuffix>-rc</PackageVersionSuffix>
+        <PackageVersionSuffix></PackageVersionSuffix>
     </PropertyGroup>
 </Project>
