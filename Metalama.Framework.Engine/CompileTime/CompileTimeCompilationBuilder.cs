@@ -830,6 +830,11 @@ internal sealed partial class CompileTimeCompilationBuilder
         // Deserialize the manifest.
         var manifest = CompileTimeProjectManifest.Deserialize( RetryHelper.Retry( () => File.OpenRead( outputPaths.Manifest ), logger: this._logger ) );
 
+        if ( !this.CheckManifestDiskCache( runTimeCompilation.AssemblyName, outputPaths, manifest, out wasInconsistent ) )
+        {
+            return false;
+        }
+
         project = CompileTimeProject.Create(
             this._serviceProvider,
             this._domain,
@@ -860,19 +865,19 @@ internal sealed partial class CompileTimeCompilationBuilder
         // Look on disk.
         if ( !peExists )
         {
-            this._logger.Trace?.Log( $"TryGetCompileTimeProjectFromCache( '{assemblyName}' ): '{outputPaths.Pe}' not found." );
+            this._logger.Trace?.Log( $"CheckCompileTimeProjectDiskCache( '{assemblyName}' ): '{outputPaths.Pe}' not found." );
         }
 
         if ( !manifestExists )
         {
-            this._logger.Trace?.Log( $"TryGetCompileTimeProjectFromCache( '{assemblyName}' ): '{outputPaths.Manifest}' not found." );
+            this._logger.Trace?.Log( $"CheckCompileTimeProjectDiskCache( '{assemblyName}' ): '{outputPaths.Manifest}' not found." );
         }
 
         if ( peExists ^ manifestExists )
         {
             // Here we presume that other files (that are not checked and are cached) are never locked and never deleted without PE or manifest missing.
             this._logger.Trace?.Log(
-                $"TryGetCompileTimeProjectFromCache( '{assemblyName}' ): '{outputPaths.Directory}' inconsistent, will attempt an alternate." );
+                $"CheckCompileTimeProjectDiskCache( '{assemblyName}' ): '{outputPaths.Directory}' inconsistent, will attempt an alternate." );
 
             wasInconsistent = true;
 
@@ -880,15 +885,38 @@ internal sealed partial class CompileTimeCompilationBuilder
         }
         else if ( !peExists || !manifestExists )
         {
-            this._logger.Trace?.Log( $"TryGetCompileTimeProjectFromCache( '{assemblyName}' ): Cache miss." );
+            this._logger.Trace?.Log( $"CheckCompileTimeProjectDiskCache( '{assemblyName}' ): Cache miss." );
             wasInconsistent = false;
 
             return false;
         }
 
-        this._logger.Trace?.Log( $"TryGetCompileTimeProjectFromCache( '{assemblyName}' ): found on disk." );
+        this._logger.Trace?.Log( $"CheckCompileTimeProjectDiskCache( '{assemblyName}' ): found on disk." );
         wasInconsistent = false;
 
+        return true;
+    }
+
+    private bool CheckManifestDiskCache( string? assemblyName, OutputPaths outputPaths, CompileTimeProjectManifest manifest, out bool wasInconsistent )
+    {
+        var directory = outputPaths.Directory;
+
+        foreach ( var file in manifest.Files )
+        {
+            var path = Path.Combine( directory, file.TransformedPath );
+
+            if ( !File.Exists( path ) )
+            {
+                this._logger.Trace?.Log( $"The file '{path}' does not exist. This means that the directory is corrupt. Throwing an exception." );
+
+                wasInconsistent = true;
+
+                return false;
+            }
+        }
+
+        wasInconsistent = false;
+        
         return true;
     }
 
@@ -1263,7 +1291,10 @@ internal sealed partial class CompileTimeCompilationBuilder
 
                     this._logger.Trace?.Log( $"TryCompileDeserializedProject( '{runTimeAssemblyName}' ): compile-time project already exists." );
 
-                    return true;
+                    if ( this.CheckManifestDiskCache( runTimeAssemblyName, outputPaths, manifest, out wasInconsistent ) )
+                    {
+                        return true;
+                    }
                 }
                 else
                 {
@@ -1286,13 +1317,13 @@ internal sealed partial class CompileTimeCompilationBuilder
 
                         return emitResult;
                     }
-                    else
-                    {
-                        // The cache was inconsistent, we will defer to a suffixed directory.
-                        alternateOrdinal++;
-                        outputPaths = outputPaths.WithAlternateOrdinal( alternateOrdinal );
-                    }
                 }
+
+                Invariant.Assert( wasInconsistent );
+
+                // The cache was inconsistent, we will defer to a suffixed directory.
+                alternateOrdinal++;
+                outputPaths = outputPaths.WithAlternateOrdinal( alternateOrdinal );
             }
         }
 
