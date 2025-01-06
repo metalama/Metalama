@@ -21,7 +21,7 @@
       "Metalama.Testing.AspectTesting\\Metalama.Testing.AspectTesting.csproj",
       "Metalama.Testing.UnitTesting\\Metalama.Testing.UnitTesting.csproj",
       "Metalama.Tool\\Metalama.Tool.csproj",
-      "source-dependencies\\Metalama.Framework.Private\\src\\Metalama.SourceTransformer\\Metalama.SourceTransformer.csproj",
+      "Metalama.SourceTransformer\\Metalama.SourceTransformer.csproj",
       "tests\\Metalama.AspectWorkbench\\Metalama.AspectWorkbench.csproj",
       "tests\\Metalama.Framework.Tests.AspectTests\\Metalama.Framework.Tests.AspectTests.csproj",
       "tests\\Metalama.Framework.Tests.Benchmarks\\Metalama.Framework.Tests.Benchmarks.csproj",

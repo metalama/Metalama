@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <TargetFramework>net8.0</TargetFramework>
@@ -42,8 +42,8 @@
 
         <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" VersionOverride="$(RoslynMaxVersion)"  GeneratePathProperty="True" PrivateAssets="all" />
         
-        <!-- The following references handle [Memo] -->
-        <ProjectReference Include="../source-dependencies/Metalama.Framework.Private/src/Metalama.SourceTransformer/Metalama.SourceTransformer.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" Condition="Exists('../source-dependencies/Metalama.Framework.Private')" />
+        <!-- The following reference handles [Memo] -->
+        <ProjectReference Include="../Metalama.SourceTransformer/Metalama.SourceTransformer.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 
           <!-- Override dependencies to avoid vulnarability warnings. -->
           <PackageReference Include="System.Text.Json" VersionOverride="$(SystemTextJsonLatestVersion)" />

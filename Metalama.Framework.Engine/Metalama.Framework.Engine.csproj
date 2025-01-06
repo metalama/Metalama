@@ -87,7 +87,7 @@ added because the package already contains file 'analyzers/dotnet/cs/Metalama.Fr
         <ProjectReference Include="../Metalama.Framework.Sdk/Metalama.Framework.Sdk.csproj" />
 
         <!-- The following references handle [Memo] -->
-        <ProjectReference Include="..\source-dependencies\Metalama.Framework.Private\src\Metalama.SourceTransformer\Metalama.SourceTransformer.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" Condition="Exists('..\source-dependencies\Metalama.Framework.Private')" />
+        <ProjectReference Include="..\Metalama.SourceTransformer\Metalama.SourceTransformer.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
         <ProjectReference Include="..\Metalama.Framework.Engine.Analyzers\Metalama.Framework.Engine.Analyzers.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     </ItemGroup>
 

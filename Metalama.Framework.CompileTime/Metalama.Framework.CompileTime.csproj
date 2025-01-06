@@ -32,7 +32,7 @@
         <PackageReference Include="Microsoft.Bcl.HashCode" Condition="'$(TargetFramework)'=='netstandard2.0'" />
 
         <!-- The following references change 'dynamic' into 'object' -->
-        <ProjectReference Include="../source-dependencies/Metalama.Framework.Private/src/Metalama.SourceTransformer/Metalama.SourceTransformer.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" Condition="Exists('../source-dependencies/Metalama.Framework.Private')" />
+        <ProjectReference Include="../Metalama.SourceTransformer/Metalama.SourceTransformer.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
         <ProjectReference Include="../Metalama.SystemTypes/Metalama.SystemTypes.csproj" />
     </ItemGroup>
 

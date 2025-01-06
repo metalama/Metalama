@@ -68,7 +68,6 @@ var product = new Product( MetalamaDependencies.Metalama )
             ) ),
         MetalamaDependencies.MetalamaFrameworkRunTime.ToDependency()
     ],
-    SourceDependencies = [MetalamaDependencies.MetalamaFrameworkPrivate],
     ExportedProperties =
     {
         { "Directory.Packages.props", ["RoslynApiMaxVersion", "RoslynMaxVersion"] }, { "Directory.Build.props", ["LangMaxVersion"] }
@@ -106,8 +105,7 @@ static void OnPrepareCompleted( PrepareCompletedEventArgs arg )
     arg.Context.Console.WriteHeading( "Generating code" );
 
     var generatorDirectory =
-        Path.Combine( arg.Context.RepoDirectory, "source-dependencies", "Metalama.Framework.Private", "src",
-            "Metalama.Framework.GenerateMetaSyntaxRewriter" );
+        Path.Combine( arg.Context.RepoDirectory, "Metalama.Framework.GenerateMetaSyntaxRewriter" );
     var project =
         new DotNetSolution( Path.Combine(
             generatorDirectory,

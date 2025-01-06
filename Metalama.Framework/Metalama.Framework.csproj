@@ -52,10 +52,4 @@
         <None Include="README.md" Pack="true" PackagePath="/" />
     </ItemGroup>
 
-    <Target Name="CheckGeneratedCode" BeforeTargets="ResolveAssemblyReferences">
-        <!-- Produce error in non-design-time build if `b prepare` wasn't run. -->
-        <Error Text="This repository is provided under a commercial source-available license. While you can access the source code for troubleshooting purposes, building from this repository necessitates a valid source code subscription. For inquiries, reach out to hello@postsharp.net."
-               Condition="('$(DesignTimeBuild)' != 'true' AND '$(BuildingProject)' == 'true') AND !Exists('../source-dependencies/Metalama.Framework.Private')" />
-    </Target>
-
 </Project>
