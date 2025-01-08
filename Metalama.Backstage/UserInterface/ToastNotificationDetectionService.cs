@@ -53,15 +53,8 @@ internal class ToastNotificationDetectionService : IToastNotificationDetectionSe
 
         switch ( license )
         {
-            case null:
-                this._toastNotificationService.Show( new ToastNotification( ToastNotificationKinds.RequiresLicense ) );
-
-                notificationReported = true;
-
-                break;
-
             case { ValidTo: not null }
-                when license.ValidTo.Value.Subtract( LicensingConstants.LicenseExpirationWarningPeriod ) < this._dateTimeProvider.UtcNow:
+                when license.ValidTo.Value - LicensingConstants.LicenseExpirationWarningPeriod < this._dateTimeProvider.UtcNow:
                 {
                     if ( license.LicenseType == LicenseType.Evaluation )
                     {
@@ -69,7 +62,7 @@ internal class ToastNotificationDetectionService : IToastNotificationDetectionSe
                             new ToastNotification(
                                 ToastNotificationKinds.TrialExpiring,
                                 $"Your Metalama trial {this.FormatExpiration( license.ValidTo.Value )}",
-                                "Switch to Metalama [Free] or register a license key to avoid loosing functionality." ) );
+                                "Switch to Metalama [Free] or register a license key to avoid losing functionality." ) );
                     }
                     else
                     {
@@ -77,7 +70,7 @@ internal class ToastNotificationDetectionService : IToastNotificationDetectionSe
                             new ToastNotification(
                                 ToastNotificationKinds.LicenseExpiring,
                                 $"Your Metalama license {this.FormatExpiration( license.ValidTo.Value )}",
-                                "Register a new license license key to avoid loosing functionality." ) );
+                                "Register a new license license key to avoid losing functionality." ) );
                     }
 
                     notificationReported = true;
@@ -86,8 +79,8 @@ internal class ToastNotificationDetectionService : IToastNotificationDetectionSe
                 }
 
             case { SubscriptionEndDate: not null }
-                when license.LicenseType != LicenseType.Evaluation // We only show license expiration warnings for evaluation licenses.
-                     && license.SubscriptionEndDate.Value.Subtract( LicensingConstants.SubscriptionExpirationWarningPeriod ) < this._dateTimeProvider.UtcNow:
+                when license.LicenseType != LicenseType.Evaluation // We only show license expiration warnings for non-evaluation licenses.
+                     && license.SubscriptionEndDate.Value - LicensingConstants.SubscriptionExpirationWarningPeriod < this._dateTimeProvider.UtcNow:
                 this._toastNotificationService.Show(
                     new ToastNotification(
                         ToastNotificationKinds.SubscriptionExpiring,

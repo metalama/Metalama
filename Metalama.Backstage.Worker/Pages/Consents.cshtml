@@ -1,4 +1,5 @@
 ﻿@page
+@using Metalama.Backstage.Pages.Shared
 @using Metalama.Backstage.UserInterface
 @model ConsentsPageModel
 @inject WebLinks WebLinks;
@@ -21,7 +22,7 @@
                 $('#AcceptAll').change(function() {
                     // Check or uncheck all other checkboxes based on 'Accept All' state
                     var isChecked = $(this).is(':checked');
-                    $('input[type="checkbox"]').not(this).prop('checked', isChecked);
+                    $('input[type="checkbox"]:enabled').not(this).prop('checked', isChecked);
                 });
         
              
@@ -32,33 +33,44 @@
 <form method="post">
     @if (Model.IsDeviceOnline)
     {
-        <input id="recaptchaResponse" type="hidden" asp-for="RecaptchaResponse "/>
+        <input id="recaptchaResponse" type="hidden" asp-for="RecaptchaResponse"/>
 
         <div class="checkbox">
-            <input id="subscribeToNewsletterCheckbox" type="checkbox" asp-for="SubscribeToNewsletter ">
+            <input id="subscribeToNewsletterCheckbox" type="checkbox" asp-for="SubscribeToNewsletter">
             <div class="label">
                 <p>
-                    <label asp-for="SubscribeToNewsletter ">Subscribe to the Metalama newsletter and the welcome e-mail course.</label>
+                    <label asp-for="SubscribeToNewsletter">Subscribe to the Metalama newsletter and the welcome e-mail course.</label>
                     <small>You can unsubscribe or change your preferences at any time.</small>
                 </p>
                 <p>
-                    <label asp-for="EmailAddress ">Email:</label> <input type="text" asp-for="EmailAddress ">
+                    <label asp-for="EmailAddress">Email:</label> <input type="text" asp-for="EmailAddress">
                 </p>
 
             </div>
         </div>
     }
     <div class="checkbox">
-        <input type="checkbox" asp-for="EnableTelemetry ">
+        @{
+            var mandatoryTelemetry = GlobalState.LicenseKind == LicenseKind.Community;
+        }
+
+        <input type="checkbox" asp-for="EnableTelemetry" checked="@mandatoryTelemetry" disabled="@mandatoryTelemetry">
         <div class="label">
-            <label asp-for="EnableTelemetry ">Help improve Metalama by sending <a href="@WebLinks.PrivacyPolicy" target="_blank">anonymous usage and performance statistics</a>.</label>
+            <label asp-for="EnableTelemetry">
+                Help improve Metalama by sending <a href="@WebLinks.PrivacyPolicy" target="_blank">anonymous usage and performance statistics</a>.
+
+                @if (mandatoryTelemetry)
+                {
+                    <small>Telemetry is mandatory for Metalama Community users.</small>
+                }
+            </label>
         </div>
     </div>
 
     <div class="checkbox">
-        <input type="checkbox" asp-for="AcceptLicense ">
+        <input type="checkbox" asp-for="AcceptLicense">
         <div class="label">
-            <label asp-for="AcceptLicense ">
+            <label asp-for="AcceptLicense">
                 I accept the terms of the <a href="@WebLinks.LicenseAgreement" target="_blank">License Agreement</a> and the <a href="@WebLinks.PrivacyPolicy" target="_blank">Privacy Policy</a>. I understand
                 that the software is subject to License Audit and I consent with the collection of usage data.
             </label>

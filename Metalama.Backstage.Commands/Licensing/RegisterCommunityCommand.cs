@@ -5,17 +5,17 @@ using Metalama.Backstage.Licensing.Registration;
 
 namespace Metalama.Backstage.Commands.Licensing;
 
-internal class RegisterFreeCommand : BaseCommand<BaseCommandSettings>
+internal class RegisterCommunityCommand : BaseCommand<BaseCommandSettings>
 {
     protected override void Execute( ExtendedCommandContext context, BaseCommandSettings settings )
     {
         var service = context.ServiceProvider.GetRequiredBackstageService<ILicenseRegistrationService>();
 
-        if ( !service.TryRegisterFreeEdition( out var errorMessage ) )
+        if ( !service.TryRegisterCommunityEdition( out var errorMessage ) )
         {
             throw new CommandException( errorMessage );
         }
 
-        context.Console.WriteSuccess( "You are now using Metalama Free." );
+        context.Console.WriteSuccess( "You are now using Metalama Community." );
     }
 }

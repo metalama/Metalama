@@ -6,26 +6,26 @@ using Xunit.Abstractions;
 
 namespace Metalama.Tools.Config.Tests.Commands.Licensing
 {
-    public class RegisterFreeCommandTests : LicensingCommandsTestsBase
+    public class RegisterCommunityCommandTests : LicensingCommandsTestsBase
     {
-        public RegisterFreeCommandTests( ITestOutputHelper logger )
+        public RegisterCommunityCommandTests( ITestOutputHelper logger )
             : base( logger ) { }
 
         [Fact]
         public async Task FreeRegistersInEmptyEnvironment()
         {
-            await this.TestCommandAsync( "license free" );
+            await this.TestCommandAsync( "license community" );
 
-            await this.TestCommandAsync( "license list", "Metalama Free" );
+            await this.TestCommandAsync( "license list", "Metalama Community" );
         }
 
         [Fact]
         public async Task RepetitiveFreeRegistrationKeepsOneFreeLicenseRegistered()
         {
-            await this.TestCommandAsync( "license free" );
-            await this.TestCommandAsync( "license free" );
+            await this.TestCommandAsync( "license community" );
+            await this.TestCommandAsync( "license community" );
 
-            await this.TestCommandAsync( "license list", "Metalama Free" );
+            await this.TestCommandAsync( "license list", "Metalama Community" );
         }
     }
 }

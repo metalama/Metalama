@@ -144,7 +144,7 @@ namespace Metalama.Backstage.Tests.Licensing.Evaluation
             var gotPropertyChanged = new TaskCompletionSource<bool>();
             this.LicenseRegistrationService.PropertyChanged += ( _, _ ) => gotPropertyChanged.TrySetResult( true );
 
-            Assert.True( this.LicenseRegistrationService.TryRegisterFreeEdition( out _ ) );
+            Assert.True( this.LicenseRegistrationService.TryRegisterCommunityEdition( out _ ) );
 
             Assert.Equal( gotPropertyChanged.Task, await Task.WhenAny( gotPropertyChanged.Task, Task.Delay( 30000 ) ) );
         }

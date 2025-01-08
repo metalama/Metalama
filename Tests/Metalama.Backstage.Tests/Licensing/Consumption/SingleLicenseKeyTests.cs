@@ -52,8 +52,8 @@ public class SingleLicenseKeyTests : LicenseConsumptionManagerTestsBase
     [InlineData( nameof(LicenseKeyProvider.MetalamaUltimateBusiness), true )]
     [InlineData( nameof(LicenseKeyProvider.MetalamaFreePersonal), true )]
     [InlineData( nameof(LicenseKeyProvider.MetalamaFreeBusiness), true )]
-    public void NamespaceUnlimitedLicenseAllowsMetalamaFreeFeatures( string licenseKeyName, bool expectedCanConsume )
-        => this.TestOneLicense( LicenseKeyProvider.GetLicenseKey( licenseKeyName ), LicenseRequirementTestEnum.Free, expectedCanConsume );
+    public void NamespaceUnlimitedLicenseAllowsMetalamaCoreFeatures( string licenseKeyName, bool expectedCanConsume )
+        => this.TestOneLicense( LicenseKeyProvider.GetLicenseKey( licenseKeyName ), LicenseRequirementTestEnum.Core, expectedCanConsume );
 
     [Theory]
     [InlineData( nameof(LicenseKeyProvider.PostSharpEssentials), false )]
@@ -68,16 +68,16 @@ public class SingleLicenseKeyTests : LicenseConsumptionManagerTestsBase
     [InlineData( nameof(LicenseKeyProvider.MetalamaUltimateBusiness), true )]
     [InlineData( nameof(LicenseKeyProvider.MetalamaFreePersonal), false )]
     [InlineData( nameof(LicenseKeyProvider.MetalamaFreeBusiness), false )]
-    public void NamespaceUnlimitedLicenseAllowsMetalamaStarterFeatures( string licenseKeyName, bool expectedCanConsume )
-        => this.TestOneLicense( LicenseKeyProvider.GetLicenseKey( licenseKeyName ), LicenseRequirementTestEnum.Starter, expectedCanConsume );
+    public void NamespaceUnlimitedLicenseAllowsMetalamaCommunityFeatures( string licenseKeyName, bool expectedCanConsume )
+        => this.TestOneLicense( LicenseKeyProvider.GetLicenseKey( licenseKeyName ), LicenseRequirementTestEnum.Community, expectedCanConsume );
 
     [Theory]
     [InlineData( nameof(LicenseKeyProvider.PostSharpEssentials), false )]
     [InlineData( nameof(LicenseKeyProvider.PostSharpFramework), true )]
     [InlineData( nameof(LicenseKeyProvider.PostSharpUltimate), true )]
     [InlineData( nameof(LicenseKeyProvider.PostSharpEnterprise), true )]
-    [InlineData( nameof(LicenseKeyProvider.MetalamaStarterPersonal), false )]
-    [InlineData( nameof(LicenseKeyProvider.MetalamaStarterBusiness), false )]
+    [InlineData( nameof(LicenseKeyProvider.MetalamaStarterPersonal), true )]
+    [InlineData( nameof(LicenseKeyProvider.MetalamaStarterBusiness), true )]
     [InlineData( nameof(LicenseKeyProvider.MetalamaProfessionalPersonal), true )]
     [InlineData( nameof(LicenseKeyProvider.MetalamaProfessionalBusiness), true )]
     [InlineData( nameof(LicenseKeyProvider.MetalamaUltimatePersonal), true )]
@@ -138,24 +138,24 @@ public class SingleLicenseKeyTests : LicenseConsumptionManagerTestsBase
             false );
 
     [Theory]
-    [InlineData( LicenseRequirementTestEnum.Free, true )]
-    [InlineData( LicenseRequirementTestEnum.Starter, false )]
+    [InlineData( LicenseRequirementTestEnum.Core, true )]
+    [InlineData( LicenseRequirementTestEnum.Community, true )]
     [InlineData( LicenseRequirementTestEnum.Professional, false )]
     [InlineData( LicenseRequirementTestEnum.Ultimate, false )]
-    public void UnsignedMetalamaFreeLicenseAllowsRequirements( LicenseRequirementTestEnum requestedRequirement, bool expectedCanConsume )
-        => this.TestOneLicense( TestLicenseFactory.CreateMetalamaFreeLicense( this.ServiceProvider ), requestedRequirement, expectedCanConsume );
+    public void UnsignedMetalamaCommunityLicenseAllowsRequirements( LicenseRequirementTestEnum requestedRequirement, bool expectedCanConsume )
+        => this.TestOneLicense( TestLicenseFactory.CreateMetalamaCommunityLicense( this.ServiceProvider ), requestedRequirement, expectedCanConsume );
 
     [Theory]
-    [InlineData( LicenseRequirementTestEnum.Free, true )]
-    [InlineData( LicenseRequirementTestEnum.Starter, true )]
+    [InlineData( LicenseRequirementTestEnum.Core, true )]
+    [InlineData( LicenseRequirementTestEnum.Community, true )]
     [InlineData( LicenseRequirementTestEnum.Professional, true )]
     [InlineData( LicenseRequirementTestEnum.Ultimate, true )]
     public void UnsignedMetalamaEvaluationLicenseAllowsRequirements( LicenseRequirementTestEnum requestedRequirement, bool expectedCanConsume )
         => this.TestOneLicense( TestLicenseFactory.CreateMetalamaEvaluationLicense( this.ServiceProvider ), requestedRequirement, expectedCanConsume );
 
     [Theory]
-    [InlineData( LicenseRequirementTestEnum.Free, true )]
-    [InlineData( LicenseRequirementTestEnum.Starter, true )]
+    [InlineData( LicenseRequirementTestEnum.Core, true )]
+    [InlineData( LicenseRequirementTestEnum.Community, true )]
     [InlineData( LicenseRequirementTestEnum.Professional, true )]
     [InlineData( LicenseRequirementTestEnum.Ultimate, true )]
     public void UnattendedLicenseAllowsRequirements( LicenseRequirementTestEnum requestedRequirement, bool expectedCanConsume )

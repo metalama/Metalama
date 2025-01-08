@@ -59,18 +59,18 @@ internal class LicenseRegistrationService : ILicenseRegistrationService
     }
 
     /// <summary>
-    /// Attempts to register an unsigned Metalama Free license.
+    /// Attempts to register an unsigned Metalama Community license.
     /// </summary>
     /// <returns>
     /// A value indicating whether the license has been registered.
-    /// Success is indicated when a new Metalama Free license is registered
-    /// as well as when an existing Metalama Free license is registered already.
+    /// Success is indicated when a new Metalama Community license is registered
+    /// as well as when an existing Metalama Community license is registered already.
     /// </returns>
-    public bool TryRegisterFreeEdition( [NotNullWhen( false )] out string? errorMessage )
+    public bool TryRegisterCommunityEdition( [NotNullWhen( false )] out string? errorMessage )
     {
         void TraceFailure( string message )
         {
-            this._logger.Trace?.Log( $"Failed to register Metalama Free license: {message}" );
+            this._logger.Trace?.Log( $"Failed to register Metalama Community license: {message}" );
         }
 
         if ( !this.RequireAttendedSession( out errorMessage ) )
@@ -78,15 +78,15 @@ internal class LicenseRegistrationService : ILicenseRegistrationService
             return false;
         }
 
-        this._logger.Trace?.Log( "Registering Metalama Free license." );
+        this._logger.Trace?.Log( "Registering Metalama Community license." );
 
         try
         {
             var userStorage = LicensingConfigurationModel.Create( this._serviceProvider );
 
-            if ( userStorage.LicenseProperties is { Product: LicensedProduct.MetalamaFree } )
+            if ( userStorage.LicenseProperties is { Product: LicensedProduct.MetalamaCommunity } )
             {
-                TraceFailure( "A Metalama Free license is registered already." );
+                TraceFailure( "A Metalama Community license is registered already." );
 
                 errorMessage = null;
 
@@ -94,7 +94,7 @@ internal class LicenseRegistrationService : ILicenseRegistrationService
             }
 
             var factory = new UnsignedLicenseFactory( this._serviceProvider );
-            var (licenseKey, data) = factory.CreateFreeLicense();
+            var (licenseKey, data) = factory.CreateCommunityLicense();
 
             userStorage.SetLicense( licenseKey, data );
         }

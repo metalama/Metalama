@@ -163,9 +163,12 @@ internal class ConsentsPageModel : PageModel
         // Register the license.
         switch ( GlobalState.LicenseKind )
         {
-            case LicenseKind.Trial:
+            case LicenseKind.Core:
+                return this.Redirect( "/DoneCore" );
+
+            case LicenseKind.Community:
                 {
-                    if ( !this._licenseRegistrationService.TryRegisterTrialEdition( out var errorMessage ) )
+                    if ( !this._licenseRegistrationService.TryRegisterCommunityEdition( out var errorMessage ) )
                     {
                         this.ErrorMessages.Add( errorMessage );
 
@@ -175,9 +178,9 @@ internal class ConsentsPageModel : PageModel
                     break;
                 }
 
-            case LicenseKind.Free:
+            case LicenseKind.Trial:
                 {
-                    if ( !this._licenseRegistrationService.TryRegisterFreeEdition( out var errorMessage ) )
+                    if ( !this._licenseRegistrationService.TryRegisterTrialEdition( out var errorMessage ) )
                     {
                         this.ErrorMessages.Add( errorMessage );
 

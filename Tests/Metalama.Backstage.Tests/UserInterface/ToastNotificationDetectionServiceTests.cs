@@ -29,7 +29,7 @@ public class ToastNotificationDetectionServiceTests : LicensingTestsBase
     }
 
     [Theory]
-    [InlineData( true, false, true )]
+    [InlineData( true, false, false )]
     [InlineData( false, false, false )]
     [InlineData( true, true, false )]
     [InlineData( false, true, false )]

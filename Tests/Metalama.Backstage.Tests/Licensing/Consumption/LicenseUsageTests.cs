@@ -24,7 +24,7 @@ public class LicenseUsageTests : LicenseConsumptionManagerTestsBase
         var source2 = new TestLicenseSource( "source2", license2 );
 
         var manager = this.CreateConsumptionManager( source1, source2 );
-        TestConsumption( manager, LicenseRequirementTestEnum.Free, true );
+        TestConsumption( manager, LicenseRequirementTestEnum.Core, true );
         Assert.Equal( 1, license1.NumberOfUses );
         Assert.Equal( 0, license2.NumberOfUses );
         Assert.Equal( 1, source1.NumberOfUses );

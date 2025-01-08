@@ -8,12 +8,12 @@ using Xunit.Abstractions;
 
 namespace Metalama.Backstage.Tests.Licensing.Essentials
 {
-    public class FreeLicenseRegistrationTests : LicensingTestsBase
+    public class CommunityLicenseRegistrationTests : LicensingTestsBase
     {
-        public FreeLicenseRegistrationTests( ITestOutputHelper logger )
+        public CommunityLicenseRegistrationTests( ITestOutputHelper logger )
             : base( logger ) { }
 
-        private void AssertSingleFreeLicenseRegistered()
+        private void AssertSingleCommunityLicenseRegistered()
         {
             var registeredLicenseString = this.ReadStoredLicenseString();
             Assert.True( this.LicenseFactory.TryCreate( registeredLicenseString, out var registeredLicense, out var errorMessage ) );
@@ -22,27 +22,27 @@ namespace Metalama.Backstage.Tests.Licensing.Essentials
             Assert.Null( errorMessage );
             Assert.True( Guid.TryParse( data.UniqueId, out var id ) );
             Assert.NotEqual( Guid.Empty, id );
-            Assert.Equal( LicensedProduct.MetalamaFree, data.Product );
+            Assert.Equal( LicensedProduct.MetalamaCommunity, data.Product );
         }
 
         [Fact]
-        public void FreeLicenseRegistersInCleanEnvironment()
+        public void CommunityLicenseRegistersInCleanEnvironment()
         {
-            Assert.True( this.LicenseRegistrationService.TryRegisterFreeEdition( out _ ) );
-            this.AssertSingleFreeLicenseRegistered();
+            Assert.True( this.LicenseRegistrationService.TryRegisterCommunityEdition( out _ ) );
+            this.AssertSingleCommunityLicenseRegistered();
         }
 
         [Fact]
-        public void RepeatedFreeLicenseRegistrationKeepsSingleLicenseRegistered()
+        public void RepeatedCommunityLicenseRegistrationKeepsSingleLicenseRegistered()
         {
-            Assert.True( this.LicenseRegistrationService.TryRegisterFreeEdition( out _ ) );
-            Assert.True( this.LicenseRegistrationService.TryRegisterFreeEdition( out _ ) );
-            this.AssertSingleFreeLicenseRegistered();
+            Assert.True( this.LicenseRegistrationService.TryRegisterCommunityEdition( out _ ) );
+            Assert.True( this.LicenseRegistrationService.TryRegisterCommunityEdition( out _ ) );
+            this.AssertSingleCommunityLicenseRegistered();
 
 #pragma warning disable CA1307
             Assert.Single(
                 this.Log.Entries,
-                x => x.Message.Contains( "Failed to register Metalama Free license: A Metalama Free license is registered already." ) );
+                x => x.Message.Contains( "Failed to register Metalama Community license: A Metalama Community license is registered already." ) );
 #pragma warning restore CA1307
         }
 
@@ -52,7 +52,7 @@ namespace Metalama.Backstage.Tests.Licensing.Essentials
             var gotPropertyChanged = new TaskCompletionSource<bool>();
             this.LicenseRegistrationService.PropertyChanged += ( _, _ ) => gotPropertyChanged.TrySetResult( true );
 
-            Assert.True( this.LicenseRegistrationService.TryRegisterFreeEdition( out _ ) );
+            Assert.True( this.LicenseRegistrationService.TryRegisterCommunityEdition( out _ ) );
 
             Assert.Equal( gotPropertyChanged.Task, await Task.WhenAny( gotPropertyChanged.Task, Task.Delay( 30000 ) ) );
         }

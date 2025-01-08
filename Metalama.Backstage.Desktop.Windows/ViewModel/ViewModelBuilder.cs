@@ -24,8 +24,8 @@ internal static class ViewModelBuilder
                 settings.Kind,
                 "Activate Metalama",
                 """
-                Choose between Metalama Free,
-                a 45-day trial of Metalama Ultimate, or register a license key.
+                Choose between Metalama Core,
+                Metalama Community, or register a license key.
                 """,
                 new CommandActionViewModel( "Activate", activationArguments.Setup ) );
 

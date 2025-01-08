@@ -22,10 +22,15 @@ public class ChooseLicenseKindPageModel : PageModel
     {
         switch ( action )
         {
-            case "StartFree":
-                GlobalState.LicenseKind = LicenseKind.Free;
+            case "UseCore":
+                GlobalState.LicenseKind = LicenseKind.Core;
 
-                return this.Redirect( "/Consents" );
+                return this.Redirect( "/DoneCore" );
+
+            case "UseCommunity":
+                GlobalState.LicenseKind = LicenseKind.Community;
+
+                return this.Redirect( "/Community" );
 
             case "StartTrial":
                 GlobalState.LicenseKind = LicenseKind.Trial;

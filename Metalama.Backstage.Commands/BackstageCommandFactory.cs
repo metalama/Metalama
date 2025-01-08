@@ -42,9 +42,9 @@ public static class BackstageCommandFactory
                             .WithData( options )
                             .WithDescription( "Starts the trial period." );
 
-                        license.AddCommand<RegisterFreeCommand>( "free" )
+                        license.AddCommand<RegisterCommunityCommand>( "community" )
                             .WithData( options )
-                            .WithDescription( "Switches to Metalama Free." );
+                            .WithDescription( "Switches to Metalama Community." );
 
                         configureBranch?.Invoke( "license", license );
                     } );

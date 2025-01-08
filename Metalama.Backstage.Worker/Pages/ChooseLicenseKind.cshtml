@@ -14,22 +14,30 @@
     <input type="hidden" id="action" name="action" value=""/>
 
     <div class="arrow-buttons">
-        <div onclick="submitForm('StartFree')">
-            <h4>Use Metalama [Free]</h4>
+        <div onclick="submitForm('UseCore')">
+            <h4>Stay with Metalama Core</h4>
             <p>
-                Discover the essentials with Metalama [Free] — your gateway to cleaner code.
+                Metalama Core is free for everyone, but you won't be able to use the advanced features included in the Visual Studio extension.
                 Ideal for an initial foray, with an easy upgrade path when you're ready for more.
+            </p>
+        </div>
+
+        <div onclick="submitForm('UseCommunity')">
+            <h4>Use Metalama Community</h4>
+            <p>
+                Get a free license key for the Metalama Visual Studio extension.
+                Available for non-commercial use, individuals and small bussinesses.
             </p>
         </div>
 
         @if (LicenseRegistrationService.CanRegisterTrialEdition)
         {
             <div onclick="submitForm('StartTrial')">
-                <h4>Start a 45-day Trial of Metalama [Ultimate]</h4>
-                <p>Discover the full capabilities of Metalama Ultimate.</p>
+                <h4>Start a 45-day Trial of Metalama Enterprise</h4>
+                <p>Discover the full capabilities of Metalama Enterprise.</p>
                 <p>
                     For teams with extended procurement processes, request a
-                    <a href="@Model.WebLinks.GetTeamTeamTrial" target="_blank" onclick="event.stopPropagation()">60-day renewable team evaluation key</a> 
+                    <a href="@Model.WebLinks.GetTeamTeamTrial" target="_blank" onclick="event.stopPropagation()">60-day renewable team evaluation key</a>
                     (available for teams of 5 or more developers).
                 </p>
             </div>

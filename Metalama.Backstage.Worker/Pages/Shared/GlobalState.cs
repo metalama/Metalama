@@ -15,8 +15,9 @@ public static class GlobalState
 public enum LicenseKind
 {    
     None,
+    Core,
+    Community,
     Trial,
-    Free,
     Register,
     Skip
 }

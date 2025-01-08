@@ -41,6 +41,7 @@ namespace Metalama.Backstage.Licensing
         /// <summary>
         /// Metalama Ultimate.
         /// </summary>
+        [Obsolete( "Use Enterprise" )]
         MetalamaUltimate = 5,
 
         /// <summary>
@@ -51,12 +52,24 @@ namespace Metalama.Backstage.Licensing
         /// <summary>
         /// Metalama Starter.
         /// </summary>
+        [Obsolete]
         MetalamaStarter = 7,
 
         /// <summary>
         /// Metalama Free.
         /// </summary>
+        [Obsolete( "Use Community or None." )]
         MetalamaFree = 8,
+
+        /// <summary>
+        /// Metalama Community.
+        /// </summary>
+        MetalamaCommunity = 9,
+
+        /// <summary>
+        /// Metalama Enterprise.
+        /// </summary>
+        MetalamaEnterprise = 10,
 
         /// <summary>
         /// Logging Library.

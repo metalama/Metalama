@@ -4,8 +4,8 @@ namespace Metalama.Backstage.Tests.Licensing
 {
     public enum LicenseRequirementTestEnum
     {
-        Free,
-        Starter,
+        Core,
+        Community,
         Professional,
         Ultimate
     }

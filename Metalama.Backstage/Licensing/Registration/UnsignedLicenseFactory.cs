@@ -35,7 +35,7 @@ namespace Metalama.Backstage.Licensing.Registration
             var licenseKeyData = new LicenseKeyDataBuilder()
             {
                 LicenseGuid = Guid.NewGuid(),
-                Product = LicensedProduct.MetalamaUltimate,
+                Product = LicensedProduct.MetalamaEnterprise,
                 LicenseType = LicenseType.Evaluation,
                 ValidFrom = start,
                 ValidTo = end,
@@ -49,16 +49,16 @@ namespace Metalama.Backstage.Licensing.Registration
         }
 
         /// <summary>
-        /// Creates an unsigned Metalama Free license.
+        /// Creates an unsigned Metalama Community license.
         /// </summary>
-        /// <returns>The unsigned Metalama Free license.</returns>
-        public (string LicenseKey, LicenseProperties Data) CreateFreeLicense()
+        /// <returns>The unsigned Metalama Community license.</returns>
+        public (string LicenseKey, LicenseProperties Data) CreateCommunityLicense()
         {
             var start = this._time.UtcNow;
 
             var licenseKeyData = new LicenseKeyDataBuilder
             {
-                LicenseGuid = Guid.NewGuid(), Product = LicensedProduct.MetalamaFree, LicenseType = LicenseType.Personal, ValidFrom = start
+                LicenseGuid = Guid.NewGuid(), Product = LicensedProduct.MetalamaCommunity, LicenseType = LicenseType.Personal, ValidFrom = start
             };
 
             var licenseKey = licenseKeyData.Serialize();

@@ -38,12 +38,12 @@ internal class MatomoAuditUploader : IBackstageService
 
         var licenseType = report.License.LicensedProduct switch
         {
-            LicensedProduct.MetalamaFree => "Free",
+            LicensedProduct.MetalamaCommunity => "Community",
             _ => report.License.LicenseType.ToString()
         };
 
         // Note that we are intentionally and "randomly" reporting the version of the first component that
-        // triggered audit, because prioritize having just one hit per day over having accurate version reporting
+        // triggered audit, to prioritize having just one hit per day over having accurate version reporting
         // (at least for Matomo reporting).
         var reportedVersion = report.AssemblyVersion?.ToString( 2 );
 

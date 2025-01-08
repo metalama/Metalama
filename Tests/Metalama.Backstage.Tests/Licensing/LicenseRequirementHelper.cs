@@ -10,10 +10,10 @@ namespace Metalama.Backstage.Tests.Licensing
         public static LicenseRequirement GetRequirement( LicenseRequirementTestEnum requirement )
             => requirement switch
             {
-                LicenseRequirementTestEnum.Free => LicenseRequirement.Free,
-                LicenseRequirementTestEnum.Starter => LicenseRequirement.Starter,
+                LicenseRequirementTestEnum.Core => LicenseRequirement.Core,
+                LicenseRequirementTestEnum.Community => LicenseRequirement.Community,
                 LicenseRequirementTestEnum.Professional => LicenseRequirement.Professional,
-                LicenseRequirementTestEnum.Ultimate => LicenseRequirement.Ultimate,
+                LicenseRequirementTestEnum.Ultimate => LicenseRequirement.Enterprise,
                 _ => throw new ArgumentException( nameof(requirement) )
             };
     }

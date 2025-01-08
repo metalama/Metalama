@@ -1,0 +1,55 @@
+﻿@page
+@model CommunityModel
+
+<form method="post">
+    <div class="radio">
+        <div class="label">
+            <label>
+                <input type="radio" asp-for="UseKind" value="@CommunityUseKind.Individual">
+                I am an individual developer.
+            </label>
+        </div>
+    </div>
+
+    <div class="radio">
+        <div class="label">
+            <label>
+                <input type="radio" asp-for="UseKind" value="@CommunityUseKind.SmallBusiness">
+                I am going to use Metalama in a small business (less than 1 million USD in annual revenue) with up to 4 other developers.
+            </label>
+        </div>
+    </div>
+
+    <div class="radio">
+        <div class="label">
+            <label>
+                <input type="radio" asp-for="UseKind" value="@CommunityUseKind.NonCommercial">
+                I am going to use Metalama for non-commercial purposes: open source, learning, academic research, educational or demos.
+            </label>
+        </div>
+    </div>
+
+    <div class="radio">
+        <div class="label">
+            <label>
+                <input type="radio" asp-for="UseKind" value="@CommunityUseKind.Other">
+                None of the above.
+            </label>
+        </div>
+    </div>
+
+    <div class="continue-button">
+        <button type="submit">Continue</button>
+    </div>
+
+</form>
+
+
+@foreach (var error in Model.ErrorMessages)
+{
+    <div class="text-danger">
+        @error
+    </div>
+}
+
+<div asp-validation-summary="ModelOnly" class="text-danger"></div>

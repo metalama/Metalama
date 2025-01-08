@@ -30,19 +30,17 @@ namespace Metalama.Backstage.Licensing.Licenses
             }
         }
 
+#pragma warning disable CS0612, CS0618 // Type or member is obsolete
         private static LicensedProduct TransformObsoleteProduct( this LicenseKeyData licenseKeyData )
-        {
-            var product = licenseKeyData.Product;
-
-#pragma warning disable CS0618 // Type or member is obsolete
-            if ( product == LicensedProduct.PostSharp30 )
+            => licenseKeyData.Product switch
             {
-                product = licenseKeyData.LicenseType == LicenseType.Professional ? LicensedProduct.Framework : LicensedProduct.Ultimate;
-            }
-#pragma warning restore CS0618 // Type or member is obsolete
-
-            return product;
-        }
+                LicensedProduct.PostSharp30 => licenseKeyData.LicenseType == LicenseType.Professional ? LicensedProduct.Framework : LicensedProduct.Ultimate,
+                LicensedProduct.MetalamaFree => LicensedProduct.None,
+                LicensedProduct.MetalamaStarter => LicensedProduct.MetalamaProfessional,
+                LicensedProduct.MetalamaUltimate => LicensedProduct.MetalamaEnterprise,
+                _ => licenseKeyData.Product
+            };
+#pragma warning restore CS0618
 
         private static string GetProductName( this LicenseKeyData licenseKeyData )
             => TransformObsoleteProduct( licenseKeyData ) switch
@@ -53,10 +51,10 @@ namespace Metalama.Backstage.Licensing.Licenses
                 LicensedProduct.ModelLibrary => "PostSharp MVVM",
                 LicensedProduct.ThreadingLibrary => "PostSharp Threading",
                 LicensedProduct.CachingLibrary => "PostSharp Caching",
-                LicensedProduct.MetalamaUltimate => "Metalama Ultimate",
+                LicensedProduct.MetalamaEnterprise => "Metalama Enterprise",
                 LicensedProduct.MetalamaProfessional => "Metalama Professional",
-                LicensedProduct.MetalamaStarter => "Metalama Starter",
-                LicensedProduct.MetalamaFree => "Metalama Free",
+                LicensedProduct.MetalamaCommunity => "Metalama Community",
+                LicensedProduct.None => "Metalama Core",
                 _ => string.Format( CultureInfo.InvariantCulture, "Unknown Product ({0})", licenseKeyData.Product )
             };
 
