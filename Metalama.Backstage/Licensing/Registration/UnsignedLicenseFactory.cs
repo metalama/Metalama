@@ -58,7 +58,7 @@ namespace Metalama.Backstage.Licensing.Registration
 
             var licenseKeyData = new LicenseKeyDataBuilder
             {
-                LicenseGuid = Guid.NewGuid(), Product = LicensedProduct.MetalamaCommunity, LicenseType = LicenseType.Personal, ValidFrom = start
+                LicenseGuid = Guid.NewGuid(), Product = LicensedProduct.MetalamaCommunity, LicenseType = LicenseType.Community, ValidFrom = start
             };
 
             var licenseKey = licenseKeyData.Serialize();
