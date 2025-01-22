@@ -78,11 +78,6 @@ namespace Metalama.Backstage.Licensing
         /// </summary>
         CachingLibrary = 15,
 
-        /// <summary>
-        /// PostSharp Professional (introduced in 2025.1).
-        /// </summary>
-        PostSharpProfessional = 20,
-
         // 255 is reserved as unknown for testing purposes
     }
 }
