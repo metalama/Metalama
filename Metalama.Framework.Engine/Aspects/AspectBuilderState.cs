@@ -57,8 +57,8 @@ internal sealed class AspectBuilderState
         this.CancellationToken = cancellationToken;
         this._adviceFactoryState = adviceFactoryState;
         this.Layer = layer;
-        this._objectReaderFactory = serviceProvider.GetRequiredService<ObjectReaderFactory>();
-        this._defaultTagReader = this._objectReaderFactory.GetLazyReader( null, () => this.Tags );
+        this._objectReaderFactory = serviceProvider.Global.GetRequiredService<ObjectReaderFactory>();
+        this._defaultTagReader = this._objectReaderFactory.GetLazyReader( serviceProvider, null, () => this.Tags );
     }
 
     internal IObjectReader GetTagsReader( object? tags )
@@ -69,7 +69,7 @@ internal sealed class AspectBuilderState
         }
         else
         {
-            return this._objectReaderFactory.GetLazyReader( tags, () => this.Tags );
+            return this._objectReaderFactory.GetLazyReader( this.ServiceProvider, tags, () => this.Tags );
         }
     }
 

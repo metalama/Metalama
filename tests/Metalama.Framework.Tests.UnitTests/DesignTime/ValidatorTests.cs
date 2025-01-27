@@ -210,13 +210,17 @@ public interface I {}
 
             using TestDesignTimeAspectPipelineFactory factory = new( testContext, testContext.ServiceProvider );
 
-            var compilation1 = TestCompilationFactory.CreateCSharpCompilation( GetAspectRepositoryValidatorCode( "1" ) );
+            var compilation1 = TestCompilationFactory.CreateCSharpCompilation(
+                GetAspectRepositoryValidatorCode( "1" ),
+                name: "ValidationDoesNotLeakCompilation1" );
 
             var pipeline = factory.GetOrCreatePipeline( testContext.ProjectOptions, compilation1 )!;
 
             await pipeline.ExecuteAsync( compilation1, true, AsyncExecutionContext.Get() );
 
-            var compilation2 = TestCompilationFactory.CreateCSharpCompilation( GetAspectRepositoryValidatorCode( "2" ) );
+            var compilation2 = TestCompilationFactory.CreateCSharpCompilation(
+                GetAspectRepositoryValidatorCode( "2" ),
+                name: "ValidationDoesNotLeakCompilation2" );
 
             // This is to make sure that the first compilation is not the last one, because it's ok to hold a reference to the last-seen compilation.
             await pipeline.ExecuteAsync( compilation2, true, AsyncExecutionContext.Get() );
