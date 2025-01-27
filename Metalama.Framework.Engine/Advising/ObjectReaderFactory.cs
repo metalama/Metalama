@@ -9,22 +9,20 @@ using System.Collections.Generic;
 
 namespace Metalama.Framework.Engine.Advising;
 
-internal sealed class ObjectReaderFactory : IProjectService, IDisposable
+internal sealed class ObjectReaderFactory : IGlobalService, IDisposable
 {
     private readonly WeakCache<Type, ObjectReaderTypeAdapter> _types = new();
 
-    private readonly ProjectServiceProvider _serviceProvider;
-
-    public IObjectReader GetReader( object? instance )
+    public IObjectReader GetReader( in ProjectServiceProvider serviceProvider, object? instance )
         => instance switch
         {
             null => ObjectReader.Empty,
             IObjectReader objectReader => objectReader,
             IReadOnlyDictionary<string, object?> dictionary => new ObjectReaderDictionaryWrapper( dictionary ),
-            _ => new ObjectReader( instance, this )
+            _ => new ObjectReader( instance, this, serviceProvider )
         };
 
-    public IObjectReader GetLazyReader( object? instance1, Func<object?> getInstance2 )
+    public IObjectReader GetLazyReader( ProjectServiceProvider serviceProvider, object? instance1, Func<object?> getInstance2 )
         => new LazyObjectReader(
             new Lazy<IObjectReader>(
                 () =>
@@ -33,18 +31,13 @@ internal sealed class ObjectReaderFactory : IProjectService, IDisposable
 
                     return (instance1, instance2) switch
                     {
-                        (not null, null) => this.GetReader( instance1 ),
-                        (null, not null) => this.GetReader( instance2 ),
-                        _ => new ObjectReaderMergeWrapper( this.GetReader( instance2 ), this.GetReader( instance1 ) )
+                        (not null, null) => this.GetReader( serviceProvider, instance1 ),
+                        (null, not null) => this.GetReader( serviceProvider, instance2 ),
+                        _ => new ObjectReaderMergeWrapper( this.GetReader( serviceProvider, instance2 ), this.GetReader( serviceProvider, instance1 ) )
                     };
                 } ) );
 
-    internal ObjectReaderTypeAdapter GetTypeAdapter( Type type ) => this._types.GetOrAdd( type, t => new ObjectReaderTypeAdapter( this._serviceProvider, t ) );
-
-    public ObjectReaderFactory( in ProjectServiceProvider serviceProvider )
-    {
-        this._serviceProvider = serviceProvider;
-    }
+    internal ObjectReaderTypeAdapter GetTypeAdapter( Type type ) => this._types.GetOrAdd( type, t => new ObjectReaderTypeAdapter( t ) );
 
     public void Dispose() => this._types.Dispose();
 }

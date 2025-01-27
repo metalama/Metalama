@@ -75,14 +75,14 @@ internal sealed partial class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl
         this._compilation = state.InitialCompilation;
         this._aspectTarget = state.AspectInstance.TargetDeclaration.GetTarget( this.MutableCompilation );
         this._aspectTargetType = this._aspectTarget.GetClosestNamedType();
-        this._objectReaderFactory = state.ServiceProvider.GetRequiredService<ObjectReaderFactory>();
+        this._objectReaderFactory = state.ServiceProvider.Global.GetRequiredService<ObjectReaderFactory>();
     }
 
     // We use return lazy object readers because these methods can be called before the BuildAspect method is called,
     // for declarative advice.
     private IObjectReader GetTagsReader( object? tags ) => this._state.AspectBuilderState.AssertNotNull().GetTagsReader( tags );
 
-    private IObjectReader GetArgsReader( object? args ) => this._objectReaderFactory.GetReader( args );
+    private IObjectReader GetArgsReader( object? args ) => this._objectReaderFactory.GetReader( this._state.ServiceProvider, args );
 
     private DisposeAction WithNonUserCode() => this._state.ExecutionContext.WithoutDependencyCollection();
 

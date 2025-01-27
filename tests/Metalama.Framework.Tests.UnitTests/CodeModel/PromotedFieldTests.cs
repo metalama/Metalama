@@ -178,7 +178,7 @@ class C
 
     private static void CheckDeclarationProperties( TestContext testContext, IDeclaration declaration )
     {
-        var objectReader = new ObjectReaderFactory( testContext.ServiceProvider ).GetReader( declaration );
+        var objectReader = new ObjectReaderFactory().GetReader( testContext.ServiceProvider, declaration );
 
         foreach ( var property in objectReader.Keys )
         {

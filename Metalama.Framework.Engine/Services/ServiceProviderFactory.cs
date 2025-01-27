@@ -75,7 +75,8 @@ public static class ServiceProviderFactory
                 sp => new ReferenceAssemblyLocatorProvider( sp.GetRequiredBackstageService<ITempFileManager>() ) )
             .WithServiceConditional( _ => new FrameworkCompileTimeProjectFactory() )
             .WithServiceConditional( _ => new AttributeClassificationService() )
-            .WithServiceConditional<IProjectOptionsFactory>( _ => new MSBuildProjectOptionsFactory() );
+            .WithServiceConditional<IProjectOptionsFactory>( _ => new MSBuildProjectOptionsFactory() )
+            .WithServiceConditional( _ => new ObjectReaderFactory() );
 
         return serviceProvider;
     }
@@ -144,7 +145,6 @@ public static class ServiceProviderFactory
             .WithServiceConditional( sp => new SystemTypeResolver.Provider( sp ) )
             .WithServiceConditional( sp => new SystemAttributeDeserializer.Provider( sp ) )
             .WithService( provider => new ClassifyingCompilationContextFactory( provider ) )
-            .WithService( provider => new ObjectReaderFactory( provider ) )
             .WithService( provider => new ProjectIntrospectionService( provider ) )
             .WithService( provider => new SourceGeneratorDetectionService( provider ) );
 

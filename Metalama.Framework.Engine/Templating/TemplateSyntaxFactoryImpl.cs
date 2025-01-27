@@ -34,7 +34,7 @@ namespace Metalama.Framework.Engine.Templating
         {
             this._templateExpansionContext = templateExpansionContext;
             this.SyntaxSerializationContext = templateExpansionContext.SyntaxSerializationContext;
-            this._objectReaderFactory = templateExpansionContext.ServiceProvider.GetRequiredService<ObjectReaderFactory>();
+            this._objectReaderFactory = templateExpansionContext.ServiceProvider.Global.GetRequiredService<ObjectReaderFactory>();
         }
 
         public SyntaxSerializationContext SyntaxSerializationContext { get; }
@@ -446,8 +446,7 @@ namespace Metalama.Framework.Engine.Templating
             }
         }
 
-        public TypedExpressionSyntax GetTypedExpression( IExpression expression )
-            => expression.ToTypedExpressionSyntax( this.SyntaxSerializationContext );
+        public TypedExpressionSyntax GetTypedExpression( IExpression expression ) => expression.ToTypedExpressionSyntax( this.SyntaxSerializationContext );
 
         public TypedExpressionSyntax RunTimeExpression( ExpressionSyntax syntax, string? type = null )
         {
@@ -580,12 +579,15 @@ namespace Metalama.Framework.Engine.Templating
         }
 
         public BlockSyntax InvokeTemplate( string templateName, object? templateInstanceOrType = null, object? args = null )
-            => this.InvokeTemplate( templateName, GetTemplateProvider( templateInstanceOrType ), this._objectReaderFactory.GetReader( args ) );
+            => this.InvokeTemplate(
+                templateName,
+                GetTemplateProvider( templateInstanceOrType ),
+                this._objectReaderFactory.GetReader( this._templateExpansionContext.ServiceProvider, args ) );
 
         public BlockSyntax InvokeTemplate( TemplateInvocation templateInvocation, object? args = null )
         {
-            var invocationArgs = this._objectReaderFactory.GetReader( templateInvocation.Arguments );
-            var directArgs = this._objectReaderFactory.GetReader( args );
+            var invocationArgs = this._objectReaderFactory.GetReader( this._templateExpansionContext.ServiceProvider, templateInvocation.Arguments );
+            var directArgs = this._objectReaderFactory.GetReader( this._templateExpansionContext.ServiceProvider, args );
 
             return this.InvokeTemplate(
                 templateInvocation.TemplateName,

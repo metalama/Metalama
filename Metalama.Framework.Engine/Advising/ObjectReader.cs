@@ -1,6 +1,7 @@
 // Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
 using Metalama.Framework.Aspects;
+using Metalama.Framework.Engine.Services;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -14,15 +15,17 @@ namespace Metalama.Framework.Engine.Advising
     internal sealed class ObjectReader : IObjectReader
     {
         private readonly ObjectReaderFactory _objectReaderFactory;
+        private readonly ProjectServiceProvider _serviceProvider;
         private ObjectReaderTypeAdapter? _typeAdapter;
 
         private ObjectReaderTypeAdapter TypeAdapter => this._typeAdapter ??= this._objectReaderFactory.GetTypeAdapter( this.Source.GetType() );
 
         public static readonly IObjectReader Empty = new ObjectReaderDictionaryWrapper( ImmutableDictionary<string, object?>.Empty );
 
-        internal ObjectReader( object instance, ObjectReaderFactory objectReaderFactory )
+        internal ObjectReader( object instance, ObjectReaderFactory objectReaderFactory, in ProjectServiceProvider serviceProvider )
         {
             this._objectReaderFactory = objectReaderFactory;
+            this._serviceProvider = serviceProvider;
             this.Source = instance;
         }
 
@@ -72,7 +75,7 @@ namespace Metalama.Framework.Engine.Advising
 
         public bool ContainsKey( string key ) => this.TypeAdapter.ContainsProperty( key );
 
-        public bool TryGetValue( string key, out object? value ) => this.TypeAdapter.TryGetValue( key, this.Source, out value );
+        public bool TryGetValue( string key, out object? value ) => this.TypeAdapter.TryGetValue( this._serviceProvider, key, this.Source, out value );
 
         public IEnumerator<KeyValuePair<string, object?>> GetEnumerator()
             => this.TypeAdapter.Properties.Select( p => new KeyValuePair<string, object?>( p, this[p] ) ).GetEnumerator();
