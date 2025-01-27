@@ -48,7 +48,7 @@ internal class UnattendedLicenseSource : ILicenseSource, ILicense
         [MaybeNullWhen( true )] out string errorMessage )
     {
         licenseConsumptionData = new LicenseConsumptionData(
-            LicensedProduct.MetalamaEnterprise,
+            LicensedProduct.MetalamaProfessional,
             LicenseType.Unattended,
             null,
             "Unattended Process License",

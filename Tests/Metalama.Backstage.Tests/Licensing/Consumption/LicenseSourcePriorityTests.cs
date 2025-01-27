@@ -22,7 +22,7 @@ public class LicenseSourcePriorityTests : LicensingTestsBase
 
     private const string _invalidUserLicense = "invalid-user";
 
-    private static readonly LicenseRequirement _testLicenseRequirement = LicenseRequirement.Enterprise;
+    private static readonly LicenseRequirement _testLicenseRequirement = LicenseRequirement.Professional;
 
     public LicenseSourcePriorityTests( ITestOutputHelper logger ) : base( logger ) { }
 

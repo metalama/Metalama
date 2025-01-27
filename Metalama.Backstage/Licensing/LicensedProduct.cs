@@ -41,7 +41,7 @@ namespace Metalama.Backstage.Licensing
         /// <summary>
         /// Metalama Ultimate.
         /// </summary>
-        [Obsolete( "Use Enterprise" )]
+        [Obsolete( "Use Enterprise or Profressional." )]
         MetalamaUltimate = 5,
 
         /// <summary>

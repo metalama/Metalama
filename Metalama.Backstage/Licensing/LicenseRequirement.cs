@@ -58,9 +58,6 @@ namespace Metalama.Backstage.Licensing
             LicensedProduct.Framework,
             LicensedProduct.Ultimate );
 
-        public static readonly LicenseRequirement Enterprise = new(
-            "Enterprise",
-            LicensedProduct.MetalamaEnterprise,
-            LicensedProduct.Ultimate );
+        // There is no LicenseRequirement for Enterprise, because it has the same features as Professional.
     }
 }
