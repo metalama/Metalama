@@ -1,4 +1,5 @@
 using Metalama.Framework.Fabrics;
+using Metalama.Framework.Options;
 namespace Metalama.Patterns.Contracts.AspectTests.Invariants_Suspend;
 public class BaseClass
 {

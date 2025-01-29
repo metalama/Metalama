@@ -2,6 +2,8 @@
 
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
+using Metalama.Framework.Fabrics;
+using Metalama.Framework.Options;
 
 namespace Metalama.Patterns.Contracts;
 
@@ -14,31 +16,31 @@ public static class ContractConfigurationExtensions
     /// <summary>
     /// Configures <see cref="ContractOptions"/> for the current <see cref="ICompilation"/>.
     /// </summary>
-    public static void ConfigureContracts( this IAspectReceiver<ICompilation> receiver, ContractOptions options ) => receiver.SetOptions( options );
+    public static void ConfigureContracts( this IQuery<ICompilation> query, ContractOptions options ) => query.SetOptions( options );
 
     /// <summary>
     /// Configures <see cref="ContractOptions"/> for the given <see cref="INamespace"/>.
     /// </summary>
-    public static void ConfigureContracts( this IAspectReceiver<INamespace> receiver, ContractOptions options ) => receiver.SetOptions( options );
+    public static void ConfigureContracts( this IQuery<INamespace> query, ContractOptions options ) => query.SetOptions( options );
 
     /// <summary>
     /// Configures <see cref="ContractOptions"/> for the given <see cref="INamedType"/>.
     /// </summary>
-    public static void ConfigureContracts( this IAspectReceiver<INamedType> receiver, ContractOptions options ) => receiver.SetOptions( options );
+    public static void ConfigureContracts( this IQuery<INamedType> query, ContractOptions options ) => query.SetOptions( options );
 
     /// <summary>
     /// Configures <see cref="ContractOptions"/> for the given <see cref="IFieldOrPropertyOrIndexer"/>.
     /// </summary>
-    public static void ConfigureContracts( this IAspectReceiver<IFieldOrPropertyOrIndexer> receiver, ContractOptions options )
-        => receiver.SetOptions( options );
+    public static void ConfigureContracts( this IQuery<IFieldOrPropertyOrIndexer> query, ContractOptions options )
+        => query.SetOptions( options );
 
     /// <summary>
     /// Configures <see cref="ContractOptions"/> for the given <see cref="IMethod"/>.
     /// </summary>
-    public static void ConfigureContracts( this IAspectReceiver<IMethod> receiver, ContractOptions options ) => receiver.SetOptions( options );
+    public static void ConfigureContracts( this IQuery<IMethod> query, ContractOptions options ) => query.SetOptions( options );
 
     /// <summary>
     /// Configures <see cref="ContractOptions"/> for the given <see cref="IParameter"/>.
     /// </summary>
-    public static void ConfigureContracts( this IAspectReceiver<IParameter> receiver, ContractOptions options ) => receiver.SetOptions( options );
+    public static void ConfigureContracts( this IQuery<IParameter> query, ContractOptions options ) => query.SetOptions( options );
 }

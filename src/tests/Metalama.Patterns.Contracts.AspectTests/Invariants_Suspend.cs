@@ -1,6 +1,7 @@
 // Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
 using Metalama.Framework.Fabrics;
+using Metalama.Framework.Options;
 
 namespace Metalama.Patterns.Contracts.AspectTests.Invariants_Suspend;
 

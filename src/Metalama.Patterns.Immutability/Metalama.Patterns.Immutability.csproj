@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <TargetFrameworks>net471;net6.0;netstandard2.0</TargetFrameworks>
@@ -25,6 +25,7 @@
     <ItemGroup>
         <PackageReference Include="Metalama.Framework" />
         <PackageReference Include="Metalama.Framework.Sdk" PrivateAssets="all" />
+        <PackageReference Include="Metalama.Extensions.Validation" />
         <PackageReference Include="JetBrains.Annotations" PrivateAssets="all" />
     </ItemGroup>
     

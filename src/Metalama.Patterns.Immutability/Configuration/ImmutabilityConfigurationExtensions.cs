@@ -3,6 +3,8 @@
 using JetBrains.Annotations;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
+using Metalama.Framework.Fabrics;
+using Metalama.Framework.Options;
 
 namespace Metalama.Patterns.Immutability.Configuration;
 
@@ -16,24 +18,24 @@ public static class ImmutabilityConfigurationExtensions
     /// <summary>
     /// Configures the immutability of a given namespace by supplying an <see cref="ImmutabilityKind"/>.
     /// </summary>
-    public static void ConfigureImmutability( this IAspectReceiver<INamespace> receiver, ImmutabilityKind immutabilityKind )
-        => receiver.SetOptions( new ImmutabilityOptions() { Kind = immutabilityKind } );
+    public static void ConfigureImmutability( this IQuery<INamespace> query, ImmutabilityKind immutabilityKind )
+        => query.SetOptions( new ImmutabilityOptions() { Kind = immutabilityKind } );
 
     /// <summary>
     /// Configures the immutability of a given namespace by supplying an <see cref="IImmutabilityClassifier"/>.
     /// </summary>
-    public static void ConfigureImmutability( this IAspectReceiver<INamespace> receiver, IImmutabilityClassifier classifier )
-        => receiver.SetOptions( new ImmutabilityOptions() { Classifier = classifier } );
+    public static void ConfigureImmutability( this IQuery<INamespace> query, IImmutabilityClassifier classifier )
+        => query.SetOptions( new ImmutabilityOptions() { Classifier = classifier } );
 
     /// <summary>
     /// Configures the immutability of a given type by supplying an <see cref="ImmutabilityKind"/>.
     /// </summary>
-    public static void ConfigureImmutability( this IAspectReceiver<INamedType> receiver, ImmutabilityKind immutabilityKind )
-        => receiver.SetOptions( new ImmutabilityOptions() { Kind = immutabilityKind } );
+    public static void ConfigureImmutability( this IQuery<INamedType> query, ImmutabilityKind immutabilityKind )
+        => query.SetOptions( new ImmutabilityOptions() { Kind = immutabilityKind } );
 
     /// <summary>
     /// Configures the immutability of a given type by supplying an <see cref="IImmutabilityClassifier"/>.
     /// </summary>
-    public static void ConfigureImmutability( this IAspectReceiver<INamedType> receiver, IImmutabilityClassifier classifier )
-        => receiver.SetOptions( new ImmutabilityOptions() { Classifier = classifier } );
+    public static void ConfigureImmutability( this IQuery<INamedType> query, IImmutabilityClassifier classifier )
+        => query.SetOptions( new ImmutabilityOptions() { Classifier = classifier } );
 }

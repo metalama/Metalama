@@ -1,5 +1,6 @@
 // Warning LAMA5005 on `ExecuteWithoutInvariants`: `The [SuspendInvariantsAttribute] aspect on method 'BaseClass.ExecuteWithoutInvariants()' is redundant the type 'BaseClass' does not contain any invariants.`
 using Metalama.Framework.Fabrics;
+using Metalama.Framework.Options;
 namespace Metalama.Patterns.Contracts.AspectTests.Diagnostics.Invariant_Suspend_Redundant;
 public class BaseClass
 {

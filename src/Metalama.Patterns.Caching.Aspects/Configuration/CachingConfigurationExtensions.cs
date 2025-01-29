@@ -3,6 +3,8 @@
 using JetBrains.Annotations;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
+using Metalama.Framework.Fabrics;
+using Metalama.Framework.Options;
 
 namespace Metalama.Patterns.Caching.Aspects.Configuration;
 
@@ -10,28 +12,28 @@ namespace Metalama.Patterns.Caching.Aspects.Configuration;
 [CompileTime]
 public static class CachingConfigurationExtensions
 {
-    public static void ConfigureCaching( this IAspectReceiver<IMethod> method, Action<CachingOptionsBuilder> build )
+    public static void ConfigureCaching( this IQuery<IMethod> method, Action<CachingOptionsBuilder> build )
     {
         var builder = new CachingOptionsBuilder();
         build( builder );
         method.SetOptions( builder.Build() );
     }
 
-    public static void ConfigureCaching( this IAspectReceiver<ICompilation> method, Action<CachingOptionsBuilder> build )
+    public static void ConfigureCaching( this IQuery<ICompilation> method, Action<CachingOptionsBuilder> build )
     {
         var builder = new CachingOptionsBuilder();
         build( builder );
         method.SetOptions( builder.Build() );
     }
 
-    public static void ConfigureCaching( this IAspectReceiver<INamespace> method, Action<CachingOptionsBuilder> build )
+    public static void ConfigureCaching( this IQuery<INamespace> method, Action<CachingOptionsBuilder> build )
     {
         var builder = new CachingOptionsBuilder();
         build( builder );
         method.SetOptions( builder.Build() );
     }
 
-    public static void ConfigureCaching( this IAspectReceiver<INamedType> method, Action<CachingOptionsBuilder> build )
+    public static void ConfigureCaching( this IQuery<INamedType> method, Action<CachingOptionsBuilder> build )
     {
         var builder = new CachingOptionsBuilder();
         build( builder );

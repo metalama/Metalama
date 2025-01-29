@@ -4,6 +4,7 @@
 // @RemoveOutputCode
 #endif
 
+using Metalama.Framework.Aspects;
 using Metalama.Framework.Fabrics;
 using Metalama.Patterns.Caching.Aspects;
 

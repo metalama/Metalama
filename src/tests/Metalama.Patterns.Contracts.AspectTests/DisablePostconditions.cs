@@ -2,6 +2,7 @@
 
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Fabrics;
+using Metalama.Framework.Options;
 
 namespace Metalama.Patterns.Contracts.AspectTests.DisablePostconditions;
 

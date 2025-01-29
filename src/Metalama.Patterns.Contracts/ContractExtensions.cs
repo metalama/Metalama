@@ -1,9 +1,11 @@
 // Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
 using JetBrains.Annotations;
+using Metalama.Extensions.CodeFixes;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
-using Metalama.Framework.CodeFixes;
+using Metalama.Framework.Diagnostics;
+using Metalama.Framework.Fabrics;
 
 namespace Metalama.Patterns.Contracts;
 
@@ -21,7 +23,7 @@ public static class ContractExtensions
     /// <param name="compilation">The compilation.</param>
     /// <param name="includeInternalApis">Determines whether the non-public fields, properties and parameters should be included.</param>
     /// <seealso href="@enforcing-non-nullability"/>
-    public static void VerifyNotNullableDeclarations( this IAspectReceiver<ICompilation> compilation, bool includeInternalApis = false )
+    public static void VerifyNotNullableDeclarations( this IQuery<ICompilation> compilation, bool includeInternalApis = false )
     {
         bool IsVisible( INamedType t ) => includeInternalApis || t.Accessibility.IsSupersetOrEqual( Accessibility.Protected );
 
@@ -39,7 +41,7 @@ public static class ContractExtensions
     /// <param name="ns">A collection of namespaces.</param>
     /// <param name="includeInternalApis">Determines whether the non-public fields, properties and parameters should be included.</param>
     /// <seealso href="@enforcing-non-nullability"/>
-    public static void VerifyNotNullableDeclarations( this IAspectReceiver<INamespace> ns, bool includeInternalApis = false )
+    public static void VerifyNotNullableDeclarations( this IQuery<INamespace> ns, bool includeInternalApis = false )
     {
         bool IsVisible( INamedType t ) => includeInternalApis || t.Accessibility.IsSupersetOrEqual( Accessibility.Protected );
 
@@ -57,7 +59,7 @@ public static class ContractExtensions
     /// <param name="types">A collection of types.</param>
     /// <param name="includeInternalApis">Determines whether the non-public fields, properties and parameters should be included.</param>
     /// <seealso href="@enforcing-non-nullability"/>
-    public static void VerifyNotNullableDeclarations( this IAspectReceiver<INamedType> types, bool includeInternalApis = false )
+    public static void VerifyNotNullableDeclarations( this IQuery<INamedType> types, bool includeInternalApis = false )
     {
         bool IsVisible( IMember t ) => includeInternalApis || t.Accessibility.IsSupersetOrEqual( Accessibility.Protected );
 

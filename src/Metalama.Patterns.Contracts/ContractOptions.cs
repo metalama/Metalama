@@ -11,7 +11,7 @@ namespace Metalama.Patterns.Contracts;
 
 /// <summary>
 /// Options for all aspects of the <c>Metalama.Patterns.Contracts</c> namespace. You can configure these options
-/// using the <see cref="ContractConfigurationExtensions.ConfigureContracts(Metalama.Framework.Aspects.IAspectReceiver{Metalama.Framework.Code.ICompilation},Metalama.Patterns.Contracts.ContractOptions)"/>
+/// using the <see cref="ContractConfigurationExtensions.ConfigureContracts(Framework.Fabrics.IQuery{ICompilation}, ContractOptions)"/>
 /// method.
 /// </summary>
 /// <seealso cref="ContractConfigurationExtensions"/>

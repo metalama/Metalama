@@ -3,6 +3,8 @@
 using JetBrains.Annotations;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
+using Metalama.Framework.Fabrics;
+using Metalama.Framework.Options;
 
 namespace Metalama.Patterns.Observability.Configuration;
 
@@ -16,10 +18,10 @@ public static class ObservabilityExtensions
     /// <summary>
     /// Configures <see cref="ObservableAttribute"/> for the current project.
     /// </summary>
-    /// <param name="receiver">The <see cref="IAspectReceiver{TDeclaration}"/> for the current compilation.</param>
+    /// <param name="query">The <see cref="IQuery{TDeclaration}"/> for the current compilation.</param>
     /// <param name="configure">A delegate that configures the aspect.</param>
     public static void ConfigureObservability(
-        this IAspectReceiver<ICompilation> receiver,
+        this IQuery<ICompilation> query,
         Action<ObservabilityTypeOptionsBuilder> configure )
     {
         var builder = new ObservabilityTypeOptionsBuilder();
@@ -27,27 +29,27 @@ public static class ObservabilityExtensions
 
         if ( builder.ObservabilityOptions != null )
         {
-            receiver.SetOptions( builder.ObservabilityOptions );
+            query.SetOptions( builder.ObservabilityOptions );
         }
 
         if ( builder.ClassicStrategyOptions != null )
         {
-            receiver.SetOptions( builder.ClassicStrategyOptions );
+            query.SetOptions( builder.ClassicStrategyOptions );
         }
 
         if ( builder.DependencyAnalysisOptions != null )
         {
-            receiver.SetOptions( builder.DependencyAnalysisOptions );
+            query.SetOptions( builder.DependencyAnalysisOptions );
         }
     }
 
     /// <summary>
     /// Configures <see cref="ObservableAttribute"/> for the current namespace.
     /// </summary>
-    /// <param name="receiver">The <see cref="IAspectReceiver{TDeclaration}"/> for the current namespace.</param>
+    /// <param name="query">The <see cref="IQuery{TDeclaration}"/> for the current namespace.</param>
     /// <param name="configure">A delegate that configures the aspect.</param>
     public static void ConfigureObservability(
-        this IAspectReceiver<INamespace> receiver,
+        this IQuery<INamespace> query,
         Action<ObservabilityTypeOptionsBuilder> configure )
     {
         var builder = new ObservabilityTypeOptionsBuilder();
@@ -55,27 +57,27 @@ public static class ObservabilityExtensions
 
         if ( builder.ObservabilityOptions != null )
         {
-            receiver.SetOptions( builder.ObservabilityOptions );
+            query.SetOptions( builder.ObservabilityOptions );
         }
 
         if ( builder.ClassicStrategyOptions != null )
         {
-            receiver.SetOptions( builder.ClassicStrategyOptions );
+            query.SetOptions( builder.ClassicStrategyOptions );
         }
 
         if ( builder.DependencyAnalysisOptions != null )
         {
-            receiver.SetOptions( builder.DependencyAnalysisOptions );
+            query.SetOptions( builder.DependencyAnalysisOptions );
         }
     }
 
     /// <summary>
     /// Configures <see cref="ObservableAttribute"/> for the current type.
     /// </summary>
-    /// <param name="receiver">The <see cref="IAspectReceiver{TDeclaration}"/> for the current type.</param>
+    /// <param name="query">The <see cref="IQuery{TDeclaration}"/> for the current type.</param>
     /// <param name="configure">A delegate that configures the aspect.</param>
     public static void ConfigureObservability(
-        this IAspectReceiver<INamedType> receiver,
+        this IQuery<INamedType> query,
         Action<ObservabilityTypeOptionsBuilder> configure )
     {
         var builder = new ObservabilityTypeOptionsBuilder();
@@ -83,27 +85,27 @@ public static class ObservabilityExtensions
 
         if ( builder.ObservabilityOptions != null )
         {
-            receiver.SetOptions( builder.ObservabilityOptions );
+            query.SetOptions( builder.ObservabilityOptions );
         }
 
         if ( builder.ClassicStrategyOptions != null )
         {
-            receiver.SetOptions( builder.ClassicStrategyOptions );
+            query.SetOptions( builder.ClassicStrategyOptions );
         }
 
         if ( builder.DependencyAnalysisOptions != null )
         {
-            receiver.SetOptions( builder.DependencyAnalysisOptions );
+            query.SetOptions( builder.DependencyAnalysisOptions );
         }
     }
 
     /// <summary>
     /// Configures <see cref="ObservableAttribute"/> for the current member.
     /// </summary>
-    /// <param name="receiver">The <see cref="IAspectReceiver{TDeclaration}"/> for the current type.</param>
+    /// <param name="query">The <see cref="IQuery{TDeclaration}"/> for the current type.</param>
     /// <param name="configure">A delegate that configures the aspect.</param>
     public static void ConfigureObservability(
-        this IAspectReceiver<IMember> receiver,
+        this IQuery<IMember> query,
         Action<ObservabilityMemberOptionsBuilder> configure )
     {
         var builder = new ObservabilityMemberOptionsBuilder();
@@ -111,7 +113,7 @@ public static class ObservabilityExtensions
 
         if ( builder.DependencyAnalysisOptions != null )
         {
-            receiver.SetOptions( builder.DependencyAnalysisOptions );
+            query.SetOptions( builder.DependencyAnalysisOptions );
         }
     }
 }

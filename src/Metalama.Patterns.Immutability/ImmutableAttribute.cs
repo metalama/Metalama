@@ -1,10 +1,10 @@
 ﻿// Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
+using Metalama.Extensions.Validation;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Options;
 using Metalama.Framework.Project;
-using Metalama.Framework.Validation;
 using Metalama.Patterns.Immutability.Configuration;
 
 namespace Metalama.Patterns.Immutability;
@@ -79,7 +79,7 @@ public class ImmutableAttribute : TypeAspect, IHierarchicalOptionsProvider
         }
     }
 
-    private static void ValidateDeepImmutability( in DeclarationValidationContext context )
+    private static void ValidateDeepImmutability( DeclarationValidationContext context )
     {
         var field = (IFieldOrProperty) context.Declaration;
 

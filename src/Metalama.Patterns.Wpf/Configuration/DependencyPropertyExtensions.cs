@@ -3,6 +3,8 @@
 using JetBrains.Annotations;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
+using Metalama.Framework.Fabrics;
+using Metalama.Framework.Options;
 
 namespace Metalama.Patterns.Wpf.Configuration;
 
@@ -13,64 +15,64 @@ public static class DependencyPropertyExtensions
     /// <summary>
     /// Configures <see cref="DependencyPropertyAttribute"/> for the current project.
     /// </summary>
-    /// <param name="receiver">The <see cref="IAspectReceiver{TDeclaration}"/> for the current compilation.</param>
+    /// <param name="query">The <see cref="IQuery{TDeclaration}"/> for the current compilation.</param>
     /// <param name="configure">A delegate that configures the aspect.</param>
     public static void ConfigureDependencyProperty(
-        this IAspectReceiver<ICompilation> receiver,
+        this IQuery<ICompilation> query,
         Action<DependencyPropertyOptionsBuilder> configure )
     {
         var builder = new DependencyPropertyOptionsBuilder();
         configure( builder );
 
         var options = builder.Build();
-        receiver.SetOptions( options );
+        query.SetOptions( options );
     }
 
     /// <summary>
     /// Configures <see cref="DependencyPropertyAttribute"/> for the current namespace.
     /// </summary>
-    /// <param name="receiver">The <see cref="IAspectReceiver{TDeclaration}"/> for the current namespace.</param>
+    /// <param name="query">The <see cref="IQuery{TDeclaration}"/> for the current namespace.</param>
     /// <param name="configure">A delegate that configures the aspect.</param>
     public static void ConfigureDependencyProperty(
-        this IAspectReceiver<INamespace> receiver,
+        this IQuery<INamespace> query,
         Action<DependencyPropertyOptionsBuilder> configure )
     {
         var builder = new DependencyPropertyOptionsBuilder();
         configure( builder );
 
         var options = builder.Build();
-        receiver.SetOptions( options );
+        query.SetOptions( options );
     }
 
     /// <summary>
     /// Configures <see cref="DependencyPropertyAttribute"/> for the current type.
     /// </summary>
-    /// <param name="receiver">The <see cref="IAspectReceiver{TDeclaration}"/> for the current type.</param>
+    /// <param name="query">The <see cref="IQuery{TDeclaration}"/> for the current type.</param>
     /// <param name="configure">A delegate that configures the aspect.</param>
     public static void ConfigureDependencyProperty(
-        this IAspectReceiver<INamedType> receiver,
+        this IQuery<INamedType> query,
         Action<DependencyPropertyOptionsBuilder> configure )
     {
         var builder = new DependencyPropertyOptionsBuilder();
         configure( builder );
 
         var options = builder.Build();
-        receiver.SetOptions( options );
+        query.SetOptions( options );
     }
 
     /// <summary>
     /// Configures <see cref="DependencyPropertyAttribute"/> for the current property.
     /// </summary>
-    /// <param name="receiver">The <see cref="IAspectReceiver{TDeclaration}"/> for the current property.</param>
+    /// <param name="query">The <see cref="IQuery{TDeclaration}"/> for the current property.</param>
     /// <param name="configure">A delegate that configures the aspect.</param>
     public static void ConfigureDependencyProperty(
-        this IAspectReceiver<IProperty> receiver,
+        this IQuery<IProperty> query,
         Action<DependencyPropertyOptionsBuilder> configure )
     {
         var builder = new DependencyPropertyOptionsBuilder();
         configure( builder );
 
         var options = builder.Build();
-        receiver.SetOptions( options );
+        query.SetOptions( options );
     }
 }

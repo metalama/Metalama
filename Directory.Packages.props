@@ -17,6 +17,8 @@
     <PackageVersion Include="JetBrains.Annotations" Version="2024.2.0" PrivateAssets="all" />
     <PackageVersion Include="Metalama.Framework" Version="$(MetalamaVersion)" />
     <PackageVersion Include="Metalama.Framework.Sdk" Version="$(MetalamaVersion)" PrivateAssets="all" />
+    <PackageVersion Include="Metalama.Extensions.CodeFixes" Version="$(MetalamaVersion)" />
+    <PackageVersion Include="Metalama.Extensions.Validation" Version="$(MetalamaVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Caching.Memory" Version="7.0.0" />
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="7.0.0" />
     <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="7.0.0" />
