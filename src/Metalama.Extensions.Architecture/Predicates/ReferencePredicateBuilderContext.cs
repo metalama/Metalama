@@ -1,9 +1,8 @@
 // Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
-using Metalama.Extensions.Architecture.Fabrics;
+using Metalama.Extensions.Validation;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Fabrics;
-using Metalama.Framework.Validation;
 
 namespace Metalama.Extensions.Architecture.Predicates;
 
@@ -30,7 +29,7 @@ public sealed class ReferencePredicateBuilderContext
     public string? Namespace { get; }
 
     /// <summary>
-    /// Gets assembly name the project that instantiated the current <see cref="IVerifier{T}"/>.
+    /// Gets assembly name for the project that instantiated the current <see cref="ReferencePredicateBuilder"/>.
     /// </summary>
     public string? AssemblyName { get; }
 }

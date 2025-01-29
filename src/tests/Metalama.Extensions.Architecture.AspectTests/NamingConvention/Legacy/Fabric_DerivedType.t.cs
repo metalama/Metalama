@@ -1,1 +1,0 @@
-// Warning LAMA0906 on `BadlyNamed`: `The type 'BadlyNamed' does not respect the naming convention set by a fabric. The type name should match the "^.*TextReader$" pattern.`

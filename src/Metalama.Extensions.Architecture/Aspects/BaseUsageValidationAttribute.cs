@@ -5,7 +5,6 @@ using Metalama.Extensions.Architecture.Predicates;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Diagnostics;
-using Metalama.Framework.Validation;
 using System;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
@@ -66,7 +65,7 @@ public abstract class BaseUsageValidationAttribute : Attribute, IConditionallyIn
     public string? Description { get; init; }
 
     /// <summary>
-    /// Gets the kinds of references that must be validated. The default value is <see cref="Metalama.Framework.Validation.ReferenceKinds.All"/>.
+    /// Gets the kinds of references that must be validated. The default value is <see cref="ReferenceKinds.All"/>.
     /// </summary>
     public ReferenceKinds ReferenceKinds { get; init; } = ReferenceKinds.All;
 

@@ -1,10 +1,10 @@
 ﻿// Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
 using JetBrains.Annotations;
-using Metalama.Extensions.Architecture.Fabrics;
+using Metalama.Extensions.Validation;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
-using Metalama.Framework.Validation;
+using Metalama.Framework.Fabrics;
 using System;
 using System.Diagnostics.CodeAnalysis;
 
@@ -18,24 +18,17 @@ namespace Metalama.Extensions.Architecture.Predicates;
 [PublicAPI]
 public sealed class ReferencePredicateBuilder
 {
-    [Obsolete]
-    public ReferencePredicateBuilder( IVerifier<IDeclaration> verifier ) : this( ReferenceEndRole.Origin, verifier.Namespace, verifier.AssemblyName ) { }
-
     /// <summary>
-    /// Initializes a new instance of the <see cref="ReferencePredicateBuilder"/> class from an <see cref="IAspectReceiver{TDeclaration}"/>.
+    /// Initializes a new instance of the <see cref="ReferencePredicateBuilder"/> class from an <see cref="IQuery{TDeclaration}"/>.
     /// </summary>
-    public ReferencePredicateBuilder( ReferenceEndRole validatedRole, IAspectReceiver<IDeclaration> receiver ) : this(
-        validatedRole,
-        receiver.OriginatingNamespace,
-        receiver.Project.AssemblyName ) { }
+    public ReferencePredicateBuilder( ReferenceEndRole validatedRole, IQuery<IDeclaration> query )
+        : this( validatedRole, query.OriginatingNamespace, query.Project.AssemblyName ) { }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ReferencePredicateBuilder"/> class from an <see cref="IAspectBuilder{TAspectTarget}"/>.
     /// </summary>
-    public ReferencePredicateBuilder( ReferenceEndRole validatedRole, IAspectBuilder<IDeclaration> aspectBuilder ) : this(
-        validatedRole,
-        aspectBuilder.Target.GetNamespace()?.FullName,
-        aspectBuilder.Project.AssemblyName ) { }
+    public ReferencePredicateBuilder( ReferenceEndRole validatedRole, IAspectBuilder<IDeclaration> aspectBuilder )
+        : this( validatedRole, aspectBuilder.Target.GetNamespace()?.FullName, aspectBuilder.Project.AssemblyName ) { }
 
     private ReferencePredicateBuilder( ReferenceEndRole validatedRole, string? ns = null, string? assemblyName = null )
     {
@@ -64,7 +57,7 @@ public sealed class ReferencePredicateBuilder
     [return: NotNullIfNotNull( nameof(func) )]
     internal static ReferencePredicate? Build(
         Func<ReferencePredicateBuilder, ReferencePredicate>? func,
-        IAspectReceiver<IDeclaration> verifier,
+        IQuery<IDeclaration> verifier,
         ReferenceEndRole role )
     {
         if ( func == null )

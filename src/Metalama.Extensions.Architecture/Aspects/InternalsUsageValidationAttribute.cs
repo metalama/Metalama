@@ -2,10 +2,10 @@
 
 using Metalama.Extensions.Architecture.Predicates;
 using Metalama.Extensions.Architecture.Validators;
+using Metalama.Extensions.Validation;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Eligibility;
-using Metalama.Framework.Validation;
 using System.Linq;
 
 namespace Metalama.Extensions.Architecture.Aspects;

@@ -2,20 +2,20 @@
 
 using JetBrains.Annotations;
 using Metalama.Extensions.Architecture.Aspects;
-using Metalama.Extensions.Architecture.Fabrics;
 using Metalama.Extensions.Architecture.Predicates;
 using Metalama.Extensions.Architecture.Validators;
+using Metalama.Extensions.Validation;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
-using Metalama.Framework.Validation;
+using Metalama.Framework.Diagnostics;
+using Metalama.Framework.Fabrics;
 using System;
 using System.Text.RegularExpressions;
 
 namespace Metalama.Extensions.Architecture;
 
 /// <summary>
-/// Extension methods that verify the architecture. These methods extend the <see cref="IAspectReceiver{TDeclaration}"/> interface, which is returned
-/// by the <see cref="AmenderExtensions.Verify(Metalama.Framework.Fabrics.IProjectAmender)"/> method of the <see cref="AmenderExtensions"/> class.
+/// Extension methods that verify the architecture. These methods extend the <see cref="IQuery{TDeclaration}"/> interface.
 /// </summary>
 [CompileTime]
 [PublicAPI]
@@ -24,69 +24,69 @@ public static class ArchitectureExtensions
     /// <summary>
     /// Reports a warning when the target declaration is used by a declaration that it not itself marked as experimental.
     /// </summary>
-    public static void Experimental( this IAspectReceiver<IDeclaration> receiver ) => receiver.AddAspect( _ => new ExperimentalAttribute() );
+    public static void Experimental( this IQuery<IDeclaration> query ) => query.AddAspect( _ => new ExperimentalAttribute() );
 
     /// <summary>
     /// Reports a warning when any type in the selection is used from a different context than the ones matching the specified predicate. 
     /// </summary>
     public static void CanOnlyBeUsedFrom(
-        this IAspectReceiver<IDeclaration> receiver,
+        this IQuery<IDeclaration> query,
         Func<ReferencePredicateBuilder, ReferencePredicate> predicate,
         string? description = null,
         ReferenceKinds referenceKinds = ReferenceKinds.All )
-        => receiver.Tag( _ => 0 ).CanOnlyBeUsedFromCore( ( builder, _, _ ) => predicate( builder ), description, referenceKinds );
+        => query.WithTag( _ => 0 ).CanOnlyBeUsedFromCore( ( builder, _, _ ) => predicate( builder ), description, referenceKinds );
 
     /// <summary>
     /// Reports a warning when any type in the selection is used from a different context than the ones matching the specified predicate.
     /// This overload supplies the selected declaration to the predicate.
     /// </summary>
     public static void CanOnlyBeUsedFrom<TDeclaration>(
-        this IAspectReceiver<TDeclaration> receiver,
+        this IQuery<TDeclaration> query,
         Func<ReferencePredicateBuilder, TDeclaration, ReferencePredicate> predicate,
         string? description = null,
         ReferenceKinds referenceKinds = ReferenceKinds.All )
         where TDeclaration : class, IDeclaration
-        => receiver.Tag( d => d ).CanOnlyBeUsedFromCore( ( builder, d, _ ) => predicate( builder, d ), description, referenceKinds );
+        => query.WithTag( d => d ).CanOnlyBeUsedFromCore( ( builder, d, _ ) => predicate( builder, d ), description, referenceKinds );
 
     /// <summary>
     /// Reports a warning when any type in the selection is used from a different context than the ones matching the specified predicate.
-    /// This overload supplies the selected declaration and the tag (added using <see cref="IAspectReceiver{TDeclaration}.Tag"/>) to the predicate.
+    /// This overload supplies the selected declaration and the tag (added using <see cref="IQuery{TDeclaration}.WithTag"/>) to the predicate.
     /// </summary>
     public static void CanOnlyBeUsedFrom<TDeclaration, TTag>(
-        this IAspectReceiver<TDeclaration, TTag> receiver,
+        this ITaggedQuery<TDeclaration, TTag> query,
         Func<ReferencePredicateBuilder, TDeclaration, TTag, ReferencePredicate> predicate,
         string? description = null,
         ReferenceKinds referenceKinds = ReferenceKinds.All )
         where TDeclaration : class, IDeclaration
-        => receiver.CanOnlyBeUsedFromCore( predicate, description, referenceKinds );
+        => query.CanOnlyBeUsedFromCore( predicate, description, referenceKinds );
 
     private static void CanOnlyBeUsedFromCore<TDeclaration, TTag>(
-        this IAspectReceiver<TDeclaration, TTag> receiver,
+        this ITaggedQuery<TDeclaration, TTag> query,
         Func<ReferencePredicateBuilder, TDeclaration, TTag, ReferencePredicate> predicate,
         string? description = null,
         ReferenceKinds referenceKinds = ReferenceKinds.All )
         where TDeclaration : class, IDeclaration
     {
-        var taggedReceiver = receiver
-            .Tag(
+        var taggedQuery = query
+            .WithTag(
                 ( d, tag ) => new ReferencePredicateValidator(
-                    predicate( new ReferencePredicateBuilder( ReferenceEndRole.Origin, receiver ), d, tag ),
+                    predicate( new ReferencePredicateBuilder( ReferenceEndRole.Origin, query ), d, tag ),
                     description,
                     referenceKinds ) );
 
-        taggedReceiver.ValidateInboundReferences( ( _, validator ) => validator );
+        taggedQuery.ValidateInboundReferences( ( _, validator ) => validator );
     }
 
     /// <summary>
     /// Reports a warning when any type in the selection is used from the context matching the specified predicate.
     /// </summary>
     public static void CannotBeUsedFrom(
-        this IAspectReceiver<IDeclaration> receiver,
+        this IQuery<IDeclaration> query,
         Func<ReferencePredicateBuilder, ReferencePredicate> predicate,
         string? description = null,
         ReferenceKinds referenceKinds = ReferenceKinds.All )
-        => receiver
-            .Tag( _ => 0 )
+        => query
+            .WithTag( _ => 0 )
             .CannotBeUsedFromCore( ( builder, _, _ ) => predicate( builder ), description, referenceKinds );
 
     /// <summary>
@@ -94,49 +94,49 @@ public static class ArchitectureExtensions
     /// This overload supplies the selected declaration to the predicate.
     /// </summary>
     public static void CannotBeUsedFrom<TDeclaration>(
-        this IAspectReceiver<TDeclaration> receiver,
+        this IQuery<TDeclaration> query,
         Func<ReferencePredicateBuilder, TDeclaration, ReferencePredicate> predicate,
         string? description = null,
         ReferenceKinds referenceKinds = ReferenceKinds.All )
         where TDeclaration : class, IDeclaration
-        => receiver
-            .Tag( x => x )
+        => query
+            .WithTag( x => x )
             .CannotBeUsedFromCore( ( builder, d, _ ) => predicate( builder, d ), description, referenceKinds );
 
     /// <summary>
     /// Reports a warning when any type in the selection is used from the context matching the specified predicate.
-    /// This overload supplies the selected declaration and the tag (added using <see cref="IAspectReceiver{TDeclaration}.Tag"/>) to the predicate.
+    /// This overload supplies the selected declaration and the tag (added using <see cref="IQuery{TDeclaration}.WithTag"/>) to the predicate.
     /// </summary>
     public static void CannotBeUsedFrom<TDeclaration, TTag>(
-        this IAspectReceiver<TDeclaration, TTag> receiver,
+        this ITaggedQuery<TDeclaration, TTag> query,
         Func<ReferencePredicateBuilder, TDeclaration, TTag, ReferencePredicate> predicate,
         string? description = null,
         ReferenceKinds referenceKinds = ReferenceKinds.All )
         where TDeclaration : class, IDeclaration
-        => receiver.CannotBeUsedFromCore( predicate, description, referenceKinds );
+        => query.CannotBeUsedFromCore( predicate, description, referenceKinds );
 
     private static void CannotBeUsedFromCore<TDeclaration, TTag>(
-        this IAspectReceiver<TDeclaration, TTag> receiver,
+        this ITaggedQuery<TDeclaration, TTag> query,
         Func<ReferencePredicateBuilder, TDeclaration, TTag, ReferencePredicate> predicate,
         string? description = null,
         ReferenceKinds referenceKinds = ReferenceKinds.All )
         where TDeclaration : class, IDeclaration
-        => receiver
-            .Tag( ( d, tag ) => predicate( new ReferencePredicateBuilder( ReferenceEndRole.Origin, receiver ), d, tag ).Not() )
+        => query
+            .WithTag( ( d, tag ) => predicate( new ReferencePredicateBuilder( ReferenceEndRole.Origin, query ), d, tag ).Not() )
             .ValidateInboundReferences( ( _, validator ) => new ReferencePredicateValidator( validator, description, referenceKinds ) );
 
     private static void VerifyInternalsAccess<TDeclaration, TTag>(
-        this IAspectReceiver<TDeclaration, TTag> receiver,
+        this ITaggedQuery<TDeclaration, TTag> query,
         Func<ReferencePredicateBuilder, TDeclaration, TTag, ReferencePredicate> predicate,
         string? description,
         ReferenceKinds referenceKinds,
         Func<ReferencePredicate, ReferencePredicate> transformPredicate )
         where TDeclaration : class, IDeclaration
     {
-        var taggedReceiver = receiver.Tag(
+        var taggedQuery = query.WithTag(
             ( d, tag ) =>
             {
-                var predicateBuilder = new ReferencePredicateBuilder( ReferenceEndRole.Origin, receiver );
+                var predicateBuilder = new ReferencePredicateBuilder( ReferenceEndRole.Origin, query );
                 var builtPredicate = predicate( predicateBuilder, d, tag );
                 var typePredicate = builtPredicate;
                 var memberPredicate = predicateBuilder.HasFamilyAccess().Or( transformPredicate( builtPredicate ) );
@@ -147,7 +147,7 @@ public static class ArchitectureExtensions
                 return new { typeValidator, memberValidator };
             } );
 
-        var types = taggedReceiver.SelectTypes();
+        var types = taggedQuery.SelectTypes();
 
         var publicTypes = types
             .Where( t => t.Accessibility != Accessibility.Internal );
@@ -177,11 +177,11 @@ public static class ArchitectureExtensions
     /// except if this concept has access to the type using inheritance rules.
     /// </summary>
     public static void InternalsCanOnlyBeUsedFrom(
-        this IAspectReceiver<IDeclaration> receiver,
+        this IQuery<IDeclaration> query,
         Func<ReferencePredicateBuilder, ReferencePredicate> predicate,
         string? description = null,
         ReferenceKinds referenceKinds = ReferenceKinds.All )
-        => receiver.Tag( _ => 0 ).InternalsCanOnlyBeUsedFromCore( ( builder, _, _ ) => predicate( builder ), description, referenceKinds );
+        => query.WithTag( _ => 0 ).InternalsCanOnlyBeUsedFromCore( ( builder, _, _ ) => predicate( builder ), description, referenceKinds );
 
     /// <summary>
     /// Reports a warning when any of the internal APIs of the current selection in used from a different context than the one allowed,
@@ -189,44 +189,44 @@ public static class ArchitectureExtensions
     /// This overload supplies the selected declaration to the predicate.
     /// </summary>
     public static void InternalsCanOnlyBeUsedFrom<TDeclaration>(
-        this IAspectReceiver<TDeclaration> receiver,
+        this IQuery<TDeclaration> query,
         Func<ReferencePredicateBuilder, TDeclaration, ReferencePredicate> predicate,
         string? description = null,
         ReferenceKinds referenceKinds = ReferenceKinds.All )
         where TDeclaration : class, IDeclaration
-        => receiver.Tag( x => x ).InternalsCanOnlyBeUsedFromCore( ( builder, d, _ ) => predicate( builder, d ), description, referenceKinds );
+        => query.WithTag( x => x ).InternalsCanOnlyBeUsedFromCore( ( builder, d, _ ) => predicate( builder, d ), description, referenceKinds );
 
     /// <summary>
     /// Reports a warning when any of the internal APIs of the current selection in used from a different context than the one allowed,
     /// except if this concept has access to the type using inheritance rules.
-    /// This overload supplies the selected declaration and the tag (added using <see cref="IAspectReceiver{TDeclaration}.Tag"/>) to the predicate.
+    /// This overload supplies the selected declaration and the tag (added using <see cref="IQuery{TDeclaration}.WithTag"/>) to the predicate.
     /// </summary>
     public static void InternalsCanOnlyBeUsedFrom<TDeclaration, TTag>(
-        this IAspectReceiver<TDeclaration, TTag> receiver,
+        this ITaggedQuery<TDeclaration, TTag> query,
         Func<ReferencePredicateBuilder, TDeclaration, TTag, ReferencePredicate> predicate,
         string? description = null,
         ReferenceKinds referenceKinds = ReferenceKinds.All )
         where TDeclaration : class, IDeclaration
-        => InternalsCannotBeUsedFromCore( receiver, predicate, description );
+        => InternalsCannotBeUsedFromCore( query, predicate, description );
 
     private static void InternalsCanOnlyBeUsedFromCore<TDeclaration, TTag>(
-        this IAspectReceiver<TDeclaration, TTag> receiver,
+        this ITaggedQuery<TDeclaration, TTag> query,
         Func<ReferencePredicateBuilder, TDeclaration, TTag, ReferencePredicate> predicate,
         string? description = null,
         ReferenceKinds referenceKinds = ReferenceKinds.All )
         where TDeclaration : class, IDeclaration
-        => receiver.VerifyInternalsAccess( predicate, description, referenceKinds, x => x );
+        => query.VerifyInternalsAccess( predicate, description, referenceKinds, x => x );
 
     /// <summary>
     /// Reports a warning when any of the internal APIs of the current selection in used from a different context different than the one allowed,
     /// except if this concept has access to the type using inheritance rules.
     /// </summary>
     public static void InternalsCannotBeUsedFrom(
-        this IAspectReceiver<IDeclaration> receiver,
+        this IQuery<IDeclaration> query,
         Func<ReferencePredicateBuilder, ReferencePredicate> predicate,
         string? description = null,
         ReferenceKinds referenceKinds = ReferenceKinds.All )
-        => receiver.Tag( _ => 0 ).InternalsCannotBeUsedFromCore( ( builder, _, _ ) => predicate( builder ), description, referenceKinds );
+        => query.WithTag( _ => 0 ).InternalsCannotBeUsedFromCore( ( builder, _, _ ) => predicate( builder ), description, referenceKinds );
 
     /// <summary>
     /// Reports a warning when any of the internal APIs of the current selection in used from a different context different than the one allowed,
@@ -234,75 +234,75 @@ public static class ArchitectureExtensions
     /// This overload supplies the selected declaration to the predicate. 
     /// </summary>
     public static void InternalsCannotBeUsedFrom<TDeclaration>(
-        this IAspectReceiver<TDeclaration> receiver,
+        this IQuery<TDeclaration> query,
         Func<ReferencePredicateBuilder, TDeclaration, ReferencePredicate> predicate,
         string? description = null,
         ReferenceKinds referenceKinds = ReferenceKinds.All )
         where TDeclaration : class, IDeclaration
-        => receiver.Tag( x => x ).InternalsCannotBeUsedFromCore( ( builder, d, _ ) => predicate( builder, d ), description, referenceKinds );
+        => query.WithTag( x => x ).InternalsCannotBeUsedFromCore( ( builder, d, _ ) => predicate( builder, d ), description, referenceKinds );
 
     /// <summary>
     /// Reports a warning when any of the internal APIs of the current selection in used from a different context different than the one allowed,
     /// except if this concept has access to the type using inheritance rules.
-    /// This overload supplies the selected declaration and the tag (added using <see cref="IAspectReceiver{TDeclaration}.Tag"/>) to the predicate. 
+    /// This overload supplies the selected declaration and the tag (added using <see cref="IQuery{TDeclaration}.WithTag"/>) to the predicate. 
     /// </summary>
     public static void InternalsCannotBeUsedFrom<TDeclaration, TTag>(
-        this IAspectReceiver<TDeclaration, TTag> receiver,
+        this ITaggedQuery<TDeclaration, TTag> query,
         Func<ReferencePredicateBuilder, TDeclaration, TTag, ReferencePredicate> predicate,
         string? description = null,
         ReferenceKinds referenceKinds = ReferenceKinds.All )
         where TDeclaration : class, IDeclaration
-        => receiver.InternalsCannotBeUsedFromCore( predicate, description, referenceKinds );
+        => query.InternalsCannotBeUsedFromCore( predicate, description, referenceKinds );
 
     private static void InternalsCannotBeUsedFromCore<TDeclaration, TTag>(
-        this IAspectReceiver<TDeclaration, TTag> receiver,
+        this ITaggedQuery<TDeclaration, TTag> query,
         Func<ReferencePredicateBuilder, TDeclaration, TTag, ReferencePredicate> predicate,
         string? description = null,
         ReferenceKinds referenceKinds = ReferenceKinds.All )
         where TDeclaration : class, IDeclaration
-        => receiver.VerifyInternalsAccess( predicate, description, referenceKinds, ( x ) => x.Not() );
+        => query.VerifyInternalsAccess( predicate, description, referenceKinds, ( x ) => x.Not() );
 
     /// <summary>
     /// Reports a warning when any type that inherits any type in the current selection does not follow a given convention, where the convention
     /// is given as a star pattern, i.e. where the <c>*</c> matches any sequence of characters, even empty.
     /// </summary>
     public static void DerivedTypesMustRespectNamingConvention(
-        this IAspectReceiver<IDeclaration> receiver,
+        this IQuery<IDeclaration> query,
         string pattern,
         Func<ReferencePredicateBuilder, ReferencePredicate>? exclusions = null )
-        => receiver.ValidateInboundReferences(
+        => query.ValidateInboundReferences(
             DerivedTypeNamingConventionValidator.CreateStarPatternValidator(
                 pattern,
-                ReferencePredicateBuilder.Build( exclusions, receiver, ReferenceEndRole.Origin ) ) );
+                ReferencePredicateBuilder.Build( exclusions, query, ReferenceEndRole.Origin ) ) );
 
     /// <summary>
     /// Reports a warning when any type that inherits any type in the current selection does not follow a given convention, where the convention
     /// is given as a regular expression.
     /// </summary>
     public static void DerivedTypesMustRespectRegexNamingConvention(
-        this IAspectReceiver<IDeclaration> receiver,
+        this IQuery<IDeclaration> query,
         string pattern,
         Func<ReferencePredicateBuilder, ReferencePredicate>? exclusions = null )
-        => receiver.ValidateInboundReferences(
+        => query.ValidateInboundReferences(
             DerivedTypeNamingConventionValidator.CreateRegexValidator(
                 pattern,
-                ReferencePredicateBuilder.Build( exclusions, receiver, ReferenceEndRole.Origin ) ) );
+                ReferencePredicateBuilder.Build( exclusions, query, ReferenceEndRole.Origin ) ) );
 
     /// <summary>
     /// Reports a warning when any declaration in the selection fails to respect the given naming convention, with the asterisk character (<c>*</c>)
     /// matching any substring.
     /// </summary>
-    public static void MustRespectNamingConvention( this IAspectReceiver<INamedDeclaration> receiver, string pattern )
-        => receiver.MustRespectRegexNamingConvention( NamingConventionHelper.StarPatternToRegex( pattern ) );
+    public static void MustRespectNamingConvention( this IQuery<INamedDeclaration> query, string pattern )
+        => query.MustRespectRegexNamingConvention( NamingConventionHelper.StarPatternToRegex( pattern ) );
 
     /// <summary>
     /// Reports a warning when any declaration in the selection fails  not respect the given naming convention, given as a regular expression.
     /// </summary>
-    public static void MustRespectRegexNamingConvention( this IAspectReceiver<INamedDeclaration> receiver, string pattern )
+    public static void MustRespectRegexNamingConvention( this IQuery<INamedDeclaration> query, string pattern )
     {
         var regex = new Regex( pattern );
 
-        receiver.Where( d => !regex.IsMatch( d.Name ) )
+        query.Where( d => !regex.IsMatch( d.Name ) )
             .ReportDiagnostic( d => ArchitectureDiagnosticDefinitions.NamingConventionViolation.WithArguments( (d, d.DeclarationKind, pattern) ) );
     }
 }

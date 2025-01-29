@@ -1,1 +1,0 @@
-// Warning LAMA0905 on `Regex`: `The 'Regex' type cannot be referenced by the 'Metalama.Extensions.Architecture.AspectTests.OnlyAccessibleFrom.Legacy.ExternalType.ForbiddenNamespace' namespace.`

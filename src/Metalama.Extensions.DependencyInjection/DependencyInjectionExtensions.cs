@@ -4,6 +4,8 @@ using JetBrains.Annotations;
 using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
+using Metalama.Framework.Fabrics;
+using Metalama.Framework.Options;
 using Metalama.Framework.Project;
 using System;
 using System.Diagnostics.CodeAnalysis;
@@ -20,10 +22,10 @@ public static class DependencyInjectionExtensions
     /// <summary>
     /// Configures <c>Metalama.Extensions.DependencyInjection</c> for the current project.
     /// </summary>
-    /// <param name="receiver">The <see cref="IAspectReceiver{TDeclaration}"/> for current compilation.</param>
+    /// <param name="query">The <see cref="IQuery{TDeclaration}"/> for current compilation.</param>
     /// <param name="configure">A delegate that configures the framework.</param>
     public static void ConfigureDependencyInjection(
-        this IAspectReceiver<ICompilation> receiver,
+        this IQuery<ICompilation> query,
         Action<DependencyInjectionOptionsBuilder> configure )
     {
         var builder = new DependencyInjectionOptionsBuilder();
@@ -31,16 +33,16 @@ public static class DependencyInjectionExtensions
 
         var options = builder.Build();
 
-        receiver.SetOptions( options );
+        query.SetOptions( options );
     }
 
     /// <summary>
     /// Configures <c>Metalama.Extensions.DependencyInjection</c> for a given type.
     /// </summary>
-    /// <param name="receiver">The <see cref="IAspectReceiver{TDeclaration}"/> for the type.</param>
+    /// <param name="query">The <see cref="IQuery{TDeclaration}"/> for the type.</param>
     /// <param name="configure">A delegate that configures the framework.</param>
     public static void ConfigureDependencyInjection(
-        this IAspectReceiver<INamedType> receiver,
+        this IQuery<INamedType> query,
         Action<DependencyInjectionOptionsBuilder> configure )
     {
         var builder = new DependencyInjectionOptionsBuilder();
@@ -48,16 +50,16 @@ public static class DependencyInjectionExtensions
 
         var options = builder.Build();
 
-        receiver.SetOptions( options );
+        query.SetOptions( options );
     }
 
     /// <summary>
-    /// Configures <c>Metalama.Extensions.DependencyInjection</c> for a given type.
+    /// Configures <c>Metalama.Extensions.DependencyInjection</c> for a given namespace.
     /// </summary>
-    /// <param name="receiver">The <see cref="IAspectReceiver{TDeclaration}"/> for the type.</param>
+    /// <param name="query">The <see cref="IQuery{TDeclaration}"/> for the namespace.</param>
     /// <param name="configure">A delegate that configures the framework.</param>
     public static void ConfigureDependencyInjection(
-        this IAspectReceiver<INamespace> receiver,
+        this IQuery<INamespace> query,
         Action<DependencyInjectionOptionsBuilder> configure )
     {
         var builder = new DependencyInjectionOptionsBuilder();
@@ -65,7 +67,7 @@ public static class DependencyInjectionExtensions
 
         var options = builder.Build();
 
-        receiver.SetOptions( options );
+        query.SetOptions( options );
     }
 
     /// <summary>

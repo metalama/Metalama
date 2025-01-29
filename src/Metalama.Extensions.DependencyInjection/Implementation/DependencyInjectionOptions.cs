@@ -15,7 +15,7 @@ namespace Metalama.Extensions.DependencyInjection.Implementation;
 #pragma warning disable SA1623
 
 /// <summary>
-/// Options that influence the processing of <see cref="IntroduceDependencyAttribute"/>. To set these options, use <see cref="DependencyInjectionExtensions.ConfigureDependencyInjection(Metalama.Framework.Aspects.IAspectReceiver{Metalama.Framework.Code.ICompilation},System.Action{Metalama.Extensions.DependencyInjection.DependencyInjectionOptionsBuilder})"/>.
+/// Options that influence the processing of <see cref="IntroduceDependencyAttribute"/>. To set these options, use <see cref="DependencyInjectionExtensions.ConfigureDependencyInjection(Framework.Fabrics.IQuery{ICompilation}, Action{DependencyInjectionOptionsBuilder})"/>.
 /// </summary>
 [PublicAPI]
 public sealed record DependencyInjectionOptions : IHierarchicalOptions<ICompilation>, IHierarchicalOptions<INamespace>, IHierarchicalOptions<INamedType>

@@ -1,4 +1,6 @@
-﻿#if TEST_OPTIONS
+﻿// Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
+
+#if TEST_OPTIONS
 // @TestScenario(DesignTime)
 // @ReportOutputWarnings
 #endif
@@ -16,7 +18,7 @@ public class MyAspect : TypeAspect
 {
     public override void BuildAspect( IAspectBuilder<INamedType> builder )
     {
-        builder.TryIntroduceDependency( new DependencyProperties( builder.Target, typeof(IFormatProvider), "_formatProvider" ), out _ );
+        builder.IntroduceDependency( typeof( IFormatProvider ), new() { MemberName = "_formatProvider" } );
     }
 }
 

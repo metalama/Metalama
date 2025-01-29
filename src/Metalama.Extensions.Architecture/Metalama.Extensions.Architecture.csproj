@@ -10,6 +10,7 @@
   <ItemGroup>
     <PackageReference Include="JetBrains.Annotations" PrivateAssets="all" />
     <PackageReference Include="Metalama.Framework" />
+    <PackageReference Include="Metalama.Extensions.Validation" />
   </ItemGroup>
   
   <Import Project="SystemTypes.props" Sdk="PostSharp.Engineering.Sdk" />

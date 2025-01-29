@@ -1,1 +1,0 @@
-// Warning LAMA0905 on `ConstrainedClass`: `The 'test' project cannot be referenced by the 'Metalama.Extensions.Architecture.AspectTests.OnlyAccessibleFrom.Legacy.FromProjectFabric' namespace.`
