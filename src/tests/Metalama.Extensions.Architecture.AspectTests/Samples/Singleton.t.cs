@@ -1,1 +1,0 @@
-// Warning LAMA0905 on `new MySingleton()`: `The 'MySingleton.MySingleton()' constructor cannot be referenced by the 'Forbidden' type. The class is a [Singleton].`

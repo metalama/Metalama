@@ -1,1 +1,0 @@
-// Warning LAMA0905 on `C`: `The 'Metalama.Extensions.Architecture.AspectTests.Predicates.Or' namespace cannot be referenced by the 'D' type.`

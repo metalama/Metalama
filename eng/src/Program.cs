@@ -21,8 +21,7 @@ var product = new Product( MetalamaDependencies.MetalamaExtensions )
         "Metalama.Extensions.DependencyInjection.$(PackageVersion).nupkg",
         "Metalama.Extensions.DependencyInjection.ServiceLocator.$(PackageVersion).nupkg",
         "Metalama.Extensions.Multicast.$(PackageVersion).nupkg",
-        "Metalama.Extensions.Metrics.$(PackageVersion).nupkg",
-        "Metalama.Extensions.Architecture.$(PackageVersion).nupkg" ),
+        "Metalama.Extensions.Metrics.$(PackageVersion).nupkg" ),
     Dependencies = [DevelopmentDependencies.PostSharpEngineering, MetalamaDependencies.Metalama],
     MainVersionDependency = MetalamaDependencies.Metalama
 };

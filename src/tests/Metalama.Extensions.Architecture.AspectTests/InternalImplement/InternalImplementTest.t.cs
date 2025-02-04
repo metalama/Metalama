@@ -1,1 +1,0 @@
-// Warning LAMA0901 on `IInterface`.

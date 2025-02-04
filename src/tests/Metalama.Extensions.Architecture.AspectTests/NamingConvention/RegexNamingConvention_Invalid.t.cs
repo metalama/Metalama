@@ -1,1 +1,0 @@
-// Error LAMA0902 on `BaseClass`: `The string `(` is not a valid regular expression: Invalid pattern '(' at offset 1. Not enough )'s.`

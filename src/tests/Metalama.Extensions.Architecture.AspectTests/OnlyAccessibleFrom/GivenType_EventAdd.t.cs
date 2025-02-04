@@ -1,2 +1,0 @@
-// Warning LAMA0905 on `ConstrainedEvent`: `The 'ConstrainedClass.ConstrainedEvent' event cannot be assigned by the 'ForbiddenClass' type.`
-// Warning LAMA0905 on `ConstrainedEvent`: `The 'ConstrainedClass.ConstrainedEvent' event cannot be assigned by the 'ForbiddenClass' type.`

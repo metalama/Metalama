@@ -1,1 +1,0 @@
-// Warning LAMA0905 on `RestrictedClass`: `The 'RestrictedClass' type cannot be referenced by the 'ForbiddenClass' type. Can only be implemented in the current assembly.`

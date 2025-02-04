@@ -19,12 +19,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Metalama.Extensions.Metrics
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Metalama.Extensions.Metrics.UnitTests", "src\tests\Metalama.Extensions.Metrics.UnitTests\Metalama.Extensions.Metrics.UnitTests.csproj", "{87A3C104-59EE-460A-ABFF-6F2FDCCB0E1B}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Metalama.Extensions.Architecture", "src\Metalama.Extensions.Architecture\Metalama.Extensions.Architecture.csproj", "{9EFE7FF2-B3B7-422A-AD88-25991FE18C2D}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Metalama.Extensions.Architecture.AspectTests", "src\tests\Metalama.Extensions.Architecture.AspectTests\Metalama.Extensions.Architecture.AspectTests.csproj", "{97A422BE-11EC-45DA-9118-B63B4A9A0A96}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Architecture", "Architecture", "{A9799B5B-7BB8-4DC8-9213-5B79DDB729ED}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "DependencyInjection", "DependencyInjection", "{FABEF21A-065E-45DB-A31F-9B982762B8AC}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Metrics", "Metrics", "{D4212CEA-D370-41A9-8745-E6FE01505023}"
@@ -93,18 +87,6 @@ Global
 		{87A3C104-59EE-460A-ABFF-6F2FDCCB0E1B}.LamaDebug|Any CPU.Build.0 = Debug|Any CPU
 		{87A3C104-59EE-460A-ABFF-6F2FDCCB0E1B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{87A3C104-59EE-460A-ABFF-6F2FDCCB0E1B}.Release|Any CPU.Build.0 = Release|Any CPU
-		{9EFE7FF2-B3B7-422A-AD88-25991FE18C2D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{9EFE7FF2-B3B7-422A-AD88-25991FE18C2D}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{9EFE7FF2-B3B7-422A-AD88-25991FE18C2D}.LamaDebug|Any CPU.ActiveCfg = Debug|Any CPU
-		{9EFE7FF2-B3B7-422A-AD88-25991FE18C2D}.LamaDebug|Any CPU.Build.0 = Debug|Any CPU
-		{9EFE7FF2-B3B7-422A-AD88-25991FE18C2D}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{9EFE7FF2-B3B7-422A-AD88-25991FE18C2D}.Release|Any CPU.Build.0 = Release|Any CPU
-		{97A422BE-11EC-45DA-9118-B63B4A9A0A96}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{97A422BE-11EC-45DA-9118-B63B4A9A0A96}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{97A422BE-11EC-45DA-9118-B63B4A9A0A96}.LamaDebug|Any CPU.ActiveCfg = Debug|Any CPU
-		{97A422BE-11EC-45DA-9118-B63B4A9A0A96}.LamaDebug|Any CPU.Build.0 = Debug|Any CPU
-		{97A422BE-11EC-45DA-9118-B63B4A9A0A96}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{97A422BE-11EC-45DA-9118-B63B4A9A0A96}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -118,8 +100,6 @@ Global
 		{BE81D9A0-308D-44CD-9513-9E56FED265CB} = {A4CF5511-778E-4966-BD80-3A087FDF242F}
 		{F5165D4D-DFEE-4F06-8C64-738A3ECE87BB} = {D4212CEA-D370-41A9-8745-E6FE01505023}
 		{87A3C104-59EE-460A-ABFF-6F2FDCCB0E1B} = {D4212CEA-D370-41A9-8745-E6FE01505023}
-		{9EFE7FF2-B3B7-422A-AD88-25991FE18C2D} = {A9799B5B-7BB8-4DC8-9213-5B79DDB729ED}
-		{97A422BE-11EC-45DA-9118-B63B4A9A0A96} = {A9799B5B-7BB8-4DC8-9213-5B79DDB729ED}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {40D2FBCB-DC9E-4CF3-AA05-9A42E9210D2C}
