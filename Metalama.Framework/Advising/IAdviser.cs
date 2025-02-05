@@ -4,7 +4,7 @@ using JetBrains.Annotations;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Diagnostics;
-using Metalama.Framework.Validation;
+using Metalama.Framework.Utilities;
 
 namespace Metalama.Framework.Advising;
 

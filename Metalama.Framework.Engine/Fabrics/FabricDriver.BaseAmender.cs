@@ -5,24 +5,20 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Diagnostics;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel.References;
-using Metalama.Framework.Engine.HierarchicalOptions;
-using Metalama.Framework.Engine.Licensing;
-using Metalama.Framework.Engine.Pipeline;
+using Metalama.Framework.Engine.Extensibility;
+using Metalama.Framework.Engine.Queries;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.UserCode;
-using Metalama.Framework.Engine.Validation;
 using Metalama.Framework.Fabrics;
 using Metalama.Framework.Project;
-using Metalama.Framework.Validation;
 using System;
-using System.Reflection;
 
 namespace Metalama.Framework.Engine.Fabrics;
 
 internal abstract partial class FabricDriver
 {
-    protected abstract class BaseAmender<T> : AspectReceiver<T, int>, IAmender<T>, IAspectReceiverParent
+    protected abstract class BaseAmender<T> : Query<T, int>, IAmender<T>, IQueryOwner
         where T : class, IDeclaration
     {
         // The Target property is protected (and not exposed to the API) because
@@ -37,7 +33,8 @@ internal abstract partial class FabricDriver
             IProject project,
             FabricManager fabricManager,
             FabricInstance fabricInstance,
-            IRef<T> targetDeclaration ) : base(
+            IRef<T> targetDeclaration,
+            UserCodeExecutionContext userCodeExecutionContext ) : base(
             fabricManager.ServiceProvider,
             targetDeclaration,
             CompilationModelVersion.Final,
@@ -45,53 +42,40 @@ internal abstract partial class FabricDriver
         {
             this._project = project;
             this._fabricInstance = fabricInstance;
+            this.UserCodeExecutionContext = userCodeExecutionContext;
             this.TargetDeclaration = targetDeclaration.ToDurable(); // TODO PERF: ToDurable is useful only at design time.
             this._fabricManager = fabricManager;
-            this.LicenseVerifier = this._fabricManager.ServiceProvider.GetService<LicenseVerifier>();
         }
 
         protected override bool ShouldCache => false;
 
-        protected override IAspectReceiverParent Parent => this;
+        public override IQueryOwner Owner => this;
 
-        IProject IAspectReceiverParent.Project => this._project;
+        IProject IQueryOwner.Project => this._project;
 
         public abstract string? Namespace { get; }
 
-        public LicenseVerifier? LicenseVerifier { get; }
+        ProjectServiceProvider IQueryOwner.ServiceProvider => this._fabricManager.ServiceProvider;
 
-        public abstract void AddAspectSource( IAspectSource aspectSource );
+        IAspectClassResolver IQueryOwner.AspectClasses => this._fabricManager.AspectClasses;
 
-        public abstract void AddValidatorSource( IValidatorSource validatorSource );
-
-        public abstract void AddOptionsSource( IHierarchicalOptionsSource hierarchicalOptionsSource );
-
-        ProjectServiceProvider IAspectReceiverParent.ServiceProvider => this._fabricManager.ServiceProvider;
-
-        BoundAspectClassCollection IAspectReceiverParent.AspectClasses => this._fabricManager.AspectClasses;
-
-        UserCodeInvoker IAspectReceiverParent.UserCodeInvoker => this._fabricManager.UserCodeInvoker;
+        UserCodeInvoker IQueryOwner.UserCodeInvoker => this._fabricManager.UserCodeInvoker;
 
         public AspectPredecessor AspectPredecessor => new( AspectPredecessorKind.Fabric, this._fabricInstance );
 
-        Type IAspectReceiverParent.Type => this._fabricInstance.Fabric.GetType();
+        Type IQueryOwner.Type => this._fabricInstance.Fabric.GetType();
 
-        MethodBasedReferenceValidatorDriver IValidatorDriverFactory.GetReferenceValidatorDriver( MethodInfo validateMethod )
-            => this._fabricInstance.ValidatorDriverFactory.GetReferenceValidatorDriver( validateMethod );
-
-        ClassBasedReferenceValidatorDriver IValidatorDriverFactory.GetReferenceValidatorDriver( Type type )
-            => this._fabricInstance.ValidatorDriverFactory.GetReferenceValidatorDriver( type );
-
-        DeclarationValidatorDriver IValidatorDriverFactory.GetDeclarationValidatorDriver( ValidatorDelegate<DeclarationValidationContext> validate )
-            => this._fabricInstance.ValidatorDriverFactory.GetDeclarationValidatorDriver( validate );
+        public UserCodeExecutionContext UserCodeExecutionContext { get; }
 
         [Memo]
-        public IAspectReceiver<T> Outbound
-            => new RootAspectReceiver<T>(
+        public IQuery<T> Outbound
+            => new RootQuery<T>(
                 this.TargetDeclaration,
                 this,
                 CompilationModelVersion.Final );
 
         string IDiagnosticSource.DiagnosticSourceDescription => $"fabric {this._fabricInstance.Fabric.GetType().FullName}";
+
+        public abstract void AddContributor( IPipelineContributor contributor );
     }
 }

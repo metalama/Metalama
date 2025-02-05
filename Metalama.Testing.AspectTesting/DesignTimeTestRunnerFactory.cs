@@ -11,7 +11,6 @@ internal sealed class DesignTimeTestRunnerFactory : ITestRunnerFactory
         GlobalServiceProvider serviceProvider,
         string? projectDirectory,
         TestProjectReferences references,
-        ITestOutputHelper? logger,
-        ILicenseKeyProvider? licenseKeyProvider )
-        => new DesignTimeTestRunner( serviceProvider, projectDirectory, references, logger, licenseKeyProvider );
+        ITestOutputHelper? logger )
+        => new DesignTimeTestRunner( serviceProvider, projectDirectory, references, logger );
 }

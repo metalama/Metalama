@@ -57,8 +57,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Metalama.Framework.Workspac
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Metalama.Framework.Tests.Workspaces", "tests\Metalama.Framework.Tests.Workspaces\Metalama.Framework.Tests.Workspaces.csproj", "{6B0B4099-06FA-408A-8230-5F952198245B}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Metalama.Framework.DesignTime.VisualStudio", "Metalama.Framework.DesignTime.VisualStudio\Metalama.Framework.DesignTime.VisualStudio.csproj", "{0B6E6000-3E37-4E6E-871D-682B41F8A59E}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Metalama.Framework.DesignTime", "Metalama.Framework.DesignTime\Metalama.Framework.DesignTime.csproj", "{94DC3AA3-0753-47A4-A8BC-3AFF1ADFF959}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Metalama.SystemTypes", "Metalama.SystemTypes\Metalama.SystemTypes.csproj", "{593F39C7-66A8-4547-989C-6EB5E9313760}"
@@ -81,8 +79,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Metalama.Framework.Compiler
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Metalama.Framework.DesignTime.4.4.0", "Metalama.Framework.DesignTime.4.4.0\Metalama.Framework.DesignTime.4.4.0.csproj", "{F9620A54-3F25-4C61-8E95-A20F2D5B9E61}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Metalama.Framework.DesignTime.VisualStudio.4.4.0", "Metalama.Framework.DesignTime.VisualStudio.4.4.0\Metalama.Framework.DesignTime.VisualStudio.4.4.0.csproj", "{9E57B392-8C62-41CB-AE10-9DE387F1ECF4}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Metalama.Framework.Engine.4.4.0", "Metalama.Framework.Engine.4.4.0\Metalama.Framework.Engine.4.4.0.csproj", "{F9DBFBF6-8D86-4E40-B6B9-849884ABC670}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Metalama.Testing.UnitTesting.4.4.0", "Metalama.Testing.UnitTesting.4.4.0\Metalama.Testing.UnitTesting.4.4.0.csproj", "{85141367-700A-4019-974D-5328E5DA2215}"
@@ -94,8 +90,6 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Metalama.Framework.Tests.UnitTests.4.4.0", "tests\Metalama.Framework.Tests.UnitTests.4.4.0\Metalama.Framework.Tests.UnitTests.4.4.0.csproj", "{1C4B1567-AFD6-4020-87AB-0148D828785A}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Metalama.Framework.Tests.Benchmarks", "tests\Metalama.Framework.Tests.Benchmarks\Metalama.Framework.Tests.Benchmarks.csproj", "{37BFB340-CEA5-4C48-BFA9-CA4E379FBD63}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Metalama.Framework.DesignTime.VisualStudio.4.8.0", "Metalama.Framework.DesignTime.VisualStudio.4.8.0\Metalama.Framework.DesignTime.VisualStudio.4.8.0.csproj", "{2CFF518D-A5A3-444C-A7F2-5CBD2F4638E4}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Metalama.Framework.DesignTime.4.8.0", "Metalama.Framework.DesignTime.4.8.0\Metalama.Framework.DesignTime.4.8.0.csproj", "{C69ACFA3-F45C-467E-8E01-3B57B6C5CA91}"
 EndProject
@@ -120,6 +114,12 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Metalama.Framework.Tests.TemplateTests.4.4.0", "tests\Metalama.Framework.Tests.TemplateTests.4.4.0\Metalama.Framework.Tests.TemplateTests.4.4.0.csproj", "{05297352-4FF2-4291-A1B8-C59E6B3275BA}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Metalama.Framework.Tests.TemplateTests.4.8.0", "tests\Metalama.Framework.Tests.TemplateTests.4.8.0\Metalama.Framework.Tests.TemplateTests.4.8.0.csproj", "{6DDAAEAD-D691-4758-892D-A248316A2B62}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Metalama.Framework.Tests.UnitTestHelpers", "tests\Metalama.Framework.Tests.UnitTestHelpers\Metalama.Framework.Tests.UnitTestHelpers.csproj", "{280FF5FA-E0E2-4781-A61A-2BBFF9371162}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Metalama.Framework.Tests.UnitTestHelpers.4.4.0", "tests\Metalama.Framework.Tests.UnitTestHelpers.4.4.0\Metalama.Framework.Tests.UnitTestHelpers.4.4.0.csproj", "{4D8D1E58-1E47-4D5F-A8D3-0DBB76F16D19}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Metalama.Framework.Tests.UnitTestHelpers.4.8.0", "tests\Metalama.Framework.Tests.UnitTestHelpers.4.8.0\Metalama.Framework.Tests.UnitTestHelpers.4.8.0.csproj", "{C432DA51-5622-4B4B-A112-5AE05D93558E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -187,10 +187,6 @@ Global
 		{6B0B4099-06FA-408A-8230-5F952198245B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6B0B4099-06FA-408A-8230-5F952198245B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6B0B4099-06FA-408A-8230-5F952198245B}.Release|Any CPU.Build.0 = Release|Any CPU
-		{0B6E6000-3E37-4E6E-871D-682B41F8A59E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{0B6E6000-3E37-4E6E-871D-682B41F8A59E}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{0B6E6000-3E37-4E6E-871D-682B41F8A59E}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{0B6E6000-3E37-4E6E-871D-682B41F8A59E}.Release|Any CPU.Build.0 = Release|Any CPU
 		{94DC3AA3-0753-47A4-A8BC-3AFF1ADFF959}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{94DC3AA3-0753-47A4-A8BC-3AFF1ADFF959}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{94DC3AA3-0753-47A4-A8BC-3AFF1ADFF959}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -231,10 +227,6 @@ Global
 		{F9620A54-3F25-4C61-8E95-A20F2D5B9E61}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F9620A54-3F25-4C61-8E95-A20F2D5B9E61}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F9620A54-3F25-4C61-8E95-A20F2D5B9E61}.Release|Any CPU.Build.0 = Release|Any CPU
-		{9E57B392-8C62-41CB-AE10-9DE387F1ECF4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{9E57B392-8C62-41CB-AE10-9DE387F1ECF4}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{9E57B392-8C62-41CB-AE10-9DE387F1ECF4}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{9E57B392-8C62-41CB-AE10-9DE387F1ECF4}.Release|Any CPU.Build.0 = Release|Any CPU
 		{F9DBFBF6-8D86-4E40-B6B9-849884ABC670}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{F9DBFBF6-8D86-4E40-B6B9-849884ABC670}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F9DBFBF6-8D86-4E40-B6B9-849884ABC670}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -259,10 +251,6 @@ Global
 		{37BFB340-CEA5-4C48-BFA9-CA4E379FBD63}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{37BFB340-CEA5-4C48-BFA9-CA4E379FBD63}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{37BFB340-CEA5-4C48-BFA9-CA4E379FBD63}.Release|Any CPU.Build.0 = Release|Any CPU
-		{2CFF518D-A5A3-444C-A7F2-5CBD2F4638E4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{2CFF518D-A5A3-444C-A7F2-5CBD2F4638E4}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{2CFF518D-A5A3-444C-A7F2-5CBD2F4638E4}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{2CFF518D-A5A3-444C-A7F2-5CBD2F4638E4}.Release|Any CPU.Build.0 = Release|Any CPU
 		{C69ACFA3-F45C-467E-8E01-3B57B6C5CA91}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{C69ACFA3-F45C-467E-8E01-3B57B6C5CA91}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C69ACFA3-F45C-467E-8E01-3B57B6C5CA91}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -311,6 +299,18 @@ Global
 		{6DDAAEAD-D691-4758-892D-A248316A2B62}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6DDAAEAD-D691-4758-892D-A248316A2B62}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6DDAAEAD-D691-4758-892D-A248316A2B62}.Release|Any CPU.Build.0 = Release|Any CPU
+		{280FF5FA-E0E2-4781-A61A-2BBFF9371162}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{280FF5FA-E0E2-4781-A61A-2BBFF9371162}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{280FF5FA-E0E2-4781-A61A-2BBFF9371162}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{280FF5FA-E0E2-4781-A61A-2BBFF9371162}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4D8D1E58-1E47-4D5F-A8D3-0DBB76F16D19}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4D8D1E58-1E47-4D5F-A8D3-0DBB76F16D19}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4D8D1E58-1E47-4D5F-A8D3-0DBB76F16D19}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4D8D1E58-1E47-4D5F-A8D3-0DBB76F16D19}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C432DA51-5622-4B4B-A112-5AE05D93558E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C432DA51-5622-4B4B-A112-5AE05D93558E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C432DA51-5622-4B4B-A112-5AE05D93558E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C432DA51-5622-4B4B-A112-5AE05D93558E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -323,14 +323,12 @@ Global
 		{6B0B4099-06FA-408A-8230-5F952198245B} = {E4A0A0FD-0EC6-45C6-92C3-1D81974EE32B}
 		{57A0D8EE-C134-4FF7-AB60-0F00612B8141} = {19660464-978E-4457-846E-B399BB6A3884}
 		{F9620A54-3F25-4C61-8E95-A20F2D5B9E61} = {59709DBF-050C-4E30-906E-1252C6B6C0E0}
-		{9E57B392-8C62-41CB-AE10-9DE387F1ECF4} = {59709DBF-050C-4E30-906E-1252C6B6C0E0}
 		{F9DBFBF6-8D86-4E40-B6B9-849884ABC670} = {59709DBF-050C-4E30-906E-1252C6B6C0E0}
 		{85141367-700A-4019-974D-5328E5DA2215} = {59709DBF-050C-4E30-906E-1252C6B6C0E0}
 		{74783956-18A9-4B48-9F17-A61E870E67D7} = {59709DBF-050C-4E30-906E-1252C6B6C0E0}
 		{2C72AE9F-3399-47B6-AEB0-E5D40F90ECD9} = {59709DBF-050C-4E30-906E-1252C6B6C0E0}
 		{1C4B1567-AFD6-4020-87AB-0148D828785A} = {59709DBF-050C-4E30-906E-1252C6B6C0E0}
 		{37BFB340-CEA5-4C48-BFA9-CA4E379FBD63} = {E4A0A0FD-0EC6-45C6-92C3-1D81974EE32B}
-		{2CFF518D-A5A3-444C-A7F2-5CBD2F4638E4} = {59709DBF-050C-4E30-906E-1252C6B6C0E0}
 		{C69ACFA3-F45C-467E-8E01-3B57B6C5CA91} = {59709DBF-050C-4E30-906E-1252C6B6C0E0}
 		{7998C9CB-4A06-4B81-8972-767BC4A629C1} = {59709DBF-050C-4E30-906E-1252C6B6C0E0}
 		{E8EC1C2C-0B5F-4E98-BCE1-CCDB65676CC0} = {59709DBF-050C-4E30-906E-1252C6B6C0E0}
@@ -343,6 +341,9 @@ Global
 		{F6E07189-284D-4F1E-9A3F-39FCEAEA7C04} = {59709DBF-050C-4E30-906E-1252C6B6C0E0}
 		{05297352-4FF2-4291-A1B8-C59E6B3275BA} = {59709DBF-050C-4E30-906E-1252C6B6C0E0}
 		{6DDAAEAD-D691-4758-892D-A248316A2B62} = {59709DBF-050C-4E30-906E-1252C6B6C0E0}
+		{280FF5FA-E0E2-4781-A61A-2BBFF9371162} = {E4A0A0FD-0EC6-45C6-92C3-1D81974EE32B}
+		{4D8D1E58-1E47-4D5F-A8D3-0DBB76F16D19} = {59709DBF-050C-4E30-906E-1252C6B6C0E0}
+		{C432DA51-5622-4B4B-A112-5AE05D93558E} = {59709DBF-050C-4E30-906E-1252C6B6C0E0}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {59CB4F2D-3547-4DDF-9712-7B3F95C1ED66}

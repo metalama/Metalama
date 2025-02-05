@@ -7,7 +7,6 @@ using Metalama.Framework.Engine.AspectOrdering;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.AspectWeavers;
 using Metalama.Framework.Engine.CodeModel;
-using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Fabrics;
 using Microsoft.CodeAnalysis;
@@ -46,18 +45,15 @@ internal sealed class FabricTopLevelAspectClass : IBoundAspectClass
 
     public EditorExperienceOptions EditorExperienceOptions => EditorExperienceOptions.Default;
 
-    public FabricTopLevelAspectClass( in ProjectServiceProvider serviceProvider, CompilationModel compilation, CompileTimeProject project )
+    public FabricTopLevelAspectClass( in ProjectServiceProvider serviceProvider, CompilationModel compilation )
     {
         this.Layer = new AspectLayer( this, null );
         this.AspectDriver = new AspectDriver( serviceProvider, this, compilation );
-        this.Project = project;
     }
 
     public IAspectDriver AspectDriver { get; }
 
     public Location? GetDiagnosticLocation( Compilation compilation ) => null;
-
-    public CompileTimeProject? Project { get; }
 
     ImmutableArray<TemplateClass> IAspectClassImpl.TemplateClasses => ImmutableArray<TemplateClass>.Empty;
 

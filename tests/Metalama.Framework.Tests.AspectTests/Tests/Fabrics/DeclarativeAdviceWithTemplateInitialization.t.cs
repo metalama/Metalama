@@ -1,4 +1,3 @@
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Fabrics;
 namespace Metalama.Framework.Tests.AspectTests.Tests.Fabrics.DeclarativeAdviceWithTemplateInitialization;

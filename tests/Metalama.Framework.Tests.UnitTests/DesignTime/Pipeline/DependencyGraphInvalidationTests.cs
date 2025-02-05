@@ -3,7 +3,7 @@
 using Metalama.Framework.DesignTime;
 using Metalama.Framework.DesignTime.Pipeline.Dependencies;
 using Metalama.Framework.DesignTime.Pipeline.Diff;
-using Metalama.Testing.UnitTesting;
+using Metalama.Framework.Tests.UnitTestHelpers.TestClasses;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -24,7 +24,7 @@ public sealed class DependencyGraphInvalidationTests : DesignTimeTestBase
         using var testContext = this.CreateTestContext();
         var compilationChangesProvider = new ProjectVersionProvider( testContext.ServiceProvider, true );
 
-        var compilation1 = TestCompilationFactory.CreateCSharpCompilation( codeBefore, name: "test", ignoreErrors: true );
+        var compilation1 = testContext.CreateCSharpCompilation( codeBefore, assemblyName: "test", ignoreErrors: true );
         var compilationVersion1 = await compilationChangesProvider.GetCompilationVersionAsync( compilation1 );
         var dependencyCollector = new BaseDependencyCollector( compilationVersion1 );
 
@@ -49,7 +49,7 @@ public sealed class DependencyGraphInvalidationTests : DesignTimeTestBase
 
         var dependencyGraph = DependencyGraph.Create( dependencyCollector );
 
-        var compilation2 = TestCompilationFactory.CreateCSharpCompilation( codeAfter, name: "test", ignoreErrors: true );
+        var compilation2 = testContext.CreateCSharpCompilation( codeAfter, assemblyName: "test", ignoreErrors: true );
 
         var changes = await compilationChangesProvider.GetCompilationChangesAsync( compilation1, compilation2 );
         var invalidatedSyntaxTrees = new HashSet<string>();

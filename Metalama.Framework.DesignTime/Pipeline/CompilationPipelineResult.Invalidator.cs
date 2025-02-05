@@ -5,9 +5,9 @@ using System.Collections.Immutable;
 
 namespace Metalama.Framework.DesignTime.Pipeline;
 
-internal sealed partial class DesignTimeAspectPipelineResult
+public sealed partial class DesignTimeAspectPipelineResult
 {
-    public sealed class Invalidator
+    internal sealed class Invalidator
     {
         private readonly DesignTimeAspectPipelineResult _parent;
         private readonly ImmutableDictionary<string, SyntaxTreePipelineResult>.Builder _syntaxTreeBuilders;
@@ -40,7 +40,7 @@ internal sealed partial class DesignTimeAspectPipelineResult
                 this._invalidSyntaxTreeBuilders.ToImmutable(),
                 this._parent.IntroducedSyntaxTrees,
                 this._parent._inheritableAspects,
-                this._parent.ReferenceValidators,
+                this._parent.Extensions,
                 this._parent.InheritableOptions,
                 this._parent.Annotations,
                 this._parent.AspectInstancesHashCode );

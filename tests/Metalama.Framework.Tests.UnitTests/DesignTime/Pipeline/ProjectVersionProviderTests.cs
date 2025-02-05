@@ -2,7 +2,8 @@
 
 using Metalama.Framework.DesignTime.Pipeline.Diff;
 using Metalama.Framework.Engine.Services;
-using Metalama.Framework.Tests.UnitTests.DesignTime.Mocks;
+using Metalama.Framework.Tests.UnitTestHelpers.Mocks;
+using Metalama.Framework.Tests.UnitTestHelpers.TestClasses;
 using Metalama.Testing.UnitTesting;
 using Microsoft.CodeAnalysis;
 using System;
@@ -27,7 +28,7 @@ public sealed class ProjectVersionProviderTests : DesignTimeTestBase
         using var testContext = this.CreateTestContext( mocks );
 
         var compilationVersionProvider = new ProjectVersionProvider( testContext.ServiceProvider, true );
-        var compilation1 = TestCompilationFactory.CreateCSharpCompilation( code, name: nameof(this.DifferentCompilationWithNoChangeAsync) );
+        var compilation1 = testContext.CreateCSharpCompilation( code, assemblyName: nameof(this.DifferentCompilationWithNoChangeAsync) );
         var compilationChanges1 = await compilationVersionProvider.GetCompilationChangesAsync( null, compilation1 );
         Assert.Same( compilation1, compilationChanges1.NewProjectVersion.CompilationToAnalyze );
         Assert.False( compilationChanges1.IsIncremental );
@@ -39,7 +40,7 @@ public sealed class ProjectVersionProviderTests : DesignTimeTestBase
 
         // Create a second compilation. We explicitly copy the references from the first compilation because references
         // may not be equal due to a change in the loaded assemblies in the AppDomain during the execution of the test.
-        var compilation2 = TestCompilationFactory.CreateCSharpCompilation( code, name: nameof(this.DifferentCompilationWithNoChangeAsync) )
+        var compilation2 = testContext.CreateCSharpCompilation( code, assemblyName: nameof(this.DifferentCompilationWithNoChangeAsync) )
             .WithReferences( compilation1.References );
 
         var compilationChanges2 = await compilationVersionProvider.GetCompilationChangesAsync( compilation1, compilation2 );
@@ -57,7 +58,7 @@ public sealed class ProjectVersionProviderTests : DesignTimeTestBase
         Assert.Equal( 1, observer.ComputeIncrementalChangesEventCount );
 
         // Create a third compilation with no change.
-        var compilation3 = TestCompilationFactory.CreateCSharpCompilation( code, name: nameof(this.DifferentCompilationWithNoChangeAsync) )
+        var compilation3 = testContext.CreateCSharpCompilation( code, assemblyName: nameof(this.DifferentCompilationWithNoChangeAsync) )
             .WithReferences( compilation1.References );
 
         var compilationChanges3 = await compilationVersionProvider.GetCompilationChangesAsync( compilation1, compilation3 );
@@ -78,7 +79,7 @@ public sealed class ProjectVersionProviderTests : DesignTimeTestBase
         using var testContext = this.CreateTestContext( mocks );
 
         var compilationVersionProvider = new ProjectVersionProvider( testContext.ServiceProvider, true );
-        var compilation1 = TestCompilationFactory.CreateCSharpCompilation( code );
+        var compilation1 = testContext.CreateCSharpCompilation( code );
         var changes1 = await compilationVersionProvider.GetCompilationChangesAsync( null, compilation1 );
         var changes2 = await compilationVersionProvider.GetCompilationChangesAsync( null, compilation1 );
 
@@ -98,9 +99,9 @@ public sealed class ProjectVersionProviderTests : DesignTimeTestBase
         using var testContext = this.CreateTestContext( mocks );
 
         var compilationVersionProvider = new ProjectVersionProvider( testContext.ServiceProvider, true );
-        var compilation1 = TestCompilationFactory.CreateCSharpCompilation( code, name: "test" );
-        var compilation2 = TestCompilationFactory.CreateCSharpCompilation( code, name: "test" );
-        var compilation3 = TestCompilationFactory.CreateCSharpCompilation( code, name: "test" );
+        var compilation1 = testContext.CreateCSharpCompilation( code, assemblyName: "test" );
+        var compilation2 = testContext.CreateCSharpCompilation( code, assemblyName: "test" );
+        var compilation3 = testContext.CreateCSharpCompilation( code, assemblyName: "test" );
         var changes1 = await compilationVersionProvider.GetCompilationChangesAsync( compilation1, compilation3 );
         var changes2 = await compilationVersionProvider.GetCompilationChangesAsync( compilation2, compilation3 );
 
@@ -123,12 +124,12 @@ public sealed class ProjectVersionProviderTests : DesignTimeTestBase
         var dependentCode =
             new Dictionary<string, string> { { "code.cs", "using Metalama.Framework.Aspects;  class C {}" } };
 
-        var compilation1 = TestCompilationFactory.CreateCSharpCompilation( dependentCode );
+        var compilation1 = testContext.CreateCSharpCompilation( dependentCode );
 
         var masterCode = new Dictionary<string, string> { { "code.cs", "class D{}" } };
-        var masterCompilation = TestCompilationFactory.CreateCSharpCompilation( masterCode );
+        var masterCompilation = testContext.CreateCSharpCompilation( masterCode );
 
-        var compilation2 = TestCompilationFactory.CreateCSharpCompilation(
+        var compilation2 = testContext.CreateCSharpCompilation(
             dependentCode,
             additionalReferences: new[] { masterCompilation.ToMetadataReference() } );
 
@@ -156,16 +157,16 @@ public sealed class ProjectVersionProviderTests : DesignTimeTestBase
         var compilationVersionProvider = new ProjectVersionProvider( testContext.ServiceProvider, true );
 
         var masterCode = new Dictionary<string, string> { { "code.cs", "class D{}" } };
-        var masterCompilation = TestCompilationFactory.CreateCSharpCompilation( masterCode );
+        var masterCompilation = testContext.CreateCSharpCompilation( masterCode );
 
         var dependentCode =
             new Dictionary<string, string> { { "code.cs", "using Metalama.Framework.Aspects;  class C {}" } };
 
-        var compilation1 = TestCompilationFactory.CreateCSharpCompilation(
+        var compilation1 = testContext.CreateCSharpCompilation(
             dependentCode,
             additionalReferences: new[] { masterCompilation.ToMetadataReference() } );
 
-        var compilation2 = TestCompilationFactory.CreateCSharpCompilation( dependentCode );
+        var compilation2 = testContext.CreateCSharpCompilation( dependentCode );
 
         var changes = await compilationVersionProvider.GetCompilationChangesAsync( compilation1, compilation2 );
 
@@ -191,26 +192,26 @@ public sealed class ProjectVersionProviderTests : DesignTimeTestBase
         var compilationVersionProvider = new ProjectVersionProvider( testContext.ServiceProvider, true );
 
         var level1Code = new Dictionary<string, string> { { "code.cs", "class E {}" } };
-        var compilationLevel1 = TestCompilationFactory.CreateCSharpCompilation( level1Code, name: "Level1" );
+        var compilationLevel1 = testContext.CreateCSharpCompilation( level1Code, assemblyName: "Level1" );
 
         var level2Code = new Dictionary<string, string> { { "code.cs", "class C {}" } };
-        var compilationLevel2WithoutLevel1Reference = TestCompilationFactory.CreateCSharpCompilation( level2Code, name: "Level2" );
+        var compilationLevel2WithoutLevel1Reference = testContext.CreateCSharpCompilation( level2Code, assemblyName: "Level2" );
 
-        var compilationLevel2WithLevel1Reference = TestCompilationFactory.CreateCSharpCompilation(
+        var compilationLevel2WithLevel1Reference = testContext.CreateCSharpCompilation(
             level2Code,
-            name: "Level2",
+            assemblyName: "Level2",
             additionalReferences: new[] { compilationLevel1.ToMetadataReference() } );
 
         var level3Code = new Dictionary<string, string> { { "code.cs", "using Metalama.Framework.Aspects;  class C {}" } };
 
-        var compilationLevel3WithoutLevel1Reference = TestCompilationFactory.CreateCSharpCompilation(
+        var compilationLevel3WithoutLevel1Reference = testContext.CreateCSharpCompilation(
             level3Code,
-            name: "Level3",
+            assemblyName: "Level3",
             additionalReferences: new[] { compilationLevel2WithoutLevel1Reference.ToMetadataReference() } );
 
-        var compilationLevel3WithLevel1Reference = TestCompilationFactory.CreateCSharpCompilation(
+        var compilationLevel3WithLevel1Reference = testContext.CreateCSharpCompilation(
             level3Code,
-            name: "Level3",
+            assemblyName: "Level3",
             additionalReferences: new[] { compilationLevel2WithLevel1Reference.ToMetadataReference() } );
 
         var changes = await compilationVersionProvider.GetCompilationChangesAsync(
@@ -243,7 +244,7 @@ public sealed class ProjectVersionProviderTests : DesignTimeTestBase
 
         // Create the first compilation.
         var compilationVersionProvider = new ProjectVersionProvider( testContext.ServiceProvider, true );
-        var compilation1 = TestCompilationFactory.CreateCSharpCompilation( code, name: nameof(this.IntermediateCompilationCanBeCollected) );
+        var compilation1 = testContext.CreateCSharpCompilation( code, assemblyName: nameof(this.IntermediateCompilationCanBeCollected) );
         var compilationChanges1 = await compilationVersionProvider.GetCompilationChangesAsync( null, compilation1 );
         Assert.Same( compilation1, compilationChanges1.NewProjectVersion.CompilationToAnalyze );
         Assert.False( compilationChanges1.IsIncremental );
@@ -251,7 +252,7 @@ public sealed class ProjectVersionProviderTests : DesignTimeTestBase
         Assert.True( compilationChanges1.HasCompileTimeCodeChange );
 
         // Create a second compilation. We only keep a weak reference to it.
-        var wr = await CreateIncrementalCompilation( code, compilation1.References, compilationVersionProvider, compilation1 );
+        var wr = await CreateIncrementalCompilation( testContext, code, compilation1.References, compilationVersionProvider, compilation1 );
 
         await Task.Yield();
 
@@ -260,12 +261,13 @@ public sealed class ProjectVersionProviderTests : DesignTimeTestBase
     }
 
     private static async Task<WeakReference> CreateIncrementalCompilation(
+        TestContext testContext,
         Dictionary<string, string> code,
         IEnumerable<MetadataReference> references,
         ProjectVersionProvider projectVersionProvider,
         Compilation compilation1 )
     {
-        var compilation2 = TestCompilationFactory.CreateCSharpCompilation( code, name: nameof(IntermediateCompilationCanBeCollected) )
+        var compilation2 = testContext.CreateCSharpCompilation( code, assemblyName: nameof(IntermediateCompilationCanBeCollected) )
             .WithReferences( references );
 
         var compilationChanges2 = await projectVersionProvider.GetCompilationChangesAsync( compilation1, compilation2 );

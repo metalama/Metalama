@@ -5,6 +5,7 @@ using Metalama.Framework.DesignTime.Rpc.Notifications;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Services;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.Completion;
 using Microsoft.CodeAnalysis.Host;
 using System.Linq.Expressions;
 
@@ -22,7 +23,7 @@ internal sealed class DesignTimeInvalidationService : IGlobalService
         hub.CompilationResultChangedEvent.RegisterHandler( this.OnCompilationResultChanged );
     }
 
-    private void OnCompilationResultChanged( CompilationResultChangedEventArgs args )
+    private void OnCompilationResultChanged( CompilationResultChangedEventData data )
     {
         if ( !this._workspaceProvider.TryGetWorkspace( out var workspace ) )
         {
@@ -37,7 +38,7 @@ internal sealed class DesignTimeInvalidationService : IGlobalService
 
     private static Action<HostServices>? GetDiagnosticsRefreshAction()
     {
-        var codeAnalysisFeaturesAssembly = typeof(Microsoft.CodeAnalysis.Completion.CompletionProvider).Assembly;
+        var codeAnalysisFeaturesAssembly = typeof(CompletionProvider).Assembly;
         var iDiagnosticsRefresher = codeAnalysisFeaturesAssembly.GetType( "Microsoft.CodeAnalysis.Diagnostics.IDiagnosticsRefresher" );
         var requestWorkspaceRefreshMethod = iDiagnosticsRefresher?.GetMethod( "RequestWorkspaceRefresh", Type.EmptyTypes );
 

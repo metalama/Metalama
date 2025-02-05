@@ -1,7 +1,7 @@
 // Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
 using Metalama.Framework.Engine.Utilities;
-using Metalama.Framework.Tests.UnitTests.DesignTime.Mocks;
+using Metalama.Framework.Tests.UnitTestHelpers.Mocks;
 using Metalama.Testing.UnitTesting;
 using Microsoft.CodeAnalysis.CSharp;
 using System.Collections.Generic;
@@ -10,7 +10,7 @@ using Xunit;
 
 namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline
 {
-    public sealed class InheritableAspectTests : FrameworkBaseTestClass
+    public sealed class InheritableAspectTests : UnitTestClass
     {
         [Fact]
         public void InheritableAspectsMakeItToCompilationResult()
@@ -129,11 +129,11 @@ public interface I {}
 
             using var testContext1 = this.CreateTestContext();
 
-            var compilation1 = TestCompilationFactory.CreateCSharpCompilation( code1 );
+            var compilation1 = testContext.CreateCSharpCompilation( code1 );
 
             using var testContext2 = this.CreateTestContext();
 
-            var compilation2 = TestCompilationFactory.CreateCSharpCompilation( code2, additionalReferences: new[] { compilation1.ToMetadataReference() } );
+            var compilation2 = testContext.CreateCSharpCompilation( code2, additionalReferences: new[] { compilation1.ToMetadataReference() } );
 
             // We have to execute the pipeline on compilation1 first and explicitly because implicit running is not currently possible
             // because of missing project options.

@@ -6,8 +6,6 @@
   <!-- Set versions of dependencies that need special treatment or consist of multiple packages of the same version. -->
   <PropertyGroup>
     <PostSharpEngineeringVersion Condition="'$(PostSharpEngineeringVersion)'==''">2023.2.153</PostSharpEngineeringVersion>
-    <!-- This cannot be called just "PostSharpVersion", because that conflicts with a property used by PostSharp. -->
-    <PostSharpPackageVersion>2024.1.6</PostSharpPackageVersion>
     <!-- RoslynApiMinVersion is the minimal version of the Roslyn API we support. -->
     <RoslynApiMinVersion>4.4.0</RoslynApiMinVersion>
     <RoslynApiMaxVersion>4.12.0-3.final</RoslynApiMaxVersion>
@@ -40,6 +38,7 @@
     <PackageVersion Include="Microsoft.Bcl.HashCode" Version="1.1.1" />
     <PackageVersion Include="Microsoft.Build" Version="$(MicrosoftBuildVersion)" />
     <PackageVersion Include="Microsoft.Build.Framework" Version="$(MicrosoftBuildVersion)" />
+    <PackageVersion Include="Microsoft.Build.Tasks.Core" Version="$(MicrosoftBuildVersion)" />
     <PackageVersion Include="Microsoft.Build.Locator" Version="1.7.8" />
     <PackageVersion Include="Microsoft.CSharp" Version="4.7.0" />
     <PackageVersion Include="Microsoft.Extensions.Logging.Console" Version="8.0.1" />
@@ -64,4 +63,7 @@
     <PackageVersion Include="xunit.extensibility.core" Version="$(xUnitApiVersion)" />
     <PackageVersion Include="xunit.extensibility.execution" Version="$(xUnitApiVersion)" />
   </ItemGroup>
+
+
+
 </Project>

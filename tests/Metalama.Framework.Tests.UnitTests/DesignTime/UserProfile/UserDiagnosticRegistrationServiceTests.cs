@@ -3,8 +3,8 @@
 using Metalama.Backstage.Configuration;
 using Metalama.Framework.DesignTime.Diagnostics;
 using Metalama.Framework.Engine.Services;
-using Metalama.Framework.Tests.UnitTests.DesignTime.Mocks;
-using Metalama.Testing.UnitTesting;
+using Metalama.Framework.Tests.UnitTestHelpers.Mocks;
+using Metalama.Framework.Tests.UnitTestHelpers.TestClasses;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -242,7 +242,7 @@ namespace Metalama.Framework.Tests.UnitTests.DesignTime.TestCode
 
             var code = new Dictionary<string, string> { ["Aspect.cs"] = aspectCode, ["Class1.cs"] = targetCode };
 
-            var compilation = TestCompilationFactory.CreateCSharpCompilation( code, dependentCode );
+            var compilation = testContext.CreateCSharpCompilation( code, dependentCode );
 
             // Create a service provider with our own configuration manager.
             var configurationManager = testContext.ServiceProvider.Global.GetRequiredBackstageService<IConfigurationManager>();

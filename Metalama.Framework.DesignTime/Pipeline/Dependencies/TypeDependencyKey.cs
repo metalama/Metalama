@@ -8,12 +8,12 @@ namespace Metalama.Framework.DesignTime.Pipeline.Dependencies;
 /// <summary>
 /// A weak equality key to identify types, where some collisions are acceptable.
 /// </summary>
-internal readonly struct TypeDependencyKey : IEquatable<TypeDependencyKey>
+public readonly struct TypeDependencyKey : IEquatable<TypeDependencyKey>
 {
     private readonly int _hashCode;
     private readonly string? _text;
 
-    public TypeDependencyKey( ITypeSymbol type, bool storeTypeName )
+    internal TypeDependencyKey( ITypeSymbol type, bool storeTypeName )
     {
         var hashCode = default(HashCode);
 
@@ -29,7 +29,7 @@ internal readonly struct TypeDependencyKey : IEquatable<TypeDependencyKey>
     }
 
     // For test only.
-    public TypeDependencyKey( string name )
+    internal TypeDependencyKey( string name )
     {
         // We should generate the same hashcode than in the production constructor so that we can match a hand-generated TypeDependencyKey
         // with a symbol-generated TypeDependencyKey.

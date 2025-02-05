@@ -16,6 +16,7 @@ namespace Metalama.Framework.Engine.CompileTime.Serialization;
 /// </summary>
 internal class BaseCompileTimeSerializationBinder
 {
+    private readonly CompileTimeDomain _domain;
     private static readonly ImmutableDictionary<string, string> _ourAssemblyVersions;
     private static readonly AssemblyName _engineAssemblyName = typeof(BaseCompileTimeSerializationBinder).Assembly.GetName();
 
@@ -35,6 +36,7 @@ internal class BaseCompileTimeSerializationBinder
 
     protected BaseCompileTimeSerializationBinder( in ProjectServiceProvider serviceProvider )
     {
+        this._domain = serviceProvider.Global.GetRequiredService<CompileTimeDomain>();
         this._logger = serviceProvider.GetLoggerFactory().GetLogger( "Serialization" );
     }
 
@@ -62,7 +64,15 @@ internal class BaseCompileTimeSerializationBinder
             ourAssemblyVersion = assemblyName;
         }
 
-        return Type.GetType( ReflectionHelper.GetAssemblyQualifiedTypeName( typeName, ourAssemblyVersion ) );
+        if ( this._domain.TryGetLoadedAssembly( ourAssemblyVersion, out var assembly ) )
+        {
+            return assembly.GetType( typeName, false );
+        }
+        else
+        {
+            // We assume this is a system type. Try to load it outside of the domain.
+            return Type.GetType( ReflectionHelper.GetAssemblyQualifiedTypeName( typeName, ourAssemblyVersion ) );
+        }
     }
 
 #pragma warning disable CA1822 // Can be static

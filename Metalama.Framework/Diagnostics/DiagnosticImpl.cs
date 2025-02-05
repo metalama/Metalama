@@ -1,6 +1,5 @@
 // Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
-using Metalama.Framework.CodeFixes;
 using System.Collections.Immutable;
 
 namespace Metalama.Framework.Diagnostics;
@@ -13,27 +12,26 @@ internal sealed class DiagnosticImpl<T> : IDiagnostic
 {
     private readonly DiagnosticDefinition<T> _definition;
     private readonly T _arguments;
+    private ImmutableArray<IDiagnosticExtension> _extensions;
 
     object IDiagnostic.Arguments => this._arguments;
 
+    public IDiagnostic WithExtensions( ImmutableArray<IDiagnosticExtension> extensions )
+    {
+        this._extensions = this._extensions.AddRange( extensions );
+
+        return this;
+    }
+
     IDiagnosticDefinition IDiagnostic.Definition => this._definition;
 
-    private ImmutableArray<CodeFix> CodeFixes { get; set; }
+    ImmutableArray<IDiagnosticExtension> IDiagnostic.Extensions => this._extensions;
 
-    ImmutableArray<CodeFix> IDiagnostic.CodeFixes => this.CodeFixes;
-
-    public DiagnosticImpl( DiagnosticDefinition<T> definition, T arguments, ImmutableArray<CodeFix> codeFixes )
+    public DiagnosticImpl( DiagnosticDefinition<T> definition, T arguments, ImmutableArray<IDiagnosticExtension> extensions )
     {
         this._definition = definition;
         this._arguments = arguments;
-        this.CodeFixes = codeFixes;
-    }
-
-    IDiagnostic IDiagnostic.WithCodeFixes( params CodeFix[] codeFixes )
-    {
-        this.CodeFixes = this.CodeFixes.AddRange( codeFixes );
-
-        return this;
+        this._extensions = extensions;
     }
 
     public override string ToString() => $"{this._definition.Id}: {this._definition.Title} ({this._arguments})";

@@ -57,14 +57,7 @@ namespace Metalama.Framework.Engine.SyntaxSerialization
             "Cannot generate a compile-time serializer for '{0}' because the base type '{1}' is not serializable and does not have a visible parameterless constructor.",
             Error,
             "Missing base parameterless constructor." );
-
-        internal static readonly DiagnosticDefinition<(INamedTypeSymbol Type, INamedTypeSymbol BaseType)> MissingBaseSerializer = new(
-            "LAMA0206",
-            _category,
-            "Cannot generate a compile-time serializer for '{0}' because the base type '{1}' declared in a referenced assembly must declare a visible serializer.",
-            Error,
-            "Missing base serializer." );
-
+            
         internal static readonly DiagnosticDefinition<(INamedTypeSymbol Type, INamedTypeSymbol BaseTypeSerializer)> MissingBaseSerializerConstructor = new(
             "LAMA0207",
             _category,

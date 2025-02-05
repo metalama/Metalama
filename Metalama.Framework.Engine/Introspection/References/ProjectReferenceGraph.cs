@@ -2,11 +2,11 @@
 
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.CodeModel;
+using Metalama.Framework.Engine.ReferenceGraph;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities.Caching;
 using Metalama.Framework.Engine.Utilities.Comparers;
 using Metalama.Framework.Engine.Utilities.Threading;
-using Metalama.Framework.Engine.Validation;
 using Metalama.Framework.Introspection;
 using Microsoft.CodeAnalysis;
 using System;

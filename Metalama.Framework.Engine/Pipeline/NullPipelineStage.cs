@@ -1,9 +1,9 @@
 // Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
 using Metalama.Framework.Engine.AspectOrdering;
-using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Utilities.Threading;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace Metalama.Framework.Engine.Pipeline
@@ -13,15 +13,13 @@ namespace Metalama.Framework.Engine.Pipeline
     /// </summary>
     internal sealed class NullPipelineStage : HighLevelPipelineStage
     {
-        public NullPipelineStage(
-            CompileTimeProject compileTimeProject,
-            IReadOnlyList<OrderedAspectLayer> aspectLayers ) :
-            base( compileTimeProject, aspectLayers ) { }
+        public NullPipelineStage( IReadOnlyList<OrderedAspectLayer> aspectLayers ) :
+            base( aspectLayers ) { }
 
         protected override Task<AspectPipelineResult> GetStageResultAsync(
             AspectPipelineConfiguration pipelineConfiguration,
             AspectPipelineResult input,
-            IPipelineStepsResult pipelineStepsResult,
+            PipelineStepsResult pipelineStepsResult,
             TestableCancellationToken cancellationToken )
             => Task.FromResult(
                 new AspectPipelineResult(
@@ -32,12 +30,8 @@ namespace Metalama.Framework.Engine.Pipeline
                     pipelineStepsResult.LastCompilation,
                     input.Configuration,
                     input.Diagnostics.Concat( pipelineStepsResult.Diagnostics ),
-                    input.ContributorSources with
-                    {
-                        AspectSources = input.ContributorSources.AspectSources.AddRange( pipelineStepsResult.OverflowAspectSources ),
-                        ValidatorSources = input.ContributorSources.ValidatorSources.AddRange( pipelineStepsResult.ValidatorSources )
-                    },
-                    pipelineStepsResult.InheritableAspectInstances.AddRange( pipelineStepsResult.InheritableAspectInstances ),
+                    input.ContributorSources with { Contributors = input.ContributorSources.Contributors.Add( pipelineStepsResult.OverflowAspectSource ) },
+                    pipelineStepsResult.InheritableAspectInstances.Concat( pipelineStepsResult.InheritableAspectInstances ).ToImmutableArray(),
                     additionalSyntaxTrees: input.AdditionalSyntaxTrees,
                     aspectInstanceResults: input.AspectInstanceResults.AddRange( pipelineStepsResult.AspectInstanceResults ) ) );
     }

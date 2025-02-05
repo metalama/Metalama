@@ -25,7 +25,7 @@ internal sealed class EvaluateAspectSourcesPipelineStep : PipelineStep
 
     public override async Task<CompilationModel> ExecuteAsync(
         CompilationModel compilation,
-        IUserDiagnosticSink diagnostics,
+        UserDiagnosticSink diagnostics,
         int stepIndex,
         CancellationToken cancellationToken )
     {

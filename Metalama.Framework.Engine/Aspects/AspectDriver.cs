@@ -1,6 +1,5 @@
 ﻿// Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
-using Metalama.Backstage.Configuration;
 using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
@@ -11,16 +10,12 @@ using Metalama.Framework.Engine.Advising;
 using Metalama.Framework.Engine.AspectWeavers;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CodeModel.Helpers;
-using Metalama.Framework.Engine.Configuration;
-using Metalama.Framework.Engine.DesignTime.CodeFixes;
 using Metalama.Framework.Engine.Diagnostics;
-using Metalama.Framework.Engine.HierarchicalOptions;
-using Metalama.Framework.Engine.Licensing;
+using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Pipeline;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Transformations;
 using Metalama.Framework.Engine.Utilities.UserCode;
-using Metalama.Framework.Engine.Validation;
 using Metalama.Framework.Options;
 using Microsoft.CodeAnalysis;
 using System;
@@ -37,13 +32,14 @@ namespace Metalama.Framework.Engine.Aspects;
 internal sealed class AspectDriver : IAspectDriver
 {
     private readonly IAspectClassImpl _aspectClass;
-    private readonly CodeFixAvailability _codeFixAvailability;
+    private readonly ImmutableArray<PipelineExtension> _pipelineExtensions;
 
     public IEligibilityRule<IDeclaration>? EligibilityRule { get; }
 
     public AspectDriver( ProjectServiceProvider serviceProvider, IAspectClassImpl aspectClass, CompilationModel compilation )
     {
         this._aspectClass = aspectClass;
+        this._pipelineExtensions = serviceProvider.GetRequiredService<PipelineExtensionProvider>().Extensions;
 
         // We don't store the GlobalServiceProvider because the AspectDriver is created during the pipeline initialization but used
         // during pipeline execution, and execution has a different service provider.
@@ -66,19 +62,6 @@ internal sealed class AspectDriver : IAspectDriver
 
                 this.EligibilityRule = eligibilityBuilder.Build();
             }
-        }
-
-        // Determine the licensing abilities of the current aspect class.
-        var licenseVerifier = serviceProvider.GetService<LicenseVerifier>();
-
-        if ( licenseVerifier == null || licenseVerifier.VerifyCanApplyCodeFix( aspectClass ) )
-        {
-            this._codeFixAvailability = CodeFixAvailability.PreviewAndApply;
-        }
-        else
-        {
-            var designTimeConfiguration = serviceProvider.Global.GetRequiredBackstageService<IConfigurationManager>().Get<DesignTimeConfiguration>();
-            this._codeFixAvailability = designTimeConfiguration.HideUnlicensedCodeActions ? CodeFixAvailability.None : CodeFixAvailability.PreviewOnly;
         }
     }
 
@@ -120,7 +103,6 @@ internal sealed class AspectDriver : IAspectDriver
 
         return target switch
         {
-            ICompilation compilation => EvaluateAspectImpl( compilation ),
             INamedType type => EvaluateAspectImpl( type ),
             IMethod method => EvaluateAspectImpl( method ),
             IField field => EvaluateAspectImpl( field ),
@@ -130,7 +112,8 @@ internal sealed class AspectDriver : IAspectDriver
             IParameter parameter => EvaluateAspectImpl( parameter ),
             ITypeParameter genericParameter => EvaluateAspectImpl( genericParameter ),
             IEvent @event => EvaluateAspectImpl( @event ),
-            INamespace ns => EvaluateAspectImpl( ns ),
+            ICompilation compilation => EvaluateAspectImpl( compilation ),
+            INamespace @namespace => EvaluateAspectImpl( @namespace ),
             _ => throw new NotSupportedException( $"Cannot add an aspect to a declaration of type {target.DeclarationKind}." )
         };
 
@@ -145,9 +128,7 @@ internal sealed class AspectDriver : IAspectDriver
                     AdviceOutcome.Ignore,
                     ImmutableUserDiagnosticList.Empty,
                     ImmutableArray<ITransformation>.Empty,
-                    ImmutableArray<IAspectSource>.Empty,
-                    ImmutableArray<IValidatorSource>.Empty,
-                    ImmutableArray<IHierarchicalOptionsSource>.Empty );
+                    ImmutableArray<IPipelineContributor>.Empty );
             }
 
             AspectInstanceResult CreateResultForError( Diagnostic diagnostic )
@@ -157,9 +138,7 @@ internal sealed class AspectDriver : IAspectDriver
                     AdviceOutcome.Error,
                     new ImmutableUserDiagnosticList( ImmutableArray.Create( diagnostic ), ImmutableArray<ScopedSuppression>.Empty ),
                     ImmutableArray<ITransformation>.Empty,
-                    ImmutableArray<IAspectSource>.Empty,
-                    ImmutableArray<IValidatorSource>.Empty,
-                    ImmutableArray<IHierarchicalOptionsSource>.Empty );
+                    ImmutableArray<IPipelineContributor>.Empty );
             }
 
             cancellationToken.ThrowIfCancellationRequested();
@@ -185,10 +164,8 @@ internal sealed class AspectDriver : IAspectDriver
                 return CreateResultForError( diagnostic );
             }
 
-            var diagnosticSink = new UserDiagnosticSink(
-                this._aspectClass.Project,
-                pipelineConfiguration.CodeFixFilter,
-                this._codeFixAvailability );
+            // We need a new UserDiagnosticSink because we store the resulting diagnostics for the introspection API.
+            var diagnosticSink = new UserDiagnosticSink( serviceProvider );
 
             // This is used for compilation aspects.
             // Knowing that the aspect is applied to a compilation is not particularly useful when we want to understand dependencies between source files.
@@ -239,6 +216,7 @@ internal sealed class AspectDriver : IAspectDriver
                 aspectInstance,
                 adviceFactoryState,
                 layer,
+                buildAspectExecutionContext,
                 cancellationToken );
 
             var aspectBuilder = new AspectBuilder<T>( targetDeclaration, aspectBuilderState, adviceFactory );
@@ -283,9 +261,7 @@ internal sealed class AspectDriver : IAspectDriver
                         AdviceOutcome.Error,
                         diagnosticSink.ToImmutable(),
                         ImmutableArray<ITransformation>.Empty,
-                        ImmutableArray<IAspectSource>.Empty,
-                        ImmutableArray<IValidatorSource>.Empty,
-                        ImmutableArray<IHierarchicalOptionsSource>.Empty );
+                        ImmutableArray<IPipelineContributor>.Empty );
             }
 
             var aspectResult = aspectBuilderState.ToResult();
@@ -296,19 +272,21 @@ internal sealed class AspectDriver : IAspectDriver
             }
             else if ( aspectResult.Outcome != AdviceOutcome.Ignore )
             {
-                // Validators on the current version of the compilation must be executed now.
-
-                if ( !aspectResult.ValidatorSources.IsDefaultOrEmpty )
+                if ( !this._pipelineExtensions.IsDefaultOrEmpty )
                 {
+                    // Execute extensions (typically validators), if any.
+
                     diagnosticSink.Reset();
 
-                    var validationRunner = new ValidationRunner( pipelineConfiguration, aspectResult.ValidatorSources );
-
-                    await validationRunner.RunDeclarationValidatorsAsync(
-                        initialCompilationRevision,
-                        CompilationModelVersion.Current,
-                        diagnosticSink,
-                        cancellationToken );
+                    foreach ( var extension in this._pipelineExtensions )
+                    {
+                        await extension.ExecuteContributorsAsync(
+                            pipelineConfiguration,
+                            initialCompilationRevision,
+                            diagnosticSink,
+                            aspectResult.Contributors,
+                            cancellationToken );
+                    }
 
                     if ( !diagnosticSink.IsEmpty )
                     {

@@ -1,8 +1,7 @@
 // Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
-using Metalama.Backstage.Configuration;
 using Metalama.Backstage.Diagnostics;
-using Metalama.Backstage.Extensibility;
+using Metalama.Framework.DesignTime.Extensibility;
 using Metalama.Framework.DesignTime.Pipeline.Diff;
 using Metalama.Framework.DesignTime.Rpc;
 using Metalama.Framework.DesignTime.Services;
@@ -10,7 +9,6 @@ using Metalama.Framework.DesignTime.Utilities;
 using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CompileTime;
-using Metalama.Framework.Engine.Configuration;
 using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Pipeline;
 using Metalama.Framework.Engine.Pipeline.DesignTime;
@@ -20,7 +18,6 @@ using Metalama.Framework.Engine.Utilities.Threading;
 using Metalama.Framework.Project;
 using Metalama.Framework.Services;
 using Microsoft.CodeAnalysis;
-using Newtonsoft.Json;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
@@ -46,22 +43,21 @@ public class DesignTimeAspectPipelineFactory : IDisposable, IAspectPipelineConfi
     private readonly IProjectOptionsFactory _projectOptionsFactory;
     private readonly ITaskRunner _taskRunner;
     private readonly DesignTimeExceptionHandler _exceptionHandler;
+    private readonly DesignTimeExtensionManager? _extensionManager;
+    private readonly CompileTimeDomain _domain;
 
     internal ServiceProvider<IGlobalService> ServiceProvider { get; }
 
-    internal CompileTimeDomain Domain { get; }
-
-    public DesignTimeAspectPipelineFactory( ServiceProvider<IGlobalService> serviceProvider, CompileTimeDomain domain )
+    public DesignTimeAspectPipelineFactory( ServiceProvider<IGlobalService> serviceProvider )
     {
+        serviceProvider = serviceProvider.WithServiceConditional( _ => this );
+
         this._exceptionHandler = serviceProvider.GetRequiredService<DesignTimeExceptionHandler>();
         this._projectClassifier = serviceProvider.GetRequiredService<IMetalamaProjectClassifier>();
-        serviceProvider = serviceProvider.WithService( this );
-
         this._projectOptionsFactory = serviceProvider.GetRequiredService<IProjectOptionsFactory>();
-
         this._taskRunner = serviceProvider.GetRequiredService<ITaskRunner>();
-
         this._eventHub = serviceProvider.GetService<AnalysisProcessEventHub>();
+        this._extensionManager = serviceProvider.GetService<DesignTimeExtensionManager>();
 
         if ( this._eventHub != null )
         {
@@ -69,14 +65,11 @@ public class DesignTimeAspectPipelineFactory : IDisposable, IAspectPipelineConfi
             this._eventHub.ExternalBuildCompletedEvent.RegisterHandler( this.OnExternalBuildCompletedAsync );
         }
 
-        serviceProvider = serviceProvider.WithServices( new ProjectVersionProvider( serviceProvider ) );
+        serviceProvider = serviceProvider.WithService( new ProjectVersionProvider( serviceProvider ) );
 
-        this.Domain = domain;
+        this._domain = serviceProvider.GetRequiredService<CompileTimeDomain>();
         this.ServiceProvider = serviceProvider;
         this._logger = serviceProvider.GetLoggerFactory().GetLogger( "DesignTime" );
-
-        // Write the design-time configuration file if it doesn't exist, so metalama-config can open it.
-        serviceProvider.GetRequiredBackstageService<IConfigurationManager>().CreateIfMissing<DesignTimeConfiguration>();
     }
 
 #pragma warning disable VSTHRD100
@@ -96,7 +89,7 @@ public class DesignTimeAspectPipelineFactory : IDisposable, IAspectPipelineConfi
     /// <summary>
     /// Gets the pipeline for a given project, and creates it if necessary.
     /// </summary>
-    internal DesignTimeAspectPipeline? GetOrCreatePipeline(
+    public DesignTimeAspectPipeline? GetOrCreatePipeline(
         Microsoft.CodeAnalysis.Project project,
         TestableCancellationToken cancellationToken = default )
     {
@@ -115,7 +108,7 @@ public class DesignTimeAspectPipelineFactory : IDisposable, IAspectPipelineConfi
     /// <summary>
     /// Gets the pipeline for a given compilation, and creates it if necessary.
     /// </summary>
-    internal DesignTimeAspectPipeline? GetOrCreatePipeline(
+    public DesignTimeAspectPipeline? GetOrCreatePipeline(
         IProjectOptions projectOptions,
         Compilation compilation,
         TestableCancellationToken cancellationToken = default )
@@ -137,6 +130,8 @@ public class DesignTimeAspectPipelineFactory : IDisposable, IAspectPipelineConfi
 
             return null;
         }
+
+        this._extensionManager?.OnProjectDiscovered( projectOptions );
 
         var referencesArray = references.ToImmutableArray();
 
@@ -210,10 +205,7 @@ public class DesignTimeAspectPipelineFactory : IDisposable, IAspectPipelineConfi
                     // Recreating the pipeline over and over is a performance issue, so we log the reason.
                     if ( !projectOptions.Equals( pipelineOptions ) )
                     {
-                        var jsonSettings = new JsonSerializerSettings { ReferenceLoopHandling = ReferenceLoopHandling.Ignore };
-
-                        trace.Log(
-                            $"Recreating pipeline because project options were not equal. Old: {JsonConvert.SerializeObject( pipelineOptions, jsonSettings )}. New: {JsonConvert.SerializeObject( projectOptions, jsonSettings )}." );
+                        trace.Log( $"Recreating pipeline because project options were not equal." );
                     }
                     else
                     {
@@ -297,7 +289,7 @@ public class DesignTimeAspectPipelineFactory : IDisposable, IAspectPipelineConfi
         this._eventHub?.ResetIsEditingCompileTimeCode();
     }
 
-    internal bool TryExecute(
+    public bool TryExecute(
         IProjectOptions options,
         Compilation compilation,
         TestableCancellationToken cancellationToken,
@@ -383,7 +375,7 @@ public class DesignTimeAspectPipelineFactory : IDisposable, IAspectPipelineConfi
 
         this._eventHub?.ExternalBuildCompletedEvent.UnregisterHandler( this.OnExternalBuildCompletedAsync );
         this._pipelinesByProjectKey.Clear();
-        this.Domain.Dispose();
+        this._domain.Dispose();
     }
 
     internal virtual async ValueTask<DesignTimeAspectPipeline?> GetPipelineAndWaitAsync( Compilation compilation, CancellationToken cancellationToken )
@@ -420,7 +412,7 @@ public class DesignTimeAspectPipelineFactory : IDisposable, IAspectPipelineConfi
         return pipeline;
     }
 
-    internal bool TryGetPipeline( ProjectKey projectKey, [NotNullWhen( true )] out DesignTimeAspectPipeline? pipeline )
+    public bool TryGetPipeline( ProjectKey projectKey, [NotNullWhen( true )] out DesignTimeAspectPipeline? pipeline )
     {
         if ( !this._pipelinesByProjectKey.TryGetValue( projectKey, out pipeline ) )
         {

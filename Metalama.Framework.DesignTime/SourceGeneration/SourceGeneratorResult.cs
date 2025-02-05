@@ -7,14 +7,14 @@ using System.Collections.Immutable;
 namespace Metalama.Framework.DesignTime.SourceGeneration;
 
 /// <summary>
-/// A cacheable (and therefore equatable) result of source generators. Returned by <see cref="ProjectHandler.GenerateSources"/>.
+/// A cacheable (and therefore equatable) result of source generators. Returned by <see cref="ProjectSourceGenerator.GenerateSources"/>.
 /// </summary>
 public abstract class SourceGeneratorResult : IEquatable<SourceGeneratorResult>
 {
     /// <summary>
     /// Gets an empty <see cref="SourceGeneratorResult"/>.
     /// </summary>
-    public static SourceGeneratorResult Empty { get; } = new SyntaxTreeSourceGeneratorResult( ImmutableDictionary<string, IntroducedSyntaxTree>.Empty );
+    internal static SourceGeneratorResult Empty { get; } = new SyntaxTreeSourceGeneratorResult( ImmutableDictionary<string, IntroducedSyntaxTree>.Empty );
 
     private ulong _digest;
 

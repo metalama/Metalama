@@ -22,7 +22,7 @@ public sealed class SyntaxGenerationContext
 
     private Compilation Compilation => this.CompilationContext.Compilation;
 
-    internal ContextualSyntaxGenerator SyntaxGenerator { get; }
+    public ContextualSyntaxGenerator SyntaxGenerator { get; }
 
     internal CompilationContext CompilationContext => this._compilationContext ?? throw new InvalidOperationException();
 

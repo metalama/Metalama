@@ -135,9 +135,8 @@ public class TargetClass
         private async Task RunTestAsync( string code )
         {
             using var testContext = this.CreateTestContext();
-            var domain = testContext.Domain;
 
-            var inputCompilation = TestCompilationFactory.CreateCSharpCompilation( code );
+            var inputCompilation = testContext.CreateCSharpCompilation( code );
 
             // Create a compilation from the input compilation while removing nodes marked for removal.
             foreach ( var inputSyntaxTree in inputCompilation.SyntaxTrees )
@@ -153,7 +152,6 @@ public class TargetClass
 
             using var compileTimePipeline = new CompileTimeAspectPipeline(
                 designTimeFallbackServiceProvider,
-                domain,
                 ExecutionScenario.CompileTime );
 
             var diagnosticAdder = new ThrowingDiagnosticAdder();

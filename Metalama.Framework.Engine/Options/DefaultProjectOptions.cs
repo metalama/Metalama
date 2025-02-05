@@ -12,6 +12,8 @@ namespace Metalama.Framework.Engine.Options;
 /// </summary>
 public class DefaultProjectOptions : IProjectOptions
 {
+    public int Id { get; } = ProjectOptionsIdGenerator.GetNextId();
+
     public virtual string? BuildTouchFile => null;
 
     public virtual string? SourceGeneratorTouchFile => null;
@@ -74,6 +76,8 @@ public class DefaultProjectOptions : IProjectOptions
 
     public virtual ImmutableArray<string> CompileTimePackages => ImmutableArray<string>.Empty;
 
+    public virtual ImmutableArray<ExtensionAssemblyReference> CompileTimeAssemblies => ImmutableArray<ExtensionAssemblyReference>.Empty;
+
     public virtual string? ProjectAssetsFile => null;
 
     public virtual int? ReferenceAssemblyRestoreTimeout => null;
@@ -107,6 +111,10 @@ public class DefaultProjectOptions : IProjectOptions
     public virtual string? TransformedFilesOutputPath => null;
 
     public virtual ImmutableArray<string> SourceGeneratorAttributes => ImmutableArray<string>.Empty;
+
+    public virtual ImmutableArray<ExtensionAssemblyReference> ExtensionAssemblies => ImmutableArray<ExtensionAssemblyReference>.Empty;
+
+    public virtual ImmutableArray<ExtensionAssemblyReference> DesignTimeExtensionAssemblies => ImmutableArray<ExtensionAssemblyReference>.Empty;
 
     // IProjectOptions is currently not used as a dictionary key, so we can throw here.
     public sealed override int GetHashCode() => throw new NotImplementedException();

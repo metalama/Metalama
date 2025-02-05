@@ -26,7 +26,7 @@ using System.Collections.Immutable;
 namespace Metalama.Framework.DesignTime.AspectExplorer;
 
 #pragma warning disable CA1001 // Types that own disposable fields should be disposable: WeakCache does not need to be disposed
-public sealed class AspectDatabase : IGlobalService, IRpcApi
+internal sealed class AspectDatabase : IGlobalService
 #pragma warning restore CA1001
 {
     private readonly ILogger _logger;
@@ -37,7 +37,7 @@ public sealed class AspectDatabase : IGlobalService, IRpcApi
 
     private readonly WeakCache<Compilation, ImmutableArray<IIntrospectionAspectInstance>> _aspectInstanceCache = new();
 
-    internal AspectDatabase( GlobalServiceProvider serviceProvider )
+    public AspectDatabase( GlobalServiceProvider serviceProvider )
     {
         this._logger = serviceProvider.GetLoggerFactory().GetLogger( "AspectDatabase" );
         this._pipelineFactory = serviceProvider.GetRequiredService<DesignTimeAspectPipelineFactory>();
@@ -80,7 +80,23 @@ public sealed class AspectDatabase : IGlobalService, IRpcApi
         return (pipeline, compilation);
     }
 
-    public async Task<IEnumerable<string>> GetAspectClassesAsync( ProjectKey projectKey, CancellationToken cancellationToken )
+    public async Task<bool> HasValidConfigurationAsync( ProjectKey projectKey, CancellationToken cancellationToken )
+    {
+        if ( await this.GetPipelineAndCompilationAsync( projectKey, cancellationToken ) is not var (pipeline, compilation) )
+        {
+            return false;
+        }
+
+        var configurationResult = await pipeline.GetConfigurationAsync(
+            PartialCompilation.CreateComplete( compilation ),
+            false,
+            AsyncExecutionContext.Get(),
+            cancellationToken.ToTestable() );
+
+        return configurationResult.IsSuccessful;
+    }
+
+    public async Task<IReadOnlyList<string>> GetAspectClassesAsync( ProjectKey projectKey, CancellationToken cancellationToken )
     {
         if ( await this.GetPipelineAndCompilationAsync( projectKey, cancellationToken ) is not var (pipeline, compilation) )
         {
@@ -106,7 +122,7 @@ public sealed class AspectDatabase : IGlobalService, IRpcApi
         return aspectClassesIds.Concat( fabricsIds ).ToArray();
     }
 
-    public async Task<IEnumerable<AspectDatabaseAspectInstance>> GetAspectInstancesAsync(
+    public async Task<IReadOnlyList<AspectDatabaseAspectInstance>> GetAspectInstancesAsync(
         ProjectKey projectKey,
         string aspectClassAssembly,
         SerializableTypeId aspectClass,
@@ -132,7 +148,7 @@ public sealed class AspectDatabase : IGlobalService, IRpcApi
                 return [];
             }
 
-            var pipeline = new IntrospectionAspectPipeline( designTimeConfiguration.Value.ServiceProvider, this._pipelineFactory.Domain, null );
+            var pipeline = new IntrospectionAspectPipeline( designTimeConfiguration.Value.ServiceProvider, null );
 
             try
             {
@@ -207,7 +223,7 @@ public sealed class AspectDatabase : IGlobalService, IRpcApi
             {
                 return symbol.GetSerializableId().Id;
             }
-            
+
             return declaration.ToSerializableId().Id;
         }
 
@@ -227,12 +243,11 @@ public sealed class AspectDatabase : IGlobalService, IRpcApi
             .Select(
                 aspectInstance => new AspectDatabaseAspectInstance(
                     GetSerializableIdForOriginalDeclaration( aspectInstance.TargetDeclaration ),
-                    new[]
-                    {
+                    [
                         new AspectDatabaseAspectTransformation(
                             GetSerializableIdForOriginalDeclaration( aspectInstance.TargetDeclaration ),
                             $"Add the '{aspectInstance.AspectClass}' aspect to '{aspectInstance.TargetDeclaration}'." )
-                    } ) );
+                    ] ) );
 #pragma warning restore IDE0300
 
         return transformationAspectInstances.Concat( predecessorAspectInstances ).ToArray();

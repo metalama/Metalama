@@ -27,7 +27,7 @@ namespace Metalama.Framework.Engine.Collections
         /// <summary>
         /// Builds an <see cref="ImmutableDictionaryOfArray{TKey,TValue}"/> from a collection, with a different value type than the input item type.
         /// </summary>
-        internal static ImmutableDictionaryOfArray<TKey, TValue> ToMultiValueDictionary<TItem, TKey, TValue>(
+        public static ImmutableDictionaryOfArray<TKey, TValue> ToMultiValueDictionary<TItem, TKey, TValue>(
             this IEnumerable<TItem> enumerable,
             Func<TItem, TKey> getKey,
             Func<TItem, TValue> getValue,

@@ -8,7 +8,7 @@ namespace Metalama.Framework.DesignTime.Preview;
 /// <summary>
 /// Result of the <see cref="ITransformationPreviewService.PreviewTransformationAsync"/> method.
 /// </summary>
-public sealed class PreviewTransformationResult : IPreviewTransformationResult
+internal sealed class PreviewTransformationResult : IPreviewTransformationResult
 {
     public bool IsSuccessful { get; set; }
 
@@ -31,8 +31,8 @@ public sealed class PreviewTransformationResult : IPreviewTransformationResult
         }
     }
 
-    public static PreviewTransformationResult Failure( params string[] errorMessage ) => new( false, null, errorMessage );
+    internal static PreviewTransformationResult Failure( params string[] errorMessage ) => new( false, null, errorMessage );
 
-    public static PreviewTransformationResult Success( SyntaxTree transformedSyntaxTree, string[]? errorMessages )
+    internal static PreviewTransformationResult Success( SyntaxTree transformedSyntaxTree, string[]? errorMessages )
         => new( true, transformedSyntaxTree, errorMessages );
 }

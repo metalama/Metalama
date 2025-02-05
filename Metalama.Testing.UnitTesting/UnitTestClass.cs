@@ -1,12 +1,16 @@
 ﻿// Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
 using JetBrains.Annotations;
+using Metalama.Framework.DesignTime.Utilities;
 using Metalama.Framework.Engine;
+using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Services;
-using System.Collections.Immutable;
+using StreamJsonRpc;
+using System;
 using System.Runtime.CompilerServices;
+using Xunit;
 using Xunit.Abstractions;
 
 namespace Metalama.Testing.UnitTesting
@@ -15,37 +19,38 @@ namespace Metalama.Testing.UnitTesting
     /// A base class for all Metalama unit tests that require Metalama services. Exposes a <see cref="CreateTestContext(IAdditionalServiceCollection,string?,string?)"/>
     /// that creates a context with all services. The next step is typically to call one of the methods or properties of the returned <see cref="TestContext"/>.
     /// </summary>
-    public abstract class UnitTestClass
+    public abstract class UnitTestClass : IDisposable
     {
         static UnitTestClass()
         {
             TestingServices.Initialize();
         }
 
-        private readonly ITestOutputHelper? _testOutputHelper;
+        private readonly ITestOutputHelper? _logger;
         private readonly bool _injectLoggingService;
+        private readonly TestExceptionReporter _exceptionReporter = new();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="UnitTestClass"/> class.
         /// </summary>
-        /// <param name="testOutputHelper"></param>
-        protected UnitTestClass( ITestOutputHelper? testOutputHelper = null, bool injectLoggingService = true )
+        /// <param name="logger"></param>
+        protected UnitTestClass( ITestOutputHelper? logger = null, bool injectLoggingService = true )
         {
-            this._testOutputHelper = testOutputHelper;
+            this._logger = logger;
             this._injectLoggingService = injectLoggingService;
         }
 
         /// <summary>
         /// Gets an object allowing to write to the test output. 
         /// </summary>
-        protected ITestOutputHelper TestOutput => this._testOutputHelper.AssertNotNull();
+        protected ITestOutputHelper TestOutput => this._logger.AssertNotNull();
 
         private void AddXunitLogging( IAdditionalServiceCollection testServices )
         {
             // If we have an Xunit test output, override the logger.
-            if ( this._testOutputHelper != null && this._injectLoggingService )
+            if ( this._logger != null && this._injectLoggingService )
             {
-                var loggerFactory = new XunitLoggerFactory( this._testOutputHelper );
+                var loggerFactory = new XunitLoggerFactory( this._logger );
                 ((AdditionalServiceCollection) testServices).BackstageServices.Add( _ => loggerFactory );
             }
         }
@@ -60,13 +65,25 @@ namespace Metalama.Testing.UnitTesting
         {
             this.AddSyntaxGenerationOptions( services );
             this.AddXunitLogging( services );
-            
-            services.AddGlobalService( _ => TestingServices.ReferenceAssemblyLocatorProvider );
+            this.AddExceptionHandler( services );
+
+            services.AddGlobalService( _ => TestingServices.CompileTimeAssemblyLocatorProvider );
         }
+
+#pragma warning disable LAMA0821
+        protected virtual void ConfigureExtensions( ITestExtensionCollector collector ) { }
+#pragma warning restore LAMA0821
 
         protected virtual void AddSyntaxGenerationOptions( IAdditionalServiceCollection services )
         {
             services.AddProjectService( SyntaxGenerationOptions.Formatted );
+        }
+
+        // Resharper disable once VirtualMemberNeverOverridden.Global
+        protected virtual void AddExceptionHandler( IAdditionalServiceCollection services )
+        {
+            ((AdditionalServiceCollection) services).BackstageServices.Add( this._exceptionReporter );
+            services.AddGlobalService( provider => new DesignTimeExceptionHandler( provider ) );
         }
 
         /// <summary>
@@ -115,11 +132,11 @@ namespace Metalama.Testing.UnitTesting
             string? callerMemberName = null )
         {
             var context = this.CreateTestContextCore(
-                contextOptions ?? this.GetDefaultTestContextOptions(),
+                this.ConfigureTestContextOptions( contextOptions ?? this.CreateDefaultTestContextOptions() ),
                 this.GetMockServices( services ) );
 
             context.TestName = $"{callerFile}:{callerMemberName}";
-            context.TestOutputWriter = this._testOutputHelper;
+            context.TestOutputWriter = this._logger;
 
             return context;
         }
@@ -128,8 +145,21 @@ namespace Metalama.Testing.UnitTesting
         protected virtual TestContext CreateTestContextCore( TestContextOptions contextOptions, IAdditionalServiceCollection services )
             => new( contextOptions, services );
 
-        protected virtual TestContextOptions GetDefaultTestContextOptions()
-            => new() { AdditionalAssemblies = ImmutableArray.Create( this.GetType().Assembly ) };
+        protected virtual TestContextOptions CreateDefaultTestContextOptions() => new();
+
+        private TestContextOptions ConfigureTestContextOptions( TestContextOptions contextOptions )
+        {
+            var collector = new TestExtensionCollector();
+            this.ConfigureExtensions( collector );
+
+            return contextOptions with
+            {
+                AdditionalAssemblies = contextOptions.AdditionalAssemblies.Add( this.GetType().Assembly ),
+                ExtensionTypes = contextOptions.ExtensionTypes.AddRange( collector.ExtensionTypes ),
+                DesignTimeExtensionTypes = contextOptions.DesignTimeExtensionTypes.AddRange( collector.DesignTimeExtensionTypes ),
+                CompileTimeAssemblies = contextOptions.CompileTimeAssemblies.AddRange( collector.CompileTimeAssemblies )
+            };
+        }
 
         private IAdditionalServiceCollection GetMockServices( IAdditionalServiceCollection? arg )
         {
@@ -137,6 +167,13 @@ namespace Metalama.Testing.UnitTesting
             this.ConfigureServices( services );
 
             return services;
+        }
+
+        public void Dispose()
+        {
+            // We generally don't want to see any exceptions reported during the test.
+            // ReSharper disable once ParameterOnlyUsedForPreconditionCheck.Local
+            Assert.DoesNotContain( this._exceptionReporter.ReportedExceptions, e => e is not ConnectionLostException );
         }
     }
 }

@@ -1,33 +1,33 @@
 // Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
-using Metalama.Backstage.Extensibility;
-using Metalama.Framework.Aspects;
 using Metalama.Framework.DesignTime.Pipeline;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Formatting;
-using Metalama.Framework.Engine.Licensing;
+using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Pipeline;
 using Metalama.Framework.Engine.Pipeline.DesignTime;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Templating;
 using Metalama.Framework.Engine.Utilities;
-using Metalama.Framework.RunTime;
-using Metalama.Framework.Tests.UnitTests.DesignTime.Mocks;
+using Metalama.Framework.Tests.UnitTestHelpers.Helpers;
+using Metalama.Framework.Tests.UnitTestHelpers.Mocks;
+using Metalama.Framework.Tests.UnitTestHelpers.TestClasses;
 using Metalama.Testing.UnitTesting;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
 using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
+
+#if NET6_0_OR_GREATER
+using Metalama.Framework.Aspects;
+#endif
 
 #pragma warning disable IDE0079   // Remove unnecessary suppression.
 #pragma warning disable CA1307    // Specify StringComparison for clarity
@@ -35,115 +35,9 @@ using Xunit.Abstractions;
 
 namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline;
 
-public sealed class DesignTimePipelineTests : FrameworkBaseTestClass
+public sealed class DesignTimePipelineTests : DesignTimePipelineTestsBase
 {
     public DesignTimePipelineTests( ITestOutputHelper logger ) : base( logger ) { }
-
-    private static CSharpCompilation CreateCSharpCompilation(
-        IReadOnlyDictionary<string, string> code,
-        string? assemblyName = null,
-        bool acceptErrors = false,
-        IEnumerable<MetadataReference>? additionalReferences = null )
-    {
-        CSharpCompilation CreateEmptyCompilation()
-        {
-            return CSharpCompilation.Create( assemblyName ?? "test_" + RandomIdGenerator.GenerateId() )
-                .WithOptions(
-                    new CSharpCompilationOptions(
-                        OutputKind.DynamicallyLinkedLibrary,
-                        allowUnsafe: true,
-                        nullableContextOptions: NullableContextOptions.Enable ) )
-                .AddReferences(
-                    new[] { "netstandard", "System.Runtime" }
-                        .SelectAsImmutableArray(
-                            r => (MetadataReference) MetadataReference.CreateFromFile(
-                                Path.Combine( Path.GetDirectoryName( typeof(object).Assembly.Location )!, r + ".dll" ) ) ) )
-                .AddReferences(
-                    MetadataReference.CreateFromFile( typeof(object).Assembly.Location ),
-                    MetadataReference.CreateFromFile( typeof(ImmutableArray).Assembly.Location ),
-                    MetadataReference.CreateFromFile( typeof(Console).Assembly.Location ),
-                    MetadataReference.CreateFromFile( typeof(DynamicAttribute).Assembly.Location ),
-                    MetadataReference.CreateFromFile( typeof(Enumerable).Assembly.Location ),
-                    MetadataReference.CreateFromFile( typeof(CompileTimeAttribute).Assembly.Location ) )
-                .AddReferences( additionalReferences ?? Enumerable.Empty<MetadataReference>() );
-        }
-
-        var compilation = CreateEmptyCompilation();
-
-        compilation = compilation.AddSyntaxTrees(
-            code.SelectAsArray(
-                c => SyntaxFactory.ParseSyntaxTree(
-                    c.Value,
-                    path: c.Key,
-                    options: SupportedCSharpVersions.DefaultParseOptions.WithPreprocessorSymbols( "METALAMA" ) ) ) );
-
-        if ( !acceptErrors )
-        {
-            Assert.Empty( compilation.GetDiagnostics().Where( d => d.Severity == DiagnosticSeverity.Error ) );
-        }
-
-        return compilation;
-    }
-
-    private static void DumpSyntaxTreeResult( SyntaxTree? syntaxTree, SyntaxTreePipelineResult syntaxTreeResult, StringBuilder stringBuilder )
-    {
-        string GetTextUnderDiagnostic( Diagnostic diagnostic )
-        {
-            var syntaxTreeOfDiagnostic = diagnostic.Location.SourceTree ?? syntaxTree;
-
-            return syntaxTreeOfDiagnostic?.GetText().GetSubText( diagnostic.Location.SourceSpan ).ToString() ?? "";
-        }
-
-        stringBuilder.AppendLine( syntaxTreeResult.SyntaxTreePath + ":" );
-
-        // Diagnostics
-        stringBuilder.AppendLineInvariant( $"{syntaxTreeResult.Diagnostics.Length} diagnostic(s):" );
-
-        foreach ( var diagnostic in syntaxTreeResult.Diagnostics )
-        {
-            stringBuilder.AppendLineInvariant(
-                $"   {diagnostic.Severity} {diagnostic.Id} on `{GetTextUnderDiagnostic( diagnostic )}`: `{diagnostic.GetMessage( CultureInfo.CurrentCulture )}`" );
-        }
-
-        // Suppressions
-        stringBuilder.AppendLineInvariant( $"{syntaxTreeResult.Suppressions.Length} suppression(s):" );
-
-        foreach ( var suppression in syntaxTreeResult.Suppressions )
-        {
-            stringBuilder.AppendLineInvariant( $"   {suppression}" );
-        }
-
-        // Introductions
-        stringBuilder.AppendLineInvariant( $"{syntaxTreeResult.Introductions.Length} introductions(s):" );
-
-        foreach ( var introduction in syntaxTreeResult.Introductions.OrderBy( i => i.Name ) )
-        {
-            stringBuilder.AppendLine( introduction.GeneratedSyntaxTree.ToString() );
-        }
-    }
-
-    private static string DumpResults( DesignTimeAspectPipelineResultAndState results )
-    {
-        StringBuilder stringBuilder = new();
-
-        var i = 0;
-
-        foreach ( var syntaxTreeResult in results.Result.SyntaxTreeResults.Values.OrderBy( t => t.SyntaxTreePath ) )
-        {
-            if ( i > 0 )
-            {
-                stringBuilder.AppendLine( "----------------------------------------------------------" );
-            }
-
-            i++;
-
-            var syntaxTree = syntaxTreeResult.SyntaxTreePath != null ? results.ProjectVersion.SyntaxTrees[syntaxTreeResult.SyntaxTreePath].SyntaxTree : null;
-
-            DumpSyntaxTreeResult( syntaxTree, syntaxTreeResult, stringBuilder );
-        }
-
-        return stringBuilder.ToString().Trim();
-    }
 
     [Fact]
     public void InitializationWithoutAspect()
@@ -152,7 +46,7 @@ public sealed class DesignTimePipelineTests : FrameworkBaseTestClass
 
         var code = new Dictionary<string, string> { ["Class1.cs"] = "public class Class1 { }", ["Class2.cs"] = "public class Class2 { }" };
 
-        var compilation = CreateCSharpCompilation( code );
+        var compilation = testContext.CreateCSharpCompilation( code );
 
         using var pipelineFactory = new TestDesignTimeAspectPipelineFactory( testContext );
         var pipeline = pipelineFactory.CreatePipeline( compilation );
@@ -174,7 +68,7 @@ public sealed class DesignTimePipelineTests : FrameworkBaseTestClass
             ["Class2.cs"] = "public class Class2 { [Aspect]  void Method() {} }"
         };
 
-        var compilation = CreateCSharpCompilation( code );
+        var compilation = testContext.CreateCSharpCompilation( code );
 
         using var pipelineFactory = new TestDesignTimeAspectPipelineFactory( testContext );
         var pipeline = pipelineFactory.CreatePipeline( compilation );
@@ -186,7 +80,7 @@ public sealed class DesignTimePipelineTests : FrameworkBaseTestClass
     {
         using var testContext = this.CreateTestContext();
 
-        var compilation = CreateCSharpCompilation( new Dictionary<string, string>() { { "F1.cs", "public class X {}" } } );
+        var compilation = testContext.CreateCSharpCompilation( new Dictionary<string, string>() { { "F1.cs", "public class X {}" } } );
         using TestDesignTimeAspectPipelineFactory factory = new( testContext );
         var pipeline = factory.CreatePipeline( compilation );
 
@@ -232,7 +126,7 @@ F1.cs:
 
                             """;
 
-        var compilation = CreateCSharpCompilation( new Dictionary<string, string>() { { "F1.cs", code } } );
+        var compilation = testContext.CreateCSharpCompilation( new Dictionary<string, string>() { { "F1.cs", code } } );
 
         using TestDesignTimeAspectPipelineFactory factory = new( testContext );
         var pipeline = factory.CreatePipeline( compilation );
@@ -294,12 +188,12 @@ Target.cs:
 
         using var testContext = this.CreateTestContext();
 
-        var compilation = TestCompilationFactory.CreateCSharpCompilation(
+        var compilation = testContext.CreateCSharpCompilation(
             new Dictionary<string, string>()
             {
                 { "Aspect.cs", aspectCode.Replace( "$version$", "1" ) }, { "Target.cs", targetCode.Replace( "$version$", "1" ) }
             },
-            name: assemblyName );
+            assemblyName: assemblyName );
 
         using TestDesignTimeAspectPipelineFactory factory = new( testContext );
         var pipeline = factory.CreatePipeline( compilation );
@@ -320,12 +214,12 @@ Target.cs:
         Assert.Equal( 1, pipeline.PipelineInitializationCount );
 
         // Third execution, this time with modified target but same aspect code.
-        var compilation3 = TestCompilationFactory.CreateCSharpCompilation(
+        var compilation3 = testContext.CreateCSharpCompilation(
             new Dictionary<string, string>()
             {
                 { "Aspect.cs", aspectCode.Replace( "$version$", "1" ) }, { "Target.cs", targetCode.Replace( "$version$", "2" ) }
             },
-            name: assemblyName );
+            assemblyName: assemblyName );
 
         Assert.True( factory.TryExecute( testContext.ProjectOptions, compilation3, default, out var results3 ) );
         var dumpedResults3 = DumpResults( results3 );
@@ -337,12 +231,12 @@ Target.cs:
         AssertEx.EolInvariantEqual( expectedResult.Replace( "$AspectVersion$", "1" ).Replace( "$TargetVersion$", "2" ).Trim(), dumpedResults3 );
 
         // Forth execution, with modified aspect but not target code. This should pause the pipeline. We don't resume the pipeline, so we should get the old result.
-        var compilation4 = TestCompilationFactory.CreateCSharpCompilation(
+        var compilation4 = testContext.CreateCSharpCompilation(
             new Dictionary<string, string>()
             {
                 { "Aspect.cs", aspectCode.Replace( "$version$", "2" ) }, { "Target.cs", targetCode.Replace( "$version$", "2" ) }
             },
-            name: assemblyName );
+            assemblyName: assemblyName );
 
         var aspect4 = compilation4.SyntaxTrees.Single( t => t.FilePath == "Aspect.cs" );
 
@@ -368,12 +262,12 @@ Target.cs:
             d => d.Id == TemplatingDiagnosticDescriptors.CompileTimeTypeNeedsRebuild.Id );
 
         // Fifth execution, the same scenario as before.
-        var compilation5 = TestCompilationFactory.CreateCSharpCompilation(
+        var compilation5 = testContext.CreateCSharpCompilation(
             new Dictionary<string, string>()
             {
                 { "Aspect.cs", aspectCode.Replace( "$version$", "3" ) }, { "Target.cs", targetCode.Replace( "$version$", "2" ) }
             },
-            name: assemblyName );
+            assemblyName: assemblyName );
 
         var aspect5 = compilation5.SyntaxTrees.Single( t => t.FilePath == "Aspect.cs" );
 
@@ -458,13 +352,13 @@ Target.cs:
 
         using var testContext = this.CreateTestContext();
 
-        var aspectCompilation = TestCompilationFactory.CreateCSharpCompilation(
+        var aspectCompilation = testContext.CreateCSharpCompilation(
             new Dictionary<string, string>() { { "Aspect.cs", aspectCode.Replace( "$version$", "1" ) } },
-            name: aspectAssemblyName );
+            assemblyName: aspectAssemblyName );
 
-        var targetCompilation = TestCompilationFactory.CreateCSharpCompilation(
+        var targetCompilation = testContext.CreateCSharpCompilation(
             new Dictionary<string, string>() { { "Target.cs", targetCode.Replace( "$version$", "1" ) } },
-            name: targetAssemblyName,
+            assemblyName: targetAssemblyName,
             additionalReferences: new[] { aspectCompilation.ToMetadataReference() } );
 
         using TestDesignTimeAspectPipelineFactory factory = new( testContext );
@@ -485,13 +379,13 @@ Target.cs:
         Assert.Equal( 1, targetProjectPipeline.PipelineExecutionCount );
 
         // Third execution, with modified aspect but not target code. This should pause the pipeline. We don't resume the pipeline, so we should get the old result.
-        var aspectCompilation3 = TestCompilationFactory.CreateCSharpCompilation(
+        var aspectCompilation3 = testContext.CreateCSharpCompilation(
             new Dictionary<string, string>() { { "Aspect.cs", aspectCode.Replace( "$version$", "2" ) } },
-            name: aspectAssemblyName );
+            assemblyName: aspectAssemblyName );
 
-        var targetCompilation3 = TestCompilationFactory.CreateCSharpCompilation(
+        var targetCompilation3 = testContext.CreateCSharpCompilation(
             new Dictionary<string, string>() { { "Target.cs", targetCode.Replace( "$version$", "1" ) } },
-            name: targetAssemblyName,
+            assemblyName: targetAssemblyName,
             additionalReferences: new[] { aspectCompilation3.ToMetadataReference() } );
 
         Assert.True( factory.TryExecute( testContext.ProjectOptions, targetCompilation3, default, out var results3 ) );
@@ -574,7 +468,7 @@ partial class C
 
         void TestWithTargetCode( string targetCode )
         {
-            var compilation1 = CreateCSharpCompilation(
+            var compilation1 = testContext.CreateCSharpCompilation(
                 new Dictionary<string, string>() { { "Aspect.cs", aspectCode }, { "Target.cs", targetCode } },
                 assemblyName,
                 true );
@@ -598,20 +492,20 @@ partial class C
     [Fact]
     public void ProjectDependencyWithNoMetalamaReferenceButSystemCompileTimeType()
     {
-        using var context = this.CreateTestContext();
+        using var testContext = this.CreateTestContext();
 
-        using var pipelineFactory = new TestDesignTimeAspectPipelineFactory( context );
+        using var pipelineFactory = new TestDesignTimeAspectPipelineFactory( testContext );
 
         // The dependency cannot have a reference to Metalama.
         // It needs to define a system type that is considered as compile-time.
-        var dependency = TestCompilationFactory.CreateCSharpCompilation( "namespace System; struct Index {}", addMetalamaReferences: false );
+        var dependency = testContext.CreateCSharpCompilation( "namespace System; struct Index {}", addMetalamaReferences: false );
 
         // The main compilation must have a compile-time syntax tree.
-        var compilation = context.CreateCompilationModel(
+        var compilation = testContext.CreateCompilationModel(
             "using Metalama.Framework.Aspects;  class A : TypeAspect {}",
             additionalReferences: new[] { dependency.ToMetadataReference() } );
 
-        Assert.True( pipelineFactory.TryExecute( context.ProjectOptions, compilation.RoslynCompilation, default, out _ ) );
+        Assert.True( pipelineFactory.TryExecute( testContext.ProjectOptions, compilation.RoslynCompilation, default, out _ ) );
     }
 
     [Fact]
@@ -655,11 +549,11 @@ class C : BaseClass
         // First compilation.
         var masterCode1 = new Dictionary<string, string>() { ["master.cs"] = @"public class BaseClass { public int Field1; }" };
 
-        var masterCompilation1 = TestCompilationFactory.CreateCSharpCompilation( masterCode1, name: "Master" );
+        var masterCompilation1 = testContext.CreateCSharpCompilation( masterCode1, assemblyName: "Master" );
 
-        var dependentCompilation1 = TestCompilationFactory.CreateCSharpCompilation(
+        var dependentCompilation1 = testContext.CreateCSharpCompilation(
             dependentCode,
-            name: "Dependent",
+            assemblyName: "Dependent",
             additionalReferences: new[] { masterCompilation1.ToMetadataReference() } );
 
         Assert.True( factory.TryExecute( testContext.ProjectOptions, dependentCompilation1, default, out var results1 ) );
@@ -676,11 +570,11 @@ class C : BaseClass
         // Second compilation with a different master compilation.
         var masterCode2 = new Dictionary<string, string>() { ["master.cs"] = @"public partial class BaseClass { public int Field2; }" };
 
-        var masterCompilation2 = TestCompilationFactory.CreateCSharpCompilation( masterCode2, name: "Master" );
+        var masterCompilation2 = testContext.CreateCSharpCompilation( masterCode2, assemblyName: "Master" );
 
-        var dependentCompilation2 = TestCompilationFactory.CreateCSharpCompilation(
+        var dependentCompilation2 = testContext.CreateCSharpCompilation(
             dependentCode,
-            name: "Dependent",
+            assemblyName: "Dependent",
             additionalReferences: new[] { masterCompilation2.ToMetadataReference() } );
 
         Assert.True( factory.TryExecute( testContext.ProjectOptions, dependentCompilation2, default, out var results2 ) );
@@ -697,11 +591,11 @@ class C : BaseClass
             ["master.cs"] = @"public partial class BaseClass { public int Field2; }", ["partial.cs"] = "partial class BaseClass { public int Field3; }"
         };
 
-        var masterCompilation3 = TestCompilationFactory.CreateCSharpCompilation( masterCode3, name: "Master" );
+        var masterCompilation3 = testContext.CreateCSharpCompilation( masterCode3, assemblyName: "Master" );
 
-        var dependentCompilation3 = TestCompilationFactory.CreateCSharpCompilation(
+        var dependentCompilation3 = testContext.CreateCSharpCompilation(
             dependentCode,
-            name: "Dependent",
+            assemblyName: "Dependent",
             additionalReferences: new[] { masterCompilation3.ToMetadataReference() } );
 
         observer.InitializePipelineEvents.Clear();
@@ -733,7 +627,7 @@ class MyAspect : TypeAspect
 
 ";
 
-        var compilation1 = TestCompilationFactory.CreateCSharpCompilation( code1, name: "project", ignoreErrors: true );
+        var compilation1 = testContext.CreateCSharpCompilation( code1, assemblyName: "project", ignoreErrors: true );
 
         var result1 = await factory.ExecuteAsync( compilation1, AsyncExecutionContext.Get() );
         Assert.False( result1.IsSuccessful );
@@ -749,7 +643,7 @@ class MyAspect : TypeAspect
 
 ";
 
-        var compilation2 = TestCompilationFactory.CreateCSharpCompilation( code2, name: "project" );
+        var compilation2 = testContext.CreateCSharpCompilation( code2, assemblyName: "project" );
 
         var result2 = await factory.ExecuteAsync( compilation2, AsyncExecutionContext.Get() );
         Assert.True( result2.IsSuccessful );
@@ -794,12 +688,12 @@ class C
 
         // First compilation without any reference.
 
-        var compilation1 = TestCompilationFactory.CreateCSharpCompilation( code, name: "Project" ).WithReferences( Enumerable.Empty<MetadataReference>() );
+        var compilation1 = testContext.CreateCSharpCompilation( code, assemblyName: "Project" ).WithReferences( Enumerable.Empty<MetadataReference>() );
 
         Assert.False( factory.TryExecute( testContext.ProjectOptions, compilation1, default, out _ ) );
 
         // Second compilation with proper references.
-        var compilation2 = TestCompilationFactory.CreateCSharpCompilation( code, name: "Project" );
+        var compilation2 = testContext.CreateCSharpCompilation( code, assemblyName: "Project" );
 
         Assert.True( factory.TryExecute( testContext.ProjectOptions, compilation2, default, out _ ) );
     }
@@ -846,8 +740,8 @@ class C
             GC.WaitForPendingFinalizers();
         }
 
-        DiagnosticsHelper.CaptureMiniDumpOnce();
-        DiagnosticsHelper.CaptureDotMemoryDumpAndThrow( $"There is still a dangling reference to {output.DependentCompilationRef.Target}." );
+        MemoryDumpHelper.CaptureMiniDumpOnce();
+        MemoryDumpHelper.CaptureDotMemoryDumpAndThrow( $"There is still a dangling reference to {output.DependentCompilationRef.Target}." );
 
         GC.KeepAlive( output.Configuration );
     }
@@ -864,7 +758,7 @@ class C
 
         using TestDesignTimeAspectPipelineFactory factory = new( testContext, testContext.ServiceProvider );
 
-        var (masterCompilation, dependentCompilation) = CreateCompilations( 1 );
+        var (masterCompilation, dependentCompilation) = CreateCompilations( testContext, 1 );
         var syntaxTreeRefs = new List<WeakReference>();
         syntaxTreeRefs.AddRange( masterCompilation.SyntaxTrees.Select( x => new WeakReference( x ) ) );
         syntaxTreeRefs.AddRange( dependentCompilation.SyntaxTrees.Select( x => new WeakReference( x ) ) );
@@ -877,7 +771,7 @@ class C
             AsyncExecutionContext.Get(),
             default );
 
-        var (_, dependentCompilation2) = CreateCompilations( 2 );
+        var (_, dependentCompilation2) = CreateCompilations( testContext, 2 );
 
         // This is to make sure that the first compilation is not the last one, because it's ok to hold a reference to the last-seen compilation.
         await pipeline.ExecuteAsync( dependentCompilation2, true, AsyncExecutionContext.Get() );
@@ -887,7 +781,7 @@ class C
         return (new WeakReference( masterCompilation ), new WeakReference( dependentCompilation ), syntaxTreeRefs, configuration.Value, pipeline);
     }
 
-    private static ( CSharpCompilation Master, CSharpCompilation Dependent ) CreateCompilations( int version )
+    private static ( CSharpCompilation Master, CSharpCompilation Dependent ) CreateCompilations( TestContext testContext, int version )
     {
         var masterCode = new Dictionary<string, string>()
         {
@@ -929,13 +823,13 @@ class D{version}
 "
         };
 
-        var masterCompilation = TestCompilationFactory.CreateCSharpCompilation(
+        var masterCompilation = testContext.CreateCSharpCompilation(
             masterCode,
-            name: "Master" );
+            assemblyName: "Master" );
 
-        var dependentCompilation = TestCompilationFactory.CreateCSharpCompilation(
+        var dependentCompilation = testContext.CreateCSharpCompilation(
             dependentCode,
-            name: "Dependent",
+            assemblyName: "Dependent",
             additionalReferences: new[] { masterCompilation.ToMetadataReference() } );
 
         return (masterCompilation, dependentCompilation);
@@ -966,7 +860,7 @@ class D{version}
 
         using TestDesignTimeAspectPipelineFactory factory = new( testContext );
 
-        var netCompilation = TestCompilationFactory.CreateCSharpCompilation( code, name: "Project" );
+        var netCompilation = testContext.CreateCSharpCompilation( code, assemblyName: "Project" );
 
         var coreReferences = netCompilation.References
             .Where( reference => reference.Display?.EndsWith( "Metalama.Framework.dll", StringComparison.Ordinal ) != true );
@@ -980,7 +874,7 @@ class D{version}
         // It may be possible that only the .Net 6.0 TFM of this project has been built. In that case, this test cannot proceed.
         Skip.If( !File.Exists( netFrameworkMetalamaFrameworkPath ) );
 
-        var netFrameworkCompilation = TestCompilationFactory.CreateCSharpCompilation( "", name: "Project" )
+        var netFrameworkCompilation = testContext.CreateCSharpCompilation( "", assemblyName: "Project" )
             .WithReferences( coreReferences.Append( MetadataReference.CreateFromFile( netFrameworkMetalamaFrameworkPath ) ) );
 
         Assert.True( factory.TryExecute( testContext.ProjectOptions, netFrameworkCompilation, default, out _ ) );
@@ -996,7 +890,7 @@ class D{version}
     [Fact]
     public async Task ResumeWithErrorAsync()
     {
-        static CSharpCompilation CreateCompilation( string statement )
+        static CSharpCompilation CreateCompilation( TestContext testContext, string statement )
         {
             var code = new Dictionary<string, string>
             {
@@ -1017,13 +911,13 @@ class D{version}
                       """
             };
 
-            return CreateCSharpCompilation( code, acceptErrors: true );
+            return testContext.CreateCSharpCompilation( code, ignoreErrors: true );
         }
 
         using var testContext = this.CreateTestContext();
         using var pipelineFactory = new TestDesignTimeAspectPipelineFactory( testContext );
 
-        var compilation1 = CreateCompilation( "" );
+        var compilation1 = CreateCompilation( testContext, "" );
         var pipeline = pipelineFactory.CreatePipeline( compilation1 );
 
         Assert.Equal( DesignTimeAspectPipelineStatus.Default, pipeline.Status );
@@ -1034,7 +928,7 @@ class D{version}
         Assert.Equal( DesignTimeAspectPipelineStatus.Ready, pipeline.Status );
 
         // Execute with incomplete/invalid statement.
-        var compilation2 = CreateCompilation( "Console" );
+        var compilation2 = CreateCompilation( testContext, "Console" );
         Assert.True( pipeline.TryExecute( compilation2, default, out var compilationResult ) );
 
         // Note that LAMA0118 is no longer reported by the pipeline but by the analyzer.
@@ -1054,7 +948,7 @@ class D{version}
         Assert.Equal( DesignTimeAspectPipelineStatus.Default, pipeline.Status );
 
         // Executing with new invalid code fails and causes pausing.
-        var compilation3 = CreateCompilation( "Console.Write" );
+        var compilation3 = CreateCompilation( testContext, "Console.Write" );
         executionResult = await pipeline.ExecuteAsync( compilation3, AsyncExecutionContext.Get() );
         Assert.False( executionResult.IsSuccessful );
 
@@ -1100,7 +994,7 @@ class D{version}
             }
             """;
 
-        var compilation = CreateCSharpCompilation( new Dictionary<string, string>() { { "F1.cs", code } } );
+        var compilation = testContext.CreateCSharpCompilation( new Dictionary<string, string>() { { "F1.cs", code } } );
         using TestDesignTimeAspectPipelineFactory factory = new( testContext );
 
         Assert.True( factory.TryExecute( testContext.ProjectOptions, compilation, default, out var results ) );
@@ -1153,11 +1047,12 @@ class D{version}
             ["aspect.cs"] = OptionsTestHelper.ReportWarningFromOptionAspectCode,
             ["fabric.cs"] = """
                             using Metalama.Framework.Fabrics;
+                            using Metalama.Framework.Options;
                             class Fabric : ProjectFabric
                             {
                                 public override void AmendProject( IProjectAmender amender )
                                 {
-                                    amender.SetOptions<MyOptions>( o => new MyOptions { Value = "THE_VALUE" } );
+                                    amender.SetOptions( o => new MyOptions { Value = "THE_VALUE" } );
                                 }
                             }
                             """,
@@ -1173,7 +1068,7 @@ class D{version}
 
         using TestDesignTimeAspectPipelineFactory factory = new( testContext );
 
-        var compilation = CreateCSharpCompilation( code );
+        var compilation = testContext.CreateCSharpCompilation( code );
         Assert.True( factory.TryExecute( testContext.ProjectOptions, compilation, default, out var results ) );
         Assert.Contains( results.GetAllDiagnostics(), d => d.GetMessage( CultureInfo.InvariantCulture ).Contains( "Option='THE_VALUE'" ) );
     }
@@ -1185,11 +1080,12 @@ class D{version}
 
         const string fabricCode = """
                                   using Metalama.Framework.Fabrics;
+                                  using Metalama.Framework.Options;
                                   class Fabric : ProjectFabric
                                   {
                                       public override void AmendProject( IProjectAmender amender )
                                       {
-                                          amender.SetOptions<MyOptions>( o => new MyOptions { Value = "THE_VALUE" } );
+                                          amender.SetOptions( o => new MyOptions { Value = "THE_VALUE" } );
                                       }
                                   }
                                   """;
@@ -1219,16 +1115,21 @@ class D{version}
 
         using TestDesignTimeAspectPipelineFactory factory = new( testContext );
 
-        var dependencyCompilation = CreateCSharpCompilation( dependencyCode, assemblyName: "dependency" );
-        var compilation = CreateCSharpCompilation( code, assemblyName: "main", additionalReferences: new[] { dependencyCompilation.ToMetadataReference() } );
+        var dependencyCompilation = testContext.CreateCSharpCompilation( dependencyCode, assemblyName: "dependency" );
+
+        var compilation = testContext.CreateCSharpCompilation(
+            code,
+            assemblyName: "main",
+            additionalReferences: new[] { dependencyCompilation.ToMetadataReference() } );
+
         Assert.True( factory.TryExecute( testContext.ProjectOptions, compilation, default, out var results ) );
         Assert.Contains( results.GetAllDiagnostics(), d => d.GetMessage( CultureInfo.InvariantCulture ).Contains( "Option='THE_VALUE'" ) );
 
         // Try an update.
         dependencyCode["fabric.cs"] = fabricCode.Replace( "THE_VALUE", "THE_UPDATED_VALUE" );
-        var updatedDependencyCompilation = CreateCSharpCompilation( dependencyCode, assemblyName: "dependency" );
+        var updatedDependencyCompilation = testContext.CreateCSharpCompilation( dependencyCode, assemblyName: "dependency" );
 
-        var updatedCompilation = CreateCSharpCompilation(
+        var updatedCompilation = testContext.CreateCSharpCompilation(
             code,
             assemblyName: "main",
             additionalReferences: new[] { updatedDependencyCompilation.ToMetadataReference() } );
@@ -1326,16 +1227,21 @@ class D{version}
 
         using TestDesignTimeAspectPipelineFactory factory = new( testContext );
 
-        var dependencyCompilation = CreateCSharpCompilation( dependencyCode, assemblyName: "dependency" );
-        var compilation = CreateCSharpCompilation( code, assemblyName: "main", additionalReferences: new[] { dependencyCompilation.ToMetadataReference() } );
+        var dependencyCompilation = testContext.CreateCSharpCompilation( dependencyCode, assemblyName: "dependency" );
+
+        var compilation = testContext.CreateCSharpCompilation(
+            code,
+            assemblyName: "main",
+            additionalReferences: new[] { dependencyCompilation.ToMetadataReference() } );
+
         Assert.True( factory.TryExecute( testContext.ProjectOptions, compilation, default, out var results ) );
         Assert.Contains( results.GetAllDiagnostics(), d => d.GetMessage( CultureInfo.InvariantCulture ).Contains( "Option='THE_VALUE'" ) );
 
         // Try an update.
         dependencyCode["code.cs"] = dependencyCode["code.cs"].Replace( "THE_VALUE", "THE_UPDATED_VALUE" );
-        var updatedDependencyCompilation = CreateCSharpCompilation( dependencyCode, assemblyName: "dependency" );
+        var updatedDependencyCompilation = testContext.CreateCSharpCompilation( dependencyCode, assemblyName: "dependency" );
 
-        var updatedCompilation = CreateCSharpCompilation(
+        var updatedCompilation = testContext.CreateCSharpCompilation(
             code,
             assemblyName: "main",
             additionalReferences: new[] { updatedDependencyCompilation.ToMetadataReference() } );
@@ -1356,7 +1262,7 @@ class D{version}
 
         using TestDesignTimeAspectPipelineFactory factory = new( testContext );
 
-        var compilation = CreateCSharpCompilation( code );
+        var compilation = testContext.CreateCSharpCompilation( code );
 
         Assert.True( factory.TryExecute( testContext.ProjectOptions, compilation, default, out _ ) );
 
@@ -1392,14 +1298,14 @@ class D{version}
 
         var dependencyPath = Path.Combine( testContext.BaseDirectory, "dependency.dll" );
 
-        var dependency = CreateCSharpCompilation( code: new Dictionary<string, string>(), "dependency" );
+        var dependency = testContext.CreateCSharpCompilation( code: new Dictionary<string, string>(), assemblyName: "dependency" );
         var emitResult = dependency.Emit( dependencyPath );
 
         Assert.True( emitResult.Success );
 
         using TestDesignTimeAspectPipelineFactory factory = new( testContext );
 
-        var compilation = CreateCSharpCompilation( code: new Dictionary<string, string>() );
+        var compilation = testContext.CreateCSharpCompilation( code: new Dictionary<string, string>() );
 
         var pipeline1 = factory.CreatePipeline( compilation );
 
@@ -1422,61 +1328,6 @@ class D{version}
         Assert.Same( dependencyReference, foundReference );
     }
 
-    // Tests that introductions work without a license key.
-    [Fact]
-    public void WorksWithoutLicense()
-    {
-        var services = new AdditionalServiceCollection();
-
-        services.AddProjectService(
-            serviceProvider => ProjectLicenseConsumer.Create(
-                BackstageServiceFactory.CreateTestLicenseConsumptionService( serviceProvider.Underlying, null ) ) );
-
-        using var testContext = this.CreateTestContext();
-
-        const string code =
-            """
-            using Metalama.Framework.Advising;
-            using Metalama.Framework.Aspects; 
-            using Metalama.Framework.Code;
-
-            public class RepositoryAspect : TypeAspect
-            {
-                [Introduce]
-                public int Id { get; set; }
-            }
-
-            [RepositoryAspect]
-            public partial class Repository
-            {
-            }
-            """;
-
-        var compilation = CreateCSharpCompilation( new Dictionary<string, string>() { { "F1.cs", code } } );
-        using TestDesignTimeAspectPipelineFactory factory = new( testContext );
-
-        Assert.True( factory.TryExecute( testContext.ProjectOptions, compilation, default, out var results ) );
-        var dumpedResults = DumpResults( results );
-        this.TestOutput.WriteLine( dumpedResults );
-
-        const string expectedResult =
-            """
-            F1.cs:
-            0 diagnostic(s):
-            0 suppression(s):
-            1 introductions(s):
-            /// <auto-generated>
-            /// Generated by Metalama to support the code editing experience. This is NOT the code that gets executed.
-            /// </auto-generated>
-            partial class Repository
-            {
-                public global::System.Int32 Id { get; set; }
-            }
-            """;
-
-        Assert.Equal( expectedResult.Replace( "\r\n", "\n" ), dumpedResults.Replace( "\r\n", "\n" ) );
-    }
-
     [Fact]
     public void PromotedFieldAccessor()
     {
@@ -1493,26 +1344,17 @@ class D{version}
 
             [assembly: AspectOrder( AspectOrderDirection.RunTime, typeof(UninlineableOverrideAspect), typeof(OverridePropertyAttribute))]
 
-            class FieldsFabric : ProjectFabric
-            {
-                public override void AmendProject(IProjectAmender amender)
-                {
-                    amender
-                        .SelectMany(p => p.Types)
-                        .SelectMany(t => t.Fields)
-                        .AddAspect<OverridePropertyAttribute>();
-            
-                    amender
-                        .SelectMany(p => p.Types)
-                        .SelectMany(t => t.Properties)
-                        .SelectMany(p => new[] { p.GetMethod!, p.SetMethod! })
-                        .Where(m => m != null)
-                        .AddAspect<UninlineableOverrideAspect>();
-                }
-            }
-
             class OverridePropertyAttribute : OverrideFieldOrPropertyAspect
             {
+                public override void BuildAspect( IAspectBuilder<IFieldOrProperty> builder )
+                {
+                    base.BuildAspect( builder );
+                    
+                    foreach ( var a in ((IField)builder.AdvisedTarget).OverridingProperty.Accessors )
+                    {
+                        builder.With( a ).AddAspect<UninlineableOverrideAspect>();
+                    }
+                }
                 public override dynamic? OverrideProperty
                 {
                     get
@@ -1548,11 +1390,12 @@ class D{version}
 
             class TargetClass
             {
+                [OverrideProperty]
                 int i;
             }
             """;
 
-        var compilation = CreateCSharpCompilation( new Dictionary<string, string>() { { "code.cs", code } } );
+        var compilation = testContext.CreateCSharpCompilation( new Dictionary<string, string>() { { "code.cs", code } } );
 
         using TestDesignTimeAspectPipelineFactory factory = new( testContext );
 
@@ -1575,7 +1418,7 @@ class D{version}
                             }
                             """;
 
-        var compilation = CreateCSharpCompilation( new Dictionary<string, string>() { { "code.cs", code } } );
+        var compilation = testContext.CreateCSharpCompilation( new Dictionary<string, string>() { { "code.cs", code } } );
 
         using TestDesignTimeAspectPipelineFactory factory = new( testContext );
 
@@ -1632,7 +1475,7 @@ class D{version}
             }
             """;
 
-        var compilation = CreateCSharpCompilation( new Dictionary<string, string>() { { "code.cs", code } } );
+        var compilation = testContext.CreateCSharpCompilation( new Dictionary<string, string>() { { "code.cs", code } } );
 
         using TestDesignTimeAspectPipelineFactory factory = new( testContext );
 
@@ -1650,45 +1493,6 @@ class D{version}
 
         Assert.Empty( pipeline.GetEligibleAspects( compilation, aspect1Method, default ) );
         Assert.Empty( pipeline.GetEligibleAspects( compilation, aspect2Method, default ) );
-    }
-
-    [Fact]
-    public void TypeFabric()
-    {
-        using var testContext = this.CreateTestContext();
-
-        var code = new Dictionary<string, string>()
-        {
-            ["aspect.cs"] =
-                """
-                using Metalama.Framework.Aspects;
-
-                class MyAspect : TypeAspect
-                {
-                   [Introduce]
-                   void IntroducedMethod() {}
-                }
-                """,
-            ["target.cs"] =
-                """
-                using Metalama.Framework.Fabrics;
-
-                class C
-                {
-                    class Fabric : TypeFabric
-                    {
-                        public override void AmendType( ITypeAmender amender )
-                            => amender.AddAspect<MyAspect>();
-                    } 
-                }
-                """
-        };
-
-        var compilation = CreateCSharpCompilation( code );
-
-        using TestDesignTimeAspectPipelineFactory factory = new( testContext );
-
-        Assert.True( factory.TryExecute( testContext.ProjectOptions, compilation, default, out _ ) );
     }
 
     [Fact]
@@ -1718,7 +1522,7 @@ class D{version}
                 """
         };
 
-        var compilation = CreateCSharpCompilation( code, assemblyName: "test" );
+        var compilation = testContext.CreateCSharpCompilation( code, assemblyName: "test" );
 
         using TestDesignTimeAspectPipelineFactory factory = new( testContext );
 
@@ -1728,7 +1532,7 @@ class D{version}
 
         code.Add( "assemblyattribute.cs", """[assembly: System.Reflection.AssemblyVersion("1.2.3.4")]""" );
 
-        var compilation2 = CreateCSharpCompilation( code, assemblyName: "test" );
+        var compilation2 = testContext.CreateCSharpCompilation( code, assemblyName: "test" );
 
         Assert.True( factory.TryExecute( testContext.ProjectOptions, compilation2, default, out var result2 ) );
 
@@ -1784,9 +1588,9 @@ class D{version}
                 """
         };
 
-        var libraryCompilation = CreateCSharpCompilation( libraryCode );
+        var libraryCompilation = testContext.CreateCSharpCompilation( libraryCode );
 
-        var targetCompilation = CreateCSharpCompilation( targetCode, additionalReferences: [libraryCompilation.ToMetadataReference()] );
+        var targetCompilation = testContext.CreateCSharpCompilation( targetCode, additionalReferences: [libraryCompilation.ToMetadataReference()] );
 
         using TestDesignTimeAspectPipelineFactory factory = new( testContext );
 
@@ -1802,17 +1606,17 @@ class D{version}
 
         using TestDesignTimeAspectPipelineFactory factory = new( testContext );
 
-        var targetCompilation = CreateCSharpCompilation( code, "test" );
+        var targetCompilation = testContext.CreateCSharpCompilation( code, "test" );
 
         var targetPipeline1 = CreatePipeline( testContext.ProjectOptions );
 
-        CreatePipeline( new TestProjectOptions( testContext.ProjectOptions, CodeFormattingOptions.None ) );
+        CreatePipeline( new TestProjectOptions( testContext.TestProjectOptions, CodeFormattingOptions.None ) );
 
         GC.Collect();
 
         Assert.False( targetPipeline1.TryGetTarget( out _ ) );
 
-        WeakReference<DesignTimeAspectPipeline> CreatePipeline( TestProjectOptions options )
+        WeakReference<DesignTimeAspectPipeline> CreatePipeline( IProjectOptions options )
         {
             var pipeline = factory.GetOrCreatePipeline( options, targetCompilation );
 
@@ -1902,7 +1706,7 @@ class D{version}
 #endif
         };
 
-        var compilation = CreateCSharpCompilation( code, assemblyName: "test" );
+        var compilation = testContext.CreateCSharpCompilation( code, assemblyName: "test" );
 
         using TestDesignTimeAspectPipelineFactory factory = new( testContext );
 
@@ -1914,7 +1718,7 @@ class D{version}
 
         code["optionsAttribute.cs"] = optionsAttribute;
 
-        var updatedCompilation = CreateCSharpCompilation( code, assemblyName: "test" );
+        var updatedCompilation = testContext.CreateCSharpCompilation( code, assemblyName: "test" );
 
         Assert.True( factory.TryExecute( testContext.ProjectOptions, updatedCompilation, default, out var updatedResult ) );
 
@@ -1962,17 +1766,17 @@ Target.cs:
 
         using var testContext = this.CreateTestContext();
 
-        var aspectCompilation1 = TestCompilationFactory.CreateCSharpCompilation(
+        var aspectCompilation1 = testContext.CreateCSharpCompilation(
             new Dictionary<string, string>() { { "Aspect.cs", aspectCode } },
-            name: aspectAssemblyName1 );
+            assemblyName: aspectAssemblyName1 );
 
-        var aspectCompilation2 = TestCompilationFactory.CreateCSharpCompilation(
+        var aspectCompilation2 = testContext.CreateCSharpCompilation(
             new Dictionary<string, string>() { { "Aspect.cs", aspectCode } },
-            name: aspectAssemblyName2 );
+            assemblyName: aspectAssemblyName2 );
 
-        var targetCompilation = TestCompilationFactory.CreateCSharpCompilation(
+        var targetCompilation = testContext.CreateCSharpCompilation(
             new Dictionary<string, string>() { { "Target.cs", targetCode } },
-            name: targetAssemblyName,
+            assemblyName: targetAssemblyName,
             additionalReferences: new[] { aspectCompilation1.ToMetadataReference( ["aspects1"] ), aspectCompilation2.ToMetadataReference( ["aspects2"] ) } );
 
         using TestDesignTimeAspectPipelineFactory factory = new( testContext );
@@ -2046,27 +1850,27 @@ Target.cs:
 
         using var testContext = this.CreateTestContext();
 
-        var aspect1Compilation = TestCompilationFactory.CreateCSharpCompilation(
+        var aspect1Compilation = testContext.CreateCSharpCompilation(
             new Dictionary<string, string>() { { "Aspect.cs", aspectCode } },
-            name: aspect1AssemblyName );
+            assemblyName: aspect1AssemblyName );
 
-        var aspect2Compilation = TestCompilationFactory.CreateCSharpCompilation(
+        var aspect2Compilation = testContext.CreateCSharpCompilation(
             new Dictionary<string, string>() { { "Aspect.cs", aspectCode } },
-            name: aspect2AssemblyName );
+            assemblyName: aspect2AssemblyName );
 
-        var leftCompilation = TestCompilationFactory.CreateCSharpCompilation(
+        var leftCompilation = testContext.CreateCSharpCompilation(
             new Dictionary<string, string>() { { "Left.cs", leftCode } },
-            name: leftAssemblyName,
+            assemblyName: leftAssemblyName,
             additionalReferences: new[] { aspect1Compilation.ToMetadataReference() } );
 
-        var rightCompilation = TestCompilationFactory.CreateCSharpCompilation(
+        var rightCompilation = testContext.CreateCSharpCompilation(
             new Dictionary<string, string>() { { "Right.cs", rightCode } },
-            name: rightAssemblyName,
+            assemblyName: rightAssemblyName,
             additionalReferences: new[] { aspect2Compilation.ToMetadataReference() } );
 
-        var targetCompilation = TestCompilationFactory.CreateCSharpCompilation(
+        var targetCompilation = testContext.CreateCSharpCompilation(
             new Dictionary<string, string>() { { "Target.cs", targetCode } },
-            name: targetAssemblyName,
+            assemblyName: targetAssemblyName,
             additionalReferences: new[] { leftCompilation.ToMetadataReference(), rightCompilation.ToMetadataReference() } );
 
         using TestDesignTimeAspectPipelineFactory factory = new( testContext );
@@ -2216,13 +2020,13 @@ partial class A<T, U>
 
         using var testContext = this.CreateTestContext();
 
-        var aspectCompilation = TestCompilationFactory.CreateCSharpCompilation(
+        var aspectCompilation = testContext.CreateCSharpCompilation(
             new Dictionary<string, string>() { { "Aspect.cs", aspectCode } },
-            name: aspectAssemblyName );
+            assemblyName: aspectAssemblyName );
 
-        var targetCompilation1 = TestCompilationFactory.CreateCSharpCompilation(
+        var targetCompilation1 = testContext.CreateCSharpCompilation(
             new Dictionary<string, string>() { { "TargetA.cs", targetCodeA1 }, { "TargetB.cs", targetCodeB1 } },
-            name: targetAssemblyName,
+            assemblyName: targetAssemblyName,
             additionalReferences: new[] { aspectCompilation.ToMetadataReference() } );
 
         using TestDesignTimeAspectPipelineFactory factory = new( testContext );
@@ -2238,9 +2042,9 @@ partial class A<T, U>
         Assert.Equal( 1, targetProjectPipeline.PipelineExecutionCount );
         Assert.Equal( 1, targetProjectPipeline.PipelineInitializationCount );
 
-        var targetCompilation2 = TestCompilationFactory.CreateCSharpCompilation(
+        var targetCompilation2 = testContext.CreateCSharpCompilation(
             new Dictionary<string, string>() { { "TargetA.cs", targetCodeA2 }, { "TargetB.cs", targetCodeB2 } },
-            name: targetAssemblyName,
+            assemblyName: targetAssemblyName,
             additionalReferences: new[] { aspectCompilation.ToMetadataReference() } );
 
         Assert.True( factory.TryExecute( testContext.ProjectOptions, targetCompilation2, default, out var results2 ) );
@@ -2275,7 +2079,7 @@ partial class A<T, U>
 
         var code = new Dictionary<string, string> { ["aspect.cs"] = aspect, ["target.cs"] = target };
 
-        var compilation = CreateCSharpCompilation( code, assemblyName: "test", acceptErrors: true );
+        var compilation = testContext.CreateCSharpCompilation( code, assemblyName: "test", ignoreErrors: true );
 
         using TestDesignTimeAspectPipelineFactory factory = new( testContext );
 
@@ -2316,7 +2120,7 @@ partial class A<T, U>
 
         var code = new Dictionary<string, string> { ["attribute.cs"] = attribute, ["program.cs"] = program, ["aspect.cs"] = aspect };
 
-        var compilation = CreateCSharpCompilation( code, assemblyName: "test", acceptErrors: true );
+        var compilation = testContext.CreateCSharpCompilation( code, assemblyName: "test", ignoreErrors: true );
 
         using TestDesignTimeAspectPipelineFactory factory = new( testContext );
 
@@ -2392,9 +2196,9 @@ partial class A<T, U>
         var code2 = new Dictionary<string, string> { ["aspect.cs"] = aspect, ["target.cs"] = target2 };
         var code3 = new Dictionary<string, string> { ["aspect.cs"] = aspect, ["target.cs"] = target3 };
 
-        var compilation1 = CreateCSharpCompilation( code1, assemblyName: "test", acceptErrors: true );
-        var compilation2 = CreateCSharpCompilation( code2, assemblyName: "test", acceptErrors: true );
-        var compilation3 = CreateCSharpCompilation( code3, assemblyName: "test", acceptErrors: true );
+        var compilation1 = testContext.CreateCSharpCompilation( code1, assemblyName: "test", ignoreErrors: true );
+        var compilation2 = testContext.CreateCSharpCompilation( code2, assemblyName: "test", ignoreErrors: true );
+        var compilation3 = testContext.CreateCSharpCompilation( code3, assemblyName: "test", ignoreErrors: true );
 
         using TestDesignTimeAspectPipelineFactory factory = new( testContext );
 
@@ -2406,5 +2210,45 @@ partial class A<T, U>
 
         Assert.True( factory.TryExecute( testContext.ProjectOptions, compilation3, default, out var result3 ) );
         Assert.Single( result3.Result.IntroducedSyntaxTrees );
+    }
+
+    [Fact]
+    public void TypeFabric()
+    {
+        using var testContext = this.CreateTestContext();
+
+        var code = new Dictionary<string, string>()
+        {
+            ["aspect.cs"] =
+                """
+                using Metalama.Framework.Aspects;
+
+                class MyAspect : TypeAspect
+                {
+                   [Introduce]
+                   void IntroducedMethod() {}
+                }
+                """,
+            ["target.cs"] =
+                """
+                using Metalama.Framework.Fabrics;
+                using Metalama.Framework.Aspects;
+
+                class C
+                {
+                    class Fabric : TypeFabric
+                    {
+                        public override void AmendType( ITypeAmender amender )
+                            => amender.AddAspect<MyAspect>();
+                    } 
+                }
+                """
+        };
+
+        var compilation = testContext.CreateCSharpCompilation( code );
+
+        using TestDesignTimeAspectPipelineFactory factory = new( testContext );
+
+        Assert.True( factory.TryExecute( testContext.ProjectOptions, compilation, default, out _ ) );
     }
 }

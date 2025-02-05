@@ -3,7 +3,6 @@
 using JetBrains.Annotations;
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.CodeModel;
-using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities.Threading;
 using Metalama.Framework.Introspection;
@@ -15,20 +14,18 @@ namespace Metalama.Framework.Engine.Introspection;
 public sealed class IntrospectionCompiler
 {
     private readonly ProjectServiceProvider _serviceProvider;
-    private readonly CompileTimeDomain _domain;
     private readonly IIntrospectionOptionsProvider? _options;
 
-    public IntrospectionCompiler( in ProjectServiceProvider serviceProvider, CompileTimeDomain domain, IIntrospectionOptionsProvider? options = null )
+    public IntrospectionCompiler( in ProjectServiceProvider serviceProvider, IIntrospectionOptionsProvider? options = null )
     {
         this._serviceProvider = serviceProvider;
-        this._domain = domain;
         this._options = options;
     }
 
     public async Task<IIntrospectionCompilationResult> CompileAsync( ICompilation compilation )
     {
         var compilationModel = (CompilationModel) compilation;
-        var pipeline = new IntrospectionAspectPipeline( this._serviceProvider, this._domain, this._options );
+        var pipeline = new IntrospectionAspectPipeline( this._serviceProvider, this._options );
 
         return await pipeline.ExecuteAsync( compilationModel, TestableCancellationToken.None );
     }

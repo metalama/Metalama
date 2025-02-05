@@ -2,14 +2,17 @@
 
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Engine.AspectOrdering;
+using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.CompileTime.Manifest;
-using Metalama.Framework.Engine.DesignTime.CodeFixes;
+using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities.UserCode;
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Linq;
 
 namespace Metalama.Framework.Engine.Pipeline;
 
@@ -20,11 +23,15 @@ namespace Metalama.Framework.Engine.Pipeline;
 /// </summary>
 public sealed class AspectPipelineConfiguration
 {
-    internal CompileTimeDomain Domain { get; }
+    public CompileTimeDomain Domain { get; }
 
     internal ImmutableArray<PipelineStageConfiguration> Stages { get; }
 
-    internal BoundAspectClassCollection BoundAspectClasses { get; }
+    public AspectClass GetAspectClass( Type aspectType )
+        => (AspectClass)
+            this.BoundAspectClasses.Single<IBoundAspectClass>( c => c.Type == aspectType );
+
+    internal AspectClassCollection BoundAspectClasses { get; }
 
     public IReadOnlyCollection<IAspectClass> AspectClasses => this.BoundAspectClasses;
 
@@ -38,7 +45,7 @@ public sealed class AspectPipelineConfiguration
 
     private CompileTimeProjectRepository CompileTimeProjectRepository { get; }
 
-    internal PipelineContributorSources? FabricsConfiguration { get; }
+    internal PipelineContributorSources? FabricsContributors { get; }
 
     public ImmutableArray<string> FabricTypeNames { get; }
 
@@ -46,20 +53,20 @@ public sealed class AspectPipelineConfiguration
 
     public ProjectServiceProvider ServiceProvider { get; }
 
-    internal CodeFixFilter CodeFixFilter { get; }
+    public ImmutableArray<PipelineExtension> Extensions { get; }
 
     internal AspectPipelineConfiguration(
         CompileTimeDomain domain,
         ImmutableArray<PipelineStageConfiguration> stages,
-        BoundAspectClassCollection aspectClasses,
+        AspectClassCollection aspectClasses,
         ImmutableArray<OrderedAspectLayer> aspectLayers,
         CompileTimeProject? compileTimeProject,
         CompileTimeProjectRepository compileTimeProjectRepository,
-        PipelineContributorSources? fabricsConfiguration,
+        PipelineContributorSources? fabricContributors,
         ImmutableArray<string> fabricTypeNames,
         ProjectModel projectModel,
         ProjectServiceProvider serviceProvider,
-        CodeFixFilter codeFixFilter )
+        ImmutableArray<PipelineExtension> extensions )
     {
         this.Domain = domain;
         this.Stages = stages;
@@ -67,11 +74,11 @@ public sealed class AspectPipelineConfiguration
         this.AspectLayers = aspectLayers;
         this.CompileTimeProject = compileTimeProject;
         this.CompileTimeProjectRepository = compileTimeProjectRepository;
-        this.FabricsConfiguration = fabricsConfiguration;
+        this.FabricsContributors = fabricContributors;
         this.FabricTypeNames = fabricTypeNames;
         this.ProjectModel = projectModel;
         this.ServiceProvider = serviceProvider;
-        this.CodeFixFilter = codeFixFilter;
+        this.Extensions = extensions;
     }
 
     public AspectPipelineConfiguration WithServiceProvider( in ProjectServiceProvider serviceProvider )
@@ -82,27 +89,11 @@ public sealed class AspectPipelineConfiguration
             this.AspectLayers,
             this.CompileTimeProject,
             this.CompileTimeProjectRepository,
-            this.FabricsConfiguration,
+            this.FabricsContributors,
             this.FabricTypeNames,
             this.ProjectModel,
             serviceProvider,
-            this.CodeFixFilter );
-
-    internal AspectPipelineConfiguration WithCodeFixFilter( CodeFixFilter codeFixFilter )
-        => codeFixFilter == this.CodeFixFilter
-            ? this
-            : new AspectPipelineConfiguration(
-                this.Domain,
-                this.Stages,
-                this.BoundAspectClasses,
-                this.AspectLayers,
-                this.CompileTimeProject,
-                this.CompileTimeProjectRepository,
-                this.FabricsConfiguration,
-                this.FabricTypeNames,
-                this.ProjectModel,
-                this.ServiceProvider,
-                codeFixFilter );
+            this.Extensions );
 
     internal UserCodeInvoker UserCodeInvoker => this.ServiceProvider.GetRequiredService<UserCodeInvoker>();
 }

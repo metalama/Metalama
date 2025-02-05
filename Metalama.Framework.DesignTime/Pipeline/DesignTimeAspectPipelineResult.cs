@@ -5,9 +5,9 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel;
-using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.Collections;
+using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Fabrics;
 using Metalama.Framework.Engine.HierarchicalOptions;
 using Metalama.Framework.Engine.Pipeline;
@@ -16,7 +16,6 @@ using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Transformations;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.Diagnostics;
-using Metalama.Framework.Engine.Validation;
 using Metalama.Framework.Fabrics;
 using Metalama.Framework.Options;
 using Microsoft.CodeAnalysis;
@@ -27,7 +26,7 @@ namespace Metalama.Framework.DesignTime.Pipeline;
 /// <summary>
 /// Caches the pipeline results for each syntax tree.
 /// </summary>
-internal sealed partial class DesignTimeAspectPipelineResult : ITransitiveAspectsManifest
+public sealed partial class DesignTimeAspectPipelineResult : ITransitiveAspectsManifest
 {
     private static readonly ImmutableDictionary<string, SyntaxTreePipelineResult> _emptySyntaxTreeResults =
         ImmutableDictionary.Create<string, SyntaxTreePipelineResult>( StringComparer.Ordinal );
@@ -49,17 +48,16 @@ internal sealed partial class DesignTimeAspectPipelineResult : ITransitiveAspect
     private static long _nextId;
     private readonly long _id = Interlocked.Increment( ref _nextId );
 
-    private bool IsEmpty
-        => this.SyntaxTreeResults.IsEmpty && this.IntroducedSyntaxTrees.IsEmpty && this.ReferenceValidators.IsEmpty && this._inheritableAspects.IsEmpty;
+    private bool IsEmpty => this.SyntaxTreeResults.IsEmpty && this.IntroducedSyntaxTrees.IsEmpty && this.Extensions.IsEmpty && this._inheritableAspects.IsEmpty;
 
-    public DesignTimeReferenceValidatorCollection ReferenceValidators { get; } = DesignTimeReferenceValidatorCollection.Empty;
+    public DesignTimeAspectPipelineResultExtensionCollection Extensions { get; } = DesignTimeAspectPipelineResultExtensionCollection.Empty;
 
-    public ImmutableDictionary<string, IntroducedSyntaxTree> IntroducedSyntaxTrees { get; } = _emptyIntroducedSyntaxTrees;
+    internal ImmutableDictionary<string, IntroducedSyntaxTree> IntroducedSyntaxTrees { get; } = _emptyIntroducedSyntaxTrees;
 
     /// <summary>
     /// Gets a maps if the syntax tree name to the pipeline result for this syntax tree.
     /// </summary>
-    public ImmutableDictionary<string, SyntaxTreePipelineResult> SyntaxTreeResults { get; } = _emptySyntaxTreeResults;
+    internal ImmutableDictionary<string, SyntaxTreePipelineResult> SyntaxTreeResults { get; } = _emptySyntaxTreeResults;
 
     /// <summary>
     /// List of SyntaxTreeResult that have been invalidated.
@@ -72,7 +70,7 @@ internal sealed partial class DesignTimeAspectPipelineResult : ITransitiveAspect
 
     public ImmutableDictionaryOfArray<SerializableDeclarationId, IAnnotation> Annotations { get; } = _emptyAnnotations;
 
-    public ulong AspectInstancesHashCode { get; }
+    internal ulong AspectInstancesHashCode { get; }
 
     private byte[]? _serializedTransitiveAspectManifest;
 
@@ -82,7 +80,7 @@ internal sealed partial class DesignTimeAspectPipelineResult : ITransitiveAspect
         ImmutableDictionary<string, SyntaxTreePipelineResult> invalidSyntaxTreeResults,
         ImmutableDictionary<string, IntroducedSyntaxTree> introducedSyntaxTrees,
         ImmutableDictionaryOfHashSet<string, InheritableAspectInstance> inheritableAspects,
-        DesignTimeReferenceValidatorCollection referenceValidators,
+        DesignTimeAspectPipelineResultExtensionCollection extensions,
         ImmutableDictionary<HierarchicalOptionsKey, IHierarchicalOptions> inheritableOptions,
         ImmutableDictionaryOfArray<SerializableDeclarationId, IAnnotation> annotations,
         ulong aspectInstancesHashCode )
@@ -92,7 +90,7 @@ internal sealed partial class DesignTimeAspectPipelineResult : ITransitiveAspect
         this.IntroducedSyntaxTrees = introducedSyntaxTrees;
         this._inheritableAspects = inheritableAspects;
         this.InheritableOptions = inheritableOptions;
-        this.ReferenceValidators = referenceValidators;
+        this.Extensions = extensions;
         this.Configuration = configuration;
         this.Annotations = annotations;
         this.AspectInstancesHashCode = aspectInstancesHashCode;
@@ -111,7 +109,7 @@ internal sealed partial class DesignTimeAspectPipelineResult : ITransitiveAspect
     /// <summary>
     /// Gets the pipeline configuration, or potentially <c>null</c>  if the current <see cref="DesignTimeAspectPipelineResult"/> is empty.
     /// </summary>
-    public AspectPipelineConfiguration? Configuration { get; }
+    internal AspectPipelineConfiguration? Configuration { get; }
 
     /// <summary>
     /// Updates cache with a <see cref="DesignTimePipelineExecutionResult"/> that includes results for several syntax trees.
@@ -124,13 +122,13 @@ internal sealed partial class DesignTimeAspectPipelineResult : ITransitiveAspect
     {
         Logger.DesignTime.Trace?.Log( $"CompilationPipelineResult.Update( id = {this._id} )" );
 
-        var (resultsByTree, externalValidators) = SplitResultsByTree( compilation, pipelineResults );
+        var (resultsByTree, externalExtensions) = SplitResultsByTree( compilation, pipelineResults );
 
         var syntaxTreeResultBuilder = this.SyntaxTreeResults.ToBuilder();
 
         ImmutableDictionary<string, IntroducedSyntaxTree>.Builder? introducedSyntaxTreeBuilder = null;
         ImmutableDictionaryOfHashSet<string, InheritableAspectInstance>.Builder? inheritableAspectsBuilder = null;
-        DesignTimeReferenceValidatorCollection.Builder? validatorsBuilder = null;
+        DesignTimeAspectPipelineResultExtensionCollection.Builder? extensionsBuilder = null;
         ImmutableDictionary<HierarchicalOptionsKey, IHierarchicalOptions>.Builder? inheritableOptionsBuilder = null;
         ImmutableDictionaryOfArray<SerializableDeclarationId, IAnnotation>.Builder? annotationsBuilder = null;
         var aspectInstancesHashCode = this.AspectInstancesHashCode;
@@ -183,16 +181,16 @@ internal sealed partial class DesignTimeAspectPipelineResult : ITransitiveAspect
                 }
             }
 
-            if ( !oldSyntaxTreeResult.ReferenceValidators.IsEmpty )
+            if ( !oldSyntaxTreeResult.Extensions.IsEmpty )
             {
-                validatorsBuilder ??= this.ReferenceValidators.ToBuilder();
+                extensionsBuilder ??= this.Extensions.ToBuilder();
 
-                foreach ( var validator in oldSyntaxTreeResult.ReferenceValidators )
+                foreach ( var validator in oldSyntaxTreeResult.Extensions )
                 {
                     Logger.DesignTime.Trace?.Log(
                         $"CompilationPipelineResult.Update( id = {this._id} ): removing validator `{validator}` from syntax tree '{filePath}'." );
 
-                    validatorsBuilder.Remove( validator );
+                    extensionsBuilder.Remove( validator );
                 }
             }
 
@@ -255,14 +253,14 @@ internal sealed partial class DesignTimeAspectPipelineResult : ITransitiveAspect
                 }
             }
 
-            if ( !newSyntaxTreeResult.ReferenceValidators.IsDefaultOrEmpty )
+            if ( !newSyntaxTreeResult.Extensions.IsDefaultOrEmpty )
             {
-                validatorsBuilder ??= this.ReferenceValidators.ToBuilder();
+                extensionsBuilder ??= this.Extensions.ToBuilder();
 
-                foreach ( var validator in newSyntaxTreeResult.ReferenceValidators )
+                foreach ( var extension in newSyntaxTreeResult.Extensions )
                 {
-                    Logger.DesignTime.Trace?.Log( $"CompilationPipelineResult.Update( id = {this._id} ): adding validator `{validator}` to '{filePath}'." );
-                    validatorsBuilder.Add( validator );
+                    Logger.DesignTime.Trace?.Log( $"CompilationPipelineResult.Update( id = {this._id} ): adding validator `{extension}` to '{filePath}'." );
+                    extensionsBuilder.Add( extension );
                 }
             }
 
@@ -302,18 +300,18 @@ internal sealed partial class DesignTimeAspectPipelineResult : ITransitiveAspect
         var introducedTrees = introducedSyntaxTreeBuilder?.ToImmutable() ?? this.IntroducedSyntaxTrees;
         var inheritableAspects = inheritableAspectsBuilder?.ToImmutable() ?? this._inheritableAspects;
 
-        if ( externalValidators != null )
+        if ( externalExtensions != null )
         {
-            validatorsBuilder ??= this.ReferenceValidators.ToBuilder();
+            extensionsBuilder ??= this.Extensions.ToBuilder();
 
-            foreach ( var externalValidator in externalValidators )
+            foreach ( var externalExtension in externalExtensions )
             {
-                validatorsBuilder.Add( externalValidator );
+                extensionsBuilder.Add( externalExtension );
             }
         }
 
-        var validators = validatorsBuilder?.ToImmutable( projectVersion.ReferencedValidatorCollections )
-                         ?? this.ReferenceValidators.WithChildCollections( projectVersion.ReferencedValidatorCollections );
+        var extensions = extensionsBuilder?.ToImmutable( projectVersion.ReferencedExtensions )
+                         ?? this.Extensions.WithChildCollections( projectVersion.ReferencedExtensions );
 
         var inheritableOptions = inheritableOptionsBuilder?.ToImmutable() ?? this.InheritableOptions;
         var annotations = annotationsBuilder?.ToImmutable() ?? this.Annotations;
@@ -324,7 +322,7 @@ internal sealed partial class DesignTimeAspectPipelineResult : ITransitiveAspect
             ImmutableDictionary<string, SyntaxTreePipelineResult>.Empty,
             introducedTrees,
             inheritableAspects,
-            validators,
+            extensions,
             inheritableOptions,
             annotations,
             aspectInstancesHashCode );
@@ -334,9 +332,10 @@ internal sealed partial class DesignTimeAspectPipelineResult : ITransitiveAspect
     /// Splits a <see cref="DesignTimePipelineExecutionResult"/>, which includes data for several syntax trees, into
     /// a list of <see cref="SyntaxTreePipelineResult"/> which each have information related to a single syntax tree.
     /// </summary>
-    private static (IEnumerable<SyntaxTreePipelineResult> Results, IReadOnlyList<DesignTimeReferenceValidatorInstance>? ExternalValidators) SplitResultsByTree(
-        PartialCompilation compilation,
-        DesignTimePipelineExecutionResult pipelineResults )
+    private static (IEnumerable<SyntaxTreePipelineResult> Results, IReadOnlyList<IDesignTimeAspectPipelineResultExtension>? ExternalValidators)
+        SplitResultsByTree(
+            PartialCompilation compilation,
+            DesignTimePipelineExecutionResult pipelineResults )
     {
         SyntaxTreePipelineResult.Builder? emptySyntaxTreeResult = null;
 
@@ -344,7 +343,7 @@ internal sealed partial class DesignTimeAspectPipelineResult : ITransitiveAspect
             .InputSyntaxTrees
             .ToDictionary( r => r.Key, syntaxTree => new SyntaxTreePipelineResult.Builder( syntaxTree.Value ) );
 
-        List<DesignTimeReferenceValidatorInstance>? externalValidators = null;
+        List<IDesignTimeAspectPipelineResultExtension>? externalValidators = null;
 
         // Split diagnostic by syntax tree.
         foreach ( var diagnostic in pipelineResults.Diagnostics.ReportedDiagnostics )
@@ -454,42 +453,43 @@ internal sealed partial class DesignTimeAspectPipelineResult : ITransitiveAspect
             builder.InheritableAspects.Add( inheritableAspectInstance );
         }
 
-        // Split validators by syntax tree.
-        foreach ( var validator in pipelineResults.ReferenceValidators )
+        // Split extensions by syntax tree.
+        foreach ( var extension in pipelineResults.Extensions )
         {
-            var syntaxTree = validator.ValidatedDeclaration.GetPrimarySyntaxTree();
+            var syntaxTree = extension.SyntaxTree;
 
             if ( syntaxTree == null && !resultBuilders.ContainsKey( string.Empty ) )
             {
                 resultBuilders.Add( string.Empty, new SyntaxTreePipelineResult.Builder( null ) );
             }
 
-            var validatedDeclarationSymbol = validator.ValidatedDeclaration.GetSymbol();
+            var designTimeExtension = extension.ToDesignTime();
 
-            if ( validatedDeclarationSymbol != null )
+            if ( designTimeExtension != null )
             {
-                var designTimeValidator = new DesignTimeReferenceValidatorInstance(
-                    validatedDeclarationSymbol,
-                    validator.Properties.ReferenceKinds,
-                    validator.Properties.IncludeDerivedTypes,
-                    validator.Driver,
-                    validator.Implementation,
-                    validator.DiagnosticSourceDescription,
-                    validator.Granularity,
-                    compilation.CompilationContext );
+                /*
+                new DesignTimeReferenceValidatorInstance(
+                validatedDeclarationSymbol,
+                extension.Properties.ReferenceKinds,
+                extension.Properties.IncludeDerivedTypes,
+                extension.Driver,
+                extension.Implementation,
+                extension.DiagnosticSourceDescription,
+                extension.Granularity,
+                compilation.CompilationContext ); */
 
                 var filePath = syntaxTree?.FilePath ?? string.Empty;
 
                 if ( resultBuilders.TryGetValue( filePath, out var builder ) )
                 {
-                    builder.Validators ??= ImmutableArray.CreateBuilder<DesignTimeReferenceValidatorInstance>();
-                    builder.Validators.Add( designTimeValidator );
+                    builder.Extensions ??= ImmutableArray.CreateBuilder<IDesignTimeAspectPipelineResultExtension>();
+                    builder.Extensions.Add( designTimeExtension );
                 }
                 else
                 {
                     // This happens with cross-project validators
-                    externalValidators ??= new List<DesignTimeReferenceValidatorInstance>();
-                    externalValidators.Add( designTimeValidator );
+                    externalValidators ??= new List<IDesignTimeAspectPipelineResultExtension>();
+                    externalValidators.Add( designTimeExtension );
                 }
             }
             else
@@ -555,7 +555,7 @@ internal sealed partial class DesignTimeAspectPipelineResult : ITransitiveAspect
             builder.Transformations ??= ImmutableArray.CreateBuilder<DesignTimeTransformation>();
 
             var formattable = transformation.ToDisplayString();
-            
+
             // ReSharper disable once RedundantSuppressNullableWarningExpression
             var description = formattable != null ? MetalamaStringFormatter.Format( formattable ) : transformation.ToString()!;
 
@@ -638,9 +638,9 @@ internal sealed partial class DesignTimeAspectPipelineResult : ITransitiveAspect
         return (resultBuilders.SelectAsReadOnlyCollection( b => b.Value.ToImmutable( compilation.Compilation ) ), externalValidators);
     }
 
-    public Invalidator ToInvalidator() => new( this );
+    internal Invalidator ToInvalidator() => new( this );
 
-    public bool IsSyntaxTreeDirty( SyntaxTree syntaxTree ) => !this.SyntaxTreeResults.ContainsKey( syntaxTree.FilePath );
+    internal bool IsSyntaxTreeDirty( SyntaxTree syntaxTree ) => !this.SyntaxTreeResults.ContainsKey( syntaxTree.FilePath );
 
     public IEnumerable<string> InheritableAspectTypes => this._inheritableAspects.Keys;
 
@@ -648,15 +648,15 @@ internal sealed partial class DesignTimeAspectPipelineResult : ITransitiveAspect
 
     // At design time, cross-project reference validators are not added to the main pipeline. Instead, the validator provider recursively includes
     // the providers of referenced projects. However cross-project references are still used for PE references.
-    ImmutableArray<TransitiveValidatorInstance> ITransitiveAspectsManifest.ReferenceValidators => ImmutableArray<TransitiveValidatorInstance>.Empty;
+    ImmutableArray<ITransitiveAspectsManifestExtension> ITransitiveAspectsManifest.Extensions => ImmutableArray<ITransitiveAspectsManifestExtension>.Empty;
 
-    public byte[] GetSerializedTransitiveAspectManifest( in ProjectServiceProvider serviceProvider, CompilationContext compilationContext )
+    internal byte[] GetSerializedTransitiveAspectManifest( in ProjectServiceProvider serviceProvider, CompilationContext compilationContext )
     {
         if ( this._serializedTransitiveAspectManifest == null )
         {
             var manifest = TransitiveAspectsManifest.Create(
                 this._inheritableAspects.SelectMany( g => g ).ToImmutableArray(),
-                this.ReferenceValidators.ToTransitiveValidatorInstances(),
+                this.Extensions.ToTransitiveValidatorInstances(),
                 this.InheritableOptions,
                 this.Annotations );
 

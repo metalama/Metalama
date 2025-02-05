@@ -21,7 +21,7 @@ internal abstract class AdviceResult : IAdviceResult
 
     public AdviceOutcome Outcome { get; init; }
 
-    public ImmutableArray<Diagnostic> Diagnostics { get; init; } = ImmutableArray<Diagnostic>.Empty;
+    public ImmutableArray<Diagnostic> ReportedDiagnostics { get; init; } = ImmutableArray<Diagnostic>.Empty;
 
     // This property is used only by the introspection API.
     public ImmutableArray<ITransformation> Transformations { get; internal set; } = ImmutableArray<ITransformation>.Empty;

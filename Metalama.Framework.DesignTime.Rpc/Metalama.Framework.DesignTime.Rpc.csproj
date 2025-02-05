@@ -19,6 +19,10 @@
         <InternalsVisibleTo Include="Metalama.Framework.Tests.UnitTests.4.4.0" />
         <InternalsVisibleTo Include="Metalama.Framework.Tests.UnitTests.4.8.0" />
         <InternalsVisibleTo Include="Metalama.Framework.Tests.UnitTests.4.12.0" />
+        <InternalsVisibleTo Include="Metalama.Framework.Tests.UnitTestHelpers.4.4.0" />
+        <InternalsVisibleTo Include="Metalama.Framework.Tests.UnitTestHelpers.4.8.0" />
+        <InternalsVisibleTo Include="Metalama.Framework.Tests.UnitTestHelpers.4.12.0" />
+        
     </ItemGroup>
     
 </Project>

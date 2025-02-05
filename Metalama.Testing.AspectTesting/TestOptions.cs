@@ -65,12 +65,6 @@ public class TestOptions
     public string? TestRunnerFactoryType { get; set; }
 
     /// <summary>
-    /// Gets or sets the name of the type implementing the <see cref="ILicenseKeyProvider"/>. This property is required when
-    /// <see cref="LicenseKey"/> or <see cref="DependencyLicenseKey"/> is specified.
-    /// </summary>
-    public string? LicenseKeyProviderType { get; set; }
-
-    /// <summary>
     /// Gets the list of assembly names that should be included in the compilation.
     /// To add a named assembly reference, add this comment to your test file: <c>// @AssemblyReference(assemblyName)</c>.
     /// </summary>
@@ -237,7 +231,7 @@ public class TestOptions
 
     /// <summary>
     /// Gets or sets the zero-based index of the code fix to be applied
-    /// when <see cref="TestScenario"/> is set to <see cref="AspectTesting.TestScenario.CodeFix"/> or <see cref="AspectTesting.TestScenario.CodeFixPreview"/>.
+    /// when <see cref="TestScenario"/> is set to <see cref="AspectTesting.TestScenario.CodeFix"/>.
     /// To set this option in a test, add this comment to your test file: <c>// @AppliedCodeFixIndex(id)</c>.
     /// </summary>
     public int? AppliedCodeFixIndex { get; set; }
@@ -271,18 +265,6 @@ public class TestOptions
     /// To set this option in a test, add this comment to your test file: <c>// @LanguageFeature(feature)</c> or <c>// @LanguageFeature(feature=value)</c>.
     /// </summary>
     public ImmutableDictionary<string, string> LanguageFeatures { get; set; } = ImmutableDictionary<string, string>.Empty;
-
-    /// <summary>
-    /// Gets or sets the name of the license key used to compile the test input. The <see cref="LicenseKeyProviderType"/> property must be specified.
-    /// To set this option in a test, add this comment to your test file: <c>// @LicenseKey(name)</c>. 
-    /// </summary>
-    public string? LicenseKey { get; set; }
-
-    /// <summary>
-    /// Gets or sets the name of the license key used to compile the test dependency. The <see cref="LicenseKeyProviderType"/> property must be specified.
-    /// To set this option in a test, add this comment to your test file: <c>// @DependencyLicenseKey(name)</c>. 
-    /// </summary>
-    public string? DependencyLicenseKey { get; set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether an error should be reported if the compilation uses aspects that
@@ -406,8 +388,6 @@ public class TestOptions
 
         this.TestRunnerFactoryType ??= baseOptions.TestRunnerFactoryType;
 
-        this.LicenseKeyProviderType ??= baseOptions.LicenseKeyProviderType;
-
         this.WriteInputHtml ??= baseOptions.WriteInputHtml;
 
         this.WriteOutputHtml ??= baseOptions.WriteOutputHtml;
@@ -452,10 +432,6 @@ public class TestOptions
         this.DefinedConstants.AddRange( baseOptions.DefinedConstants );
 
         this.DependencyDefinedConstants.AddRange( baseOptions.DependencyDefinedConstants );
-
-        this.LicenseKey ??= baseOptions.LicenseKey;
-
-        this.DependencyLicenseKey ??= baseOptions.DependencyLicenseKey;
 
         this.RequireOrderedAspects ??= baseOptions.RequireOrderedAspects;
 
@@ -735,18 +711,6 @@ public class TestOptions
                             this.LanguageFeatures = this.LanguageFeatures.SetItem( parts[0], parts[1] );
                         }
                     }
-
-                    break;
-
-                case "LicenseKey":
-
-                    this.LicenseKey = optionArg;
-
-                    break;
-
-                case "DependencyLicenseKey":
-
-                    this.DependencyLicenseKey = optionArg;
 
                     break;
 

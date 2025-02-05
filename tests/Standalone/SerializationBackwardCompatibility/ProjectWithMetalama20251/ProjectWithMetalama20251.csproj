@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>library</OutputType>
+    <TargetFramework>net6.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- This version could be updated to the first RTM version of 2025.1, once that exists. -->
+    <PackageReference Include="Metalama.Extensions.Validation" VersionOverride="2025.1.*-*" />
+  </ItemGroup>
+
+</Project>

@@ -6,14 +6,11 @@ using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Diagnostics;
-using Metalama.Framework.Engine.Fabrics;
-using Metalama.Framework.Engine.HierarchicalOptions;
-using Metalama.Framework.Engine.Licensing;
+using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Pipeline.CompileTime;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.Utilities.Threading;
-using Metalama.Framework.Engine.Validation;
 using Metalama.Framework.Services;
 using Microsoft.CodeAnalysis;
 using System;
@@ -33,9 +30,8 @@ public sealed class LiveTemplateAspectPipeline : AspectPipeline
 
     private LiveTemplateAspectPipeline(
         ServiceProvider<IProjectService> serviceProvider,
-        CompileTimeDomain domain,
         Func<AspectPipelineConfiguration, IAspectClass> aspectSelector,
-        ISymbol targetSymbol ) : base( serviceProvider, ExecutionScenario.LiveTemplate, domain )
+        ISymbol targetSymbol ) : base( serviceProvider, ExecutionScenario.LiveTemplate )
     {
         this._aspectSelector = aspectSelector;
         this._targetSymbol = targetSymbol;
@@ -50,47 +46,21 @@ public sealed class LiveTemplateAspectPipeline : AspectPipeline
     {
         var aspectClass = this._aspectSelector( configuration );
 
-        return new PipelineContributorSources(
-            ImmutableArray.Create<IAspectSource>( new AspectSource( this, aspectClass ) ),
-            ImmutableArray<IValidatorSource>.Empty,
-            ImmutableArray<IHierarchicalOptionsSource>.Empty );
+        return new PipelineContributorSources( ImmutableArray.Create<IPipelineContributor>( new AspectSource( this, aspectClass ) ) );
     }
 
     public static async Task<FallibleResult<PartialCompilation>> ExecuteAsync(
         ServiceProvider<IProjectService> serviceProvider,
-        CompileTimeDomain domain,
         AspectPipelineConfiguration? pipelineConfiguration,
         Func<AspectPipelineConfiguration, IAspectClass> aspectSelector,
         PartialCompilation inputCompilation,
         ISymbol targetSymbol,
         IDiagnosticAdder diagnosticAdder,
-        bool isComputingPreview,
         TestableCancellationToken cancellationToken = default )
     {
-        LiveTemplateAspectPipeline pipeline = new( serviceProvider, domain, aspectSelector, targetSymbol );
+        LiveTemplateAspectPipeline pipeline = new( serviceProvider, aspectSelector, targetSymbol );
 
         var result = await pipeline.ExecuteAsync( inputCompilation, diagnosticAdder, pipelineConfiguration, cancellationToken );
-
-        if ( result.IsSuccessful )
-        {
-            // Enforce licensing
-            var aspectClass = aspectSelector( result.Value.Configuration );
-
-            var licenseVerifier = result.Value.Configuration.ServiceProvider.GetService<LicenseVerifier>();
-
-            if ( !isComputingPreview && licenseVerifier != null
-                                     && !licenseVerifier.VerifyCanApplyLiveTemplate( serviceProvider, aspectClass, diagnosticAdder ) )
-            {
-                licenseVerifier.DetectToastNotifications();
-
-                diagnosticAdder.Report(
-                    LicensingDiagnosticDescriptors.CodeActionNotAvailable.CreateRoslynDiagnostic(
-                        targetSymbol.GetDiagnosticLocation(),
-                        ($"Apply [{aspectClass.DisplayName}] aspect", aspectClass.DisplayName) ) );
-
-                return default;
-            }
-        }
 
         if ( !result.IsSuccessful )
         {
@@ -105,7 +75,7 @@ public sealed class LiveTemplateAspectPipeline : AspectPipeline
     private protected override HighLevelPipelineStage CreateHighLevelStage(
         PipelineStageConfiguration configuration,
         CompileTimeProject compileTimeProject )
-        => new LinkerPipelineStage( compileTimeProject, configuration.AspectLayers );
+        => new LinkerPipelineStage( configuration.AspectLayers );
 
     private sealed class AspectSource : IAspectSource
     {
@@ -120,14 +90,14 @@ public sealed class LiveTemplateAspectPipeline : AspectPipeline
 
         public ImmutableArray<IAspectClass> AspectClasses { get; }
 
-        public Task CollectAspectInstancesAsync(
-            IAspectClass aspectClass,
-            OutboundActionCollectionContext context )
+        public Task CollectAspectInstancesAsync( AspectInstanceCollector collector )
         {
-            var targetDeclaration = context.Compilation.Factory.GetDeclaration( this._parent._targetSymbol );
+            var targetDeclaration = collector.Compilation.Factory.GetDeclaration( this._parent._targetSymbol );
 
-            context.Collector.AddAspectInstance(
-                ((AspectClass) aspectClass).CreateAspectInstance(
+            var aspectClass = (AspectClass) collector.AspectClass;
+
+            collector.AddAspectInstance(
+                aspectClass.CreateAspectInstance(
                     targetDeclaration,
                     (IAspect) Activator.CreateInstance( this.AspectClasses[0].Type ).AssertNotNull(),
                     new AspectPredecessor(

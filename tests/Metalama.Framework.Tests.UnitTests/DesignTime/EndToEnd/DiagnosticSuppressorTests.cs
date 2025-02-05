@@ -1,9 +1,11 @@
 ﻿// Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
-using Metalama.Framework.DesignTime;
 using Metalama.Framework.DesignTime.Diagnostics;
+using Metalama.Framework.DesignTime.DiagnosticSuppressing;
+using Metalama.Framework.DesignTime.Extensibility;
 using Metalama.Framework.Engine.Services;
-using Metalama.Framework.Tests.UnitTests.DesignTime.Mocks;
+using Metalama.Framework.Tests.UnitTestHelpers.Mocks;
+using Metalama.Testing.UnitTesting;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
 using System.Collections.Generic;
@@ -15,12 +17,13 @@ namespace Metalama.Framework.Tests.UnitTests.DesignTime.EndToEnd;
 
 #pragma warning disable VSTHRD200
 
-public sealed class DiagnosticSuppressorTests : FrameworkBaseTestClass
+public sealed class DiagnosticSuppressorTests : UnitTestClass
 {
     protected override void ConfigureServices( IAdditionalServiceCollection services )
     {
         base.ConfigureServices( services );
         services.AddGlobalService<IUserDiagnosticRegistrationService>( new TestUserDiagnosticRegistrationService() );
+        services.AddGlobalService( provider => new DesignTimeExtensionManager( provider ) );
     }
 
     private async Task<List<Suppression>> ExecuteSuppressorAsync( string code, string diagnosticId )
@@ -30,7 +33,7 @@ public sealed class DiagnosticSuppressorTests : FrameworkBaseTestClass
         var pipelineFactory = new TestDesignTimeAspectPipelineFactory( testContext );
 
         var workspaceProvider = new TestWorkspaceProvider( testContext.ServiceProvider );
-        workspaceProvider.AddOrUpdateProject( "project", new Dictionary<string, string>() { ["code.cs"] = code } );
+        workspaceProvider.AddOrUpdateProject( testContext, "project", new Dictionary<string, string>() { ["code.cs"] = code } );
         var compilation = await workspaceProvider.GetProject( "project" ).GetCompilationAsync();
         var diagnostics = compilation!.GetDiagnostics();
 
@@ -209,7 +212,7 @@ public sealed class DiagnosticSuppressorTests : FrameworkBaseTestClass
 
         Assert.Equal( "code.cs(19,9): warning CS0169: The field 'TargetClass._field' is never used", suppression.SuppressedDiagnostic.ToString() );
     }
-    
+
     [Fact]
     public async Task SuppressTemplateWarnings()
     {
@@ -225,7 +228,7 @@ public sealed class DiagnosticSuppressorTests : FrameworkBaseTestClass
                                 protected void SuspendInvariants()
                                 {
                                 }
-                            
+
                             }
                             """;
 
@@ -233,6 +236,8 @@ public sealed class DiagnosticSuppressorTests : FrameworkBaseTestClass
 
         var suppression = Assert.Single( suppressions );
 
-        Assert.Equal( "code.cs(9,20): warning CS0628: 'SomeAspect.SuspendInvariants()': new protected member declared in sealed type", suppression.SuppressedDiagnostic.ToString() );
+        Assert.Equal(
+            "code.cs(9,20): warning CS0628: 'SomeAspect.SuspendInvariants()': new protected member declared in sealed type",
+            suppression.SuppressedDiagnostic.ToString() );
     }
 }

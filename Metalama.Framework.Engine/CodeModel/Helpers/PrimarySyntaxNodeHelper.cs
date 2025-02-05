@@ -10,7 +10,7 @@ namespace Metalama.Framework.Engine.CodeModel.Helpers
 {
     public static class PrimarySyntaxNodeHelper
     {
-        internal static SyntaxNode? GetPrimaryDeclarationSyntax( this IDeclaration declaration )
+        public static SyntaxNode? GetPrimaryDeclarationSyntax( this IDeclaration declaration )
             => declaration switch
             {
                 ISymbolBasedCompilationElement symbolBased => symbolBased.Symbol.GetPrimaryDeclarationSyntax(),

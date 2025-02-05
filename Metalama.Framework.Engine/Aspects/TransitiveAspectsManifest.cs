@@ -7,7 +7,6 @@ using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.CompileTime.Serialization;
 using Metalama.Framework.Engine.HierarchicalOptions;
 using Metalama.Framework.Engine.Services;
-using Metalama.Framework.Engine.Validation;
 using Metalama.Framework.Options;
 using Metalama.Framework.Serialization;
 using System;
@@ -23,7 +22,7 @@ public sealed class TransitiveAspectsManifest : ITransitiveAspectsManifest
 {
     public ImmutableDictionary<string, IReadOnlyList<InheritableAspectInstance>> InheritableAspects { get; private set; }
 
-    public ImmutableArray<TransitiveValidatorInstance> ReferenceValidators { get; private set; }
+    public ImmutableArray<ITransitiveAspectsManifestExtension> Extensions { get; private set; }
 
     // To levels of mapping of options: first option types, then target declaration.
     public ImmutableDictionary<HierarchicalOptionsKey, IHierarchicalOptions> InheritableOptions { get; private set; }
@@ -40,19 +39,19 @@ public sealed class TransitiveAspectsManifest : ITransitiveAspectsManifest
 
     private TransitiveAspectsManifest(
         ImmutableDictionary<string, IReadOnlyList<InheritableAspectInstance>> inheritableAspects,
-        ImmutableArray<TransitiveValidatorInstance> validators,
+        ImmutableArray<ITransitiveAspectsManifestExtension> extensions,
         ImmutableDictionary<HierarchicalOptionsKey, IHierarchicalOptions> options,
         ImmutableDictionaryOfArray<SerializableDeclarationId, IAnnotation> annotations )
     {
         this.InheritableAspects = inheritableAspects;
-        this.ReferenceValidators = validators;
+        this.Extensions = extensions;
         this.InheritableOptions = options;
         this.Annotations = annotations;
     }
 
     public static TransitiveAspectsManifest Create(
         ImmutableArray<InheritableAspectInstance> inheritedAspect,
-        ImmutableArray<TransitiveValidatorInstance> validators,
+        ImmutableArray<ITransitiveAspectsManifestExtension> extensions,
         ImmutableDictionary<HierarchicalOptionsKey, IHierarchicalOptions> options,
         ImmutableDictionaryOfArray<SerializableDeclarationId, IAnnotation> annotations )
         => new(
@@ -62,7 +61,7 @@ public sealed class TransitiveAspectsManifest : ITransitiveAspectsManifest
                     g => g.Select( i => new InheritableAspectInstance( i ) )
                         .ToReadOnlyList(),
                     StringComparer.Ordinal ),
-            validators,
+            extensions,
             options,
             annotations );
 
@@ -119,7 +118,7 @@ public sealed class TransitiveAspectsManifest : ITransitiveAspectsManifest
         {
             var instance = (TransitiveAspectsManifest) obj;
             initializationArguments.SetValue( nameof(instance.InheritableAspects), instance.InheritableAspects );
-            initializationArguments.SetValue( nameof(instance.ReferenceValidators), instance.ReferenceValidators );
+            initializationArguments.SetValue( nameof(instance.Extensions), instance.Extensions );
             initializationArguments.SetValue( nameof(instance.InheritableOptions), instance.InheritableOptions );
             initializationArguments.SetValue( nameof(instance.Annotations), instance.Annotations.ToImmutableDictionary() );
         }
@@ -131,8 +130,8 @@ public sealed class TransitiveAspectsManifest : ITransitiveAspectsManifest
             instance.InheritableAspects =
                 initializationArguments.GetValue<ImmutableDictionary<string, IReadOnlyList<InheritableAspectInstance>>>( nameof(instance.InheritableAspects) )!;
 
-            instance.ReferenceValidators =
-                initializationArguments.GetValue<ImmutableArray<TransitiveValidatorInstance>>( nameof(instance.ReferenceValidators) );
+            instance.Extensions =
+                initializationArguments.GetValue<ImmutableArray<ITransitiveAspectsManifestExtension>>( nameof(instance.Extensions) );
 
             instance.InheritableOptions =
                 initializationArguments.GetValue<ImmutableDictionary<HierarchicalOptionsKey, IHierarchicalOptions>>( nameof(instance.InheritableOptions) )!;

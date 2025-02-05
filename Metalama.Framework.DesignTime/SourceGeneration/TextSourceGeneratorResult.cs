@@ -11,7 +11,7 @@ namespace Metalama.Framework.DesignTime.SourceGeneration;
 /// An implementation of <see cref="SourceGeneratorResult"/> backed by strings. It is used in the VS user process,
 /// because the strings come deserialized from the analysis process.
 /// </summary>
-public sealed class TextSourceGeneratorResult : SourceGeneratorResult
+internal sealed class TextSourceGeneratorResult : SourceGeneratorResult
 {
     private readonly ImmutableDictionary<string, string> _sources;
 

@@ -5,7 +5,8 @@ using Metalama.Framework.Engine.Pipeline.DesignTime;
 using Metalama.Framework.Engine.SerializableIds;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Project;
-using Metalama.Framework.Tests.UnitTests.DesignTime.Mocks;
+using Metalama.Framework.Tests.UnitTestHelpers.Mocks;
+using Metalama.Framework.Tests.UnitTestHelpers.TestClasses;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -55,10 +56,9 @@ public sealed class CodeLensTests : DesignTimeTestBase
                             {
                                 public override void BuildAspect(IAspectBuilder<INamedType> builder)
                                 {
-                                    builder.IntroduceMethod( nameof(Get));
+                                    var introduced = builder.IntroduceMethod( nameof(Get) );
                             
-                                    builder.Outbound.SelectMany(type => type.Methods)
-                                        .AddAspectIfEligible<InjectedLoggerAttribute>();
+                                    introduced.AddAspect<InjectedLoggerAttribute>();
                                 }
                             
                                 [Template]
@@ -72,7 +72,7 @@ public sealed class CodeLensTests : DesignTimeTestBase
                             """;
 
         var workspaceProvider = factory.ServiceProvider.GetRequiredService<TestWorkspaceProvider>();
-        var projectKey = workspaceProvider.AddOrUpdateProject( "project", new Dictionary<string, string> { ["code.cs"] = code } );
+        var projectKey = workspaceProvider.AddOrUpdateProject( testContext, "project", new Dictionary<string, string> { ["code.cs"] = code } );
 
         var compilation = (await workspaceProvider.GetCompilationAsync( projectKey ))!;
 
@@ -143,7 +143,7 @@ public sealed class CodeLensTests : DesignTimeTestBase
                                         builder.SkipAspect();
                                     }
                             
-                                    builder.Outbound.AddAspect<MyChildAspect>();
+                                    builder.AddAspect<MyChildAspect>();
                             
                                     builder.IntroduceMethod( nameof(Template));
                                 }
@@ -160,7 +160,7 @@ public sealed class CodeLensTests : DesignTimeTestBase
                             """;
 
         var workspaceProvider = factory.ServiceProvider.GetRequiredService<TestWorkspaceProvider>();
-        var projectKey = workspaceProvider.AddOrUpdateProject( "project", new Dictionary<string, string> { ["code.cs"] = code } );
+        var projectKey = workspaceProvider.AddOrUpdateProject( testContext, "project", new Dictionary<string, string> { ["code.cs"] = code } );
 
         var compilation = (await workspaceProvider.GetCompilationAsync( projectKey ))!;
 

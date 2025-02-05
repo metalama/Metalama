@@ -23,4 +23,8 @@ public interface IAdditionalServiceCollection : IGlobalService, IDisposable
 
     void AddGlobalService<T>( Func<GlobalServiceProvider, T> service, bool allowOverride = false )
         where T : class, IGlobalService;
+
+    void AddUntypedProjectService( Type serviceType, object implementation, bool allowOverride = false );
+
+    void AddUntypedGlobalService( Type serviceType, object implementation, bool allowOverride = false );
 }

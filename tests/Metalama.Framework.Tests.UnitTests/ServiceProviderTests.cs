@@ -6,7 +6,7 @@ using Metalama.Framework.DesignTime.Pipeline.Diff;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Project;
 using Metalama.Framework.Services;
-using Metalama.Framework.Tests.UnitTests.DesignTime.Mocks;
+using Metalama.Framework.Tests.UnitTestHelpers.Mocks;
 using Metalama.Testing.UnitTesting;
 using System;
 using System.Threading.Tasks;

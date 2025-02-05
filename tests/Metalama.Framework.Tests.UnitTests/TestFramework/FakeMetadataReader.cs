@@ -1,7 +1,6 @@
 ﻿// Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
 using Metalama.Testing.AspectTesting;
-using Metalama.Testing.AspectTesting.Licensing;
 using System.Collections.Immutable;
 using Xunit.Abstractions;
 
@@ -25,7 +24,8 @@ internal sealed class FakeMetadataReader : ITestAssemblyMetadataReader
             false,
             ImmutableArray<TestAssemblyReference>.Empty,
             ImmutableArray<TestAssemblyReference>.Empty,
+            ImmutableArray<TestAssemblyReference>.Empty,
+            ImmutableArray<string>.Empty, 
             null,
-            new TestFrameworkLicenseStatus( "test", null, false ),
             ImmutableArray<string>.Empty );
 }

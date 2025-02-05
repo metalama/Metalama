@@ -3,7 +3,6 @@
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Aspects;
-using Metalama.Framework.Engine.Validation;
 using Metalama.Framework.Fabrics;
 using Microsoft.CodeAnalysis;
 using System;
@@ -13,11 +12,9 @@ namespace Metalama.Framework.Engine.Fabrics
 {
     internal sealed class FabricInstance : IFabricInstanceInternal, IAspectPredecessorImpl
     {
-        public FabricDriver Driver { get; }
+        private FabricDriver Driver { get; }
 
         public string FabricTypeFullName => this.Driver.FabricTypeFullName;
-
-        public ValidatorDriverFactory ValidatorDriverFactory { get; }
 
         IRef<IDeclaration> IAspectPredecessor.TargetDeclaration => this.TargetDeclaration;
 
@@ -32,8 +29,6 @@ namespace Metalama.Framework.Engine.Fabrics
             this.Driver = driver;
             this.TargetDeclaration = targetDeclaration.ToRef();
             this.TargetDeclarationDepth = targetDeclaration.Depth;
-
-            this.ValidatorDriverFactory = ValidatorDriverFactory.GetInstance( driver.Fabric.GetType() );
         }
 
         public Fabric Fabric => this.Driver.Fabric;

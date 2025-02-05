@@ -8,7 +8,6 @@ using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
-using System.Linq;
 using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
@@ -109,21 +108,11 @@ namespace Metalama.Framework.Engine.Utilities
                 }
             }
 
-            // Read public types.
-            var exportedTypes = metadataReader.TypeDefinitions
-                .SelectAsReadOnlyCollection( handle => metadataReader.GetTypeDefinition( handle ) )
-                .Where( type => (type.Attributes & TypeAttributes.VisibilityMask) == TypeAttributes.Public )
-                .GroupBy( type => type.Namespace )
-                .ToImmutableDictionary(
-                    group => group.Key.IsNil ? "" : metadataReader.GetString( group.Key ),
-                    group => group.Select( type => metadataReader.GetString( type.Name ) ).ToImmutableArray() );
-
             return new MetadataInfo(
                 assemblyIdentity,
                 timestamp,
                 resourcesDictionaryBuilder?.ToImmutable() ?? ImmutableDictionary<string, byte[]>.Empty,
-                hasCompileTimeAttribute,
-                exportedTypes );
+                hasCompileTimeAttribute );
         }
     }
 }

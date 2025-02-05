@@ -19,13 +19,14 @@ using System.Linq;
 
 namespace Metalama.Framework.Engine.AdviceImpl.Introduction;
 
-internal sealed class IntroduceConstructorParameterAdvice : Advice<IntroduceConstructorParameterAdviceResult>
+internal sealed class IntroduceConstructorParameterAdvice : Advice<IntroductionAdviceResult<IParameter>>
 {
     private readonly string _parameterName;
     private readonly IType _parameterType;
     private readonly Action<ParameterBuilder>? _buildAction;
     private readonly Func<IParameter, IConstructor, PullAction>? _pullActionFunc;
     private readonly TypedConstant _defaultValue;
+    private readonly IAdviceFactoryImpl _adviceFactory;
 
     public IntroduceConstructorParameterAdvice(
         AdviceConstructorParameters<IConstructor> parameters,
@@ -33,7 +34,8 @@ internal sealed class IntroduceConstructorParameterAdvice : Advice<IntroduceCons
         IType parameterType,
         Action<ParameterBuilder>? buildAction,
         Func<IParameter, IConstructor, PullAction>? pullActionFunc,
-        TypedConstant defaultValue )
+        TypedConstant defaultValue,
+        IAdviceFactoryImpl adviceFactory )
         : base( parameters )
     {
         this._parameterName = parameterName;
@@ -41,11 +43,12 @@ internal sealed class IntroduceConstructorParameterAdvice : Advice<IntroduceCons
         this._buildAction = buildAction;
         this._pullActionFunc = pullActionFunc;
         this._defaultValue = defaultValue;
+        this._adviceFactory = adviceFactory;
     }
 
     public override AdviceKind AdviceKind => AdviceKind.IntroduceParameter;
 
-    protected override IntroduceConstructorParameterAdviceResult Implement( in AdviceImplementationContext context )
+    protected override IntroductionAdviceResult<IParameter> Implement( in AdviceImplementationContext context )
     {
         var compilation = context.MutableCompilation;
         var contextCopy = context;
@@ -108,7 +111,12 @@ internal sealed class IntroduceConstructorParameterAdvice : Advice<IntroduceCons
         // Pull from constructors that call the current constructor, and recursively.
         PullConstructorParameterRecursive( constructor, parameter );
 
-        return new IntroduceConstructorParameterAdviceResult( parameterBuilderData.ToRef() );
+        return new IntroductionAdviceResult<IParameter>(
+            AdviceKind.IntroduceParameter,
+            AdviceOutcome.Default,
+            parameterBuilderData.ToRef(),
+            null,
+            this._adviceFactory );
 
         void PullConstructorParameterRecursive( IConstructor baseConstructor, IParameter baseParameter )
         {

@@ -18,7 +18,7 @@ namespace Metalama.Framework.Engine.Aspects
     /// <summary>
     /// Represents an instance of an aspect and its target declaration.
     /// </summary>
-    internal sealed class AspectInstance : IAspectInstanceInternal, IComparable<AspectInstance>
+    public sealed class AspectInstance : IAspectInstanceInternal, IComparable<AspectInstance>
     {
         /// <summary>
         /// Gets the aspect instance.
@@ -27,11 +27,13 @@ namespace Metalama.Framework.Engine.Aspects
 
         IAspectClass IAspectInstance.AspectClass => this.AspectClass;
 
-        public IAspectClassImpl AspectClass { get; }
+        internal IAspectClassImpl AspectClass { get; }
+
+        IAspectClassImpl IAspectInstanceInternal.AspectClass => this.AspectClass;
 
         IRef<IDeclaration> IAspectPredecessor.TargetDeclaration => this.TargetDeclaration;
 
-        public IRef<IDeclaration> TargetDeclaration { get; }
+        internal IRef<IDeclaration> TargetDeclaration { get; }
 
         public bool IsSkipped { get; private set; }
 
@@ -41,11 +43,13 @@ namespace Metalama.Framework.Engine.Aspects
 
         public void Skip() { this.IsSkipped = true; }
 
-        public ImmutableDictionary<TemplateClass, TemplateClassInstance> TemplateInstances { get; }
+        internal ImmutableDictionary<TemplateClass, TemplateClassInstance> TemplateInstances { get; }
+
+        ImmutableDictionary<TemplateClass, TemplateClassInstance> IAspectInstanceInternal.TemplateInstances => this.TemplateInstances;
 
         public ImmutableArray<AspectPredecessor> Predecessors { get; }
 
-        public IAspectState? AspectState { get; set; }
+        public IAspectState? AspectState { get; internal set; }
 
         void IAspectInstanceInternal.SetState( IAspectState? value ) => this.AspectState = value;
 
@@ -102,7 +106,7 @@ namespace Metalama.Framework.Engine.Aspects
                                  ?? ((IConditionallyInheritableAspect) aspect).IsInheritable( targetDeclaration, this );
         }
 
-        public EligibleScenarios ComputeEligibility( IDeclaration declaration )
+        internal EligibleScenarios ComputeEligibility( IDeclaration declaration )
         {
             var eligibility = this.AspectClass.GetEligibility( declaration, this.IsInheritable );
 
@@ -176,7 +180,7 @@ namespace Metalama.Framework.Engine.Aspects
             return 0;
         }
 
-        public AspectInstance CreateDerivedInstance( IDeclaration target )
+        internal AspectInstance CreateDerivedInstance( IDeclaration target )
             => new(
                 this.Aspect,
                 target,

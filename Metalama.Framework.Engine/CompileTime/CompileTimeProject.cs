@@ -35,6 +35,8 @@ namespace Metalama.Framework.Engine.CompileTime;
 /// </summary>
 internal sealed class CompileTimeProject : IProjectService
 {
+    public static CompileTimeProject Empty { get; } = new();
+
     internal CompileTimeProjectManifest? Manifest { get; }
 
     internal string? CompiledAssemblyPath { get; }
@@ -120,23 +122,11 @@ internal sealed class CompileTimeProject : IProjectService
     public IReadOnlyList<string> ClosureOptionTypes
         => this.ClosureProjects.SelectMany( p => p.Manifest?.OptionTypes ?? Enumerable.Empty<string>() )
             .ToReadOnlyList();
-
-    [Memo]
-    public bool ClosureReferencesMetalamaSdk => this.ClosureProjects.Any( p => p.Manifest?.ReferencesMetalamaSdk == true );
-
+    
     /// <summary>
     /// Gets a <see cref="MetadataReference"/> corresponding to the current project.
     /// </summary>
     public MetadataReference ToMetadataReference() => MetadataReferenceCache.GetMetadataReference( this.AssertNotEmpty().CompiledAssemblyPath! );
-
-    /// <summary>
-    /// Gets a <see cref="CompileTime.ProjectLicenseInfo"/> corresponding to the current project.
-    /// </summary>
-    [Memo]
-    public ProjectLicenseInfo ProjectLicenseInfo
-        => this.Manifest?.RedistributionLicenseKey == null
-            ? ProjectLicenseInfo.Empty
-            : new ProjectLicenseInfo( this.Manifest.RedistributionLicenseKey );
 
     /// <summary>
     /// Gets the unique hash of the project, computed from the source code.
@@ -172,6 +162,33 @@ internal sealed class CompileTimeProject : IProjectService
         }
 
         return this;
+    }
+
+    private CompileTimeProject()
+    {
+        this.Manifest = new CompileTimeProjectManifest(
+            "<empty>",
+            "",
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            null,
+            0,
+            [],
+            [],
+            false );
+
+        this.Domain = null!;
+        this.RunTimeIdentity = new AssemblyIdentity( "<empty>" );
+        this.CompileTimeIdentity = new AssemblyIdentity( "<empty>" );
+        this.References = [];
+        this.ClosureProjects = [];
+        this.DiagnosticManifest = DiagnosticManifest.Empty;
+        this.ClosureDiagnosticManifest = DiagnosticManifest.Empty;
     }
 
     internal CompileTimeProject(
@@ -374,7 +391,6 @@ internal sealed class CompileTimeProject : IProjectService
             optionTypes,
             null,
             TemplateProjectManifest.Empty,
-            null,
             projectHash,
             Array.Empty<CompileTimeFileManifest>(),
             Array.Empty<CompileTimeDiagnosticManifest>(),

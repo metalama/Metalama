@@ -135,21 +135,21 @@ namespace Metalama.Framework.Engine.Diagnostics
                 Error,
                 "The aspect cannot be applied to a declaration because eligibility conditions are not met." );
 
-        internal static readonly DiagnosticDefinition<(FormattableString Predecessor, string AspectType, IDeclaration Child, IDeclaration Parent)>
+        internal static readonly DiagnosticDefinition<(FormattableString Predecessor, IDeclaration Child, IDeclaration Parent)>
             CanAddChildAspectOnlyUnderParent = new(
                 "LAMA0038",
-                _category,
-                "The {0} cannot add a child aspect of type '{1}' to '{2}' because it is not contained in '{3}'.",
                 Error,
-                "A parent aspect or fabric can add child aspects only under its target declaration." );
+                "The {0} cannot add a child aspect to '{1}' because it is not contained in '{2}'.",
+                "A parent aspect or fabric can add child aspects only under its target declaration.",
+                _category );
 
         internal static readonly DiagnosticDefinition<(FormattableString Predecessor, string AspectType, IDeclaration Child, FormattableString Reason)>
             IneligibleChildAspect = new(
                 "LAMA0039",
-                _category,
-                "The {0} cannot add a child aspect of type '{1}' to '{2}' because {3}.",
                 Error,
-                "A parent aspect or fabric can add child aspects only under its target declaration." );
+                "The {0} cannot add a child aspect of type '{1}' to '{2}' because {3}.",
+                "A parent aspect or fabric can add child aspects only under its target declaration.",
+                _category );
 
         internal static readonly DiagnosticDefinition<Type>
             TypeMustHavePublicDefaultConstructor = new(
@@ -169,22 +169,13 @@ namespace Metalama.Framework.Engine.Diagnostics
                     _category,
                     Error );
 
-        public static readonly DiagnosticDefinition<string>
-            SuggestedCodeFix
-                = new(
-                    "LAMA0043",
-                    Hidden,
-                    "Suggestion: {0}",
-                    "Code fix suggestion",
-                    _category );
-
         internal static readonly DiagnosticDefinition<(FormattableString Predecessor, IDeclaration Child, IDeclaration Parent)>
-            CanAddValidatorOnlyUnderParent = new(
+            CanSetOptionsOnlyUnderParent = new(
                 "LAMA0044",
-                _category,
-                "The {0} cannot add a validator to '{1}' because it is not contained in '{2}'.",
                 Error,
-                "An aspect or fabric can add validators only under its target declaration." );
+                "The {0} cannot set options for '{1}' because it is not contained in '{2}'.",
+                "An aspect or fabric can set options only under its target declaration.",
+                _category );
 
         internal static readonly DiagnosticDefinition<INamedTypeSymbol>
             LiveTemplateMustHaveDefaultConstructor = new(
@@ -264,14 +255,6 @@ namespace Metalama.Framework.Engine.Diagnostics
                 Error,
                 "Cannot add an aspect to a previous step of the compilation pipeline." );
 
-        internal static readonly
-            DiagnosticDefinition<string> CannotFindCodeFix = new(
-                "LAMA0056",
-                _category,
-                "The code fix '{0}' could no longer be found. The logic that suggests the code fix may be non-deterministic.",
-                Error,
-                "The code fix could no longer be found. The logic that suggests the code fix may be non-deterministic." );
-
         internal static readonly DiagnosticDefinition MetalamaNotInstalled =
             new(
                 "LAMA0057",
@@ -347,6 +330,14 @@ namespace Metalama.Framework.Engine.Diagnostics
         internal static readonly DiagnosticDefinition
             ErrorsInSourceCode =
                 new( "LAMA0068", _category, "Compile-time code contains C# errors.", Error, "Compile-time code contains C# errors." );
+
+        internal static readonly DiagnosticDefinition<(FormattableString Predecessor, IDeclaration Child, IDeclaration Parent)>
+            CanReportDiagnosticOnlyUnderParent = new(
+                "LAMA0069",
+                Error,
+                "The {0} cannot add a report or suppress a diagnostic to or from '{1}' because it is not contained in '{2}'.",
+                "An aspect or fabric can report or suppress a diagnostic  only under its target declaration.",
+                _category );
 
         // TODO: Use formattable string (C# does not seem to find extension methods).
         internal static readonly DiagnosticDefinition<string>

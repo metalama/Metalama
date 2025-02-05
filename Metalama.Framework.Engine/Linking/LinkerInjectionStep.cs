@@ -58,7 +58,7 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
         // TODO: Consider parallelization based on containing type and not syntax tree. This would remove non-determinism in name selection.
 
         // We don't use a code fix filter because the linker is not supposed to suggest code fixes. If that changes, we need to pass a filter.
-        var diagnostics = new UserDiagnosticSink( input.CompileTimeProject, null );
+        var diagnostics = new UserDiagnosticSink( this._serviceProvider );
 
         var supportsNullability = input.FinalCompilationModel.RoslynCompilation.Options.NullableContextOptions != NullableContextOptions.Disable;
 

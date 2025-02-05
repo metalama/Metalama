@@ -14,7 +14,7 @@ namespace Metalama.Framework.DesignTime.SourceGeneration;
 
 public partial class BaseSourceGenerator
 {
-    private sealed class OfflineProjectHandler : ProjectHandler
+    private sealed class OfflineProjectHandler : ProjectSourceGenerator
     {
         private readonly GlobalServiceProvider _globalServiceProvider;
         private readonly ILogger _logger;

@@ -29,7 +29,7 @@ internal abstract class Advice<TResult> : Advice
         implementationContext.ThrowIfAnyError();
 
         context.Diagnostics.Report( initializationDiagnostics );
-        context.Diagnostics.Report( adviceResult.Diagnostics );
+        context.Diagnostics.Report( adviceResult.ReportedDiagnostics );
 
         // Set the compilation in which references must be resolved.
         adviceResult.Compilation = context.MutableCompilation;
@@ -70,15 +70,15 @@ internal abstract class Advice<TResult> : Advice
     protected abstract TResult Implement( in AdviceImplementationContext context );
 
     protected TResult CreateFailedResult( Diagnostic diagnostic )
-        => new() { Diagnostics = ImmutableArray.Create( diagnostic ), Outcome = AdviceOutcome.Error, AdviceKind = this.AdviceKind };
+        => new() { ReportedDiagnostics = ImmutableArray.Create( diagnostic ), Outcome = AdviceOutcome.Error, AdviceKind = this.AdviceKind };
 
     protected TResult CreateFailedResult( ImmutableArray<Diagnostic> diagnostics )
-        => new() { Diagnostics = diagnostics, Outcome = AdviceOutcome.Error, AdviceKind = this.AdviceKind };
+        => new() { ReportedDiagnostics = diagnostics, Outcome = AdviceOutcome.Error, AdviceKind = this.AdviceKind };
 
     internal readonly struct AdviceImplementationContext
     {
         private readonly List<ITransformation> _transformations;
-        
+
         private readonly IAdviceExecutionContext _adviceExecutionContext;
 
         public AdviceImplementationContext( DiagnosticBag diagnostics, IAdviceExecutionContext adviceExecutionContext, List<ITransformation> transformations )

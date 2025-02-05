@@ -11,6 +11,19 @@ internal static class NamespaceHelper
 
     public static string? GetFullName( this INamespaceOrTypeSymbol? symbol ) => symbol == null ? null : _fullNameCache.GetOrAdd( symbol, GetFullNameImpl );
 
+    public static INamespaceOrTypeSymbol? GetFirstLevel( this INamespaceSymbol ns )
+    {
+        for ( var n = ns; !n.IsGlobalNamespace; n = n.ContainingNamespace )
+        {
+            if ( n.ContainingNamespace.IsGlobalNamespace )
+            {
+                return n;
+            }
+        }
+
+        return null;
+    }
+
     private static string? GetFullNameImpl( this INamespaceOrTypeSymbol? symbol )
     {
         if ( symbol is null or INamespaceSymbol { IsGlobalNamespace: true } )

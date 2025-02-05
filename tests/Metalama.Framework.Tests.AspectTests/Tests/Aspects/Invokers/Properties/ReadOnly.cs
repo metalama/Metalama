@@ -27,7 +27,7 @@ public class IntroduceFieldAttribute : TypeAspect
         builder.IntroduceProperty( nameof(PropertyTemplate), buildProperty: f => f.Name = "IntroducedProperty" );
         var p = builder.IntroduceProperty( nameof(PropertyTemplate), buildProperty: f => f.Name = "OverriddenIntroducedProperty" );
 
-        builder.With<IProperty>( p.Declaration ).Outbound.AddAspect<OverridePropertyAttribute>();
+        p.AddAspect<OverridePropertyAttribute>();
     }
 
     [Template]

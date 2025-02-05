@@ -7,13 +7,15 @@ using Metalama.Framework.Engine.Templating;
 using Metalama.Framework.Tests.TemplateTests.Runner;
 using Metalama.Testing.UnitTesting;
 using Metalama.Testing.AspectTesting;
-using Metalama.Testing.AspectTesting.Licensing;
 using Microsoft.CodeAnalysis;
-using PostSharp.Patterns.Model;
 using System;
+using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Documents;
@@ -21,8 +23,7 @@ using System.Windows.Media;
 
 namespace Metalama.AspectWorkbench.ViewModels
 {
-    [NotifyPropertyChanged]
-    internal sealed class MainViewModel
+    internal sealed class MainViewModel : INotifyPropertyChanged
     {
         static MainViewModel()
         {
@@ -35,42 +36,99 @@ namespace Metalama.AspectWorkbench.ViewModels
             assemblyName: null,
             projectDirectory: null,
             sourceDirectory: null,
-            ["NET5_0_OR_GREATER", "NET6_0_OR_GREATER", "NET7_0_OR_GREATER", "NET8_0_OR_GREATER", "NET9_0_OR_GREATER", "ROSLYN_4_4_0_OR_GREATER", "ROSLYN_4_8_0_OR_GREATER", "ROSLYN_4_12_0_OR_GREATER"],
+            [
+                "NET5_0_OR_GREATER", "NET6_0_OR_GREATER", "NET7_0_OR_GREATER", "NET8_0_OR_GREATER", "NET9_0_OR_GREATER", "ROSLYN_4_4_0_OR_GREATER",
+                "ROSLYN_4_8_0_OR_GREATER", "ROSLYN_4_12_0_OR_GREATER"
+            ],
             "net9.0",
-            [],
-            new TestFrameworkLicenseStatus( typeof(MainViewModel).Assembly.GetName().Name!, null, false ) );
+            [] );
 
         private TemplateTest? _currentTest;
+        private string? _sourceCode;
+        private string? _expectedTransformedCode;
+        private FlowDocument? _coloredSourceCodeDocument;
+        private FlowDocument? _compiledTemplateDocument;
+        private FlowDocument? _transformedCodeDocument;
+        private FlowDocument? _intermediateLinkerCodeCodeDocument;
+        private FlowDocument? _errorsDocument;
+        private DetailPaneContent _detailPaneContent;
+        private string? _actualProgramOutput;
+        private string? _expectedProgramOutput;
 
         public string Title => this.CurrentPath == null ? "Aspect Workbench" : $"Aspect Workbench - {this.CurrentPath}";
 
-        public string? SourceCode { get; set; }
+        public string? SourceCode
+        {
+            get => this._sourceCode;
+            set => this.SetField( ref this._sourceCode, value );
+        }
 
-        public string? ExpectedTransformedCode { get; set; }
+        public string? ExpectedTransformedCode
+        {
+            get => this._expectedTransformedCode;
+            set => this.SetField( ref this._expectedTransformedCode, value );
+        }
 
-        public FlowDocument? ColoredSourceCodeDocument { get; set; }
+        public FlowDocument? ColoredSourceCodeDocument
+        {
+            get => this._coloredSourceCodeDocument;
+            set => this.SetField( ref this._coloredSourceCodeDocument, value );
+        }
 
-        public FlowDocument? CompiledTemplateDocument { get; set; }
+        public FlowDocument? CompiledTemplateDocument
+        {
+            get => this._compiledTemplateDocument;
+            set => this.SetField( ref this._compiledTemplateDocument, value );
+        }
+        
+        public FlowDocument? TransformedCodeDocument
+        {
+            get => this._transformedCodeDocument;
+            set => this.SetField( ref this._transformedCodeDocument, value );
+        }
 
-        // TODO: Check why this is not used 
-        // Resharper disable UnusedAutoPropertyAccessor.Global
-        public string? CompiledTemplatePath { get; set; }
+        public FlowDocument? IntermediateLinkerCodeCodeDocument
+        {
+            get => this._intermediateLinkerCodeCodeDocument;
+            set => this.SetField( ref this._intermediateLinkerCodeCodeDocument, value );
+        }
 
-        public FlowDocument? TransformedCodeDocument { get; set; }
-
-        public FlowDocument? IntermediateLinkerCodeCodeDocument { get; set; }
-
-        public FlowDocument? ErrorsDocument { get; set; }
+        public FlowDocument? ErrorsDocument
+        {
+            get => this._errorsDocument;
+            set => this.SetField( ref this._errorsDocument, value );
+        }
 
         public bool IsNewTest => string.IsNullOrEmpty( this.CurrentPath );
 
         private string? CurrentPath { get; set; }
 
-        public DetailPaneContent DetailPaneContent { get; set; }
+        public DetailPaneContent DetailPaneContent
+        {
+            get => this._detailPaneContent;
+            set
+            {
+                if ( this.SetField( ref this._detailPaneContent, value ) )
+                {
+                    this.OnPropertyChanged( nameof(this.CompiledTemplateVisibility) );
+                    this.OnPropertyChanged( nameof(this.ProgramOutputVisibility) );
+                    this.OnPropertyChanged( nameof(this.IntermediateLinkerCodeVisibility) );
+                    this.OnPropertyChanged( nameof(this.HighlightedTemplateVisibility) );
+                }
+            }
+        }
 
-        public string? ActualProgramOutput { get; private set; }
+        public string? ActualProgramOutput
+        {
+            get => this._actualProgramOutput;
+            private set => this.SetField( ref this._actualProgramOutput, value );
+        }
 
-        public string? ExpectedProgramOutput { get; set; }
+        public string? ExpectedProgramOutput
+        {
+            get => this._expectedProgramOutput;
+            set => this.SetField( ref this._expectedProgramOutput, value );
+        }
 
         public Visibility CompiledTemplateVisibility
             => this.DetailPaneContent == DetailPaneContent.CompiledTemplate ? Visibility.Visible : Visibility.Collapsed;
@@ -99,9 +157,6 @@ namespace Metalama.AspectWorkbench.ViewModels
 
             var testInput = TestInput.Factory.Default.FromSource( _projectProperties, this.SourceCode, this.CurrentPath );
 
-            var metadataReferences = TestCompilationFactory.GetMetadataReferences().ToMutableList();
-            metadataReferences.Add( MetadataReference.CreateFromFile( typeof(TestTemplateAttribute).Assembly.Location ) );
-
             // This is a dirty trick. We should read options from the directory instead.
             if ( this.SourceCode.Contains( "[TestTemplate]", StringComparison.Ordinal ) )
             {
@@ -111,7 +166,8 @@ namespace Metalama.AspectWorkbench.ViewModels
             var testContextOptions =
                 new TestContextOptions()
                 {
-                    FormatCompileTimeCode = testInput.Options.FormatCompileTimeCode ?? true, References = metadataReferences.ToImmutableArray()
+                    FormatCompileTimeCode = testInput.Options.FormatCompileTimeCode ?? true,
+                    AdditionalMetadataReferences = [MetadataReference.CreateFromFile( typeof(TestTemplateAttribute).Assembly.Location )]
                 };
 
             using var testContext = new TestContext( testContextOptions );
@@ -120,14 +176,14 @@ namespace Metalama.AspectWorkbench.ViewModels
 
             var syntaxColorizer = new SyntaxColorizer( serviceProvider );
 
-            // License tests are not supported.
-            testInput.Options.LicenseKeyProviderType = null;
-            
             var testRunner = TestRunnerFactory.CreateTestRunner(
                 testInput,
                 serviceProvider,
                 new TestProjectReferences(
-                    metadataReferences.ToImmutableArray(),
+                    testContext.GetMetadataReferences().ToImmutableArray(),
+                    ImmutableArray<TestAssemblyReference>.Empty,
+                    ImmutableArray<TestAssemblyReference>.Empty,
+                    ImmutableArray<string>.Empty, 
                     null ),
                 null );
 
@@ -171,7 +227,7 @@ namespace Metalama.AspectWorkbench.ViewModels
                     if ( transformedTemplateSyntax != null )
                     {
                         // Render the transformed tree.
-                        var project3 = testRunner.CreateProject( testInput.Options );
+                        var project3 = testRunner.CreateProject( testContext, testInput.Options );
 
                         var document3 = project3.AddDocument(
                             testSyntaxTree.OutputCompileTimePath ?? "TransformedTemplate.cs",
@@ -249,7 +305,7 @@ namespace Metalama.AspectWorkbench.ViewModels
                         (await intermediateSyntaxTree.GetRootAsync()).NormalizeWhitespace(),
                         intermediateSyntaxTree.Options );
 
-                    var linkerProject = testRunner.CreateProject( testInput.Options );
+                    var linkerProject = testRunner.CreateProject( testContext, testInput.Options );
 
                     var linkerDocument = linkerProject.AddDocument(
                         "IntermediateLinkerCode.cs",
@@ -372,6 +428,26 @@ namespace Metalama.AspectWorkbench.ViewModels
             this.CurrentPath = filePath;
 
             await TestSerializer.SaveToFileAsync( this._currentTest, this.CurrentPath );
+        }
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+
+        private void OnPropertyChanged( [CallerMemberName] string? propertyName = null )
+        {
+            this.PropertyChanged?.Invoke( this, new PropertyChangedEventArgs( propertyName ) );
+        }
+
+        private bool SetField<T>( ref T field, T value, [CallerMemberName] string? propertyName = null )
+        {
+            if ( EqualityComparer<T>.Default.Equals( field, value ) )
+            {
+                return false;
+            }
+
+            field = value;
+            this.OnPropertyChanged( propertyName );
+
+            return true;
         }
     }
 }

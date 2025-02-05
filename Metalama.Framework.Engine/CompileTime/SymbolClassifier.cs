@@ -18,6 +18,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -31,10 +32,11 @@ namespace Metalama.Framework.Engine.CompileTime;
 /// </summary>
 internal sealed class SymbolClassifier : ISymbolClassifier
 {
+#pragma warning disable CS8621, CS8619 // Disable some nullability weirdness.
     /// <summary>
     /// List of well-known types, for which the scope is overriden (i.e. this list takes precedence over any other rule).
     /// </summary>
-    private static readonly ImmutableDictionary<string, (string Namespace, TemplatingScope? Scope)> _wellKnownTypes =
+    private static readonly IReadOnlyDictionary<string, (string Namespace, TemplatingScope? Scope)> _wellKnownTypes =
         new (Type ReflectionType, TemplatingScope? Scope)[]
             {
                 // We don't want users to interact with a few classes so we mark then RunTimeOnly.
@@ -55,14 +57,27 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                 (typeof(RuntimeEnvironment), TemplatingScope.RunTimeOnly),
                 (typeof(RuntimeInformation), TemplatingScope.RunTimeOnly),
                 (typeof(Marshal), TemplatingScope.RunTimeOnly),
-                (typeof(Index), TemplatingScope.RunTimeOrCompileTime),
-                (typeof(Range), TemplatingScope.RunTimeOrCompileTime)
-            }.ToImmutableDictionary(
-                t => t.ReflectionType.Name.AssertNotNull(),
-                t => (t.ReflectionType.Namespace.AssertNotNull(), t.Scope) )
 
-            // This system type is .NET Framework-only but does not affect the scope.
-            .Add( "_Attribute", ("System.Runtime.InteropServices", null) );
+                // We must have all types from Metalama.SystemTypes.
+                (typeof(Index), TemplatingScope.RunTimeOrCompileTime),
+                (typeof(Range), TemplatingScope.RunTimeOrCompileTime),
+                (typeof(IsExternalInit), TemplatingScope.RunTimeOrCompileTime),
+                (typeof(AllowNullAttribute), TemplatingScope.RunTimeOrCompileTime),
+                (typeof(DisallowNullAttribute), TemplatingScope.RunTimeOrCompileTime),
+                (typeof(MaybeNullAttribute), TemplatingScope.RunTimeOrCompileTime),
+                (typeof(NotNullAttribute), TemplatingScope.RunTimeOrCompileTime),
+                (typeof(MaybeNullWhenAttribute), TemplatingScope.RunTimeOrCompileTime),
+                (typeof(NotNullWhenAttribute), TemplatingScope.RunTimeOrCompileTime),
+                (typeof(NotNullIfNotNullAttribute), TemplatingScope.RunTimeOrCompileTime),
+                (typeof(DoesNotReturnAttribute), TemplatingScope.RunTimeOrCompileTime),
+                (typeof(DoesNotReturnIfAttribute), TemplatingScope.RunTimeOrCompileTime),
+                (typeof(MemberNotNullAttribute), TemplatingScope.RunTimeOrCompileTime),
+                (typeof(MemberNotNullWhenAttribute), TemplatingScope.RunTimeOrCompileTime),
+                (typeof(RequiredMemberAttribute), TemplatingScope.RunTimeOrCompileTime)
+            }.SelectAsReadOnlyList( t => (Name: t.ReflectionType.Name.AssertNotNull(), Namespace: t.ReflectionType.Namespace.AssertNotNull(), t.Scope) )
+            .Concat( [("_Attribute", "System.Runtime.InteropServices", null)] )
+            .ToDictionary( x => x.Name, x => (x.Namespace, x.Scope) );
+#pragma warning restore CS8621, CS8619
 
     /// <summary>
     /// List of well-known members, for which the scope is overriden (i.e. this list takes precedence over any other rule, including well-known types).
@@ -91,7 +106,7 @@ internal sealed class SymbolClassifier : ISymbolClassifier
     private readonly ConcurrentDictionary<ISymbol, TemplateInfo> _cacheNonInheritedTemplateInfo;
     private readonly ConcurrentDictionary<ISymbol, bool> _cacheIsTemplateOnly;
 
-    private readonly ReferenceAssemblyLocator _referenceAssemblyLocator;
+    private readonly CompileTimeAssemblyLocator _compileTimeAssemblyLocator;
     private readonly IAttributeDeserializer _attributeDeserializer;
     private readonly ILogger _logger;
     private readonly bool _roslynIsCompileTimeOnly;
@@ -114,13 +129,13 @@ internal sealed class SymbolClassifier : ISymbolClassifier
         ProjectServiceProvider serviceProvider,
         Compilation compilation,
         IAttributeDeserializer attributeDeserializer,
-        ReferenceAssemblyLocator referenceAssemblyLocator )
+        CompileTimeAssemblyLocator compileTimeAssemblyLocator )
     {
         var compilationContext = compilation.GetCompilationContext();
 
         this._compilationContext = compilationContext;
 
-        this._referenceAssemblyLocator = referenceAssemblyLocator;
+        this._compileTimeAssemblyLocator = compileTimeAssemblyLocator;
         this._symbolEqualityComparer = compilationContext.SymbolComparer;
 
         this._cacheNonInheritedTemplateInfo = new ConcurrentDictionary<ISymbol, TemplateInfo>( this._symbolEqualityComparer );
@@ -261,9 +276,10 @@ internal sealed class SymbolClassifier : ISymbolClassifier
             return null;
         }
 
-        if ( assembly.Name == "Metalama.Compiler.Interface" )
+        switch ( assembly.Name )
         {
-            return TemplatingScope.CompileTimeOnly;
+            case "Metalama.Compiler.Interface":
+                return TemplatingScope.CompileTimeOnly;
         }
 
         var scopeFromAttributes = assembly.GetAttributes()
@@ -271,8 +287,10 @@ internal sealed class SymbolClassifier : ISymbolClassifier
             .SelectAsArray( GetTemplatingScope )
             .FirstOrDefault( s => s != null );
 
-        if ( scopeFromAttributes != null )
+        if ( scopeFromAttributes is not (null or TemplatingScope.RunTimeOrCompileTime) )
         {
+            // Note that we can't say anything about an assembly explicitly marked as RunTimeOrCompileTime, since we
+            // must take the decision for each type.
             return scopeFromAttributes.Value;
         }
 
@@ -286,8 +304,8 @@ internal sealed class SymbolClassifier : ISymbolClassifier
         var scope = this.GetTemplatingScopeCore( symbol, GetTemplatingScopeOptions.Default, ImmutableLinkedList<ISymbol>.Empty, null )
             .GetValueOrDefault( TemplatingScope.RunTimeOnly );
 
-        // Forced RTOCT is an internal concept, so hide it from other parts of the code.
-        if ( scope == TemplatingScope.ForcedRunTimeOrCompileTime )
+        // These statuses are internal concepts, so hide them from other parts of the code.
+        if ( scope is TemplatingScope.ForcedRunTimeOrCompileTime or TemplatingScope.ImplicitlyRunTimeOrCompileTime )
         {
             return TemplatingScope.RunTimeOrCompileTime;
         }
@@ -444,6 +462,7 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                         break;
 
                     case TemplatingScope.RunTimeOrCompileTime:
+                    case TemplatingScope.ImplicitlyRunTimeOrCompileTime:
                         scope = TemplatingScope.CompileTimeOnlyReturningBoth;
 
                         break;
@@ -475,7 +494,7 @@ internal sealed class SymbolClassifier : ISymbolClassifier
         {
             // From well-known types.
 
-            if ( this.TryGetWellKnownScope( symbol, options, out var scopeFromWellKnown ) )
+            if ( this.TryGetWellKnownScope( symbol, out var scopeFromWellKnown ) )
             {
                 return scopeFromWellKnown;
             }
@@ -579,6 +598,7 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                             switch ( typeArgumentScope )
                             {
                                 case null:
+                                case TemplatingScope.ImplicitlyRunTimeOrCompileTime:
                                     break;
 
                                 case TemplatingScope.Dynamic:
@@ -725,16 +745,23 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                             return combinedScope;
                         }
 
+                        var isAvailableAtCompileTime = this._compileTimeAssemblyLocator.IsSymbolAvailable( namedType );
+
                         // From base type.
                         if ( namedType.BaseType != null )
                         {
-                            this.CombineBaseTypeScope( namedType.BaseType, ref combinedScope, symbolsBeingProcessedIncludingCurrent, tracer );
+                            this.CombineBaseTypeScope(
+                                isAvailableAtCompileTime,
+                                namedType.BaseType,
+                                ref combinedScope,
+                                symbolsBeingProcessedIncludingCurrent,
+                                tracer );
                         }
 
                         // From implemented interfaces.
                         foreach ( var @interface in namedType.AllInterfaces )
                         {
-                            this.CombineBaseTypeScope( @interface, ref combinedScope, symbolsBeingProcessedIncludingCurrent, tracer );
+                            this.CombineBaseTypeScope( isAvailableAtCompileTime, @interface, ref combinedScope, symbolsBeingProcessedIncludingCurrent, tracer );
                         }
 
                         if ( combinedScope != null )
@@ -749,6 +776,11 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                             {
                                 this.CombineGenericArgumentScope( genericArgument, ref combinedScope, symbolsBeingProcessedIncludingCurrent, tracer );
                             }
+                        }
+
+                        if ( isAvailableAtCompileTime == true )
+                        {
+                            combinedScope = TemplatingScope.ImplicitlyRunTimeOrCompileTime;
                         }
 
                         // If a type is not classified after all these inference rules were evaluated,
@@ -836,10 +868,18 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                                 // otherwise we would report errors on all type members and this is confusing.
                                 memberScope = null;
                             }
+                            else if ( memberScope is TemplatingScope.ImplicitlyRunTimeOrCompileTime
+                                      && this._compileTimeAssemblyLocator.IsSymbolAvailable( symbol ) == false )
+                            {
+                                // If the type exists in the compile-time references but not the member, the member is run-time only.
+                                // This happens with new members added to .NET Standard 2.0 in other frameworks.
+                                memberScope = TemplatingScope.RunTimeOnly;
+                            }
                         }
 
                         // If the scope is given by other means, we do not try to guess by signature.
-                        if ( memberScope != null && memberScope is not (TemplatingScope.RunTimeOrCompileTime or TemplatingScope.ForcedRunTimeOrCompileTime) )
+                        if ( memberScope != null && memberScope is not (TemplatingScope.RunTimeOrCompileTime or TemplatingScope.ForcedRunTimeOrCompileTime
+                                or TemplatingScope.ImplicitlyRunTimeOrCompileTime) )
                         {
                             return memberScope;
                         }
@@ -867,6 +907,12 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                         {
                             case IMethodSymbol method:
                                 {
+                                    // If we have an extension method, process the parameters of the definition.
+                                    if ( method.ReducedFrom != null )
+                                    {
+                                        method = method.ReducedFrom;
+                                    }
+
                                     TemplatingScope? signatureScope = null;
                                     this.CombineScope( method.ReturnType, signatureMemberOptions, symbolsBeingProcessed, ref signatureScope, tracer );
 
@@ -893,7 +939,8 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                                                     tracer )
                                                 ?.GetExpressionValueScope();
 
-                                            if ( typeArgumentScope != TemplatingScope.RunTimeOrCompileTime && typeArgumentScope != signatureScope )
+                                            if ( typeArgumentScope is not (TemplatingScope.RunTimeOrCompileTime
+                                                    or TemplatingScope.ImplicitlyRunTimeOrCompileTime) && typeArgumentScope != signatureScope )
                                             {
                                                 return OnConflict();
                                             }
@@ -956,7 +1003,7 @@ internal sealed class SymbolClassifier : ISymbolClassifier
             scopeFromAttributes ??= symbol.GetExplicitOrImplicitInterfaceImplementations()
                 .Select( i => GetScopeFromAttributes( tracer, i ) )
                 .Where( s => s != null )
-                .Aggregate( (TemplatingScope?) null, ( s1, s2 ) => s1 == null ? s2 : s1.Value.GetCombinedValueScope( s2!.Value ) );
+                .Aggregate( (TemplatingScope?) null, ( s1, s2 ) => s1?.GetCombinedValueScope( s2!.Value ) ?? s2 );
 
             if ( scopeFromAttributes != null )
             {
@@ -1005,9 +1052,13 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                 (TemplatingScope.Conflict, _) => TemplatingScope.Conflict,
                 (_, TemplatingScope.Conflict) => TemplatingScope.Conflict,
                 (TemplatingScope.CompileTimeOnlyReturningRuntimeOnly, TemplatingScope.RunTimeOnly) => TemplatingScope.RunTimeOnly,
-                (TemplatingScope.CompileTimeOnlyReturningRuntimeOnly, TemplatingScope.RunTimeOrCompileTime or TemplatingScope.ForcedRunTimeOrCompileTime) => TemplatingScope.RunTimeOnly,
-                (_, TemplatingScope.RunTimeOrCompileTime or TemplatingScope.ForcedRunTimeOrCompileTime) => typeScope,
-                (TemplatingScope.RunTimeOrCompileTime or TemplatingScope.ForcedRunTimeOrCompileTime, _) => combinedScope,
+                (TemplatingScope.CompileTimeOnlyReturningRuntimeOnly, TemplatingScope.RunTimeOrCompileTime or TemplatingScope.ForcedRunTimeOrCompileTime) =>
+                    TemplatingScope.RunTimeOnly,
+                (TemplatingScope.ImplicitlyRunTimeOrCompileTime, TemplatingScope.RunTimeOrCompileTime) => TemplatingScope.RunTimeOrCompileTime,
+                (_, TemplatingScope.RunTimeOrCompileTime or TemplatingScope.ForcedRunTimeOrCompileTime
+                    or TemplatingScope.ImplicitlyRunTimeOrCompileTime) => typeScope,
+                (TemplatingScope.RunTimeOrCompileTime or TemplatingScope.ForcedRunTimeOrCompileTime or TemplatingScope.ImplicitlyRunTimeOrCompileTime, _) =>
+                    combinedScope,
                 (TemplatingScope.RunTimeOnly, TemplatingScope.CompileTimeOnly) => OnConflict(),
                 (TemplatingScope.CompileTimeOnly, TemplatingScope.RunTimeOnly) => OnConflict(),
                 _ => throw new AssertionFailedException( $"Invalid combination: ({typeScope}, {combinedScope})" )
@@ -1016,6 +1067,7 @@ internal sealed class SymbolClassifier : ISymbolClassifier
     }
 
     private void CombineBaseTypeScope(
+        bool? derivedTypeIsAvailableAtCompileTime,
         ITypeSymbol baseType,
         ref TemplatingScope? combinedScope,
         ImmutableLinkedList<ISymbol> symbolsBeingProcessed,
@@ -1027,14 +1079,23 @@ internal sealed class SymbolClassifier : ISymbolClassifier
             symbolsBeingProcessed,
             tracer );
 
-        CombineBaseTypeScope( baseTypeScope, ref combinedScope, baseType.TypeKind == TypeKind.Interface );
+        CombineBaseTypeScope( baseTypeScope, ref combinedScope, baseType.TypeKind == TypeKind.Interface, derivedTypeIsAvailableAtCompileTime );
     }
 
     private static void CombineBaseTypeScope(
         TemplatingScope? baseTypeScope,
         ref TemplatingScope? combinedScope,
-        bool baseTypeIsInterface = false )
+        bool baseTypeIsInterface,
+        bool? derivedTypeIsAvailableAtCompileTime )
     {
+        if ( derivedTypeIsAvailableAtCompileTime == true && baseTypeScope == TemplatingScope.RunTimeOnly )
+        {
+            // This happens in types like System.Int32 when the run-time compilation is .NET 8. The type
+            // implements interfaces that do not exist in .NET Standard 2.0. Such interface can be ignored.
+
+            return;
+        }
+
         if ( baseTypeScope == TemplatingScope.DynamicTypeConstruction )
         {
             baseTypeScope = TemplatingScope.RunTimeOnly;
@@ -1042,7 +1103,8 @@ internal sealed class SymbolClassifier : ISymbolClassifier
 
         combinedScope = (baseTypeScope, combinedScope) switch
         {
-            (null, _) => combinedScope,
+            // For the base type, unknown scope or ImplicitlyRunTimeOrCompileTime are equivalent.
+            (null or TemplatingScope.ImplicitlyRunTimeOrCompileTime, _) => combinedScope,
 
             (_, null) => baseTypeScope,
 
@@ -1083,17 +1145,18 @@ internal sealed class SymbolClassifier : ISymbolClassifier
             symbolsBeingProcessed,
             tracer );
 
-        if ( combinedScope == TemplatingScope.ForcedRunTimeOrCompileTime && typeArgumentScope is TemplatingScope.CompileTimeOnly or TemplatingScope.RunTimeOnly )
+        if ( combinedScope == TemplatingScope.ForcedRunTimeOrCompileTime
+             && typeArgumentScope is TemplatingScope.CompileTimeOnly or TemplatingScope.RunTimeOnly )
         {
             // The combined scope stays forced RTOCT.
             return;
         }
 
         // Otherwise, behaves the same as base types.
-        CombineBaseTypeScope( typeArgumentScope, ref combinedScope );
+        CombineBaseTypeScope( typeArgumentScope, ref combinedScope, false, false );
     }
 
-    private bool TryGetWellKnownScope( ISymbol symbol, GetTemplatingScopeOptions options, out TemplatingScope? scope )
+    private bool TryGetWellKnownScope( ISymbol symbol, out TemplatingScope? scope )
     {
         scope = null;
 
@@ -1104,6 +1167,7 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                 return false;
 
             case INamedTypeSymbol namedType when !namedType.IsGenericType || namedType.IsGenericTypeDefinition():
+
                 // Check well-known types and ancestors.
                 for ( var t = namedType; t != null && t.SpecialType != SpecialType.System_Object; t = t.BaseType )
                 {
@@ -1117,27 +1181,19 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                     }
                 }
 
-                // Check Roslyn types.
-                if ( namedType.ContainingNamespace.GetFullName()?.StartsWith( "Microsoft.CodeAnalysis", StringComparison.Ordinal ) == true )
+                // For types in the system namespace that are available on .NET Standard 2.0, we take a shortcut and don't analyze them recursively.
+                if ( namedType.ContainingNamespace.GetFirstLevel()?.Name == "System"
+                     && this._compileTimeAssemblyLocator.IsSymbolAvailable( namedType ) == true )
                 {
-                    scope = this._roslynIsCompileTimeOnly ? TemplatingScope.CompileTimeOnly : TemplatingScope.RunTimeOrCompileTime;
+                    scope = TemplatingScope.ImplicitlyRunTimeOrCompileTime;
 
                     return true;
                 }
 
-                // Check system types.                   
-                if ( this._referenceAssemblyLocator.IsSystemType( namedType ) )
+                // Check Roslyn types.
+                if ( namedType.ContainingNamespace.GetFullName()?.StartsWith( "Microsoft.CodeAnalysis", StringComparison.Ordinal ) == true )
                 {
-                    if ( (options & GetTemplatingScopeOptions.ImplicitRuntimeOrCompileTimeAsNull) != 0 )
-                    {
-                        // When we are inferring the scope from base types, system types cannot play a role
-                        // in the inference.
-                        scope = null;
-                    }
-                    else
-                    {
-                        scope = TemplatingScope.RunTimeOrCompileTime;
-                    }
+                    scope = this._roslynIsCompileTimeOnly ? TemplatingScope.CompileTimeOnly : TemplatingScope.RunTimeOrCompileTime;
 
                     return true;
                 }
@@ -1155,7 +1211,7 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                         return true;
                     }
 
-                    return this.TryGetWellKnownScope( namedType, options, out scope );
+                    return false;
                 }
 
             default:

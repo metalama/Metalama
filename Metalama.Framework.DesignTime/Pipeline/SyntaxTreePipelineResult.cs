@@ -4,6 +4,7 @@ using K4os.Hash.xxHash;
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.Collections;
+using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Pipeline;
 using Metalama.Framework.Engine.Utilities;
 using Microsoft.CodeAnalysis;
@@ -42,7 +43,7 @@ namespace Metalama.Framework.DesignTime.Pipeline
 
         public ImmutableArray<InheritableOptionsInstance> InheritableOptions { get; }
 
-        public ImmutableArray<DesignTimeReferenceValidatorInstance> ReferenceValidators { get; }
+        public ImmutableArray<IDesignTimeAspectPipelineResultExtension> Extensions { get; }
 
         public ImmutableArray<DesignTimeAspectInstance> AspectInstances { get; }
 
@@ -59,7 +60,7 @@ namespace Metalama.Framework.DesignTime.Pipeline
             ImmutableArray<IntroducedSyntaxTree>? introductions,
             ImmutableArray<string>? dependencies,
             ImmutableArray<InheritableAspectInstance>? inheritableAspects,
-            ImmutableArray<DesignTimeReferenceValidatorInstance>? validators,
+            ImmutableArray<IDesignTimeAspectPipelineResultExtension>? extensions,
             ImmutableArray<DesignTimeAspectInstance>? aspectInstances,
             ImmutableArray<DesignTimeTransformation>? transformations,
             ImmutableArray<InheritableOptionsInstance>? inheritableOptions,
@@ -68,7 +69,7 @@ namespace Metalama.Framework.DesignTime.Pipeline
             this.SyntaxTreePath = syntaxTreePath;
             this.Annotations = annotations ?? ImmutableDictionaryOfArray<SerializableDeclarationId, IAnnotation>.Empty;
             this.InheritableOptions = inheritableOptions ?? ImmutableArray<InheritableOptionsInstance>.Empty;
-            this.ReferenceValidators = validators ?? ImmutableArray<DesignTimeReferenceValidatorInstance>.Empty;
+            this.Extensions = extensions ?? ImmutableArray<IDesignTimeAspectPipelineResultExtension>.Empty;
             this.InheritableAspects = inheritableAspects ?? ImmutableArray<InheritableAspectInstance>.Empty;
             this.Diagnostics = diagnostics ?? ImmutableArray<Diagnostic>.Empty;
             this.Suppressions = suppressions ?? ImmutableArray<CacheableScopedSuppression>.Empty;

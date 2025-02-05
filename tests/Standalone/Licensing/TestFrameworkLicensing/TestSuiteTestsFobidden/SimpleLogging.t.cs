@@ -1,1 +1,0 @@
-// This test should fail with an exception.

@@ -18,6 +18,7 @@
         <CompilerVisibleProperty Include="MetalamaAllowPreviewLanguageFeatures"/>
         <CompilerVisibleProperty Include="MetalamaConcurrentBuildEnabled"/>
         <CompilerVisibleProperty Include="MetalamaCompileTimePackages"/>
+        <CompilerVisibleProperty Include="MetalamaCompileTimeAssemblies"/>
         <CompilerVisibleProperty Include="MetalamaWriteHtml"/>
         <CompilerVisibleProperty Include="MetalamaWriteLicenseCreditData" />
         <CompilerVisibleProperty Include="ProjectAssetsFile"/>
@@ -31,6 +32,8 @@
         <CompilerVisibleProperty Include="MetalamaIgnoreUserLicenses"/>
         <CompilerVisibleProperty Include="MetalamaAssemblyLocatorHooksDirectory"/>
         <CompilerVisibleProperty Include="MetalamaSourceGeneratorAttributes"/>
+        <CompilerVisibleProperty Include="MetalamaExtensionAssemblies"/>
+        <CompilerVisibleProperty Include="MetalamaDesignTimeExtensionAssemblies"/>
     </ItemGroup>
 
     <!-- More properties are already exported by Metalama.Compiler and don't need to be exported a second time. -->

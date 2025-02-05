@@ -6,7 +6,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Metalama.Framework.Engine.SyntaxGeneration;
 
-internal sealed partial class ContextualSyntaxGenerator
+public sealed partial class ContextualSyntaxGenerator
 {
     private sealed class NormalizeSpaceRewriter( string endOfLine ) : SafeSyntaxRewriter
     {

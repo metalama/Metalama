@@ -15,11 +15,9 @@ public class AspectTestBase : UnitTestClass
 {
     protected static async Task<FallibleResult<CompileTimeAspectPipelineResult>> CompileAsync( TestContext testContext, string code, bool throwOnError = true )
     {
-        var domain = testContext.Domain;
+        var compilation = testContext.CreateCSharpCompilation( code );
 
-        var compilation = TestCompilationFactory.CreateCSharpCompilation( code );
-
-        var pipeline = new CompileTimeAspectPipeline( testContext.ServiceProvider, domain );
+        var pipeline = new CompileTimeAspectPipeline( testContext.ServiceProvider );
         var diagnostics = new DiagnosticBag();
 
         var result = await pipeline.ExecuteAsync( diagnostics.Report, null, compilation, ImmutableArray<ManagedResource>.Empty );
@@ -37,11 +35,9 @@ public class AspectTestBase : UnitTestClass
         IReadOnlyDictionary<string, string> code,
         bool throwOnError = true )
     {
-        var domain = testContext.Domain;
+        var compilation = testContext.CreateCSharpCompilation( code );
 
-        var compilation = TestCompilationFactory.CreateCSharpCompilation( code );
-
-        var pipeline = new CompileTimeAspectPipeline( testContext.ServiceProvider, domain );
+        var pipeline = new CompileTimeAspectPipeline( testContext.ServiceProvider );
         var diagnostics = new DiagnosticBag();
 
         var result = await pipeline.ExecuteAsync( diagnostics.Report, null, compilation, ImmutableArray<ManagedResource>.Empty );

@@ -1,31 +1,50 @@
 // Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
-using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel.Abstractions;
+using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.HierarchicalOptions;
-using Metalama.Framework.Engine.Validation;
 using System.Collections.Immutable;
+using System.Linq;
 
 namespace Metalama.Framework.Engine.Pipeline
 {
-    internal sealed record PipelineContributorSources(
-        ImmutableArray<IAspectSource> AspectSources,
-        ImmutableArray<IValidatorSource> ValidatorSources,
-        ImmutableArray<IHierarchicalOptionsSource> OptionsSources,
-        IExternalHierarchicalOptionsProvider? ExternalOptionsProvider = null,
-        IExternalAnnotationProvider? ExternalAnnotationProvider = null )
+    public sealed record PipelineContributorSources
     {
-        public static PipelineContributorSources Empty { get; } = new(
-            ImmutableArray<IAspectSource>.Empty,
-            ImmutableArray<IValidatorSource>.Empty,
-            ImmutableArray<IHierarchicalOptionsSource>.Empty );
+        private readonly ImmutableArray<IPipelineContributor> _contributors;
 
-        public PipelineContributorSources Add( PipelineContributorSources other )
+        internal PipelineContributorSources(
+            ImmutableArray<IPipelineContributor> contributors,
+            IExternalHierarchicalOptionsProvider? externalOptionsProvider = null,
+            IExternalAnnotationProvider? externalAnnotationProvider = null )
+        {
+            // We cannot have duplicates. This means a bug upstream.
+
+            this.Contributors = contributors;
+            this.ExternalOptionsProvider = externalOptionsProvider;
+            this.ExternalAnnotationProvider = externalAnnotationProvider;
+        }
+
+        internal static PipelineContributorSources Empty { get; } = new( ImmutableArray<IPipelineContributor>.Empty );
+
+        public ImmutableArray<IPipelineContributor> Contributors
+        {
+            get => this._contributors;
+            internal init
+            {
+                Invariant.Assert( value.IsEmpty || value.GroupBy( c => c ).All( c => c.Count() == 1 ) );
+
+                this._contributors = value;
+            }
+        }
+
+        internal IExternalHierarchicalOptionsProvider? ExternalOptionsProvider { get; }
+
+        internal IExternalAnnotationProvider? ExternalAnnotationProvider { get; }
+
+        internal PipelineContributorSources Add( PipelineContributorSources other )
         {
             return new PipelineContributorSources(
-                this.AspectSources.AddRange( other.AspectSources ),
-                this.ValidatorSources.AddRange( other.ValidatorSources ),
-                this.OptionsSources.AddRange( other.OptionsSources ),
+                this.Contributors.AddRange( other.Contributors ),
                 this.ExternalOptionsProvider ?? other.ExternalOptionsProvider,
                 this.ExternalAnnotationProvider ?? other.ExternalAnnotationProvider );
         }

@@ -17,7 +17,8 @@ internal sealed partial class CompileTimeProjectRepository : IProjectService
     public bool TryGetCompileTimeProject( AssemblyIdentity assemblyIdentity, out CompileTimeProject? compileTimeProject )
         => this._projects.TryGetValue( assemblyIdentity, out compileTimeProject );
 
-    internal static CompileTimeProjectRepository CreateTestInstance() => new( null, default, new Dictionary<AssemblyIdentity, CompileTimeProject?>(), null! );
+    internal static CompileTimeProjectRepository CreateTestInstance()
+        => new( null, default, new Dictionary<AssemblyIdentity, CompileTimeProject?>(), CompileTimeProject.Empty );
 
     private CompileTimeProjectRepository(
         CompileTimeDomain? domain,

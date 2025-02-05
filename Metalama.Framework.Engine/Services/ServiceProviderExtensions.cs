@@ -13,11 +13,11 @@ public static class ServiceProviderExtensions
     public static ILoggerFactory GetLoggerFactory( this GlobalServiceProvider serviceProvider ) => serviceProvider.Underlying.GetLoggerFactory();
 
     /// <summary>
-    /// Gets the global <see cref="ReferenceAssemblyLocator"/>, but initialize it with the current <see cref="ProjectServiceProvider"/> if it has not
+    /// Gets the global <see cref="CompileTimeAssemblyLocator"/>, but initialize it with the current <see cref="ProjectServiceProvider"/> if it has not
     /// been initialized yet.
     /// </summary>
-    internal static ReferenceAssemblyLocator GetReferenceAssemblyLocator( this ProjectServiceProvider serviceProvider )
-        => serviceProvider.Global.GetRequiredService<IReferenceAssemblyLocatorProvider>().GetInstance( serviceProvider );
+    internal static CompileTimeAssemblyLocator GetReferenceAssemblyLocator( this ProjectServiceProvider serviceProvider )
+        => serviceProvider.Global.GetRequiredService<ICompileTimeAssemblyLocatorProvider>().GetInstance( serviceProvider );
 
     public static T GetRequiredBackstageService<T>( this GlobalServiceProvider serviceProvider )
         where T : class, IBackstageService

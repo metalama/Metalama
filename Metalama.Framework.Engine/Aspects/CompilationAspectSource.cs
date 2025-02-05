@@ -8,7 +8,6 @@ using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.Collections;
 using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Diagnostics;
-using Metalama.Framework.Engine.Fabrics;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities.Threading;
 using System.Collections.Immutable;
@@ -27,11 +26,13 @@ internal sealed class CompilationAspectSource : IAspectSource
     private readonly IConcurrentTaskRunner _concurrentTaskRunner;
     private ImmutableDictionaryOfArray<IType, IRef<IDeclaration>>? _exclusions;
 
-    public CompilationAspectSource( in ProjectServiceProvider serviceProvider, ImmutableArray<IAspectClass> aspectTypes )
+    public CompilationAspectSource( in ProjectServiceProvider serviceProvider, ImmutableArray<IAspectClass> aspectClasses )
     {
         this._attributeDeserializerProvider = serviceProvider.GetRequiredService<UserCodeAttributeDeserializer.Provider>();
         this._concurrentTaskRunner = serviceProvider.GetRequiredService<IConcurrentTaskRunner>();
-        this.AspectClasses = aspectTypes;
+        
+        // This source only supports real aspects, not fabric aspects.
+        this.AspectClasses = aspectClasses.OfType<AspectClass>().ToImmutableArray<IAspectClass>();
     }
 
     public ImmutableArray<IAspectClass> AspectClasses { get; }
@@ -53,15 +54,13 @@ internal sealed class CompilationAspectSource : IAspectSource
         return this._exclusions;
     }
 
-    public Task CollectAspectInstancesAsync(
-        IAspectClass aspectClass,
-        OutboundActionCollectionContext context )
+    public Task CollectAspectInstancesAsync( AspectInstanceCollector collector )
     {
-        var compilation = context.Compilation;
-        var cancellationToken = context.CancellationToken;
-        var attributeDeserializer = this._attributeDeserializerProvider.Get( context.Compilation.CompilationContext );
+        var attributeDeserializer = this._attributeDeserializerProvider.Get( collector.Compilation.CompilationContext );
 
-        if ( !compilation.Factory.TryGetTypeByReflectionName( aspectClass.FullName, out var aspectType ) )
+        var aspectClass = (AspectClass) collector.AspectClass;
+
+        if ( !collector.Compilation.Factory.TryGetTypeByReflectionName( aspectClass.FullName, out var aspectType ) )
         {
             // This happens at design time when the IDE sends an incomplete compilation. We cannot apply the aspects in this case,
             // but we prefer not to throw an exception since the case is expected.
@@ -69,29 +68,29 @@ internal sealed class CompilationAspectSource : IAspectSource
         }
 
         // Process exclusions.
-        var exclusions = this.DiscoverExclusions( compilation )[aspectType];
+        var exclusions = this.DiscoverExclusions( collector.Compilation )[aspectType];
 
         foreach ( var exclusion in exclusions )
         {
-            context.Collector.AddExclusion( exclusion );
+            collector.AddExclusion( exclusion );
         }
 
         // Process attributes in parallel.
-        var attributes = compilation.GetAllAttributesOfType( aspectType );
+        var attributes = collector.Compilation.GetAllAttributesOfType( aspectType );
 
-        return this._concurrentTaskRunner.RunConcurrentlyAsync( attributes, ProcessAttribute, cancellationToken );
+        return this._concurrentTaskRunner.RunConcurrentlyAsync( attributes, ProcessAttribute, collector.CancellationToken );
 
         void ProcessAttribute( IAttribute attribute )
         {
-            cancellationToken.ThrowIfCancellationRequested();
+            collector.CancellationToken.ThrowIfCancellationRequested();
 
             var attributeData = attribute.GetAttributeData();
 
-            if ( attributeDeserializer.TryCreateAttribute( attributeData, context.Collector, out var attributeInstance ) )
+            if ( attributeDeserializer.TryCreateAttribute( attributeData, collector.Diagnostics, out var attributeInstance ) )
             {
                 var targetDeclaration = attribute.ContainingDeclaration;
 
-                var aspectInstance = ((AspectClass) aspectClass).CreateAspectInstanceFromAttribute(
+                var aspectInstance = aspectClass.CreateAspectInstanceFromAttribute(
                     (IAspect) attributeInstance,
                     targetDeclaration,
                     attribute );
@@ -102,17 +101,17 @@ internal sealed class CompilationAspectSource : IAspectSource
                 {
                     var requestedEligibility = aspectInstance.IsInheritable ? EligibleScenarios.Inheritance : EligibleScenarios.Default;
 
-                    var reason = ((AspectClass) aspectClass).GetIneligibilityJustification(
+                    var reason = aspectClass.GetIneligibilityJustification(
                         requestedEligibility,
                         new DescribedObject<IDeclaration>( targetDeclaration ) )!;
 
-                    context.Collector.Report(
+                    collector.Diagnostics.Report(
                         GeneralDiagnosticDescriptors.AspectNotEligibleOnTarget.CreateRoslynDiagnostic(
                             attribute.GetDiagnosticLocation(),
                             (aspectClass.ShortName, targetDeclaration.DeclarationKind, targetDeclaration, reason) ) );
                 }
 
-                context.Collector.AddAspectInstance( aspectInstance );
+                collector.AddAspectInstance( aspectInstance );
             }
         }
     }

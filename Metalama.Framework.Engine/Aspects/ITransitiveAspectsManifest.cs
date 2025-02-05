@@ -3,7 +3,6 @@
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Collections;
 using Metalama.Framework.Engine.HierarchicalOptions;
-using Metalama.Framework.Engine.Validation;
 using Metalama.Framework.Options;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -16,7 +15,7 @@ public interface ITransitiveAspectsManifest
 
     IEnumerable<InheritableAspectInstance> GetInheritableAspects( string aspectType );
 
-    ImmutableArray<TransitiveValidatorInstance> ReferenceValidators { get; }
+    ImmutableArray<ITransitiveAspectsManifestExtension> Extensions { get; }
 
     ImmutableDictionary<HierarchicalOptionsKey, IHierarchicalOptions> InheritableOptions { get; }
 

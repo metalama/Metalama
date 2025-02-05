@@ -1,15 +1,11 @@
 // Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
 using Metalama.Framework.Engine.AspectOrdering;
-using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Diagnostics;
-using Metalama.Framework.Engine.HierarchicalOptions;
-using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Transformations;
 using Metalama.Framework.Engine.Utilities.Threading;
-using Metalama.Framework.Engine.Validation;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -20,57 +16,38 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
     /// </summary>
     internal sealed class DesignTimePipelineStage : HighLevelPipelineStage
     {
-        private readonly ProjectServiceProvider _serviceProvider;
-
-        public DesignTimePipelineStage(
-            CompileTimeProject compileTimeProject,
-            IReadOnlyList<OrderedAspectLayer> aspectLayers,
-            ProjectServiceProvider serviceProvider )
-            : base( compileTimeProject, aspectLayers )
-        {
-            this._serviceProvider = serviceProvider;
-        }
+        public DesignTimePipelineStage( IReadOnlyList<OrderedAspectLayer> aspectLayers )
+            : base( aspectLayers ) { }
 
         /// <inheritdoc/>
         protected override async Task<AspectPipelineResult> GetStageResultAsync(
             AspectPipelineConfiguration pipelineConfiguration,
             AspectPipelineResult input,
-            IPipelineStepsResult pipelineStepsResult,
+            PipelineStepsResult pipelineStepsResult,
             TestableCancellationToken cancellationToken )
         {
-            var diagnosticSink = new UserDiagnosticSink( this.CompileTimeProject, null );
+            var diagnosticSink = new UserDiagnosticSink( pipelineConfiguration.ServiceProvider );
 
-            // Discover the validators.
-            bool hasDeclarationValidator;
-            ImmutableArray<ReferenceValidatorInstance> referenceValidators;
+            var extensionPipelineContributorsResult = ExtensionPipelineContributorsResult.Empty;
 
-            var validatorSources = pipelineStepsResult.ValidatorSources;
-
-            if ( !validatorSources.IsEmpty )
+            if ( pipelineStepsResult.ExtensionContributors.Count > 0 )
             {
-                var validatorRunner = new ValidationRunner( pipelineConfiguration, validatorSources );
-                var initialCompilation = pipelineStepsResult.FirstCompilation;
-                var finalCompilation = pipelineStepsResult.LastCompilation;
-
-                hasDeclarationValidator = await validatorRunner.RunDeclarationValidatorsAsync(
-                    initialCompilation,
-                    finalCompilation,
-                    diagnosticSink,
-                    cancellationToken );
-
-                referenceValidators = (await validatorRunner.GetReferenceValidatorsAsync( initialCompilation, diagnosticSink, cancellationToken ))
-                    .ToImmutableArray();
-            }
-            else
-            {
-                hasDeclarationValidator = false;
-                referenceValidators = ImmutableArray<ReferenceValidatorInstance>.Empty;
+                foreach ( var pipelineExtension in pipelineConfiguration.Extensions )
+                {
+                    extensionPipelineContributorsResult = extensionPipelineContributorsResult.Concat(
+                        await pipelineExtension.ExecuteDesignTimePipelineContributorsAsync(
+                            pipelineConfiguration,
+                            pipelineStepsResult.ExtensionContributors,
+                            pipelineStepsResult.FirstCompilation,
+                            pipelineStepsResult.LastCompilation,
+                            cancellationToken ) );
+                }
             }
 
             // Generate the additional syntax trees.
 
             var additionalSyntaxTrees = await DesignTimeSyntaxTreeGenerator.GenerateDesignTimeSyntaxTreesAsync(
-                this._serviceProvider,
+                pipelineConfiguration.ServiceProvider,
                 input.LastCompilation,
                 pipelineStepsResult.FirstCompilation,
                 pipelineStepsResult.LastCompilation,
@@ -86,15 +63,13 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                     input.FirstCompilationModel.AssertNotNull(),
                     pipelineStepsResult.LastCompilation,
                     input.Configuration,
-                    input.Diagnostics.Concat( pipelineStepsResult.Diagnostics ).Concat( diagnosticSink.ToImmutable() ),
-                    new PipelineContributorSources(
-                        input.ContributorSources.AspectSources.AddRange( pipelineStepsResult.OverflowAspectSources ),
-                        validatorSources,
-                        ImmutableArray<IHierarchicalOptionsSource>.Empty ),
-                    pipelineStepsResult.InheritableAspectInstances,
+                    input.Diagnostics.Concat( pipelineStepsResult.Diagnostics )
+                        .Concat( diagnosticSink.ToImmutable() )
+                        .Concat( extensionPipelineContributorsResult.Diagnostics ),
+                    new PipelineContributorSources( input.ContributorSources.Contributors.Add( pipelineStepsResult.OverflowAspectSource ) ),
+                    pipelineStepsResult.InheritableAspectInstances.ToImmutableArray(),
                     pipelineStepsResult.LastCompilation.Annotations,
-                    hasDeclarationValidator,
-                    referenceValidators,
+                    extensionPipelineContributorsResult.TransitiveContributors,
                     input.AdditionalSyntaxTrees.AddRange( additionalSyntaxTrees ),
                     input.AspectInstanceResults.AddRange( pipelineStepsResult.AspectInstanceResults ),
                     transformations: pipelineStepsResult.Transformations.ToImmutableArray<ITransformationBase>() );

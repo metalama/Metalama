@@ -17,7 +17,7 @@
         <InternalsVisibleTo Include="Metalama.Framework.Introspection" />
         <InternalsVisibleTo Include="Metalama.Framework.Workspaces" />
         <InternalsVisibleTo Include="Metalama.Framework.Engine.Analyzers" />
-
+        
         <InternalsVisibleTo Include="Metalama.Framework.DesignTime.4.4.0" />
         <InternalsVisibleTo Include="Metalama.Framework.DesignTime.VisualStudio.4.4.0" />
         <InternalsVisibleTo Include="Metalama.Framework.Engine.4.4.0" />
@@ -49,6 +49,10 @@
         <InternalsVisibleTo Include="Metalama.Framework.Tests.UnitTests.4.4.0" />
         <InternalsVisibleTo Include="Metalama.Framework.Tests.UnitTests.4.8.0" />
         <InternalsVisibleTo Include="Metalama.Framework.Tests.UnitTests.4.12.0" />
+
+        <InternalsVisibleTo Include="Metalama.Framework.Tests.UnitTestHelpers.4.4.0" />
+        <InternalsVisibleTo Include="Metalama.Framework.Tests.UnitTestHelpers.4.8.0" />
+        <InternalsVisibleTo Include="Metalama.Framework.Tests.UnitTestHelpers.4.12.0" />
 
         <InternalsVisibleTo Include="Metalama.Framework.Tests.TemplateTests.4.4.0" />
         <InternalsVisibleTo Include="Metalama.Framework.Tests.TemplateTests.4.8.0" />

@@ -10,10 +10,12 @@ internal sealed class SymbolClassificationService : ITemplateInfoService
 {
     private readonly CompileTimeProjectRepository _repository;
 
-    public SymbolClassificationService( CompileTimeProjectRepository repository )
+    internal SymbolClassificationService( CompileTimeProjectRepository repository )
     {
         this._repository = repository;
     }
+
+    internal static SymbolClassificationService CreateTestInstance() => new( CompileTimeProjectRepository.CreateTestInstance() );
 
     private TemplateProjectManifest? GetManifest( IAssemblySymbol assembly )
     {
@@ -22,7 +24,9 @@ internal sealed class SymbolClassificationService : ITemplateInfoService
         return project?.Manifest?.Templates;
     }
 
-    public ITemplateInfo GetTemplateInfo( ISymbol symbol )
+    ITemplateInfo ITemplateInfoService.GetTemplateInfo( ISymbol symbol ) => this.GetTemplateInfo( symbol );
+
+    private ITemplateInfo GetTemplateInfo( ISymbol symbol )
         => symbol.ContainingAssembly != null
             ? this.GetManifest( symbol.ContainingAssembly )?.GetTemplateInfo( symbol ) ?? NullTemplateInfo.Instance
             : NullTemplateInfo.Instance;

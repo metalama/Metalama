@@ -159,7 +159,8 @@ internal sealed partial class TemplateExpansionContext : UserCodeExecutionContex
         null,
         aspectLayerId ) { }
 
-    public TemplateExpansionContext(
+    // Resharper disable MemberCanBePrivate.Global
+    internal TemplateExpansionContext(
         ProjectServiceProvider serviceProvider,
         MetaApi metaApi,
         TemplateLexicalScope lexicalScope,

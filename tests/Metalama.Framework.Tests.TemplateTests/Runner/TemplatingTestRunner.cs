@@ -81,8 +81,7 @@ namespace Metalama.Framework.Tests.TemplateTests.Runner
                 serviceProvider,
                 projectDirectory,
                 references,
-                logger,
-                null )
+                logger )
         {
             this._testAnalyzers = testAnalyzers;
         }
@@ -118,15 +117,17 @@ namespace Metalama.Framework.Tests.TemplateTests.Runner
 
             var serviceProvider = testContext.ServiceProvider
                 .WithService( SyntaxGenerationOptions.Formatted )
-                .WithService( new TestTemplateClassMemberBuilder() );
-            
+                .WithService( new TestTemplateClassMemberBuilder() )
+                .WithService( UserDiagnosticRegistry.Empty )
+                .WithService( ConstantDiagnosticExtensionPolicy.None );
+
             var assemblyLocator = serviceProvider.GetReferenceAssemblyLocator();
 
             // Create an empty compilation (just with references) for the compile-time project.
             var compileTimeCompilation = CSharpCompilation.Create(
                     "assemblyName",
                     Array.Empty<SyntaxTree>(),
-                    assemblyLocator.StandardCompileTimeMetadataReferences,
+                    assemblyLocator.MetadataReferences,
                     (CSharpCompilationOptions) testResult.InputProject!.CompilationOptions! )
                 .AddReferences( MetadataReference.CreateFromFile( typeof(TestTemplateAttribute).Assembly.Location ) );
 
@@ -245,7 +246,11 @@ namespace Metalama.Framework.Tests.TemplateTests.Runner
                     new ProjectModel( testResult.InputCompilation, serviceProvider ),
                     (CSharpCompilation) testResult.InputCompilation );
 
-                var fakeTemplateClass = new TestTemplateClass( serviceProvider, testResult.InputCompilation.GetCompilationContext(), templateMethod.ContainingType, compiledAspectType );
+                var fakeTemplateClass = new TestTemplateClass(
+                    serviceProvider,
+                    testResult.InputCompilation.GetCompilationContext(),
+                    templateMethod.ContainingType,
+                    compiledAspectType );
 
                 var fakeTemplateClassMember = new TemplateClassMember(
                     "Template",
@@ -305,7 +310,7 @@ namespace Metalama.Framework.Tests.TemplateTests.Runner
             var targetMetalamaType = compilation.Factory.GetTypeByReflectionName( targetType.FullName! );
             var targetMethod = targetMetalamaType.Methods.Single( m => string.Equals( m.Name, "Method", StringComparison.Ordinal ) );
 
-            var diagnostics = new UserDiagnosticSink();
+            var diagnostics = new UserDiagnosticSink( serviceProvider );
 
             var roslynTargetType = roslynCompilation.Assembly.GetTypes().Single( t => t.Name.Equals( "TargetCode", StringComparison.Ordinal ) );
 

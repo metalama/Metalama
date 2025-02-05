@@ -360,6 +360,21 @@ public static partial class LinqExtensions
 
         yield return item;
     }
+    
+    public static IReadOnlyCollection<T> Concat<T>( this IReadOnlyCollection<T>? a, IReadOnlyCollection<T>? b )
+    {
+        if ( a == null || a.Count == 0 )
+        {
+            return b ?? Array.Empty<T>();
+        }
+
+        if ( b == null || b.Count == 0 )
+        {
+            return a;
+        }
+
+        return new ConcatenatedCollection<T>( a, b );
+    }
 
     public static IReadOnlyList<T> Concat<T>( this IReadOnlyList<T>? a, IReadOnlyList<T>? b )
     {

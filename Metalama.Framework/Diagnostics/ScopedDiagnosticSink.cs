@@ -3,9 +3,7 @@
 using JetBrains.Annotations;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
-using Metalama.Framework.CodeFixes;
 using System;
-using System.ComponentModel;
 
 namespace Metalama.Framework.Diagnostics;
 
@@ -15,11 +13,11 @@ namespace Metalama.Framework.Diagnostics;
 /// <seealso href="@diagnostics"/>
 [PublicAPI]
 [CompileTime]
-public readonly struct ScopedDiagnosticSink
+public readonly struct ScopedDiagnosticSink : IScopedDiagnosticSink
 {
-    internal IDiagnosticSink Sink { get; }
+    public IDiagnosticSink Sink { get; }
 
-    private readonly IDiagnosticSource _source;
+    public IDiagnosticSource Source { get; }
 
     /// <summary>
     /// Gets the declaration on which diagnostics or code fixes will be reported or suppressed.
@@ -31,14 +29,14 @@ public readonly struct ScopedDiagnosticSink
     /// </summary>
     public IDiagnosticLocation? DefaultTargetLocation { get; }
 
-    internal ScopedDiagnosticSink(
+    public ScopedDiagnosticSink(
         IDiagnosticSink sink,
         IDiagnosticSource source,
         IDiagnosticLocation? defaultTargetLocation,
         IDeclaration? defaultTargetDeclaration )
     {
         this.Sink = sink;
-        this._source = source;
+        this.Source = source;
         this.DefaultTargetLocation = defaultTargetLocation;
         this.DefaultTargetDeclaration = defaultTargetDeclaration;
     }
@@ -46,14 +44,13 @@ public readonly struct ScopedDiagnosticSink
     /// <summary>
     /// Reports a diagnostic to the default location of the current <see cref="ScopedDiagnosticSink"/>..
     /// </summary>
-    public void Report( IDiagnostic diagnostic ) => this.Sink.Report( diagnostic, this.DefaultTargetLocation, this._source );
-
+    public void Report( IDiagnostic diagnostic ) => this.Sink.Report( diagnostic, this.DefaultTargetLocation, this.Source );
+    
     /// <summary>
-    /// Suppresses a diagnostic from the default declaration of the current <see cref="ScopedDiagnosticSink"/>.
+    /// Reports a parametric diagnostic by specifying its location.
     /// </summary>
-    [EditorBrowsable( EditorBrowsableState.Never )]
-    public void Suppress( SuppressionDefinition suppression ) => this.Suppress( (ISuppression) suppression );
-
+    public void Report( IDiagnostic diagnostic, IDiagnosticLocation? location ) => this.Sink.Report( diagnostic, location, this.Source );
+    
     /// <summary>
     /// Suppresses a diagnostic from the default declaration of the current <see cref="ScopedDiagnosticSink"/>.
     /// </summary>
@@ -62,43 +59,13 @@ public readonly struct ScopedDiagnosticSink
         this.Sink.Suppress(
             suppression,
             this.DefaultTargetDeclaration ?? throw new InvalidOperationException( "Use the overload that receives a scope declaration." ),
-            this._source );
+            this.Source );
     }
 
     /// <summary>
-    /// Suggest a code fix without reporting a diagnostic.
-    /// </summary>
-    /// <param name="codeFix">The <see cref="CodeFix"/>.</param>
-    public void Suggest( CodeFix codeFix )
-        => this.Sink.Suggest(
-            codeFix,
-            this.DefaultTargetDeclaration ?? throw new InvalidOperationException( "Use the overload that receives a scope declaration." ),
-            this._source );
-
-    /// <summary>
-    /// Reports a parametric diagnostic by specifying its location.
-    /// </summary>
-    public void Report( IDiagnostic diagnostic, IDiagnosticLocation? location ) => this.Sink.Report( diagnostic, location, this._source );
-
-    /// <summary>
     /// Suppresses a diagnostic by specifying the declaration in which the suppression must be effective.
     /// </summary>
     /// <param name="suppression">The suppression definition, which must be defined as a static field or property.</param>
     /// <param name="scope">The declaration in which the diagnostic must be suppressed.</param>
-    [EditorBrowsable( EditorBrowsableState.Never )]
-    public void Suppress( SuppressionDefinition suppression, IDeclaration scope ) => this.Suppress( (ISuppression) suppression, scope );
-
-    /// <summary>
-    /// Suppresses a diagnostic by specifying the declaration in which the suppression must be effective.
-    /// </summary>
-    /// <param name="suppression">The suppression definition, which must be defined as a static field or property.</param>
-    /// <param name="scope">The declaration in which the diagnostic must be suppressed.</param>
-    public void Suppress( ISuppression suppression, IDeclaration scope ) => this.Sink.Suppress( suppression, scope, this._source );
-
-    /// <summary>
-    /// Suggest a code fix without reporting a diagnostic.
-    /// </summary>
-    /// <param name="codeFix">The <see cref="CodeFix"/>.</param>
-    /// <param name="location">The code location for which the code fix should be suggested, typically an <see cref="IDeclaration"/>.</param>
-    public void Suggest( CodeFix codeFix, IDiagnosticLocation location ) => this.Sink.Suggest( codeFix, location, this._source );
+    public void Suppress( ISuppression suppression, IDeclaration scope ) => this.Sink.Suppress( suppression, scope, this.Source );
 }

@@ -3,6 +3,7 @@
 using Metalama.Framework.DesignTime.Rpc.Notifications;
 using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.Pipeline.DesignTime;
+using Metalama.Framework.Tests.UnitTestHelpers.TestClasses;
 using Metalama.Testing.UnitTesting;
 using System.Collections.Concurrent;
 using System.Threading.Tasks;
@@ -20,25 +21,32 @@ public sealed class NotificationIntegrationTests : DistributedDesignTimeTestBase
     [Fact]
     public async Task ReceivesNotification()
     {
-        using var testContext = this.CreateDistributedDesignTimeTestContext( null, null, new TestContextOptions() { HasSourceGeneratorTouchFile = true } );
+        using var testContext = this.CreateDistributedDesignTimeTestContext( options: new TestContextOptions() { HasSourceGeneratorTouchFile = true } );
 
         await testContext.WhenFieldsInitialized;
 
         // Start the notification listener.
-        var notificationListenerEndpoint = new NotificationListenerEndpoint(
+        var notificationListenerEndpoint = new CodeLensProcessClientEndpoint(
             testContext.ServiceProvider.Underlying,
-            testContext.UserProcessServiceHubEndpoint.PipeName );
+            testContext.ServiceHubServerEndpoint.PipeName );
 
         // We need to make sure that the notification listener listens before we run the pipeline,
         // otherwise the notification will be missed.
         await notificationListenerEndpoint.ConnectAsync();
         await testContext.WhenFullyInitialized;
 
-        BlockingCollection<CompilationResultChangedEventArgs> eventQueue = new();
+        BlockingCollection<CompilationResultChangedEventData> eventQueue = new();
 
-        notificationListenerEndpoint.CompilationResultChanged += eventQueue.Add;
+        notificationListenerEndpoint.Client.EventReceived +=
+            eventData =>
+            {
+                if ( eventData is CompilationResultChangedEventData compilationResultChangedEventData )
+                {
+                    eventQueue.Add( compilationResultChangedEventData );
+                }
+            };
 
-        var compilation1 = TestCompilationFactory.CreateCSharpCompilation( "", name: "project" );
+        var compilation1 = testContext.CreateCSharpCompilation( "", assemblyName: "project" );
         var pipeline = testContext.PipelineFactory.GetOrCreatePipeline( testContext.ProjectOptions, compilation1 ).AssertNotNull();
 
         // The first pipeline execution should notify a full compilation.
@@ -47,7 +55,7 @@ public sealed class NotificationIntegrationTests : DistributedDesignTimeTestBase
 
         Assert.False( notification1.IsPartialCompilation );
 
-        var compilation2 = TestCompilationFactory.CreateCSharpCompilation( "class C{}", name: "project" );
+        var compilation2 = testContext.CreateCSharpCompilation( "class C{}", assemblyName: "project" );
         await pipeline.ExecuteAsync( compilation2, AsyncExecutionContext.Get() );
         var notification2 = eventQueue.Take( testContext.CancellationToken );
 

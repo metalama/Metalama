@@ -10,5 +10,4 @@ internal sealed record MetadataInfo(
     AssemblyIdentity AssemblyIdentity,
     DateTime LastFileWrite,
     ImmutableDictionary<string, byte[]> Resources,
-    bool HasCompileTimeAttribute,
-    ImmutableDictionary<string, ImmutableArray<string>> ExportedTypes );
+    bool HasCompileTimeAttribute );

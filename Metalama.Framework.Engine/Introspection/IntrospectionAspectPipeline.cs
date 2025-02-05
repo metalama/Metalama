@@ -19,8 +19,8 @@ public sealed class IntrospectionAspectPipeline : AspectPipeline
 {
     private readonly IIntrospectionOptionsProvider? _options;
 
-    public IntrospectionAspectPipeline( in ProjectServiceProvider serviceProvider, CompileTimeDomain domain, IIntrospectionOptionsProvider? options ) :
-        base( serviceProvider, ExecutionScenario.Introspection, domain )
+    public IntrospectionAspectPipeline( in ProjectServiceProvider serviceProvider, IIntrospectionOptionsProvider? options ) :
+        base( serviceProvider, ExecutionScenario.Introspection )
     {
         this._options = options;
     }
@@ -28,7 +28,7 @@ public sealed class IntrospectionAspectPipeline : AspectPipeline
     protected override SyntaxGenerationOptions GetSyntaxGenerationOptions() => SyntaxGenerationOptions.Formatted;
 
     private protected override HighLevelPipelineStage CreateHighLevelStage( PipelineStageConfiguration configuration, CompileTimeProject compileTimeProject )
-        => new LinkerPipelineStage( compileTimeProject, configuration.AspectLayers );
+        => new LinkerPipelineStage( configuration.AspectLayers );
 
     private static ImmutableArray<IIntrospectionDiagnostic> MapDiagnostics( DiagnosticBag diagnostics, CompilationModel compilation )
         => diagnostics
@@ -42,7 +42,7 @@ public sealed class IntrospectionAspectPipeline : AspectPipeline
 
         var introspectionFactory = new IntrospectionFactory( compilation.Compilation );
 
-        if ( !this.TryInitialize( diagnostics, compilation.RoslynCompilation, null, null, cancellationToken, out var configuration ) )
+        if ( !this.TryInitialize( diagnostics, compilation.RoslynCompilation, null, cancellationToken, out var configuration ) )
         {
             return Task.FromResult(
                 (IIntrospectionCompilationResult)

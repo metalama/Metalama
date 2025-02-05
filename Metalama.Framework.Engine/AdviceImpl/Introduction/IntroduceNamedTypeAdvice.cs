@@ -24,9 +24,10 @@ internal sealed class IntroduceNamedTypeAdvice : IntroduceDeclarationAdvice<INam
         AdviceConstructorParameters<INamespaceOrNamedType> parameters,
         string explicitName,
         OverrideStrategy overrideStrategy,
-        Action<NamedTypeBuilder>? buildAction, 
-        TypeKind typeKind )
-        : base( parameters, buildAction )
+        Action<NamedTypeBuilder>? buildAction,
+        TypeKind typeKind,
+        IAdviceFactoryImpl adviceFactory )
+        : base( parameters, buildAction, adviceFactory )
     {
         this._explicitName = explicitName;
         this.OverrideStrategy = overrideStrategy;
@@ -35,7 +36,11 @@ internal sealed class IntroduceNamedTypeAdvice : IntroduceDeclarationAdvice<INam
 
     protected override NamedTypeBuilder CreateBuilder()
     {
-        return new NamedTypeBuilder( this.AspectLayerInstance, (INamespaceOrNamedType) this.TargetDeclaration.AssertNotNull(), this._explicitName, this._typeKind );
+        return new NamedTypeBuilder(
+            this.AspectLayerInstance,
+            (INamespaceOrNamedType) this.TargetDeclaration.AssertNotNull(),
+            this._explicitName,
+            this._typeKind );
     }
 
     protected override IntroductionAdviceResult<INamedType> ImplementCore( NamedTypeBuilder builder, in AdviceImplementationContext context )

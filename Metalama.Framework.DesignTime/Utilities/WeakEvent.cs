@@ -244,8 +244,8 @@ public abstract class WeakEventBase<TDelegate, TEventArgs>
 
     public readonly struct Accessors( WeakEventBase<TDelegate, TEventArgs> parent )
     {
-        public void RegisterHandler( TDelegate handler ) => parent.AddHandler( handler );
+        internal void RegisterHandler( TDelegate handler ) => parent.AddHandler( handler );
 
-        public void UnregisterHandler( TDelegate handler ) => parent.RemoveHandler( handler );
+        internal void UnregisterHandler( TDelegate handler ) => parent.RemoveHandler( handler );
     }
 }

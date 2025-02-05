@@ -3,7 +3,7 @@
 using JetBrains.Annotations;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
-using Metalama.Framework.CodeFixes;
+using Metalama.Framework.Utilities;
 
 namespace Metalama.Framework.Diagnostics
 {
@@ -13,7 +13,8 @@ namespace Metalama.Framework.Diagnostics
     /// <seealso href="@diagnostics"/>
     [CompileTime]
     [PublicAPI]
-    internal interface IDiagnosticSink
+    [InternalImplement]
+    public interface IDiagnosticSink
     {
         /// <summary>
         /// Reports a parametric diagnostic by specifying its location.
@@ -27,13 +28,5 @@ namespace Metalama.Framework.Diagnostics
         /// <param name="scope">The declaration in which the diagnostic must be suppressed.</param>
         /// <param name="source"></param>
         void Suppress( ISuppression suppression, IDeclaration scope, IDiagnosticSource source );
-
-        /// <summary>
-        /// Suggest a code fix without reporting a diagnostic.
-        /// </summary>
-        /// <param name="codeFix">The <see cref="CodeFix"/>.</param>
-        /// <param name="location">The code location for which the code fix should be suggested, typically an <see cref="IDeclaration"/>.</param>
-        /// <param name="source"></param>
-        void Suggest( CodeFix codeFix, IDiagnosticLocation location, IDiagnosticSource source );
     }
 }

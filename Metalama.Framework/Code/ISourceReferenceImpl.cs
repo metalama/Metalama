@@ -1,8 +1,13 @@
 // Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
+using Metalama.Framework.Aspects;
+using Metalama.Framework.Utilities;
+
 namespace Metalama.Framework.Code;
 
-internal interface ISourceReferenceImpl
+[InternalImplement]
+[CompileTime]
+public interface ISourceReferenceImpl
 {
     string GetKind( in SourceReference sourceReference );
 

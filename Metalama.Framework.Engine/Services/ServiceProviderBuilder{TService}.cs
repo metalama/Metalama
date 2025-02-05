@@ -38,7 +38,14 @@ public class ServiceProviderBuilder<TService>
     public void Add<T>( Func<ServiceProvider<TService>, T> func, bool allowOverride = false )
         where T : class, TService
     {
-        this._buildActions.Add( serviceProvider => serviceProvider.WithService( func( serviceProvider ), allowOverride ) );
+        this._buildActions.Add( serviceProvider => serviceProvider.WithService( func, allowOverride ) );
+    }
+
+    [PublicAPI]
+    public void AddShared<T>( Func<ServiceProvider<TService>, T> func )
+        where T : class, TService
+    {
+        this._buildActions.Add( serviceProvider => serviceProvider.AddSharedService( func ) );
     }
 
     /// <summary>
@@ -49,6 +56,17 @@ public class ServiceProviderBuilder<TService>
     public void Add( TService service, bool allowOverride = false )
     {
         this._buildActions.Add( serviceProvider => serviceProvider.WithService( service, allowOverride ) );
+    }
+
+    [PublicAPI]
+    public void AddShared( TService service )
+    {
+        this._buildActions.Add( serviceProvider => serviceProvider.AddSharedService( service ) );
+    }
+
+    internal void AddUntyped( Type interfaceType, object implementationInstance, bool allowOverride = false )
+    {
+        this._buildActions.Add( serviceProvider => serviceProvider.WithUntypedService( interfaceType, implementationInstance, allowOverride ) );
     }
 
     /// <summary>

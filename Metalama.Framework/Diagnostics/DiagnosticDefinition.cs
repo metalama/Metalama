@@ -1,6 +1,5 @@
 ﻿// Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
-using Metalama.Framework.CodeFixes;
 using System.Collections.Immutable;
 
 namespace Metalama.Framework.Diagnostics
@@ -30,10 +29,10 @@ namespace Metalama.Framework.Diagnostics
 
         IDiagnosticDefinition IDiagnostic.Definition => this;
 
-        ImmutableArray<CodeFix> IDiagnostic.CodeFixes => ImmutableArray<CodeFix>.Empty;
+        ImmutableArray<IDiagnosticExtension> IDiagnostic.Extensions => ImmutableArray<IDiagnosticExtension>.Empty;
 
         object? IDiagnostic.Arguments => default(None);
 
-        public IDiagnostic WithCodeFixes( params CodeFix[] codeFixes ) => new DiagnosticImpl<None>( this, default, codeFixes.ToImmutableArray() );
+        public IDiagnostic WithExtensions( ImmutableArray<IDiagnosticExtension> extensions ) => new DiagnosticImpl<None>( this, default, extensions );
     }
 }

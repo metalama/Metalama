@@ -390,32 +390,21 @@ internal sealed class SerializerGenerator : ISerializerGenerator
                         return null;
                     }
 
-                    if ( baseSerializer == null )
-                    {
-                        this._diagnosticAdder.Report(
-                            SerializationDiagnosticDescriptors.MissingBaseSerializer.CreateRoslynDiagnostic(
-                                targetType.GetDiagnosticLocation(),
-                                (targetType, targetType.BaseType) ) );
-
-                        return null;
-                    }
-
-                    return baseSerializer;
+                    return baseSerializer ?? GetBaseReferenceTypeSerializer();
                 }
                 else
                 {
-                    this._diagnosticAdder.Report(
-                        SerializationDiagnosticDescriptors.MissingBaseSerializer.CreateRoslynDiagnostic(
-                            targetType.GetDiagnosticLocation(),
-                            (targetType, targetType.BaseType) ) );
-
-                    return null;
+                    return GetBaseReferenceTypeSerializer();
                 }
             }
         }
         else
         {
-            // This is first serializer in the hierarchy.
+            return GetBaseReferenceTypeSerializer();
+        }
+
+        INamedTypeSymbol GetBaseReferenceTypeSerializer()
+        {
             return (INamedTypeSymbol) this._compileTimeCompilationContext.ReflectionMapper.GetTypeSymbol( typeof(ReferenceTypeSerializer) );
         }
     }
@@ -440,11 +429,28 @@ internal sealed class SerializerGenerator : ISerializerGenerator
     {
         var serializerBaseType = baseSerializer;
 
-        var createInstanceMethod = serializerBaseType.GetMembers()
-            .OfType<IMethodSymbol>()
-            .Single( x => x.Name == nameof(ReferenceTypeSerializer.CreateInstance) );
+        IMethodSymbol FindCreateInstanceMethod( INamedTypeSymbol serializerType )
+        {
+            var createInstanceMethod = serializerBaseType.GetMembers( nameof(ReferenceTypeSerializer.CreateInstance) )
+                .OfType<IMethodSymbol>()
+                .SingleOrDefault( x => x.Parameters.Length == 2 );
 
-        Invariant.Assert( createInstanceMethod.Parameters.Length == 2 );
+            if ( createInstanceMethod != null )
+            {
+                return createInstanceMethod;
+            }
+            else if ( serializerType.BaseType != null )
+            {
+                return FindCreateInstanceMethod( serializerType.BaseType );
+            }
+            else
+            {
+                throw new AssertionFailedException(
+                    $"Cannot find the '{nameof(ReferenceTypeSerializer.CreateInstance)}' method in type '{baseSerializer.ToDisplayString()}'." );
+            }
+        }
+
+        var createInstanceMethod = FindCreateInstanceMethod( baseSerializer );
 
         BlockSyntax body;
 

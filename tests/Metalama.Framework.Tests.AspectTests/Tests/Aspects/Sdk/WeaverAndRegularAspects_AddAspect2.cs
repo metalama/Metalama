@@ -37,8 +37,8 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Sdk.WeaverAndRegula
     {
         public override void BuildAspect( IAspectBuilder<IMethod> builder )
         {
-            builder.Outbound.AddAspect<RegularAspect1>();
-            builder.Outbound.AddAspect<RegularAspect2>();
+            builder.AddAspect<RegularAspect1>();
+            builder.AddAspect<RegularAspect2>();
         }
     }
 

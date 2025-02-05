@@ -2,6 +2,7 @@
 
 using Metalama.Framework.Advising;
 using Metalama.Framework.Code;
+using Metalama.Framework.Engine.Advising;
 using Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 
 namespace Metalama.Framework.Engine.AdviceImpl.Introduction;
@@ -16,7 +17,8 @@ internal sealed class IntroduceNamespaceAdvice : IntroduceDeclarationAdvice<INam
 
     public IntroduceNamespaceAdvice(
         AdviceConstructorParameters<INamespace> parameters,
-        string name ) : base( parameters, null )
+        string name,
+        IAdviceFactoryImpl adviceFactory ) : base( parameters, null, adviceFactory )
     {
         this._name = name;
     }
@@ -41,7 +43,7 @@ internal sealed class IntroduceNamespaceAdvice : IntroduceDeclarationAdvice<INam
     protected override IntroductionAdviceResult<INamespace> ImplementCore( NamespaceBuilder builder, in AdviceImplementationContext context )
     {
         var contextCopy = context;
-     
+
         void AddTransformationRecursive( NamespaceBuilder ns )
         {
             if ( ns.ContainingNamespace is NamespaceBuilder parentBuilder )

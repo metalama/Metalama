@@ -10,6 +10,8 @@ using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.Collections;
 using Metalama.Framework.Engine.Diagnostics;
+using Metalama.Framework.Engine.Extensibility;
+using Metalama.Framework.Engine.HierarchicalOptions;
 using Metalama.Framework.Engine.Transformations;
 using Metalama.Framework.Engine.Utilities.Comparers;
 using Metalama.Framework.Engine.Utilities.Threading;
@@ -47,7 +49,7 @@ internal sealed class ExecuteAspectLayerPipelineStep : PipelineStep
 
     public override async Task<CompilationModel> ExecuteAsync(
         CompilationModel compilation,
-        IUserDiagnosticSink diagnostics,
+        UserDiagnosticSink diagnostics,
         int stepIndex,
         CancellationToken cancellationToken )
     {
@@ -58,7 +60,7 @@ internal sealed class ExecuteAspectLayerPipelineStep : PipelineStep
             .WhereNotNull()
             .Select( a => (TargetDeclaration: a.TargetDeclaration.GetTarget( compilation ), AspectInstance: a) );
 
-        var instancesByType = 
+        var instancesByType =
             aggregateInstances.GroupBy( a => a.TargetDeclaration.GetClosestNamedType() );
 
         // This collection will contain the observable transformations that need to be replayed on the compilation.
@@ -93,7 +95,7 @@ internal sealed class ExecuteAspectLayerPipelineStep : PipelineStep
         int stepIndex,
         Action<ITransformation> addTransformation,
         ConcurrentLinkedList<ImmutableArray<AspectInstance>> aspectInstancesOfSameType,
-        IUserDiagnosticSink diagnostics,
+        UserDiagnosticSink diagnostics,
         CancellationToken cancellationToken )
     {
         var aspectDriver = (AspectDriver) this.AspectLayer.AspectClass.AspectDriver;
@@ -140,9 +142,9 @@ internal sealed class ExecuteAspectLayerPipelineStep : PipelineStep
                     // Apply the changes done by the aspects.
                     currentCompilation = newCompilation;
 
-                    this.Parent.AddAspectSources( aspectResult.AspectSources, true, cancellationToken );
-                    this.Parent.AddValidatorSources( aspectResult.ValidatorSources );
-                    await this.Parent.AddOptionsSourcesAsync( aspectResult.OptionsSources, cancellationToken );
+                    this.Parent.AddAspectSources( aspectResult.Contributors.OfType<IAspectSource>(), true, cancellationToken );
+                    this.Parent.AddExtendedContributors( aspectResult.Contributors.OfType<IExtensionPipelineContributor>() );
+                    await this.Parent.AddOptionsSourcesAsync( aspectResult.Contributors.OfType<IHierarchicalOptionsSource>(), cancellationToken );
 
                     var transformations = aspectResult.Transformations;
                     var partialCompilation = this.Parent.FirstCompilation.PartialCompilation;
@@ -173,7 +175,7 @@ internal sealed class ExecuteAspectLayerPipelineStep : PipelineStep
                     var newAspectInstances = await this.Parent.ExecuteAspectSourceAsync(
                         compilation,
                         this.AspectLayer.AspectClass,
-                        aspectResult.AspectSources,
+                        aspectResult.Contributors.OfType<IAspectSource>(),
                         diagnostics,
                         cancellationToken );
 

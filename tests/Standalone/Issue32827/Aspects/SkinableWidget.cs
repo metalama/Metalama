@@ -1,6 +1,6 @@
 ﻿using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
-using Metalama.Framework.Validation;
+using Metalama.Extensions.Validation;
 
 namespace Aspects
 {

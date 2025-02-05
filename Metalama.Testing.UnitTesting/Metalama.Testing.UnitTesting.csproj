@@ -3,7 +3,7 @@
     <Import Project="../build/RoslynVersion/Latest.imports" />
 
     <PropertyGroup>
-        <TargetFrameworks>netstandard2.0;net472;net6.0</TargetFrameworks>
+        <TargetFrameworks>net472;net6.0</TargetFrameworks>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <AssemblyName>Metalama.Testing.UnitTesting$(ThisRoslynVersionProjectSuffix)</AssemblyName>
         <PackageId>Metalama.Testing.UnitTesting</PackageId>
@@ -14,11 +14,13 @@
         <InternalsVisibleTo Include="Metalama.Testing.AspectTesting$(ThisRoslynVersionProjectSuffix)" />
         <InternalsVisibleTo Include="Metalama.Framework.Tests.AspectTests.$(ThisRoslynVersionNoPreview)" />
         <InternalsVisibleTo Include="Metalama.Framework.Tests.UnitTests.$(ThisRoslynVersionNoPreview)" />
+        <InternalsVisibleTo Include="Metalama.Framework.Tests.UnitTestHelpers.$(ThisRoslynVersionNoPreview)" />
         <InternalsVisibleTo Include="Metalama.Framework.Tests.Workspaces" />
     </ItemGroup>
 
     <ItemGroup>
         <ProjectReference Include="../Metalama.Framework.Engine$(ThisRoslynVersionProjectSuffix)/Metalama.Framework.Engine$(ThisRoslynVersionProjectSuffix).csproj" />
+        <ProjectReference Include="..\Metalama.Framework.DesignTime$(ThisRoslynVersionProjectSuffix)\Metalama.Framework.DesignTime$(ThisRoslynVersionProjectSuffix).csproj" />
         <ProjectReference Include="../Metalama.Framework.Sdk/Metalama.Framework.Sdk.csproj" />
         <ProjectReference Include="../Metalama.Framework/Metalama.Framework.csproj" />
 
@@ -32,11 +34,13 @@
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="xunit.abstractions" />
+        <PackageReference Include="xunit.assert" />
+        <PackageReference Include="xunit.abstractions" />
     </ItemGroup>
 
     <!-- Packaging -->
     <ItemGroup>
         <None Include="README.md" Pack="true" PackagePath="/" />
     </ItemGroup>
+
 </Project>

@@ -11,5 +11,11 @@ public static class MSBuildItemNames
 {
     public const string MetalamaCompileTimePackage = nameof(MetalamaCompileTimePackage);
 
+    public const string MetalamaCompileTimeAssembly = nameof(MetalamaCompileTimeAssembly);
+
     public const string MetalamaSourceGeneratorAttribute = nameof(MetalamaSourceGeneratorAttribute);
+
+    public const string MetalamaExtensionAssembly = nameof(MetalamaExtensionAssembly);
+
+    public const string MetalamaDesignTimeExtensionAssembly = nameof(MetalamaExtensionAssembly);
 }

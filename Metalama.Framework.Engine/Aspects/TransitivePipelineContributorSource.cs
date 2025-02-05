@@ -3,17 +3,15 @@
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.Collections;
-using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CodeModel.Abstractions;
 using Metalama.Framework.Engine.CodeModel.Source;
 using Metalama.Framework.Engine.Collections;
 using Metalama.Framework.Engine.CompileTime;
-using Metalama.Framework.Engine.Fabrics;
+using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.HierarchicalOptions;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.Threading;
-using Metalama.Framework.Engine.Validation;
 using Metalama.Framework.Options;
 using Microsoft.CodeAnalysis;
 using System.Collections.Generic;
@@ -28,10 +26,12 @@ namespace Metalama.Framework.Engine.Aspects;
 /// <summary>
 /// An aspect source that applies aspects that are inherited from referenced assemblies or projects.
 /// </summary>
-internal sealed class TransitivePipelineContributorSource : IAspectSource, IValidatorSource, IExternalHierarchicalOptionsProvider, IExternalAnnotationProvider
+internal sealed class TransitivePipelineContributorSource : IAspectSource, IExternalHierarchicalOptionsProvider, IExternalAnnotationProvider
 {
     private readonly ImmutableDictionaryOfArray<IAspectClass, InheritableAspectInstance> _inheritedAspects;
-    private readonly ImmutableArray<TransitiveValidatorInstance> _referenceValidators;
+
+    public ImmutableArray<IExtensionPipelineContributor> ExtensionContributors { get; }
+
     private readonly ImmutableDictionary<AssemblyIdentity, ITransitiveAspectsManifest> _manifests;
     private readonly IConcurrentTaskRunner _concurrentTaskRunner;
 
@@ -40,11 +40,13 @@ internal sealed class TransitivePipelineContributorSource : IAspectSource, IVali
         ImmutableArray<IAspectClass> aspectClasses,
         ProjectServiceProvider serviceProvider )
     {
+        var pipelineExtensions = serviceProvider.GetRequiredService<PipelineExtensionProvider>().Extensions;
+
         var inheritableAspectProvider = serviceProvider.GetService<ITransitiveAspectManifestProvider>();
         this._concurrentTaskRunner = serviceProvider.GetRequiredService<IConcurrentTaskRunner>();
 
         var inheritedAspectsBuilder = ImmutableDictionaryOfArray<IAspectClass, InheritableAspectInstance>.CreateBuilder();
-        var validatorsBuilder = ImmutableArray.CreateBuilder<TransitiveValidatorInstance>();
+        var extendedContributorsBuilder = ImmutableArray.CreateBuilder<IExtensionPipelineContributor>();
         var manifestDictionaryBuilder = ImmutableDictionary.CreateBuilder<AssemblyIdentity, ITransitiveAspectsManifest>();
 
         var aspectClassesByName = aspectClasses.ToDictionary( t => t.FullName, t => t );
@@ -110,27 +112,36 @@ internal sealed class TransitivePipelineContributorSource : IAspectSource, IVali
                     inheritedAspectsBuilder.AddRange( aspectClass, targets );
                 }
 
-                // Process validators.
-                validatorsBuilder.AddRange( manifest.ReferenceValidators );
+                // Process manifest extensions.
+                foreach ( var extension in pipelineExtensions )
+                {
+                    foreach ( var contributor in extension.GetPipelineContributorsFromTransitiveManifest( manifest.Extensions ) )
+                    {
+                        extendedContributorsBuilder.Add( contributor );
+                    }
+                }
             }
         }
 
         this._inheritedAspects = inheritedAspectsBuilder.ToImmutable();
-        this._referenceValidators = validatorsBuilder.ToImmutable();
+        this.ExtensionContributors = extendedContributorsBuilder.ToImmutable();
         this._manifests = manifestDictionaryBuilder.ToImmutable();
     }
 
     public ImmutableArray<IAspectClass> AspectClasses => this._inheritedAspects.Keys.ToImmutableArray();
 
-    public Task CollectAspectInstancesAsync(
-        IAspectClass aspectClass,
-        OutboundActionCollectionContext context )
+    public Task CollectAspectInstancesAsync( AspectInstanceCollector collector )
     {
-        return this._concurrentTaskRunner.RunConcurrentlyAsync( this._inheritedAspects[aspectClass], ProcessAspectInstance, context.CancellationToken );
+        var aspectClass = (AspectClass) collector.AspectClass;
+
+        return this._concurrentTaskRunner.RunConcurrentlyAsync(
+            this._inheritedAspects[aspectClass],
+            ProcessAspectInstance,
+            collector.CancellationToken );
 
         void ProcessAspectInstance( InheritableAspectInstance inheritedAspectInstance )
         {
-            var baseDeclaration = inheritedAspectInstance.TargetDeclaration.GetTargetOrNull( context.Compilation );
+            var baseDeclaration = inheritedAspectInstance.TargetDeclaration.GetTargetOrNull( collector.Compilation );
 
             if ( baseDeclaration == null )
             {
@@ -141,47 +152,14 @@ internal sealed class TransitivePipelineContributorSource : IAspectSource, IVali
 
             foreach ( var derived in ((IDeclarationImpl) baseDeclaration).GetDerivedDeclarations( DerivedTypesOptions.DirectOnly ) )
             {
-                context.Collector.AddAspectInstance(
+                collector.AddAspectInstance(
                     new AspectInstance(
                         inheritedAspectInstance.Aspect,
                         derived,
-                        (AspectClass) aspectClass,
+                        aspectClass,
                         new AspectPredecessor( AspectPredecessorKind.Inherited, inheritedAspectInstance ) ) );
             }
         }
-    }
-
-    Task IValidatorSource.CollectValidatorsAsync(
-        ValidatorKind kind,
-        CompilationModelVersion compilationModelVersion,
-        OutboundActionCollectionContext context )
-    {
-        if ( kind == ValidatorKind.Reference )
-        {
-            foreach ( var validator in this._referenceValidators )
-            {
-                context.CancellationToken.ThrowIfCancellationRequested();
-
-                var validationTarget = validator.ValidatedDeclaration?.GetTargetOrNull( context.Compilation );
-
-                if ( validationTarget?.GetSymbol() == null )
-                {
-                    continue;
-                }
-
-                context.Collector.AddValidator(
-                    new ReferenceValidatorInstance(
-                        validationTarget,
-                        validator.GetReferenceValidatorDriver(),
-                        ValidatorImplementation.Create( validator.Object, validator.State ),
-                        validator.ReferenceKinds,
-                        validator.IncludeDerivedTypes,
-                        validator.DiagnosticSourceDescription,
-                        validator.Granularity ) );
-            }
-        }
-
-        return Task.CompletedTask;
     }
 
     public IEnumerable<string> GetOptionTypes()

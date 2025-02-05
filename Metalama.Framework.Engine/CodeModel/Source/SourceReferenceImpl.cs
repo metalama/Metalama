@@ -9,7 +9,7 @@ using System.Linq;
 
 namespace Metalama.Framework.Engine.CodeModel.Source;
 
-internal sealed class SourceReferenceImpl : ISourceReferenceImpl
+public sealed class SourceReferenceImpl : ISourceReferenceImpl
 {
     public static SourceReferenceImpl Instance { get; } = new();
 

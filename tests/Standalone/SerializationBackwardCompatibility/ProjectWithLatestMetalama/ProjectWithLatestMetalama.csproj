@@ -8,11 +8,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Metalama.Framework"/>
+    <PackageReference Include="Metalama.Framework" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\ProjectWithMetalama20242\ProjectWithMetalama20242.csproj" />
+    <ProjectReference Include="..\ProjectWithMetalama20251\ProjectWithMetalama20251.csproj" />
   </ItemGroup>
 
 </Project>

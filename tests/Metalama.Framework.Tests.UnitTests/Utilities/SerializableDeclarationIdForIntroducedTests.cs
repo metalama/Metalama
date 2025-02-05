@@ -10,7 +10,7 @@ namespace Metalama.Framework.Tests.UnitTests.Utilities;
 
 public sealed class SerializableDeclarationIdForIntroducedTests : UnitTestClass
 {
-    public SerializableDeclarationIdForIntroducedTests( ITestOutputHelper? testOutputHelper = null ) : base( testOutputHelper, false ) { }
+    public SerializableDeclarationIdForIntroducedTests( ITestOutputHelper? logger = null ) : base( logger, false ) { }
 
     [Fact]
     public void TestAllDeclarations()

@@ -59,24 +59,30 @@ internal class IntroduceMembersAttribute : TypeAspect
 
         foreach (var result in results)
         {
-            ( (IAspectBuilder)builder ).With<IDeclaration>( result.Declaration ).Outbound.AddAspect<NopAspect>();
+            result.AddAspect<NopAspect>();
 
             if (result.Declaration is IMethod method)
             {
                 if (!method.ReturnType.IsConvertibleTo( typeof(void) ))
                 {
-                    ( (IAspectBuilder)builder ).With<IParameter>( method.ReturnParameter ).Outbound.AddAspect<NopAspect>();
+                    builder.With( method.ReturnParameter ).AddAspect<NopAspect>();
                 }
             }
 
             if (result.Declaration is IHasParameters hasParameters)
             {
-                ( (IAspectBuilder)builder ).With<IHasParameters>( hasParameters ).Outbound.SelectMany( m => m.Parameters ).AddAspect<NopAspect>();
+                foreach (var param in hasParameters.Parameters)
+                {
+                    builder.With( param ).AddAspect<NopAspect>();
+                }
             }
 
             if (result.Declaration is IHasAccessors member)
             {
-                ( (IAspectBuilder)builder ).With<IHasAccessors>( member ).Outbound.SelectMany( m => m.Accessors ).AddAspect<NopAspect>();
+                foreach (var accessor in member.Accessors)
+                {
+                    builder.With( accessor ).AddAspect<NopAspect>();
+                }
             }
         }
     }

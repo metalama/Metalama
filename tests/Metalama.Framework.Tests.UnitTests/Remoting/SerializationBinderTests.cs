@@ -1,7 +1,7 @@
 ﻿// Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
 using Metalama.Framework.DesignTime.Rpc;
-using Metalama.Framework.DesignTime.VisualStudio.Remoting;
+using Metalama.Framework.DesignTime.VisualStudio.Rpc;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -11,6 +11,8 @@ namespace Metalama.Framework.Tests.UnitTests.Remoting;
 
 public sealed class SerializationBinderTests
 {
+    private readonly JsonSerializationBinder _binder = new JsonSerializationBinderProvider().Binder;
+
     [Theory]
     [InlineData( typeof(int) )]
     [InlineData( typeof(ProjectKey) )]
@@ -18,11 +20,10 @@ public sealed class SerializationBinderTests
     [InlineData( typeof(ImmutableArray<ProjectKey>) )]
     public void Binder( Type type )
     {
-        var binder = JsonSerializationBinderFactory.Instance;
-        binder.BindToName( type, out var assemblyName, out var typeName );
+        this._binder.BindToName( type, out var assemblyName, out var typeName );
         assemblyName = JsonSerializationBinder.RemoveAssemblyDetailsFromAssemblyName( assemblyName! );
         typeName = JsonSerializationBinder.RemoveAssemblyDetailsFromTypeName( typeName! );
-        var roundloopType = binder.BindToType( assemblyName, typeName );
+        var roundloopType = this._binder.BindToType( assemblyName, typeName );
         Assert.Same( type, roundloopType );
     }
 
@@ -35,8 +36,7 @@ public sealed class SerializationBinderTests
         "System.Collections.Immutable.ImmutableDictionary`2[[System.String, System.Private.CoreLib, VERSION],[System.String, System.Private.CoreLib, VERSION]]" )]
     public void QualifyTypeName( Type type, string expectedQualifiedName )
     {
-        var binder = JsonSerializationBinderFactory.Instance;
-        binder.BindToName( type, out _, out var typeName );
+        this._binder.BindToName( type, out _, out var typeName );
         typeName = JsonSerializationBinder.RemoveAssemblyDetailsFromTypeName( typeName! );
 
         var qualified = JsonSerializationBinder.QualifyAssemblies(

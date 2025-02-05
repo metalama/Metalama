@@ -277,6 +277,7 @@ public static class SyntaxExtensions
         return node.WithTrailingTrivia( trailingTrivia );
     }
 
+    // Resharper disable once UnusedMember.Global
     internal static SyntaxToken WithOptionalTrailingTrivia( this SyntaxToken token, SyntaxTriviaList trailingTrivia, SyntaxGenerationOptions options )
     {
         if ( !options.TriviaMatters && !trailingTrivia.ContainsDirectives() )
@@ -356,8 +357,7 @@ public static class SyntaxExtensions
     /// <summary>
     /// Returns true when the tree contains assembly or module attributes.
     /// </summary>
-    public static bool ContainsGlobalAttributes( this SyntaxTree tree )
-        => tree.GetCompilationUnitRoot().AttributeLists.Any( list => list.Attributes.Any() );
+    public static bool ContainsGlobalAttributes( this SyntaxTree tree ) => tree.GetCompilationUnitRoot().AttributeLists.Any( list => list.Attributes.Any() );
 
     internal static ExpressionSyntax IgnoreSuppressNullWarning( this ExpressionSyntax expression )
         => expression switch

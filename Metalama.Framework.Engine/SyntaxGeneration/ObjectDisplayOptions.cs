@@ -7,7 +7,7 @@ namespace Metalama.Framework.Engine.SyntaxGeneration;
 // This type is copied from the Roslyn source code. The member integer values must match.
 // Resharper disable UnusedMember.Global
 [Flags]
-internal enum ObjectDisplayOptions
+public enum ObjectDisplayOptions
 {
     /// <summary>Format object using default options.</summary>
     None = 0,

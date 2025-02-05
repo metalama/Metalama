@@ -5,7 +5,7 @@ using Microsoft.CodeAnalysis;
 
 namespace Metalama.Framework.DesignTime;
 
-public static class ProjectKeyExtensions
+internal static class ProjectKeyExtensions
 {
     public static ProjectKey GetProjectKey( this Compilation compilation ) => ProjectKeyFactory.FromCompilation( compilation );
 }

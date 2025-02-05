@@ -19,6 +19,8 @@ public abstract class ProjectOptionsWrapper : IProjectOptions
         this.Wrapped = wrapped;
     }
 
+    public int Id { get; } = ProjectOptionsIdGenerator.GetNextId();
+
     public virtual string? BuildTouchFile => this.Wrapped.BuildTouchFile;
 
     public virtual string? SourceGeneratorTouchFile => this.Wrapped.SourceGeneratorTouchFile;
@@ -65,6 +67,8 @@ public abstract class ProjectOptionsWrapper : IProjectOptions
 
     public virtual ImmutableArray<string> CompileTimePackages => this.Wrapped.CompileTimePackages;
 
+    public virtual ImmutableArray<ExtensionAssemblyReference> CompileTimeAssemblies => this.Wrapped.CompileTimeAssemblies;
+
     public virtual string? ProjectAssetsFile => this.Wrapped.ProjectAssetsFile;
 
     public virtual int? ReferenceAssemblyRestoreTimeout => this.Wrapped.ReferenceAssemblyRestoreTimeout;
@@ -94,6 +98,10 @@ public abstract class ProjectOptionsWrapper : IProjectOptions
     public virtual string? TransformedFilesOutputPath => this.Wrapped.TransformedFilesOutputPath;
 
     public virtual ImmutableArray<string> SourceGeneratorAttributes => this.Wrapped.SourceGeneratorAttributes;
+
+    public ImmutableArray<ExtensionAssemblyReference> ExtensionAssemblies => this.Wrapped.ExtensionAssemblies;
+
+    public ImmutableArray<ExtensionAssemblyReference> DesignTimeExtensionAssemblies => this.Wrapped.DesignTimeExtensionAssemblies;
 
     public sealed override int GetHashCode() => throw new NotImplementedException();
 

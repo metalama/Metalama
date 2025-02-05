@@ -16,7 +16,7 @@ public readonly struct SourceReference : IDiagnosticLocation
 {
     private readonly ISourceReferenceImpl _sourceReferenceImpl;
 
-    internal SourceReference( object nodeOrToken, ISourceReferenceImpl sourceReferenceImpl )
+    public SourceReference( object nodeOrToken, ISourceReferenceImpl sourceReferenceImpl )
     {
         this.NodeOrTokenInternal = nodeOrToken;
         this._sourceReferenceImpl = sourceReferenceImpl;
@@ -41,7 +41,7 @@ public readonly struct SourceReference : IDiagnosticLocation
     /// This property evaluates to <c>false</c> only for partial methods without implementation.
     /// </summary>
     public bool IsImplementationPart => this._sourceReferenceImpl.IsImplementationPart( this );
-    
+
     /// <summary>
     /// Gets source file, line and column for the node.
     /// </summary>

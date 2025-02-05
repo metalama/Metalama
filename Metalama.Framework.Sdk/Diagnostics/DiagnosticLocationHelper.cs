@@ -49,7 +49,7 @@ namespace Metalama.Framework.Engine.Diagnostics
             }
         }
 
-        internal static Location? GetDiagnosticLocation( this SyntaxNode node )
+        public static Location? GetDiagnosticLocation( this SyntaxNode node )
         {
             switch ( node )
             {

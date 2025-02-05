@@ -2,6 +2,7 @@ using System;
 using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
+using Metalama.Framework.Fabrics;
 using Metalama.Framework.Tests.AspectTests.Tests.Aspects.Sdk.WeaverAndRegularAspects_AddAspect3;
 
 [assembly: AspectOrder( AspectOrderDirection.RunTime, typeof(RegularAspect1), typeof(WeaverAspect), typeof(CombinedAspect), typeof(RegularAspect2) )]
@@ -37,8 +38,8 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Sdk.WeaverAndRegula
     {
         public override void BuildAspect( IAspectBuilder<IMethod> builder )
         {
-            builder.Outbound.AddAspect<RegularAspect1>();
-            builder.Outbound.AddAspect<RegularAspect2>();
+            builder.AddAspect<RegularAspect1>();
+            builder.AddAspect<RegularAspect2>();
         }
     }
 

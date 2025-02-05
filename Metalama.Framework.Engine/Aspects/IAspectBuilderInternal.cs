@@ -13,7 +13,7 @@ namespace Metalama.Framework.Engine.Aspects
     /// exists because the only implementation <see cref="AspectBuilder{T}"/> is generic, and some parts of the
     /// code need a common, non-generic interface.
     /// </summary>
-    internal interface IAspectBuilderInternal : IAspectBuilder, IPipelineContributorSourceCollector, IAdviserInternal
+    internal interface IAspectBuilderInternal : IAspectBuilder, IPipelineContributorCollector, IAdviserInternal
     {
         ProjectServiceProvider ServiceProvider { get; }
 

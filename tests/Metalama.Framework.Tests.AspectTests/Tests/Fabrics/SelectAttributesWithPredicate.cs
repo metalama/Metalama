@@ -1,5 +1,6 @@
-﻿using System;
-using System.Linq;
+﻿// Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
+
+using System;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Fabrics;
@@ -12,11 +13,7 @@ public class Fabric : ProjectFabric
     {
         amender.SelectDeclarationsWithAttribute<Marker>( a => a.Value )
             .OfType<IMethod>()
-            .AddAspectIfEligible<TheAspect>(
-                m =>
-                {
-                    return new TheAspect();
-                } );
+            .AddAspectIfEligible( m => new TheAspect() );
     }
 }
 
@@ -25,10 +22,10 @@ public class Marker : Attribute
 {
     public Marker( bool value )
     {
-        Value = value;
+        this.Value = value;
     }
 
-    public bool Value { get;  }
+    public bool Value { get; }
 }
 
 public class TheAspect : OverrideMethodAspect
@@ -42,7 +39,7 @@ public class TheAspect : OverrideMethodAspect
 }
 
 // <target>
-[Marker(true)]
+[Marker( true )]
 public class C
 {
     [Marker( false )]

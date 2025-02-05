@@ -23,7 +23,8 @@ internal sealed class IntroduceConstructorAdvice : IntroduceMemberAdvice<IMethod
         AdviceConstructorParameters<INamedType> parameters,
         PartiallyBoundTemplateMethod template,
         OverrideStrategy overrideStrategy,
-        Action<IConstructorBuilder>? buildAction )
+        Action<IConstructorBuilder>? buildAction,
+        IAdviceFactoryImpl adviceFactory )
         : base(
             parameters,
             null,
@@ -31,7 +32,8 @@ internal sealed class IntroduceConstructorAdvice : IntroduceMemberAdvice<IMethod
             IntroductionScope.Instance,
             overrideStrategy,
             buildAction,
-            explicitlyImplementedInterfaceType: null )
+            explicitlyImplementedInterfaceType: null,
+            adviceFactory )
     {
         this._template = template;
     }

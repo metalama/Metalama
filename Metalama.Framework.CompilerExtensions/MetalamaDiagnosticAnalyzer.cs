@@ -1,5 +1,6 @@
 ﻿// Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
+using Metalama.Framework.DesignTime;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
 using System.Collections.Immutable;
@@ -26,22 +27,22 @@ namespace Metalama.Framework.CompilerExtensions
 
                 case ProcessKind.DevEnv:
                     this._impl = (DiagnosticAnalyzer) ResourceExtractor.CreateInstance(
-                        "Metalama.Framework.DesignTime.VisualStudio",
-                        "Metalama.Framework.DesignTime.VisualStudio.VsUserProcessDiagnosticAnalyzer" );
+                        RoslynEntryPointTypeNames.DesignTimeAssemblyName,
+                        RoslynEntryPointTypeNames.VsUserProcessDiagnosticAnalyzer );
 
                     break;
 
                 case ProcessKind.RoslynCodeAnalysisService:
                     this._impl = (DiagnosticAnalyzer) ResourceExtractor.CreateInstance(
-                        "Metalama.Framework.DesignTime.VisualStudio",
-                        "Metalama.Framework.DesignTime.VisualStudio.VsAnalysisProcessDiagnosticAnalyzer" );
+                        RoslynEntryPointTypeNames.DesignTimeAssemblyName,
+                        RoslynEntryPointTypeNames.VsAnalysisProcessDiagnosticAnalyzer );
 
                     break;
 
                 default:
                     this._impl = (DiagnosticAnalyzer) ResourceExtractor.CreateInstance(
-                        "Metalama.Framework.DesignTime",
-                        "Metalama.Framework.DesignTime.TheDiagnosticAnalyzer" );
+                        RoslynEntryPointTypeNames.DesignTimeAssemblyName,
+                        RoslynEntryPointTypeNames.TheDiagnosticAnalyzer );
 
                     break;
             }

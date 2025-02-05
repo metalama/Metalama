@@ -14,8 +14,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
             GlobalServiceProvider serviceProvider,
             string? projectDirectory,
             TestProjectReferences references,
-            ITestOutputHelper? logger,
-            ILicenseKeyProvider? licenseKeyProvider )
-            => new LinkerTestRunner( serviceProvider, projectDirectory, references, logger, licenseKeyProvider );
+            ITestOutputHelper? logger )
+            => new LinkerTestRunner( serviceProvider, projectDirectory, references, logger );
     }
 }

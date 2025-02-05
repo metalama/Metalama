@@ -585,7 +585,7 @@ internal class TestResult : IDisposable
 
         yield return message;
 
-        foreach ( var codeFix in CodeFixTitles.GetCodeFixTitles( d ) )
+        foreach ( var codeFix in DiagnosticCodeFixHelper.GetCodeFixTitles( d ) )
         {
             yield return $"//    CodeFix: {codeFix}`\n";
         }

@@ -94,4 +94,10 @@ public sealed class AdditionalServiceCollection : IAdditionalServiceCollection
     public void AddGlobalService<T>( Func<GlobalServiceProvider, T> service, bool allowOverride = false )
         where T : class, IGlobalService
         => this.GlobalServices.Add( provider => service( provider ), allowOverride );
+
+    public void AddUntypedProjectService( Type serviceType, object implementation, bool allowOverride = false )
+        => this.ProjectServices.AddUntyped( serviceType, implementation, allowOverride );
+
+    public void AddUntypedGlobalService( Type serviceType, object implementation, bool allowOverride = false )
+        => this.GlobalServices.AddUntyped( serviceType, implementation, allowOverride );
 }

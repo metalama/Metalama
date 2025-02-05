@@ -1,6 +1,5 @@
 ﻿// Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
-using Metalama.Backstage.Licensing.Consumption.Sources;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.DesignTime.Contracts.EntryPoint;
@@ -15,9 +14,7 @@ using Metalama.Framework.Eligibility;
 using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel;
-using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Diagnostics;
-using Metalama.Framework.Engine.Licensing;
 using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Pipeline;
 using Metalama.Framework.Engine.Pipeline.DesignTime;
@@ -43,7 +40,7 @@ namespace Metalama.Framework.DesignTime.Pipeline;
 /// The design-time implementation of <see cref="AspectPipeline"/>.
 /// </summary>
 /// Must be public because of testing.
-internal sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipeline
+public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipeline
 {
     private static readonly string _sourceGeneratorAssemblyName = typeof(DesignTimeAspectPipelineFactory).Assembly.GetName().Name.AssertNotNull();
 
@@ -70,12 +67,12 @@ internal sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPip
 
     private int _pipelineExecutionCount;
 
-    public ProjectKey ProjectKey { get; }
+    internal ProjectKey ProjectKey { get; }
 
     /// <summary>
     /// Gets the number of times the pipeline has been executed. Useful for testing purposes.
     /// </summary>
-    public int PipelineExecutionCount => this._pipelineExecutionCount;
+    internal int PipelineExecutionCount => this._pipelineExecutionCount;
 
     // ReSharper disable once InconsistentlySynchronizedField
     internal DesignTimeAspectPipelineStatus Status => this._currentState.Status;
@@ -84,14 +81,12 @@ internal sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPip
 
     internal ImmutableArray<PortableExecutableReference> MetadataReferences { get; }
 
-    public DesignTimeAspectPipeline(
+    internal DesignTimeAspectPipeline(
         DesignTimeAspectPipelineFactory pipelineFactory,
         IProjectOptions projectOptions,
         ProjectKey projectKey,
         ImmutableArray<PortableExecutableReference> metadataReferences )
-        : base(
-            GetServiceProvider( pipelineFactory.ServiceProvider, projectOptions, metadataReferences ),
-            pipelineFactory.Domain )
+        : base( GetServiceProvider( pipelineFactory.ServiceProvider, projectOptions, metadataReferences ) )
     {
         this.ProjectKey = projectKey;
         this.MetadataReferences = metadataReferences;
@@ -141,7 +136,7 @@ internal sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPip
         }
     }
 
-    private void OnOtherPipelineCompilationResultChanged( CompilationResultChangedEventArgs args )
+    private void OnOtherPipelineCompilationResultChanged( CompilationResultChangedEventData data )
     {
         if ( this.Status != DesignTimeAspectPipelineStatus.Ready )
         {
@@ -155,21 +150,21 @@ internal sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPip
             return;
         }
 
-        if ( !dependencies.DependenciesByMasterProject.TryGetValue( args.ProjectKey, out var dependenciesInThisProject ) )
+        if ( !dependencies.DependenciesByMasterProject.TryGetValue( data.ProjectKey, out var dependenciesInThisProject ) )
         {
             return;
         }
 
-        this.Logger.Trace?.Log( $"Processing change notification from dependent project '{args.ProjectKey}'." );
+        this.Logger.Trace?.Log( $"Processing change notification from dependent project '{data.ProjectKey}'." );
 
-        if ( !args.IsPartialCompilation || args.SyntaxTreePaths.Any( p => dependenciesInThisProject.DependenciesByMasterFilePath.ContainsKey( p ) ) )
+        if ( !data.IsPartialCompilation || data.SyntaxTreePaths.Any( p => dependenciesInThisProject.DependenciesByMasterFilePath.ContainsKey( p ) ) )
         {
-            this.Logger.Trace?.Log( $"Processing change notification from dependent project '{args.ProjectKey}': the current project may be affected." );
+            this.Logger.Trace?.Log( $"Processing change notification from dependent project '{data.ProjectKey}': the current project may be affected." );
             this._eventHub?.OnProjectDirty( this.ProjectKey );
         }
         else
         {
-            this.Logger.Trace?.Log( $"Processing change notification from dependent project '{args.ProjectKey}': the current project is not affected." );
+            this.Logger.Trace?.Log( $"Processing change notification from dependent project '{data.ProjectKey}': the current project is not affected." );
         }
     }
 
@@ -200,13 +195,6 @@ internal sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPip
         ImmutableArray<PortableExecutableReference> metadataReferences )
     {
         var projectServiceProvider = serviceProvider.WithProjectScopedServices( projectOptions, metadataReferences );
-
-        if ( !projectOptions.IsTest || !string.IsNullOrEmpty( projectOptions.License ) )
-        {
-            projectServiceProvider = projectServiceProvider.AddProjectLicenseConsumptionManager(
-                projectOptions.License,
-                projectOptions.IgnoreUserProfileLicense ? LicenseSourceKind.All : LicenseSourceKind.None );
-        }
 
         return projectServiceProvider;
     }
@@ -248,7 +236,7 @@ internal sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPip
     }
 
     // It's ok if we return an obsolete project in the use cases of this property.
-    public IReadOnlyCollection<IAspectClass>? AspectClasses
+    internal IReadOnlyCollection<IAspectClass>? AspectClasses
     {
         get
         {
@@ -261,7 +249,7 @@ internal sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPip
         }
     }
 
-    public ImmutableArray<string>? Fabrics
+    internal ImmutableArray<string>? Fabrics
     {
         get
         {
@@ -302,7 +290,7 @@ internal sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPip
     }
 #pragma warning restore VSTHRD100
 
-    public async Task ResumeAsync( AsyncExecutionContext executionContext, bool executePipelineNow, CancellationToken cancellationToken = default )
+    internal async Task ResumeAsync( AsyncExecutionContext executionContext, bool executePipelineNow, CancellationToken cancellationToken = default )
     {
         this.Logger.Trace?.Log( $"Resuming the pipeline for project '{this.ProjectKey}'." );
 
@@ -338,7 +326,7 @@ internal sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPip
         {
             if ( this._currentState.CompileTimeSyntaxTrees != null )
             {
-                var notification = new CompilationResultChangedEventArgs(
+                var notification = new CompilationResultChangedEventData(
                     this.ProjectKey,
                     true,
                     this._currentState.CompileTimeSyntaxTrees.Keys.ToImmutableArray() );
@@ -360,7 +348,7 @@ internal sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPip
             } );
     }
 
-    internal async ValueTask<FallibleResultWithDiagnostics<AspectPipelineConfiguration>> GetConfigurationAsync(
+    public async ValueTask<FallibleResultWithDiagnostics<AspectPipelineConfiguration>> GetConfigurationAsync(
         PartialCompilation compilation,
         bool ignoreStatus,
         AsyncExecutionContext executionContext,
@@ -394,7 +382,7 @@ internal sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPip
         }
     }
 
-    public bool MustReportPausedPipelineAsErrors => this._eventHub is not { IsUserInterfaceAttached: true };
+    internal bool MustReportPausedPipelineAsErrors => this._eventHub is not { IsUserInterfaceAttached: true };
 
     protected override void Dispose( bool disposing )
     {
@@ -424,7 +412,7 @@ internal sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPip
         return newState.ProjectVersion.AssertNotNull();
     }
 
-    public async ValueTask ResetCacheAsync( AsyncExecutionContext executionContext, CancellationToken cancellationToken )
+    internal async ValueTask ResetCacheAsync( AsyncExecutionContext executionContext, CancellationToken cancellationToken )
     {
         using ( await this.WithLockAsync( executionContext, cancellationToken ) )
         {
@@ -471,7 +459,7 @@ internal sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPip
         => this._taskRunner.RunSynchronously( () => this.ExecuteAsync( compilation, AsyncExecutionContext.Get(), cancellationToken ), cancellationToken );
 
     // This method is for testing only.
-    internal bool TryExecute(
+    public bool TryExecute(
         Compilation compilation,
         TestableCancellationToken cancellationToken,
         [NotNullWhen( true )] out DesignTimeAspectPipelineResultAndState? compilationResult )
@@ -641,13 +629,13 @@ internal sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPip
         return new DesignTimeProjectVersion( compilationVersion, compilationReferences, pipelineStatus );
     }
 
-    internal ValueTask<FallibleResultWithDiagnostics<DesignTimeAspectPipelineResultAndState>> ExecuteAsync(
+    public ValueTask<FallibleResultWithDiagnostics<DesignTimeAspectPipelineResultAndState>> ExecuteAsync(
         Compilation compilation,
         AsyncExecutionContext executionContext,
         TestableCancellationToken cancellationToken = default )
         => this.ExecuteAsync( compilation, false, executionContext, cancellationToken );
 
-    internal async ValueTask<FallibleResultWithDiagnostics<DesignTimeAspectPipelineResultAndState>> ExecuteAsync(
+    public async ValueTask<FallibleResultWithDiagnostics<DesignTimeAspectPipelineResultAndState>> ExecuteAsync(
         Compilation compilation,
         bool autoResumePipeline,
         AsyncExecutionContext executionContext,
@@ -771,7 +759,7 @@ internal sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPip
                         }
 
                         // Publish a change notification.
-                        var notification = new CompilationResultChangedEventArgs(
+                        var notification = new CompilationResultChangedEventData(
                             this.ProjectKey,
                             partialCompilation.IsPartial,
                             partialCompilation.IsPartial ? partialCompilation.SyntaxTrees.SelectAsImmutableArray( t => t.Key ) : default );
@@ -872,7 +860,7 @@ internal sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPip
     /// tree has changed compared to the cached configuration of this pipeline. This method is used to
     /// determine whether an error must displayed in the editor.  
     /// </summary>
-    public bool IsCompileTimeSyntaxTreeOutdated( string name )
+    internal bool IsCompileTimeSyntaxTreeOutdated( string name )
         => this._currentState.CompileTimeSyntaxTrees is { } compileTimeSyntaxTrees
            && compileTimeSyntaxTrees.TryGetValue( name, out var isValid )
            && !isValid;
@@ -897,7 +885,7 @@ internal sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPip
         return result.AspectInstances.Where( i => i.TargetDeclarationId == symbolId ).ToReadOnlyList();
     }
 
-    internal IReadOnlyList<AspectClass> GetEligibleAspects( Compilation compilation, ISymbol symbol, TestableCancellationToken cancellationToken )
+    public IReadOnlyList<AspectClass> GetEligibleAspects( Compilation compilation, ISymbol symbol, TestableCancellationToken cancellationToken )
     {
         var classes = this.AspectClasses;
 
@@ -1070,22 +1058,10 @@ internal sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPip
             if ( this.Logger.Warning != null )
             {
                 var callStack = new StackTrace();
-                var isDisposed = false;
-                lockDisposeAction = () => isDisposed = true;
+                var isDisposed = new TaskCompletionSource<bool>();
+                lockDisposeAction = () => isDisposed.SetResult( true );
 
-                _ = Task.Delay( TimeSpan.FromSeconds( 10 ), cancellationToken )
-                    .ContinueWith(
-                        _ =>
-                        {
-                            if ( !isDisposed )
-                            {
-                                this.Logger.Warning?.Log( $"The following call stack has been holding the lock for '{this.ProjectKey}' for a long time:" );
-                                this.Logger.Warning?.Log( callStack.ToString() );
-                            }
-                        },
-                        cancellationToken,
-                        TaskContinuationOptions.None,
-                        TaskScheduler.Current );
+                _ = WarnIfNotDisposedAsync( new WeakReference<DesignTimeAspectPipeline>( this ), isDisposed.Task, callStack );
             }
 #endif
         }
@@ -1095,6 +1071,19 @@ internal sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPip
         }
 
         return new Lock( this, acquired, lockDisposeAction, executionContext );
+    }
+
+    private static async Task WarnIfNotDisposedAsync( WeakReference<DesignTimeAspectPipeline> pipelineRef, Task disposedTask, StackTrace stackTrace )
+    {
+#pragma warning disable VSTHRD003
+        await Task.WhenAny( Task.Delay( TimeSpan.FromSeconds( 1 ) ), disposedTask );
+#pragma warning restore VSTHRD003
+
+        if ( !disposedTask.IsCompleted && pipelineRef.TryGetTarget( out var pipeline ) )
+        {
+            pipeline.Logger.Warning?.Log( $"The following call stack has been holding the lock for '{pipeline.ProjectKey}' for a long time:" );
+            pipeline.Logger.Warning?.Log( stackTrace.ToString() );
+        }
     }
 
     private readonly struct Lock : IDisposable
@@ -1134,7 +1123,7 @@ internal sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPip
         }
     }
 
-    public void ValidateTemplatingCode( SemanticModel semanticModel, Action<Diagnostic> reportDiagnostic, Action<ScopedSuppression>? reportSuppression )
+    internal void ValidateTemplatingCode( SemanticModel semanticModel, Action<Diagnostic> reportDiagnostic, Action<ScopedSuppression>? reportSuppression )
         => TemplatingCodeValidator.Validate(
             this.ServiceProvider,
             semanticModel,
@@ -1148,7 +1137,6 @@ internal sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPip
         string aspectTypeName,
         Compilation inputCompilation,
         ISymbol targetSymbol,
-        bool isComputingPreview,
         TestableCancellationToken cancellationToken )
     {
         // Get a compilation _without_ generated code, and map the target symbol.
@@ -1175,13 +1163,11 @@ internal sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPip
 
         var result = await LiveTemplateAspectPipeline.ExecuteAsync(
             configuration.ServiceProvider,
-            this.Domain,
             configuration,
             x => x.AspectClasses.Single( c => c.FullName == aspectTypeName ),
             partialCompilation,
             sourceSymbol,
             diagnosticBag,
-            isComputingPreview,
             cancellationToken );
 
         if ( !result.IsSuccessful )
@@ -1199,12 +1185,11 @@ internal sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPip
     protected override bool TryInitialize(
         IDiagnosticAdder diagnosticAdder,
         Compilation compilation,
-        ProjectLicenseInfo? projectLicenseInfo,
         IReadOnlyList<SyntaxTree>? compileTimeTreesHint,
         CancellationToken cancellationToken,
         [NotNullWhen( true )] out AspectPipelineConfiguration? configuration )
     {
-        var tryInitialize = base.TryInitialize( diagnosticAdder, compilation, projectLicenseInfo, compileTimeTreesHint, cancellationToken, out configuration );
+        var tryInitialize = base.TryInitialize( diagnosticAdder, compilation, compileTimeTreesHint, cancellationToken, out configuration );
 
         if ( tryInitialize )
         {
@@ -1222,6 +1207,8 @@ internal sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPip
             return false;
         }
     }
+
+    protected override IDiagnosticExtensionPolicy GetDiagnosticExtensionPolicy() => ConstantDiagnosticExtensionPolicy.PropertiesOnly;
 
     public override string ToString() => $"{this.GetType().Name}, Project='{this.ProjectKey}'";
 

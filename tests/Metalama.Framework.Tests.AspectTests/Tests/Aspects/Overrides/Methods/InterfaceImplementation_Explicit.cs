@@ -30,7 +30,10 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Overrides.Methods.I
         {
             builder.ImplementInterface( (INamedType)TypeFactory.GetType( typeof(IntroducedInterface) ) );
 
-            builder.Outbound.SelectMany( x => x.Methods ).AddAspect( x => new OverrideAttribute() );
+            foreach (var m in builder.AdvisedTarget.Methods)
+            {
+                builder.With( m ).AddAspect( new OverrideAttribute() );
+            }
         }
 
         [InterfaceMember( IsExplicit = true )]

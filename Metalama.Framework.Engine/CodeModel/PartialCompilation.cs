@@ -207,7 +207,7 @@ namespace Metalama.Framework.Engine.CodeModel
         /// <summary>
         /// Creates a <see cref="PartialCompilation"/> for a single syntax tree and its closure.
         /// </summary>
-        internal static PartialCompilation CreatePartial(
+        public static PartialCompilation CreatePartial(
             Compilation compilation,
             SyntaxTree syntaxTree,
             ImmutableArray<ManagedResource> resources = default )
@@ -260,11 +260,14 @@ namespace Metalama.Framework.Engine.CodeModel
         ///  Adds and replaces syntax trees of the current <see cref="PartialCompilation"/> and returns a new <see cref="PartialCompilation"/>
         /// representing the modified object.
         /// </summary>
-        internal abstract PartialCompilation Update(
+        public abstract PartialCompilation Update(
             IReadOnlyCollection<SyntaxTreeTransformation>? transformations = null,
             ImmutableArray<ManagedResource> resources = default );
 
-        private sealed record Closure( ImmutableHashSet<INamedTypeSymbol> DeclaredTypes, ImmutableHashSet<SyntaxTree> Trees, DerivedTypeIndex DerivedTypeIndex );
+        private sealed record Closure(
+            ImmutableHashSet<INamedTypeSymbol> DeclaredTypes,
+            ImmutableHashSet<SyntaxTree> Trees,
+            DerivedTypeIndex DerivedTypeIndex );
 
         /// <summary>
         /// Gets a closure of the syntax trees declaring all base types and interfaces of all types declared in input syntax trees.

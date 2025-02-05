@@ -3,12 +3,9 @@
 using JetBrains.Annotations;
 using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Extensibility;
-using Metalama.Backstage.Licensing.Consumption;
-using Metalama.Backstage.Licensing.Consumption.Sources;
 using Metalama.Compiler;
 using Metalama.Framework.Engine.AdditionalOutputs;
 using Metalama.Framework.Engine.Diagnostics;
-using Metalama.Framework.Engine.Licensing;
 using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Pipeline.CompileTime;
 using Metalama.Framework.Engine.SerializableIds;
@@ -24,6 +21,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
+using DiagnosticFilter = Metalama.Compiler.DiagnosticFilter;
 using IExceptionReporter = Metalama.Backstage.Telemetry.IExceptionReporter;
 
 namespace Metalama.Framework.Engine.Pipeline;
@@ -94,13 +92,7 @@ public sealed partial class SourceTransformer : ISourceTransformerWithServices
             var projectOptions = context.ProjectOptions;
 
             var projectServiceProvider = globalServices
-                .WithProjectScopedServices( projectOptions, context.Compilation )
-                .WithService<IProjectLicenseConsumer>(
-                    sp => ProjectLicenseConsumer.Create(
-                        sp.GetRequiredBackstageService<ILicenseConsumptionService>(),
-                        projectOptions.License,
-                        projectOptions.IgnoreUserProfileLicense ? LicenseSourceKind.All : LicenseSourceKind.None,
-                        context.ReportDiagnostic ) );
+                .WithProjectScopedServices( projectOptions, context.Compilation );
 
             using CompileTimeAspectPipeline pipeline = new( projectServiceProvider );
 

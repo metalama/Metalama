@@ -1,6 +1,5 @@
 // Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
-using Metalama.Testing.AspectTesting.Licensing;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
@@ -25,6 +24,21 @@ namespace Metalama.Testing.AspectTesting
 
         private static TestAssemblyMetadata GetMetadataCore( IAssemblyInfo assembly )
         {
+            var projectDirectory = GetProjectDirectory();
+
+            return new TestAssemblyMetadata(
+                projectDirectory,
+                GetSourceDirectory(),
+                GetParserSymbols(),
+                GetTargetFramework(),
+                GetMustLaunchDebugger(),
+                GetAssemblyReferences( "ReferenceAssemblyList" ),
+                GetAssemblyReferences( "CompileTimeAssemblyList" ),
+                GetAssemblyReferences( "ExtensionAssemblyList" ),
+                ReadStringsFromFile( "PlugInList" ),
+                GetGlobalUsingsFile(),
+                GetIgnoredWarnings() );
+
             IAttributeInfo? GetOptionalAssemblyMetadataAttribute( string key )
                 => assembly
                     .GetCustomAttributes( typeof(AssemblyMetadataAttribute) )
@@ -52,10 +66,6 @@ namespace Metalama.Testing.AspectTesting
 
             string GetSourceDirectory() => GetOptionalAssemblyMetadataValue( "SourceDirectory" ) ?? GetProjectDirectory();
 
-            string GetProjectPath() => GetRequiredAssemblyMetadataValue( "ProjectPath" );
-
-            string GetProjectName() => Path.GetFileNameWithoutExtension( GetProjectPath() );
-
             ImmutableArray<string> GetParserSymbols()
                 => (GetOptionalAssemblyMetadataValue( "DefineConstants" ) ?? "")
                     .Split( ';' )
@@ -65,23 +75,24 @@ namespace Metalama.Testing.AspectTesting
 
             string GetTargetFramework() => GetRequiredAssemblyMetadataValue( "TargetFramework" );
 
-            ImmutableArray<TestAssemblyReference> GetAssemblyReferences( string projectDirectory, string propertyName )
+            ImmutableArray<TestAssemblyReference> GetAssemblyReferences( string propertyName )
+            {
+                var lines = ReadStringsFromFile( propertyName );
+
+                return lines.SelectAsImmutableArray( t => new TestAssemblyReference { Path = FindImplementationAssembly( projectDirectory, t ) } );
+            }
+
+            ImmutableArray<string> ReadStringsFromFile( string propertyName )
             {
                 var path = GetRequiredAssemblyMetadataValue( propertyName );
                 var lines = File.ReadAllLines( path );
 
-                return lines.SelectAsImmutableArray( t => new TestAssemblyReference { Path = FilterReference( projectDirectory, t ) } );
+                return lines.ToImmutableArray();
             }
 
             bool GetMustLaunchDebugger() => GetBoolAssemblyMetadataValue( "MetalamaDebugTestFramework" );
 
             string? GetGlobalUsingsFile() => GetOptionalAssemblyMetadataValue( "GlobalUsingsFile" );
-
-            string? GetProjectLicense() => GetOptionalAssemblyMetadataValue( "MetalamaLicense" );
-
-            bool GetIgnoreUserProfileLicenses() => GetBoolAssemblyMetadataValue( "MetalamaTestFrameworkIgnoreUserProfileLicenses" );
-
-            TestFrameworkLicenseStatus GetLicense() => new( GetProjectName(), GetProjectLicense(), GetIgnoreUserProfileLicenses() );
 
             ImmutableArray<string> GetIgnoredWarnings()
                 => GetOptionalAssemblyMetadataValue( "IgnoredWarnings" )
@@ -89,23 +100,9 @@ namespace Metalama.Testing.AspectTesting
                     .Select( s => s.Trim() )
                     .Where( s => !string.IsNullOrEmpty( s ) )
                     .ToImmutableArray() ?? ImmutableArray<string>.Empty;
-
-            var projectDirectory = GetProjectDirectory();
-
-            return new TestAssemblyMetadata(
-                projectDirectory,
-                GetSourceDirectory(),
-                GetParserSymbols(),
-                GetTargetFramework(),
-                GetMustLaunchDebugger(),
-                GetAssemblyReferences( projectDirectory, "ReferenceAssemblyList" ),
-                GetAssemblyReferences( projectDirectory, "AnalyzerAssemblyList" ),
-                GetGlobalUsingsFile(),
-                GetLicense(),
-                GetIgnoredWarnings() );
         }
 
-        private static string FilterReference( string projectDirectory, string path )
+        private static string FindImplementationAssembly( string projectDirectory, string path )
         {
             path = Path.Combine( projectDirectory, path );
 

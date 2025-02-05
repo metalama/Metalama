@@ -1548,20 +1548,20 @@ class C {}
             using var testContext = this.CreateTestContext();
 
             const string code = """
-                public partial class C
-                {
-                    public void NonPartial() {}
-                    partial void PartialVoid_NoImpl();
-                    partial void PartialVoid_Impl();
-                    public partial int PartialNonVoid();
-                }
+                                public partial class C
+                                {
+                                    public void NonPartial() {}
+                                    partial void PartialVoid_NoImpl();
+                                    partial void PartialVoid_Impl();
+                                    public partial int PartialNonVoid();
+                                }
 
-                public partial class C
-                {
-                    partial void PartialVoid_Impl() {}
-                    public partial int PartialNonVoid() => 42;
-                }
-                """;
+                                public partial class C
+                                {
+                                    partial void PartialVoid_Impl() {}
+                                    public partial int PartialNonVoid() => 42;
+                                }
+                                """;
 
             var compilation = testContext.CreateCompilationModel( code );
             var nonPartial = compilation.Types.ElementAt( 0 ).Methods.OfName( "NonPartial" ).Single();
@@ -1595,13 +1595,13 @@ class C {}
             using var testContext = this.CreateTestContext();
 
             const string code = """
-                partial class C
-                {
-                    int P { get; set; }
-                    partial int PartialP { get; set; }
-                    partial int PartialP { get => 0; set {} }
-                }
-                """;
+                                partial class C
+                                {
+                                    int P { get; set; }
+                                    partial int PartialP { get; set; }
+                                    partial int PartialP { get => 0; set {} }
+                                }
+                                """;
 
             var compilation = testContext.CreateCompilationModel( code );
             var type = compilation.Types.Single();
@@ -1632,13 +1632,13 @@ class C {}
             using var testContext = this.CreateTestContext();
 
             const string code = """
-                partial class C
-                {
-                    int this[int i] { get => 0; set {} }
-                    partial int this[string s] { get; set; }
-                    partial int this[string s] { get => 0; set {} }
-                }
-                """;
+                                partial class C
+                                {
+                                    int this[int i] { get => 0; set {} }
+                                    partial int this[string s] { get; set; }
+                                    partial int this[string s] { get => 0; set {} }
+                                }
+                                """;
 
             var compilation = testContext.CreateCompilationModel( code );
             var type = compilation.Types.Single();
@@ -1789,20 +1789,20 @@ public partial class B
             using var testContext = this.CreateTestContext();
 
             const string code = """
-                public partial class C
-                {
-                    public void NonPartial() {}
-                    partial void PartialVoid_NoImpl();
-                    partial void PartialVoid_Impl();
-                    public partial int PartialNonVoid();
-                }
+                                public partial class C
+                                {
+                                    public void NonPartial() {}
+                                    partial void PartialVoid_NoImpl();
+                                    partial void PartialVoid_Impl();
+                                    public partial int PartialNonVoid();
+                                }
 
-                public partial class C
-                {
-                    partial void PartialVoid_Impl() {}
-                    public partial int PartialNonVoid() => 42;
-                }
-                """;
+                                public partial class C
+                                {
+                                    partial void PartialVoid_Impl() {}
+                                    public partial int PartialNonVoid() => 42;
+                                }
+                                """;
 
             var compilation = testContext.CreateCompilationModel( code );
             var type = compilation.Types.Single();
@@ -2013,7 +2013,7 @@ public partial class B
         public void ExternalInternalAutomaticProperty()
         {
             using var testContext = this.CreateTestContext();
-            var dependency = TestCompilationFactory.CreateCSharpCompilation( "public class C { public string P { get; internal set; } }" );
+            var dependency = testContext.CreateCSharpCompilation( "public class C { public string P { get; internal set; } }" );
             var dependencyStream = new MemoryStream();
             Assert.True( dependency.Emit( dependencyStream ).Success );
             dependencyStream.Seek( 0, SeekOrigin.Begin );

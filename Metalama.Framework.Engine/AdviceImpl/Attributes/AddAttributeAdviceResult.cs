@@ -2,6 +2,7 @@
 
 using Metalama.Framework.Advising;
 using Metalama.Framework.Code;
+using Metalama.Framework.Diagnostics;
 using Metalama.Framework.Engine.Advising;
 using Metalama.Framework.Engine.Utilities;
 using System;
@@ -28,4 +29,12 @@ internal sealed class AddAttributeAdviceResult : AdviceResult, IIntroductionAdvi
     public IAttribute Declaration => this.Resolve( this._attribute );
 
     public IDeclaration ConflictingDeclaration => throw new NotSupportedException();
+
+    ScopedDiagnosticSink IAdviser.Diagnostics => throw new NotSupportedException();
+
+    IAttribute IAdviser<IAttribute>.Target => throw new NotSupportedException();
+
+    IDeclaration IAdviser.Target => throw new NotSupportedException();
+
+    IAdviser<TNewDeclaration> IAdviser.With<TNewDeclaration>( TNewDeclaration declaration ) => throw new NotSupportedException();
 }

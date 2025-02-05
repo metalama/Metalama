@@ -5,15 +5,20 @@ using Metalama.Framework.DesignTime.Pipeline;
 using Metalama.Framework.DesignTime.Preview;
 using Metalama.Framework.DesignTime.Rpc;
 using Metalama.Framework.DesignTime.Rpc.Notifications;
-using Metalama.Framework.DesignTime.VisualStudio.Remoting.AnalysisProcess;
-using Metalama.Framework.DesignTime.VisualStudio.Remoting.Api;
-using Metalama.Framework.DesignTime.VisualStudio.Remoting.UserProcess;
+using Metalama.Framework.DesignTime.VisualStudio.Preview;
+using Metalama.Framework.DesignTime.VisualStudio.Rpc;
+using Metalama.Framework.DesignTime.VisualStudio.ServiceHub;
+using Metalama.Framework.DesignTime.VisualStudio.ServiceProvider;
+using Metalama.Framework.DesignTime.VisualStudio.SourceGenerating;
 using Metalama.Framework.Engine.DesignTime;
 using Metalama.Framework.Engine.Services;
+using Metalama.Testing.UnitTesting;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.VisualStudio.Threading;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
@@ -23,14 +28,16 @@ namespace Metalama.Framework.Tests.UnitTests.Remoting;
 
 #pragma warning disable VSTHRD200, VSTHRD103
 
-public sealed class RemotingTests : FrameworkBaseTestClass
+public sealed class RemotingTests : UnitTestClass
 {
-    public RemotingTests( ITestOutputHelper testOutputHelper ) : base( testOutputHelper ) { }
+    public RemotingTests( ITestOutputHelper logger ) : base( logger ) { }
 
     protected override void ConfigureServices( IAdditionalServiceCollection services )
     {
         base.ConfigureServices( services );
         services.AddGlobalService( sp => new AnalysisProcessEventHub( sp ) );
+        services.AddUntypedGlobalService( typeof(IJsonSerializationBinderProvider), new JsonSerializationBinderProvider() );
+        services.AddUntypedGlobalService( typeof(IRpcExceptionHandler), new TestRpcExceptionHandler( this.TestOutput ) );
     }
 
     [Fact]
@@ -43,19 +50,30 @@ public sealed class RemotingTests : FrameworkBaseTestClass
         const string sourceTreeName = "mySource";
 
         var pipeName = $"Metalama_Test_{Guid.NewGuid()}";
-        using var server = new AnalysisProcessEndpoint( serviceProvider, pipeName );
-        using var client = new UserProcessEndpoint( serviceProvider, pipeName );
-        var projectHandler = new TestProjectHandler();
+
+        using var server = new RpcServiceProviderServerEndpoint(
+            serviceProvider,
+            pipeName,
+            [new SourceGeneratorRpcServiceFactory()] );
+
+        using var clientEndpoint = new RpcServiceProviderClientEndpoint( serviceProvider, pipeName );
+        var eventCollector = new RpcEventCollector();
 
         server.Start();
-        await client.ConnectAsync();
+        await clientEndpoint.ConnectAsync();
 
-        await client.RegisterProjectCallbackAsync( projectKey, projectHandler );
+        clientEndpoint.EventReceived += eventCollector.OnEventReceived;
 
-        await server.PublishGeneratedSourcesAsync( projectKey, ImmutableDictionary.Create<string, string>().Add( sourceTreeName, "content" ) );
+        var sourceGeneratorService = server.GetRequiredService<SourceGeneratorRpcService>();
 
-        Assert.Single( projectHandler.GeneratedCodeEvents, x => x.ProjectKey == projectKey );
-        Assert.Single( projectHandler.GeneratedCodeEvents[0].Sources, x => x.Key == sourceTreeName );
+        await sourceGeneratorService.PublishGeneratedSourcesAsync(
+            projectKey,
+            ImmutableDictionary.Create<string, string>().Add( sourceTreeName, "content" ) );
+
+        await eventCollector.WhenTrueAsync( c => c.Events.OfType<GeneratedSourceChangedEventData>().Any(), testContext.CancellationToken );
+
+        Assert.Single( eventCollector.Events.OfType<GeneratedSourceChangedEventData>(), x => x.ProjectKey == projectKey );
+        Assert.Single( eventCollector.Events.OfType<GeneratedSourceChangedEventData>().First().Sources, x => x.Key == sourceTreeName );
     }
 
     [Fact]
@@ -69,23 +87,34 @@ public sealed class RemotingTests : FrameworkBaseTestClass
 
         // Start the server.
         var pipeName = $"Metalama_Test_{Guid.NewGuid()}";
-        using var server = new AnalysisProcessEndpoint( serviceProvider, pipeName );
+
+        using var server = new RpcServiceProviderServerEndpoint(
+            serviceProvider,
+            pipeName,
+            [new SourceGeneratorRpcServiceFactory()] );
+
         server.Start();
 
-        // Start the client, but do not call Hello.
-        using var client = new UserProcessEndpoint( serviceProvider, pipeName );
-        var projectHandler = new TestProjectHandler();
-        await client.ConnectAsync();
+        // Start the client and collect events.
+        using var clientEndpoint = new RpcServiceProviderClientEndpoint( serviceProvider, pipeName );
+        var eventCollector = new RpcEventCollector();
+        clientEndpoint.EventReceived += eventCollector.OnEventReceived;
+
+        // Connect.
+        await clientEndpoint.ConnectAsync();
 
         // Publish from the server.
-        await server.PublishGeneratedSourcesAsync( projectKey, ImmutableDictionary.Create<string, string>().Add( sourceTreeName, "content" ) );
+        var sourceGeneratorService = server.GetRequiredService<SourceGeneratorRpcService>();
 
-        // Finish the connection from the client. We should receive the message that were sent before saying hello.
-        await client.RegisterProjectCallbackAsync( projectKey, projectHandler );
+        await sourceGeneratorService.PublishGeneratedSourcesAsync(
+            projectKey,
+            ImmutableDictionary.Create<string, string>().Add( sourceTreeName, "content" ) );
+
+        await eventCollector.WhenTrueAsync( c => c.Events.OfType<GeneratedSourceChangedEventData>().Any(), testContext.CancellationToken );
 
         // Asserts.
-        Assert.Single( projectHandler.GeneratedCodeEvents, x => x.ProjectKey == projectKey );
-        Assert.Single( projectHandler.GeneratedCodeEvents[0].Sources, x => x.Key == sourceTreeName );
+        Assert.Single( eventCollector.Events.OfType<GeneratedSourceChangedEventData>(), x => x.ProjectKey == projectKey );
+        Assert.Single( eventCollector.Events.OfType<GeneratedSourceChangedEventData>().First().Sources, x => x.Key == sourceTreeName );
     }
 
     [Fact]
@@ -99,21 +128,40 @@ public sealed class RemotingTests : FrameworkBaseTestClass
 
         // Start the server.
         var pipeName = $"Metalama_Test_{Guid.NewGuid()}";
-        using var server = new AnalysisProcessEndpoint( serviceProvider, pipeName );
+
+        using var server = new RpcServiceProviderServerEndpoint(
+            serviceProvider,
+            pipeName,
+            [new SourceGeneratorRpcServiceFactory()] );
+
         server.Start();
 
         // Publish from the server.
-        await server.PublishGeneratedSourcesAsync( projectKey, ImmutableDictionary.Create<string, string>().Add( sourceTreeName, "content" ) );
+        var sourceGeneratorService = server.GetRequiredService<SourceGeneratorRpcService>();
+
+        await sourceGeneratorService.PublishGeneratedSourcesAsync(
+            projectKey,
+            ImmutableDictionary.Create<string, string>().Add( sourceTreeName, "content" ) );
 
         // Start the client.
-        using var client = new UserProcessEndpoint( serviceProvider, pipeName );
-        var projectHandler = new TestProjectHandler();
-        await client.ConnectAsync();
-        await client.RegisterProjectCallbackAsync( projectKey, projectHandler );
+        using var clientEndpoint = new RpcServiceProviderClientEndpoint( serviceProvider, pipeName );
+        var eventCollector = new RpcEventCollector();
+        await clientEndpoint.ConnectAsync();
+        clientEndpoint.EventReceived += eventCollector.OnEventReceived;
 
-        // Asserts.
-        Assert.Single( projectHandler.GeneratedCodeEvents, x => x.ProjectKey == projectKey );
-        Assert.Single( projectHandler.GeneratedCodeEvents[0].Sources, x => x.Key == sourceTreeName );
+        var sourceGeneratorClient = await clientEndpoint.GetClientAsync<SourceGeneratorRpcClient>( testContext.CancellationToken );
+
+        // The cache must be empty.
+        Assert.False( sourceGeneratorClient.TryGetCachedGeneratedSources( projectKey, out _ ) );
+
+        // Get the data, which populates the cache.
+        var generatedSources = await sourceGeneratorClient.GetGeneratedSourcesAsync( projectKey, testContext.CancellationToken );
+
+        Assert.Single( generatedSources );
+        Assert.Equal( sourceTreeName, generatedSources.Single().Key );
+
+        // The cache is now populated.
+        Assert.True( sourceGeneratorClient.TryGetCachedGeneratedSources( projectKey, out _ ) );
     }
 
     [Fact]
@@ -124,13 +172,18 @@ public sealed class RemotingTests : FrameworkBaseTestClass
 
         // Start the server.
         var pipeName = $"Metalama_Test_{Guid.NewGuid()}";
-        using var server = new AnalysisProcessEndpoint( serviceProvider, pipeName );
+
+        using var server = new RpcServiceProviderServerEndpoint(
+            serviceProvider,
+            pipeName,
+            [new PreviewTransformationRpcServiceFactory()] );
+
         server.Start();
 
-        using var client = new UserProcessEndpoint( serviceProvider, pipeName );
+        using var client = new RpcServiceProviderClientEndpoint( serviceProvider, pipeName );
         await client.ConnectAsync();
 
-        var result = await (await client.GetServerApiAsync( "test" )).PreviewTransformationAsync(
+        var result = await (await client.GetApiAsync<IPreviewTransformationRpcApi>( testContext.CancellationToken )).PreviewTransformationAsync(
             ProjectKeyFactory.CreateTest( "myProjectId" ),
             "syntaxTreeName" );
 
@@ -145,24 +198,25 @@ public sealed class RemotingTests : FrameworkBaseTestClass
         var serviceProvider = testContext.ServiceProvider.Global;
 
         var discoveryPipeName = $"Metalama_Test_Discovery_{Guid.NewGuid()}";
-        using var userProcessHubEndpoint = new UserProcessServiceHubEndpoint( serviceProvider, discoveryPipeName );
+        using var userProcessHubEndpoint = new ServiceHubServerEndpoint( serviceProvider, discoveryPipeName );
         userProcessHubEndpoint.Start();
 
-        using var processServiceHubEndpoint = new AnalysisProcessServiceHubEndpoint( serviceProvider, discoveryPipeName );
+        using var processServiceHubEndpoint = new ServiceHubClientEndpoint( serviceProvider, discoveryPipeName );
         _ = processServiceHubEndpoint.ConnectAsync();
 
         var servicePipeName = $"Metalama_Test_Service_{Guid.NewGuid()}";
 
-        using var analysisProcessEndpoint = new AnalysisProcessEndpoint(
+        using var analysisProcessEndpoint = new RpcServiceProviderServerEndpoint(
             serviceProvider.WithService( processServiceHubEndpoint ),
-            servicePipeName );
+            servicePipeName,
+            [] );
 
         analysisProcessEndpoint.Start();
 
         var projectKey = ProjectKeyFactory.CreateTest( "MyProjectId" );
-        await analysisProcessEndpoint.RegisterProjectAsync( projectKey );
+        await analysisProcessEndpoint.RegisterProjectAsync( projectKey, testContext.CancellationToken );
 
-        Assert.True( userProcessHubEndpoint.IsProjectRegistered( projectKey ) );
+        Assert.True( userProcessHubEndpoint.ServiceHub.IsProjectRegistered( projectKey ) );
     }
 
     [Fact]
@@ -173,27 +227,28 @@ public sealed class RemotingTests : FrameworkBaseTestClass
 
         var discoveryPipeName = $"Metalama_Test_Discovery_{Guid.NewGuid()}";
 
-        using var processServiceHubEndpoint = new AnalysisProcessServiceHubEndpoint( serviceProvider, discoveryPipeName );
+        using var processServiceHubEndpoint = new ServiceHubClientEndpoint( serviceProvider, discoveryPipeName );
         _ = processServiceHubEndpoint.ConnectAsync();
 
         var servicePipeName = $"Metalama_Test_Service_{Guid.NewGuid()}";
 
-        using var analysisProcessEndpoint = new AnalysisProcessEndpoint(
+        using var analysisProcessEndpoint = new RpcServiceProviderServerEndpoint(
             serviceProvider.WithService( processServiceHubEndpoint ),
-            servicePipeName );
+            servicePipeName,
+            [new SourceGeneratorRpcServiceFactory()] );
 
         analysisProcessEndpoint.Start();
 
         await Task.Delay( TimeSpan.FromSeconds( 5 ) );
-        using var userProcessHubEndpoint = new UserProcessServiceHubEndpoint( serviceProvider, discoveryPipeName );
+        using var userProcessHubEndpoint = new ServiceHubServerEndpoint( serviceProvider, discoveryPipeName );
         userProcessHubEndpoint.Start();
 
         var projectKey = ProjectKeyFactory.CreateTest( "MyProjectId" );
-        await analysisProcessEndpoint.RegisterProjectAsync( projectKey );
+        await analysisProcessEndpoint.RegisterProjectAsync( projectKey, testContext.CancellationToken );
 
-        Assert.True( userProcessHubEndpoint.IsProjectRegistered( projectKey ) );
+        Assert.True( userProcessHubEndpoint.ServiceHub.IsProjectRegistered( projectKey ) );
 
-        await userProcessHubEndpoint.GetApiAsync( projectKey, "Test", CancellationToken.None );
+        await userProcessHubEndpoint.ServiceHub.GetApiForProjectAsync<ISourceGeneratorRpcApi>( projectKey, testContext.CancellationToken );
     }
 
     [Fact]
@@ -203,28 +258,29 @@ public sealed class RemotingTests : FrameworkBaseTestClass
         var serviceProvider = testContext.ServiceProvider.Global;
 
         var discoveryPipeName = $"Metalama_Test_Discovery_{Guid.NewGuid()}";
-        using var userProcessHubEndpoint = new UserProcessServiceHubEndpoint( serviceProvider, discoveryPipeName );
+        using var userProcessHubEndpoint = new ServiceHubServerEndpoint( serviceProvider, discoveryPipeName );
         userProcessHubEndpoint.Start();
 
         var disposables = new List<IDisposable>();
 
         for ( var i = 0; i < 2; i++ )
         {
-            var analysisProcessServiceHubEndpoint = new AnalysisProcessServiceHubEndpoint( serviceProvider, discoveryPipeName );
+            var analysisProcessServiceHubEndpoint = new ServiceHubClientEndpoint( serviceProvider, discoveryPipeName );
             _ = analysisProcessServiceHubEndpoint.ConnectAsync();
 
             var servicePipeName = $"Metalama_Test_Service_{Guid.NewGuid()}";
 
-            var analysisProcessEndpoint = new AnalysisProcessEndpoint(
+            var analysisProcessEndpoint = new RpcServiceProviderServerEndpoint(
                 serviceProvider.WithService( analysisProcessServiceHubEndpoint ),
-                servicePipeName );
+                servicePipeName,
+                [] );
 
             analysisProcessEndpoint.Start();
 
             var projectKey = ProjectKeyFactory.CreateTest( $"MyProjectId{i}" );
-            await analysisProcessEndpoint.RegisterProjectAsync( projectKey );
+            await analysisProcessEndpoint.RegisterProjectAsync( projectKey, testContext.CancellationToken );
 
-            Assert.True( userProcessHubEndpoint.IsProjectRegistered( projectKey ) );
+            Assert.True( userProcessHubEndpoint.ServiceHub.IsProjectRegistered( projectKey ) );
 
             disposables.Add( analysisProcessServiceHubEndpoint );
             disposables.Add( analysisProcessEndpoint );
@@ -255,7 +311,7 @@ public sealed class RemotingTests : FrameworkBaseTestClass
 
         for ( var i = 0; i < clientCount; i++ )
         {
-            var analysisProcessServiceHubEndpoint = new AnalysisProcessServiceHubEndpoint( serviceProvider, discoveryPipeName );
+            var analysisProcessServiceHubEndpoint = new ServiceHubClientEndpoint( serviceProvider, discoveryPipeName );
 
             disposables.Add( analysisProcessServiceHubEndpoint );
 
@@ -263,35 +319,36 @@ public sealed class RemotingTests : FrameworkBaseTestClass
 
             var servicePipeName = $"Metalama_Test_Service_{Guid.NewGuid()}";
 
-            var analysisProcessEndpoint = new AnalysisProcessEndpoint(
+            var analysisProcessEndpoint = new RpcServiceProviderServerEndpoint(
                 serviceProvider.WithService( analysisProcessServiceHubEndpoint ),
-                servicePipeName );
+                servicePipeName,
+                [new SourceGeneratorRpcServiceFactory()] );
 
             analysisProcessEndpoint.Start();
 
             var projectKey = ProjectKeyFactory.CreateTest( $"MyProjectId{i}" );
 
-            registerTasks.Add( analysisProcessEndpoint.RegisterProjectAsync( projectKey ) );
+            registerTasks.Add( analysisProcessEndpoint.RegisterProjectAsync( projectKey, testContext.CancellationToken ) );
             projectKeys.Add( projectKey );
             disposables.Add( analysisProcessEndpoint );
         }
 
         await Task.Delay( TimeSpan.FromSeconds( 1 ) );
 
-        using var userProcessHubEndpoint = new UserProcessServiceHubEndpoint( serviceProvider, discoveryPipeName );
+        using var userProcessHubEndpoint = new ServiceHubServerEndpoint( serviceProvider, discoveryPipeName );
         userProcessHubEndpoint.Start();
 
         await Task.WhenAll( registerTasks );
 
         foreach ( var projectKey in projectKeys )
         {
-            Assert.True( userProcessHubEndpoint.IsProjectRegistered( projectKey ) );
+            Assert.True( userProcessHubEndpoint.ServiceHub.IsProjectRegistered( projectKey ) );
         }
 
-        foreach ( var endPoint in userProcessHubEndpoint.Endpoints )
+        foreach ( var endPoint in userProcessHubEndpoint.ServiceHub.Endpoints )
         {
             // Should not wait forever.
-            await endPoint.GetServerApiAsync( "Test" );
+            await endPoint.GetApiAsync<ISourceGeneratorRpcApi>( testContext.CancellationToken );
         }
 
         Assert.Equal( clientCount, userProcessHubEndpoint.ClientCount );
@@ -314,11 +371,11 @@ public sealed class RemotingTests : FrameworkBaseTestClass
         var discoveryPipeName = $"Metalama_Test_Discovery_{Guid.NewGuid()}";
 
         // Connect the UserProcess endpoint.
-        using var userProcessHubEndpoint = new UserProcessServiceHubEndpoint( serviceProvider, discoveryPipeName );
+        using var userProcessHubEndpoint = new ServiceHubServerEndpoint( serviceProvider, discoveryPipeName );
         userProcessHubEndpoint.Start();
 
         // Connect the AnalysisService endpoint.
-        using var processServiceHubEndpoint = new AnalysisProcessServiceHubEndpoint( serviceProvider, discoveryPipeName );
+        using var processServiceHubEndpoint = new ServiceHubClientEndpoint( serviceProvider, discoveryPipeName );
         Assert.True( await processServiceHubEndpoint.ConnectAsync() );
 
         // The second connect should not do anything.
@@ -334,11 +391,11 @@ public sealed class RemotingTests : FrameworkBaseTestClass
         var discoveryPipeName = $"Metalama_Test_Discovery_{Guid.NewGuid()}";
 
         // Connect the UserProcess endpoint.
-        using var userProcessHubEndpoint = new UserProcessServiceHubEndpoint( serviceProvider, discoveryPipeName );
+        using var userProcessHubEndpoint = new ServiceHubServerEndpoint( serviceProvider, discoveryPipeName );
         userProcessHubEndpoint.Start();
 
         // Connect the AnalysisService endpoint.
-        using var processServiceHubEndpoint = new AnalysisProcessServiceHubEndpoint( serviceProvider, discoveryPipeName );
+        using var processServiceHubEndpoint = new ServiceHubClientEndpoint( serviceProvider, discoveryPipeName );
         var task1 = processServiceHubEndpoint.ConnectAsync();
         var task2 = processServiceHubEndpoint.ConnectAsync();
 
@@ -357,27 +414,35 @@ public sealed class RemotingTests : FrameworkBaseTestClass
         var discoveryPipeName = $"Metalama_Test_Discovery_{Guid.NewGuid()}";
 
         // Connect the UserProcess endpoint.
-        using var userProcessHubEndpoint = new UserProcessServiceHubEndpoint( serviceProvider, discoveryPipeName );
+        using var userProcessHubEndpoint = new ServiceHubServerEndpoint( serviceProvider, discoveryPipeName );
         userProcessHubEndpoint.Start();
 
         // Connect the AnalysisService endpoint.
-        using var processServiceHubEndpoint = new AnalysisProcessServiceHubEndpoint( serviceProvider, discoveryPipeName );
+        using var processServiceHubEndpoint = new ServiceHubClientEndpoint( serviceProvider, discoveryPipeName );
         _ = processServiceHubEndpoint.ConnectAsync();
 
         // Connect the CodeLens endpoint.
-        using var codeLensEndpoint = new NotificationListenerEndpoint( serviceProvider.Underlying, discoveryPipeName );
-        await codeLensEndpoint.ConnectAsync();
+        using var codeLensClientEndpoint = new CodeLensProcessClientEndpoint( serviceProvider.Underlying, discoveryPipeName );
+        await codeLensClientEndpoint.ConnectAsync();
 
-        var receivedNotificationTaskSource = new TaskCompletionSource<CompilationResultChangedEventArgs>();
-        codeLensEndpoint.CompilationResultChanged += n => receivedNotificationTaskSource.SetResult( n );
+        var receivedNotificationTaskSource = new TaskCompletionSource<CompilationResultChangedEventData>();
+
+        codeLensClientEndpoint.Client.EventReceived += eventData =>
+        {
+            if ( eventData is CompilationResultChangedEventData compilationResultChangedEventData )
+            {
+                receivedNotificationTaskSource.SetResult( compilationResultChangedEventData );
+            }
+        };
 
         var projectKey = ProjectKeyFactory.CreateTest( "MyProjectId" );
-        var sentNotification = new CompilationResultChangedEventArgs( projectKey, false, ImmutableArray<string>.Empty );
-        processServiceHubEndpoint.PublishCompilationResultChangedNotification( sentNotification );
+        var sentEventData = new CompilationResultChangedEventData( projectKey, false, ImmutableArray<string>.Empty );
 
-        var receivedNotification = await receivedNotificationTaskSource.Task;
+        await userProcessHubEndpoint.EventHub.ForwardEventAsync( sentEventData, testContext.CancellationToken );
 
-        Assert.Equal( sentNotification.ProjectKey, receivedNotification.ProjectKey );
+        var receivedNotification = await receivedNotificationTaskSource.Task.WithCancellation( testContext.CancellationToken );
+
+        Assert.Equal( sentEventData.ProjectKey, receivedNotification.ProjectKey );
     }
 
     private sealed class PreviewImpl : ITransformationPreviewServiceImpl
@@ -392,21 +457,6 @@ public sealed class RemotingTests : FrameworkBaseTestClass
                     true,
                     JsonSerializationHelper.CreateSerializableSyntaxTree( CSharpSyntaxTree.ParseText( "class TransformedCode {}" ) ),
                     null ) );
-        }
-    }
-
-    private sealed class TestProjectHandler : IProjectHandlerCallbackApi
-    {
-        public List<(ProjectKey ProjectKey, ImmutableDictionary<string, string> Sources)> GeneratedCodeEvents { get; } = new();
-
-        public Task PublishGeneratedCodeAsync(
-            ProjectKey projectKey,
-            ImmutableDictionary<string, string> sources,
-            CancellationToken cancellationToken = default )
-        {
-            this.GeneratedCodeEvents.Add( (projectKey, sources) );
-
-            return Task.CompletedTask;
         }
     }
 }

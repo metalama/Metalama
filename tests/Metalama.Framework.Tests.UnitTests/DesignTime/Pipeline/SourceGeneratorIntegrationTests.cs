@@ -4,7 +4,7 @@ using Metalama.Framework.DesignTime;
 using Metalama.Framework.DesignTime.Rpc;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities.Threading;
-using Metalama.Framework.Tests.UnitTests.DesignTime.Mocks;
+using Metalama.Framework.Tests.UnitTestHelpers.Mocks;
 using Metalama.Testing.UnitTesting;
 using System;
 using System.Collections.Concurrent;
@@ -14,7 +14,7 @@ using Xunit;
 
 namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline;
 
-public sealed class SourceGeneratorIntegrationTests : FrameworkBaseTestClass
+public sealed class SourceGeneratorIntegrationTests : UnitTestClass
 {
     [Fact]
     public void ChangeInDependency_ChangeNotification()
@@ -57,11 +57,11 @@ partial class C : BaseClass
         // First compilation of everything.
         var masterCode1 = new Dictionary<string, string>() { ["master.cs"] = @"public class BaseClass { public int Field1; }" };
 
-        var masterCompilation1 = TestCompilationFactory.CreateCSharpCompilation( masterCode1, name: masterProjectKey.AssemblyName );
+        var masterCompilation1 = testContext.CreateCSharpCompilation( masterCode1, assemblyName: masterProjectKey.AssemblyName );
 
-        var dependentCompilation1 = TestCompilationFactory.CreateCSharpCompilation(
+        var dependentCompilation1 = testContext.CreateCSharpCompilation(
             dependentCode,
-            name: dependentProjectKey.AssemblyName,
+            assemblyName: dependentProjectKey.AssemblyName,
             additionalReferences: new[] { masterCompilation1.ToMetadataReference() } );
 
         Assert.True( factory.TryExecute( testContext.ProjectOptions, dependentCompilation1, TestableCancellationToken.None, out var results1 ) );
@@ -81,7 +81,7 @@ partial class C : BaseClass
         // Second compilation of the master compilation.
         var masterCode2 = new Dictionary<string, string>() { ["master.cs"] = @"public partial class BaseClass { public int Field2; }" };
 
-        var masterCompilation2 = TestCompilationFactory.CreateCSharpCompilation( masterCode2, name: "Master" );
+        var masterCompilation2 = testContext.CreateCSharpCompilation( masterCode2, assemblyName: "Master" );
 
         Assert.True( factory.TryExecute( testContext.ProjectOptions, masterCompilation2, TestableCancellationToken.None, out _ ) );
 

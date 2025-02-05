@@ -157,6 +157,24 @@ public partial class MSBuildProjectOptions : DefaultProjectOptions
     [Memo]
     public override ImmutableArray<string> SourceGeneratorAttributes => this.GetListOption( MSBuildPropertyNames.MetalamaSourceGeneratorAttributes );
 
+    [Memo]
+    public override ImmutableArray<ExtensionAssemblyReference> DesignTimeExtensionAssemblies
+        => this.GetListOption( MSBuildPropertyNames.MetalamaDesignTimeExtensionAssemblies )
+            .Select( ParseExtensionAssemblyReference )
+            .ToImmutableArray();
+
+    [Memo]
+    public override ImmutableArray<ExtensionAssemblyReference> ExtensionAssemblies
+        => this.GetListOption( MSBuildPropertyNames.MetalamaExtensionAssemblies )
+            .Select( ParseExtensionAssemblyReference )
+            .ToImmutableArray();
+
+    [Memo]
+    public override ImmutableArray<ExtensionAssemblyReference> CompileTimeAssemblies
+        => this.GetListOption( MSBuildPropertyNames.MetalamaCompileTimeAssemblies )
+            .Select( ParseExtensionAssemblyReference )
+            .ToImmutableArray();
+
     public override bool TryGetProperty( string name, [NotNullWhen( true )] out string? value )
     {
         value = this.GetStringOption( name );
@@ -211,6 +229,13 @@ public partial class MSBuildProjectOptions : DefaultProjectOptions
             .SelectAsReadOnlyList( p => p.Trim() )
             .Where( p => !string.IsNullOrEmpty( p ) )
             .ToImmutableArray();
+
+    private static ExtensionAssemblyReference ParseExtensionAssemblyReference( string s )
+    {
+        var parts = s.Split( '|' );
+
+        return new ExtensionAssemblyReference( parts[0], parts.Length == 1 || parts[1] == "" ? null : parts[1] );
+    }
 
     public override bool Equals( IProjectOptions? other )
     {

@@ -28,7 +28,6 @@ namespace Metalama.Framework.Engine.CompileTime.Manifest
             IReadOnlyList<string> optionTypes,
             IReadOnlyList<string>? references,
             TemplateProjectManifest? templates,
-            string? redistributionLicenseKey,
             ulong sourceHash,
             IReadOnlyList<CompileTimeFileManifest> files,
             IReadOnlyList<CompileTimeDiagnosticManifest> diagnostics,
@@ -46,7 +45,6 @@ namespace Metalama.Framework.Engine.CompileTime.Manifest
             this.OptionTypes = optionTypes;
             this.References = references;
             this.Templates = templates;
-            this.RedistributionLicenseKey = redistributionLicenseKey;
             this.SourceHash = sourceHash;
             this.Files = files;
             this.Diagnostics = diagnostics;
@@ -115,8 +113,6 @@ namespace Metalama.Framework.Engine.CompileTime.Manifest
         /// Gets the name of all project references (a fully-qualified assembly identity) of the compile-time project.
         /// </summary>
         public IReadOnlyList<string>? References { get; }
-
-        public string? RedistributionLicenseKey { get; }
 
         /// <summary>
         /// Gets a unique hash of the source code and its dependencies.

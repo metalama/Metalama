@@ -59,8 +59,8 @@ namespace Metalama.Framework.Engine.Templating.MetaModel
         public IField Field
             => this._fieldOrPropertyOrIndexer switch
             {
-                IField field => field,
-                IProperty { OriginalField: { } field } => field,
+                IField field => @field,
+                IProperty { OriginalField: { } field } => @field,
                 _ => throw this.CreateInvalidOperationException( nameof(this.Field) )
             };
 

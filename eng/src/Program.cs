@@ -31,7 +31,8 @@ var product = new Product( MetalamaDependencies.Metalama )
                 "Tests\\Metalama.Framework.Tests.AspectTests\\Tests\\**\\*",
                 "Tests\\Metalama.Framework.Tests.LinkerTests\\Tests\\**\\*",
                 "Tests\\Metalama.Framework.Tests.TemplateTests\\Tests\\**\\*",
-
+                "Tests\\Metalama.Extensions.*.AspectTests\\**\\*",
+                "**\\*.g.cs",
 
                 // XML formatting seems to be conflicting.
                 "**\\*.props", "**\\*.targets", "**\\*.csproj", "**\\*.md", "**\\*.xml", "**\\*.config"
@@ -58,6 +59,8 @@ var product = new Product( MetalamaDependencies.Metalama )
         "Metalama.Framework.Introspection.$(PackageVersion).nupkg",
         "Metalama.Framework.Workspaces.$(PackageVersion).nupkg",
         "Metalama.Tool.$(PackageVersion).nupkg" ),
+    PrivateArtifacts = Pattern.Create(
+        "Metalama.Framework.Tests.UnitTestHelpers.$(PackageVersion).nupkg" ),
     ParametrizedDependencies =
     [
         DevelopmentDependencies.PostSharpEngineering.ToDependency(),

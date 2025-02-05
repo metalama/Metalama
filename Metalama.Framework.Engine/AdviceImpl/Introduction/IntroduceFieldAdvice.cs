@@ -21,8 +21,9 @@ internal sealed class IntroduceFieldAdvice : IntroduceMemberAdvice<IField, IFiel
         TemplateMember<IField>? fieldTemplate,
         IntroductionScope scope,
         OverrideStrategy overrideStrategy,
-        Action<IFieldBuilder>? buildAction )
-        : base( parameters, explicitName, fieldTemplate, scope, overrideStrategy, buildAction, explicitlyImplementedInterfaceType: null ) { }
+        Action<IFieldBuilder>? buildAction,
+        IAdviceFactoryImpl adviceFactory )
+        : base( parameters, explicitName, fieldTemplate, scope, overrideStrategy, buildAction, explicitlyImplementedInterfaceType: null, adviceFactory ) { }
 
     protected override FieldBuilder CreateBuilder() => new( this.AspectLayerInstance, this.TargetDeclaration, this.MemberName );
 

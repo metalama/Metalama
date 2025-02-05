@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <Import Project="../../build/RoslynVersion/Latest.imports" />
+
+    <PropertyGroup>
+        <TargetFrameworks>netframework4.8;net8.0</TargetFrameworks>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <IsPackable>true</IsPackable>
+        <RootNamespace>Metalama.Framework.Tests.UnitTestHelpers</RootNamespace>
+        <AssemblyName>Metalama.Framework.Tests.UnitTestHelpers.$(ThisRoslynVersionNoPreview)</AssemblyName>
+        <PackageId>Metalama.Framework.Tests.UnitTestHelpers</PackageId>
+        <!-- It must be preview and not 12.0 because of Rider. -->
+        <LangVersion>preview</LangVersion>
+        <!-- 
+            There is intentionally no override of LangVersion for previous Roslyn tests as compilations created by test helpers have correct language version set.
+            This way we can use asserts in the latest language. To differentiate tests, use ROSLYN_X_Y_OR_GREATER.
+        -->
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\..\Metalama.Testing.UnitTesting$(ThisRoslynVersionProjectSuffix)\Metalama.Testing.UnitTesting$(ThisRoslynVersionProjectSuffix).csproj" />
+    </ItemGroup>
+    
+
+</Project>

@@ -7,11 +7,12 @@ namespace Metalama.Framework.Advising;
 /// <summary>
 /// Represents the result of the <c>Introduce*</c> methods of the <see cref="IAdviceFactory"/> interface.
 /// </summary>
-public interface IIntroductionAdviceResult<out T> : IAdviceResult
+public interface IIntroductionAdviceResult<out T> : IAdviceResult, IAdviser<T>
     where T : class, IDeclaration
 {
     /// <summary>
-    /// Gets the introduced or overridden declaration.
+    /// Gets the introduced or overridden declaration. This returns the same value as the <see cref="IAdviser{T}.Target"/>
+    /// property.
     /// </summary>
     T Declaration { get; }
 

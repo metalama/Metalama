@@ -45,6 +45,7 @@ namespace Metalama.Framework.Engine.CodeModel
             this.CapturesCodeFixTitles = capturesCodeFixTitles;
         }
 
+        // Resharper disable once UnusedMember.Global
         internal ExecutionScenario WithTest()
         {
             var clone = (ExecutionScenario) this.MemberwiseClone();

@@ -11,6 +11,7 @@ internal interface ITransformation : ITransformationBase
 {
     AspectLayerInstance AspectLayerInstance { get; }
 
+    // Resharper disable once UnusedMemberInSuper.Global
     AspectLayerId AspectLayerId { get; }
 
     IAspectInstanceInternal AspectInstance { get; }

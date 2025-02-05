@@ -31,7 +31,7 @@ internal abstract class PipelineStep
     /// </summary>
     public abstract Task<CompilationModel> ExecuteAsync(
         CompilationModel compilation,
-        IUserDiagnosticSink diagnostics,
+        UserDiagnosticSink diagnostics,
         int stepIndex,
         CancellationToken cancellationToken );
 

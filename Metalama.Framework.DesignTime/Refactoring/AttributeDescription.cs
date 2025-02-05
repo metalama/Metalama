@@ -4,7 +4,7 @@ using System.Collections.Immutable;
 
 namespace Metalama.Framework.DesignTime.Refactoring
 {
-    internal sealed class AttributeDescription
+    public sealed class AttributeDescription
     {
         public AttributeDescription(
             string name,
@@ -18,13 +18,13 @@ namespace Metalama.Framework.DesignTime.Refactoring
             this.Imports = imports ?? ImmutableList<string>.Empty;
         }
 
-        public string Name { get; }
+        internal string Name { get; }
 
         // We don't use dictionary here to preserve the order
-        public ImmutableList<(string Name, string Value)> Properties { get; }
+        internal ImmutableList<(string Name, string Value)> Properties { get; }
 
-        public ImmutableList<string> Arguments { get; }
+        internal ImmutableList<string> Arguments { get; }
 
-        public ImmutableList<string> Imports { get; }
+        internal ImmutableList<string> Imports { get; }
     }
 }

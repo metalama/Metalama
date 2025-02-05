@@ -5,15 +5,18 @@
 using Metalama.Backstage.Utilities;
 using Metalama.Framework.DesignTime;
 using Metalama.Framework.DesignTime.Pipeline;
+using Metalama.Framework.DesignTime.Rpc;
 using Metalama.Framework.DesignTime.SourceGeneration;
-using Metalama.Framework.DesignTime.VisualStudio;
-using Metalama.Framework.DesignTime.VisualStudio.Remoting.AnalysisProcess;
-using Metalama.Framework.DesignTime.VisualStudio.Remoting.UserProcess;
+using Metalama.Framework.DesignTime.VisualStudio.Rpc;
+using Metalama.Framework.DesignTime.VisualStudio.ServiceHub;
+using Metalama.Framework.DesignTime.VisualStudio.ServiceProvider;
+using Metalama.Framework.DesignTime.VisualStudio.SourceGenerating;
 using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.Pipeline.DesignTime;
+using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities.Threading;
-using Metalama.Framework.Tests.UnitTests.DesignTime.Mocks;
+using Metalama.Framework.Tests.UnitTestHelpers.Mocks;
 using Metalama.Testing.UnitTesting;
 using System;
 using System.Collections;
@@ -29,12 +32,19 @@ namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline;
 
 #pragma warning disable VSTHRD200 // Use "Async" suffix for async methods
 
-public sealed class PipelineCancellationTests : FrameworkBaseTestClass
+public sealed class PipelineCancellationTests : UnitTestClass
 {
-    private const int _maxCancellationPoints = 24;
+    private const int _maxCancellationPoints = 22;
     private const int _getConfigurationMaxCancellationPoints = 2;
 
     public PipelineCancellationTests( ITestOutputHelper logger ) : base( logger ) { }
+
+    protected override void ConfigureServices( IAdditionalServiceCollection services )
+    {
+        base.ConfigureServices( services );
+
+        services.AddUntypedGlobalService( typeof(IJsonSerializationBinderProvider), new JsonSerializationBinderProvider() );
+    }
 
     [Theory]
     [ClassData( typeof(GetCancellationPoints) )]
@@ -97,15 +107,16 @@ public sealed class PipelineCancellationTests : FrameworkBaseTestClass
         var hubPipeName = $"Metalama_Hub_{testGuid}";
         var servicePipeName = $"Metalama_Analysis_{testGuid}";
 
-        using var userProcessServiceHubEndpoint = new UserProcessServiceHubEndpoint( serviceProvider, hubPipeName );
+        using var userProcessServiceHubEndpoint = new ServiceHubServerEndpoint( serviceProvider, hubPipeName );
         userProcessServiceHubEndpoint.Start();
-        using var analysisProcessServiceHubEndpoint = new AnalysisProcessServiceHubEndpoint( serviceProvider, hubPipeName );
+        using var analysisProcessServiceHubEndpoint = new ServiceHubClientEndpoint( serviceProvider, hubPipeName );
         _ = analysisProcessServiceHubEndpoint.ConnectAsync(); // Do not await so we get more randomness.
 
         // Start the main services on both ends.
-        using var analysisProcessEndpoint = new AnalysisProcessEndpoint(
+        using var analysisProcessEndpoint = new RpcServiceProviderServerEndpoint(
             serviceProvider.WithService( analysisProcessServiceHubEndpoint ),
-            servicePipeName );
+            servicePipeName,
+            [new SourceGeneratorRpcServiceFactory()] );
 
         analysisProcessEndpoint.Start();
 
@@ -114,7 +125,7 @@ public sealed class PipelineCancellationTests : FrameworkBaseTestClass
 
         var pipelineFactory = new TestDesignTimeAspectPipelineFactory( testContext );
 
-        var analysisProcessProjectHandlerObserver = new ProjectHandlerObserver();
+        var analysisProcessProjectHandlerObserver = new ProjectSourceGeneratorObserver();
 
         var analysisProcessServiceProvider = serviceProvider.WithServices(
             analysisProcessEndpoint,
@@ -122,12 +133,15 @@ public sealed class PipelineCancellationTests : FrameworkBaseTestClass
             analysisProcessProjectHandlerObserver );
 
         using var analysisProcessProjectHandler =
-            new VsAnalysisProcessProjectHandler( analysisProcessServiceProvider, testContext.ProjectOptions, projectKey );
+            new VsAnalysisProcessProjectSourceGenerator( analysisProcessServiceProvider, testContext.ProjectOptions, projectKey );
 
-        var userProcessProjectHandlerObserver = new ProjectHandlerObserver();
+        var userProcessProjectHandlerObserver = new ProjectSourceGeneratorObserver();
         var userProcessServiceProvider = serviceProvider.WithServices( userProcessServiceHubEndpoint, userProcessProjectHandlerObserver );
 
-        using var userProcessProjectHandler = new VsUserProcessProjectHandler( userProcessServiceProvider, testContext.ProjectOptions, projectKey );
+        using var userProcessProjectHandler = new VsUserProcessProjectSourceGenerator(
+            userProcessServiceProvider,
+            testContext.ProjectOptions,
+            projectKey );
 
         bool wasCancellationRequested;
 
@@ -147,7 +161,7 @@ public sealed class PipelineCancellationTests : FrameworkBaseTestClass
         finally
         {
             // Awaiting here avoids cancellations in the middle of the remoting initialization.
-            await analysisProcessEndpoint.WaitUntilInitializedAsync( "test" );
+            await analysisProcessEndpoint.WaitUntilInitializedAsync();
             await analysisProcessProjectHandler.PendingTasks.WaitAllAsync( testContext.CancellationToken );
             await userProcessProjectHandler.PendingTasks.WaitAllAsync( testContext.CancellationToken );
         }
@@ -204,9 +218,9 @@ public sealed class PipelineCancellationTests : FrameworkBaseTestClass
 
                 var targetCode = $"[MyAspect] partial class C {{ void M{version}(){{}} }}";
 
-                var compilation = TestCompilationFactory.CreateCSharpCompilation(
+                var compilation = testContext.CreateCSharpCompilation(
                     new Dictionary<string, string>() { ["aspect.cs"] = aspectCode, ["target.cs"] = targetCode },
-                    name: projectKey.AssemblyName );
+                    assemblyName: projectKey.AssemblyName );
 
                 var analysisProcessGenerateSources =
                     (SyntaxTreeSourceGeneratorResult) analysisProcessProjectHandler.GenerateSources( compilation, cancellationTokenSource.Token );
@@ -284,7 +298,7 @@ public sealed class PipelineCancellationTests : FrameworkBaseTestClass
 
             var code = new Dictionary<string, string> { ["Class1.cs"] = "public class Class1 { }" };
 
-            var compilation = TestCompilationFactory.CreateCSharpCompilation( code );
+            var compilation = testContext.CreateCSharpCompilation( code );
 
             var testCancellationTokenSourceFactory = new TestCancellationTokenSourceFactory( cancelOnCancellationPointIndex );
             var cancellationTokenSource = testCancellationTokenSourceFactory.Create();

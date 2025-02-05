@@ -1,4 +1,6 @@
-﻿using System;
+﻿// Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
+
+using System;
 using System.Linq;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
@@ -12,7 +14,7 @@ public class Fabric : ProjectFabric
     {
         amender.SelectDeclarationsWithAttribute<Marker>()
             .OfType<IMethod>()
-            .AddAspectIfEligible<TheAspect>(
+            .AddAspectIfEligible(
                 m =>
                 {
                     var attribute = m.Attributes.GetConstructedAttributesOfType<Marker>().Single();
@@ -36,12 +38,12 @@ public class TheAspect : OverrideMethodAspect
 
     public TheAspect( string? marker )
     {
-        _marker = marker;
+        this._marker = marker;
     }
 
     public override dynamic? OverrideMethod()
     {
-        Console.WriteLine( $"Marker: {_marker}" );
+        Console.WriteLine( $"Marker: {this._marker}" );
 
         return meta.Proceed();
     }

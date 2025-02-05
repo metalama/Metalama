@@ -25,8 +25,8 @@ namespace Metalama.Framework.CompilerExtensions
                 case ProcessKind.RoslynCodeAnalysisService:
                 case ProcessKind.DevEnv:
                     this._impl = (CodeRefactoringProvider) ResourceExtractor.CreateInstance(
-                        "Metalama.Framework.DesignTime.VisualStudio",
-                        "Metalama.Framework.DesignTime.VisualStudio.VsCodeRefactoringProvider" );
+                        "Metalama.Framework.DesignTime",
+                        "Metalama.Framework.DesignTime.VisualStudio.CodeFixes.VsCodeRefactoringProvider" );
 
                     break;
 
@@ -40,7 +40,7 @@ namespace Metalama.Framework.CompilerExtensions
                 default:
                     this._impl = (CodeRefactoringProvider) ResourceExtractor.CreateInstance(
                         "Metalama.Framework.DesignTime",
-                        "Metalama.Framework.DesignTime.TheCodeRefactoringProvider" );
+                        "Metalama.Framework.DesignTime.CodeFixes.TheCodeRefactoringProvider" );
 
                     break;
             }

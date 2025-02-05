@@ -1,5 +1,6 @@
 // Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
+using Metalama.Framework.DesignTime;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CodeFixes;
 using System.Collections.Immutable;
@@ -26,22 +27,22 @@ namespace Metalama.Framework.CompilerExtensions
                 case ProcessKind.RoslynCodeAnalysisService:
                 case ProcessKind.DevEnv:
                     this._impl = (CodeFixProvider) ResourceExtractor.CreateInstance(
-                        "Metalama.Framework.DesignTime.VisualStudio",
-                        "Metalama.Framework.DesignTime.VisualStudio.VsCodeFixProvider" );
+                        RoslynEntryPointTypeNames.DesignTimeAssemblyName,
+                        RoslynEntryPointTypeNames.VsCodeFixProvider );
 
                     break;
 
                 case ProcessKind.Rider:
                     this._impl = (CodeFixProvider) ResourceExtractor.CreateInstance(
-                        "Metalama.Framework.DesignTime",
-                        "Metalama.Framework.DesignTime.Rider.RiderCodeFixProvider" );
+                        RoslynEntryPointTypeNames.DesignTimeAssemblyName,
+                        RoslynEntryPointTypeNames.RiderCodeFixProvider );
 
                     break;
 
                 default:
                     this._impl = (CodeFixProvider) ResourceExtractor.CreateInstance(
-                        "Metalama.Framework.DesignTime",
-                        "Metalama.Framework.DesignTime.TheCodeFixProvider" );
+                        RoslynEntryPointTypeNames.DesignTimeAssemblyName,
+                        RoslynEntryPointTypeNames.TheCodeFixProvider );
 
                     break;
             }

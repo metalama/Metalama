@@ -3,6 +3,7 @@
 using Metalama.Framework.Advising;
 using Metalama.Framework.Code;
 using Metalama.Framework.Eligibility;
+using Metalama.Framework.Fabrics;
 using Metalama.Framework.Project;
 using Metalama.Framework.Serialization;
 using System;
@@ -107,14 +108,20 @@ namespace Metalama.Framework.Aspects
         bool VerifyEligibility( IEligibilityRule<TAspectTarget> rule );
 
         /// <summary>
-        /// Gets the declaration to which the aspect was added.
+        /// Gets the declaration to which the aspect was added in the state it was <i>before</i> the aspect was applied.
         /// </summary>
+        /// <seealso cref="AdvisedTarget"/>
         new TAspectTarget Target { get; }
+
+        /// <summary>
+        /// Gets the <see cref="Target"/> declaration in the <i>current</i> state, including all modifications performed by the current aspect.
+        /// </summary>
+        TAspectTarget AdvisedTarget { get; }
 
         /// <summary>
         /// Gets an object that allows to add child advice (even to code added by aspects executed after the current one) and to validate code and code references.
         /// </summary>
-        IAspectReceiver<TAspectTarget> Outbound { get; }
+        IQuery<TAspectTarget> Outbound { get; }
 
         new IAspectBuilder<T> With<T>( T declaration )
             where T : class, IDeclaration;

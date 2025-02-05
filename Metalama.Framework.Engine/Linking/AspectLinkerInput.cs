@@ -2,7 +2,6 @@
 
 using Metalama.Framework.Engine.AspectOrdering;
 using Metalama.Framework.Engine.CodeModel;
-using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Transformations;
 using System.Collections.Generic;
 
@@ -29,20 +28,16 @@ internal readonly struct AspectLinkerInput
     /// Gets a list of ordered aspect layers.
     /// </summary>
     public IReadOnlyList<OrderedAspectLayer> OrderedAspectLayers { get; }
-
-    public CompileTimeProject CompileTimeProject { get; }
-
+    
     public AspectLinkerInput(
         CompilationModel initialCompilationModel,
         CompilationModel finalCompilationModel,
         IReadOnlyCollection<ITransformation> transformations,
-        IReadOnlyList<OrderedAspectLayer> orderedAspectLayers,
-        CompileTimeProject compileTimeProject )
+        IReadOnlyList<OrderedAspectLayer> orderedAspectLayers )
     {
         this.InitialCompilationModel = initialCompilationModel;
         this.FinalCompilationModel = finalCompilationModel;
         this.Transformations = transformations;
         this.OrderedAspectLayers = orderedAspectLayers;
-        this.CompileTimeProject = compileTimeProject;
     }
 }

@@ -5,7 +5,7 @@ using System;
 namespace Metalama.Framework.Engine.Validation;
 
 [Flags]
-internal enum ChildKinds
+public enum ChildKinds
 {
     // ReSharper disable once UnusedMember.Global
     None,

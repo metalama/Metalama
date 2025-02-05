@@ -5,7 +5,6 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Diagnostics;
 using Metalama.Framework.Eligibility;
 using Metalama.Framework.Engine.AspectOrdering;
-using Metalama.Framework.Engine.CompileTime;
 using Microsoft.CodeAnalysis;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -17,8 +16,6 @@ namespace Metalama.Framework.Engine.Aspects
     /// </summary>
     internal interface IAspectClassImpl : IAspectClass, IEligibilityRule<IDeclaration>, IDiagnosticSource
     {
-        CompileTimeProject? Project { get; }
-
         ImmutableArray<TemplateClass> TemplateClasses { get; }
 
         /// <summary>

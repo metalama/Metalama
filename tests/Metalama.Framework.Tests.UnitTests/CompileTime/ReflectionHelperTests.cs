@@ -52,7 +52,9 @@ public sealed class ReflectionHelperTests : UnitTestClass
     [MemberData( nameof(Types) )]
     public void GetReflectionNameTest( Type type )
     {
-        var compilation = TestCompilationFactory.CreateEmptyCSharpCompilation( null )
+        using var testContext = this.CreateTestContext();
+
+        var compilation = testContext.CreateEmptyCSharpCompilation( null )
             .AddReferences( MetadataReference.CreateFromFile( typeof(ReflectionHelperTests).Assembly.Location ) );
 
         var reflectionMapper = new ReflectionMapper( compilation );
@@ -70,7 +72,7 @@ public sealed class ReflectionHelperTests : UnitTestClass
     {
         using var testContext = this.CreateTestContext();
 
-        var compilation = TestCompilationFactory.CreateEmptyCSharpCompilation( null )
+        var compilation = testContext.CreateEmptyCSharpCompilation( null )
             .AddReferences( MetadataReference.CreateFromFile( typeof(ReflectionHelperTests).Assembly.Location ) );
 
         var reflectionMapper = new ReflectionMapper( compilation );

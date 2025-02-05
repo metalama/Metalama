@@ -10,7 +10,7 @@ namespace Metalama.Framework.DesignTime.Pipeline;
 /// Represents a version (i.e. snapshot) of a project, i.e. essentially a <see cref="Compilation"/> with preprocessed info
 /// about its <see cref="SyntaxTree"/> instances represented as a set of <see cref="SyntaxTreeVersion"/>.
 /// </summary>
-internal interface IProjectVersion
+public interface IProjectVersion
 {
     /// <summary>
     /// Gets the invariant project key.

@@ -7,7 +7,8 @@ using Metalama.Framework.Eligibility;
 using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CodeModel.Helpers;
-using Metalama.Framework.Tests.UnitTests.DesignTime.Mocks;
+using Metalama.Framework.Tests.UnitTestHelpers.Mocks;
+using Metalama.Testing.UnitTesting;
 using System;
 using System.Linq;
 using Xunit;
@@ -15,7 +16,7 @@ using Xunit;
 namespace Metalama.Framework.Tests.UnitTests.DesignTime
 {
     // We skip this test in .NET Framework because we would need to implement all implicit interface methods, and it would have low value anyway.
-    public sealed class EligibilityTests : FrameworkBaseTestClass
+    public sealed class EligibilityTests : UnitTestClass
     {
         private void IsEligible( string code, string target, string aspects )
         {

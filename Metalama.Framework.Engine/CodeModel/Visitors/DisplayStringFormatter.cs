@@ -28,7 +28,6 @@ internal sealed class DisplayStringFormatter : CompilationElementVisitor
         [SpecialType.Char] = "char",
         [SpecialType.Int16] = "short",
         [SpecialType.Double] = "double",
-        [SpecialType.Int32] = "short",
         [SpecialType.Int32] = "int",
         [SpecialType.Int64] = "long",
         [SpecialType.Object] = "object",

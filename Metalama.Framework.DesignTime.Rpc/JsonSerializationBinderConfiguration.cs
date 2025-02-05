@@ -46,18 +46,11 @@ public sealed class JsonSerializationBinderConfiguration
                     return AssemblyName.ReferenceMatchesDefinition( newAssemblyName, name ) && name.Version == newAssemblyName.Version;
                 } );
 
-        try
+        if ( assembly == null )
         {
-            if ( assembly == null )
-            {
-                assembly = Assembly.Load( newAssemblyName );
-            }
+            assembly = Assembly.Load( newAssemblyName );
+        }
 
-            this._binder.TryAddAssembly( assemblyName, assembly );
-        }
-        catch ( FileNotFoundException )
-        {
-            // This happens in tests for assemblies of the other version of Roslyn than the one the test project is compiled for.
-        }
+        this._binder.TryAddAssembly( assemblyName, assembly );
     }
 }

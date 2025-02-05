@@ -22,7 +22,7 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Metalama.Framework.DesignTime.CodeLens;
 
-public sealed class CodeLensServiceImpl : PreviewPipelineBasedService, ICodeLensServiceImpl
+internal sealed class CodeLensServiceImpl : PreviewPipelineBasedService, ICodeLensServiceImpl
 {
     private static readonly ImmutableArray<CodeLensDetailsHeader> _detailsHeaders = ImmutableArray.Create(
         new CodeLensDetailsHeader( "Aspect Class", "AspectShortName", width: 0.2 ),
@@ -231,7 +231,6 @@ public sealed class CodeLensServiceImpl : PreviewPipelineBasedService, ICodeLens
 
         var pipeline = new IntrospectionAspectPipeline(
             preparation.ServiceProvider.AssertNotNull(),
-            preparation.ServiceProvider!.Value.Global.GetRequiredService<DesignTimeAspectPipelineFactory>().Domain,
             null );
 
         var result = await pipeline.ExecuteAsync( preparation.PartialCompilation!, preparation.Configuration!, cancellationToken );

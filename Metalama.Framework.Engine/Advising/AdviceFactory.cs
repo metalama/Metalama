@@ -31,7 +31,7 @@ using TypedConstant = Metalama.Framework.Code.TypedConstant;
 namespace Metalama.Framework.Engine.Advising;
 
 // ReSharper disable once PossibleInterfaceMemberAmbiguity
-internal sealed partial class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagnosticSource, IAdviserInternal
+internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagnosticSource, IAdviserInternal
     where T : IDeclaration
 {
     private readonly AdviceFactoryState _state;
@@ -277,7 +277,7 @@ internal sealed partial class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl
     IAdviser<TNewDeclaration> IAdviser.With<TNewDeclaration>( TNewDeclaration declaration ) => this.WithDeclaration( declaration );
 
     public AdviceFactory<TNewTarget> WithDeclaration<TNewTarget>( TNewTarget target )
-        where TNewTarget : IDeclaration
+        where TNewTarget : class, IDeclaration
     {
         // We don't validate that the target is "under" the current declaration because some advice type, e.g. annotations, are valid on any target.
 
@@ -534,7 +534,8 @@ internal sealed partial class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl
                 scope,
                 whenExists,
                 buildMethod,
-                this._explicitlyImplementedInterfaceType );
+                this._explicitlyImplementedInterfaceType,
+                this );
 
             return advice.Execute( this._state );
         }
@@ -557,7 +558,8 @@ internal sealed partial class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl
             var advice = new IntroduceFinalizerAdvice(
                 this.GetAdviceConstructorParameters( targetType ),
                 template.PartialForIntroduction( this.GetArgsReader( args ) ),
-                whenExists );
+                whenExists,
+                this );
 
             return advice.Execute( this._state );
         }
@@ -596,7 +598,8 @@ internal sealed partial class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl
                 template.PartialForIntroduction( this.GetArgsReader( args ) ),
                 whenExists,
                 buildAction,
-                this._explicitlyImplementedInterfaceType );
+                this._explicitlyImplementedInterfaceType,
+                this );
 
             return advice.Execute( this._state );
         }
@@ -636,7 +639,8 @@ internal sealed partial class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl
                 template.PartialForIntroduction( this.GetArgsReader( args ) ),
                 whenExists,
                 buildAction,
-                this._explicitlyImplementedInterfaceType );
+                this._explicitlyImplementedInterfaceType,
+                this );
 
             return advice.Execute( this._state );
         }
@@ -671,7 +675,8 @@ internal sealed partial class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl
                 template.PartialForIntroduction( this.GetArgsReader( args ) ),
                 whenExists,
                 buildAction,
-                this._explicitlyImplementedInterfaceType );
+                this._explicitlyImplementedInterfaceType,
+                this );
 
             return advice.Execute( this._state );
         }
@@ -720,7 +725,8 @@ internal sealed partial class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl
                     this.GetAdviceConstructorParameters( targetType ),
                     template.PartialForIntroduction( this.GetArgsReader( args ) ),
                     whenExists,
-                    buildAction )
+                    buildAction,
+                    this )
                 .Execute( this._state );
         }
     }
@@ -859,7 +865,8 @@ internal sealed partial class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl
                 template,
                 scope,
                 whenExists,
-                buildField );
+                buildField,
+                this );
 
             return advice.Execute( this._state );
         }
@@ -888,7 +895,8 @@ internal sealed partial class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl
                 {
                     builder.Type = fieldType;
                     buildField?.Invoke( builder );
-                } );
+                },
+                this );
 
             return advice.Execute( this._state );
         }
@@ -934,7 +942,8 @@ internal sealed partial class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl
                 scope,
                 whenExists,
                 buildProperty,
-                this._explicitlyImplementedInterfaceType );
+                this._explicitlyImplementedInterfaceType,
+                this );
 
             return advice.Execute( this._state );
         }
@@ -984,7 +993,8 @@ internal sealed partial class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl
                 scope,
                 whenExists,
                 buildProperty,
-                this._explicitlyImplementedInterfaceType );
+                this._explicitlyImplementedInterfaceType,
+                this );
 
             return advice.Execute( this._state );
         }
@@ -1028,7 +1038,8 @@ internal sealed partial class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl
                 scope,
                 whenExists,
                 buildProperty,
-                this._explicitlyImplementedInterfaceType );
+                this._explicitlyImplementedInterfaceType,
+                this );
 
             return advice.Execute( this._state );
         }
@@ -1138,7 +1149,8 @@ internal sealed partial class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl
                 scope,
                 whenExists,
                 buildIndexer,
-                this._explicitlyImplementedInterfaceType );
+                this._explicitlyImplementedInterfaceType,
+                this );
 
             return advice.Execute( this._state );
         }
@@ -1211,7 +1223,8 @@ internal sealed partial class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl
                 scope,
                 whenExists,
                 buildEvent,
-                this._explicitlyImplementedInterfaceType );
+                this._explicitlyImplementedInterfaceType,
+                this );
 
             return advice.Execute( this._state );
         }
@@ -1250,7 +1263,8 @@ internal sealed partial class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl
                 scope,
                 whenExists,
                 buildEvent,
-                this._explicitlyImplementedInterfaceType );
+                this._explicitlyImplementedInterfaceType,
+                this );
 
             return advice.Execute( this._state );
         }
@@ -1506,7 +1520,8 @@ internal sealed partial class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl
                 parameterType,
                 attributes.IsDefaultOrEmpty ? null : builder => builder.AddAttributes( attributes ),
                 pullAction,
-                defaultValue );
+                defaultValue,
+                this );
 
             return advice.Execute( this._state );
         }
@@ -1527,7 +1542,7 @@ internal sealed partial class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl
             pullAction,
             attributes );
 
-    public IClassIntroductionAdviceResult IntroduceClass(
+    public IIntroductionAdviceResult<INamedType> IntroduceClass(
         INamespaceOrNamedType targetNamespaceOrType,
         string name,
         OverrideStrategy whenExists = OverrideStrategy.Default,
@@ -1537,19 +1552,19 @@ internal sealed partial class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl
         {
             this.ValidateNotExplicitInterfaceImplementation( AdviceKind.IntroduceType );
 
-            return AsAdviser(
-                this,
+            return
                 new IntroduceNamedTypeAdvice(
                         this.GetAdviceConstructorParameters( targetNamespaceOrType ),
                         name,
                         whenExists,
                         buildType,
-                        TypeKind.Class )
-                    .Execute( this._state ) );
+                        TypeKind.Class,
+                        this )
+                    .Execute( this._state );
         }
     }
 
-    public IClassIntroductionAdviceResult IntroduceInterface(
+    public IIntroductionAdviceResult<INamedType> IntroduceInterface(
         INamespaceOrNamedType targetNamespaceOrType,
         string name,
         OverrideStrategy whenExists = OverrideStrategy.Default,
@@ -1559,15 +1574,82 @@ internal sealed partial class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl
         {
             this.ValidateNotExplicitInterfaceImplementation( AdviceKind.IntroduceType );
 
-            return AsAdviser(
-                this,
-                new IntroduceNamedTypeAdvice(
-                        this.GetAdviceConstructorParameters( targetNamespaceOrType ),
-                        name,
-                        whenExists,
-                        buildType,
-                        TypeKind.Interface )
-                    .Execute( this._state ) );
+            return new IntroduceNamedTypeAdvice(
+                    this.GetAdviceConstructorParameters( targetNamespaceOrType ),
+                    name,
+                    whenExists,
+                    buildType,
+                    TypeKind.Interface,
+                    this )
+                .Execute( this._state );
+        }
+    }
+
+    public void AddAspect( IDeclaration declaration, IAspect aspect )
+    {
+        using ( this.WithNonUserCode() )
+        {
+            this.ValidateTarget( declaration );
+
+            var aspectBuilderState = this._state.AspectBuilderState.AssertNotNull();
+
+            if ( !aspectBuilderState.Configuration.BoundAspectClasses.TryGetAspectClass( aspect.GetType(), out var aspectClass ) )
+            {
+                throw new ArgumentOutOfRangeException( nameof(aspect), $"'{aspect.GetType().Name}' is not a valid aspect type." );
+            }
+
+            var predecessor = new AspectPredecessor( AspectPredecessorKind.ChildAspect, this._state.AspectInstance );
+            var aspectInstance = new AspectInstance( aspect, declaration, (AspectClass) aspectClass, predecessor );
+
+            if ( aspectInstance.ComputeEligibility( declaration ) == EligibleScenarios.None )
+            {
+                var justification =
+                    ((AspectClass) aspectClass).GetIneligibilityJustification(
+                        EligibleScenarios.Default | EligibleScenarios.Inheritance,
+                        new DescribedObject<IDeclaration>( declaration ) );
+
+                this.ReportChildAspectInegibility( aspectClass, declaration, justification );
+            }
+
+            aspectBuilderState.AssertNotNull().AddContributor( new AdviceAddAspectSource( aspectInstance ) );
+        }
+    }
+
+    private void ReportChildAspectInegibility( IAspectClass aspectClass, IDeclaration declaration, FormattableString? reason )
+    {
+        var diagnostic = GeneralDiagnosticDescriptors.IneligibleChildAspect.CreateRoslynDiagnostic(
+            this._state.AspectInstance.GetDiagnosticLocation( this._compilation.RoslynCompilation ),
+            (this._state.AspectInstance.FormatPredecessor( this._compilation ), aspectClass.ShortName, declaration, reason ?? $"of an unknown reason") );
+
+        this._diagnostics.Report( diagnostic );
+
+        // There is no need to throw an exception because the further logic of the BuildAspect method is not likely to 
+        // be directly affected by the absence of the child instance.
+    }
+
+    public void RequireAspect( IDeclaration declaration, Type aspectType )
+    {
+        if ( this.Target.DeclarationKind is DeclarationKind.Compilation or DeclarationKind.Namespace )
+        {
+            throw new NotSupportedException( "This feature is not supported on compilations or namespaces. Use fabrics." );
+        }
+
+        using ( this.WithNonUserCode() )
+        {
+            this.ValidateTarget( declaration );
+
+            var aspectBuilderState = this._state.AspectBuilderState.AssertNotNull();
+
+            if ( !aspectBuilderState.Configuration.BoundAspectClasses.TryGetAspectClass( aspectType, out var aspectClass ) )
+            {
+                throw new ArgumentOutOfRangeException( nameof(aspectType), $"'{aspectType.Name}' is not a valid aspect type." );
+            }
+
+            var aspectRequirement = new AspectRequirement( declaration.ToRef(), this._state.AspectInstance );
+
+            // TODO: Eligibility?
+
+            aspectBuilderState.AssertNotNull().AddContributor( new AdviceRequireAspectSource( aspectRequirement, aspectClass ) );
         }
     }
 
@@ -1584,10 +1666,8 @@ internal sealed partial class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl
         using ( this.WithNonUserCode() )
         {
             return
-                AsAdviser(
-                    this,
-                    new IntroduceNamespaceAdvice( this.GetAdviceConstructorParameters( targetNamespace ), name )
-                        .Execute( this._state ) );
+                new IntroduceNamespaceAdvice( this.GetAdviceConstructorParameters( targetNamespace ), name, this )
+                    .Execute( this._state );
         }
     }
 
@@ -1613,12 +1693,6 @@ internal sealed partial class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl
             advice.Execute( this._state );
         }
     }
-
-    private static IClassIntroductionAdviceResult AsAdviser( AdviceFactory<T> adviceFactory, IIntroductionAdviceResult<INamedType> result )
-        => new ClassIntroductionAdviceResult( adviceFactory, result );
-
-    private static INamespaceIntroductionAdviceResult AsAdviser( AdviceFactory<T> adviceFactory, IIntroductionAdviceResult<INamespace> result )
-        => new NamespaceIntroductionAdviceResult( adviceFactory, result );
 
     string IDiagnosticSource.DiagnosticSourceDescription => this._state.AspectInstance.DiagnosticSourceDescription;
 

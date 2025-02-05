@@ -9,9 +9,9 @@ namespace Metalama.Framework.Engine.Pipeline;
 
 internal sealed class EligibilityService : IEligibilityService
 {
-    private readonly BoundAspectClassCollection _aspectClasses;
+    private readonly AspectClassCollection _aspectClasses;
 
-    public EligibilityService( BoundAspectClassCollection aspectClasses )
+    public EligibilityService( AspectClassCollection aspectClasses )
     {
         this._aspectClasses = aspectClasses;
     }

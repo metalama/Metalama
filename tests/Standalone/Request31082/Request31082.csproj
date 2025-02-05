@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Metalama.Framework" />
+    <PackageReference Include="Metalama.Extensions.CodeFixes" />
   </ItemGroup>
 
 </Project>

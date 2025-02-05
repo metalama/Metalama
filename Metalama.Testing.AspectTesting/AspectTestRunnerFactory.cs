@@ -11,12 +11,10 @@ internal sealed class AspectTestRunnerFactory : ITestRunnerFactory
         GlobalServiceProvider serviceProvider,
         string? projectDirectory,
         TestProjectReferences references,
-        ITestOutputHelper? logger,
-        ILicenseKeyProvider? licenseKeyProvider )
+        ITestOutputHelper? logger )
         => new AspectTestRunner(
             serviceProvider,
             projectDirectory,
             references,
-            logger,
-            licenseKeyProvider );
+            logger );
 }

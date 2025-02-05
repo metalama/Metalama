@@ -24,7 +24,7 @@ public sealed class DiagnosticDefinitionDiscoveryService : IGlobalService
 
     // This constructor is called in a path where no user code is involved
     public DiagnosticDefinitionDiscoveryService() : this(
-        ServiceProvider<IProjectService>.Empty.WithServices( new UserCodeInvoker( ServiceProvider<IGlobalService>.Empty ) ) ) { }
+        ServiceProvider<IProjectService>.Empty.WithService( new UserCodeInvoker( ServiceProvider<IGlobalService>.Empty ) ) ) { }
 
     internal DiagnosticDefinitionDiscoveryService( in ProjectServiceProvider serviceProvider )
     {

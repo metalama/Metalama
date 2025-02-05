@@ -5,12 +5,11 @@ using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Diagnostics;
-using Metalama.Framework.Engine.HierarchicalOptions;
+using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Introspection;
 using Metalama.Framework.Engine.Pipeline;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities.UserCode;
-using Metalama.Framework.Engine.Validation;
 using Metalama.Framework.Fabrics;
 using System;
 using System.Collections.Generic;
@@ -29,19 +28,16 @@ internal sealed class FabricManager
 
     public ProjectServiceProvider ServiceProvider { get; }
 
-    public BoundAspectClassCollection AspectClasses { get; }
+    public AspectClassCollection AspectClasses { get; }
 
-    public FabricManager( BoundAspectClassCollection aspectClasses, in ProjectServiceProvider serviceProvider, CompileTimeProject compileTimeProject )
+    public FabricManager( AspectClassCollection aspectClasses, in ProjectServiceProvider serviceProvider )
     {
         this.ServiceProvider = serviceProvider;
-        this.CompileTimeProject = compileTimeProject;
         this.AspectClasses = aspectClasses;
         this._listener = serviceProvider.GetService<IntrospectionPipelineListener>();
     }
 
     public UserCodeInvoker UserCodeInvoker => this.ServiceProvider.GetRequiredService<UserCodeInvoker>();
-
-    public CompileTimeProject CompileTimeProject { get; }
 
     public (PipelineContributorSources PipelineContributorSources, ImmutableArray<string> FabricTypeNames) ExecuteFabrics(
         CompileTimeProject compileTimeProject,
@@ -80,13 +76,11 @@ internal sealed class FabricManager
 
         var typeFabricDrivers = fabricDrivers.OfType<TypeFabricDriver>().Concat( transitiveFabricDrivers.OfType<TypeFabricDriver>() ).ToImmutableArray();
 
-        var aspectSources = ImmutableArray.CreateBuilder<IAspectSource>();
-        var validatorSources = ImmutableArray.CreateBuilder<IValidatorSource>();
-        var optionsSources = ImmutableArray.CreateBuilder<IHierarchicalOptionsSource>();
+        var contributors = ImmutableArray.CreateBuilder<IPipelineContributor>();
 
         if ( !typeFabricDrivers.IsEmpty )
         {
-            aspectSources.Add( new FabricAspectSource( this, typeFabricDrivers ) );
+            contributors.Add( new FabricAspectSource( this, typeFabricDrivers ) );
         }
 
         // Execute static drivers now.
@@ -97,9 +91,7 @@ internal sealed class FabricManager
             {
                 if ( driver.TryExecute( project, compilationModel, diagnosticAdder, out var result ) )
                 {
-                    aspectSources.AddRange( result.AspectSources );
-                    validatorSources.AddRange( result.ValidatorSources );
-                    optionsSources.AddRange( result.OptionsSources );
+                    contributors.AddRange( result.Contributors );
                     this._listener?.AddStaticFabricResult( result );
                 }
                 else
@@ -114,10 +106,7 @@ internal sealed class FabricManager
         project.Freeze();
         Execute( fabricDrivers.OfType<NamespaceFabricDriver>() );
 
-        var pipelineContributorSources = new PipelineContributorSources(
-            aspectSources.ToImmutable(),
-            validatorSources.ToImmutable(),
-            optionsSources.ToImmutableArray() );
+        var pipelineContributorSources = new PipelineContributorSources( contributors.ToImmutable() );
 
         return (pipelineContributorSources, allFabricTypeNames);
     }
@@ -138,7 +127,7 @@ internal sealed class FabricManager
             return [];
         }
 
-        var executionContext = new UserCodeExecutionContext(
+        var executionContext = UserCodeExecutionContext.CreateInstance(
             this.ServiceProvider,
             UserCodeDescription.Create( "instantiating the fabric ", fabricType ),
             compilation,

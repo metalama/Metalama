@@ -7,23 +7,19 @@ using Metalama.Framework.Diagnostics;
 using Metalama.Framework.Eligibility;
 using Metalama.Framework.Engine.Advising;
 using Metalama.Framework.Engine.Diagnostics;
-using Metalama.Framework.Engine.Fabrics;
-using Metalama.Framework.Engine.HierarchicalOptions;
-using Metalama.Framework.Engine.Licensing;
-using Metalama.Framework.Engine.Pipeline;
+using Metalama.Framework.Engine.Extensibility;
+using Metalama.Framework.Engine.Queries;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.UserCode;
-using Metalama.Framework.Engine.Validation;
+using Metalama.Framework.Fabrics;
 using Metalama.Framework.Project;
-using Metalama.Framework.Validation;
 using System;
-using System.Reflection;
 using System.Threading;
 
 namespace Metalama.Framework.Engine.Aspects
 {
-    internal sealed class AspectBuilder<T> : IAspectBuilder<T>, IAspectBuilderInternal, IAspectReceiverParent
+    internal sealed class AspectBuilder<T> : IAspectBuilder<T>, IAspectBuilderInternal, IQueryOwner
         where T : class, IDeclaration
     {
         private readonly AspectBuilderState _aspectBuilderState;
@@ -39,7 +35,6 @@ namespace Metalama.Framework.Engine.Aspects
             this._aspectBuilderState = aspectBuilderState;
             this._adviceFactory = adviceFactory;
             this.AspectPredecessor = aspectPredecessor ?? new AspectPredecessor( AspectPredecessorKind.ChildAspect, aspectBuilderState.AspectInstance );
-            this.LicenseVerifier = this.ServiceProvider.GetService<LicenseVerifier>();
         }
 
         public IProject Project => this.Target.Compilation.Project;
@@ -48,21 +43,6 @@ namespace Metalama.Framework.Engine.Aspects
         public string? Namespace => this.Target.GetNamespace()?.FullName;
 
         public IAspectInstance AspectInstance => this._aspectBuilderState.AspectInstance;
-
-        void IPipelineContributorSourceCollector.AddAspectSource( IAspectSource aspectSource )
-        {
-            this._aspectBuilderState.AspectSources = this._aspectBuilderState.AspectSources.Add( aspectSource );
-        }
-
-        void IPipelineContributorSourceCollector.AddValidatorSource( IValidatorSource validatorSource )
-        {
-            this._aspectBuilderState.ValidatorSources = this._aspectBuilderState.ValidatorSources.Add( validatorSource );
-        }
-
-        public void AddOptionsSource( IHierarchicalOptionsSource hierarchicalOptionsSource )
-        {
-            this._aspectBuilderState.OptionsSources = this._aspectBuilderState.OptionsSources.Add( hierarchicalOptionsSource );
-        }
 
         public ProjectServiceProvider ServiceProvider => this._aspectBuilderState.ServiceProvider;
 
@@ -86,8 +66,11 @@ namespace Metalama.Framework.Engine.Aspects
         public T Target { get; }
 
         [Memo]
-        public IAspectReceiver<T> Outbound
-            => new RootAspectReceiver<T>(
+        public T AdvisedTarget => this.Target.ForCompilation( this._adviceFactory.MutableCompilation );
+
+        [Memo]
+        public IQuery<T> Outbound
+            => new RootQuery<T>(
                 this.Target.ToRef(),
                 this,
                 CompilationModelVersion.Current );
@@ -170,29 +153,22 @@ namespace Metalama.Framework.Engine.Aspects
 
         public AspectPredecessor AspectPredecessor { get; private set; }
 
-        Type IAspectReceiverParent.Type => this.AspectInstance.AspectClass.Type;
+        Type IQueryOwner.Type => this.AspectInstance.AspectClass.Type;
 
-        UserCodeInvoker IAspectReceiverParent.UserCodeInvoker => this._aspectBuilderState.Configuration.UserCodeInvoker;
+        public UserCodeExecutionContext UserCodeExecutionContext => this._aspectBuilderState.UserCodeExecutionContext;
 
-        ProjectServiceProvider IAspectReceiverParent.ServiceProvider => this._aspectBuilderState.Configuration.ServiceProvider;
+        UserCodeInvoker IQueryOwner.UserCodeInvoker => this._aspectBuilderState.Configuration.UserCodeInvoker;
 
-        BoundAspectClassCollection IAspectReceiverParent.AspectClasses => this._aspectBuilderState.Configuration.BoundAspectClasses;
+        ProjectServiceProvider IQueryOwner.ServiceProvider => this._aspectBuilderState.Configuration.ServiceProvider;
 
-        public MethodBasedReferenceValidatorDriver GetReferenceValidatorDriver( MethodInfo validateMethod )
-            => ((IValidatorDriverFactory) this.AspectInstance.AspectClass).GetReferenceValidatorDriver( validateMethod );
-
-        public ClassBasedReferenceValidatorDriver GetReferenceValidatorDriver( Type type )
-            => ((IValidatorDriverFactory) this.AspectInstance.AspectClass).GetReferenceValidatorDriver( type );
-
-        public DeclarationValidatorDriver GetDeclarationValidatorDriver( ValidatorDelegate<DeclarationValidationContext> validate )
-            => ((IValidatorDriverFactory) this.AspectInstance.AspectClass).GetDeclarationValidatorDriver( validate );
-
-        public LicenseVerifier? LicenseVerifier { get; }
+        IAspectClassResolver IQueryOwner.AspectClasses => this._aspectBuilderState.Configuration.BoundAspectClasses;
 
         string IDiagnosticSource.DiagnosticSourceDescription => ((IAspectInstanceInternal) this.AspectInstance).DiagnosticSourceDescription;
 
         T IAdviser<T>.Target => this.Target;
 
         IAdviser<TNewDeclaration> IAdviser.With<TNewDeclaration>( TNewDeclaration declaration ) => this.With( declaration );
+
+        public void AddContributor( IPipelineContributor contributor ) => this._aspectBuilderState.AddContributor( contributor );
     }
 }

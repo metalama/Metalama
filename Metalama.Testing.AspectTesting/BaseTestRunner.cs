@@ -4,12 +4,10 @@ using DiffEngine;
 using JetBrains.Annotations;
 using Metalama.Backstage.Configuration;
 using Metalama.Backstage.Infrastructure;
-using Metalama.Backstage.Licensing.Consumption.Sources;
 using Metalama.Backstage.Utilities;
 using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Formatting;
-using Metalama.Framework.Engine.Licensing;
 using Metalama.Framework.Engine.Pipeline.CompileTime;
 using Metalama.Framework.Engine.Pipeline.DesignTime;
 using Metalama.Framework.Engine.Services;
@@ -50,8 +48,6 @@ internal abstract partial class BaseTestRunner
     private readonly GlobalServiceProvider _serviceProvider;
     private readonly TestProjectReferences _references;
 
-    protected ILicenseKeyProvider LicenseKeyProvider { get; }
-
     private readonly IFileSystem _fileSystem;
     private readonly TestRunnerOptions _testRunnerOptions;
 
@@ -59,12 +55,10 @@ internal abstract partial class BaseTestRunner
         GlobalServiceProvider serviceProvider,
         string? projectDirectory,
         TestProjectReferences references,
-        ITestOutputHelper? logger,
-        ILicenseKeyProvider? licenseKeyProvider )
+        ITestOutputHelper? logger )
     {
         this._serviceProvider = serviceProvider;
         this._references = references;
-        this.LicenseKeyProvider = licenseKeyProvider ?? new NullLicenseKeyProvider();
         this.ProjectDirectory = projectDirectory;
         this.Logger = logger;
         this._fileSystem = serviceProvider.GetRequiredBackstageService<IFileSystem>();
@@ -122,8 +116,6 @@ internal abstract partial class BaseTestRunner
         {
             // Change the culture to invariant to get invariant diagnostic messages.
             CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
-
-            testInput.ProjectProperties.License?.ThrowIfNotLicensed();
 
             var transformedOptions = this.GetContextOptions( testContextOptions )
                 with
@@ -215,18 +207,6 @@ internal abstract partial class BaseTestRunner
         testResult.TestInput = testInput;
         var testDirectory = Path.GetDirectoryName( testInput.FullPath )!;
 
-        // ReSharper disable once RedundantAssignment
-        string? dependencyLicenseKey = null;
-
-        if ( testInput.Options.DependencyLicenseKey != null )
-        {
-            // ReSharper disable once RedundantAssignment
-            if ( !this.LicenseKeyProvider.TryGetLicenseKey( testInput.Options.DependencyLicenseKey, out dependencyLicenseKey ) )
-            {
-                throw new InvalidOperationException( $"Unknown dependency license key name '{testInput.Options.DependencyLicenseKey}'." );
-            }
-        }
-
         try
         {
             // Create parse options.
@@ -249,7 +229,7 @@ internal abstract partial class BaseTestRunner
 
             mainParseOptions = mainParseOptions.WithPreprocessorSymbols( preprocessorSymbols.AddRange( testInput.Options.DefinedConstants ) );
 
-            var emptyProject = this.CreateProject( testInput.Options );
+            var emptyProject = this.CreateProject( testContext, testInput.Options );
             var mainProject = emptyProject.WithParseOptions( mainParseOptions );
 
             async Task<(Project Project, Document? Document)> AddDocumentAsync(
@@ -457,9 +437,7 @@ internal abstract partial class BaseTestRunner
                         includedText,
                         dependencyProject,
                         testResult,
-                        testContext,
-                        dependencyLicenseKey,
-                        testInput.Options.IgnoreUserProfileLicenses.GetValueOrDefault() );
+                        testContext );
 
                 if ( dependencyReference == null )
                 {
@@ -484,9 +462,7 @@ internal abstract partial class BaseTestRunner
         string code,
         Project emptyProject,
         TestResult testResult,
-        TestContext testContext,
-        string? licenseKey,
-        bool ignoreUserProfileLicense )
+        TestContext testContext )
     {
         // The assembly name must match the file name otherwise it wont be found by AssemblyLocator.
         var name = "dependency_" + RandomIdGenerator.GenerateId();
@@ -497,18 +473,9 @@ internal abstract partial class BaseTestRunner
                 testContext.ProjectOptions,
                 this._references.MetadataReferences );
 
-        if ( !string.IsNullOrEmpty( licenseKey ) )
-        {
-            // ReSharper disable once RedundantSuppressNullableWarningExpression
-            serviceProvider = serviceProvider.Underlying.AddProjectLicenseConsumptionManager(
-                licenseKey!,
-                ignoreUserProfileLicense ? LicenseSourceKind.All : LicenseSourceKind.None,
-                _ => { } );
-        }
-
         // Transform with Metalama.
 
-        var pipeline = new CompileTimeAspectPipeline( serviceProvider, testContext.Domain );
+        var pipeline = new CompileTimeAspectPipeline( serviceProvider );
 
         var compilation = (await project.GetCompilationAsync())!.WithAssemblyName( name );
 
@@ -544,6 +511,8 @@ internal abstract partial class BaseTestRunner
         return (MetadataReference.CreateFromFile( outputPath ), project);
     }
 
+    // Resharper disable once VirtualMemberNeverOverridden.Global
+    // Resharper disable once UnusedParameter.Global
     private protected virtual Compilation PreprocessCompilation( Compilation initialCompilation, TestResult testResult ) => initialCompilation;
 
     private static void ValidateCustomAttributes( Compilation compilation )
@@ -558,6 +527,7 @@ internal abstract partial class BaseTestRunner
         }
     }
 
+    // Resharper disable once VirtualMemberNeverOverridden.Global
     protected virtual bool CompareTransformedCode => true;
 
     private protected virtual void SaveResults( TestInput testInput, TestResult testResult )
@@ -764,9 +734,9 @@ internal abstract partial class BaseTestRunner
     /// </summary>
     /// <returns>A new project instance.</returns>
     [PublicAPI]
-    public Project CreateProject( TestOptions options )
+    public Project CreateProject( TestContext testContext, TestOptions options )
     {
-        var compilation = TestCompilationFactory.CreateEmptyCSharpCompilation(
+        var compilation = testContext.CreateEmptyCSharpCompilation(
             null,
             this._references.MetadataReferences,
             options.OutputAssemblyType switch
@@ -810,7 +780,7 @@ internal abstract partial class BaseTestRunner
         // Write each document individually.
         if ( testInput.Options.WriteInputHtml.GetValueOrDefault() || testInput.Options.WriteOutputHtml.GetValueOrDefault() )
         {
-            var pipeline = new TestDesignTimeAspectPipeline( serviceProvider, testResult.TestContext.AssertNotNull().Domain );
+            var pipeline = new TestDesignTimeAspectPipeline( serviceProvider );
             var inputCompilation = testResult.InputCompilation.AssertNotNull();
             var designTimePipelineResult = await pipeline.ExecuteAsync( inputCompilation );
 
@@ -837,6 +807,7 @@ internal abstract partial class BaseTestRunner
     private HtmlCodeWriter CreateHtmlCodeWriter( in ProjectServiceProvider serviceProvider, TestOptions options )
         => new( serviceProvider, this.GetHtmlCodeWriterOptions( options ) );
 
+    // Resharper disable once VirtualMemberNeverOverridden.Global
     protected virtual HtmlCodeWriterOptions GetHtmlCodeWriterOptions( TestOptions options ) => new( options.AddHtmlTitles.GetValueOrDefault() );
 
     private async Task WriteHtmlAsync(

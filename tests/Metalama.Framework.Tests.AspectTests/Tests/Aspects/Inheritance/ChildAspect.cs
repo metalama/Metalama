@@ -14,7 +14,10 @@ public class ParentAspect : TypeAspect
     {
         base.BuildAspect( builder );
 
-        builder.Outbound.SelectMany( t => t.Methods ).AddAspect( _ => new ChildAspect() );
+        foreach (var m in builder.Target.Methods)
+        {
+            builder.With( m ).AddAspect( new ChildAspect() );
+        }
     }
 }
 

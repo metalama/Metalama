@@ -1,6 +1,6 @@
 ﻿// Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
-using Metalama.Framework.DesignTime;
+using Metalama.Framework.DesignTime.SourceGeneration;
 using Metalama.Testing.UnitTesting;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -9,48 +9,43 @@ using Xunit;
 
 namespace Metalama.Framework.Tests.UnitTests.DesignTime.EndToEnd;
 
-public sealed class SourceGeneratorTests : FrameworkBaseTestClass
+public sealed class SourceGeneratorTests : UnitTestClass
 {
     [Fact]
     public void RemovingTargetRemovesGenerated()
     {
         const string aspect = """
-            using Metalama.Framework.Aspects;
-            
-            #pragma warning disable CS0169 // The field is never used
-            
-            class Aspect : TypeAspect
-            {
-                [Introduce]
-                int i;
-            }
-            """;
+                              using Metalama.Framework.Aspects;
+
+                              #pragma warning disable CS0169 // The field is never used
+
+                              class Aspect : TypeAspect
+                              {
+                                  [Introduce]
+                                  int i;
+                              }
+                              """;
 
         const string target = """
-            [Aspect]
-            partial class C;
-            """;
+                              [Aspect]
+                              partial class C;
+                              """;
 
         const string usage = """
-            class D
-            {
-                void M() => new C();
-            }
-            """;
+                             class D
+                             {
+                                 void M() => new C();
+                             }
+                             """;
 
-        var code = new Dictionary<string, string>
-        {
-            ["aspect.cs"] = aspect,
-            ["c.cs"] = target,
-            ["d.cs"] = usage
-        };
+        var code = new Dictionary<string, string> { ["aspect.cs"] = aspect, ["c.cs"] = target, ["d.cs"] = usage };
 
         using var testContext = this.CreateTestContext();
 
         var generator = new AnalysisProcessSourceGenerator( testContext.ServiceProvider.Global );
         GeneratorDriver generatorDriver = CSharpGeneratorDriver.Create( generator );
 
-        var compilation = TestCompilationFactory.CreateCSharpCompilation( code, name: "test" );
+        var compilation = testContext.CreateCSharpCompilation( code, assemblyName: "test" );
 
         generatorDriver = generatorDriver.RunGeneratorsAndUpdateCompilation( compilation, out var outputCompilation, out var diagnostics );
 
@@ -59,7 +54,7 @@ public sealed class SourceGeneratorTests : FrameworkBaseTestClass
 
         code.Remove( "c.cs" );
 
-        var updatedCompilation = TestCompilationFactory.CreateCSharpCompilation( code, name: "test", ignoreErrors: true );
+        var updatedCompilation = testContext.CreateCSharpCompilation( code, assemblyName: "test", ignoreErrors: true );
 
         generatorDriver.RunGeneratorsAndUpdateCompilation( updatedCompilation, out outputCompilation, out diagnostics );
 

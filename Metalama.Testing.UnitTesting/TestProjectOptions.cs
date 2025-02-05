@@ -8,6 +8,7 @@ using System;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Threading;
 
@@ -21,6 +22,7 @@ internal sealed class TestProjectOptions : DefaultProjectOptions, IDisposable
     private readonly ImmutableDictionary<string, string> _properties;
     private readonly Lazy<string> _baseDirectory;
     private readonly Lazy<string> _projectDirectory;
+
     private int _fileLockers;
 
     /// <summary>
@@ -40,6 +42,7 @@ internal sealed class TestProjectOptions : DefaultProjectOptions, IDisposable
         this.RoslynIsCompileTimeOnly = prototype.RoslynIsCompileTimeOnly;
         this.SourceGeneratorTouchFile = prototype.SourceGeneratorTouchFile;
         this.BuildTouchFile = prototype.BuildTouchFile;
+        this.CompileTimeAssemblies = prototype.CompileTimeAssemblies;
         this.DomainObserver = new DomainObserverImpl( this );
     }
 
@@ -78,6 +81,7 @@ internal sealed class TestProjectOptions : DefaultProjectOptions, IDisposable
         this.AdditionalAssemblies = contextOptions.AdditionalAssemblies;
         this.RequireOrderedAspects = contextOptions.RequireOrderedAspects;
         this.RoslynIsCompileTimeOnly = contextOptions.RoslynIsCompileTimeOnly;
+        this.CompileTimeAssemblies = contextOptions.CompileTimeAssemblies.Select( x => new ExtensionAssemblyReference( x ) ).ToImmutableArray();
 
         if ( contextOptions.HasSourceGeneratorTouchFile )
         {
@@ -122,6 +126,8 @@ internal sealed class TestProjectOptions : DefaultProjectOptions, IDisposable
     public override string? BuildTouchFile { get; }
 
     public override bool RoslynIsCompileTimeOnly { get; }
+
+    public override ImmutableArray<ExtensionAssemblyReference> CompileTimeAssemblies { get; }
 
     public override bool TryGetProperty( string name, [NotNullWhen( true )] out string? value ) => this._properties.TryGetValue( name, out value );
 

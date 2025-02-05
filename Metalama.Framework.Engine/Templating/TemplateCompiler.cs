@@ -124,6 +124,7 @@ namespace Metalama.Framework.Engine.Templating
             return annotatorRewriter.Success;
         }
 
+        // Resharper disable once OutParameterValueIsAlwaysDiscarded.Global
         public bool TryCompile(
             string templateName,
             Compilation compileTimeCompilation,

@@ -14,7 +14,7 @@
     
     <ItemGroup>
         <InternalsVisibleTo Include="Metalama.Framework.Sdk" />
-
+        
         <InternalsVisibleTo Include="Metalama.Framework.Engine.4.4.0" />
         <InternalsVisibleTo Include="Metalama.Framework.Engine.4.8.0" />
         <InternalsVisibleTo Include="Metalama.Framework.Engine.4.12.0" />
@@ -26,6 +26,10 @@
         <InternalsVisibleTo Include="Metalama.Framework.Tests.UnitTests.4.4.0" />
         <InternalsVisibleTo Include="Metalama.Framework.Tests.UnitTests.4.8.0" />
         <InternalsVisibleTo Include="Metalama.Framework.Tests.UnitTests.4.12.0" />
+
+        <InternalsVisibleTo Include="Metalama.Framework.Tests.UnitTestHelpers.4.4.0" />
+        <InternalsVisibleTo Include="Metalama.Framework.Tests.UnitTestHelpers.4.8.0" />
+        <InternalsVisibleTo Include="Metalama.Framework.Tests.UnitTestHelpers.4.12.0" />
 
         <InternalsVisibleTo Include="Metalama.Framework.Tests.TemplateTests.4.4.0" />
         <InternalsVisibleTo Include="Metalama.Framework.Tests.TemplateTests.4.8.0" />
@@ -49,6 +53,9 @@
     <!-- Packaging -->
     <ItemGroup>
         <None Include="README.md" Pack="true" PackagePath="/" />
+    </ItemGroup>
+    <ItemGroup>
+      <Folder Include="Code\References\" />
     </ItemGroup>
 
 </Project>

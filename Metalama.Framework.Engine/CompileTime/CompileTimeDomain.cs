@@ -6,10 +6,12 @@ using Metalama.Framework.Engine.Collections;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.Diagnostics;
+using Metalama.Framework.Services;
 using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -26,7 +28,7 @@ namespace Metalama.Framework.Engine.CompileTime
     /// depends on the scenario: typically one per project at compile time, one per <see cref="AppDomain"/> at design time, and one per test
     /// at testing time.
     /// </summary>
-    public class CompileTimeDomain : IDisposable
+    public class CompileTimeDomain : IDisposable, IGlobalService
     {
         private static int _nextDomainId;
         private readonly ConcurrentDictionary<AssemblyIdentity, Assembly> _assemblyCache = new();
@@ -34,6 +36,7 @@ namespace Metalama.Framework.Engine.CompileTime
         private readonly ILogger _logger;
         private readonly object _sync = new();
         private readonly ConcurrentDictionary<string, (Assembly Assembly, AssemblyIdentity Identity)> _assembliesByName = new();
+        private readonly ConcurrentDictionary<string, Assembly> _assembliesByPath = new();
         private AssemblyLoader? _assemblyLoader;
         private ImmutableDictionaryOfArray<string, string> _assemblyPathsByName = ImmutableDictionaryOfArray<string, string>.Empty;
 
@@ -48,6 +51,8 @@ namespace Metalama.Framework.Engine.CompileTime
             this._assemblyLoader = new AssemblyLoader( this.ResolveAssembly, debugName: $"CompileTimeDomain {debugName}".TrimEnd() );
 
             this._logger = Logger.Domain;
+
+            this.AddAssembly( this.GetType().Assembly );
         }
 
         private Assembly? ResolveAssembly( string name )
@@ -88,8 +93,23 @@ namespace Metalama.Framework.Engine.CompileTime
         /// <summary>
         /// Loads an assembly in the CLR.
         /// </summary>
-        [PublicAPI] // Overridden by Metalama.Try.
-        public virtual Assembly LoadAssembly( string path )
+        /// <param name="path"></param>
+        /// <param name="collectible">Indicates whether the assembly is supposed to be collectible after the <see cref="CompileTimeDomain"/>
+        /// is disposed of. This should be <c>true</c> for project-specific assemblies and <c>false</c> for extensions.</param>
+        public Assembly LoadAssembly( string path, bool collectible = true )
+        {
+            if ( this._assembliesByPath.TryGetValue( path, out var assembly ) )
+            {
+                return assembly;
+            }
+
+            assembly = this.LoadAssemblyCore( path, collectible );
+            this.AddAssembly( assembly, path );
+
+            return assembly;
+        }
+
+        protected virtual Assembly LoadAssemblyCore( string path, bool collectible )
         {
             var assemblyLoader = this._assemblyLoader ?? throw new ObjectDisposedException( this.ToString() );
 
@@ -101,6 +121,49 @@ namespace Metalama.Framework.Engine.CompileTime
             {
                 throw new FileLoadException( $"Cannot load '{path}': {e.Message}", e );
             }
+        }
+
+        public bool TryGetLoadedAssembly( string assemblyQualifiedName, [NotNullWhen( true )] out Assembly? assembly )
+        {
+            var assemblyName = new AssemblyName( assemblyQualifiedName );
+
+            if ( !this._assembliesByName.TryGetValue( assemblyName.Name.AssertNotNull(), out var assemblyInfo ) )
+            {
+                assembly = null;
+
+                return false;
+            }
+
+            if ( assemblyName.Version != null && assemblyInfo.Identity.Version != assemblyName.Version )
+            {
+                this._logger.Warning?.Log(
+                    $"We could find an assembly named '{assemblyName.Name}', but it has version '{assemblyInfo.Identity.Version}' instead of '{assemblyName.Version}'." );
+
+                assembly = null;
+
+                return false;
+            }
+
+            assembly = assemblyInfo.Assembly;
+
+            return true;
+        }
+
+        internal void AddAssembly( Assembly assembly, string? path = null )
+        {
+            path ??= assembly.Location;
+            var assemblyName = assembly.GetName();
+            var assemblyIdentity = new AssemblyIdentity( assemblyName.Name, assemblyName.Version );
+
+            if ( this._assemblyCache.TryAdd( assemblyIdentity, assembly ) )
+            {
+                if ( !this._assembliesByName.TryAdd( assemblyName.Name.AssertNotNull(), (assembly, assemblyIdentity) ) )
+                {
+                    throw new AssertionFailedException( "A different assembly of the same name was already added." );
+                }
+            }
+
+            this._assembliesByPath[path] = assembly;
         }
 
         /// <summary>
@@ -150,9 +213,11 @@ namespace Metalama.Framework.Engine.CompileTime
         {
             if ( disposing )
             {
+                // Clear all collections to make sure that we don't hold references to assemblies, as a derived class
+                // may want to collect them.
                 this._assemblyCache.Clear();
-
                 this._assembliesByName.Clear();
+                this._assembliesByPath.Clear();
 
                 this._assemblyLoader?.Dispose();
                 this._assemblyLoader = null;

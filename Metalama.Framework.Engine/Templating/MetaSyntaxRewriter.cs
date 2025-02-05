@@ -76,12 +76,13 @@ internal partial class MetaSyntaxRewriter : SafeSyntaxRewriter
     protected SyntaxTriviaList GetIndentation( bool lineFeed = true )
         => lineFeed
 #if ROSLYN_4_12_0_OR_GREATER
+
             // Using the new Create(ReadOnlySpan) avoids array allocation.
-            ? SyntaxTriviaList.Create([this.MetaSyntaxFactory.SyntaxGenerationContext.ElasticEndOfLineTrivia, Whitespace( this._indentTriviaStack.Peek() )])
+            ? SyntaxTriviaList.Create( [this.MetaSyntaxFactory.SyntaxGenerationContext.ElasticEndOfLineTrivia, Whitespace( this._indentTriviaStack.Peek() )] )
 #else
             ? new SyntaxTriviaList(this.MetaSyntaxFactory.SyntaxGenerationContext.ElasticEndOfLineTrivia, Whitespace( this._indentTriviaStack.Peek() ))
 #endif
-            : SyntaxTriviaList.Create(Whitespace( this._indentTriviaStack.Peek() ));
+            : SyntaxTriviaList.Create( Whitespace( this._indentTriviaStack.Peek() ) );
 
     protected static SyntaxTriviaList GetLineBreak() => SyntaxTriviaList.Empty;
 

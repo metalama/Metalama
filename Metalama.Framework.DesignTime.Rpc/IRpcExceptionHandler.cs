@@ -8,5 +8,5 @@ namespace Metalama.Framework.DesignTime.Rpc;
 [PublicAPI]
 public interface IRpcExceptionHandler
 {
-    void OnException( Exception e, ILogger logger );
+    void OnException( Exception e, ILogger logger, bool isDisposing );
 }

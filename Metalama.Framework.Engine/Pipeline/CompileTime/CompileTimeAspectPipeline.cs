@@ -6,8 +6,8 @@ using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Diagnostics;
+using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Formatting;
-using Metalama.Framework.Engine.Licensing;
 using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Pipeline.DesignTime;
 using Metalama.Framework.Engine.Services;
@@ -16,7 +16,6 @@ using Metalama.Framework.Engine.Templating;
 using Metalama.Framework.Engine.Transformations;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.Threading;
-using Metalama.Framework.Engine.Validation;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using System;
@@ -30,15 +29,13 @@ namespace Metalama.Framework.Engine.Pipeline.CompileTime;
 /// <summary>
 /// The implementation of <see cref="AspectPipeline"/> used at compile time.
 /// </summary>
-public sealed class CompileTimeAspectPipeline : AspectPipeline
+public class CompileTimeAspectPipeline : AspectPipeline
 {
     public CompileTimeAspectPipeline(
         ProjectServiceProvider serviceProvider,
-        CompileTimeDomain? domain = null,
         ExecutionScenario? executionScenario = null ) : base(
         serviceProvider,
-        executionScenario ?? ExecutionScenario.CompileTime,
-        domain ) { }
+        executionScenario ?? ExecutionScenario.CompileTime ) { }
 
     protected override SyntaxGenerationOptions GetSyntaxGenerationOptions()
     {
@@ -127,17 +124,13 @@ public sealed class CompileTimeAspectPipeline : AspectPipeline
 
         var diagnosticAdder = new DiagnosticAdderAdapter( reportDiagnostic );
 
-        var licenseConsumptionService = this.ServiceProvider.GetService<IProjectLicenseConsumer>();
-
-        var projectLicenseInfo = ProjectLicenseInfo.Get( licenseConsumptionService );
-
         if ( !this.VerifyLanguageVersion( compilation, diagnosticAdder ) )
         {
             return default;
         }
 
         // Initialize the pipeline and generate the compile-time project.
-        if ( !this.TryInitialize( diagnosticAdder, partialCompilation.Compilation, projectLicenseInfo, null, cancellationToken, out var configuration ) )
+        if ( !this.TryInitialize( diagnosticAdder, partialCompilation.Compilation, null, cancellationToken, out var configuration ) )
         {
             return default;
         }
@@ -170,9 +163,6 @@ public sealed class CompileTimeAspectPipeline : AspectPipeline
 
             var resultPartialCompilation = result.Value.LastCompilation;
 
-            // Execute validators.
-            IReadOnlyList<ReferenceValidatorInstance> referenceValidators = result.Value.ReferenceValidators;
-
             // Format the output.
             if ( this.ProjectOptions.CodeFormattingOptions == CodeFormattingOptions.Formatted || this.ProjectOptions.WriteHtml )
             {
@@ -197,7 +187,7 @@ public sealed class CompileTimeAspectPipeline : AspectPipeline
                     result.Value.FirstCompilationModel.AssertNotNull(),
                     result.Value.LastCompilationModel,
                     result.Value.Transformations.OfType<ITransformation>(),
-                    new UserDiagnosticSink(),
+                    new UserDiagnosticSink( configuration.ServiceProvider ),
                     cancellationToken );
 
                 var compilationWithDesignTimeTrees = (PartialCompilation)
@@ -238,13 +228,21 @@ public sealed class CompileTimeAspectPipeline : AspectPipeline
 
             var annotations = result.Value.LastCompilationModel.GetExportedAnnotations();
 
-            if ( result.Value.ExternallyInheritableAspects.Length > 0 || referenceValidators.Count > 0 || inheritableOptions.Count > 0
+            // Execute validators.
+            IReadOnlyList<ITransitivePipelineContributor> transitiveContributors = result.Value.TransitiveContributors;
+
+            if ( result.Value.ExternallyInheritableAspects.Length > 0 || transitiveContributors.Count > 0 || inheritableOptions.Count > 0
                  || !annotations.IsEmpty )
             {
+                var pipelineExtensions = configuration.Extensions;
+
+                var manifestExtensions = pipelineExtensions.SelectMany( e => e.GetTransitiveManifestExtensions( transitiveContributors ) )
+                    .ToImmutableArray();
+
                 var inheritedAspectsManifest = TransitiveAspectsManifest.Create(
                     result.Value.ExternallyInheritableAspects.Select( i => new InheritableAspectInstance( i ) )
                         .ToImmutableArray(),
-                    referenceValidators.SelectAsImmutableArray( i => new TransitiveValidatorInstance( i ) ),
+                    manifestExtensions,
                     inheritableOptions,
                     annotations );
 
@@ -286,5 +284,5 @@ public sealed class CompileTimeAspectPipeline : AspectPipeline
     private protected override HighLevelPipelineStage CreateHighLevelStage(
         PipelineStageConfiguration configuration,
         CompileTimeProject compileTimeProject )
-        => new LinkerPipelineStage( compileTimeProject, configuration.AspectLayers );
+        => new LinkerPipelineStage( configuration.AspectLayers );
 }

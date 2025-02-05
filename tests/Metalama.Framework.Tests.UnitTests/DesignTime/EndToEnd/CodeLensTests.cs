@@ -1,11 +1,11 @@
 ﻿// Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
-using Metalama.Framework.DesignTime.CodeLens;
 using Metalama.Framework.DesignTime.Contracts.CodeLens;
 using Metalama.Framework.DesignTime.VisualStudio.CodeLens;
 using Metalama.Framework.Engine.Pipeline.DesignTime;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Services;
+using Metalama.Framework.Tests.UnitTestHelpers.TestClasses;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Xunit;
@@ -23,10 +23,9 @@ public sealed class CodeLensTests : DistributedDesignTimeTestBase
     public async Task EndToEnd()
     {
         var analysisProcessServices = new ServiceProviderBuilder<IGlobalService>();
-        analysisProcessServices.Add<ICodeLensServiceImpl>( provider => new CodeLensServiceImpl( provider ) );
 
         // Initialize the components.
-        using var testContext = this.CreateDistributedDesignTimeTestContext( null, analysisProcessServices, null );
+        using var testContext = this.CreateDistributedDesignTimeTestContext( null, analysisProcessServices );
 
         await testContext.WhenFullyInitialized;
 
@@ -36,7 +35,7 @@ public sealed class CodeLensTests : DistributedDesignTimeTestBase
                             using Metalama.Framework.Aspects; 
                             using Metalama.Framework.Advising;
                             using Metalama.Framework.Code;
-                            using Metalama.Framework.CodeFixes;
+                            using Metalama.Extensions.CodeFixes;
 
                             class TheAspect : TypeAspect
                             {
@@ -49,8 +48,8 @@ public sealed class CodeLensTests : DistributedDesignTimeTestBase
                             """;
 
         // Initialize the workspace.
-        var projectKey = testContext.WorkspaceProvider.AddOrUpdateProject( "project", new Dictionary<string, string> { ["code.cs"] = code } );
-        await testContext.AnalysisProcessEndpoint.RegisterProjectAsync( projectKey );
+        var projectKey = testContext.WorkspaceProvider.AddOrUpdateProject( testContext, "project", new Dictionary<string, string> { ["code.cs"] = code } );
+        await testContext.RpcServiceProviderEndpoint.RegisterProjectAsync( projectKey, testContext.CancellationToken );
         var compilation = (await testContext.WorkspaceProvider.GetCompilationAsync( projectKey ))!;
 
         // We need to run the pipeline because code lens does not run it on its own.

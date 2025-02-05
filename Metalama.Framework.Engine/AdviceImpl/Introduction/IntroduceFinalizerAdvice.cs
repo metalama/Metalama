@@ -19,7 +19,8 @@ internal sealed class IntroduceFinalizerAdvice : IntroduceMemberAdvice<IMethod, 
     public IntroduceFinalizerAdvice(
         AdviceConstructorParameters<INamedType> parameters,
         PartiallyBoundTemplateMethod template,
-        OverrideStrategy overrideStrategy )
+        OverrideStrategy overrideStrategy,
+        IAdviceFactoryImpl adviceFactory )
         : base(
             parameters,
             null,
@@ -27,7 +28,8 @@ internal sealed class IntroduceFinalizerAdvice : IntroduceMemberAdvice<IMethod, 
             IntroductionScope.Instance,
             overrideStrategy,
             _ => { },
-            explicitlyImplementedInterfaceType: null )
+            explicitlyImplementedInterfaceType: null,
+            adviceFactory )
     {
         this._template = template;
     }

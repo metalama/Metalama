@@ -30,8 +30,7 @@ public sealed class TransformationPreviewServiceImpl : PreviewPipelineBasedServi
         // Execute the compile-time pipeline with the design-time project configuration.
         var previewPipeline = new PreviewAspectPipeline(
             preparation.ServiceProvider.AssertNotNull(),
-            ExecutionScenario.Preview,
-            this.PipelineFactory.Domain );
+            ExecutionScenario.Preview );
 
         DiagnosticBag diagnostics = new();
 

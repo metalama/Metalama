@@ -49,7 +49,7 @@ public sealed class OnPropertyChangedAspect : TypeAspect
 {
     public override void BuildAspect( IAspectBuilder<INamedType> builder )
     {
-        foreach (var property in builder.Target.FieldsAndProperties.Where( f => !f.IsImplicitlyDeclared ))
+        foreach (var property in builder.AdvisedTarget.FieldsAndProperties.Where( f => !f.IsImplicitlyDeclared ))
         {
             builder.With( property ).OverrideAccessors( null, nameof(OverridePropertySetter) );
         }

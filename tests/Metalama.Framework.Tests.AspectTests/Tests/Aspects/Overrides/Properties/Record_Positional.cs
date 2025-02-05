@@ -1,7 +1,11 @@
 using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
+using Metalama.Framework.Code;
 using Metalama.Framework.Fabrics;
 using System.Linq;
+using Metalama.Framework.Tests.AspectTests.Tests.Aspects.Overrides.Properties.Record_Positional;
+
+[assembly: AspectOrder( AspectOrderDirection.CompileTime, typeof(ApplyAspect), typeof(MyAspect))]
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Overrides.Properties.Record_Positional
 {
@@ -15,14 +19,17 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Overrides.Propertie
     }
 
     // <target>
+    [ApplyAspect]
     internal record MyRecord( int A, int B );
 
-    internal class Fabric : ProjectFabric
+    internal class ApplyAspect : TypeAspect
     {
-        public override void AmendProject( IProjectAmender amender )
+        public override void BuildAspect( IAspectBuilder<INamedType> builder )
         {
-            amender.SelectMany( p => p.Types.OfName( "MyRecord" ).SelectMany( t => t.Properties.Where( p => !p.IsImplicitlyDeclared ) ) )
-                .AddAspect<MyAspect>();
+            foreach (var p in builder.Target.Properties.Where( p => !p.IsImplicitlyDeclared ))
+            {
+                builder.With( p ).AddAspect<MyAspect>();
+            }
         }
     }
 }

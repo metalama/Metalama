@@ -1,2 +1,0 @@
-// CompileTimeAspectPipeline.ExecuteAsync failed.
-// Error LAMA0041 on `throw new Exception()`: `'Exception of type 'System.Exception' thrown while executing the validator method for : Exception of type 'System.Exception' was thrown. Exception details are in '(none)'. To attach a debugger to the compiler, use the  '-p:MetalamaDebugCompiler=True' command-line option.`

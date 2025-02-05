@@ -1,12 +1,14 @@
 ﻿// Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
+using JetBrains.Annotations;
 using Metalama.Framework.DesignTime.Pipeline;
 using Metalama.Framework.Engine.CompileTime.Manifest;
 using Metalama.Framework.Services;
 
 namespace Metalama.Framework.DesignTime.Diagnostics;
 
-internal interface IUserDiagnosticRegistrationService : IGlobalService
+[PublicAPI]
+public interface IUserDiagnosticRegistrationService : IGlobalService
 {
     /// <summary>
     /// Gets a value indicating whether unsupported diagnostics should be wrapped into a known diagnostic.

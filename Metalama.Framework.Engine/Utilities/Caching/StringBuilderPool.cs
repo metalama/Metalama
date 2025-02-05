@@ -4,9 +4,9 @@ using System.Text;
 
 namespace Metalama.Framework.Engine.Utilities.Caching;
 
-public sealed class StringBuilderPool : ObjectPool<StringBuilder>
+internal sealed class StringBuilderPool : ObjectPool<StringBuilder>
 {
-    public static StringBuilderPool Default { get; } = new( 128 );
+    internal static StringBuilderPool Default { get; } = new( 128 );
 
     private StringBuilderPool( int capacity ) : base( () => new StringBuilder( capacity ) ) { }
 

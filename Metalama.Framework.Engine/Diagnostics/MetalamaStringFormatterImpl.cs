@@ -6,7 +6,6 @@ using Metalama.Framework.Engine.CodeModel.Visitors;
 using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.Roslyn;
-using Metalama.Framework.Validation;
 using Microsoft.CodeAnalysis;
 using System;
 using System.Linq;

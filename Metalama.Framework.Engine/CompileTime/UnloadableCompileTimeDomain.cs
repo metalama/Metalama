@@ -25,7 +25,7 @@ namespace Metalama.Framework.Engine.CompileTime
     /// </summary>
     public sealed class UnloadableCompileTimeDomain : CompileTimeDomain
     {
-        private readonly List<WeakReference> _loadedAssemblies = new();
+        private readonly List<WeakReference> _collectibleAssemblies = new();
         private readonly TaskCompletionSource<bool> _unloadedTask = new();
         private readonly ITaskRunner _taskRunner;
         private readonly object _disposeLock = new();
@@ -44,7 +44,7 @@ namespace Metalama.Framework.Engine.CompileTime
 
         public event Action<string>? UnloadError;
 
-        public override Assembly LoadAssembly( string path )
+        protected override Assembly LoadAssemblyCore( string path, bool collectible )
         {
             if ( this._disposed )
             {
@@ -68,12 +68,20 @@ namespace Metalama.Framework.Engine.CompileTime
                 throw new FileLoadException( $"Cannot load '{path}': {e.Message}", e );
             }
 
-            lock ( this._loadedAssemblies )
+            if ( collectible )
             {
-                this._loadedAssemblies.Add( new WeakReference( assembly ) );
+                this.AddCollectibleAssembly( assembly );
             }
 
             return assembly;
+        }
+
+        private void AddCollectibleAssembly( Assembly assembly )
+        {
+            lock ( this._collectibleAssemblies )
+            {
+                this._collectibleAssemblies.Add( new WeakReference( assembly ) );
+            }
         }
 
         [ExcludeFromCodeCoverage]
@@ -112,9 +120,9 @@ namespace Metalama.Framework.Engine.CompileTime
                     // loaded in the AppDomain, because such reference would prevent the assembly from being unloaded.
                     lock ( AppDomainUtility.Sync )
                     {
-                        lock ( this._loadedAssemblies )
+                        lock ( this._collectibleAssemblies )
                         {
-                            aliveAssemblies = this._loadedAssemblies.Where( r => r.IsAlive ).ToMutableList();
+                            aliveAssemblies = this._collectibleAssemblies.Where( r => r.IsAlive ).ToMutableList();
                         }
                     }
 

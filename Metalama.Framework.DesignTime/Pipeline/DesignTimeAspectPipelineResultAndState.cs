@@ -7,15 +7,15 @@ using System.Collections.Immutable;
 
 namespace Metalama.Framework.DesignTime.Pipeline;
 
-internal sealed class DesignTimeAspectPipelineResultAndState
+public sealed class DesignTimeAspectPipelineResultAndState
 {
     public DesignTimeAspectPipelineResult Result { get; }
 
     public AspectPipelineConfiguration Configuration { get; }
 
-    public ProjectVersion ProjectVersion { get; }
+    internal ProjectVersion ProjectVersion { get; }
 
-    public DesignTimeAspectPipelineStatus Status { get; }
+    internal DesignTimeAspectPipelineStatus Status { get; }
 
     internal DesignTimeAspectPipelineResultAndState(
         ProjectVersion projectVersion,
@@ -43,7 +43,7 @@ internal sealed class DesignTimeAspectPipelineResultAndState
         }
     }
 
-    internal ImmutableArray<Diagnostic> GetDiagnosticsOnSyntaxTree( string path )
+    public ImmutableArray<Diagnostic> GetDiagnosticsOnSyntaxTree( string path )
     {
         if ( this.Result.SyntaxTreeResults.TryGetValue( path, out var syntaxTreeResult ) )
         {

@@ -26,14 +26,12 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
             GlobalServiceProvider serviceProvider,
             string? projectDirectory,
             TestProjectReferences references,
-            ITestOutputHelper? logger,
-            ILicenseKeyProvider? licenseKeyProvider )
+            ITestOutputHelper? logger )
             : base(
                 serviceProvider,
                 projectDirectory,
                 references,
-                logger,
-                licenseKeyProvider ) { }
+                logger ) { }
 
         /// <summary>
         /// Runs the template test with name and source provided in the <paramref name="testInput"/>.
@@ -51,10 +49,12 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
             // is created. We break the cycle by providing the service provider with the default set of references, which should work for 
             // the linker tests because they are not cross-assembly.
             var serviceProvider = (ProjectServiceProvider) testContext.ServiceProvider.Global.Underlying
-                .WithProjectScopedServices( new DefaultProjectOptions(), TestCompilationFactory.GetMetadataReferences() )
+                .WithProjectScopedServices( new DefaultProjectOptions(), testContext.GetMetadataReferences() )
                 .WithService( SyntaxGenerationOptions.Formatted );
 
-            serviceProvider = serviceProvider.WithCompileTimeProjectServices( CompileTimeProjectRepository.CreateTestInstance() );
+            serviceProvider = serviceProvider
+                .WithCompileTimeProjectServices( CompileTimeProjectRepository.CreateTestInstance() )
+                .WithService( ConstantDiagnosticExtensionPolicy.None );
 
             await base.RunAsync( testInput, testResult, testContext );
 

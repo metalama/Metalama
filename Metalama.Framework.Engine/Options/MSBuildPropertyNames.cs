@@ -29,6 +29,7 @@ public static class MSBuildPropertyNames
     public const string MetalamaRequireOrderedAspects = nameof(MetalamaRequireOrderedAspects);
     public const string MetalamaConcurrentBuildEnabled = nameof(MetalamaConcurrentBuildEnabled);
     public const string MetalamaCompileTimePackages = nameof(MetalamaCompileTimePackages);
+    public const string MetalamaCompileTimeAssemblies = nameof(MetalamaCompileTimeAssemblies);
     public const string MetalamaWriteHtml = nameof(MetalamaWriteHtml);
     public const string ProjectAssetsFile = nameof(ProjectAssetsFile);
     public const string MetalamaReferenceAssemblyRestoreTimeout = nameof(MetalamaReferenceAssemblyRestoreTimeout);
@@ -45,6 +46,8 @@ public static class MSBuildPropertyNames
     public const string MetalamaCompilerVisiblePropertiesList = nameof(MetalamaCompilerVisiblePropertiesList);
     public const string MetalamaAssemblyLocatorHooksDirectory = nameof(MetalamaAssemblyLocatorHooksDirectory);
     public const string MetalamaSourceGeneratorAttributes = nameof(MetalamaSourceGeneratorAttributes);
+    public const string MetalamaExtensionAssemblies = nameof(MetalamaExtensionAssemblies);
+    public const string MetalamaDesignTimeExtensionAssemblies = nameof(MetalamaDesignTimeExtensionAssemblies);
 
     public static ImmutableArray<string> All { get; } = ImmutableArray.Create(
         MetalamaBuildTouchFile,
@@ -78,5 +81,7 @@ public static class MSBuildPropertyNames
         MetalamaDebugTransformedCode,
         MetalamaCompilerTransformedFilesOutputPath,
         MetalamaCompilerVisiblePropertiesList,
-        MetalamaAssemblyLocatorHooksDirectory );
+        MetalamaAssemblyLocatorHooksDirectory,
+        MetalamaExtensionAssemblies,
+        MetalamaDesignTimeExtensionAssemblies );
 }

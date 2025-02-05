@@ -18,9 +18,9 @@ namespace Metalama.Framework.Tests.UnitTests.CompileTime.GeneratedSerializers
     {
         private protected static CompileTimeProject CreateCompileTimeProject( CompileTimeDomain domain, TestContext testContext, string code )
         {
-            var runtimeCompilation = TestCompilationFactory.CreateCSharpCompilation(
+            var runtimeCompilation = testContext.CreateCSharpCompilation(
                 code,
-                name: "test_A" );
+                assemblyName: "test_A" );
 
             var compileTimeCompilationBuilder = new CompileTimeCompilationBuilder( testContext.ServiceProvider, domain );
 
@@ -29,7 +29,6 @@ namespace Metalama.Framework.Tests.UnitTests.CompileTime.GeneratedSerializers
             Assert.True(
                 compileTimeCompilationBuilder.TryGetCompileTimeProject(
                     runtimeCompilation,
-                    ProjectLicenseInfo.Empty,
                     null,
                     Array.Empty<CompileTimeProject>(),
                     diagnosticBag,

@@ -2,7 +2,6 @@
 
 using JetBrains.Annotations;
 using Metalama.Framework.Code;
-using Metalama.Framework.Validation;
 
 namespace Metalama.Framework.Introspection;
 

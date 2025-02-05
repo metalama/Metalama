@@ -3,6 +3,7 @@
 using Metalama.Backstage.Diagnostics;
 using Metalama.Compiler;
 using Metalama.Framework.DesignTime.Rpc;
+using Metalama.Framework.DesignTime.Services;
 using Metalama.Framework.DesignTime.Utilities;
 using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Services;
@@ -20,7 +21,7 @@ using AnalyzerConfigOptions = Microsoft.CodeAnalysis.Diagnostics.AnalyzerConfigO
 namespace Metalama.Framework.DesignTime.SourceGeneration
 {
     /// <summary>
-    /// Our base implementation of <see cref="ISourceGenerator"/>, which essentially delegates the work to a <see cref="ProjectHandler"/>.
+    /// Our base implementation of <see cref="ISourceGenerator"/>, which essentially delegates the work to a <see cref="ProjectSourceGenerator"/>.
     /// </summary>
     [ExcludeFromCodeCoverage]
     public abstract partial class BaseSourceGenerator : IIncrementalGenerator
@@ -33,7 +34,7 @@ namespace Metalama.Framework.DesignTime.SourceGeneration
         protected ServiceProvider<IGlobalService> ServiceProvider { get; }
 
         private readonly ILogger _logger;
-        private readonly ConcurrentDictionary<ProjectKey, ProjectHandler?> _projectHandlers = new();
+        private readonly ConcurrentDictionary<ProjectKey, ProjectSourceGenerator?> _projectHandlers = new();
         private readonly TouchIdComparer _touchIdComparer;
         private readonly IProjectOptionsFactory _projectOptionsFactory;
         private readonly DesignTimeExceptionHandler _exceptionHandler;
@@ -47,7 +48,9 @@ namespace Metalama.Framework.DesignTime.SourceGeneration
             this._exceptionHandler = serviceProvider.GetRequiredService<DesignTimeExceptionHandler>();
         }
 
-        protected abstract ProjectHandler CreateSourceGeneratorImpl( IProjectOptions projectOptions, ProjectKey projectKey );
+        protected BaseSourceGenerator() : this( DesignTimeServiceProviderFactory.GetSharedServiceProvider() ) { }
+
+        private protected abstract ProjectSourceGenerator CreateSourceGeneratorImpl( IProjectOptions projectOptions, ProjectKey projectKey );
 
         void IIncrementalGenerator.Initialize( IncrementalGeneratorInitializationContext context )
         {
@@ -134,12 +137,12 @@ namespace Metalama.Framework.DesignTime.SourceGeneration
         /// This method is called every time the source generator is called. It must decide if the cached result can be served. It must also, if necessary, schedule
         /// a background computation of the compilation.
         /// </summary>
-        protected abstract void OnGeneratedSourceRequested(
+        private protected abstract void OnGeneratedSourceRequested(
             Compilation compilation,
             IProjectOptions options,
             TestableCancellationToken cancellationToken );
 
-        protected SourceGeneratorResult GetGeneratedSources(
+        private protected SourceGeneratorResult GetGeneratedSources(
             Compilation compilation,
             IProjectOptions options,
             TestableCancellationToken cancellationToken )

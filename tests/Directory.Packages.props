@@ -12,6 +12,8 @@
     <PackageVersion Include="Metalama.Framework" Version="$(MetalamaVersion)" />
     <PackageVersion Include="Metalama.Framework.Workspaces" Version="$(MetalamaVersion)" />
     <PackageVersion Include="Metalama.Framework.Sdk" Version="$(MetalamaVersion)" />
+    <PackageVersion Include="Metalama.Extensions.CodeFixes" Version="$(MetalamaVersion)" />
+    <PackageVersion Include="Metalama.Extensions.Validation" Version="$(MetalamaVersion)" />
     <PackageVersion Include="Metalama.Testing.AspectTesting" Version="$(MetalamaVersion)" />
     <PackageVersion Include="Microsoft.Azure.Functions.Worker" Version="1.23.0" />
     <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.Http" Version="3.2.0" />

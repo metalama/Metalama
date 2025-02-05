@@ -10,8 +10,8 @@ using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.Collections;
 using Metalama.Framework.Engine.Diagnostics;
+using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Transformations;
-using Metalama.Framework.Engine.Validation;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -36,7 +36,7 @@ namespace Metalama.Framework.Engine.Pipeline
         /// </summary>
         public ImmutableUserDiagnosticList Diagnostics { get; }
 
-        internal PipelineContributorSources ContributorSources { get; }
+        public PipelineContributorSources ContributorSources { get; }
 
         /// <summary>
         /// Gets the list of syntax trees to be added to the compilation (typically in a source generation scenario). The key is the "hint name" in the
@@ -53,9 +53,7 @@ namespace Metalama.Framework.Engine.Pipeline
 
         public ImmutableDictionaryOfArray<IRef<IDeclaration>, AnnotationInstance> Annotations { get; }
 
-        public bool HasDeclarationValidator { get; }
-
-        public ImmutableArray<ReferenceValidatorInstance> ReferenceValidators { get; }
+        public ImmutableArray<ITransitivePipelineContributor> TransitiveContributors { get; }
 
         public CompilationModel? FirstCompilationModel { get; }
 
@@ -100,7 +98,7 @@ namespace Metalama.Framework.Engine.Pipeline
             this.AspectLayers = ImmutableArray<OrderedAspectLayer>.Empty;
             this.AspectInstanceResults = ImmutableArray<AspectInstanceResult>.Empty;
             this.ExternallyInheritableAspects = ImmutableArray<IAspectInstance>.Empty;
-            this.ReferenceValidators = ImmutableArray<ReferenceValidatorInstance>.Empty;
+            this.TransitiveContributors = ImmutableArray<ITransitivePipelineContributor>.Empty;
             this.Project = project;
             this.Configuration = configuration;
             this.AdditionalSyntaxTrees = ImmutableArray<IntroducedSyntaxTree>.Empty;
@@ -117,11 +115,10 @@ namespace Metalama.Framework.Engine.Pipeline
             CompilationModel? lastCompilationModel, // Nullable because it can be created lazily.
             AspectPipelineConfiguration configuration,
             ImmutableUserDiagnosticList? diagnostics = null,
-            PipelineContributorSources? sources = default,
+            PipelineContributorSources? sources = null,
             ImmutableArray<IAspectInstance> inheritableAspectInstances = default,
-            ImmutableDictionaryOfArray<IRef<IDeclaration>, AnnotationInstance>? annotations = default,
-            bool hasDeclarationValidator = false,
-            ImmutableArray<ReferenceValidatorInstance> referenceValidators = default,
+            ImmutableDictionaryOfArray<IRef<IDeclaration>, AnnotationInstance>? annotations = null,
+            ImmutableArray<ITransitivePipelineContributor> extensions = default,
             ImmutableArray<IntroducedSyntaxTree> additionalSyntaxTrees = default,
             ImmutableArray<AspectInstanceResult> aspectInstanceResults = default,
             ImmutableArray<AdditionalCompilationOutputFile> additionalCompilationOutputFiles = default,
@@ -141,11 +138,12 @@ namespace Metalama.Framework.Engine.Pipeline
             this.Configuration = configuration;
             this.AspectInstanceResults = aspectInstanceResults.IsDefault ? ImmutableArray<AspectInstanceResult>.Empty : aspectInstanceResults;
             this.ExternallyInheritableAspects = inheritableAspectInstances.IsDefault ? ImmutableArray<IAspectInstance>.Empty : inheritableAspectInstances;
-            this.Annotations = annotations ?? ImmutableDictionaryOfArray<IRef<IDeclaration>, AnnotationInstance>.Create( RefEqualityComparer<IDeclaration>.Default );
-            this.HasDeclarationValidator = hasDeclarationValidator;
 
-            this.ReferenceValidators =
-                referenceValidators.IsDefault ? ImmutableArray<ReferenceValidatorInstance>.Empty : referenceValidators;
+            this.Annotations = annotations
+                               ?? ImmutableDictionaryOfArray<IRef<IDeclaration>, AnnotationInstance>.Create( RefEqualityComparer<IDeclaration>.Default );
+
+            this.TransitiveContributors =
+                extensions.IsDefault ? ImmutableArray<ITransitivePipelineContributor>.Empty : extensions;
 
             this.Project = project;
             this.AdditionalSyntaxTrees = additionalSyntaxTrees.IsDefault ? ImmutableArray<IntroducedSyntaxTree>.Empty : additionalSyntaxTrees;
@@ -176,8 +174,7 @@ namespace Metalama.Framework.Engine.Pipeline
                 this.ContributorSources,
                 this.ExternallyInheritableAspects,
                 this.Annotations,
-                this.HasDeclarationValidator,
-                this.ReferenceValidators,
+                this.TransitiveContributors,
                 this.AdditionalSyntaxTrees,
                 this.AspectInstanceResults,
                 this.AdditionalCompilationOutputFiles,

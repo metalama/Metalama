@@ -18,8 +18,12 @@
         <MetalamaRemoveCompileTimeOnlyCode Condition="'$(MetalamaCompileTimeProject)'=='True'">False</MetalamaRemoveCompileTimeOnlyCode>
 
         <!-- Convert items to properties -->
+        <!-- We use ',' as a list item separator and '|' as a separator within a list. We don't use ';' because it means a comment in .editorconfig -->
         <MetalamaCompileTimePackages>@(MetalamaCompileTimePackage, ',')</MetalamaCompileTimePackages>
+        <MetalamaCompileTimeAssemblies>@(MetalamaCompileTimeAssembly, ',')</MetalamaCompileTimeAssemblies>
         <MetalamaSourceGeneratorAttributes>@(MetalamaSourceGeneratorAttribute, ',')</MetalamaSourceGeneratorAttributes>
+        <MetalamaExtensionAssemblies>@(MetalamaExtensionAssembly -> '%(FullPath)|%(TargetFramework)', ',')</MetalamaExtensionAssemblies>
+        <MetalamaDesignTimeExtensionAssemblies>@(MetalamaDesignTimeExtensionAssembly -> '%(FullPath)|%(TargetFramework)', ',')</MetalamaDesignTimeExtensionAssemblies>
 
         <!-- Elevating CS8032: An instance of analyzer X cannot be created. 
              We elevate this warning to an error because otherwise, if Metalama.Framework fails to load, the compilation will be incorrect while there
@@ -79,5 +83,20 @@
             <CompilerVisibleProperty Include="MetalamaCompilerVisiblePropertiesList"/>
         </ItemGroup>
     </Target>
+
+     <Target Name="CheckMetalamaAssemblyReferencePaths" BeforeTargets="BeforeCompile">
+    
+         <ItemGroup>
+            <_InvalidPath Include="@(MetalamaCompileTimePackages)"  Condition="$([System.String]::Copy('%(FullPath)').Contains(`,`)) OR $([System.String]::Copy('%(FullPath)').Contains(`|`))" />
+            <_InvalidPath Include="@(MetalamaCompileTimeAssemblies)"  Condition="$([System.String]::Copy('%(FullPath)').Contains(`,`)) OR $([System.String]::Copy('%(FullPath)').Contains(`|`))" />
+            <_InvalidPath Include="@(MetalamaSourceGeneratorAttribute)"  Condition="$([System.String]::Copy('%(FullPath)').Contains(`,`)) OR $([System.String]::Copy('%(FullPath)').Contains(`|`))" />
+            <_InvalidPath Include="@(MetalamaExtensionAssemblies)"  Condition="$([System.String]::Copy('%(FullPath)').Contains(`,`)) OR $([System.String]::Copy('%(FullPath)').Contains(`|`))" />
+            <_InvalidPath Include="@(MetalamaDesignTimeExtensionAssemblies)" Condition="$([System.String]::Copy('%(FullPath)').Contains(`,`)) OR $([System.String]::Copy('%(FullPath)').Contains(`|`))" />
+        </ItemGroup>
+
+        <!-- Emit an error if there are invalid items -->
+        <Error Text="The item '%(_InvalidPath.Identity)' has a FullPath containing an invalid character ('|' or ',')." 
+            Condition="@(_InvalidPath->Count()) > 0" />
+  </Target>
     
 </Project>

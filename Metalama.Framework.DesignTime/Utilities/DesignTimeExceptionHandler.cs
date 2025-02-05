@@ -28,7 +28,7 @@ namespace Metalama.Framework.DesignTime.Utilities
                 _ => true
             };
 
-        public void ReportException( Exception e, ILogger? logger = null )
+        internal void ReportException( Exception e, ILogger? logger = null )
         {
             logger ??= Logger.DesignTime;
 

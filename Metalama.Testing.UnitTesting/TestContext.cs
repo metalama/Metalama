@@ -9,8 +9,10 @@ using Metalama.Backstage.Licensing.Consumption;
 using Metalama.Backstage.Maintenance;
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.SyntaxBuilders;
+using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CompileTime;
+using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Pipeline.CompileTime;
 using Metalama.Framework.Engine.Services;
@@ -24,7 +26,6 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using Xunit.Abstractions;
 
@@ -34,24 +35,26 @@ namespace Metalama.Testing.UnitTesting;
 /// A context in which a Metalama unit test can run, configured with most required Metalama services and optionally some mocks.
 /// </summary>
 [PublicAPI]
-public class TestContext : IDisposable, ITempFileManager, IApplicationInfoProvider, IDateTimeProvider
+public partial class TestContext : IDisposable, ITempFileManager, IApplicationInfoProvider, IDateTimeProvider
 {
     private static readonly IApplicationInfo _applicationInfo = new TestApiApplicationInfo();
     private readonly ITempFileManager _backstageTempFileManager;
     private readonly bool _isRoot;
     private readonly StackTrace _stackTrace = new();
+    private readonly Lazy<ImmutableArray<object>> _plugIns;
 
-    // We keep the domain in a strongbox so that we share domain instances with TestContext instances created with With* method.
-    private readonly StrongBox<CompileTimeDomain?> _domain;
+    internal TestProjectOptions TestProjectOptions { get; }
 
     private readonly CancellationTokenSource? _timeoutCancellationTokenSource;
 
-    internal TestProjectOptions ProjectOptions { get; }
+#pragma warning disable LAMA0821 // Do not expose internal APIs.
+    public IProjectOptions ProjectOptions => this.TestProjectOptions;
+#pragma warning restore LAMA0821
 
     /// <summary>
     /// Gets the directory that was specifically created for the current test and where all specific files should be stored.
     /// </summary>
-    public string BaseDirectory => this.ProjectOptions.BaseDirectory;
+    public string BaseDirectory => this.TestProjectOptions.BaseDirectory;
 
     /// <summary>
     /// Gets the <see cref="ProjectServiceProvider"/> for the current context.
@@ -63,6 +66,8 @@ public class TestContext : IDisposable, ITempFileManager, IApplicationInfoProvid
     /// by the <see cref="TestContextOptions.Timeout"/> option.
     /// </summary>
     public CancellationToken CancellationToken => this._timeoutCancellationTokenSource?.Token ?? default;
+
+    public ImmutableArray<object> PlugIns => this._plugIns.Value;
 
     // ReSharper disable once RedundantOverload.Global
 
@@ -91,10 +96,9 @@ public class TestContext : IDisposable, ITempFileManager, IApplicationInfoProvid
             // We don't cancel tests when a debugger is attached because it's then normal that a test runs during a long time.
         }
 
-        this._domain = new StrongBox<CompileTimeDomain?>();
         this._isRoot = true;
 
-        this.ProjectOptions = new TestProjectOptions( contextOptions );
+        this.TestProjectOptions = new TestProjectOptions( contextOptions );
 
         try
         {
@@ -115,7 +119,9 @@ public class TestContext : IDisposable, ITempFileManager, IApplicationInfoProvid
             backstageServices = backstageServices.WithService( new InMemoryConfigurationManager( backstageServices ), true );
 
             var typedAdditionalServices = (AdditionalServiceCollection?) additionalServices ?? new AdditionalServiceCollection();
+            typedAdditionalServices.GlobalServices.Add( sp => new TestCompileTimeDomainFactory( sp ) );
             typedAdditionalServices.GlobalServices.Add( sp => sp.WithServiceConditional<IGlobalOptions>( _ => new TestGlobalOptions() ) );
+            typedAdditionalServices.GlobalServices.Add<IExtensionLoader>( _ => new TestExtensionLoader( contextOptions ), true );
 
             typedAdditionalServices.GlobalServices.Add(
                 sp => sp.WithService<IProjectOptionsFactory>( _ => new TestProjectOptionsFactory( this.ProjectOptions ) ) );
@@ -125,13 +131,15 @@ public class TestContext : IDisposable, ITempFileManager, IApplicationInfoProvid
             var serviceProvider = ServiceProviderFactory.GetServiceProvider( backstageServices, typedAdditionalServices );
 
             serviceProvider = serviceProvider
-                .WithService( this.ProjectOptions.DomainObserver );
+                .WithService( this.TestProjectOptions.DomainObserver );
 
             var randomGeneratorService = contextOptions.RunnerServiceProvider.GetService<IRandomNumberProvider>() ?? new RandomNumberProvider();
             serviceProvider = serviceProvider.WithService( randomGeneratorService );
 
             this.ServiceProvider = serviceProvider
-                .WithProjectScopedServices( this.ProjectOptions, contextOptions.References );
+                .WithProjectScopedServices( this.ProjectOptions, contextOptions.AdditionalMetadataReferences );
+
+            this._plugIns = new Lazy<ImmutableArray<object>>( () => this.LoadPlugIns( contextOptions ) );
         }
         catch
         {
@@ -140,6 +148,43 @@ public class TestContext : IDisposable, ITempFileManager, IApplicationInfoProvid
 
             throw;
         }
+    }
+
+    private ImmutableArray<object> LoadPlugIns( TestContextOptions options )
+    {
+        if ( options.TestPlugInTypes.IsDefaultOrEmpty )
+        {
+            return ImmutableArray<object>.Empty;
+        }
+
+        // Ensure extensions have been loaded.
+        foreach ( var extensionAssembly in options.ExtensionAssemblies )
+        {
+            this.Domain.LoadAssembly( extensionAssembly, false );
+        }
+
+        // Load plug-ins.
+        var plugIns = ImmutableArray.CreateBuilder<object>();
+
+        foreach ( var plugInType in options.TestPlugInTypes )
+        {
+            var parts = plugInType.Split( ',' );
+            var typeName = parts[0];
+            var assemblyName = string.Join( ",", parts.Skip( 1 ) );
+
+            if ( !this.Domain.TryGetLoadedAssembly( assemblyName, out var assembly ) )
+            {
+                throw new InvalidOperationException( $"Cannot find the assembly '{assemblyName}'." );
+            }
+
+            var type = assembly.GetType( typeName, true ).AssertNotNull();
+
+            var plugIn = Activator.CreateInstance( type ).AssertNotNull();
+
+            plugIns.Add( plugIn );
+        }
+
+        return plugIns.ToImmutable();
     }
 
     /// <summary>
@@ -151,124 +196,11 @@ public class TestContext : IDisposable, ITempFileManager, IApplicationInfoProvid
         this.ServiceProvider = this.ServiceProvider.Global.Underlying.WithProjectScopedServices( this.ProjectOptions, newReferences );
     }
 
-    /// <summary>
-    /// Creates an <see cref="ICompilation"/> made of a single source file.
-    /// </summary>
-    /// <param name="code">Source code.</param>
-    /// <param name="dependentCode">Source code of another assembly added as a reference to the
-    /// returned assembly. Optional.</param>
-    /// <param name="ignoreErrors">Determines whether compilation errors should be ignored.
-    /// Optional.</param>
-    /// <param name="additionalReferences">Additional set of <see cref="MetadataReference"/>
-    /// added to the compilation.</param>
-    /// <param name="name">Name of the assembly.</param>
-    /// <param name="addMetalamaReferences">Determines if Metalama assemblies should be added
-    /// as references to the compilation. Optional. The default value is <c>true</c>.</param>
-    /// <returns></returns>
-    public ICompilation CreateCompilation(
-        string code,
-        string? dependentCode = null,
-        bool ignoreErrors = false,
-        IEnumerable<MetadataReference>? additionalReferences = null,
-        string? name = null,
-        bool addMetalamaReferences = true )
-        => this.CreateCompilation(
-            new Dictionary<string, string> { { "test.cs", code } },
-            dependentCode,
-            ignoreErrors,
-            additionalReferences,
-            name,
-            addMetalamaReferences );
+#pragma warning disable LAMA0821 // Do not expose internal APIs.
 
-    /// <summary>
-    /// Creates an <see cref="ICompilation"/> made of several source files.
-    /// </summary>
-    /// <param name="code">Source code. The key of the dictionary item is the file name, the value is
-    /// the source code.</param>
-    /// <param name="dependentCode">Source code of another assembly added as a reference to the
-    /// returned assembly. Optional.</param>
-    /// <param name="ignoreErrors">Determines whether compilation errors should be ignored.
-    /// Optional.</param>
-    /// <param name="additionalReferences">Additional set of <see cref="MetadataReference"/>
-    /// added to the compilation.</param>
-    /// <param name="name">Name of the assembly.</param>
-    /// <param name="addMetalamaReferences">Determines if Metalama assemblies should be added
-    /// as references to the compilation. Optional. The default value is <c>true</c>.</param>
-    public ICompilation CreateCompilation(
-        IReadOnlyDictionary<string, string> code,
-        string? dependentCode = null,
-        bool ignoreErrors = false,
-        IEnumerable<MetadataReference>? additionalReferences = null,
-        string? name = null,
-        bool addMetalamaReferences = true )
-    {
-        var allAdditionalReferences = ImmutableArray<MetadataReference>.Empty;
+#pragma warning restore LAMA0821
 
-        if ( !this.ProjectOptions.AdditionalAssemblies.IsDefaultOrEmpty )
-        {
-            allAdditionalReferences = allAdditionalReferences.AddRange(
-                this.ProjectOptions.AdditionalAssemblies.Select( a => MetadataReference.CreateFromFile( a.Location ) ) );
-        }
-
-        if ( additionalReferences != null )
-        {
-            allAdditionalReferences = allAdditionalReferences.AddRange( additionalReferences );
-        }
-
-        var roslynCompilation = TestCompilationFactory.CreateCSharpCompilation(
-            code,
-            dependentCode,
-            ignoreErrors,
-            allAdditionalReferences,
-            name,
-            addMetalamaReferences );
-
-        return CompilationModel.CreateInitialInstance(
-            new ProjectModel( roslynCompilation, this.ServiceProvider ),
-            roslynCompilation );
-    }
-
-    /// <summary>
-    /// Creates an <see cref="ICompilation"/> from a <see cref="Compilation"/>.
-    /// </summary>
-    public ICompilation CreateCompilation( Compilation compilation )
-        => CompilationModel.CreateInitialInstance(
-            new ProjectModel( compilation, this.ServiceProvider ),
-            compilation );
-
-    internal CompilationModel CreateCompilationModel(
-        string code,
-        string? dependentCode = null,
-        bool ignoreErrors = false,
-        IEnumerable<MetadataReference>? additionalReferences = null,
-        string? name = null,
-        bool addMetalamaReferences = true )
-        => (CompilationModel) this.CreateCompilation( code, dependentCode, ignoreErrors, additionalReferences, name, addMetalamaReferences );
-
-    internal CompilationModel CreateCompilationModel(
-        IReadOnlyDictionary<string, string> code,
-        string? dependentCode = null,
-        bool ignoreErrors = false,
-        IEnumerable<MetadataReference>? additionalReferences = null,
-        string? name = null,
-        bool addMetalamaReferences = true )
-        => (CompilationModel) this.CreateCompilation( code, dependentCode, ignoreErrors, additionalReferences, name, addMetalamaReferences );
-
-    internal CompilationModel CreateCompilationModel( Compilation compilation ) => (CompilationModel) this.CreateCompilation( compilation );
-
-    private CompileTimeDomain CreateDomain()
-#if NET5_0_OR_GREATER
-    {
-        var domain = new UnloadableCompileTimeDomain( this.ServiceProvider.Global );
-        domain.UnloadError += DiagnosticsHelper.CaptureDotMemoryDumpAndThrow;
-
-        return domain;
-    }
-#else
-        => new( this.ServiceProvider.Global );
-#endif
-
-    internal CompileTimeDomain Domain => this._domain.Value ??= this.CreateDomain();
+    internal CompileTimeDomain Domain => this.ServiceProvider.Global.GetRequiredService<CompileTimeDomain>();
 
     /// <summary>
     /// Switches the <see cref="MetalamaExecutionContext"/> to a test context for a given <see cref="ICompilation"/>.
@@ -290,11 +222,11 @@ public class TestContext : IDisposable, ITempFileManager, IApplicationInfoProvid
             return this._backstageTempFileManager.GetTempDirectory(
                 directory,
                 cleanUpStrategy,
-                typeof(CompileTimeAspectPipeline).Module.ModuleVersionId.ToString() );
+                $"{typeof(CompileTimeAspectPipeline).Module.ModuleVersionId}-{subdirectory}" );
         }
         else
         {
-            var directoryPath = Path.Combine( this.ProjectOptions.BaseDirectory, directory, subdirectory ?? "" );
+            var directoryPath = Path.Combine( this.TestProjectOptions.BaseDirectory, directory, subdirectory ?? "" );
 
             if ( !Directory.Exists( directoryPath ) )
             {
@@ -318,8 +250,13 @@ public class TestContext : IDisposable, ITempFileManager, IApplicationInfoProvid
     {
         if ( this._isRoot )
         {
-            this.ProjectOptions.Dispose();
-            this._domain.Value?.Dispose();
+            this.TestProjectOptions.Dispose();
+
+            if ( this.ServiceProvider.Global.Underlying.TryGetService<CompileTimeDomain>( out var domain ) )
+            {
+                domain.Dispose();
+            }
+
             this._timeoutCancellationTokenSource?.Dispose();
         }
 

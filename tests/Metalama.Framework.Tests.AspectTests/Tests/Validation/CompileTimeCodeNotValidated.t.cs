@@ -1,1 +1,0 @@
-// Warning MY001 on `new SomeClass()`: `Reference constraint of type 'ObjectCreation' in declaration 'ReferencingClass.ReferencingMethod()'.`

@@ -17,7 +17,7 @@
 
         <!-- warning NU5118: File 'C:/src/Metalama/Metalama.Framework.Engine.Analyzers/bin/Debug/netstandard2.0/Metalama.Framework.Engine.Analyzers.dll' is not
 added because the package already contains file 'analyzers/dotnet/cs/Metalama.Framework.Engine.Analyzers.dll' -->
-        <NoWarn>$(NoWarm);NU5118</NoWarn>
+        <NoWarn>$(NoWarn);NU5118</NoWarn>
 
         <!-- Disable vulnerability checking because this project is not surfacing. -->
         <NuGetAudit>false</NuGetAudit>
@@ -56,6 +56,7 @@ added because the package already contains file 'analyzers/dotnet/cs/Metalama.Fr
         <!-- By convention, we use InternalsVisibleTo only for test projects that must have access to internals.. -->
         <InternalsVisibleTo Include="Metalama.Framework.Tests.Benchmarks" />
         <InternalsVisibleTo Include="Metalama.Framework.Tests.UnitTests.$(ThisRoslynVersionNoPreview)" />
+        <InternalsVisibleTo Include="Metalama.Framework.Tests.UnitTestHelpers.$(ThisRoslynVersionNoPreview)" />
         <InternalsVisibleTo Include="Metalama.Framework.Tests.AspectTests.$(ThisRoslynVersionNoPreview)" />
         <InternalsVisibleTo Include="Metalama.Framework.Tests.LinkerTests.$(ThisRoslynVersionNoPreview)" />
         <InternalsVisibleTo Include="Metalama.Framework.Tests.TemplateTests.$(ThisRoslynVersionNoPreview)" />

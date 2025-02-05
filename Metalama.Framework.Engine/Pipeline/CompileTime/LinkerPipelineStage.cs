@@ -3,14 +3,13 @@
 using Metalama.Framework.Engine.AdditionalOutputs;
 using Metalama.Framework.Engine.AspectOrdering;
 using Metalama.Framework.Engine.Aspects;
-using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Diagnostics;
+using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Linking;
 using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Pipeline.DesignTime;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities.Threading;
-using Metalama.Framework.Engine.Validation;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -25,30 +24,34 @@ namespace Metalama.Framework.Engine.Pipeline.CompileTime
     /// </summary>
     internal sealed class LinkerPipelineStage : HighLevelPipelineStage
     {
-        private readonly CompileTimeProject _compileTimeProject;
-
-        public LinkerPipelineStage(
-            CompileTimeProject compileTimeProject,
-            IReadOnlyList<OrderedAspectLayer> aspectLayers )
-            : base( compileTimeProject, aspectLayers )
-        {
-            this._compileTimeProject = compileTimeProject;
-        }
+        public LinkerPipelineStage( IReadOnlyList<OrderedAspectLayer> aspectLayers )
+            : base( aspectLayers ) { }
 
         /// <inheritdoc/>
         protected override async Task<AspectPipelineResult> GetStageResultAsync(
             AspectPipelineConfiguration pipelineConfiguration,
             AspectPipelineResult input,
-            IPipelineStepsResult pipelineStepsResult,
+            PipelineStepsResult pipelineStepsResult,
             TestableCancellationToken cancellationToken )
         {
-            // TODO: validators should not run here but after all pipeline stages. If there are several high-level stages, they may run several times.
-            // Run the validators.
-            var validationRunner = new ValidationRunner( pipelineConfiguration, pipelineStepsResult.ValidatorSources );
             var initialCompilation = pipelineStepsResult.FirstCompilation;
             var finalCompilation = pipelineStepsResult.LastCompilation;
 
-            var validationResult = await validationRunner.RunAllAsync( initialCompilation, finalCompilation, cancellationToken );
+            // TODO: validators should not run here but after all pipeline stages. If there are several high-level stages, they may run several times.
+            // Run the validators.
+            var extensions = pipelineConfiguration.ServiceProvider.GetRequiredService<PipelineExtensionProvider>().Extensions;
+            var pipelineContributorsResult = ExtensionPipelineContributorsResult.Empty;
+
+            foreach ( var extension in extensions )
+            {
+                pipelineContributorsResult = pipelineContributorsResult.Concat(
+                    await extension.ExecutePipelineContributorsAsync(
+                        pipelineConfiguration,
+                        pipelineStepsResult.ExtensionContributors,
+                        initialCompilation,
+                        finalCompilation,
+                        cancellationToken ) );
+            }
 
             // Run the linker.
             var linker = new AspectLinker(
@@ -57,8 +60,7 @@ namespace Metalama.Framework.Engine.Pipeline.CompileTime
                     input.FirstCompilationModel.AssertNotNull(),
                     pipelineStepsResult.LastCompilation,
                     pipelineStepsResult.Transformations,
-                    input.AspectLayers,
-                    this._compileTimeProject ) );
+                    input.AspectLayers ) );
 
             var linkerResult = await linker.ExecuteAsync( cancellationToken );
 
@@ -84,16 +86,14 @@ namespace Metalama.Framework.Engine.Pipeline.CompileTime
                     input.FirstCompilationModel.AssertNotNull(),
                     null,
                     input.Configuration,
-                    input.Diagnostics.Concat( pipelineStepsResult.Diagnostics ).Concat( linkerResult.Diagnostics ).Concat( validationResult.Diagnostics ),
-                    new PipelineContributorSources(
-                        input.ContributorSources.AspectSources.AddRange( pipelineStepsResult.OverflowAspectSources ),
-                        input.ContributorSources.ValidatorSources.AddRange( pipelineStepsResult.ValidatorSources ),
-                        input.ContributorSources.OptionsSources ),
+                    input.Diagnostics.Concat( pipelineStepsResult.Diagnostics )
+                        .Concat( linkerResult.Diagnostics )
+                        .Concat( pipelineContributorsResult.Diagnostics ),
+                    new PipelineContributorSources( input.ContributorSources.Contributors.Add( pipelineStepsResult.OverflowAspectSource ) ),
                     input.ExternallyInheritableAspects.AddRange(
-                        pipelineStepsResult.InheritableAspectInstances.Select( i => new InheritableAspectInstance( i ) ) ),
+                        pipelineStepsResult.InheritableAspectInstances.SelectAsReadOnlyCollection( i => new InheritableAspectInstance( i ) ) ),
                     finalCompilation.Annotations,
-                    validationResult.HasDeclarationValidator,
-                    validationResult.ExternallyVisibleValidations,
+                    pipelineContributorsResult.TransitiveContributors,
                     additionalCompilationOutputFiles: additionalCompilationOutputFiles != null
                         ? input.AdditionalCompilationOutputFiles.AddRange( additionalCompilationOutputFiles )
                         : input.AdditionalCompilationOutputFiles,
@@ -103,13 +103,13 @@ namespace Metalama.Framework.Engine.Pipeline.CompileTime
         private static async Task<IReadOnlyList<AdditionalCompilationOutputFile>> GenerateAdditionalCompilationOutputFilesAsync(
             ProjectServiceProvider serviceProvider,
             AspectPipelineResult input,
-            IPipelineStepsResult pipelineStepResult,
+            PipelineStepsResult pipelineStepResult,
             TestableCancellationToken cancellationToken )
         {
             var generatedFiles = new List<AdditionalCompilationOutputFile>();
 
             // TODO: We don't need these diagnostics, but we cannot pass NullDiagnosticAdder here.
-            var diagnostics = new UserDiagnosticSink();
+            var diagnostics = new UserDiagnosticSink( serviceProvider );
 
             var additionalSyntaxTrees = await DesignTimeSyntaxTreeGenerator.GenerateDesignTimeSyntaxTreesAsync(
                 serviceProvider,

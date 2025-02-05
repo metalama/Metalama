@@ -54,17 +54,18 @@ namespace Metalama.Framework.Engine.Fabrics
                 return true;
             }
 
-            var amender = new Amender(
-                project,
-                this.FabricManager,
-                new FabricInstance( this, compilation.Factory.GetNamespace( namespaceSymbol ) ),
-                namespaceSymbol.GetFullName() ?? "" );
-
-            var executionContext = new UserCodeExecutionContext(
+            var executionContext = UserCodeExecutionContext.CreateInstance(
                 this.FabricManager.ServiceProvider,
                 UserCodeDescription.Create( "calling the AmendNamespace method for the fabric {0}", this.Fabric.GetType() ),
                 compilation,
                 diagnostics: diagnosticAdder );
+
+            var amender = new Amender(
+                project,
+                this.FabricManager,
+                new FabricInstance( this, compilation.Factory.GetNamespace( namespaceSymbol ) ),
+                namespaceSymbol.GetFullName() ?? "",
+                executionContext );
 
             if ( !this.FabricManager.UserCodeInvoker.TryInvoke( () => ((NamespaceFabric) this.Fabric).AmendNamespace( amender ), executionContext ) )
             {
@@ -86,12 +87,14 @@ namespace Metalama.Framework.Engine.Fabrics
                 IProject project,
                 FabricManager fabricManager,
                 FabricInstance fabricInstance,
-                string ns ) : base(
+                string ns,
+                UserCodeExecutionContext userCodeExecutionContext ) : base(
                 project,
                 fabricManager,
                 fabricInstance,
                 fabricInstance.TargetDeclaration.As<INamespace>(),
-                ns ) { }
+                ns,
+                userCodeExecutionContext ) { }
 
             string INamespaceAmender.Namespace => this.Namespace.AssertNotNull();
         }

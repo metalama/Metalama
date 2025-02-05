@@ -1,5 +1,6 @@
 ﻿// Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
+using JetBrains.Annotations;
 using Metalama.Backstage.Diagnostics;
 using Metalama.Framework.DesignTime.Diagnostics;
 using Metalama.Framework.DesignTime.Rpc;
@@ -11,16 +12,17 @@ using System.Collections.Concurrent;
 
 namespace Metalama.Framework.DesignTime.Pipeline;
 
+[PublicAPI]
 public sealed class AnalysisProcessEventHub : IGlobalService
 {
     private readonly ILogger _logger;
     private readonly ConcurrentDictionary<ProjectKey, ProjectKey> _projectsWithPausedPipeline = new();
-    private readonly WeakEvent<CompilationResultChangedEventArgs> _compilationResultChangedEvent = new();
+    private readonly WeakEvent<CompilationResultChangedEventData> _compilationResultChangedEvent = new();
     private readonly AsyncWeakEvent<DesignTimePipelineStatusChangedEventArgs> _pipelineStatusChangedEvent = new();
     private readonly AsyncEvent<ProjectKey> _externalBuildCompletedEvent = new();
     private bool _isEditingCompileTimeCode;
 
-    internal AnalysisProcessEventHub( GlobalServiceProvider serviceProvider )
+    public AnalysisProcessEventHub( GlobalServiceProvider serviceProvider )
     {
         this._logger = serviceProvider.GetLoggerFactory().GetLogger( "EventHub" );
     }
@@ -43,7 +45,8 @@ public sealed class AnalysisProcessEventHub : IGlobalService
 
     public event Action? EditingCompileTimeCodeCompleted;
 
-    public WeakEvent<CompilationResultChangedEventArgs>.Accessors CompilationResultChangedEvent => this._compilationResultChangedEvent.GetAccessors();
+    public WeakEventBase<Action<CompilationResultChangedEventData>, CompilationResultChangedEventData>.Accessors CompilationResultChangedEvent
+        => this._compilationResultChangedEvent.GetAccessors();
 
     public void OnCompileTimeCodeCompletedEditing() => this.EditingCompileTimeCodeCompleted?.Invoke();
 
@@ -51,7 +54,7 @@ public sealed class AnalysisProcessEventHub : IGlobalService
 
     public void OnUserInterfaceAttached() => this.IsUserInterfaceAttached = true;
 
-    internal void PublishCompilationResultChangedNotification( CompilationResultChangedEventArgs notification )
+    internal void PublishCompilationResultChangedNotification( CompilationResultChangedEventData notification )
     {
         if ( !this._compilationResultChangedEvent.HasHandlers() )
         {
@@ -71,7 +74,8 @@ public sealed class AnalysisProcessEventHub : IGlobalService
     /// Gets an event raised when the pipeline result has changed because of an external cause, i.e.
     /// not a change in the source code of the project of the pipeline itself.
     /// </summary>
-    internal AsyncWeakEvent<DesignTimePipelineStatusChangedEventArgs>.Accessors PipelineStatusChangedEvent => this._pipelineStatusChangedEvent.GetAccessors();
+    internal WeakEventBase<Func<DesignTimePipelineStatusChangedEventArgs, Task>, DesignTimePipelineStatusChangedEventArgs>.Accessors PipelineStatusChangedEvent
+        => this._pipelineStatusChangedEvent.GetAccessors();
 
     internal Task OnPipelineStatusChangedEventAsync( DesignTimePipelineStatusChangedEventArgs args )
     {

@@ -44,7 +44,7 @@ namespace Metalama.Framework.Engine.CodeModel
 
             internal override bool HasObservabilityFilter => false;
 
-            internal override PartialCompilation Update(
+            public override PartialCompilation Update(
                 IReadOnlyCollection<SyntaxTreeTransformation>? transformations = null,
                 ImmutableArray<ManagedResource> resources = default )
             {

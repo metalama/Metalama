@@ -742,7 +742,7 @@ namespace Metalama.Framework.Engine.Templating
                     this.Report(
                         TemplatingDiagnosticDescriptors.CompileTimeCodeNeedsNamespaceImport.CreateRoslynDiagnostic(
                             node.GetDiagnosticLocation(),
-                            (declaredSymbol, CompileTimeCodeFastDetector.Namespace, attributeName) ) );
+                            (declaredSymbol, CompileTimeCodeFastDetector.FrameworkNamespace, attributeName) ) );
                 }
 
                 // Check that 'dynamic' is used only in a template or in run-time-only code.

@@ -41,7 +41,7 @@ public readonly struct SymbolDictionaryKey : IEquatable<SymbolDictionaryKey>
     public static SymbolDictionaryKey CreatePersistentKey( ISymbol symbol )
         => new( StructuralSymbolComparer.Default.GetHashCode( symbol ), SymbolId.Create( symbol ).ToString() );
 
-    public static SymbolDictionaryKey CreateLookupKey( ISymbol symbol ) => new( StructuralSymbolComparer.Default.GetHashCode( symbol ), symbol );
+    internal static SymbolDictionaryKey CreateLookupKey( ISymbol symbol ) => new( StructuralSymbolComparer.Default.GetHashCode( symbol ), symbol );
 
     internal SymbolId GetSymbolId()
         => this._identity switch

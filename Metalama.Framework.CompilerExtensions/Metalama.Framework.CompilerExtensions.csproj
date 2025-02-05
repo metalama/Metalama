@@ -21,10 +21,11 @@
      
     <ItemGroup>
       <Compile Include="../Metalama.Framework.Engine/Utilities/AssemblyLoader.cs" Link="AssemblyLoader.cs" />
+      <Compile Include="..\Metalama.Framework.DesignTime\RoslynEntryPointTypeNames.cs" Link="RoslynEntryPointTypeNames.cs" />
     </ItemGroup>
 
     <Target Name="SelectAssembliesToEmbed">
-        <!-- Make sure the project has been built. -->
+        <!-- Make sure the dependencies to embed have been built. -->
         <MSBuild Projects="../Metalama.Framework.CompilerExtensions.Resources/Metalama.Framework.CompilerExtensions.Resources.csproj" Properties="Configuration=$(Configuration)" />
 
         <!-- List of assemblies that should not be selected -->

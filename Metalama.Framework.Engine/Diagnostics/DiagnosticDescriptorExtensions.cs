@@ -30,7 +30,6 @@ public static class DiagnosticDescriptorExtensions
         Location? location,
         T arguments,
         IEnumerable<Location>? additionalLocations = null,
-        CodeFixTitles codeFixes = default,
         string? deduplicationKey = null,
         ImmutableDictionary<string, string?>? properties = null )
         where T : notnull
@@ -38,7 +37,7 @@ public static class DiagnosticDescriptorExtensions
         // ConvertDiagnosticArguments treats an array as multiple arguments, so we need to wrap it in another array.
         var argumentArray = ConvertDiagnosticArguments( typeof(T).IsArray ? new[] { arguments } : arguments );
 
-        return definition.CreateRoslynDiagnosticImpl( location, argumentArray, null, additionalLocations, codeFixes, deduplicationKey, properties );
+        return definition.CreateRoslynDiagnosticImpl( location, argumentArray, null, additionalLocations, deduplicationKey, properties );
     }
 
     /// <summary>
@@ -50,7 +49,6 @@ public static class DiagnosticDescriptorExtensions
         T arguments,
         IDiagnosticSource? diagnosticSource,
         IEnumerable<Location>? additionalLocations = null,
-        CodeFixTitles codeFixes = default,
         string? deduplicationKey = null,
         ImmutableDictionary<string, string?>? properties = null )
         where T : notnull
@@ -58,7 +56,7 @@ public static class DiagnosticDescriptorExtensions
         // ConvertDiagnosticArguments treats an array as multiple arguments, so we need to wrap it in another array.
         var argumentArray = ConvertDiagnosticArguments( typeof(T).IsArray ? new[] { arguments } : arguments );
 
-        return definition.CreateRoslynDiagnosticImpl( location, argumentArray, diagnosticSource, additionalLocations, codeFixes, deduplicationKey, properties );
+        return definition.CreateRoslynDiagnosticImpl( location, argumentArray, diagnosticSource, additionalLocations, deduplicationKey, properties );
     }
 
     // If this was named CreateRoslynDiagnostic, type safety of the generic versions would be lost.
@@ -68,13 +66,12 @@ public static class DiagnosticDescriptorExtensions
         object? arguments,
         IDiagnosticSource? diagnosticSource = null,
         IEnumerable<Location>? additionalLocations = null,
-        CodeFixTitles codeFixes = default,
         string? deduplicationKey = null,
         ImmutableDictionary<string, string?>? properties = null )
     {
         var argumentArray = ConvertDiagnosticArguments( arguments );
 
-        return definition.CreateRoslynDiagnosticImpl( location, argumentArray, diagnosticSource, additionalLocations, codeFixes, deduplicationKey, properties );
+        return definition.CreateRoslynDiagnosticImpl( location, argumentArray, diagnosticSource, additionalLocations, deduplicationKey, properties );
     }
 
     private static object?[] ConvertDiagnosticArguments( object? arguments )
@@ -108,16 +105,10 @@ public static class DiagnosticDescriptorExtensions
         object?[] arguments,
         IDiagnosticSource? diagnosticSource,
         IEnumerable<Location>? additionalLocations,
-        CodeFixTitles codeFixes,
         string? deduplicationKey,
         ImmutableDictionary<string, string?>? properties )
     {
         var propertiesWithAdditions = properties;
-
-        if ( codeFixes.Value != null )
-        {
-            ImmutableDictionaryExtensions.AddOrCreate( ref propertiesWithAdditions, CodeFixTitles.DiagnosticPropertyKey, codeFixes.Value );
-        }
 
         if ( deduplicationKey != null )
         {

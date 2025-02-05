@@ -7,7 +7,7 @@ using Accessibility = Microsoft.CodeAnalysis.Accessibility;
 
 namespace Metalama.Framework.Engine.CodeModel.Helpers
 {
-    internal static class AccessibilityHelper
+    public static class AccessibilityHelper
     {
         private static AccessibilityFlags ToAccessibilityFlags( this Accessibility accessibility )
             => accessibility switch

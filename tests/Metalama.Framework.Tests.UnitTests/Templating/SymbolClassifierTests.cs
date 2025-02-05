@@ -1,6 +1,5 @@
 // Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
-using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CodeModel.Helpers;
@@ -13,6 +12,11 @@ using Microsoft.CodeAnalysis.CSharp;
 using System;
 using System.Linq;
 using Xunit;
+
+#if NET7_0_OR_GREATER
+using Metalama.Framework.Engine;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+#endif
 
 namespace Metalama.Framework.Tests.UnitTests.Templating
 {
@@ -59,23 +63,27 @@ namespace Metalama.Framework.Tests.UnitTests.Templating
             using var testContext = this.CreateTestContext();
 
             const string code = """
-                using Metalama.Framework.Advising;
-                using Metalama.Framework.Aspects;
+                                using Metalama.Framework.Advising;
+                                using Metalama.Framework.Aspects;
+                                using Metalama.Framework.Diagnostics;
 
-                class C : TypeAspect
-                {
-                  void M() { }
-                  int F;
-
-                  [TemplateAttribute]
-                  void Template() { }
-                }
-                """;
+                                class C : TypeAspect
+                                {
+                                  void M() { }
+                                  int F; // System type.
+                                  DiagnosticDefinition F2; // Metalama type.
+                                
+                                
+                                  [TemplateAttribute]
+                                  void Template() { }
+                                }
+                                """;
 
             var compilation = testContext.CreateCompilationModel( code );
             var type = compilation.Types.OfName( "C" ).Single();
             this.AssertScope( (IDeclaration) type, TemplatingScope.RunTimeOrCompileTime );
             this.AssertScope( type.Fields.OfName( "F" ).Single(), TemplatingScope.RunTimeOrCompileTime );
+            this.AssertScope( type.Fields.OfName( "F2" ).Single(), TemplatingScope.CompileTimeOnly );
             this.AssertScope( type.Methods.OfName( "M" ).Single(), TemplatingScope.RunTimeOrCompileTime );
             this.AssertScope( type.Methods.OfName( "Template" ).Single(), TemplatingScope.CompileTimeOnly );
         }
@@ -86,17 +94,17 @@ namespace Metalama.Framework.Tests.UnitTests.Templating
             using var testContext = this.CreateTestContext();
 
             const string code = """
-                using Metalama.Framework.Aspects;
-                using Metalama.Framework.Code;
-                using Metalama.Framework.Eligibility;
+                                using Metalama.Framework.Aspects;
+                                using Metalama.Framework.Code;
+                                using Metalama.Framework.Eligibility;
 
-                class C : IAspect<INamedType>
-                {
-                    public void BuildAspect( IAspectBuilder<INamedType> builder ) { }
-
-                    public void BuildEligibility( IEligibilityBuilder<INamedType> builder ) { }
-                }
-                """;
+                                class C : IAspect<INamedType>
+                                {
+                                    public void BuildAspect( IAspectBuilder<INamedType> builder ) { }
+                                
+                                    public void BuildEligibility( IEligibilityBuilder<INamedType> builder ) { }
+                                }
+                                """;
 
             var compilation = testContext.CreateCompilationModel( code );
             var type = compilation.Types.OfName( "C" ).Single();
@@ -140,7 +148,7 @@ class C
 
 class D : System.IDisposable 
 {
-   public void Dispose(){} 
+   public void Dispose() {} 
 }
 ";
 
@@ -161,7 +169,7 @@ class D : System.IDisposable
             const string code = @"
 using Metalama.Framework.Advising; 
 using Metalama.Framework.Aspects; 
-[assembly: RunTimeOrCompileTime]
+[assembly: CompileTime]
 class C 
 {
 }
@@ -169,12 +177,14 @@ class C
 
             var compilation = testContext.CreateCompilationModel( code );
             var type = compilation.Types.OfName( "C" ).Single();
-            this.AssertScope( type, TemplatingScope.RunTimeOrCompileTime );
+            this.AssertScope( type, TemplatingScope.CompileTimeOnly );
         }
 
         [Fact]
         public void MarkedAsCompileTimeOnly()
         {
+            using var testContext = this.CreateTestContext();
+
             const string code = @"
 using Metalama.Framework.Advising; 
 using Metalama.Framework.Aspects; 
@@ -189,7 +199,7 @@ class C
 }
 ";
 
-            var compilation = TestCompilationFactory.CreateCSharpCompilation( code );
+            var compilation = testContext.CreateCSharpCompilation( code );
             var type = (ITypeSymbol) compilation.GetSymbolsWithName( "C" ).Single();
             this.AssertScope( compilation, type, TemplatingScope.CompileTimeOnly );
             this.AssertScope( compilation, type.GetMembers( "F" ).Single(), TemplatingScope.CompileTimeOnlyReturningBoth );
@@ -515,5 +525,35 @@ class C  {
                 this.AssertScope( compilation.RoslynCompilation, symbol, scope, contextOptions: options );
             }
         }
+
+#if NET7_0_OR_GREATER
+        [Fact]
+        public void NonStandardApiInStandardType()
+        {
+            using var testContext = this.CreateTestContext();
+
+            // The main purpose of these tests is to check that there is no infinite recursion.
+
+            const string code = @"
+using Metalama.Framework.Advising; 
+using Metalama.Framework.Aspects; 
+using System.Collections.Generic;
+
+internal class C : TypeAspect
+{
+    public int F => int.Clamp( 1, 2, 3 );
+}
+";
+
+            var compilation = testContext.CreateCompilationModel( code );
+            var field = (PropertyDeclarationSyntax) compilation.Types.Single().Properties.Single().GetPrimaryDeclarationSyntax();
+            var invocation = field.DescendantNodes().OfType<InvocationExpressionSyntax>().Single();
+
+            var semanticModel = compilation.RoslynCompilation.GetSemanticModel( field.SyntaxTree );
+            var invokedMethod = semanticModel.GetSymbolInfo( invocation.Expression ).Symbol.AssertSymbolNotNull();
+
+            this.AssertScope( compilation.RoslynCompilation, invokedMethod, TemplatingScope.RunTimeOnly );
+        }
+#endif
     }
 }

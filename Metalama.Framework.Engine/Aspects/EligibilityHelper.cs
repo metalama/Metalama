@@ -65,7 +65,7 @@ internal sealed partial class EligibilityHelper
         {
             var builder = new EligibilityBuilder<T>();
 
-            var executionContext = new UserCodeExecutionContext(
+            var executionContext = UserCodeExecutionContext.CreateInstance(
                 this._serviceProvider,
                 UserCodeDescription.Create( "executing BuildEligibility for {0}", this._requester ),
                 compilationContext,

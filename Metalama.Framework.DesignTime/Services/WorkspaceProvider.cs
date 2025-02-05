@@ -43,7 +43,7 @@ public abstract class WorkspaceProvider : IGlobalService, IDisposable
         }
     }
 
-    internal async ValueTask<Microsoft.CodeAnalysis.Project?> GetProjectAsync( ProjectKey projectKey, CancellationToken cancellationToken )
+    public async ValueTask<Microsoft.CodeAnalysis.Project?> GetProjectAsync( ProjectKey projectKey, CancellationToken cancellationToken )
     {
         var workspace = await this.GetWorkspaceAsync( cancellationToken );
 
@@ -91,7 +91,7 @@ public abstract class WorkspaceProvider : IGlobalService, IDisposable
         return default;
     }
 
-    internal async ValueTask<Compilation?> GetCompilationAsync( ProjectKey projectKey, CancellationToken cancellationToken = default )
+    public async ValueTask<Compilation?> GetCompilationAsync( ProjectKey projectKey, CancellationToken cancellationToken = default )
     {
         var project = await this.GetProjectAsync( projectKey, cancellationToken );
 

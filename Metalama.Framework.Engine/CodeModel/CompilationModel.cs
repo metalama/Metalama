@@ -97,7 +97,7 @@ namespace Metalama.Framework.Engine.CodeModel
         // This collection index all attributes on types and members, but not attributes on the assembly and the module.
         private readonly ImmutableDictionaryOfArray<IRef<INamedType>, AttributeRef> _allMemberAttributesByType;
 
-        internal AspectRepository AspectRepository { get; }
+        public AspectRepository AspectRepository { get; }
 
         public HierarchicalOptionsManager? HierarchicalOptionsManager { get; }
 
@@ -159,7 +159,7 @@ namespace Metalama.Framework.Engine.CodeModel
 
         IProject ICompilation.Project => this.Project;
 
-        internal CompilationContext CompilationContext { get; }
+        public CompilationContext CompilationContext { get; }
 
         public PartialCompilation PartialCompilation { get; }
 
@@ -380,7 +380,7 @@ namespace Metalama.Framework.Engine.CodeModel
             return new CompilationModel( this, transformations, null, debugLabel );
         }
 
-        internal CompilationModel WithAspectRepository( AspectRepository aspectRepository, string? debugLabel )
+        public CompilationModel WithAspectRepository( AspectRepository aspectRepository, string? debugLabel )
             => this.AspectRepository == aspectRepository ? this : new CompilationModel( this, aspectRepository, debugLabel );
 
         [Memo]

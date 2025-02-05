@@ -35,15 +35,15 @@ internal static class GenerateMetaSyntaxRewriter
             Generator generator = new( syntax, Path.Combine( baseDirectory, ".generated", $"{syntax.Version.Name}" ) );
 
             generator.GenerateRoslynApiVersionEnum(
-                Path.Combine( $"Metalama.Framework.Engine", "RoslynApiVersion.cs" ),
+                Path.Combine( $"Metalama.Framework.Engine", "RoslynApiVersion.g.cs" ),
                 deprecatedVersionNames,
                 syntaxDocuments );
 
-            generator.GenerateTemplateFiles( Path.Combine( $"Metalama.Framework.Engine", "MetaSyntaxRewriter.cs" ), syntaxDocuments );
-            generator.GenerateVersionChecker( Path.Combine( $"Metalama.Framework.Engine", "RoslynVersionSyntaxVerifier.cs" ) );
-            generator.GenerateHasher( Path.Combine( $"Metalama.Framework.DesignTime", "RunTimeCodeHasher.cs" ), "RunTimeCodeHasher", false );
-            generator.GenerateHasher( Path.Combine( $"Metalama.Framework.DesignTime", "CompileTimeCodeHasher.cs" ), "CompileTimeCodeHasher", true );
-            generator.GeneratePartialUpdate( Path.Combine( $"Metalama.Framework.Engine", "SyntaxNodePartialUpdateExtensions.cs" ) );
+            generator.GenerateTemplateFiles( Path.Combine( $"Metalama.Framework.Engine", "MetaSyntaxRewriter.g.cs" ), syntaxDocuments );
+            generator.GenerateVersionChecker( Path.Combine( $"Metalama.Framework.Engine", "RoslynVersionSyntaxVerifier.g.cs" ) );
+            generator.GenerateHasher( Path.Combine( $"Metalama.Framework.DesignTime", "RunTimeCodeHasher.g.cs" ), "RunTimeCodeHasher", false );
+            generator.GenerateHasher( Path.Combine( $"Metalama.Framework.DesignTime", "CompileTimeCodeHasher.g.cs" ), "CompileTimeCodeHasher", true );
+            generator.GeneratePartialUpdate( Path.Combine( $"Metalama.Framework.Engine", "SyntaxNodePartialUpdateExtensions.g.cs" ) );
         }
     }
 }

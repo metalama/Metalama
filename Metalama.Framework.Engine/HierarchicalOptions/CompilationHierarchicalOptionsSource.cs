@@ -3,14 +3,16 @@
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Diagnostics;
+using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Diagnostics;
-using Metalama.Framework.Engine.Fabrics;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities.UserCode;
 using Metalama.Framework.Options;
+using System;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Attribute = System.Attribute;
 
@@ -29,13 +31,16 @@ internal sealed class CompilationHierarchicalOptionsSource : IHierarchicalOption
         this._invoker = serviceProvider.GetRequiredService<UserCodeInvoker>();
     }
 
-    public Task CollectOptionsAsync( OutboundActionCollectionContext context )
+    public Task CollectOptionsAsync(
+        CompilationModel compilation,
+        Action<HierarchicalOptionsInstance> addOptions,
+        IUserDiagnosticSink diagnosticSink,
+        CancellationToken cancelationToken )
     {
-        var compilation = context.Compilation;
         var aspectType = compilation.Factory.GetTypeByReflectionType( typeof(IAspect) );
         var systemAttributeType = compilation.Factory.GetTypeByReflectionType( typeof(Attribute) );
 
-        var attributeDeserializer = this._attributeDeserializerProvider.Get( context.Compilation.CompilationContext );
+        var attributeDeserializer = this._attributeDeserializerProvider.Get( compilation.CompilationContext );
 
         foreach ( var attributeType in compilation.GetDerivedTypes(
                      (INamedType) compilation.Factory.GetTypeByReflectionType( typeof(IHierarchicalOptionsProvider) ),
@@ -55,7 +60,7 @@ internal sealed class CompilationHierarchicalOptionsSource : IHierarchicalOption
 
             foreach ( var attribute in compilation.GetAllAttributesOfType( attributeType ) )
             {
-                if ( !attributeDeserializer.TryCreateAttribute( attribute.GetAttributeData(), context.Collector, out var deserializedAttribute ) )
+                if ( !attributeDeserializer.TryCreateAttribute( attribute.GetAttributeData(), diagnosticSink, out var deserializedAttribute ) )
                 {
                     continue;
                 }
@@ -65,13 +70,13 @@ internal sealed class CompilationHierarchicalOptionsSource : IHierarchicalOption
                 var invokerContext = new UserCodeExecutionContext(
                     this._serviceProvider,
                     UserCodeDescription.Create( "executing GetOptions() for '{0}' applied to '{1}'", attributeType.Name, attribute.ContainingDeclaration ),
-                    context.Compilation.CompilationContext,
+                    compilation.CompilationContext,
                     targetDeclaration: attribute.ContainingDeclaration );
 
                 var providerContext = new OptionsProviderContext(
                     attribute.ContainingDeclaration,
                     new ScopedDiagnosticSink(
-                        (IUserDiagnosticSink) context.Collector.Diagnostics,
+                        diagnosticSink,
                         new ProvideOptionsDiagnosticSource( attribute ),
                         attribute,
                         attribute.ContainingDeclaration ) );
@@ -80,7 +85,7 @@ internal sealed class CompilationHierarchicalOptionsSource : IHierarchicalOption
 
                 foreach ( var options in optionList )
                 {
-                    context.Collector.AddOptions( new HierarchicalOptionsInstance( attribute.ContainingDeclaration, options ) );
+                    addOptions( new HierarchicalOptionsInstance( attribute.ContainingDeclaration, options ) );
                 }
             }
         }

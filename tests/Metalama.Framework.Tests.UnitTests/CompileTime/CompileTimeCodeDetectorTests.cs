@@ -12,21 +12,25 @@ namespace Metalama.Framework.Tests.UnitTests.CompileTime
         [Fact]
         public void NotCompileTime()
         {
-            var compilation = TestCompilationFactory.CreateCSharpCompilation( @"using Metalama.Framework.RunTime; namespace X { class Y {} } " );
+            using var testContext = this.CreateTestContext();
+            var compilation = testContext.CreateCSharpCompilation( @"using Metalama.Framework.RunTime; namespace X { class Y {} } " );
             Assert.False( CompileTimeCodeFastDetector.HasCompileTimeCode( compilation.SyntaxTrees.Single().GetRoot() ) );
         }
 
         [Fact]
         public void EmptyFile()
         {
-            var compilation = TestCompilationFactory.CreateCSharpCompilation( @"" );
+            using var testContext = this.CreateTestContext();
+            var compilation = testContext.CreateCSharpCompilation( @"" );
             Assert.False( CompileTimeCodeFastDetector.HasCompileTimeCode( compilation.SyntaxTrees.Single().GetRoot() ) );
         }
 
         [Fact]
         public void InvalidFile()
         {
-            var compilation = TestCompilationFactory.CreateCSharpCompilation(
+            using var testContext = this.CreateTestContext();
+
+            var compilation = testContext.CreateCSharpCompilation(
                 @"using Metalama.Framework.Aspects;  namespace X class Y {} ",
                 ignoreErrors: true );
 
@@ -36,15 +40,16 @@ namespace Metalama.Framework.Tests.UnitTests.CompileTime
         [Fact]
         public void TopLevelUsingMetalamaFramework()
         {
-            var compilation = TestCompilationFactory.CreateCSharpCompilation( @"using Metalama.Framework; namespace X {class Y {} }" );
+            using var testContext = this.CreateTestContext();
+            var compilation = testContext.CreateCSharpCompilation( @"using Metalama.Framework; namespace X {class Y {} }" );
             Assert.True( CompileTimeCodeFastDetector.HasCompileTimeCode( compilation.SyntaxTrees.Single().GetRoot() ) );
         }
 
         [Fact]
         public void TopLevelUsingMetalamaFrameworkAspects()
         {
-            var compilation = TestCompilationFactory.CreateCSharpCompilation(
-                @"using Metalama.Framework.Aspects;  namespace X {class Y {} }" );
+            using var testContext = this.CreateTestContext();
+            var compilation = testContext.CreateCSharpCompilation( @"using Metalama.Framework.Aspects;  namespace X {class Y {} }" );
 
             Assert.True( CompileTimeCodeFastDetector.HasCompileTimeCode( compilation.SyntaxTrees.Single().GetRoot() ) );
         }
@@ -52,14 +57,17 @@ namespace Metalama.Framework.Tests.UnitTests.CompileTime
         [Fact]
         public void TopLevelUsingMetalamaFrameworkProjects()
         {
-            var compilation = TestCompilationFactory.CreateCSharpCompilation( @"using Metalama.Framework.Fabrics; namespace X {class Y {} }" );
+            using var testContext = this.CreateTestContext();
+            var compilation = testContext.CreateCSharpCompilation( @"using Metalama.Framework.Fabrics; namespace X {class Y {} }" );
             Assert.True( CompileTimeCodeFastDetector.HasCompileTimeCode( compilation.SyntaxTrees.Single().GetRoot() ) );
         }
 
         [Fact]
         public void Level1NamespaceUsing()
         {
-            var compilation = TestCompilationFactory.CreateCSharpCompilation(
+            using var testContext = this.CreateTestContext();
+
+            var compilation = testContext.CreateCSharpCompilation(
                 @"namespace X { using Metalama.Framework.Advising; 
 using Metalama.Framework.Aspects;  class Y {} }" );
 
@@ -69,7 +77,9 @@ using Metalama.Framework.Aspects;  class Y {} }" );
         [Fact]
         public void Level2NamespaceUsing()
         {
-            var compilation = TestCompilationFactory.CreateCSharpCompilation(
+            using var testContext = this.CreateTestContext();
+
+            var compilation = testContext.CreateCSharpCompilation(
                 @"namespace X { namespace Y { using Metalama.Framework.Advising; 
 using Metalama.Framework.Aspects;  } }" );
 

@@ -34,7 +34,7 @@ namespace Metalama.Framework.Engine.CodeModel.Helpers;
 
 public static class DeclarationExtensions
 {
-    public static DeclarationKind GetDeclarationKind( this ISymbol symbol, CompilationContext compilationContext )
+    internal static DeclarationKind GetDeclarationKind( this ISymbol symbol, CompilationContext compilationContext )
         => symbol switch
         {
             INamespaceSymbol => DeclarationKind.Namespace,
@@ -87,7 +87,7 @@ public static class DeclarationExtensions
                 _ => []
             } );
 
-    internal static ISymbol? GetSymbol( this IDeclaration declaration, CompilationContext compilationContext )
+    public static ISymbol? GetSymbol( this IDeclaration declaration, CompilationContext compilationContext )
         => declaration.GetSymbol() is { } symbol
             ? compilationContext.SymbolTranslator.Translate( symbol, declaration.GetCompilationModel().RoslynCompilation )
             : null;

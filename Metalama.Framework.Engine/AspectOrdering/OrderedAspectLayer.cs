@@ -22,6 +22,7 @@ namespace Metalama.Framework.Engine.AspectOrdering
         }
 
         // For testing only.
+        // Resharper disable once UnusedMember.Global
         internal OrderedAspectLayer( int order, string aspectName, string? layerName ) : base( aspectName, layerName )
         {
             this.Order = order;

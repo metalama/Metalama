@@ -11,7 +11,6 @@ internal sealed class PreviewTestRunnerFactory : ITestRunnerFactory
         GlobalServiceProvider serviceProvider,
         string? projectDirectory,
         TestProjectReferences references,
-        ITestOutputHelper? logger,
-        ILicenseKeyProvider? licenseKeyProvider )
-        => new PreviewTestRunner( serviceProvider, projectDirectory, references, logger, licenseKeyProvider );
+        ITestOutputHelper? logger )
+        => new PreviewTestRunner( serviceProvider, projectDirectory, references, logger );
 }

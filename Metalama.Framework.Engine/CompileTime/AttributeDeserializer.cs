@@ -168,7 +168,7 @@ internal abstract class AttributeDeserializer : IAttributeDeserializer
             arguments[paramsParameter!.Position] = paramsArgument;
         }
 
-        var executionContext = new UserCodeExecutionContext(
+        var executionContext = UserCodeExecutionContext.CreateInstance(
             this._serviceProvider,
             UserCodeDescription.Create( "calling the {0} constructor while instantiating a custom attribute", constructor ),
             this._compilationContext,

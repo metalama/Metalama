@@ -15,8 +15,6 @@ using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Metalama.Framework.Engine.Utilities.UserCode;
-using Metalama.Framework.Engine.Validation;
-using Metalama.Framework.Validation;
 using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Generic;
@@ -24,7 +22,6 @@ using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using System.Reflection;
 using System.Runtime.Serialization;
 using Attribute = System.Attribute;
 using MethodKind = Microsoft.CodeAnalysis.MethodKind;
@@ -35,13 +32,12 @@ namespace Metalama.Framework.Engine.Aspects;
 /// <summary>
 /// Represents the metadata of an aspect class. This class is compilation-independent. It is not used to represent a fabric class.
 /// </summary>
-public sealed class AspectClass : TemplateClass, IBoundAspectClass, IValidatorDriverFactory
+public sealed class AspectClass : TemplateClass, IBoundAspectClass
 {
     private readonly UserCodeInvoker _userCodeInvoker;
     private readonly IAspect? _prototypeAspectInstance; // Null for abstract classes.
     private readonly List<AspectClass> _childAspectClasses = new();
     private IAspectDriver? _aspectDriver;
-    private ValidatorDriverFactory? _validatorDriverFactory;
     private EligibilityHelper? _eligibilityHelper;
 
     internal override Type Type { get; }
@@ -57,8 +53,6 @@ public sealed class AspectClass : TemplateClass, IBoundAspectClass, IValidatorDr
     internal string? WeaverType { get; }
 
     internal CompileTimeProject? Project { get; }
-
-    CompileTimeProject? IAspectClassImpl.Project => this.Project;
 
     public ImmutableArray<TemplateClass> TemplateClasses { get; }
 
@@ -427,25 +421,4 @@ public sealed class AspectClass : TemplateClass, IBoundAspectClass, IValidatorDr
                 compilationContext ) );
 
     public override string ToString() => this.FullName;
-
-    MethodBasedReferenceValidatorDriver IValidatorDriverFactory.GetReferenceValidatorDriver( MethodInfo validateMethod )
-    {
-        this._validatorDriverFactory ??= ValidatorDriverFactory.GetInstance( this.Type );
-
-        return this._validatorDriverFactory.GetReferenceValidatorDriver( validateMethod );
-    }
-
-    ClassBasedReferenceValidatorDriver IValidatorDriverFactory.GetReferenceValidatorDriver( Type type )
-    {
-        this._validatorDriverFactory ??= ValidatorDriverFactory.GetInstance( this.Type );
-
-        return this._validatorDriverFactory.GetReferenceValidatorDriver( type );
-    }
-
-    DeclarationValidatorDriver IValidatorDriverFactory.GetDeclarationValidatorDriver( ValidatorDelegate<DeclarationValidationContext> validate )
-    {
-        this._validatorDriverFactory ??= ValidatorDriverFactory.GetInstance( this.Type );
-
-        return this._validatorDriverFactory.GetDeclarationValidatorDriver( validate );
-    }
 }

@@ -11,7 +11,7 @@ namespace Metalama.Framework.DesignTime.CodeLens;
 /// <summary>
 /// Cross-process interface equivalent to <see cref="ICodeLensService"/>.
 /// </summary>
-public interface ICodeLensServiceImpl : IGlobalService
+internal interface ICodeLensServiceImpl : IGlobalService
 {
     Task<CodeLensSummary> GetCodeLensSummaryAsync( ProjectKey projectKey, SerializableDeclarationId symbolId, TestableCancellationToken cancellationToken );
 

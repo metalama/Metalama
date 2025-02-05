@@ -3,9 +3,8 @@
 using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Engine.Diagnostics;
-using Metalama.Framework.Engine.HierarchicalOptions;
+using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Transformations;
-using Metalama.Framework.Engine.Validation;
 using System.Collections.Immutable;
 
 namespace Metalama.Framework.Engine.Aspects
@@ -20,28 +19,20 @@ namespace Metalama.Framework.Engine.Aspects
 
         public ImmutableArray<ITransformation> Transformations { get; }
 
-        public ImmutableArray<IAspectSource> AspectSources { get; }
-
-        public ImmutableArray<IValidatorSource> ValidatorSources { get; }
-
-        public ImmutableArray<IHierarchicalOptionsSource> OptionsSources { get; }
+        public ImmutableArray<IPipelineContributor> Contributors { get; }
 
         public AspectInstanceResult(
             IAspectInstance aspectInstance,
             AdviceOutcome outcome,
             ImmutableUserDiagnosticList diagnostics,
             ImmutableArray<ITransformation> transformations,
-            ImmutableArray<IAspectSource> aspectSources,
-            ImmutableArray<IValidatorSource> validatorSources,
-            ImmutableArray<IHierarchicalOptionsSource> optionsSources )
+            ImmutableArray<IPipelineContributor> contributors )
         {
             this.AspectInstance = aspectInstance;
             this.Outcome = outcome;
             this.Diagnostics = diagnostics;
             this.Transformations = transformations;
-            this.AspectSources = aspectSources;
-            this.ValidatorSources = validatorSources;
-            this.OptionsSources = optionsSources;
+            this.Contributors = contributors;
         }
 
         public AspectInstanceResult WithAdditionalDiagnostics( ImmutableUserDiagnosticList diagnostics )
@@ -50,8 +41,6 @@ namespace Metalama.Framework.Engine.Aspects
                 this.Outcome,
                 this.Diagnostics.Concat( diagnostics ),
                 this.Transformations,
-                this.AspectSources,
-                this.ValidatorSources,
-                this.OptionsSources );
+                this.Contributors );
     }
 }

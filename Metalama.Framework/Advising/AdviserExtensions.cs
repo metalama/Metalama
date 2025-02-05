@@ -1074,7 +1074,7 @@ public static class AdviserExtensions
             pullAction,
             attributes );
 
-    public static IClassIntroductionAdviceResult IntroduceClass(
+    public static IIntroductionAdviceResult<INamedType> IntroduceClass(
         this IAdviser<INamespaceOrNamedType> adviser,
         string name,
         OverrideStrategy whenExists = OverrideStrategy.Default,
@@ -1085,7 +1085,7 @@ public static class AdviserExtensions
             whenExists,
             buildType );
 
-    public static IClassIntroductionAdviceResult IntroduceInterface(
+    public static IIntroductionAdviceResult<INamedType> IntroduceInterface(
         this IAdviser<INamespaceOrNamedType> adviser,
         string name,
         OverrideStrategy whenExists = OverrideStrategy.Default,
@@ -1095,6 +1095,21 @@ public static class AdviserExtensions
             name,
             whenExists,
             buildType );
+
+    public static void AddAspect<TDeclaration>( this IAdviser<TDeclaration> adviser, IAspect<TDeclaration> aspect )
+        where TDeclaration : class, IDeclaration
+        => ((IAdviserInternal) adviser).AdviceFactory.AddAspect( adviser.Target, aspect );
+
+    public static void AddAspect<TAspect>( this IAdviser adviser )
+        where TAspect : class, IAspect, new()
+        => ((IAdviserInternal) adviser).AdviceFactory.AddAspect( adviser.Target, new TAspect() );
+
+    public static void RequireAspect<TAspect>( this IAdviser adviser )
+        where TAspect : class, IAspect, new()
+        => ((IAdviserInternal) adviser).AdviceFactory.RequireAspect( adviser.Target, typeof(TAspect) );
+
+    public static void RequireAspect( this IAdviser adviser, Type aspectType )
+        => ((IAdviserInternal) adviser).AdviceFactory.RequireAspect( adviser.Target, aspectType );
 
     public static IAdviser<INamespace> WithNamespace( this IAdviser<ICompilation> adviser, string name )
         => ((IAdviserInternal) adviser).AdviceFactory.WithNamespace(

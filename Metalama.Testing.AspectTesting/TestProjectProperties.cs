@@ -1,6 +1,5 @@
 // Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
-using Metalama.Testing.AspectTesting.Licensing;
 using System;
 using System.Collections.Immutable;
 using System.IO;
@@ -31,16 +30,13 @@ internal sealed class TestProjectProperties
 
     public ImmutableArray<string> IgnoredWarnings { get; }
 
-    internal TestFrameworkLicenseStatus? License { get; }
-
     internal TestProjectProperties(
         string? assemblyName,
         string? projectDirectory,
         string? sourceDirectory,
         ImmutableArray<string> preprocessorSymbols,
         string targetFramework,
-        ImmutableArray<string> ignoredWarnings,
-        TestFrameworkLicenseStatus? license = null )
+        ImmutableArray<string> ignoredWarnings )
     {
         // Remove trailing separator from directory paths.
         if ( projectDirectory != null && projectDirectory[^1] == Path.DirectorySeparatorChar )
@@ -59,6 +55,5 @@ internal sealed class TestProjectProperties
         this.PreprocessorSymbols = preprocessorSymbols;
         this.TargetFramework = targetFramework;
         this.IgnoredWarnings = ignoredWarnings;
-        this.License = license;
     }
 }

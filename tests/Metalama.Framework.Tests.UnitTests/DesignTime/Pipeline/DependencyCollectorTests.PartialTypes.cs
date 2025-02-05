@@ -3,7 +3,7 @@
 using Metalama.Framework.DesignTime;
 using Metalama.Framework.DesignTime.Pipeline.Dependencies;
 using Metalama.Framework.Engine.CodeModel;
-using Metalama.Framework.Tests.UnitTests.DesignTime.Mocks;
+using Metalama.Framework.Tests.UnitTestHelpers.Mocks;
 using Metalama.Testing.UnitTesting;
 using System;
 using System.Collections.Generic;
@@ -66,7 +66,7 @@ public sealed partial class DependencyCollectorTests : UnitTestClass
             ["Class3.cs"] = "class Class3 : Class2, Interface3 { }"
         };
 
-        var compilation = TestCompilationFactory.CreateCSharpCompilation( code );
+        var compilation = testContext.CreateCSharpCompilation( code );
 
         var dependencyCollector = new DependencyCollector( testContext.ServiceProvider, new TestProjectVersion( compilation ) );
 
@@ -99,7 +99,7 @@ public sealed partial class DependencyCollectorTests : UnitTestClass
             ["Interface2.cs"] = "public interface Interface2 : Interface1 { }"
         };
 
-        var compilation1 = TestCompilationFactory.CreateCSharpCompilation( code1 );
+        var compilation1 = testContext.CreateCSharpCompilation( code1 );
 
         var code2 = new Dictionary<string, string>
         {
@@ -110,7 +110,7 @@ public sealed partial class DependencyCollectorTests : UnitTestClass
             ["Class3.cs"] = "class Class3 : Class2, Interface2 { }"
         };
 
-        var compilation2 = TestCompilationFactory.CreateCSharpCompilation( code2, additionalReferences: new[] { compilation1.ToMetadataReference() } );
+        var compilation2 = testContext.CreateCSharpCompilation( code2, additionalReferences: new[] { compilation1.ToMetadataReference() } );
 
         var dependencyCollector = new DependencyCollector(
             testContext.ServiceProvider,

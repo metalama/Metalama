@@ -22,8 +22,8 @@ namespace Metalama.Framework.Tests.UnitTests.TestFramework
 {
     public sealed class AspectTestRunnerTests : UnitTestClass
     {
-        private static readonly SemaphoreSlim _executionSemaphore = new SemaphoreSlim( 1 );
-        private static readonly AsyncLocal<(Task InsideTestTask, Task TestWaitTask)> _testLocal = new AsyncLocal<(Task, Task)>();
+        private static readonly SemaphoreSlim _executionSemaphore = new( 1 );
+        private static readonly AsyncLocal<(Task InsideTestTask, Task TestWaitTask)> _testLocal = new();
 
         [Fact]
         public async Task AwaitsMainMethod_Task()
@@ -131,11 +131,23 @@ public class Program
 
             var messageSink = new TestMessageSink();
             var testOutputHelper = new OutputHelper( messageSink );
-            var metadataReferences = TestCompilationFactory.GetMetadataReferences();
-            var testProjectReferences = new TestProjectReferences( metadataReferences.ToImmutableArray(), null );
+            var metadataReferences = testContext.GetMetadataReferences();
+
+            var testProjectReferences = new TestProjectReferences(
+                metadataReferences.ToImmutableArray(),
+                ImmutableArray<TestAssemblyReference>.Empty,
+                ImmutableArray<TestAssemblyReference>.Empty,
+                ImmutableArray<string>.Empty, 
+                null );
 
             var testProjectProperties =
-                new TestProjectProperties( assemblyName: null, directory, directory, ImmutableArray<string>.Empty, "net6.0", ImmutableArray<string>.Empty );
+                new TestProjectProperties(
+                    assemblyName: null,
+                    directory,
+                    directory,
+                    ImmutableArray<string>.Empty,
+                    "net6.0",
+                    ImmutableArray<string>.Empty );
 
             var testDirectoryOptionsReader = new TestDirectoryOptionsReader( serviceProvider, directory );
 

@@ -1,8 +1,7 @@
 // Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
 using Metalama.Framework.Aspects;
-using Metalama.Framework.CodeFixes;
-using Metalama.Framework.Validation;
+using Metalama.Framework.Utilities;
 using System.Collections.Immutable;
 
 namespace Metalama.Framework.Diagnostics;
@@ -20,19 +19,12 @@ public interface IDiagnostic
     /// </summary>
     IDiagnosticDefinition Definition { get; }
 
-    /// <summary>
-    /// Gets the set of code fixes for the current diagnostic.
-    /// </summary>
-    ImmutableArray<CodeFix> CodeFixes { get; }
+    ImmutableArray<IDiagnosticExtension> Extensions { get; }
 
     /// <summary>
     /// Gets the arguments of the current diagnostic.
     /// </summary>
     object? Arguments { get; }
 
-    /// <summary>
-    /// Adds a set of code fixes to the current instance, and returns the current augmented instance. To create a one-step
-    /// code fix, use the <see cref="CodeFixFactory"/> class.
-    /// </summary>
-    IDiagnostic WithCodeFixes( params CodeFix[] codeFixes );
+    IDiagnostic WithExtensions( ImmutableArray<IDiagnosticExtension> extensions );
 }

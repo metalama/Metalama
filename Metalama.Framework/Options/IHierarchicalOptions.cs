@@ -1,6 +1,5 @@
 ﻿// Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
-using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Fabrics;
 using Metalama.Framework.Serialization;
@@ -14,7 +13,7 @@ namespace Metalama.Framework.Options;
 /// </summary>
 /// <remarks>
 /// <para>
-///  Users typically set options from a fabric using the <see cref="IAspectReceiver{TDeclaration}.SetOptions{TOptions}(TOptions)"/>
+///  Users typically set options from a fabric using the <see cref="OptionQueryExtensions.SetOptions{TDeclaration,TOptions}(Metalama.Framework.Fabrics.IQuery{TDeclaration},System.Func{TDeclaration,TOptions})"/>
 /// method of the <see cref="IAmender{T}.Outbound"/> object.
 /// </para>
 /// <para>

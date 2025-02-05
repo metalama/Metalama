@@ -3,10 +3,8 @@
 using Metalama.AspectWorkbench.ViewModels;
 using Metalama.Framework.Engine;
 using Microsoft.Win32;
-using PostSharp;
 using System;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -32,7 +30,7 @@ namespace Metalama.AspectWorkbench.Views
             this._viewModel = newViewModel;
             this.DataContext = newViewModel;
             this.detailPaneComboBox.ItemsSource = Enum.GetValues( typeof(DetailPaneContent) ).Cast<DetailPaneContent>();
-            Post.Cast<MainViewModel, INotifyPropertyChanged>( newViewModel ).PropertyChanged += this.ViewModel_PropertyChanged;
+            newViewModel.PropertyChanged += this.ViewModel_PropertyChanged;
         }
 
         private void ViewModel_PropertyChanged( object? sender, PropertyChangedEventArgs e )
@@ -155,14 +153,6 @@ namespace Metalama.AspectWorkbench.Views
             this._viewModel.ExpectedTransformedCode = new TextRange(
                 this._viewModel.TransformedCodeDocument.ContentStart,
                 this._viewModel.TransformedCodeDocument.ContentEnd ).Text;
-        }
-
-        private void CompiledTemplateHyperlink_OnClick( object sender, RoutedEventArgs e )
-        {
-            if ( this._viewModel.CompiledTemplatePath != null )
-            {
-                _ = Process.Start( new ProcessStartInfo( this._viewModel.CompiledTemplatePath ) { UseShellExecute = true } );
-            }
         }
 
         private void MakeExpectedProgramOutputButton_Click( object sender, RoutedEventArgs e )

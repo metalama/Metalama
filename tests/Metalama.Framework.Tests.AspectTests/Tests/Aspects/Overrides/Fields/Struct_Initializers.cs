@@ -39,7 +39,10 @@ namespace Metalama.Framework.Tests.AspectTests.TestInputs.Aspects.Overrides.Fiel
     {
         public override void BuildAspect( IAspectBuilder<INamedType> builder )
         {
-            builder.Outbound.SelectMany( x => x.Fields.Where( x => !x.IsImplicitlyDeclared ) ).AddAspect( x => new OverrideAttribute() );
+            foreach (var f in builder.AdvisedTarget.Fields.Where( f => !f.IsImplicitlyDeclared ))
+            {
+                builder.With( f ).AddAspect( new OverrideAttribute() );
+            }
         }
 
         [Introduce]

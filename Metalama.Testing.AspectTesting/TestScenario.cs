@@ -24,13 +24,6 @@ namespace Metalama.Testing.AspectTesting
         CodeFix,
 
         /// <summary>
-        /// Tests the preview of a code fix. By default, the first suggested code fix is applied.
-        /// To apply a different code fix, use the <see cref="TestOptions.AppliedCodeFixIndex"/> property.
-        /// To enable this option in a test, add this comment to your test file: <c>// @TestScenario(CodeFixPreview)</c>.
-        /// </summary>
-        CodeFixPreview,
-
-        /// <summary>
         /// Tests the application of an aspect as a live template. The test file must contain a single attribute of
         /// type <see cref="TestLiveTemplateAttribute"/> indicating the target and the type of the aspect to be applied.
         /// To enable this option in a test, add this comment to your test file: <c>// @TestScenario(LiveTemplate)</c>.

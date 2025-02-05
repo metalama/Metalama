@@ -5,7 +5,7 @@ using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.DeclarationBuilders;
 using Metalama.Framework.Code.SyntaxBuilders;
-using Metalama.Framework.Validation;
+using Metalama.Framework.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -774,17 +774,21 @@ namespace Metalama.Framework.Advising
             Func<IParameter, IConstructor, PullAction>? pullAction = null,
             ImmutableArray<AttributeConstruction> attributes = default );
 
-        IClassIntroductionAdviceResult IntroduceClass(
+        IIntroductionAdviceResult<INamedType> IntroduceClass(
             INamespaceOrNamedType targetNamespaceOrType,
             string name,
             OverrideStrategy whenExists = OverrideStrategy.Default,
             Action<INamedTypeBuilder>? buildType = null );
 
-        IClassIntroductionAdviceResult IntroduceInterface(
+        IIntroductionAdviceResult<INamedType> IntroduceInterface(
             INamespaceOrNamedType targetNamespaceOrType,
             string name,
             OverrideStrategy whenExists = OverrideStrategy.Default,
             Action<INamedTypeBuilder>? buildType = null );
+
+        void AddAspect( IDeclaration declaration, IAspect aspect );
+
+        void RequireAspect( IDeclaration adviserTarget, Type type );
 
         IAdviser<INamespace> WithNamespace(
             INamespace targetNamespace,

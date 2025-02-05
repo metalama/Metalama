@@ -17,9 +17,9 @@ namespace Metalama.Framework.Engine.CompileTime
     /// </summary>
     public static class CompileTimeCodeFastDetector
     {
-        internal const string Namespace = "Metalama.Framework";
+        internal const string FrameworkNamespace = "Metalama.Framework";
 
-        private static readonly ImmutableHashSet<string> _subNamespaces = ImmutableHashSet.Create<string>(
+        private static readonly ImmutableHashSet<string> _frameworkSubNamespaces = ImmutableHashSet.Create(
             StringComparer.Ordinal,
             "Aspects",
             "Code",
@@ -28,15 +28,11 @@ namespace Metalama.Framework.Engine.CompileTime
             "Fabrics",
             "Project",
             "Services",
-            "Validation",
             "Options",
             "Metrics",
             "Eligibility",
             "Advising",
-            "Serialization",
-            "CodeFixes" );
-
-        // The 'Validation' namespace should NOT be included because referencing a constraint of this namespace is a normal use case in run-time code.
+            "Serialization" );
 
         public static bool HasCompileTimeCode( SyntaxNode node ) => DetectCompileTimeVisitor.Instance.Visit( node );
 
@@ -60,8 +56,8 @@ namespace Metalama.Framework.Engine.CompileTime
                     }
 
                     if ( node.Name is QualifiedNameSyntax qualifiedName &&
-                         _subNamespaces.Contains( qualifiedName.Right.Identifier.ValueText ) &&
-                         IsMetalamaFramework( qualifiedName.Left ) )
+                        _frameworkSubNamespaces.Contains( qualifiedName.Right.Identifier.ValueText ) &&
+                        IsMetalamaFramework( qualifiedName.Left ) )
                     {
                         return true;
                     }

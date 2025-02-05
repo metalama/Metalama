@@ -8,7 +8,7 @@ using System.Collections.Immutable;
 
 namespace Metalama.Framework.DesignTime.Pipeline;
 
-internal readonly record struct SyntaxTreeVersion(
+public readonly record struct SyntaxTreeVersion(
     SyntaxTree SyntaxTree,
     bool HasCompileTimeCode,
     ulong DeclarationHash,
@@ -19,9 +19,9 @@ internal readonly record struct SyntaxTreeVersion(
 
     public SyntaxTree SyntaxTree => this._syntaxTree ?? throw new ArgumentNullException();
 
-    public bool IsDefault => this._syntaxTree == null;
+    internal bool IsDefault => this._syntaxTree == null;
 
-    public bool HasGlobalAttributes => this._syntaxTree?.ContainsGlobalAttributes() == true;
+    internal bool HasGlobalAttributes => this._syntaxTree?.ContainsGlobalAttributes() == true;
 
     internal SyntaxTreeVersion( SyntaxTree syntaxTree, in SyntaxTreeVersionData data ) : this(
         syntaxTree,

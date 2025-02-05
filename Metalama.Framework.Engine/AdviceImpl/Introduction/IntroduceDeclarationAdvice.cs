@@ -15,15 +15,18 @@ internal abstract class IntroduceDeclarationAdvice<TIntroduced, TBuilder> : Advi
 {
     private readonly Action<TBuilder>? _buildAction;
 
-    protected IntroduceDeclarationAdvice( AdviceConstructorParameters parameters, Action<TBuilder>? buildAction )
+    protected IAdviceFactoryImpl AdviceFactory { get; }
+
+    protected IntroduceDeclarationAdvice( AdviceConstructorParameters parameters, Action<TBuilder>? buildAction, IAdviceFactoryImpl adviceFactory )
         : base( parameters )
     {
         this._buildAction = buildAction;
+        this.AdviceFactory = adviceFactory;
     }
 
     protected IntroductionAdviceResult<TIntroduced> CreateSuccessResult( AdviceOutcome outcome, TIntroduced introducedMember )
     {
-        return new IntroductionAdviceResult<TIntroduced>( this.AdviceKind, outcome, introducedMember.ToRef().As<TIntroduced>(), null );
+        return new IntroductionAdviceResult<TIntroduced>( this.AdviceKind, outcome, introducedMember.ToRef().As<TIntroduced>(), null, this.AdviceFactory );
     }
 
     protected IntroductionAdviceResult<TIntroduced> CreateIgnoredResult( IMemberOrNamedType existingMember )
@@ -31,7 +34,8 @@ internal abstract class IntroduceDeclarationAdvice<TIntroduced, TBuilder> : Advi
             this.AdviceKind,
             AdviceOutcome.Ignore,
             existingMember is TIntroduced typedMember ? typedMember.ToRef().As<TIntroduced>() : null,
-            existingMember.ToRef() );
+            existingMember.ToRef(),
+            this.AdviceFactory );
 
     protected sealed override IntroductionAdviceResult<TIntroduced> Implement( in AdviceImplementationContext context )
     {

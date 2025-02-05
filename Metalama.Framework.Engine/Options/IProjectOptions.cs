@@ -14,6 +14,12 @@ namespace Metalama.Framework.Engine.Options;
 public interface IProjectOptions : IProjectService, IEquatable<IProjectOptions>
 {
     /// <summary>
+    /// Gets a unique id of the options in the current process.
+    /// It helps checking for equality without keeping too much memory allocated.
+    /// </summary>
+    int Id { get; }
+
+    /// <summary>
     /// Gets the path to a file that gets touched when the project is built.
     /// </summary>
     string? BuildTouchFile { get; }
@@ -117,6 +123,11 @@ public interface IProjectOptions : IProjectService, IEquatable<IProjectOptions>
     ImmutableArray<string> CompileTimePackages { get; }
 
     /// <summary>
+    /// Gets the list of assemblies that should be included in the compile-time project.
+    /// </summary>
+    ImmutableArray<ExtensionAssemblyReference> CompileTimeAssemblies { get; }
+
+    /// <summary>
     /// Gets the path to <c>project.assets.json</c>.
     /// </summary>
     string? ProjectAssetsFile { get; }
@@ -180,7 +191,7 @@ public interface IProjectOptions : IProjectService, IEquatable<IProjectOptions>
     bool? WriteTransformedFiles { get; }
 
     bool IsTest { get; }
-    
+
     /// <summary>
     /// Gets the path to the directory where the Metalama.AssemblyLocator.Build.props
     /// and/or Metalama.AssemblyLocator.Build.targets files are stored.
@@ -192,4 +203,14 @@ public interface IProjectOptions : IProjectService, IEquatable<IProjectOptions>
     /// Partial members marked with these attributes are not eligible for overriding by Metalama aspects.
     /// </summary>
     ImmutableArray<string> SourceGeneratorAttributes { get; }
+
+    /// <summary>
+    /// Gets the list of extension assemblies for the current project.
+    /// </summary>
+    ImmutableArray<ExtensionAssemblyReference> ExtensionAssemblies { get; }
+
+    /// <summary>
+    /// Gets the list of design-time extension assemblies for the current project.
+    /// </summary>
+    ImmutableArray<ExtensionAssemblyReference> DesignTimeExtensionAssemblies { get; }
 }

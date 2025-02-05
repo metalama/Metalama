@@ -26,7 +26,7 @@ public sealed class TaskBag
         this._exceptionHandler = exceptionHandler.GetRequiredService<DesignTimeExceptionHandler>();
     }
 
-    public void Run( Func<Task> asyncAction, CancellationToken cancellationToken = default )
+    internal void Run( Func<Task> asyncAction, CancellationToken cancellationToken = default )
     {
         var taskId = Interlocked.Increment( ref this._nextId );
         var taskCompleted = false;

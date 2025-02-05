@@ -34,12 +34,12 @@
 
     <ItemGroup>
         <ProjectReference Include="../../Metalama.Framework.DesignTime.Contracts/Metalama.Framework.DesignTime.Contracts.csproj" />
-        <ProjectReference Include="../../Metalama.Framework.DesignTime.VisualStudio$(ThisRoslynVersionProjectSuffix)/Metalama.Framework.DesignTime.VisualStudio$(ThisRoslynVersionProjectSuffix).csproj" />
         <ProjectReference Include="../../Metalama.Framework.Engine$(ThisRoslynVersionProjectSuffix)/Metalama.Framework.Engine$(ThisRoslynVersionProjectSuffix).csproj" />
         <ProjectReference Include="../../Metalama.Framework.DesignTime$(ThisRoslynVersionProjectSuffix)/Metalama.Framework.DesignTime$(ThisRoslynVersionProjectSuffix).csproj" />
         <ProjectReference Include="../../Metalama.Framework.Sdk/Metalama.Framework.Sdk.csproj" />
         <ProjectReference Include="../../Metalama.Framework/Metalama.Framework.csproj" />
         <ProjectReference Include="../../Metalama.Testing.AspectTesting$(ThisRoslynVersionProjectSuffix)/Metalama.Testing.AspectTesting$(ThisRoslynVersionProjectSuffix).csproj" />
+        <ProjectReference Include="..\Metalama.Framework.Tests.UnitTestHelpers$(ThisRoslynVersionProjectSuffix)\Metalama.Framework.Tests.UnitTestHelpers$(ThisRoslynVersionProjectSuffix).csproj" />
     </ItemGroup>
 
     <ItemGroup>

@@ -7,4 +7,7 @@ namespace Metalama.Testing.AspectTesting;
 
 internal sealed record TestProjectReferences(
     ImmutableArray<PortableExecutableReference> MetadataReferences,
+    ImmutableArray<TestAssemblyReference> ExtensionReferences,
+    ImmutableArray<TestAssemblyReference> CompileTimeAssemblyReferences,
+    ImmutableArray<string> PlugInTypes,
     string? GlobalUsingsFile );

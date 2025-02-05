@@ -2,18 +2,15 @@
 
 using Metalama.Framework.Code;
 using Metalama.Framework.Diagnostics;
-using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Diagnostics;
-using Metalama.Framework.Engine.Fabrics;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities.UserCode;
 using Metalama.Framework.Options;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -40,7 +37,7 @@ public sealed partial class HierarchicalOptionsManager : IHierarchicalOptionsMan
     {
         // We get the type resolver lazily because several tests do not supply it.
 
-        this._typeResolver ??= this._serviceProvider.GetRequiredService<ProjectSpecificCompileTimeTypeResolver.Provider>()
+        this._typeResolver ??= this._serviceProvider.GetRequiredService<CompilationServiceProvider<ProjectSpecificCompileTimeTypeResolver>>()
             .Get( compilationModel.CompilationContext );
 
         var type = compilationModel.Factory.GetTypeByReflectionName( typeName );
@@ -56,7 +53,7 @@ public sealed partial class HierarchicalOptionsManager : IHierarchicalOptionsMan
 
     internal Task InitializeAsync(
         CompileTimeProject project,
-        ImmutableArray<IHierarchicalOptionsSource> sources,
+        IEnumerable<IHierarchicalOptionsSource> sources,
         IExternalHierarchicalOptionsProvider? externalOptionsProvider,
         CompilationModel compilationModel,
         IUserDiagnosticSink diagnosticSink,
@@ -75,7 +72,7 @@ public sealed partial class HierarchicalOptionsManager : IHierarchicalOptionsMan
 
         foreach ( var optionTypeName in project.ClosureOptionTypes )
         {
-            var userCodeExecutionContext = new UserCodeExecutionContext(
+            var userCodeExecutionContext = UserCodeExecutionContext.CreateInstance(
                 this._serviceProvider,
                 UserCodeDescription.Create( "Initializing options '{0}'", optionTypeName ),
                 compilationModel,
@@ -140,16 +137,15 @@ public sealed partial class HierarchicalOptionsManager : IHierarchicalOptionsMan
         IUserDiagnosticSink diagnosticSink,
         CancellationToken cancellationToken )
     {
-        var collector = new OutboundActionCollector( diagnosticSink );
-        await source.CollectOptionsAsync( new OutboundActionCollectionContext( collector, compilationModel, cancellationToken ) );
+        await source.CollectOptionsAsync( compilationModel, AddOption, diagnosticSink, cancellationToken );
 
-        foreach ( var configurator in collector.HierarchicalOptions )
+        void AddOption( HierarchicalOptionsInstance option )
         {
-            var optionTypeName = configurator.Options.GetType().FullName.AssertNotNull();
+            var optionTypeName = option.Options.GetType().FullName.AssertNotNull();
 
             var optionTypeNode = this.GetOptionTypeNode( optionTypeName );
 
-            optionTypeNode.AddOptionsInstance( configurator, diagnosticSink );
+            optionTypeNode.AddOptionsInstance( option, diagnosticSink );
         }
     }
 

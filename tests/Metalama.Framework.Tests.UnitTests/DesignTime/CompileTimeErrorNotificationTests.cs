@@ -1,9 +1,8 @@
 ﻿// Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
-using Metalama.Framework.DesignTime.VisualStudio;
+using Metalama.Framework.DesignTime.VisualStudio.CompileTimeCodeEditingStatus;
 using Metalama.Framework.Engine.Pipeline.DesignTime;
-using Metalama.Framework.Engine.Services;
-using Metalama.Framework.Services;
+using Metalama.Framework.Tests.UnitTestHelpers.TestClasses;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -21,10 +20,8 @@ public sealed class CompileTimeErrorNotificationTests : DistributedDesignTimeTes
     [Fact]
     public async Task EndToEnd()
     {
-        var analysisProcessServices = new ServiceProviderBuilder<IGlobalService>();
-
         // Initialize the components.
-        using var testContext = this.CreateDistributedDesignTimeTestContext( null, analysisProcessServices, null );
+        using var testContext = this.CreateDistributedDesignTimeTestContext();
 
         await testContext.WhenFullyInitialized;
 
@@ -46,12 +43,26 @@ public sealed class CompileTimeErrorNotificationTests : DistributedDesignTimeTes
                                      """;
 
         // Initialize the workspace. We are initializing it with an error to check that we get the initial state correctly.
-        var projectKey = testContext.WorkspaceProvider.AddOrUpdateProject( "project", new Dictionary<string, string> { ["code.cs"] = codeWithError } );
-        await testContext.AnalysisProcessEndpoint.RegisterProjectAsync( projectKey );
+        var projectKey = testContext.WorkspaceProvider.AddOrUpdateProject(
+            testContext,
+            "project",
+            new Dictionary<string, string> { ["code.cs"] = codeWithError } );
+
+        await testContext.RpcServiceProviderEndpoint.RegisterProjectAsync( projectKey, testContext.CancellationToken );
 
         // Register a synchronization point.
         var hasCompilerErrorData = new TaskCompletionSource<bool>();
-        testContext.UserProcessServiceHubEndpoint.Endpoints.Single().CompileTimeErrorsChanged += _ => hasCompilerErrorData.TrySetResult( true );
+
+        testContext.ServiceHubServerEndpoint.ServiceHub.Endpoints.Single().EventReceived += eventData =>
+        {
+            if ( eventData is CompileTimeErrorsChangedEventData )
+            {
+                hasCompilerErrorData.TrySetResult( true );
+            }
+        };
+
+        // Instantiate the CompileTimeEditingStatusService. It should start getting the messages.
+        var errorService = new CompileTimeEditingStatusService( testContext.UserProcessServiceProvider );
 
         // Execute the pipeline to get the errors.
         var project = testContext.WorkspaceProvider.GetProject( "project" );
@@ -63,9 +74,6 @@ public sealed class CompileTimeErrorNotificationTests : DistributedDesignTimeTes
         // Make sure we create CompileTimeEditingStatusService after the pipeline has first executed.
         await hasCompilerErrorData.Task;
 
-        // Instantiate the service.
-        var errorService = new CompileTimeEditingStatusService( testContext.UserProcessServiceProvider );
-
         // Check that we have errors.
         Assert.NotEmpty( errorService.CompileTimeErrors );
 
@@ -73,7 +81,7 @@ public sealed class CompileTimeErrorNotificationTests : DistributedDesignTimeTes
         var hasCompilerErrorData2 = new TaskCompletionSource<bool>();
         errorService.CompileTimeErrorsChanged += () => hasCompilerErrorData2.SetResult( true );
 
-        testContext.WorkspaceProvider.AddOrUpdateProject( "project", new Dictionary<string, string> { ["code.cs"] = "" } );
+        testContext.WorkspaceProvider.AddOrUpdateProject( testContext, "project", new Dictionary<string, string> { ["code.cs"] = "" } );
 
         var result2 = await pipeline.ExecuteAsync(
             (await testContext.WorkspaceProvider.GetProject( "project" ).GetCompilationAsync())!,

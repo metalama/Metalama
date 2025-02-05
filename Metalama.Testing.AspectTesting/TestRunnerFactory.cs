@@ -1,7 +1,6 @@
 // Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
 using Metalama.Backstage.Diagnostics;
-using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Testing.UnitTesting;
@@ -24,26 +23,6 @@ namespace Metalama.Testing.AspectTesting
             if ( logger != null && testInput.Options.EnableLogging.GetValueOrDefault() )
             {
                 serviceProvider = serviceProvider.Underlying.WithUntypedService( typeof(ILoggerFactory), new XunitLoggerFactory( logger ) );
-            }
-
-            // Create the ILicenseKeyProvider.
-            ILicenseKeyProvider? licenseKeyProvider;
-
-            if ( !string.IsNullOrEmpty( testInput.Options.LicenseKeyProviderType ) )
-            {
-                var typeName = testInput.Options.LicenseKeyProviderType;
-
-                if ( !typeName.ContainsOrdinal( ',' ) && testInput.ProjectProperties.AssemblyName != null )
-                {
-                    typeName = $"{typeName}, {testInput.ProjectProperties.AssemblyName}";
-                }
-
-                var licenseKeyProviderType = Type.GetType( typeName ).AssertNotNull();
-                licenseKeyProvider = (ILicenseKeyProvider) Activator.CreateInstance( licenseKeyProviderType )!;
-            }
-            else
-            {
-                licenseKeyProvider = null;
             }
 
             // Create the ITestRunnerFactory.
@@ -102,8 +81,7 @@ namespace Metalama.Testing.AspectTesting
                 serviceProvider,
                 testInput.ProjectDirectory,
                 references,
-                logger,
-                licenseKeyProvider );
+                logger );
         }
     }
 }

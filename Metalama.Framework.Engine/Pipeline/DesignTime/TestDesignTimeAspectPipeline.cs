@@ -1,7 +1,6 @@
 ﻿// Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
 using Metalama.Framework.Engine.CodeModel;
-using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Templating;
@@ -15,7 +14,7 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime;
 
 public sealed class TestDesignTimeAspectPipeline : BaseDesignTimeAspectPipeline
 {
-    public TestDesignTimeAspectPipeline( in ProjectServiceProvider serviceProvider, CompileTimeDomain? domain ) : base( serviceProvider, domain ) { }
+    public TestDesignTimeAspectPipeline( in ProjectServiceProvider serviceProvider ) : base( serviceProvider ) { }
 
     public async Task<TestDesignTimeAspectPipelineResult> ExecuteAsync( Compilation inputCompilation )
     {
@@ -38,7 +37,7 @@ public sealed class TestDesignTimeAspectPipeline : BaseDesignTimeAspectPipeline
                 CancellationToken.None );
         }
 
-        if ( !this.TryInitialize( diagnosticList, partialCompilation.Compilation, null, null, CancellationToken.None, out var configuration ) )
+        if ( !this.TryInitialize( diagnosticList, partialCompilation.Compilation, null, CancellationToken.None, out var configuration ) )
         {
             return new TestDesignTimeAspectPipelineResult(
                 false,

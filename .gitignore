@@ -57,3 +57,4 @@ coverage.json
 /docker-source-dependencies
 .sonarqube
 /.config/dotnet-tools.json
+.generated

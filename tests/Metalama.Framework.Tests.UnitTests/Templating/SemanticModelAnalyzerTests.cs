@@ -16,7 +16,7 @@ namespace Metalama.Framework.Tests.UnitTests.Templating
         {
             using var testContext = this.CreateTestContext();
 
-            var compilation = TestCompilationFactory.CreateCSharpCompilation(
+            var compilation = testContext.CreateCSharpCompilation(
                 @"
 using Metalama.Framework.Code;
 
@@ -45,7 +45,7 @@ class X { void M() { IMethod m; } }
         {
             using var testContext = this.CreateTestContext();
 
-            var compilation = TestCompilationFactory.CreateCSharpCompilation(
+            var compilation = testContext.CreateCSharpCompilation(
                 @"
 class X : Metalama.Framework.Aspects.OverrideMethodAspect {  public override dynamic? OverrideMethod() { return null; } }
 

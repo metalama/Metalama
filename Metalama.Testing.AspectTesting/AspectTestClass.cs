@@ -104,7 +104,8 @@ public abstract class AspectTestClass
         var testInputFactory = new TestInput.Factory();
         var testInput = testInputFactory.FromFile( assemblyAssets.ProjectProperties, assemblyAssets.OptionsReader, projectRelativePath );
 
-        var testOptions = testInput.Options.ApplyToTestContextOptions( new TestContextOptions { References = projectReferences.MetadataReferences } );
+        var testOptions =
+            testInput.Options.ApplyToTestContextOptions( new TestContextOptions { AdditionalMetadataReferences = projectReferences.MetadataReferences } );
 
         var testRunner = TestRunnerFactory.CreateTestRunner( testInput, this._serviceProvider, projectReferences, this._logger );
         await testRunner.RunAndAssertAsync( testInput, testOptions );

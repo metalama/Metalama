@@ -19,6 +19,7 @@
 
     <ItemGroup>
         <ProjectReference Include="../Metalama.Framework.CompilerExtensions/Metalama.Framework.CompilerExtensions.csproj"/>
+		<Compile Include="..\Metalama.Framework.DesignTime\RoslynEntryPointTypeNames.cs" Link="RoslynEntryPointTypeNames.cs" />
     </ItemGroup>
 
 </Project>

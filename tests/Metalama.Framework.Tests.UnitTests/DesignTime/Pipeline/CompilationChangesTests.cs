@@ -7,7 +7,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Xunit;
-using static Metalama.Testing.UnitTesting.TestCompilationFactory;
 
 namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline;
 
@@ -20,8 +19,8 @@ public sealed partial class CompilationChangesTests
     {
         using var testContext = this.CreateTestContext();
         var code = new Dictionary<string, string> { { "code.cs", "" } };
-        var compilation1 = CreateCSharpCompilation( code ).WithReferences( Enumerable.Empty<MetadataReference>() );
-        var compilation2 = CreateCSharpCompilation( code );
+        var compilation1 = testContext.CreateCSharpCompilation( code ).WithReferences( Enumerable.Empty<MetadataReference>() );
+        var compilation2 = testContext.CreateCSharpCompilation( code );
 
         var projectVersionProvider = new ProjectVersionProvider( testContext.ServiceProvider, true );
         var changes = await projectVersionProvider.GetCompilationChangesAsync( compilation1, compilation2 );
@@ -34,18 +33,18 @@ public sealed partial class CompilationChangesTests
     {
         using var testContext = this.CreateTestContext();
         var code = new Dictionary<string, string> { { "code.cs", "" } };
-        var masterCompilation1 = CreateCSharpCompilation( code, name: "Master" ).WithReferences( Enumerable.Empty<MetadataReference>() );
+        var masterCompilation1 = testContext.CreateCSharpCompilation( code, assemblyName: "Master" ).WithReferences( Enumerable.Empty<MetadataReference>() );
 
-        var dependentCompilation1 = CreateCSharpCompilation(
+        var dependentCompilation1 = testContext.CreateCSharpCompilation(
             code,
-            name: "Dependent",
+            assemblyName: "Dependent",
             additionalReferences: new[] { masterCompilation1.ToMetadataReference() } );
 
-        var masterCompilation2 = CreateCSharpCompilation( code, name: "Master" );
+        var masterCompilation2 = testContext.CreateCSharpCompilation( code, assemblyName: "Master" );
 
-        var dependentCompilation2 = CreateCSharpCompilation(
+        var dependentCompilation2 = testContext.CreateCSharpCompilation(
             code,
-            name: "Dependent",
+            assemblyName: "Dependent",
             additionalReferences: new[] { masterCompilation2.ToMetadataReference() } );
 
         var projectVersionProvider = new ProjectVersionProvider( testContext.ServiceProvider, true );
@@ -62,22 +61,22 @@ public sealed partial class CompilationChangesTests
 
         var code1 = new Dictionary<string, string> { { "code.cs", "class C1;" } };
 
-        var dependencyCompilation1 = CreateCSharpCompilation( code1, name: "Dependency" );
-        var mainCompilation1 = CreateEmptyCSharpCompilation( "Main", [dependencyCompilation1.ToMetadataReference()] );
+        var dependencyCompilation1 = testContext.CreateCSharpCompilation( code1, assemblyName: "Dependency" );
+        var mainCompilation1 = testContext.CreateEmptyCSharpCompilation( "Main", [dependencyCompilation1.ToMetadataReference()] );
 
         var mainProjectVersion1 = await projectVersionProvider.GetCompilationVersionAsync( mainCompilation1 );
 
         var code2 = new Dictionary<string, string> { { "code.cs", "class C2;" } };
 
-        var dependencyCompilation2 = CreateCSharpCompilation( code2, name: "Dependency" );
-        var mainCompilation2 = CreateEmptyCSharpCompilation( "Main", [dependencyCompilation2.ToMetadataReference()] );
+        var dependencyCompilation2 = testContext.CreateCSharpCompilation( code2, assemblyName: "Dependency" );
+        var mainCompilation2 = testContext.CreateEmptyCSharpCompilation( "Main", [dependencyCompilation2.ToMetadataReference()] );
 
         var changes12 = await projectVersionProvider.GetCompilationChangesAsync( mainCompilation1, mainCompilation2 );
         Assert.Same( mainProjectVersion1, changes12.OldProjectVersionDangerous );
         Assert.Same( mainCompilation2, changes12.NewProjectVersion.Compilation );
 
-        var dependencyCompilation3 = CreateCSharpCompilation( code2, name: "Dependency" );
-        var mainCompilation3 = CreateEmptyCSharpCompilation( "Main", [dependencyCompilation3.ToMetadataReference()] );
+        var dependencyCompilation3 = testContext.CreateCSharpCompilation( code2, assemblyName: "Dependency" );
+        var mainCompilation3 = testContext.CreateEmptyCSharpCompilation( "Main", [dependencyCompilation3.ToMetadataReference()] );
 
         var changes13 = await projectVersionProvider.GetCompilationChangesAsync( mainCompilation1, mainCompilation3 );
         Assert.Same( mainProjectVersion1, changes13.OldProjectVersionDangerous );
@@ -98,13 +97,13 @@ public sealed partial class CompilationChangesTests
 
         var code1 = new Dictionary<string, string> { { "code.cs", "class C1;" } };
 
-        var dependencyCompilation1 = CreateCSharpCompilation( code1, name: "Dependency" );
-        var mainCompilation1 = CreateEmptyCSharpCompilation( "Main", [dependencyCompilation1.ToMetadataReference()] );
+        var dependencyCompilation1 = testContext.CreateCSharpCompilation( code1, assemblyName: "Dependency" );
+        var mainCompilation1 = testContext.CreateEmptyCSharpCompilation( "Main", [dependencyCompilation1.ToMetadataReference()] );
 
         var mainProjectVersion1 = await projectVersionProvider.GetCompilationVersionAsync( mainCompilation1 );
 
-        var dependencyCompilation2 = CreateCSharpCompilation( code1, name: "Dependency" );
-        var mainCompilation2 = CreateEmptyCSharpCompilation( "Main", [dependencyCompilation2.ToMetadataReference()] );
+        var dependencyCompilation2 = testContext.CreateCSharpCompilation( code1, assemblyName: "Dependency" );
+        var mainCompilation2 = testContext.CreateEmptyCSharpCompilation( "Main", [dependencyCompilation2.ToMetadataReference()] );
 
         var changes12 = await projectVersionProvider.GetCompilationChangesAsync( mainCompilation1, mainCompilation2 );
         Assert.Same( mainProjectVersion1, changes12.OldProjectVersionDangerous );
@@ -112,8 +111,8 @@ public sealed partial class CompilationChangesTests
 
         var code3 = new Dictionary<string, string> { { "code.cs", "class C3;" } };
 
-        var dependencyCompilation3 = CreateCSharpCompilation( code3, name: "Dependency" );
-        var mainCompilation3 = CreateEmptyCSharpCompilation( "Main", [dependencyCompilation3.ToMetadataReference()] );
+        var dependencyCompilation3 = testContext.CreateCSharpCompilation( code3, assemblyName: "Dependency" );
+        var mainCompilation3 = testContext.CreateEmptyCSharpCompilation( "Main", [dependencyCompilation3.ToMetadataReference()] );
 
         var changes13 = await projectVersionProvider.GetCompilationChangesAsync( mainCompilation1, mainCompilation3 );
         Assert.Same( mainProjectVersion1, changes13.OldProjectVersionDangerous );
@@ -132,18 +131,18 @@ public sealed partial class CompilationChangesTests
         using var testContext = this.CreateTestContext();
         var projectVersionProvider = new ProjectVersionProvider( testContext.ServiceProvider, true );
 
-        var mainCompilation1 = CreateEmptyCSharpCompilation( "Main" );
+        var mainCompilation1 = testContext.CreateEmptyCSharpCompilation( "Main" );
 
         var mainProjectVersion1 = await projectVersionProvider.GetCompilationVersionAsync( mainCompilation1 );
 
-        var dependencyCompilation2 = CreateEmptyCSharpCompilation( "Dependency" );
-        var mainCompilation2 = CreateEmptyCSharpCompilation( "Main", [dependencyCompilation2.ToMetadataReference()] );
+        var dependencyCompilation2 = testContext.CreateEmptyCSharpCompilation( "Dependency" );
+        var mainCompilation2 = testContext.CreateEmptyCSharpCompilation( "Main", [dependencyCompilation2.ToMetadataReference()] );
 
         var changes12 = await projectVersionProvider.GetCompilationChangesAsync( mainCompilation1, mainCompilation2 );
         Assert.Same( mainProjectVersion1, changes12.OldProjectVersionDangerous );
         Assert.Same( mainCompilation2, changes12.NewProjectVersion.Compilation );
 
-        var mainCompilation3 = CreateEmptyCSharpCompilation( "Main" );
+        var mainCompilation3 = testContext.CreateEmptyCSharpCompilation( "Main" );
 
         var changes13 = await projectVersionProvider.GetCompilationChangesAsync( mainCompilation1, mainCompilation3 );
         Assert.Same( mainProjectVersion1, changes13.OldProjectVersionDangerous );
@@ -158,14 +157,14 @@ public sealed partial class CompilationChangesTests
         using var testContext = this.CreateTestContext();
         var projectVersionProvider = new ProjectVersionProvider( testContext.ServiceProvider, true );
 
-        var mainCompilation1 = CreateEmptyCSharpCompilation( "Main" );
+        var mainCompilation1 = testContext.CreateEmptyCSharpCompilation( "Main" );
 
         var mainProjectVersion1 = await projectVersionProvider.GetCompilationVersionAsync( mainCompilation1 );
 
         var code2 = new Dictionary<string, string> { { "code.cs", "class C2;" } };
 
-        var dependencyCompilation2 = CreateCSharpCompilation( code2, name: "Dependency" );
-        var mainCompilation2 = CreateEmptyCSharpCompilation( "Main", [dependencyCompilation2.ToMetadataReference()] );
+        var dependencyCompilation2 = testContext.CreateCSharpCompilation( code2, assemblyName: "Dependency" );
+        var mainCompilation2 = testContext.CreateEmptyCSharpCompilation( "Main", [dependencyCompilation2.ToMetadataReference()] );
 
         var changes12 = await projectVersionProvider.GetCompilationChangesAsync( mainCompilation1, mainCompilation2 );
         Assert.Same( mainProjectVersion1, changes12.OldProjectVersionDangerous );
@@ -173,8 +172,8 @@ public sealed partial class CompilationChangesTests
 
         var code3 = new Dictionary<string, string> { { "code.cs", "class C3;" } };
 
-        var dependencyCompilation3 = CreateCSharpCompilation( code3, name: "Dependency" );
-        var mainCompilation3 = CreateEmptyCSharpCompilation( "Main", [dependencyCompilation3.ToMetadataReference()] );
+        var dependencyCompilation3 = testContext.CreateCSharpCompilation( code3, assemblyName: "Dependency" );
+        var mainCompilation3 = testContext.CreateEmptyCSharpCompilation( "Main", [dependencyCompilation3.ToMetadataReference()] );
 
         var changes13 = await projectVersionProvider.GetCompilationChangesAsync( mainCompilation1, mainCompilation3 );
         Assert.Same( mainProjectVersion1, changes13.OldProjectVersionDangerous );
@@ -195,15 +194,15 @@ public sealed partial class CompilationChangesTests
 
         var code1 = new Dictionary<string, string> { { "code.cs", "class C1;" } };
 
-        var dependencyCompilation1 = CreateCSharpCompilation( code1, name: "Dependency" );
-        var mainCompilation1 = CreateEmptyCSharpCompilation( "Main", [dependencyCompilation1.ToMetadataReference()] );
+        var dependencyCompilation1 = testContext.CreateCSharpCompilation( code1, assemblyName: "Dependency" );
+        var mainCompilation1 = testContext.CreateEmptyCSharpCompilation( "Main", [dependencyCompilation1.ToMetadataReference()] );
 
         var mainProjectVersion1 = await projectVersionProvider.GetCompilationVersionAsync( mainCompilation1 );
 
         var code2 = new Dictionary<string, string> { { "code.cs", "class C2;" } };
 
-        var dependencyCompilation2 = CreateCSharpCompilation( code2, name: "Dependency" );
-        var mainCompilation2 = CreateEmptyCSharpCompilation( "Main", [dependencyCompilation2.ToMetadataReference()] );
+        var dependencyCompilation2 = testContext.CreateCSharpCompilation( code2, assemblyName: "Dependency" );
+        var mainCompilation2 = testContext.CreateEmptyCSharpCompilation( "Main", [dependencyCompilation2.ToMetadataReference()] );
 
         var changes12 = await projectVersionProvider.GetCompilationChangesAsync( mainCompilation1, mainCompilation2 );
         Assert.Same( mainProjectVersion1, changes12.OldProjectVersionDangerous );
@@ -211,8 +210,8 @@ public sealed partial class CompilationChangesTests
 
         var code3 = new Dictionary<string, string> { { "code.cs", "class C3;" } };
 
-        var dependencyCompilation3 = CreateCSharpCompilation( code3, name: "Dependency" );
-        var mainCompilation3 = CreateEmptyCSharpCompilation( "Main", [dependencyCompilation3.ToMetadataReference()] );
+        var dependencyCompilation3 = testContext.CreateCSharpCompilation( code3, assemblyName: "Dependency" );
+        var mainCompilation3 = testContext.CreateEmptyCSharpCompilation( "Main", [dependencyCompilation3.ToMetadataReference()] );
 
         var changes13 = await projectVersionProvider.GetCompilationChangesAsync( mainCompilation1, mainCompilation3 );
         Assert.Same( mainProjectVersion1, changes13.OldProjectVersionDangerous );
@@ -233,21 +232,21 @@ public sealed partial class CompilationChangesTests
 
         var code1 = new Dictionary<string, string> { { "code.cs", "class C1;" } };
 
-        var dependencyCompilation1 = CreateCSharpCompilation( code1, name: "Dependency" );
-        var mainCompilation1 = CreateEmptyCSharpCompilation( "Main", [dependencyCompilation1.ToMetadataReference()] );
+        var dependencyCompilation1 = testContext.CreateCSharpCompilation( code1, assemblyName: "Dependency" );
+        var mainCompilation1 = testContext.CreateEmptyCSharpCompilation( "Main", [dependencyCompilation1.ToMetadataReference()] );
 
         var mainProjectVersion1 = await projectVersionProvider.GetCompilationVersionAsync( mainCompilation1 );
 
         var code2 = new Dictionary<string, string> { { "code.cs", "class C2;" } };
 
-        var dependencyCompilation2 = CreateCSharpCompilation( code2, name: "Dependency" );
-        var mainCompilation2 = CreateEmptyCSharpCompilation( "Main", [dependencyCompilation2.ToMetadataReference()] );
+        var dependencyCompilation2 = testContext.CreateCSharpCompilation( code2, assemblyName: "Dependency" );
+        var mainCompilation2 = testContext.CreateEmptyCSharpCompilation( "Main", [dependencyCompilation2.ToMetadataReference()] );
 
         var changes12 = await projectVersionProvider.GetCompilationChangesAsync( mainCompilation1, mainCompilation2 );
         Assert.Same( mainProjectVersion1, changes12.OldProjectVersionDangerous );
         Assert.Same( mainCompilation2, changes12.NewProjectVersion.Compilation );
 
-        var mainCompilation3 = CreateEmptyCSharpCompilation( "Main" );
+        var mainCompilation3 = testContext.CreateEmptyCSharpCompilation( "Main" );
 
         var changes13 = await projectVersionProvider.GetCompilationChangesAsync( mainCompilation1, mainCompilation3 );
         Assert.Same( mainProjectVersion1, changes13.OldProjectVersionDangerous );
@@ -269,21 +268,22 @@ public sealed partial class CompilationChangesTests
         var projectVersionProvider = new ProjectVersionProvider( testContext.ServiceProvider, true );
 
         var code = new Dictionary<string, string> { { "code.cs", "class C;" } };
-        var dependencyCompilation1 = CreateCSharpCompilation( code, name: "Dependency" );
-        var mainCompilation1 = CreateEmptyCSharpCompilation( "Main", [dependencyCompilation1.ToMetadataReference()] );
+        var dependencyCompilation1 = testContext.CreateCSharpCompilation( code, assemblyName: "Dependency" );
+        var mainCompilation1 = testContext.CreateEmptyCSharpCompilation( "Main", [dependencyCompilation1.ToMetadataReference()] );
 
         var code3 = new Dictionary<string, string> { { "code.cs", "class C3;" } };
-        var dependencyCompilation3 = CreateCSharpCompilation( code3, name: "Dependency" );
-        var mainCompilation3 = CreateEmptyCSharpCompilation( "Main", [dependencyCompilation3.ToMetadataReference()] );
+        var dependencyCompilation3 = testContext.CreateCSharpCompilation( code3, assemblyName: "Dependency" );
+        var mainCompilation3 = testContext.CreateEmptyCSharpCompilation( "Main", [dependencyCompilation3.ToMetadataReference()] );
 
         var code4 = new Dictionary<string, string> { { "code.cs", "class C4;" } };
-        var dependencyCompilation4 = CreateCSharpCompilation( code4, name: "Dependency" );
-        var mainCompilation4 = CreateEmptyCSharpCompilation( "Main", [dependencyCompilation4.ToMetadataReference()] );
+        var dependencyCompilation4 = testContext.CreateCSharpCompilation( code4, assemblyName: "Dependency" );
+        var mainCompilation4 = testContext.CreateEmptyCSharpCompilation( "Main", [dependencyCompilation4.ToMetadataReference()] );
 
         async Task Impl()
         {
-            var dependencyCompilation2 = CreateCSharpCompilation( code, name: "Dependency" );
-            var mainCompilation2 = CreateEmptyCSharpCompilation( "Main", [dependencyCompilation2.ToMetadataReference()] );
+            // ReSharper disable AccessToDisposedClosure
+            var dependencyCompilation2 = testContext.CreateCSharpCompilation( code, assemblyName: "Dependency" );
+            var mainCompilation2 = testContext.CreateEmptyCSharpCompilation( "Main", [dependencyCompilation2.ToMetadataReference()] );
 
             await projectVersionProvider.GetCompilationChangesAsync( mainCompilation1, mainCompilation2 );
 

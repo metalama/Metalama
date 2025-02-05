@@ -47,7 +47,7 @@
             
 
     <ItemGroup>
-        <ProjectReference Include="../Metalama.Framework.EditorExtensions/Metalama.Framework.EditorExtensions.csproj" PrivateAssets="all" />
+        <ProjectReference Include="..\Metalama.Framework.EditorExtensions\Metalama.Framework.EditorExtensions.csproj" PrivateAssets="all" />
         <ProjectReference Include="../Metalama.Framework.CompilerExtensions/Metalama.Framework.CompilerExtensions.csproj" PrivateAssets="all" />
 
         <!-- Adding PrivateAssets="none" here below is important otherwise PrivateAssets="all" will be transitively inherited from the ProjectReference above -->

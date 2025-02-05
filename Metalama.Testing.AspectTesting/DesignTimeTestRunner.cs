@@ -18,9 +18,8 @@ namespace Metalama.Testing.AspectTesting
             GlobalServiceProvider serviceProvider,
             string? projectDirectory,
             TestProjectReferences references,
-            ITestOutputHelper? logger,
-            ILicenseKeyProvider? licenseKeyProvider )
-            : base( serviceProvider, projectDirectory, references, logger, licenseKeyProvider ) { }
+            ITestOutputHelper? logger )
+            : base( serviceProvider, projectDirectory, references, logger ) { }
 
         protected override async Task RunAsync(
             TestInput testInput,
@@ -29,7 +28,7 @@ namespace Metalama.Testing.AspectTesting
         {
             await base.RunAsync( testInput, testResult, testContext );
 
-            using var pipeline = new TestDesignTimeAspectPipeline( testContext.ServiceProvider, testContext.Domain );
+            using var pipeline = new TestDesignTimeAspectPipeline( testContext.ServiceProvider );
 
             var pipelineResult = await pipeline.ExecuteAsync( testResult.InputCompilation! );
 

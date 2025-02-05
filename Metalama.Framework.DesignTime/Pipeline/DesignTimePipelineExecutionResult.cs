@@ -6,10 +6,10 @@ using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.Collections;
 using Metalama.Framework.Engine.Diagnostics;
+using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.HierarchicalOptions;
 using Metalama.Framework.Engine.Pipeline;
 using Metalama.Framework.Engine.Transformations;
-using Metalama.Framework.Engine.Validation;
 using Metalama.Framework.Options;
 using Microsoft.CodeAnalysis;
 using System.Collections.Immutable;
@@ -28,7 +28,7 @@ namespace Metalama.Framework.DesignTime.Pipeline
         ImmutableUserDiagnosticList Diagnostics,
         IReadOnlyList<InheritableAspectInstance> InheritableAspects,
         IReadOnlyList<KeyValuePair<HierarchicalOptionsKey, IHierarchicalOptions>> InheritableOptions,
-        ImmutableArray<ReferenceValidatorInstance> ReferenceValidators,
+        ImmutableArray<ITransitivePipelineContributor> Extensions,
         ImmutableArray<IAspectInstance> AspectInstances,
         IReadOnlyCollection<ITransformationBase> Transformations,
         ImmutableDictionaryOfArray<IRef<IDeclaration>, AnnotationInstance> Annotations );

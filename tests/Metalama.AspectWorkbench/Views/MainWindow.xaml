@@ -96,9 +96,7 @@
 
             <DockPanel Grid.Column="4" Visibility="{Binding Path=CompiledTemplateVisibility}">
                 <TextBlock DockPanel.Dock="Top">
-                    <Hyperlink Click="CompiledTemplateHyperlink_OnClick">
                         Compiled Template
-                    </Hyperlink>
                 </TextBlock>
                 <RichTextBox Name="compiledTemplateRichBox" IsReadOnly="True" HorizontalAlignment="Stretch"
                              VerticalAlignment="Stretch" HorizontalScrollBarVisibility="Auto"

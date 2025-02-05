@@ -66,7 +66,7 @@ public sealed class CompilationContext : ICompilationServices, ITemplateReflecti
     public SerializableTypeIdResolverForSymbol SerializableTypeIdResolver => new( this );
 
     [Memo]
-    internal SemanticModelProvider SemanticModelProvider => this.Compilation.GetSemanticModelProvider();
+    public SemanticModelProvider SemanticModelProvider => this.Compilation.GetSemanticModelProvider();
 
     [Memo]
     public SafeSymbolComparer SymbolComparer => new( this );
@@ -97,11 +97,11 @@ public sealed class CompilationContext : ICompilationServices, ITemplateReflecti
     [Memo]
     internal IEqualityComparer<IProperty> PropertyComparer => new MemberComparer<IProperty>( this.Comparers.Default );
 
-    internal SyntaxGenerationContext GetSyntaxGenerationContext( SyntaxGenerationOptions options, SyntaxNode node )
+    public SyntaxGenerationContext GetSyntaxGenerationContext( SyntaxGenerationOptions options, SyntaxNode node )
         => this.GetSyntaxGenerationContext( options, node.SyntaxTree, node.SpanStart );
 
     [PublicAPI]
-    internal SyntaxGenerationContext GetSyntaxGenerationContext( SyntaxGenerationOptions options, IRef reference )
+    public SyntaxGenerationContext GetSyntaxGenerationContext( SyntaxGenerationOptions options, IRef reference )
         => reference switch
         {
             ISymbolRef symbolRef => this.GetSyntaxGenerationContext( options, symbolRef.Symbol.GetPrimaryDeclarationSyntax().AssertNotNull() ),

@@ -3,6 +3,7 @@
 using Metalama.Framework.Code.Collections;
 using Metalama.Framework.DesignTime.Rpc;
 using Metalama.Framework.Engine.Aspects;
+using Metalama.Framework.Engine.Extensibility;
 using Microsoft.CodeAnalysis;
 using System.Collections.Immutable;
 
@@ -16,8 +17,8 @@ internal sealed class DesignTimeProjectVersion : ITransitiveAspectManifestProvid
 
     public IProjectVersion ProjectVersion { get; }
 
-    public IEnumerable<DesignTimeReferenceValidatorCollection> ReferencedValidatorCollections
-        => this._references.Values.Select( r => (r.TransitiveAspectsManifest as DesignTimeAspectPipelineResult)?.ReferenceValidators ).WhereNotNull();
+    public IEnumerable<DesignTimeAspectPipelineResultExtensionCollection> ReferencedExtensions
+        => this._references.Values.Select( r => (r.TransitiveAspectsManifest as DesignTimeAspectPipelineResult)?.Extensions ).WhereNotNull();
 
     public DesignTimeProjectVersion(
         IProjectVersion projectVersion,

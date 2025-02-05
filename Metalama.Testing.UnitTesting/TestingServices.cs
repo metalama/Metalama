@@ -9,15 +9,15 @@ namespace Metalama.Testing.UnitTesting;
 
 internal static class TestingServices
 {
-    public static ReferenceAssemblyLocatorProvider ReferenceAssemblyLocatorProvider { get; }
+    public static CompileTimeAssemblyLocatorProvider CompileTimeAssemblyLocatorProvider { get; }
 
     static TestingServices()
     {
         BackstageServiceFactoryInitializer.Initialize(
             new BackstageInitializationOptions( new TestApiApplicationInfo() ) { AddSupportServices = true, AddLicensing = true, AddDumperService = true } );
 
-        ReferenceAssemblyLocatorProvider =
-            new ReferenceAssemblyLocatorProvider( BackstageServiceFactory.ServiceProvider.GetRequiredBackstageService<ITempFileManager>() );
+        CompileTimeAssemblyLocatorProvider =
+            new CompileTimeAssemblyLocatorProvider( BackstageServiceFactory.ServiceProvider.GetRequiredBackstageService<ITempFileManager>() );
     }
 
     public static void Initialize() { }

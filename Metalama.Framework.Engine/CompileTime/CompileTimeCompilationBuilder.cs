@@ -55,7 +55,6 @@ internal sealed partial class CompileTimeCompilationBuilder
     private readonly Dictionary<ulong, CompileTimeProject> _cache = new();
     private readonly IProjectOptions? _projectOptions;
     private readonly ICompileTimeCompilationBuilderObserver? _observer;
-    private readonly ICompileTimeAssemblyBinaryRewriter? _rewriter;
     private readonly ILogger _logger;
     private readonly OutputPathHelper _outputPathHelper;
     private readonly ITaskRunner _taskRunner;
@@ -103,7 +102,6 @@ internal sealed partial class CompileTimeCompilationBuilder
         this._serviceProvider = serviceProvider.WithService( SyntaxGenerationOptions.Formatted, true );
         this._domain = domain;
         this._observer = serviceProvider.GetService<ICompileTimeCompilationBuilderObserver>();
-        this._rewriter = serviceProvider.Global.GetService<ICompileTimeAssemblyBinaryRewriter>();
         this._projectOptions = serviceProvider.GetService<IProjectOptions>();
         this._compilationContextFactory = serviceProvider.GetRequiredService<ClassifyingCompilationContextFactory>();
         this._logger = serviceProvider.GetLoggerFactory().CompileTime();
@@ -158,8 +156,7 @@ internal sealed partial class CompileTimeCompilationBuilder
     private ulong ComputeProjectHash(
         AssemblyIdentity assemblyIdentity,
         IEnumerable<CompileTimeProject> referencedProjects,
-        ulong sourceHash,
-        string? redistributionLicenseKey )
+        ulong sourceHash )
     {
         XXH64 h = new();
 
@@ -182,9 +179,6 @@ internal sealed partial class CompileTimeCompilationBuilder
 
         h.Update( sourceHash );
         this._logger.Trace?.Log( $"ProjectHash: Source={sourceHash:x}" );
-
-        h.Update( redistributionLicenseKey );
-        this._logger.Trace?.Log( $"ProjectHash: RedistributionLicenseKey={redistributionLicenseKey ?? "null"}" );
 
         if ( this._projectOptions != null )
         {
@@ -350,7 +344,7 @@ internal sealed partial class CompileTimeCompilationBuilder
     {
         var assemblyLocator = this._serviceProvider.GetReferenceAssemblyLocator();
         var preprocessorServiceProvider = this._serviceProvider.GetService<ICompileTimePreprocessorSymbolProvider>();
-
+        
         var preprocessorSymbols =
             preprocessorServiceProvider != null
                 ? preprocessorServiceProvider.PreprocessorSymbols.Concat( "NETSTANDARD_2_0" )
@@ -358,7 +352,7 @@ internal sealed partial class CompileTimeCompilationBuilder
 
         var parseOptions = new CSharpParseOptions( preprocessorSymbols: preprocessorSymbols, languageVersion: SupportedCSharpVersions.Default );
 
-        var standardReferences = assemblyLocator.StandardCompileTimeMetadataReferences;
+        var references = assemblyLocator.MetadataReferences;
 
         var predefinedSyntaxTrees =
             _predefinedTypesSyntaxTree.Value.SelectAsArray( x => CSharpSyntaxTree.ParseText( x.Value, parseOptions, x.Key, Encoding.UTF8 ) );
@@ -366,7 +360,7 @@ internal sealed partial class CompileTimeCompilationBuilder
         return CSharpCompilation.Create(
                 assemblyName,
                 predefinedSyntaxTrees,
-                standardReferences,
+                references,
                 new CSharpCompilationOptions( OutputKind.DynamicallyLinkedLibrary, deterministic: true, optimizationLevel: OptimizationLevel.Debug ) )
             .AddReferences(
                 referencedProjects
@@ -446,51 +440,31 @@ internal sealed partial class CompileTimeCompilationBuilder
 
             EmitResult? emitResult = null;
 
-            if ( this._rewriter != null )
-            {
-                // Metalama.Try defines a binary rewriter to inject Unbreakable.
-
-                MemoryStream memoryStream = new();
-                emitResult = compileTimeCompilation.Emit( memoryStream, options: emitOptions, cancellationToken: cancellationToken );
-
-                if ( emitResult.Success )
+            RetryHelper.RetryWithLockDetection(
+                outputPaths.Pe,
+                _ =>
                 {
-                    memoryStream.Seek( 0, SeekOrigin.Begin );
+                    // We don't write the PE stream directly to the final file because this operation is not atomic.
+                    // Instead, we write to a temporary file, and then we move this file to the final destination, because
+                    // moving a file is an atomic operation.
+                    // Otherwise the cache directory would be treated as corrupted because of PE file is one of cache keys.
 
-                    using ( var peStream = File.Create( outputPaths.Pe ) )
+                    var tempPeFileName = Path.ChangeExtension( outputPaths.Pe, "tmp" );
+
+                    using ( var peStream = File.Create( tempPeFileName ) )
+                    using ( var pdbStream = File.Create( outputPaths.Pdb ) )
                     {
-                        this._rewriter.Rewrite( memoryStream, peStream, outputPaths.Pe );
+                        emitResult = compileTimeCompilation.Emit( peStream, pdbStream, options: emitOptions, cancellationToken: cancellationToken );
                     }
-                }
-            }
-            else
-            {
-                RetryHelper.RetryWithLockDetection(
-                    outputPaths.Pe,
-                    _ =>
+
+                    if ( emitResult.Success )
                     {
-                        // We don't write the PE stream directly to the final file because this operation is not atomic.
-                        // Instead, we write to a temporary file, and then we move this file to the final destination, because
-                        // moving a file is an atomic operation.
-                        // Otherwise the cache directory would be treated as corrupted because of PE file is one of cache keys.
-
-                        var tempPeFileName = Path.ChangeExtension( outputPaths.Pe, "tmp" );
-
-                        using ( var peStream = File.Create( tempPeFileName ) )
-                        using ( var pdbStream = File.Create( outputPaths.Pdb ) )
-                        {
-                            emitResult = compileTimeCompilation.Emit( peStream, pdbStream, options: emitOptions, cancellationToken: cancellationToken );
-                        }
-
-                        if ( emitResult.Success )
-                        {
-                            // Only move the file if emit was successful.
-                            File.Move( tempPeFileName, outputPaths.Pe );
-                        }
-                    },
-                    this._serviceProvider.Underlying,
-                    logger: this._logger );
-            }
+                        // Only move the file if emit was successful.
+                        File.Move( tempPeFileName, outputPaths.Pe );
+                    }
+                },
+                this._serviceProvider.Underlying,
+                logger: this._logger );
 
             this._observer?.OnCompileTimeCompilationEmit( emitResult!.Diagnostics );
 
@@ -742,7 +716,6 @@ internal sealed partial class CompileTimeCompilationBuilder
 
     internal bool TryGetCompileTimeProject(
         Compilation compilation,
-        ProjectLicenseInfo? projectLicenseInfo,
         IReadOnlyList<SyntaxTree>? compileTimeTreesHint,
         IReadOnlyList<CompileTimeProject> referencedProjects,
         IDiagnosticAdder diagnosticSink,
@@ -751,7 +724,6 @@ internal sealed partial class CompileTimeCompilationBuilder
         CancellationToken cancellationToken )
         => this.TryGetCompileTimeProject(
             this._compilationContextFactory.GetInstance( compilation ),
-            projectLicenseInfo,
             compileTimeTreesHint,
             referencedProjects,
             diagnosticSink,
@@ -764,7 +736,6 @@ internal sealed partial class CompileTimeCompilationBuilder
     /// </summary>
     internal bool TryGetCompileTimeProject(
         ClassifyingCompilationContext compilationContext,
-        ProjectLicenseInfo? projectLicenseInfo,
         IReadOnlyList<SyntaxTree>? compileTimeTreesHint,
         IReadOnlyList<CompileTimeProject> referencedProjects,
         IDiagnosticAdder diagnosticSink,
@@ -790,7 +761,6 @@ internal sealed partial class CompileTimeCompilationBuilder
 
         return this.TryGetCompileTimeProjectImpl(
             compilationContext,
-            projectLicenseInfo,
             compileTimeArtifacts.SyntaxTrees,
             referencedProjects,
             compileTimeArtifacts.GlobalUsings,
@@ -830,7 +800,7 @@ internal sealed partial class CompileTimeCompilationBuilder
         // Deserialize the manifest.
         var manifest = CompileTimeProjectManifest.Deserialize( RetryHelper.Retry( () => File.OpenRead( outputPaths.Manifest ), logger: this._logger ) );
 
-        if ( !this.CheckManifestDiskCache( runTimeCompilation.AssemblyName, outputPaths, manifest, out wasInconsistent ) )
+        if ( !this.CheckManifestDiskCache( outputPaths, manifest, out wasInconsistent ) )
         {
             return false;
         }
@@ -897,7 +867,7 @@ internal sealed partial class CompileTimeCompilationBuilder
         return true;
     }
 
-    private bool CheckManifestDiskCache( string? assemblyName, OutputPaths outputPaths, CompileTimeProjectManifest manifest, out bool wasInconsistent )
+    private bool CheckManifestDiskCache( OutputPaths outputPaths, CompileTimeProjectManifest manifest, out bool wasInconsistent )
     {
         var directory = outputPaths.Directory;
 
@@ -916,13 +886,12 @@ internal sealed partial class CompileTimeCompilationBuilder
         }
 
         wasInconsistent = false;
-        
+
         return true;
     }
 
     private bool TryGetCompileTimeProjectImpl(
         ClassifyingCompilationContext compilationContext,
-        ProjectLicenseInfo? projectLicenseInfo,
         IReadOnlyList<SyntaxTree> sourceTreesWithCompileTimeCode,
         IReadOnlyList<CompileTimeProject> referencedProjects,
         ImmutableArray<UsingDirectiveSyntax> globalUsings,
@@ -935,7 +904,7 @@ internal sealed partial class CompileTimeCompilationBuilder
 
         // Check the in-process cache.
         var (sourceHash, projectHash, outputPaths) =
-            this.GetPreCacheProjectInfo( runTimeCompilation, sourceTreesWithCompileTimeCode, referencedProjects, projectLicenseInfo );
+            this.GetPreCacheProjectInfo( runTimeCompilation, sourceTreesWithCompileTimeCode, referencedProjects );
 
         void ReportCachedDiagnostics( CompileTimeProject project )
         {
@@ -1196,7 +1165,6 @@ internal sealed partial class CompileTimeCompilationBuilder
                             optionTypeNames,
                             referencedProjects.SelectAsImmutableArray( r => r.RunTimeIdentity.GetDisplayName() ),
                             compilationResultManifest,
-                            projectLicenseInfo?.RedistributionLicenseKey,
                             sourceHash,
                             textMapDirectory.FilesByTargetPath.Values.Select( f => new CompileTimeFileManifest( f ) ).ToArray(),
                             diagnostics.SelectAsArray( d => new CompileTimeDiagnosticManifest( d, sourceFilePathIndexes! ) ),
@@ -1235,14 +1203,13 @@ internal sealed partial class CompileTimeCompilationBuilder
     private (ulong SourceHash, ulong ProjectHash, OutputPaths OutputPaths) GetPreCacheProjectInfo(
         Compilation runTimeCompilation,
         IReadOnlyList<SyntaxTree> sourceTreesWithCompileTimeCode,
-        IEnumerable<CompileTimeProject> referencedProjects,
-        ProjectLicenseInfo? projectLicenseInfo )
+        IEnumerable<CompileTimeProject> referencedProjects )
     {
         var targetFramework = runTimeCompilation.GetTargetFramework();
         var assemblyIdentity = runTimeCompilation.Assembly.Identity;
 
         var sourceHash = this.ComputeSourceHash( targetFramework, sourceTreesWithCompileTimeCode );
-        var projectHash = this.ComputeProjectHash( assemblyIdentity, referencedProjects, sourceHash, projectLicenseInfo?.RedistributionLicenseKey );
+        var projectHash = this.ComputeProjectHash( assemblyIdentity, referencedProjects, sourceHash );
 
         var outputPaths = this._outputPathHelper.GetOutputPaths( runTimeCompilation.AssemblyName!, targetFramework, projectHash );
 
@@ -1267,7 +1234,7 @@ internal sealed partial class CompileTimeCompilationBuilder
         var targetFramework = string.IsNullOrEmpty( manifest.TargetFramework ) ? null : new FrameworkName( manifest.TargetFramework );
 
         this._logger.Trace?.Log( $"TryCompileDeserializedProject( '{runTimeAssemblyName}' )" );
-        var projectHash = this.ComputeProjectHash( runTimeAssemblyIdentity, referencedProjects, manifest.SourceHash, manifest.RedistributionLicenseKey );
+        var projectHash = this.ComputeProjectHash( runTimeAssemblyIdentity, referencedProjects, manifest.SourceHash );
 
         var outputPaths = this._outputPathHelper.GetOutputPaths( runTimeAssemblyName, targetFramework, projectHash );
 
@@ -1291,7 +1258,7 @@ internal sealed partial class CompileTimeCompilationBuilder
 
                     this._logger.Trace?.Log( $"TryCompileDeserializedProject( '{runTimeAssemblyName}' ): compile-time project already exists." );
 
-                    if ( this.CheckManifestDiskCache( runTimeAssemblyName, outputPaths, manifest, out wasInconsistent ) )
+                    if ( this.CheckManifestDiskCache( outputPaths, manifest, out wasInconsistent ) )
                     {
                         return true;
                     }

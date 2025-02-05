@@ -4,9 +4,8 @@ using Metalama.Framework.DesignTime.Contracts.EntryPoint;
 
 namespace Metalama.Framework.DesignTime.Services;
 
-public class DesignTimeUserProcessServiceProviderFactory : DesignTimeServiceProviderFactory
+internal class DesignTimeUserProcessServiceProviderFactory : DesignTimeServiceProviderFactory
 {
-    public DesignTimeUserProcessServiceProviderFactory() : this( null ) { }
-
-    public DesignTimeUserProcessServiceProviderFactory( DesignTimeEntryPointManager? entryPointManager ) : base( entryPointManager ) { }
+    public DesignTimeUserProcessServiceProviderFactory( DesignTimeEntryPointManager? entryPointManager )
+        : base( entryPointManager, DesignTimeProcessKind.VsUserProcess ) { }
 }

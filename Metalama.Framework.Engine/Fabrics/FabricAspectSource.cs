@@ -31,19 +31,15 @@ internal sealed class FabricAspectSource : IAspectSource
 
     ImmutableArray<IAspectClass> IAspectSource.AspectClasses => this._aspectClasses;
 
-    Task IAspectSource.CollectAspectInstancesAsync(
-        IAspectClass aspectClass,
-        OutboundActionCollectionContext context )
+    public Task CollectAspectInstancesAsync( AspectInstanceCollector collector )
     {
-        var compilation = context.Compilation;
-
         // Group drivers by their target declaration.
         var driversByTarget =
-            this._drivers.Select( x => (Driver: x, Target: x.GetTargetIfInPartialCompilation( compilation )) )
+            this._drivers.Select( x => (Driver: x, Target: x.GetTargetIfInPartialCompilation( collector.Compilation )) )
                 .Where( x => x.Target != null )
                 .GroupBy( x => x.Target!, x => x.Driver );
 
-        return this._concurrentTaskRunner.RunConcurrentlyAsync( driversByTarget, ProcessDriver, context.CancellationToken );
+        return this._concurrentTaskRunner.RunConcurrentlyAsync( driversByTarget, ProcessDriver, collector.CancellationToken );
 
         // Process target declarations.
         void ProcessDriver( IGrouping<IDeclaration, TypeFabricDriver> driverGroup )
@@ -51,20 +47,18 @@ internal sealed class FabricAspectSource : IAspectSource
             var target = driverGroup.Key;
 
             // Create template classes for all fabrics.
-            var compileTimeProject = this._fabricManager.CompileTimeProject;
-
             var drivers = driverGroup
                 .Select(
                     driver => new FabricTemplateClass(
                         this._fabricManager.ServiceProvider,
                         driver,
-                        driver.CompileTimeProject.TemplateReflectionContext ?? compilation.CompilationContext,
-                        context.Collector,
+                        driver.CompileTimeProject.TemplateReflectionContext ?? collector.Compilation.CompilationContext,
+                        collector.Diagnostics,
                         null ) )
                 .ToImmutableArray();
 
             // Create an aggregate aspect class composed of all fabric classes.
-            var aggregateClass = new FabricAggregateAspectClass( compileTimeProject, drivers.As<TemplateClass>() );
+            var aggregateClass = new FabricAggregateAspectClass( drivers.As<TemplateClass>() );
 
             // Create a TemplateInstance for each fabric.
             var templateInstances = drivers.Select( d => new TemplateClassInstance( TemplateProvider.FromInstance( d.Driver.Fabric ), d ) )
@@ -82,7 +76,7 @@ internal sealed class FabricAspectSource : IAspectSource
             // Creates the aggregate AspectInstance for the target declaration.
             var aggregateInstance = new AspectInstance( aspect, target, aggregateClass, templateInstances, ImmutableArray<AspectPredecessor>.Empty );
 
-            context.Collector.AddAspectInstance( aggregateInstance );
+            collector.AddAspectInstance( aggregateInstance );
         }
     }
 }

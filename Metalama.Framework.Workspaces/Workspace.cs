@@ -357,7 +357,6 @@ namespace Metalama.Framework.Workspaces
 
                 // Create our workspace project.
                 var ourProject = new Project(
-                    domain,
                     projectServiceProvider,
                     roslynProject.FilePath!,
                     compilation,

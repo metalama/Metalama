@@ -8,7 +8,6 @@ using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Formatting;
 using Metalama.Framework.Engine.Pipeline.CompileTime;
 using Metalama.Framework.Engine.Services;
-using Metalama.Testing.AspectTesting.Licensing;
 using Metalama.Testing.UnitTesting;
 using Microsoft.CodeAnalysis;
 using System;
@@ -45,9 +44,8 @@ internal class AspectTestRunner : BaseTestRunner
         GlobalServiceProvider serviceProvider,
         string? projectDirectory,
         TestProjectReferences references,
-        ITestOutputHelper? logger = null,
-        ILicenseKeyProvider? licenseKeyProvider = null )
-        : base( serviceProvider, projectDirectory, references, logger, licenseKeyProvider ) { }
+        ITestOutputHelper? logger = null )
+        : base( serviceProvider, projectDirectory, references, logger ) { }
 
     // We don't want the base class to report errors in the input compilation because the pipeline does.
 
@@ -82,28 +80,17 @@ internal class AspectTestRunner : BaseTestRunner
         }
 
         // Execute the pipeline with text formatting options.
-        var serviceProviderForThisTestWithoutLicensing = testContext.ServiceProvider
+        var serviceProviderForThisTest = testContext.ServiceProvider
             .WithService( new Observer( testContext.ServiceProvider, testResult ) )
             .WithService( new CompileTimePreprocessorSymbolProvider() );
 
-        var serviceProviderForThisTestWithLicensing = serviceProviderForThisTestWithoutLicensing
-            .AddLicenseConsumptionManagerForTest( testInput, this.LicenseKeyProvider );
-
         var testScenario = testInput.Options.TestScenario ?? TestScenario.Default;
 
-        var isLicensingRequiredForCompilation = testScenario switch
-        {
-            TestScenario.CodeFix => false,
-            TestScenario.CodeFixPreview => false,
-            TestScenario.Default => true,
-            _ => throw new InvalidOperationException( $"Unknown test scenario: {testScenario}" )
-        };
+        var serviceProvider = serviceProviderForThisTest;
 
-        var serviceProvider = isLicensingRequiredForCompilation ? serviceProviderForThisTestWithLicensing : serviceProviderForThisTestWithoutLicensing;
-
-        var pipeline = new CompileTimeAspectPipeline(
+        var pipeline = new TestCompileTimeAspectPipeline(
             serviceProvider,
-            testContext.Domain );
+            testInput.Options.TestScenario is TestScenario.CodeFix );
 
         var pipelineResult = await pipeline.ExecuteAsync(
             testResult.PipelineDiagnostics.Report,
@@ -116,15 +103,14 @@ internal class AspectTestRunner : BaseTestRunner
             switch ( testScenario )
             {
                 case TestScenario.CodeFix:
-                case TestScenario.CodeFixPreview:
                     {
                         // When we test code fixes, we don't apply the pipeline output, but we apply the code fix instead.
                         if ( !await ApplyCodeFixAsync(
+                                testContext,
                                 testInput,
                                 testResult,
                                 testContext.Domain,
-                                serviceProviderForThisTestWithLicensing,
-                                testInput.Options.TestScenario == TestScenario.CodeFixPreview ) )
+                                serviceProviderForThisTest ) )
                         {
                             return;
                         }
@@ -158,17 +144,32 @@ internal class AspectTestRunner : BaseTestRunner
     }
 
     private static async Task<bool> ApplyCodeFixAsync(
+        TestContext testContext,
         TestInput testInput,
         TestResult testResult,
         CompileTimeDomain domain,
-        ProjectServiceProvider serviceProvider,
-        bool isComputingPreview )
+        ProjectServiceProvider serviceProvider )
     {
-        var codeFixes = testResult.PipelineDiagnostics.SelectMany(
-            d => CodeFixTitles.GetCodeFixTitles( d ).SelectAsReadOnlyList( t => (Diagnostic: d, Title: t) ) );
+        var codeFixes = testResult.PipelineDiagnostics
+            .SelectMany( d => DiagnosticCodeFixHelper.GetCodeFixTitles( d ).SelectAsReadOnlyList( t => (Diagnostic: d, Title: t) ) )
+            .ToList();
 
-        var codeFix = codeFixes.ElementAt( testInput.Options.AppliedCodeFixIndex.GetValueOrDefault() );
-        var codeFixRunner = new StandaloneCodeFixRunner( domain, serviceProvider );
+        var codeFixIndex = testInput.Options.AppliedCodeFixIndex.GetValueOrDefault();
+
+        if ( codeFixIndex >= codeFixes.Count )
+        {
+            throw new AssertionFailedException( "Cannot find the code fix." );
+        }
+
+        var runnerFactory = testContext.PlugIns.OfType<IStandaloneCodeFixRunnerFactory>().SingleOrDefault();
+
+        if ( runnerFactory == null )
+        {
+            throw new InvalidOperationException( "Cannot find the code fix runner." );
+        }
+
+        var codeFix = codeFixes[codeFixIndex];
+        var codeFixRunner = runnerFactory.CreateCodeFixRunner( serviceProvider, domain );
 
         var codeActionResult = await codeFixRunner.ExecuteCodeFixAsync(
             testResult.InputCompilation.AssertNotNull(),
@@ -176,7 +177,6 @@ internal class AspectTestRunner : BaseTestRunner
             codeFix.Diagnostic.Id,
             codeFix.Diagnostic.Location.SourceSpan,
             codeFix.Title,
-            isComputingPreview,
             default );
 
         Assert.NotNull( codeActionResult );
@@ -266,14 +266,12 @@ internal class AspectTestRunner : BaseTestRunner
         // Execute the pipeline with unformatted options to check well-formness of syntax trees.
         if ( testInput.Options.TestUnformattedOutput == true )
         {
-            using var unformattedOptons = new TestProjectOptions( testContext.ProjectOptions, CodeFormattingOptions.None );
+            using var unformattedOptons = new TestProjectOptions( testContext.TestProjectOptions, CodeFormattingOptions.None );
 
             var unformattedServiceProvider =
                 testContext.ServiceProvider.WithService( unformattedOptons, true );
 
-            var unformattedPipeline = new CompileTimeAspectPipeline(
-                unformattedServiceProvider,
-                testContext.Domain );
+            var unformattedPipeline = new CompileTimeAspectPipeline( unformattedServiceProvider );
 
             var unformattedPipelineResult = await unformattedPipeline.ExecuteAsync(
                 null,

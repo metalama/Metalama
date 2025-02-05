@@ -1,6 +1,7 @@
 // Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
 using Metalama.Framework.Fabrics;
+using Metalama.Framework.Options;
 using System.Linq;
 
 namespace Doc.AspectConfiguration
@@ -16,11 +17,6 @@ namespace Doc.AspectConfiguration
             amender
                 .Select( x => x.GlobalNamespace.GetDescendant( "Doc.AspectConfiguration.Doc.ChildNamespace" )! )
                 .SetOptions( new LoggingOptions() { Category = "ChildCategory" } );
-
-            // Adds the aspect to all members.
-            amender
-                .SelectMany( c => c.Types.SelectMany( t => t.Methods ) )
-                .AddAspectIfEligible<LogAttribute>();
         }
     }
 }

@@ -7,7 +7,7 @@ using System.Collections.Generic;
 
 namespace Metalama.Framework.Engine.SyntaxGeneration;
 
-internal partial class ContextualSyntaxGenerator
+public partial class ContextualSyntaxGenerator
 {
     private sealed class SubstitutionRewriter : SafeSyntaxRewriter
     {

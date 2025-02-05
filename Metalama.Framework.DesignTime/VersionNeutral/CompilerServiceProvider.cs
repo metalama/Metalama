@@ -7,7 +7,7 @@ using System.Collections.Concurrent;
 
 namespace Metalama.Framework.DesignTime.VersionNeutral;
 
-public class CompilerServiceProvider : ICompilerServiceProvider
+internal class CompilerServiceProvider : ICompilerServiceProvider
 {
     private readonly ConcurrentDictionary<string, ICompilerService?> _services = new( StringComparer.Ordinal );
     private GlobalServiceProvider? _serviceProvider;

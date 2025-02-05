@@ -16,7 +16,7 @@ internal sealed class ImplementInterfaceAdviceResult : AdviceResult, IImplementI
 
     public ImplementInterfaceAdviceResult(
         AdviceOutcome outcome,
-        ImmutableArray<Diagnostic> diagnostics,
+        ImmutableArray<Diagnostic> reportedDiagnostics,
         IReadOnlyCollection<IInterfaceImplementationResult>? interfaces,
         IReadOnlyCollection<IInterfaceMemberImplementationResult>? interfaceMembers )
     {
@@ -24,7 +24,7 @@ internal sealed class ImplementInterfaceAdviceResult : AdviceResult, IImplementI
         this.Outcome = outcome;
         this.InterfaceMembers = interfaceMembers ?? Array.Empty<IInterfaceMemberImplementationResult>();
         this.Interfaces = interfaces ?? Array.Empty<IInterfaceImplementationResult>();
-        this.Diagnostics = diagnostics;
+        this.ReportedDiagnostics = reportedDiagnostics;
     }
 
     public IReadOnlyCollection<IInterfaceImplementationResult> Interfaces { get; } = Array.Empty<IInterfaceImplementationResult>();

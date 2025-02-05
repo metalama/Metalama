@@ -1,3 +1,4 @@
+[ApplyAspect]
 internal record MyRecord(int A, int B)
 {
   private readonly int _a = A;

@@ -4,7 +4,6 @@ using JetBrains.Annotations;
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.Collections;
 using Metalama.Framework.Engine.CodeModel.Factories;
-using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Introspection;
 using Metalama.Framework.Engine.Pipeline;
 using Metalama.Framework.Engine.Services;
@@ -22,7 +21,6 @@ namespace Metalama.Framework.Workspaces
     /// </summary>
     public sealed class Project : IProjectSet
     {
-        private readonly CompileTimeDomain _domain;
         private readonly ProjectServiceProvider _serviceProvider;
 
         public Compilation RoslynCompilation { get; }
@@ -42,14 +40,12 @@ namespace Metalama.Framework.Workspaces
         public string? TargetFramework => this._projectOptions.TargetFramework;
 
         internal Project(
-            CompileTimeDomain domain,
             ProjectServiceProvider serviceProvider,
             string path,
             Compilation compilation,
             WorkspaceProjectOptions projectOptions,
             IIntrospectionOptionsProvider? options )
         {
-            this._domain = domain;
             this._serviceProvider = serviceProvider;
             this.RoslynCompilation = compilation;
             this._projectOptions = projectOptions;
@@ -83,7 +79,7 @@ namespace Metalama.Framework.Workspaces
             }
             else
             {
-                var compiler = new IntrospectionCompiler( this._serviceProvider, this._domain, this._options );
+                var compiler = new IntrospectionCompiler( this._serviceProvider, this._options );
                 this.IsMetalamaOutputEvaluated = true;
 
                 var result = this._serviceProvider.Global.GetRequiredService<ITaskRunner>().RunSynchronously( () => compiler.CompileAsync( this.Compilation ) );

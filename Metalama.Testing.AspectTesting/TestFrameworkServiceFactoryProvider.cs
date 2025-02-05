@@ -13,7 +13,7 @@ internal static class TestFrameworkServiceFactoryProvider
         TestingServices.Initialize();
 
         var additionalServicesCollection = new AdditionalServiceCollection();
-        additionalServicesCollection.AddGlobalService( TestingServices.ReferenceAssemblyLocatorProvider );
+        additionalServicesCollection.AddGlobalService( TestingServices.CompileTimeAssemblyLocatorProvider );
 
         return ServiceProviderFactory.GetServiceProvider( BackstageServiceFactory.ServiceProvider, additionalServicesCollection )
             .WithService( new TestAssemblyMetadataReader() );

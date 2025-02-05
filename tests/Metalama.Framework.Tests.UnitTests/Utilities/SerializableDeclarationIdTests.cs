@@ -17,7 +17,7 @@ namespace Metalama.Framework.Tests.UnitTests.Utilities;
 
 public sealed class SerializableDeclarationIdTests : UnitTestClass
 {
-    public SerializableDeclarationIdTests( ITestOutputHelper? testOutputHelper = null ) : base( testOutputHelper, false ) { }
+    public SerializableDeclarationIdTests( ITestOutputHelper? logger = null ) : base( logger, false ) { }
 
     [Fact]
     public void AssemblyAndCompilation()

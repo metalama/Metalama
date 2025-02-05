@@ -15,7 +15,7 @@ namespace Metalama.Framework.Tests.UnitTests.Utilities;
 
 public sealed class SerializableTypeIdTests : UnitTestClass
 {
-    public SerializableTypeIdTests( ITestOutputHelper? testOutputHelper ) : base( testOutputHelper ) { }
+    public SerializableTypeIdTests( ITestOutputHelper? logger ) : base( logger ) { }
 
     [Theory]
     [InlineData( typeof(int) )]

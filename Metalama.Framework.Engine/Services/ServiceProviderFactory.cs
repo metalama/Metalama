@@ -8,13 +8,18 @@ using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel.Introductions.Helpers;
 using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.CompileTime.Serialization;
+using Metalama.Framework.Engine.Diagnostics;
+using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Formatting;
 using Metalama.Framework.Engine.Introspection.References;
 using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Pipeline;
+using Metalama.Framework.Engine.Queries.Aspects;
+using Metalama.Framework.Engine.Queries.Options;
 using Metalama.Framework.Engine.SyntaxSerialization;
 using Metalama.Framework.Engine.Utilities.Threading;
 using Metalama.Framework.Engine.Utilities.UserCode;
+using Metalama.Framework.Project;
 using Metalama.Framework.Services;
 using Microsoft.CodeAnalysis;
 using System;
@@ -66,17 +71,22 @@ public static class ServiceProviderFactory
 
         serviceProvider = serviceProvider
             .WithServiceConditional<ITaskRunner>( _ => new TaskRunner() )
-            .WithServiceConditional<IGlobalOptions>( _ => new DefaultGlobalOptions() )
+            .WithServiceConditional<IGlobalOptions>( _ => new DefaultGlobalOptions() );
+
+        serviceProvider = serviceProvider.WithServiceConditional<ICompileTimeDomainFactory>( sp => new DefaultCompileTimeDomainFactory( sp ) );
+        serviceProvider = serviceProvider.WithServiceConditional<CompileTimeDomain>( sp => sp.GetRequiredService<ICompileTimeDomainFactory>().CreateDomain() );
+
+        serviceProvider = serviceProvider
             .WithServiceConditional<ITestableCancellationTokenSourceFactory>( _ => new DefaultTestableCancellationTokenSource() )
-            .WithServiceConditional<ICompileTimeDomainFactory>( sp => new DefaultCompileTimeDomainFactory( sp ) )
             .WithServiceConditional<IMetalamaProjectClassifier>( _ => new MetalamaProjectClassifier() )
             .WithServiceConditional( sp => new UserCodeInvoker( sp ) )
-            .WithServiceConditional<IReferenceAssemblyLocatorProvider>(
-                sp => new ReferenceAssemblyLocatorProvider( sp.GetRequiredBackstageService<ITempFileManager>() ) )
+            .WithServiceConditional<ICompileTimeAssemblyLocatorProvider>(
+                sp => new CompileTimeAssemblyLocatorProvider( sp.GetRequiredBackstageService<ITempFileManager>() ) )
             .WithServiceConditional( _ => new FrameworkCompileTimeProjectFactory() )
             .WithServiceConditional( _ => new AttributeClassificationService() )
             .WithServiceConditional<IProjectOptionsFactory>( _ => new MSBuildProjectOptionsFactory() )
-            .WithServiceConditional( _ => new ObjectReaderFactory() );
+            .WithServiceConditional( _ => new ObjectReaderFactory() )
+            .WithServiceConditional<IExtensionLoader>( _ => new ExtensionLoader() );
 
         return serviceProvider;
     }
@@ -146,7 +156,9 @@ public static class ServiceProviderFactory
             .WithServiceConditional( sp => new SystemAttributeDeserializer.Provider( sp ) )
             .WithService( provider => new ClassifyingCompilationContextFactory( provider ) )
             .WithService( provider => new ProjectIntrospectionService( provider ) )
-            .WithService( provider => new SourceGeneratorDetectionService( provider ) );
+            .WithService( provider => new SourceGeneratorDetectionService( provider ) )
+            .WithService( _ => new OptionQueryService() )
+            .WithService( provider => new AspectQueryService( provider ) );
 
         if ( projectOptions.FormatCompileTimeCode || projectOptions.CodeFormattingOptions == CodeFormattingOptions.Formatted || projectOptions.WriteHtml )
         {
@@ -162,6 +174,7 @@ public static class ServiceProviderFactory
     {
         return serviceProvider.Underlying
             .WithService( repository )
+            .WithService( new UserDiagnosticRegistry( repository.RootProject ) )
             .WithService<CompilationServiceProvider<ProjectSpecificCompileTimeTypeResolver>>( sp => new ProjectSpecificCompileTimeTypeResolver.Provider( sp ) )
             .WithServiceConditional<UserCodeAttributeDeserializer.Provider>( sp => new UserCodeAttributeDeserializer.Provider( sp ) )
             .WithService<SymbolClassificationService>( _ => new SymbolClassificationService( repository ) )

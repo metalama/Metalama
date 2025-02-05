@@ -2,6 +2,7 @@
 
 using Metalama.Backstage.Diagnostics;
 using Metalama.Framework.DesignTime.Utilities;
+using Metalama.Testing.UnitTesting;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -9,7 +10,7 @@ namespace Metalama.Framework.Tests.UnitTests.DesignTime;
 
 #pragma warning disable VSTHRD200
 
-public sealed class TaskBagTests : FrameworkBaseTestClass
+public sealed class TaskBagTests : UnitTestClass
 {
     [Fact]
     public async Task NonYielding()

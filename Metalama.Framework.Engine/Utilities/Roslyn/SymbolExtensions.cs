@@ -177,16 +177,15 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
                 IEventSymbol @event => ImmutableArray<ISymbol>.CastUp( @event.ExplicitInterfaceImplementations ),
                 IMethodSymbol method => ImmutableArray<ISymbol>.CastUp( method.ExplicitInterfaceImplementations ),
                 IPropertySymbol property => ImmutableArray<ISymbol>.CastUp( property.ExplicitInterfaceImplementations ),
-                _ => ImmutableArray<ISymbol>.Empty,
+                _ => ImmutableArray<ISymbol>.Empty
             };
 
-        internal static bool IsExplicitInterfaceMemberImplementation( this ISymbol symbol )
-            => symbol.ExplicitInterfaceImplementations().Any();
+        internal static bool IsExplicitInterfaceMemberImplementation( this ISymbol symbol ) => symbol.ExplicitInterfaceImplementations().Any();
 
         private static readonly WeakCache<ISymbol, ImmutableArray<ISymbol>> _explicitOrImplicitInterfaceImplementations = new();
 
         // Based on https://github.com/dotnet/roslyn/blob/9846ce8ba/src/Workspaces/SharedUtilitiesAndExtensions/Compiler/Core/Extensions/ISymbolExtensions.cs#L145-L159
-        public static ImmutableArray<ISymbol> GetExplicitOrImplicitInterfaceImplementations( this ISymbol symbol )
+        internal static ImmutableArray<ISymbol> GetExplicitOrImplicitInterfaceImplementations( this ISymbol symbol )
         {
             if ( symbol.Kind is not (SymbolKind.Method or SymbolKind.Property or SymbolKind.Event) )
             {
@@ -198,18 +197,20 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
                 return ImmutableArray<ISymbol>.Empty;
             }
 
-            return _explicitOrImplicitInterfaceImplementations.GetOrAdd( symbol, static symbol =>
-            {
-                var containingType = symbol.ContainingType;
+            return _explicitOrImplicitInterfaceImplementations.GetOrAdd(
+                symbol,
+                static symbol =>
+                {
+                    var containingType = symbol.ContainingType;
 
-                var query = from iface in containingType.AllInterfaces
-                            from interfaceMember in iface.GetMembers()
-                            let impl = containingType.FindImplementationForInterfaceMember( interfaceMember )
-                            where symbol.Equals( impl )
-                            select interfaceMember;
+                    var query = from iface in containingType.AllInterfaces
+                                from interfaceMember in iface.GetMembers()
+                                let impl = containingType.FindImplementationForInterfaceMember( interfaceMember )
+                                where symbol.Equals( impl )
+                                select interfaceMember;
 
-                return query.Concat( symbol.ExplicitInterfaceImplementations() ).Distinct().ToImmutableArray();
-            } );
+                    return query.Concat( symbol.ExplicitInterfaceImplementations() ).Distinct().ToImmutableArray();
+                } );
         }
 
         // This won't return the correct result for invalid code where multiple properties have the same name,
@@ -300,7 +301,7 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
                 _ => symbol.ContainingType
             };
 
-        internal static ISymbol? GetClosestContainingMember( this ISymbol symbol )
+        public static ISymbol? GetClosestContainingMember( this ISymbol symbol )
             => symbol switch
             {
                 INamedTypeSymbol type => type,

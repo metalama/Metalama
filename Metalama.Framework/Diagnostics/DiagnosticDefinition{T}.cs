@@ -1,6 +1,5 @@
 // Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
-using Metalama.Framework.CodeFixes;
 using System.Collections.Immutable;
 
 namespace Metalama.Framework.Diagnostics;
@@ -61,7 +60,7 @@ public class DiagnosticDefinition<T> : IDiagnosticDefinition
     /// <summary>
     /// Creates an instance of the current diagnostic definition with specific arguments.
     /// </summary>
-    public IDiagnostic WithArguments( T arguments ) => new DiagnosticImpl<T>( this, arguments, ImmutableArray<CodeFix>.Empty );
+    public IDiagnostic WithArguments( T arguments ) => new DiagnosticImpl<T>( this, arguments, ImmutableArray<IDiagnosticExtension>.Empty );
 
     public override string ToString() => $"{this.Severity} {this.Id}: {this.Title}";
 }

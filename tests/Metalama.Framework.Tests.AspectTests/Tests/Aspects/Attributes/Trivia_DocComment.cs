@@ -6,6 +6,11 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Code.DeclarationBuilders;
 using Metalama.Framework.Fabrics;
 
+using Metalama.Framework.Tests.AspectTests.Tests.Aspects.Attributes.Trivia_DocComment;
+
+[assembly: AspectOrder( AspectOrderDirection.CompileTime, typeof(AddChildAspectsAspect), typeof(TestAspect))]
+
+
 #pragma warning disable CS0169, CS0649
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Attributes.Trivia_DocComment;
@@ -36,16 +41,19 @@ public class ExistingAttribute : Attribute { }
 
 public class TestAttribute : Attribute { }
 
-internal partial class TestTypes
+public class AddChildAspectsAspect : TypeAspect
 {
-    private class MyFabric : TypeFabric
+    override public void BuildAspect( IAspectBuilder<INamedType> builder )
     {
-        public override void AmendType( ITypeAmender amender )
+        foreach (var type in builder.Target.Types)
         {
-            amender.SelectMany( t => t.Types ).AddAspect<TestAspect>();
+            builder.With( type ).AddAspect<TestAspect>();
         }
     }
 }
+
+[AddChildAspectsAspect]
+internal partial class TestTypes;
 
 // <target>
 internal partial class TestTypes

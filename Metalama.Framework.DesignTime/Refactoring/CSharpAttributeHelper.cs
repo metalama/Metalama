@@ -8,7 +8,7 @@ using Microsoft.CodeAnalysis.Formatting;
 
 namespace Metalama.Framework.DesignTime.Refactoring
 {
-    internal static class CSharpAttributeHelper
+    public static class CSharpAttributeHelper
     {
         public static async ValueTask<SyntaxNode?> AddAttributeAsync(
             SyntaxNode oldRoot,
@@ -189,7 +189,7 @@ namespace Metalama.Framework.DesignTime.Refactoring
             return newNode.WithLeadingTrivia( oldNode.GetLeadingTrivia() );
         }
 
-        public static async ValueTask<Solution> AddAttributeAsync(
+        internal static async ValueTask<Solution> AddAttributeAsync(
             Document document,
             ISymbol symbol,
             AttributeDescription attribute,
@@ -222,7 +222,7 @@ namespace Metalama.Framework.DesignTime.Refactoring
             return newSolution;
         }
 
-        public static async ValueTask<Solution> AddAttributeAsync(
+        internal static async ValueTask<Solution> AddAttributeAsync(
             Document document,
             SyntaxNode node,
             AttributeDescription attribute,

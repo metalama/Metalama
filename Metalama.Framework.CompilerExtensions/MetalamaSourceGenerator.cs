@@ -1,6 +1,7 @@
 ﻿// Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
 using Metalama.Compiler;
+using Metalama.Framework.DesignTime;
 using Microsoft.CodeAnalysis;
 
 namespace Metalama.Framework.CompilerExtensions
@@ -27,22 +28,22 @@ namespace Metalama.Framework.CompilerExtensions
 
                 case ProcessKind.DevEnv:
                     this._impl = (IIncrementalGenerator) ResourceExtractor.CreateInstance(
-                        "Metalama.Framework.DesignTime.VisualStudio",
-                        "Metalama.Framework.DesignTime.VisualStudio.VsUserProcessSourceGenerator" );
+                        RoslynEntryPointTypeNames.DesignTimeAssemblyName,
+                        RoslynEntryPointTypeNames.VsUserProcessSourceGenerator );
 
                     break;
 
                 case ProcessKind.RoslynCodeAnalysisService:
                     this._impl = (IIncrementalGenerator) ResourceExtractor.CreateInstance(
-                        "Metalama.Framework.DesignTime.VisualStudio",
-                        "Metalama.Framework.DesignTime.VisualStudio.VsAnalysisProcessSourceGenerator" );
+                        RoslynEntryPointTypeNames.DesignTimeAssemblyName,
+                        RoslynEntryPointTypeNames.VsAnalysisProcessSourceGenerator );
 
                     break;
 
                 default:
                     this._impl = (IIncrementalGenerator) ResourceExtractor.CreateInstance(
-                        "Metalama.Framework.DesignTime",
-                        "Metalama.Framework.DesignTime.AnalysisProcessSourceGenerator" );
+                        RoslynEntryPointTypeNames.DesignTimeAssemblyName,
+                        RoslynEntryPointTypeNames.AnalysisProcessSourceGenerator );
 
                     break;
             }

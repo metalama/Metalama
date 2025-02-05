@@ -6,7 +6,6 @@ using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.AspectWeavers;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.Diagnostics;
-using Metalama.Framework.Engine.Fabrics;
 using Metalama.Framework.Engine.Utilities.Threading;
 using Metalama.Framework.Engine.Utilities.UserCode;
 using System.Collections.Immutable;
@@ -21,12 +20,12 @@ namespace Metalama.Framework.Engine.Pipeline;
 internal sealed class LowLevelPipelineStage : PipelineStage
 {
     private readonly IAspectWeaver _aspectWeaver;
-    private readonly IBoundAspectClass _aspectClass;
+    private readonly AspectClass _aspectClass;
 
     public LowLevelPipelineStage( IAspectWeaver aspectWeaver, IBoundAspectClass aspectClass )
     {
         this._aspectWeaver = aspectWeaver;
-        this._aspectClass = aspectClass;
+        this._aspectClass = (AspectClass) aspectClass;
     }
 
     /// <inheritdoc/>
@@ -38,14 +37,11 @@ internal sealed class LowLevelPipelineStage : PipelineStage
     {
         var compilationModel = input.LastCompilationModel;
 
-        var collector = new OutboundActionCollector( diagnostics );
+        var collector = new AspectInstanceCollector( this._aspectClass, compilationModel, diagnostics, cancellationToken );
 
         await Task.WhenAll(
-            input.ContributorSources.AspectSources
-                .Select(
-                    s => s.CollectAspectInstancesAsync(
-                        this._aspectClass,
-                        new OutboundActionCollectionContext( collector, input.LastCompilationModel, cancellationToken ) ) ) );
+            input.ContributorSources.Contributors.OfType<IAspectSource>()
+                .Select( s => s.CollectAspectInstancesAsync( collector ) ) );
 
         var aspectInstances = collector.AspectInstances
             .GroupBy(
@@ -73,7 +69,7 @@ internal sealed class LowLevelPipelineStage : PipelineStage
             compilationModel.HierarchicalOptionsManager.AssertNotNull(),
             cancellationToken );
 
-        var executionContext = new UserCodeExecutionContext(
+        var executionContext = UserCodeExecutionContext.CreateInstance(
             projectServiceProvider,
             UserCodeDescription.Create( "calling the TransformAsync method for the weaver {0}", this._aspectWeaver.GetType() ),
             compilationModel,
@@ -108,8 +104,6 @@ internal sealed class LowLevelPipelineStage : PipelineStage
                 x => new AspectInstanceResult(
                     x.Value,
                     AdviceOutcome.Default,
-                    default,
-                    default,
                     default,
                     default,
                     default ) ) );

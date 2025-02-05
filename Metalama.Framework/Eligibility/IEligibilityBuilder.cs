@@ -2,7 +2,7 @@
 
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
-using Metalama.Framework.Validation;
+using Metalama.Framework.Utilities;
 
 namespace Metalama.Framework.Eligibility
 {

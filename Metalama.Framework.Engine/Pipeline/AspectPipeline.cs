@@ -9,20 +9,18 @@ using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.AspectWeavers;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CompileTime;
-using Metalama.Framework.Engine.DesignTime.CodeFixes;
 using Metalama.Framework.Engine.Diagnostics;
+using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Fabrics;
 using Metalama.Framework.Engine.HierarchicalOptions;
-using Metalama.Framework.Engine.Licensing;
 using Metalama.Framework.Engine.Metrics;
 using Metalama.Framework.Engine.Options;
+using Metalama.Framework.Engine.Queries.Diagnostics;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.Threading;
 using Metalama.Framework.Engine.Utilities.UserCode;
-using Metalama.Framework.Engine.Validation;
-using Metalama.Framework.Project;
 using Metalama.Framework.Services;
 using Microsoft.CodeAnalysis;
 using MoreLinq;
@@ -43,11 +41,9 @@ public abstract class AspectPipeline : IDisposable
 {
     private const string _highLevelStageGroupingKey = nameof(_highLevelStageGroupingKey);
 
-    private readonly bool _ownsDomain;
-
     protected IProjectOptions ProjectOptions { get; }
 
-    protected CompileTimeDomain Domain { get; }
+    private CompileTimeDomain Domain { get; }
 
     // This member is intentionally protected because there can be one ServiceProvider per project,
     // but the pipeline can be used by many projects.
@@ -62,9 +58,8 @@ public abstract class AspectPipeline : IDisposable
     /// <param name="executionScenario"></param>
     /// <param name="domain">If <c>null</c>, the instance is created from the <see cref="ICompileTimeDomainFactory"/> service.</param>
     protected AspectPipeline(
-        ServiceProvider<IProjectService> serviceProvider,
-        ExecutionScenario executionScenario,
-        CompileTimeDomain? domain )
+        ProjectServiceProvider serviceProvider,
+        ExecutionScenario executionScenario )
     {
         this.Logger = serviceProvider.GetLoggerFactory().GetLogger( "AspectPipeline" );
 
@@ -72,19 +67,10 @@ public abstract class AspectPipeline : IDisposable
 
         // Set the execution scenario. In cases where we re-use the design-time pipeline for preview or introspection,
         // we replace the execution scenario for future services in the current pipeline.
-        this.ServiceProvider = serviceProvider.WithService( executionScenario, true );
+        this.ServiceProvider = serviceProvider
+            .WithService( executionScenario, true );
 
-        // Setup the domain.
-        if ( domain != null )
-        {
-            this.Domain = domain;
-        }
-        else
-        {
-            // Coverage: Ignore (tests always provide a domain).
-            this.Domain = this.ServiceProvider.Global.GetRequiredService<ICompileTimeDomainFactory>().CreateDomain();
-            this._ownsDomain = true;
-        }
+        this.Domain = serviceProvider.Global.GetRequiredService<CompileTimeDomain>();
     }
 
     internal int PipelineInitializationCount { get; private set; }
@@ -94,7 +80,6 @@ public abstract class AspectPipeline : IDisposable
     protected virtual bool TryInitialize(
         IDiagnosticAdder diagnosticAdder,
         Compilation compilation,
-        ProjectLicenseInfo? projectLicenseInfo,
         IReadOnlyList<SyntaxTree>? compileTimeTreesHint,
         CancellationToken cancellationToken,
         [NotNullWhen( true )] out AspectPipelineConfiguration? configuration )
@@ -131,6 +116,10 @@ public abstract class AspectPipeline : IDisposable
             return false;
         }
 
+        // Extension assemblies have to be loaded before the compile-time project is created,
+        // because the compile-time project can reference their types.
+        var extensions = this.LoadExtensions( diagnosticAdder, compilation, this.ServiceProvider );
+
         // Prepare the compile-time assembly.
         var compileTimeProjectRepository = CompileTimeProjectRepository.Create(
             this.Domain,
@@ -138,7 +127,6 @@ public abstract class AspectPipeline : IDisposable
             compilation,
             diagnosticAdder,
             false,
-            projectLicenseInfo,
             compileTimeTreesHint,
             cancellationToken );
 
@@ -154,71 +142,45 @@ public abstract class AspectPipeline : IDisposable
         var compileTimeProject = compileTimeProjectRepository.RootProject;
 
         // Create a project-level service provider.
-        var projectServiceProviderWithoutPlugins = this.ServiceProvider.WithCompileTimeProjectServices( compileTimeProjectRepository );
+        var projectServiceProviderWithoutPlugins =
+            this.ServiceProvider
+                .WithCompileTimeProjectServices( compileTimeProjectRepository )
+                .WithService( this.GetDiagnosticExtensionPolicy() );
+
         var projectServiceProviderWithProject = projectServiceProviderWithoutPlugins;
 
-        // Create compiler plug-ins found in compile-time code.
-
+        // Create compiler plug-ins found in compile-time code and add them to the service provider.
+        // We disable caching of the type-interface mapping in the service provider to makes sure the AssemblyLoadContext can be unloaded.
         projectServiceProviderWithProject = projectServiceProviderWithProject.WithService( compileTimeProject );
 
-        var invoker = this.ServiceProvider.GetRequiredService<UserCodeInvoker>();
-
-        var plugIns = compileTimeProject.ClosureProjects
-            .SelectMany( p => p.PlugInTypes.SelectAsReadOnlyList( t => (Project: p, TypeName: t) ) )
-            .Select(
-                t =>
-                {
-                    var type = t.Project.GetType( t.TypeName );
-                    var constructor = type.GetConstructor( Type.EmptyTypes );
-
-                    if ( constructor == null )
-                    {
-                        diagnosticAdder.Report( GeneralDiagnosticDescriptors.TypeMustHavePublicDefaultConstructor.CreateRoslynDiagnostic( null, type ) );
-
-                        return null;
-                    }
-
-                    var executionContext = new UserCodeExecutionContext(
-                        projectServiceProviderWithoutPlugins,
-                        UserCodeDescription.Create( "instantiating the plug-in {0}", type ),
-                        compilation.GetCompilationContext(),
-                        diagnostics: diagnosticAdder );
-
-                    if ( !invoker.TryInvoke( () => Activator.CreateInstance( type ), executionContext, out var instance ) )
-                    {
-                        return null;
-                    }
-                    else
-                    {
-                        return instance;
-                    }
-                } )
-            .WhereNotNull()
-            .ToImmutableArray();
+        var plugIns = this.LoadPlugIns( diagnosticAdder, compilation, compileTimeProject, projectServiceProviderWithoutPlugins );
 
         projectServiceProviderWithProject = projectServiceProviderWithProject
-            .WithServices( plugIns.OfType<IProjectService>() );
+            .WithServices( plugIns.OfType<IProjectService>(), true );
 
-        // Initialize the licensing service with redistribution licenses.
-        // Add the license verifier.
-        var licenseConsumptionManager = projectServiceProviderWithProject.GetService<ProjectLicenseConsumer>();
+        // Add extensions
+        projectServiceProviderWithProject = projectServiceProviderWithProject.WithService( new PipelineExtensionProvider( extensions ) );
 
-        if ( licenseConsumptionManager != null )
+        var extensionInitializationContext =
+            new PipelineExtensionContext( this.ProjectOptions, diagnosticAdder );
+
+        foreach ( var extension in extensions )
         {
-            var licenseVerifier = new LicenseVerifier( projectServiceProviderWithProject );
+            this.Domain.AddAssembly( extension.GetType().Assembly );
 
-            if ( !licenseVerifier.TryInitialize( compileTimeProject, diagnosticAdder ) )
+            if ( !extension.Initialize( extensionInitializationContext ) )
             {
+                this.Logger.Warning?.Log( $"The extension '{extension}' failed to initialize." );
+
                 configuration = null;
 
                 return false;
             }
-
-            projectServiceProviderWithProject = projectServiceProviderWithProject.WithService( licenseVerifier );
         }
 
-        // Set NormalizeWhitespace setting for the compilation.
+        projectServiceProviderWithProject = extensionInitializationContext.Services.Build( projectServiceProviderWithProject );
 
+        // Set NormalizeWhitespace setting for the compilation.
         projectServiceProviderWithProject =
             projectServiceProviderWithProject.WithService( this.GetSyntaxGenerationOptions(), true );
 
@@ -232,7 +194,6 @@ public abstract class AspectPipeline : IDisposable
         var compilationModel = CompilationModel.CreateInitialInstance( projectModel, compilation );
 
         // Create aspect types.
-
         var driverFactory = new AspectDriverFactory( compilationModel, plugIns, projectServiceProviderWithProject );
         var aspectTypeFactory = new AspectClassFactory( driverFactory, compilationModel.CompilationContext );
 
@@ -272,15 +233,15 @@ public abstract class AspectPipeline : IDisposable
 
         // Add fabrics.
 
-        var fabricTopLevelAspectClass = new FabricTopLevelAspectClass( projectServiceProviderWithProject, compilationModel, compileTimeProject );
+        var fabricTopLevelAspectClass = new FabricTopLevelAspectClass( projectServiceProviderWithProject, compilationModel );
         var fabricAspectLayer = new OrderedAspectLayer( -1, -1, fabricTopLevelAspectClass.Layer );
 
         var allOrderedAspectLayers = orderedAspectLayers.Insert( 0, fabricAspectLayer );
-        var allAspectClasses = new BoundAspectClassCollection( aspectClasses.As<IBoundAspectClass>().Add( fabricTopLevelAspectClass ) );
+        var allAspectClasses = new AspectClassCollection( aspectClasses.As<IBoundAspectClass>().Add( fabricTopLevelAspectClass ) );
 
         // Execute fabrics.
-        var fabricManager = new FabricManager( allAspectClasses, projectServiceProviderWithProject, compileTimeProject );
-        var (fabricsConfiguration, fabricTypes) = fabricManager.ExecuteFabrics( compileTimeProject, compilationModel, projectModel, diagnosticAdder );
+        var fabricManager = new FabricManager( allAspectClasses, projectServiceProviderWithProject );
+        var (fabricContributors, fabricTypes) = fabricManager.ExecuteFabrics( compileTimeProject, compilationModel, projectModel, diagnosticAdder );
 
         // Freeze the project model to prevent any further modification of configuration.
         projectModel.Freeze();
@@ -296,7 +257,7 @@ public abstract class AspectPipeline : IDisposable
 
         var eligibilityService = new EligibilityService( allAspectClasses );
 
-        // Return.
+        // Create the configuration.
         configuration = new AspectPipelineConfiguration(
             this.Domain,
             stages,
@@ -304,11 +265,11 @@ public abstract class AspectPipeline : IDisposable
             allOrderedAspectLayers,
             compileTimeProject,
             compileTimeProjectRepository,
-            fabricsConfiguration,
+            fabricContributors,
             fabricTypes,
             projectModel,
             projectServiceProviderWithProject.WithService( eligibilityService ),
-            this.CodeFixFilter );
+            extensions );
 
         return true;
 
@@ -328,6 +289,93 @@ public abstract class AspectPipeline : IDisposable
         }
     }
 
+    private ImmutableArray<PipelineExtension> LoadExtensions(
+        IDiagnosticAdder diagnosticAdder,
+        Compilation compilation,
+        ServiceProvider<IProjectService> serviceProvider )
+    {
+        var invoker = this.ServiceProvider.GetRequiredService<UserCodeInvoker>();
+
+        // Load extensions.
+        var extensionLoader = this.ServiceProvider.Global.GetService<IExtensionLoader>();
+
+        ImmutableArray<PipelineExtension> extensions;
+
+        if ( extensionLoader != null )
+        {
+            var extensionTypes = extensionLoader.GetExtensionTypes( this.ProjectOptions, this.Domain, ExtensionKind.Default );
+
+            extensions = extensionTypes
+                .Select( type => CreateInstanceOfType( type, diagnosticAdder, compilation, serviceProvider, invoker ) )
+                .WhereNotNull()
+                .Cast<PipelineExtension>()
+                .ToImmutableArray();
+        }
+        else
+        {
+            extensions = ImmutableArray<PipelineExtension>.Empty;
+        }
+
+        // Add built-in extensions.
+        extensions = extensions.Add( new DiagnosticQueryPipelineExtension() );
+
+        return extensions;
+    }
+
+    private ImmutableArray<object> LoadPlugIns(
+        IDiagnosticAdder diagnosticAdder,
+        Compilation compilation,
+        CompileTimeProject compileTimeProject,
+        ServiceProvider<IProjectService> serviceProvider )
+    {
+        var invoker = this.ServiceProvider.GetRequiredService<UserCodeInvoker>();
+
+        // Load plug-ins.
+        var plugInTypes = compileTimeProject.ClosureProjects
+            .SelectMany( p => p.PlugInTypes.SelectAsReadOnlyList( t => (Project: p, TypeName: t) ) )
+            .Select( t => t.Project.GetType( t.TypeName ) );
+
+        var plugIns =
+            plugInTypes
+                .Select( type => CreateInstanceOfType( type, diagnosticAdder, compilation, serviceProvider, invoker ) )
+                .WhereNotNull()
+                .ToImmutableArray();
+
+        return plugIns;
+    }
+
+    private static object? CreateInstanceOfType(
+        Type type,
+        IDiagnosticAdder diagnosticAdder,
+        Compilation compilation,
+        ServiceProvider<IProjectService> serviceProvider,
+        UserCodeInvoker invoker )
+    {
+        var constructor = type.GetConstructor( Type.EmptyTypes );
+
+        if ( constructor == null )
+        {
+            diagnosticAdder.Report( GeneralDiagnosticDescriptors.TypeMustHavePublicDefaultConstructor.CreateRoslynDiagnostic( null, type ) );
+
+            return null;
+        }
+
+        var executionContext = UserCodeExecutionContext.CreateInstance(
+            serviceProvider,
+            UserCodeDescription.Create( "instantiating '{0}'", type ),
+            compilation.GetCompilationContext(),
+            diagnostics: diagnosticAdder );
+
+        if ( !invoker.TryInvoke( () => Activator.CreateInstance( type ), executionContext, out var instance ) )
+        {
+            return null;
+        }
+        else
+        {
+            return instance;
+        }
+    }
+
     private static IEnumerable<Version> GetMetalamaVersions( Compilation compilation )
         => compilation.SourceModule.ReferencedAssemblies
             .Where( identity => identity.Name == "Metalama.Framework" )
@@ -335,9 +383,6 @@ public abstract class AspectPipeline : IDisposable
 
     private bool IsMetalamaEnabled( Compilation compilation )
         => this.ServiceProvider.Global.GetRequiredService<IMetalamaProjectClassifier>().TryGetMetalamaVersion( compilation, out _ );
-
-    // It's simpler to analyze memory leaks when CodeFixFilter does not reference the AspectPipeline.
-    private protected virtual CodeFixFilter CodeFixFilter => ( _, _ ) => false;
 
     // ReSharper disable UnusedParameter.Global
     private protected virtual PipelineContributorSources CreatePipelineContributorSources(
@@ -347,21 +392,19 @@ public abstract class AspectPipeline : IDisposable
     {
         var aspectClasses = configuration.BoundAspectClasses.ToImmutableArray<IAspectClass>();
 
-        var transitiveAspectSource = new TransitivePipelineContributorSource( compilationContext, aspectClasses, configuration.ServiceProvider );
+        var contributors = ImmutableArray.CreateBuilder<IPipelineContributor>();
 
-        var aspectSources = ImmutableArray.Create<IAspectSource>(
-            new CompilationAspectSource( configuration.ServiceProvider, aspectClasses ),
-            transitiveAspectSource );
+        var transitivePipelineContributorSource = new TransitivePipelineContributorSource( compilationContext, aspectClasses, configuration.ServiceProvider );
+        contributors.Add( transitivePipelineContributorSource );
+        contributors.AddRange( transitivePipelineContributorSource.ExtensionContributors );
+        contributors.Add( new CompilationAspectSource( configuration.ServiceProvider, aspectClasses ) );
+        contributors.Add( new CompilationHierarchicalOptionsSource( configuration.ServiceProvider ) );
 
-        var validatorSources = ImmutableArray.Create<IValidatorSource>( transitiveAspectSource );
+        var allSources = new PipelineContributorSources( contributors.ToImmutable(), transitivePipelineContributorSource, transitivePipelineContributorSource );
 
-        var optionsSources = ImmutableArray.Create<IHierarchicalOptionsSource>( new CompilationHierarchicalOptionsSource( configuration.ServiceProvider ) );
-
-        var allSources = new PipelineContributorSources( aspectSources, validatorSources, optionsSources, transitiveAspectSource, transitiveAspectSource );
-
-        if ( configuration.FabricsConfiguration != null )
+        if ( configuration.FabricsContributors != null )
         {
-            allSources = allSources.Add( configuration.FabricsConfiguration );
+            allSources = allSources.Add( configuration.FabricsContributors );
         }
 
         return allSources;
@@ -379,6 +422,8 @@ public abstract class AspectPipeline : IDisposable
         return provider.GetAdditionalCompilationOutputFiles();
     }
 
+    protected virtual IDiagnosticExtensionPolicy GetDiagnosticExtensionPolicy() => ConstantDiagnosticExtensionPolicy.None;
+
     /// <summary>
     /// Executes the all stages of the current pipeline, report diagnostics, and returns the last <see cref="AspectPipelineResult"/>.
     /// </summary>
@@ -391,21 +436,20 @@ public abstract class AspectPipeline : IDisposable
     {
         if ( pipelineConfiguration == null )
         {
-            if ( !this.TryInitialize( diagnosticAdder, compilation.Compilation, null, null, cancellationToken, out pipelineConfiguration ) )
+            if ( !this.TryInitialize( diagnosticAdder, compilation.Compilation, null, cancellationToken, out pipelineConfiguration ) )
             {
                 return default;
             }
         }
 
+        var serviceProvider = pipelineConfiguration.ServiceProvider;
+
         // We need to overridde execution scenario in this service provider as well.
         var executionScenario = this.ServiceProvider.GetRequiredService<ExecutionScenario>();
+        serviceProvider = serviceProvider.WithService( executionScenario, allowOverride: true );
 
-        pipelineConfiguration =
-            pipelineConfiguration.WithServiceProvider( pipelineConfiguration.ServiceProvider.WithService( executionScenario, allowOverride: true ) );
-
-        // When we reuse a pipeline configuration created from a different pipeline (e.g. design-time to code fix),
-        // we need to substitute the code fix filter.
-        pipelineConfiguration = pipelineConfiguration.WithCodeFixFilter( this.CodeFixFilter );
+        // Update the pipeline configuration.
+        pipelineConfiguration = pipelineConfiguration.WithServiceProvider( serviceProvider );
 
         if ( pipelineConfiguration.CompileTimeProject == null || pipelineConfiguration.BoundAspectClasses.Count == 0 )
         {
@@ -418,10 +462,10 @@ public abstract class AspectPipeline : IDisposable
 
         var contributorSources = this.CreatePipelineContributorSources( pipelineConfiguration, compilation.CompilationContext, cancellationToken );
 
-        var additionalCompilationOutputFiles = GetAdditionalCompilationOutputFiles( pipelineConfiguration.ServiceProvider );
+        var additionalCompilationOutputFiles = GetAdditionalCompilationOutputFiles( serviceProvider );
 
         // Set up the options manager and the compilation model.
-        var hierarchicalOptionsManager = new HierarchicalOptionsManager( pipelineConfiguration.ServiceProvider );
+        var hierarchicalOptionsManager = new HierarchicalOptionsManager( serviceProvider );
 
         var compilationModel = CompilationModel.CreateInitialInstance(
             pipelineConfiguration.ProjectModel,
@@ -429,17 +473,35 @@ public abstract class AspectPipeline : IDisposable
             hierarchicalOptionsManager: hierarchicalOptionsManager,
             externalAnnotationProvider: contributorSources.ExternalAnnotationProvider );
 
-        var diagnosticSink = new UserDiagnosticSink( pipelineConfiguration.CompileTimeProject );
+        var initializationDiagnosticSink = new UserDiagnosticSink( serviceProvider );
 
         await hierarchicalOptionsManager.InitializeAsync(
             pipelineConfiguration.CompileTimeProject,
-            contributorSources.OptionsSources,
+            contributorSources.Contributors.OfType<IHierarchicalOptionsSource>(),
             contributorSources.ExternalOptionsProvider,
             compilationModel,
-            diagnosticSink,
+            initializationDiagnosticSink,
             cancellationToken );
 
-        diagnosticAdder.Report( diagnosticSink.ToImmutable().ReportedDiagnostics );
+        // Execute the extensions provided by fabrics.
+        var fabricContributors = pipelineConfiguration.FabricsContributors?.Contributors ?? default;
+
+        if ( !fabricContributors.IsDefaultOrEmpty )
+        {
+            foreach ( var extension in pipelineConfiguration.Extensions )
+            {
+                await extension.ExecuteContributorsAsync(
+                    pipelineConfiguration,
+                    compilationModel,
+                    initializationDiagnosticSink,
+                    fabricContributors,
+                    cancellationToken );
+            }
+        }
+
+        // We pass the initialization diagnostics to the pipeline so they are merged with the pipeline results and
+        // we don't need to handle diagnostics, suppressions or code fixes separately.
+        var initializationDiagnostics = initializationDiagnosticSink.ToImmutable();
 
         // Execute the pipeline stages.
         var pipelineStageResult = new AspectPipelineResult(
@@ -449,12 +511,11 @@ public abstract class AspectPipeline : IDisposable
             compilationModel,
             compilationModel,
             pipelineConfiguration,
-            null,
+            initializationDiagnostics,
             contributorSources,
             additionalCompilationOutputFiles: additionalCompilationOutputFiles );
 
         var allAspects = Enumerable.Empty<AspectInstanceResult>();
-        var hasValidator = false;
 
         foreach ( var stageConfiguration in pipelineConfiguration.Stages )
         {
@@ -477,21 +538,6 @@ public abstract class AspectPipeline : IDisposable
             {
                 pipelineStageResult = stageResult.Value;
                 allAspects = allAspects.Union( stageResult.Value.AspectInstanceResults );
-                hasValidator |= stageResult.Value.HasDeclarationValidator || stageResult.Value.ReferenceValidators.Any();
-            }
-        }
-
-        // Enforce licensing. Design-time licensing is handled elsewhere. (See usages of LicenseVerifier's methods.)
-        if ( !executionScenario.IsDesignTime )
-        {
-            var licenseVerifier = pipelineConfiguration.ServiceProvider.GetService<LicenseVerifier>();
-
-            if ( licenseVerifier != null )
-            {
-                var compileTimeProject = pipelineConfiguration.ServiceProvider.GetRequiredService<CompileTimeProject>();
-                var licensingDiagnostics = new UserDiagnosticSink( compileTimeProject );
-                licenseVerifier.VerifyCompilationResult( compileTimeProject, allAspects, hasValidator, licensingDiagnostics );
-                pipelineStageResult = pipelineStageResult.WithAdditionalDiagnostics( licensingDiagnostics.ToImmutable() );
             }
         }
 
@@ -514,7 +560,7 @@ public abstract class AspectPipeline : IDisposable
     private protected virtual HighLevelPipelineStage CreateHighLevelStage(
         PipelineStageConfiguration configuration,
         CompileTimeProject compileTimeProject )
-        => new NullPipelineStage( compileTimeProject, configuration.AspectLayers );
+        => new NullPipelineStage( configuration.AspectLayers );
 
     private protected virtual LowLevelPipelineStage? CreateLowLevelStage( PipelineStageConfiguration configuration ) => null;
 
@@ -535,13 +581,7 @@ public abstract class AspectPipeline : IDisposable
         }
     }
 
-    protected virtual void Dispose( bool disposing )
-    {
-        if ( this._ownsDomain )
-        {
-            this.Domain.Dispose();
-        }
-    }
+    protected virtual void Dispose( bool disposing ) { }
 
     /// <inheritdoc/>
     public void Dispose() => this.Dispose( true );

@@ -24,7 +24,7 @@ public class ConstructorIntroductionAttribute : TypeAspect
             nameof(Template),
             buildConstructor: c => { c.AddParameter( "x", typeof(int) ); } );
 
-        builder.With( introduced.Declaration ).Outbound.AddAspect<ParameterIntroductionAttribute>();
+        introduced.AddAspect<ParameterIntroductionAttribute>();
     }
 
     [Template]

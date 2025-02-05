@@ -4,7 +4,7 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Code.Collections;
 using Metalama.Framework.Code.Invokers;
 using Metalama.Framework.Project;
-using Metalama.Framework.Validation;
+using Metalama.Framework.Utilities;
 
 namespace Metalama.Framework.Aspects
 {

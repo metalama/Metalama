@@ -3,10 +3,9 @@
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CodeModel.Source;
+using Metalama.Framework.Engine.ReferenceGraph;
 using Metalama.Framework.Engine.Utilities;
-using Metalama.Framework.Engine.Validation;
 using Metalama.Framework.Introspection;
-using Metalama.Framework.Validation;
 using Microsoft.CodeAnalysis;
 using System.Collections.Generic;
 using System.Linq;
@@ -18,7 +17,7 @@ internal sealed class InboundReference( ISymbol referencedSymbol, ReferencingSym
 {
     [Memo]
     public IDeclaration DestinationDeclaration => compilation.Factory.GetDeclaration( referencedSymbol );
-    
+
     [Memo]
     public IDeclaration OriginDeclaration => compilation.Factory.GetDeclaration( referencingSymbolInfo.ReferencingSymbol );
 

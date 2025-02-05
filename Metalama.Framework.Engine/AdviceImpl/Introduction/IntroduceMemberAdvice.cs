@@ -39,8 +39,9 @@ internal abstract class IntroduceMemberAdvice<TTemplate, TIntroduced, TBuilder> 
         IntroductionScope scope,
         OverrideStrategy overrideStrategy,
         Action<TBuilder>? buildAction,
-        INamedType? explicitlyImplementedInterfaceType )
-        : base( parameters, buildAction )
+        INamedType? explicitlyImplementedInterfaceType,
+        IAdviceFactoryImpl adviceFactory )
+        : base( parameters, buildAction, adviceFactory )
     {
         var templateAttribute = (ITemplateAttribute?) template?.AdviceAttribute;
         var templateAttributeProperties = templateAttribute?.Properties;
@@ -89,7 +90,7 @@ internal abstract class IntroduceMemberAdvice<TTemplate, TIntroduced, TBuilder> 
         // Extern templates have to be used with members without bodies (abstract, partial, extern).
         var isTemplateWithoutBody = this.Template?.TemplateClassMember.TemplateInfo.HasNoBody == true;
 
-        var isExplicitlyAbstractOrPartialOrExtern = 
+        var isExplicitlyAbstractOrPartialOrExtern =
             templateAttributeProperties?.IsAbstract == true
             || templateAttributeProperties?.IsPartial == true
             || templateAttributeProperties?.IsExtern == true;
@@ -107,17 +108,17 @@ internal abstract class IntroduceMemberAdvice<TTemplate, TIntroduced, TBuilder> 
             && builder.Accessibility != Accessibility.Private
             && (isInterfaceMember || isAbstractTypeMember);
 
-        builder.IsSealed = 
-            templateAttributeProperties?.IsSealed 
-            ?? templateDeclaration?.IsSealed 
+        builder.IsSealed =
+            templateAttributeProperties?.IsSealed
+            ?? templateDeclaration?.IsSealed
             ?? false;
 
         // Non-private extern template implicitly denotes an abstract member of an interface or abstract class.
         builder.IsAbstract =
             isAbstractTypeMember && (templateAttributeProperties?.IsAbstract == true || isImplicitlyAbstract);
 
-        builder.IsPartial = 
-            isTemplateWithoutBody 
+        builder.IsPartial =
+            isTemplateWithoutBody
             && templateAttributeProperties?.IsPartial == true;
 
         builder.IsExtern =
@@ -305,9 +306,7 @@ internal abstract class IntroduceMemberAdvice<TTemplate, TIntroduced, TBuilder> 
     }
 
     protected IntroductionAdviceResult<TIntroduced> CreateSuccessResult( AdviceOutcome outcome, TBuilder introducedMember )
-    {
-        return new IntroductionAdviceResult<TIntroduced>( this.AdviceKind, outcome, introducedMember.ToRef().As<TIntroduced>(), null );
-    }
+        => new( this.AdviceKind, outcome, introducedMember.ToRef().As<TIntroduced>(), null, this.AdviceFactory );
 
     public override string ToString() => $"Introduce {typeof(TIntroduced)} '{this.MemberName}' into '{this.TargetDeclaration}'";
 }

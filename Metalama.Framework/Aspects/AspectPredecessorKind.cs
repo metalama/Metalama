@@ -1,5 +1,6 @@
 // Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
+using Metalama.Framework.Advising;
 using Metalama.Framework.Code;
 
 namespace Metalama.Framework.Aspects
@@ -21,7 +22,7 @@ namespace Metalama.Framework.Aspects
         ChildAspect,
 
         /// <summary>
-        /// The aspect has been required by another aspect using <see cref="IAspectReceiver{TDeclaration}.RequireAspect{TAspect}"/>.
+        /// The aspect has been required by another aspect using <see cref="AdviserExtensions.RequireAspect"/>.
         /// </summary>
         RequiredAspect,
 

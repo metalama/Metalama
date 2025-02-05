@@ -38,7 +38,10 @@ internal class OverrideAttribute : TypeAspect
 {
     public override void BuildAspect( IAspectBuilder<INamedType> builder )
     {
-        builder.Outbound.SelectMany( x => x.Events ).AddAspect<OverrideEventAttribute>();
+        foreach (var e in builder.AdvisedTarget.Events)
+        {
+            builder.With( e ).AddAspect<OverrideEventAttribute>();
+        }
     }
 }
 

@@ -14,8 +14,8 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime;
 
 public sealed class PreviewAspectPipeline : AspectPipeline
 {
-    public PreviewAspectPipeline( ProjectServiceProvider serviceProvider, ExecutionScenario executionScenario, CompileTimeDomain? domain )
-        : base( serviceProvider, executionScenario, domain ) { }
+    public PreviewAspectPipeline( ProjectServiceProvider serviceProvider, ExecutionScenario executionScenario )
+        : base( serviceProvider, executionScenario ) { }
 
     private protected override LowLevelPipelineStage CreateLowLevelStage( PipelineStageConfiguration configuration )
     {
@@ -29,7 +29,7 @@ public sealed class PreviewAspectPipeline : AspectPipeline
     private protected override HighLevelPipelineStage CreateHighLevelStage(
         PipelineStageConfiguration configuration,
         CompileTimeProject compileTimeProject )
-        => new LinkerPipelineStage( compileTimeProject, configuration.AspectLayers );
+        => new LinkerPipelineStage( configuration.AspectLayers );
 
     public async Task<FallibleResult<PartialCompilation>> ExecutePreviewAsync(
         DiagnosticBag diagnostics,

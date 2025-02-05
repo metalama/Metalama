@@ -4,7 +4,7 @@ using Metalama.Compiler;
 using Metalama.Framework.DesignTime.Diagnostics;
 using Metalama.Framework.Engine.Pipeline;
 using Metalama.Framework.Engine.Services;
-using Metalama.Framework.Tests.UnitTests.DesignTime.Mocks;
+using Metalama.Framework.Tests.UnitTestHelpers.Mocks;
 using Metalama.Testing.UnitTesting;
 using Microsoft.CodeAnalysis;
 using System.Linq;
@@ -20,7 +20,7 @@ public sealed class SourceTransformerTests : UnitTestClass
         additionalServices.AddGlobalService<IUserDiagnosticRegistrationService>( new TestUserDiagnosticRegistrationService() );
         using var testContext = this.CreateTestContext( additionalServices );
 
-        var compilation = TestCompilationFactory.CreateCSharpCompilation( code, dependencyCode, warnAsErrors: warnAsErrors );
+        var compilation = testContext.CreateCSharpCompilation( code, dependencyCode, warnAsErrors: warnAsErrors );
         var context = new TestTransformerContext( compilation, testContext.ProjectOptions, testContext.ServiceProvider.Global );
         SourceTransformer.Execute( context );
 

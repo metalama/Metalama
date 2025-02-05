@@ -1,6 +1,9 @@
 // Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
 using Metalama.Backstage.Diagnostics;
+using Metalama.Framework.Code.Collections;
+using Metalama.Framework.Engine;
+using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities.Threading;
 using Metalama.Testing.UnitTesting;
@@ -237,7 +240,7 @@ namespace Metalama.Testing.AspectTesting.XunitFramework
             ITestCase testCase,
             Test test,
             Metrics testMetrics,
-            TestOutputHelper logger )
+            ITestOutputHelper logger )
         {
             var testStopwatch = Stopwatch.StartNew();
 
@@ -247,7 +250,16 @@ namespace Metalama.Testing.AspectTesting.XunitFramework
 
                 var testInput = this._factory.TestInputFactory.FromFile( this._factory.ProjectProperties, directoryOptionsReader, testCase.UniqueID );
 
-                var testOptions = testInput.Options.ApplyToTestContextOptions( new TestContextOptions { References = projectReferences.MetadataReferences } );
+                var testOptions =
+                    new TestContextOptions
+                    {
+                        AdditionalMetadataReferences = projectReferences.MetadataReferences,
+                        ExtensionAssemblies = projectReferences.ExtensionReferences.SelectAsImmutableArray( r => r.Path.AssertNotNull() ),
+                        CompileTimeAssemblies = projectReferences.CompileTimeAssemblyReferences.Select( x => x.Path ).WhereNotNull().ToImmutableArray(),
+                        TestPlugInTypes = projectReferences.PlugInTypes
+                    };
+
+                testOptions = testInput.Options.ApplyToTestContextOptions( testOptions );
 
                 if ( testInput.IsSkipped )
                 {
@@ -266,7 +278,8 @@ namespace Metalama.Testing.AspectTesting.XunitFramework
 
                         var serviceProvider = this._serviceProvider.Underlying
                             .WithUntypedService( typeof(ILoggerFactory), new XunitLoggerFactory( logger, false ) )
-                            .WithService( new RandomNumberProvider( firstSeed ), true );
+                            .WithService( new RandomNumberProvider( firstSeed ), true )
+                            .WithServiceConditional<IExtensionLoader>( _ => new TestExtensionLoader( testOptions ) );
 
                         var testRunner = TestRunnerFactory.CreateTestRunner(
                             testInput,
@@ -286,7 +299,7 @@ namespace Metalama.Testing.AspectTesting.XunitFramework
                             {
                                 logger.WriteLine( "-------------------------------------------------------------------------" );
                             }
-                            
+
                             var seed = firstSeed + i;
                             logger.WriteLine( $"Running rep #{i + 1} of {repeat}. Seed = {seed}." );
 

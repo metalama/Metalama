@@ -6,7 +6,6 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Eligibility;
 using Metalama.Framework.Engine.AspectOrdering;
 using Metalama.Framework.Engine.Aspects;
-using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Fabrics;
 using Microsoft.CodeAnalysis;
 using System;
@@ -21,9 +20,8 @@ namespace Metalama.Framework.Engine.Fabrics
     /// </summary>
     internal sealed class FabricAggregateAspectClass : IAspectClassImpl
     {
-        public FabricAggregateAspectClass( CompileTimeProject project, ImmutableArray<TemplateClass> templateClasses )
+        public FabricAggregateAspectClass( ImmutableArray<TemplateClass> templateClasses )
         {
-            this.Project = project;
             this.TemplateClasses = templateClasses;
 
             var description = "fabric " + string.Join( " or ", templateClasses.Select( x => x.FullName ) );
@@ -51,9 +49,7 @@ namespace Metalama.Framework.Engine.Fabrics
         public Type Type => typeof(Fabric);
 
         public EditorExperienceOptions EditorExperienceOptions => EditorExperienceOptions.Default;
-
-        public CompileTimeProject Project { get; }
-
+        
         public ImmutableArray<TemplateClass> TemplateClasses { get; }
 
         public SyntaxAnnotation GeneratedCodeAnnotation { get; }

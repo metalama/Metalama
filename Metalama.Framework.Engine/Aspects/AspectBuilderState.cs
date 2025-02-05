@@ -4,21 +4,23 @@ using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Engine.Advising;
 using Metalama.Framework.Engine.Diagnostics;
-using Metalama.Framework.Engine.HierarchicalOptions;
+using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Pipeline;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Transformations;
-using Metalama.Framework.Engine.Validation;
+using Metalama.Framework.Engine.Utilities.UserCode;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Threading;
 
 namespace Metalama.Framework.Engine.Aspects;
 
-internal sealed class AspectBuilderState
+internal sealed class AspectBuilderState : IPipelineContributorCollector
 {
     private readonly AdviceFactoryState _adviceFactoryState;
     private readonly ObjectReaderFactory _objectReaderFactory;
     private readonly IObjectReader _defaultTagReader;
+    private List<IPipelineContributor>? _pipelineContributors;
 
     public ProjectServiceProvider ServiceProvider { get; }
 
@@ -26,15 +28,11 @@ internal sealed class AspectBuilderState
 
     public AspectPipelineConfiguration Configuration { get; }
 
-    public ImmutableArray<IAspectSource> AspectSources { get; set; } = ImmutableArray<IAspectSource>.Empty;
-
-    public ImmutableArray<IValidatorSource> ValidatorSources { get; set; } = ImmutableArray<IValidatorSource>.Empty;
-
-    public ImmutableArray<IHierarchicalOptionsSource> OptionsSources { get; set; } = ImmutableArray<IHierarchicalOptionsSource>.Empty;
-
     public CancellationToken CancellationToken { get; }
 
     public IAspectInstanceInternal AspectInstance { get; }
+
+    public UserCodeExecutionContext UserCodeExecutionContext { get; }
 
     public string? Layer { get; }
 
@@ -47,12 +45,14 @@ internal sealed class AspectBuilderState
         IAspectInstanceInternal aspectInstance,
         AdviceFactoryState adviceFactoryState,
         string? layer,
+        UserCodeExecutionContext userCodeExecutionContext,
         CancellationToken cancellationToken )
     {
         this.ServiceProvider = serviceProvider;
         this.Diagnostics = diagnostics;
         this.Configuration = configuration;
         this.CancellationToken = cancellationToken;
+        this.UserCodeExecutionContext = userCodeExecutionContext;
         this.AspectInstance = aspectInstance;
         this.CancellationToken = cancellationToken;
         this._adviceFactoryState = adviceFactoryState;
@@ -83,16 +83,18 @@ internal sealed class AspectBuilderState
                 outcome,
                 this.Diagnostics.ToImmutable(),
                 this._adviceFactoryState.Transformations.ToImmutableArray(),
-                this.AspectSources,
-                this.ValidatorSources,
-                this.OptionsSources )
+                this._pipelineContributors?.ToImmutableArray() ?? ImmutableArray<IPipelineContributor>.Empty )
             : new AspectInstanceResult(
                 this.AspectInstance,
                 outcome,
                 this.Diagnostics.ToImmutable(),
                 ImmutableArray<ITransformation>.Empty,
-                ImmutableArray<IAspectSource>.Empty,
-                ImmutableArray<IValidatorSource>.Empty,
-                ImmutableArray<IHierarchicalOptionsSource>.Empty );
+                ImmutableArray<IPipelineContributor>.Empty );
+    }
+
+    public void AddContributor( IPipelineContributor contributor )
+    {
+        this._pipelineContributors ??= new List<IPipelineContributor>();
+        this._pipelineContributors.Add( contributor );
     }
 }

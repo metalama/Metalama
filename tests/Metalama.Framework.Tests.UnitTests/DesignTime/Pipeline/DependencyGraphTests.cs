@@ -4,8 +4,8 @@ using Metalama.Framework.DesignTime;
 using Metalama.Framework.DesignTime.Pipeline;
 using Metalama.Framework.DesignTime.Pipeline.Dependencies;
 using Metalama.Framework.Engine.CodeModel;
-using Metalama.Framework.Tests.UnitTests.DesignTime.Mocks;
-using Metalama.Testing.UnitTesting;
+using Metalama.Framework.Tests.UnitTestHelpers.Mocks;
+using Metalama.Framework.Tests.UnitTestHelpers.TestClasses;
 using System.Collections.Generic;
 using System.Linq;
 using Xunit;
@@ -104,9 +104,11 @@ public sealed class DependencyGraphTests : DesignTimeTestBase
         const string masterFilePath = "master.cs";
         const string dependentFilePath = "dependent.cs";
 
-        var masterCompilation = TestCompilationFactory.CreateCSharpCompilation(
+        using var testContext = this.CreateTestContext();
+
+        var masterCompilation = testContext.CreateCSharpCompilation(
             new Dictionary<string, string>() { [masterFilePath] = "", [dependentFilePath] = "" },
-            name: "MasterAssembly" );
+            assemblyName: "MasterAssembly" );
 
         var dependencies1 = new BaseDependencyCollector( new TestProjectVersion( masterCompilation ) );
 
@@ -189,6 +191,7 @@ public sealed class DependencyGraphTests : DesignTimeTestBase
     [Fact]
     public void RemoveDependency()
     {
+        using var testContext = this.CreateTestContext();
         var masterCompilation = ProjectKeyFactory.CreateTest( "MasterAssembly" );
         const ulong hash1 = 54;
 
@@ -198,7 +201,7 @@ public sealed class DependencyGraphTests : DesignTimeTestBase
         const string dependentFilePath1 = "dependent1.cs";
         const string dependentFilePath2 = "dependent2.cs";
 
-        var compilation = TestCompilationFactory.CreateCSharpCompilation(
+        var compilation = testContext.CreateCSharpCompilation(
             new Dictionary<string, string> { [masterFilePath] = "", [dependentFilePath1] = "", [dependentFilePath2] = "" } );
 
         var partialCompilation = PartialCompilation.CreateComplete( compilation );

@@ -23,7 +23,7 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
                             TokenList(),
                             p.Type,
                             Identifier( TriviaList( ElasticSpace ), p.Name, TriviaList( ElasticSpace ) ),
-                            default ) );
+                            null ) );
 
             return WithAdditionalParameters( parameterList, additionalParameterSyntax );
         }

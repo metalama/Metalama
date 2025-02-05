@@ -14,8 +14,7 @@ namespace Metalama.Framework.Tests.TemplateTests.Runner
             GlobalServiceProvider serviceProvider,
             string? projectDirectory,
             TestProjectReferences references,
-            ITestOutputHelper? logger,
-            ILicenseKeyProvider? licenseKeyProvider )
+            ITestOutputHelper? logger )
             => new TemplatingTestRunner( serviceProvider, projectDirectory, references, logger );
     }
 }

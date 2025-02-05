@@ -2,7 +2,6 @@
 
 using Metalama.Framework.Engine.AspectOrdering;
 using Metalama.Framework.Engine.AspectWeavers;
-using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Observers;
 using Metalama.Framework.Engine.Utilities.Threading;
@@ -17,15 +16,10 @@ namespace Metalama.Framework.Engine.Pipeline
     /// </summary>
     internal abstract class HighLevelPipelineStage : PipelineStage
     {
-        protected CompileTimeProject CompileTimeProject { get; }
-
         private readonly IReadOnlyList<OrderedAspectLayer> _aspectLayers;
 
-        protected HighLevelPipelineStage(
-            CompileTimeProject compileTimeProject,
-            IReadOnlyList<OrderedAspectLayer> aspectLayers )
+        protected HighLevelPipelineStage( IReadOnlyList<OrderedAspectLayer> aspectLayers )
         {
-            this.CompileTimeProject = compileTimeProject;
             this._aspectLayers = aspectLayers;
         }
 
@@ -47,13 +41,13 @@ namespace Metalama.Framework.Engine.Pipeline
                 pipelineConfiguration,
                 cancellationToken );
 
-            await pipelineStepsState.ExecuteAsync( cancellationToken );
+            var pipelineStepsResult = await pipelineStepsState.ExecuteAsync( cancellationToken );
 
-            return await this.GetStageResultAsync( pipelineConfiguration, input, pipelineStepsState, cancellationToken );
+            return await this.GetStageResultAsync( pipelineConfiguration, input, pipelineStepsResult, cancellationToken );
         }
 
         /// <summary>
-        /// Generates the code required by the aspects whose execution resulted in a given <see cref="IPipelineStepsResult"/>, and combine it with an input
+        /// Generates the code required by the aspects whose execution resulted in a given <see cref="PipelineStepsResult"/>, and combine it with an input
         /// <see cref="AspectPipelineResult"/> to produce an output <see cref="AspectPipelineResult"/>.
         /// </summary>
         /// <param name="pipelineConfiguration"></param>
@@ -64,7 +58,7 @@ namespace Metalama.Framework.Engine.Pipeline
         protected abstract Task<AspectPipelineResult> GetStageResultAsync(
             AspectPipelineConfiguration pipelineConfiguration,
             AspectPipelineResult input,
-            IPipelineStepsResult pipelineStepsResult,
+            PipelineStepsResult pipelineStepsResult,
             TestableCancellationToken cancellationToken );
     }
 }

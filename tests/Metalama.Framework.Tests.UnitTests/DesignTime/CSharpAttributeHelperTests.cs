@@ -507,13 +507,13 @@ namespace Test
         [Fact]
         public async Task When_AttributeAppliedToAssembly_Then_AttributeIsAddedOnNewLineAfterLeadingCommentAsync()
         {
-            var syntax = """// leading comment""";
+            const string syntax = """// leading comment""";
 
-            var expectedSyntax = """
-                // leading comment
-                [assembly: TestAttribute]
+            const string expectedSyntax = """
+                                          // leading comment
+                                          [assembly: TestAttribute]
 
-                """;
+                                          """;
 
             var originalRoot = await this.GetSyntaxRootAsync( syntax );
 
@@ -525,21 +525,21 @@ namespace Test
         [Fact]
         public async Task When_AttributeAppliedToAssembly_Then_AttributeIsAddedOnNewLineAfterAlreadyExistingAttributesAsync()
         {
-            var syntax = """
-                // leading comment
-                // some comment
-                [assembly: TestAttribute]
-                // some other comment
-                """;
+            const string syntax = """
+                                  // leading comment
+                                  // some comment
+                                  [assembly: TestAttribute]
+                                  // some other comment
+                                  """;
 
-            var expectedSyntax = """
-                // leading comment
-                // some comment
-                [assembly: TestAttribute]
-                // some other comment
-                [assembly: TestAttribute]
+            const string expectedSyntax = """
+                                          // leading comment
+                                          // some comment
+                                          [assembly: TestAttribute]
+                                          // some other comment
+                                          [assembly: TestAttribute]
 
-                """;
+                                          """;
 
             var originalRoot = await this.GetSyntaxRootAsync( syntax );
 
@@ -551,23 +551,23 @@ namespace Test
         [Fact]
         public async Task When_AttributeAppliedToAssembly_Then_AttributeIsAddedBeforeNamespaceAsync()
         {
-            var syntax = """
-                using System;
+            const string syntax = """
+                                  using System;
 
-                namespace Test
-                {
-                }
-                """;
+                                  namespace Test
+                                  {
+                                  }
+                                  """;
 
-            var expectedSyntax = """
-                using System;
+            const string expectedSyntax = """
+                                          using System;
 
-                [assembly: TestAttribute]
-                
-                namespace Test
-                {
-                }
-                """;
+                                          [assembly: TestAttribute]
+
+                                          namespace Test
+                                          {
+                                          }
+                                          """;
 
             var originalRoot = await this.GetSyntaxRootAsync( syntax );
 
@@ -579,15 +579,15 @@ namespace Test
         [Fact]
         public async Task When_AttributeAppliedToAssembly_Then_AttributeIsAddedBeforeFileScopedNamespaceAsync()
         {
-            var syntax = """
-                namespace Test;
-                """;
+            const string syntax = """
+                                  namespace Test;
+                                  """;
 
-            var expectedSyntax = """
-                [assembly: TestAttribute]
+            const string expectedSyntax = """
+                                          [assembly: TestAttribute]
 
-                namespace Test;
-                """;
+                                          namespace Test;
+                                          """;
 
             var originalRoot = await this.GetSyntaxRootAsync( syntax );
 
@@ -599,19 +599,19 @@ namespace Test
         [Fact]
         public async Task When_AttributeAppliedToAssembly_Then_AttributeIsAddedBeforeClassAsync()
         {
-            var syntax = """
-                public class Test
-                {
-                }
-                """;
+            const string syntax = """
+                                  public class Test
+                                  {
+                                  }
+                                  """;
 
-            var expectedSyntax = """
-                [assembly: TestAttribute]
+            const string expectedSyntax = """
+                                          [assembly: TestAttribute]
 
-                public class Test
-                {
-                }
-                """;
+                                          public class Test
+                                          {
+                                          }
+                                          """;
 
             var originalRoot = await this.GetSyntaxRootAsync( syntax );
 
@@ -659,7 +659,7 @@ namespace Test
         {
             var (semanticModel, context) = await this.GetModelAndContextAsync( syntaxNodeToBeDecorated );
 
-            var symbolToBeDecorated = semanticModel!.GetDeclaredSymbol( syntaxNodeToBeDecorated );
+            var symbolToBeDecorated = semanticModel.GetDeclaredSymbol( syntaxNodeToBeDecorated );
 
             var resultSolution = await CSharpAttributeHelper.AddAttributeAsync(
                 this._testFileDocument,

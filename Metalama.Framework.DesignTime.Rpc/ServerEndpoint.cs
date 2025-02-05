@@ -2,23 +2,30 @@
 
 using StreamJsonRpc;
 using System.Collections.Concurrent;
+using System.Collections.Immutable;
 using System.IO.Pipes;
 
 namespace Metalama.Framework.DesignTime.Rpc;
 
-public abstract class ServerEndpoint : ServiceEndpoint, IDisposable
+public abstract class ServerEndpoint : BaseEndpoint
 {
-    private readonly int _maxClientCount;
-    private readonly CancellationTokenSource _startCancellationSource = new();
     private readonly ConcurrentDictionary<JsonRpc, NamedPipeServerStream> _pipes = new();
+    private int _nextPipeId = 1;
 
-    protected ServerEndpoint( IServiceProvider serviceProvider, string pipeName, int maxClientCount, JsonSerializationBinder? binder = null ) : base(
+    protected ServerEndpoint(
+        IServiceProvider serviceProvider,
+        string pipeName ) : base(
         serviceProvider,
-        pipeName,
-        binder )
-    {
-        this._maxClientCount = maxClientCount;
-    }
+        pipeName ) { }
+
+    private ImmutableArray<RpcService> Services { get; set; }
+
+    public TService GetRequiredService<TService>()
+        where TService : RpcService
+        => this.Services.OfType<TService>().SingleOrDefault()
+           ?? throw new InvalidOperationException( $"Service '{typeof(TService).Name}' is not registered." );
+
+    protected abstract IEnumerable<RpcService> CreateServices();
 
     internal int ClientCount => this._pipes.Count;
 
@@ -26,77 +33,87 @@ public abstract class ServerEndpoint : ServiceEndpoint, IDisposable
     /// <summary>
     /// Starts the RPC connection, but does not wait until the service is fully started.
     /// </summary>
-    public async void Start()
+    public void Start()
     {
-        try
+        if ( !this.Services.IsDefault )
         {
-            await Task.Run( () => this.StartAsync( this._startCancellationSource.Token ) );
+            throw new InvalidOperationException( $"The '{this}' endpoint has already been started." );
         }
-        catch ( Exception e )
-        {
-            this.ExceptionHandler?.OnException( e, this.Logger );
-        }
+
+        var services = this.CreateServices().ToImmutableArray();
+        this.Services = services;
+        _ = this.StartCoreAsync( this.PipeName, services, this.DisposeCancellationToken );
     }
 #pragma warning restore VSTHRD100 // Avoid "async void".
 
-    protected abstract void ConfigureRpc( JsonRpc rpc );
+    protected string AddServices( ImmutableArray<RpcService> services )
+    {
+        var pipeId = Interlocked.Increment( ref this._nextPipeId );
+        var pipeName = this.PipeName + "-" + pipeId;
+        this.Services = this.Services.AddRange( services );
 
+        this.ExecuteBackgroundTask( ct => this.AcceptNewClientAsync( pipeName, services, ct ) );
+
+        return pipeName;
+    }
+    
     protected virtual Task OnServerPipeCreatedAsync( CancellationToken cancellationToken ) => Task.CompletedTask;
 
-    private async Task StartAsync( CancellationToken cancellationToken )
+    private async Task StartCoreAsync( string pipeName, ImmutableArray<RpcService> services, CancellationToken cancellationToken )
     {
-        this.Logger.Trace?.Log( $"Starting the server endpoint '{this.PipeName}'." );
+        this.Logger.Trace?.Log( $"Starting the server endpoint '{pipeName}'." );
 
         try
         {
-            await this.AcceptNewClientAsync( cancellationToken );
+            await this.AcceptNewClientAsync( pipeName, services, cancellationToken );
 
-            this.Logger.Trace?.Log( $"The server endpoint '{this.PipeName}' is ready." );
+            this.Logger.Trace?.Log( $"The server endpoint '{pipeName}' is ready." );
 
             this.InitializedTask.SetResult( true );
         }
         catch ( Exception e )
         {
             this.InitializedTask.SetException( e );
-            this.ExceptionHandler?.OnException( e, this.Logger );
-
-            throw;
+            this.ExceptionHandler?.OnException( e, this.Logger, this.DisposeCancellationToken.IsCancellationRequested );
         }
     }
 
-    private async Task AcceptNewClientAsync( CancellationToken cancellationToken )
+    private async Task AcceptNewClientAsync( string pipeName, ImmutableArray<RpcService> services, CancellationToken cancellationToken )
     {
         var pipe = new NamedPipeServerStream(
-            this.PipeName,
+            pipeName,
             PipeDirection.InOut,
             NamedPipeServerStream.MaxAllowedServerInstances,
             PipeTransmissionMode.Byte,
             PipeOptions.Asynchronous );
 
-        await this.OnServerPipeCreatedAsync( cancellationToken );
+        await this.OnServerPipeCreatedAsync( cancellationToken ).WarnIfLongAsync( this.Logger, nameof(this.OnServerPipeCreatedAsync), cancellationToken );
 
-        this.Logger.Trace?.Log( $"Endpoint '{this.PipeName}': wait for a client." );
+        this.Logger.Trace?.Log( $"Endpoint '{pipeName}': wait for a client (currently has {this.ClientCount})." );
 
         await pipe.WaitForConnectionAsync( cancellationToken );
 
-        this.Logger.Trace?.Log( $"Endpoint '{this.PipeName}': got a client." );
+        this.Logger.Trace?.Log( $"Endpoint '{pipeName}': got a client (now has {this.ClientCount + 1})." );
 
         var rpc = this.CreateRpc( pipe );
-        this.ConfigureRpc( rpc );
+
+        this.Logger.Trace?.Log( $"Endpoint '{pipeName}': adding services {string.Join( ",", services.Select( s => s.GetType().Name ) )} " );
+
+        foreach ( var i in services )
+        {
+            i.ConfigureRpc( rpc );
+        }
 
         rpc.Disconnected += this.OnRpcDisconnected;
         this._pipes.TryAdd( rpc, pipe );
 
-        this.Logger.Trace?.Log( $"Endpoint '{this.PipeName}': start listening." );
+        this.Logger.Trace?.Log( $"Endpoint '{pipeName}': start listening." );
         rpc.StartListening();
 
-        this.Logger.Trace?.Log( $"The server endpoint '{this.PipeName}' is ready." );
+        this.Logger.Trace?.Log( $"The server endpoint '{pipeName}' is ready." );
 
         // Listen to another client.
-        if ( this.ClientCount < this._maxClientCount )
-        {
-            _ = Task.Run( () => this.AcceptNewClientAsync( cancellationToken ), cancellationToken );
-        }
+        this.ExecuteBackgroundTask( ct => this.AcceptNewClientAsync( pipeName, services, ct ) );
     }
 
     private void OnRpcDisconnected( object? sender, JsonRpcDisconnectedEventArgs e )
@@ -106,32 +123,22 @@ public abstract class ServerEndpoint : ServiceEndpoint, IDisposable
         this.OnRpcDisconnected( (JsonRpc) sender! );
     }
 
-    protected virtual void OnRpcDisconnected( JsonRpc rpc )
+    private void OnRpcDisconnected( JsonRpc rpc )
     {
+        foreach ( var i in this.Services )
+        {
+            i.OnRpcDisconnected( rpc );
+        }
+
         if ( this._pipes.TryRemove( rpc, out var pipe ) )
         {
             pipe.Dispose();
         }
-
-        // Listen to another client.
-        if ( this.ClientCount < this._maxClientCount )
-        {
-            _ = Task.Run( () => this.AcceptNewClientAsync( this._startCancellationSource.Token ), this._startCancellationSource.Token );
-        }
     }
 
-    public virtual void Dispose()
+    protected override void Dispose( bool disposing )
     {
-        this.Logger.Trace?.Log( $"Disposing endpoint '{this.PipeName}'." );
-
-        try
-        {
-            this._startCancellationSource.Cancel();
-        }
-        catch ( Exception e )
-        {
-            this.Logger.Error?.Log( e.ToString() );
-        }
+        base.Dispose( disposing );
 
         foreach ( var pipe in this._pipes )
         {
@@ -146,7 +153,7 @@ public abstract class ServerEndpoint : ServiceEndpoint, IDisposable
             }
             catch ( Exception e )
             {
-                this.ExceptionHandler?.OnException( e, this.Logger );
+                this.ExceptionHandler?.OnException( e, this.Logger, true );
             }
         }
     }

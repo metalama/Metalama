@@ -60,8 +60,7 @@ class MyClass
         using var testContext = this.CreateTestContext();
         var compilation = testContext.CreateCompilationModel( code );
 
-        var domain = testContext.Domain;
-        var compiler = new IntrospectionCompiler( testContext.ServiceProvider, domain );
+        var compiler = new IntrospectionCompiler( testContext.ServiceProvider );
         var compilerOutput = await compiler.CompileAsync( compilation );
 
         Assert.True( compilerOutput.HasMetalamaSucceeded );
@@ -114,8 +113,7 @@ class MyClass
         using var testContext = this.CreateTestContext();
         var compilation = testContext.CreateCompilationModel( code );
 
-        var domain = testContext.Domain;
-        var compiler = new IntrospectionCompiler( testContext.ServiceProvider, domain );
+        var compiler = new IntrospectionCompiler( testContext.ServiceProvider );
         var compilerOutput = await compiler.CompileAsync( compilation );
 
         Assert.True( compilerOutput.HasMetalamaSucceeded );
@@ -160,8 +158,7 @@ class MyClass
         using var testContext = this.CreateTestContext();
         var compilation = testContext.CreateCompilationModel( code, ignoreErrors: true );
 
-        var domain = testContext.Domain;
-        var compiler = new IntrospectionCompiler( testContext.ServiceProvider, domain );
+        var compiler = new IntrospectionCompiler( testContext.ServiceProvider );
         var compilerOutput = await compiler.CompileAsync( compilation );
 
         Assert.False( compilerOutput.HasMetalamaSucceeded );
@@ -210,7 +207,7 @@ class MyClass
         using var testContext = this.CreateTestContext();
         var compilation = testContext.CreateCompilationModel( code );
 
-        var compiler = new IntrospectionCompiler( testContext.ServiceProvider, testContext.Domain );
+        var compiler = new IntrospectionCompiler( testContext.ServiceProvider );
         var compilerOutput = await compiler.CompileAsync( compilation );
 
         Assert.True( compilerOutput.HasMetalamaSucceeded );

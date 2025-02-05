@@ -17,18 +17,18 @@ namespace Metalama.Framework.Engine.SyntaxGeneration;
 /// <summary>
 /// Helper methods that would ideally be in the <see cref="SyntaxFactory"/> class.
 /// </summary>
-internal static partial class SyntaxFactoryEx
+public static partial class SyntaxFactoryEx
 {
     private static readonly ConcurrentDictionary<SyntaxKind, SyntaxToken> _tokensWithTrailingSpace = new();
 
-    public static LiteralExpressionSyntax Null => SyntaxFactory.LiteralExpression( SyntaxKind.NullLiteralExpression );
+    internal static LiteralExpressionSyntax Null => SyntaxFactory.LiteralExpression( SyntaxKind.NullLiteralExpression );
 
-    public static LiteralExpressionSyntax Default
+    internal static LiteralExpressionSyntax Default
         => SyntaxFactory.LiteralExpression(
             SyntaxKind.DefaultLiteralExpression,
             SyntaxFactory.Token( SyntaxKind.DefaultKeyword ) );
 
-    internal static SyntaxToken TokenWithTrailingSpace( SyntaxKind kind )
+    public static SyntaxToken TokenWithTrailingSpace( SyntaxKind kind )
         => _tokensWithTrailingSpace.GetOrAdd( kind, static k => SyntaxFactory.Token( default, k, new SyntaxTriviaList( SyntaxFactory.ElasticSpace ) ) );
 
     internal static SyntaxToken InvocationRefKindToken( this RefKind refKind )
@@ -41,11 +41,11 @@ internal static partial class SyntaxFactoryEx
             _ => throw new AssertionFailedException( $"Unexpected RefKind: {refKind}." )
         };
 
-    public static ExpressionStatementSyntax DiscardStatement( ExpressionSyntax discardedExpression )
+    internal static ExpressionStatementSyntax DiscardStatement( ExpressionSyntax discardedExpression )
         => SyntaxFactory.ExpressionStatement(
             SyntaxFactory.AssignmentExpression( SyntaxKind.SimpleAssignmentExpression, DiscardIdentifier(), discardedExpression ) );
 
-    public static IdentifierNameSyntax DiscardIdentifier()
+    internal static IdentifierNameSyntax DiscardIdentifier()
         => SyntaxFactory.IdentifierName(
             SyntaxFactory.Identifier(
                 SyntaxFactory.TriviaList(),
@@ -54,7 +54,7 @@ internal static partial class SyntaxFactoryEx
                 "_",
                 SyntaxFactory.TriviaList() ) );
 
-    public static IdentifierNameSyntax VarIdentifier()
+    internal static IdentifierNameSyntax VarIdentifier()
         => SyntaxFactory.IdentifierName(
             SyntaxFactory.Identifier(
                 SyntaxFactory.TriviaList(),
@@ -114,7 +114,7 @@ internal static partial class SyntaxFactoryEx
     private static SyntaxToken LiteralImpl<T>( T value, ObjectDisplayOptions options = ObjectDisplayOptions.None )
         => LiteralFormatter<T>.Instance.Format( value, options );
 
-    public static TypeSyntax ExpressionSyntaxType { get; } = SyntaxFactory.QualifiedName(
+    internal static TypeSyntax ExpressionSyntaxType { get; } = SyntaxFactory.QualifiedName(
         SyntaxFactory.QualifiedName(
             SyntaxFactory.QualifiedName(
                 SyntaxFactory.QualifiedName(
@@ -126,13 +126,13 @@ internal static partial class SyntaxFactoryEx
             SyntaxFactory.IdentifierName( "Syntax" ) ),
         SyntaxFactory.IdentifierName( "ExpressionSyntax" ) );
 
-    public static LiteralExpressionSyntax LiteralExpression( object literal, ObjectDisplayOptions options = ObjectDisplayOptions.None )
+    internal static LiteralExpressionSyntax LiteralExpression( object literal, ObjectDisplayOptions options = ObjectDisplayOptions.None )
     {
         return (LiteralExpressionSyntax?) LiteralExpressionOrNull( literal, options )
                ?? throw new ArgumentOutOfRangeException( nameof(literal), $"'{literal}' is not a valid literal." );
     }
 
-    public static ExpressionSyntax? LiteralExpressionOrNull( object? obj, ObjectDisplayOptions options = ObjectDisplayOptions.None )
+    internal static ExpressionSyntax? LiteralExpressionOrNull( object? obj, ObjectDisplayOptions options = ObjectDisplayOptions.None )
         => obj switch
         {
             null => Null,
@@ -155,7 +155,7 @@ internal static partial class SyntaxFactoryEx
             _ => null
         };
 
-    public static ExpressionSyntax LiteralExpression( string? s )
+    internal static ExpressionSyntax LiteralExpression( string? s )
         => s == null
             ? SyntaxFactory.ParenthesizedExpression(
                     SyntaxFactory.CastExpression(
@@ -164,7 +164,7 @@ internal static partial class SyntaxFactoryEx
                 .WithAdditionalAnnotations( Simplifier.Annotation )
             : LiteralNonNullExpression( s );
 
-    public static ExpressionSyntax ParseExpressionSafe( string text )
+    internal static ExpressionSyntax ParseExpressionSafe( string text )
     {
         var expression = SyntaxFactory.ParseExpression( text );
 
@@ -178,7 +178,7 @@ internal static partial class SyntaxFactoryEx
         return expression;
     }
 
-    public static StatementSyntax ParseStatementSafe( string text )
+    internal static StatementSyntax ParseStatementSafe( string text )
     {
         var statement = SyntaxFactory.ParseStatement( text );
 
@@ -195,10 +195,10 @@ internal static partial class SyntaxFactoryEx
 
     private static ExpressionSyntax EmptyExpression => SyntaxFactory.IdentifierName( SyntaxFactory.MissingToken( SyntaxKind.IdentifierToken ) );
 
-    public static StatementSyntax EmptyStatement
+    internal static StatementSyntax EmptyStatement
         => SyntaxFactory.ExpressionStatement( EmptyExpression, SyntaxFactory.MissingToken( SyntaxKind.SemicolonToken ) );
 
-    public static ExpressionStatementSyntax AssignmentStatement(
+    internal static ExpressionStatementSyntax AssignmentStatement(
         ExpressionSyntax left,
         ExpressionSyntax right,
         SyntaxGenerationContext syntaxGenerationContext )

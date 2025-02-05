@@ -10,13 +10,12 @@ using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CodeModel.Abstractions;
 using Metalama.Framework.Engine.Collections;
 using Metalama.Framework.Engine.Diagnostics;
-using Metalama.Framework.Engine.Fabrics;
+using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.HierarchicalOptions;
 using Metalama.Framework.Engine.Introspection;
 using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Transformations;
 using Metalama.Framework.Engine.Utilities.Threading;
-using Metalama.Framework.Engine.Validation;
 using Microsoft.CodeAnalysis;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -33,15 +32,14 @@ namespace Metalama.Framework.Engine.Pipeline;
 /// like <see cref="AddAspectInstances"/> or <see cref="AddAspectSources"/> that
 /// allow to add inputs to different steps of the pipeline. This object must create the steps in the appropriate order.
 /// </summary>
-internal sealed class PipelineStepsState : IPipelineStepsResult, IDiagnosticAdder
+internal sealed class PipelineStepsState
 {
     private readonly SkipListDictionary<PipelineStepId, PipelineStep> _steps;
     private readonly PipelineStepIdComparer _comparer;
-    private readonly UserDiagnosticSink _diagnostics;
     private readonly ConcurrentLinkedList<ITransformation> _transformations = new();
     private readonly ConcurrentLinkedList<IAspectInstance> _inheritableAspectInstances = new();
     private readonly ConcurrentLinkedList<AspectInstanceResult> _aspectInstanceResults = new();
-    private readonly ConcurrentLinkedList<IValidatorSource> _validatorSources = new();
+    private readonly ConcurrentLinkedList<IExtensionPipelineContributor> _extensionContributors = new();
     private readonly OverflowAspectSource _overflowAspectSource = new();
     private readonly IntrospectionPipelineListener? _introspectionListener;
     private readonly bool _shouldDetectUnorderedAspects;
@@ -49,21 +47,11 @@ internal sealed class PipelineStepsState : IPipelineStepsResult, IDiagnosticAdde
 
     private PipelineStep? _currentStep;
 
-    public CompilationModel LastCompilation { get; private set; }
+    private CompilationModel LastCompilation { get; set; }
 
     public CompilationModel FirstCompilation { get; }
-
-    public IReadOnlyCollection<ITransformation> Transformations => this._transformations;
-
-    public ImmutableArray<IAspectInstance> InheritableAspectInstances => this._inheritableAspectInstances.ToImmutableArray();
-
-    public ImmutableArray<IValidatorSource> ValidatorSources => this._validatorSources.ToImmutableArray();
-
-    ImmutableUserDiagnosticList IPipelineStepsResult.Diagnostics => this._diagnostics.ToImmutable();
-
-    public ImmutableArray<IAspectSource> OverflowAspectSources => ImmutableArray.Create<IAspectSource>( this._overflowAspectSource );
-
-    public ImmutableArray<AspectInstanceResult> AspectInstanceResults => this._aspectInstanceResults.ToImmutableArray();
+    
+    private UserDiagnosticSink Diagnostics { get; }
 
     public AspectPipelineConfiguration PipelineConfiguration { get; }
 
@@ -78,7 +66,7 @@ internal sealed class PipelineStepsState : IPipelineStepsResult, IDiagnosticAdde
         this._introspectionListener = pipelineConfiguration.ServiceProvider.GetService<IntrospectionPipelineListener>();
         this._shouldDetectUnorderedAspects = pipelineConfiguration.ServiceProvider.GetRequiredService<IProjectOptions>().RequireOrderedAspects;
 
-        this._diagnostics = new UserDiagnosticSink( pipelineConfiguration.CompileTimeProject, pipelineConfiguration.CodeFixFilter );
+        this.Diagnostics = new UserDiagnosticSink( pipelineConfiguration.ServiceProvider );
         this.LastCompilation = this.FirstCompilation = inputLastCompilation;
         this.PipelineConfiguration = pipelineConfiguration;
 
@@ -101,11 +89,11 @@ internal sealed class PipelineStepsState : IPipelineStepsResult, IDiagnosticAdde
 
         // Add the initial sources.
         // TODO: process failure of the next line.
-        this.AddAspectSources( sources.AspectSources, false, cancellationToken );
-        this.AddValidatorSources( sources.ValidatorSources );
+        this.AddAspectSources( sources.Contributors.OfType<IAspectSource>(), false, cancellationToken );
+        this.AddExtendedContributors( sources.Contributors.OfType<IExtensionPipelineContributor>() );
     }
 
-    public async Task ExecuteAsync( CancellationToken cancellationToken )
+    public async Task<PipelineStepsResult> ExecuteAsync( CancellationToken cancellationToken )
     {
         using var enumerator = this._steps.GetEnumerator();
         PipelineStep? previousStep = null;
@@ -122,10 +110,20 @@ internal sealed class PipelineStepsState : IPipelineStepsResult, IDiagnosticAdde
 
             var compilation = this.LastCompilation;
 
-            this.LastCompilation = await this._currentStep!.ExecuteAsync( compilation, this._diagnostics, stepIndex, cancellationToken );
+            this.LastCompilation = await this._currentStep!.ExecuteAsync( compilation, this.Diagnostics, stepIndex, cancellationToken );
 
             stepIndex++;
         }
+
+        return new PipelineStepsResult(
+            this.FirstCompilation,
+            this.LastCompilation,
+            this._transformations,
+            this._inheritableAspectInstances,
+            this.Diagnostics.ToImmutable(),
+            this._overflowAspectSource,
+            this._extensionContributors,
+            this._aspectInstanceResults );
     }
 
     private void DetectUnorderedSteps( ref PipelineStep? previousStep, PipelineStep currentStep )
@@ -134,7 +132,7 @@ internal sealed class PipelineStepsState : IPipelineStepsResult, IDiagnosticAdde
         {
             if ( previousStep.AspectLayer != currentStep.AspectLayer && previousStep.AspectLayer.ExplicitOrder >= currentStep.AspectLayer.ExplicitOrder )
             {
-                this._diagnostics.Report(
+                this.Diagnostics.Report(
                     GeneralDiagnosticDescriptors.UnorderedLayers.CreateRoslynDiagnostic(
                         null,
                         (previousStep.AspectLayer.AspectLayerId.ToString(), currentStep.AspectLayer.AspectLayerId.ToString()) ) );
@@ -178,7 +176,7 @@ internal sealed class PipelineStepsState : IPipelineStepsResult, IDiagnosticAdde
                             // Find out if there is no future layer for this aspect type.
                             if ( !this.PipelineConfiguration.AspectLayers.Skip( currentLayerIndex + 1 ).Any( layer => layer.Equals( aspectLayerId ) ) )
                             {
-                                this._diagnostics.Report(
+                                this.Diagnostics.Report(
                                     GeneralDiagnosticDescriptors.CannotAddChildAspectToPreviousPipelineStep.CreateRoslynDiagnostic(
                                         this._currentStep.AspectLayer.AspectClass.GetDiagnosticLocation( this.FirstCompilation.RoslynCompilation ),
                                         (this._currentStep.AspectLayer.AspectClass.ShortName, aspectType.ShortName) ) );
@@ -199,7 +197,7 @@ internal sealed class PipelineStepsState : IPipelineStepsResult, IDiagnosticAdde
 
                         if ( !this.TryGetOrAddStep( stepId, false, out var step ) )
                         {
-                            this._diagnostics.Report(
+                            this.Diagnostics.Report(
                                 GeneralDiagnosticDescriptors.CannotAddChildAspectToPreviousPipelineStep.CreateRoslynDiagnostic(
                                     this._currentStep!.AspectLayer.AspectClass.GetDiagnosticLocation( this.FirstCompilation.RoslynCompilation ),
                                     (this._currentStep.AspectLayer.AspectClass.ShortName, aspectType.ShortName) ) );
@@ -222,11 +220,11 @@ internal sealed class PipelineStepsState : IPipelineStepsResult, IDiagnosticAdde
         IUserDiagnosticSink diagnosticSink,
         CancellationToken cancellationToken )
     {
-        var collector = new OutboundActionCollector( diagnosticSink );
+        var collector = new AspectInstanceCollector( aspectClass, compilation, diagnosticSink, cancellationToken );
 
         await this._concurrentTaskRunner.RunConcurrentlyAsync(
             aspectSources.Where( a => a.AspectClasses.Contains( aspectClass ) ),
-            source => source.CollectAspectInstancesAsync( aspectClass, new OutboundActionCollectionContext( collector, compilation, cancellationToken ) ),
+            source => source.CollectAspectInstancesAsync( collector ),
             cancellationToken );
 
         HashSet<IDeclaration>? exclusions = null;
@@ -450,9 +448,9 @@ internal sealed class PipelineStepsState : IPipelineStepsResult, IDiagnosticAdde
 
     public void AddDiagnostics( ImmutableUserDiagnosticList diagnostics )
     {
-        this._diagnostics.Report( diagnostics.ReportedDiagnostics );
-        this._diagnostics.Suppress( diagnostics.DiagnosticSuppressions );
-        this._diagnostics.AddCodeFixes( diagnostics.CodeFixes );
+        this.Diagnostics.Report( diagnostics.ReportedDiagnostics );
+        this.Diagnostics.Suppress( diagnostics.DiagnosticSuppressions );
+        this.Diagnostics.AddExtensions( diagnostics.Extensions );
     }
 
     public void AddTransformations( IEnumerable<ITransformation> transformations )
@@ -463,11 +461,11 @@ internal sealed class PipelineStepsState : IPipelineStepsResult, IDiagnosticAdde
         }
     }
 
-    public void AddValidatorSources( IEnumerable<IValidatorSource> validatorSources )
+    public void AddExtendedContributors( IEnumerable<IExtensionPipelineContributor> contributors )
     {
-        foreach ( var source in validatorSources )
+        foreach ( var source in contributors )
         {
-            this._validatorSources.Add( source );
+            this._extensionContributors.Add( source );
         }
     }
 
@@ -476,11 +474,11 @@ internal sealed class PipelineStepsState : IPipelineStepsResult, IDiagnosticAdde
         foreach ( var source in optionsSources )
         {
             await this.LastCompilation.HierarchicalOptionsManager.AssertNotNull()
-                .AddSourceAsync( source, this.LastCompilation, this._diagnostics, cancellationToken );
+                .AddSourceAsync( source, this.LastCompilation, this.Diagnostics, cancellationToken );
         }
     }
 
-    public void Report( Diagnostic diagnostic ) => this._diagnostics.Report( diagnostic );
+    private void Report( Diagnostic diagnostic ) => this.Diagnostics.Report( diagnostic );
 
     public void AddAspectInstanceResult( AspectInstanceResult aspectInstanceResult )
     {

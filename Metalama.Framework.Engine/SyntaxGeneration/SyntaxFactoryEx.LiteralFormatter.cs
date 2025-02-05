@@ -11,7 +11,7 @@ using System.Reflection;
 
 namespace Metalama.Framework.Engine.SyntaxGeneration;
 
-internal partial class SyntaxFactoryEx
+public partial class SyntaxFactoryEx
 {
     private static readonly Dictionary<Type, MethodInfo> _syntaxFactoryMethods = typeof(SyntaxFactory).GetMethods( BindingFlags.Static | BindingFlags.Public )
         .Where( m => m.Name == "Literal" && m.GetParameters().Length == 4 )

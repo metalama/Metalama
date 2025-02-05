@@ -33,7 +33,6 @@ internal sealed partial class CompileTimeProjectRepository
         Compilation compilation,
         IDiagnosticAdder? diagnostics = null,
         bool cacheOnly = false,
-        ProjectLicenseInfo? projectLicenseInfo = null,
         IReadOnlyList<SyntaxTree>? compileTimeTreesHint = null,
         CancellationToken cancellationToken = default )
     {
@@ -41,7 +40,7 @@ internal sealed partial class CompileTimeProjectRepository
 
         var builder = new Builder( domain, serviceProvider, compilation );
 
-        if ( !builder.TryBuild( compilation, projectLicenseInfo, compileTimeTreesHint, diagnostics, cacheOnly, cancellationToken, out var repository ) )
+        if ( !builder.TryBuild( compilation, compileTimeTreesHint, diagnostics, cacheOnly, cancellationToken, out var repository ) )
         {
             return null;
         }
@@ -69,7 +68,7 @@ internal sealed partial class CompileTimeProjectRepository
         {
             var assemblyLocator = serviceProvider.GetReferenceAssemblyLocator();
 
-            return CSharpCompilation.Create( "empty", references: assemblyLocator.StandardCompileTimeMetadataReferences );
+            return CSharpCompilation.Create( "empty", references: assemblyLocator.MetadataReferences );
         }
 
         // This constructor is used in tests.
@@ -100,7 +99,6 @@ internal sealed partial class CompileTimeProjectRepository
 
         public bool TryBuild(
             Compilation compilation,
-            ProjectLicenseInfo? projectLicenseInfo,
             IReadOnlyList<SyntaxTree>? compileTimeTreesHint,
             IDiagnosticAdder diagnosticSink,
             bool cacheOnly,
@@ -111,7 +109,6 @@ internal sealed partial class CompileTimeProjectRepository
 
             if ( !this.TryGetCompileTimeProjectFromCompilation(
                     compilationContext,
-                    projectLicenseInfo,
                     compileTimeTreesHint,
                     diagnosticSink,
                     cacheOnly,
@@ -140,7 +137,6 @@ internal sealed partial class CompileTimeProjectRepository
         // This method is only used in tests.
         internal bool TryGetCompileTimeProjectFromCompilation(
             Compilation compilation,
-            ProjectLicenseInfo? projectLicenseInfo,
             IReadOnlyList<SyntaxTree>? compileTimeTreesHint,
             IDiagnosticAdder diagnosticSink,
             bool cacheOnly,
@@ -148,7 +144,6 @@ internal sealed partial class CompileTimeProjectRepository
             out CompileTimeProject? compileTimeProject )
             => this.TryGetCompileTimeProjectFromCompilation(
                 this._classifyingCompilationContextFactory.GetInstance( compilation ),
-                projectLicenseInfo,
                 compileTimeTreesHint,
                 diagnosticSink,
                 cacheOnly,
@@ -162,7 +157,6 @@ internal sealed partial class CompileTimeProjectRepository
         /// </summary>
         private bool TryGetCompileTimeProjectFromCompilation(
             ClassifyingCompilationContext compilationContext,
-            ProjectLicenseInfo? projectLicenseInfo,
             IReadOnlyList<SyntaxTree>? compileTimeTreesHint,
             IDiagnosticAdder diagnosticSink,
             bool cacheOnly,
@@ -217,7 +211,6 @@ internal sealed partial class CompileTimeProjectRepository
 
             if ( !this._builder.TryGetCompileTimeProject(
                     compilationContext,
-                    projectLicenseInfo,
                     compileTimeTreesHint,
                     referencedProjects,
                     diagnosticSink,
@@ -257,11 +250,8 @@ internal sealed partial class CompileTimeProjectRepository
                         out referencedProject );
 
                 case CompilationReference compilationReference:
-                    var compilationContext = this._classifyingCompilationContextFactory.GetInstance( compilationReference.Compilation );
-
                     return this.TryGetCompileTimeProjectFromCompilation(
-                        compilationContext,
-                        null,
+                        compilationReference.Compilation,
                         null,
                         diagnosticSink,
                         cacheOnly,
@@ -292,7 +282,7 @@ internal sealed partial class CompileTimeProjectRepository
             var assemblyIdentity = MetadataReferenceCache.GetAssemblyName( assemblyPath ).ToAssemblyIdentity();
 
             // If the assembly is a standard one, there is no need to analyze.
-            if ( this._serviceProvider.GetReferenceAssemblyLocator().StandardAssemblyNames.Contains( assemblyIdentity.Name ) )
+            if ( this._serviceProvider.GetReferenceAssemblyLocator().AssemblyNames.Contains( assemblyIdentity.Name ) )
             {
                 compileTimeProject = null;
 

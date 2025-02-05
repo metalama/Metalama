@@ -126,7 +126,7 @@ namespace Metalama.Framework.Tests.Workspaces
             dependentProjectPaths ??= [];
             projectName ??= "Foo";
 
-            var compilationForReferences = TestCompilationFactory.CreateCSharpCompilation( "" );
+            var compilationForReferences = testContext.CreateCSharpCompilation( "" );
 
             var libraryReferences = compilationForReferences.ExternalReferences.OfType<PortableExecutableReference>()
                 .Where( r => Path.GetFileName( r.FilePath ).StartsWith( "Metalama", StringComparison.Ordinal ) )
@@ -185,7 +185,7 @@ class MyClass {}" );
             CheckWorkspace( workspace );
 
             Assert.True( workspace.IsMetalamaEnabled );
-            Assert.Equal( 3, workspace.AspectClasses.Length );
+            Assert.Equal( 2, workspace.AspectClasses.Length );
             Assert.Single( workspace.AspectInstances );
             var targetFramework = Assert.Single( workspace.SourceCode.TargetFrameworks );
             Assert.Equal( "net8.0", targetFramework );

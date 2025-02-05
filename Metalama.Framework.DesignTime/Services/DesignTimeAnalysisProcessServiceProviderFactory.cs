@@ -3,20 +3,24 @@
 using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Utilities;
 using Metalama.Framework.DesignTime.AspectExplorer;
-using Metalama.Framework.DesignTime.CodeFixes;
 using Metalama.Framework.DesignTime.Contracts.EntryPoint;
 using Metalama.Framework.DesignTime.Pipeline;
-using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Services;
 
 namespace Metalama.Framework.DesignTime.Services;
 
-public class DesignTimeAnalysisProcessServiceProviderFactory : DesignTimeServiceProviderFactory
+internal class DesignTimeAnalysisProcessServiceProviderFactory : DesignTimeServiceProviderFactory
 {
     public DesignTimeAnalysisProcessServiceProviderFactory() : this( null ) { }
 
-    public DesignTimeAnalysisProcessServiceProviderFactory( DesignTimeEntryPointManager? entryPointManager ) : base( entryPointManager ) { }
+    protected DesignTimeAnalysisProcessServiceProviderFactory( DesignTimeEntryPointManager? entryPointManager, DesignTimeProcessKind processKind ) : base(
+        entryPointManager,
+        processKind ) { }
+
+    public DesignTimeAnalysisProcessServiceProviderFactory( DesignTimeEntryPointManager? entryPointManager ) : base(
+        entryPointManager,
+        DesignTimeProcessKind.Default ) { }
 
     private static WorkspaceProvider GetWorkspaceProvider( GlobalServiceProvider serviceProvider )
     {
@@ -50,21 +54,18 @@ public class DesignTimeAnalysisProcessServiceProviderFactory : DesignTimeService
 
         // Initialize the event hub.
         serviceProvider = serviceProvider
-            .WithServices( new AnalysisProcessEventHub( serviceProvider ) );
+            .WithService( new AnalysisProcessEventHub( serviceProvider ) );
 
         serviceProvider = serviceProvider
             .WithService( GetWorkspaceProvider( serviceProvider ) )
             .WithService( sp => new DesignTimeInvalidationService( sp ) );
 
         // Add the pipeline factory.
-        var pipelineFactory = new DesignTimeAspectPipelineFactory( serviceProvider, new CompileTimeDomain( serviceProvider, "DesignTime" ) );
-        serviceProvider = serviceProvider.WithServices( pipelineFactory );
+        var pipelineFactory = new DesignTimeAspectPipelineFactory( serviceProvider );
+        serviceProvider = serviceProvider.WithService( pipelineFactory );
 
         // Add services that depend on the pipeline factory.
-        serviceProvider = serviceProvider.WithServices(
-            new CodeActionExecutionService( serviceProvider ),
-            new CodeRefactoringDiscoveryService( serviceProvider ),
-            new AspectDatabase( serviceProvider ) );
+        serviceProvider = serviceProvider.WithService( new AspectDatabase( serviceProvider ) );
 
         return serviceProvider;
     }

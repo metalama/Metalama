@@ -30,8 +30,9 @@ internal sealed class IntroduceIndexerAdvice : IntroduceMemberAdvice<IIndexer, I
         IntroductionScope scope,
         OverrideStrategy overrideStrategy,
         Action<IIndexerBuilder>? buildAction,
-        INamedType? explicitlyImplementedInterfaceType )
-        : base( parameters, "this[]", template: null, scope, overrideStrategy, buildAction, explicitlyImplementedInterfaceType )
+        INamedType? explicitlyImplementedInterfaceType,
+        IAdviceFactoryImpl adviceFactory )
+        : base( parameters, "this[]", template: null, scope, overrideStrategy, buildAction, explicitlyImplementedInterfaceType, adviceFactory )
     {
         this._indices = indices;
         this._getTemplate = getTemplate;
@@ -97,8 +98,8 @@ internal sealed class IntroduceIndexerAdvice : IntroduceMemberAdvice<IIndexer, I
                 : this._setTemplate.AssertNotNull().TemplateMember.Accessibility;
 
         // Extern template denotes an abstract member of an interface.
-        builder.IsAbstract = 
-            this.TargetDeclaration.TypeKind is TypeKind.Interface 
+        builder.IsAbstract =
+            this.TargetDeclaration.TypeKind is TypeKind.Interface
             && (this._getTemplate != null
                 ? getTemplateDeclaration.AssertNotNull().IsExtern
                 : setTemplateDeclaration.AssertNotNull().IsExtern);

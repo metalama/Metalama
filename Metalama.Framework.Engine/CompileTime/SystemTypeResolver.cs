@@ -17,18 +17,18 @@ internal class SystemTypeResolver : CurrentAppDomainTypeResolver
     // Avoid initializing from a static member because it is more difficult to debug.
     private readonly Assembly _netStandardAssembly = Assembly.Load( "netstandard, Version=2.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51" );
 
-    private readonly ReferenceAssemblyLocator _referenceAssemblyLocator;
+    private readonly CompileTimeAssemblyLocator _compileTimeAssemblyLocator;
 
     protected SystemTypeResolver( in ProjectServiceProvider serviceProvider, CompilationContext compilationContext )
         : base( serviceProvider, compilationContext )
     {
-        this._referenceAssemblyLocator = serviceProvider.GetReferenceAssemblyLocator();
+        this._compileTimeAssemblyLocator = serviceProvider.GetReferenceAssemblyLocator();
     }
 
     protected override bool CanLoadTypeFromAssembly( AssemblyName assemblyName )
         => AppDomainUtility.HasAnyLoadedAssembly( a => AssemblyName.ReferenceMatchesDefinition( assemblyName, a.GetName() ) );
 
-    protected override bool IsSupportedAssembly( string assemblyName ) => this._referenceAssemblyLocator.IsStandardAssemblyName( assemblyName );
+    protected override bool IsSupportedAssembly( string assemblyName ) => this._compileTimeAssemblyLocator.IsStandardAssemblyName( assemblyName );
 
     protected override Type? GetWellKnownType( string typeName )
     {

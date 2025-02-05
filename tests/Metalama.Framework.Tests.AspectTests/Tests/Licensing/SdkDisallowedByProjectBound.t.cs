@@ -1,3 +1,0 @@
-// CompileTimeAspectPipeline.ExecuteAsync failed.
-// Error LAMA0810 on ``: `Accessing the Roslyn API via Metalama.Framework.Sdk package is not covered by your license.`
-// Error LAMA0812 on ``: `The registered license key '37-ZEDQQQQQ6EAEQCRCE4UW3UFEB4URXMHRB8KQBJJSB64LX7YQUQYW77DFS8UE3A9FH68EXCHR629X3EDV56MCNGGVCQCNNDX3ADGQAG74TATJDZPA76D2BPJ5LU8YH9W5BXCAAY2HD4PGUKZTBH9T3YRHNHHNQQEZBEVKPZUXVDVKBJKP' is not valid for Metalama or for this project.`

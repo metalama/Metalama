@@ -14,20 +14,19 @@ using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.Collections;
 using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Diagnostics;
+using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.HierarchicalOptions;
-using Metalama.Framework.Engine.Licensing;
 using Metalama.Framework.Engine.Pipeline;
 using Metalama.Framework.Engine.Transformations;
 using Metalama.Framework.Engine.Utilities.Diagnostics;
 using Metalama.Framework.Engine.Utilities.Threading;
-using Metalama.Framework.Engine.Validation;
 using Metalama.Framework.Options;
 using Microsoft.CodeAnalysis;
 using System.Collections.Immutable;
 
 namespace Metalama.Framework.DesignTime.Pipeline;
 
-internal sealed partial class DesignTimeAspectPipeline
+public sealed partial class DesignTimeAspectPipeline
 {
     internal readonly struct PipelineState
     {
@@ -388,19 +387,14 @@ internal sealed partial class DesignTimeAspectPipeline
 
                 var diagnosticAdder = new DiagnosticBag();
 
-                var licenseConsumptionService = state._pipeline.ServiceProvider.GetService<IProjectLicenseConsumer>();
-
-                var projectLicenseInfo = ProjectLicenseInfo.Get( licenseConsumptionService );
-
                 var initializeSuccessful = state._pipeline.TryInitialize(
                     diagnosticAdder,
                     compilation,
-                    projectLicenseInfo,
                     compileTimeTrees,
                     cancellationToken,
                     out var configuration );
 
-                var errors = diagnosticAdder.Where( d => d is { Severity: DiagnosticSeverity.Error, IsSuppressed: false } );
+                var errors = diagnosticAdder.Where( d => d is { Severity: DiagnosticSeverity.Error, IsSuppressed: false } ).ToReadOnlyList();
 
                 foreach ( var error in errors )
                 {
@@ -409,7 +403,7 @@ internal sealed partial class DesignTimeAspectPipeline
 
                 // Publish compilation errors. This may create some chaos at the receiving end because compilations are unordered.
                 state._pipeline._eventHub?.PublishCompileTimeErrors(
-                    state._pipeline.ProjectKey, 
+                    state._pipeline.ProjectKey,
                     errors
                         .Select( d => new DiagnosticData( d ) )
                         .ToReadOnlyList() );
@@ -491,8 +485,7 @@ internal sealed partial class DesignTimeAspectPipeline
                 {
                     var errors = getConfigurationResult.Diagnostics.Where( d => d.Severity == DiagnosticSeverity.Error ).ToReadOnlyList();
 
-                    state._pipeline.Logger.Trace?.Log(
-                        $"GetConfiguration('{compilation.Compilation.AssemblyName}') failed: {errors.Count} errors reported." );
+                    state._pipeline.Logger.Trace?.Log( $"GetConfiguration('{compilation.Compilation.AssemblyName}') failed: {errors.Count} errors reported." );
 
                     foreach ( var diagnostic in errors )
                     {
@@ -548,12 +541,12 @@ internal sealed partial class DesignTimeAspectPipeline
                     .GetInheritableOptions( pipelineResultValue.LastCompilationModel, true )
                     .ToReadOnlyList() ?? ImmutableArray<KeyValuePair<HierarchicalOptionsKey, IHierarchicalOptions>>.Empty;
 
-            var referenceValidators = pipelineResultValue?.ReferenceValidators ?? ImmutableArray<ReferenceValidatorInstance>.Empty;
+            var extensions = pipelineResultValue?.TransitiveContributors ?? ImmutableArray<ITransitivePipelineContributor>.Empty;
 
             var immutableUserDiagnostics = new ImmutableUserDiagnosticList(
                 diagnosticBag.ToImmutableArray(),
                 pipelineResultValue?.Diagnostics.DiagnosticSuppressions,
-                pipelineResultValue?.Diagnostics.CodeFixes );
+                pipelineResultValue?.Diagnostics.Extensions );
 
             var aspectInstances = pipelineResultValue?.AspectInstances.ToImmutableArray() ?? ImmutableArray<IAspectInstance>.Empty;
 
@@ -571,7 +564,7 @@ internal sealed partial class DesignTimeAspectPipeline
                 immutableUserDiagnostics,
                 inheritableAspectInstances,
                 inheritableOptions,
-                referenceValidators,
+                extensions,
                 aspectInstances,
                 transformations,
                 annotations );

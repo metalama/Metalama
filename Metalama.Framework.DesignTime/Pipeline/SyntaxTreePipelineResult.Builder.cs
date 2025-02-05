@@ -4,6 +4,7 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.Collections;
+using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Pipeline;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
@@ -25,7 +26,7 @@ namespace Metalama.Framework.DesignTime.Pipeline
             public ImmutableArray<CacheableScopedSuppression>.Builder? Suppressions;
             public ImmutableArray<IntroducedSyntaxTree>.Builder? Introductions;
             public ImmutableArray<InheritableAspectInstance>.Builder? InheritableAspects;
-            public ImmutableArray<DesignTimeReferenceValidatorInstance>.Builder? Validators;
+            public ImmutableArray<IDesignTimeAspectPipelineResultExtension>.Builder? Extensions;
             public ImmutableArray<DesignTimeAspectInstance>.Builder? AspectInstances;
             public ImmutableArray<DesignTimeTransformation>.Builder? Transformations;
             public ImmutableArray<InheritableOptionsInstance>.Builder? InheritableOptions;
@@ -69,7 +70,7 @@ namespace Metalama.Framework.DesignTime.Pipeline
                     this.Introductions?.ToImmutable(),
                     dependencies,
                     this.InheritableAspects?.ToImmutable(),
-                    this.Validators?.ToImmutable(),
+                    this.Extensions?.ToImmutable(),
                     this.AspectInstances?.ToImmutable(),
                     this.Transformations?.ToImmutable(),
                     this.InheritableOptions?.ToImmutable(),

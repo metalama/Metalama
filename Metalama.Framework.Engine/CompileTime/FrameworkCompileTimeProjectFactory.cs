@@ -6,7 +6,6 @@ using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Metalama.Framework.Services;
-using Metalama.Framework.Validation;
 using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Concurrent;
@@ -110,13 +109,13 @@ internal sealed class FrameworkCompileTimeProjectFactory : IGlobalService
         {
             throw new AssertionFailedException( $"Cannot read the TargetFrameworkAttribute from assembly '{assembly.Identity}'." );
         }
-            
+
         var manifest = this._frameworkProjectManifestDictionary.GetOrAdd(
             tfm,
             static ( _, a ) => new CompileTimeProjectManifest(
                 _frameworkAssemblyIdentity.ToString(),
                 "",
-                new[] { typeof(InternalImplementAttribute) }.SelectAsImmutableArray( t => t.FullName ),
+                ImmutableArray<string>.Empty,
                 ImmutableArray<string>.Empty,
                 ImmutableArray<string>.Empty,
                 ImmutableArray<string>.Empty,
@@ -124,7 +123,6 @@ internal sealed class FrameworkCompileTimeProjectFactory : IGlobalService
                 ImmutableArray<string>.Empty,
                 ImmutableArray<string>.Empty,
                 CreateFrameworkTemplateProjectManifest( a ),
-                null,
                 0,
                 Array.Empty<CompileTimeFileManifest>(),
                 Array.Empty<CompileTimeDiagnosticManifest>(),

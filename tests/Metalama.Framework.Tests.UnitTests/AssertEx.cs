@@ -5,7 +5,7 @@ using Metalama.Framework.Diagnostics;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Templating;
 using Metalama.Framework.Engine.Templating.Expressions;
-using Metalama.Framework.Tests.UnitTests.Utilities;
+using Metalama.Framework.Tests.UnitTestHelpers.Mocks;
 using Microsoft.CodeAnalysis;
 using System;
 using Xunit;
@@ -38,6 +38,7 @@ namespace Metalama.Framework.Tests.UnitTests
             }
         }
 
-        public static void EolInvariantEqual( string expected, string actual ) => Assert.Equal( expected.NormalizeEndOfLines().Trim(), actual.NormalizeEndOfLines().Trim() );
+        public static void EolInvariantEqual( string expected, string actual )
+            => Assert.Equal( expected.NormalizeEndOfLines().Trim(), actual.NormalizeEndOfLines().Trim() );
     }
 }

@@ -1,6 +1,8 @@
 ﻿// Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
 using JetBrains.Annotations;
+using Metalama.Framework.DesignTime.CodeFixes;
+using Metalama.Framework.DesignTime.DiagnosticAnalysis;
 using Metalama.Framework.DesignTime.Services;
 using Metalama.Framework.Engine.Services;
 using Microsoft.CodeAnalysis;
@@ -12,7 +14,7 @@ using System.Collections.Immutable;
 namespace Metalama.Framework.DesignTime.Rider;
 
 [UsedImplicitly]
-internal sealed class RiderCodeRefactoringProvider : TheCodeRefactoringProvider
+public sealed class RiderCodeRefactoringProvider : TheCodeRefactoringProvider
 {
     private readonly TheCodeFixProvider _codeFixProvider;
     private readonly TheDiagnosticAnalyzer _diagnosticAnalyzer;
@@ -25,7 +27,7 @@ internal sealed class RiderCodeRefactoringProvider : TheCodeRefactoringProvider
         this._diagnosticAnalyzer = new TheDiagnosticAnalyzer( serviceProvider );
     }
 
-    internal override async Task ComputeRefactoringsAsync( ICodeRefactoringContext context )
+    public override async Task ComputeRefactoringsAsync( ICodeRefactoringContext context )
     {
         // Report regular refactorings.
         await base.ComputeRefactoringsAsync( context );

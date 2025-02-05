@@ -6,6 +6,7 @@ using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Diagnostics;
+using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Services;
 using Metalama.Testing.UnitTesting;
 using System.Collections.Immutable;
@@ -24,6 +25,12 @@ namespace Metalama.Framework.Tests.UnitTests
     public sealed class AspectOrderingTests : UnitTestClass
     {
         public AspectOrderingTests( ITestOutputHelper logger ) : base( logger, false ) { }
+
+        protected override void ConfigureServices( IAdditionalServiceCollection services )
+        {
+            base.ConfigureServices( services );
+            services.AddProjectService( new PipelineExtensionProvider( ImmutableArray<PipelineExtension>.Empty ) );
+        }
 
         private bool TryGetOrderedAspectLayers( string code, string[] aspectNames, DiagnosticBag diagnostics, [NotNullWhen( true )] out string? sortedAspects )
         {

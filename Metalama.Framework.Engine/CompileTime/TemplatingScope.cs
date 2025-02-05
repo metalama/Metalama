@@ -85,7 +85,14 @@ namespace Metalama.Framework.Engine.CompileTime
 
         /// <summary>
         /// A generic type that is forced to be run-time-or-compile-time, even if its type arguments are not run-time-or-compile-time.
+        /// An internal concept of <see cref="SymbolClassifier"/>, not exposed to external code.
         /// </summary>
-        ForcedRunTimeOrCompileTime
+        ForcedRunTimeOrCompileTime,
+
+        /// <summary>
+        /// A type, like System.Object, that is RunTimeOrCompileTime, but that does not cause derived types to be RunTimeOrCompileTime.
+        /// An internal concept of <see cref="SymbolClassifier"/>, not exposed to external code.
+        /// </summary>
+        ImplicitlyRunTimeOrCompileTime
     }
 }

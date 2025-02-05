@@ -1,4 +1,4 @@
 [global::System.SerializableAttribute]
-internal class C
+internal partial class C
 {
 }

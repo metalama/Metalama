@@ -15,7 +15,7 @@ namespace Metalama.Framework.Engine.CompileTime;
 /// </summary>
 internal abstract class CurrentAppDomainTypeResolver : CompileTimeTypeResolver
 {
-    private readonly ReferenceAssemblyLocator _assemblyLocator;
+    private readonly CompileTimeAssemblyLocator _assemblyLocator;
 
     protected CurrentAppDomainTypeResolver( in ProjectServiceProvider serviceProvider, CompilationContext compilationContext ) : base( compilationContext )
     {
@@ -55,7 +55,7 @@ internal abstract class CurrentAppDomainTypeResolver : CompileTimeTypeResolver
 
             // If we have a system assembly, we must load the current version of the assembly, not the version required by the client,
             // so that we can later cast an instance of this type to types of our own assembly versions.
-            if ( this._assemblyLocator.StandardAssemblyIdentities.TryGetValue( assemblyIdentity.Name, out var currentVersionAssemblyIdentity ) )
+            if ( this._assemblyLocator.AssemblyIdentities.TryGetValue( assemblyIdentity.Name, out var currentVersionAssemblyIdentity ) )
             {
                 assemblyIdentity = currentVersionAssemblyIdentity;
             }

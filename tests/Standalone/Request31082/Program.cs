@@ -1,7 +1,7 @@
 ﻿using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.SyntaxBuilders;
-using Metalama.Framework.CodeFixes;
+using Metalama.Extensions.CodeFixes;
 using Shox.Common.Logger;
 using System.Security.Claims;
 using System.Text.Json;

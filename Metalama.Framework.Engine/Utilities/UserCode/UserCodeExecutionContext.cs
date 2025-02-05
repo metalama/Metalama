@@ -12,9 +12,9 @@ using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.Templating.Expressions;
 using Metalama.Framework.Engine.Templating.MetaModel;
+using Metalama.Framework.Fabrics;
 using Metalama.Framework.Project;
 using Metalama.Framework.Services;
-using Metalama.Framework.Validation;
 using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Generic;
@@ -78,7 +78,7 @@ public class UserCodeExecutionContext : IExecutionContextInternal
         }
     }
 
-    internal static DisposeAction WithContext( UserCodeExecutionContext? context )
+    public static DisposeAction WithContext( UserCodeExecutionContext? context )
     {
         if ( context == null )
         {
@@ -134,10 +134,19 @@ public class UserCodeExecutionContext : IExecutionContextInternal
         diagnostics,
         sourceTrees ) { }
 
-    public UserCodeExecutionContext(
+    public static UserCodeExecutionContext CreateInstance(
         ProjectServiceProvider serviceProvider,
         UserCodeDescription description,
-        CompilationContext? compilationContext ) : this( serviceProvider, description, compilationContext, null ) { }
+        CompilationContext? compilationContext,
+        IDiagnosticAdder? diagnostics = null )
+        => new( serviceProvider, description, compilationContext, diagnostics: diagnostics );
+
+    public static UserCodeExecutionContext CreateInstance(
+        ProjectServiceProvider serviceProvider,
+        UserCodeDescription description,
+        CompilationModel compilation,
+        IDiagnosticAdder? diagnostics = null )
+        => new( serviceProvider, description, compilation, diagnostics: diagnostics );
 
     /// <summary>
     /// Initializes a new instance of the <see cref="UserCodeExecutionContext"/> class that can be used
@@ -217,7 +226,7 @@ public class UserCodeExecutionContext : IExecutionContextInternal
         {
             return null;
         }
-        
+
         var syntaxGenerationOptions = serviceProvider.GetService<SyntaxGenerationOptions>();
 
         if ( syntaxGenerationOptions == null )
@@ -236,7 +245,7 @@ public class UserCodeExecutionContext : IExecutionContextInternal
 
     // This property is intentionally writable because it allows us to reuse the same context for several calls, when performance
     // is critical. This feature is used by validators.
-    internal UserCodeDescription Description { get; set; }
+    public UserCodeDescription Description { get; set; }
 
     internal IDeclaration? TargetDeclaration { get; }
 
@@ -332,7 +341,7 @@ public class UserCodeExecutionContext : IExecutionContextInternal
         {
             throw new InvalidOperationException(
                 $"'The '{api}' API is not supported in the BuildAspect context at design time. " +
-                $"It is only supported in the context of a adding new aspects ({nameof(IValidatorReceiver)}.{nameof(IValidatorReceiver<IDeclaration>.Select)})' and sibling methods."
+                $"It is only supported in the context of a adding new aspects ({nameof(IQuery<IDeclaration>)}.{nameof(IQuery<IDeclaration>.Select)})' and sibling methods."
                 +
                 $"You can use {nameof(MetalamaExecutionContext)}.{nameof(MetalamaExecutionContext.Current)}.{nameof(IExecutionContext.ExecutionScenario)}.{nameof(IExecutionScenario.IsDesignTime)} to run your code at design time only." );
         }

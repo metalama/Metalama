@@ -4,6 +4,9 @@ using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.DeclarationBuilders;
 using Metalama.Framework.Fabrics;
+using Metalama.Framework.Tests.AspectTests.Tests.Aspects.Attributes.KeepsTrivia;
+
+[assembly: AspectOrder( AspectOrderDirection.CompileTime, typeof(AddMyAspect), typeof(MyAspect))]
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Attributes.KeepsTrivia;
 
@@ -17,13 +20,20 @@ public class MyAspect : TypeAspect
     }
 }
 
-public class MyFabric : ProjectFabric
+public class AddMyAspect : TypeAspect
 {
-    public override void AmendProject( IProjectAmender amender )
+    public override void BuildAspect( IAspectBuilder<INamedType> builder )
     {
-        amender.SelectMany( c => c.Types.OfName( "C" ) ).AddAspect<MyAspect>();
+        foreach (var t in builder.Target.Types)
+        {
+            builder.With( t ).AddAspect( new MyAspect() );
+        }
     }
 }
 
-// <target>
-internal class C { }
+[AddMyAspect]
+class P
+{
+    // <target>
+    internal partial class C { }
+}

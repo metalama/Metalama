@@ -8,10 +8,9 @@ using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CompileTime;
-using Metalama.Framework.Engine.HierarchicalOptions;
+using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Metalama.Framework.Engine.Utilities.UserCode;
-using Metalama.Framework.Engine.Validation;
 using Metalama.Framework.Fabrics;
 using Microsoft.CodeAnalysis;
 using System;
@@ -68,14 +67,14 @@ internal sealed class TypeFabricDriver : FabricDriver
             .GetDeclarativeAdvice( aspectBuilder.ServiceProvider, compilation, templateProvider, ObjectReader.Empty )
             .ToReadOnlyList();
 
-        // Execute the AmendType.
-        var builder = new Amender( targetType, this.FabricManager, aspectBuilder, templateInstance, fabricInstance );
-
-        var executionContext = new UserCodeExecutionContext(
+        var executionContext = UserCodeExecutionContext.CreateInstance(
             aspectBuilder.ServiceProvider,
             UserCodeDescription.Create( "calling the AmendType method for the fabric {0}", this.Fabric.GetType() ),
             compilation,
             diagnostics: aspectBuilder.DiagnosticAdder );
+
+        // Execute the AmendType.
+        var builder = new Amender( targetType, this.FabricManager, aspectBuilder, templateInstance, fabricInstance, executionContext );
 
         return this.FabricManager.UserCodeInvoker.TryInvoke(
             () =>
@@ -122,11 +121,13 @@ internal sealed class TypeFabricDriver : FabricDriver
             FabricManager fabricManager,
             IAspectBuilderInternal aspectBuilder,
             TemplateClassInstance templateClassInstance,
-            FabricInstance fabricInstance ) : base(
+            FabricInstance fabricInstance,
+            UserCodeExecutionContext userCodeExecutionContext ) : base(
             namedType.Compilation.Project,
             fabricManager,
             fabricInstance,
-            fabricInstance.TargetDeclaration.As<INamedType>() )
+            fabricInstance.TargetDeclaration.As<INamedType>(),
+            userCodeExecutionContext )
         {
             this._aspectBuilder = aspectBuilder;
             this.Type = namedType;
@@ -135,15 +136,10 @@ internal sealed class TypeFabricDriver : FabricDriver
 
         public INamedType Type { get; }
 
+        public override void AddContributor( IPipelineContributor contributor ) => this._aspectBuilder.AddContributor( contributor );
+
         public IAdviceFactory Advice { get; }
 
         public override string Namespace => this.Type.ContainingNamespace.FullName;
-
-        public override void AddAspectSource( IAspectSource aspectSource ) => this._aspectBuilder.AddAspectSource( aspectSource );
-
-        public override void AddValidatorSource( IValidatorSource validatorSource ) => this._aspectBuilder.AddValidatorSource( validatorSource );
-
-        public override void AddOptionsSource( IHierarchicalOptionsSource hierarchicalOptionsSource )
-            => this._aspectBuilder.AddOptionsSource( hierarchicalOptionsSource );
     }
 }

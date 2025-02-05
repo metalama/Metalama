@@ -26,8 +26,7 @@ internal sealed class PreviewTestRunner : BaseTestRunner
         GlobalServiceProvider serviceProvider,
         string? projectDirectory,
         TestProjectReferences references,
-        ITestOutputHelper? logger,
-        ILicenseKeyProvider? licenseKeyProvider ) : base( serviceProvider, projectDirectory, references, logger, licenseKeyProvider ) { }
+        ITestOutputHelper? logger ) : base( serviceProvider, projectDirectory, references, logger ) { }
 
     protected override async Task RunAsync( TestInput testInput, TestResult testResult, TestContext testContext )
     {
@@ -47,7 +46,7 @@ internal sealed class PreviewTestRunner : BaseTestRunner
         var serviceProvider = testContext.ServiceProvider.Global;
         serviceProvider = serviceProvider.WithService( new DesignTimeExceptionHandler( serviceProvider ) );
         serviceProvider = serviceProvider.WithService( workspaceProvider );
-        serviceProvider = serviceProvider.WithService( new DesignTimeAspectPipelineFactory( serviceProvider, testContext.Domain ) );
+        serviceProvider = serviceProvider.WithService( new DesignTimeAspectPipelineFactory( serviceProvider ) );
 
         var previewService = new TransformationPreviewServiceImpl( serviceProvider );
 
@@ -78,7 +77,7 @@ internal sealed class PreviewTestRunner : BaseTestRunner
             .WithFilePath( primarySyntaxTreeName );
 
         // In production code, the formatting is done by the caller, so we need to format here.
-        var resultingCompilation = TestCompilationFactory.CreateEmptyCSharpCompilation( "result" ).AddSyntaxTrees( transformedSyntaxTree );
+        var resultingCompilation = testContext.CreateEmptyCSharpCompilation( "result" ).AddSyntaxTrees( transformedSyntaxTree );
         var formattedResultingCompilation = await new CodeFormatter().FormatAllAsync( resultingCompilation, testContext.CancellationToken );
 
         await testResult.SetOutputCompilationAsync( formattedResultingCompilation );

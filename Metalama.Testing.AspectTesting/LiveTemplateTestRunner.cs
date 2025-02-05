@@ -6,7 +6,6 @@ using Metalama.Framework.Engine.Formatting;
 using Metalama.Framework.Engine.Pipeline.LiveTemplates;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities.Roslyn;
-using Metalama.Testing.AspectTesting.Licensing;
 using Metalama.Testing.UnitTesting;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -27,9 +26,8 @@ namespace Metalama.Testing.AspectTesting
             GlobalServiceProvider serviceProvider,
             string? projectDirectory,
             TestProjectReferences references,
-            ITestOutputHelper? logger,
-            ILicenseKeyProvider? licenseKeyProvider )
-            : base( serviceProvider, projectDirectory, references, logger, licenseKeyProvider ) { }
+            ITestOutputHelper? logger )
+            : base( serviceProvider, projectDirectory, references, logger ) { }
 
         protected override async Task RunAsync(
             TestInput testInput,
@@ -40,7 +38,7 @@ namespace Metalama.Testing.AspectTesting
 
             await base.RunAsync( testInput, testResult, testContext );
 
-            var serviceProvider = testContext.ServiceProvider.AddLicenseConsumptionManagerForTest( testInput, this.LicenseKeyProvider );
+            var serviceProvider = testContext.ServiceProvider;
 
             var partialCompilation = PartialCompilation.CreateComplete( testResult.InputCompilation! );
 
@@ -65,13 +63,11 @@ namespace Metalama.Testing.AspectTesting
 
             var result = await LiveTemplateAspectPipeline.ExecuteAsync(
                 serviceProvider,
-                testContext.Domain,
                 null,
                 c => c.AspectClasses.Single( a => a.ShortName == target.AspectType.Name ),
                 partialCompilation,
                 target.Target,
-                testResult.PipelineDiagnostics,
-                testInput.Options.TestScenario == TestScenario.LiveTemplatePreview );
+                testResult.PipelineDiagnostics );
 
             if ( result.IsSuccessful )
             {
