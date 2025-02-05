@@ -1,0 +1,32 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFrameworks>netstandard2.0;net6.0</TargetFrameworks>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <RootNamespace>Metalama.Framework.Introspection</RootNamespace>
+        <!-- Packaging -->
+		<PackageDescription>Provides introspection of Metalama aspect classes, aspect instances and diagnostics reported by Metalama.</PackageDescription>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="../Metalama.Framework/Metalama.Framework.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" VersionOverride="$(RoslynApiMinVersion)" />
+    </ItemGroup>
+    
+    <ItemGroup>
+        <InternalsVisibleTo Include="Metalama.Framework.Engine.4.4.0" />
+        <InternalsVisibleTo Include="Metalama.Framework.Engine.4.8.0" />
+        <InternalsVisibleTo Include="Metalama.Framework.Engine.4.12.0" />
+    </ItemGroup>
+
+    <!-- Packaging -->
+    <ItemGroup>
+        <None Include="README.md" Pack="true" PackagePath="/" />
+    </ItemGroup>
+
+</Project>

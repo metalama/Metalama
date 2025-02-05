@@ -1,0 +1,3 @@
+Entering MyMethod( who = Lama )
+Hello, Lama!
+Leaving MyMethod( who = Lama )

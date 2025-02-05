@@ -1,0 +1,2 @@
+// TestTemplateCompiler.TryCompile failed.
+// Error LAMA0221 on `this`: `Cannot use 'this' in expression 'meta.Cast( meta.Target.Type, this )' because a run-time expression is expected, and 'this' in a template is a compile-time keyword. Use 'meta.This' instead.`

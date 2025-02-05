@@ -1,0 +1,6 @@
+﻿<Project>
+    <Target Name="RemoveMicrosoftBuild" BeforeTargets="CopyFilesToOutputDirectory">
+        <!-- MSBuild runtimes must not be present in the output directory because it would take precedence over the version loaded by Microsoft.Build.Locator. -->
+        <Delete Files="$(OutDir)\Microsoft.Build.dll;$(OutDir)\Microsoft.Build.Framework.dll;$(OutDir)\Microsoft.Build.Tasks.Core.dll;$(OutDir)\Microsoft.Build.Utilities.Core.dll"/>
+    </Target>
+</Project>

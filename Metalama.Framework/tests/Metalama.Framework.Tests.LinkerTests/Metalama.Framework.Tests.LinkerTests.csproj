@@ -1,0 +1,80 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <MetalamaTestSourceDirectory>$(MSBuildThisFileDirectory)</MetalamaTestSourceDirectory>
+    </PropertyGroup>
+
+    <Import Project="../../build/RoslynVersion/Latest.imports" />
+    <Import Project="../../Metalama.Testing.AspectTesting/Metalama.Testing.AspectTesting.props" />
+    <Import Project="../../eng/Coverage.props" />
+
+    <PropertyGroup>
+        <TargetFrameworks>netframework4.8;net8.0</TargetFrameworks>
+        <IsPackable>false</IsPackable>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <MetalamaTestAutoExclude>False</MetalamaTestAutoExclude>
+        <MetalamaTestGenerateDefaultRunner>False</MetalamaTestGenerateDefaultRunner>
+        <RootNamespace>Metalama.Framework.Tests.LinkerTests</RootNamespace>
+        <OutputType>Library</OutputType>
+        <AssemblyName>Metalama.Framework.Tests.LinkerTests.$(ThisRoslynVersionNoPreview)</AssemblyName>
+        <LangVersion Condition="'$(LangVersionOverride)'!=''">$(LangVersionOverride)</LangVersion>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+        <NoWarn>$(NoWarn);1591,1572,1573,CS8892,VSTHRD100,VSTHRD200,CA1018,CA1305,CA1307,CA1725,CA1822,CA2201</NoWarn>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.NET.Test.Sdk" />
+        <PackageReference Include="xunit" />
+        <PackageReference Include="xunit.runner.visualstudio" />
+        <PackageReference Include="Metalama.Compiler.Sdk" />
+        <PackageReference Include="System.Text.Json" NoWarn="NU1903" />
+        <PackageReference Include="Metalama.Backstage.Testing" />
+
+        <!-- These packages ared used in tests -->
+        <PackageReference Include="Microsoft.Win32.Registry" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <!-- Exclude files that intentionally do not compile -->
+        <Compile Remove="$(MSBuildThisFileDirectory)/Tests/**/__*.cs" />
+        <!-- But still show them in solution explorer -->
+        <None Include="$(MSBuildThisFileDirectory)/Tests/**/__*.cs" />
+        <Compile Update="Runners\LinkerTestRunner.cs">
+          <DependentUpon>$([System.String]::Copy('LinkerTestRunner').Substring( %(Filename.IndexOf('.') ).cs</DependentUpon>
+          <SubType>Code</SubType>
+        </Compile>
+        <Compile Update="Runners\LinkerTestRunnerFactory.cs">
+          <DependentUpon>$([System.String]::Copy('LinkerTestRunnerFactory').Substring( %(Filename.IndexOf('.') ).cs</DependentUpon>
+          <SubType>Code</SubType>
+        </Compile>
+        <Compile Update="Runner\TestPromoteFieldTransformation.cs">
+          <DependentUpon>$([System.String]::Copy('%(Filename)').Substring( %(Filename.IndexOf('.') ).cs</DependentUpon>
+        </Compile>
+        <Compile Update="Runner\TestOverrideDeclarationTransformation.cs">
+          <DependentUpon>$([System.String]::Copy('%(Filename)').Substring( %(Filename.IndexOf('.') ).cs</DependentUpon>
+        </Compile>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="../../Metalama.Framework.Engine$(ThisRoslynVersionProjectSuffix)/Metalama.Framework.Engine$(ThisRoslynVersionProjectSuffix).csproj" />
+        <ProjectReference Include="../../Metalama.Framework/Metalama.Framework.csproj" />
+        <ProjectReference Include="../../Metalama.Testing.AspectTesting$(ThisRoslynVersionProjectSuffix)/Metalama.Testing.AspectTesting$(ThisRoslynVersionProjectSuffix).csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="Metalama.AspectWorkbench" />
+    </ItemGroup>
+
+    <Import Project="../../Metalama.Testing.AspectTesting/Metalama.Testing.AspectTesting.targets" />
+
+    <ItemGroup>
+        <!-- This metadata attribute is used by the TestLicenseKeyProvider class in Backstage. -->
+        <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+            <_Parameter1>EngineeringDataDirectory</_Parameter1>
+            <_Parameter2>$(PostSharpEngineeringDataDirectory)</_Parameter2>
+        </AssemblyAttribute>
+    </ItemGroup>
+
+</Project>

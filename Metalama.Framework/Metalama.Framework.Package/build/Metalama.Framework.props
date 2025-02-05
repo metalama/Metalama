@@ -1,0 +1,54 @@
+﻿<Project>
+    <!-- TODO: somehow also set PrivateAssets for aspect libraries -->
+    <ItemGroup>
+        <PackageReference Update="Metalama.Framework" PrivateAssets="none"/>
+        <PackageReference Update="Metalama.Framework.Sdk" PrivateAssets="none"/>
+    </ItemGroup>
+
+    <PropertyGroup>
+        <MetalamaEnabled Condition="'$(MetalamaEnabled)'==''">True</MetalamaEnabled>
+    </PropertyGroup>
+
+    <Import Project="Metalama.CompilerVisibleProperties.props"
+            Condition="'$(MetalamaCompilerVisiblePropertiesTargetsImported)'==''"/>
+
+    <!-- Implementation of the 'LamaDebug' build configuration.
+         It is import to define this in the .props file, and not in the .targets file, because it needs to be processed _before_
+         Metalama.Compiler targets file. -->
+    
+    <PropertyGroup Condition="'$(Configuration)'=='LamaDebug'">
+        <MetalamaDebugTransformedCode>True</MetalamaDebugTransformedCode>
+
+        <!-- Defaults from .NET SDK -->
+        <DebugSymbols Condition="'$(DebugSymbols)' == ''">true</DebugSymbols>
+        <Optimize Condition="'$(Optimize)' == ''">false</Optimize>
+        <MetadataUpdaterSupport Condition="'$(MetadataUpdaterSupport)' == ''">true</MetadataUpdaterSupport>
+        <XamlDebuggingInformation Condition="'$(XamlDebuggingInformation)' == ''">true</XamlDebuggingInformation>
+        <_SGenGenerateSerializationAssembliesConfig Condition="'$(_SGenGenerateSerializationAssembliesConfig)' == 'Auto'">Off</_SGenGenerateSerializationAssembliesConfig>
+        <DefineConstants>$(DefineConstants);DEBUG;TRACE</DefineConstants>
+
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(MetalamaDebugTransformedCode)'=='True'">
+        <MetalamaFormatOutput Condition="'$(MetalamaFormatOutput)'==''">True</MetalamaFormatOutput>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <!-- Source generator attributes targeting members present in .Net 9 (dotnet/runtime and dotnet/extensions): -->
+        <MetalamaSourceGeneratorAttribute Include="Microsoft.Extensions.Diagnostics.Metrics.CounterAttribute" />
+        <MetalamaSourceGeneratorAttribute Include="Microsoft.Extensions.Diagnostics.Metrics.GaugeAttribute" />
+        <MetalamaSourceGeneratorAttribute Include="Microsoft.Extensions.Diagnostics.Metrics.HistogramAttribute" />
+        <MetalamaSourceGeneratorAttribute Include="Microsoft.Extensions.Logging.LoggerMessageAttribute" />
+        <MetalamaSourceGeneratorAttribute Include="System.Runtime.InteropServices.JavaScript.JSExportAttribute" />
+        <MetalamaSourceGeneratorAttribute Include="System.Runtime.InteropServices.JavaScript.JSImportAttribute" />
+        <MetalamaSourceGeneratorAttribute Include="System.Runtime.InteropServices.LibraryImportAttribute" />
+        <MetalamaSourceGeneratorAttribute Include="System.Text.RegularExpressions.GeneratedRegexAttribute" />
+
+        <!-- ASP.NET Core 9 (dotnet/aspnetcore) does not ship any attribute-based source generators. -->
+    </ItemGroup>
+
+    <ItemGroup>
+        <MetalamaTransformedCodeAnalyzer Include="Metalama.Framework.CompilerExtensions.MetalamaGeneratedCodeAnalyzer" />
+    </ItemGroup>
+
+</Project>

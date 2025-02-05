@@ -1,0 +1,5 @@
+﻿[*.cs]
+resharper_unused_auto_property_accessor_global_highlighting = hint
+resharper_member_can_be_internal_highlighting = hint
+resharper_unused_member_global_highlighting = hint 
+resharper_unused_member_in_super_global_highlighting = hint

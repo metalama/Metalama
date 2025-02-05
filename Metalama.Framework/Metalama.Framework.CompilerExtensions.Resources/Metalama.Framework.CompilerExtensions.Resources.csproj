@@ -1,0 +1,29 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <!-- We target the two frameworks for which csc.exe is built.  -->
+        <TargetFrameworks>net6.0;net472</TargetFrameworks>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>false</IsPackable>
+
+        <!-- Disable warning: conflicting versions -->
+        <NoWarn>$(NoWarn);MSB3277</NoWarn>
+
+        <ResolveAssemblyReferencesSilent>True</ResolveAssemblyReferencesSilent>
+
+        <!-- Disable vulnerability checking because this project is not surfacing. -->
+        <NuGetAudit>false</NuGetAudit>
+
+        <!-- Disable vulnerability warnings causing weird error (see https://github.com/dotnet/sdk/issues/16666) -->
+        <NoWarn>$(NoWarn);NU1902;NU1903</NoWarn>
+        
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="../Metalama.Framework.DesignTime.4.4.0/Metalama.Framework.DesignTime.4.4.0.csproj" />
+        <ProjectReference Include="../Metalama.Framework.DesignTime.4.8.0/Metalama.Framework.DesignTime.4.8.0.csproj" />
+        <ProjectReference Include="../Metalama.Framework.DesignTime/Metalama.Framework.DesignTime.csproj" />
+    </ItemGroup>
+</Project>

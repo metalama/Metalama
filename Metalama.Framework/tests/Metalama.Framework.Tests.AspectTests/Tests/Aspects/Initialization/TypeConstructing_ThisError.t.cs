@@ -1,0 +1,2 @@
+// CompileTimeAspectPipeline.ExecuteAsync failed.
+// Error LAMA0114 on `TargetCode`: `The advice 'Aspect.Template()' cannot use 'meta.This' in an advice applied to constructor 'TargetCode.TargetCode()' because the target constructor is static.`

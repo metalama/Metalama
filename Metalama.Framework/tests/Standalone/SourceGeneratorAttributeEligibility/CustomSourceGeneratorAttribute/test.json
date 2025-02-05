@@ -1,0 +1,6 @@
+{
+    "IgnoreExitCode": true,
+    "ExpectedDiagnosticsRegexes": [ "LAMA0037" ],
+    "FailOnUnexpectedDiagnostics": true,
+    "BuildOnly": true
+}

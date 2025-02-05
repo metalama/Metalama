@@ -1,0 +1,2 @@
+// TestTemplateCompiler.TryCompile failed.
+// Error LAMA0104 on `case IParameter p:`: `The expression 'case IParameter p:' is compile-time but it is expected to be run-time because the expression appears in the run-time 'switch( o )'.`

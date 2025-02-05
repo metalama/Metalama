@@ -1,0 +1,7 @@
+[{CompileTime,DesignTime,Templating,Pipeline/DesignTime}/**.cs]
+# LAMA0830: NormalizeWhitespace is expensive.
+dotnet_diagnostic.LAMA0830.severity = suggestion
+# LAMA0831: Avoid chained With calls on SyntaxNodes.
+dotnet_diagnostic.LAMA0831.severity = suggestion
+# LAMA0831: "Avoid WithLeadingTrivia and WithTrailingTrivia calls.
+dotnet_diagnostic.LAMA0832.severity = suggestion

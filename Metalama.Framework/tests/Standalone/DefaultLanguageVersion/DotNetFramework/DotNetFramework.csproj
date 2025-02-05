@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <!-- This project tests that building a default .Net Framework project does not fail because its C# language version is not supported by Metalama. -->
+
+    <PropertyGroup>
+        <TargetFramework>net48</TargetFramework>
+        <OutputType>Library</OutputType>
+
+        <!-- Reset properties from engineering. -->
+        <Nullable></Nullable>
+        <LangVersion></LangVersion>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Metalama.Framework" />
+    </ItemGroup>
+
+</Project>

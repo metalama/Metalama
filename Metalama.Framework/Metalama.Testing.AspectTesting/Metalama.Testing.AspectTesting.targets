@@ -1,0 +1,207 @@
+<Project>
+    
+    <PropertyGroup>
+        <!-- We suppress all warnings present in WellKnownTemplateWarningSuppressions because the suppressor does not run in aspect tests,
+             and it's harmless to disable these warnings in tests. -->
+        <NoWarn>$(NoWarn);CA1822;IDE0031;IDE0053;IDE1005;IDE0059;CS0628;CS8618;CS0169;CS0649;IDE0044;CS9113</NoWarn>
+        
+        <!-- Also suppress warnings from Microsoft.VisualStudio.Threading.Analyzers -->
+        <NoWarn>$(NoWarn);VSTHRD001;VSTHRD002;VSTHRD003;VSTHRD004;VSTHRD010;VSTHRD011;VSTHRD012;VSTHRD102;VSTHRD103;
+            VSTHRD104;VSTHRD105;VSTHRD107;VSTHRD108;VSTHRD109;VSTHRD110;VSTHRD112;VSTHRD114;VSTHRD100;VSTHRD101;
+            VSTHRD106;VSTHRD111;VSTHRD113;VSTHRD200</NoWarn>
+    </PropertyGroup>
+    
+    <ItemGroup>
+
+        <!-- Exclude *.t.cs and *.i.cs from the main compilation, display them as text files instead, and fix file nesting -->
+        <Compile Remove="$(MSBuildProjectDirectory)/**/*.t.cs" />
+        <None Include="$(MSBuildProjectDirectory)/**/*.t.cs">
+            <DependentUpon>$([System.String]::Copy('%(Filename)').Replace('.t','')).cs</DependentUpon>
+        </None>
+        <Compile Remove="$(MSBuildProjectDirectory)/**/*.i.cs" />
+        <None Include="$(MSBuildProjectDirectory)/**/*.t.cs">
+            <DependentUpon>$([System.String]::Copy('%(Filename)').Replace('.i','')).cs</DependentUpon>
+            <SubType>Code</SubType>
+        </None>
+
+        <None Remove="$(MSBuildProjectDirectory)/obj/**/*.t.cs" />
+        <None Remove="$(MSBuildProjectDirectory)/obj/**/*.i.cs" />
+
+        <!-- Fix file nesting for *.Aspect.cs -->
+        <Compile Update="$(MSBuildProjectDirectory)/**/*.*.cs">
+            <DependentUpon>$([System.String]::Copy('%(Filename)').Substring( %(Filename.IndexOf('.') ).cs</DependentUpon>
+            <SubType>Code</SubType>
+        </Compile>
+
+        <ProjectCapability Include="DynamicDependentFile" />
+        <ProjectCapability Include="DynamicFileNesting" />
+        
+    </ItemGroup>
+
+    <Target Name="AddMetalamaTestFrameworkAttributes" DependsOnTargets="AddImplicitDefineConstants"
+            BeforeTargets="GetAssemblyAttributes">
+        
+        <Error Text="The MetalamaTestReplaceFramework and MetalamaTestFramework properties are no longer supported."
+               Condition="'$(MetalamaTestReplaceFramework)'!='' OR '$(MetalamaTestFramework)'!='' "/>
+
+        <PropertyGroup>
+            <!-- When this is referenced as a NuGet package, the latest version of Roslyn is used. -->
+            <ThisRoslynVersionNoPreview Condition="'$(ThisRoslynVersionNoPreview)'==''">4.12.0</ThisRoslynVersionNoPreview>
+        </PropertyGroup>
+        
+        <ItemGroup>
+            <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+                <_Parameter1>DefineConstants</_Parameter1>
+                <_Parameter2>$(DefineConstants)</_Parameter2>
+            </AssemblyAttribute>
+            <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+                <_Parameter1>ProjectDirectory</_Parameter1>
+                <_Parameter2>$(MSBuildProjectDirectory)</_Parameter2>
+            </AssemblyAttribute>
+            <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+                <_Parameter1>ProjectPath</_Parameter1>
+                <_Parameter2>$(MSBuildProjectFullPath)</_Parameter2>
+            </AssemblyAttribute>
+            <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute" Condition="'$(MetalamaTestSourceDirectory)'!=''">
+                <_Parameter1>SourceDirectory</_Parameter1>
+                <_Parameter2>$(MetalamaTestSourceDirectory)</_Parameter2>
+            </AssemblyAttribute>
+            <!-- Sets up the default Xunit test framework, which is the custom test framework -->
+            <AssemblyAttribute Include="Xunit.TestFrameworkAttribute">
+                <_Parameter1>Metalama.Testing.AspectTesting.AspectTestFramework</_Parameter1>
+                <_Parameter2>Metalama.Testing.AspectTesting$(ThisRoslynVersionProjectSuffix)</_Parameter2>
+            </AssemblyAttribute>
+            
+            <!-- Additional attributes -->
+            <!-- In .Net 8 when "artifacts" output paths are enabled, IntermediateOutputPath is an absolute path. -->
+            <!-- To handle both that and the more common relative IntermediateOutputPath, we use Path.Combine. -->
+            <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+                <_Parameter1>ReferenceAssemblyList</_Parameter1>
+                <_Parameter2>$([System.IO.Path]::Combine('$(MSBuildProjectDirectory)','$(IntermediateOutputPath)','assemblies.txt'))</_Parameter2>
+            </AssemblyAttribute>
+            <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+                <_Parameter1>CompileTimeAssemblyList</_Parameter1>
+                <_Parameter2>$([System.IO.Path]::Combine('$(MSBuildProjectDirectory)','$(IntermediateOutputPath)','compile-time-assemblies.txt'))</_Parameter2>
+            </AssemblyAttribute>
+            <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+                <_Parameter1>ExtensionAssemblyList</_Parameter1>
+                <_Parameter2>$([System.IO.Path]::Combine('$(MSBuildProjectDirectory)','$(IntermediateOutputPath)','extensions.txt'))</_Parameter2>
+            </AssemblyAttribute>
+            <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+                <_Parameter1>PlugInList</_Parameter1>
+                <_Parameter2>$([System.IO.Path]::Combine('$(MSBuildProjectDirectory)','$(IntermediateOutputPath)','plugins.txt'))</_Parameter2>
+            </AssemblyAttribute>
+            <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+                <_Parameter1>MetalamaDebugTestFramework</_Parameter1>
+                <_Parameter2>$(MetalamaDebugTestFramework)</_Parameter2>
+            </AssemblyAttribute>
+            <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute"
+                               Condition="'$(GeneratedGlobalUsingsFile)'!=''">
+                <_Parameter1>GlobalUsingsFile</_Parameter1>
+                <_Parameter2>$(GeneratedGlobalUsingsFile)</_Parameter2>
+            </AssemblyAttribute>
+            <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+                <_Parameter1>TargetFramework</_Parameter1>
+                <_Parameter2>$(TargetFramework)</_Parameter2>
+            </AssemblyAttribute>
+            <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+                <_Parameter1>MetalamaLicense</_Parameter1>
+                <_Parameter2>$(MetalamaLicense)</_Parameter2>
+            </AssemblyAttribute>
+            <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+                <_Parameter1>IgnoredWarnings</_Parameter1>
+                <_Parameter2>$(NoWarn)</_Parameter2>
+            </AssemblyAttribute>
+        </ItemGroup>
+    </Target>
+
+    <Target Name='WriteReferenceAssemblies' AfterTargets="Build">
+
+        <ItemGroup>
+            <TfmFilteredExtensionAssembly Include="@(MetalamaExtensionAssembly)" Condition="'%(MetalamaExtensionAssembly.TargetFramework)' == '' Or $([MSBuild]::IsTargetFrameworkCompatible($(TargetFramework), %(MetalamaExtensionAssembly.TargetFramework)))" />
+        </ItemGroup>
+
+        <WriteLinesToFile File='$(IntermediateOutputPath)assemblies.txt' Overwrite='true'
+                          Lines='@(ReferencePathWithRefAssemblies)' />
+        <WriteLinesToFile File='$(IntermediateOutputPath)compile-time-assemblies.txt' Overwrite='true'
+                          Lines='@(MetalamaCompileTimeAssembly)' />
+        <WriteLinesToFile File='$(IntermediateOutputPath)extensions.txt' Overwrite='true'
+                          Lines='@(TfmFilteredExtensionAssembly)' />
+        <WriteLinesToFile File='$(IntermediateOutputPath)plugins.txt' Overwrite='true'
+                          Lines='@(MetalamaTestPlugIn)' />
+    </Target>
+
+
+    <Target Name="CleanTestOutput">
+        <ItemGroup>
+            <_CleanTestOutput Include="obj/transformed/**/*.*" />
+            <_CleanTestOutput Include="obj/html/**/*.*" />
+        </ItemGroup>
+        <RemoveDir Directories="obj/transformed" />
+        <RemoveDir Directories="obj/html" />
+        <Delete Files="@(_CleanTestOutput)" />
+    </Target>
+
+    <Target Name="_AcceptTestOutput">
+        <ItemGroup>
+            <_AcceptTestOutput Include="obj/transformed/$(TargetFramework)/**/*.cs" />
+            <_AcceptTestOutput Include="obj/transformed/$(TargetFramework)/**/*.txt" />
+        </ItemGroup>
+        <Message
+            Text="$(MSBuildProjectFile)($(TargetFramework)): Accepting @(_AcceptTestOutput->'%(RecursiveDir)%(Filename)%(Extension)')"
+            Importance="high" Condition="'@(_AcceptTestOutput)'!=''" />
+        <Copy SourceFiles="@(_AcceptTestOutput)"
+              DestinationFiles="@(_AcceptTestOutput->'%(RecursiveDir)%(Filename)%(Extension)')" />
+    </Target>
+
+    <Target Name="_AcceptTestHtml">
+        <ItemGroup>
+            <_AcceptTestOutput Include="obj/html/$(TargetFramework)/**/*.cs.html" />
+        </ItemGroup>
+        <Message
+            Text="$(MSBuildProjectFile)($(TargetFramework)): Accepting @(_AcceptTestOutput->'%(RecursiveDir)%(Filename)%(Extension)')"
+            Importance="high" Condition="'@(_AcceptTestOutput)'!=''" />
+        <Copy
+            SourceFiles="@(_AcceptTestOutput)"
+            DestinationFiles="@(_AcceptTestOutput->'%(RecursiveDir)%(Filename)%(Extension)')" />
+    </Target>
+
+
+    <!-- The following tasks rely on _ComputeTargetFrameworkItems to multicast to all target frameworks.
+        The _ComputeTargetFrameworkItems target is defined in Microsoft.Common.CrossTargeting.targets and results in @(_InnerBuildProjects) -->
+    <Target Name="_AcceptTestOutputCrossTargeting" DependsOnTargets="_ComputeTargetFrameworkItems">
+        <MSBuild Projects="@(_InnerBuildProjects)" Targets="_AcceptTestOutput" />
+    </Target>
+
+    <Target Name="_AcceptTestHtmlCrossTargeting" DependsOnTargets="_ComputeTargetFrameworkItems">
+        <MSBuild Projects="@(_InnerBuildProjects)" Targets="_AcceptTestHtml" />
+    </Target>
+
+    <Target Name="AcceptTestOutput">
+        <!-- Cross-targeting -->
+        <CallTarget Targets="_AcceptTestOutputCrossTargeting" Condition="'$(TargetFrameworks)' != ''" />
+        <!-- Single target -->
+        <CallTarget Targets="_AcceptTestOutput" Condition="'$(TargetFrameworks)' == ''" />
+    </Target>
+
+    <Target Name="AcceptTestHtml">
+        <!-- Cross-targeting -->
+        <CallTarget Targets="_AcceptTestHtmlCrossTargeting" Condition="'$(TargetFrameworks)' != ''" />
+        <!-- Single target -->
+        <CallTarget Targets="_AcceptTestHtml" Condition="'$(TargetFrameworks)' == ''" />
+    </Target>
+
+
+    <Target Name="_ResolveCopyLocalNuGetPkgXmls" AfterTargets="ResolveReferences">
+        <ItemGroup>
+            <!--
+         https://stackoverflow.com/a/65432020/74435
+         Copy XML files from all PackageReferences to output dir.
+         We need this to build the HTML titles when the option is enabled.
+         -->
+            <ReferenceCopyLocalPaths Include="@(ReferenceCopyLocalPaths->'%(RootDir)%(Directory)%(Filename).xml')"
+                                     Condition="'%(ReferenceCopyLocalPaths.NuGetPackageId)'!='' and Exists('%(RootDir)%(Directory)%(Filename).xml')" />
+        </ItemGroup>
+    </Target>
+
+</Project>

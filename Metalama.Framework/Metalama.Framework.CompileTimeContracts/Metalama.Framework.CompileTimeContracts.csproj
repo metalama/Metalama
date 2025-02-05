@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>netstandard2.0</TargetFramework>
+        <RootNamespace>Metalama.Framework.CompileTimeContracts</RootNamespace>
+        <PackageDescription>Defines the interface between the transformed compile-time user code and the Metalama engine.  The package should normally never be referenced in any user project.</PackageDescription>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" VersionOverride="$(RoslynApiMinVersion)" />
+      <ProjectReference Include="../Metalama.Framework/Metalama.Framework.csproj" />
+    </ItemGroup>
+    <ItemGroup>
+        <InternalsVisibleTo Include="Metalama.Framework.Engine.4.4.0" />
+        <InternalsVisibleTo Include="Metalama.Framework.Engine.4.8.0" />
+        <InternalsVisibleTo Include="Metalama.Framework.Engine.4.12.0" />
+    </ItemGroup>
+    <ItemGroup>
+        <None Include="README.md" Pack="true" PackagePath="/" />
+    </ItemGroup>
+</Project>

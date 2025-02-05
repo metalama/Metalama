@@ -1,0 +1,2 @@
+// CompileTimeAspectPipeline.ExecuteAsync failed.
+// Error LAMA0039 on `ApplyAspect`: `The aspect 'ApplyAspect' applied to 'MyRecord' cannot add a child aspect of type 'MyAspect' to 'MyRecord.EqualityContract' because 'MyRecord.EqualityContract' must be explicitly declared.`

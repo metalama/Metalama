@@ -1,0 +1,2 @@
+// CompileTimeAspectPipeline.ExecuteAsync failed.
+// Error LAMA0041 on `Method`: `'Exception of type 'System.Exception' thrown while executing the template method 'Aspect.OverrideMethod()' in the context of the aspect 'Metalama.Framework.Tests.PublicPipeline.Aspects.InvalidCode.TemplateExpansionError.Aspect' applied to 'TargetCode.Method(int)': Exception of type 'System.Exception' was thrown. Exception details are in '(none)'. To attach a debugger to the compiler, use the  '-p:MetalamaDebugCompiler=True' command-line option.`

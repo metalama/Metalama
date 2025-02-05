@@ -1,0 +1,29 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFrameworks>net472;net6.0</TargetFrameworks>
+        <RootNamespace>Metalama.Framework.DesignTime.Contracts</RootNamespace>
+
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+
+        <!-- Disable vulnerability checking because this project is not surfacing. -->
+        <NuGetAudit>false</NuGetAudit>
+
+    </PropertyGroup>
+
+    <ItemGroup>
+      <Compile Include="..\Metalama.Framework.CompilerExtensions\MutexAcl.cs" Link="MutexAcl.cs" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <!-- It is essential that the package version remains constant.-->
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" VersionOverride="4.0.1" PrivateAssets="all" />
+        <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.Common" VersionOverride="4.0.1" PrivateAssets="all" />
+
+        <!-- We must match the version used by the lowest version of Visual Studion supported by the VSX. -->
+        <PackageReference Include="Newtonsoft.Json" NoWarn="NU1903" />
+    </ItemGroup>
+
+    <Import Sdk="PostSharp.Engineering.Sdk" Project="SystemTypes.props" />
+
+</Project>

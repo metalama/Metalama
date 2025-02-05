@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>netstandard2.0</TargetFramework>
+        <RootNamespace>Metalama.SourceTransformer</RootNamespace>
+        <!-- The next line does not seem to work. -->
+        <ProduceReferenceAssembly>True</ProduceReferenceAssembly>
+        <!-- This avoids licensing this source transformer as a PostSharp product. -->
+        <Company>PostSharp Technologies - Internal</Company>
+
+        <!-- Disable a warning saying that we have nothing under the lib folder. -->
+        <NoWarn>NU5128</NoWarn>
+
+        <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Metalama.Compiler.Sdk" />
+    </ItemGroup>
+
+
+</Project>

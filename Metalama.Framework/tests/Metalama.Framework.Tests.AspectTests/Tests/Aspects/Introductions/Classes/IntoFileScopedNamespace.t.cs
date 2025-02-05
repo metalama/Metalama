@@ -1,0 +1,4 @@
+[IntroductionAttribute]
+public class TargetType
+{
+}

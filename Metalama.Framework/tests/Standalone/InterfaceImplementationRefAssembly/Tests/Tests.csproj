@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net7.0</TargetFramework>
+    <!-- <ImplicitUsings>enable</ImplicitUsings> -->
+    <Nullable>enable</Nullable>
+    <OutputType>Library</OutputType>
+    <IsPackable>false</IsPackable>
+
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Metalama.Framework" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Dependency/Dependency.csproj" />
+  </ItemGroup>
+
+</Project>

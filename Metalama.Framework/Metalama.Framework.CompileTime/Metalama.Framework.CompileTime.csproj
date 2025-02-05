@@ -1,0 +1,38 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>netstandard2.0</TargetFramework>
+        <!-- The assembly identity must match the one of the principal project, Metalama.Framework.dll. 
+             This does not create conflicts because this assembly is NEVER loaded in the CLR, it is only passed
+             as a reference assembly to the compiler when building the compile-time projects. -->
+        <AssemblyName>Metalama.Framework</AssemblyName>
+        <MetalamaCompilerDisablePackCustomization>True</MetalamaCompilerDisablePackCustomization>
+        <ChangeDynamicToObject>True</ChangeDynamicToObject>
+
+        <GenerateDocumentationFile>False</GenerateDocumentationFile>
+        <IsPackable>False</IsPackable>
+        <UseMetalamaCompiler>Private</UseMetalamaCompiler>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <!-- Include all files from the Metalama.Framework project, but only in real builds because we don't want to import the files
+             several times in the IDE. -->
+        <Compile Include="../Metalama.Framework/**/*.cs" Exclude="../Metalama.Framework/bin/**/*.cs;../Metalama.Framework/obj/**/*.cs" Condition="'$(DesignTimeBuild)'!='True'" />
+    </ItemGroup>
+
+    <ItemGroup>
+
+        <CompilerVisibleProperty Include="ChangeDynamicToObject" />
+
+        <!-- Intentionally skipping Microsoft.CSharp to be sure not to have support for dynamic code at compile time,
+             but we need the support in the IDE -->
+
+        <PackageReference Include="System.Collections.Immutable" />
+        <PackageReference Include="Microsoft.Bcl.HashCode" Condition="'$(TargetFramework)'=='netstandard2.0'" />
+
+        <!-- The following references change 'dynamic' into 'object' -->
+        <ProjectReference Include="../Metalama.SourceTransformer/Metalama.SourceTransformer.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+        <ProjectReference Include="../Metalama.SystemTypes/Metalama.SystemTypes.csproj" />
+    </ItemGroup>
+
+</Project>

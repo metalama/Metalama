@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project>
+    <!-- Imports Directory.Build.props of the upper directory. We must do this explicitly because this project has no SDK. -->
+    <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" Condition="Exists('$([MSBuild]::GetPathOfFileAbove(`Directory.Build.props`, `$(MSBuildThisFileDirectory)../`))')" />
+
+    <Target Name="Build">
+        <Error Text="This test requires Visual Studio or Visual Studio Build Tools to be installed." Condition="'$(MSBuildExePath)'==''" /> 
+
+        <Exec Command="$(MSBuildExePath) LamaDebug.sln /t:Restore,Build /v:m /p:Configuration=LamaDebug" />
+        <Exec Command="dotnet build LamaDebug.sln /t:Restore,Build /v:m /p:Configuration=LamaDebug" />
+    </Target>
+</Project>

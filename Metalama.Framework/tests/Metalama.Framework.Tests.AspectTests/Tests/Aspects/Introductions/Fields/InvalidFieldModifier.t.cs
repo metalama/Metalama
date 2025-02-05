@@ -1,0 +1,2 @@
+// CompileTimeAspectPipeline.ExecuteAsync failed.
+// Error LAMA0041 on `TargetClass`: `'Exception of type 'System.InvalidOperationException' thrown while executing BuildAspect for aspect [Aspect] applied to 'TargetClass': Writeability for fields can only be set to All (no modifier), ConstructorOnly (readonly) or None (const). Exception details are in '(none)'. To attach a debugger to the compiler, use the  '-p:MetalamaDebugCompiler=True' command-line option.`

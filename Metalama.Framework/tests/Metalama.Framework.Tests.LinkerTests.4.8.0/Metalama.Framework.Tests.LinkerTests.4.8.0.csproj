@@ -1,0 +1,8 @@
+﻿<Project ToolsVersion="Current">
+  <ItemGroup>
+    <Compile Include="../Metalama.Framework.Tests.LinkerTests/**/*.cs" Exclude="../Metalama.Framework.Tests.LinkerTests/bin/**/*.cs;../Metalama.Framework.Tests.LinkerTests/obj/**/*.cs" />
+    <Compile Remove="**/*" Condition="'$(FormattingCode)'=='True'" />
+  </ItemGroup>
+  <Import Project="../../build/RoslynVersion/Roslyn.4.8.0.props" />
+  <Import Project="../Metalama.Framework.Tests.LinkerTests/Metalama.Framework.Tests.LinkerTests.csproj" />
+</Project>

@@ -1,0 +1,4 @@
+[TestAspect]
+public class Target
+{
+}

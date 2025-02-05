@@ -1,0 +1,102 @@
+﻿<Project>
+
+    <PropertyGroup Condition="'$(MetalamaEnabled)'!='False'">
+        <!-- Define a METALAMA compilation symbol (aka constant). -->
+        <DefineConstants>$(DefineConstants);METALAMA</DefineConstants>
+
+        <!-- Auxiliary files used at design time. -->
+        <MetalamaAdditionalCompilationOutputDirectory Condition="'$(MetalamaDesignTimeEnabled)'=='False'">$(MSBuildProjectDirectory)/$(IntermediateOutputPath)/metalama-aux/</MetalamaAdditionalCompilationOutputDirectory>
+
+        <!-- Design time fallback dependency that forces rerun of analyzers/source generators when changed. -->
+        <MetalamaDesignTimeFallbackTouchFile Condition="'$(MetalamaDesignTimeEnabled)'=='False'">$(MetalamaAdditionalCompilationOutputDirectory)MetalamaDesignTimeTouch.touch</MetalamaDesignTimeFallbackTouchFile>
+
+        <!-- Define a new build configuration named LamaDebug (configured below).
+             This needs to be done in the targets file, and not in the props file, because Microsoft.NET.Sdk.props will not define it if we define it first in our own props file. -->
+        <Configurations Condition="'$(MetalamaCreateLamaDebugConfiguration)'!='False'">$(Configurations);LamaDebug</Configurations>
+
+        <!-- If this is a compile-time project, do not remove compile-time-only code. -->
+        <MetalamaRemoveCompileTimeOnlyCode Condition="'$(MetalamaCompileTimeProject)'=='True'">False</MetalamaRemoveCompileTimeOnlyCode>
+
+        <!-- Convert items to properties -->
+        <!-- We use ',' as a list item separator and '|' as a separator within a list. We don't use ';' because it means a comment in .editorconfig -->
+        <MetalamaCompileTimePackages>@(MetalamaCompileTimePackage, ',')</MetalamaCompileTimePackages>
+        <MetalamaCompileTimeAssemblies>@(MetalamaCompileTimeAssembly, ',')</MetalamaCompileTimeAssemblies>
+        <MetalamaSourceGeneratorAttributes>@(MetalamaSourceGeneratorAttribute, ',')</MetalamaSourceGeneratorAttributes>
+        <MetalamaExtensionAssemblies>@(MetalamaExtensionAssembly -> '%(FullPath)|%(TargetFramework)', ',')</MetalamaExtensionAssemblies>
+        <MetalamaDesignTimeExtensionAssemblies>@(MetalamaDesignTimeExtensionAssembly -> '%(FullPath)|%(TargetFramework)', ',')</MetalamaDesignTimeExtensionAssemblies>
+
+        <!-- Elevating CS8032: An instance of analyzer X cannot be created. 
+             We elevate this warning to an error because otherwise, if Metalama.Framework fails to load, the compilation will be incorrect while there
+             will be no warning. Troubleshooting this issue may be very complex without a real error.     -->
+        <WarningsAsErrors>$(WarningsAsErrors);CS8032</WarningsAsErrors>
+
+    </PropertyGroup>
+
+
+    <ItemGroup Condition="'$(MetalamaCompileTimeProject)'=='True'">
+        <AssemblyAttributes Include="Metalama.Framework.Aspects.CompileTimeAttribute"/>
+    </ItemGroup>
+
+    <ItemGroup Condition="'$(DesignTimeBuild)' == 'True' AND '$(MetalamaDesignTimeEnabled)'=='False'">
+        <AdditionalFiles Include="$(MetalamaDesignTimeFallbackTouchFile)" Visible="False" />
+    </ItemGroup>
+
+    <Target Name="GetRestoreSources" BeforeTargets="PrepareForBuild" DependsOnTargets="_GetRestoreSettings" Condition="$(IsRestoreTargetsFileLoaded)=='true'">
+        <PropertyGroup>
+            <MetalamaRestoreSources>$(_OutputSources)</MetalamaRestoreSources>
+        </PropertyGroup>
+    </Target>
+
+    <Target Name="ExportMetalamaFrameworkProperties" BeforeTargets="PrepareForBuild">
+        <Error Text="The IntermediateOutputPath property is not defined." Condition="'$(IntermediateOutputPath)'==''"/>
+        <PropertyGroup>
+            <MetalamaBuildTouchFile>$([System.IO.Path]::Combine($(MSBuildProjectDirectory),$(IntermediateOutputPath),'MetalamaBuild.touch'))</MetalamaBuildTouchFile>
+            <MetalamaSourceGeneratorTouchFile>$([System.IO.Path]::Combine($(MSBuildProjectDirectory),$(IntermediateOutputPath),'MetalamaSourceGenerator.touch'))</MetalamaSourceGeneratorTouchFile>
+        </PropertyGroup>
+    </Target>
+
+    <Target Name="CreateMetalamaTouchFiles" BeforeTargets="BeforeCompile">
+        <!-- We create a touch file with a new arbitrary content every time that the file is absent. This file is used to signal
+             the design-time Metalama pipeline that a build has started. When the design-time pipeline needs this information again, it will
+             delete the file. It should do that only when the source code has changed (even if it is not saved). We don't overwrite an existing
+             file because this would break incremental build -->
+        <WriteLinesToFile File="$(MetalamaBuildTouchFile)" Lines=">$([System.Guid]::NewGuid())"
+                          Condition="!Exists('$(MetalamaBuildTouchFile)')"/>
+
+        <!-- We create the generator touch file so that it is included in the project. This file is changed by the Roslyn analysis process. -->
+        <WriteLinesToFile File="$(MetalamaSourceGeneratorTouchFile)" Lines=">$([System.Guid]::NewGuid())"
+                          Condition="!Exists('$(MetalamaSourceGeneratorTouchFile)')"/>
+        <ItemGroup>
+            <AdditionalFiles Include="$(MetalamaBuildTouchFile)" Visible="False"/>
+            <AdditionalFiles Include="$(MetalamaSourceGeneratorTouchFile)"  Visible="False"/>
+            <Clean Include="$(MetalamaBuildTouchFile)"/>
+            <Clean Include="$(MetalamaSourceGeneratorTouchFile)"/>
+        </ItemGroup>
+    </Target>
+
+    <Target Name="GatherCompilerVisibleProperties" BeforeTargets="GenerateMSBuildEditorConfigFileCore">
+        <!-- This is only required for Roslyn 4.0, which doesn't have AnalyzerConfigOptions.Keys. -->
+        <PropertyGroup>
+            <MetalamaCompilerVisiblePropertiesList>@(CompilerVisibleProperty, ',')</MetalamaCompilerVisiblePropertiesList>
+        </PropertyGroup>
+        <ItemGroup>
+            <CompilerVisibleProperty Include="MetalamaCompilerVisiblePropertiesList"/>
+        </ItemGroup>
+    </Target>
+
+     <Target Name="CheckMetalamaAssemblyReferencePaths" BeforeTargets="BeforeCompile">
+    
+         <ItemGroup>
+            <_InvalidPath Include="@(MetalamaCompileTimePackages)"  Condition="$([System.String]::Copy('%(FullPath)').Contains(`,`)) OR $([System.String]::Copy('%(FullPath)').Contains(`|`))" />
+            <_InvalidPath Include="@(MetalamaCompileTimeAssemblies)"  Condition="$([System.String]::Copy('%(FullPath)').Contains(`,`)) OR $([System.String]::Copy('%(FullPath)').Contains(`|`))" />
+            <_InvalidPath Include="@(MetalamaSourceGeneratorAttribute)"  Condition="$([System.String]::Copy('%(FullPath)').Contains(`,`)) OR $([System.String]::Copy('%(FullPath)').Contains(`|`))" />
+            <_InvalidPath Include="@(MetalamaExtensionAssemblies)"  Condition="$([System.String]::Copy('%(FullPath)').Contains(`,`)) OR $([System.String]::Copy('%(FullPath)').Contains(`|`))" />
+            <_InvalidPath Include="@(MetalamaDesignTimeExtensionAssemblies)" Condition="$([System.String]::Copy('%(FullPath)').Contains(`,`)) OR $([System.String]::Copy('%(FullPath)').Contains(`|`))" />
+        </ItemGroup>
+
+        <!-- Emit an error if there are invalid items -->
+        <Error Text="The item '%(_InvalidPath.Identity)' has a FullPath containing an invalid character ('|' or ',')." 
+            Condition="@(_InvalidPath->Count()) > 0" />
+  </Target>
+    
+</Project>

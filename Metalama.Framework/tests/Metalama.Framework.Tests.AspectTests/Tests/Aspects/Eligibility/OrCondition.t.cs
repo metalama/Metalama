@@ -1,0 +1,2 @@
+// CompileTimeAspectPipeline.ExecuteAsync failed.
+// Error LAMA0037 on `Aspect`: `The aspect 'Aspect' cannot be applied to the method 'TargetCode.Method(int)' because none of these conditions was fulfilled: { (a) 'TargetCode.Method(int)' must be virtual, or (b) 'TargetCode.Method(int)' must be abstract }.`

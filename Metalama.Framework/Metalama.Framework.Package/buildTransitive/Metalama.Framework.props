@@ -1,0 +1,3 @@
+﻿<Project>
+	<Import Project="../build/Metalama.Framework.props"/>
+</Project>

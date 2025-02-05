@@ -1,0 +1,18 @@
+<Project>
+    <Import Sdk="PostSharp.Engineering.Sdk" Project="Coverage.props"/>
+    
+      <PropertyGroup Condition="'$(CollectCoverage)'=='True'">
+            <!-- Exclude non-implemented namespaces from test coverage analysis -->
+         <Exclude>$(Exclude),[Metalama.Framework]Metalama.Framework.Eligibility.*</Exclude>
+         <Exclude>$(Exclude),[Metalama.Framework]Metalama.Framework.Policies.*</Exclude>
+         <Exclude>$(Exclude),[Metalama.Framework]Metalama.Framework.Validation.*</Exclude>
+         <Exclude>$(Exclude),[Metalama.Testing.AspectTesting]Metalama.Testing.AspectTesting.XunitFramework.*</Exclude>
+         
+         
+         <!-- The following classes have a lot of gaps but these are in general trivial methods. We don't want to spend effort on this now. -->
+         <Exclude>$(Exclude),[Metalama.Framework.Engine]Metalama.Framework.Engine.CodeModel.Builders.*</Exclude>
+         <Exclude>$(Exclude),[Metalama.Testing.AspectTesting.Impl]Metalama.Framework.Engine.Templating.MetaModel.Advised*</Exclude>
+
+      </PropertyGroup>  
+            
+</Project>

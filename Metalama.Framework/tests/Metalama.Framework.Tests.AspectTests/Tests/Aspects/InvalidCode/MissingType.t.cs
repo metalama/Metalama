@@ -1,0 +1,2 @@
+// CompileTimeAspectPipeline.ExecuteAsync failed.
+// Error LAMA0236 on `t`: `Cannot reference 'lambda expression/t' in 'C.M(IAspectBuilder<Foo>)' (except for templates) because 'lambda expression/t' is run-time-only but 'C.M(IAspectBuilder<Foo>)' is compile-time.`

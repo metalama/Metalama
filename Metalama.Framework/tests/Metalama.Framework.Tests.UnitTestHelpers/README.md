@@ -1,0 +1,1 @@
+This is a shared project and package between unit test projects of the Metalama.Framework and the Metalama.Premium repoes.

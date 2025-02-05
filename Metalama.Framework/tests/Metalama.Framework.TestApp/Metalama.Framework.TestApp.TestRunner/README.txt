@@ -1,0 +1,1 @@
+﻿This project exists so that the `dotnet test` command works. This project has build dependencies on the other projects of the solution. The whole test is that the solution builds.

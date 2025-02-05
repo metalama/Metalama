@@ -1,0 +1,7 @@
+<Project>
+    <Import Project="Roslyn.4.12.0.props" Condition="'$(ThisRoslynVersion)'==''" />
+
+	<PropertyGroup>
+		<ThisRoslynVersionNoPreview Condition="'$(ThisRoslynVersionNoPreview)'==''">$(ThisRoslynVersion)</ThisRoslynVersionNoPreview>
+	</PropertyGroup>
+</Project>

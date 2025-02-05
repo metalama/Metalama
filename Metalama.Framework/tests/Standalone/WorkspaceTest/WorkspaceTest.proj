@@ -1,0 +1,8 @@
+<Project>
+
+    <Target Name="Build">
+        <Exec Command="dotnet clean $(MSBuildThisFileDirectory)WorkspaceTest/WorkspaceTest.csproj "/>
+        <Exec Command="dotnet run --project $(MSBuildThisFileDirectory)WorkspaceTest/WorkspaceTest.csproj $(MSBuildThisFileDirectory)WorkspaceTest/WorkspaceTest.csproj"/>
+    </Target>
+
+</Project>

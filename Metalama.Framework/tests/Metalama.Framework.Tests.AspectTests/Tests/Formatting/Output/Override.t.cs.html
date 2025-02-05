@@ -1,0 +1,113 @@
+
+<html>
+    <head>
+        <style>
+            .cr-CompileTime,
+            .cr-Conflict,
+            .cr-TemplateKeyword,
+            .cr-Dynamic,
+            .cr-CompileTimeVariable,
+            .cr-GeneratedCode
+            {
+                background-color: rgba(50,50,90,0.1);
+            }
+
+            .cr-NeutralTrivia
+            {
+                background-color: rgba(0,255,0,0.1);
+            }
+
+            .cr-TemplateKeyword
+            {
+                color: rgb(250, 0, 250) !important;
+                font-weight: bold;
+            }
+
+            .cr-Dynamic
+            {
+                text-decoration: underline;
+            }
+
+            .cr-CompileTimeVariable
+            {
+                font-style: italic;
+            }
+
+            .diag-Warning
+            {
+                text-decoration: underline 1px wavy orange;
+            }
+
+            .diag-Error
+            {
+                text-decoration: underline 1px wavy red;
+            }
+
+         .diff-Imaginary {
+                display: block;
+                background-image: repeating-linear-gradient( -45deg, gray, gray 2px, transparent 2px, transparent 8px );
+            }
+
+
+            .legend 
+            {
+                margin-top: 100px;
+            }
+        </style>
+    </head>
+    <body><pre><code class="nohighlight"><span class='line-number'>1</span><span class="cs-keyword">using</span> <span class="cs-namespace-name">System</span><span class="cs-punctuation">;</span>
+<span class='line-number'>2</span><span class="cs-keyword">using</span> <span class="cs-namespace-name">Metalama</span><span class="cs-operator">.</span><span class="cs-namespace-name">Framework</span><span class="cs-operator">.</span><span class="cs-namespace-name">Aspects</span><span class="cs-punctuation">;</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span><span class="cs-keyword">namespace</span> <span class="cs-namespace-name">Metalama</span><span class="cs-operator">.</span><span class="cs-namespace-name">Framework</span><span class="cs-operator">.</span><span class="cs-namespace-name">Tests</span><span class="cs-operator">.</span><span class="cs-namespace-name">AspectTests</span><span class="cs-operator">.</span><span class="cs-namespace-name">Tests</span><span class="cs-operator">.</span><span class="cs-namespace-name">Formatting</span><span class="cs-operator">.</span><span class="cs-namespace-name">Override</span>
+<span class='line-number'>5</span><span class="cs-punctuation">{</span>
+<span class='line-number'>6</span>
+<span class='line-number' data-member='OverrideAspect'>7</span><span class="cs-preprocessor-keyword">#pragma</span> <span class="cs-preprocessor-keyword">warning</span> <span class="cs-preprocessor-keyword">disable</span> <span class="cs-identifier">CS0067</span><span class="cs-punctuation">,</span> <span class="cs-identifier">CS8618</span><span class="cs-punctuation">,</span> <span class="cs-identifier">CS0162</span><span class="cs-punctuation">,</span> <span class="cs-identifier">CS0169</span><span class="cs-punctuation">,</span> <span class="cs-identifier">CS0414</span><span class="cs-punctuation">,</span> <span class="cs-identifier">CA1822</span><span class="cs-punctuation">,</span> <span class="cs-identifier">CA1823</span><span class="cs-punctuation">,</span> <span class="cs-identifier">IDE0051</span><span class="cs-punctuation">,</span> <span class="cs-identifier">IDE0052</span>
+<span class='line-number' data-member='OverrideAspect'>8</span>
+<span class='line-number' data-member='OverrideAspect'>9</span><span class="cr-NeutralTrivia">    </span><span class="cr-CompileTime cs-keyword">public</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-keyword">class</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-class-name">OverrideAspect</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-punctuation">:</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-class-name">OverrideMethodAspect</span>
+<span class='line-number' data-member='OverrideAspect'>10</span><span class="cr-NeutralTrivia">    </span><span class="cr-CompileTime cs-punctuation">{</span>
+<span class='line-number' data-member='OverrideAspect.OverrideMethod'>11</span><span class="cr-NeutralTrivia">        </span><span class="cs-keyword">public</span> <span class="cs-keyword">override</span> <span class="cs-keyword">dynamic</span><span class="cs-operator">?</span> <span class="cs-method-name">OverrideMethod</span><span class="cs-punctuation">()</span> <span class="cr-RunTime cs-operator">=&gt;</span><span class="cr-RunTime"> </span><span class="cr-RunTime cs-keyword cs-control">throw</span><span class="cr-RunTime"> </span><span class="cr-RunTime cs-keyword">new</span><span class="cr-RunTime"> </span><span class="cr-RunTime cs-namespace-name">System</span><span class="cr-RunTime cs-operator">.</span><span class="cr-RunTime cs-class-name">NotSupportedException</span><span class="cr-RunTime cs-punctuation">(</span><span class="cr-RunTime cs-string">"Compile-time-only code cannot be called at run-time."</span><span class="cr-RunTime cs-punctuation">)</span><span class="cs-punctuation">;</span>
+<span class='line-number' data-member='OverrideAspect'>12</span><span class="cr-NeutralTrivia">    </span><span class="cr-CompileTime cs-punctuation">}</span>
+<span class='line-number' data-member='OverrideAspect'>13</span>
+<span class='line-number' data-member='TargetCode'>14</span><span class="cs-preprocessor-keyword">#pragma</span> <span class="cs-preprocessor-keyword">warning</span> <span class="cs-preprocessor-keyword">restore</span> <span class="cs-identifier">CS0067</span><span class="cs-punctuation">,</span> <span class="cs-identifier">CS8618</span><span class="cs-punctuation">,</span> <span class="cs-identifier">CS0162</span><span class="cs-punctuation">,</span> <span class="cs-identifier">CS0169</span><span class="cs-punctuation">,</span> <span class="cs-identifier">CS0414</span><span class="cs-punctuation">,</span> <span class="cs-identifier">CA1822</span><span class="cs-punctuation">,</span> <span class="cs-identifier">CA1823</span><span class="cs-punctuation">,</span> <span class="cs-identifier">IDE0051</span><span class="cs-punctuation">,</span> <span class="cs-identifier">IDE0052</span>
+<span class='line-number' data-member='TargetCode'>15</span>
+<span class='line-number' data-member='TargetCode'>16</span>
+<span class='line-number' data-member='TargetCode'>17</span>
+<span class='line-number' data-member='TargetCode'>18</span>
+<span class='line-number' data-member='TargetCode'>19</span>    <span class="cs-keyword">public</span> <span class="cs-keyword">class</span> <span class="cs-class-name">TargetCode</span>
+<span class='line-number' data-member='TargetCode'>20</span>    <span class="cs-punctuation">{</span>
+<span class='line-number' data-member='TargetCode.Method'>21</span>        <span class="cs-punctuation">[</span><span class="cs-class-name">OverrideAspect</span><span class="cs-punctuation">]</span>
+<span class='line-number' data-member='TargetCode.Method'>22</span>        <span class="cs-keyword">public</span> <span class="cs-keyword">int</span> <span class="cs-method-name">Method</span><span class="cs-punctuation">()</span>
+<span class='line-number' data-member='TargetCode.Method'>23</span>        <span class="cs-punctuation">{</span>
+<span class='line-number' data-member='TargetCode.Method'>24</span>            <span class="cr-GeneratedCode cs-class-name cs-static-symbol">Console</span><span class="cr-GeneratedCode cs-operator">.</span><span class="cr-GeneratedCode cs-method-name cs-static-symbol">WriteLine</span><span class="cr-GeneratedCode cs-punctuation">(</span><span class="cr-GeneratedCode cs-string">"Generated code."</span><span class="cr-GeneratedCode cs-punctuation">);</span>
+<span class='line-number' data-member='TargetCode.Method'>25</span><span class="cr-NeutralTrivia">            </span><span class="cr-GeneratedCode cs-keyword cs-control">try</span><span class="cr-GeneratedCode">
+<span class='line-number' data-member='TargetCode.Method'>26</span></span><span class="cr-NeutralTrivia">            </span><span class="cr-GeneratedCode cs-punctuation">{</span><span class="cr-GeneratedCode">
+<span class='line-number' data-member='TargetCode.Method'>27</span></span><span class="cr-NeutralTrivia">                </span><span class="cr-SourceCode cs-class-name cs-static-symbol">Console</span><span class="cr-SourceCode cs-operator">.</span><span class="cr-SourceCode cs-method-name cs-static-symbol">WriteLine</span><span class="cr-SourceCode cs-punctuation">(</span><span class="cr-SourceCode cs-string">"User code."</span><span class="cr-SourceCode cs-punctuation">);</span><span class="cr-GeneratedCode">
+<span class='line-number' data-member='TargetCode.Method'>28</span>
+<span class='line-number' data-member='TargetCode.Method'>29</span></span><span class="cr-NeutralTrivia">                </span><span class="cr-SourceCode cs-keyword cs-control">return</span><span class="cr-SourceCode"> </span><span class="cr-SourceCode cs-number">1</span><span class="cr-SourceCode cs-punctuation">;</span><span class="cr-GeneratedCode">
+<span class='line-number' data-member='TargetCode.Method'>30</span></span><span class="cr-NeutralTrivia">            </span><span class="cr-GeneratedCode cs-punctuation">}</span><span class="cr-GeneratedCode">
+<span class='line-number' data-member='TargetCode.Method'>31</span></span><span class="cr-NeutralTrivia">            </span><span class="cr-GeneratedCode cs-keyword cs-control">catch</span><span class="cr-GeneratedCode"> </span><span class="cr-GeneratedCode cs-punctuation">(</span><span class="cr-GeneratedCode cs-class-name">Exception</span><span class="cr-GeneratedCode cs-punctuation">)</span><span class="cr-GeneratedCode">
+<span class='line-number' data-member='TargetCode.Method'>32</span></span><span class="cr-NeutralTrivia">            </span><span class="cr-GeneratedCode cs-punctuation">{</span><span class="cr-GeneratedCode">
+<span class='line-number' data-member='TargetCode.Method'>33</span></span><span class="cr-NeutralTrivia">                </span><span class="cr-GeneratedCode cs-class-name cs-static-symbol">Console</span><span class="cr-GeneratedCode cs-operator">.</span><span class="cr-GeneratedCode cs-method-name cs-static-symbol">WriteLine</span><span class="cr-GeneratedCode cs-punctuation">(</span><span class="cr-GeneratedCode cs-string">"Oops!"</span><span class="cr-GeneratedCode cs-punctuation">);</span><span class="cr-GeneratedCode">
+<span class='line-number' data-member='TargetCode.Method'>34</span></span><span class="cr-NeutralTrivia">                </span><span class="cr-GeneratedCode cs-keyword cs-control">throw</span><span class="cr-GeneratedCode cs-punctuation">;</span><span class="cr-GeneratedCode">
+<span class='line-number' data-member='TargetCode.Method'>35</span></span><span class="cr-NeutralTrivia">            </span><span class="cr-GeneratedCode cs-punctuation">}</span>
+<span class='line-number' data-member='TargetCode.Method'>36</span>        <span class="cs-punctuation">}</span>
+<span class='line-number' data-member='TargetCode.Method'>37</span>
+<span class='line-number' data-member='TargetCode'>38</span>    <span class="cs-punctuation">}</span>
+<span class='line-number'>39</span><span class="cs-punctuation">}</span>
+</code></pre>
+       <p class='legend'>Legend:</p>
+       <pre>
+<span class='cr-Default'>Default</span>
+<span class='cr-RunTime'>RunTime</span>
+<span class='cr-CompileTime'>CompileTime</span>
+<span class='cr-Dynamic'>Dynamic</span>
+<span class='cr-CompileTimeVariable'>CompileTimeVariable</span>
+<span class='cr-TemplateKeyword'>TemplateKeyword</span>
+<span class='cr-Conflict'>Conflict</span>
+<span class='cr-Excluded'>Excluded</span>
+<span class='cr-GeneratedCode'>GeneratedCode</span>
+<span class='cr-SourceCode'>SourceCode</span>
+<span class='cr-NeutralTrivia'>NeutralTrivia</span>
+       </pre>
+   </body>
+</html>

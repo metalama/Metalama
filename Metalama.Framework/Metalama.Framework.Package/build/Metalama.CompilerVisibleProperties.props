@@ -1,0 +1,41 @@
+<Project>
+    <PropertyGroup>
+        <MetalamaCompilerVisiblePropertiesTargetsImported>True</MetalamaCompilerVisiblePropertiesTargetsImported>
+    </PropertyGroup>
+    <!-- Exports the properties to the compiler -->
+    <ItemGroup>
+        <CompilerVisibleProperty Include="MetalamaBuildTouchFile"/>
+        <CompilerVisibleProperty Include="MetalamaSourceGeneratorTouchFile"/>
+        <CompilerVisibleProperty Include="MetalamaEnabled"/>
+        <CompilerVisibleProperty Include="MetalamaFormatOutput"/>
+        <CompilerVisibleProperty Include="MetalamaFormatCompileTimeCode"/>
+        <CompilerVisibleProperty Include="MetalamaUserCodeTrusted"/>
+        <CompilerVisibleProperty Include="MetalamaCompileTimeProject"/>
+        <CompilerVisibleProperty Include="AssemblyName"/>
+        <CompilerVisibleProperty Include="MetalamaDesignTimeEnabled"/>
+        <CompilerVisibleProperty Include="MetalamaAdditionalCompilationOutputDirectory"/>
+        <CompilerVisibleProperty Include="MetalamaRemoveCompileTimeOnlyCode"/>
+        <CompilerVisibleProperty Include="MetalamaAllowPreviewLanguageFeatures"/>
+        <CompilerVisibleProperty Include="MetalamaConcurrentBuildEnabled"/>
+        <CompilerVisibleProperty Include="MetalamaCompileTimePackages"/>
+        <CompilerVisibleProperty Include="MetalamaCompileTimeAssemblies"/>
+        <CompilerVisibleProperty Include="MetalamaWriteHtml"/>
+        <CompilerVisibleProperty Include="MetalamaWriteLicenseCreditData" />
+        <CompilerVisibleProperty Include="ProjectAssetsFile"/>
+        <CompilerVisibleProperty Include="MetalamaReferenceAssemblyRestoreTimeout"/>
+        <CompilerVisibleProperty Include="NuGetTargetMoniker"/>
+        <CompilerVisibleProperty Include="Configuration"/>
+        <CompilerVisibleProperty Include="MetalamaRoslynIsCompileTimeOnly"/>
+        <CompilerVisibleProperty Include="MetalamaCompileTimeTargetFrameworks"/>
+        <CompilerVisibleProperty Include="MetalamaRestoreSources"/>
+        <CompilerVisibleProperty Include="MetalamaTemplateLanguageVersion"/>
+        <CompilerVisibleProperty Include="MetalamaIgnoreUserLicenses"/>
+        <CompilerVisibleProperty Include="MetalamaAssemblyLocatorHooksDirectory"/>
+        <CompilerVisibleProperty Include="MetalamaSourceGeneratorAttributes"/>
+        <CompilerVisibleProperty Include="MetalamaExtensionAssemblies"/>
+        <CompilerVisibleProperty Include="MetalamaDesignTimeExtensionAssemblies"/>
+    </ItemGroup>
+
+    <!-- More properties are already exported by Metalama.Compiler and don't need to be exported a second time. -->
+
+</Project>

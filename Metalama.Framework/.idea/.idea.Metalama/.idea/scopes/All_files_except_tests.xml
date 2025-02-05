@@ -1,0 +1,3 @@
+<component name="DependencyValidationManager">
+  <scope name="All files except tests" pattern="file:*/&amp;&amp;!file:eng//*&amp;&amp;!file:.editorconfig&amp;&amp;!file:Tests/Metalama.Framework.Tests.AspectTests/Tests//*&amp;&amp;!file:Tests/Metalama.Framework.Tests.AspectTests.Internals/Tests//*&amp;&amp;!file:Metalama.Framework.DesignTime.4.0.1//*&amp;&amp;!file:Metalama.Framework.DesignTime.VisualStudio.4.0.1//*&amp;&amp;!file:Metalama.Framework.Engine.4.0.1//*" />
+</component>

@@ -1,0 +1,5 @@
+{
+    "IgnoreExitCode": false,
+    "FailOnUnexpectedDiagnostics": true,
+    "BuildOnly": true
+}

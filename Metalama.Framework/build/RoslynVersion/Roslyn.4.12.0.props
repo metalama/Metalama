@@ -1,0 +1,10 @@
+<Project>
+	<PropertyGroup>
+		<ThisRoslynVersion>4.12.0-3.final</ThisRoslynVersion>
+		<!-- This should be non-empty only when using preview version of Roslyn. Then it should be the Roslyn version without the preview part. -->
+		<ThisRoslynVersionNoPreview>4.12.0</ThisRoslynVersionNoPreview>
+		<!-- ThisRoslynVersionProjectSuffix should be empty for the latest version, otherwise it should be a dot followed by ThisRoslynVersion -->
+		<ThisRoslynVersionProjectSuffix></ThisRoslynVersionProjectSuffix>
+		<DefineConstants>$(DefineConstants);ROSLYN_4_12_0;ROSLYN_4_4_0_OR_GREATER;ROSLYN_4_8_0_OR_GREATER;ROSLYN_4_12_0_OR_GREATER</DefineConstants>
+	</PropertyGroup>
+</Project>

@@ -1,0 +1,13 @@
+<Project>
+
+    <!-- Imports Directory.Build.targets of the upper directory. Use this code in any non-root Directory.Build.* even if the file does not exit. -->
+    <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.targets', '$(MSBuildThisFileDirectory)../'))" Condition="Exists('$([MSBuild]::GetPathOfFileAbove(`Directory.Build.targets`, `$(MSBuildThisFileDirectory)../`))')"/>
+
+    <!-- This is not placed in Directory.Build.props as the IsTestProject property is not yet set there. -->
+    <ItemGroup Condition="'$(IsTestProject)'=='true'">
+        <!-- We include this to disable xUnit shadow copying because it is not compatible with public-signed test assemblies. -->
+        <!-- The same is used by Arcade in Roslyn. -->
+        <Content Include="$(MSBuildThisFileDirectory)xunit.runner.json" Link="%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest"/>
+    </ItemGroup>
+
+</Project>

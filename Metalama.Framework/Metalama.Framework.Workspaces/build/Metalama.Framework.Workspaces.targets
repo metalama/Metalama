@@ -1,0 +1,3 @@
+﻿<Project>
+    <Import Project="../buildTransitive/Metalama.Framework.Workspace.targets"/>
+</Project>

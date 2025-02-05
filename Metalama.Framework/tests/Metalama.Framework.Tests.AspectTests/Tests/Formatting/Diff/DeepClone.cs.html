@@ -1,0 +1,193 @@
+
+<html>
+    <head>
+        <style>
+            .cr-CompileTime,
+            .cr-Conflict,
+            .cr-TemplateKeyword,
+            .cr-Dynamic,
+            .cr-CompileTimeVariable,
+            .cr-GeneratedCode
+            {
+                background-color: rgba(50,50,90,0.1);
+            }
+
+            .cr-NeutralTrivia
+            {
+                background-color: rgba(0,255,0,0.1);
+            }
+
+            .cr-TemplateKeyword
+            {
+                color: rgb(250, 0, 250) !important;
+                font-weight: bold;
+            }
+
+            .cr-Dynamic
+            {
+                text-decoration: underline;
+            }
+
+            .cr-CompileTimeVariable
+            {
+                font-style: italic;
+            }
+
+            .diag-Warning
+            {
+                text-decoration: underline 1px wavy orange;
+            }
+
+            .diag-Error
+            {
+                text-decoration: underline 1px wavy red;
+            }
+
+         .diff-Imaginary {
+                display: block;
+                background-image: repeating-linear-gradient( -45deg, gray, gray 2px, transparent 2px, transparent 8px );
+            }
+
+
+            .legend 
+            {
+                margin-top: 100px;
+            }
+        </style>
+    </head>
+    <body><pre><code class="nohighlight"><span class='line-number'>1</span><span class="cs-keyword">using</span> <span class="cs-namespace-name">System</span><span class="cs-punctuation">;</span>
+<span class='line-number'>2</span><span class="cs-keyword">using</span> <span class="cs-namespace-name">System</span><span class="cs-operator">.</span><span class="cs-namespace-name">Linq</span><span class="cs-punctuation">;</span>
+<span class='line-number'>3</span><span class="cs-keyword">using</span> <span class="cs-namespace-name">Metalama</span><span class="cs-operator">.</span><span class="cs-namespace-name">Framework</span><span class="cs-operator">.</span><span class="cs-namespace-name">Aspects</span><span class="cs-punctuation">;</span>
+<span class='line-number'>4</span><span class="cs-keyword">using</span> <span class="cs-namespace-name">Metalama</span><span class="cs-operator">.</span><span class="cs-namespace-name">Framework</span><span class="cs-operator">.</span><span class="cs-namespace-name">Code</span><span class="cs-punctuation">;</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span><span class="cs-preprocessor-keyword">#pragma</span> <span class="cs-preprocessor-keyword">warning</span> <span class="cs-preprocessor-keyword">disable</span> <span class="cs-identifier">CS0067</span><span class="cs-punctuation">,</span> <span class="cs-identifier">CS8618</span><span class="cs-punctuation">,</span> <span class="cs-identifier">CS8602</span><span class="cs-punctuation">,</span> <span class="cs-identifier">CS8603</span><span class="cs-punctuation">,</span> <span class="cs-identifier">CS0169</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span><span class="cs-keyword">namespace</span> <span class="cs-namespace-name">Metalama</span><span class="cs-operator">.</span><span class="cs-namespace-name">Framework</span><span class="cs-operator">.</span><span class="cs-namespace-name">Tests</span><span class="cs-operator">.</span><span class="cs-namespace-name">AspectTests</span><span class="cs-operator">.</span><span class="cs-namespace-name">Tests</span><span class="cs-operator">.</span><span class="cs-namespace-name">Formatting</span><span class="cs-operator">.</span><span class="cs-namespace-name">Diff</span>
+<span class='line-number'>9</span><span class="cs-punctuation">{</span>
+<span class='line-number' data-member='DeepCloneAttribute'>10</span><span class="cr-NeutralTrivia">    </span><span class="cr-CompileTime cs-keyword">internal</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-keyword">class</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-class-name">DeepCloneAttribute</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-punctuation">:</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-class-name">TypeAspect</span>
+<span class='line-number' data-member='DeepCloneAttribute'>11</span><span class="cr-NeutralTrivia">    </span><span class="cr-CompileTime cs-punctuation">{</span>
+<span class='line-number' data-member='DeepCloneAttribute.BuildAspect'>12</span><span class="cr-NeutralTrivia">        </span><span class="cr-CompileTime cs-keyword">public</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-keyword">override</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-keyword">void</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-method-name">BuildAspect</span><span class="cr-CompileTime cs-punctuation">(</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-interface-name">IAspectBuilder</span><span class="cr-CompileTime cs-punctuation">&lt;</span><span class="cr-CompileTime cs-interface-name">INamedType</span><span class="cr-CompileTime cs-punctuation">&gt;</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-parameter-name">builder</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-punctuation">)</span>
+<span class='line-number' data-member='DeepCloneAttribute.BuildAspect'>13</span><span class="cr-NeutralTrivia">        </span><span class="cr-CompileTime cs-punctuation">{</span>
+<span class='line-number' data-member='DeepCloneAttribute.BuildAspect'>14</span><span class="cr-NeutralTrivia">            </span><span class="cr-CompileTime cs-keyword">var</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-local-name">typedMethod</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-operator">=</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-parameter-name">builder</span><span class="cr-CompileTime cs-operator">.</span><span class="cr-CompileTime cs-property-name">Advice</span><span class="cr-CompileTime cs-operator">.</span><span class="cr-CompileTime cs-method-name">IntroduceMethod</span><span class="cr-CompileTime cs-punctuation">(</span>
+<span class='line-number' data-member='DeepCloneAttribute.BuildAspect'>15</span><span class="cr-NeutralTrivia">                </span><span class="cr-CompileTime cs-parameter-name">builder</span><span class="cr-CompileTime cs-operator">.</span><span class="cr-CompileTime cs-property-name">Target</span><span class="cr-CompileTime cs-punctuation">,</span>
+<span class='line-number' data-member='DeepCloneAttribute.BuildAspect'>16</span><span class="cr-NeutralTrivia">                </span><span class="cr-CompileTime cs-keyword">nameof</span><span class="cr-CompileTime cs-punctuation">(</span><span class="cr-CompileTime cs-method-name">CloneImpl</span><span class="cr-CompileTime cs-punctuation">),</span>
+<span class='line-number' data-member='DeepCloneAttribute.BuildAspect'>17</span><span class="cr-NeutralTrivia">                </span><span class="cr-CompileTime cs-parameter-name">whenExists</span><span class="cr-CompileTime cs-punctuation">:</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-enum-name">OverrideStrategy</span><span class="cr-CompileTime cs-operator">.</span><span class="cr-CompileTime cs-enum-member-name">Override</span><span class="cr-CompileTime cs-punctuation">,</span>
+<span class='line-number' data-member='DeepCloneAttribute.BuildAspect'>18</span><span class="cr-NeutralTrivia">                </span><span class="cr-CompileTime cs-parameter-name">buildMethod</span><span class="cr-CompileTime cs-punctuation">:</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-parameter-name">m</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-operator">=&gt;</span>
+<span class='line-number' data-member='DeepCloneAttribute.BuildAspect'>19</span><span class="cr-NeutralTrivia">                </span><span class="cr-CompileTime cs-punctuation">{</span>
+<span class='line-number' data-member='DeepCloneAttribute.BuildAspect'>20</span><span class="cr-NeutralTrivia">                    </span><span class="cr-CompileTime cs-parameter-name">m</span><span class="cr-CompileTime cs-operator">.</span><span class="cr-CompileTime cs-property-name">Name</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-operator">=</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-string">"Clone"</span><span class="cr-CompileTime cs-punctuation">;</span>
+<span class='line-number' data-member='DeepCloneAttribute.BuildAspect'>21</span><span class="cr-NeutralTrivia">                    </span><span class="cr-CompileTime cs-parameter-name">m</span><span class="cr-CompileTime cs-operator">.</span><span class="cr-CompileTime cs-property-name">ReturnType</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-operator">=</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-parameter-name">builder</span><span class="cr-CompileTime cs-operator">.</span><span class="cr-CompileTime cs-property-name">Target</span><span class="cr-CompileTime cs-punctuation">;</span>
+<span class='line-number' data-member='DeepCloneAttribute.BuildAspect'>22</span><span class="cr-NeutralTrivia">                </span><span class="cr-CompileTime cs-punctuation">}</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-punctuation">);</span>
+<span class='line-number' data-member='DeepCloneAttribute.BuildAspect'>23</span>
+<span class='line-number' data-member='DeepCloneAttribute.BuildAspect'>24</span><span class="cr-NeutralTrivia">            </span><span class="cr-CompileTime cs-parameter-name">builder</span><span class="cr-CompileTime cs-operator">.</span><span class="cr-CompileTime cs-property-name">Advice</span><span class="cr-CompileTime cs-operator">.</span><span class="cr-CompileTime cs-method-name">ImplementInterface</span><span class="cr-CompileTime cs-punctuation">(</span>
+<span class='line-number' data-member='DeepCloneAttribute.BuildAspect'>25</span><span class="cr-NeutralTrivia">                </span><span class="cr-CompileTime cs-parameter-name">builder</span><span class="cr-CompileTime cs-operator">.</span><span class="cr-CompileTime cs-property-name">Target</span><span class="cr-CompileTime cs-punctuation">,</span>
+<span class='line-number' data-member='DeepCloneAttribute.BuildAspect'>26</span><span class="cr-NeutralTrivia">                </span><span class="cr-CompileTime cs-keyword">typeof</span><span class="cr-CompileTime cs-punctuation">(</span><span class="cr-CompileTime cs-interface-name">ICloneable</span><span class="cr-CompileTime cs-punctuation">),</span>
+<span class='line-number' data-member='DeepCloneAttribute.BuildAspect'>27</span><span class="cr-NeutralTrivia">                </span><span class="cr-CompileTime cs-parameter-name">whenExists</span><span class="cr-CompileTime cs-punctuation">:</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-enum-name">OverrideStrategy</span><span class="cr-CompileTime cs-operator">.</span><span class="cr-CompileTime cs-enum-member-name">Ignore</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-punctuation">);</span>
+<span class='line-number' data-member='DeepCloneAttribute.BuildAspect'>28</span><span class="cr-NeutralTrivia">        </span><span class="cr-CompileTime cs-punctuation">}</span>
+<span class='line-number' data-member='DeepCloneAttribute.BuildAspect'>29</span>
+<span class='line-number' data-member='DeepCloneAttribute.CloneImpl'>30</span><span class="cr-NeutralTrivia">        </span><span class="cr-CompileTime cs-punctuation">[</span><span class="cr-CompileTime cs-class-name">Template</span><span class="cr-CompileTime cs-punctuation">(</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-property-name">IsVirtual</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-operator">=</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-keyword">true</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-punctuation">)]</span>
+<span class='line-number' data-member='DeepCloneAttribute.CloneImpl'>31</span><span class="cr-NeutralTrivia">        </span><span class="cs-keyword">public</span> <span class="cs-keyword">virtual</span> <span class="cs-keyword">dynamic</span> <span class="cs-method-name">CloneImpl</span><span class="cs-punctuation">()</span>
+<span class='line-number' data-member='DeepCloneAttribute.CloneImpl'>32</span><span class="cr-NeutralTrivia">        </span><span class="cr-RunTime cs-punctuation">{</span>
+<span class='line-number' data-member='DeepCloneAttribute.CloneImpl'>33</span><span class="cr-NeutralTrivia">            </span><span class="cr-CompileTime cs-interface-name">IExpression</span><span class="cr-CompileTime"> </span><span class="cr-CompileTimeVariable cs-local-name">baseCall</span><span class="cr-CompileTime cs-punctuation">;</span>
+<span class='line-number' data-member='DeepCloneAttribute.CloneImpl'>34</span>
+<span class='line-number' data-member='DeepCloneAttribute.CloneImpl'>35</span><span class="cr-NeutralTrivia">            </span><span class="cr-CompileTime cs-keyword cs-control">if</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-punctuation">(</span><span class="cr-CompileTime cs-operator">!</span><span class="cr-TemplateKeyword cs-class-name cs-static-symbol">meta</span><span class="cr-TemplateKeyword cs-operator">.</span><span class="cr-TemplateKeyword cs-property-name cs-static-symbol">Target</span><span class="cr-CompileTime cs-operator">.</span><span class="cr-CompileTime cs-property-name">Method</span><span class="cr-CompileTime cs-operator">.</span><span class="cr-CompileTime cs-property-name">IsOverride</span><span class="cr-CompileTime cs-punctuation">)</span>
+<span class='line-number' data-member='DeepCloneAttribute.CloneImpl'>36</span><span class="cr-NeutralTrivia">            </span><span class="cr-CompileTime cs-punctuation">{</span>
+<span class='line-number' data-member='DeepCloneAttribute.CloneImpl'>37</span><span class="cr-NeutralTrivia">                </span><span class="cr-CompileTimeVariable cs-local-name">baseCall</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-operator">=</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-punctuation">(</span><span class="cr-CompileTime cs-interface-name">IExpression</span><span class="cr-CompileTime cs-punctuation">)</span><span class="cr-CompileTime"> </span><span class="cr-TemplateKeyword cs-class-name cs-static-symbol">meta</span><span class="cr-TemplateKeyword cs-operator">.</span><span class="cr-TemplateKeyword cs-property-name cs-static-symbol">Base</span><span class="cr-CompileTime cs-operator">.</span><span class="cr-CompileTime cs-identifier">MemberwiseClone</span><span class="cr-CompileTime cs-punctuation">();</span>
+<span class='line-number' data-member='DeepCloneAttribute.CloneImpl'>38</span><span class="cr-NeutralTrivia">            </span><span class="cr-CompileTime cs-punctuation">}</span>
+<span class='line-number' data-member='DeepCloneAttribute.CloneImpl'>39</span><span class="cr-NeutralTrivia">            </span><span class="cr-CompileTime cs-keyword cs-control">else</span>
+<span class='line-number' data-member='DeepCloneAttribute.CloneImpl'>40</span><span class="cr-NeutralTrivia">            </span><span class="cr-CompileTime cs-punctuation">{</span>
+<span class='line-number' data-member='DeepCloneAttribute.CloneImpl'>41</span><span class="cr-NeutralTrivia">                </span><span class="cr-CompileTimeVariable cs-local-name">baseCall</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-operator">=</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-punctuation">(</span><span class="cr-CompileTime cs-interface-name">IExpression</span><span class="cr-CompileTime cs-punctuation">)</span><span class="cr-CompileTime"> </span><span class="cr-TemplateKeyword cs-class-name cs-static-symbol">meta</span><span class="cr-TemplateKeyword cs-operator">.</span><span class="cr-TemplateKeyword cs-property-name cs-static-symbol">Target</span><span class="cr-CompileTime cs-operator">.</span><span class="cr-CompileTime cs-property-name">Method</span><span class="cr-CompileTime cs-operator">.</span><span class="cr-Dynamic cs-method-name">Invoke</span><span class="cr-CompileTime cs-punctuation">()</span><span class="cr-CompileTime cs-operator">!</span><span class="cr-CompileTime cs-punctuation">;</span>
+<span class='line-number' data-member='DeepCloneAttribute.CloneImpl'>42</span><span class="cr-NeutralTrivia">            </span><span class="cr-CompileTime cs-punctuation">}</span>
+<span class='line-number' data-member='DeepCloneAttribute.CloneImpl'>43</span>
+<span class='line-number' data-member='DeepCloneAttribute.CloneImpl'>44</span><span class="cr-NeutralTrivia">            </span><span class="cr-RunTime cs-keyword">var</span><span class="cr-RunTime"> </span><span class="cr-RunTime cs-local-name">clone</span><span class="cr-RunTime"> </span><span class="cr-RunTime cs-operator">=</span><span class="cr-RunTime"> </span><span class="cr-TemplateKeyword cs-class-name cs-static-symbol">meta</span><span class="cr-TemplateKeyword cs-operator">.</span><span class="cr-TemplateKeyword cs-method-name cs-static-symbol">Cast</span><span class="cr-CompileTime cs-punctuation">(</span><span class="cr-CompileTime"> </span><span class="cr-TemplateKeyword cs-class-name cs-static-symbol">meta</span><span class="cr-TemplateKeyword cs-operator">.</span><span class="cr-TemplateKeyword cs-property-name cs-static-symbol">Target</span><span class="cr-CompileTime cs-operator">.</span><span class="cr-CompileTime cs-property-name">Type</span><span class="cr-CompileTime cs-operator">.</span><span class="cr-CompileTime cs-extension-method-name">ToNonNullableType</span><span class="cr-CompileTime cs-punctuation">(),</span><span class="cr-CompileTime"> </span><span class="cr-CompileTimeVariable cs-local-name">baseCall</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-punctuation">)</span><span class="cr-RunTime cs-operator">!</span><span class="cr-RunTime cs-punctuation">;</span>
+<span class='diff-Imaginary' data-height='1'> 
+</span><span class='line-number' data-member='DeepCloneAttribute.CloneImpl'>45</span>
+<span class='line-number' data-member='DeepCloneAttribute.CloneImpl'>46</span><span class="cr-NeutralTrivia">            </span><span class="cr-NeutralTrivia cs-comment">// Select clonable fields.</span>
+<span class='line-number' data-member='DeepCloneAttribute.CloneImpl'>47</span><span class="cr-NeutralTrivia">            </span><span class="cr-CompileTime cs-keyword">var</span><span class="cr-CompileTime"> </span><span class="cr-CompileTimeVariable cs-local-name">clonableFields</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-operator">=</span>
+<span class='line-number' data-member='DeepCloneAttribute.CloneImpl'>48</span><span class="cr-NeutralTrivia">                </span><span class="cr-TemplateKeyword cs-class-name cs-static-symbol">meta</span><span class="cr-TemplateKeyword cs-operator">.</span><span class="cr-TemplateKeyword cs-property-name cs-static-symbol">Target</span><span class="cr-CompileTime cs-operator">.</span><span class="cr-CompileTime cs-property-name">Type</span><span class="cr-CompileTime cs-operator">.</span><span class="cr-CompileTime cs-property-name">FieldsAndProperties</span><span class="cr-CompileTime cs-operator">.</span><span class="cr-CompileTime cs-extension-method-name">Where</span><span class="cr-CompileTime cs-punctuation">(</span>
+<span class='line-number' data-member='DeepCloneAttribute.CloneImpl'>49</span><span class="cr-NeutralTrivia">                    </span><span class="cr-CompileTime cs-parameter-name">f</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-operator">=&gt;</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-parameter-name">f</span><span class="cr-CompileTime cs-operator">.</span><span class="cr-CompileTime cs-property-name">IsAutoPropertyOrField</span><span class="cr-CompileTime cs-operator">.</span><span class="cr-CompileTime cs-method-name">GetValueOrDefault</span><span class="cr-CompileTime cs-punctuation">()</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-operator">&amp;&amp;</span>
+<span class='line-number' data-member='DeepCloneAttribute.CloneImpl'>50</span><span class="cr-NeutralTrivia">                         </span><span class="cr-CompileTime cs-punctuation">(</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-parameter-name">f</span><span class="cr-CompileTime cs-operator">.</span><span class="cr-CompileTime cs-property-name">Type</span><span class="cr-CompileTime cs-operator">.</span><span class="cr-CompileTime cs-extension-method-name">Is</span><span class="cr-CompileTime cs-punctuation">(</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-keyword">typeof</span><span class="cr-CompileTime cs-punctuation">(</span><span class="cr-CompileTime cs-interface-name">ICloneable</span><span class="cr-CompileTime cs-punctuation">)</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-punctuation">)</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-operator">||</span>
+<span class='line-number' data-member='DeepCloneAttribute.CloneImpl'>51</span><span class="cr-NeutralTrivia">                           </span><span class="cr-CompileTime cs-punctuation">(</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-parameter-name">f</span><span class="cr-CompileTime cs-operator">.</span><span class="cr-CompileTime cs-property-name">Type</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-keyword">is</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-interface-name">INamedType</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-punctuation">{</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-property-name">BelongsToCurrentProject</span><span class="cr-CompileTime cs-punctuation">:</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-keyword">true</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-punctuation">}</span><span class="cr-CompileTime"> </span><span class="cr-CompileTimeVariable cs-local-name">fieldNamedType</span>
+<span class='line-number' data-member='DeepCloneAttribute.CloneImpl'>52</span><span class="cr-NeutralTrivia">                             </span><span class="cr-CompileTime cs-operator">&amp;&amp;</span><span class="cr-CompileTime"> </span><span class="cr-CompileTimeVariable cs-local-name">fieldNamedType</span><span class="cr-CompileTime cs-operator">.</span><span class="cr-CompileTime cs-extension-method-name">Enhancements</span><span class="cr-CompileTime cs-punctuation">()</span><span class="cr-CompileTime cs-operator">.</span><span class="cr-CompileTime cs-method-name">GetAspects</span><span class="cr-CompileTime cs-punctuation">&lt;</span><span class="cr-CompileTime cs-class-name">DeepCloneAttribute</span><span class="cr-CompileTime cs-punctuation">&gt;()</span><span class="cr-CompileTime cs-operator">.</span><span class="cr-CompileTime cs-extension-method-name">Any</span><span class="cr-CompileTime cs-punctuation">()</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-punctuation">)</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-punctuation">)</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-punctuation">);</span>
+<span class='line-number' data-member='DeepCloneAttribute.CloneImpl'>53</span>
+<span class='line-number' data-member='DeepCloneAttribute.CloneImpl'>54</span><span class="cr-NeutralTrivia">            </span><span class="cr-CompileTime cs-keyword cs-control">foreach</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-punctuation">(</span><span class="cr-CompileTime cs-keyword">var</span><span class="cr-CompileTime"> </span><span class="cr-CompileTimeVariable cs-local-name">field</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-keyword cs-control">in</span><span class="cr-CompileTime"> </span><span class="cr-CompileTimeVariable cs-local-name">clonableFields</span><span class="cr-CompileTime cs-punctuation">)</span>
+<span class='line-number' data-member='DeepCloneAttribute.CloneImpl'>55</span><span class="cr-NeutralTrivia">            </span><span class="cr-CompileTime cs-punctuation">{</span>
+<span class='line-number' data-member='DeepCloneAttribute.CloneImpl'>56</span><span class="cr-NeutralTrivia">                </span><span class="cr-CompileTimeVariable cs-local-name">field</span><span class="cr-CompileTime cs-operator">.</span><span class="cr-CompileTime cs-method-name">With</span><span class="cr-CompileTime cs-punctuation">(</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-punctuation">(</span><span class="cr-CompileTime cs-interface-name">IExpression</span><span class="cr-CompileTime cs-punctuation">)</span><span class="cr-CompileTime cs-local-name">clone</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-punctuation">)</span><span class="cr-CompileTime cs-operator">.</span><span class="cr-Dynamic cs-property-name">Value</span><span class="cr-NeutralTrivia"> </span><span class="cr-RunTime cs-operator">=</span><span class="cr-RunTime"> </span><span class="cr-TemplateKeyword cs-class-name cs-static-symbol">meta</span><span class="cr-TemplateKeyword cs-operator">.</span><span class="cr-TemplateKeyword cs-method-name cs-static-symbol">Cast</span><span class="cr-CompileTime cs-punctuation">(</span><span class="cr-CompileTime"> </span><span class="cr-CompileTimeVariable cs-local-name">field</span><span class="cr-CompileTime cs-operator">.</span><span class="cr-CompileTime cs-property-name">Type</span><span class="cr-CompileTime cs-punctuation">,</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-punctuation">(</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-punctuation">(</span><span class="cr-CompileTime cs-interface-name">ICloneable</span><span class="cr-CompileTime cs-punctuation">)</span><span class="cr-CompileTimeVariable cs-local-name">field</span><span class="cr-CompileTime cs-operator">.</span><span class="cr-Dynamic cs-property-name">Value</span><span class="cr-CompileTime cs-operator">!</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-punctuation">)</span><span class="cr-CompileTime cs-operator">.</span><span class="cr-CompileTime cs-method-name">Clone</span><span class="cr-CompileTime cs-punctuation">()</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-punctuation">)</span><span class="cr-RunTime cs-punctuation">;</span>
+<span class='line-number' data-member='DeepCloneAttribute.CloneImpl'>57</span><span class="cr-NeutralTrivia">            </span><span class="cr-CompileTime cs-punctuation">}</span>
+<span class='line-number' data-member='DeepCloneAttribute.CloneImpl'>58</span>
+<span class='line-number' data-member='DeepCloneAttribute.CloneImpl'>59</span><span class="cr-NeutralTrivia">            </span><span class="cr-RunTime cs-keyword cs-control">return</span><span class="cr-RunTime"> </span><span class="cr-RunTime cs-local-name">clone</span><span class="cr-RunTime cs-punctuation">;</span>
+<span class='line-number' data-member='DeepCloneAttribute.CloneImpl'>60</span><span class="cr-NeutralTrivia">        </span><span class="cr-RunTime cs-punctuation">}</span>
+<span class='line-number' data-member='DeepCloneAttribute.CloneImpl'>61</span>
+<span class='line-number' data-member='DeepCloneAttribute.Clone'>62</span><span class="cr-NeutralTrivia">        </span><span class="cr-CompileTime cs-punctuation">[</span><span class="cr-CompileTime cs-class-name">InterfaceMember</span><span class="cr-CompileTime cs-punctuation">(</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-property-name">IsExplicit</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-operator">=</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-keyword">true</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-punctuation">)]</span>
+<span class="diagLines">        <span class="diagLine-Warning">Warning CS8618: Non-nullable field 'd' must contain a non-null value when exiting constructor. Consider declaring the field as nullable.</span>
+        
+</span><span class='line-number' data-member='DeepCloneAttribute.Clone'>63</span><span class="cr-NeutralTrivia">        </span><span class="cs-keyword">private</span> <span class="cs-keyword">object</span><span class="diag-Warning" title="Warning CS8618: Non-nullable field 'd' must contain a non-null value when exiting constructor. Consider declaring the field as nullable."> </span><span class="cs-method-name">Clone</span><span class="cs-punctuation">()</span>
+<span class='line-number' data-member='DeepCloneAttribute.Clone'>64</span><span class="cr-NeutralTrivia">        </span><span class="cr-RunTime cs-punctuation">{</span>
+<span class='line-number' data-member='DeepCloneAttribute.Clone'>65</span><span class="cr-NeutralTrivia">            </span><span class="cr-RunTime cs-keyword cs-control">return</span><span class="cr-RunTime"> </span><span class="cr-TemplateKeyword cs-class-name cs-static-symbol">meta</span><span class="cr-TemplateKeyword cs-operator">.</span><span class="cr-TemplateKeyword cs-property-name cs-static-symbol">This</span><span class="cr-RunTime cs-operator">.</span><span class="cr-RunTime cs-identifier">Clone</span><span class="cr-RunTime cs-punctuation">();</span>
+<span class='line-number' data-member='DeepCloneAttribute.Clone'>66</span><span class="cr-NeutralTrivia">        </span><span class="cr-RunTime cs-punctuation">}</span>
+<span class='line-number' data-member='DeepCloneAttribute'>67</span><span class="cr-NeutralTrivia">    </span><span class="cr-CompileTime cs-punctuation">}</span>
+<span class='line-number' data-member='DeepCloneAttribute'>68</span>
+<span class='line-number' data-member='ManuallyCloneable'>69</span>    <span class="cs-keyword">internal</span> <span class="cs-keyword">class</span> <span class="cs-class-name">ManuallyCloneable</span> <span class="cs-punctuation">:</span> <span class="cs-interface-name">ICloneable</span>
+<span class='line-number' data-member='ManuallyCloneable'>70</span>    <span class="cs-punctuation">{</span>
+<span class='line-number' data-member='ManuallyCloneable.Clone'>71</span>        <span class="cs-keyword">public</span> <span class="cs-keyword">object</span> <span class="cs-method-name">Clone</span><span class="cs-punctuation">()</span>
+<span class='line-number' data-member='ManuallyCloneable.Clone'>72</span>        <span class="cs-punctuation">{</span>
+<span class='line-number' data-member='ManuallyCloneable.Clone'>73</span>            <span class="cs-keyword cs-control">return</span> <span class="cs-keyword">new</span> <span class="cs-class-name">ManuallyCloneable</span><span class="cs-punctuation">();</span>
+<span class='line-number' data-member='ManuallyCloneable.Clone'>74</span>        <span class="cs-punctuation">}</span>
+<span class='line-number' data-member='ManuallyCloneable'>75</span>    <span class="cs-punctuation">}</span>
+<span class='line-number' data-member='ManuallyCloneable'>76</span>
+<span class='line-number' data-member='Targets'>77</span>    <span class="cs-comment">// &lt;target&gt;</span>
+<span class='line-number' data-member='Targets'>78</span>    <span class="cs-keyword">internal</span> <span class="cs-keyword">class</span> <span class="cs-class-name">Targets</span>
+<span class='line-number' data-member='Targets'>79</span>    <span class="cs-punctuation">{</span>
+<span class='line-number' data-member='Targets.AutomaticallyCloneable'>80</span>        <span class="cs-punctuation">[</span><span class="cs-class-name">DeepClone</span><span class="cs-punctuation">]</span>
+<span class='line-number' data-member='Targets.AutomaticallyCloneable'>81</span>        <span class="cs-keyword">private</span> <span class="cs-keyword">class</span> <span class="cs-class-name">AutomaticallyCloneable</span>
+<span class='line-number' data-member='Targets.AutomaticallyCloneable'>82</span>        <span class="cs-punctuation">{</span>
+<span class='line-number' data-member='Targets.AutomaticallyCloneable.a'>83</span>            <span class="cs-keyword">private</span> <span class="cs-keyword">int</span> <span class="cs-field-name">a</span><span class="cs-punctuation">;</span>
+<span class='line-number' data-member='Targets.AutomaticallyCloneable.a'>84</span>
+<span class='line-number' data-member='Targets.AutomaticallyCloneable.b'>85</span>            <span class="cs-keyword">private</span> <span class="cs-class-name">ManuallyCloneable</span><span class="cs-operator">?</span> <span class="cs-field-name">b</span><span class="cs-punctuation">;</span>
+<span class='line-number' data-member='Targets.AutomaticallyCloneable.b'>86</span>
+<span class='line-number' data-member='Targets.AutomaticallyCloneable.c'>87</span>            <span class="cs-keyword">private</span> <span class="cs-class-name">AutomaticallyCloneable</span><span class="cs-operator">?</span> <span class="cs-field-name">c</span><span class="cs-punctuation">;</span>
+<span class='diff-Imaginary' data-height='7'> 
+
+
+
+
+
+
+</span><span class='line-number' data-member='Targets.AutomaticallyCloneable'>88</span>        <span class="cs-punctuation">}</span>
+<span class='line-number' data-member='Targets.AutomaticallyCloneable'>89</span>
+<span class='diff-Imaginary' data-height='6'> 
+
+
+
+
+
+</span><span class='line-number' data-member='Targets.Derived'>90</span>        <span class="cs-punctuation">[</span><span class="cs-class-name">DeepClone</span><span class="cs-punctuation">]</span>
+<span class='line-number' data-member='Targets.Derived'>91</span>        <span class="cs-keyword">private</span> <span class="cs-keyword">class</span> <span class="cs-class-name">Derived</span> <span class="cs-punctuation">:</span> <span class="cs-class-name">AutomaticallyCloneable</span>
+<span class='line-number' data-member='Targets.Derived'>92</span>        <span class="cs-punctuation">{</span>
+<span class='line-number' data-member='Targets.Derived.d'>93</span>            <span class="cs-keyword">private</span> <span class="cs-keyword">string</span> <span class="cs-field-name">d</span><span class="cs-punctuation">;</span>
+<span class='diff-Imaginary' data-height='7'> 
+
+
+
+
+
+
+</span><span class='line-number' data-member='Targets.Derived'>94</span>        <span class="cs-punctuation">}</span>
+<span class='line-number' data-member='Targets'>95</span>    <span class="cs-punctuation">}</span>
+<span class='line-number'>96</span><span class="cs-punctuation">}</span>
+</code></pre>
+       <p class='legend'>Legend:</p>
+       <pre>
+<span class='cr-Default'>Default</span>
+<span class='cr-RunTime'>RunTime</span>
+<span class='cr-CompileTime'>CompileTime</span>
+<span class='cr-Dynamic'>Dynamic</span>
+<span class='cr-CompileTimeVariable'>CompileTimeVariable</span>
+<span class='cr-TemplateKeyword'>TemplateKeyword</span>
+<span class='cr-Conflict'>Conflict</span>
+<span class='cr-Excluded'>Excluded</span>
+<span class='cr-GeneratedCode'>GeneratedCode</span>
+<span class='cr-SourceCode'>SourceCode</span>
+<span class='cr-NeutralTrivia'>NeutralTrivia</span>
+       </pre>
+   </body>
+</html>

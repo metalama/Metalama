@@ -1,0 +1,53 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30907.101
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Metalama.Framework.TestApp", "Metalama.Framework.TestApp/Metalama.Framework.TestApp.csproj", "{2B0BDEEB-EE4F-4B6B-9D5D-CD2FD2E87010}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Metalama.Framework.TestApp.Aspects", "Metalama.Framework.TestApp.Aspects/Metalama.Framework.TestApp.Aspects.csproj", "{7C1A3D23-E32A-4BD6-AE4B-8FF74F785C5C}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Metalama.Framework.TestApp.Library", "Metalama.Framework.TestApp.Library/Metalama.Framework.TestApp.Library.csproj", "{3424FF0E-809A-4519-BD02-675FF6DDCD13}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{16D6AF86-1489-4463-B878-E1E8BA4B8C4D}"
+	ProjectSection(SolutionItems) = preProject
+		Directory.Build.props = Directory.Build.props
+	EndProjectSection
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Metalama.Framework.TestApp.TestRunner", "Metalama.Framework.TestApp.TestRunner/Metalama.Framework.TestApp.TestRunner.csproj", "{C986EB9B-3DAF-49D0-B2C9-F1034A1CDEF5}"
+	ProjectSection(ProjectDependencies) = postProject
+		{3424FF0E-809A-4519-BD02-675FF6DDCD13} = {3424FF0E-809A-4519-BD02-675FF6DDCD13}
+		{7C1A3D23-E32A-4BD6-AE4B-8FF74F785C5C} = {7C1A3D23-E32A-4BD6-AE4B-8FF74F785C5C}
+		{2B0BDEEB-EE4F-4B6B-9D5D-CD2FD2E87010} = {2B0BDEEB-EE4F-4B6B-9D5D-CD2FD2E87010}
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{2B0BDEEB-EE4F-4B6B-9D5D-CD2FD2E87010}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2B0BDEEB-EE4F-4B6B-9D5D-CD2FD2E87010}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2B0BDEEB-EE4F-4B6B-9D5D-CD2FD2E87010}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2B0BDEEB-EE4F-4B6B-9D5D-CD2FD2E87010}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7C1A3D23-E32A-4BD6-AE4B-8FF74F785C5C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7C1A3D23-E32A-4BD6-AE4B-8FF74F785C5C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7C1A3D23-E32A-4BD6-AE4B-8FF74F785C5C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7C1A3D23-E32A-4BD6-AE4B-8FF74F785C5C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3424FF0E-809A-4519-BD02-675FF6DDCD13}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3424FF0E-809A-4519-BD02-675FF6DDCD13}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3424FF0E-809A-4519-BD02-675FF6DDCD13}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3424FF0E-809A-4519-BD02-675FF6DDCD13}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C986EB9B-3DAF-49D0-B2C9-F1034A1CDEF5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C986EB9B-3DAF-49D0-B2C9-F1034A1CDEF5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C986EB9B-3DAF-49D0-B2C9-F1034A1CDEF5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C986EB9B-3DAF-49D0-B2C9-F1034A1CDEF5}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {78B69B8C-3492-4D7C-973D-03BF3B5B7C29}
+	EndGlobalSection
+EndGlobal

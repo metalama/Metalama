@@ -1,0 +1,2 @@
+// CompileTimeAspectPipeline.ExecuteAsync failed.
+// Error LAMA0041 on `TargetCode`: `'Exception of type 'Metalama.Framework.Engine.AssertionFailedException' thrown while executing BuildAspect for aspect [Aspect] applied to 'TargetCode': The reference to ITypeSymbol being null is not supported yet. Exception details are in '(none)'. To attach a debugger to the compiler, use the  '-p:MetalamaDebugCompiler=True' command-line option.`

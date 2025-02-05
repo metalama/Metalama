@@ -1,0 +1,7 @@
+[*.cs]
+# LAMA0830: NormalizeWhitespace is expensive.
+dotnet_diagnostic.LAMA0830.severity = none
+# LAMA0831: Avoid chained With calls on SyntaxNodes.
+dotnet_diagnostic.LAMA0831.severity = none
+# LAMA0831: "Avoid WithLeadingTrivia and WithTrailingTrivia calls.
+dotnet_diagnostic.LAMA0832.severity = none

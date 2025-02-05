@@ -1,0 +1,2 @@
+// CompileTimeAspectPipeline.ExecuteAsync failed.
+// Error LAMA0051 on ``: `Metalama does not support the 'preview' language version. Change the LangVersion property of your csproj file to one of the following supported values: '10.0', '11.0', '12.0', '13.0'. If you want to use preview features at your own risks, set the MSBuild property 'MetalamaAllowPreviewLanguageFeatures' to 'true'. It may work if you don't use preview features in templates.`

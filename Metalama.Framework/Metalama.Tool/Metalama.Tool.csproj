@@ -1,0 +1,62 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net6.0</TargetFramework>
+        <AssemblyName>metalama</AssemblyName>
+        <PackageId>Metalama.Tool</PackageId>
+        <RootNamespace>Metalama.Tool</RootNamespace>
+        
+        <!--
+        Disable globalization so users on Linux do not have to install the lib-icu library.
+        https://aka.ms/dotnet-missing-libicu
+         -->
+        <InvariantGlobalization>True</InvariantGlobalization>
+		
+		<!--
+        CSC : warning CS8002: Referenced assembly 'Spectre.Console.Cli, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null' does not have a strong name.
+        CSC : warning CS8002: Referenced assembly 'Spectre.Console, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null' does not have a strong name.
+		-->
+
+		<NoWarn>$(NoWarn);CS8002</NoWarn>
+
+        <!-- Avoid error NU5017: Cannot create a package that has no dependencies nor content. -->
+        <DebugType>Portable</DebugType>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <EnableNETAnalyzers>true</EnableNETAnalyzers>
+        <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+        <WarningLevel>4</WarningLevel>
+        <PackAsTool>true</PackAsTool>
+        <PackageType>DotNetCliTool</PackageType>
+        <ToolCommandName>metalama</ToolCommandName>
+		<PackageDescription>A Metalama command line tool. Used for registering a license key or accessing some configuration settings.</PackageDescription>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <RollForward>Major</RollForward>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <None Include="$(MsBuildThisFileDirectory)README.md" Pack="true" PackagePath="/" />
+    </ItemGroup>
+    
+    <ItemGroup>
+        <PackageReference Include="LibGit2Sharp" />
+        <PackageReference Include="Metalama.Backstage.Commands" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Console" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="../Metalama.Framework.DesignTime/Metalama.Framework.DesignTime.csproj" />
+      <ProjectReference Include="../Metalama.Framework.Engine/Metalama.Framework.Engine.csproj" />
+      <ProjectReference Include="../Metalama.Testing.AspectTesting/Metalama.Testing.AspectTesting.csproj" />
+    </ItemGroup>
+
+    <!-- Exclude full pdbs from packing so the .snupkg doesn't get refused by nuget.org. -->
+    <Target Name="_ExcludeFullPdbs" AfterTargets="Build" BeforeTargets="GenerateNuspec">
+        <ItemGroup>
+            <_PackageFilesToExclude Include="$(PublishDir)/runtimes/**/*.pdb" />
+        </ItemGroup>
+    </Target>
+
+</Project>

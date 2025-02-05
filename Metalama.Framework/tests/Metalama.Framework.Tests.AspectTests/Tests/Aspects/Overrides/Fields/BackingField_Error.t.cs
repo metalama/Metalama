@@ -1,0 +1,2 @@
+// CompileTimeAspectPipeline.ExecuteAsync failed.
+// Error LAMA0037 on `Test`: `The aspect 'Test' cannot be applied to the field 'TargetClass.<AutoProperty>k__BackingField' because 'TargetClass.<AutoProperty>k__BackingField' must be explicitly declared.`

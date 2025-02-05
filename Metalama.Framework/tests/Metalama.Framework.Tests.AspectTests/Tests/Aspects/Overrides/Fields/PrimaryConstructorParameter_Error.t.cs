@@ -1,0 +1,2 @@
+// CompileTimeAspectPipeline.ExecuteAsync failed.
+// Error LAMA0041 on `TargetClass`: `'Exception of type 'System.InvalidOperationException' thrown while executing BuildAspect for aspect [OverrideAttribute] applied to 'TargetClass': Cannot add an OverrideFieldOrPropertyOrIndexer advice to 'TargetClass.<x>P' because 'TargetClass.<x>P' must be explicitly declared. Check the IsAdviceEligible(AdviceKind.OverrideFieldOrPropertyOrIndexer) method. Exception details are in '(none)'. To attach a debugger to the compiler, use the  '-p:MetalamaDebugCompiler=True' command-line option.`

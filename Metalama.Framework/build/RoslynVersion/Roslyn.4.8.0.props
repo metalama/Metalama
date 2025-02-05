@@ -1,0 +1,8 @@
+<Project>
+	<PropertyGroup>
+		<ThisRoslynVersion>4.8.0</ThisRoslynVersion>
+		<!-- ThisRoslynVersionProjectSuffix should be empty for the latest version, otherwise it should be a dot followed by ThisRoslynVersion -->
+		<ThisRoslynVersionProjectSuffix>.4.8.0</ThisRoslynVersionProjectSuffix>
+		<DefineConstants>$(DefineConstants);ROSLYN_4_8_0;ROSLYN_4_4_0_OR_GREATER;ROSLYN_4_8_0_OR_GREATER</DefineConstants>
+	</PropertyGroup>
+</Project>

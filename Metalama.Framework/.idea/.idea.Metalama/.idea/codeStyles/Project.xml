@@ -1,0 +1,13 @@
+<component name="ProjectCodeStyleConfiguration">
+  <code_scheme name="Project" version="173">
+    <option name="DO_NOT_FORMAT">
+      <list>
+        <fileSet type="globPattern" pattern="**\.editorconfig" />
+        <fileSet type="globPattern" pattern="Tests\Metalama.Framework.Tests.AspectTests\Tests\**\*" />
+        <fileSet type="globPattern" pattern="Tests\Metalama.Framework.Tests.TemplateTests\Tests\**\*" />
+        <fileSet type="globPattern" pattern="Tests\Metalama.Framework.Tests.LinkerTests\Tests\**\*" />
+        <fileSet type="globPattern" pattern="Tests\Metalama.Framework.Premium.AspectTests\**\*" />
+      </list>
+    </option>
+  </code_scheme>
+</component>

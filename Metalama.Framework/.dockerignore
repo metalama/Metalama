@@ -1,0 +1,61 @@
+﻿# Exclude common build artifacts
+**/*.obj
+**/*.pdb
+**/*.user
+**/*.aps
+**/*.pch
+**/*.vspscc
+**/*_i.c
+**/*_p.c
+**/*.ncb
+**/*.suo
+**/*.tlb
+**/*.tlh
+**/*.bak
+**/*.cache
+**/*.ilk
+**/*.log
+**/*.lib
+**/*.sbr
+**/*.scc
+**/*.binlog
+**/*.*sdf
+**/*.typemock
+**/*.tmp
+**/*.metaproj
+**/bin
+**/obj
+**/.vs
+**/_ReSharper*
+**/TestResults
+artifacts
+packages
+
+# Exclude generated files
+**/*.g.cs
+**/*.g.props
+**/.idea/**/workspace.xml
+**/.idea/**/tasks.xml
+**/.idea/**/shelf
+**/inspectcode.xml
+eng/MetalamaVersion.props
+**/launchSettings.json
+**/.idea/workspace.xml
+eng/tools
+Metalama.Import.props
+coverage.json
+**/.vscode
+**/.tools
+
+# Source dependencies are passed as the 'docker-source-dependencies' directory,
+# since the 'source-dependencies' typicall contains symbolic links.
+source-dependencies
+
+# Dependencies must be copied
+!dependencies
+
+# The git directory must be copied because of SourceLink
+!.git
+
+# Symbolic links cause problems.
+.editorconfig

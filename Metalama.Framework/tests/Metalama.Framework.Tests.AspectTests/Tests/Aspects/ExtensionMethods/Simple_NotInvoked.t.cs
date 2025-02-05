@@ -1,0 +1,2 @@
+// CompileTimeAspectPipeline.ExecuteAsync failed.
+// Error LAMA0267 on `numbers.ToReadOnlyList`: `Converting extension method 'IEnumerable<object>.ToReadOnlyList<object>()' to a delegate using a method group conversion is currently not supported.`

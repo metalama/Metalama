@@ -1,0 +1,3 @@
+// CompileTimeAspectPipeline.ExecuteAsync failed.
+// Error LAMA0500 on `TargetClass`: `The aspect 'Introduction' cannot introduce member 'TargetClass.ExistingEvent' into type 'TargetClass' because it is already defined in type 'TargetClass'. Use a different OverrideStrategy or skip the member.`
+// Error LAMA0500 on `TargetClass`: `The aspect 'Introduction' cannot introduce member 'TargetClass.ExistingEvent_Static' into type 'TargetClass' because it is already defined in type 'TargetClass'. Use a different OverrideStrategy or skip the member.`

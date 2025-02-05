@@ -1,0 +1,17 @@
+﻿// Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
+
+using Metalama.Framework.Engine.Utilities.Roslyn;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+
+namespace Metalama.Framework.Engine.SyntaxGeneration;
+
+public sealed partial class ContextualSyntaxGenerator
+{
+    private sealed class NormalizeSpaceRewriter( string endOfLine ) : SafeSyntaxRewriter
+    {
+#pragma warning disable LAMA0830 // NormalizeWhitespace is expensive.
+        public override SyntaxNode VisitTupleType( TupleTypeSyntax node ) => base.VisitTupleType( node )!.NormalizeWhitespace( eol: endOfLine );
+#pragma warning restore LAMA0830
+    }
+}

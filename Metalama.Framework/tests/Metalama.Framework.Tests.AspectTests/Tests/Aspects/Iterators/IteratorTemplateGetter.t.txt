@@ -1,0 +1,44 @@
+Starting get_Enumerable
+Yield 1
+ Intercepting 1
+ Received 1
+Yield 2
+ Intercepting 2
+ Received 2
+Yield 3
+ Intercepting 3
+ Received 3
+Ending get_Enumerable
+Starting get_OldEnumerable
+Yield 1
+ Intercepting 1
+ Received 1
+Yield 2
+ Intercepting 2
+ Received 2
+Yield 3
+ Intercepting 3
+ Received 3
+Ending get_OldEnumerable
+Starting get_Enumerator
+Yield 1
+ Intercepting 1
+ Received 1
+Yield 2
+ Intercepting 2
+ Received 2
+Yield 3
+ Intercepting 3
+ Received 3
+Ending get_Enumerator
+Starting get_OldEnumerator
+Yield 1
+ Intercepting 1
+ Received 1
+Yield 2
+ Intercepting 2
+ Received 2
+Yield 3
+ Intercepting 3
+ Received 3
+Ending get_OldEnumerator

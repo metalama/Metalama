@@ -1,0 +1,1 @@
+[assembly: global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Attributes.Add_Compilation.MyAttribute]

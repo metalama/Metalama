@@ -1,0 +1,1 @@
+This namespace is a bit overkill for now but may be important in the future when we will properly remap the pdb files. 

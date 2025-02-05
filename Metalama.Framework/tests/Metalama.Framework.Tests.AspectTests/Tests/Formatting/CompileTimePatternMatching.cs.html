@@ -1,0 +1,114 @@
+
+<html>
+    <head>
+        <style>
+            .cr-CompileTime,
+            .cr-Conflict,
+            .cr-TemplateKeyword,
+            .cr-Dynamic,
+            .cr-CompileTimeVariable,
+            .cr-GeneratedCode
+            {
+                background-color: rgba(50,50,90,0.1);
+            }
+
+            .cr-NeutralTrivia
+            {
+                background-color: rgba(0,255,0,0.1);
+            }
+
+            .cr-TemplateKeyword
+            {
+                color: rgb(250, 0, 250) !important;
+                font-weight: bold;
+            }
+
+            .cr-Dynamic
+            {
+                text-decoration: underline;
+            }
+
+            .cr-CompileTimeVariable
+            {
+                font-style: italic;
+            }
+
+            .diag-Warning
+            {
+                text-decoration: underline 1px wavy orange;
+            }
+
+            .diag-Error
+            {
+                text-decoration: underline 1px wavy red;
+            }
+
+         .diff-Imaginary {
+                display: block;
+                background-image: repeating-linear-gradient( -45deg, gray, gray 2px, transparent 2px, transparent 8px );
+            }
+
+
+            .legend 
+            {
+                margin-top: 100px;
+            }
+        </style>
+    </head>
+    <body><pre><code class="nohighlight"><span class='line-number'>1</span><span class="cs-keyword">using</span> <span class="cs-namespace-name">System</span><span class="cs-punctuation">;</span>
+<span class='line-number'>2</span><span class="cs-keyword">using</span> <span class="cs-namespace-name">System</span><span class="cs-operator">.</span><span class="cs-namespace-name">Collections</span><span class="cs-operator">.</span><span class="cs-namespace-name">Generic</span><span class="cs-punctuation">;</span>
+<span class='line-number'>3</span><span class="cs-keyword">using</span> <span class="cs-namespace-name">System</span><span class="cs-operator">.</span><span class="cs-namespace-name">Linq</span><span class="cs-punctuation">;</span>
+<span class='line-number'>4</span><span class="cs-keyword">using</span> <span class="cs-namespace-name">Metalama</span><span class="cs-operator">.</span><span class="cs-namespace-name">Framework</span><span class="cs-operator">.</span><span class="cs-namespace-name">Aspects</span><span class="cs-punctuation">;</span>
+<span class='line-number'>5</span><span class="cs-keyword">using</span> <span class="cs-namespace-name">Metalama</span><span class="cs-operator">.</span><span class="cs-namespace-name">Framework</span><span class="cs-operator">.</span><span class="cs-namespace-name">Code</span><span class="cs-punctuation">;</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span><span class="cs-keyword">namespace</span> <span class="cs-namespace-name">Metalama</span><span class="cs-operator">.</span><span class="cs-namespace-name">Framework</span><span class="cs-operator">.</span><span class="cs-namespace-name">Tests</span><span class="cs-operator">.</span><span class="cs-namespace-name">AspectTests</span><span class="cs-operator">.</span><span class="cs-namespace-name">TestInputs</span><span class="cs-operator">.</span><span class="cs-namespace-name">Highlighting</span><span class="cs-operator">.</span><span class="cs-namespace-name">IfStatements</span><span class="cs-operator">.</span><span class="cs-namespace-name">CompileTimePatternMatching</span>
+<span class='line-number'>8</span><span class="cs-punctuation">{</span>
+<span class='line-number' data-member='SwitchEnum'>9</span><span class="cr-NeutralTrivia">    </span><span class="cr-CompileTime cs-punctuation">[</span><span class="cr-CompileTime cs-class-name">CompileTime</span><span class="cr-CompileTime cs-punctuation">]</span>
+<span class='line-number' data-member='SwitchEnum'>10</span><span class="cr-NeutralTrivia">    </span><span class="cr-CompileTime cs-keyword">enum</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-enum-name">SwitchEnum</span>
+<span class='line-number' data-member='SwitchEnum'>11</span><span class="cr-NeutralTrivia">    </span><span class="cr-CompileTime cs-punctuation">{</span>
+<span class='line-number' data-member='SwitchEnum'>12</span><span class="cr-NeutralTrivia">        </span><span class="cr-CompileTime cs-enum-member-name">one</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-operator">=</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-number">1</span><span class="cr-CompileTime cs-punctuation">,</span>
+<span class='line-number' data-member='SwitchEnum'>13</span><span class="cr-NeutralTrivia">        </span><span class="cr-CompileTime cs-enum-member-name">two</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-operator">=</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-number">2</span><span class="cr-CompileTime cs-punctuation">,</span>
+<span class='line-number' data-member='SwitchEnum'>14</span><span class="cr-NeutralTrivia">    </span><span class="cr-CompileTime cs-punctuation">}</span>
+<span class='line-number' data-member='SwitchEnum'>15</span>
+<span class='line-number' data-member='Aspect'>16</span><span class="cr-NeutralTrivia">    </span><span class="cr-CompileTime cs-keyword">class</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-class-name">Aspect</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-punctuation">:</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-class-name">OverrideMethodAspect</span>
+<span class='line-number' data-member='Aspect'>17</span><span class="cr-NeutralTrivia">    </span><span class="cr-CompileTime cs-punctuation">{</span>
+<span class='line-number' data-member='Aspect.OverrideMethod'>18</span><span class="cr-NeutralTrivia">        </span><span class="cs-keyword">public</span> <span class="cs-keyword">override</span> <span class="cs-keyword">dynamic</span><span class="cs-operator">?</span> <span class="cs-method-name">OverrideMethod</span><span class="cs-punctuation">()</span>
+<span class='line-number' data-member='Aspect.OverrideMethod'>19</span><span class="cr-NeutralTrivia">        </span><span class="cr-RunTime cs-punctuation">{</span>
+<span class='line-number' data-member='Aspect.OverrideMethod'>20</span><span class="cr-NeutralTrivia">            </span><span class="cr-CompileTime cs-keyword cs-control">switch</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-punctuation">(</span><span class="cr-TemplateKeyword cs-class-name cs-static-symbol">meta</span><span class="cr-TemplateKeyword cs-operator">.</span><span class="cr-TemplateKeyword cs-property-name cs-static-symbol">Target</span><span class="cr-CompileTime cs-operator">.</span><span class="cr-CompileTime cs-property-name">Parameters</span><span class="cr-CompileTime cs-punctuation">)</span>
+<span class='line-number' data-member='Aspect.OverrideMethod'>21</span><span class="cr-NeutralTrivia">            </span><span class="cr-CompileTime cs-punctuation">{</span>
+<span class='line-number' data-member='Aspect.OverrideMethod'>22</span><span class="cr-NeutralTrivia">                </span><span class="cr-CompileTime cs-keyword cs-control">case</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-keyword">null</span><span class="cr-CompileTime cs-punctuation">:</span>
+<span class='line-number' data-member='Aspect.OverrideMethod'>23</span><span class="cr-NeutralTrivia">                    </span><span class="cr-CompileTime cs-class-name cs-static-symbol">Console</span><span class="cr-CompileTime cs-operator">.</span><span class="cr-CompileTime cs-method-name cs-static-symbol">WriteLine</span><span class="cr-CompileTime cs-punctuation">(</span><span class="cr-CompileTime cs-string">"1"</span><span class="cr-CompileTime cs-punctuation">);</span>
+<span class='line-number' data-member='Aspect.OverrideMethod'>24</span><span class="cr-NeutralTrivia">                    </span><span class="cr-CompileTime cs-keyword cs-control">break</span><span class="cr-CompileTime cs-punctuation">;</span>
+<span class='line-number' data-member='Aspect.OverrideMethod'>25</span><span class="cr-NeutralTrivia">                </span><span class="cr-CompileTime cs-keyword cs-control">case</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-interface-name">IEnumerable</span><span class="cr-CompileTime cs-punctuation">&lt;</span><span class="cr-CompileTime cs-interface-name">IParameter</span><span class="cr-CompileTime cs-punctuation">&gt;</span><span class="cr-CompileTime"> </span><span class="cr-CompileTimeVariable cs-local-name">enumerable</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-keyword cs-control">when</span><span class="cr-CompileTime"> </span><span class="cr-CompileTimeVariable cs-local-name">enumerable</span><span class="cr-CompileTime cs-operator">.</span><span class="cr-CompileTime cs-extension-method-name">Any</span><span class="cr-CompileTime cs-punctuation">():</span>
+<span class='line-number' data-member='Aspect.OverrideMethod'>26</span><span class="cr-NeutralTrivia">                    </span><span class="cr-TemplateKeyword cs-class-name cs-static-symbol">meta</span><span class="cr-TemplateKeyword cs-operator">.</span><span class="cr-TemplateKeyword cs-method-name cs-static-symbol">InsertComment</span><span class="cr-CompileTime cs-punctuation">(</span><span class="cr-CompileTimeVariable cs-local-name">enumerable</span><span class="cr-CompileTime cs-operator">.</span><span class="cr-CompileTime cs-extension-method-name">Count</span><span class="cr-CompileTime cs-punctuation">()</span><span class="cr-CompileTime cs-operator">.</span><span class="cr-CompileTime cs-method-name">ToString</span><span class="cr-CompileTime cs-punctuation">());</span>
+<span class='line-number' data-member='Aspect.OverrideMethod'>27</span><span class="cr-NeutralTrivia">                    </span><span class="cr-CompileTime cs-keyword cs-control">break</span><span class="cr-CompileTime cs-punctuation">;</span>
+<span class='line-number' data-member='Aspect.OverrideMethod'>28</span><span class="cr-NeutralTrivia">                </span><span class="cr-CompileTime cs-keyword cs-control">case</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-interface-name">IEnumerable</span><span class="cr-CompileTime cs-punctuation">&lt;</span><span class="cr-CompileTime cs-interface-name">IParameter</span><span class="cr-CompileTime cs-punctuation">&gt;</span><span class="cr-CompileTime"> </span><span class="cr-CompileTimeVariable cs-local-name">enumerable</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-keyword cs-control">when</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-operator">!</span><span class="cr-CompileTimeVariable cs-local-name">enumerable</span><span class="cr-CompileTime cs-operator">.</span><span class="cr-CompileTime cs-extension-method-name">Any</span><span class="cr-CompileTime cs-punctuation">():</span>
+<span class='line-number' data-member='Aspect.OverrideMethod'>29</span><span class="cr-NeutralTrivia">                    </span><span class="cr-TemplateKeyword cs-class-name cs-static-symbol">meta</span><span class="cr-TemplateKeyword cs-operator">.</span><span class="cr-TemplateKeyword cs-method-name cs-static-symbol">InsertComment</span><span class="cr-CompileTime cs-punctuation">(</span><span class="cr-CompileTime cs-string">"none"</span><span class="cr-CompileTime cs-punctuation">);</span>
+<span class='line-number' data-member='Aspect.OverrideMethod'>30</span><span class="cr-NeutralTrivia">                    </span><span class="cr-CompileTime cs-keyword cs-control">break</span><span class="cr-CompileTime cs-punctuation">;</span>
+<span class='line-number' data-member='Aspect.OverrideMethod'>31</span><span class="cr-NeutralTrivia">                </span><span class="cr-CompileTime cs-keyword cs-control">default</span><span class="cr-CompileTime cs-punctuation">:</span>
+<span class='line-number' data-member='Aspect.OverrideMethod'>32</span><span class="cr-NeutralTrivia">                    </span><span class="cr-CompileTime cs-keyword cs-control">break</span><span class="cr-CompileTime cs-punctuation">;</span>
+<span class='line-number' data-member='Aspect.OverrideMethod'>33</span><span class="cr-NeutralTrivia">            </span><span class="cr-CompileTime cs-punctuation">}</span>
+<span class='line-number' data-member='Aspect.OverrideMethod'>34</span><span class="cr-NeutralTrivia">            </span>
+<span class='line-number' data-member='Aspect.OverrideMethod'>35</span><span class="cr-NeutralTrivia">            </span><span class="cr-RunTime cs-keyword cs-control">return</span><span class="cr-RunTime"> </span><span class="cr-TemplateKeyword cs-class-name cs-static-symbol">meta</span><span class="cr-TemplateKeyword cs-operator">.</span><span class="cr-TemplateKeyword cs-method-name cs-static-symbol">Proceed</span><span class="cr-CompileTime cs-punctuation">()</span><span class="cr-RunTime cs-punctuation">;</span>
+<span class='line-number' data-member='Aspect.OverrideMethod'>36</span><span class="cr-NeutralTrivia">        </span><span class="cr-RunTime cs-punctuation">}</span>
+<span class='line-number' data-member='Aspect'>37</span><span class="cr-NeutralTrivia">    </span><span class="cr-CompileTime cs-punctuation">}</span>
+<span class='line-number'>38</span><span class="cr-NeutralTrivia">    </span>
+<span class='line-number'>39</span><span class="cs-punctuation">}</span>
+<span class='line-number'>40</span>
+</code></pre>
+       <p class='legend'>Legend:</p>
+       <pre>
+<span class='cr-Default'>Default</span>
+<span class='cr-RunTime'>RunTime</span>
+<span class='cr-CompileTime'>CompileTime</span>
+<span class='cr-Dynamic'>Dynamic</span>
+<span class='cr-CompileTimeVariable'>CompileTimeVariable</span>
+<span class='cr-TemplateKeyword'>TemplateKeyword</span>
+<span class='cr-Conflict'>Conflict</span>
+<span class='cr-Excluded'>Excluded</span>
+<span class='cr-GeneratedCode'>GeneratedCode</span>
+<span class='cr-SourceCode'>SourceCode</span>
+<span class='cr-NeutralTrivia'>NeutralTrivia</span>
+       </pre>
+   </body>
+</html>

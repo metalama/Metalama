@@ -1,0 +1,85 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <RootNamespace>Metalama.Framework.Workspaces</RootNamespace>
+        <UseMetalamaCompiler>Private</UseMetalamaCompiler>
+        <!-- Packaging -->
+        <PackageDescription>A Metalama package that allows you to load solutions and projects, get their code model, execute Metalama on them, and get the introspection model of the compilation result.</PackageDescription>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        
+        <!-- disable warning NU5100: The assembly 'contentFiles\any\any\**\*.dll' is not inside the 'lib' folder and hence it won't be added as a reference when the package is installed into a
+            project. Move it into the 'lib' folder if it needs to be referenced. -->
+        <NoWarn>NU5100</NoWarn>
+        
+        <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);_AddPackageContent</TargetsForTfmSpecificContentInPackage>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <None Update="buildTransitive/*" Pack="true" PackagePath=""/>
+        <None Update="build/*" Pack="true" PackagePath=""/>
+    </ItemGroup>
+
+
+    <ItemGroup>
+        <ProjectReference Include="../Metalama.Framework.Engine/Metalama.Framework.Engine.csproj" />
+        <ProjectReference Include="../Metalama.Framework.Introspection/Metalama.Framework.Introspection.csproj" />
+        <ProjectReference Include="../Metalama.Framework/Metalama.Framework.csproj" />
+        
+        <!-- Validate that we do not expose internal APIs -->
+        <ProjectReference Include="../Metalama.Framework.Engine.Analyzers/Metalama.Framework.Engine.Analyzers.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="System.Linq.Parallel" />
+        <PackageReference Include="Microsoft.CodeAnalysis.Common" VersionOverride="$(RoslynMaxVersion)" />
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" VersionOverride="$(RoslynMaxVersion)" />
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" VersionOverride="$(RoslynMaxVersion)" />
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Features" VersionOverride="$(RoslynMaxVersion)" />
+        <PackageReference Include="Newtonsoft.Json" VersionOverride="13.0.3" />
+
+        <PackageReference Include="Microsoft.Build.Locator" />
+
+        <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" VersionOverride="$(RoslynMaxVersion)"  GeneratePathProperty="True" PrivateAssets="all" />
+        
+        <!-- The following reference handles [Memo] -->
+        <ProjectReference Include="../Metalama.SourceTransformer/Metalama.SourceTransformer.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+
+          <!-- Override dependencies to avoid vulnarability warnings. -->
+          <PackageReference Include="System.Text.Json" VersionOverride="$(SystemTextJsonLatestVersion)" />
+          <PackageReference Include="System.Formats.Asn1" VersionOverride="$(SystemFormatsAsn1LatestVersion)" />
+    </ItemGroup>
+
+    <!-- === Packaging === -->
+    <ItemGroup>
+        <None Include="README.md" Pack="true" PackagePath="/" />
+    </ItemGroup>
+    
+    <Target Name="IncludeBuildHost" BeforeTargets="_GetPackageFiles">
+        <!-- We include the build hosts (included by Microsoft.CodeAnalysis.Workspaces.MSBuild) so that users don't have 
+         to reference the Microsoft.CodeAnalysis.Workspaces.MSBuild and possibly mess up versions. -->
+        <ItemGroup>
+            <Content Remove="$(PkgMicrosoft_CodeAnalysis_Workspaces_MSBuild)/contentFiles/**" />
+            <Content Include="$(PkgMicrosoft_CodeAnalysis_Workspaces_MSBuild)/contentFiles/**" Pack="true" PackagePath="contentFiles"  PackageCopyToOutput="true" />
+        </ItemGroup>
+    </Target>
+
+    <!-- We include the build hosts (included by Microsoft.CodeAnalysis.Workspaces.MSBuild) so that users don't have 
+     to reference the Microsoft.CodeAnalysis.Workspaces.MSBuild and possibly mess up versions. -->
+    <Target Name="IncludeBuildHost" BeforeTargets="_GetPackageFiles">
+        <ItemGroup>
+            <Content Remove="$(PkgMicrosoft_CodeAnalysis_Workspaces_MSBuild)/contentFiles/**" />
+            <Content Include="$(PkgMicrosoft_CodeAnalysis_Workspaces_MSBuild)/contentFiles/**" Pack="true" PackagePath="contentFiles"  PackageCopyToOutput="true" />
+        </ItemGroup>
+    </Target>
+
+
+    <!-- We include the libs of Microsoft.CodeAnalysis.Workspaces.MSBuild so we can make the dependency on Microsoft.CodeAnalysis.Workspaces.MSBuild
+         completely private, which de facto removes the transitive dependency on Microsoft.Build packages, which confuse LinqPad. -->
+    <Target Name="_AddPackageContent">
+        <ItemGroup>
+            <TfmSpecificPackageFile Include="$(PkgMicrosoft_CodeAnalysis_Workspaces_MSBuild)/lib/net8.0/**/*.dll" PackagePath="lib/%(RecursiveDir)net8.0" />
+        </ItemGroup>
+    </Target>
+
+</Project>

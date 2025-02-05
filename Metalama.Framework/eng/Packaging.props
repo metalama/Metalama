@@ -1,0 +1,20 @@
+<Project>
+
+    <Import Sdk="PostSharp.Engineering.Sdk" Project="MetalamaBranding.props" />
+
+    <!-- Properties of NuGet packages-->
+    <PropertyGroup>
+        <Authors>PostSharp Technologies</Authors>
+        <PackageProjectUrl>https://github.com/postsharp/Metalama</PackageProjectUrl>
+        <PackageTags>PostSharp Metalama AOP</PackageTags>
+        <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+        <PackageLicenseFile>LICENSE.md</PackageLicenseFile>
+    </PropertyGroup>
+
+    <!-- Additional content of NuGet packages -->
+    <ItemGroup>
+        <None Include="$(MSBuildThisFileDirectory)../LICENSE.md" Visible="false" Pack="true" PackagePath="" />
+        <None Include="$(MSBuildThisFileDirectory)../THIRD-PARTY-NOTICES.TXT" Visible="false" Pack="true" PackagePath="" />
+    </ItemGroup>
+
+</Project>

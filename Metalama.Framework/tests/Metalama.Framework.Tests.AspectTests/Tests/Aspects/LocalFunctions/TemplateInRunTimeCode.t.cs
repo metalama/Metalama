@@ -1,0 +1,4 @@
+// CompileTimeAspectPipeline.ExecuteAsync failed.
+// Error LAMA0117 on `Generate`: `Cannot reference 'Generate()' in 'TargetCode.Method()' because 'Generate()' is compile-time-only but 'TargetCode.Method()' is run-time. Consider adding [CompileTime] to 'TargetCode.Method()', or do not use 'Generate()' in 'TargetCode.Method()'.'`
+// Error LAMA0274 on `[Template] void Generate() { }`: `The template 'Generate()' is contained in 'TargetCode', which is not an aspect, a fabric, or a type implementing ITemplateProvider.`
+// Error LAMA0274 on `[Introduce] void Introduce() { }`: `The template 'Introduce()' is contained in 'TargetCode', which is not an aspect, a fabric, or a type implementing ITemplateProvider.`

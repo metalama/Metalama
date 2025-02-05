@@ -1,0 +1,75 @@
+<Project>
+
+    <PropertyGroup>
+        <RepoDirectory>$(MSBuildThisFileDirectory)</RepoDirectory>
+        <RepoKind>GitHub</RepoKind>
+        <GenerateDocumentationFile>True</GenerateDocumentationFile>
+
+        <!-- CS8032: An instance of analyzer X cannot be created. -->
+        <WarningsAsErrors>$(WarningsAsErrors);CS8032</WarningsAsErrors>
+
+        <!--  Project dependency X does not contain an inclusive lower bound. Include a lower bound in the dependency version to ensure consistent restore results. -->
+        <WarningsAsErrors>$(WarningsAsErrors);NU1604</WarningsAsErrors>
+
+        <EnforceExtendedAnalyzerRules>True</EnforceExtendedAnalyzerRules>
+
+        <!-- The latest version supported by Metalama Compiler may be higher that the latest version supported by Metalama Framework. -->
+        <LangMaxVersion>latest</LangMaxVersion>
+    </PropertyGroup>
+
+    <Import Project="eng/Versions.props"/>
+    <Import Project="eng/StrongName.props"/>
+    <Import Project="eng/Packaging.props"/>
+
+    <!-- We don't want nullability warnings in the Release build since the inlining AssertNotNull creates issues to analyzers -->
+    <PropertyGroup Condition="'$(Configuration)'=='Release' OR ( '$(TargetFramework)'!='net6.0' AND '$(TargetFramework)'!='net7.0' )">
+        <DisableCodeQuality>True</DisableCodeQuality>
+    </PropertyGroup>
+
+    <!-- Imports a script that exports a few MSBuild properties to the compiler. We try to import and not to copy to avoid duplication. -->
+    <Import Project="Metalama.Framework.Package/build/Metalama.CompilerVisibleProperties.props"/>
+
+    <Import Sdk="PostSharp.Engineering.Sdk" Project="BuildOptions.props"/>
+
+    <PropertyGroup>
+        <!-- The latest version supported by Metalama Compiler may be higher that the latest version supported by Metalama Framework. -->
+        <LangVersion>$(LangMaxVersion)</LangVersion>
+    </PropertyGroup>
+
+    <Import Sdk="PostSharp.Engineering.Sdk" Project="SourceLink.props"/>
+
+    <ItemGroup>
+        <!-- Resharper annotations -->
+        <PackageReference Include="JetBrains.Annotations" PrivateAssets="all" />
+    </ItemGroup>
+
+    <!-- Include the package version in metadata. -->
+    <PropertyGroup>
+        <!-- Since .NET SDK 7.0.206, this property has to be set. TODO: Is there another way? -->
+        <EmitLegacyAssetsFileItems>true</EmitLegacyAssetsFileItems>
+    </PropertyGroup>
+
+    <Target Name="AddAssemblyMetadata"
+            BeforeTargets="GenerateAdditionalSources"
+            DependsOnTargets="RunResolvePackageDependencies">
+
+        <ItemGroup>
+            <!-- Add all package versions to metadata -->
+            <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+                <_Parameter1>Package:%(PackageDefinitions.Name)</_Parameter1>
+                <_Parameter2>%(PackageDefinitions.Version)</_Parameter2>
+            </AssemblyAttribute>
+        </ItemGroup>
+
+    </Target>
+
+	<PropertyGroup>
+		<FormattingCode>False</FormattingCode>
+	</PropertyGroup>
+
+    <PropertyGroup>
+        <!-- Public strong name key used by InternalsVisibleTo. -->
+        <FakeItEasyKey>0024000004800000940000000602000000240000525341310004000001000100c547cac37abd99c8db225ef2f6c8a3602f3b3606cc9891605d02baa56104f4cfc0734aa39b93bf7852f7d9266654753cc297e7d2edfe0bac1cdcf9f717241550e0a7b191195b7667bb4f64bcb8e2121380fd1d9d46ad2d92d2d15605093924cceaf74c4861eff62abf69b9291ed0a340e113be11e6a7d3113e92484cf7045cc7</FakeItEasyKey>
+    </PropertyGroup>
+
+</Project>

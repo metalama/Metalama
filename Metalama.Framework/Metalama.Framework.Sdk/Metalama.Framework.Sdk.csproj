@@ -1,0 +1,51 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>netstandard2.0</TargetFramework>
+        <PackageDescription>
+            Metalama SDK. A tool for custom source code modifying extensions using the Roslyn API. More powerful than source generators.
+        </PackageDescription>
+        <RootNamespace>Metalama.Framework.Engine</RootNamespace>
+
+        <!-- This is to prevent the Metalama.Compiler.Sdk package to change our nuspec -->
+        <MetalamaCompilerDisablePackCustomization>True</MetalamaCompilerDisablePackCustomization>
+
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="Metalama.Framework.Engine.4.4.0" />
+        <InternalsVisibleTo Include="Metalama.Framework.Engine.4.8.0" />
+        <InternalsVisibleTo Include="Metalama.Framework.Engine.4.12.0" />
+
+        <InternalsVisibleTo Include="Metalama.Framework.Tests.AspectTests.4.4.0" />
+        <InternalsVisibleTo Include="Metalama.Framework.Tests.AspectTests.4.8.0" />
+        <InternalsVisibleTo Include="Metalama.Framework.Tests.AspectTests.4.12.0" />
+        
+        <InternalsVisibleTo Include="Metalama.Framework.Tests.UnitTests.4.4.0" />
+        <InternalsVisibleTo Include="Metalama.Framework.Tests.UnitTests.4.8.0" />
+        <InternalsVisibleTo Include="Metalama.Framework.Tests.UnitTests.4.12.0" />
+
+        <InternalsVisibleTo Include="Metalama.Framework.Tests.LinkerTests.4.4.0" />
+        <InternalsVisibleTo Include="Metalama.Framework.Tests.LinkerTests.4.8.0" />
+        <InternalsVisibleTo Include="Metalama.Framework.Tests.LinkerTests.4.12.0" />
+
+
+        <InternalsVisibleTo Include="DynamicProxyGenAssembly2" Key="$(FakeItEasyKey)" LoadsWithinVisualStudio="false" />
+
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" VersionOverride="$(RoslynApiMinVersion)" />
+        <PackageReference Include="Metalama.Compiler.Sdk" />
+
+        <ProjectReference Include="../Metalama.Framework/Metalama.Framework.csproj" PrivateAssets="Analyzers;Build;BuildTransitive" />
+
+    </ItemGroup>
+
+    <!-- Packaging -->
+    <ItemGroup>
+        <None Include="README.md" Pack="true" PackagePath="/" />
+    </ItemGroup>
+    <ItemGroup>
+      <Folder Include="CodeFixes\" />
+    </ItemGroup>
+
+</Project>

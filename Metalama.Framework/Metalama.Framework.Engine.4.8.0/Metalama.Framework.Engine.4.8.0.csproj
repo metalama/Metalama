@@ -1,0 +1,11 @@
+<Project ToolsVersion="Current">
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../Metalama.Framework.Engine/**/*.cs" Exclude="../Metalama.Framework.Engine/bin/**/*.cs;../Metalama.Framework.Engine/obj/**/*.cs" />
+    <Compile Remove="**/*" Condition="'$(FormattingCode)'=='True'" />
+  </ItemGroup>
+  <Import Project="../build/RoslynVersion/Roslyn.4.8.0.props" />
+  <Import Project="../Metalama.Framework.Engine/Metalama.Framework.Engine.csproj" />
+</Project>

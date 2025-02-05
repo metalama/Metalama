@@ -1,0 +1,22 @@
+Starting Enumerable
+Yield 1
+ Intercepting 1
+ Received 1
+Yield 2
+ Intercepting 2
+ Received 2
+Yield 3
+ Intercepting 3
+ Received 3
+Ending Enumerable
+Starting Enumerator
+Yield 1
+ Intercepting 1
+ Received 1
+Yield 2
+ Intercepting 2
+ Received 2
+Yield 3
+ Intercepting 3
+ Received 3
+Ending Enumerator

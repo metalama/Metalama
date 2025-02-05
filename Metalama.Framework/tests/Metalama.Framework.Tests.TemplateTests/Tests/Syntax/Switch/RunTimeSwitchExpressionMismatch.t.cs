@@ -1,0 +1,2 @@
+// TestTemplateCompiler.TryCompile failed.
+// Error LAMA0104 on `IParameter p => 1`: `The expression 'IParameter p => 1' is compile-time but it is expected to be run-time because the expression appears in a run-time switch expression.`

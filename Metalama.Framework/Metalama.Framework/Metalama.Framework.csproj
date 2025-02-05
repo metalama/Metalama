@@ -1,0 +1,61 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFrameworks>netstandard2.0;net6.0</TargetFrameworks>
+        <PackageId>Metalama.Framework.Redist</PackageId>
+        <PackageDescription>
+            Redistributable components for package 'Metalama.Framework'. This package should only be installed as a dependency.
+            (This is not the package you are looking for.)
+        </PackageDescription>
+        <IsPackable>True</IsPackable>
+        <PackMetalamaSystemTypes>True</PackMetalamaSystemTypes>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+    </PropertyGroup>
+    
+    <ItemGroup>
+        <InternalsVisibleTo Include="Metalama.Framework.Sdk" />
+        
+        <InternalsVisibleTo Include="Metalama.Framework.Engine.4.4.0" />
+        <InternalsVisibleTo Include="Metalama.Framework.Engine.4.8.0" />
+        <InternalsVisibleTo Include="Metalama.Framework.Engine.4.12.0" />
+
+        <InternalsVisibleTo Include="Metalama.Framework.Tests.AspectTests.4.4.0" />
+        <InternalsVisibleTo Include="Metalama.Framework.Tests.AspectTests.4.8.0" />
+        <InternalsVisibleTo Include="Metalama.Framework.Tests.AspectTests.4.12.0" />
+        
+        <InternalsVisibleTo Include="Metalama.Framework.Tests.UnitTests.4.4.0" />
+        <InternalsVisibleTo Include="Metalama.Framework.Tests.UnitTests.4.8.0" />
+        <InternalsVisibleTo Include="Metalama.Framework.Tests.UnitTests.4.12.0" />
+
+        <InternalsVisibleTo Include="Metalama.Framework.Tests.UnitTestHelpers.4.4.0" />
+        <InternalsVisibleTo Include="Metalama.Framework.Tests.UnitTestHelpers.4.8.0" />
+        <InternalsVisibleTo Include="Metalama.Framework.Tests.UnitTestHelpers.4.12.0" />
+
+        <InternalsVisibleTo Include="Metalama.Framework.Tests.TemplateTests.4.4.0" />
+        <InternalsVisibleTo Include="Metalama.Framework.Tests.TemplateTests.4.8.0" />
+        <InternalsVisibleTo Include="Metalama.Framework.Tests.TemplateTests.4.12.0" />
+
+        <InternalsVisibleTo Include="Metalama.Framework.Tests.LinkerTests.4.4.0" />
+        <InternalsVisibleTo Include="Metalama.Framework.Tests.LinkerTests.4.8.0" />
+        <InternalsVisibleTo Include="Metalama.Framework.Tests.LinkerTests.4.12.0" />
+        
+        <InternalsVisibleTo Include="Metalama.Roslyn" />
+        <InternalsVisibleTo Include="DynamicProxyGenAssembly2" Key="$(FakeItEasyKey)" LoadsWithinVisualStudio="false" />
+    </ItemGroup>
+    
+    <ItemGroup>
+        <PackageReference Include="Microsoft.Bcl.HashCode" Condition="'$(TargetFramework)'=='netstandard2.0'" />
+
+        <!-- We are stuck with a low version of System.Collections.Immutable because our code needs to run with Roslyn 4.0. -->
+        <PackageReference Include="System.Collections.Immutable" />
+    </ItemGroup>
+
+    <!-- Packaging -->
+    <ItemGroup>
+        <None Include="README.md" Pack="true" PackagePath="/" />
+    </ItemGroup>
+    <ItemGroup>
+      <Folder Include="Code\References\" />
+    </ItemGroup>
+
+</Project>

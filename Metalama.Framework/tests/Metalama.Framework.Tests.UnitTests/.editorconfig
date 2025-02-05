@@ -1,0 +1,3 @@
+[*.cs]
+resharper_unused_auto_property_accessor_global_highlighting = disabled
+resharper_unused_member_global_highlighting = disabled

@@ -1,0 +1,23 @@
+﻿<Project InitialTargets="ValidateVersion">
+
+	<PropertyGroup>
+		<DisableCodeQuality>True</DisableCodeQuality>
+
+    <!-- We set the UseMetalamaCompiler to False for these projects because they are supposed to be built after Metalama itself is built,
+        i.e. it will take the dependency on Metalama.Compiler from the dependency on Metalama.Framework. -->
+    <UseMetalamaCompiler>False</UseMetalamaCompiler>
+    <GenerateAssemblyInfo>False</GenerateAssemblyInfo>
+
+    <ReferenceMetalamaSystemTypes>False</ReferenceMetalamaSystemTypes>
+	</PropertyGroup>
+	
+  <!-- Imports Directory.Build.props of the upper directory. Use this code in any non-root Directory.Build.* even if the file does not exit. -->
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" Condition="Exists('$([MSBuild]::GetPathOfFileAbove(`Directory.Build.props`, `$(MSBuildThisFileDirectory)../`))')" />
+
+
+  <!-- Versions of dependencies -->
+  <Target Name="ValidateVersion">
+    <Error Text="The MetalamaVersion property is not defined. Check that 'Build.ps1 prepare' have been properly executed." Condition="'$(MetalamaVersion)'==''"/>
+  </Target>
+
+</Project>

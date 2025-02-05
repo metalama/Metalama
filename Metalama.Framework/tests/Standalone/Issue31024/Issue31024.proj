@@ -1,0 +1,19 @@
+<Project>
+
+    <!-- Imports Directory.Build.props of the upper directory. We must do this explicitly because this project has no SDK. -->
+    <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" Condition="Exists('$([MSBuild]::GetPathOfFileAbove(`Directory.Build.props`, `$(MSBuildThisFileDirectory)../`))')" />
+
+
+  <Target Name="Build">
+
+      <Error Text="This test requires Visual Studio or Visual Studio Build Tools to be installed." Condition="'$(MSBuildExePath)'==''" /> 
+
+      <!-- The library must be built with `dotnet build`, which is supposed to be the current process. -->
+      <Exec Command="dotnet build $(MSBuildThisFileDirectory)NetCoreBuildLibrary/ClassLibrary1.csproj /t:rebuild"/>
+
+      <!-- The app must be built with `msbuild` -->
+      <Exec Command="dotnet restore" WorkingDirectory="$(MSBuildThisFileDirectory)NetFrameworkBuildApp"/>
+      <Exec Command="$(MSBuildExePath) $(MSBuildThisFileDirectory)NetFrameworkBuildApp/ConsoleApp1.csproj  /t:rebuild" EnvironmentVariables="DOTNET_ROOT_X64=;MSBUILD_EXE_PATH=;MSBuildSDKsPath="/>
+  </Target>
+
+</Project>

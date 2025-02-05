@@ -1,0 +1,1 @@
+// Error MY001 on `MyMethod`: `My error.`

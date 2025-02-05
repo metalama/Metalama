@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net6.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+	 <MetalamaDebugTransformedCode>True</MetalamaDebugTransformedCode>
+	  <MetalamaEmitCompilerTransformedFiles>True</MetalamaEmitCompilerTransformedFiles>
+  </PropertyGroup>
+
+  <ItemGroup>
+      <Compile Include="../../../../GlobalAssemblyInfo.cs" Link="GlobalAssemblyInfo.cs" />
+    <PackageReference Include="Metalama.Framework" />
+  </ItemGroup>
+
+  <Target Name="Verify" AfterTargets="Build">
+    <Error Condition="Exists('GlobalAssemblyInfo.cs')" Text="GlobalAssemblyInfo.cs should not have been copied there." />
+  </Target>
+  
+
+</Project>

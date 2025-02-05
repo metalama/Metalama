@@ -1,0 +1,32 @@
+Before get_Enumerable
+Yield 1
+Yield 2
+Yield 3
+After get_Enumerable
+ Received 1
+ Received 2
+ Received 3
+Before get_OldEnumerable
+Yield 1
+Yield 2
+Yield 3
+After get_OldEnumerable
+ Received 1
+ Received 2
+ Received 3
+Before get_Enumerator
+Yield 1
+Yield 2
+Yield 3
+After get_Enumerator
+ Received 1
+ Received 2
+ Received 3
+Before get_OldEnumerator
+Yield 1
+Yield 2
+Yield 3
+After get_OldEnumerator
+ Received 1
+ Received 2
+ Received 3

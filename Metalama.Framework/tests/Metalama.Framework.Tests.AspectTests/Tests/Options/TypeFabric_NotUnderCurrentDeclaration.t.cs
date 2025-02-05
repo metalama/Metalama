@@ -1,0 +1,2 @@
+// CompileTimeAspectPipeline.ExecuteAsync failed. 
+// Error LAMA0044 on `Fabric`: `The type fabric on 'Metalama.Framework.Tests.AspectTests.Tests.Options.TypeFabric_NotUnderCurrentDeclaration.C1' cannot set options for 'Metalama.Framework.Tests.AspectTests.Tests.Options.TypeFabric_NotUnderCurrentDeclaration' because it is not contained in 'C1'.`

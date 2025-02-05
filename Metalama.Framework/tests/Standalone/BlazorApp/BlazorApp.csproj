@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+    <!-- This is meant to test that Metalama.Compiler correctly redirects analyzer assemblies from newer TFMs. -->
+    <!-- Though when that TFM is supported by Metalama (as should be the case for the latest Metalama for most of the year), this test is mostly useless. -->
+
+    <PropertyGroup>
+        <!-- See https://github.com/dotnet/sdk/issues/29949#issuecomment-1402258974. -->
+        <TargetFramework>net$(NETCoreAppMaximumVersion)</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Metalama.Framework" />
+    </ItemGroup>
+
+</Project>

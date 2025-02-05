@@ -1,0 +1,2 @@
+// TestTemplateCompiler.TryCompile failed.
+// Error LAMA0104 on `y`: `The expression 'y' is run-time but it is expected to be compile-time because the expression appears in the assignment of a compile-time expression.`

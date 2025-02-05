@@ -1,0 +1,4 @@
+[TestAspect]
+internal class TargetClass
+{
+}

@@ -1,0 +1,9 @@
+Before AsyncEnumerable
+Not Async
+Yield 1
+Yield 2
+Yield 3
+After AsyncEnumerable
+  Received 1
+  Received 2
+  Received 3

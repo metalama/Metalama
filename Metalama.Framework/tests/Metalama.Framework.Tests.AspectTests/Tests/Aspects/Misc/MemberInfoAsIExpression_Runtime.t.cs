@@ -1,0 +1,2 @@
+// CompileTimeAspectPipeline.ExecuteAsync failed.
+// Error LAMA0041 on `TargetCode`: `'Exception of type 'System.InvalidOperationException' thrown while executing BuildAspect for aspect [TestAspect] applied to 'TargetCode': Cannot convert an instance of type RuntimeMethodInfo to a run-time expression. If you are attempting to use a run-time expression as IExpression in compile-time code, that is not supported. Exception details are in '(none)'. To attach a debugger to the compiler, use the  '-p:MetalamaDebugCompiler=True' command-line option.`

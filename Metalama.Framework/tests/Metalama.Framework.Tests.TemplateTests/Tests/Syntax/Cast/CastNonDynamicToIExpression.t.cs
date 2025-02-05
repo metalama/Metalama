@@ -1,0 +1,3 @@
+// TestTemplateCompiler.TryCompile failed.
+// Error LAMA0286 on `IExpression`: `Cannot cast the non-dynamic run-time expression 'new TargetCode()' to IExpression. Use ExpressionFactory.Capture.`
+// Error LAMA0104 on `TargetCode`: `The expression 'TargetCode' is run-time but it is expected to be compile-time because the expression appears in a local variable of compile-time-only type 'Metalama.Framework.Code.IExpression?'.`

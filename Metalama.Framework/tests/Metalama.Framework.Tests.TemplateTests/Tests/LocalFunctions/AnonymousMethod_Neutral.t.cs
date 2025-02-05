@@ -1,0 +1,2 @@
+// TestTemplateCompiler.TryCompile failed.
+// Error LAMA0284 on `delegate`: `The scope of the anonymous method or lambda block cannot be determined. Use meta.RunTime or meta.CompileTime to resolve the ambiguity.`

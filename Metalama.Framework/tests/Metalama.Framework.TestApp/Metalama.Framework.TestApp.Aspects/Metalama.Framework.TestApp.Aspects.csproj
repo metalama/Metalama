@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <MetalamaExportAspects>true</MetalamaExportAspects>
+    <MetalamaEmitCompilerTransformedFiles>True</MetalamaEmitCompilerTransformedFiles>
+    <MetalamaDebugTransformedCode>True</MetalamaDebugTransformedCode>
+	  <ProduceReferenceAssembly>True</ProduceReferenceAssembly>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Annotations/**" />
+    <Compile Remove="Validation/**" />
+    <EmbeddedResource Remove="Annotations/**" />
+    <EmbeddedResource Remove="Validation/**" />
+    <None Remove="Annotations/**" />
+    <None Remove="Validation/**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Metalama.Framework.TestApp.Library/Metalama.Framework.TestApp.Library.csproj" />
+    <PackageReference Include="Metalama.Framework" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,2 @@
+// CompileTimeAspectPipeline.ExecuteAsync failed.
+// Error LAMA0506 on `TargetClass`: `The aspect 'Introduction' cannot introduce member 'TargetClass.ExistingField' into type 'TargetClass' because there is already a property of the same name declared in the type or in a base type.`
