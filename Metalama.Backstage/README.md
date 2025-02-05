@@ -1,10 +1,17 @@
-![Metalama Logo](https://raw.githubusercontent.com/postsharp/Metalama/master/images/metalama-by-postsharp.svg)
+<p align="center">
+<img width="450" src="https://github.com/postsharp/Metalama/raw/master/images/metalama-by-postsharp.svg" alt="Metalama logo" />
+</p>
 
-## Metalama.Backstage
 
-The `Metalama.Backstage` package is not meant to be directly referenced in user projects.
+# Metalama.Backstage
 
-It is used by Metalama to process license keys, telemetry, and some other configuration settings:
+`Metalama.Backstage` implements infrastructure services for [Metalama](https://github.com/postsharp/Metalama) such as configuration and temporary file management.
 
-* [Metalama Command Line Tools](https://www.nuget.org/packages/Metalama.Tool) uses this package to handle commands.
-* [Visual Studio Tools for Metalama and PostSharp](https://marketplace.visualstudio.com/items?itemName=PostSharpTechnologies.PostSharp) uses this package to manage options and license registration.
+It is released under a proprietary source-available license.
+
+## Packages
+
+| Package | License | Description |
+|--|--|--|
+| [Metalama.Backstage](https://www.nuget.org/packages/Metalama.Backstage) | Source available | Infrastructure services for Metalama. |
+| [Metalama.Backstage.Tools](https://www.nuget.org/packages/Metalama.Backstage.Tools) | Source available | Telemetry and UI services for Metalama. |
