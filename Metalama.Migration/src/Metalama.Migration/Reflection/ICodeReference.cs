@@ -1,12 +1,10 @@
 ﻿// Copyright (c) SharpCrafters s.r.o. All rights reserved.
 // This project is not open source. Please see the LICENSE.md file in the repository root for details.
 
-using Metalama.Framework.Validation;
-
 namespace PostSharp.Reflection
 {
     /// <summary>
-    /// In Metalama, use <see cref="DeclarationValidationContext"/> or <see cref="ReferenceValidationContext"/>. 
+    /// In Metalama, use <c>Metalama.Extensions.Validation.DeclarationValidationContext</c> or <c>Metalama.Extensions.Validation.ReferenceValidationContext</c>.
     /// </summary>
     public interface ICodeReference
     {

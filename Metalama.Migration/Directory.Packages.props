@@ -12,7 +12,6 @@
     <PackageVersion Include="JetBrains.Annotations" Version="2024.2.0" />
     <PackageVersion Include="Metalama.Compiler.Sdk" Version="$(MetalamaCompilerVersion)" />
     <PackageVersion Include="Metalama.Framework.Redist" Version="$(MetalamaVersion)" />
-    <PackageVersion Include="Metalama.Extensions.Multicast" Version="$(MetalamaExtensionsVersion)" />
-    <PackageVersion Include="Metalama.Extensions.Architecture" Version="$(MetalamaExtensionsVersion)" />
+    <PackageVersion Include="Metalama.Extensions.Multicast" Version="$(MetalamaVersion)" />
   </ItemGroup>
 </Project>

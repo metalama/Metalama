@@ -2,13 +2,12 @@
 // This project is not open source. Please see the LICENSE.md file in the repository root for details.
 
 using JetBrains.Annotations;
-using Metalama.Framework.Validation;
 using System;
 
 namespace PostSharp.Reflection
 {
     /// <summary>
-    /// In Metalama, use <see cref="ReferenceValidationContext"/>.
+    /// In Metalama, use <c>Metalama.Extensions.Validation.ReferenceValidationContext</c>.
     /// </summary>
     [PublicAPI]
     public sealed class MemberTypeCodeReference : ICodeReference

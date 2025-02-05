@@ -50,7 +50,8 @@ var product = new Product( MetalamaDependencies.Metalama )
         { 
             CanFormatCode = true,
             FormatExclusions = ["src\\tests\\*AspectTests\\**\\*"],
-        }
+        },
+        new DotNetSolution( "Metalama.Migration\\src\\Metalama.Migration.sln" ) { CanFormatCode = true }
     ],
     PublicArtifacts = Pattern.Create(
         "Metalama.Backstage.$(PackageVersion).nupkg",
@@ -72,7 +73,9 @@ var product = new Product( MetalamaDependencies.Metalama )
         "Metalama.Extensions.DependencyInjection.$(PackageVersion).nupkg",
         "Metalama.Extensions.DependencyInjection.ServiceLocator.$(PackageVersion).nupkg",
         "Metalama.Extensions.Multicast.$(PackageVersion).nupkg",
-        "Metalama.Extensions.Metrics.$(PackageVersion).nupkg" ),
+        "Metalama.Extensions.Metrics.$(PackageVersion).nupkg",
+        
+        "Metalama.Migration.$(PackageVersion).nupkg" ),
     PrivateArtifacts = Pattern.Create(
         "Metalama.Framework.Tests.UnitTestHelpers.$(PackageVersion).nupkg" ),
     ParametrizedDependencies =

@@ -17,7 +17,6 @@
         <PackageReference Include="JetBrains.Annotations" />
         <PackageReference Include="Metalama.Framework.Redist" />
         <PackageReference Include="Metalama.Extensions.Multicast" />
-        <PackageReference Include="Metalama.Extensions.Architecture" />
     </ItemGroup>
 
     <ItemGroup>

@@ -2,7 +2,6 @@
 // This project is not open source. Please see the LICENSE.md file in the repository root for details.
 
 using Metalama.Framework.Code;
-using Metalama.Framework.Validation;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
@@ -65,7 +64,7 @@ namespace PostSharp.Reflection
 
         /// <summary>
         /// In Metalama, the feature is not exposed on the code model, but it is a part of the validation feature thanks to the
-        /// <see cref="IValidatorReceiver{TDeclaration}.ValidateReferences{TValidator}"/> method.
+        /// <c>Metalama.Extensions.Validation.ReferenceValidationQueryExtensions.ValidateInboundReferences</c> method.
         /// </summary>
         /// <seealso href="@aspect-validating"/>
         /// <seealso href="@validating-usage"/>
@@ -76,7 +75,7 @@ namespace PostSharp.Reflection
 
         /// <summary>
         /// In Metalama, the feature is not exposed on the code model, but it is a part of the validation feature thanks to the
-        /// <see cref="IValidatorReceiver{TDeclaration}.ValidateReferences{TValidator}"/> method.
+        /// <c>Metalama.Extensions.Validation.ReferenceValidationQueryExtensions.ValidateInboundReferences</c> method.
         /// </summary>
         /// <seealso href="@aspect-validating"/>
         /// <seealso href="@validating-usage"/>
@@ -87,7 +86,7 @@ namespace PostSharp.Reflection
 
         /// <summary>
         /// In Metalama, the feature is not exposed on the code model, but it is a part of the validation feature thanks to the
-        /// <see cref="IValidatorReceiver{TDeclaration}.ValidateReferences{TValidator}"/> method.
+        /// <c>Metalama.Extensions.Validation.ReferenceValidationQueryExtensions.ValidateInboundReferences</c> method.
         /// </summary>
         /// <seealso href="@validating-usage"/>
         public static MethodUsageCodeReference[] GetMethodsUsingDeclaration( MemberInfo declaration )
@@ -97,7 +96,7 @@ namespace PostSharp.Reflection
 
         /// <summary>
         /// In Metalama, the feature is not exposed on the code model, but it is a part of the validation feature thanks to the
-        /// <see cref="IValidatorReceiver{TDeclaration}.ValidateReferences{TValidator}"/> method.
+        /// <c>Metalama.Extensions.Validation.ReferenceValidationQueryExtensions.ValidateInboundReferences</c> method.
         /// </summary>
         /// <seealso href="@validating-usage"/>
         public static MethodUsageCodeReference[] GetMethodsUsingDeclaration( MemberInfo declaration, ReflectionSearchOptions options )
@@ -123,7 +122,7 @@ namespace PostSharp.Reflection
 
         /// <summary>
         /// In Metalama, the feature is not exposed on the code model, but it is a part of the validation feature thanks to the
-        /// <see cref="IValidatorReceiver{TDeclaration}.ValidateReferences{TValidator}"/> method.
+        /// <c>Metalama.Extensions.Validation.ReferenceValidationQueryExtensions.ValidateInboundReferences</c> method.
         /// </summary>
         /// <seealso href="@validating-usage"/>
         public static MemberTypeCodeReference[] GetMembersOfType( Type memberType )
@@ -133,7 +132,7 @@ namespace PostSharp.Reflection
 
         /// <summary>
         /// In Metalama, the feature is not exposed on the code model, but it is a part of the validation feature thanks to the
-        /// <see cref="IValidatorReceiver{TDeclaration}.ValidateReferences{TValidator}"/> method.
+        /// <c>Metalama.Extensions.Validation.ReferenceValidationQueryExtensions.ValidateInboundReferences</c> method.
         /// </summary>
         /// <seealso href="@validating-usage"/>
         public static MemberTypeCodeReference[] GetMembersOfType( Type memberType, ReflectionSearchOptions options )
