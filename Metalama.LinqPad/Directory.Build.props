@@ -1,8 +1,8 @@
 <Project>
 
     <PropertyGroup>
-        <RepoDirectory>$(MSBuildThisFileDirectory)</RepoDirectory>
-        <RepoKind>GitHub</RepoKind> <!-- Valid values: AzureRepos | GitHub -->
+        <RepoDirectory>$(MSBuildThisFileDirectory)..\</RepoDirectory>
+        <RepoKind>GitHub</RepoKind>
     </PropertyGroup>
 		
 	<!-- We don't want nullability warnings in the Release build since the inlining AssertNotNull creates issues to anayzers -->
@@ -10,8 +10,8 @@
         <DisableCodeQuality>True</DisableCodeQuality>
     </PropertyGroup>
 
-    <Import Project="eng\Versions.props"/>
-    <Import Project="eng\Packaging.props"/>
+    <Import Project="..\eng\Versions.props"/>
+    <Import Project="..\eng\Packaging.props"/>
     <Import Sdk="PostSharp.Engineering.Sdk" Project="BuildOptions.props"/>
     <Import Sdk="PostSharp.Engineering.Sdk" Project="StrongName.props"/>
     <Import Sdk="PostSharp.Engineering.Sdk" Project="SourceLink.props"/>

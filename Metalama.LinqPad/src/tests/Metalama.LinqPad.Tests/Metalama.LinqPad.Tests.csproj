@@ -1,5 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
-    <Import Project="..\..\..\eng\Coverage.props" />
+    <Import Project="..\..\..\..\eng\Coverage.props" />
 
     <PropertyGroup>
         <TargetFramework>net8.0-windows</TargetFramework>
