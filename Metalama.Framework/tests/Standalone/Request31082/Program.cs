@@ -1,12 +1,11 @@
 ﻿using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.SyntaxBuilders;
-using Metalama.Extensions.CodeFixes;
 using Shox.Common.Logger;
 using System.Security.Claims;
 using System.Text.Json;
 
-[assembly: AspectOrder(typeof(ToStringAttribute), typeof(LoggingAttribute))]
+[assembly: AspectOrder(AspectOrderDirection.RunTime, typeof(ToStringAttribute), typeof(LoggingAttribute))]
 namespace Shox.Common.Logger;
 
 public class LoggingAttribute : OverrideMethodAspect
@@ -39,7 +38,7 @@ public class LoggingAttribute : OverrideMethodAspect
 		}
 	}
 
-	protected InterpolatedStringBuilder BuildInterpolatedString()
+	protected static InterpolatedStringBuilder BuildInterpolatedString()
 	{
 		var stringBuilder = new InterpolatedStringBuilder();
 
@@ -86,34 +85,6 @@ public class NotToStringAttribute : Attribute { }
 [EditorExperience( SuggestAsLiveTemplate = true )]
 public class ToStringAttribute : TypeAspect
 {
-	public override void BuildAspect(IAspectBuilder<INamedType> builder)
-	{
-		base.BuildAspect(builder);
-
-		foreach (var field in builder.Target.FieldsAndProperties.Where(f => !f.IsStatic))
-		{
-			if (!field.Attributes.Any(a => a.Type.Is(typeof(NotToStringAttribute))))
-			{
-				builder.Diagnostics.Suggest(CodeFixFactory.AddAttribute(field, typeof(NotToStringAttribute), "Exclude from [ToString]"), field);
-			}
-		}
-
-		if (builder.AspectInstance.Predecessors[0].Instance is IAttribute attribute)
-		{
-			builder.Diagnostics.Suggest(
-				new CodeFix("Switch to manual implementation", codeFixBuilder => this.ImplementManually(codeFixBuilder, builder.Target)),
-				attribute);
-		}
-	}
-
-	[CompileTime]
-	private async Task ImplementManually(ICodeActionBuilder builder, INamedType targetType)
-	{
-		await builder.ApplyAspectAsync(targetType, this);
-		await builder.RemoveAttributesAsync(targetType, typeof(ToStringAttribute));
-		await builder.RemoveAttributesAsync(targetType, typeof(NotToStringAttribute));
-	}
-
 	[Introduce(WhenExists = OverrideStrategy.Override, Name = "ToString")]
 	public string IntroducedToString()
 	{

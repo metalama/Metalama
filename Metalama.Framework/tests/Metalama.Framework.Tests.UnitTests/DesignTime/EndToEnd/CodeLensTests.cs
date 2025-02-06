@@ -35,7 +35,6 @@ public sealed class CodeLensTests : DistributedDesignTimeTestBase
                             using Metalama.Framework.Aspects; 
                             using Metalama.Framework.Advising;
                             using Metalama.Framework.Code;
-                            using Metalama.Extensions.CodeFixes;
 
                             class TheAspect : TypeAspect
                             {
