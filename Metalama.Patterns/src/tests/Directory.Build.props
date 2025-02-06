@@ -13,6 +13,10 @@
 
         <!-- TODO: Enable CS1998 and fix async without await warnings. -->
         <NoWarn>$(NoWarn);CS1998</NoWarn>
+
+        <!-- Don't report vulnerability warnings in transitive dependencies. -->
+        <!-- Note that this is the default of most versions of .Net SDK, except for exactly 9.0.100 (see https://github.com/NuGet/Home/issues/13945), so this can be removed after updating to SDK 9.0.101 or newer. -->
+        <NuGetAuditMode>direct</NuGetAuditMode>
     </PropertyGroup>
 
 </Project>
