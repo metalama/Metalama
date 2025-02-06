@@ -1,0 +1,3 @@
+// Error LAMA5150 on `Test`: `Class 'Test' implements INotifyPropertyChanged but does not define an overridable OnPropertyChanged method with the following signature: `protected virtual void OnPropertyChanged(string)` or `protected virtual void OnPropertyChanged(PropertyChangedEventArgs)`. The method name can also be NotifyOfPropertyChange or RaisePropertyChanged.`
+// Error LAMA5154 on `VirtualProperty`: `The 'Test.VirtualProperty' property is virtual. This is not supported by the [Observable] aspect.`
+// Warning LAMA5162 on `Method`: `The 'Test.Method()' method cannot be analysed, and has not been configured with an observability contract. Mark this method with [ConstantAttribute] or call ConfigureObservability via a fabric.`

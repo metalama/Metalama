@@ -1,0 +1,66 @@
+﻿// THIS FILE IS T4-GENERATED.
+// To edit, go to SemanticMessageBuilder.Generated.tt.
+// To transform, run RunT4.ps1.
+
+<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ output extension=".cs" #>
+<#@ include file="..\Common.ttinclude" #>
+
+#pragma warning disable LAMA0320
+
+#nullable enable
+
+using System.Runtime.CompilerServices;
+using Flashtrace.Messages;
+
+namespace Flashtrace.Messages;
+
+partial class SemanticMessageBuilder
+{
+<#
+    for (var i = 1; i <= 10; i++)
+    {
+#>    
+
+	/// <summary>
+    /// Create a semantic message with <#= i #> parameter<#= GetPlural( i ) #>.
+    /// </summary>
+    /// <param name="name">Name of the message.</param>
+<#
+        for (var j = 1; j <= i; j++)
+        {
+#>
+	/// <typeparam name="T<#= j #>">Type of the <#= GetOrdinal( j ) #> parameter value.</typeparam>
+	/// <param name="parameterName<#= j #>">Name of the <#= GetOrdinal( j ) #> parameter.</param>
+	/// <param name="parameterValue<#= j #>">Name of the <#= GetOrdinal( j ) #> parameter.</param>
+<#
+        }
+#>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)] // To avoid copying the struct.
+    public static  SemanticMessage<<#= Repeat( "T{0}", i ) #>> Semantic<<#= Repeat( "T{0}", i ) #>>(  string name, <#= Repeat( "string parameterName{0}, T{0}? parameterValue{0}", i ) #> )
+    {
+        return new SemanticMessage<<#= Repeat( "T{0}", i ) #>>( name, <#= Repeat( "parameterName{0}, parameterValue{0}", i ) #> );
+    }
+
+	/// <summary>
+    /// Create a semantic message with <#= i #> parameter<#= GetPlural( i ) #> (using tuples).
+    /// </summary>
+    /// <param name="name">Name of the message.</param>
+<#
+        for (var j = 1; j <= i; j++)
+        {
+#>
+	/// <typeparam name="T<#= j #>">Type of the <#= GetOrdinal( j ) #> parameter value.</typeparam>
+	/// <param name="parameter<#= j #>">Name and value of the <#= GetOrdinal( j ) #> parameter wrapped as a tuple.</param>
+<#
+        }
+#>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)] // To avoid copying the struct.
+    public static  SemanticMessage<<#= Repeat( "T{0}", i ) #>> Semantic<<#= Repeat( "T{0}", i ) #>>(  string name, <#= Repeat( "in (string Name,T{0}? Value) parameter{0}", i ) #> )
+    {
+        return new SemanticMessage<<#= Repeat( "T{0}", i ) #>>( name, <#= Repeat( "parameter{0}.Name, parameter{0}.Value", i ) #> );
+    }
+<#
+    }
+#>    
+}

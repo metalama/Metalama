@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Configurations>Debug;Release</Configurations>
+    <MetalamaCompileTimeProject>True</MetalamaCompileTimeProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Metalama.Testing.UnitTesting" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="Xunit.SkippableFact" />
+    <PackageReference Include="FluentAssertions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Metalama.Patterns.Wpf\Metalama.Patterns.Wpf.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,1 @@
+// Error LAMA5207 on `Foo`: `No dependency property naming conventioned matched 'MultipleNamingConventionsNoMatch.Foo'.`

@@ -1,0 +1,1 @@
+// Error LAMA0037 on `Memoize`: `The aspect 'Memoize' cannot be applied to the method 'S.M()' because the declaring type 'S' must not be readonly.`

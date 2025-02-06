@@ -1,0 +1,2 @@
+// Warning LAMA5161 on `C1`: `The children of fields or properties of type 'B' cannot be observed because the type does not implement INotifyPropertyChanged.`
+// Warning LAMA5161 on `B1`: `The children of fields or properties of type 'A' cannot be observed because the type does not implement INotifyPropertyChanged.`

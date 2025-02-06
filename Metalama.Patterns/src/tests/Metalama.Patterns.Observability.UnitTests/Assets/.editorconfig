@@ -1,0 +1,51 @@
+# C# files
+[*.cs]
+
+# CS8618: Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+dotnet_diagnostic.CS8618.severity = none
+
+# SA1401: Fields should be private
+dotnet_diagnostic.SA1401.severity = none
+
+# SA1602: Enumeration items should be documented
+dotnet_diagnostic.SA1602.severity = none
+
+# SA1124: Do not use regions
+dotnet_diagnostic.SA1124.severity = none
+
+# CA1822: Mark members as static
+dotnet_diagnostic.CA1822.severity = none
+
+# SA1623: Property summary documentation should match accessors
+dotnet_diagnostic.SA1623.severity = none
+
+# SA1402: File may only contain a single type
+dotnet_diagnostic.SA1402.severity = none
+
+# IDE0051: Remove unused private members
+dotnet_diagnostic.IDE0051.severity = none
+
+# SA1629: Documentation text should end with a period
+dotnet_diagnostic.SA1629.severity = none
+
+# SA1649: File name should match first type name
+dotnet_diagnostic.SA1649.severity = none
+
+resharper_arrange_static_member_qualifier_highlighting=none
+resharper_check_namespace_highlighting=none
+resharper_class_can_be_sealed_global_highlighting=none
+resharper_class_can_be_sealed_local_highlighting=none
+resharper_member_can_be_internal_highlighting=none
+resharper_member_can_be_made_static_global_highlighting=none
+resharper_member_can_be_made_static_local_highlighting=none
+resharper_not_accessed_field_global_highlighting=none
+resharper_out_parameter_value_is_always_discarded_global_highlighting=none
+resharper_redundant_assignment_highlighting=none
+resharper_unused_auto_property_accessor_global_highlighting=none
+resharper_unused_member_global_highlighting=none
+resharper_unused_method_return_value_global_highlighting=none
+resharper_unused_method_return_value_local_highlighting=none
+resharper_unused_parameter_global_highlighting=none
+resharper_member_can_be_protected_global_highlighting=none
+resharper_partial_type_with_single_part_highlighting=none
+resharper_redundant_type_declaration_body_highlighting=none

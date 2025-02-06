@@ -1,0 +1,2 @@
+// Error LAMA0037 on `Command`: `The aspect 'Command' cannot be applied to the method 'MustHaveValidParametersAsync.TwoParametersAsync(int, int)' because if 'MustHaveValidParametersAsync.TwoParametersAsync(int, int)' has two parameters, the last one must be a CancellationToken.`
+// Error LAMA0037 on `Command`: `The aspect 'Command' cannot be applied to the method 'MustHaveValidParametersAsync.ThreeParametersAsync(int, int, CancellationToken)' because 'MustHaveValidParametersAsync.ThreeParametersAsync(int, int, CancellationToken)' must have 2 or fewer parameters.`

@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFrameworks>net471;net6.0</TargetFrameworks>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <Configurations>Debug;Release;LamaDebug;LamaDebug</Configurations>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\Metalama.Patterns.Contracts\Metalama.Patterns.Contracts.csproj" />
+        <PackageReference Include="JetBrains.Annotations" />
+        <PackageReference Include="Microsoft.NET.Test.Sdk" />
+        <PackageReference Include="xunit" />
+        <PackageReference Include="xunit.runner.visualstudio" />
+        <PackageReference Include="Xunit.SkippableFact" />
+    </ItemGroup>
+
+</Project>

@@ -1,0 +1,33 @@
+﻿// THIS FILE IS T4-GENERATED.
+// To edit, go to NullLogger.Generated.tt.
+// To transform, run RunT4.ps1.
+
+<#@ Template debug="false" hostspecific="false" language="C#" #>
+<#@ Output extension=".cs" #>
+<#@ include file="..\Common.ttinclude" #>
+
+#pragma warning disable LAMA0320
+
+using Flashtrace.Contexts;
+using Flashtrace.Records;
+using Microsoft.Extensions.Logging;
+
+namespace Flashtrace.Loggers
+{
+	partial class NullFlashtraceLogger
+	{
+<#
+    for (var i = 1; i <= 10; i++)
+    {
+#>
+
+	    void IFlashtraceLogger.Write<<#= Repeat( "T{0}", i ) #>>( ILoggingContext context, FlashtraceLevel level, LogRecordKind logRecordKind, string text, <#= Repeat( "T{0} arg{0}", i ) #>, Exception exception, in CallerInfo callerInfo )
+        {
+             EmitWarning( level );
+        }
+
+		<#
+    }
+#>
+	}
+}

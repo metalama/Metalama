@@ -1,0 +1,179 @@
+﻿// THIS FILE IS T4-GENERATED.
+// To edit, go to CacheInvalidation.Generated.tt.
+// To transform, run RunT4.ps1.
+
+<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ output extension=".cs" #>
+
+#pragma warning disable LAMA0320
+
+#nullable enable
+
+using System;
+using System.Threading.Tasks;
+using Metalama.Patterns.Contracts;
+using Flashtrace;
+using static Flashtrace.Messages.SemanticMessageBuilder;
+
+namespace Metalama.Patterns.Caching
+{
+	public partial class CachingServiceExtensions
+    {
+        
+		<#
+    for (var i = 1; i <= 10; i++)
+    {
+#>
+
+		    /// <summary>
+            /// Removes a method call result from the cache giving the delegate of the method. This overload is for methods with <#= i #> parameter<#= GetPlural( i ) #>.
+            /// </summary>
+            /// <typeparam name="TReturn">The return type of the method.</typeparam>
+            /// <param name="cachingService">The <see cref="ICachingService"/>.</param>
+            /// <param name="method">A delegate of the method to invalidate.</param>
+<#
+        GenerateXmlDoc( i );
+#>
+  			public static void Invalidate<TReturn, <#= Repeat( "TParam{0}", i ) #>>( this ICachingService cachingService,  Func<<#= Repeat( "TParam{0}", i ) #>, TReturn> method, <#= Repeat( "TParam{0} arg{0}", i ) #> )
+            {
+                cachingService.InvalidateDelegate( method, <#= Repeat( "arg{0}", i ) #> );
+            }
+
+			 /// <summary>
+            /// Asynchronously removes a method call result from the cache giving the delegate of the method. This overload is for methods with <#= i #> parameter<#= GetPlural( i ) #>.
+            /// </summary>
+            /// <typeparam name="TReturn">The return type of the method.</typeparam>
+            /// <param name="cachingService">The <see cref="ICachingService"/>.</param>
+            /// <param name="method">A delegate of the method to invalidate.</param>
+			/// <returns>A <see cref="Task"/>.</returns>
+<#
+        GenerateXmlDoc( i );
+#>
+			public static ValueTask InvalidateAsync<TReturn, <#= Repeat( "TParam{0}", i ) #>>( this ICachingService cachingService, Func<<#= Repeat( "TParam{0}", i ) #>, TReturn> method, <#= Repeat( "TParam{0} arg{0}", i ) #>, CancellationToken cancellationToken = default )
+            {
+                return cachingService.InvalidateDelegateAsync( method, new object?[] { <#= Repeat( "arg{0}", i ) #> }, cancellationToken );
+            }
+
+			/// <summary>
+            /// Evaluates a method, ignoring the currently cached value, and replaces the corresponding cache item with the new return value of the method. This overload is for methods with <#= i #> parameter<#= GetPlural( i ) #>.
+            /// </summary>
+            /// <typeparam name="TReturn">The return type of the method.</typeparam>
+            /// <param name="cachingService">The <see cref="ICachingService"/>.</param>
+            /// <param name="method">A delegate of the method to evaluate.</param>
+            /// <returns>The return value of <paramref name="method"/>.</returns>
+<#
+        GenerateXmlDoc( i );
+#>
+			public static TReturn Refresh<TReturn,  <#= Repeat( "TParam{0}", i ) #>>(this ICachingService cachingService,  Func< <#= Repeat( "TParam{0}", i ) #>, TReturn> method, <#= Repeat( "TParam{0} arg{0}", i ) #> )
+            {
+				using ( var activity = cachingService.Logger.Default.OpenActivity( Semantic("Refresh", ("Method", method.Method ) ) ) )
+                {
+                    try
+                    {
+                        TReturn result;
+
+                        using ( cachingService.OpenRefreshContext( method, <#= Repeat( "arg{0}", i ) #> ) )
+                        {
+                            result = method( <#= Repeat( "arg{0}", i ) #>  );
+                        }
+
+                        activity.SetSuccess();
+
+                        return result;
+                    }
+                    catch ( Exception e ) 
+                    {
+                        activity.SetException(e);
+                        throw;
+                    }
+                }
+            }
+
+			/// <summary>
+            /// Asynchronously evaluates a method, ignoring the currently cached value, and replaces the corresponding cache item with the new return value of the method. This overload is for methods with <#= i #> parameter<#= GetPlural( i ) #>.
+            /// </summary>
+            /// <typeparam name="TReturn">The return type of the method.</typeparam>
+            /// <param name="method">A delegate of the method to evaluate.</param>
+            /// <param name="cachingService">The <see cref="ICachingService"/>.</param>    
+            /// <returns>A <see cref="Task{TResult}"/> that evaluates to the return value of <paramref name="method"/>.</returns>
+<#
+        GenerateXmlDoc( i );
+#>
+			public static async Task<TReturn> RefreshAsync<TReturn,  <#= Repeat( "TParam{0}", i ) #>>(  this ICachingService cachingService, Func<<#= Repeat( "TParam{0}", i ) #>, Task<TReturn>> method, <#= Repeat( "TParam{0} arg{0}", i ) #>, CancellationToken cancellationToken = default )
+            {
+                using ( var activity = cachingService.Logger.Default.OpenAsyncActivity( Semantic("Refresh", ("Method", method.Method ) ) ) )
+                {
+                    try
+                    {
+                        TReturn result;
+
+                        using ( cachingService.OpenRefreshContext( method, <#= Repeat( "arg{0}", i ) #> ) )
+                        {
+                            result = await method( <#= Repeat( "arg{0}", i ) #>  );
+                        }
+
+                        activity.SetSuccess();
+
+                        return result;
+                    }
+                    catch ( Exception e ) 
+                    {
+                        activity.SetException(e);
+                        throw;
+                    }
+                }
+            }
+
+			<#
+    }
+#>
+	
+	
+	}
+}
+
+<#+
+    private static string Repeat( string format, int count )
+    {
+        var s = "";
+        for (var i = 1; i <= count; i++)
+        {
+            if (i > 1) s += ", ";
+            s += string.Format( format, i );
+        }
+
+        return s;
+    }
+
+    private static string GetOrdinal( int count )
+    {
+        switch (count)
+        {
+            case 1:
+                return "first";
+            case 2:
+                return "second";
+            case 3:
+                return "third";
+            default:
+                return count + "-th";
+        }
+    }
+
+    private static string GetPlural( int count )
+    {
+        return count > 1 ? "s" : "";
+    }
+
+    private void GenerateXmlDoc( int count )
+    {
+        for (var i = 1; i <= count; i++)
+        {
+#>
+			/// <typeparam name="TParam<#= i #>">Type of the <#= GetOrdinal( i ) #> parameter.</typeparam>
+			/// <param name="arg<#= i #>">Value of the <#= GetOrdinal( i ) #> parameter.</param>
+	<#+
+        }
+    }
+#>
+

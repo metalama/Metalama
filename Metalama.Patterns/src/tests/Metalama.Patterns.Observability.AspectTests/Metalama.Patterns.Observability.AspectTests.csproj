@@ -1,0 +1,33 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Library</OutputType>
+        <TargetFramework>net6.0</TargetFramework>
+        <Configurations>Debug;Release;LamaDebug</Configurations>
+        <NoWarn>SA1402,SA1649,SA1623,SA1629</NoWarn>
+    </PropertyGroup>
+
+    <ItemGroup>        
+        <PackageReference Include="Microsoft.NET.Test.Sdk" />
+        <PackageReference Include="xunit" />
+        <PackageReference Include="xunit.runner.visualstudio" />
+        <PackageReference Include="Metalama.Testing.AspectTesting" />
+        <PackageReference Include="CommunityToolkit.Mvvm" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\..\Metalama.Patterns.Observability\Metalama.Patterns.Observability.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Compile Update="ObservableRecipientBase.cs">
+        <DependentUpon>$([System.String]::Copy('ObservableRecipientBase').Substring( %(Filename.IndexOf('.') ).cs</DependentUpon>
+        <SubType>Code</SubType>
+      </Compile>
+      <Compile Update="IntermediateInterface_ExplicitImpl.cs">
+        <DependentUpon>$([System.String]::Copy('IntermediateInterface').Substring( %(Filename.IndexOf('.') ).cs</DependentUpon>
+        <SubType>Code</SubType>
+      </Compile>
+    </ItemGroup>
+
+</Project>

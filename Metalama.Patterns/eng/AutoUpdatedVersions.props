@@ -1,0 +1,12 @@
+
+<Project>
+
+    <PropertyGroup>
+        <MetalamaVersion></MetalamaVersion>
+        <MetalamaExtensionsVersion></MetalamaExtensionsVersion>
+        <MetalamaBackstageVersion></MetalamaBackstageVersion>
+        <MetalamaCompilerVersion></MetalamaCompilerVersion>
+        <MetalamaFrameworkRunTimeVersion></MetalamaFrameworkRunTimeVersion>
+    </PropertyGroup>
+
+</Project>

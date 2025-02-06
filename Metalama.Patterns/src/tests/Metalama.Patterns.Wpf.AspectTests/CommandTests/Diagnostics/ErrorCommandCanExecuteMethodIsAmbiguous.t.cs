@@ -1,0 +1,2 @@
+// Error LAMA5205 on `CanExecuteFoo`: `Ambiguous match while identifying the can-execute method for [Command] method 'ErrorCommandCanExecuteMethodIsAmbiguous.ExecuteFoo()' by the 'default' naming convention.`
+// Error LAMA5205 on `CanExecuteFoo`: `Ambiguous match while identifying the can-execute method for [Command] method 'ErrorCommandCanExecuteMethodIsAmbiguous.ExecuteFoo()' by the 'default' naming convention.`

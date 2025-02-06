@@ -1,0 +1,1 @@
+// Error LAMA5111 on `CachedMethod`: `The [Cache] aspect can be applied to the method 'TheClass.CachedMethod(int, IDisposable)' because the classifier 'Metalama.Patterns.Caching.AspectTests.CacheAttributeTests.ParameterFilter_Error.TheCacheParameterClassifier' marked the  parameter 'y' as ineligible.`

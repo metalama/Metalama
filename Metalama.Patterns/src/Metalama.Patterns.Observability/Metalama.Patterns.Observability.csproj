@@ -1,0 +1,40 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net471;net6.0;netstandard2.0</TargetFrameworks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Configurations>Debug;Release;LamaDebug</Configurations>
+    <!-- Support unit testing -->
+    <MetalamaRemoveCompileTimeOnlyCode>false</MetalamaRemoveCompileTimeOnlyCode>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageDescription>
+      Implements the Observable pattern and the INotifyPropertyChanged interface with a single [Observable] attribute
+      thanks to Metalama. Supports both automatic and explicit properties and child objects.
+    </PackageDescription>
+    <PackageTags>Metalama PostSharp observable observability INotifyPropertyChanged INPC PropertyChanged OnPropertyChanged</PackageTags>    
+  </PropertyGroup>
+
+  
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+
+  <ItemGroup>
+    <Using Remove="System.Net.Http" />
+    <PackageReference Include="Metalama.Framework" />
+    <PackageReference Include="Metalama.Framework.Sdk" PrivateAssets="all" />
+    <PackageReference Include="JetBrains.Annotations" PrivateAssets="all" />
+
+    <InternalsVisibleTo Include="Metalama.Patterns.Observability.CompileTimeTests" />
+  </ItemGroup>
+
+
+  <ItemGroup>
+    <ProjectReference Include="..\Metalama.Patterns.Immutability\Metalama.Patterns.Immutability.csproj" />
+  </ItemGroup>
+  
+  <Import Sdk="PostSharp.Engineering.Sdk" Project="SystemTypes.props" />
+  
+</Project>

@@ -1,0 +1,1 @@
+// Error LAMA0037 on `Memoize`: `The aspect 'Memoize' cannot be applied to the method 'C.M(int)' because 'C.M(int)' must not have any parameters.`

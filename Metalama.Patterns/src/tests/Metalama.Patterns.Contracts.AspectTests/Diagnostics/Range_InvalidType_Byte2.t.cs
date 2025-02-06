@@ -1,0 +1,1 @@
+// Error LAMA5001 on `Field`: `The [StrictlyGreaterThan] contract cannot be applied to 'Range_InvalidType_Byte2.Field' because the value range ]255, ∞] cannot be satisfied by the type Byte.`

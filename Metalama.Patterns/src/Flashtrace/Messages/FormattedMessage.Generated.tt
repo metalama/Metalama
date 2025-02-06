@@ -1,0 +1,79 @@
+﻿// THIS FILE IS T4-GENERATED.
+// To edit, go to FormattedMessage.Generated.tt.
+// To transform, run RunT4.ps1.
+
+<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ output extension=".cs" #>
+<#@ include file="..\Common.ttinclude" #>
+
+#pragma warning disable LAMA0320
+
+#nullable enable
+
+using Flashtrace.Records;
+using System.Runtime.CompilerServices;
+
+namespace Flashtrace.Messages;
+<#
+    for (var i = 1; i <= 10; i++)
+    {
+#>
+
+/// <summary>
+/// Encapsulates a text message with <#= i #> parameter<#= GetPlural( i ) #>. Use the <see cref="FormattedMessageBuilder"/> class to create an instance of this type.
+/// </summary>
+public readonly struct FormattedMessage<<#= Repeat( "T{0}", i ) #>> : IMessage
+{
+	private readonly string formattingString;
+	
+	<#= Repeat( "private readonly T{0}? arg{0}; ", i, "" ) #>
+
+	
+	[MethodImpl(MethodImplOptions.AggressiveInlining)] // To avoid copying the struct.
+	internal FormattedMessage( string formattingString, <#= Repeat( "T{0}? arg{0}", i ) #> )
+	{
+		this.formattingString = formattingString;
+		<#= Repeat( "this.arg{0} = arg{0}; ", i, "" ) #>
+	}
+
+	void IMessage.Write( ILogRecordBuilder recordBuilder, LogRecordItem item )
+	{
+		recordBuilder.BeginWriteItem(item, new LogRecordTextOptions(<#= i #>, null));
+
+		FormattingStringParser parser = new FormattingStringParser( this.formattingString.AsSpan() );
+		ReadOnlySpan<char> parameter;
+
+<#
+        for (var j = 1; j <= i; j++)
+        {
+#>
+		recordBuilder.WriteString( parser.GetNextText() );
+
+
+		if ( !parser.TryGetNextParameter( out parameter ) )
+		{
+			throw new InvalidFormattingStringException("The formatting string must have exactly <#= i #> parameters.");
+		}
+
+		recordBuilder.WriteParameter( <#= j - 1 #>, parameter, arg<#= j #>, LogParameterOptions.FormattedStringParameter );
+<#
+        }
+#>
+		recordBuilder.WriteString( parser.GetNextText() );
+
+		if ( parser.TryGetNextParameter( out _ ) )
+		{
+			throw new InvalidFormattingStringException("The formatting string must have exactly <#= i #> parameters.");
+		}
+
+		recordBuilder.EndWriteItem(item);
+
+
+	}
+
+	/// <inheritdoc />
+	public override string ToString() => DebugMessageFormatter.Format( this );
+}
+<#
+    }
+#>

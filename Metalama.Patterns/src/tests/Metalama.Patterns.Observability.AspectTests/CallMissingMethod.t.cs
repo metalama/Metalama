@@ -1,0 +1,1 @@
+// Error CS0103 on `Foo`: `The name 'Foo' does not exist in the current context`

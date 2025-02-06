@@ -1,0 +1,37 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net471;net6.0;netstandard2.0</TargetFrameworks>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Configurations>Debug;Release;LamaDebug</Configurations>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageDescription>
+      Redis back-end for Metalama.Patterns.Caching. Implements both caching and cache invalidation over Redis Pub/Sub
+    </PackageDescription>
+    <PackageTags>Metalama PostSharp caching cache redis pub sub</PackageTags>
+  </PropertyGroup>
+  
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="JetBrains.Annotations" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.CodeAnalysis.Elfie" />
+    <PackageReference Include="StackExchange.Redis" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
+    <ProjectReference Include="..\Metalama.Patterns.Caching\Metalama.Patterns.Caching.csproj" />
+    <ProjectReference Include="..\Metalama.Patterns.Contracts\Metalama.Patterns.Contracts.csproj" PrivateAssets="all" />
+  </ItemGroup>
+            
+  <ItemGroup>
+    <InternalsVisibleTo Include="Metalama.Patterns.Caching.UnitTests" />
+    <InternalsVisibleTo Include="Metalama.Patterns.Caching.TestHelpers" />
+  </ItemGroup>
+  
+
+  <Import Sdk="PostSharp.Engineering.Sdk" Project="SystemTypes.props" />
+  
+</Project>

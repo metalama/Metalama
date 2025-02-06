@@ -1,0 +1,6 @@
+# C# files
+[*.cs]
+
+resharper_member_can_be_private_global_highlighting=none
+resharper_check_namespace_highlighting=none
+resharper_inconsistent_naming_highlighting=none

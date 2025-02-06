@@ -1,0 +1,61 @@
+﻿// THIS FILE IS T4-GENERATED.
+// To edit, go to CachingClass.Generated.tt.
+// To transform, run this: "C:\Program Files (x86)\Common Files\Microsoft Shared\TextTemplating\14.0\TextTransform.exe" CachingClass.Generated.tt
+// The transformation is not automatic because we are in a shared project.
+
+<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ output extension=".cs" #>
+
+#pragma warning disable LAMA0320
+
+using System.Threading.Tasks;
+
+namespace Metalama.Patterns.Caching.TestHelpers
+{
+    public partial class CachingClass<T>
+    {
+	    <#
+    for (var i = 1; i <= 10; i++)
+    {
+#>
+
+	    public virtual T GetValue( <#= Repeat( "int param{0}", i ) #> )
+        {
+            return this.CreateNextValue();
+        }
+
+		public virtual async Task<T> GetValueAsync( <#= Repeat( "int param{0}", i ) #> )
+        {
+            return await this.CreateNextValueAsync();
+        }
+
+		public virtual T GetValueAsDependency( <#= Repeat( "int param{0}", i ) #> )
+        {
+            return this.CreateNextValueAsDependency();
+        }
+
+		public virtual async Task<T> GetValueAsDependencyAsync( <#= Repeat( "int param{0}", i ) #> )
+        {
+            return await this.CreateNextValueAsDependencyAsync();
+        }
+
+		<#
+    }
+#>
+
+	}
+}
+
+<#+
+    private static string Repeat( string format, int count )
+    {
+        var s = "";
+        for (var i = 1; i <= count; i++)
+        {
+            if (i > 1) s += ", ";
+            s += string.Format( format, i );
+        }
+
+        return s;
+    }
+#>

@@ -1,0 +1,2 @@
+// Error LAMA5205 on `OnFooChanged`: `Ambiguous match while identifying the property-changed method for [DependencyProperty] property 'DefaultPropertyChangedMethodIsAmbiguous.Foo' by the 'default' naming convention.`
+// Error LAMA5205 on `OnFooChanged`: `Ambiguous match while identifying the property-changed method for [DependencyProperty] property 'DefaultPropertyChangedMethodIsAmbiguous.Foo' by the 'default' naming convention.`

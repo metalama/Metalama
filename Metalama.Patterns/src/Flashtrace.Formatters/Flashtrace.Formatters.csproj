@@ -1,0 +1,30 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFrameworks>net471;net6.0;netstandard2.0</TargetFrameworks>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+	    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+      <PackageReadmeFile>README.md</PackageReadmeFile>
+      <PackageDescription>Implements fast and pluggable string formatters. Used by Metalama.Patterns.Caching.</PackageDescription>
+      <PackageTags>Metalama PostSharp AOP caching</PackageTags>
+    </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="JetBrains.Annotations" PrivateAssets="all" />
+    <PackageReference Include="System.Memory" />
+    <InternalsVisibleTo Include="Flashtrace.Formatters.UnitTests" />
+    <InternalsVisibleTo Include="Metalama.Patterns.Caching.UnitTests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+	<ItemGroup>
+		<Using Remove="System.Net.Http" />
+	</ItemGroup>
+	
+	<Import Sdk="PostSharp.Engineering.Sdk" Project="SystemTypes.props" />
+	
+</Project>

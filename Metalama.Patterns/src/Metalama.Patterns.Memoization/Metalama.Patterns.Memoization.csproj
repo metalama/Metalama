@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net471;net6.0;netstandard2.0</TargetFrameworks>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TransformOnBuild>true</TransformOnBuild>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageDescription>
+      Simple and high-performance caching of properties or parameterless methods with a single
+      [Memo] custom attribute thanks to Metalama.
+    </PackageDescription>
+    <PackageTags>Metalama PostSharp caching memo memoize memoization</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Metalama.Framework" />
+    <PackageReference Include="JetBrains.Annotations" PrivateAssets="all" />
+  </ItemGroup>
+  <Import Sdk="PostSharp.Engineering.Sdk" Project="SystemTypes.props" />
+</Project>

@@ -1,0 +1,1 @@
+// Error LAMA5001 on `a`: `The [StrictlyGreaterThan] contract cannot be applied to 'Range_LongStrictlyGreaterThanUlong.MethodWithLongStrictlyGreaterThanUlong(long?)/a' because the value range ]9223372036854775808, ∞] cannot be satisfied by the type Int64.`

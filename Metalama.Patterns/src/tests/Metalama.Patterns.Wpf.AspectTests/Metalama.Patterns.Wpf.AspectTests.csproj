@@ -1,0 +1,50 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Configurations>Debug;Release;LamaDebug</Configurations>
+    <NoWarn>SA1402,SA1649</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="Metalama.Testing.AspectTesting" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Metalama.Patterns.Observability\Metalama.Patterns.Observability.csproj" />
+    <ProjectReference Include="..\..\Metalama.Patterns.Wpf\Metalama.Patterns.Wpf.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="CommandTests\Callbacks\CanExecuteMethodAsync.cs">
+      <DependentUpon>$([System.String]::Copy('CanExecuteMethod').Substring( %(Filename.IndexOf('.') ).cs</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="CommandTests\Callbacks\CanExecutePropertyAsync.cs">
+      <DependentUpon>$([System.String]::Copy('CanExecuteProperty').Substring( %(Filename.IndexOf('.') ).cs</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="CommandTests\Eligibility\MustHaveValidParametersAsync.cs">
+      <DependentUpon>$([System.String]::Copy('MustHaveZeroOrOneParameter').Substring( %(Filename.IndexOf('.') ).cs</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="CommandTests\Callbacks\CanExecuteMethodBackground.cs">
+      <DependentUpon>$([System.String]::Copy('CanExecuteMethod').Substring( %(Filename.IndexOf('.') ).cs</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="CommandTests\Callbacks\CanExecutePropertyBackground.cs">
+      <DependentUpon>$([System.String]::Copy('CanExecuteProperty').Substring( %(Filename.IndexOf('.') ).cs</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="CommandTests\Callbacks\ExecuteMethodBackground.cs">
+      <DependentUpon>$([System.String]::Copy('ExecuteMethod').Substring( %(Filename.IndexOf('.') ).cs</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+  </ItemGroup>
+
+</Project>

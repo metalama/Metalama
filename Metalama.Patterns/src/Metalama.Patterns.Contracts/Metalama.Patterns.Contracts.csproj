@@ -1,0 +1,30 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFrameworks>net471;net6.0;netstandard2.0</TargetFrameworks>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <Configurations>Debug;Release;LamaDebug;LamaDebug</Configurations>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageDescription>
+            Contract-Based Programming (or Design-by-Contract) with custom attributes such as [NotNull] or [Url]
+            thanks to Metalama: pre-conditions, post-conditions and invariants.
+        </PackageDescription>
+        <PackageTags>Metalama PostSharp contract precondition postcondition invariant</PackageTags>
+    </PropertyGroup>
+
+
+    <ItemGroup>
+        <None Include="README.md" Pack="true" PackagePath="\" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Metalama.Framework" />
+		<PackageReference Include="JetBrains.Annotations" PrivateAssets="all" />
+		<InternalsVisibleTo Include="Metalama.Patterns.Contracts.UnitTests" />
+    </ItemGroup>
+
+
+    <Import Sdk="PostSharp.Engineering.Sdk" Project="SystemTypes.props" />
+
+</Project>

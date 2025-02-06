@@ -1,0 +1,12 @@
+# C# files
+[*.cs]
+
+# SA1124: Do not use regions
+dotnet_diagnostic.SA1124.severity = none
+
+dotnet_diagnostic.LAMA0048.severity = none
+
+resharper_inconsistent_naming_highlighting=none
+
+resharper_unused_parameter_local_highlighting=none
+

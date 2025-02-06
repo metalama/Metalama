@@ -1,0 +1,1 @@
+// Error LAMA0037 on `Memoize`: `The aspect 'Memoize' cannot be applied to the method 'C.M()' because the return type of 'C.M()' must not be void.`

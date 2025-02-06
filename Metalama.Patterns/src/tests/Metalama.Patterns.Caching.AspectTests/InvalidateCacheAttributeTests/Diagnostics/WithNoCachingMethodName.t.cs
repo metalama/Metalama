@@ -1,0 +1,1 @@
+// Error LAMA5105 on `Invalidate`: `Invalid [InvalidateCache] aspect on 'WithNoCachingMethodName.CachingClass.Invalidate()': the constructor parameters must contain at least one method name.`

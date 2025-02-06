@@ -1,0 +1,1 @@
+// Error LAMA0037 on `NotNull`: `The aspect 'NotNull' cannot be applied to the parameter 'NotNull_Ineligible_GenericStruct.Method<T>(T)/x' because the type of 'NotNull_Ineligible_GenericStruct.Method<T>(T)/x' must be a nullable type.`

@@ -1,0 +1,1 @@
+// Error LAMA0037 on `Command`: `The aspect 'Command' cannot be applied to the method 'MustHaveZeroOrOneParameter.TwoParameters(int, int)' because if 'MustHaveZeroOrOneParameter.TwoParameters(int, int)' has two parameters, the last one must be a CancellationToken.`

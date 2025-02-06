@@ -1,0 +1,58 @@
+# C# files
+[*.cs]
+
+# CS8618: Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+dotnet_diagnostic.CS8618.severity = none
+
+# SA1401: Fields should be private
+dotnet_diagnostic.SA1401.severity = none
+
+# SA1602: Enumeration items should be documented
+dotnet_diagnostic.SA1602.severity = none
+
+# SA1124: Do not use regions
+dotnet_diagnostic.SA1124.severity = none
+
+# CA1822: Mark members as static
+dotnet_diagnostic.CA1822.severity = none
+
+# SA1649: File name should match first type name
+dotnet_diagnostic.SA1649.severity = none
+
+# IDE0044: Add readonly modifier
+dotnet_diagnostic.IDE0044.severity = none
+
+# IDE0051: Remove unused private members
+dotnet_diagnostic.IDE0051.severity = none
+
+# IDE1006: Naming Styles
+dotnet_diagnostic.IDE1006.severity = none
+
+# IDE0004: Remove Unnecessary Cast
+dotnet_diagnostic.IDE0004.severity = none
+
+# CS0649: Field 'field' is never assigned to, and will always have its default value 'value'
+dotnet_diagnostic.CS0649.severity = none
+
+# CS0169: The private field 'class member' is never used
+dotnet_diagnostic.CS0169.severity = none
+
+dotnet_diagnostic.SA1402.severity = none
+
+resharper_check_namespace_highlighting=none
+resharper_unassigned_get_only_auto_property_highlighting=none
+resharper_class_can_be_sealed_global_highlighting=none
+resharper_inconsistent_naming_highlighting=none
+resharper_redundant_cast_highlighting=none
+resharper_unused_member_global_highlighting=none
+resharper_unused_member_local_highlighting=none
+resharper_unused_parameter_global_highlighting=none
+resharper_unused_parameter_local_highlighting=none
+resharper_unused_type_global_highlighting=none
+resharper_unused_type_local_highlighting=none
+resharper_member_can_be_internal_highlighting=none
+resharper_member_can_be_made_static_global_highlighting=none
+resharper_unused_method_return_value_global_highlighting=none
+resharper_member_can_be_private_global_highlighting=none
+resharper_class_never_instantiated_global_highlighting=none
+resharper_checknamespace_severity=none

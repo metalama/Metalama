@@ -1,0 +1,1 @@
+// Error LAMA5001 on `GetField`: `The [Range] contract cannot be applied to 'Range_InvalidType_Byte3.GetField()/<return>' because the value range [-50, -20] cannot be satisfied by the type Byte.`

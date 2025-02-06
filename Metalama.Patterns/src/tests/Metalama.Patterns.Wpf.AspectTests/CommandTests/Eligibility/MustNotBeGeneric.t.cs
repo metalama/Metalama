@@ -1,0 +1,1 @@
+// Error LAMA0037 on `Command`: `The aspect 'Command' cannot be applied to the method 'MustNotBeGeneric.Generic<T>()' because 'MustNotBeGeneric.Generic<T>()' must not be generic.`

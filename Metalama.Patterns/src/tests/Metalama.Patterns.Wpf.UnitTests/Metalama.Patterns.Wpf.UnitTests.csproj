@@ -1,0 +1,33 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net471;net6.0-windows</TargetFrameworks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Configurations>Debug;Release;LamaDebug</Configurations>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="FluentAssertions" />
+    <!-- Prevent MSB3277 warning: -->
+    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" />
+    <!-- Prevent MSB3277 warning: -->
+    <PackageReference Include="System.Threading.Tasks.Extensions" />
+    <PackageReference Include="System.Collections.Immutable" />
+    <!-- Prevent MSB3277 warning: -->
+    <PackageReference Include="System.Reflection.Metadata" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net471'">
+    <Reference Include="WindowsBase" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Metalama.Patterns.Observability\Metalama.Patterns.Observability.csproj" />
+    <ProjectReference Include="..\..\Metalama.Patterns.Wpf\Metalama.Patterns.Wpf.csproj" />
+  </ItemGroup>
+  
+</Project>

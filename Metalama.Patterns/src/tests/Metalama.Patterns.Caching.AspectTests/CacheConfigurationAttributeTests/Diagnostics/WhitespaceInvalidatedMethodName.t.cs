@@ -1,0 +1,1 @@
+// Error LAMA5104 on `Test`: `Invalid [InvalidateCache] aspect on 'WhitespaceInvalidatedMethodName.Test(int)': the constructor parameters cannot contain a null, empty or whitespace-only string.`

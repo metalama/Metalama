@@ -1,0 +1,57 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFrameworks>net471;net6.0;netstandard2.0</TargetFrameworks>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <TransformOnBuild>true</TransformOnBuild>
+        <RootNamespace>Metalama.Patterns.Caching</RootNamespace>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+    </PropertyGroup>
+
+
+    <ItemGroup>
+        <None Include="README.md" Pack="true" PackagePath="\" />
+    </ItemGroup>    
+
+    <ItemGroup>
+        <PackageReference Include="JetBrains.Annotations" PrivateAssets="all" />
+        <PackageReference Include="Microsoft.Extensions.Caching.Memory" />
+        <PackageReference Include="System.Collections.Immutable" />
+        <PackageReference Include="System.Text.Json" />
+        <PackageReference Include="Microsoft.IO.RecyclableMemoryStream" />
+    </ItemGroup>
+
+
+    <ItemGroup Condition="'$(TargetFramework)' == 'net471'">
+        <PackageReference Include="System.Runtime.Serialization.Xml" />
+        <PackageReference Include="System.Threading" />
+        <PackageReference Include="System.Threading.Thread" />
+        <PackageReference Include="System.Threading.ThreadPool" />
+        <PackageReference Include="System.Text.RegularExpressions" />
+        <PackageReference Include="System.Threading.Tasks.Extensions" />
+    </ItemGroup>
+
+    <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+        <PackageReference Include="System.Threading.Tasks.Extensions" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Flashtrace.Formatters\Flashtrace.Formatters.csproj" />
+        <ProjectReference Include="..\Flashtrace\Flashtrace.csproj" />
+        <ProjectReference Include="..\Metalama.Patterns.Contracts\Metalama.Patterns.Contracts.csproj" PrivateAssets="all" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="Metalama.Patterns.Caching.UnitTests" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
+    </ItemGroup>
+
+
+    <Import Sdk="PostSharp.Engineering.Sdk" Project="SystemTypes.props" />
+
+</Project>

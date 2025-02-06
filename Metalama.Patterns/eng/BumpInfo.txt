@@ -1,0 +1,1 @@
+{"Dependencies":{"Metalama.Extensions":"2025.1.0","Metalama":"2025.1.1"}}

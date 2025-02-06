@@ -1,0 +1,152 @@
+﻿// THIS FILE IS T4-GENERATED.
+// To edit, go to CacheInvalidation.Generated.tt.
+// To transform, run RunT4.ps1.
+
+<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ output extension=".cs" #>
+
+#pragma warning disable LAMA0320
+
+using System.Threading.Tasks;
+using Xunit;
+using Metalama.Patterns.Caching.TestHelpers;
+using Metalama.Patterns.Caching.Aspects;
+
+namespace Metalama.Patterns.Caching.Tests
+{
+	public sealed partial class ImperativeInvalidationTests
+    {
+		<#
+    for (var i = 1; i <= 10; i++)
+    {
+#>
+
+		#region TestSimpleImperativeInvalidationWith<#= i #>Parameters
+
+        private const string _testSimpleImperativeInvalidationWith<#= i #>ParametersProfileName =
+            _profileNamePrefix + nameof(TestSimpleImperativeInvalidationWith<#= i #>Parameters);
+
+        class TestSimpleImperativeInvalidationWith<#= i #>ParametersCachingClass : CachingClass
+        {
+            [Cache(ProfileName = _testSimpleImperativeInvalidationWith<#= i #>ParametersProfileName)]
+            public override CachedValueClass GetValue( <#= Repeat( "int param{0}", i ) #> )
+            {
+                return base.GetValue( <#= Repeat( "param{0}", i ) #> );
+            }
+        }
+
+        [Fact]
+        public void TestSimpleImperativeInvalidationWith<#= i #>Parameters()
+        {
+            TestSimpleImperativeInvalidationWith<#= i #>ParametersCachingClass cachingClass = new TestSimpleImperativeInvalidationWith<#= i #>ParametersCachingClass();
+
+            DoTestSimpleImperativeInvalidation( _testSimpleImperativeInvalidationWith<#= i #>ParametersProfileName,
+                                                () => cachingClass.GetValue( <#= Repeat( "{0}", i ) #> ),
+                                                () => CachingService.Default.Invalidate( cachingClass.GetValue, <#= Repeat( "{0}", i ) #> ),
+                                                cachingClass.Reset );
+        }
+
+        #endregion
+
+		#region TestSimpleImperativeInvalidationWith<#= i #>ParametersAsync
+
+        private const string _testSimpleImperativeInvalidationWith<#= i #>ParametersAsyncProfileName =
+            _profileNamePrefix + nameof(TestSimpleImperativeInvalidationWith<#= i #>ParametersAsync);
+
+        class TestSimpleImperativeInvalidationWith<#= i #>ParametersAsyncCachingClass : CachingClass
+        {
+            [Cache( ProfileName = _testSimpleImperativeInvalidationWith<#= i #>ParametersAsyncProfileName )]
+            public override async Task<CachedValueClass> GetValueAsync( <#= Repeat( "int param{0}", i ) #> )
+            {
+                return await base.GetValueAsync( <#= Repeat( "param{0}", i ) #> );
+            }
+        }
+
+        [Fact]
+        public async Task TestSimpleImperativeInvalidationWith<#= i #>ParametersAsync()
+        {
+            TestSimpleImperativeInvalidationWith<#= i #>ParametersAsyncCachingClass cachingClass =
+                new TestSimpleImperativeInvalidationWith<#= i #>ParametersAsyncCachingClass();
+
+            await DoTestSimpleImperativeInvalidationAsync( _testSimpleImperativeInvalidationWith<#= i #>ParametersAsyncProfileName,
+                                                           () => cachingClass.GetValueAsync( <#= Repeat( "{0}", i ) #> ),
+                                                           () => CachingService.Default.InvalidateAsync( cachingClass.GetValueAsync, <#= Repeat( "{0}", i ) #> ),
+                                                           cachingClass.Reset );
+        }
+
+        #endregion
+
+		#region TestSimpleImperativeRecachingWith<#= i #>Parameters
+
+        private const string _testSimpleImperativeRecachingWith<#= i #>ParametersProfileName =
+            _profileNamePrefix + nameof(TestSimpleImperativeRecachingWith<#= i #>Parameters);
+
+        class TestSimpleImperativeRecachingWith<#= i #>ParametersCachingClass : CachingClass
+        {
+            [Cache( ProfileName = _testSimpleImperativeRecachingWith<#= i #>ParametersProfileName )]
+            public override CachedValueClass GetValue( <#= Repeat( "int param{0}", i ) #> )
+            {
+                return base.GetValue( <#= Repeat( "param{0}", i ) #> );
+            }
+        }
+
+        [Fact]
+        public void TestSimpleImperativeRecachingWith<#= i #>Parameters()
+        {
+            TestSimpleImperativeRecachingWith<#= i #>ParametersCachingClass cachingClass = new TestSimpleImperativeRecachingWith<#= i #>ParametersCachingClass();
+
+            DoTestSimpleImperativeInvalidation( _testSimpleImperativeRecachingWith<#= i #>ParametersProfileName,
+                                                () => cachingClass.GetValue( <#= Repeat( "{0}", i ) #> ),
+                                                () => CachingService.Default.Refresh( cachingClass.GetValue, <#= Repeat( "{0}", i ) #> ),
+                                                cachingClass.Reset );
+        }
+
+        #endregion
+
+		#region TestSimpleImperativeRecachingWith<#= i #>ParametersAsync
+
+        private const string _testSimpleImperativeRecachingWith<#= i #>ParametersAsyncProfileName =
+            _profileNamePrefix + nameof(TestSimpleImperativeRecachingWith<#= i #>ParametersAsync);
+
+        class TestSimpleImperativeRecachingWith<#= i #>ParametersAsyncCachingClass : CachingClass
+        {
+            [Cache( ProfileName = _testSimpleImperativeRecachingWith<#= i #>ParametersAsyncProfileName )]
+            public override async Task<CachedValueClass> GetValueAsync( <#= Repeat( "int param{0}", i ) #> )
+            {
+                return await base.GetValueAsync( <#= Repeat( "param{0}", i ) #> );
+            }
+        }
+
+        [Fact]
+        public async Task TestSimpleImperativeRecachingWith<#= i #>ParametersAsync()
+        {
+            TestSimpleImperativeRecachingWith<#= i #>ParametersAsyncCachingClass cachingClass = new TestSimpleImperativeRecachingWith<#= i #>ParametersAsyncCachingClass();
+
+            await DoTestSimpleImperativeInvalidationAsync( _testSimpleImperativeRecachingWith<#= i #>ParametersAsyncProfileName,
+                                                           () => cachingClass.GetValueAsync( <#= Repeat( "{0}", i ) #> ),
+                                                           () => CachingService.Default.RefreshAsync( cachingClass.GetValueAsync, <#= Repeat( "{0}", i ) #> ),
+                                                           cachingClass.Reset );
+        }
+
+        #endregion
+
+		<#
+    }
+#>
+
+	}
+}
+
+<#+
+    private static string Repeat( string format, int count )
+    {
+        var s = "";
+        for (var i = 1; i <= count; i++)
+        {
+            if (i > 1) s += ", ";
+            s += string.Format( format, i );
+        }
+
+        return s;
+    }
+#>

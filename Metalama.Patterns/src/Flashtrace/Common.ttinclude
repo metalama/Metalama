@@ -1,0 +1,60 @@
+ 
+    <#+
+    private static string Repeat( string format, int count )
+    {
+        var s = "";
+        for (var i = 1; i <= count; i++)
+        {
+            if (i > 1) s += ", ";
+            s += string.Format( format, i );
+        }
+
+        return s;
+    }
+
+    private static string Repeat( string format, int count, string separator )
+    {
+        var s = "";
+        for (var i = 1; i <= count; i++)
+        {
+            if (i > 1) s += separator;
+            s += string.Format( format, i );
+        }
+
+        return s;
+    }
+
+    private static string GetPlural( int count )
+    {
+        return count > 1 ? "s" : "";
+    }
+
+    private static string GetOrdinal( int count )
+    {
+        switch (count)
+        {
+            case 1:
+                return "first";
+            case 2:
+                return "second";
+            case 3:
+                return "third";
+            default:
+                return count +
+                ( ( count % 100 ) < 21
+                    ? "-th"
+                    : ( count % 10 ) switch { 1 => "-st", 2 => "-nd", 3 => "-rd", _ => "-th" } );
+        }
+    }
+
+    private void GenerateXmlDoc( int count )
+    {
+        for (var i = 1; i <= count; i++)
+        {
+#>
+	/// <typeparam name="T<#= i #>">Type of the <#= GetOrdinal( i ) #> parameter.</typeparam>
+	/// <param name="arg<#= i #>">Value of the <#= GetOrdinal( i ) #> parameter.</param>
+<#+
+        }
+    }
+#>

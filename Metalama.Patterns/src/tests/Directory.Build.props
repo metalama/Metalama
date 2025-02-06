@@ -1,0 +1,18 @@
+<Project>
+
+    <!-- Imports Directory.Build.props of the upper directory. Use this code in any non-root Directory.Build.* even if the file does not exit. -->
+    <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" Condition="Exists('$([MSBuild]::GetPathOfFileAbove(`Directory.Build.props`, `$(MSBuildThisFileDirectory)../`))')"/>
+
+    <PropertyGroup>
+        <IsPackable>False</IsPackable>
+        <!-- If the build is deterministic, we can have the error : SourceRoot items must include at least one top-level (not nested) 
+             item when DeterministicSourcePaths is true -->
+        <Deterministic>False</Deterministic>
+
+        <AddAssemblyMetadataAttributes>False</AddAssemblyMetadataAttributes>
+
+        <!-- TODO: Enable CS1998 and fix async without await warnings. -->
+        <NoWarn>$(NoWarn);CS1998</NoWarn>
+    </PropertyGroup>
+
+</Project>

@@ -1,0 +1,1 @@
+// Error LAMA5104 on `Invalidate`: `Invalid [InvalidateCache] aspect on 'WithEmptyMethodName.CachingClass.Invalidate()': the constructor parameters cannot contain a null, empty or whitespace-only string.`

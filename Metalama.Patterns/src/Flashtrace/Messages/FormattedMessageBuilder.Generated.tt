@@ -1,0 +1,40 @@
+﻿// THIS FILE IS T4-GENERATED.
+// To edit, go to FormattedMessageBuilder.Generated.tt.
+// To transform, run RunT4.ps1.
+
+<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ output extension=".cs" #>
+<#@ include file="..\Common.ttinclude" #>
+
+#pragma warning disable LAMA0320
+
+#nullable enable
+
+using System.Runtime.CompilerServices;
+using Flashtrace.Messages;
+
+namespace Flashtrace.Messages;
+
+partial class FormattedMessageBuilder
+{
+<#
+    for (var i = 1; i <= 10; i++)
+    {
+#>
+
+	/// <summary>
+    /// Creates a formatted string with <#= i #> parameter<#= GetPlural( i ) #>.
+    /// </summary>
+    /// <param name="formattingString">The text of the log record, including parameters (e.g. <c>Opening {Path} file {ShareMode} sharing mode</c>).</param>
+<#
+        GenerateXmlDoc( i );
+#>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)] // To avoid copying the struct.
+    public static FormattedMessage<<#= Repeat( "T{0}", i ) #>> Formatted<<#= Repeat( "T{0}", i ) #>>(  string formattingString, <#= Repeat( "T{0}? arg{0}", i ) #> )
+    {
+        return new FormattedMessage<<#= Repeat( "T{0}", i ) #>>( formattingString, <#= Repeat( "arg{0}", i ) #> );
+    }
+<#
+    }
+#>
+}

@@ -1,0 +1,1 @@
+// Error LAMA5105 on `Test`: `Invalid [InvalidateCache] aspect on 'NoInvalidatedMethodNames.Test(int)': the constructor parameters must contain at least one method name.`

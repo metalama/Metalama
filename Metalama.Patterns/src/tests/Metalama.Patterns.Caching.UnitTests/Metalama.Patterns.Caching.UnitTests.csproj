@@ -1,0 +1,39 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Metalama.Patterns.Caching.Tests</RootNamespace>
+    <TargetFrameworks>net471;net6.0</TargetFrameworks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Configurations>Debug;Release;LamaDebug</Configurations>
+    <TestProjectFlags>TimeSensitive</TestProjectFlags>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <DefineConstants Condition=" '$(Configuration)' == 'LAMADEBUG' ">$(DefineConstants);DEBUG</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="Xunit.SkippableFact" />
+    <PackageReference Include="xunit.assemblyfixture" />
+    <PackageReference Include="xunit.extensibility.execution" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Flashtrace.Formatters\Flashtrace.Formatters.csproj" />
+    <ProjectReference Include="..\..\Flashtrace\Flashtrace.csproj" />
+    <ProjectReference Include="..\..\Metalama.Patterns.Caching.Aspects\Metalama.Patterns.Caching.Aspects.csproj" />
+    <ProjectReference Include="..\..\Metalama.Patterns.Caching.Backends.Azure\Metalama.Patterns.Caching.Backends.Azure.csproj" />
+    <ProjectReference Include="..\..\Metalama.Patterns.Caching.Backends.Redis\Metalama.Patterns.Caching.Backends.Redis.csproj" />
+
+    <ProjectReference Include="..\..\Metalama.Patterns.Contracts\Metalama.Patterns.Contracts.csproj" />
+    <ProjectReference Include="..\Metalama.Patterns.Caching.TestHelpers\Metalama.Patterns.Caching.TestHelpers.csproj" />
+  </ItemGroup>
+  
+
+  <Import Project="RedisTestServer.targets" />
+  
+</Project>

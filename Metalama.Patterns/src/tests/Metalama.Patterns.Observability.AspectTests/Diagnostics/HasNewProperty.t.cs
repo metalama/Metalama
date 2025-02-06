@@ -1,0 +1,1 @@
+// Error LAMA5155 on `A`: `The 'HasNewProperty.A' property is 'new'. This is not supported by the [Observable] aspect.`

@@ -1,0 +1,33 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net471;net6.0;netstandard2.0</TargetFrameworks>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Configurations>Debug;Release;LamaDebug</Configurations>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageDescription>
+      Synchronizes the invalidation of distributed Metalama.Patterns.Caching caches over Azure Service Bus.
+    </PackageDescription>
+    <PackageTags>Metalama PostSharp caching cache azure service bus</PackageTags>
+  </PropertyGroup>
+  
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="JetBrains.Annotations" PrivateAssets="all" />
+    <PackageReference Include="Azure.Messaging.ServiceBus"/>
+    <PackageReference Include="Azure.Identity" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Metalama.Patterns.Caching\Metalama.Patterns.Caching.csproj" />
+    <ProjectReference Include="..\Metalama.Patterns.Contracts\Metalama.Patterns.Contracts.csproj" PrivateAssets="all" />
+  </ItemGroup>
+
+  <Import Sdk="PostSharp.Engineering.Sdk" Project="SystemTypes.props" />
+
+</Project>

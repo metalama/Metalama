@@ -1,0 +1,1 @@
+// Error LAMA5107 on `Invalidate`: `Invalid [InvalidateCache] aspect on 'MultipleMatchingOverloads.InvalidatingClass.Invalidate(int)': there are several suitable overloads of the 'DoAction' method. Set the AllowMultipleOverloads property to "true" to allow invalidation of all of them.`

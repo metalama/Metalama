@@ -1,0 +1,105 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net471;net6.0;netstandard2.0</TargetFrameworks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageDescription>A helper package implementing a logging front-end for Metalama.Patterns.Caching.</PackageDescription>
+    <PackageTags>Metalama logging tracing</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="JetBrains.Annotations" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" />
+    <InternalsVisibleTo Include="Flashtrace.UnitTests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Remove="System.Net.Http" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Flashtrace.Formatters\Flashtrace.Formatters.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="IFlashtraceLogger.Generated.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>IFlashtraceLogger.Generated.cs</LastGenOutput>
+    </None>
+    <Compile Update="IFlashtraceLogger.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>IFlashtraceLogger.Generated.tt</DependentUpon>
+    </Compile>
+    <None Update="Internal\NullLogger.Generated.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>NullLogger.Generated.cs</LastGenOutput>
+    </None>
+    <Compile Update="Internal\NullLogger.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>NullLogger.Generated.tt</DependentUpon>
+    </Compile>
+    <None Update="Internal\LegacySourceLogger.Generated.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>LegacySourceLogger.Generated.cs</LastGenOutput>
+    </None>
+    <Compile Update="Internal\LegacySourceLogger.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>LegacySourceLogger.Generated.tt</DependentUpon>
+    </Compile>
+    <None Update="Messages\FormattedMessage.Generated.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>FormattedMessage.Generated.cs</LastGenOutput>
+    </None>
+    <Compile Update="Messages\FormattedMessage.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>FormattedMessage.Generated.tt</DependentUpon>
+    </Compile>
+    <None Update="Messages\SemanticMessage.Generated.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>SemanticMessage.Generated.cs</LastGenOutput>
+    </None>
+    <Compile Update="Messages\SemanticMessage.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>SemanticMessage.Generated.tt</DependentUpon>
+    </Compile>
+    <None Update="Messages\FormattedMessageBuilder.Generated.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>FormattedMessageBuilder.Generated.cs</LastGenOutput>
+    </None>
+    <Compile Update="Messages\FormattedMessageBuilder.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>FormattedMessageBuilder.Generated.tt</DependentUpon>
+    </Compile>
+    <None Update="Messages\SemanticMessageBuilder.Generated.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>SemanticMessageBuilder.Generated.cs</LastGenOutput>
+    </None>
+    <Compile Update="Messages\SemanticMessageBuilder.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>SemanticMessageBuilder.Generated.tt</DependentUpon>
+    </Compile>
+  </ItemGroup>
+	
+  <ItemGroup>
+    <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
+  </ItemGroup>
+
+  <Import Sdk="PostSharp.Engineering.Sdk" Project="SystemTypes.props" />
+	
+</Project>

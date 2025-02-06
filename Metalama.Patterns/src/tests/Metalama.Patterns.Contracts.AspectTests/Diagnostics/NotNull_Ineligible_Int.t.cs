@@ -1,0 +1,1 @@
+// Error LAMA0037 on `NotNull`: `The aspect 'NotNull' cannot be applied to the field 'NotNull_Ineligible_Int.field' because the type of 'NotNull_Ineligible_Int.field' must be a nullable type.`

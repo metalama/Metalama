@@ -1,0 +1,60 @@
+﻿// THIS FILE IS T4-GENERATED.
+// To edit, go to SemanticMessage.Generated.tt.
+// To transform, run RunT4.ps1.
+
+<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ output extension=".cs" #>
+<#@ include file="..\Common.ttinclude" #>
+
+#pragma warning disable LAMA0320
+
+#nullable enable
+
+using Flashtrace.Records;
+using System.Runtime.CompilerServices;
+
+namespace Flashtrace.Messages;
+<#
+    for (var i = 1; i <= 10; i++)
+    {
+#>
+
+ /// <summary>
+/// Encapsulates a semantic message with a <#= i #> number of parameter<#= GetPlural( i ) #>. Use the <see cref="SemanticMessageBuilder"/> class to create an instance of this type.
+/// </summary>
+public readonly struct SemanticMessage<<#= Repeat( "T{0}", i ) #>> : IMessage
+{
+	private readonly string messageName;
+	
+	<#= Repeat( "private readonly string name{0}; ", i, "" ) #>
+	<#= Repeat( "private readonly T{0}? value{0}; ", i, "" ) #>
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)] // To avoid copying the struct.
+	internal SemanticMessage( string messageName, <#= Repeat( "string name{0}, T{0}? value{0}", i ) #> )
+	{
+		this.messageName = messageName;
+		<#= Repeat( "this.name{0} = name{0}; ", i, "" ) #>
+		<#= Repeat( "this.value{0} = value{0}; ", i, "" ) #>
+	}
+
+	void IMessage.Write( ILogRecordBuilder recordBuilder, LogRecordItem item )
+	{
+		recordBuilder.BeginWriteItem(item, new LogRecordTextOptions(<#= i #>, this.messageName));
+<#
+        for (var j = 1; j <= i; j++)
+        {
+#>
+		recordBuilder.WriteParameter( <#= j - 1 #>, this.name<#= j #>.AsSpan(), this.value<#= j #>, LogParameterOptions.SemanticParameter );
+<#
+        }
+#>
+		recordBuilder.EndWriteItem(item);
+		
+	}
+
+	/// <inheritdoc />
+	public override string ToString() => DebugMessageFormatter.Format( this );
+}
+<#
+    }
+#>

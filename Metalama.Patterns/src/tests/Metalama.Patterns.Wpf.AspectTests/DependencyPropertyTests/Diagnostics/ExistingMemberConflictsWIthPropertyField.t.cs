@@ -1,0 +1,1 @@
+// Error LAMA5203 on `Foo`: `The name of existing method ExistingMemberConflictsWithPropertyField.FooProperty(), defined in or inherited by class ExistingMemberConflictsWithPropertyField, conflicts with the required registration field name determined by the default naming convention.`

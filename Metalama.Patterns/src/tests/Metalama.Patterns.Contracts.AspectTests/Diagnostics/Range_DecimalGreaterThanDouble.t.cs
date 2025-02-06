@@ -1,0 +1,1 @@
+// Error LAMA5001 on `a`: `The [GreaterThanOrEqual] contract cannot be applied to 'Range_DecimalGreaterThanDouble.MethodWithDecimalGreaterThanDouble(decimal?)/a' because the value range [7.922824174242685E+28, ∞] cannot be satisfied by the type Decimal.`

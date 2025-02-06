@@ -1,0 +1,3 @@
+// Warning LAMA5022 on `ClassMarkedShallowlyImmutable`: `The type of the 'DeeplyImmutableClass.ClassMarkedShallowlyImmutable' field must be deeply immutable.`
+// Warning LAMA5022 on `UnmarkedClass`: `The type of the 'DeeplyImmutableClass.UnmarkedClass' field must be deeply immutable.`
+// Warning LAMA5022 on `ImmutableArrayOfShallowImmutable`: `The type of the 'DeeplyImmutableClass.ImmutableArrayOfShallowImmutable' field must be deeply immutable.`

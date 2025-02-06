@@ -1,0 +1,1 @@
+// Error LAMA5206 on `ExecuteFoo`: `No can-execute method or can-execute property matching the command 'DoesNotExist' was found for 'ErrorCommandConfiguredCanExecutePropertyNotFound.ExecuteFoo()'.`

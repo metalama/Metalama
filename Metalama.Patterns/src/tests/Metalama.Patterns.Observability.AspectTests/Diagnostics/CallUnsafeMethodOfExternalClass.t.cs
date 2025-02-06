@@ -1,0 +1,1 @@
+// Warning LAMA5162 on `Foo`: `The 'ExternalClass.Foo(object)' method cannot be analysed, and has not been configured with an observability contract. Mark this method with [ConstantAttribute] or call ConfigureObservability via a fabric.`

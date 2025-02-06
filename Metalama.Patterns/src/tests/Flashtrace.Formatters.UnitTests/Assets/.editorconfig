@@ -1,0 +1,22 @@
+# C# files
+[*.cs]
+
+# CS8618: Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+dotnet_diagnostic.CS8618.severity = none
+
+# SA1401: Fields should be private
+dotnet_diagnostic.SA1401.severity = none
+
+# SA1602: Enumeration items should be documented
+dotnet_diagnostic.SA1602.severity = none
+
+# SA1124: Do not use regions
+dotnet_diagnostic.SA1124.severity = none
+
+# CA1822: Mark members as static
+dotnet_diagnostic.CA1822.severity = none
+
+resharper_redundant_assignment_highlighting=none
+resharper_check_namespace_highlighting=none
+resharper_unused_auto_property_accessor_global_highlighting=none
+resharper_unused_method_return_value_local_highlighting=none

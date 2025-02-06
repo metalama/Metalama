@@ -1,0 +1,43 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net471;net6.0-windows</TargetFrameworks>
+    <UseWPF>true</UseWPF>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Configurations>Debug;Release;LamaDebug</Configurations>
+    <!-- Support unit testing -->
+    <MetalamaRemoveCompileTimeOnlyCode>false</MetalamaRemoveCompileTimeOnlyCode>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageDescription>
+      Automatically implements WPF dependency properties from a C# automatic property and WPF commands from a C# method
+      thanks to Metalama.
+    </PackageDescription>
+
+    <PackageTags>Metalama PostSharp WPF dependency property DependencyProperty command</PackageTags>      
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Metalama.Patterns.Wpf.CompileTimeTests" />
+    <Using Remove="System.Net.Http" />
+    <PackageReference Include="Metalama.Framework" />
+    <PackageReference Include="JetBrains.Annotations" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net471'">
+    <Reference Include="WindowsBase" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Metalama.Patterns.Contracts\Metalama.Patterns.Contracts.csproj" />
+  </ItemGroup>
+
+  
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+  
+
+  <Import Sdk="PostSharp.Engineering.Sdk" Project="SystemTypes.props" />
+  
+</Project>

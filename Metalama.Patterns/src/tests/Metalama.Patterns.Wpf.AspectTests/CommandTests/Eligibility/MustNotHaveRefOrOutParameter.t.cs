@@ -1,0 +1,2 @@
+// Error LAMA0037 on `Command`: `The aspect 'Command' cannot be applied to the method 'MustNotHaveRefOrOutParameter.RefParameter(ref int)' because 'MustNotHaveRefOrOutParameter.RefParameter(ref int)' cannot have any ref or out parameter.`
+// Error LAMA0037 on `Command`: `The aspect 'Command' cannot be applied to the method 'MustNotHaveRefOrOutParameter.OutParameter(out int)' because 'MustNotHaveRefOrOutParameter.OutParameter(out int)' cannot have any ref or out parameter.`

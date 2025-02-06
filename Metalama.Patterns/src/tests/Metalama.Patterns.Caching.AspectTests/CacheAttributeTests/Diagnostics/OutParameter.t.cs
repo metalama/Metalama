@@ -1,0 +1,1 @@
+// Error LAMA0037 on `Cache`: `The aspect 'Cache' cannot be applied to the method 'OutParameter.Test(out int)' because 'OutParameter.Test(out int)' cannot have any ref or out parameter.`
