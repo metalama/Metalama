@@ -1,0 +1,26 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project>
+
+    <!-- Set the default version of the current product -->
+    <Import Project="MainVersion.props" />
+    
+    <PropertyGroup>
+        <MetalamaLinqPadVersion>$(MainVersion)$(PackageVersionSuffix)</MetalamaLinqPadVersion>
+        <MetalamaLinqPadAssemblyVersion>$(MainVersion)</MetalamaLinqPadAssemblyVersion>
+    </PropertyGroup>
+
+    <!-- Set the deafult versions of auto-updated dependencies -->
+    <Import Project="AutoUpdatedVersions.props" />
+
+    <!-- Import overrides for the local build -->
+    <Import Project="Versions.g.props" Condition="Exists('Versions.g.props')" />
+
+    <PropertyGroup>
+        <AssemblyVersion>$(MetalamaLinqPadAssemblyVersion)</AssemblyVersion>
+        <Version>$(MetalamaLinqPadVersion)</Version>
+    </PropertyGroup>
+
+    <!-- Versions of other dependencies are set in Directory.Packages.props. -->
+    <!-- See https://learn.microsoft.com/en-us/nuget/consume-packages/central-package-management. -->
+
+</Project>

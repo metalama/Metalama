@@ -1,0 +1,20 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+  <!-- Set versions of dependencies that need special treatment or consist of multiple packages of the same version. -->
+  <PropertyGroup>
+    <PostSharpEngineeringVersion Condition="'$(PostSharpEngineeringVersion)'==''">2023.2.152</PostSharpEngineeringVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageVersion Include="PostSharp.Engineering.BuildTools" Version="$(PostSharpEngineeringVersion)" />
+    <PackageVersion Include="SharpZipLib" Version="1.4.2" />
+    <PackageVersion Include="Metalama.Framework.Workspaces" Version="$(MetalamaVersion)" />
+    <PackageVersion Include="JetBrains.Annotations" Version="2024.2.0" />
+    <PackageVersion Include="LINQPad.Reference" Version="1.4.0-preview.1" />
+    <PackageVersion Include="Metalama.Framework.Sdk" Version="$(MetalamaVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.Logging" Version="8.0.1" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" Version="$(RoslynMaxVersion)" />
+  </ItemGroup>
+</Project>
