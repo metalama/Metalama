@@ -89,7 +89,7 @@ internal static class SymbolSignatureMatcher
         bool? isStatic )
         where TMember : ISymbol
     {
-        return GetMembersOfSignature<TMember, (TPayload InnerPayload, Func<TPayload, int, (ITypeSymbol? Type, RefKind? RefKind)>? ArgumentGetter, CompilationContext Compilation)>(
+        return GetMembersOfSignature<TMember, (TPayload InnerPayload, Func<TPayload, int, (ITypeSymbol? Type, RefKind? RefKind)> ArgumentGetter, CompilationContext Compilation)>(
             containingType,
             compilation,
             (payload, argumentGetter, compilation),
@@ -100,23 +100,30 @@ internal static class SymbolSignatureMatcher
             true );
 
         static bool IsMatchingParameter(
-            (TPayload InnerPayload, Func<TPayload, int, (ITypeSymbol? Type, RefKind? RefKind)>? ArgumentGetter, CompilationContext Compilation) payload,
+            (TPayload InnerPayload, Func<TPayload, int, (ITypeSymbol? Type, RefKind? RefKind)> ArgumentGetter, CompilationContext Compilation) payload,
             int parameterIndex,
             ITypeSymbol expectedType,
             RefKind expectedRefKind )
         {
-            var parameterInfo = payload.ArgumentGetter?.Invoke( payload.InnerPayload, parameterIndex );
+            var parameterInfo = payload.ArgumentGetter.Invoke( payload.InnerPayload, parameterIndex );
 
-            if ( parameterInfo == null )
+            var parameterMatches =
+                (parameterInfo.Type == null || payload.Compilation.SymbolComparer.IsConvertibleTo( parameterInfo.Type, expectedType ))
+                && (parameterInfo.RefKind == null || expectedRefKind == parameterInfo.RefKind);
+
+            if ( !parameterMatches )
             {
-                return true;
+                // InterpolatedStringHandlers have been added in a backward-compatible way.
+                if ( parameterInfo.RefKind == RefKind.Ref
+                    && parameterInfo.Type?.GetAttributes().Any( a => a.AttributeClass?.Name == "InterpolatedStringHandlerAttribute" ) == true
+                    && expectedRefKind == RefKind.None
+                    && expectedType.SpecialType == SpecialType.System_String )
+                {
+                    parameterMatches = true;
+                }
             }
 
-            return
-                (parameterInfo.Value.Type == null || payload.Compilation.SymbolComparer.IsConvertibleTo(
-                    parameterInfo.Value.Type,
-                    expectedType ))
-                && (parameterInfo.Value.RefKind == null || expectedRefKind == parameterInfo.Value.RefKind);
+            return parameterMatches;
         }
     }
 

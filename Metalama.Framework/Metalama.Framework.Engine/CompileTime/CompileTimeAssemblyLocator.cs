@@ -19,7 +19,6 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -74,6 +73,8 @@ internal sealed class CompileTimeAssemblyLocator
     /// at compile time.
     /// </summary>
     private readonly Compilation _referenceCompilation;
+
+    private readonly CompilationContext _referenceCompilationContext;
 
     /// <summary>
     /// Gets the name (without path and extension) of all compile-time assemblies, including Metalama, Roslyn and .NET standard.
@@ -208,6 +209,8 @@ internal sealed class CompileTimeAssemblyLocator
                 [],
                 this.MetadataReferences,
                 new CSharpCompilationOptions( OutputKind.DynamicallyLinkedLibrary, deterministic: true, optimizationLevel: OptimizationLevel.Debug ) );
+
+        this._referenceCompilationContext = CompilationContextFactory.GetCompilationContext( this._referenceCompilation );
     }
 
     private string GetAdditionalCompileTimeAssembliesDirectory()
@@ -326,11 +329,6 @@ internal sealed class CompileTimeAssemblyLocator
                 availableSymbol = null;
                 return null;
 
-            case IMethodSymbol method when HasInterpolatedStringHandlerParameter( method ):
-                // InterpolatedStringHandlers have been added in a backward-compatible way.
-                availableSymbol = null;
-                return null;
-
             default:
                 {
                     // DocumentationId seems to work.
@@ -357,9 +355,7 @@ internal sealed class CompileTimeAssemblyLocator
                                 return false;
                             }
 
-                            var compilation = CompilationContextFactory.GetCompilationContext( this._referenceCompilation );
-
-                            var compileTimeMembers = SymbolSignatureMatcher.GetMembersOfCompatibleSignature( (INamedTypeSymbol) compileTimeContainingType!, compilation, symbol );
+                            var compileTimeMembers = SymbolSignatureMatcher.GetMembersOfCompatibleSignature( (INamedTypeSymbol) compileTimeContainingType!, this._referenceCompilationContext, symbol );
 
                             compileTimeSymbol = compileTimeMembers.FirstOrDefault();
                         }
@@ -368,21 +364,6 @@ internal sealed class CompileTimeAssemblyLocator
                     availableSymbol = compileTimeSymbol;
                     return availableSymbol != null;
                 }
-        }
-
-        static bool HasInterpolatedStringHandlerParameter( IMethodSymbol method )
-        {
-            // Intentionally using a foreach for performance reasons. We want to hit the RefKind test as cheaply as possible, then it no longer matters.
-            foreach ( var parameter in method.Parameters )
-            {
-                if ( parameter.RefKind == RefKind.Ref
-                     && parameter.Type.GetAttributes().Any( a => a.AttributeClass?.Name == "InterpolatedStringHandlerAttribute" ) )
-                {
-                    return true;
-                }
-            }
-
-            return false;
         }
     }
 
