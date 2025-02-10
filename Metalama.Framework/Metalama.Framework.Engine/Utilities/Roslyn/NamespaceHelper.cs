@@ -37,7 +37,7 @@ internal static class NamespaceHelper
         {
             var (parent, separator) = s switch
             {
-                INamedTypeSymbol { ContainingType: not null } namedType => (namedType.ContainingType, '.'),
+                INamedTypeSymbol { ContainingType: { } containingType } => (containingType, '.'),
                 INamedTypeSymbol namedType => (namedType.ContainingNamespace, '.'),
                 INamespaceSymbol ns => (ns.ContainingNamespace, '.'),
                 _ => (s.ContainingSymbol, '.')

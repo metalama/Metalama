@@ -745,7 +745,7 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                             return combinedScope;
                         }
 
-                        var isAvailableAtCompileTime = this._compileTimeAssemblyLocator.IsSymbolAvailable( namedType );
+                        var isAvailableAtCompileTime = this._compileTimeAssemblyLocator.IsSymbolAvailable( namedType, this._compilationContext );
 
                         // From base type.
                         if ( namedType.BaseType != null )
@@ -869,7 +869,7 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                                 memberScope = null;
                             }
                             else if ( memberScope is TemplatingScope.ImplicitlyRunTimeOrCompileTime
-                                      && this._compileTimeAssemblyLocator.IsSymbolAvailable( symbol ) == false )
+                                      && this._compileTimeAssemblyLocator.IsSymbolAvailable( symbol, this._compilationContext ) == false )
                             {
                                 // If the type exists in the compile-time references but not the member, the member is run-time only.
                                 // This happens with new members added to .NET Standard 2.0 in other frameworks.
@@ -1183,7 +1183,7 @@ internal sealed class SymbolClassifier : ISymbolClassifier
 
                 // For types in the system namespace that are available on .NET Standard 2.0, we take a shortcut and don't analyze them recursively.
                 if ( namedType.ContainingNamespace.GetFirstLevel()?.Name == "System"
-                     && this._compileTimeAssemblyLocator.IsSymbolAvailable( namedType ) == true )
+                     && this._compileTimeAssemblyLocator.IsSymbolAvailable( namedType, this._compilationContext ) == true )
                 {
                     scope = TemplatingScope.ImplicitlyRunTimeOrCompileTime;
 
