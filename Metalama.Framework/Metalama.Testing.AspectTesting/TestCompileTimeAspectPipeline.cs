@@ -8,13 +8,8 @@ namespace Metalama.Testing.AspectTesting;
 
 internal sealed class TestCompileTimeAspectPipeline : CompileTimeAspectPipeline
 {
-    private readonly bool _collectCodeFixes;
-
-    public TestCompileTimeAspectPipeline( ProjectServiceProvider serviceProvider, bool collectCodeFixes ) : base( serviceProvider )
-    {
-        this._collectCodeFixes = collectCodeFixes;
-    }
+    public TestCompileTimeAspectPipeline( ProjectServiceProvider serviceProvider ) : base( serviceProvider ) { }
 
     protected override IDiagnosticExtensionPolicy GetDiagnosticExtensionPolicy()
-        => this._collectCodeFixes ? ConstantDiagnosticExtensionPolicy.PropertiesOnly : ConstantDiagnosticExtensionPolicy.None;
+        => ConstantDiagnosticExtensionPolicy.PropertiesOnly;
 }

@@ -88,9 +88,7 @@ internal class AspectTestRunner : BaseTestRunner
 
         var serviceProvider = serviceProviderForThisTest;
 
-        var pipeline = new TestCompileTimeAspectPipeline(
-            serviceProvider,
-            testInput.Options.TestScenario is TestScenario.CodeFix );
+        var pipeline = new TestCompileTimeAspectPipeline( serviceProvider );
 
         var pipelineResult = await pipeline.ExecuteAsync(
             testResult.PipelineDiagnostics.Report,
