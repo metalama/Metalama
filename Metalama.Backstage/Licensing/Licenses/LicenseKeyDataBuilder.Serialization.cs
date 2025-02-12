@@ -25,7 +25,7 @@ namespace Metalama.Backstage.Licensing.Licenses
         {
             LicenseFieldIndex index;
 
-            var data = new LicenseKeyDataBuilder()
+            var data = new LicenseKeyDataBuilder( false )
             {
                 Version = reader.ReadByte(),
                 LicenseId = reader.ReadInt32(),
@@ -33,9 +33,14 @@ namespace Metalama.Backstage.Licensing.Licenses
                 Product = (LicensedProduct) reader.ReadByte()
             };
 
+            // Remove the default origin version.
+            data._fields.Remove( LicenseFieldIndex.OriginVersion );
+
             while ( (index = (LicenseFieldIndex) reader.ReadByte()) != LicenseFieldIndex.End )
             {
                 LicenseField licenseField;
+
+                bool shouldReadFieldLength = index.IsPrefixedByLength();
 
                 switch ( index )
                 {
@@ -43,6 +48,8 @@ namespace Metalama.Backstage.Licensing.Licenses
                     case LicenseFieldIndex.GraceDays:
                     case LicenseFieldIndex.GracePercent:
                     case LicenseFieldIndex.DevicesPerUser:
+                    case LicenseFieldIndex.SupportLevel:
+                    case LicenseFieldIndex.Generation:
                         licenseField = new LicenseFieldByte();
 
                         break;
@@ -79,6 +86,12 @@ namespace Metalama.Backstage.Licensing.Licenses
 
                         break;
 
+
+                    case LicenseFieldIndex.OriginVersion:
+                        licenseField = new LicenseFieldInt32();
+
+                        break;
+
                     case LicenseFieldIndex.LicenseeHash:
 #pragma warning disable CS0618 // Type or member is obsolete
                     case LicenseFieldIndex.Features:
@@ -97,9 +110,21 @@ namespace Metalama.Backstage.Licensing.Licenses
                         // We read its data to
                         // - Validate that we do understand the must-understand fields.
                         // - Keep the license integrity, e.g. for cloning or signature verification.
+                        shouldReadFieldLength = false;
                         licenseField = new LicenseFieldBytes();
 
                         break;
+                }
+
+                if ( shouldReadFieldLength )
+                {
+                    // If this is known constant-length field that is prefixed by length, read the length.
+                    int l = reader.ReadByte();
+
+                    if (licenseField.TryGetConstantLength(out var expected) && l != expected)
+                    {
+                        throw new InvalidLicenseException( $"Unexpected length of field {index}. Expected {expected}, got {l}." );
+                    }
                 }
 
                 licenseField.Read( reader );

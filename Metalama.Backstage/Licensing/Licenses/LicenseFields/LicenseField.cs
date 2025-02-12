@@ -10,7 +10,7 @@ namespace Metalama.Backstage.Licensing.Licenses.LicenseFields
 
         public abstract void Write( BinaryWriter writer );
 
-        protected abstract bool TryGetConstantLength( out byte length );
+        internal abstract bool TryGetConstantLength( out byte length );
 
         /// <summary>
         /// Writes the length of the field if it has a constant length.

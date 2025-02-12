@@ -18,6 +18,8 @@ namespace Metalama.Backstage.Licensing.Licenses
     /// </summary>
     public class License : ILicense
     {
+        public const byte CurrentGeneration = 1;
+
         private readonly string _licenseKey;
 
         private readonly IServiceProvider _services;

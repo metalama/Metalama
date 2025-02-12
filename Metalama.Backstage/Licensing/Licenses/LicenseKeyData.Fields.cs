@@ -101,7 +101,7 @@ namespace Metalama.Backstage.Licensing.Licenses
         /// <summary>
         /// Gets the hash of the licensee name.
         /// </summary>
-        public int? LicenseeHash => (int?) this.GetFieldValue( LicenseFieldIndex.LicenseeHash );
+        public long? LicenseeHash => (long?) this.GetFieldValue( LicenseFieldIndex.LicenseeHash );
 
         /// <summary>
         /// Gets the number of days in the grace period.
@@ -121,6 +121,24 @@ namespace Metalama.Backstage.Licensing.Licenses
         public bool? AllowInheritance => (bool?) this.GetFieldValue( LicenseFieldIndex.AllowInheritance );
 
         public bool? LicenseServerEligible => (bool?) this.GetFieldValue( LicenseFieldIndex.LicenseServerEligible );
+
+        public string? OriginVersion => (string?) this.GetFieldValue( LicenseFieldIndex.OriginVersion );
+
+        public LicenseSupportPolicy SupportPolicy =>
+            this.GetFieldValue( LicenseFieldIndex.SupportLevel ) switch
+            {
+                null => LicenseSupportPolicy.None,
+                byte supportLevel => (LicenseSupportPolicy) supportLevel,
+                _ => throw new InvalidCastException( "Invalid support level." )
+            };
+
+        public byte Generation =>
+            this.GetFieldValue( LicenseFieldIndex.Generation ) switch
+            {
+                null => 0,
+                byte generation => generation,
+                _ => throw new InvalidCastException( "Invalid generation." )
+            };
 
         public Version? MinPostSharpVersion
         {

@@ -14,7 +14,7 @@ namespace Metalama.Backstage.Licensing.Licenses.LicenseFields
             writer.Write( data );
         }
 
-        protected override bool TryGetConstantLength( out byte length )
+        internal override bool TryGetConstantLength( out byte length )
         {
             length = sizeof(long);
 

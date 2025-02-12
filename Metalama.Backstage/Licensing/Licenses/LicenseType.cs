@@ -77,8 +77,9 @@ namespace Metalama.Backstage.Licensing.Licenses
 
         /// <summary>
         /// Commercial license (Enterprise edition).
-        /// Deprecated in 6.6, reintroduced in 2025.1.
+        /// Deprecated in 6.6.
         /// </summary>
+        [Obsolete( "No longer issued." )]
         Enterprise = 15,
 
         /// <summary>
@@ -113,12 +114,6 @@ namespace Metalama.Backstage.Licensing.Licenses
         /// Community license (introduced in 2025.1).
         /// </summary>
         Community = 21,
-
-        /// <summary>
-        /// Essentials test license. This is a test license that gives the same features as the Essentials license, but does not produce 
-        /// the error produced starting in 2025.1.
-        /// </summary>
-        EssentialsTest = 254,
 
         // 255 is reserved as unknown for testing purposes
     }

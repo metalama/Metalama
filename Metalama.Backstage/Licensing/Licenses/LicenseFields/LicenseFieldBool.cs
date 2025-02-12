@@ -22,7 +22,7 @@ namespace Metalama.Backstage.Licensing.Licenses.LicenseFields
             }
         }
 
-        protected override bool TryGetConstantLength( out byte length )
+        internal override bool TryGetConstantLength( out byte length )
         {
             if ( this._isBuggy )
             {
