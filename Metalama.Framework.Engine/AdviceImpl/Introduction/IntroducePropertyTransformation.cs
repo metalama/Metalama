@@ -52,7 +52,7 @@ internal class IntroducePropertyTransformation : IntroduceMemberTransformation<P
                     ? ExplicitInterfaceSpecifier(
                         (NameSyntax) syntaxGenerator.TypeSyntax( propertyBuilder.ExplicitInterfaceImplementations.Single().DeclaringType ) )
                     : null,
-                propertyBuilder.GetCleanName(),
+                Identifier( propertyBuilder.GetCleanName() ),
                 GenerateAccessorList(),
                 null,
                 initializerExpression != null

@@ -398,7 +398,7 @@ internal sealed class NamedTypeImpl : MemberOrNamedType, INamedTypeImpl
                 return Array.Empty<IMember>();
         }
 
-        var candidates = members.OfName( member.Name );
+        var candidates = members.Where( m => m.GetCleanName() == member.Name );
 
         var overridingMembers = new List<IMember>();
 
@@ -619,7 +619,7 @@ internal sealed class NamedTypeImpl : MemberOrNamedType, INamedTypeImpl
     private void PopulateAllInterfaces( ImmutableHashSet<INamedTypeSymbol>.Builder builder, GenericMap genericMap )
     {
         // Process the Roslyn type system.
-        foreach ( var type in this.TypeSymbol.Interfaces )
+        foreach ( var type in this.TypeSymbol.AllInterfaces )
         {
             builder.Add( genericMap.Map( type ) );
         }

@@ -118,7 +118,7 @@ internal sealed class IntroduceMethodTransformation : IntroduceMemberTransformat
                 methodBuilder.GetSyntaxModifierList(),
                 context.SyntaxGenerator.ReturnType( methodBuilder ).WithOptionalTrailingTrivia( ElasticSpace, context.SyntaxGenerationContext.Options ),
                 explicitInterfaceSpecifier,
-                methodBuilder.GetCleanName(),
+                Identifier( methodBuilder.GetCleanName() ),
                 context.SyntaxGenerator.TypeParameterList( methodBuilder, context.Compilation ),
                 context.SyntaxGenerator.ParameterList( methodBuilder, context.Compilation ),
                 context.SyntaxGenerator.ConstraintClauses( methodBuilder ),
