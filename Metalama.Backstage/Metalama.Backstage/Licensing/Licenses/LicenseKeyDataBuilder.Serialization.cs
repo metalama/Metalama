@@ -64,6 +64,7 @@ namespace Metalama.Backstage.Licensing.Licenses
                     case LicenseFieldIndex.Licensee:
                     case LicenseFieldIndex.Namespace:
                     case LicenseFieldIndex.MinPostSharpVersion:
+                    case LicenseFieldIndex.OriginVersion:
                         licenseField = new LicenseFieldString();
 
                         break;
@@ -83,12 +84,6 @@ namespace Metalama.Backstage.Licensing.Licenses
                     case LicenseFieldIndex.ValidTo:
                     case LicenseFieldIndex.SubscriptionEndDate:
                         licenseField = new LicenseFieldDate();
-
-                        break;
-
-
-                    case LicenseFieldIndex.OriginVersion:
-                        licenseField = new LicenseFieldInt32();
 
                         break;
 
