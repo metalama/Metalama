@@ -132,11 +132,11 @@ namespace Metalama.Backstage.Licensing.Licenses
                 _ => throw new InvalidCastException( "Invalid support level." )
             };
 
-        public byte Generation =>
+        public LicenseGeneration Generation =>
             this.GetFieldValue( LicenseFieldIndex.Generation ) switch
             {
                 null => 0,
-                byte generation => generation,
+                byte generation => (LicenseGeneration) generation,
                 _ => throw new InvalidCastException( "Invalid generation." )
             };
 

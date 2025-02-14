@@ -2,9 +2,9 @@
 
 namespace Metalama.Backstage.Licensing.Licenses;
 
-public enum LicenseSupportPolicy : byte
+public enum LicenseGeneration : byte
 {
     None = 0,
-    ExtendedSupport = 1,
-    LongTermSupport = 2,
+    V20251 = 1,
+    Current = V20251,
 }

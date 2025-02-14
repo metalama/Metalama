@@ -65,6 +65,7 @@ namespace Metalama.Backstage.Licensing.Licenses
                     case LicenseFieldIndex.Namespace:
                     case LicenseFieldIndex.MinPostSharpVersion:
                     case LicenseFieldIndex.OriginVersion:
+                        shouldReadFieldLength = false;
                         licenseField = new LicenseFieldString();
 
                         break;
@@ -76,6 +77,7 @@ namespace Metalama.Backstage.Licensing.Licenses
 
                     case LicenseFieldIndex.PublicKeyToken:
                     case LicenseFieldIndex.Signature:
+                        shouldReadFieldLength = false;
                         licenseField = new LicenseFieldBytes();
 
                         break;

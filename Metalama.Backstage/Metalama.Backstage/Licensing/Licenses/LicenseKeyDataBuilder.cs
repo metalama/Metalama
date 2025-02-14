@@ -6,8 +6,6 @@ using Metalama.Backstage.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Runtime.InteropServices;
-using System.Runtime.Serialization;
 
 namespace Metalama.Backstage.Licensing.Licenses;
 
@@ -18,7 +16,7 @@ public partial class LicenseKeyDataBuilder : ILicenseKeyData
 
     IReadOnlyDictionary<LicenseFieldIndex, LicenseField> ILicenseKeyData.Fields => this._fields;
 
-    public LicenseKeyDataBuilder() : this( true ) 
+    public LicenseKeyDataBuilder() : this( true )
     {
     }
 
@@ -29,10 +27,11 @@ public partial class LicenseKeyDataBuilder : ILicenseKeyData
 
     private LicenseKeyDataBuilder( bool initialize ) : this( ImmutableSortedDictionary<LicenseFieldIndex, LicenseField>.Empty )
     {
-        if (initialize)
+        if ( initialize )
         {
+            this.Version = 2;
             this.OriginVersion = AssemblyMetadataReader.GetInstance( typeof( License ).Assembly ).PackageVersion;
-            this.Generation = License.CurrentGeneration;
+            this.Generation = LicenseGeneration.Current;
         }
     }
 
@@ -66,48 +65,48 @@ public partial class LicenseKeyDataBuilder : ILicenseKeyData
 
         switch ( value.GetType().Name )
         {
-            case nameof(Boolean):
+            case nameof( Boolean ):
                 this.SetFieldValue<LicenseFieldBool>( index, value );
 
                 break;
 
-            case nameof(Byte):
+            case nameof( Byte ):
                 this.SetFieldValue<LicenseFieldByte>( index, value );
 
                 break;
 
-            case nameof(Int16):
+            case nameof( Int16 ):
                 this.SetFieldValue<LicenseFieldInt16>( index, value );
 
                 break;
 
-            case nameof(Int32):
+            case nameof( Int32 ):
                 this.SetFieldValue<LicenseFieldInt32>( index, value );
 
                 break;
 
-            case nameof(Int64):
+            case nameof( Int64 ):
                 this.SetFieldValue<LicenseFieldInt64>( index, value );
 
                 break;
 
-            case nameof(DateTime):
+            case nameof( DateTime ):
                 this.SetFieldValue<LicenseFieldDate>( index, ((DateTime) value).Date );
                 this.SetFieldValue<LicenseFieldDateTime>( index, value );
 
                 break;
 
-            case nameof(String):
+            case nameof( String ):
                 this.SetFieldValue<LicenseFieldString>( index, value );
 
                 break;
 
-            case nameof(Byte) + "[]":
+            case nameof( Byte ) + "[]":
                 this.SetFieldValue<LicenseFieldBytes>( index, value );
 
                 break;
 
-            case nameof(Guid):
+            case nameof( Guid ):
                 this.SetFieldValue<LicenseFieldGuid>( index, value );
 
                 break;
@@ -292,7 +291,7 @@ public partial class LicenseKeyDataBuilder : ILicenseKeyData
     public string? OriginVersion
     {
         get => (string?) this.GetFieldValue( LicenseFieldIndex.OriginVersion );
-        private set => this.SetFieldValue<LicenseFieldString>( LicenseFieldIndex.OriginVersion, null );
+        private set => this.SetFieldValue<LicenseFieldString>( LicenseFieldIndex.OriginVersion, value );
     }
 
     public LicenseSupportPolicy SupportPolicy
@@ -309,31 +308,32 @@ public partial class LicenseKeyDataBuilder : ILicenseKeyData
         {
             if ( value != LicenseSupportPolicy.None )
             {
-                this.SetFieldValue<LicenseFieldByte>( LicenseFieldIndex.SupportLevel, value );
+                this.SetFieldValue<LicenseFieldByte>( LicenseFieldIndex.SupportLevel, (byte) value );
             }
             else
             {
                 this.SetFieldValue<LicenseFieldByte>( LicenseFieldIndex.SupportLevel, null );
             }
         }
+
     }
 
-    public byte Generation
+    public LicenseGeneration Generation
     {
         get =>
             this.GetFieldValue( LicenseFieldIndex.Generation ) switch
             {
                 null => 0,
-                byte generation => generation,
+                byte generation => (LicenseGeneration) generation,
                 _ => throw new InvalidCastException( "Invalid generation." )
             };
 
         set
         {
 
-            if ( value != 0 )
+            if ( value != LicenseGeneration.None )
             {
-                this.SetFieldValue<LicenseFieldByte>( LicenseFieldIndex.Generation, value );
+                this.SetFieldValue<LicenseFieldByte>( LicenseFieldIndex.Generation, (byte) value );
             }
             else
             {
