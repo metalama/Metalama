@@ -295,10 +295,10 @@ public sealed class PipelineCancellationTests : UnitTestClass
     // Return value: whether the test was cancelled.
     private async Task<bool> RunGetConfigurationTestAsync( int cancelOnCancellationPointIndex )
     {
+        using var testContext = this.CreateTestContext();
+
         try
         {
-            using var testContext = this.CreateTestContext();
-
             var code = new Dictionary<string, string> { ["Class1.cs"] = "public class Class1 { }" };
 
             var compilation = testContext.CreateCSharpCompilation( code );
@@ -319,7 +319,7 @@ public sealed class PipelineCancellationTests : UnitTestClass
 
             return false;
         }
-        catch ( OperationCanceledException )
+        catch ( OperationCanceledException ex ) when ( ex.CancellationToken != testContext.CancellationToken )
         {
             return true;
         }
