@@ -15,7 +15,7 @@ namespace PostSharp.LicenseKeyGenerator
             this.InitializeComponent();
             this._propertyGrid.SelectedObject = new LicenseKeyDataBuilder()
             {
-                OriginVersion = License.OriginVersion,
+                OriginVersion = LicenseKeyDataBuilder.CurrentVersion,
                 Generation = LicenseGeneration.Current,
             };
 

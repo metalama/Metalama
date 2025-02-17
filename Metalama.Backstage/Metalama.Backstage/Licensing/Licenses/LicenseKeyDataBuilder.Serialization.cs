@@ -32,9 +32,6 @@ namespace Metalama.Backstage.Licensing.Licenses
                 Product = (LicensedProduct) reader.ReadByte()
             };
 
-            // Remove the default origin version.
-            data._fields.Remove( LicenseFieldIndex.OriginVersion );
-
             while ( (index = (LicenseFieldIndex) reader.ReadByte()) != LicenseFieldIndex.End )
             {
                 LicenseField licenseField;

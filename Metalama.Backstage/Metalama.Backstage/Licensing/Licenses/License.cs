@@ -6,7 +6,6 @@ using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Infrastructure;
 using Metalama.Backstage.Licensing.Consumption;
 using Metalama.Backstage.Licensing.Registration;
-using Metalama.Backstage.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -19,9 +18,6 @@ namespace Metalama.Backstage.Licensing.Licenses
     /// </summary>
     public sealed class License : ILicense
     {
-        public const int CurrentVersion = 2;
-        public static readonly string? OriginVersion = AssemblyMetadataReader.GetInstance( typeof(License ).Assembly ).PackageVersion;
-
         private readonly string _licenseKey;
 
         private readonly IServiceProvider _services;

@@ -2,6 +2,7 @@
 
 using JetBrains.Annotations;
 using Metalama.Backstage.Licensing.Licenses.LicenseFields;
+using Metalama.Backstage.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -11,6 +12,8 @@ namespace Metalama.Backstage.Licensing.Licenses;
 [PublicAPI]
 public partial class LicenseKeyDataBuilder : ILicenseKeyData
 {
+    public static readonly string? CurrentVersion = AssemblyMetadataReader.GetInstance( typeof( License ).Assembly ).PackageVersion;
+
     private readonly ImmutableSortedDictionary<LicenseFieldIndex, LicenseField>.Builder _fields;
 
     IReadOnlyDictionary<LicenseFieldIndex, LicenseField> ILicenseKeyData.Fields => this._fields;
