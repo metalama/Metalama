@@ -74,7 +74,7 @@ internal class IntroducePropertyTransformation : IntroduceMemberTransformation<P
                 finalProperty.ExplicitInterfaceImplementations.Count > 0
                     ? ExplicitInterfaceSpecifier( (NameSyntax) syntaxGenerator.TypeSyntax( finalProperty.ExplicitInterfaceImplementations.Single().DeclaringType ) )
                     : null,
-                finalProperty.GetCleanName(),
+                Identifier( finalProperty.GetCleanName() ),
                 GenerateAccessorList(),
                 null,
                 initializerExpression != null

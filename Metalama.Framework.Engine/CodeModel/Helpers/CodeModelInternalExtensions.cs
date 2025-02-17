@@ -11,7 +11,6 @@ using Metalama.Framework.Engine.Transformations;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Linq;
@@ -102,9 +101,8 @@ internal static class CodeModelInternalExtensions
         }
     }
 
-    internal static SyntaxToken GetCleanName( this IMember member )
-        => SyntaxFactory.Identifier(
-            member.IsExplicitInterfaceImplementation
+    internal static string GetCleanName( this IMember member )
+        => member.IsExplicitInterfaceImplementation
                 ? member.Name.Split( '.' ).Last()
-                : member.Name );
+                : member.Name;
 }
