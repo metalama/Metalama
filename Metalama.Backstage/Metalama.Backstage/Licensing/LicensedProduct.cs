@@ -62,6 +62,11 @@ namespace Metalama.Backstage.Licensing
         MetalamaFree = 8,
 
         /// <summary>
+        /// Metalama Community.
+        /// </summary>
+        MetalamaCommunity = 9,
+
+        /// <summary>
         /// Logging Library.
         /// </summary>
         PostSharpDiagnosticsLibrary = 12,
@@ -80,8 +85,6 @@ namespace Metalama.Backstage.Licensing
         /// Caching Library.
         /// </summary>
         PostSharpCachingLibrary = 15,
-
-        MetalamaCommunity = 16
 
         // 255 is reserved as unknown for testing purposes
     }

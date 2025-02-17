@@ -30,19 +30,17 @@ namespace Metalama.Backstage.Licensing.Licenses
             }
         }
 
+#pragma warning disable CS0612, CS0618 // Type or member is obsolete
         private static LicensedProduct TransformObsoleteProduct( this LicenseKeyData licenseKeyData )
-        {
-            var product = licenseKeyData.Product;
-
-#pragma warning disable CS0618 // Type or member is obsolete
-            if ( product == LicensedProduct.PostSharp30 )
+            => licenseKeyData.Product switch
             {
-                product = licenseKeyData.LicenseType == LicenseType.Professional ? LicensedProduct.PostSharpFramework : LicensedProduct.PostSharpUltimate;
-            }
-#pragma warning restore CS0618 // Type or member is obsolete
-
-            return product;
-        }
+                LicensedProduct.PostSharp30 => licenseKeyData.LicenseType == LicenseType.Professional ? LicensedProduct.PostSharpFramework : LicensedProduct.PostSharpUltimate,
+                LicensedProduct.MetalamaFree => LicensedProduct.None,
+                LicensedProduct.MetalamaStarter => LicensedProduct.MetalamaProfessional,
+                LicensedProduct.MetalamaUltimate => LicensedProduct.MetalamaProfessional,
+                _ => licenseKeyData.Product
+            };
+#pragma warning restore CS0618
 
         private static string GetProductName( this LicenseKeyData licenseKeyData )
             => TransformObsoleteProduct( licenseKeyData ) switch
@@ -60,6 +58,7 @@ namespace Metalama.Backstage.Licensing.Licenses
                 LicensedProduct.MetalamaStarter => $"Metalama Starter, {licenseKeyData.LicenseType.GetLicenseTypeName()}",
                 LicensedProduct.MetalamaFree => "Metalama Free",
 #pragma warning restore CS0618 // Type or member is obsolete
+                LicensedProduct.None => "Metalama Open Source",
                 _ => string.Format( CultureInfo.InvariantCulture, "Unknown Product ({0})", licenseKeyData.Product )
             };
 

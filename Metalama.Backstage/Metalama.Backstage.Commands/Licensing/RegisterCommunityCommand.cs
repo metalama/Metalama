@@ -16,6 +16,6 @@ internal class RegisterCommunityCommand : BaseCommand<BaseCommandSettings>
             throw new CommandException( errorMessage );
         }
 
-        context.Console.WriteSuccess( "You are now using Metalama Free." );
+        context.Console.WriteSuccess( "You are now using Metalama Community." );
     }
 }

@@ -61,13 +61,13 @@ div.arrow-buttons > div:hover {
   transition: 0.3s;
 }
 
-div.checkbox {
+div.checkbox, div.radio {
   display: flex;
   align-content: start;
   margin-bottom: 20px;
 }
 
-div.checkbox input {
+div.checkbox input, div.radio input {
   margin-top: 8px;
   margin-bottom: auto;
   margin-right: 10px;

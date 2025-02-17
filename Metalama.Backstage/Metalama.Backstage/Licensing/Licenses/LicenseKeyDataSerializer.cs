@@ -62,7 +62,6 @@ internal static class LicenseKeyDataSerializer
     {
 #pragma warning disable CS0618 // Type or member is obsolete
         if ( data.LicenseType == LicenseType.Anonymous )
-#pragma warning restore CS0618 // Type or member is obsolete
         {
             return false;
         }
@@ -71,6 +70,7 @@ internal static class LicenseKeyDataSerializer
         {
             return false;
         }
+#pragma warning restore CS0618
 
         return true;
     }

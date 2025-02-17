@@ -59,12 +59,12 @@ internal sealed class LicenseRegistrationService : ILicenseRegistrationService
     }
 
     /// <summary>
-    /// Attempts to register an unsigned Metalama Free license.
+    /// Attempts to register an unsigned Metalama Community license.
     /// </summary>
     /// <returns>
     /// A value indicating whether the license has been registered.
-    /// Success is indicated when a new Metalama Free license is registered
-    /// as well as when an existing Metalama Free license is registered already.
+    /// Success is indicated when a new Metalama Community license is registered
+    /// as well as when an existing Metalama Community license is registered already.
     /// </returns>
     public bool TryRegisterCommunityEdition( [NotNullWhen( false )] out string? errorMessage )
     {

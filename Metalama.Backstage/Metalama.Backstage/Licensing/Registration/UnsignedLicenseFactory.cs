@@ -49,9 +49,9 @@ namespace Metalama.Backstage.Licensing.Registration
         }
 
         /// <summary>
-        /// Creates an unsigned Metalama Free license.
+        /// Creates an unsigned Metalama Community license.
         /// </summary>
-        /// <returns>The unsigned Metalama Free license.</returns>
+        /// <returns>The unsigned Metalama Community license.</returns>
         public (string LicenseKey, LicenseProperties Data) CreateCommunityLicense()
         {
             var start = this._time.UtcNow;

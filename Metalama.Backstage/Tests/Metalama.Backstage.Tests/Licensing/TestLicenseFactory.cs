@@ -11,7 +11,7 @@ namespace Metalama.Backstage.Tests.Licensing;
 
 internal static class TestLicenseFactory
 {
-    public static string CreateMetalamaFreeLicense( IServiceProvider services )
+    public static string CreateMetalamaCommunityLicense( IServiceProvider services )
     {
         var licenseFactory = new UnsignedLicenseFactory( services );
         var licenseKey = licenseFactory.CreateCommunityLicense().LicenseKey;
