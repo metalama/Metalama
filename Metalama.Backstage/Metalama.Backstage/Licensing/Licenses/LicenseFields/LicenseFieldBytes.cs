@@ -22,7 +22,7 @@ namespace Metalama.Backstage.Licensing.Licenses.LicenseFields
             writer.Write( bytes );
         }
 
-        protected override bool TryGetConstantLength( out byte length )
+        internal override bool TryGetConstantLength( out byte length )
         {
             // The length of this field is variable.
             length = 0;

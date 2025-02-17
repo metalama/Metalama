@@ -13,11 +13,15 @@ namespace PostSharp.LicenseKeyGenerator
         public MainForm()
         {
             this.InitializeComponent();
-            this._propertyGrid.SelectedObject = new LicenseKeyDataBuilder();
+            this._propertyGrid.SelectedObject = new LicenseKeyDataBuilder()
+            {
+                OriginVersion = LicenseKeyDataBuilder.CurrentVersion,
+                Generation = LicenseGeneration.Current,
+            };
 
             // We load the private key on startup to avoid KeyVault exceptions after filling all the data.
             var kvUri = "https://postsharpbusinesssystkv.vault.azure.net/";
-            var client = new SecretClient( new Uri( kvUri ), new DefaultAzureCredential() );
+            var client = new SecretClient( new Uri( kvUri ), new AzureCliCredential() );
             var privateKey = client.GetSecret( "Licensing-PrivateKey0" ).Value.Value;
             this._authority = LicensingAuthority.GetProductionAuthority( privateKey );
         }

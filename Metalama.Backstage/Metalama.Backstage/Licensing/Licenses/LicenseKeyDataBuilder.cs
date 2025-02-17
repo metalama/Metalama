@@ -2,6 +2,7 @@
 
 using JetBrains.Annotations;
 using Metalama.Backstage.Licensing.Licenses.LicenseFields;
+using Metalama.Backstage.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -11,16 +12,21 @@ namespace Metalama.Backstage.Licensing.Licenses;
 [PublicAPI]
 public partial class LicenseKeyDataBuilder : ILicenseKeyData
 {
+    public static readonly string? CurrentVersion = AssemblyMetadataReader.GetInstance( typeof( License ).Assembly ).PackageVersion;
+
     private readonly ImmutableSortedDictionary<LicenseFieldIndex, LicenseField>.Builder _fields;
 
     IReadOnlyDictionary<LicenseFieldIndex, LicenseField> ILicenseKeyData.Fields => this._fields;
 
-    public LicenseKeyDataBuilder() : this( ImmutableSortedDictionary<LicenseFieldIndex, LicenseField>.Empty ) { }
+    public LicenseKeyDataBuilder()
+    {
+        this._fields = ImmutableSortedDictionary<LicenseFieldIndex, LicenseField>.Empty.ToBuilder();
+    }
 
     internal LicenseKeyDataBuilder( ImmutableSortedDictionary<LicenseFieldIndex, LicenseField> fields )
     {
         this._fields = fields.ToBuilder();
-    }
+    } 
 
     public LicenseKeyData Build()
         => new( this._fields.ToImmutable() )
@@ -51,48 +57,48 @@ public partial class LicenseKeyDataBuilder : ILicenseKeyData
 
         switch ( value.GetType().Name )
         {
-            case nameof(Boolean):
+            case nameof( Boolean ):
                 this.SetFieldValue<LicenseFieldBool>( index, value );
 
                 break;
 
-            case nameof(Byte):
+            case nameof( Byte ):
                 this.SetFieldValue<LicenseFieldByte>( index, value );
 
                 break;
 
-            case nameof(Int16):
+            case nameof( Int16 ):
                 this.SetFieldValue<LicenseFieldInt16>( index, value );
 
                 break;
 
-            case nameof(Int32):
+            case nameof( Int32 ):
                 this.SetFieldValue<LicenseFieldInt32>( index, value );
 
                 break;
 
-            case nameof(Int64):
+            case nameof( Int64 ):
                 this.SetFieldValue<LicenseFieldInt64>( index, value );
 
                 break;
 
-            case nameof(DateTime):
+            case nameof( DateTime ):
                 this.SetFieldValue<LicenseFieldDate>( index, ((DateTime) value).Date );
                 this.SetFieldValue<LicenseFieldDateTime>( index, value );
 
                 break;
 
-            case nameof(String):
+            case nameof( String ):
                 this.SetFieldValue<LicenseFieldString>( index, value );
 
                 break;
 
-            case nameof(Byte) + "[]":
+            case nameof( Byte ) + "[]":
                 this.SetFieldValue<LicenseFieldBytes>( index, value );
 
                 break;
 
-            case nameof(Guid):
+            case nameof( Guid ):
                 this.SetFieldValue<LicenseFieldGuid>( index, value );
 
                 break;
@@ -229,10 +235,10 @@ public partial class LicenseKeyDataBuilder : ILicenseKeyData
     /// <summary>
     /// Gets or sets the hash of the licensee name.
     /// </summary>
-    public int? LicenseeHash
+    public long? LicenseeHash
     {
-        get => (int?) this.GetFieldValue( LicenseFieldIndex.LicenseeHash );
-        set => this.SetFieldValue<LicenseFieldInt32>( LicenseFieldIndex.LicenseeHash, value );
+        get => (long?) this.GetFieldValue( LicenseFieldIndex.LicenseeHash );
+        set => this.SetFieldValue<LicenseFieldInt64>( LicenseFieldIndex.LicenseeHash, value );
     }
 
     /// <summary>
@@ -272,6 +278,59 @@ public partial class LicenseKeyDataBuilder : ILicenseKeyData
     {
         get => (bool?) this.GetFieldValue( LicenseFieldIndex.LicenseServerEligible );
         set => this.SetFieldValue<LicenseFieldBool>( LicenseFieldIndex.LicenseServerEligible, value );
+    }
+
+    public string? OriginVersion
+    {
+        get => (string?) this.GetFieldValue( LicenseFieldIndex.OriginVersion );
+        init => this.SetFieldValue<LicenseFieldString>( LicenseFieldIndex.OriginVersion, value );
+    }
+
+    public LicenseSupportPolicy SupportPolicy
+    {
+        get =>
+            this.GetFieldValue( LicenseFieldIndex.SupportLevel ) switch
+            {
+                null => LicenseSupportPolicy.None,
+                byte supportLevel => (LicenseSupportPolicy) supportLevel,
+                _ => throw new InvalidCastException( "Invalid support level." )
+            };
+
+        set
+        {
+            if ( value != LicenseSupportPolicy.None )
+            {
+                this.SetFieldValue<LicenseFieldByte>( LicenseFieldIndex.SupportLevel, (byte) value );
+            }
+            else
+            {
+                this.SetFieldValue<LicenseFieldByte>( LicenseFieldIndex.SupportLevel, null );
+            }
+        }
+    }
+
+    public LicenseGeneration Generation
+    {
+        get =>
+            this.GetFieldValue( LicenseFieldIndex.Generation ) switch
+            {
+                null => 0,
+                byte generation => (LicenseGeneration) generation,
+                _ => throw new InvalidCastException( "Invalid generation." )
+            };
+
+        set
+        {
+
+            if ( value != LicenseGeneration.None )
+            {
+                this.SetFieldValue<LicenseFieldByte>( LicenseFieldIndex.Generation, (byte) value );
+            }
+            else
+            {
+                this.SetFieldValue<LicenseFieldByte>( LicenseFieldIndex.Generation, null );
+            }
+        }
     }
 
     public Version? MinPostSharpVersion

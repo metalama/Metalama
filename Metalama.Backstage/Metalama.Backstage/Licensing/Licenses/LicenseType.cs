@@ -83,6 +83,7 @@ namespace Metalama.Backstage.Licensing.Licenses
 
         /// <summary>
         /// Commercial license (Enterprise edition).
+        /// Deprecated in 6.6.
         /// </summary>
         Enterprise = 15,
 
