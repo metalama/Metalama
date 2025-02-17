@@ -448,7 +448,7 @@ internal sealed class SourceNamedTypeImpl : SourceMemberOrNamedType, INamedTypeI
                 return Array.Empty<IMember>();
         }
 
-        var candidates = members.OfName( member.Name );
+        var candidates = members.Where( m => m.GetCleanName() == member.Name );
 
         var overridingMembers = new List<IMember>();
 
@@ -690,7 +690,7 @@ internal sealed class SourceNamedTypeImpl : SourceMemberOrNamedType, INamedTypeI
         var compilation = this.Compilation.RoslynCompilation;
 
         // Process the Roslyn type system.
-        foreach ( var type in this._namedTypeSymbol.Interfaces )
+        foreach ( var type in this._namedTypeSymbol.AllInterfaces )
         {
             builder.Add( genericMap.SubstituteSymbol( type, compilation ) );
         }
