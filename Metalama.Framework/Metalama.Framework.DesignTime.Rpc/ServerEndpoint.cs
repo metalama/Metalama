@@ -78,6 +78,14 @@ public abstract class ServerEndpoint : BaseEndpoint
         }
     }
 
+    protected void OnConnected( IEnumerable<RpcService> services )
+    {
+        foreach ( var service in services )
+        {
+            service.OnRpcConnected();
+        }
+    }
+
     private async Task AcceptNewClientAsync( string pipeName, ImmutableArray<RpcService> services, CancellationToken cancellationToken )
     {
         var pipe = new NamedPipeServerStream(
@@ -114,6 +122,8 @@ public abstract class ServerEndpoint : BaseEndpoint
 
         // Listen to another client.
         this.ExecuteBackgroundTask( ct => this.AcceptNewClientAsync( pipeName, services, ct ) );
+
+        this.OnConnected( services );
     }
 
     private void OnRpcDisconnected( object? sender, JsonRpcDisconnectedEventArgs e )

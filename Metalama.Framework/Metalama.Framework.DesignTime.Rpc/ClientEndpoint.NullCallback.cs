@@ -6,12 +6,15 @@ namespace Metalama.Framework.DesignTime.Rpc;
 
 public abstract partial class ClientEndpoint
 {
-    private sealed class NullCallback : IRpcCallback
+    private sealed class NullCallback( ClientEndpoint parent ) : IRpcCallback
     {
-        public static NullCallback Instance { get; } = new();
+        private readonly ClientEndpoint _parent = parent;
 
-        private NullCallback() { }
+        public Task RaiseEventAsync( RpcEventEnvelope envelope, [UsedImplicitly] CancellationToken cancellationToken )
+        {
+            this._parent.Logger.Trace?.Log( $"NullCallback.RaiseEventAsync: Received event {envelope.Data.Category} from {envelope.OriginatingApi}." );
 
-        public Task RaiseEventAsync( RpcEventEnvelope envelope, [UsedImplicitly] CancellationToken cancellationToken ) => Task.CompletedTask;
+            return Task.CompletedTask;
+        }
     }
 }

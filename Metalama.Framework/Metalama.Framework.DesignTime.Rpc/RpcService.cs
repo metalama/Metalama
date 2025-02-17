@@ -1,6 +1,7 @@
 ﻿// Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
 using Metalama.Backstage.Diagnostics;
+using Microsoft.VisualStudio.Threading;
 using StreamJsonRpc;
 using System.Collections.Concurrent;
 
@@ -11,20 +12,21 @@ namespace Metalama.Framework.DesignTime.Rpc;
 /// </summary>
 public abstract class RpcService
 {
-    private readonly ServerEndpoint _serverEndpoint;
+    private readonly TaskCompletionSource<bool> _initialized = new();
 
     protected ILogger Logger { get; }
 
     protected RpcService( ServerEndpoint serverEndpoint )
     {
         this.Logger = serverEndpoint.LoggerFactory.GetLogger( this.GetType().Name );
-        this._serverEndpoint = serverEndpoint;
     }
 
-    protected ValueTask WaitUntilInitializedAsync( CancellationToken cancellationToken = default )
-        => this._serverEndpoint.WaitUntilInitializedAsync( cancellationToken );
+    protected Task WaitUntilInitializedAsync( CancellationToken cancellationToken = default )
+        => this._initialized.Task.WithCancellation( cancellationToken );
 
     internal abstract void ConfigureRpc( JsonRpc rpc );
+
+    protected internal void OnRpcConnected() => this._initialized.SetResult( true );
 
     internal virtual void OnRpcDisconnected( JsonRpc rpc ) { }
 }
@@ -59,16 +61,22 @@ public abstract class RpcService<TApi> : RpcService, IDisposable where TApi : IR
 
     protected abstract TApi CreateApi( IRpcEventSender eventSender );
 
-    protected Task RaiseEventAsync( RpcEventData eventData, CancellationToken cancellationToken )
+    protected async Task RaiseEventAsync( RpcEventData eventData, CancellationToken cancellationToken )
     {
         if ( this._clients.Count == 0 )
         {
-            return Task.CompletedTask;
+            this.Logger.Trace?.Log( $"RaiseEventAsync: No clients, nothing to do for event {eventData.Category}." );
+
+            return;
         }
+
+        await this.WaitUntilInitializedAsync( cancellationToken );
+
+        this.Logger.Trace?.Log( $"RaiseEventAsync: Notifying {this._clients.Count} clients with event {eventData.Category}." );
 
         var envelope = new RpcEventEnvelope( typeof(TApi).Name, eventData );
 
-        return Task.WhenAll( this._clients.Values.Select( c => c.RaiseEventAsync( envelope, cancellationToken ) ) );
+        await Task.WhenAll( this._clients.Values.Select( c => c.RaiseEventAsync( envelope, cancellationToken ) ) ).WithCancellation( cancellationToken );
     }
 
     protected void RaiseEvent( RpcEventData eventData, CancellationToken cancellationToken = default )

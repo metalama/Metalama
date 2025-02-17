@@ -25,6 +25,12 @@ public class TestableCancellationTokenSource : IDisposable
         this.Token = new TestableCancellationToken( this.CancellationTokenSource.Token, this );
     }
 
+    public TestableCancellationTokenSource( CancellationToken linkedToken )
+    {
+        this.CancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource( linkedToken );
+        this.Token = new TestableCancellationToken( this.CancellationTokenSource.Token, this );
+    }
+
     public virtual void OnPossibleCancellationPoint() { }
 
     public virtual void Dispose()

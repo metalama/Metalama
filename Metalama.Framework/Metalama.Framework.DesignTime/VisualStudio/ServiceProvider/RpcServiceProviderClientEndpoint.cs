@@ -106,6 +106,9 @@ public sealed class RpcServiceProviderClientEndpoint : ClientEndpoint
         }
 
         // Then we republish the message.
+        this.Logger.Trace?.Log(
+            $"OnEventReceivedAsync: Republishing event {envelope.Data.Category} from {envelope.OriginatingApi} to {this.EventReceived?.GetInvocationList().Length ?? 0} handlers." );
+
         this.EventReceived?.Invoke( envelope.Data );
     }
 

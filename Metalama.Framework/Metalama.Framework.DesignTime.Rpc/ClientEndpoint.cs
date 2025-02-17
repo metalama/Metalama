@@ -13,7 +13,8 @@ public abstract partial class ClientEndpoint : BaseEndpoint
     private record struct Connection( NamedPipeClientStream Stream, JsonRpc Rpc, ImmutableArray<RpcClient> Clients );
 
     private readonly Callback _callback;
-
+    private readonly NullCallback _nullCallback;
+    
     private ImmutableDictionary<JsonRpc, Connection> _connectionByStream = ImmutableDictionary<JsonRpc, Connection>.Empty;
 
     // Not immutable because speed is important here.
@@ -30,6 +31,7 @@ public abstract partial class ClientEndpoint : BaseEndpoint
         base( serviceProvider, pipeName )
     {
         this._callback = new Callback( this );
+        this._nullCallback = new NullCallback( this );
     }
 
     protected abstract IEnumerable<RpcClient> CreateServiceClients();
@@ -178,7 +180,7 @@ public abstract partial class ClientEndpoint : BaseEndpoint
                 // We have to register a callback (otherwise we get RemoteMethodNotFoundException on the server side).
                 // But we don't want to register the regular callback again, because that would cause duplicate events.
                 // So register a dummy callback that does nothing.
-                rpc.AddLocalRpcTarget<IRpcCallback>( NullCallback.Instance, null );
+                rpc.AddLocalRpcTarget<IRpcCallback>( this._nullCallback, null );
             }
 
             foreach ( var client in newClients )
@@ -269,11 +271,13 @@ public abstract partial class ClientEndpoint : BaseEndpoint
     {
         if ( this._clientdByInterfaceName.TryGetValue( envelope.OriginatingApi, out var client ) )
         {
+            this.Logger.Trace?.Log( $"OnEventReceivedAsync: Passing message {envelope.Data.Category} to the client {client}." );
+
             return client.OnEventReceivedAsync( envelope.Data, cancellationToken );
         }
         else
         {
-            this.Logger.Warning?.Log( $"Dropping a message originating from '{envelope.OriginatingApi}': the client interface is not registered." );
+            this.Logger.Warning?.Log( $"OnEventReceivedAsync: Dropping a message originating from '{envelope.OriginatingApi}': the client interface is not registered." );
 
             return Task.CompletedTask;
         }

@@ -18,7 +18,6 @@ public sealed class NotificationIntegrationTests : DistributedDesignTimeTestBase
 {
     public NotificationIntegrationTests( ITestOutputHelper logger ) : base( logger ) { }
 
-    [Fact(Skip = "https://postsharp.tpondemand.com/entity/35722" )]
     public async Task ReceivesNotification()
     {
         using var testContext = this.CreateDistributedDesignTimeTestContext( options: new TestContextOptions() { HasSourceGeneratorTouchFile = true } );
