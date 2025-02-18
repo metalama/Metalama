@@ -1,8 +1,5 @@
 ﻿// Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
-using Metalama.Backstage.Application;
-using Metalama.Backstage.Infrastructure;
-using Metalama.Backstage.Licensing.Consumption;
 using Metalama.Backstage.Licensing.Licenses.LicenseFields;
 using System;
 using System.Diagnostics.CodeAnalysis;
@@ -12,7 +9,7 @@ namespace Metalama.Backstage.Licensing.Licenses
 {
     public partial record LicenseKeyData
     {
-        public bool ValidateFields( [NotNullWhen( true )] out string? errorMessage )
+        public bool ValidateFields( [NotNullWhen( false )] out string? errorMessage )
         {
             if ( !Enum.IsDefined( typeof(LicenseType), this.LicenseType ) )
             {
