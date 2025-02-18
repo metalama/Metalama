@@ -11,6 +11,7 @@
         <PackageTags>$(PackageTags) linqpaddriver linqpad-samples</PackageTags>
         <PackageDescription>Loads any C# project or solution into LINQPad and exposes its code model to queries. This package contains an optional driver, samples, and dumping methods.</PackageDescription>
         <PackageReadmeFile>README.md</PackageReadmeFile>
+        <EnableWindowsTargeting>true</EnableWindowsTargeting>
 
         <!-- Temporarily allows Metalama.LinqPad to access Metalama internals. -->
         <NoWarn>LAMA0820</NoWarn>

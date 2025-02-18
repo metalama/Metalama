@@ -1,0 +1,6 @@
+artifacts/
+.github/
+.teamcity/
+**/bin/
+**/obj/
+eng/*.g.props

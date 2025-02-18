@@ -14,7 +14,8 @@
       thanks to Metalama.
     </PackageDescription>
 
-    <PackageTags>Metalama PostSharp WPF dependency property DependencyProperty command</PackageTags>      
+    <PackageTags>Metalama PostSharp WPF dependency property DependencyProperty command</PackageTags>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
   </PropertyGroup>
 
   <ItemGroup>

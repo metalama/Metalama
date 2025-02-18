@@ -1,5 +1,6 @@
 ﻿// Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
+using System.IO;
 using Metalama.Framework.GenerateMetaSyntaxRewriter;
 using PostSharp.Engineering.BuildTools;
 using PostSharp.Engineering.BuildTools.Build;
@@ -14,8 +15,8 @@ var product = new Product( MetalamaDependencies.Metalama )
 {
     Solutions =
     [
-        new DotNetSolution( "Metalama.Backstage\\Metalama.Backstage.sln" ) { SupportsTestCoverage = true, CanFormatCode = true },
-        new DotNetSolution( "Metalama.Framework\\Metalama.sln" )
+        new DotNetSolution( "Metalama.Backstage/Metalama.Backstage.sln" ) { SupportsTestCoverage = true, CanFormatCode = true },
+        new DotNetSolution( "Metalama.Framework/Metalama.sln" )
         {
             SolutionFilterPathForInspectCode = "Metalama.LatestRoslyn.slnf",
             SupportsTestCoverage = true,
@@ -37,23 +38,23 @@ var product = new Product( MetalamaDependencies.Metalama )
                 "**\\*.props", "**\\*.targets", "**\\*.csproj", "**\\*.md", "**\\*.xml", "**\\*.config"
             ]
         },
-        new DotNetSolution( "Metalama.Framework\\Metalama.LatestRoslyn.slnf" )
+        new DotNetSolution( "Metalama.Framework/Metalama.LatestRoslyn.slnf" )
         {
             SupportsTestCoverage = false, CanFormatCode = false, IsTestOnly = true
         },
-        new DotNetSolution( "Metalama.Framework\\Tests\\Metalama.Framework.TestApp\\Metalama.Framework.TestApp.sln" )
+        new DotNetSolution( "Metalama.Framework/Tests/Metalama.Framework.TestApp\\Metalama.Framework.TestApp.sln" )
         {
             IsTestOnly = true, TestMethod = BuildMethod.Build
         },
-        new ManyDotNetSolutions( "Metalama.Framework\\Tests\\Standalone" ) { IsTestOnly = true },
-        new DotNetSolution( "Metalama.Extensions\\Metalama.Extensions.sln" ) 
+        new ManyDotNetSolutions( "Metalama.Framework/Tests/Standalone" ) { IsTestOnly = true },
+        new DotNetSolution( "Metalama.Extensions/Metalama.Extensions.sln" ) 
         { 
             CanFormatCode = true,
             FormatExclusions = ["src\\tests\\*AspectTests\\**\\*"],
         },
-        new DotNetSolution( "Metalama.Migration\\src\\Metalama.Migration.sln" ) { CanFormatCode = true },
-        new DotNetSolution( "Metalama.LinqPad\\Metalama.LinqPad.sln" ) { CanFormatCode = true },
-        new DotNetSolution( "Metalama.Patterns\\Metalama.Patterns.sln" )
+        new DotNetSolution( "Metalama.Migration/src/Metalama.Migration.sln" ) { CanFormatCode = true },
+        new DotNetSolution( "Metalama.LinqPad/Metalama.LinqPad.sln" ) { CanFormatCode = true },
+        new DotNetSolution( "Metalama.Patterns/Metalama.Patterns.sln" )
         { 
             CanFormatCode = true,
             FormatExclusions = ["src\\tests\\*AspectTests\\**\\*"]
@@ -142,7 +143,7 @@ static void OnPrepareCompleted( PrepareCompletedEventArgs arg )
 
     arg.Context.Console.WriteHeading( "Generating code" );
 
-    var srcDirectory = $"{arg.Context.RepoDirectory}\\Metalama.Framework";
+    var srcDirectory = Path.Combine( arg.Context.RepoDirectory, "Metalama.Framework" );
 
     GenerateMetaSyntaxRewriter.Generate( srcDirectory );
 }
