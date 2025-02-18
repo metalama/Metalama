@@ -1,7 +1,9 @@
 ﻿// Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
 using Metalama.Backstage.Licensing;
+using Metalama.Backstage.Licensing.Consumption;
 using Metalama.Backstage.Licensing.Licenses;
+using System.Linq;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -41,7 +43,7 @@ namespace Metalama.Backstage.Tests.Licensing.Licenses
             Assert.True( this.LicenseFactory.TryCreate( invalidLicenseString, out var license, out var errorMessage ) );
             Assert.Null( errorMessage );
             Assert.True( license is License );
-            Assert.False( license.TryGetLicenseConsumptionData( out _, out _ ) );
+            Assert.False( license.TryGetLicenseConsumptionData( LicenseConsumptionOptions.Default, out _, out _ ) );
         }
 
         [Fact]
@@ -56,7 +58,7 @@ namespace Metalama.Backstage.Tests.Licensing.Licenses
             Assert.True( this.LicenseFactory.TryCreate( revokedLicenseString, out var license, out var errorMessage ) );
             Assert.Null( errorMessage );
             Assert.True( license is License );
-            Assert.False( license.TryGetLicenseConsumptionData( out _, out _ ) );
+            Assert.False( license.TryGetLicenseConsumptionData( LicenseConsumptionOptions.Default, out _, out _ ) );
         }
 
         [Fact]
@@ -65,7 +67,7 @@ namespace Metalama.Backstage.Tests.Licensing.Licenses
             Assert.True( this.LicenseFactory.TryCreate( LicenseKeyProvider.PostSharpUltimate, out var license, out var errorMessage ) );
             Assert.Null( errorMessage );
             Assert.True( license is License );
-            Assert.True( license.TryGetLicenseConsumptionData( out var licenseData, out errorMessage ) );
+            Assert.True( license.TryGetLicenseConsumptionData( LicenseConsumptionOptions.Default, out var licenseData, out errorMessage ) );
             Assert.NotNull( licenseData );
             Assert.Null( errorMessage );
         }
@@ -73,7 +75,7 @@ namespace Metalama.Backstage.Tests.Licensing.Licenses
         [Fact]
         public void UrlCreatesLicenseLease()
         {
-            // TODO
+            // LicenseConsumptionOptions.Default
 
             // Assert.True( this._licenseFactory.TryCreate( "http://hello.world", out var license ) );
             // Assert.True( license is LicenseLease );
@@ -86,19 +88,17 @@ namespace Metalama.Backstage.Tests.Licensing.Licenses
         {
             var licenseKey = new LicenseKeyDataBuilder
             {
-                Product = LicensedProduct.MetalamaProfessional,
-                Signature = new byte[16],
-                SignatureKeyId = this.LicensingAuthority.KeyId
+                Product = LicensedProduct.MetalamaProfessional, Signature = new byte[16], SignatureKeyId = this.LicensingAuthority.KeyIds.Single()
             }.SerializeToLicenseString();
-            
+
             Assert.True( this.LicenseFactory.TryCreate( licenseKey, out var license, out var errorMessage ) );
             Assert.Null( errorMessage );
             Assert.True( license is License );
 
 #if NETFRAMEWORK
-            Assert.Throws<CryptographicException>( () => license.TryGetLicenseConsumptionData( out _, out _ ) );
+            Assert.Throws<CryptographicException>( () => license.TryGetLicenseConsumptionData( LicenseConsumptionOptions.Default, out _, out _ ) );
 #else
-            Assert.False( license.TryGetLicenseConsumptionData( out var data, out errorMessage ) );
+            Assert.False( license.TryGetLicenseConsumptionData( LicenseConsumptionOptions.Default, out var data, out errorMessage ) );
             Assert.Null( data );
             Assert.NotEmpty( errorMessage );
 #endif

@@ -5,7 +5,6 @@ using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Infrastructure;
 using Metalama.Backstage.Licensing.Audit;
 using Metalama.Backstage.Licensing.Consumption.Sources;
-using Metalama.Backstage.Licensing.Licenses;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -15,7 +14,10 @@ namespace Metalama.Backstage.Licensing.Consumption;
 
 internal sealed class LicenseConsumer : ILicenseConsumer
 {
+    public ImmutableArray<LicensingMessage> Messages { get; }
+
     private readonly ILogger _logger;
+    private readonly LicenseConsumptionOptions _options;
     private readonly LicenseConsumptionData? _license;
     private readonly BackstageBackgroundTasksService _backgroundTasksService;
     private readonly IDateTimeProvider _dateTimeProvider;
@@ -23,8 +25,14 @@ internal sealed class LicenseConsumer : ILicenseConsumer
 
     private DateTime _lastAuditTime = DateTime.MinValue;
 
-    private LicenseConsumer( IServiceProvider services, LicenseConsumptionData? license )
+    private LicenseConsumer(
+        LicenseConsumptionOptions options,
+        IServiceProvider services,
+        LicenseConsumptionData? license,
+        ImmutableArray<LicensingMessage> messages )
     {
+        this.Messages = messages;
+        this._options = options;
         this._license = license;
         this._logger = services.GetLoggerFactory().Licensing();
         this._dateTimeProvider = services.GetRequiredBackstageService<IDateTimeProvider>();
@@ -33,9 +41,9 @@ internal sealed class LicenseConsumer : ILicenseConsumer
     }
 
     public static ILicenseConsumer Create(
+        LicenseConsumptionOptions options,
         IServiceProvider services,
-        IReadOnlyList<ILicenseSource> licenseSources,
-        out ImmutableArray<LicensingMessage> messages )
+        IEnumerable<ILicenseSource> licenseSources )
     {
         var messagesBuilder = ImmutableArray.CreateBuilder<LicensingMessage>();
 
@@ -54,7 +62,7 @@ internal sealed class LicenseConsumer : ILicenseConsumer
                 continue;
             }
 
-            if ( !license.TryGetLicenseConsumptionData( out licenseConsumptionData, out var errorMessage ) )
+            if ( !license.TryGetLicenseConsumptionData( options, out licenseConsumptionData, out var errorMessage ) )
             {
                 _ = license.TryGetProperties( out var registrationData, out _ );
                 var message = registrationData == null ? "A license" : $"The {registrationData.Description}";
@@ -75,19 +83,19 @@ internal sealed class LicenseConsumer : ILicenseConsumer
                 continue;
             }
 
+#pragma warning disable CS0612 // Type or member is obsolete
             if ( !string.IsNullOrEmpty( licenseConsumptionData.LicensedNamespace ) )
             {
                 logger.Warning?.Log( $"The license '{licenseConsumptionData.LicenseString}' has a namespace constraint, which is no longer supported." );
 
                 continue;
             }
+#pragma warning restore CS0612 // Type or member is obsolete
 
             break;
         }
 
-        messages = messagesBuilder.ToImmutable();
-
-        return new LicenseConsumer( services, licenseConsumptionData );
+        return new LicenseConsumer( options, services, licenseConsumptionData, messagesBuilder.ToImmutable() );
 
         void ReportMessage( LicensingMessage message )
         {
@@ -135,8 +143,4 @@ internal sealed class LicenseConsumer : ILicenseConsumer
             }
         }
     }
-
-    public bool IsTrialLicense => this._license?.LicenseType == LicenseType.Evaluation;
-
-    public string? LicenseString => this._license?.LicenseString;
 }

@@ -10,13 +10,13 @@ namespace Metalama.Backstage.Licensing.Licenses
     /// <summary>
     /// Provides extension methods for processing license key data for license consumption, registration and audit.
     /// </summary>
-    public static class LicenseKeyDataExtensions
+    internal static class LicenseKeyDataExtensions
     {
         /// <summary>
         /// If the <paramref name="licenseKeyData"/> contains an obsolete license type, it gets transformed to a respective non-obsolete one.
         /// Otherwise, the same license type is returned.
         /// </summary>
-        private static LicenseType TransformObsoleteLicenseType( this LicenseKeyData licenseKeyData )
+        internal static LicenseType TransformObsoleteLicenseType( this LicenseKeyData licenseKeyData )
         {
 #pragma warning disable CS0618 // Type or member is obsolete
             if ( licenseKeyData is { Product: LicensedProduct.PostSharp30, LicenseType: LicenseType.Professional } )
@@ -31,10 +31,12 @@ namespace Metalama.Backstage.Licensing.Licenses
         }
 
 #pragma warning disable CS0612, CS0618 // Type or member is obsolete
-        private static LicensedProduct TransformObsoleteProduct( this LicenseKeyData licenseKeyData )
+        internal static LicensedProduct TransformObsoleteProduct( this LicenseKeyData licenseKeyData )
             => licenseKeyData.Product switch
             {
-                LicensedProduct.PostSharp30 => licenseKeyData.LicenseType == LicenseType.Professional ? LicensedProduct.PostSharpFramework : LicensedProduct.PostSharpUltimate,
+                LicensedProduct.PostSharp30 => licenseKeyData.LicenseType == LicenseType.Professional
+                    ? LicensedProduct.PostSharpFramework
+                    : LicensedProduct.PostSharpUltimate,
                 LicensedProduct.MetalamaFree => LicensedProduct.None,
                 LicensedProduct.MetalamaStarter => LicensedProduct.MetalamaProfessional,
                 LicensedProduct.MetalamaUltimate => LicensedProduct.MetalamaProfessional,
@@ -42,7 +44,7 @@ namespace Metalama.Backstage.Licensing.Licenses
             };
 #pragma warning restore CS0618
 
-        private static string GetProductName( this LicenseKeyData licenseKeyData )
+        internal static string GetProductName( this LicenseKeyData licenseKeyData )
             => TransformObsoleteProduct( licenseKeyData ) switch
             {
                 LicensedProduct.PostSharpFramework => "PostSharp Framework",
@@ -62,7 +64,7 @@ namespace Metalama.Backstage.Licensing.Licenses
                 _ => string.Format( CultureInfo.InvariantCulture, "Unknown Product ({0})", licenseKeyData.Product )
             };
 
-        private static Version GetMinPostSharpVersion( this LicenseKeyData licenseKeyData )
+        internal static Version GetMinPostSharpVersion( this LicenseKeyData licenseKeyData )
         {
 #pragma warning disable 618
 
@@ -96,28 +98,6 @@ namespace Metalama.Backstage.Licensing.Licenses
                 return new Version( 3, 0, 0 );
             }
 #pragma warning restore 618
-        }
-
-        /// <summary>
-        /// Creates a new object of <see cref="LicenseConsumptionData"/> based on the given <see cref="LicenseKeyData"/>.
-        /// </summary>
-        public static LicenseConsumptionData ToConsumptionData( this LicenseKeyData licenseKeyData )
-        {
-            var licenseType = licenseKeyData.TransformObsoleteLicenseType();
-            var product = licenseKeyData.TransformObsoleteProduct();
-            var isRedistributable = licenseType is LicenseType.OpenSourceRedistribution or LicenseType.CommercialRedistribution;
-
-            LicenseConsumptionData data = new(
-                product,
-                licenseType,
-                licenseKeyData.Namespace,
-                $"{licenseKeyData.GetProductName()} {licenseKeyData.LicenseType.GetLicenseTypeName()} ID {licenseKeyData.LicenseUniqueId}",
-                licenseKeyData.GetMinPostSharpVersion(),
-                licenseKeyData.LicenseString,
-                isRedistributable,
-                licenseKeyData.Auditable ?? true );
-
-            return data;
         }
 
         /// <summary>

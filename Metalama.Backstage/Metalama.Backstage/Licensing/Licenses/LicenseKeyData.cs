@@ -2,6 +2,7 @@
 
 using JetBrains.Annotations;
 using Metalama.Backstage.Licensing.Licenses.LicenseFields;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
@@ -13,7 +14,7 @@ namespace Metalama.Backstage.Licensing.Licenses
     /// <summary>
     /// Provides serialization, cryptography and validation for license keys.
     /// </summary>
-    [PublicAPI]
+    [PublicAPI( "Used by the license audit loader." )]
     public partial record LicenseKeyData : ILicenseKeyData
     {
         public bool RequiresSignature => this.RequiresSignature();
@@ -24,16 +25,18 @@ namespace Metalama.Backstage.Licensing.Licenses
                 : this.LicenseId.ToString( CultureInfo.InvariantCulture );
 
         // TODO in Metalama
-        public bool RequiresWatermark => this.LicenseType == LicenseType.Evaluation || this.LicenseType == LicenseType.Academic;
+        public bool RequiresWatermark => this.LicenseType is LicenseType.Evaluation or LicenseType.Academic;
 
         /// <summary>
         /// Gets a value indicating whether the license is a redistribution license.
         /// </summary>
-        public bool IsRedistribution => this.LicenseType == LicenseType.OpenSourceRedistribution || this.LicenseType == LicenseType.CommercialRedistribution;
+        [Obsolete]
+        public bool IsRedistribution => this.LicenseType is LicenseType.OpenSourceRedistribution or LicenseType.CommercialRedistribution;
 
         /// <summary>
         /// Gets a value indicating whether the license is limited by a namespace.
         /// </summary>
+        [Obsolete]
         public bool IsLimitedByNamespace => !string.IsNullOrEmpty( this.Namespace );
 
         internal LicenseKeyData() : this( ImmutableSortedDictionary<LicenseFieldIndex, LicenseField>.Empty ) { }

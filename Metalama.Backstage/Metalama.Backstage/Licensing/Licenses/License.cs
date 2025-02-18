@@ -16,14 +16,14 @@ namespace Metalama.Backstage.Licensing.Licenses
     /// <summary>
     /// Represents a license serialized in a license key.
     /// </summary>
-    public sealed class License : ILicense
+    internal sealed class License : ILicense
     {
         private readonly string _licenseKey;
 
-        private readonly IServiceProvider _services;
         private readonly IDateTimeProvider _dateTimeProvider;
         private readonly ILogger _logger;
         private readonly LicensingAuthority _licensingAuthority;
+        private readonly IApplicationInfo _applicationInfo;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="License"/> class.
@@ -33,10 +33,10 @@ namespace Metalama.Backstage.Licensing.Licenses
         internal License( string licenseKey, IServiceProvider services )
         {
             this._licenseKey = CleanLicenseKey( licenseKey );
-            this._services = services;
             this._dateTimeProvider = services.GetRequiredBackstageService<IDateTimeProvider>();
             this._licensingAuthority = services.GetRequiredBackstageService<LicensingAuthority>();
             this._logger = services.GetLoggerFactory().Licensing();
+            this._applicationInfo = services.GetRequiredBackstageService<IApplicationInfoProvider>().CurrentApplication;
         }
 
         private static string CleanLicenseKey( string licenseKey )
@@ -55,19 +55,175 @@ namespace Metalama.Backstage.Licensing.Licenses
             return stringBuilder.ToString().ToUpperInvariant();
         }
 
+        public bool CanBeRegistered( [MaybeNullWhen( true )] out string errorMessage )
+        {
+            if ( !this.TryGetLicenseConsumptionData( LicenseConsumptionOptions.ForRegistration, out var licenseConsumptionData, out errorMessage ) )
+            {
+                return false;
+            }
+
+#pragma warning disable CS0612 // Type or member is obsolete
+            if ( licenseConsumptionData.IsRedistributable )
+            {
+                errorMessage = "this is a redistribution license key";
+
+                return false;
+            }
+#pragma warning restore CS0612 // Type or member is obsolete
+
+            return true;
+        }
+
         /// <inheritdoc />
         public bool TryGetLicenseConsumptionData(
+            LicenseConsumptionOptions options,
             [MaybeNullWhen( false )] out LicenseConsumptionData licenseConsumptionData,
             [MaybeNullWhen( true )] out string errorMessage )
         {
-            if ( !this.TryGetValidatedLicenseKeyData( out var licenseKeyData, out errorMessage ) )
+            licenseConsumptionData = null;
+
+            if ( !this.TryGetLicenseKeyData( out var licenseKeyData, out errorMessage ) )
             {
-                licenseConsumptionData = null;
+                return false;
+            }
+
+#pragma warning disable CS0618
+            if ( licenseKeyData.LicenseType == LicenseType.Anonymous )
+            {
+                errorMessage = "anonymous licenses are no longer supported";
+
+                return false;
+            }
+#pragma warning restore CS0618
+
+            if ( licenseKeyData is { SignatureKeyId: 0, LicenseId: not 0 and < 20 } )
+            {
+                errorMessage = "the license key has been revoked";
 
                 return false;
             }
 
-            licenseConsumptionData = licenseKeyData.ToConsumptionData();
+            if ( licenseKeyData.RequiresSignature && !licenseKeyData.VerifySignature( this._licensingAuthority ) )
+            {
+                errorMessage = "the license key has an invalid signature";
+
+                return false;
+            }
+
+            if ( licenseKeyData.ValidFrom.HasValue && licenseKeyData.ValidFrom > this._dateTimeProvider.UtcNow )
+            {
+                errorMessage = "the license key is not yet valid";
+
+                return false;
+            }
+
+            if ( licenseKeyData.ValidTo.HasValue && licenseKeyData.ValidTo < this._dateTimeProvider.UtcNow )
+            {
+                errorMessage = "the license key has expired";
+
+                return false;
+            }
+
+            if ( licenseKeyData.ValidTo == null && licenseKeyData.SubscriptionEndDate == null )
+            {
+                errorMessage = "the license key has neither a validity end date nor a subscription end date";
+
+                return false;
+            }
+
+            SubscriptionStatus subscriptionStatus;
+
+            if ( licenseKeyData.SubscriptionEndDate != null )
+            {
+                if ( licenseKeyData.SubscriptionEndDate <= this._dateTimeProvider.UtcNow )
+                {
+                    subscriptionStatus = SubscriptionStatus.Active;
+                }
+                else if ( options.SubscriptionGracePeriod != null && licenseKeyData.SubscriptionEndDate.Value.Add( options.SubscriptionGracePeriod.Value )
+                         <= this._dateTimeProvider.UtcNow )
+                {
+                    subscriptionStatus = SubscriptionStatus.Grace;
+                }
+                else
+                {
+                    subscriptionStatus = SubscriptionStatus.Expired;
+                }
+            }
+            else
+            {
+                subscriptionStatus = SubscriptionStatus.None;
+            }
+
+            if ( !options.IgnoreSubscriptionPeriod )
+            {
+                if ( !this._applicationInfo.BuildDate.HasValue )
+                {
+                    throw new InvalidOperationException( $"Application '{this._applicationInfo.Name}' is missing build date information." );
+                }
+
+                var latestComponentMadeByPostSharp = this._applicationInfo.GetLatestComponentMadeByPostSharp();
+
+                var endDate = licenseKeyData.SubscriptionEndDate;
+
+                if ( endDate < latestComponentMadeByPostSharp.BuildDate )
+                {
+                    errorMessage =
+                        $"the license key does not allow to use the licensed product '{latestComponentMadeByPostSharp.Name}' version {latestComponentMadeByPostSharp.PackageVersion} released on {latestComponentMadeByPostSharp.BuildDate:d} - only versions released before {licenseKeyData.SubscriptionEndDate:d} are allowed to use by this license";
+
+                    return false;
+                }
+            }
+
+            if ( options.RequireActiveOrGraceSubscription && subscriptionStatus is not (SubscriptionStatus.Active or SubscriptionStatus.Grace) )
+            {
+                errorMessage =
+                    $"the subscription period has expired";
+
+                return false;
+            }
+
+            switch ( licenseKeyData.Product )
+            {
+                case LicensedProduct.MetalamaCommunity:
+                case LicensedProduct.MetalamaProfessional:
+                case LicensedProduct.PostSharpFramework:
+                case LicensedProduct.PostSharpUltimate:
+                    break;
+
+                default:
+                    errorMessage = $"the license key is for {licenseKeyData.Product} and not for Metalama";
+
+                    return false;
+            }
+
+#pragma warning disable CS0612 // Type or member is obsolete
+            if ( licenseKeyData is { IsRedistribution: true, IsLimitedByNamespace: false } )
+            {
+                errorMessage = "is a redistribution license, but it is not limited by a namespace";
+
+                return false;
+            }
+#pragma warning restore CS0612 // Type or member is obsolete
+
+            errorMessage = null;
+
+            var licenseType = licenseKeyData.TransformObsoleteLicenseType();
+            var product = licenseKeyData.TransformObsoleteProduct();
+#pragma warning disable CS0618 // Type or member is obsolete
+            var isRedistributable = licenseType is LicenseType.OpenSourceRedistribution or LicenseType.CommercialRedistribution;
+#pragma warning restore CS0618 // Type or member is obsolete
+
+            licenseConsumptionData = new LicenseConsumptionData(
+                product,
+                licenseType,
+                licenseKeyData.Namespace,
+                $"{licenseKeyData.GetProductName()} {licenseKeyData.LicenseType.GetLicenseTypeName()} ID {licenseKeyData.LicenseUniqueId}",
+                licenseKeyData.GetMinPostSharpVersion(),
+                licenseKeyData.LicenseString,
+                isRedistributable,
+                licenseKeyData.Auditable ?? true,
+                licenseKeyData.SubscriptionEndDate,
+                subscriptionStatus );
 
             return true;
         }
@@ -93,13 +249,7 @@ namespace Metalama.Backstage.Licensing.Licenses
         {
             this._logger.Trace?.Log( $"Deserializing license '{this._licenseKey}'." );
 
-            if ( LicenseKeyData.TryDeserialize( this._licenseKey, out data, out errorMessage ) )
-            {
-                this._logger.Trace?.Log( $"Deserialized license: {data}" );
-
-                return true;
-            }
-            else
+            if ( !LicenseKeyData.TryDeserialize( this._licenseKey, out data, out errorMessage ) || !data.ValidateFields( out errorMessage ) )
             {
                 errorMessage = $"Cannot parse the license key '{this._licenseKey}': {errorMessage}.";
 
@@ -107,32 +257,12 @@ namespace Metalama.Backstage.Licensing.Licenses
 
                 return false;
             }
-        }
-
-        private bool TryGetValidatedLicenseKeyData(
-            [MaybeNullWhen( false )] out LicenseKeyData data,
-            [MaybeNullWhen( true )] out string validationErrorMessage )
-        {
-            if ( !this.TryGetLicenseKeyData( out data, out validationErrorMessage ) )
+            else
             {
-                return false;
+                this._logger.Trace?.Log( $"Deserialized license: {data}" );
+
+                return true;
             }
-
-            var applicationInfoService = this._services.GetRequiredBackstageService<IApplicationInfoProvider>().CurrentApplication;
-
-            if ( !data.Validate(
-                    this._dateTimeProvider,
-                    applicationInfoService,
-                    this._licensingAuthority,
-                    out validationErrorMessage ) )
-            {
-                this._logger.Warning?.Log( $"The license key {data.LicenseUniqueId} is invalid: {validationErrorMessage}" );
-                data = null;
-
-                return false;
-            }
-
-            return true;
         }
 
         private bool TryGetLicenseKeyDataWithVerifiedSignature(

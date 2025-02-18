@@ -6,30 +6,30 @@ using Metalama.Backstage.Licensing.Licenses;
 
 namespace PostSharp.LicenseKeyGenerator
 {
-    public partial class MainForm : Form
+    internal sealed partial class MainForm : Form
     {
         private readonly LicensingAuthority _authority;
 
         public MainForm()
         {
             this.InitializeComponent();
+
             this._propertyGrid.SelectedObject = new LicenseKeyDataBuilder()
             {
-                OriginVersion = LicenseKeyDataBuilder.CurrentVersion,
-                Generation = LicenseGeneration.Current,
+                OriginVersion = LicenseKeyDataBuilder.CurrentVersion, Generation = LicenseGeneration.Current
             };
 
             // We load the private key on startup to avoid KeyVault exceptions after filling all the data.
-            var kvUri = "https://postsharpbusinesssystkv.vault.azure.net/";
-            var client = new SecretClient( new Uri( kvUri ), new AzureCliCredential() );
-            var privateKey = client.GetSecret( "Licensing-PrivateKey0" ).Value.Value;
-            this._authority = LicensingAuthority.GetProductionAuthority( privateKey );
+            const string keyVaultUri = "https://postsharpbusinesssystkv.vault.azure.net/";
+            var client = new SecretClient( new Uri( keyVaultUri ), new DefaultAzureCredential() );
+            var privateKey0 = client.GetSecret( "Licensing-PrivateKey0" ).Value.Value;
+            this._authority = new LicensingAuthority( (0, privateKey0) );
         }
 
         private void OnSerializedButtonClicked( object sender, EventArgs e )
         {
-            var licenseKeyData = (LicenseKeyDataBuilder) this._propertyGrid.SelectedObject;
-            var licenseKey = licenseKeyData.SignAndSerialize( this._authority );
+            var licenseKeyBuilder = (LicenseKeyDataBuilder) this._propertyGrid.SelectedObject;
+            var licenseKey = licenseKeyBuilder.SignAndSerialize( this._authority );
 
             if ( !LicenseKeyData.TryDeserialize( licenseKey, out var deserializedLicenseKeyData, out var errorMessage ) )
             {
@@ -41,7 +41,7 @@ namespace PostSharp.LicenseKeyGenerator
                 throw new InvalidOperationException( "Failed to verify license signature." );
             }
 
-            this._propertyGrid.SelectedObject = licenseKeyData;
+            this._propertyGrid.SelectedObject = licenseKeyBuilder;
         }
     }
 }

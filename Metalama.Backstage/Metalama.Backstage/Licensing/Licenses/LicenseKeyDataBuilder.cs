@@ -9,10 +9,10 @@ using System.Collections.Immutable;
 
 namespace Metalama.Backstage.Licensing.Licenses;
 
-[PublicAPI]
+[PublicAPI( "Used by the license generator web page and service." )]
 public partial class LicenseKeyDataBuilder : ILicenseKeyData
 {
-    public static readonly string? CurrentVersion = AssemblyMetadataReader.GetInstance( typeof( License ).Assembly ).PackageVersion;
+    public static readonly string? CurrentVersion = AssemblyMetadataReader.GetInstance( typeof(License).Assembly ).PackageVersion;
 
     private readonly ImmutableSortedDictionary<LicenseFieldIndex, LicenseField>.Builder _fields;
 
@@ -26,7 +26,7 @@ public partial class LicenseKeyDataBuilder : ILicenseKeyData
     internal LicenseKeyDataBuilder( ImmutableSortedDictionary<LicenseFieldIndex, LicenseField> fields )
     {
         this._fields = fields.ToBuilder();
-    } 
+    }
 
     public LicenseKeyData Build()
         => new( this._fields.ToImmutable() )
@@ -57,48 +57,48 @@ public partial class LicenseKeyDataBuilder : ILicenseKeyData
 
         switch ( value.GetType().Name )
         {
-            case nameof( Boolean ):
+            case nameof(Boolean):
                 this.SetFieldValue<LicenseFieldBool>( index, value );
 
                 break;
 
-            case nameof( Byte ):
+            case nameof(Byte):
                 this.SetFieldValue<LicenseFieldByte>( index, value );
 
                 break;
 
-            case nameof( Int16 ):
+            case nameof(Int16):
                 this.SetFieldValue<LicenseFieldInt16>( index, value );
 
                 break;
 
-            case nameof( Int32 ):
+            case nameof(Int32):
                 this.SetFieldValue<LicenseFieldInt32>( index, value );
 
                 break;
 
-            case nameof( Int64 ):
+            case nameof(Int64):
                 this.SetFieldValue<LicenseFieldInt64>( index, value );
 
                 break;
 
-            case nameof( DateTime ):
+            case nameof(DateTime):
                 this.SetFieldValue<LicenseFieldDate>( index, ((DateTime) value).Date );
                 this.SetFieldValue<LicenseFieldDateTime>( index, value );
 
                 break;
 
-            case nameof( String ):
+            case nameof(String):
                 this.SetFieldValue<LicenseFieldString>( index, value );
 
                 break;
 
-            case nameof( Byte ) + "[]":
+            case nameof(Byte) + "[]":
                 this.SetFieldValue<LicenseFieldBytes>( index, value );
 
                 break;
 
-            case nameof( Guid ):
+            case nameof(Guid):
                 this.SetFieldValue<LicenseFieldGuid>( index, value );
 
                 break;
@@ -148,6 +148,7 @@ public partial class LicenseKeyDataBuilder : ILicenseKeyData
     /// <summary>
     /// Gets or sets the licensed namespace.
     /// </summary>
+    [Obsolete( "Redistribution keys are no longer supported." )]
     public string? Namespace
     {
         get => (string?) this.GetFieldValue( LicenseFieldIndex.Namespace );
@@ -166,6 +167,7 @@ public partial class LicenseKeyDataBuilder : ILicenseKeyData
     /// <summary>
     /// Gets or sets the licensed public key token.
     /// </summary>
+    [Obsolete( "Redistribution keys are no longer supported." )]
     public byte[]? PublicKeyToken
     {
         get => (byte[]?) this.GetFieldValue( LicenseFieldIndex.PublicKeyToken );
@@ -268,6 +270,7 @@ public partial class LicenseKeyDataBuilder : ILicenseKeyData
         set => this.SetFieldValue<LicenseFieldByte>( LicenseFieldIndex.DevicesPerUser, value );
     }
 
+    [Obsolete( "Redistribution keys are no longer supported." )]
     public bool? AllowInheritance
     {
         get => (bool?) this.GetFieldValue( LicenseFieldIndex.AllowInheritance );
@@ -288,8 +291,8 @@ public partial class LicenseKeyDataBuilder : ILicenseKeyData
 
     public LicenseSupportPolicy SupportPolicy
     {
-        get =>
-            this.GetFieldValue( LicenseFieldIndex.SupportLevel ) switch
+        get
+            => this.GetFieldValue( LicenseFieldIndex.SupportLevel ) switch
             {
                 null => LicenseSupportPolicy.None,
                 byte supportLevel => (LicenseSupportPolicy) supportLevel,
@@ -311,8 +314,8 @@ public partial class LicenseKeyDataBuilder : ILicenseKeyData
 
     public LicenseGeneration Generation
     {
-        get =>
-            this.GetFieldValue( LicenseFieldIndex.Generation ) switch
+        get
+            => this.GetFieldValue( LicenseFieldIndex.Generation ) switch
             {
                 null => 0,
                 byte generation => (LicenseGeneration) generation,
@@ -321,7 +324,6 @@ public partial class LicenseKeyDataBuilder : ILicenseKeyData
 
         set
         {
-
             if ( value != LicenseGeneration.None )
             {
                 this.SetFieldValue<LicenseFieldByte>( LicenseFieldIndex.Generation, (byte) value );

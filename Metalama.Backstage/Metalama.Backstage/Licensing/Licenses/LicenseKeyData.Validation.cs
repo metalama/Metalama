@@ -2,6 +2,7 @@
 
 using Metalama.Backstage.Application;
 using Metalama.Backstage.Infrastructure;
+using Metalama.Backstage.Licensing.Consumption;
 using Metalama.Backstage.Licensing.Licenses.LicenseFields;
 using System;
 using System.Diagnostics.CodeAnalysis;
@@ -11,60 +12,18 @@ namespace Metalama.Backstage.Licensing.Licenses
 {
     public partial record LicenseKeyData
     {
-        internal bool Validate(
-            IDateTimeProvider dateTimeProvider,
-            IApplicationInfo applicationInfo,
-            LicensingAuthority licensingAuthority,
-            [MaybeNullWhen( true )] out string errorDescription )
+        public bool ValidateFields( [NotNullWhen( true )] out string? errorMessage )
         {
-#pragma warning disable CS0618
-            if ( this.LicenseType == LicenseType.Anonymous )
-            {
-                // Anonymous licenses are always valid but confer no right.
-                errorDescription = null;
-
-                return true;
-            }
-#pragma warning restore CS0618
-
-            if ( this.SignatureKeyId == 0 && this.LicenseId is not 0 and < 20 )
-            {
-                errorDescription = "the license key has been revoked";
-
-                return false;
-            }
-
-            if ( this.RequiresSignature && !this.VerifySignature( licensingAuthority ) )
-            {
-                errorDescription = "the license key has an invalid signature";
-
-                return false;
-            }
-
-            if ( this.ValidFrom.HasValue && this.ValidFrom > dateTimeProvider.UtcNow )
-            {
-                errorDescription = "the license key is not yet valid";
-
-                return false;
-            }
-
-            if ( this.ValidTo.HasValue && this.ValidTo < dateTimeProvider.UtcNow )
-            {
-                errorDescription = "the license key has expired";
-
-                return false;
-            }
-
             if ( !Enum.IsDefined( typeof(LicenseType), this.LicenseType ) )
             {
-                errorDescription = "the license key license type is unknown";
+                errorMessage = "the license key license type is unknown";
 
                 return false;
             }
 
             if ( !Enum.IsDefined( typeof(LicensedProduct), this.Product ) )
             {
-                errorDescription = "the license key licensed product is unknown";
+                errorMessage = "the license key licensed product is unknown";
 
                 return false;
             }
@@ -74,37 +33,12 @@ namespace Metalama.Backstage.Licensing.Licenses
                         i.IsMustUnderstand()
                         && !Enum.IsDefined( typeof(LicenseFieldIndex), i ) ) )
             {
-                errorDescription = "the license key contains unknown must-understand fields";
+                errorMessage = "the license key contains unknown must-understand fields";
 
                 return false;
             }
 
-            if ( this.SubscriptionEndDate.HasValue )
-            {
-                if ( !applicationInfo.BuildDate.HasValue )
-                {
-                    throw new InvalidOperationException( $"Application '{applicationInfo.Name}' is missing build date information." );
-                }
-
-                var latestComponentMadeByPostSharp = applicationInfo.GetLatestComponentMadeByPostSharp();
-
-                if ( this.SubscriptionEndDate < latestComponentMadeByPostSharp.BuildDate )
-                {
-                    errorDescription =
-                        $"the license key does not allow to use the licensed product '{latestComponentMadeByPostSharp.Name}' version {latestComponentMadeByPostSharp.PackageVersion} released on {latestComponentMadeByPostSharp.BuildDate:d} - only versions released before {this.SubscriptionEndDate:d} are allowed to use by this license";
-
-                    return false;
-                }
-            }
-
-            if ( this.IsRedistribution && !this.IsLimitedByNamespace )
-            {
-                errorDescription = "is a redistribution license, but it is not limited by a namespace";
-
-                return false;
-            }
-
-            errorDescription = null;
+            errorMessage = null;
 
             return true;
         }
@@ -116,19 +50,14 @@ namespace Metalama.Backstage.Licensing.Licenses
                 return true;
             }
 
-            if ( this.Signature == null )
+            if ( this.Signature == null || this.SignatureKeyId == null )
             {
                 return false;
             }
 
-            if ( licensingAuthority.KeyId != this.SignatureKeyId )
-            {
-                throw new ArgumentOutOfRangeException( nameof(licensingAuthority), "Licensing authority mistmatch." );
-            }
-
             var buffer = this.GetSignedBuffer();
 
-            return licensingAuthority.VerifySignature( buffer, this.Signature );
+            return licensingAuthority.VerifySignature( buffer, this.SignatureKeyId.Value, this.Signature );
         }
     }
 }

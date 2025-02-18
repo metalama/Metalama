@@ -114,7 +114,7 @@ namespace Metalama.Backstage.Licensing.Licenses
                     // If this is known constant-length field that is prefixed by length, read the length.
                     int l = reader.ReadByte();
 
-                    if (licenseField.TryGetConstantLength(out var expected) && l != expected)
+                    if ( licenseField.TryGetConstantLength( out var expected ) && l != expected )
                     {
                         throw new InvalidLicenseException( $"Unexpected length of field {index}. Expected {expected}, got {l}." );
                     }
@@ -241,9 +241,12 @@ namespace Metalama.Backstage.Licensing.Licenses
         /// </summary>
         private void Sign( LicensingAuthority authority )
         {
-            this.SignatureKeyId = authority.KeyId;
+            // It's critical to set SignatureKeyId before getting the signed buffer
+            // because the field is a part of the signed buffer.
+            this.SignatureKeyId = authority.SignKeyId;
             var signedBuffer = this.GetSignedBuffer();
-            this.Signature = authority.Sign( signedBuffer );
+            authority.Sign( signedBuffer, out var signature );
+            this.Signature = signature;
         }
 
         public static bool TryDeserialize(
@@ -311,19 +314,14 @@ namespace Metalama.Backstage.Licensing.Licenses
                 return true;
             }
 
-            if ( !this.SignatureKeyId.HasValue )
+            var signature = this.Signature;
+
+            if ( signature == null || this.SignatureKeyId == null )
             {
-                return false;
+                throw new InvalidOperationException( "Unknown signature." );
             }
 
-            var signature = this.Signature ?? throw new InvalidOperationException( "Unknown signature." );
-
-            if ( this.SignatureKeyId != authority.KeyId )
-            {
-                throw new InvalidOperationException( "Licensing authority mismatch." );
-            }
-
-            return authority.VerifySignature( this.GetSignedBuffer(), signature );
+            return authority.VerifySignature( this.GetSignedBuffer(), this.SignatureKeyId.Value, signature );
         }
     }
 }

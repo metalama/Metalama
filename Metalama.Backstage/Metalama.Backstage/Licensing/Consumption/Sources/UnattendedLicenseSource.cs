@@ -43,7 +43,11 @@ internal sealed class UnattendedLicenseSource : ILicenseSource, ILicense
         }
     }
 
+    public bool CanBeRegistered( [MaybeNullWhen( true )] out string errorMessage )
+        => throw new NotSupportedException( "Unattended license source doesn't support license registration." );
+
     bool ILicense.TryGetLicenseConsumptionData(
+        LicenseConsumptionOptions options,
         [MaybeNullWhen( false )] out LicenseConsumptionData licenseConsumptionData,
         [MaybeNullWhen( true )] out string errorMessage )
     {
@@ -55,7 +59,9 @@ internal sealed class UnattendedLicenseSource : ILicenseSource, ILicense
             new Version( 0, 0 ),
             null,
             false,
-            false );
+            false,
+            null,
+            SubscriptionStatus.None );
 
         errorMessage = null;
 

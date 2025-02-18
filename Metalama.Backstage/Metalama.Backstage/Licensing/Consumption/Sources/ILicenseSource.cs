@@ -8,7 +8,7 @@ namespace Metalama.Backstage.Licensing.Consumption.Sources
     /// <summary>
     /// Source of licenses for consumption.
     /// </summary>
-    public interface ILicenseSource
+    internal interface ILicenseSource
     {
         /// <summary>
         /// Gets a description of the license source.

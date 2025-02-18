@@ -16,6 +16,7 @@ namespace Metalama.Backstage.Licensing.Consumption
         /// Gets the namespace constraint of the license.
         /// Gets <c>null</c> if there is no namespace constraint.
         /// </summary>
+        [Obsolete]
         public string? LicensedNamespace { get; }
 
         /// <summary>
@@ -39,11 +40,13 @@ namespace Metalama.Backstage.Licensing.Consumption
         /// <remarks>
         /// Doesn't apply to products not based on PostSharp. (E.g. Metalama.)
         /// </remarks>
+        [Obsolete]
         public Version MinPostSharpVersion { get; }
 
         /// <summary>
         /// Gets a value indicating whether the license is redistributable.
         /// </summary>
+        [Obsolete]
         public bool IsRedistributable { get; }
 
         /// <summary>
@@ -55,6 +58,10 @@ namespace Metalama.Backstage.Licensing.Consumption
         /// Gets a value indicating whether the license usage can be audited.
         /// </summary>
         public bool IsAuditable { get; }
+
+        public DateTime? SubscriptionEndDate { get; }
+
+        public SubscriptionStatus SubscriptionStatus { get; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="LicenseConsumptionData"/> class.
@@ -76,16 +83,23 @@ namespace Metalama.Backstage.Licensing.Consumption
             Version minPostSharpVersion,
             string? licenseString,
             bool isRedistributable,
-            bool isAuditable )
+            bool isAuditable,
+            DateTime? subscriptionEndDate,
+            SubscriptionStatus subscriptionStatus )
         {
             this.LicensedProduct = licensedProduct;
             this.LicenseType = licenseType;
-            this.LicensedNamespace = licensedNamespace;
             this.DisplayName = displayName;
-            this.MinPostSharpVersion = minPostSharpVersion;
             this.LicenseString = licenseString;
-            this.IsRedistributable = isRedistributable;
             this.IsAuditable = isAuditable;
+            this.SubscriptionEndDate = subscriptionEndDate;
+            this.SubscriptionStatus = subscriptionStatus;
+
+#pragma warning disable CS0612 // Type or member is obsolete
+            this.LicensedNamespace = licensedNamespace;
+            this.IsRedistributable = isRedistributable;
+            this.MinPostSharpVersion = minPostSharpVersion;
+#pragma warning restore CS0612 // Type or member is obsolete
         }
 
         /// <summary>

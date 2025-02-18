@@ -3,7 +3,6 @@
 using Metalama.Backstage.Licensing.Consumption.Sources;
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Linq;
 
 namespace Metalama.Backstage.Licensing.Consumption;
@@ -30,26 +29,22 @@ internal sealed class LicenseConsumptionService : ILicenseConsumptionService
         this.Changed?.Invoke();
     }
 
-    public ILicenseConsumer CreateConsumer(
-        string? projectLicenseKey,
-        LicenseSourceKind ignoredLicenseKinds,
-        out ImmutableArray<LicensingMessage> messages )
+    public ILicenseConsumer CreateConsumer( LicenseConsumptionOptions? options )
     {
+        options ??= LicenseConsumptionOptions.Default;
+
         var sources = new List<ILicenseSource>( this._sources.Count + 1 );
 
-        sources.AddRange( this._sources.Where( s => (s.Kind & ignoredLicenseKinds) == 0 ) );
+        sources.AddRange( this._sources.Where( s => (s.Kind & options.IgnoredLicenseSources) == 0 ) );
 
-        if ( !string.IsNullOrEmpty( projectLicenseKey ) )
+        if ( !string.IsNullOrEmpty( options.ProjectLicenseKey ) )
         {
             // ReSharper disable once RedundantSuppressNullableWarningExpression
-            sources.Add( new ExplicitLicenseSource( projectLicenseKey!, this._services ) );
+            sources.Add( new ExplicitLicenseSource( options.ProjectLicenseKey!, this._services ) );
         }
 
-        return LicenseConsumer.Create( this._services, sources, out messages );
+        return LicenseConsumer.Create( options, this._services, sources );
     }
-
-    public ILicenseConsumer CreateConsumer( string? projectLicenseKey = null, LicenseSourceKind ignoredLicenseKinds = LicenseSourceKind.None )
-        => this.CreateConsumer( projectLicenseKey, ignoredLicenseKinds, out _ );
 
     public event Action? Changed;
 }

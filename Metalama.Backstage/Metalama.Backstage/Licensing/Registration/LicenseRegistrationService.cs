@@ -4,6 +4,7 @@ using Metalama.Backstage.Configuration;
 using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Infrastructure;
+using Metalama.Backstage.Licensing.Consumption;
 using Metalama.Backstage.Licensing.Licenses;
 using Metalama.Backstage.UserInterface;
 using Metalama.Backstage.Utilities;
@@ -157,6 +158,42 @@ internal sealed class LicenseRegistrationService : ILicenseRegistrationService
     }
 
     public bool TryRegisterLicense( string licenseString, [NotNullWhen( false )] out string? errorMessage )
+        => this.TryRegisterLicenseCore( licenseString, false, out errorMessage );
+
+    public bool TryValidateLicenseKey( string licenseKey, [NotNullWhen( false )] out string? errorMessage )
+        => this.TryRegisterLicenseCore( licenseKey, true, out errorMessage );
+
+    public bool TryParseLicenseKey(
+        string licenseKey,
+        [NotNullWhen( false )] out string? errorMessage,
+        [NotNullWhen( true )] out LicenseProperties? licenseProperties )
+    {
+        if ( !this.RequireAttendedSession( out errorMessage ) )
+        {
+            licenseProperties = null;
+
+            return false;
+        }
+
+        var factory = new LicenseFactory( this._serviceProvider );
+
+        if ( !factory.TryCreate( errorMessage, out var license, out errorMessage )
+             || !license.TryGetProperties( out licenseProperties, out errorMessage ) )
+        {
+            licenseProperties = null;
+
+            return false;
+        }
+
+        if ( !license.CanBeRegistered( out errorMessage ) )
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    private bool TryRegisterLicenseCore( string licenseString, bool dry, [NotNullWhen( false )] out string? errorMessage )
     {
         if ( !this.RequireAttendedSession( out errorMessage ) )
         {
@@ -166,13 +203,21 @@ internal sealed class LicenseRegistrationService : ILicenseRegistrationService
         var factory = new LicenseFactory( this._serviceProvider );
 
         if ( !factory.TryCreate( licenseString, out var license, out errorMessage )
-             || !license.TryGetProperties( out var data, out errorMessage ) )
+             || !license.TryGetProperties( out var properties, out errorMessage ) )
         {
             return false;
         }
 
-        var storage = LicensingConfigurationModel.Create( this._serviceProvider );
-        storage.SetLicense( licenseString, data );
+        if ( !license.CanBeRegistered( out errorMessage ) )
+        {
+            return false;
+        }
+
+        if ( !dry )
+        {
+            var storage = LicensingConfigurationModel.Create( this._serviceProvider );
+            storage.SetLicense( licenseString, properties );
+        }
 
         return true;
     }
@@ -214,14 +259,6 @@ internal sealed class LicenseRegistrationService : ILicenseRegistrationService
 
             return licenseStorage.LicenseProperties;
         }
-    }
-
-    public bool TryValidateLicenseKey( string licenseKey, [NotNullWhen( false )] out string? errorMessage )
-    {
-        var factory = new LicenseFactory( this._serviceProvider );
-
-        return factory.TryCreate( licenseKey, out var license, out errorMessage )
-               && license.TryGetProperties( out _, out errorMessage );
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

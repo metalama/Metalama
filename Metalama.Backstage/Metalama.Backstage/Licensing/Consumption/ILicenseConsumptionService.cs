@@ -2,9 +2,7 @@
 
 using JetBrains.Annotations;
 using Metalama.Backstage.Extensibility;
-using Metalama.Backstage.Licensing.Consumption.Sources;
 using System;
-using System.Collections.Immutable;
 
 namespace Metalama.Backstage.Licensing.Consumption
 {
@@ -14,15 +12,14 @@ namespace Metalama.Backstage.Licensing.Consumption
     [PublicAPI]
     public interface ILicenseConsumptionService : IBackstageService
     {
-        ILicenseConsumer CreateConsumer(
-            string? projectLicenseKey,
-            LicenseSourceKind ignoredLicenseKinds,
-            out ImmutableArray<LicensingMessage> messages );
+        /// <summary>
+        /// Creates an <see cref="ILicenseConsumer"/>.
+        /// </summary>
+        ILicenseConsumer CreateConsumer( LicenseConsumptionOptions? options = null );
 
-        ILicenseConsumer CreateConsumer(
-            string? projectLicenseKey = null,
-            LicenseSourceKind ignoredLicenseKinds = LicenseSourceKind.None );
-
+        /// <summary>
+        /// Event raised when user-profile license keys have changed.
+        /// </summary>
         event Action? Changed;
     }
 }

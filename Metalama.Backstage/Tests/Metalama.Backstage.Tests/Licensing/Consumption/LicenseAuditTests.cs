@@ -2,6 +2,7 @@
 
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Licensing.Audit;
+using Metalama.Backstage.Licensing.Consumption;
 using Metalama.Backstage.Telemetry;
 using Metalama.Backstage.Testing;
 using Metalama.Backstage.Tests.Licensing.Licenses;
@@ -71,7 +72,7 @@ public sealed class LicenseAuditTests : LicenseConsumptionManagerTestsBase
         var license = this.CreateAndConsumeLicense( licenseKey );
 
         license.ResetUsage();
-        Assert.True( license.TryGetLicenseConsumptionData( out var licenseData, out var errorMessage ) );
+        Assert.True( license.TryGetLicenseConsumptionData( LicenseConsumptionOptions.Default, out var licenseData, out var errorMessage ) );
         Assert.Null( errorMessage );
 
         if ( licenseData.IsAuditable )
@@ -94,7 +95,7 @@ public sealed class LicenseAuditTests : LicenseConsumptionManagerTestsBase
             this.FileSystem.Reset();
 
             var secondLicense = this.CreateAndConsumeLicense( licenseKey );
-            Assert.True( secondLicense.TryGetLicenseConsumptionData( out _, out _ ) );
+            Assert.True( secondLicense.TryGetLicenseConsumptionData( LicenseConsumptionOptions.Default, out _, out _ ) );
             var secondReports = this.GetReports();
             Assert.Empty( secondReports );
 
@@ -104,7 +105,7 @@ public sealed class LicenseAuditTests : LicenseConsumptionManagerTestsBase
             this.Time.AddTime( TimeSpan.FromDays( 1.01 ) );
 
             var thirdLicense = this.CreateAndConsumeLicense( licenseKey );
-            Assert.True( thirdLicense.TryGetLicenseConsumptionData( out _, out _ ) );
+            Assert.True( thirdLicense.TryGetLicenseConsumptionData( LicenseConsumptionOptions.Default, out _, out _ ) );
             var thirdReports = this.GetReports();
             Assert.Single( thirdReports );
 

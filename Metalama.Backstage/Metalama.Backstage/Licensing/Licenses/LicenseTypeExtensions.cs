@@ -21,7 +21,7 @@ namespace Metalama.Backstage.Licensing.Licenses
 
 #pragma warning disable 618
                 case LicenseType.Enterprise:
-#pragma warning restore 618                    
+#pragma warning restore 618
                 case LicenseType.Business:
                     return "Business License";
 
@@ -37,13 +37,13 @@ namespace Metalama.Backstage.Licensing.Licenses
                 case LicenseType.Academic:
                     return "Academic License";
 
+#pragma warning disable 618
                 case LicenseType.OpenSourceRedistribution:
                     return "Open-Source Redistribution License";
 
                 case LicenseType.CommercialRedistribution:
                     return "Commercial Redistribution License";
 
-#pragma warning disable 618
                 case LicenseType.PerUsage:
                     return "Per-Usage Subscription";
 

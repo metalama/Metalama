@@ -2,12 +2,18 @@
 
 using JetBrains.Annotations;
 using System;
+using System.Collections.Immutable;
 
 namespace Metalama.Backstage.Licensing.Consumption;
 
 [PublicAPI]
 public interface ILicenseConsumer
 {
+    /// <summary>
+    /// Gets the warnings and messages from the current licenses.
+    /// </summary>
+    ImmutableArray<LicensingMessage> Messages { get; }
+
     /// <summary>
     /// Attempts to consume a license. If it succeeds, marks the license for audit.
     /// </summary>

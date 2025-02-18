@@ -22,12 +22,12 @@ namespace Metalama.Backstage.Licensing.Licenses.LicenseFields
         {
             var i = (byte) index;
 
-            if ( i < 1 || i > 255 )
+            if ( i < 1 )
             {
                 throw new ArgumentOutOfRangeException( nameof(index) );
             }
 
-            return i <= 128 || i >= 254;
+            return i is <= 128 or >= 254;
         }
 
         /// <summary>
@@ -46,12 +46,12 @@ namespace Metalama.Backstage.Licensing.Licenses.LicenseFields
         {
             var i = (byte) index;
 
-            if ( i < 1 || i > 255 )
+            if ( i < 1 )
             {
                 throw new ArgumentOutOfRangeException( nameof(index) );
             }
 
-            return i > 21 && i < 254;
+            return i is > 21 and < 254;
         }
     }
 }

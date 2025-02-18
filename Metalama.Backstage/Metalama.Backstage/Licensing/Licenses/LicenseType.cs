@@ -57,6 +57,7 @@ namespace Metalama.Backstage.Licensing.Licenses
         /// <summary>
         /// Open source redistribution license.
         /// </summary>
+        [Obsolete( "No longer issued or supported." )]
         OpenSourceRedistribution = 6,
 
         /// <summary>
@@ -67,6 +68,7 @@ namespace Metalama.Backstage.Licensing.Licenses
         /// <summary>
         /// Redistribution (with contract).
         /// </summary>
+        [Obsolete( "No longer issued or supported." )]
         CommercialRedistribution = 12,
 
         /// <summary>
@@ -111,7 +113,7 @@ namespace Metalama.Backstage.Licensing.Licenses
         /// <summary>
         /// Usable with a preview build.
         /// </summary>
-        Preview = 20,
+        Preview = 20
 
         // 255 is reserved as unknown for testing purposes
     }

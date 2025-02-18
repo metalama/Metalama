@@ -20,12 +20,7 @@ internal static class LicenseKeyDataSerializer
         {
             switch ( pair.Key )
             {
-                case LicenseFieldIndex.Signature:
-                    if ( includeAll )
-                    {
-                        goto default;
-                    }
-
+                case LicenseFieldIndex.Signature when !includeAll:
                     continue;
 
                 default:

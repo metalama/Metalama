@@ -1,10 +1,13 @@
 ﻿// Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
 using Metalama.Backstage.Application;
-using Metalama.Backstage.Licensing.Licenses;
+using Metalama.Backstage.Licensing.Consumption;
+using Metalama.Backstage.Licensing.Consumption.Sources;
 using Metalama.Backstage.Testing;
+using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Immutable;
+using System.Linq;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -33,23 +36,27 @@ namespace Metalama.Backstage.Tests.Licensing.Consumption
         private void Test( IApplicationInfo applicationInfo, IComponentInfo? infringingComponent = null )
         {
             var licenseKey = LicenseKeyProvider.MetalamaProfessionalBusiness;
+            var serviceCollection = this.CloneServiceCollection();
+            serviceCollection.AddSingleton<IApplicationInfoProvider>( new ApplicationInfoProvider( applicationInfo ) );
+            var serviceProvider = serviceCollection.BuildServiceProvider();
 
-            var isDeserialized = LicenseKeyData.TryDeserialize( licenseKey, out var data, out _ );
+            var licenseConsumer = LicenseConsumer.Create(
+                LicenseConsumptionOptions.Default,
+                serviceProvider,
+                [new ExplicitLicenseSource( licenseKey, serviceProvider )] );
 
-            Assert.True( isDeserialized );
-
-            var isValid = data!.Validate( this.Time, applicationInfo, this.LicensingAuthority, out var actualErrorDescription );
+            var canConsume = licenseConsumer.TryConsume( _ => true );
 
             if ( infringingComponent == null )
             {
-                Assert.True( isValid );
-                Assert.Null( actualErrorDescription );
+                Assert.True( canConsume );
+                Assert.Empty( licenseConsumer.Messages );
             }
             else
             {
-                Assert.False( isValid );
+                Assert.False( canConsume );
 #pragma warning disable CA1307 // Specify StringComparison for clarity
-                Assert.Contains( infringingComponent.Name, actualErrorDescription! );
+                Assert.Contains( infringingComponent.Name, licenseConsumer.Messages.Single().Text );
 #pragma warning restore CA1307 // Specify StringComparison for clarity
             }
         }
