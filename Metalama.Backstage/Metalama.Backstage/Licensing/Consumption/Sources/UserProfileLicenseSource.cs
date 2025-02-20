@@ -3,6 +3,7 @@
 using Metalama.Backstage.Configuration;
 using Metalama.Backstage.Extensibility;
 using System;
+using System.Linq;
 
 namespace Metalama.Backstage.Licensing.Consumption.Sources;
 
@@ -34,7 +35,7 @@ internal sealed class UserProfileLicenseSource : LicenseSourceBase
         }
     }
 
-    protected override string? GetLicenseString() => this._licensingConfiguration.License;
+    protected override string? GetLicenseString() => this._licensingConfiguration.Licenses.FirstOrDefault() ?? this._licensingConfiguration.License;
 
     public override LicenseSourcePriority Priority => LicenseSourcePriority.UserProfile;
 }

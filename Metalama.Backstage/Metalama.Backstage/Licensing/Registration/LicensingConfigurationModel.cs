@@ -6,6 +6,8 @@ using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Infrastructure;
 using Metalama.Backstage.Licensing.Licenses;
 using System;
+using System.Collections.Immutable;
+using System.Linq;
 
 namespace Metalama.Backstage.Licensing.Registration
 {
@@ -35,7 +37,8 @@ namespace Metalama.Backstage.Licensing.Registration
         {
             var configurationManager = this._services.GetRequiredBackstageService<IConfigurationManager>();
             this._configuration = configurationManager.Get<LicensingConfiguration>();
-            this.LicenseString = this._configuration.License;
+            // Get a gen 1 license, if any, and a gen 0 license otherwise.
+            this.LicenseString = this._configuration.Licenses.FirstOrDefault() ?? this._configuration.License;
 
             if ( string.IsNullOrWhiteSpace( this.LicenseString ) )
             {
@@ -158,9 +161,21 @@ namespace Metalama.Backstage.Licensing.Registration
         {
             // The ConfigurationManager may trigger the OnConfigurationFileChanged event when saving.
             var licenseString = this.LicenseString;
+            var licenseProperties = this.LicenseProperties;
 
-            this._configurationManager
-                .Update<LicensingConfiguration>( c => c with { License = licenseString } );
+            if ( licenseProperties?.Generation >= LicenseGeneration.V20251 )
+            {
+                // If we have a gen 1 license, we preserve any gen 0 license in the `License` property.
+                this._configurationManager
+                    .Update<LicensingConfiguration>(
+                        c => c with { Licenses = licenseString == null ? ImmutableArray<string>.Empty : ImmutableArray.Create( licenseString ) } );
+            }
+            else
+            {
+                // If we have a gen 0 license (or no license), we set the gen 0 `License` property and erase the gen 1 `Licenses` property.
+                this._configurationManager
+                    .Update<LicensingConfiguration>( c => c with { License = licenseString, Licenses = ImmutableArray<string>.Empty } );
+            }
         }
     }
 }

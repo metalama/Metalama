@@ -28,5 +28,6 @@ namespace Metalama.Backstage.Licensing.Registration
         DateTime? SubscriptionEndDate,
         bool Auditable,
         bool LicenseServerEligible,
-        Version MinPostSharpVersion );
+        Version MinPostSharpVersion,
+        LicenseGeneration Generation );
 }

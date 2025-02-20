@@ -3,6 +3,7 @@
 using Metalama.Backstage.Configuration;
 using Newtonsoft.Json;
 using System;
+using System.Collections.Immutable;
 
 namespace Metalama.Backstage.Licensing;
 
@@ -15,8 +16,12 @@ internal sealed record LicensingConfiguration : ConfigurationFile
     [JsonProperty( "lastEvaluationStartDate" )]
     public DateTime? LastEvaluationStartDate { get; init; }
 
-    // Originally, the license configuration allowed for multiple license keys. We keep the array for backward compatibility,
-    // but we no longer store more than one key there.
+    // Usually, there should be only one licenses, but we want to support a 2025.0 or older Free license (gen 0) together with 2025.1 or newer Community license (gen 1).
+    // So gen 0 licenses are stored in the `license` property for backwards compatiblity and gen 1 licenses are stored in the `licenses` property.
+
     [JsonProperty( "license" )]
     public string? License { get; init; }
+
+    [JsonProperty( "licenses" )]
+    public ImmutableArray<string> Licenses { get; init; } = ImmutableArray<string>.Empty;
 }
