@@ -141,11 +141,10 @@ namespace Metalama.Backstage.Licensing.Licenses
         private void SetMinPostSharpVersionIfRequired()
         {
             // Returns <c>true</c> if the licensed product has been present prior to PostSharp 6.5.17/6.8.10/6.9.3.
-            static bool IsLicensedProductValidInAllPostSharpVersions( LicensedProduct licenseProduct )
+            static bool IsPostSharpProduct( LicensedProduct product )
             {
-                switch ( licenseProduct )
+                switch ( product )
                 {
-                    case LicensedProduct.None:
 #pragma warning disable CS0618 // Type or member is obsolete
                     case LicensedProduct.PostSharp20:
                     case LicensedProduct.PostSharp30:
@@ -163,8 +162,7 @@ namespace Metalama.Backstage.Licensing.Licenses
                 }
             }
 
-            if ( !IsLicensedProductValidInAllPostSharpVersions( this.Product )
-                 || this._fields.Keys.Any( i => i.IsPrefixedByLength() ) )
+            if ( IsPostSharpProduct( this.Product ) && this._fields.Keys.Any( i => i.IsPrefixedByLength() ) )
             {
                 if ( this.MinPostSharpVersion == null )
                 {

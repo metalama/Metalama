@@ -44,9 +44,9 @@ public sealed class LicenseAuditTests : LicenseConsumptionManagerTestsBase
             .AddSingleton( serviceProvider => new BackstageServicesInitializer( serviceProvider ) );
     }
 
-    private TestLicense CreateAndConsumeLicense( string licenseKey )
+    private InstrumentedLicenseWrapper CreateAndConsumeLicense( string licenseKey )
     {
-        var license = this.CreateLicense( licenseKey );
+        var license = this.CreateInstrumentedLicenseWrapper( licenseKey );
         var consumer = this.CreateConsumptionService( license ).CreateConsumer();
         Assert.True( consumer.TryConsume( _ => true ) );
 
@@ -72,7 +72,7 @@ public sealed class LicenseAuditTests : LicenseConsumptionManagerTestsBase
         var license = this.CreateAndConsumeLicense( licenseKey );
 
         license.ResetUsage();
-        Assert.True( license.TryGetLicenseConsumptionData( LicenseConsumptionOptions.Default, out var licenseData, out var errorMessage ) );
+        Assert.True( license.TryGetConsumptionProperties( LicenseConsumptionOptions.Default, out var licenseData, out var errorMessage ) );
         Assert.Null( errorMessage );
 
         if ( licenseData.IsAuditable )
@@ -95,7 +95,7 @@ public sealed class LicenseAuditTests : LicenseConsumptionManagerTestsBase
             this.FileSystem.Reset();
 
             var secondLicense = this.CreateAndConsumeLicense( licenseKey );
-            Assert.True( secondLicense.TryGetLicenseConsumptionData( LicenseConsumptionOptions.Default, out _, out _ ) );
+            Assert.True( secondLicense.TryGetConsumptionProperties( LicenseConsumptionOptions.Default, out _, out _ ) );
             var secondReports = this.GetReports();
             Assert.Empty( secondReports );
 
@@ -105,7 +105,7 @@ public sealed class LicenseAuditTests : LicenseConsumptionManagerTestsBase
             this.Time.AddTime( TimeSpan.FromDays( 1.01 ) );
 
             var thirdLicense = this.CreateAndConsumeLicense( licenseKey );
-            Assert.True( thirdLicense.TryGetLicenseConsumptionData( LicenseConsumptionOptions.Default, out _, out _ ) );
+            Assert.True( thirdLicense.TryGetConsumptionProperties( LicenseConsumptionOptions.Default, out _, out _ ) );
             var thirdReports = this.GetReports();
             Assert.Single( thirdReports );
 

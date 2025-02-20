@@ -48,7 +48,7 @@ namespace Metalama.Backstage.Licensing.Registration
 
                 if ( licenseFactory.TryCreate( this.LicenseString, out var license, out _ ) )
                 {
-                    _ = license.TryGetProperties( out var licenseRegistrationData, out _ );
+                    _ = license.TryGetRegistrationProperties( out var licenseRegistrationData, out _ );
                     this.LicenseProperties = licenseRegistrationData;
                 }
                 else
@@ -77,7 +77,7 @@ namespace Metalama.Backstage.Licensing.Registration
         /// <summary>
         /// Gets the registration data of the license contained in the storage or to be stored to the storage.
         /// </summary>
-        public LicenseProperties? LicenseProperties { get; private set; }
+        public LicenseRegistrationProperties? LicenseProperties { get; private set; }
 
         public DateTime? LastEvaluationStartDate
         {
@@ -121,7 +121,7 @@ namespace Metalama.Backstage.Licensing.Registration
         /// </summary>
         /// <param name="licenseString">String representing the license to be stored in the license file.</param>
         /// <param name="data">Data represented by the <paramref name="licenseString"/>.</param>
-        public void SetLicense( string licenseString, LicenseProperties data )
+        public void SetLicense( string licenseString, LicenseRegistrationProperties data )
         {
             this.LicenseString = licenseString;
             this.LicenseProperties = data;

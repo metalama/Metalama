@@ -9,15 +9,29 @@ using System.Xml;
 
 namespace Metalama.Backstage.Licensing.Licenses
 {
-    internal static class CryptographyExtensions
+    internal static class CryptographyHelper
     {
+        public static DSA CreateDsaFromXml( string xml ) => CreateDsaFromParameters( ParseDsaParameters( xml ) );
+
+        public static DSA CreateDsaFromParameters( DSAParameters parameters )
+        {
+#if NET472 || NET5_0_OR_GREATER
+            var dsa = DSA.Create( parameters );
+#else
+            var dsa = DSA.Create();
+            dsa.ImportParameters( parameters );
+#endif
+
+            return dsa;
+        }
+
         /// <summary>
         /// Reconstructs a System.Security.Cryptography.DSA object from an XML string.
         /// </summary>
         /// <remarks>
         /// This implementation supports .NET Core 2.1, where the <see cref="DSA" /> method is not implemented.
         /// </remarks>
-        public static void FromXmlString2( this DSA dsa, string xmlString, bool expectPrivateParameters = false )
+        private static DSAParameters ParseDsaParameters( string xmlString, bool expectPrivateParameters = false )
         {
             static int ConvertByteArrayToInt( byte[] input )
             {
@@ -140,7 +154,7 @@ namespace Metalama.Backstage.Licensing.Licenses
                 throw new ArgumentException( "Invalid XML DSA key.", nameof(xmlString) );
             }
 
-            dsa.ImportParameters( parameters );
+            return parameters;
         }
     }
 }

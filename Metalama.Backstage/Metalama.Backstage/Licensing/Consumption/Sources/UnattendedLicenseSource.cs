@@ -46,12 +46,12 @@ internal sealed class UnattendedLicenseSource : ILicenseSource, ILicense
     public bool CanBeRegistered( [MaybeNullWhen( true )] out string errorMessage )
         => throw new NotSupportedException( "Unattended license source doesn't support license registration." );
 
-    bool ILicense.TryGetLicenseConsumptionData(
+    bool ILicense.TryGetConsumptionProperties(
         LicenseConsumptionOptions options,
-        [MaybeNullWhen( false )] out LicenseConsumptionData licenseConsumptionData,
+        [MaybeNullWhen( false )] out LicenseConsumptionProperties licenseConsumptionProperties,
         [MaybeNullWhen( true )] out string errorMessage )
     {
-        licenseConsumptionData = new LicenseConsumptionData(
+        licenseConsumptionProperties = new LicenseConsumptionProperties(
             LicensedProduct.MetalamaProfessional,
             LicenseType.Unattended,
             null,
@@ -68,8 +68,8 @@ internal sealed class UnattendedLicenseSource : ILicenseSource, ILicense
         return true;
     }
 
-    bool ILicense.TryGetProperties(
-        [MaybeNullWhen( false )] out LicenseProperties licenseProperties,
+    bool ILicense.TryGetRegistrationProperties(
+        [MaybeNullWhen( false )] out LicenseRegistrationProperties licenseProperties,
         [MaybeNullWhen( true )] out string errorMessage )
         => throw new NotSupportedException( "Unattended license source doesn't support license registration." );
 

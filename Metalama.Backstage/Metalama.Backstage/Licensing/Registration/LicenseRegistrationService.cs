@@ -165,7 +165,7 @@ internal sealed class LicenseRegistrationService : ILicenseRegistrationService
     public bool TryParseLicenseKey(
         string licenseKey,
         [NotNullWhen( false )] out string? errorMessage,
-        [NotNullWhen( true )] out LicenseProperties? licenseProperties )
+        [NotNullWhen( true )] out LicenseRegistrationProperties? licenseProperties )
     {
         if ( !this.RequireAttendedSession( out errorMessage ) )
         {
@@ -176,16 +176,11 @@ internal sealed class LicenseRegistrationService : ILicenseRegistrationService
 
         var factory = new LicenseFactory( this._serviceProvider );
 
-        if ( !factory.TryCreate( errorMessage, out var license, out errorMessage )
-             || !license.TryGetProperties( out licenseProperties, out errorMessage ) )
+        if ( !factory.TryCreate( licenseKey, out var license, out errorMessage )
+             || !license.TryGetRegistrationProperties( out licenseProperties, out errorMessage ) )
         {
             licenseProperties = null;
 
-            return false;
-        }
-
-        if ( !license.CanBeRegistered( out errorMessage ) )
-        {
             return false;
         }
 
@@ -202,7 +197,7 @@ internal sealed class LicenseRegistrationService : ILicenseRegistrationService
         var factory = new LicenseFactory( this._serviceProvider );
 
         if ( !factory.TryCreate( licenseString, out var license, out errorMessage )
-             || !license.TryGetProperties( out var properties, out errorMessage ) )
+             || !license.TryGetRegistrationProperties( out var properties, out errorMessage ) )
         {
             return false;
         }
@@ -250,7 +245,7 @@ internal sealed class LicenseRegistrationService : ILicenseRegistrationService
         }
     }
 
-    public LicenseProperties? RegisteredLicense
+    public LicenseRegistrationProperties? RegisteredLicense
     {
         get
         {

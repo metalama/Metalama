@@ -11,17 +11,17 @@ public sealed class LicenseUsageTests : LicenseConsumptionManagerTestsBase
 {
     public LicenseUsageTests( ITestOutputHelper logger )
         : base( logger ) { }
-    
+
     [Fact]
     public void FirstOfDifferentLicensesFromMultipleSourcesUsedForAllowedFeature()
     {
-        var license1 = this.CreateLicense( LicenseKeyProvider.MetalamaCommunity );
+        var license1 = this.CreateInstrumentedLicenseWrapper( LicenseKeyProvider.MetalamaCommunity );
         var source1 = new TestLicenseSource( "source1", license1 );
 
-        var license2 = this.CreateLicense( LicenseKeyProvider.MetalamaProfessionalBusiness );
+        var license2 = this.CreateInstrumentedLicenseWrapper( LicenseKeyProvider.MetalamaProfessionalBusiness );
         var source2 = new TestLicenseSource( "source2", license2 );
 
-        var manager = this.CreateConsumptionManager( source1, source2 );
+        var manager = this.CreateConsumptionService( source1, source2 );
         AssertCanConsume( manager, _ => true, true );
         Assert.Equal( 1, license1.NumberOfUses );
         Assert.Equal( 0, license2.NumberOfUses );
@@ -32,13 +32,13 @@ public sealed class LicenseUsageTests : LicenseConsumptionManagerTestsBase
     [Fact]
     public void OneOfDifferentLicensesFromMultipleSourcesUsedForForbiddenFeature()
     {
-        var license1 = this.CreateLicense( LicenseKeyProvider.PostSharpEssentials );
+        var license1 = this.CreateInstrumentedLicenseWrapper( LicenseKeyProvider.PostSharpEssentials );
         var source1 = new TestLicenseSource( "source1", license1 );
 
-        var license2 = this.CreateLicense( LicenseKeyProvider.MetalamaProfessionalBusiness );
+        var license2 = this.CreateInstrumentedLicenseWrapper( LicenseKeyProvider.MetalamaProfessionalBusiness );
         var source2 = new TestLicenseSource( "source2", license2 );
 
-        var manager = this.CreateConsumptionManager( source1, source2 );
+        var manager = this.CreateConsumptionService( source1, source2 );
         AssertCanConsume( manager, license => license.LicensedProduct == LicensedProduct.MetalamaProfessional, false );
         Assert.Equal( 1, license1.NumberOfUses );
         Assert.Equal( 0, license2.NumberOfUses );

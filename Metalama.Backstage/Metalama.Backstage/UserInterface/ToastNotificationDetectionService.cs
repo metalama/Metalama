@@ -46,7 +46,7 @@ internal sealed class ToastNotificationDetectionService : IToastNotificationDete
         };
     }
 
-    private void ValidateRegisteredLicense( LicenseProperties? license, ref bool notificationReported )
+    private void ValidateRegisteredLicense( LicenseRegistrationProperties? license, ref bool notificationReported )
     {
         // We set notificationReported to true even if the notification is not reported because of snoozing
         // because the reason of this flag is to avoid displaying VsxNotInstalled.

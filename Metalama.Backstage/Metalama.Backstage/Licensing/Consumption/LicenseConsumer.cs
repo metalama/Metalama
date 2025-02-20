@@ -17,8 +17,7 @@ internal sealed class LicenseConsumer : ILicenseConsumer
     public ImmutableArray<LicensingMessage> Messages { get; }
 
     private readonly ILogger _logger;
-    private readonly LicenseConsumptionOptions _options;
-    private readonly LicenseConsumptionData? _license;
+    private readonly LicenseConsumptionProperties? _license;
     private readonly BackstageBackgroundTasksService _backgroundTasksService;
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly ILicenseAuditManager? _licenseAuditManager;
@@ -26,13 +25,11 @@ internal sealed class LicenseConsumer : ILicenseConsumer
     private DateTime _lastAuditTime = DateTime.MinValue;
 
     private LicenseConsumer(
-        LicenseConsumptionOptions options,
         IServiceProvider services,
-        LicenseConsumptionData? license,
+        LicenseConsumptionProperties? license,
         ImmutableArray<LicensingMessage> messages )
     {
         this.Messages = messages;
-        this._options = options;
         this._license = license;
         this._logger = services.GetLoggerFactory().Licensing();
         this._dateTimeProvider = services.GetRequiredBackstageService<IDateTimeProvider>();
@@ -49,7 +46,7 @@ internal sealed class LicenseConsumer : ILicenseConsumer
 
         var logger = services.GetLoggerFactory().Licensing();
 
-        LicenseConsumptionData? licenseConsumptionData = null;
+        LicenseConsumptionProperties? licenseConsumptionData = null;
 
         foreach ( var source in licenseSources.OrderBy( s => s.Priority ) )
         {
@@ -62,9 +59,9 @@ internal sealed class LicenseConsumer : ILicenseConsumer
                 continue;
             }
 
-            if ( !license.TryGetLicenseConsumptionData( options, out licenseConsumptionData, out var errorMessage ) )
+            if ( !license.TryGetConsumptionProperties( options, out licenseConsumptionData, out var errorMessage ) )
             {
-                _ = license.TryGetProperties( out var registrationData, out _ );
+                _ = license.TryGetRegistrationProperties( out var registrationData, out _ );
                 var message = registrationData == null ? "A license" : $"The {registrationData.Description}";
                 message += $" {errorMessage}.";
 
@@ -95,7 +92,7 @@ internal sealed class LicenseConsumer : ILicenseConsumer
             break;
         }
 
-        return new LicenseConsumer( options, services, licenseConsumptionData, messagesBuilder.ToImmutable() );
+        return new LicenseConsumer( services, licenseConsumptionData, messagesBuilder.ToImmutable() );
 
         void ReportMessage( LicensingMessage message )
         {
@@ -105,7 +102,7 @@ internal sealed class LicenseConsumer : ILicenseConsumer
     }
 
     /// <inheritdoc />
-    public bool TryConsume( Predicate<LicenseConsumptionData> predicate )
+    public bool TryConsume( Predicate<LicenseConsumptionProperties> predicate )
     {
         if ( this._license == null )
         {

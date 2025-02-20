@@ -20,12 +20,19 @@ public interface ILicenseRegistrationService : IBackstageService, INotifyPropert
 
     bool TryRemoveCurrentLicense( [NotNullWhen( true )] out string? licenseString );
 
-    LicenseProperties? RegisteredLicense { get; }
+    LicenseRegistrationProperties? RegisteredLicense { get; }
 
+    /// <summary>
+    /// Validates the license key and returns a value indicating whether it can be registered using <see cref="TryRegisterLicense"/>.
+    /// </summary>
     bool TryValidateLicenseKey( string licenseKey, [NotNullWhen( false )] out string? errorMessage );
 
+    /// <summary>
+    /// Attempts to parse a license key into a <see cref="LicenseRegistrationProperties"/>, but does not test
+    /// whether this license key can be registered.
+    /// </summary>
     bool TryParseLicenseKey(
         string licenseKey,
         [NotNullWhen( false )] out string? errorMessage,
-        [NotNullWhen( true )] out LicenseProperties? licenseProperties );
+        [NotNullWhen( true )] out LicenseRegistrationProperties? licenseProperties );
 }

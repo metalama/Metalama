@@ -23,14 +23,14 @@ namespace Metalama.Backstage.Licensing.Licenses
         /// The data is either deserialized (e.g. from a license key) or retrieved from a license provider (e.g. license server.)
         /// </summary>
         /// <param name="options"></param>
-        /// <param name="licenseConsumptionData">The license data relevant to license consumption.</param>
+        /// <param name="licenseConsumptionProperties">The license data relevant to license consumption.</param>
         /// <param name="errorMessage">Description of a failure when the return value is <c>false</c>.</param>
         /// <returns>
         /// <c>true</c> if the object represents or retrieves a consistent and valid license.
         /// </returns>
-        bool TryGetLicenseConsumptionData(
+        bool TryGetConsumptionProperties(
             LicenseConsumptionOptions options,
-            [MaybeNullWhen( false )] out LicenseConsumptionData licenseConsumptionData,
+            [MaybeNullWhen( false )] out LicenseConsumptionProperties licenseConsumptionProperties,
             [MaybeNullWhen( true )] out string errorMessage );
 
         /// <summary>
@@ -41,8 +41,8 @@ namespace Metalama.Backstage.Licensing.Licenses
         /// <returns>
         /// <c>true</c> if the object represents a consistent license.
         /// </returns>
-        bool TryGetProperties(
-            [MaybeNullWhen( false )] out LicenseProperties licenseProperties,
+        bool TryGetRegistrationProperties(
+            [MaybeNullWhen( false )] out LicenseRegistrationProperties licenseProperties,
             [MaybeNullWhen( true )] out string errorMessage );
     }
 }

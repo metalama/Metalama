@@ -1,38 +1,58 @@
 ﻿// Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
-using Metalama.Backstage.Licensing.Consumption.Sources;
+using Metalama.Backstage.Licensing.Licenses;
 using Metalama.Backstage.Licensing.Registration;
 using System;
 using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace Metalama.Backstage.Tests.Licensing.Evaluation
+namespace Metalama.Backstage.Tests.Licensing.Registration
 {
-    public sealed class EvaluationLicenseEligibilityTests : EvaluationLicenseRegistrationTestsBase
+    public sealed class EvaluationLicenseRegistrationTests : LicensingTestsBase
     {
-        public EvaluationLicenseEligibilityTests( ITestOutputHelper logger )
+        public EvaluationLicenseRegistrationTests( ITestOutputHelper logger )
             : base( logger ) { }
+
+        private static readonly DateTime _testStart = new( 2020, 1, 1, 0, 0, 0, DateTimeKind.Utc );
+
+        private void AssertEvaluationEligible()
+        {
+            Assert.True( this.LicenseRegistrationService.TryRegisterTrialEdition( out _ ) );
+            var expectedStart = this.Time.UtcNow.Date;
+            var expectedEnd = expectedStart + LicensingConstants.EvaluationPeriod;
+
+            var licenseProperties = this.LicenseRegistrationService.RegisteredLicense;
+            Assert.NotNull( licenseProperties );
+            Assert.Equal( LicenseType.Evaluation, licenseProperties!.LicenseType );
+            Assert.Equal( expectedStart, licenseProperties!.ValidFrom!.Value.Date );
+            Assert.Equal( expectedEnd, licenseProperties!.ValidTo!.Value.Date );
+            Assert.Equal( expectedEnd, licenseProperties!.SubscriptionEndDate );
+        }
+
+        private void AssertEvaluationNotEligible( string reason )
+        {
+            Assert.False( this.LicenseRegistrationService.TryRegisterTrialEdition( out _ ), reason );
+        }
 
         [Fact]
         public void EvaluationLicenseRegistersInCleanEnvironment()
         {
-            this.Time.Set( TestStart, true );
+            this.Time.Set( _testStart, true );
             this.AssertEvaluationEligible();
         }
 
         private void TestRepetitiveRegistration( TimeSpan retryAfter, bool unregisterBeforeRetry, bool expectedEligibility )
         {
-            this.Time.Set( TestStart, true );
+            this.Time.Set( _testStart, true );
             this.AssertEvaluationEligible();
 
             if ( unregisterBeforeRetry )
             {
-                LicensingConfigurationModel.Create( this.ServiceProvider ).RemoveLicense();
+                this.LicenseRegistrationService.TryRemoveCurrentLicense( out _ );
             }
 
-            var license = new UserProfileLicenseSource( this.ServiceProvider ).GetLicense(
-                m => Assert.Fail( $"Unexpected message from license provider: '{m}'" ) );
+            var license = this.LicenseRegistrationService.RegisteredLicense;
 
             if ( unregisterBeforeRetry )
             {

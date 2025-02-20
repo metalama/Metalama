@@ -57,7 +57,8 @@ namespace Metalama.Backstage.Licensing.Licenses
 
         public bool CanBeRegistered( [MaybeNullWhen( true )] out string errorMessage )
         {
-            if ( !this.TryGetLicenseConsumptionData( LicenseConsumptionOptions.ForRegistration, out var licenseConsumptionData, out errorMessage ) )
+            // Validates that the key can be consumed.
+            if ( !this.TryGetConsumptionProperties( LicenseConsumptionOptions.ForRegistration, out var licenseConsumptionData, out errorMessage ) )
             {
                 return false;
             }
@@ -75,12 +76,12 @@ namespace Metalama.Backstage.Licensing.Licenses
         }
 
         /// <inheritdoc />
-        public bool TryGetLicenseConsumptionData(
+        public bool TryGetConsumptionProperties(
             LicenseConsumptionOptions options,
-            [MaybeNullWhen( false )] out LicenseConsumptionData licenseConsumptionData,
+            [MaybeNullWhen( false )] out LicenseConsumptionProperties licenseConsumptionProperties,
             [MaybeNullWhen( true )] out string errorMessage )
         {
-            licenseConsumptionData = null;
+            licenseConsumptionProperties = null;
 
             if ( !this.TryGetLicenseKeyData( out var licenseKeyData, out errorMessage ) )
             {
@@ -135,12 +136,12 @@ namespace Metalama.Backstage.Licensing.Licenses
 
             if ( licenseKeyData.SubscriptionEndDate != null )
             {
-                if ( licenseKeyData.SubscriptionEndDate <= this._dateTimeProvider.UtcNow )
+                if ( licenseKeyData.SubscriptionEndDate >= this._dateTimeProvider.UtcNow )
                 {
                     subscriptionStatus = SubscriptionStatus.Active;
                 }
                 else if ( options.SubscriptionGracePeriod != null && licenseKeyData.SubscriptionEndDate.Value.Add( options.SubscriptionGracePeriod.Value )
-                         <= this._dateTimeProvider.UtcNow )
+                         >= this._dateTimeProvider.UtcNow )
                 {
                     subscriptionStatus = SubscriptionStatus.Grace;
                 }
@@ -194,9 +195,16 @@ namespace Metalama.Backstage.Licensing.Licenses
                     break;
 
 #pragma warning disable CS0618 // Type or member is obsolete
-                
+
                 // Development key of SharpCrafters.
                 case LicensedProduct.PostSharp30 when licenseKeyData.LicenseId == 22:
+
+                // No longer issued but existing keys are fully supported.
+                case LicensedProduct.MetalamaUltimate:
+
+                // Obsolete products can still be registered (but not consumed) for backward compatibility.
+                case LicensedProduct.MetalamaFree when options.AcceptsObsoleteLicenses:
+                case LicensedProduct.MetalamaStarter when options.AcceptsObsoleteLicenses:
 #pragma warning restore CS0618 // Type or member is obsolete
                     break;
 
@@ -223,7 +231,7 @@ namespace Metalama.Backstage.Licensing.Licenses
             var isRedistributable = licenseType is LicenseType.OpenSourceRedistribution or LicenseType.CommercialRedistribution;
 #pragma warning restore CS0618 // Type or member is obsolete
 
-            licenseConsumptionData = new LicenseConsumptionData(
+            licenseConsumptionProperties = new LicenseConsumptionProperties(
                 product,
                 licenseType,
                 licenseKeyData.Namespace,
@@ -239,18 +247,27 @@ namespace Metalama.Backstage.Licensing.Licenses
         }
 
         /// <inheritdoc />
-        public bool TryGetProperties(
-            [MaybeNullWhen( false )] out LicenseProperties licenseProperties,
+        public bool TryGetRegistrationProperties(
+            [MaybeNullWhen( false )] out LicenseRegistrationProperties licenseProperties,
             [MaybeNullWhen( true )] out string errorMessage )
         {
-            if ( !this.TryGetLicenseKeyDataWithVerifiedSignature( out var licenseKeyData, out errorMessage ) )
+            if ( !this.TryGetLicenseKeyData( out var licenseKeyData, out errorMessage ) )
             {
                 licenseProperties = null;
 
                 return false;
             }
 
-            licenseProperties = licenseKeyData.ToLicenseProperties();
+            if ( licenseKeyData is { RequiresSignature: true } && !licenseKeyData.VerifySignature( this._licensingAuthority ) )
+            {
+                errorMessage = $"The license key {licenseKeyData.LicenseUniqueId} has an invalid signature.";
+                this._logger.Warning?.Log( errorMessage );
+                licenseProperties = null;
+
+                return false;
+            }
+
+            licenseProperties = licenseKeyData.ToLicenseRegistrationProperties();
 
             return true;
         }
@@ -273,27 +290,6 @@ namespace Metalama.Backstage.Licensing.Licenses
 
                 return true;
             }
-        }
-
-        private bool TryGetLicenseKeyDataWithVerifiedSignature(
-            [MaybeNullWhen( false )] out LicenseKeyData data,
-            [MaybeNullWhen( true )] out string errorMessage )
-        {
-            if ( !this.TryGetLicenseKeyData( out data, out errorMessage ) )
-            {
-                return false;
-            }
-
-            if ( data is { RequiresSignature: true } && !data.VerifySignature( this._licensingAuthority ) )
-            {
-                errorMessage = $"The license key {data.LicenseUniqueId} has an invalid signature.";
-                this._logger.Warning?.Log( errorMessage );
-                data = null;
-
-                return false;
-            }
-
-            return true;
         }
 
         /// <inheritdoc />

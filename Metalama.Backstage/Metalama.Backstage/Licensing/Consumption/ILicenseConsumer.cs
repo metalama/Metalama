@@ -19,5 +19,5 @@ public interface ILicenseConsumer
     /// </summary>
     /// <param name="requirement">A predicate indicating whether the license key can be consumed.</param>
     /// <returns>A value indicating if the <paramref name="requirement"/> is available.</returns>
-    bool TryConsume( Predicate<LicenseConsumptionData> requirement );
+    bool TryConsume( Predicate<LicenseConsumptionProperties> requirement );
 }

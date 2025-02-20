@@ -12,22 +12,34 @@ namespace Metalama.Framework.DesignTime.Rpc;
 /// </summary>
 public abstract class RpcService
 {
+    private static int _nextId;
     private readonly TaskCompletionSource<bool> _initialized = new();
+    private readonly int _id = Interlocked.Increment(ref _nextId);
 
     protected ILogger Logger { get; }
 
     protected RpcService( ServerEndpoint serverEndpoint )
     {
-        this.Logger = serverEndpoint.LoggerFactory.GetLogger( this.GetType().Name );
+        this.Logger = serverEndpoint.LoggerFactory.GetLogger( this.GetType().Name ).WithPrefix( this._id.ToString() );
+        this.Logger.Trace?.Log( $"Instantiating RpcService." );
     }
 
     protected Task WaitUntilInitializedAsync( CancellationToken cancellationToken = default ) => this._initialized.Task.WithCancellation( cancellationToken );
 
     internal abstract void ConfigureRpc( JsonRpc rpc );
 
-    protected internal void OnRpcConnected() => this._initialized.SetResult( true );
+    protected internal void OnRpcConnected()
+    {
+        this.Logger.Trace?.Log( nameof(this.OnRpcConnected) );
+        this._initialized.TrySetResult( true );
+    }
 
-    internal virtual void OnRpcDisconnected( JsonRpc rpc ) { }
+    internal virtual void OnRpcDisconnected( JsonRpc rpc )
+    {
+        this.Logger.Trace?.Log( nameof(this.OnRpcDisconnected) );
+    }
+
+    public override string ToString() => $"{{{this.GetType().Name}, Id={this._id}}}";
 }
 
 /// <summary>

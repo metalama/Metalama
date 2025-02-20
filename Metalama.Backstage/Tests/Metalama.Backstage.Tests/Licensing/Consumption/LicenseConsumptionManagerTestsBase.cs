@@ -2,6 +2,7 @@
 
 using Metalama.Backstage.Licensing.Consumption;
 using Metalama.Backstage.Licensing.Consumption.Sources;
+using Metalama.Backstage.Licensing.Licenses;
 using Metalama.Backstage.Tests.Licensing.Licenses;
 using Metalama.Backstage.Tests.Licensing.LicenseSources;
 using System;
@@ -17,35 +18,34 @@ public abstract class LicenseConsumptionManagerTestsBase : LicensingTestsBase
         bool isTelemetryEnabled = false )
         : base( logger, isTelemetryEnabled: isTelemetryEnabled ) { }
 
-    private protected TestLicense CreateLicense( string licenseString )
+    private protected InstrumentedLicenseWrapper CreateInstrumentedLicenseWrapper( string licenseString )
     {
-        Assert.True( this.LicenseFactory.TryCreate( licenseString, out var license, out var errorMessage ) );
+        var licenseFactory = new LicenseFactory( this.ServiceProvider );
+        Assert.True( licenseFactory.TryCreate( licenseString, out var license, out var errorMessage ) );
         Assert.Null( errorMessage );
 
-        return new TestLicense( license );
+        return new InstrumentedLicenseWrapper( license );
     }
 
-    private protected ILicenseConsumptionService CreateConsumptionService( TestLicense license )
+    private protected ILicenseConsumptionService CreateConsumptionService( InstrumentedLicenseWrapper license )
     {
         // ReSharper disable once CoVariantArrayConversion
         var licenseSource = new TestLicenseSource( "test", license );
 
-        var manager = this.CreateConsumptionManager( licenseSource );
+        var manager = this.CreateConsumptionService( licenseSource );
 
         return manager;
     }
 
-    private protected ILicenseConsumptionService CreateConsumptionManager( params ILicenseSource[] licenseSources )
+    private protected ILicenseConsumptionService CreateConsumptionService( params ILicenseSource[] licenseSources )
     {
         return new LicenseConsumptionService( this.ServiceProvider, licenseSources );
     }
 
-    private protected ILicenseConsumptionService CreateConsumptionManager()
-    {
-        return new LicenseConsumptionService( this.ServiceProvider, Array.Empty<ILicenseSource>() );
-    }
-
-    private protected static void AssertCanConsume( ILicenseConsumptionService service, Predicate<LicenseConsumptionData> license, bool expectedCanConsume )
+    private protected static void AssertCanConsume(
+        ILicenseConsumptionService service,
+        Predicate<LicenseConsumptionProperties> license,
+        bool expectedCanConsume )
     {
         var actualCanConsume = service.CreateConsumer().TryConsume( license );
         Assert.Equal( expectedCanConsume, actualCanConsume );

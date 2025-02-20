@@ -31,13 +31,7 @@ public sealed class LicensingAuthority : IBackstageService
     {
         this._keys = keys.ToDictionary(
             x => checked((byte) x.Id),
-            x =>
-            {
-                var dsa = DSA.Create();
-                dsa.FromXmlString2( x.Key );
-
-                return dsa;
-            } );
+            x => CryptographyHelper.CreateDsaFromXml( x.Key ) );
     }
 
     internal IEnumerable<byte> KeyIds => this._keys.Keys;
@@ -55,8 +49,7 @@ public sealed class LicensingAuthority : IBackstageService
         // It is critical that:
         // - Eeach test has its own instance of the DSA class, for thread safety reasons.
         // - All DSA instances share the same parameters, because some tests may call the GetTestAutority method twice.
-        var dsa = DSA.Create();
-        dsa.ImportParameters( _testKey );
+        var dsa = CryptographyHelper.CreateDsaFromParameters( _testKey );
 
         return new LicensingAuthority( (255, dsa) );
     }

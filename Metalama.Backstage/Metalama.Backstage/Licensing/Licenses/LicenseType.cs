@@ -113,6 +113,7 @@ namespace Metalama.Backstage.Licensing.Licenses
         /// <summary>
         /// Usable with a preview build.
         /// </summary>
+        [Obsolete( "No longer issued or supported." )]
         Preview = 20
 
         // 255 is reserved as unknown for testing purposes

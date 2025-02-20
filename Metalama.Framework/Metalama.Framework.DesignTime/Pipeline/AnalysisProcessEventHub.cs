@@ -9,6 +9,7 @@ using Metalama.Framework.DesignTime.Utilities;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Services;
 using System.Collections.Concurrent;
+using System.Collections.Immutable;
 
 namespace Metalama.Framework.DesignTime.Pipeline;
 
@@ -113,9 +114,9 @@ public sealed class AnalysisProcessEventHub : IGlobalService
         return this._externalBuildCompletedEvent.InvokeAsync( projectKey );
     }
 
-    public event Action<ProjectKey, IReadOnlyCollection<DiagnosticData>>? CompileTimeErrorsChanged;
+    public event Action<ProjectKey, ImmutableArray<DiagnosticData>>? CompileTimeErrorsChanged;
 
-    internal void PublishCompileTimeErrors( ProjectKey projectKey, IReadOnlyCollection<DiagnosticData> errors )
+    internal void PublishCompileTimeErrors( ProjectKey projectKey, ImmutableArray<DiagnosticData> errors )
     {
         this.CompileTimeErrorsChanged?.Invoke( projectKey, errors );
     }
