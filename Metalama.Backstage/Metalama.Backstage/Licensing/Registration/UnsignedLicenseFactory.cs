@@ -69,5 +69,29 @@ namespace Metalama.Backstage.Licensing.Registration
 
             return licenseRegistrationData;
         }
+        
+        /// <summary>
+        /// Creates an unsigned legacy Metalama Free license.
+        /// </summary>
+        /// <returns>The unsigned Metalama Community license.</returns>
+        [Obsolete]
+        public LicenseRegistrationProperties CreateLegacyFreeLicense()
+        {
+            var start = this._time.UtcNow;
+
+            var licenseKeyData = new LicenseKeyDataBuilder()
+            {
+                OriginVersion = LicenseKeyDataBuilder.CurrentVersion,
+                Generation = LicenseGeneration.Current,
+                LicenseGuid = Guid.NewGuid(),
+                Product = LicensedProduct.MetalamaFree,
+                LicenseType = LicenseType.Community,
+                ValidFrom = start
+            };
+
+            var licenseRegistrationData = licenseKeyData.Build().ToLicenseRegistrationProperties( licenseKeyData.Serialize() );
+
+            return licenseRegistrationData;
+        }
     }
 }

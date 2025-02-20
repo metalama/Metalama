@@ -13,7 +13,7 @@ namespace Metalama.Backstage.Commands
         IServiceProvider GetServiceProvider( CommandServiceProviderArgs args );
     }
 
-    internal record CommandServiceProviderArgs(
+    internal sealed record CommandServiceProviderArgs(
         ConsoleWriter Console,
         BaseCommandSettings Settings,
         Func<BackstageInitializationOptions, BackstageInitializationOptions> TransformOptions );

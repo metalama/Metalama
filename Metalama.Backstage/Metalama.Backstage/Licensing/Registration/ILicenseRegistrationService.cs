@@ -2,6 +2,7 @@
 
 using JetBrains.Annotations;
 using Metalama.Backstage.Extensibility;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
@@ -12,6 +13,9 @@ namespace Metalama.Backstage.Licensing.Registration;
 public interface ILicenseRegistrationService : IBackstageService, INotifyPropertyChanged
 {
     bool TryRegisterCommunityEdition( [NotNullWhen( false )] out string? errorMessage );
+    
+    [Obsolete]
+    bool TryRegisterLegacyFreeEdition( [NotNullWhen( false )] out string? errorMessage );
 
     bool TryRegisterTrialEdition( [NotNullWhen( false )] out string? errorMessage );
 

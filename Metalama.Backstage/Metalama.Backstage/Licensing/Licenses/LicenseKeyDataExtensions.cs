@@ -36,9 +36,6 @@ namespace Metalama.Backstage.Licensing.Licenses
                 LicensedProduct.PostSharp30 => licenseKeyData.LicenseType == LicenseType.Professional
                     ? LicensedProduct.PostSharpFramework
                     : LicensedProduct.PostSharpUltimate,
-                LicensedProduct.MetalamaFree => LicensedProduct.None,
-                LicensedProduct.MetalamaStarter => LicensedProduct.MetalamaProfessional,
-                LicensedProduct.MetalamaUltimate => LicensedProduct.MetalamaProfessional,
                 _ => licenseKeyData.Product
             };
 #pragma warning restore CS0618

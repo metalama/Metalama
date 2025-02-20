@@ -33,38 +33,49 @@ internal sealed record LicensingConfiguration : ConfigurationFile
     [JsonProperty( "licenses" )]
     public ImmutableArray<string?> Licenses { get; init; } = ImmutableArray<string?>.Empty;
 
-    public LicensingConfiguration SetLicense( LicenseRegistrationProperties properties )
+    public LicensingConfiguration SetLicense( LicenseRegistrationProperties license )
     {
-        if ( properties.Product.IsSupportedBeforeMetalama20251() )
+        var clone = this;
+        
+        // First we should remove previous licenses except if they must co-exist for backward-compatibility reasons.
+        if ( license.Product == LicensedProduct.MetalamaCommunity )
         {
-            return this with { Licenses = ImmutableArray.Create( properties.LicenseString ?? throw new ArgumentNullException() )! };
+            clone = clone.RemoveAllLicensesExcept( LicensedProduct.MetalamaFree );
+        }
+        else if ( license.Product == LicensedProduct.MetalamaFree )
+        {
+            clone = clone.RemoveAllLicensesExcept( LicensedProduct.MetalamaCommunity );
         }
         else
         {
-            return this with { LegacyLicense = properties.LicenseString };
+            clone = clone.RemoveAllLicenses();
+        }
+        
+        // Now we can add the new license.
+        if ( !license.Product.IsSupportedBeforeMetalama20251() )
+        {
+            return clone with { Licenses = ImmutableArray.Create( license.LicenseString ?? throw new ArgumentNullException() )! };
+        }
+        else
+        {
+            return clone with { LegacyLicense = license.LicenseString };
         }
     }
 
-    public LicensingConfiguration RemoveSupportedLicenses()
+    public LicensingConfiguration RemoveAllLicenses() => this with { LegacyLicense = null, Licenses = ImmutableArray<string?>.Empty };
+
+    private LicensingConfiguration RemoveAllLicensesExcept( LicensedProduct product )
     {
-        var clone = this;
-
-        // Make sure we don't unregister license keys that we don't support.
-        if ( GetLicenseKeyDataIfSupported( this.LegacyLicense ) != null )
+        if ( this.LegacyLicense != null && GetLicenseKeyData( this.LegacyLicense )?.Product != product )
         {
-            clone = this with { LegacyLicense = null };
+            return this with { LegacyLicense = null };
         }
-
-        foreach ( var license in this.Licenses )
+        else
         {
-            if ( GetLicenseKeyDataIfSupported( license ) != null )
-            {
-                clone = clone with { Licenses = clone.Licenses.Remove( license ) };
-            }
+            return this;
         }
-
-        return clone;
     }
+  
 
     private static LicenseKeyData? GetLicenseKeyData( string? licenseKey, Action<LicensingMessage>? reportMessage = null )
     {
@@ -77,23 +88,6 @@ internal sealed record LicensingConfiguration : ConfigurationFile
         {
             reportMessage?.Invoke( new LicensingMessage( errorMessage ) );
 
-            return null;
-        }
-
-        return licenseKeyData;
-    }
-
-    private static LicenseKeyData? GetLicenseKeyDataIfSupported( string? licenseKey, Action<LicensingMessage>? reportMessage = null )
-    {
-        var licenseKeyData = GetLicenseKeyData( licenseKey, reportMessage );
-
-        if ( licenseKeyData == null )
-        {
-            return null;
-        }
-
-        if ( !licenseKeyData.Product.IsSupportedSinceMetalama20251() )
-        {
             return null;
         }
 

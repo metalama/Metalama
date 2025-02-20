@@ -7,7 +7,7 @@ using System.Text;
 
 namespace Metalama.Backstage.Commands
 {
-    internal class AnsiConsoleOutputWrapper : IAnsiConsoleOutput
+    internal sealed class AnsiConsoleOutputWrapper : IAnsiConsoleOutput
     {
         private readonly TextWriter _underlying;
 

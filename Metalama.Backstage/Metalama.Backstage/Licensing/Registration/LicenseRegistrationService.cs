@@ -95,6 +95,34 @@ internal sealed class LicenseRegistrationService : ILicenseRegistrationService
 
         return true;
     }
+    
+    [Obsolete]
+    public bool TryRegisterLegacyFreeEdition( [NotNullWhen( false )] out string? errorMessage )
+    {
+        if ( !this.RequireAttendedSession( out errorMessage ) )
+        {
+            return false;
+        }
+
+        this._logger.Trace?.Log( "Registering Metalama Free." );
+
+        if ( !this._configurationManager.UpdateIf<LicensingConfiguration>(
+                config => !config.GetRegisteredLicenses().Any( l => l is { Product: LicensedProduct.MetalamaFree } ),
+                config =>
+                {
+                    var factory = new UnsignedLicenseFactory( this._serviceProvider );
+                    var communityLicense = factory.CreateLegacyFreeLicense();
+
+                    return config.SetLicense( communityLicense );
+                } ) )
+        {
+            errorMessage = "Metalama Free is already registered.";
+
+            return false;
+        }
+
+        return true;
+    }
 
     public bool TryRegisterTrialEdition( [NotNullWhen( false )] out string? errorMessage )
     {
@@ -212,7 +240,7 @@ internal sealed class LicenseRegistrationService : ILicenseRegistrationService
 
     public void RemoveLicenses()
     {
-        this._configurationManager.Update<LicensingConfiguration>( config => config.RemoveSupportedLicenses() );
+        this._configurationManager.Update<LicensingConfiguration>( config => config.RemoveAllLicenses() );
     }
 
     public IEnumerable<LicenseRegistrationProperties> RegisteredLicenses
