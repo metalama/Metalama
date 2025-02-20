@@ -20,12 +20,10 @@ namespace Metalama.Tools.Config.Tests.Commands.Licensing
         }
 
         [Fact]
-        public async Task RepetitiveFreeRegistrationKeepsOneFreeLicenseRegistered()
+        public async Task RepetitiveFreeRegistrationFails()
         {
             await this.TestCommandAsync( "license community" );
-            await this.TestCommandAsync( "license community" );
-
-            await this.TestCommandAsync( "license list", "Metalama Community" );
+            await this.TestCommandAsync( "license community", expectedExitCode: 1 );
         }
     }
 }

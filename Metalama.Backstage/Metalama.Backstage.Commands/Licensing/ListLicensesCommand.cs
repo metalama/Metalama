@@ -5,6 +5,7 @@ using Metalama.Backstage.Licensing.Registration;
 using Spectre.Console;
 using System;
 using System.Globalization;
+using System.Linq;
 
 namespace Metalama.Backstage.Commands.Licensing
 {
@@ -12,67 +13,70 @@ namespace Metalama.Backstage.Commands.Licensing
     {
         protected override void Execute( ExtendedCommandContext context, BaseCommandSettings settings )
         {
-            var license = context.ServiceProvider.GetRequiredBackstageService<ILicenseRegistrationService>().RegisteredLicense;
+            var licenses = context.ServiceProvider.GetRequiredBackstageService<ILicenseRegistrationService>().RegisteredLicenses.ToList();
 
-            if ( license != null )
+            if ( licenses.Count > 0 )
             {
-                context.Console.WriteMessage( "The following license is currently registered:" + Environment.NewLine );
-
-                static string? Format( DateTime? dateTime )
+                foreach ( var license in licenses )
                 {
-                    if ( dateTime == null )
+                    context.Console.WriteMessage( "The following license is currently registered:" + Environment.NewLine );
+
+                    static string? Format( DateTime? dateTime )
                     {
-                        return null;
-                    }
-
-                    return dateTime.Value.ToString( "D", CultureInfo.InvariantCulture );
-                }
-
-                var table = new Table();
-                table.AddColumn( "Field" );
-                table.AddColumn( "Value" );
-
-                void Write( string description, string? value )
-                {
-                    if ( value != null )
-                    {
-                        table.AddRow( description, value );
-                    }
-                }
-
-                var data = license;
-
-                Write( "License ID", data.LicenseId?.ToString( CultureInfo.InvariantCulture ) );
-
-                if ( data == null || data.LicenseId != null )
-                {
-                    Write( "License Key", license.LicenseString );
-                }
-
-                if ( data != null )
-                {
-                    Write( "Description", data.Description );
-                    Write( "Licensee", data.Licensee );
-
-                    string? expiration = null;
-
-                    if ( data.Perpetual != null )
-                    {
-                        if ( data.Perpetual.Value )
+                        if ( dateTime == null )
                         {
-                            expiration = "Never (perpetual license)";
+                            return null;
                         }
-                        else
+
+                        return dateTime.Value.ToString( "D", CultureInfo.InvariantCulture );
+                    }
+
+                    var table = new Table();
+                    table.AddColumn( "Field" );
+                    table.AddColumn( "Value" );
+
+                    void Write( string description, string? value )
+                    {
+                        if ( value != null )
                         {
-                            expiration = Format( data.ValidTo );
+                            table.AddRow( description, value );
                         }
                     }
 
-                    Write( "License Expiration", expiration );
-                    Write( "Maintenance Expiration", Format( data.SubscriptionEndDate ) );
-                }
+                    var data = license;
 
-                context.Console.Out.Write( table );
+                    Write( "License ID", data.LicenseId?.ToString( CultureInfo.InvariantCulture ) );
+
+                    if ( data == null || data.LicenseId != null )
+                    {
+                        Write( "License Key", license.LicenseString );
+                    }
+
+                    if ( data != null )
+                    {
+                        Write( "Description", data.Description );
+                        Write( "Licensee", data.Licensee );
+
+                        string? expiration = null;
+
+                        if ( data.Perpetual != null )
+                        {
+                            if ( data.Perpetual.Value )
+                            {
+                                expiration = "Never (perpetual license)";
+                            }
+                            else
+                            {
+                                expiration = Format( data.ValidTo );
+                            }
+                        }
+
+                        Write( "License Expiration", expiration );
+                        Write( "Maintenance Expiration", Format( data.SubscriptionEndDate ) );
+                    }
+
+                    context.Console.Out.Write( table );
+                }
             }
             else
             {

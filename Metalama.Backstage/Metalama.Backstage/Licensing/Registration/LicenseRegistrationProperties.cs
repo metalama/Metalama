@@ -14,7 +14,7 @@ namespace Metalama.Backstage.Licensing.Registration
     /// </remarks>
     [PublicAPI]
     public record LicenseRegistrationProperties(
-        string? LicenseString,
+        string LicenseString,
         string UniqueId,
         bool IsSelfCreated,
         int? LicenseId,
@@ -29,5 +29,5 @@ namespace Metalama.Backstage.Licensing.Registration
         bool Auditable,
         bool LicenseServerEligible,
         Version MinPostSharpVersion,
-        LicenseGeneration Generation );
+        LicenseGeneration Generation ) { }
 }

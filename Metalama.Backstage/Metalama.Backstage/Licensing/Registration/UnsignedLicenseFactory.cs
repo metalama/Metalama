@@ -27,7 +27,7 @@ namespace Metalama.Backstage.Licensing.Registration
         /// Creates an unsigned evaluation license.
         /// </summary>
         /// <returns>The unsigned evaluation license.</returns>
-        public (string LicenseKey, LicenseRegistrationProperties Data) CreateEvaluationLicense()
+        public LicenseRegistrationProperties CreateEvaluationLicense()
         {
             var start = this._time.UtcNow.Date;
             var end = start + LicensingConstants.EvaluationPeriod;
@@ -44,17 +44,14 @@ namespace Metalama.Backstage.Licensing.Registration
                 SubscriptionEndDate = end
             };
 
-            var licenseKey = licenseKeyData.Serialize();
-            var licenseRegistrationData = licenseKeyData.Build().ToLicenseRegistrationProperties();
-
-            return (licenseKey, licenseRegistrationData);
+            return licenseKeyData.Build().ToLicenseRegistrationProperties( licenseKeyData.Serialize() );
         }
 
         /// <summary>
         /// Creates an unsigned Metalama Community license.
         /// </summary>
         /// <returns>The unsigned Metalama Community license.</returns>
-        public (string LicenseKey, LicenseRegistrationProperties Data) CreateCommunityLicense()
+        public LicenseRegistrationProperties CreateCommunityLicense()
         {
             var start = this._time.UtcNow;
 
@@ -68,10 +65,9 @@ namespace Metalama.Backstage.Licensing.Registration
                 ValidFrom = start
             };
 
-            var licenseKey = licenseKeyData.Serialize();
-            var licenseRegistrationData = licenseKeyData.Build().ToLicenseRegistrationProperties();
+            var licenseRegistrationData = licenseKeyData.Build().ToLicenseRegistrationProperties( licenseKeyData.Serialize() );
 
-            return (licenseKey, licenseRegistrationData);
+            return licenseRegistrationData;
         }
     }
 }

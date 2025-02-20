@@ -84,7 +84,7 @@ namespace Metalama.Backstage.Licensing
         /// <summary>
         /// Caching Library.
         /// </summary>
-        PostSharpCachingLibrary = 15,
+        PostSharpCachingLibrary = 15
 
         // 255 is reserved as unknown for testing purposes
     }

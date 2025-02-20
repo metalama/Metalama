@@ -2,7 +2,10 @@
 
 using Metalama.Backstage.Configuration;
 using Metalama.Backstage.Extensibility;
+using Metalama.Backstage.Licensing.Licenses;
+using Metalama.Backstage.Licensing.Registration;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace Metalama.Backstage.Licensing.Consumption.Sources;
@@ -17,6 +20,12 @@ internal sealed class UserProfileLicenseSource : LicenseSourceBase
     public override string Description => "user profile";
 
     public override LicenseSourceKind Kind => LicenseSourceKind.UserProfile;
+
+    protected override IEnumerable<LicenseRegistrationProperties> GetRegisteredLicenses( Action<LicensingMessage> reportMessage )
+    {
+        return this._licensingConfiguration.GetRegisteredLicenses( reportMessage )
+            .Select( l => l.ToLicenseRegistrationProperties() );
+    }
 
     public UserProfileLicenseSource( IServiceProvider services )
         : base( services )
@@ -34,8 +43,6 @@ internal sealed class UserProfileLicenseSource : LicenseSourceBase
             this.OnChanged();
         }
     }
-
-    protected override string? GetLicenseString() => this._licensingConfiguration.Licenses.FirstOrDefault() ?? this._licensingConfiguration.License;
 
     public override LicenseSourcePriority Priority => LicenseSourcePriority.UserProfile;
 }

@@ -2,6 +2,7 @@
 
 using Metalama.Backstage.Licensing;
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
@@ -15,23 +16,17 @@ namespace Metalama.Backstage.Tests.Licensing.Registration
 
         private void AssertSingleCommunityLicenseRegistered()
         {
-            Assert.NotNull( this.LicenseRegistrationService.RegisteredLicense );
-            Assert.False( string.IsNullOrEmpty( this.LicenseRegistrationService.RegisteredLicense.UniqueId ) );
-            Assert.Equal( LicensedProduct.MetalamaCommunity, this.LicenseRegistrationService.RegisteredLicense.Product );
+            Assert.Single( this.LicenseRegistrationService.RegisteredLicenses );
+            Assert.False( string.IsNullOrEmpty( this.LicenseRegistrationService.RegisteredLicenses.Single().UniqueId ) );
+            Assert.Equal( LicensedProduct.MetalamaCommunity, this.LicenseRegistrationService.RegisteredLicenses.Single().Product );
         }
 
         [Fact]
         public void RepeatedCommunityLicenseRegistrationKeepsSingleLicenseRegistered()
         {
             Assert.True( this.LicenseRegistrationService.TryRegisterCommunityEdition( out _ ) );
-            Assert.True( this.LicenseRegistrationService.TryRegisterCommunityEdition( out _ ) );
+            Assert.False( this.LicenseRegistrationService.TryRegisterCommunityEdition( out _ ) );
             this.AssertSingleCommunityLicenseRegistered();
-
-#pragma warning disable CA1307
-            Assert.Single(
-                this.Log.Entries,
-                x => x.Message.Contains( "Failed to register Metalama Community: A Metalama Community license is registered already." ) );
-#pragma warning restore CA1307
         }
 
         [Fact]

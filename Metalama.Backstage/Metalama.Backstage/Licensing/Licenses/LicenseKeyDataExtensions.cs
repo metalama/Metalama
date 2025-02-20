@@ -102,7 +102,7 @@ namespace Metalama.Backstage.Licensing.Licenses
         /// <summary>
         /// Creates a new object of <see cref="LicenseRegistrationProperties"/> based on the given <see cref="LicenseKeyData"/>.
         /// </summary>
-        public static LicenseRegistrationProperties ToLicenseRegistrationProperties( this LicenseKeyData licenseKeyData )
+        public static LicenseRegistrationProperties ToLicenseRegistrationProperties( this LicenseKeyData licenseKeyData, string? licenseString = null )
         {
             var description = licenseKeyData.GetProductName();
 
@@ -128,7 +128,9 @@ namespace Metalama.Backstage.Licensing.Licenses
             };
 
             LicenseRegistrationProperties data = new(
-                licenseKeyData.LicenseString,
+                licenseKeyData.LicenseString ?? licenseString ?? throw new ArgumentNullException(
+                    nameof(licenseString),
+                    "'licenseString' cannot be null if LicenseKeyData.LicenseString is null." ),
                 licenseKeyData.LicenseUniqueId,
                 licenseKeyData.LicenseGuid != null,
                 licenseKeyData.LicenseGuid == null ? licenseKeyData.LicenseId : null,

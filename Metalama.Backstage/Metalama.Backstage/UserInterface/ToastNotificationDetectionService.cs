@@ -122,7 +122,10 @@ internal sealed class ToastNotificationDetectionService : IToastNotificationDete
 
         if ( this._licenseRegistrationService != null && !options.HasValidLicense )
         {
-            this.ValidateRegisteredLicense( this._licenseRegistrationService.RegisteredLicense, ref notificationReported );
+            foreach ( var license in this._licenseRegistrationService.RegisteredLicenses )
+            {
+                this.ValidateRegisteredLicense( license, ref notificationReported );
+            }
         }
 
         // TODO: Show a toast notification suggesting to subscribe the newsletter. (34701)

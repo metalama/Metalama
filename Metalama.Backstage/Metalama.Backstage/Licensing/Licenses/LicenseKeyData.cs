@@ -76,8 +76,8 @@ namespace Metalama.Backstage.Licensing.Licenses
 
         public static bool TryDeserialize(
             string licenseKey,
-            [MaybeNullWhen( false )] out LicenseKeyData data,
-            [MaybeNullWhen( true )] out string errorMessage )
+            [NotNullWhen( true )] out LicenseKeyData? data,
+            [NotNullWhen( false )] out string? errorMessage )
         {
             if ( _cache.TryGetValue( licenseKey, out data ) )
             {

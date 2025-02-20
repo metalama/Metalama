@@ -6,10 +6,11 @@ using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Infrastructure;
 using Metalama.Backstage.Licensing.Licenses;
 using Metalama.Backstage.UserInterface;
-using Metalama.Backstage.Utilities;
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using System.Runtime.CompilerServices;
 
 namespace Metalama.Backstage.Licensing.Registration;
@@ -20,6 +21,7 @@ internal sealed class LicenseRegistrationService : ILicenseRegistrationService
     private readonly ILogger _logger;
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly IUserDeviceDetectionService _userDeviceDetectionService;
+    private readonly IConfigurationManager _configurationManager;
 
     public LicenseRegistrationService( IServiceProvider serviceProvider )
     {
@@ -27,6 +29,7 @@ internal sealed class LicenseRegistrationService : ILicenseRegistrationService
         this._logger = serviceProvider.GetLoggerFactory().GetLogger( this.GetType().Name );
         this._dateTimeProvider = serviceProvider.GetRequiredBackstageService<IDateTimeProvider>();
         this._userDeviceDetectionService = serviceProvider.GetRequiredBackstageService<IUserDeviceDetectionService>();
+        this._configurationManager = serviceProvider.GetRequiredBackstageService<IConfigurationManager>();
 
         // We intentionally omit to unsubscribe from the event because this service has generally the same lifetime as the application
         // and is never disposed of.
@@ -37,7 +40,7 @@ internal sealed class LicenseRegistrationService : ILicenseRegistrationService
     {
         if ( obj is LicensingConfiguration )
         {
-            this.OnPropertyChanged( nameof(this.RegisteredLicense) );
+            this.OnPropertyChanged( nameof(this.RegisteredLicenses) );
             this.OnPropertyChanged( nameof(this.CanRegisterTrialEdition) );
         }
     }
@@ -68,11 +71,6 @@ internal sealed class LicenseRegistrationService : ILicenseRegistrationService
     /// </returns>
     public bool TryRegisterCommunityEdition( [NotNullWhen( false )] out string? errorMessage )
     {
-        void TraceFailure( string message )
-        {
-            this._logger.Trace?.Log( $"Failed to register Metalama Community: {message}" );
-        }
-
         if ( !this.RequireAttendedSession( out errorMessage ) )
         {
             return false;
@@ -80,34 +78,20 @@ internal sealed class LicenseRegistrationService : ILicenseRegistrationService
 
         this._logger.Trace?.Log( "Registering Metalama Community." );
 
-        try
+        if ( !this._configurationManager.UpdateIf<LicensingConfiguration>(
+                config => !config.GetRegisteredLicenses().Any( l => l is { Product: LicensedProduct.MetalamaCommunity } ),
+                config =>
+                {
+                    var factory = new UnsignedLicenseFactory( this._serviceProvider );
+                    var communityLicense = factory.CreateCommunityLicense();
+
+                    return config.SetLicense( communityLicense );
+                } ) )
         {
-            var userStorage = LicensingConfigurationModel.Create( this._serviceProvider );
-
-            if ( userStorage.LicenseProperties is { Product: LicensedProduct.MetalamaCommunity } )
-            {
-                TraceFailure( "A Metalama Community license is registered already." );
-
-                errorMessage = null;
-
-                return true;
-            }
-
-            var factory = new UnsignedLicenseFactory( this._serviceProvider );
-            var (licenseKey, data) = factory.CreateCommunityLicense();
-
-            userStorage.SetLicense( licenseKey, data );
-        }
-        catch ( Exception e )
-        {
-            TraceFailure( e.ToString() );
-
-            errorMessage = "An unexpected exception was thrown: " + e.Message;
+            errorMessage = "Metalama Community is already registered.";
 
             return false;
         }
-
-        errorMessage = null;
 
         return true;
     }
@@ -121,34 +105,43 @@ internal sealed class LicenseRegistrationService : ILicenseRegistrationService
 
         this._logger.Trace?.Log( "Attempting to register an evaluation license." );
 
-        using ( MutexHelper.WithGlobalLock( $"Evaluation_{Environment.UserName}" ) )
+        if ( !this.CanRegisterTrialEditionCore( out errorMessage ) )
         {
-            var configuration = LicensingConfigurationModel.Create( this._serviceProvider );
+            return false;
+        }
 
-            // If the configuration file contains an evaluation license created today, this may be a race condition with
-            // another process also trying to activate the evaluation mode. In this case, we just pretend we have succeeded.
-            if ( configuration.IsEvaluationActive )
-            {
-                this._logger.Trace?.Log( "Another process started the evaluation period today." );
+        var factory = new UnsignedLicenseFactory( this._serviceProvider );
+        var evaluationLicense = factory.CreateEvaluationLicense();
 
-                errorMessage = null;
+        this._configurationManager.Update<LicensingConfiguration>(
+            config => config.SetLicense( evaluationLicense ) with { LastEvaluationStartDate = this._dateTimeProvider.UtcNow } );
 
-                return true;
-            }
+        errorMessage = null;
 
-            if ( !configuration.CanStartEvaluation )
-            {
-                errorMessage = $"You cannot start a new trial period until {configuration.NextEvaluationStartDate}.";
-                this._logger.Warning?.Log( errorMessage );
+        return true;
+    }
 
-                return false;
-            }
+    private bool CanRegisterTrialEditionCore( [NotNullWhen( false )] out string? errorMessage )
+    {
+        var currentConfiguration = this._configurationManager.Get<LicensingConfiguration>();
 
-            var factory = new UnsignedLicenseFactory( this._serviceProvider );
-            var (licenseKey, data) = factory.CreateEvaluationLicense();
+        if ( currentConfiguration.GetRegisteredLicenses()
+            .Any( l => l is { LicenseType: LicenseType.Evaluation } && l.ValidTo >= this._dateTimeProvider.UtcNow ) )
+        {
+            errorMessage = "The evaluation license is already active.";
 
-            configuration.SetLicense( licenseKey, data );
-            configuration.LastEvaluationStartDate = this._dateTimeProvider.UtcNow;
+            return false;
+        }
+
+        var lastEvaluationStartDate = currentConfiguration.LastEvaluationStartDate ?? DateTime.MinValue;
+        var nextEvaluationStartDate = lastEvaluationStartDate + LicensingConstants.NoEvaluationPeriod + LicensingConstants.EvaluationPeriod;
+
+        if ( nextEvaluationStartDate > this._dateTimeProvider.UtcNow )
+        {
+            errorMessage = $"You cannot start a new trial period until {nextEvaluationStartDate}.";
+            this._logger.Warning?.Log( errorMessage );
+
+            return false;
         }
 
         errorMessage = null;
@@ -209,51 +202,21 @@ internal sealed class LicenseRegistrationService : ILicenseRegistrationService
 
         if ( !dry )
         {
-            var storage = LicensingConfigurationModel.Create( this._serviceProvider );
-            storage.SetLicense( licenseString, properties );
+            this._configurationManager.Update<LicensingConfiguration>( config => config.SetLicense( properties ) );
         }
 
         return true;
     }
 
-    public bool CanRegisterTrialEdition
-    {
-        get
-        {
-            var configuration = LicensingConfigurationModel.Create( this._serviceProvider );
+    public bool CanRegisterTrialEdition => this.CanRegisterTrialEditionCore( out _ );
 
-            return configuration.CanStartEvaluation;
-        }
+    public void RemoveLicenses()
+    {
+        this._configurationManager.Update<LicensingConfiguration>( config => config.RemoveSupportedLicenses() );
     }
 
-    public bool TryRemoveCurrentLicense( [NotNullWhen( true )] out string? licenseString )
-    {
-        var licenseStorage = LicensingConfigurationModel.Create( this._serviceProvider );
-
-        if ( string.IsNullOrWhiteSpace( licenseStorage.LicenseString ) )
-        {
-            licenseString = null;
-
-            return false;
-        }
-        else
-        {
-            licenseString = licenseStorage.LicenseString!;
-            licenseStorage.RemoveLicense();
-
-            return true;
-        }
-    }
-
-    public LicenseRegistrationProperties? RegisteredLicense
-    {
-        get
-        {
-            var licenseStorage = LicensingConfigurationModel.Create( this._serviceProvider );
-
-            return licenseStorage.LicenseProperties;
-        }
-    }
+    public IEnumerable<LicenseRegistrationProperties> RegisteredLicenses
+        => this._configurationManager.Get<LicensingConfiguration>().GetRegisteredLicenses().Select( x => x.ToLicenseRegistrationProperties() );
 
     public event PropertyChangedEventHandler? PropertyChanged;
 

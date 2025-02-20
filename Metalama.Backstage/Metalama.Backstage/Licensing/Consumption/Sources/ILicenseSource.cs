@@ -2,6 +2,7 @@
 
 using Metalama.Backstage.Licensing.Licenses;
 using System;
+using System.Collections.Generic;
 
 namespace Metalama.Backstage.Licensing.Consumption.Sources
 {
@@ -22,7 +23,7 @@ namespace Metalama.Backstage.Licensing.Consumption.Sources
         /// </summary>
         /// <param name="reportMessage">Action to be called when the license is invalid.</param>
         /// <returns>The license or <c>null</c>.</returns>
-        ILicense? GetLicense( Action<LicensingMessage> reportMessage );
+        IEnumerable<ILicense> GetLicenses( Action<LicensingMessage> reportMessage );
 
         /// <summary>
         /// Event raised when the current source has changed.

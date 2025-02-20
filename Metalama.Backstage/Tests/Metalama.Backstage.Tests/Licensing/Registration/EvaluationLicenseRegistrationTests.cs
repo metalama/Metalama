@@ -3,6 +3,7 @@
 using Metalama.Backstage.Licensing.Licenses;
 using Metalama.Backstage.Licensing.Registration;
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
@@ -22,7 +23,7 @@ namespace Metalama.Backstage.Tests.Licensing.Registration
             var expectedStart = this.Time.UtcNow.Date;
             var expectedEnd = expectedStart + LicensingConstants.EvaluationPeriod;
 
-            var licenseProperties = this.LicenseRegistrationService.RegisteredLicense;
+            var licenseProperties = this.LicenseRegistrationService.RegisteredLicenses.Single();
             Assert.NotNull( licenseProperties );
             Assert.Equal( LicenseType.Evaluation, licenseProperties!.LicenseType );
             Assert.Equal( expectedStart, licenseProperties!.ValidFrom!.Value.Date );
@@ -49,18 +50,18 @@ namespace Metalama.Backstage.Tests.Licensing.Registration
 
             if ( unregisterBeforeRetry )
             {
-                this.LicenseRegistrationService.TryRemoveCurrentLicense( out _ );
+                this.LicenseRegistrationService.RemoveLicenses();
             }
 
-            var license = this.LicenseRegistrationService.RegisteredLicense;
+            var license = this.LicenseRegistrationService.RegisteredLicenses;
 
             if ( unregisterBeforeRetry )
             {
-                Assert.Null( license );
+                Assert.Empty( license );
             }
             else
             {
-                Assert.NotNull( license );
+                Assert.Single( license );
             }
 
             this.Time.Set( this.Time.UtcNow + retryAfter, true );
@@ -76,10 +77,9 @@ namespace Metalama.Backstage.Tests.Licensing.Registration
         }
 
         [Fact]
-        public void ImmediateRepetitiveEvaluationLicenseRegistrationSucceeds()
+        public void RepetitiveEvaluationLicenseRegistrationFails()
         {
-            // This is allowed to avoid race conditions first time user experience, where the evaluation license is registered automatically.
-            this.TestRepetitiveRegistration( TimeSpan.Zero, false, true );
+            this.TestRepetitiveRegistration( TimeSpan.Zero, false, false );
         }
 
         [Fact]

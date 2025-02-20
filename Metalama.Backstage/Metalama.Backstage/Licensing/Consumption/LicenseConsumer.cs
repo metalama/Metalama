@@ -48,20 +48,13 @@ internal sealed class LicenseConsumer : ILicenseConsumer
 
         LicenseConsumptionProperties? licenseConsumptionData = null;
 
-        foreach ( var source in licenseSources.OrderBy( s => s.Priority ) )
+        var licenses = licenseSources.OrderBy( s => s.Priority ).SelectMany( s => s.GetLicenses( ReportMessage ).Select( l => (License: l, Source: s) ) );
+
+        foreach ( var license in licenses )
         {
-            var license = source.GetLicense( ReportMessage );
-
-            if ( license == null )
+            if ( !license.License.TryGetConsumptionProperties( options, out licenseConsumptionData, out var errorMessage ) )
             {
-                logger.Trace?.Log( $"'{source.GetType().Name}' license source provided no license." );
-
-                continue;
-            }
-
-            if ( !license.TryGetConsumptionProperties( options, out licenseConsumptionData, out var errorMessage ) )
-            {
-                _ = license.TryGetRegistrationProperties( out var registrationData, out _ );
+                _ = license.License.TryGetRegistrationProperties( out var registrationData, out _ );
                 var message = registrationData == null ? "A license" : $"The {registrationData.Description}";
                 message += $" {errorMessage}.";
 
@@ -70,9 +63,9 @@ internal sealed class LicenseConsumer : ILicenseConsumer
                     message += $" License key ID: '{registrationData.LicenseId}'.";
                 }
 
-                if ( source.GetType() != typeof(UserProfileLicenseSource) )
+                if ( license.Source.GetType() != typeof(UserProfileLicenseSource) )
                 {
-                    message += $" The license key originates from {source.Description}.";
+                    message += $" The license key originates from {license.Source.Description}.";
                 }
 
                 ReportMessage( new LicensingMessage( message ) );

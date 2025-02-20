@@ -2,6 +2,7 @@
 
 using JetBrains.Annotations;
 using Metalama.Backstage.Extensibility;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 
@@ -18,9 +19,9 @@ public interface ILicenseRegistrationService : IBackstageService, INotifyPropert
 
     bool CanRegisterTrialEdition { get; }
 
-    bool TryRemoveCurrentLicense( [NotNullWhen( true )] out string? licenseString );
+    void RemoveLicenses();
 
-    LicenseRegistrationProperties? RegisteredLicense { get; }
+    public IEnumerable<LicenseRegistrationProperties> RegisteredLicenses { get; }
 
     /// <summary>
     /// Validates the license key and returns a value indicating whether it can be registered using <see cref="TryRegisterLicense"/>.
