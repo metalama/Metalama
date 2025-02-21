@@ -23,9 +23,8 @@ namespace Metalama.Backstage.Licensing
         PostSharp20 = 1,
 
         /// <summary>
-        /// PostSharp 3.0 and future versions with active subscription.
+        /// PostSharp 3.0 and future versions with active subscription. Seems to be still used instead of <see cref="PostSharpUltimate"/>.
         /// </summary>
-        [Obsolete( "Use Ultimate or Framework" )]
         PostSharp30 = 2,
 
         /// <summary>

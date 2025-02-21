@@ -188,13 +188,11 @@ namespace Metalama.Backstage.Licensing.Licenses
                 case LicensedProduct.MetalamaProfessional:
                 case LicensedProduct.PostSharpFramework:
                 case LicensedProduct.PostSharpUltimate:
+                case LicensedProduct.PostSharp30:
                     break;
 
 #pragma warning disable CS0618 // Type or member is obsolete
-
-                // Development key of SharpCrafters.
-                case LicensedProduct.PostSharp30 when licenseKeyData.LicenseId == 22:
-
+                
                 // No longer issued but existing keys are fully supported.
                 case LicensedProduct.MetalamaUltimate:
 
