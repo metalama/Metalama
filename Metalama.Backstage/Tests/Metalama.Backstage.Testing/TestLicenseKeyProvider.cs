@@ -20,9 +20,15 @@ public sealed class TestLicenseKeyProvider
 
     public LicensingAuthority Authority { get; } = LicensingAuthority.GetTestAuthority();
 
-    private string GenerateLicenseKey( int id, Action<LicenseKeyDataBuilder> action, bool sign = true )
+    private string GenerateLicenseKey( int id, Action<LicenseKeyDataBuilder> action, bool sign = true, bool endSubscription = true )
     {
-        var builder = new LicenseKeyDataBuilder { LicenseId = id, SubscriptionEndDate = this.SubscriptionExpirationDate };
+        var builder = new LicenseKeyDataBuilder { LicenseId = id };
+
+        if ( endSubscription )
+        {
+            builder.SubscriptionEndDate = this.DefaultSubscriptionExpirationDate;
+        }
+
         action( builder );
 
         // Ensure we always return the same license key for the same input because subsequent signing of the same thing
@@ -49,7 +55,8 @@ public sealed class TestLicenseKeyProvider
         LicensedProduct product,
         LicenseType type = LicenseType.Business,
         LicenseGeneration generation = LicenseGeneration.Current,
-        bool sign = true )
+        bool sign = true,
+        bool endSubscription = true )
         => this.GenerateLicenseKey(
             id,
             license =>
@@ -62,9 +69,10 @@ public sealed class TestLicenseKeyProvider
                     license.Generation = generation;
                 }
             },
-            sign );
+            sign,
+            endSubscription );
 
-    public string PostSharpEssentials => this.GenerateLicenseKey( 1, LicensedProduct.PostSharpUltimate, LicenseType.Community );
+    public string PostSharpEssentials => this.GenerateLicenseKey( 1, LicensedProduct.PostSharpUltimate, LicenseType.Community, endSubscription: false );
 
     public string PostSharpFramework => this.GenerateLicenseKey( 2, LicensedProduct.PostSharpFramework );
 
@@ -82,7 +90,7 @@ public sealed class TestLicenseKeyProvider
     public string InvalidLicenseKey => "001-invalid";
 #pragma warning restore CA1822
 
-    public string MetalamaCommunity => this.GenerateLicenseKey( 6, LicensedProduct.MetalamaCommunity, LicenseType.Community );
+    public string MetalamaCommunity => this.GenerateLicenseKey( 6, LicensedProduct.MetalamaCommunity, LicenseType.Community, endSubscription: false );
 
     [Obsolete]
     public string MetalamaUltimatePersonal => this.GenerateLicenseKey( 7, LicensedProduct.MetalamaUltimate, LicenseType.Personal );
@@ -108,7 +116,7 @@ public sealed class TestLicenseKeyProvider
             {
                 builder.Product = LicensedProduct.MetalamaProfessional;
                 builder.LicenseType = LicenseType.Evaluation;
-                builder.ValidFrom = new DateTime( 2000, 1, 1 );
+                builder.ValidFrom = new DateTime( 2010, 1, 1 );
                 builder.ValidTo = new DateTime( 2050, 1, 1 );
                 builder.Generation = LicenseGeneration.Current;
             } );
@@ -120,8 +128,8 @@ public sealed class TestLicenseKeyProvider
             {
                 builder.Product = LicensedProduct.MetalamaProfessional;
                 builder.LicenseType = LicenseType.Evaluation;
-                builder.ValidFrom = new DateTime( 2000, 1, 1 );
-                builder.ValidTo = new DateTime( 2001, 1, 1 );
+                builder.ValidFrom = new DateTime( 2010, 1, 1 );
+                builder.ValidTo = new DateTime( 2011, 1, 1 );
                 builder.Generation = LicenseGeneration.Current;
             } );
 
@@ -132,7 +140,7 @@ public sealed class TestLicenseKeyProvider
             {
                 builder.Product = LicensedProduct.MetalamaProfessional;
                 builder.LicenseType = LicenseType.Business;
-                builder.SubscriptionEndDate = new DateTime( 2000, 1, 1 );
+                builder.SubscriptionEndDate = this.ExpiredSubscriptionEndDate;
                 builder.Generation = LicenseGeneration.Current;
             } );
 
@@ -143,7 +151,7 @@ public sealed class TestLicenseKeyProvider
             {
                 builder.Product = LicensedProduct.MetalamaProfessional;
                 builder.LicenseType = LicenseType.Business;
-                builder.SubscriptionEndDate = new DateTime( 2000, 1, 1 );
+                builder.SubscriptionEndDate = this.ExpiredSubscriptionEndDate;
             } );
 
     [Obsolete]
@@ -152,7 +160,9 @@ public sealed class TestLicenseKeyProvider
     [Obsolete]
     public string MetalamaFree => this.GenerateLicenseKey( 13, LicensedProduct.MetalamaFree );
 
-    public DateTime SubscriptionExpirationDate { get; } = new( 2050, 1, 1, 0, 0, 0, DateTimeKind.Utc );
+    public DateTime ExpiredSubscriptionEndDate { get; } = new( 2025, 1, 1, 0, 0, 0, DateTimeKind.Utc );
+
+    public DateTime DefaultSubscriptionExpirationDate { get; } = new( 2050, 1, 1, 0, 0, 0, DateTimeKind.Utc );
 
     public string GetLicenseKey( string licenseKeyName )
     {

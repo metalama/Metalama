@@ -1,5 +1,6 @@
 ﻿// Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
+using Metalama.Backstage.Application;
 using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Infrastructure;
@@ -18,6 +19,8 @@ internal sealed class LicenseConsumer : ILicenseConsumer
 
     private readonly ImmutableArray<(ILicense License, LicenseConsumptionProperties Properties)> _licenses;
     private readonly IDateTimeProvider _dateTimeProvider;
+    private readonly ILogger _logger;
+    private readonly IApplicationInfo _applicationInfo;
 
     private DateTime _lastAuditTime = DateTime.MinValue;
 
@@ -28,7 +31,9 @@ internal sealed class LicenseConsumer : ILicenseConsumer
     {
         this.Messages = messages;
         this._licenses = licenses;
+        this._logger = services.GetLoggerFactory().Licensing();
         this._dateTimeProvider = services.GetRequiredBackstageService<IDateTimeProvider>();
+        this._applicationInfo = services.GetRequiredBackstageService<IApplicationInfoProvider>().CurrentApplication;
     }
 
     public static ILicenseConsumer Create(
@@ -49,8 +54,7 @@ internal sealed class LicenseConsumer : ILicenseConsumer
             if ( !license.License.TryGetConsumptionProperties( options, out var licenseConsumptionData, out var errorMessage ) )
             {
                 _ = license.License.TryGetRegistrationProperties( out var registrationData, out _ );
-                var message = registrationData == null ? "A license" : $"The {registrationData.Description}";
-                message += $" {errorMessage}.";
+                var message = $"Cannot use the license '{registrationData?.Description}': {errorMessage}";
 
                 if ( registrationData is { IsSelfCreated: false } )
                 {
@@ -89,9 +93,11 @@ internal sealed class LicenseConsumer : ILicenseConsumer
     }
 
     /// <inheritdoc />
-    public bool TryConsume( Predicate<LicenseConsumptionProperties> predicate )
+    public bool TryConsume( LicenseRequirement requirement )
     {
         var mustAudit = false;
+
+        this._logger.Trace?.Log( $"TryConsume({{{requirement}}}" );
 
         if ( this._lastAuditTime.AddDays( 1 ) < this._dateTimeProvider.UtcNow )
         {
@@ -101,8 +107,11 @@ internal sealed class LicenseConsumer : ILicenseConsumer
 
         foreach ( var license in this._licenses )
         {
-            if ( predicate( license.Properties ) )
+            if ( requirement.IsEligible(
+                    new LicenseConsumptionContext( license.Properties, this._applicationInfo, this._dateTimeProvider.UtcNow, this._logger ) ) )
             {
+                this._logger.Trace?.Log( $"TryConsume({{{requirement}}}: '{license.Properties.DisplayName}' is eligible" );
+
                 if ( mustAudit )
                 {
                     license.License.OnConsumed();
@@ -110,7 +119,13 @@ internal sealed class LicenseConsumer : ILicenseConsumer
 
                 return true;
             }
+            else
+            {
+                this._logger.Trace?.Log( $"TryConsume({{{requirement}}}: '{license.Properties.DisplayName}' is not eligible" );
+            }
         }
+
+        this._logger.Warning?.Log( $"TryConsume({{{requirement}}}: no eligible license found." );
 
         return false;
     }

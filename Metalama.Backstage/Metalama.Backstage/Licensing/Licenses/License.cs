@@ -102,7 +102,7 @@ namespace Metalama.Backstage.Licensing.Licenses
             }
 #pragma warning restore CS0618
 
-            if ( licenseKeyData.SignatureKeyId is 0 or 1 
+            if ( licenseKeyData.SignatureKeyId is 0 or 1
                  && (licenseKeyData is { LicenseId: not 0 and not 22 and < 100 } || RevokedLicenseKeys.Ids.Contains( licenseKeyData.LicenseId )) )
             {
                 // We use these keys to test the LicensingAuthority.
@@ -111,7 +111,7 @@ namespace Metalama.Backstage.Licensing.Licenses
                 return false;
             }
 
-            if ( licenseKeyData.RequiresSignature && !licenseKeyData.VerifySignature( this._licensingAuthority ) )
+            if ( licenseKeyData.RequiresSignature() && !licenseKeyData.VerifySignature( this._licensingAuthority ) )
             {
                 errorMessage = "the license key has an invalid signature";
 
@@ -132,7 +132,7 @@ namespace Metalama.Backstage.Licensing.Licenses
                 return false;
             }
 
-            if ( licenseKeyData.ValidTo == null && licenseKeyData.SubscriptionEndDate == null )
+            if ( licenseKeyData.ValidTo == null && licenseKeyData.SubscriptionEndDate == null && licenseKeyData.RequiresSignature() )
             {
                 errorMessage = "the license key has neither a validity end date nor a subscription end date";
 
@@ -192,13 +192,11 @@ namespace Metalama.Backstage.Licensing.Licenses
                     break;
 
 #pragma warning disable CS0618 // Type or member is obsolete
-                
+
                 // No longer issued but existing keys are fully supported.
                 case LicensedProduct.MetalamaUltimate:
-
-                // Obsolete products can still be registered (but not consumed) for backward compatibility.
-                case LicensedProduct.MetalamaFree when options.AcceptsObsoleteLicenses:
-                case LicensedProduct.MetalamaStarter when options.AcceptsObsoleteLicenses:
+                case LicensedProduct.MetalamaStarter:
+                case LicensedProduct.MetalamaFree:
 #pragma warning restore CS0618 // Type or member is obsolete
                     break;
 
@@ -229,13 +227,14 @@ namespace Metalama.Backstage.Licensing.Licenses
                 product,
                 licenseType,
                 licenseKeyData.Namespace,
-                $"{licenseKeyData.GetProductName()} {licenseKeyData.LicenseType.GetLicenseTypeName()} ID {licenseKeyData.LicenseUniqueId}",
+                $"{licenseKeyData.GetProductName()}, Id={licenseKeyData.LicenseUniqueId}",
                 licenseKeyData.GetMinPostSharpVersion(),
                 licenseKeyData.LicenseString,
                 isRedistributable,
                 licenseKeyData.Auditable ?? true,
                 licenseKeyData.SubscriptionEndDate,
-                subscriptionStatus );
+                subscriptionStatus,
+                licenseKeyData.Generation );
 
             return true;
         }
@@ -252,7 +251,7 @@ namespace Metalama.Backstage.Licensing.Licenses
                 return false;
             }
 
-            if ( licenseKeyData is { RequiresSignature: true } && !licenseKeyData.VerifySignature( this._licensingAuthority ) )
+            if ( licenseKeyData.RequiresSignature() && !licenseKeyData.VerifySignature( this._licensingAuthority ) )
             {
                 errorMessage = $"The license key {licenseKeyData.LicenseUniqueId} has an invalid signature.";
                 this._logger.Warning?.Log( errorMessage );

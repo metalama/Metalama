@@ -46,7 +46,7 @@ namespace Metalama.Backstage.Testing
         public string? PackageVersion { get; }
 
         /// <inheritdoc />
-        public DateTime? BuildDate { get; }
+        public DateTime? BuildDate { get; set; }
 
         /// <inheritdoc />
         public ProcessKind ProcessKind => ProcessKind.Other;

@@ -16,7 +16,7 @@ using Xunit.Abstractions;
 
 namespace Metalama.Backstage.Tests.Licensing.Consumption;
 
-public sealed class LicenseAuditTests : LicenseConsumptionManagerTestsBase
+public sealed class LicenseAuditTests : LicenseConsumptionServiceTestsBase
 {
     private static readonly string _auditedLicenseKey = LicenseKeyProvider.MetalamaProfessionalBusiness;
 
@@ -48,7 +48,7 @@ public sealed class LicenseAuditTests : LicenseConsumptionManagerTestsBase
     {
         var license = this.CreateInstrumentedLicenseWrapper( licenseKey );
         var consumer = this.CreateConsumptionService( license ).CreateConsumer();
-        Assert.True( consumer.TryConsume( _ => true ) );
+        Assert.True( consumer.TryConsume( LicenseRequirement.Any ) );
 
         return license;
     }

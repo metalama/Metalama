@@ -63,6 +63,8 @@ namespace Metalama.Backstage.Licensing.Consumption
 
         public SubscriptionStatus SubscriptionStatus { get; }
 
+        public LicenseGeneration Generation { get; }
+
         /// <summary>
         /// Initializes a new instance of the <see cref="LicenseConsumptionProperties"/> class.
         /// </summary>
@@ -85,7 +87,8 @@ namespace Metalama.Backstage.Licensing.Consumption
             bool isRedistributable,
             bool isAuditable,
             DateTime? subscriptionEndDate,
-            SubscriptionStatus subscriptionStatus )
+            SubscriptionStatus subscriptionStatus,
+            LicenseGeneration generation )
         {
             this.LicensedProduct = licensedProduct;
             this.LicenseType = licenseType;
@@ -94,6 +97,7 @@ namespace Metalama.Backstage.Licensing.Consumption
             this.IsAuditable = isAuditable;
             this.SubscriptionEndDate = subscriptionEndDate;
             this.SubscriptionStatus = subscriptionStatus;
+            this.Generation = generation;
 
 #pragma warning disable CS0612 // Type or member is obsolete
             this.LicensedNamespace = licensedNamespace;

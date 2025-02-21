@@ -62,7 +62,8 @@ internal sealed class UnattendedLicenseSource : ILicenseSource, ILicense
             false,
             false,
             null,
-            SubscriptionStatus.None );
+            SubscriptionStatus.None,
+            LicenseGeneration.Current );
 
         errorMessage = null;
 

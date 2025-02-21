@@ -17,12 +17,12 @@ namespace Metalama.Backstage.Licensing.Licenses
     [PublicAPI( "Used by the license audit loader." )]
     public partial record LicenseKeyData : ILicenseKeyData
     {
-        public bool RequiresSignature => this.RequiresSignature();
-
         public string LicenseUniqueId
             => this.LicenseGuid.HasValue
                 ? this.LicenseGuid.Value.ToString()
                 : this.LicenseId.ToString( CultureInfo.InvariantCulture );
+
+        public bool RequiresSignature() => LicenseKeyDataSerializer.RequiresSignature( this );
 
         // TODO in Metalama
         public bool RequiresWatermark => this.LicenseType is LicenseType.Evaluation or LicenseType.Academic;

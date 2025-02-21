@@ -120,7 +120,7 @@ public sealed class ToastNotificationDetectionServiceTests : LicensingTestsBase
         Assert.True( this.LicenseRegistrationService.RegisterLicense( LicenseKeyProvider.MetalamaProfessionalBusiness ).IsSuccess );
 
         // Move the clock.
-        this.Time.Set( LicenseKeyProvider.SubscriptionExpirationDate - TimeSpan.FromDays( daysBeforeExpiration ) );
+        this.Time.Set( LicenseKeyProvider.DefaultSubscriptionExpirationDate - TimeSpan.FromDays( daysBeforeExpiration ) );
 
         // Initialize
         this._backstageServicesInitializer.Initialize();

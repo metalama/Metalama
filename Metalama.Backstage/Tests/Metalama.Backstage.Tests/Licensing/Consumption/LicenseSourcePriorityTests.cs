@@ -21,8 +21,6 @@ public sealed class LicenseSourcePriorityTests : LicensingTestsBase
 
     private static string UserLicense => LicenseKeyProvider.MetalamaProfessionalPersonal;
 
-    private static readonly Predicate<LicenseConsumptionProperties> _testLicenseRequirement = _ => true;
-
     public LicenseSourcePriorityTests( ITestOutputHelper logger ) : base( logger ) { }
 
     protected override void ConfigureServices( ServiceProviderBuilder services ) { }
@@ -68,7 +66,7 @@ public sealed class LicenseSourcePriorityTests : LicensingTestsBase
     public void NoMessageGivenWithNoLicense()
     {
         var licenseConsumptionManager = this.CreateLicenseConsumer( false, null, null, false );
-        Assert.False( licenseConsumptionManager.TryConsume( _testLicenseRequirement ) );
+        Assert.False( licenseConsumptionManager.TryConsume( LicenseRequirement.Any ) );
         Assert.Empty( licenseConsumptionManager.Messages );
     }
 
@@ -76,13 +74,15 @@ public sealed class LicenseSourcePriorityTests : LicensingTestsBase
     public void UnattendedLicenseHasHighestPriority()
     {
         var licenseConsumptionManager = this.CreateLicenseConsumer( true, null, UserLicense, false );
-        Assert.True( licenseConsumptionManager.TryConsume( properties => properties.LicenseType == LicenseType.Unattended ) );
+
+        Assert.True(
+            licenseConsumptionManager.TryConsume( new DelegateLicenseRequirement( context => context.License.LicenseType == LicenseType.Unattended ) ) );
     }
 
     [Fact]
     public void ProjectLicenseHasPriorityOverUserLicense()
     {
         var licenseConsumptionManager = this.CreateLicenseConsumer( false, ProjectLicense, UserLicense, false );
-        Assert.True( licenseConsumptionManager.TryConsume( properties => properties.LicenseString == ProjectLicense ) );
+        Assert.True( licenseConsumptionManager.TryConsume( new DelegateLicenseRequirement( context => context.License.LicenseString == ProjectLicense ) ) );
     }
 }

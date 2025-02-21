@@ -3,6 +3,7 @@
 using Metalama.Backstage.Licensing.Consumption;
 using Metalama.Backstage.Licensing.Consumption.Sources;
 using Metalama.Backstage.Licensing.Licenses;
+using Metalama.Backstage.Testing;
 using Metalama.Backstage.Tests.Licensing.Licenses;
 using Metalama.Backstage.Tests.Licensing.LicenseSources;
 using System;
@@ -11,12 +12,17 @@ using Xunit.Abstractions;
 
 namespace Metalama.Backstage.Tests.Licensing.Consumption;
 
-public abstract class LicenseConsumptionManagerTestsBase : LicensingTestsBase
+public abstract class LicenseConsumptionServiceTestsBase : LicensingTestsBase
 {
-    private protected LicenseConsumptionManagerTestsBase(
+    private protected LicenseConsumptionServiceTestsBase(
         ITestOutputHelper logger,
         bool isTelemetryEnabled = false )
         : base( logger, isTelemetryEnabled: isTelemetryEnabled ) { }
+
+    protected void SetBuildDate( DateTime buildDate )
+    {
+        ((TestApplicationInfo) this.ApplicationInfo).BuildDate = buildDate;
+    }
 
     private protected InstrumentedLicenseWrapper CreateInstrumentedLicenseWrapper( string licenseString )
     {
@@ -44,10 +50,10 @@ public abstract class LicenseConsumptionManagerTestsBase : LicensingTestsBase
 
     private protected static void AssertCanConsume(
         ILicenseConsumptionService service,
-        Predicate<LicenseConsumptionProperties> license,
+        LicenseRequirement requirement,
         bool expectedCanConsume )
     {
-        var actualCanConsume = service.CreateConsumer().TryConsume( license );
+        var actualCanConsume = service.CreateConsumer().TryConsume( requirement );
         Assert.Equal( expectedCanConsume, actualCanConsume );
     }
 }
