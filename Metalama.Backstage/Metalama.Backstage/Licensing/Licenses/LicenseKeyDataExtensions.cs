@@ -31,11 +31,11 @@ namespace Metalama.Backstage.Licensing.Licenses
 
 #pragma warning disable CS0612, CS0618 // Type or member is obsolete
         internal static LicensedProduct TransformObsoleteProduct( this LicenseKeyData licenseKeyData )
-            => ( licenseKeyData.Product, licenseKeyData.LicenseType ) switch
+            => (licenseKeyData.Product, licenseKeyData.LicenseType) switch
             {
-                ( LicensedProduct.PostSharpUltimate1, LicenseType.Professional ) =>  LicensedProduct.PostSharpFramework,
-                ( LicensedProduct.PostSharpUltimate1 or LicensedProduct.PostSharpUltimate, LicenseType.Essentials) => LicensedProduct.PostSharpEssentials,
-                ( LicensedProduct.PostSharpUltimate1, _) => LicensedProduct.PostSharpUltimate,
+                (LicensedProduct.PostSharpUltimate1, LicenseType.Professional) => LicensedProduct.PostSharpFramework,
+                (LicensedProduct.PostSharpUltimate1 or LicensedProduct.PostSharpUltimate, LicenseType.Essentials) => LicensedProduct.PostSharpEssentials,
+                (LicensedProduct.PostSharpUltimate1, _) => LicensedProduct.PostSharpUltimate,
                 _ => licenseKeyData.Product
             };
 #pragma warning restore CS0618

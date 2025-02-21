@@ -87,7 +87,7 @@ namespace Metalama.Backstage.Licensing
         PostSharpCachingLibrary = 15,
         
         /// <summary>
-        /// PostSharp Essentials
+        /// PostSharp Essentials.
         /// </summary>
         PostSharpEssentials = 16
 

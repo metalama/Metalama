@@ -29,7 +29,7 @@ public record LicensingInitializationOptions
     /// <summary>
     /// Gets a delegate that can configure a <see cref="LicenseKeyDataBuilder"/>.
     /// This property is only taken into account when <see cref="UseTestAuthority"/> is <c>true</c>.
-    /// In this case, profile licenses are not loaded
+    /// In this case, profile licenses are not loaded.
     /// </summary>
     internal Action<LicenseKeyDataBuilder>? BuildTestLicenseAction { get; init; }
 }

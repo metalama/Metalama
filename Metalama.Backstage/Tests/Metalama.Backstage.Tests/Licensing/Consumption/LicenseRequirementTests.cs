@@ -150,6 +150,7 @@ public sealed class LicenseRequirementTests : LicenseConsumptionServiceTestsBase
         Assert.Equal( expectedResult, consumer.TryConsume( MetalamaToolingLicenseRequirement.Instance ) );
     }
 
+    [Theory]
     [InlineData( nameof(TestLicenseKeyProvider.ExpiredSubscription), false )]
     [InlineData( nameof(TestLicenseKeyProvider.ExpiredSubscriptionLegacyGeneration), true )]
     public void LicenseQualifiesForToolingWithEligibleBuildAfterSubscriptionExpires2( string licenseKeyName, bool expectedResult )
