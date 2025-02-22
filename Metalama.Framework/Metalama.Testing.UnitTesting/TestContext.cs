@@ -46,6 +46,7 @@ public partial class TestContext : IDisposable, ITempFileManager, IApplicationIn
     internal TestProjectOptions TestProjectOptions { get; }
 
     private readonly CancellationTokenSource? _timeoutCancellationTokenSource;
+    private readonly Timer? _timer;
 
 #pragma warning disable LAMA0821 // Do not expose internal APIs.
     public IProjectOptions ProjectOptions => this.TestProjectOptions;
@@ -89,7 +90,8 @@ public partial class TestContext : IDisposable, ITempFileManager, IApplicationIn
     {
         if ( !Debugger.IsAttached )
         {
-            this._timeoutCancellationTokenSource = new CancellationTokenSource( contextOptions.Timeout );
+            this._timeoutCancellationTokenSource = new CancellationTokenSource();
+            this._timer = new Timer( this.OnTimeout, null, contextOptions.Timeout, contextOptions.Timeout );
         }
         else
         {
@@ -148,6 +150,12 @@ public partial class TestContext : IDisposable, ITempFileManager, IApplicationIn
 
             throw;
         }
+    }
+
+    private void OnTimeout( object? state )
+    {
+        this.TestOutputWriter?.WriteLine( "Timeout. Cancelling the test." );
+        this._timeoutCancellationTokenSource?.Cancel();
     }
 
     private ImmutableArray<object> LoadPlugIns( TestContextOptions options )
@@ -261,6 +269,7 @@ public partial class TestContext : IDisposable, ITempFileManager, IApplicationIn
             this.ServiceProvider = ProjectServiceProvider.Empty;
 
             this._timeoutCancellationTokenSource?.Dispose();
+            this._timer?.Dispose();
         }
 
         if ( disposing )
