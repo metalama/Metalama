@@ -1,6 +1,6 @@
 {
   "solution": {
-    "path": "Metalama.sln",
+    "path": "Metalama.Framework.sln",
     "projects": [
       "Metalama.Framework.CompileTimeContracts\\Metalama.Framework.CompileTimeContracts.csproj",
       "Metalama.Framework.CompileTime\\Metalama.Framework.CompileTime.csproj",

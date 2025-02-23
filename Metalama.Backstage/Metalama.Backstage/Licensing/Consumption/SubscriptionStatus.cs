@@ -5,7 +5,8 @@ namespace Metalama.Backstage.Licensing.Consumption;
 public enum SubscriptionStatus
 {
     /// <summary>
-    /// The license has no subscription field.
+    /// The license has no subscription field or the subscription status is not applicable
+    /// because the license key was generated before an active subscription was a requirement for any component.
     /// </summary>
     None,
 

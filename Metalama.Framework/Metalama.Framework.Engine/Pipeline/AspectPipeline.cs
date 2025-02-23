@@ -162,7 +162,7 @@ public abstract class AspectPipeline : IDisposable
         projectServiceProviderWithProject = projectServiceProviderWithProject.WithService( new PipelineExtensionProvider( extensions ) );
 
         var extensionInitializationContext =
-            new PipelineExtensionContext( this.ProjectOptions, diagnosticAdder );
+            new PipelineExtensionContext( this.ProjectOptions, diagnosticAdder, projectServiceProviderWithProject );
 
         foreach ( var extension in extensions )
         {
@@ -178,7 +178,7 @@ public abstract class AspectPipeline : IDisposable
             }
         }
 
-        projectServiceProviderWithProject = extensionInitializationContext.Services.Build( projectServiceProviderWithProject );
+        projectServiceProviderWithProject = extensionInitializationContext.ServiceBuilder.Build( projectServiceProviderWithProject );
 
         // Set NormalizeWhitespace setting for the compilation.
         projectServiceProviderWithProject =

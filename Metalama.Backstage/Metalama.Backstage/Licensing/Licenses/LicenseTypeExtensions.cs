@@ -53,13 +53,16 @@ namespace Metalama.Backstage.Licensing.Licenses
 
                 case LicenseType.Personal:
                     return "Personal License";
+                
+                case LicenseType.Test:
+                    return "Test License";
 
                 default:
 
                     // We don't want to display the license type for other licenses, because there may be
                     // a mismatch between what we sell (i.e. what is represented in the CRM and in the license certificate)
                     // and what is serialized into the license key.
-                    return "License";
+                    return $"{licenseType} License";
             }
         }
     }

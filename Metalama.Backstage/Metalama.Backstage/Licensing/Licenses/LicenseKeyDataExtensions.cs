@@ -18,7 +18,7 @@ namespace Metalama.Backstage.Licensing.Licenses
         internal static LicenseType TransformObsoleteLicenseType( this LicenseKeyData licenseKeyData )
         {
 #pragma warning disable CS0618 // Type or member is obsolete
-            if ( licenseKeyData is { Product: LicensedProduct.PostSharp30, LicenseType: LicenseType.Professional } )
+            if ( licenseKeyData is { Product: LicensedProduct.PostSharpUltimate1, LicenseType: LicenseType.Professional } )
 #pragma warning restore CS0618 // Type or member is obsolete
             {
                 return LicenseType.Business;
@@ -31,14 +31,11 @@ namespace Metalama.Backstage.Licensing.Licenses
 
 #pragma warning disable CS0612, CS0618 // Type or member is obsolete
         internal static LicensedProduct TransformObsoleteProduct( this LicenseKeyData licenseKeyData )
-            => licenseKeyData.Product switch
+            => (licenseKeyData.Product, licenseKeyData.LicenseType) switch
             {
-                LicensedProduct.PostSharp30 => licenseKeyData.LicenseType == LicenseType.Professional
-                    ? LicensedProduct.PostSharpFramework
-                    : LicensedProduct.PostSharpUltimate,
-                LicensedProduct.MetalamaFree => LicensedProduct.None,
-                LicensedProduct.MetalamaStarter => LicensedProduct.MetalamaProfessional,
-                LicensedProduct.MetalamaUltimate => LicensedProduct.MetalamaProfessional,
+                (LicensedProduct.PostSharpUltimate1, LicenseType.Professional) => LicensedProduct.PostSharpFramework,
+                (LicensedProduct.PostSharpUltimate1 or LicensedProduct.PostSharpUltimate, LicenseType.Essentials) => LicensedProduct.PostSharpEssentials,
+                (LicensedProduct.PostSharpUltimate1, _) => LicensedProduct.PostSharpUltimate,
                 _ => licenseKeyData.Product
             };
 #pragma warning restore CS0618
@@ -52,6 +49,7 @@ namespace Metalama.Backstage.Licensing.Licenses
                 LicensedProduct.PostSharpModelLibrary => "PostSharp MVVM",
                 LicensedProduct.PostSharpThreadingLibrary => "PostSharp Threading",
                 LicensedProduct.PostSharpCachingLibrary => "PostSharp Caching",
+                LicensedProduct.PostSharpEssentials => "PostSharp Essentials",
                 LicensedProduct.MetalamaProfessional => $"Metalama Professional, {licenseKeyData.LicenseType.GetLicenseTypeName()}",
                 LicensedProduct.MetalamaCommunity => "Metalama Community",
 #pragma warning disable CS0618 // Type or member is obsolete
@@ -100,11 +98,11 @@ namespace Metalama.Backstage.Licensing.Licenses
         }
 
         /// <summary>
-        /// Creates a new object of <see cref="LicenseProperties"/> based on the given <see cref="LicenseKeyData"/>.
+        /// Creates a new object of <see cref="LicenseRegistrationProperties"/> based on the given <see cref="LicenseKeyData"/>.
         /// </summary>
-        public static LicenseProperties ToLicenseProperties( this LicenseKeyData licenseKeyData )
+        public static LicenseRegistrationProperties ToLicenseRegistrationProperties( this LicenseKeyData licenseKeyData, string? licenseString = null )
         {
-            var description = $"{licenseKeyData.GetProductName()} {licenseKeyData.LicenseType.GetLicenseTypeName()}";
+            var description = licenseKeyData.GetProductName();
 
             bool licenseServerEligible;
 
@@ -127,8 +125,10 @@ namespace Metalama.Backstage.Licensing.Licenses
                 _ => licenseKeyData.Auditable ?? true
             };
 
-            LicenseProperties data = new(
-                licenseKeyData.LicenseString,
+            LicenseRegistrationProperties data = new(
+                licenseKeyData.LicenseString ?? licenseString ?? throw new ArgumentNullException(
+                    nameof(licenseString),
+                    "'licenseString' cannot be null if LicenseKeyData.LicenseString is null." ),
                 licenseKeyData.LicenseUniqueId,
                 licenseKeyData.LicenseGuid != null,
                 licenseKeyData.LicenseGuid == null ? licenseKeyData.LicenseId : null,
@@ -142,7 +142,8 @@ namespace Metalama.Backstage.Licensing.Licenses
                 licenseKeyData.SubscriptionEndDate,
                 auditable,
                 licenseServerEligible,
-                licenseKeyData.GetMinPostSharpVersion() );
+                licenseKeyData.GetMinPostSharpVersion(),
+                licenseKeyData.Generation );
 
             return data;
         }

@@ -9,13 +9,13 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Metalama.Backstage.Tests.Licensing.Licenses
 {
-    internal sealed class TestLicense : ILicense, IUsable
+    internal sealed class InstrumentedLicenseWrapper : ILicense, IUsable
     {
         public ILicense License { get; }
 
         public int NumberOfUses { get; private set; }
 
-        public TestLicense( ILicense license )
+        public InstrumentedLicenseWrapper( ILicense license )
         {
             this.License = license;
         }
@@ -24,25 +24,23 @@ namespace Metalama.Backstage.Tests.Licensing.Licenses
         // That causes CS0433 error. (Same type defined in two referenced assemblies.)
         public bool CanBeRegistered( [MaybeNullWhen( true )] out string errorMessage ) => throw new NotImplementedException();
 
-        public bool TryGetLicenseConsumptionData( /* [MaybeNullWhenAttribute( false )] */
+        public bool TryGetConsumptionProperties( /* [MaybeNullWhenAttribute( false )] */
             LicenseConsumptionOptions options,
-            out LicenseConsumptionData licenseData,
+            out LicenseConsumptionProperties licenseProperties,
             out string errorMessage )
-        {
-            this.NumberOfUses++;
-
-            return this.License.TryGetLicenseConsumptionData( options, out licenseData!, out errorMessage! );
-        }
+            => this.License.TryGetConsumptionProperties( options, out licenseProperties!, out errorMessage! );
 
         // MaybeNullWhenAttribute cannot be used here since the Metalama.Backstage assembly shares internals with this assembly.
         // That causes CS0433 error. (Same type defined in two referenced assemblies.)
-        public bool TryGetProperties( /* [MaybeNullWhenAttribute( false )] */
-            out LicenseProperties licenseProperties,
+        public bool TryGetRegistrationProperties( /* [MaybeNullWhenAttribute( false )] */
+            out LicenseRegistrationProperties licenseProperties,
             out string errorMessage )
+            => this.License.TryGetRegistrationProperties( out licenseProperties!, out errorMessage! );
+
+        public void OnConsumed()
         {
             this.NumberOfUses++;
-
-            return this.License.TryGetProperties( out licenseProperties!, out errorMessage! );
+            this.License.OnConsumed();
         }
 
         public void ResetUsage()
@@ -52,7 +50,7 @@ namespace Metalama.Backstage.Tests.Licensing.Licenses
 
         public override bool Equals( object? obj )
         {
-            return obj is TestLicense license &&
+            return obj is InstrumentedLicenseWrapper license &&
                    EqualityComparer<ILicense>.Default.Equals( this.License, license.License );
         }
 

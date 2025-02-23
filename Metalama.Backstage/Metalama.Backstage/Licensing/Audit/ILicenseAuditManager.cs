@@ -7,5 +7,5 @@ namespace Metalama.Backstage.Licensing.Audit;
 
 internal interface ILicenseAuditManager : IBackstageService
 {
-    void ReportLicense( LicenseConsumptionData license );
+    void ReportLicense( LicenseConsumptionProperties license );
 }

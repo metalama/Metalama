@@ -1,5 +1,6 @@
 // Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
+using Metalama.Backstage.Licensing.Licenses;
 using System;
 
 namespace Metalama.Backstage.Licensing
@@ -23,13 +24,12 @@ namespace Metalama.Backstage.Licensing
         PostSharp20 = 1,
 
         /// <summary>
-        /// PostSharp 3.0 and future versions with active subscription.
+        /// PostSharp Ultimate.
         /// </summary>
-        [Obsolete( "Use Ultimate or Framework" )]
-        PostSharp30 = 2,
+        PostSharpUltimate1 = 2,
 
         /// <summary>
-        /// PostSharp Ultimate.
+        /// PostSharp Ultimate or PostSharp Essentials, if <see cref="LicenseType"/> is <c>Essentials</c>.
         /// </summary>
         PostSharpUltimate = 3,
 
@@ -67,24 +67,29 @@ namespace Metalama.Backstage.Licensing
         MetalamaCommunity = 9,
 
         /// <summary>
-        /// Logging Library.
+        /// PostSharp Logging Library.
         /// </summary>
         PostSharpDiagnosticsLibrary = 12,
 
         /// <summary>
-        /// MVVM Library (former XAML/Model Library).
+        /// PostSharp MVVM Library (former XAML/Model Library).
         /// </summary>
         PostSharpModelLibrary = 13,
 
         /// <summary>
-        /// Threading Library.
+        /// PostSharp Threading Library.
         /// </summary>
         PostSharpThreadingLibrary = 14,
 
         /// <summary>
-        /// Caching Library.
+        /// PostSharp Caching Library.
         /// </summary>
         PostSharpCachingLibrary = 15,
+        
+        /// <summary>
+        /// PostSharp Essentials.
+        /// </summary>
+        PostSharpEssentials = 16
 
         // 255 is reserved as unknown for testing purposes
     }

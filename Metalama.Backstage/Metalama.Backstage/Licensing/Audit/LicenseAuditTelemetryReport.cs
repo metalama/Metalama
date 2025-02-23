@@ -19,7 +19,7 @@ internal sealed class LicenseAuditTelemetryReport : TelemetryReport
     private readonly ITelemetryConfigurationService _telemetryConfigurationService;
     private readonly IUsageReporter _usageReporter;
 
-    public LicenseConsumptionData License { get; }
+    public LicenseConsumptionProperties License { get; }
 
     public IComponentInfo ReportedComponent { get; }
 
@@ -45,7 +45,7 @@ internal sealed class LicenseAuditTelemetryReport : TelemetryReport
 
     public LicenseAuditTelemetryReport(
         IServiceProvider serviceProvider,
-        LicenseConsumptionData license )
+        LicenseConsumptionProperties license )
     {
         this.License = license;
         this.Date = serviceProvider.GetRequiredBackstageService<IDateTimeProvider>().UtcNow;

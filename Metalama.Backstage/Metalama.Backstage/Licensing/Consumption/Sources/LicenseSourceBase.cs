@@ -1,7 +1,9 @@
 ﻿// Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
 using Metalama.Backstage.Licensing.Licenses;
+using Metalama.Backstage.Licensing.Registration;
 using System;
+using System.Collections.Generic;
 
 namespace Metalama.Backstage.Licensing.Consumption.Sources
 {
@@ -18,27 +20,23 @@ namespace Metalama.Backstage.Licensing.Consumption.Sources
             this._services = services;
         }
 
-        protected abstract string? GetLicenseString();
+        protected abstract IEnumerable<LicenseRegistrationProperties> GetRegisteredLicenses( Action<LicensingMessage> reportMessage );
 
-        public ILicense? GetLicense( Action<LicensingMessage> reportMessage )
+        public IEnumerable<ILicense> GetLicenses( Action<LicensingMessage> reportMessage )
         {
-            var licenseFactory = new LicenseFactory( this._services );
-
-            var licenseString = this.GetLicenseString();
-
-            if ( string.IsNullOrWhiteSpace( licenseString ) )
+            foreach ( var licenseProperties in this.GetRegisteredLicenses( reportMessage ) )
             {
-                return null;
+                var licenseFactory = new LicenseFactory( this._services );
+
+                if ( licenseFactory.TryCreate( licenseProperties.LicenseString, out var license, out var errorMessage ) )
+                {
+                    yield return license;
+                }
+                else
+                {
+                    reportMessage( new LicensingMessage( errorMessage ) );
+                }
             }
-
-            if ( !licenseFactory.TryCreate( licenseString, out var license, out var errorMessage ) )
-            {
-                reportMessage( new LicensingMessage( errorMessage ) { IsError = true } );
-
-                return null;
-            }
-
-            return license;
         }
 
         public event Action? Changed;

@@ -2,12 +2,9 @@
 
     <PropertyGroup>
         <SignAssembly>True</SignAssembly>
-        <PublicSign>True</PublicSign>
-        <DelaySign>False</DelaySign>
-
-        <PublicKey>002400000480000094000000060200000024000052534131000400000100010051d7199c9ce6e5dae670cade8b93dad9980922fcc461454e86e87cf4f88a914c0d54649e7b4a9b56e88f97719fd18a4adcb6251bf57a4b291a4c921e77e0bdf5a1d402c56ac010aafaaa9961a2ad9ce643412e2431e9d4087ee6dd2ad6f5d9b49e2c6ab8d8c6db466e33d875280b8a39967c6b32a96f4e093ae00e668ebe03ef</PublicKey>
-	    <PublicKeyToken>772fca7b1db8db06</PublicKeyToken>
-        <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)Metalama.StrongName.public.snk</AssemblyOriginatorKeyFile>
+        <PublicKey>002400000480000094000000060200000024000052534131000400000100010099d37b77bf7a93815d4aa9e60d34a42912f1b758209afa342848b5a1007e7491a696e7d7b6791cf86a9ad4f068a8ff29056bf76c1e74afd78159b0a4b95d4cb10797d2bd01b167e397da7b82e658598b980c4517e37fe4c0311e3775e90e39c6689c27b97bf764d34e0ccbe888120e0c4b4efdb09d4fa32b75dd992b733735c0</PublicKey>
+	    <PublicKeyToken>d793dee9bee12010</PublicKeyToken>
+        <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)Metalama.snk</AssemblyOriginatorKeyFile>
     </PropertyGroup>
 
 </Project>

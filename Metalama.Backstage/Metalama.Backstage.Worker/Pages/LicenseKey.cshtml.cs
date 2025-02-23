@@ -40,9 +40,11 @@ public class LicenseKeyPageModel : PageModel
             return this.Page();
         }
 
-        if ( !this._licenseRegistrationService.TryValidateLicenseKey( this.LicenseKey!, out var errorMessage ) )
+        var validationResult = this._licenseRegistrationService.ValidateLicenseKey( this.LicenseKey! );
+
+        if ( !validationResult.IsSuccess )
         {
-            this.ErrorMessages.Add( errorMessage );
+            this.ErrorMessages.Add( validationResult.ErrorMessage );
 
             return this.Page();
         }

@@ -4,6 +4,7 @@ using Metalama.Framework.DesignTime.Diagnostics;
 using Metalama.Framework.DesignTime.Pipeline;
 using Metalama.Framework.DesignTime.Rpc;
 using Metalama.Framework.Engine.Services;
+using System.Collections.Immutable;
 
 namespace Metalama.Framework.DesignTime.VisualStudio.CompileTimeCodeEditingStatus;
 
@@ -24,7 +25,7 @@ internal sealed partial class CompileTimeCodeEditingStatusRpcService : RpcServic
         this.RaiseEvent( new CompileTimeEditingStatusChangedEventData( isEditing ) );
     }
 
-    private void OnCompileTimeErrorsChanged( ProjectKey projectKey, IReadOnlyCollection<DiagnosticData> errors )
+    private void OnCompileTimeErrorsChanged( ProjectKey projectKey, ImmutableArray<DiagnosticData> errors )
     {
         this.RaiseEvent( new CompileTimeErrorsChangedEventData( projectKey, errors ) );
     }

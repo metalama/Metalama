@@ -13,13 +13,17 @@ public sealed class PipelineExtensionContext
 
     public IDiagnosticAdder Diagnostics { get; }
 
-    public ServiceProviderBuilder<IProjectService> Services { get; } = new();
+    public ServiceProviderBuilder<IProjectService> ServiceBuilder { get; } = new();
+    
+    public ProjectServiceProvider ServiceProvider { get; }
 
     internal PipelineExtensionContext(
         IProjectOptions projectOptions,
-        IDiagnosticAdder diagnostics )
+        IDiagnosticAdder diagnostics,
+        ProjectServiceProvider serviceProvider )
     {
         this.ProjectOptions = projectOptions;
         this.Diagnostics = diagnostics;
+        this.ServiceProvider = serviceProvider;
     }
 }

@@ -21,8 +21,8 @@ public sealed class SerializationBinderTests
     public void Binder( Type type )
     {
         this._binder.BindToName( type, out var assemblyName, out var typeName );
-        assemblyName = JsonSerializationBinder.RemoveAssemblyDetailsFromAssemblyName( assemblyName! );
-        typeName = JsonSerializationBinder.RemoveAssemblyDetailsFromTypeName( typeName! );
+        assemblyName = JsonSerializationBinderHelper.RemoveAssemblyDetailsFromAssemblyName( assemblyName! );
+        typeName = JsonSerializationBinderHelper.RemoveAssemblyDetailsFromTypeName( typeName! );
         var roundloopType = this._binder.BindToType( assemblyName, typeName );
         Assert.Same( type, roundloopType );
     }
@@ -37,9 +37,9 @@ public sealed class SerializationBinderTests
     public void QualifyTypeName( Type type, string expectedQualifiedName )
     {
         this._binder.BindToName( type, out _, out var typeName );
-        typeName = JsonSerializationBinder.RemoveAssemblyDetailsFromTypeName( typeName! );
+        typeName = JsonSerializationBinderHelper.RemoveAssemblyDetailsFromTypeName( typeName! );
 
-        var qualified = JsonSerializationBinder.QualifyAssemblies(
+        var qualified = JsonSerializationBinderHelper.QualifyAssemblies(
             typeName,
             new Dictionary<string, string>()
             {

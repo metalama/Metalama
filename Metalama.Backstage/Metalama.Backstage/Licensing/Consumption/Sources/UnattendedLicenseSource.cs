@@ -6,6 +6,7 @@ using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Licensing.Licenses;
 using Metalama.Backstage.Licensing.Registration;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 
 namespace Metalama.Backstage.Licensing.Consumption.Sources;
@@ -27,31 +28,31 @@ internal sealed class UnattendedLicenseSource : ILicenseSource, ILicense
         this._logger = serviceProvider.GetLoggerFactory().Licensing();
     }
 
-    public ILicense? GetLicense( Action<LicensingMessage> reportMessage )
+    public IEnumerable<ILicense> GetLicenses( Action<LicensingMessage> reportMessage )
     {
         if ( this._applicationInfo.IsUnattendedProcess( this._serviceProvider.GetLoggerFactory() ) )
         {
             this._logger.Trace?.Log( "Providing an unattended process license." );
 
-            return this;
+            return [this];
         }
         else
         {
             this._logger.Trace?.Log( "The process is attended. Not providing an unattended process license." );
 
-            return null;
+            return [];
         }
     }
 
     public bool CanBeRegistered( [MaybeNullWhen( true )] out string errorMessage )
         => throw new NotSupportedException( "Unattended license source doesn't support license registration." );
 
-    bool ILicense.TryGetLicenseConsumptionData(
+    bool ILicense.TryGetConsumptionProperties(
         LicenseConsumptionOptions options,
-        [MaybeNullWhen( false )] out LicenseConsumptionData licenseConsumptionData,
+        [MaybeNullWhen( false )] out LicenseConsumptionProperties licenseConsumptionProperties,
         [MaybeNullWhen( true )] out string errorMessage )
     {
-        licenseConsumptionData = new LicenseConsumptionData(
+        licenseConsumptionProperties = new LicenseConsumptionProperties(
             LicensedProduct.MetalamaProfessional,
             LicenseType.Unattended,
             null,
@@ -61,17 +62,20 @@ internal sealed class UnattendedLicenseSource : ILicenseSource, ILicense
             false,
             false,
             null,
-            SubscriptionStatus.None );
+            SubscriptionStatus.None,
+            LicenseGeneration.Current );
 
         errorMessage = null;
 
         return true;
     }
 
-    bool ILicense.TryGetProperties(
-        [MaybeNullWhen( false )] out LicenseProperties licenseProperties,
+    bool ILicense.TryGetRegistrationProperties(
+        [MaybeNullWhen( false )] out LicenseRegistrationProperties licenseProperties,
         [MaybeNullWhen( true )] out string errorMessage )
         => throw new NotSupportedException( "Unattended license source doesn't support license registration." );
+
+    public void OnConsumed() { }
 
     event Action? ILicenseSource.Changed { add { } remove { } }
 

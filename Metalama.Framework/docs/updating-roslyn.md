@@ -11,7 +11,7 @@
     2. Update the `Latest.imports` to point to the new version.
     3. In the `Roslyn.*.props` file of the _previous_ version, set the `ThisRoslynVersionProjectSuffix` property to something like `.4.0.1` and _mind the leading period_, it is necessary.
 8. Look at all projects named e.g. `Metalama.*.<LAST_VERSION>.csproj` and duplicate them, but import the _previous last version_.
-9. Update Metalama.sln to include the new project.
+9. Update Metalama.Framework.sln to include the new project.
 10. Do a find-in-files for the _previous_ latest version and see where things need to be changed or added. This includes:
     1. Many `InternalsVisibleTo`
     2. `ResourceExtractor.GetRoslynVersion`

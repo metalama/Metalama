@@ -1,12 +1,28 @@
 ﻿@page
+@using Metalama.Backstage.Licensing
+@using Microsoft.AspNetCore.Mvc.TagHelpers
 @model CommunityModel
+
+<p>
+    Metalama Community is available for select use cases. Which one do you qualify for?
+</p>
 
 <form method="post">
     <div class="radio">
         <div class="label">
             <label>
-                <input type="radio" asp-for="UseKind" value="@CommunityUseKind.Individual">
-                I am an individual developer.
+                <input type="radio" asp-for="UseKind" value="@CommunityLicenseReason.Individual">
+                I am an individual developer and I will not use Metalama as part of any employment contract
+                (freelance is okay).
+            </label>
+        </div>
+    </div>
+    
+    <div class="radio">
+        <div class="label">
+            <label>
+                <input type="radio" asp-for="UseKind" value="@CommunityLicenseReason.NonCommercial">
+                I will use Metalama for non-commercial purposes only.
             </label>
         </div>
     </div>
@@ -14,8 +30,8 @@
     <div class="radio">
         <div class="label">
             <label>
-                <input type="radio" asp-for="UseKind" value="@CommunityUseKind.SmallBusiness">
-                I am going to use Metalama in a small business (less than 1 million USD in annual revenue) with up to 4 other developers.
+                <input type="radio" asp-for="UseKind" value="@CommunityLicenseReason.OpenSource">
+                I will use Metalama to develop open-source software.
             </label>
         </div>
     </div>
@@ -23,8 +39,8 @@
     <div class="radio">
         <div class="label">
             <label>
-                <input type="radio" asp-for="UseKind" value="@CommunityUseKind.NonCommercial">
-                I am going to use Metalama for non-commercial purposes: open source, learning, academic research, educational or demos.
+                <input type="radio" asp-for="UseKind" value="@CommunityLicenseReason.SmallBusiness">
+                No more than 3 developers will use Metalama on the same day.
             </label>
         </div>
     </div>
@@ -32,7 +48,7 @@
     <div class="radio">
         <div class="label">
             <label>
-                <input type="radio" asp-for="UseKind" value="@CommunityUseKind.Other">
+                <input type="radio" asp-for="UseKind" value="@CommunityLicenseReason.None">
                 None of the above.
             </label>
         </div>
@@ -41,9 +57,7 @@
     <div class="continue-button">
         <button type="submit">Continue</button>
     </div>
-
 </form>
-
 
 @foreach (var error in Model.ErrorMessages)
 {

@@ -32,11 +32,8 @@
         <PropertyGroup>
             <AssembliesNotToEmbed>
                 **/Metalama.*;
-                **/MessagePack.*;
                 **/Microsoft.CodeAnalysis.*;
                 **/System.*;
-                **/Nerdbank.*;
-                **/StreamJsonRpc.*;
             </AssembliesNotToEmbed>
         </PropertyGroup>
 

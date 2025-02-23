@@ -27,7 +27,7 @@ namespace Metalama.Backstage.Licensing.Registration
         /// Creates an unsigned evaluation license.
         /// </summary>
         /// <returns>The unsigned evaluation license.</returns>
-        public (string LicenseKey, LicenseProperties Data) CreateEvaluationLicense()
+        public LicenseRegistrationProperties CreateEvaluationLicense()
         {
             var start = this._time.UtcNow.Date;
             var end = start + LicensingConstants.EvaluationPeriod;
@@ -44,17 +44,14 @@ namespace Metalama.Backstage.Licensing.Registration
                 SubscriptionEndDate = end
             };
 
-            var licenseKey = licenseKeyData.Serialize();
-            var licenseRegistrationData = licenseKeyData.Build().ToLicenseProperties();
-
-            return (licenseKey, licenseRegistrationData);
+            return licenseKeyData.Build().ToLicenseRegistrationProperties( licenseKeyData.Serialize() );
         }
 
         /// <summary>
         /// Creates an unsigned Metalama Community license.
         /// </summary>
         /// <returns>The unsigned Metalama Community license.</returns>
-        public (string LicenseKey, LicenseProperties Data) CreateCommunityLicense()
+        public LicenseRegistrationProperties CreateCommunityLicense()
         {
             var start = this._time.UtcNow;
 
@@ -62,16 +59,42 @@ namespace Metalama.Backstage.Licensing.Registration
             {
                 OriginVersion = LicenseKeyDataBuilder.CurrentVersion,
                 Generation = LicenseGeneration.Current,
-                LicenseGuid = Guid.NewGuid(), 
-                Product = LicensedProduct.MetalamaCommunity, 
-                LicenseType = LicenseType.Community, 
+                LicenseGuid = Guid.NewGuid(),
+                Product = LicensedProduct.MetalamaCommunity,
+                LicenseType = LicenseType.Community,
+                ValidFrom = start,
+
+                // Must be renewed yearly.
+                ValidTo = start.AddYears( 1 )
+            };
+
+            var licenseRegistrationData = licenseKeyData.Build().ToLicenseRegistrationProperties( licenseKeyData.Serialize() );
+
+            return licenseRegistrationData;
+        }
+
+        /// <summary>
+        /// Creates an unsigned legacy Metalama Free license.
+        /// </summary>
+        /// <returns>The unsigned Metalama Community license.</returns>
+        [Obsolete]
+        public LicenseRegistrationProperties CreateLegacyFreeLicense()
+        {
+            var start = this._time.UtcNow;
+
+            var licenseKeyData = new LicenseKeyDataBuilder()
+            {
+                OriginVersion = LicenseKeyDataBuilder.CurrentVersion,
+                Generation = LicenseGeneration.Current,
+                LicenseGuid = Guid.NewGuid(),
+                Product = LicensedProduct.MetalamaFree,
+                LicenseType = LicenseType.Community,
                 ValidFrom = start
             };
 
-            var licenseKey = licenseKeyData.Serialize();
-            var licenseRegistrationData = licenseKeyData.Build().ToLicenseProperties();
+            var licenseRegistrationData = licenseKeyData.Build().ToLicenseRegistrationProperties( licenseKeyData.Serialize() );
 
-            return (licenseKey, licenseRegistrationData);
+            return licenseRegistrationData;
         }
     }
 }

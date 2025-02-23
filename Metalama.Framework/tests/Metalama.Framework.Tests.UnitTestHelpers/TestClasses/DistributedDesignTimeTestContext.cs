@@ -6,10 +6,10 @@ using Metalama.Framework.DesignTime.Services;
 using Metalama.Framework.DesignTime.VisualStudio.ServiceHub;
 using Metalama.Framework.DesignTime.VisualStudio.ServiceProvider;
 using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Engine.Utilities.Threading;
 using Metalama.Framework.Services;
 using Metalama.Framework.Tests.UnitTestHelpers.Mocks;
 using Metalama.Testing.UnitTesting;
-using Microsoft.VisualStudio.Threading;
 using System;
 using System.Threading.Tasks;
 

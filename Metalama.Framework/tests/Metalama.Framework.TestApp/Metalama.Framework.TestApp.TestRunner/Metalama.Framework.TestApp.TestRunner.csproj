@@ -1,6 +1,6 @@
 ﻿<Project>
 
-  <!-- This file is to be included in Metalama.sln to let the Test App to be built when `dotnet test` is executed in the repo. -->
+  <!-- This file is to be included in Metalama.Framework.sln to let the Test App to be built when `dotnet test` is executed in the repo. -->
 
   <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />
 

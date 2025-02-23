@@ -12,7 +12,14 @@ namespace Metalama.Backstage.Licensing.Licenses.LicenseFields
 
         public override void Write( BinaryWriter writer )
         {
-            var days = (ushort) ((DateTime) this.Value!).Subtract( _referenceDate ).TotalDays;
+            var date = (DateTime) this.Value!;
+
+            if ( date < _referenceDate )
+            {
+                throw new InvalidOperationException( $"The date must be later than '{_referenceDate}'." );
+            }
+
+            var days = (ushort) date.Subtract( _referenceDate ).TotalDays;
             writer.Write( days );
         }
 

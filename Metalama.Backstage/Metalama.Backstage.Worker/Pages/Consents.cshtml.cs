@@ -168,10 +168,8 @@ internal class ConsentsPageModel : PageModel
 
             case SelectedAction.Community:
                 {
-                    if ( !this._licenseRegistrationService.TryRegisterCommunityEdition( out var errorMessage ) )
+                    if ( !ProcessRegistrationResult( this._licenseRegistrationService.RegisterCommunityEdition( GlobalState.CommunityLicenseReason ) ) )
                     {
-                        this.ErrorMessages.Add( errorMessage );
-
                         return this.Page();
                     }
 
@@ -180,10 +178,8 @@ internal class ConsentsPageModel : PageModel
 
             case SelectedAction.Trial:
                 {
-                    if ( !this._licenseRegistrationService.TryRegisterTrialEdition( out var errorMessage ) )
+                    if ( !ProcessRegistrationResult( this._licenseRegistrationService.RegisterTrialEdition() ) )
                     {
-                        this.ErrorMessages.Add( errorMessage );
-
                         return this.Page();
                     }
 
@@ -206,10 +202,8 @@ internal class ConsentsPageModel : PageModel
                         return this.Page();
                     }
 
-                    if ( !this._licenseRegistrationService.TryRegisterLicense( GlobalState.LicenseKey, out var errorMessage ) )
+                    if ( !ProcessRegistrationResult( this._licenseRegistrationService.RegisterLicense( GlobalState.LicenseKey ) ) )
                     {
-                        this.ErrorMessages.Add( errorMessage );
-
                         return this.Page();
                     }
 
@@ -227,5 +221,19 @@ internal class ConsentsPageModel : PageModel
         }
 
         return this.Redirect( "/Done" );
+
+        bool ProcessRegistrationResult( LicenseRegistrationResult result )
+        {
+            if ( result.IsSuccess )
+            {
+                return true;
+            }
+            else
+            {
+                this.ErrorMessages.Add( result.ErrorMessage );
+
+                return false;
+            }
+        }
     }
 }

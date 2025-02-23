@@ -15,7 +15,7 @@ namespace Metalama.Backstage.Licensing.Consumption
         /// <summary>
         /// Creates an <see cref="ILicenseConsumer"/>.
         /// </summary>
-        ILicenseConsumer CreateConsumer( LicenseConsumptionOptions? options = null );
+        ILicenseConsumer CreateConsumer( LicenseConsumptionOptions? options = null, Action<LicensingMessage>? reportMessage = null );
 
         /// <summary>
         /// Event raised when user-profile license keys have changed.

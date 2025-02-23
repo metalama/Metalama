@@ -14,9 +14,11 @@ internal class RegisterLicenseCommand : BaseCommand<RegisterLicenseCommandSettin
     {
         var service = context.ServiceProvider.GetRequiredBackstageService<ILicenseRegistrationService>();
 
-        if ( !service.TryRegisterLicense( settings.License, out var errorMessage ) )
+        var result = service.RegisterLicense( settings.License );
+
+        if ( !result.IsSuccess )
         {
-            throw new CommandException( $"Invalid license string: {errorMessage}" );
+            throw new CommandException( result.ErrorMessage );
         }
 
         context.Console.WriteSuccess( $"The license key '{settings.License}' has been registered." );

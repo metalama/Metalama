@@ -82,7 +82,7 @@ public sealed class ToastNotificationDetectionServiceTests : LicensingTestsBase
         this.UserDeviceDetection.IsInteractiveDevice = true;
 
         // Register a trial version.
-        Assert.True( this.LicenseRegistrationService.TryRegisterTrialEdition( out _ ) );
+        Assert.True( this.LicenseRegistrationService.RegisterTrialEdition().IsSuccess );
 
         // Move the clock.
         this.Time.AddTime( LicensingConstants.EvaluationPeriod - TimeSpan.FromDays( daysBeforeExpiration + 1 ) );
@@ -117,10 +117,10 @@ public sealed class ToastNotificationDetectionServiceTests : LicensingTestsBase
         this.UserDeviceDetection.IsInteractiveDevice = true;
 
         // Register a license key.
-        Assert.True( this.LicenseRegistrationService.TryRegisterLicense( LicenseKeyProvider.MetalamaProfessionalBusiness, out _ ) );
+        Assert.True( this.LicenseRegistrationService.RegisterLicense( LicenseKeyProvider.MetalamaProfessionalBusiness ).IsSuccess );
 
         // Move the clock.
-        this.Time.Set( LicenseKeyProvider.SubscriptionExpirationDate - TimeSpan.FromDays( daysBeforeExpiration ) );
+        this.Time.Set( LicenseKeyProvider.DefaultSubscriptionExpirationDate - TimeSpan.FromDays( daysBeforeExpiration ) );
 
         // Initialize
         this._backstageServicesInitializer.Initialize();
@@ -150,7 +150,7 @@ public sealed class ToastNotificationDetectionServiceTests : LicensingTestsBase
         this.ServiceProvider.GetRequiredBackstageService<IIdeExtensionStatusService>().IsVisualStudioExtensionInstalled = extensionInstalled;
 
         // Register a trial version.
-        Assert.True( this.LicenseRegistrationService.TryRegisterTrialEdition( out _ ) );
+        Assert.True( this.LicenseRegistrationService.RegisterTrialEdition().IsSuccess );
 
         // Initialize
         this._backstageServicesInitializer.Initialize();

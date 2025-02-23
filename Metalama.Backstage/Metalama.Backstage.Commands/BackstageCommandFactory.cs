@@ -36,7 +36,7 @@ public static class BackstageCommandFactory
 
                         license.AddCommand<UnregisterCommand>( "unregister" )
                             .WithData( options )
-                            .WithDescription( "Unregisters a license key." );
+                            .WithDescription( "Unregisters all license keys." );
 
                         license.AddCommand<RegisterTrialCommand>( "try" )
                             .WithData( options )
@@ -45,6 +45,12 @@ public static class BackstageCommandFactory
                         license.AddCommand<RegisterCommunityCommand>( "community" )
                             .WithData( options )
                             .WithDescription( "Switches to Metalama Community." );
+                        
+#pragma warning disable CS0612 // Type or member is obsolete
+                        license.AddCommand<RegisterLegacyFreeCommand>( "free" )
+                            .WithData( options )
+                            .WithDescription( "Registers the legacy to Metalama Free license (for Metalama 2025.0 and earlier)." );
+#pragma warning restore CS0612 // Type or member is obsolete
 
                         configureBranch?.Invoke( "license", license );
                     } );

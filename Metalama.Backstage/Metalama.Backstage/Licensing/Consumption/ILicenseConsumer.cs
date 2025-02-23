@@ -2,7 +2,6 @@
 
 using JetBrains.Annotations;
 using System;
-using System.Collections.Immutable;
 
 namespace Metalama.Backstage.Licensing.Consumption;
 
@@ -10,14 +9,10 @@ namespace Metalama.Backstage.Licensing.Consumption;
 public interface ILicenseConsumer
 {
     /// <summary>
-    /// Gets the warnings and messages from the current licenses.
-    /// </summary>
-    ImmutableArray<LicensingMessage> Messages { get; }
-
-    /// <summary>
     /// Attempts to consume a license. If it succeeds, marks the license for audit.
     /// </summary>
     /// <param name="requirement">A predicate indicating whether the license key can be consumed.</param>
+    /// <param name="reportMessage"></param>
     /// <returns>A value indicating if the <paramref name="requirement"/> is available.</returns>
-    bool TryConsume( Predicate<LicenseConsumptionData> requirement );
+    bool TryConsume( LicenseRequirement requirement, Action<LicensingMessage>? reportMessage = null );
 }

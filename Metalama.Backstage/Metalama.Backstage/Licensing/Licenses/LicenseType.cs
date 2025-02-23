@@ -113,7 +113,13 @@ namespace Metalama.Backstage.Licensing.Licenses
         /// <summary>
         /// Usable with a preview build.
         /// </summary>
-        Preview = 20
+        [Obsolete( "No longer issued or supported." )]
+        Preview = 20,
+
+        /// <summary>
+        /// A test license key, when something else than licensing itself if tested.
+        /// </summary>
+        Test = 21
 
         // 255 is reserved as unknown for testing purposes
     }

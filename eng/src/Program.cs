@@ -15,9 +15,9 @@ var product = new Product( MetalamaDependencies.Metalama )
     Solutions =
     [
         new DotNetSolution( "Metalama.Backstage\\Metalama.Backstage.sln" ) { SupportsTestCoverage = true, CanFormatCode = true },
-        new DotNetSolution( "Metalama.Framework\\Metalama.sln" )
+        new DotNetSolution( "Metalama.Framework\\Metalama.Framework.sln" )
         {
-            SolutionFilterPathForInspectCode = "Metalama.LatestRoslyn.slnf",
+            SolutionFilterPathForInspectCode = "Metalama.Framework.LatestRoslyn.slnf",
             SupportsTestCoverage = true,
             CanFormatCode = true,
 
@@ -37,7 +37,7 @@ var product = new Product( MetalamaDependencies.Metalama )
                 "**\\*.props", "**\\*.targets", "**\\*.csproj", "**\\*.md", "**\\*.xml", "**\\*.config"
             ]
         },
-        new DotNetSolution( "Metalama.Framework\\Metalama.LatestRoslyn.slnf" )
+        new DotNetSolution( "Metalama.Framework\\Metalama.Framework.LatestRoslyn.slnf" )
         {
             SupportsTestCoverage = false, CanFormatCode = false, IsTestOnly = true
         },

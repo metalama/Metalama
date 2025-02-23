@@ -13,8 +13,8 @@ namespace Metalama.Backstage.Licensing.Registration
     /// Properties returning a null value are not intended to be presented to a user.
     /// </remarks>
     [PublicAPI]
-    public record LicenseProperties(
-        string? LicenseString,
+    public record LicenseRegistrationProperties(
+        string LicenseString,
         string UniqueId,
         bool IsSelfCreated,
         int? LicenseId,
@@ -28,5 +28,6 @@ namespace Metalama.Backstage.Licensing.Registration
         DateTime? SubscriptionEndDate,
         bool Auditable,
         bool LicenseServerEligible,
-        Version MinPostSharpVersion );
+        Version MinPostSharpVersion,
+        LicenseGeneration Generation ) { }
 }

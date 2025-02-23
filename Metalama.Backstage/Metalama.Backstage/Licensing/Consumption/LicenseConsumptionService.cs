@@ -29,7 +29,7 @@ internal sealed class LicenseConsumptionService : ILicenseConsumptionService
         this.Changed?.Invoke();
     }
 
-    public ILicenseConsumer CreateConsumer( LicenseConsumptionOptions? options )
+    public ILicenseConsumer CreateConsumer( LicenseConsumptionOptions? options, Action<LicensingMessage>? reportMessage )
     {
         options ??= LicenseConsumptionOptions.Default;
 
@@ -43,7 +43,7 @@ internal sealed class LicenseConsumptionService : ILicenseConsumptionService
             sources.Add( new ExplicitLicenseSource( options.ProjectLicenseKey!, this._services ) );
         }
 
-        return LicenseConsumer.Create( options, this._services, sources );
+        return LicenseConsumer.Create( options, this._services, sources, reportMessage );
     }
 
     public event Action? Changed;

@@ -1,5 +1,7 @@
 // Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
+using Metalama.Backstage.Licensing;
+using Metalama.Backstage.Pages.Shared;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.Collections.Generic;
@@ -11,7 +13,7 @@ namespace Metalama.Backstage.Pages;
 public class CommunityModel : PageModel
 {
     [BindProperty]
-    public CommunityUseKind? UseKind { get; set; }
+    public CommunityLicenseReason? UseKind { get; set; }
 
     public List<string> ErrorMessages { get; } = [];
 
@@ -24,21 +26,16 @@ public class CommunityModel : PageModel
             return this.Page();
         }
 
-        if ( this.UseKind == CommunityUseKind.Other )
+        if ( this.UseKind == CommunityLicenseReason.None )
         {
-            this.ErrorMessages.Add( "We're sorry, but the Metalama Community license is only available for non-commercial use, individuals or small bussinesses. " );
-            
+            this.ErrorMessages.Add(
+                "We're sorry, but the Metalama Community license is only available for non-commercial use, individuals or small bussinesses. " );
+
             return this.Page();
         }
 
+        GlobalState.CommunityLicenseReason = this.UseKind.Value;
+
         return this.Redirect( "/Consents" );
     }
-}
-
-public enum CommunityUseKind
-{
-    NonCommercial,
-    Individual,
-    SmallBusiness,
-    Other
 }

@@ -11,29 +11,34 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="c9586d2c-094e-43a9-9711-007c4b044903" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/../Metalama.Backstage/Metalama.Backstage/Licensing/Consumption/LicenseConsumer.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../Metalama.Backstage/Metalama.Backstage/Licensing/Consumption/LicenseConsumer.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../Metalama.Backstage/Metalama.Backstage/Licensing/Consumption/LicenseConsumptionData.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../Metalama.Backstage/Metalama.Backstage/Licensing/Consumption/LicenseConsumptionData.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../Metalama.Backstage/Metalama.Backstage/Licensing/Consumption/Sources/UnattendedLicenseSource.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../Metalama.Backstage/Metalama.Backstage/Licensing/Consumption/Sources/UnattendedLicenseSource.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../Metalama.Backstage/Metalama.Backstage/Licensing/Licenses/LicenseFields/LicenseFieldsExtensions.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../Metalama.Backstage/Metalama.Backstage/Licensing/Licenses/LicenseFields/LicenseFieldsExtensions.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../Metalama.Backstage/Metalama.Backstage/Licensing/Licenses/LicenseKeyData.Validation.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../Metalama.Backstage/Metalama.Backstage/Licensing/Licenses/LicenseKeyData.Validation.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Metalama.Backstage/Metalama.Backstage/Licensing/Consumption/SubscriptionStatus.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../Metalama.Backstage/Metalama.Backstage/Licensing/Consumption/SubscriptionStatus.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Metalama.Backstage/Metalama.Backstage/Licensing/Licenses/License.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../Metalama.Backstage/Metalama.Backstage/Licensing/Licenses/License.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../Metalama.Backstage/Metalama.Backstage/Licensing/Licenses/LicenseKeyData.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../Metalama.Backstage/Metalama.Backstage/Licensing/Licenses/LicenseKeyData.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../Metalama.Backstage/Metalama.Backstage/Licensing/Licenses/LicenseKeyDataExtensions.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../Metalama.Backstage/Metalama.Backstage/Licensing/Licenses/LicenseKeyDataExtensions.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../Metalama.Backstage/Metalama.Backstage/Licensing/Licenses/LicenseType.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../Metalama.Backstage/Metalama.Backstage/Licensing/Licenses/LicenseType.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../Metalama.Backstage/Metalama.Backstage/Licensing/Licenses/LicenseTypeExtensions.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../Metalama.Backstage/Metalama.Backstage/Licensing/Licenses/LicenseTypeExtensions.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../Metalama.Backstage/Metalama.Backstage/Licensing/Registration/ILicenseRegistrationService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../Metalama.Backstage/Metalama.Backstage/Licensing/Registration/ILicenseRegistrationService.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../Metalama.Backstage/Metalama.Backstage/Licensing/Registration/LicenseRegistrationService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../Metalama.Backstage/Metalama.Backstage/Licensing/Registration/LicenseRegistrationService.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../eng/src/Program.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../eng/src/Program.cs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
+  <component name="DpaMonitoringSettings">
+    <option name="firstShow" value="false" />
+  </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
   </component>
-  <component name="ProjectColorInfo"><![CDATA[{
-  "associatedIndex": 5
-}]]></component>
+  <component name="HighlightingSettingsPerFile">
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/5eaf6f9dd55429069729b5d6a6b99c1571fb63cf5689bed62ef241e99e88d7/TaskCompletionSource_T.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="mock://C:/src/Metalama-2025.1/Metalama/Metalama.Backstage/Metalama.Backstage/Licensing/Licenses/License.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/../Metalama.Backstage/Metalama.Backstage/Licensing/Licenses/License.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock://C:/src/Metalama-2025.1/Metalama/Metalama.Backstage/Metalama.Backstage/Licensing/Licenses/LicenseKeyData.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/../Metalama.Backstage/Metalama.Backstage/Licensing/Licenses/LicenseKeyData.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock://C:/src/Metalama-2025.1/Metalama/Metalama.Backstage/Metalama.Backstage/Licensing/Licenses/LicenseKeyData.cs" root0="SKIP_HIGHLIGHTING" />
+  </component>
+  <component name="MetaFilesCheckinStateConfiguration" checkMetaFiles="true" />
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 5
+}</component>
   <component name="ProjectId" id="2tAtVKdZBwRxnmNh6Rk890jjeYp" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
@@ -41,9 +46,14 @@
   </component>
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
+    ".NET Project.Metalama.AspectWorkbench.executor": "Debug",
+    "Attach to Process.42252:ServiceHub.RoslynCodeAnalysisService.executor": "Debug",
+    "Attach to Process.57316:dotnet.executor": "Debug",
+    "Attach to Process.65032:CreatePkgDef.executor": "Debug",
     "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
     "git-widget-placeholder": "develop/2025.1",
-    "last_opened_file_path": "C:/src/Metalama-2025.1/Metalama/Metalama.Framework/Metalama.sln",
+    "last_opened_file_path": "C:/src/Metalama-2025.1/Metalama/Metalama.Framework/Metalama.Framework.sln",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
@@ -135,11 +145,14 @@
       <option name="presentableId" value="Default" />
       <updated>1739806728518</updated>
       <workItem from="1739806729747" duration="915000" />
+      <workItem from="1739877956820" duration="260000" />
+      <workItem from="1739880169542" duration="3701000" />
     </task>
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
   </component>
+  <component name="UnityCheckinConfiguration" checkUnsavedScenes="true" />
   <component name="UnityProjectConfiguration" hasMinimizedUI="false" />
 </project>

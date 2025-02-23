@@ -56,12 +56,7 @@ internal static class LicenseKeyDataSerializer
     public static bool RequiresSignature( this ILicenseKeyData data )
     {
 #pragma warning disable CS0618 // Type or member is obsolete
-        if ( data.LicenseType == LicenseType.Anonymous )
-        {
-            return false;
-        }
-
-        if ( data is { LicenseType: LicenseType.Community or LicenseType.Evaluation } )
+        if ( data is { LicenseType: LicenseType.Community or LicenseType.Evaluation or LicenseType.Anonymous } )
         {
             return false;
         }

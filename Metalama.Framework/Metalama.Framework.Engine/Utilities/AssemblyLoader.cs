@@ -15,7 +15,8 @@ internal sealed class AssemblyLoader : IDisposable
     private static Type? _metalamaAlcType;
 
     private readonly Func<string, Assembly?> _resolveAssembly;
-    private readonly Func<string, Assembly> _loadAssembly;
+    private readonly Func<string, Assembly> _loadFromAssemblyPath;
+    private readonly Func<Stream, Stream?, Assembly> _loadFromStream;
     private readonly Action? _assemblyResolveUnsubscribe;
 
     public AssemblyLoader( Func<string, Assembly?> resolveAssembly, Func<Assembly?, bool>? globalResolveHandlerFilter = null, string? debugName = null )
@@ -42,7 +43,7 @@ internal sealed class AssemblyLoader : IDisposable
 
         if ( currentAlc != null )
         {
-            // On .Net, we create a custom ALC, into which we load our assemblies.
+            // On .NET Core, we create a custom ALC, into which we load our assemblies.
             // When resolving an assembly name, it first looks into the parent ALC (which can be the compiler ALC for the main Metalama ALC).
             // If that fails, it calls the resolveAssembly delegate.
 
@@ -50,29 +51,54 @@ internal sealed class AssemblyLoader : IDisposable
             var metalamaAlc = Activator.CreateInstance( _metalamaAlcType, currentAlc, resolveAssembly, $"Metalama {debugName}".TrimEnd() );
 
             var loadByPathMethod = alcType!.GetMethod( "LoadFromAssemblyPath" )!;
-            this._loadAssembly = (Func<string, Assembly>) Delegate.CreateDelegate( typeof(Func<string, Assembly>), metalamaAlc, loadByPathMethod );
+            this._loadFromAssemblyPath = (Func<string, Assembly>) Delegate.CreateDelegate( typeof(Func<string, Assembly>), metalamaAlc, loadByPathMethod );
+
+            var loadFromStreamMethod = alcType!.GetMethod( "LoadFromStream", [typeof(Stream), typeof(Stream)] )!;
+
+            this._loadFromStream = (Func<Stream, Stream?, Assembly>) Delegate.CreateDelegate(
+                typeof(Func<Stream, Stream?, Assembly>),
+                metalamaAlc,
+                loadFromStreamMethod );
 
             if ( globalResolveHandlerFilter != null )
             {
                 var loadByNameMethod = alcType.GetMethod( "LoadFromAssemblyName" )!;
 
-                var loadByNameDelegate =
+                var loadAssemblyFromAssemblyName =
                     (Func<AssemblyName, Assembly>) Delegate.CreateDelegate( typeof(Func<AssemblyName, Assembly>), metalamaAlc, loadByNameMethod );
 
                 Assembly? GlobalResolveHandler( object? s, ResolveEventArgs e )
-                    => globalResolveHandlerFilter( e.RequestingAssembly ) ? loadByNameDelegate( new AssemblyName( e.Name ) ) : null;
+                    => globalResolveHandlerFilter( e.RequestingAssembly ) ? loadAssemblyFromAssemblyName( new AssemblyName( e.Name ) ) : null;
 
                 AppDomain.CurrentDomain.AssemblyResolve += GlobalResolveHandler;
                 this._assemblyResolveUnsubscribe = () => AppDomain.CurrentDomain.AssemblyResolve -= GlobalResolveHandler;
             }
-
-            return;
         }
+        else
+        {
+            // We are on .NET Framework.
+            this._loadFromAssemblyPath = Assembly.LoadFile;
 
-        this._loadAssembly = Assembly.LoadFile;
+            this._loadFromStream = ( peStream, pdbStream ) => Assembly.Load( ReadBytes( peStream )!, ReadBytes( pdbStream ) );
 
-        AppDomain.CurrentDomain.AssemblyResolve += this.OnAssemblyResolve;
-        this._assemblyResolveUnsubscribe = () => AppDomain.CurrentDomain.AssemblyResolve -= this.OnAssemblyResolve;
+            AppDomain.CurrentDomain.AssemblyResolve += this.OnAssemblyResolve;
+            this._assemblyResolveUnsubscribe = () => AppDomain.CurrentDomain.AssemblyResolve -= this.OnAssemblyResolve;
+
+            static byte[]? ReadBytes( Stream? stream )
+            {
+                if ( stream == null )
+                {
+                    return null;
+                }
+                else
+                {
+                    var memoryStream = new MemoryStream();
+                    stream.CopyTo( memoryStream );
+
+                    return memoryStream.ToArray();
+                }
+            }
+        }
     }
 
     private static Type GenerateAssemblyLoadContext( Type alcType )
@@ -191,7 +217,9 @@ internal sealed class AssemblyLoader : IDisposable
 
     private Assembly? OnAssemblyResolve( object? sender, ResolveEventArgs args ) => this._resolveAssembly( args.Name );
 
-    public Assembly LoadAssembly( string assemblyPath ) => this._loadAssembly( assemblyPath );
+    public Assembly LoadFromPath( string assemblyPath ) => this._loadFromAssemblyPath( assemblyPath );
+
+    public Assembly LoadFromStream( Stream peStream, Stream? pdbStream ) => this._loadFromStream( peStream, pdbStream );
 
     // .NET 5.0 has collectible assemblies, but collectible assemblies cannot be returned to AppDomain.AssemblyResolve.
     internal static bool IsCollectible( Assembly assembly ) => _isCollectibleProperty != null && (bool) _isCollectibleProperty.GetValue( assembly )!;

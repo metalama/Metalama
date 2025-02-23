@@ -14,7 +14,7 @@ public abstract partial class ClientEndpoint : BaseEndpoint
 
     private readonly Callback _callback;
     private readonly NullCallback _nullCallback;
-    
+
     private ImmutableDictionary<JsonRpc, Connection> _connectionByStream = ImmutableDictionary<JsonRpc, Connection>.Empty;
 
     // Not immutable because speed is important here.
@@ -78,7 +78,7 @@ public abstract partial class ClientEndpoint : BaseEndpoint
 
         await this.EnsureInitialServicesRetrievedAsync( cancellationToken );
 
-        return (TClient) await awaiter.Task;
+        return (TClient) await awaiter.Task.WarnIfLongAsync( this.Logger, $"waiting for client '{typeof(TClient)}'", cancellationToken );
     }
 
     protected virtual Task EnsureInitialServicesRetrievedAsync( CancellationToken cancellationToken ) => Task.CompletedTask;
@@ -138,7 +138,11 @@ public abstract partial class ClientEndpoint : BaseEndpoint
         }
     }
 
-    private async Task<bool> ConnectCoreAsync( string pipeName, ImmutableArray<RpcClient> clients, bool firstConnection, CancellationToken cancellationToken = default )
+    private async Task<bool> ConnectCoreAsync(
+        string pipeName,
+        ImmutableArray<RpcClient> clients,
+        bool firstConnection,
+        CancellationToken cancellationToken = default )
     {
         ImmutableArray<RpcClient> newClients;
 
@@ -192,7 +196,7 @@ public abstract partial class ClientEndpoint : BaseEndpoint
             rpc.Disconnected += this.OnRpcDisconnected;
 
             // Update collections.
-            this._connectionByStream = this._connectionByStream.Add( rpc, new Connection( pipeStream, rpc, newClients ) );
+            InterlockedHelper.Update( ref this._connectionByStream, x => x.Add( rpc, new Connection( pipeStream, rpc, newClients ) ) );
 
             // Signal waiters.
             // We must do this _after_ updating the client collections.
@@ -206,7 +210,8 @@ public abstract partial class ClientEndpoint : BaseEndpoint
 
             this.Logger.Trace?.Log( $"The client is connected to the endpoint '{pipeName}'." );
 
-            await this.OnConnectedAsync( newClients, cancellationToken ).WarnIfLongAsync( this.Logger, nameof(this.OnConnectedAsync), cancellationToken );
+            await this.OnConnectedAsync( newClients, cancellationToken )
+                .WarnIfLongAsync( this.Logger, nameof(this.OnConnectedAsync), cancellationToken );
 
             return true;
         }
@@ -277,7 +282,8 @@ public abstract partial class ClientEndpoint : BaseEndpoint
         }
         else
         {
-            this.Logger.Warning?.Log( $"OnEventReceivedAsync: Dropping a message originating from '{envelope.OriginatingApi}': the client interface is not registered." );
+            this.Logger.Warning?.Log(
+                $"OnEventReceivedAsync: Dropping a message originating from '{envelope.OriginatingApi}': the client interface is not registered." );
 
             return Task.CompletedTask;
         }

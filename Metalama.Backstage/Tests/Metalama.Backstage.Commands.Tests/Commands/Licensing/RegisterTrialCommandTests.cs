@@ -12,7 +12,7 @@ namespace Metalama.Tools.Config.Tests.Commands.Licensing
     {
         private static readonly DateTime _evaluationStart = new( 2020, 1, 1, 0, 0, 0, DateTimeKind.Utc );
 
-        private static readonly DateTime _invalidNextEvaluationStart = new( 2020, 1, 14, 0, 0, 0, DateTimeKind.Utc );
+        private static readonly DateTime _invalidNextEvaluationStart = new( 2020, 3, 1, 0, 0, 0, DateTimeKind.Utc );
 
         private static readonly DateTime _validNextEvaluationStart = new( 2021, 1, 1, 0, 0, 0, DateTimeKind.Utc );
 
@@ -35,7 +35,7 @@ namespace Metalama.Tools.Config.Tests.Commands.Licensing
         {
             await this.TestCommandAsync( "license try" );
 
-            this.Time.Set( _invalidNextEvaluationStart );
+            this.Time.Set( _invalidNextEvaluationStart.AddMinutes( 1 ) );
 
             await this.TestCommandAsync(
                 "license try",

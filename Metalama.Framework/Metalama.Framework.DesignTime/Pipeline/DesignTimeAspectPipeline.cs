@@ -1075,9 +1075,7 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
 
     private static async Task WarnIfNotDisposedAsync( WeakReference<DesignTimeAspectPipeline> pipelineRef, Task disposedTask, StackTrace stackTrace )
     {
-#pragma warning disable VSTHRD003
         await Task.WhenAny( Task.Delay( TimeSpan.FromSeconds( 1 ) ), disposedTask );
-#pragma warning restore VSTHRD003
 
         if ( !disposedTask.IsCompleted && pipelineRef.TryGetTarget( out var pipeline ) )
         {

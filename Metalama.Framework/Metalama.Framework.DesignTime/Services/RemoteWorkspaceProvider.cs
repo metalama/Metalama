@@ -97,6 +97,5 @@ internal sealed class RemoteWorkspaceProvider : WorkspaceProvider
         this._workspace = Task.FromResult( workspace );
     }
 
-#pragma warning disable VSTHRD003
     protected override Task<Workspace> GetWorkspaceAsync( CancellationToken cancellationToken = default ) => this._workspace;
 }

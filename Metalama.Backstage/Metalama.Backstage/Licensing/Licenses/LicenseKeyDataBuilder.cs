@@ -29,7 +29,7 @@ public partial class LicenseKeyDataBuilder : ILicenseKeyData
     }
 
     public LicenseKeyData Build()
-        => new( this._fields.ToImmutable() )
+        => new( this.Version, this._fields.ToImmutable() )
         {
             Product = this.Product,
             LicenseId = this.LicenseId,

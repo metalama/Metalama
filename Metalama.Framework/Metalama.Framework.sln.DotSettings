@@ -7,10 +7,15 @@
 	<s:String x:Key="/Default/CodeInspection/ExcludedFiles/FilesAndFoldersToSkip2/=tests_005CMetalama_002EFramework_002ETests_002ETemplateTests/@EntryIndexedValue">ExplicitlyExcluded</s:String>
 	<s:String x:Key="/Default/CodeInspection/ExcludedFiles/FilesAndFoldersToSkip2/=tests_005CMetalama_002EFramework_002ETests_002EAspectTests/@EntryIndexedValue">ExplicitlyExcluded</s:String>
 	<s:String x:Key="/Default/Environment/Hierarchy/Build/SolBuilderDuo/UseMsbuildSolutionBuilder/@EntryValue">No</s:String>
-	<s:String x:Key="/Default/Environment/InjectedLayers/FileInjectedLayer/=5F03E74C1FEE044EABB0391712E81836/RelativePath/@EntryValue">../eng/style/CommonStyle.DotSettings</s:String>
-	<s:Boolean x:Key="/Default/Environment/InjectedLayers/FileInjectedLayer/=5F03E74C1FEE044EABB0391712E81836/@KeyIndexDefined">True</s:Boolean>
-	<s:Boolean x:Key="/Default/Environment/InjectedLayers/InjectedLayerCustomization/=File5F03E74C1FEE044EABB0391712E81836/@KeyIndexDefined">True</s:Boolean>
-	<s:Double x:Key="/Default/Environment/InjectedLayers/InjectedLayerCustomization/=File5F03E74C1FEE044EABB0391712E81836/RelativePriority/@EntryValue">1</s:Double>
+	<s:Boolean x:Key="/Default/Environment/InjectedLayers/FileInjectedLayer/=0710E6B3E3F2BF409E5CBC80DFE3007E/@KeyIndexDefined">True</s:Boolean>
+	<s:String x:Key="/Default/Environment/InjectedLayers/FileInjectedLayer/=0710E6B3E3F2BF409E5CBC80DFE3007E/AbsolutePath/@EntryValue">C:\src\Metalama-2025.1\Metalama\eng\style\CommonStyle.DotSettings</s:String>
+	<s:String x:Key="/Default/Environment/InjectedLayers/FileInjectedLayer/=0710E6B3E3F2BF409E5CBC80DFE3007E/RelativePath/@EntryValue">..\..\eng\style\CommonStyle.DotSettings</s:String>
+	<s:Boolean x:Key="/Default/Environment/InjectedLayers/InjectedLayerCustomization/=File0710E6B3E3F2BF409E5CBC80DFE3007E/@KeyIndexDefined">True</s:Boolean>
+	<s:Double x:Key="/Default/Environment/InjectedLayers/InjectedLayerCustomization/=File0710E6B3E3F2BF409E5CBC80DFE3007E/RelativePriority/@EntryValue">1</s:Double>
+	
+	
+	
+	
 	<s:String x:Key="/Default/Environment/UnitTesting/XunitProvider/TestDiscoveryFromArtifactsMethod/@EntryValue">TestRunner</s:String>
 	<s:Boolean x:Key="/Default/UserDictionary/Words/=asyncness/@EntryIndexedValue">True</s:Boolean>
 	<s:Boolean x:Key="/Default/UserDictionary/Words/=Browsability/@EntryIndexedValue">True</s:Boolean>

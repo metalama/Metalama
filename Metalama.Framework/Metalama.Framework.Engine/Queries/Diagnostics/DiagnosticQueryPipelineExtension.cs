@@ -17,7 +17,7 @@ internal sealed class DiagnosticQueryPipelineExtension : PipelineExtension
 {
     public override bool Initialize( PipelineExtensionContext context )
     {
-        context.Services.Add<IDiagnosticsQueryService>( _ => new DiagnosticsQueryService() );
+        context.ServiceBuilder.Add<IDiagnosticsQueryService>( _ => new DiagnosticsQueryService() );
 
         return true;
     }

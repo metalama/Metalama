@@ -1,46 +1,68 @@
 ﻿// Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
-using Metalama.Backstage.Licensing.Consumption.Sources;
+using Metalama.Backstage.Licensing;
+using Metalama.Backstage.Licensing.Licenses;
 using Metalama.Backstage.Licensing.Registration;
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace Metalama.Backstage.Tests.Licensing.Evaluation
+namespace Metalama.Backstage.Tests.Licensing.Registration
 {
-    public sealed class EvaluationLicenseEligibilityTests : EvaluationLicenseRegistrationTestsBase
+    public sealed class EvaluationLicenseRegistrationTests : LicensingTestsBase
     {
-        public EvaluationLicenseEligibilityTests( ITestOutputHelper logger )
+        public EvaluationLicenseRegistrationTests( ITestOutputHelper logger )
             : base( logger ) { }
+
+        private static readonly DateTime _testStart = new( 2020, 1, 1, 0, 0, 0, DateTimeKind.Utc );
+
+        private void AssertEvaluationEligible()
+        {
+            Assert.True( this.LicenseRegistrationService.RegisterTrialEdition().IsSuccess );
+            var expectedStart = this.Time.UtcNow.Date;
+            var expectedEnd = expectedStart + LicensingConstants.EvaluationPeriod;
+
+            var licenseProperties = this.LicenseRegistrationService.RegisteredLicenses.Single();
+            Assert.NotNull( licenseProperties );
+            Assert.Equal( LicenseType.Evaluation, licenseProperties!.LicenseType );
+            Assert.Equal( expectedStart, licenseProperties!.ValidFrom!.Value.Date );
+            Assert.Equal( expectedEnd, licenseProperties!.ValidTo!.Value.Date );
+            Assert.Equal( expectedEnd, licenseProperties!.SubscriptionEndDate );
+        }
+
+        private void AssertEvaluationNotEligible( string reason )
+        {
+            Assert.False( this.LicenseRegistrationService.RegisterTrialEdition().IsSuccess, reason );
+        }
 
         [Fact]
         public void EvaluationLicenseRegistersInCleanEnvironment()
         {
-            this.Time.Set( TestStart, true );
+            this.Time.Set( _testStart, true );
             this.AssertEvaluationEligible();
         }
 
         private void TestRepetitiveRegistration( TimeSpan retryAfter, bool unregisterBeforeRetry, bool expectedEligibility )
         {
-            this.Time.Set( TestStart, true );
+            this.Time.Set( _testStart, true );
             this.AssertEvaluationEligible();
 
             if ( unregisterBeforeRetry )
             {
-                LicensingConfigurationModel.Create( this.ServiceProvider ).RemoveLicense();
+                this.LicenseRegistrationService.RemoveLicenses();
             }
 
-            var license = new UserProfileLicenseSource( this.ServiceProvider ).GetLicense(
-                m => Assert.Fail( $"Unexpected message from license provider: '{m}'" ) );
+            var license = this.LicenseRegistrationService.RegisteredLicenses;
 
             if ( unregisterBeforeRetry )
             {
-                Assert.Null( license );
+                Assert.Empty( license );
             }
             else
             {
-                Assert.NotNull( license );
+                Assert.Single( license );
             }
 
             this.Time.Set( this.Time.UtcNow + retryAfter, true );
@@ -56,10 +78,9 @@ namespace Metalama.Backstage.Tests.Licensing.Evaluation
         }
 
         [Fact]
-        public void ImmediateRepetitiveEvaluationLicenseRegistrationSucceeds()
+        public void RepetitiveEvaluationLicenseRegistrationFails()
         {
-            // This is allowed to avoid race conditions first time user experience, where the evaluation license is registered automatically.
-            this.TestRepetitiveRegistration( TimeSpan.Zero, false, true );
+            this.TestRepetitiveRegistration( TimeSpan.Zero, false, false );
         }
 
         [Fact]
@@ -139,12 +160,12 @@ namespace Metalama.Backstage.Tests.Licensing.Evaluation
         [Fact]
         public async Task NotifyPropertyChanged()
         {
-            Assert.True( this.LicenseRegistrationService.TryRegisterTrialEdition( out _ ) );
+            Assert.True( this.LicenseRegistrationService.RegisterTrialEdition().IsSuccess );
 
             var gotPropertyChanged = new TaskCompletionSource<bool>();
             this.LicenseRegistrationService.PropertyChanged += ( _, _ ) => gotPropertyChanged.TrySetResult( true );
 
-            Assert.True( this.LicenseRegistrationService.TryRegisterCommunityEdition( out _ ) );
+            Assert.True( this.LicenseRegistrationService.RegisterCommunityEdition( CommunityLicenseReason.Individual ).IsSuccess );
 
             Assert.Equal( gotPropertyChanged.Task, await Task.WhenAny( gotPropertyChanged.Task, Task.Delay( 30000 ) ) );
         }

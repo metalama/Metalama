@@ -7,14 +7,37 @@
         
         <!-- Disable vulnerability checking because this project is not surfacing. -->
         <NuGetAudit>false</NuGetAudit>
-
+        <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+        
+        <!-- [VSTHRD003] Avoid awaiting or returning a Task representing work that was not started within your context as that can lead to deadlocks. -->
+        <NoWarn>$(NoWarn);VSTHRD003</NoWarn>
     </PropertyGroup>
 
     <ItemGroup>
       <PackageReference Include="Metalama.Backstage" />
-      <PackageReference Include="StreamJsonRpc" />
     </ItemGroup>
-    
+
+       
+    <ItemGroup>
+        <PackageReference Include="ILRepack">
+          <PrivateAssets>all</PrivateAssets>
+          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        
+        <PackageReference Include="StreamJsonRpc" PrivateAssets="all"/>
+        
+        <!-- The following package are _not_ merge but must be flowed to consuming packages. -->
+        <PackageReference Include="System.IO.Pipelines"/>
+        <PackageReference Include="System.Diagnostics.DiagnosticSource"/>
+        <PackageReference Include="System.Collections.Immutable"/>
+        <PackageReference Include="Newtonsoft.Json"/>
+        <PackageReference Include="Microsoft.Bcl.AsyncInterfaces"/>
+    </ItemGroup>
+  
+  <!-- We intentionally do not give InternalsVisible to tests in order
+  to mitigate the issue of system types being visible from two projects
+  in the unit test project.-->
+    <!--
     <ItemGroup>
         <InternalsVisibleTo Include="Metalama.Framework.Tests.UnitTests.4.4.0" />
         <InternalsVisibleTo Include="Metalama.Framework.Tests.UnitTests.4.8.0" />
@@ -22,7 +45,48 @@
         <InternalsVisibleTo Include="Metalama.Framework.Tests.UnitTestHelpers.4.4.0" />
         <InternalsVisibleTo Include="Metalama.Framework.Tests.UnitTestHelpers.4.8.0" />
         <InternalsVisibleTo Include="Metalama.Framework.Tests.UnitTestHelpers.4.12.0" />
-        
     </ItemGroup>
+    -->
+
+     <Target Name="GetILMergeInputs">
+        <PropertyGroup>
+            <ILMergeTouchFile>$(OutDir)repack.touch</ILMergeTouchFile>
+        </PropertyGroup>
+        <ItemGroup>
+            <ILMergeOtherInputs Include="$(OutDir)StreamJsonRpc.dll"  />
+            <ILMergeOtherInputs Include="$(OutDir)Microsoft.VisualStudio.Threading.dll" Internalize="True" />
+            <ILMergeOtherInputs Include="$(OutDir)Microsoft.VisualStudio.Validation.dll" Internalize="True" />
+            <ILMergeOtherInputs Include="$(OutDir)Nerdbank.Streams.dll" Internalize="True" />
+            <ILMergeOtherInputs Include="$(OutDir)MessagePack.Annotations.dll" Internalize="True" />
+            <ILMergeLibs Include="$(OutDir)"/>
+            <ILMergeAllowDuplicate Include="System.Diagnostics.CodeAnalysis.AllowNullAttribute"/>
+            <ILMergeAllowDuplicate Include="System.Diagnostics.CodeAnalysis.DisallowNullAttribute"/>
+            <ILMergeAllowDuplicate Include="System.Diagnostics.CodeAnalysis.DoesNotReturnAttribute"/>
+            <ILMergeAllowDuplicate Include="System.Diagnostics.CodeAnalysis.DoesNotReturnIfAttribute"/>
+            <ILMergeAllowDuplicate Include="System.Diagnostics.CodeAnalysis.MaybeNullAttribute"/>
+            <ILMergeAllowDuplicate Include="System.Diagnostics.CodeAnalysis.MaybeNullWhenAttribute"/>
+            <ILMergeAllowDuplicate Include="System.Diagnostics.CodeAnalysis.MemberNotNullAttribute"/>
+            <ILMergeAllowDuplicate Include="System.Diagnostics.CodeAnalysis.MemberNotNullWhenAttribute"/>
+            <ILMergeAllowDuplicate Include="System.Diagnostics.CodeAnalysis.NotNullAttribute"/>
+            <ILMergeAllowDuplicate Include="System.Diagnostics.CodeAnalysis.NotNullIfNotNullAttribute"/>
+            <ILMergeAllowDuplicate Include="System.Diagnostics.CodeAnalysis.NotNullWhenAttribute"/>
+            <ILMergeAllowDuplicate Include="System.Runtime.CompilerServices.IsExternalInit"/>
+            <ILMergeAllowDuplicate Include="System.Runtime.CompilerServices.IsByRefLikeAttribute"/>
+            <ILMergeAllowDuplicate Include="System.Runtime.CompilerServices.IsReadOnlyAttribute"/>
+            <ILMergeAllowDuplicate Include="System.Runtime.CompilerServices.IsUnmanagedAttribute"/>
+            <ILMergeAllowDuplicate Include="System.Runtime.CompilerServices.NullableAttribute"/>
+            <ILMergeAllowDuplicate Include="System.Runtime.CompilerServices.NullableContextAttribute"/>
+            <ILMergeAllowDuplicate Include="System.Runtime.CompilerServices.RefSafetyRulesAttribute"/>
+        
+        </ItemGroup>
+    </Target>
+
+    <Target Name="ILMerge" AfterTargets="Build" Inputs="$(OutDir)$(AssemblyName).dll;@(ILMergeOtherInputs)" Outputs="$(ILMergeTouchFile)" DependsOnTargets="GetILMergeInputs">
+        <Error Text="The ILRepack package is not installed or restored in the project." Condition="'$(ILRepack)'==''"/>
+        <Move SourceFiles="$(OutDir)$(AssemblyName).dll" DestinationFiles="$(OutDir)$(AssemblyName).input.dll"/>
+        <Exec Command="$(ILRepack) /parallel /target:library /copyattrs /allowMultiple /out:$(OutDir)$(AssemblyName).dll /lib:@(ILMergeLibs, ' /lib:') $(OutDir)$(AssemblyName).input.dll @(ILMergeOtherInputs, ' ') /internalize /keyfile:$(AssemblyOriginatorKeyFile) /allowdup:@(ILMergeAllowDuplicate, ' /allowdup:')" />
+        
+        <Touch Files="$(ILMergeTouchFile)" AlwaysCreate="true"/>
+    </Target>
     
 </Project>

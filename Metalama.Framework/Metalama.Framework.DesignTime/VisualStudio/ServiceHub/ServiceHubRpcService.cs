@@ -6,7 +6,7 @@ using Metalama.Framework.DesignTime.Rpc;
 using Metalama.Framework.DesignTime.Rpc.Notifications;
 using Metalama.Framework.DesignTime.VisualStudio.ServiceProvider;
 using Metalama.Framework.Engine.Services;
-using Microsoft.VisualStudio.Threading;
+using Metalama.Framework.Engine.Utilities.Threading;
 using System.Collections.Concurrent;
 
 namespace Metalama.Framework.DesignTime.VisualStudio.ServiceHub;
@@ -82,7 +82,7 @@ public sealed partial class ServiceHubRpcService : RpcService<IServiceHubRpcApi>
     {
         var endpoint = await this.GetEndpointAsync( projectKey, cancellationToken );
 
-        return await endpoint.GetClientAsync<T>( cancellationToken );
+        return await endpoint.GetOrWaitForClientAsync<T>( cancellationToken );
     }
 
     private void OnEventReceived( RpcEventData eventData )

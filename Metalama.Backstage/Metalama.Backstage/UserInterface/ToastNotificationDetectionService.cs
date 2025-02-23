@@ -46,7 +46,7 @@ internal sealed class ToastNotificationDetectionService : IToastNotificationDete
         };
     }
 
-    private void ValidateRegisteredLicense( LicenseProperties? license, ref bool notificationReported )
+    private void ValidateRegisteredLicense( LicenseRegistrationProperties? license, ref bool notificationReported )
     {
         // We set notificationReported to true even if the notification is not reported because of snoozing
         // because the reason of this flag is to avoid displaying VsxNotInstalled.
@@ -122,7 +122,10 @@ internal sealed class ToastNotificationDetectionService : IToastNotificationDete
 
         if ( this._licenseRegistrationService != null && !options.HasValidLicense )
         {
-            this.ValidateRegisteredLicense( this._licenseRegistrationService.RegisteredLicense, ref notificationReported );
+            foreach ( var license in this._licenseRegistrationService.RegisteredLicenses )
+            {
+                this.ValidateRegisteredLicense( license, ref notificationReported );
+            }
         }
 
         // TODO: Show a toast notification suggesting to subscribe the newsletter. (34701)

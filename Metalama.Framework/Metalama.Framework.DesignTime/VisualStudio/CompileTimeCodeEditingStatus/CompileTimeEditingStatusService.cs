@@ -133,7 +133,12 @@ internal sealed class CompileTimeEditingStatusService : ICompileTimeEditingStatu
     {
         foreach ( var endpoint in this._serviceHub.Endpoints )
         {
-            var client = endpoint.GetRequiredClient<CompileTimeCodeEditingStatusRpcClient>();
+            var client = endpoint.GetClient<CompileTimeCodeEditingStatusRpcClient>();
+
+            if ( client == null )
+            {
+                continue;
+            }
 
             var api = await client.GetApiAsync( cancellationToken );
             await api.OnCompileTimeCodeEditingCompletedAsync( cancellationToken );
@@ -146,7 +151,12 @@ internal sealed class CompileTimeEditingStatusService : ICompileTimeEditingStatu
 
         foreach ( var endpoint in this._serviceHub.Endpoints )
         {
-            var client = endpoint.GetRequiredClient<CompileTimeCodeEditingStatusRpcClient>();
+            var client = endpoint.GetClient<CompileTimeCodeEditingStatusRpcClient>();
+
+            if ( client == null )
+            {
+                continue;
+            }
 
             var api = await client.GetApiAsync( cancellationToken );
             await api.OnUserInterfaceAttachedAsync( cancellationToken );

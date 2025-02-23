@@ -7,16 +7,32 @@ using System.Linq;
 using Xunit;
 using Xunit.Abstractions;
 
-#if NETFRAMEWORK
-using System.Security.Cryptography;
-#endif
-
 namespace Metalama.Backstage.Tests.Licensing.Licenses
 {
     public sealed class LicenseFactoryTests : LicensingTestsBase
     {
         public LicenseFactoryTests( ITestOutputHelper logger )
             : base( logger ) { }
+
+        private LicenseFactory _licenseFactory = null!;
+
+        private LicenseFactory LicenseFactory
+        {
+            get
+            {
+                this.EnsureServicesInitialized();
+
+                return this._licenseFactory;
+            }
+        }
+
+        protected override void OnAfterServicesCreated( Services services )
+        {
+            base.OnAfterServicesCreated( services );
+
+            this._licenseFactory = new LicenseFactory( services.ServiceProvider );
+            this.UserDeviceDetection.IsInteractiveDevice = true;
+        }
 
         [Fact]
         public void NullLicenseStringFails()
@@ -43,7 +59,7 @@ namespace Metalama.Backstage.Tests.Licensing.Licenses
             Assert.True( this.LicenseFactory.TryCreate( invalidLicenseString, out var license, out var errorMessage ) );
             Assert.Null( errorMessage );
             Assert.True( license is License );
-            Assert.False( license.TryGetLicenseConsumptionData( LicenseConsumptionOptions.Default, out _, out _ ) );
+            Assert.False( license.TryGetConsumptionProperties( LicenseConsumptionOptions.Default, out _, out _ ) );
         }
 
         [Fact]
@@ -58,7 +74,7 @@ namespace Metalama.Backstage.Tests.Licensing.Licenses
             Assert.True( this.LicenseFactory.TryCreate( revokedLicenseString, out var license, out var errorMessage ) );
             Assert.Null( errorMessage );
             Assert.True( license is License );
-            Assert.False( license.TryGetLicenseConsumptionData( LicenseConsumptionOptions.Default, out _, out _ ) );
+            Assert.False( license.TryGetConsumptionProperties( LicenseConsumptionOptions.Default, out _, out _ ) );
         }
 
         [Fact]
@@ -67,7 +83,7 @@ namespace Metalama.Backstage.Tests.Licensing.Licenses
             Assert.True( this.LicenseFactory.TryCreate( LicenseKeyProvider.PostSharpUltimate, out var license, out var errorMessage ) );
             Assert.Null( errorMessage );
             Assert.True( license is License );
-            Assert.True( license.TryGetLicenseConsumptionData( LicenseConsumptionOptions.Default, out var licenseData, out errorMessage ) );
+            Assert.True( license.TryGetConsumptionProperties( LicenseConsumptionOptions.Default, out var licenseData, out errorMessage ) );
             Assert.NotNull( licenseData );
             Assert.Null( errorMessage );
         }
@@ -95,13 +111,9 @@ namespace Metalama.Backstage.Tests.Licensing.Licenses
             Assert.Null( errorMessage );
             Assert.True( license is License );
 
-#if NETFRAMEWORK
-            Assert.Throws<CryptographicException>( () => license.TryGetLicenseConsumptionData( LicenseConsumptionOptions.Default, out _, out _ ) );
-#else
-            Assert.False( license.TryGetLicenseConsumptionData( LicenseConsumptionOptions.Default, out var data, out errorMessage ) );
+            Assert.False( license.TryGetConsumptionProperties( LicenseConsumptionOptions.Default, out var data, out errorMessage ) );
             Assert.Null( data );
             Assert.NotEmpty( errorMessage );
-#endif
         }
     }
 }

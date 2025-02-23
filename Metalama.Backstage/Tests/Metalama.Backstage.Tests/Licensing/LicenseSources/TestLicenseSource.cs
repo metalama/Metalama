@@ -5,6 +5,7 @@ using Metalama.Backstage.Licensing.Consumption;
 using Metalama.Backstage.Licensing.Consumption.Sources;
 using Metalama.Backstage.Licensing.Licenses;
 using System;
+using System.Collections.Generic;
 
 namespace Metalama.Backstage.Tests.Licensing.LicenseSources
 {
@@ -27,11 +28,18 @@ namespace Metalama.Backstage.Tests.Licensing.LicenseSources
             this._license = license;
         }
 
-        public ILicense? GetLicense( Action<LicensingMessage> reportWarning )
+        public IEnumerable<ILicense> GetLicenses( Action<LicensingMessage> reportMessage )
         {
             this.NumberOfUses++;
 
-            return this._license;
+            if ( this._license == null )
+            {
+                return [];
+            }
+            else
+            {
+                return [this._license];
+            }
         }
 
         event Action? ILicenseSource.Changed { add { } remove { } }

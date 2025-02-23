@@ -1,6 +1,7 @@
 ﻿// Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
 using Metalama.Backstage.Licensing.Consumption.Sources;
+using Metalama.Backstage.Licensing.Licenses;
 using System;
 using System.Collections.Generic;
 
@@ -14,14 +15,22 @@ internal static class LicenseConsumptionServiceFactory
     {
         var licenseSources = new List<ILicenseSource>();
 
-        if ( !options.IgnoreUnattendedProcessLicense )
+        if ( (options.IgnoredLicenseSources & LicenseSourceKind.Unattended) == 0 )
         {
             licenseSources.Add( new UnattendedLicenseSource( serviceProvider ) );
         }
 
-        if ( !options.IgnoreUserProfileLicenses )
+        if ( (options.IgnoredLicenseSources & LicenseSourceKind.UserProfile) == 0 )
         {
             licenseSources.Add( new UserProfileLicenseSource( serviceProvider ) );
+        }
+
+        if ( options.BuildTestLicenseAction != null )
+        {
+            var licenseBuilder = new LicenseKeyDataBuilder();
+            options.BuildTestLicenseAction( licenseBuilder );
+            var licenseKey = licenseBuilder.SignAndSerialize( LicensingAuthority.GetTestAuthority() );
+            licenseSources.Add( new ExplicitLicenseSource( licenseKey, serviceProvider ) );
         }
 
         return new LicenseConsumptionService( serviceProvider, licenseSources );

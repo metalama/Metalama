@@ -1,10 +1,11 @@
 ﻿// Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
+using Metalama.Backstage.Application;
 using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Infrastructure;
-using Metalama.Backstage.Licensing.Audit;
 using Metalama.Backstage.Licensing.Consumption.Sources;
+using Metalama.Backstage.Licensing.Licenses;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -14,68 +15,50 @@ namespace Metalama.Backstage.Licensing.Consumption;
 
 internal sealed class LicenseConsumer : ILicenseConsumer
 {
-    public ImmutableArray<LicensingMessage> Messages { get; }
-
-    private readonly ILogger _logger;
-    private readonly LicenseConsumptionOptions _options;
-    private readonly LicenseConsumptionData? _license;
-    private readonly BackstageBackgroundTasksService _backgroundTasksService;
+    private readonly ImmutableArray<(ILicense License, LicenseConsumptionProperties Properties)> _licenses;
     private readonly IDateTimeProvider _dateTimeProvider;
-    private readonly ILicenseAuditManager? _licenseAuditManager;
+    private readonly ILogger _logger;
+    private readonly IApplicationInfo _applicationInfo;
 
     private DateTime _lastAuditTime = DateTime.MinValue;
 
     private LicenseConsumer(
-        LicenseConsumptionOptions options,
         IServiceProvider services,
-        LicenseConsumptionData? license,
-        ImmutableArray<LicensingMessage> messages )
+        ImmutableArray<(ILicense License, LicenseConsumptionProperties Properties)> licenses )
     {
-        this.Messages = messages;
-        this._options = options;
-        this._license = license;
+        this._licenses = licenses;
         this._logger = services.GetLoggerFactory().Licensing();
         this._dateTimeProvider = services.GetRequiredBackstageService<IDateTimeProvider>();
-        this._licenseAuditManager = services.GetBackstageService<ILicenseAuditManager>();
-        this._backgroundTasksService = services.GetRequiredBackstageService<BackstageBackgroundTasksService>();
+        this._applicationInfo = services.GetRequiredBackstageService<IApplicationInfoProvider>().CurrentApplication;
     }
 
     public static ILicenseConsumer Create(
         LicenseConsumptionOptions options,
         IServiceProvider services,
-        IEnumerable<ILicenseSource> licenseSources )
+        IEnumerable<ILicenseSource> licenseSources,
+        Action<LicensingMessage>? reportMessage = null )
     {
-        var messagesBuilder = ImmutableArray.CreateBuilder<LicensingMessage>();
-
         var logger = services.GetLoggerFactory().Licensing();
 
-        LicenseConsumptionData? licenseConsumptionData = null;
+        var licenses = licenseSources.OrderBy( s => s.Priority ).SelectMany( s => s.GetLicenses( ReportMessage ).Select( l => (License: l, Source: s) ) );
 
-        foreach ( var source in licenseSources.OrderBy( s => s.Priority ) )
+        var validLicenses = ImmutableArray.CreateBuilder<(ILicense License, LicenseConsumptionProperties Properties)>();
+
+        foreach ( var license in licenses )
         {
-            var license = source.GetLicense( ReportMessage );
-
-            if ( license == null )
+            if ( !license.License.TryGetConsumptionProperties( options, out var licenseConsumptionData, out var errorMessage ) )
             {
-                logger.Trace?.Log( $"'{source.GetType().Name}' license source provided no license." );
-
-                continue;
-            }
-
-            if ( !license.TryGetLicenseConsumptionData( options, out licenseConsumptionData, out var errorMessage ) )
-            {
-                _ = license.TryGetProperties( out var registrationData, out _ );
-                var message = registrationData == null ? "A license" : $"The {registrationData.Description}";
-                message += $" {errorMessage}.";
+                _ = license.License.TryGetRegistrationProperties( out var registrationData, out _ );
+                var message = $"Cannot use the license '{registrationData?.Description}': {errorMessage}";
 
                 if ( registrationData is { IsSelfCreated: false } )
                 {
                     message += $" License key ID: '{registrationData.LicenseId}'.";
                 }
 
-                if ( source.GetType() != typeof(UserProfileLicenseSource) )
+                if ( license.Source.GetType() != typeof(UserProfileLicenseSource) )
                 {
-                    message += $" The license key originates from {source.Description}.";
+                    message += $" The license key originates from {license.Source.Description}.";
                 }
 
                 ReportMessage( new LicensingMessage( message ) );
@@ -92,55 +75,61 @@ internal sealed class LicenseConsumer : ILicenseConsumer
             }
 #pragma warning restore CS0612 // Type or member is obsolete
 
-            break;
+            validLicenses.Add( (license.License, licenseConsumptionData) );
         }
 
-        return new LicenseConsumer( options, services, licenseConsumptionData, messagesBuilder.ToImmutable() );
+        return new LicenseConsumer( services, validLicenses.ToImmutableArray() );
 
         void ReportMessage( LicensingMessage message )
         {
-            messagesBuilder.Add( message );
+            reportMessage?.Invoke( message );
             logger.Warning?.Log( message.Text );
         }
     }
 
     /// <inheritdoc />
-    public bool TryConsume( Predicate<LicenseConsumptionData> predicate )
+    public bool TryConsume( LicenseRequirement requirement, Action<LicensingMessage>? reportMessage )
     {
-        if ( this._license == null )
-        {
-            this._logger.Warning?.Log( "No license provided." );
+        var mustAudit = false;
 
-            return false;
-        }
+        this._logger.Trace?.Log( $"TryConsume({{{requirement}}}" );
 
-        if ( predicate( this._license ) )
-        {
-            this.AuditIfNecessary();
-
-            return true;
-        }
-        else
-        {
-            return false;
-        }
-    }
-
-    private void AuditIfNecessary()
-    {
-        // Audit the use of the license once per day (more time checks are performed by the license audit manager).
-        if ( this._license != null && this._lastAuditTime.AddDays( 1 ) < this._dateTimeProvider.UtcNow )
+        if ( this._lastAuditTime.AddDays( 1 ) < this._dateTimeProvider.UtcNow )
         {
             this._lastAuditTime = this._dateTimeProvider.UtcNow;
+            mustAudit = true;
+        }
 
-            if ( this._licenseAuditManager != null )
+        foreach ( var license in this._licenses )
+        {
+            if ( requirement.IsEligible(
+                    new LicenseConsumptionContext( license.Properties, this._applicationInfo, this._dateTimeProvider.UtcNow, this._logger ) ) )
             {
-                this._backgroundTasksService.Enqueue( () => this._licenseAuditManager.ReportLicense( this._license ) );
+                this._logger.Trace?.Log( $"TryConsume({{{requirement}}}: '{license.Properties.DisplayName}' is eligible" );
+
+                if ( mustAudit )
+                {
+                    license.License.OnConsumed();
+                }
+
+                return true;
             }
             else
             {
-                this._logger.Warning?.Log( $"License audit is skipped because there is no {nameof(ILicenseAuditManager)}." );
+                this._logger.Trace?.Log( $"TryConsume({{{requirement}}}: '{license.Properties.DisplayName}' is not eligible" );
             }
         }
+
+        reportMessage?.Invoke(
+            new LicensingMessage( $"The component '{requirement.ComponentName}' is not licensed: it requires {requirement.RequiredLicenseDescription}." )
+            {
+                IsError = true
+            } );
+
+        // TODO: We might open some UI here.
+
+        this._logger.Warning?.Log( $"TryConsume({{{requirement}}}: no eligible license found." );
+
+        return false;
     }
 }

@@ -1,6 +1,9 @@
 ﻿// Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
+using Metalama.Backstage.Licensing.Licenses;
+using Metalama.Backstage.Licensing.Registration;
 using System;
+using System.Collections.Generic;
 
 namespace Metalama.Backstage.Licensing.Consumption.Sources;
 
@@ -12,13 +15,21 @@ internal sealed class ExplicitLicenseSource : LicenseSourceBase
 
     public override LicenseSourceKind Kind => LicenseSourceKind.Explicit;
 
+    protected override IEnumerable<LicenseRegistrationProperties> GetRegisteredLicenses( Action<LicensingMessage> reportMessage )
+    {
+        if ( !LicenseKeyData.TryDeserialize( this._licenseString, out var license, out var errorMessage ) )
+        {
+            reportMessage( new LicensingMessage( errorMessage ) );
+        }
+
+        return [license!.ToLicenseRegistrationProperties()];
+    }
+
     public ExplicitLicenseSource( string licenseString, IServiceProvider services )
         : base( services )
     {
         this._licenseString = licenseString;
     }
-
-    protected override string? GetLicenseString() => this._licenseString;
 
     public override LicenseSourcePriority Priority => LicenseSourcePriority.Explicit;
 }
