@@ -8,6 +8,8 @@ internal abstract class BaseConfigurationCommand : BaseCommand<ConfigurationComm
 {
     protected sealed override void Execute( ExtendedCommandContext context, ConfigurationCommandSettings settings )
     {
+        this.PrintStandardDirectoryPath( context );
+
         if ( !context.BackstageCommandOptions.ConfigurationFileCommandAdapters.TryGetValue( settings.Alias, out var adapter ) )
         {
             throw new CommandException(

@@ -9,6 +9,8 @@ internal class RegisterTrialCommand : BaseCommand<BaseCommandSettings>
 {
     protected override void Execute( ExtendedCommandContext context, BaseCommandSettings settings )
     {
+        this.PrintStandardDirectoryPath( context );
+
         var service = context.ServiceProvider.GetRequiredBackstageService<ILicenseRegistrationService>();
 
         if ( !service.TryRegisterTrialEdition( out var errorMessage ) )

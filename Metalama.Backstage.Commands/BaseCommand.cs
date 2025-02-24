@@ -3,6 +3,7 @@
 using JetBrains.Annotations;
 using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Extensibility;
+using Metalama.Backstage.Infrastructure;
 using Metalama.Backstage.Telemetry;
 using Spectre.Console.Cli;
 using System;
@@ -61,5 +62,18 @@ namespace Metalama.Backstage.Commands
         protected abstract void Execute( ExtendedCommandContext context, T settings );
 
         protected virtual BackstageInitializationOptions AddBackstageOptions( BackstageInitializationOptions options ) => options;
+
+        protected void PrintStandardDirectoryPath( ExtendedCommandContext context )
+        {
+            var standardDirectories = context.ServiceProvider.GetBackstageService<IStandardDirectories>();
+            var logging = context.ServiceProvider.GetBackstageService<ILoggerFactory>();
+
+            if ( standardDirectories != null && logging != null )
+            {
+                var logger = logging.GetLogger( "BaseCommand" );
+
+                logger.Info?.Log( $"Using standard data directory: {standardDirectories.ApplicationDataDirectory}" );
+            }
+        }
     }
 }

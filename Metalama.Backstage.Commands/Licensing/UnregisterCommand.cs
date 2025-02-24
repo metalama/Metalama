@@ -9,6 +9,8 @@ internal class UnregisterCommand : BaseCommand<BaseCommandSettings>
 {
     protected override void Execute( ExtendedCommandContext context, BaseCommandSettings settings )
     {
+        this.PrintStandardDirectoryPath( context );
+
         if ( !context.ServiceProvider.GetRequiredBackstageService<ILicenseRegistrationService>().TryRemoveCurrentLicense( out var licenseString ) )
         {
             throw new CommandException( "A license is not registered." );

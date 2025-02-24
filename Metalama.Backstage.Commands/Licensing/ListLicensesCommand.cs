@@ -12,6 +12,8 @@ namespace Metalama.Backstage.Commands.Licensing
     {
         protected override void Execute( ExtendedCommandContext context, BaseCommandSettings settings )
         {
+            this.PrintStandardDirectoryPath( context );
+
             var license = context.ServiceProvider.GetRequiredBackstageService<ILicenseRegistrationService>().RegisteredLicense;
 
             if ( license != null )

@@ -16,6 +16,8 @@ internal abstract class SetTelemetryCommand : BaseCommand<BaseCommandSettings>
 
     protected override void Execute( ExtendedCommandContext context, BaseCommandSettings settings )
     {
+        this.PrintStandardDirectoryPath( context );
+
         context.ServiceProvider.GetRequiredBackstageService<ITelemetryConfigurationService>().SetStatus( this._enable );
         var state = this._enable ? "enabled" : "disabled";
         context.Console.WriteSuccess( $"Telemetry has been {state}." );

@@ -9,6 +9,8 @@ namespace Metalama.Backstage.Commands.Telemetry
     {
         protected override void Execute( ExtendedCommandContext context, UploadTelemetryCommandSettings settings )
         {
+            this.PrintStandardDirectoryPath( context );
+
             var uploader = context.ServiceProvider.GetRequiredBackstageService<ITelemetryUploader>();
 
             if ( settings.Async )

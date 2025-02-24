@@ -12,6 +12,8 @@ internal class RegisterLicenseCommand : BaseCommand<RegisterLicenseCommandSettin
 
     protected override void Execute( ExtendedCommandContext context, RegisterLicenseCommandSettings settings )
     {
+        this.PrintStandardDirectoryPath( context );
+
         var service = context.ServiceProvider.GetRequiredBackstageService<ILicenseRegistrationService>();
 
         if ( !service.TryRegisterLicense( settings.License, out var errorMessage ) )
