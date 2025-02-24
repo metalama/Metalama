@@ -182,7 +182,10 @@ namespace Metalama.Backstage.Licensing.Licenses
                 }
             }
 
-            switch ( licenseKeyData.Product )
+            var licenseType = licenseKeyData.NormalizeLicenseType();
+            var product = licenseKeyData.NormalizeProduct();
+
+            switch ( product )
             {
                 case LicenseProduct.MetalamaCommunity:
                 case LicenseProduct.MetalamaProfessional:
@@ -216,8 +219,6 @@ namespace Metalama.Backstage.Licensing.Licenses
 
             errorMessage = null;
 
-            var licenseType = licenseKeyData.NormalizeLicenseType();
-            var product = licenseKeyData.NormalizeProduct();
 #pragma warning disable CS0618 // Type or member is obsolete
             var isRedistributable = licenseType is LicenseType.OpenSourceRedistribution or LicenseType.CommercialRedistribution;
 #pragma warning restore CS0618 // Type or member is obsolete
