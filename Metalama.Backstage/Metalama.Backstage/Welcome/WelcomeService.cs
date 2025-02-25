@@ -9,7 +9,8 @@ using System;
 
 namespace Metalama.Backstage.Welcome;
 
-internal sealed class WelcomeService : IBackstageService
+[PublicAPI( "Used by VSX." )]
+public sealed class WelcomeService : IBackstageService
 {
     private readonly IConfigurationManager _configurationManager;
     private readonly WebLinks _webLinks;
@@ -24,8 +25,7 @@ internal sealed class WelcomeService : IBackstageService
         this._telemetryConfigurationService = serviceProvider.GetRequiredBackstageService<ITelemetryConfigurationService>();
     }
 
-    // Used by the VSX.
-    [PublicAPI]
+    [PublicAPI( "Used by VSX." )]
     public bool WelcomePageDisplayed
     {
         get => this._configurationManager.Get<WelcomeConfiguration>().WelcomePageDisplayed;
