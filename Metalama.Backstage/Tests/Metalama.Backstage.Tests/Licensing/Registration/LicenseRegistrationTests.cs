@@ -19,7 +19,6 @@ namespace Metalama.Backstage.Tests.Licensing.Registration
         [InlineData( nameof(TestLicenseKeyProvider.MetalamaProfessionalBusinessNotAuditable) )]
         [InlineData( nameof(TestLicenseKeyProvider.PostSharpFramework) )]
         [InlineData( nameof(TestLicenseKeyProvider.PostSharpUltimate) )]
-        [InlineData( nameof(TestLicenseKeyProvider.PostSharpEssentials) )]
         [InlineData( nameof(TestLicenseKeyProvider.MetalamaCommunity) )]
 #pragma warning disable CS0612
         [InlineData( nameof(TestLicenseKeyProvider.MetalamaUltimateBusiness) )]
@@ -41,7 +40,7 @@ namespace Metalama.Backstage.Tests.Licensing.Registration
         [InlineData( nameof(TestLicenseKeyProvider.MetalamaProfessionalBusinessNotAuditable) )]
         [InlineData( nameof(TestLicenseKeyProvider.PostSharpFramework) )]
         [InlineData( nameof(TestLicenseKeyProvider.PostSharpUltimate) )]
-        [InlineData( nameof(TestLicenseKeyProvider.PostSharpEssentials) )]
+        [InlineData( nameof(TestLicenseKeyProvider.PostSharpEssentials), true, false )]
         [InlineData( nameof(TestLicenseKeyProvider.MetalamaCommunity) )]
         [InlineData( nameof(TestLicenseKeyProvider.MetalamaProfessionalBusinessUnsigned), false, false )]
         [InlineData( nameof(TestLicenseKeyProvider.InvalidLicenseKey), false, false )]
