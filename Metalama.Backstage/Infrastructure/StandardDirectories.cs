@@ -79,7 +79,7 @@ namespace Metalama.Backstage.Infrastructure
                 // In case the incorrect directory exists already, we won't start using the correct one.
                 logger?.Warning?.Log( 
                     $"Using obsolete data directory '{incorrectApplicationDataDirectory}', " +
-                    $"please copy the content to '{osxForwardCompatibleApplicationDataDirectory ?? correctApplicationDataDirectory}'." );
+                    $"please migrate the content to '{osxForwardCompatibleApplicationDataDirectory ?? correctApplicationDataDirectory}'." );
 
                 this.ApplicationDataDirectory = incorrectApplicationDataDirectory;
             }
@@ -104,7 +104,7 @@ namespace Metalama.Backstage.Infrastructure
                                 $"Using forward-compatible data directory '{osxForwardCompatibleApplicationDataDirectory}' " +
                                 $"even though '{correctApplicationDataDirectory}' already exists." +
                                 $"This indicates mixing of .NET runtimes before and after .NET 8.0 in older versions of Metalama. " +
-                                $"Please inspect the latter directory, migrate it's content to the former, and delete it afterwards." );
+                                $"Please inspect the latter directory, migrate it's content to the former directory." );
 
                             this.ApplicationDataDirectory = osxForwardCompatibleApplicationDataDirectory;
                             return;
