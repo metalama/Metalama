@@ -19,8 +19,6 @@ internal abstract class LicenseUsageBaseCommand : BaseCommand<LicenseUsageComman
 {
     protected sealed override void Execute( ExtendedCommandContext context, LicenseUsageCommandSettings settings )
     {
-        this.PrintStandardDirectoryPath( context );
-
         var horizon = settings.GetHorizon();
 
         context.Console.WriteMessage( $"Considering builds from {horizon:f}. Use -d, -w or -h option to change the time horizon." );
