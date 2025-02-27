@@ -49,8 +49,15 @@ public sealed class NotifyCommand : BaseCommand<NotifyCommandSettings>
                 break;
         }
 
-        builder.AddButton( "Snooze", ToastActivationType.Foreground, activationArguments.Snooze );
-        builder.AddButton( "Mute", ToastActivationType.Foreground, activationArguments.Mute );
+        if ( notificationViewModel.CanSnooze )
+        {
+            builder.AddButton( "Snooze", ToastActivationType.Foreground, activationArguments.Snooze );
+        }
+
+        if ( notificationViewModel.CanMute )
+        {
+            builder.AddButton( "Mute", ToastActivationType.Foreground, activationArguments.Mute );
+        }
 
         logger.Trace?.Log( builder.Content.GetXml().GetXml() );
 

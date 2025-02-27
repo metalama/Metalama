@@ -75,26 +75,36 @@ internal sealed class VsUserProcessProjectSourceGenerator : ProjectSourceGenerat
 
     public override SourceGeneratorResult GenerateSources( Compilation compilation, TestableCancellationToken cancellationToken )
     {
-        if ( this._sources == null )
+        try
         {
-            // If we have not received the source yet, see if it was received by the client before we were created.
-            if ( this.TryGetGeneratedSourcesIfAvailable( this.ProjectKey, out var sources ) )
+            if ( this._sources == null )
             {
-                this.Logger.Trace?.Log( $"Generated sources for '{this.ProjectKey}' were retrieved from ServiceClient." );
-                this._sources = sources;
-            }
-            else
-            {
-                this.Logger.Warning?.Log( $"Information about generated sources for '{this.ProjectKey}' is not available." );
+                // If we have not received the source yet, see if it was received by the client before we were created.
+                if ( this.TryGetGeneratedSourcesIfAvailable( this.ProjectKey, out var sources ) )
+                {
+                    this.Logger.Trace?.Log( $"Generated sources for '{this.ProjectKey}' were retrieved from ServiceClient." );
+                    this._sources = sources;
+                }
+                else
+                {
+                    this.Logger.Warning?.Log( $"Information about generated sources for '{this.ProjectKey}' is not available." );
 
-                // Retrieve in the background.
-                _ = this.RetrieveGeneratedSourcesAsync( this.ProjectKey );
+                    // Retrieve in the background.
+                    _ = this.RetrieveGeneratedSourcesAsync( this.ProjectKey );
 
-                return SourceGeneratorResult.Empty;
+                    return SourceGeneratorResult.Empty;
+                }
             }
+
+            return new TextSourceGeneratorResult( this._sources.AssertNotNull() );
         }
+        catch ( Exception e )
+        {
+            // This is our entry point to Roslyn. Make sure we don't propagate exceptions.
+            this._exceptionHandler?.ReportException( e, this.Logger );
 
-        return new TextSourceGeneratorResult( this._sources.AssertNotNull() );
+            return SourceGeneratorResult.Empty;
+        }
     }
 
     private bool TryGetGeneratedSourcesIfAvailable( ProjectKey projectKey, out ImmutableDictionary<string, string>? sources )

@@ -27,8 +27,6 @@
 
         <!-- Explicitly add Microsoft.VisualStudio.Threading and StreamJsonRpc because the reference to Metalama.Framework.DesignTime must have PrivateAssets="all" -->
         <PackageReference Include="Microsoft.VisualStudio.Threading" VersionOverride="$(MicrosoftVisualStudioThreadingLatestVersion)"/>
-        <PackageReference Include="StreamJsonRpc" VersionOverride="$(StreamJsonRpcLatestVersion)"/>
-        <PackageReference Include="MessagePack" VersionOverride="$(MessagePackLatestVersion)"/>
     </ItemGroup>
 
     <ItemGroup>

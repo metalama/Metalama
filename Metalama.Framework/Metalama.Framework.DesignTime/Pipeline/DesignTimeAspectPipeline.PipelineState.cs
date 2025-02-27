@@ -405,8 +405,7 @@ public sealed partial class DesignTimeAspectPipeline
                 state._pipeline._eventHub?.PublishCompileTimeErrors(
                     state._pipeline.ProjectKey,
                     errors
-                        .Select( d => new DiagnosticData( d ) )
-                        .ToReadOnlyList() );
+                        .SelectAsImmutableArray( d => new DiagnosticData( d ) ) );
 
                 if ( !initializeSuccessful )
                 {

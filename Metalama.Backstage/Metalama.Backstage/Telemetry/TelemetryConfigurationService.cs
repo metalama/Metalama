@@ -11,6 +11,7 @@ namespace Metalama.Backstage.Telemetry;
 
 internal sealed class TelemetryConfigurationService : ITelemetryConfigurationService
 {
+    public const string OptOutEnvironmentVariable = "METALAMA_TELEMETRY_OPT_OUT";
     private readonly IConfigurationManager _configurationManager;
     private readonly IServiceProvider _serviceProvider;
     private readonly Guid _newDeviceId;
@@ -32,6 +33,7 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
         var loggerFactory = this._serviceProvider.GetLoggerFactory();
         var logger = loggerFactory.Telemetry();
 
+        // Check if the current application supports telemetry.
         var applicationInfo = this._serviceProvider.GetRequiredBackstageService<IApplicationInfoProvider>().CurrentApplication;
         var isApplicationTelemetryEnabled = applicationInfo.IsTelemetryEnabled;
 
@@ -42,10 +44,29 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
             return false;
         }
 
+        // Check if the current process is unattended.
+        if ( applicationInfo.IsUnattendedProcess( loggerFactory ) )
+        {
+            logger.Trace?.Log( $"Telemetry is disabled because the current process is unattended." );
+
+            return false;
+        }
+
+        // Check if there is an environment variable opt-out.
         var telemetryOptOutEnvironmentVariableValue = this._serviceProvider.GetRequiredBackstageService<IEnvironmentVariableProvider>()
-            .GetEnvironmentVariable( "METALAMA_TELEMETRY_OPT_OUT" );
+            .GetEnvironmentVariable( OptOutEnvironmentVariable );
 
         var isTelemetryOptedOut = !string.IsNullOrEmpty( telemetryOptOutEnvironmentVariableValue );
+
+        if ( bool.TryParse( telemetryOptOutEnvironmentVariableValue, out var parsedBool ) && !parsedBool )
+        {
+            isTelemetryOptedOut = false;
+        }
+
+        if ( int.TryParse( telemetryOptOutEnvironmentVariableValue, out var parsedInt ) && parsedInt == 0 )
+        {
+            isTelemetryOptedOut = false;
+        }
 
         if ( isTelemetryOptedOut )
         {
@@ -54,9 +75,10 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
             return false;
         }
 
-        if ( applicationInfo.IsUnattendedProcess( loggerFactory ) )
+        // Check the current configuration.
+        if ( this._configurationManager.Get<TelemetryConfiguration>().UsageReportingAction == ReportingAction.No )
         {
-            logger.Trace?.Log( $"Telemetry is disabled because the current process is unattended." );
+            logger.Trace?.Log( $"Telemetry is disabled by configuration setting." );
 
             return false;
         }

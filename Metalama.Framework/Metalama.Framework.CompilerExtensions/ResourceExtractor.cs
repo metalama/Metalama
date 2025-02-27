@@ -484,7 +484,7 @@ public static class ResourceExtractor
                     return Assembly.LoadFile( embeddedAssembly.Path );
                 }
 
-                return _assemblyLoader.LoadAssembly( embeddedAssembly.Path );
+                return _assemblyLoader.LoadFromPath( embeddedAssembly.Path );
             }
             else
             {

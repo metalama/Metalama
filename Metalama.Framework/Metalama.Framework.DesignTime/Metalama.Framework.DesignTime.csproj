@@ -25,7 +25,6 @@
         <ProjectReference Include="../Metalama.Framework.DesignTime.Contracts/Metalama.Framework.DesignTime.Contracts.csproj" />
         <ProjectReference Include="../Metalama.Framework.DesignTime.Rpc/Metalama.Framework.DesignTime.Rpc.csproj" />
         <ProjectReference Include="../Metalama.Framework.Engine$(ThisRoslynVersionProjectSuffix)/Metalama.Framework.Engine$(ThisRoslynVersionProjectSuffix).csproj" />
-        <PackageReference Include="StreamJsonRpc" />
     </ItemGroup>
 
     <ItemGroup>

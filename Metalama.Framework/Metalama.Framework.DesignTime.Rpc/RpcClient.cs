@@ -74,6 +74,6 @@ public abstract class RpcClient<TApi> : RpcClient
 
     protected internal override void ConfigureRpc( JsonRpc rpc )
     {
-        this._remoteApi = rpc.AttachSafe<TApi>( this.Logger );
+        this._remoteApi = rpc.Attach<TApi>();
     }
 }

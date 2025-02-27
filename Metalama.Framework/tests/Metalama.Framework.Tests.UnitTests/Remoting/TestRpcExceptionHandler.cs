@@ -16,5 +16,12 @@ internal sealed class TestRpcExceptionHandler : IRpcExceptionHandler
         this._testOutputHelper = testOutputHelper;
     }
 
-    public void OnException( Exception e, ILogger logger, bool isDisposing ) => this._testOutputHelper.WriteLine( e.ToString() );
+    public void OnException( Exception e, ILogger logger, bool isDisposing )
+    {
+        try
+        {
+            this._testOutputHelper.WriteLine( e.ToString() );
+        }
+        catch ( InvalidOperationException ) { }
+    }
 }

@@ -3,7 +3,7 @@
 using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Infrastructure;
-using Metalama.Backstage.Licensing.Licenses;
+using Metalama.Backstage.Licensing;
 using Metalama.Backstage.Licensing.Registration;
 using System;
 
@@ -46,7 +46,7 @@ internal sealed class ToastNotificationDetectionService : IToastNotificationDete
         };
     }
 
-    private void ValidateRegisteredLicense( LicenseProperties? license, ref bool notificationReported )
+    private void ValidateRegisteredLicense( LicenseRegistrationProperties? license, ref bool notificationReported )
     {
         // We set notificationReported to true even if the notification is not reported because of snoozing
         // because the reason of this flag is to avoid displaying VsxNotInstalled.
@@ -79,21 +79,32 @@ internal sealed class ToastNotificationDetectionService : IToastNotificationDete
                 }
 
             case { SubscriptionEndDate: not null }
-                when license.LicenseType != LicenseType.Evaluation // We only show license expiration warnings for non-evaluation licenses.
-                     && license.SubscriptionEndDate.Value - LicensingConstants.SubscriptionExpirationWarningPeriod < this._dateTimeProvider.UtcNow:
-                this._toastNotificationService.Show(
-                    new ToastNotification(
-                        ToastNotificationKinds.SubscriptionExpiring,
-                        $"Your Metalama subscription {this.FormatExpiration( license.SubscriptionEndDate.Value )}",
-                        "Renew your subscription and register a new license key to continue benefiting from updates." ) );
+                when license.SubscriptionEndDate.Value - LicensingConstants.SubscriptionExpirationWarningPeriod < this._dateTimeProvider.UtcNow:
 
-                notificationReported = true;
+                if ( license.Product == LicenseProduct.MetalamaCommunity )
+                {
+                    // TODO.
+                }
+                else if ( license.LicenseType == LicenseType.Evaluation )
+                {
+                    // Nothing to do.
+                }
+                else
+                {
+                    this._toastNotificationService.Show(
+                        new ToastNotification(
+                            ToastNotificationKinds.SubscriptionExpiring,
+                            $"Your Metalama subscription {this.FormatExpiration( license.SubscriptionEndDate.Value )}",
+                            "Renew your subscription and register a new license key to continue benefiting from updates." ) );
+
+                    notificationReported = true;
+                }
 
                 break;
         }
     }
 
-    private void DetectImpl( ToastNotificationDetectionOptions options )
+    private void DetectImpl()
     {
         // Avoid too frequent detections for performance reasons. The threshold (here 15 seconds) should be lower
         // than the lowest auto-snooze period of a toast notification.
@@ -120,19 +131,21 @@ internal sealed class ToastNotificationDetectionService : IToastNotificationDete
 
         this._logger.Trace?.Log( "Detecting relevant toast notifications." );
 
-        if ( this._licenseRegistrationService != null && !options.HasValidLicense )
+        // Validate registered licenses, but do not complain about the lack of licenses.
+        if ( this._licenseRegistrationService != null )
         {
-            this.ValidateRegisteredLicense( this._licenseRegistrationService.RegisteredLicense, ref notificationReported );
+            foreach ( var license in this._licenseRegistrationService.RegisteredLicenses )
+            {
+                this.ValidateRegisteredLicense( license, ref notificationReported );
+            }
         }
 
-        // TODO: Show a toast notification suggesting to subscribe the newsletter. (34701)
-
+        // Suggest to install Visual Studio Tools for Metalama.
         if ( !notificationReported && this._ideExtensionStatusService?.ShouldRecommendToInstallVisualStudioExtension == true )
         {
             this._toastNotificationService.Show( new ToastNotification( ToastNotificationKinds.VsxNotInstalled ) );
         }
     }
 
-    public void Detect( ToastNotificationDetectionOptions? options )
-        => this._backgroundTasksService.Enqueue( () => this.DetectImpl( options ?? new ToastNotificationDetectionOptions() ) );
+    public void Detect() => this._backgroundTasksService.Enqueue( this.DetectImpl );
 }

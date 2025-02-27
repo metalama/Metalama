@@ -1,6 +1,7 @@
 ﻿// Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
 using Metalama.Framework.DesignTime.Pipeline.Diff;
+using Metalama.Testing.UnitTesting;
 using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Generic;
@@ -12,7 +13,7 @@ namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline;
 
 #pragma warning disable VSTHRD200
 
-public sealed partial class CompilationChangesTests
+public sealed partial class CompilationChangesTests : UnitTestClass
 {
     [Fact]
     public async Task AddPortableExecutableReference()

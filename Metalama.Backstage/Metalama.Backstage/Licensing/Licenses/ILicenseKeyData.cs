@@ -13,7 +13,7 @@ internal interface ILicenseKeyData
 
     LicenseType LicenseType { get; }
 
-    LicensedProduct Product { get; }
+    LicenseProduct Product { get; }
 
     IReadOnlyDictionary<LicenseFieldIndex, LicenseField> Fields { get; }
 }

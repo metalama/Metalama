@@ -27,11 +27,6 @@ public class ChooseLicenseKindPageModel : PageModel
 
                 return this.Redirect( "/DoneOpenSource" );
 
-            case "UseCommunity":
-                GlobalState.SelectedAction = SelectedAction.Community;
-
-                return this.Redirect( "/Community" );
-
             case "StartTrial":
                 GlobalState.SelectedAction = SelectedAction.Trial;
 

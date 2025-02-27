@@ -26,7 +26,7 @@ internal sealed class XunitLoggerFactory : ILoggerFactory
     void ILoggerFactory.Flush() { }
 
     public IDisposable EnterScope( string scope ) => default(DisposableAction);
-    
+
     private sealed class Logger : ILogger
     {
         private readonly string _prefix;
@@ -73,6 +73,13 @@ internal sealed class XunitLoggerFactory : ILoggerFactory
             this._testOutputHelper = testOutputHelper;
         }
 
-        public void Log( string message ) => this._testOutputHelper.WriteLine( $"{this._severity} {this._prefix}: {message}" );
+        public void Log( string message )
+        {
+            try
+            {
+                this._testOutputHelper.WriteLine( $"{this._severity} {this._prefix}: {message}" );
+            }
+            catch ( InvalidOperationException ) { }
+        }
     }
 }

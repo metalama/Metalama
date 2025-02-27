@@ -2,6 +2,7 @@
 
 using JetBrains.Annotations;
 using Metalama.Backstage.Diagnostics;
+using Metalama.Backstage.Utilities;
 using Metalama.Framework.Engine.Collections;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities;
@@ -37,9 +38,10 @@ namespace Metalama.Framework.Engine.CompileTime
         private readonly object _sync = new();
         private readonly ConcurrentDictionary<string, (Assembly Assembly, AssemblyIdentity Identity)> _assembliesByName = new();
         private readonly ConcurrentDictionary<string, Assembly> _assembliesByPath = new();
+
         private AssemblyLoader? _assemblyLoader;
         private ImmutableDictionaryOfArray<string, string> _assemblyPathsByName = ImmutableDictionaryOfArray<string, string>.Empty;
-
+        
         [UsedImplicitly]
         protected ICompileTimeDomainObserver? Observer { get; }
 
@@ -115,7 +117,13 @@ namespace Metalama.Framework.Engine.CompileTime
 
             try
             {
-                return assemblyLoader.LoadAssembly( path );
+                // We use LoadFromStream to avoid to lock the file in the long-running compiler process.
+                
+                using var peStream = RetryHelper.Retry( () => File.OpenRead( path ) );
+                var pdbPath = Path.ChangeExtension( path, ".pdb" );
+                using var pdbStream = File.Exists( pdbPath ) ? RetryHelper.Retry( () => File.OpenRead( pdbPath ) ) : null;
+                
+                return assemblyLoader.LoadFromStream( peStream, pdbStream );
             }
             catch ( Exception e )
             {
@@ -159,7 +167,10 @@ namespace Metalama.Framework.Engine.CompileTime
             {
                 if ( !this._assembliesByName.TryAdd( assemblyName.Name.AssertNotNull(), (assembly, assemblyIdentity) ) )
                 {
-                    throw new AssertionFailedException( "A different assembly of the same name was already added." );
+                    this._assembliesByName.TryGetValue( assemblyName.Name, out var existingAssembly );
+
+                    throw new AssertionFailedException(
+                        $"Cannot add '{assemblyIdentity}': A different assembly of the same name ('{existingAssembly.Identity}') was already added." );
                 }
             }
 

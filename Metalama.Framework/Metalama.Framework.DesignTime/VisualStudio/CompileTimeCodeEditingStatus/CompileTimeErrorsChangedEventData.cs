@@ -3,6 +3,7 @@
 using Metalama.Framework.DesignTime.Diagnostics;
 using Metalama.Framework.DesignTime.Rpc;
 using Newtonsoft.Json;
+using System.Collections.Immutable;
 
 namespace Metalama.Framework.DesignTime.VisualStudio.CompileTimeCodeEditingStatus;
 
@@ -11,9 +12,9 @@ internal sealed class CompileTimeErrorsChangedEventData : RpcEventData
 {
     public ProjectKey ProjectKey { get; }
 
-    public IReadOnlyCollection<DiagnosticData> Errors { get; }
+    public ImmutableArray<DiagnosticData> Errors { get; }
 
-    public CompileTimeErrorsChangedEventData( ProjectKey projectKey, IReadOnlyCollection<DiagnosticData> errors )
+    public CompileTimeErrorsChangedEventData( ProjectKey projectKey, ImmutableArray<DiagnosticData> errors )
     {
         this.ProjectKey = projectKey;
         this.Errors = errors;

@@ -8,5 +8,5 @@ namespace Metalama.Backstage.UserInterface;
 // The detection is not called when a project has no aspects or validators.
 public interface IToastNotificationDetectionService : IBackstageService
 {
-    void Detect( ToastNotificationDetectionOptions? options = null );
+    void Detect();
 }

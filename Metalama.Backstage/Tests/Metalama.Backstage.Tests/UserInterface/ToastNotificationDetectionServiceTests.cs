@@ -22,23 +22,21 @@ public sealed class ToastNotificationDetectionServiceTests : LicensingTestsBase
         this._backstageServicesInitializer = this.ServiceProvider.GetRequiredBackstageService<BackstageServicesInitializer>();
     }
 
-    private async Task DetectToastNotificationsAsync( bool hasValidLicense = false )
+    private async Task DetectToastNotificationsAsync()
     {
-        this._toastNotificationDetectionService.Detect( new ToastNotificationDetectionOptions { HasValidLicense = hasValidLicense } );
+        this._toastNotificationDetectionService.Detect();
         await this.BackgroundTasks.WhenNoPendingTaskAsync();
     }
 
     [Theory]
-    [InlineData( true, false, false )]
-    [InlineData( false, false, false )]
-    [InlineData( true, true, false )]
-    [InlineData( false, true, false )]
-    public async Task IsActivationSuggestedOnFirstRunAsync( bool isUserInteractive, bool hasValidLicense, bool shouldBeOpened )
+    [InlineData( true, false )]
+    [InlineData( false, false )]
+    public async Task IsActivationSuggestedOnFirstRunAsync( bool isUserInteractive, bool shouldBeOpened )
     {
         this.UserDeviceDetection.IsInteractiveDevice = isUserInteractive;
 
         this._backstageServicesInitializer.Initialize();
-        await this.DetectToastNotificationsAsync( hasValidLicense );
+        await this.DetectToastNotificationsAsync();
 
         if ( !shouldBeOpened )
         {
@@ -52,13 +50,13 @@ public sealed class ToastNotificationDetectionServiceTests : LicensingTestsBase
         // Initializing a second time should not show a notification because of snoozing.
         this.UserInterface.Notifications.Clear();
 
-        await this.DetectToastNotificationsAsync( hasValidLicense );
+        await this.DetectToastNotificationsAsync();
         Assert.Empty( this.UserInterface.Notifications );
 
         // After the snooze period, we should see a notification.
         this.Time.AddTime( ToastNotificationKinds.RequiresLicense.AutoSnoozePeriod.Add( TimeSpan.FromSeconds( 1 ) ) );
 
-        await this.DetectToastNotificationsAsync( hasValidLicense );
+        await this.DetectToastNotificationsAsync();
 
         if ( !shouldBeOpened )
         {
@@ -82,7 +80,7 @@ public sealed class ToastNotificationDetectionServiceTests : LicensingTestsBase
         this.UserDeviceDetection.IsInteractiveDevice = true;
 
         // Register a trial version.
-        Assert.True( this.LicenseRegistrationService.TryRegisterTrialEdition( out _ ) );
+        Assert.True( this.LicenseRegistrationService.RegisterTrialEdition().IsSuccess );
 
         // Move the clock.
         this.Time.AddTime( LicensingConstants.EvaluationPeriod - TimeSpan.FromDays( daysBeforeExpiration + 1 ) );
@@ -117,10 +115,10 @@ public sealed class ToastNotificationDetectionServiceTests : LicensingTestsBase
         this.UserDeviceDetection.IsInteractiveDevice = true;
 
         // Register a license key.
-        Assert.True( this.LicenseRegistrationService.TryRegisterLicense( LicenseKeyProvider.MetalamaProfessionalBusiness, out _ ) );
+        Assert.True( this.LicenseRegistrationService.RegisterLicense( LicenseKeyProvider.MetalamaProfessionalBusiness ).IsSuccess );
 
         // Move the clock.
-        this.Time.Set( LicenseKeyProvider.SubscriptionExpirationDate - TimeSpan.FromDays( daysBeforeExpiration ) );
+        this.Time.Set( LicenseKeyProvider.DefaultSubscriptionExpirationDate - TimeSpan.FromDays( daysBeforeExpiration ) );
 
         // Initialize
         this._backstageServicesInitializer.Initialize();
@@ -150,7 +148,7 @@ public sealed class ToastNotificationDetectionServiceTests : LicensingTestsBase
         this.ServiceProvider.GetRequiredBackstageService<IIdeExtensionStatusService>().IsVisualStudioExtensionInstalled = extensionInstalled;
 
         // Register a trial version.
-        Assert.True( this.LicenseRegistrationService.TryRegisterTrialEdition( out _ ) );
+        Assert.True( this.LicenseRegistrationService.RegisterTrialEdition().IsSuccess );
 
         // Initialize
         this._backstageServicesInitializer.Initialize();

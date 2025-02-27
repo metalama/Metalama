@@ -19,13 +19,18 @@ public readonly struct ProjectServiceProvider
 
     public GlobalServiceProvider Global => this._global ?? throw new InvalidOperationException();
 
-    private ProjectServiceProvider( ServiceProvider<IProjectService> serviceProvider )
+    public static ProjectServiceProvider Empty => new( ServiceProvider<IProjectService>.Empty, ServiceProvider<IGlobalService>.Empty );
+
+    private ProjectServiceProvider( ServiceProvider<IProjectService> underlying, ServiceProvider<IGlobalService> global )
     {
-        this.Underlying = serviceProvider;
+        this.Underlying = underlying;
 
         // We cache the global service provider because it is used often.
-        this._global = this.Underlying.FindNext<IGlobalService>();
+
+        this._global = global;
     }
+
+    private ProjectServiceProvider( ServiceProvider<IProjectService> serviceProvider ) : this( serviceProvider, serviceProvider.FindNext<IGlobalService>() ) { }
 
     public T GetRequiredService<T>()
         where T : class, IProjectService

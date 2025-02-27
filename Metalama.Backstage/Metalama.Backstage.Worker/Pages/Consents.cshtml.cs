@@ -4,7 +4,6 @@ using Metalama.Backstage.Application;
 using Metalama.Backstage.Licensing.Registration;
 using Metalama.Backstage.Pages.Shared;
 using Metalama.Backstage.Services;
-using Metalama.Backstage.Telemetry;
 using Metalama.Backstage.Telemetry.User;
 using Metalama.Backstage.UserInterface;
 using Microsoft.AspNetCore.Mvc;
@@ -26,7 +25,6 @@ namespace Metalama.Backstage.Pages;
 internal class ConsentsPageModel : PageModel
 {
     private readonly ILicenseRegistrationService _licenseRegistrationService;
-    private readonly ITelemetryConfigurationService _telemetryConfigurationService;
     private readonly IIdeExtensionStatusService? _ideExtensionStatusService;
     private readonly IToastNotificationStatusService _toastNotificationStatusService;
     private readonly WebLinks _webLinks;
@@ -37,7 +35,6 @@ internal class ConsentsPageModel : PageModel
 
     public ConsentsPageModel(
         ILicenseRegistrationService licenseRegistrationService,
-        ITelemetryConfigurationService telemetryConfigurationService,
         IToastNotificationStatusService toastNotificationStatusService,
         WebLinks webLinks,
         IHttpClientFactory httpClientFactory,
@@ -47,7 +44,6 @@ internal class ConsentsPageModel : PageModel
         IIdeExtensionStatusService? ideExtensionStatusService = null )
     {
         this._licenseRegistrationService = licenseRegistrationService;
-        this._telemetryConfigurationService = telemetryConfigurationService;
         this._ideExtensionStatusService = ideExtensionStatusService;
         this._webLinks = webLinks;
         this._httpClientFactory = httpClientFactory;
@@ -60,9 +56,6 @@ internal class ConsentsPageModel : PageModel
     public List<string> ErrorMessages { get; } = [];
 
     public string RecaptchaSiteKey { get; set; } = "<not set>";
-
-    [BindProperty]
-    public bool EnableTelemetry { get; set; }
 
     [BindProperty]
     [EmailAddress]
@@ -166,24 +159,10 @@ internal class ConsentsPageModel : PageModel
             case SelectedAction.OpenSource:
                 return this.Redirect( "/DoneOpenSource" );
 
-            case SelectedAction.Community:
-                {
-                    if ( !this._licenseRegistrationService.TryRegisterCommunityEdition( out var errorMessage ) )
-                    {
-                        this.ErrorMessages.Add( errorMessage );
-
-                        return this.Page();
-                    }
-
-                    break;
-                }
-
             case SelectedAction.Trial:
                 {
-                    if ( !this._licenseRegistrationService.TryRegisterTrialEdition( out var errorMessage ) )
+                    if ( !ProcessRegistrationResult( this._licenseRegistrationService.RegisterTrialEdition() ) )
                     {
-                        this.ErrorMessages.Add( errorMessage );
-
                         return this.Page();
                     }
 
@@ -206,19 +185,14 @@ internal class ConsentsPageModel : PageModel
                         return this.Page();
                     }
 
-                    if ( !this._licenseRegistrationService.TryRegisterLicense( GlobalState.LicenseKey, out var errorMessage ) )
+                    if ( !ProcessRegistrationResult( this._licenseRegistrationService.RegisterLicense( GlobalState.LicenseKey ) ) )
                     {
-                        this.ErrorMessages.Add( errorMessage );
-
                         return this.Page();
                     }
 
                     break;
                 }
         }
-
-        // Configure telemetry.
-        this._telemetryConfigurationService.SetStatus( this.EnableTelemetry );
 
         // Should we recommend to install Visual Studio
         if ( this._ideExtensionStatusService?.ShouldRecommendToInstallVisualStudioExtension == true )
@@ -227,5 +201,19 @@ internal class ConsentsPageModel : PageModel
         }
 
         return this.Redirect( "/Done" );
+
+        bool ProcessRegistrationResult( LicenseRegistrationResult result )
+        {
+            if ( result.IsSuccess )
+            {
+                return true;
+            }
+            else
+            {
+                this.ErrorMessages.Add( result.ErrorMessage );
+
+                return false;
+            }
+        }
     }
 }

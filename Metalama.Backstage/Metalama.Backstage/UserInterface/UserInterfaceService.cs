@@ -16,6 +16,7 @@ namespace Metalama.Backstage.UserInterface;
 public abstract class UserInterfaceService : IUserInterfaceService
 {
     private readonly IProcessExecutor _processExecutor;
+    private readonly IDateTimeProvider _dateTimeProvider;
 
     protected ILogger Logger { get; }
 
@@ -28,9 +29,17 @@ public abstract class UserInterfaceService : IUserInterfaceService
         this.Logger = serviceProvider.GetLoggerFactory().GetLogger( this.GetType().Name );
         this._backstageToolExecutor = serviceProvider.GetRequiredBackstageService<IBackstageToolsExecutor>();
         this._canIgnoreRecoverableExceptions = serviceProvider.GetRequiredBackstageService<IRecoverableExceptionService>().CanIgnore;
+        this._dateTimeProvider = serviceProvider.GetRequiredBackstageService<IDateTimeProvider>();
     }
 
-    public abstract void ShowToastNotification( ToastNotification notification, ref bool notificationReported );
+    public abstract void ShowToastNotification( ToastNotification notification );
+
+    public DateTime? LastToastNotificationTime { get; private set; }
+
+    protected void OnToastNotificationShown()
+    {
+        this.LastToastNotificationTime = this._dateTimeProvider.UtcNow;
+    }
 
     protected virtual ProcessStartInfo GetProcessStartInfoForUrl( string url, BrowserMode browserMode ) => new( url ) { UseShellExecute = true };
 

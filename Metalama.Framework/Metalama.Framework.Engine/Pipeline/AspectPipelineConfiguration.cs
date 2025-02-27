@@ -41,7 +41,11 @@ public sealed class AspectPipelineConfiguration
 
     internal CompileTimeProject? CompileTimeProject { get; }
 
-    public DiagnosticManifest? ClosureDiagnosticManifest => this.CompileTimeProject?.ClosureDiagnosticManifest;
+    /// <summary>
+    /// Gets the complete <see cref="DiagnosticManifest"/>, which includes user diagnostics (from the <see cref="CompileTimeProject"/>)
+    /// and extension diagnostics.
+    /// </summary>
+    public DiagnosticManifest DiagnosticManifest { get; }
 
     private CompileTimeProjectRepository CompileTimeProjectRepository { get; }
 
@@ -66,7 +70,8 @@ public sealed class AspectPipelineConfiguration
         ImmutableArray<string> fabricTypeNames,
         ProjectModel projectModel,
         ProjectServiceProvider serviceProvider,
-        ImmutableArray<PipelineExtension> extensions )
+        ImmutableArray<PipelineExtension> extensions,
+        DiagnosticManifest diagnosticManifest )
     {
         this.Domain = domain;
         this.Stages = stages;
@@ -79,6 +84,7 @@ public sealed class AspectPipelineConfiguration
         this.ProjectModel = projectModel;
         this.ServiceProvider = serviceProvider;
         this.Extensions = extensions;
+        this.DiagnosticManifest = diagnosticManifest;
     }
 
     public AspectPipelineConfiguration WithServiceProvider( in ProjectServiceProvider serviceProvider )
@@ -93,7 +99,8 @@ public sealed class AspectPipelineConfiguration
             this.FabricTypeNames,
             this.ProjectModel,
             serviceProvider,
-            this.Extensions );
+            this.Extensions,
+            this.DiagnosticManifest );
 
     internal UserCodeInvoker UserCodeInvoker => this.ServiceProvider.GetRequiredService<UserCodeInvoker>();
 }

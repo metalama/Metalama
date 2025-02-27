@@ -25,10 +25,8 @@ internal sealed class ToastNotificationService : IToastNotificationService
 
         if ( this._toastNotificationStatusService.TryAcquire( notification.Kind ) )
         {
-            var notified = false;
-
             this._logger.Trace?.Log( $"Displaying the notification." );
-            this._userInterfaceService.ShowToastNotification( notification, ref notified );
+            this._userInterfaceService.ShowToastNotification( notification );
 
             return true;
         }

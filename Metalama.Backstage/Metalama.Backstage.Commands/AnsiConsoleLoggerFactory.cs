@@ -6,7 +6,7 @@ using System;
 
 namespace Metalama.Backstage.Commands;
 
-internal class AnsiConsoleLoggerFactory : ILoggerFactory, ILogger
+internal sealed class AnsiConsoleLoggerFactory : ILoggerFactory, ILogger
 {
     public AnsiConsoleLoggerFactory( ConsoleWriter consoleWriter, BaseCommandSettings settings )
     {

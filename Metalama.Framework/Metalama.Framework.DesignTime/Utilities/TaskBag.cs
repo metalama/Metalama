@@ -3,9 +3,9 @@
 using JetBrains.Annotations;
 using Metalama.Backstage.Diagnostics;
 using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Engine.Utilities.Threading;
 using Metalama.Framework.Project;
 using Metalama.Framework.Services;
-using Microsoft.VisualStudio.Threading;
 using System.Collections.Concurrent;
 
 namespace Metalama.Framework.DesignTime.Utilities;
@@ -90,7 +90,7 @@ public sealed class TaskBag
         else
         {
             // Avoid blocking forever in case of bug.
-            
+
             using var timeout = new CancellationTokenSource( TimeSpan.FromMinutes( 1 ) );
             await Task.WhenAll( this._pendingTasks.Values.Select( x => x.Task ) ).WithCancellation( timeout.Token );
         }

@@ -12,6 +12,7 @@ public enum LicenseSourceKind
     None,
     Unattended = 1,
     UserProfile = 2,
-    Explicit = 4,
-    All = Unattended | UserProfile | Explicit
+    Project = 4,
+    Test = 8,
+    All = Unattended | UserProfile | Project | Test
 }

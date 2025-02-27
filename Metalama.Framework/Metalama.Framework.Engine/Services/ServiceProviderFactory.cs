@@ -7,6 +7,7 @@ using Metalama.Framework.Engine.Advising;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel.Introductions.Helpers;
 using Metalama.Framework.Engine.CompileTime;
+using Metalama.Framework.Engine.CompileTime.Manifest;
 using Metalama.Framework.Engine.CompileTime.Serialization;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Extensibility;
@@ -170,11 +171,12 @@ public static class ServiceProviderFactory
 
     internal static ServiceProvider<IProjectService> WithCompileTimeProjectServices(
         this ProjectServiceProvider serviceProvider,
-        CompileTimeProjectRepository repository )
+        CompileTimeProjectRepository repository,
+        DiagnosticManifest? extensionDiagnostics = null )
     {
         return serviceProvider.Underlying
             .WithService( repository )
-            .WithService( new UserDiagnosticRegistry( repository.RootProject ) )
+            .WithService( new UserDiagnosticRegistry( repository.RootProject, extensionDiagnostics ) )
             .WithService<CompilationServiceProvider<ProjectSpecificCompileTimeTypeResolver>>( sp => new ProjectSpecificCompileTimeTypeResolver.Provider( sp ) )
             .WithServiceConditional<UserCodeAttributeDeserializer.Provider>( sp => new UserCodeAttributeDeserializer.Provider( sp ) )
             .WithService<SymbolClassificationService>( _ => new SymbolClassificationService( repository ) )

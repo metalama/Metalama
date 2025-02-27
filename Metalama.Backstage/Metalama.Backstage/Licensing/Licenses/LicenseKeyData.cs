@@ -17,12 +17,12 @@ namespace Metalama.Backstage.Licensing.Licenses
     [PublicAPI( "Used by the license audit loader." )]
     public partial record LicenseKeyData : ILicenseKeyData
     {
-        public bool RequiresSignature => this.RequiresSignature();
-
         public string LicenseUniqueId
             => this.LicenseGuid.HasValue
                 ? this.LicenseGuid.Value.ToString()
                 : this.LicenseId.ToString( CultureInfo.InvariantCulture );
+
+        public bool RequiresSignature() => LicenseKeyDataSerializer.RequiresSignature( this );
 
         // TODO in Metalama
         public bool RequiresWatermark => this.LicenseType is LicenseType.Evaluation or LicenseType.Academic;
@@ -39,11 +39,11 @@ namespace Metalama.Backstage.Licensing.Licenses
         [Obsolete]
         public bool IsLimitedByNamespace => !string.IsNullOrEmpty( this.Namespace );
 
-        internal LicenseKeyData() : this( ImmutableSortedDictionary<LicenseFieldIndex, LicenseField>.Empty ) { }
+        internal LicenseKeyData() : this( LicenseKeyDataSerializer.CurrentVersion, ImmutableSortedDictionary<LicenseFieldIndex, LicenseField>.Empty ) { }
 
-        internal LicenseKeyData( ImmutableSortedDictionary<LicenseFieldIndex, LicenseField> fields )
+        internal LicenseKeyData( byte version, ImmutableSortedDictionary<LicenseFieldIndex, LicenseField> fields )
         {
-            this.Version = LicenseKeyDataSerializer.CurrentVersion;
+            this.Version = version;
             this._fields = fields;
         }
 
@@ -64,7 +64,7 @@ namespace Metalama.Backstage.Licensing.Licenses
             {
                 stringBuilder.AppendFormat(
                     CultureInfo.InvariantCulture,
-                    ", {0}={1}",
+                    ", {0}={{{1}}}",
                     licenseField.Key,
                     licenseField.Value );
             }
@@ -76,8 +76,8 @@ namespace Metalama.Backstage.Licensing.Licenses
 
         public static bool TryDeserialize(
             string licenseKey,
-            [MaybeNullWhen( false )] out LicenseKeyData data,
-            [MaybeNullWhen( true )] out string errorMessage )
+            [NotNullWhen( true )] out LicenseKeyData? data,
+            [NotNullWhen( false )] out string? errorMessage )
         {
             if ( _cache.TryGetValue( licenseKey, out data ) )
             {

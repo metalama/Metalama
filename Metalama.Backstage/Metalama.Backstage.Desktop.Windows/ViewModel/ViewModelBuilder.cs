@@ -22,11 +22,11 @@ internal static class ViewModelBuilder
         {
             viewModel = new NotificationViewModel(
                 settings.Kind,
-                "Activate Metalama",
+                "Metalama Professional",
                 """
-                Use Metalama Community, or register a license key.
+                This project uses a premium Metalama feature. Try Metalama Professional for 45 days or register a license key.
                 """,
-                new CommandActionViewModel( "Activate", activationArguments.Setup ) );
+                new CommandActionViewModel( "Options", activationArguments.Setup ) );
 
             return true;
         }
@@ -79,6 +79,19 @@ internal static class ViewModelBuilder
                 settings.Title ?? "Metalama failed",
                 settings.Text ?? "Metalama encountered an unhandled exception.",
                 new UriActionViewModel( "View", settings.Uri! ) );
+
+            return true;
+        }
+        else if ( settings.Kind == ToastNotificationKinds.Welcome.Name )
+        {
+            viewModel = new NotificationViewModel(
+                settings.Kind,
+                settings.Title ?? "Welcome to Metalama",
+                settings.Text
+                ?? "Thank you for using Metalama.\nNote that telemetry is enabled by default. Open this notification to learn how to disable telemetry.",
+                new UriActionViewModel( "View", webLinks.DisableTelemetryInstructions ),
+                false,
+                false );
 
             return true;
         }

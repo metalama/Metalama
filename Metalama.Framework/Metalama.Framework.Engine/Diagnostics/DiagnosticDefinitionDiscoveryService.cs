@@ -12,7 +12,7 @@ using System.Reflection;
 
 namespace Metalama.Framework.Engine.Diagnostics;
 
-public sealed class DiagnosticDefinitionDiscoveryService : IGlobalService
+public sealed class DiagnosticDefinitionDiscoveryService : IProjectService
 {
     private readonly ProjectServiceProvider _serviceProvider;
     private readonly UserCodeInvoker _userCodeInvoker;

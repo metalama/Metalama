@@ -3,7 +3,7 @@
 using Metalama.Framework.DesignTime.Rpc;
 using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.Services;
-using Microsoft.VisualStudio.Threading;
+using Metalama.Framework.Engine.Utilities.Threading;
 using System.Collections.Immutable;
 
 namespace Metalama.Framework.DesignTime.VisualStudio.ServiceProvider;

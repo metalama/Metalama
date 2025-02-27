@@ -13,14 +13,14 @@ using System.Windows.Threading;
 
 namespace Metalama.Backstage.Desktop.Windows;
 
-public partial class App
+internal partial class App
 {
     public App()
     {
-        this.DispatcherUnhandledException += this.OnUnhandledException;
+        this.DispatcherUnhandledException += OnUnhandledException;
     }
 
-    private void OnUnhandledException( object sender, DispatcherUnhandledExceptionEventArgs e )
+    private static void OnUnhandledException( object sender, DispatcherUnhandledExceptionEventArgs e )
     {
         MessageBox.Show( e.Exception.Message );
     }
@@ -71,7 +71,7 @@ public partial class App
     {
         base.OnStartup( e );
 
-        ToastNotificationManagerCompat.OnActivated += this.OnToastNotificationActivated;
+        ToastNotificationManagerCompat.OnActivated += OnToastNotificationActivated;
 
         if ( !ToastNotificationManagerCompat.WasCurrentProcessToastActivated() )
         {
@@ -80,7 +80,7 @@ public partial class App
         }
     }
 
-    private void OnToastNotificationActivated( ToastNotificationActivatedEventArgsCompat e )
+    private static void OnToastNotificationActivated( ToastNotificationActivatedEventArgsCompat e )
     {
         RunAppAsync( e.Argument.Split( ' ' ) )
             .ContinueWith(

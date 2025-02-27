@@ -5,7 +5,6 @@ using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Infrastructure;
 using Metalama.Backstage.Licensing;
 using Metalama.Backstage.Licensing.Audit;
-using Metalama.Backstage.Licensing.Licenses;
 using System;
 using System.Threading.Tasks;
 
@@ -30,11 +29,11 @@ internal sealed class MatomoAuditUploader : IBackstageService
     {
         var http = this._httpClientFactory.Create();
 
-        var licensedProduct = report.License.LicensedProduct switch
+        var licensedProduct = report.License.LicenseProduct switch
         {
-            LicensedProduct.PostSharpFramework => "PostSharpFramework",
-            LicensedProduct.PostSharpUltimate => "PostSharpUltimate",
-            _ => report.License.LicensedProduct.ToString()
+            LicenseProduct.PostSharpFramework => "PostSharpFramework",
+            LicenseProduct.PostSharpUltimate => "PostSharpUltimate",
+            _ => report.License.LicenseProduct.ToString()
         };
 
         var licenseType = report.License.LicenseType switch

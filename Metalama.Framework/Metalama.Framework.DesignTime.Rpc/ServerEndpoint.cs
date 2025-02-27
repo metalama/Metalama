@@ -27,7 +27,7 @@ public abstract class ServerEndpoint : BaseEndpoint
 
     protected abstract IEnumerable<RpcService> CreateServices();
 
-    internal int ClientCount => this._pipes.Count;
+    public int ClientCount => this._pipes.Count;
 
 #pragma warning disable VSTHRD100 // Avoid "async void".
     /// <summary>
@@ -56,7 +56,7 @@ public abstract class ServerEndpoint : BaseEndpoint
 
         return pipeName;
     }
-    
+
     protected virtual Task OnServerPipeCreatedAsync( CancellationToken cancellationToken ) => Task.CompletedTask;
 
     private async Task StartCoreAsync( string pipeName, ImmutableArray<RpcService> services, CancellationToken cancellationToken )

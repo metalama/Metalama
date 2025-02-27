@@ -17,7 +17,7 @@ namespace Metalama.Framework.Engine.Extensibility;
 /// </summary>
 public abstract class PipelineExtension
 {
-    public abstract bool Initialize( PipelineExtensionContext context );
+    public abstract bool Initialize( PipelineExtensionInitializationContext context );
 
     /// <summary>
     /// Executes any relevant <see cref="!:IPipelineContributor" />. This method is invoked as soon as the contributors have

@@ -24,7 +24,7 @@ internal sealed class WindowsUserInterfaceService : UserInterfaceService
         this._toolsExecutor = serviceProvider.GetRequiredBackstageService<IBackstageToolsExecutor>();
     }
 
-    public override void ShowToastNotification( ToastNotification notification, ref bool notificationReported )
+    public override void ShowToastNotification( ToastNotification notification )
     {
         // Build arguments.
         var arguments = $"notify {notification.Kind.Name}";
@@ -48,7 +48,7 @@ internal sealed class WindowsUserInterfaceService : UserInterfaceService
         {
             // Start the UI process.
             this._toolsExecutor.Start( BackstageTool.DesktopWindows, arguments );
-            notificationReported = true;
+            this.OnToastNotificationShown();
         }
         catch ( Exception e )
         {

@@ -29,7 +29,7 @@ namespace Metalama.Backstage.Licensing.Licenses
                 Version = reader.ReadByte(),
                 LicenseId = reader.ReadInt32(),
                 LicenseType = (LicenseType) reader.ReadByte(),
-                Product = (LicensedProduct) reader.ReadByte()
+                Product = (LicenseProduct) reader.ReadByte()
             };
 
             while ( (index = (LicenseFieldIndex) reader.ReadByte()) != LicenseFieldIndex.End )
@@ -141,21 +141,20 @@ namespace Metalama.Backstage.Licensing.Licenses
         private void SetMinPostSharpVersionIfRequired()
         {
             // Returns <c>true</c> if the licensed product has been present prior to PostSharp 6.5.17/6.8.10/6.9.3.
-            static bool IsLicensedProductValidInAllPostSharpVersions( LicensedProduct licenseProduct )
+            static bool IsPostSharpProduct( LicenseProduct product )
             {
-                switch ( licenseProduct )
+                switch ( product )
                 {
-                    case LicensedProduct.None:
 #pragma warning disable CS0618 // Type or member is obsolete
-                    case LicensedProduct.PostSharp20:
-                    case LicensedProduct.PostSharp30:
+                    case LicenseProduct.PostSharp20:
+                    case LicenseProduct.PostSharpUltimate1:
 #pragma warning restore CS0618 // Type or member is obsolete
-                    case LicensedProduct.PostSharpUltimate:
-                    case LicensedProduct.PostSharpFramework:
-                    case LicensedProduct.PostSharpDiagnosticsLibrary:
-                    case LicensedProduct.PostSharpModelLibrary:
-                    case LicensedProduct.PostSharpThreadingLibrary:
-                    case LicensedProduct.PostSharpCachingLibrary:
+                    case LicenseProduct.PostSharpUltimate:
+                    case LicenseProduct.PostSharpFramework:
+                    case LicenseProduct.PostSharpDiagnosticsLibrary:
+                    case LicenseProduct.PostSharpModelLibrary:
+                    case LicenseProduct.PostSharpThreadingLibrary:
+                    case LicenseProduct.PostSharpCachingLibrary:
                         return true;
 
                     default:
@@ -163,8 +162,7 @@ namespace Metalama.Backstage.Licensing.Licenses
                 }
             }
 
-            if ( !IsLicensedProductValidInAllPostSharpVersions( this.Product )
-                 || this._fields.Keys.Any( i => i.IsPrefixedByLength() ) )
+            if ( IsPostSharpProduct( this.Product ) && this._fields.Keys.Any( i => i.IsPrefixedByLength() ) )
             {
                 if ( this.MinPostSharpVersion == null )
                 {

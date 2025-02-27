@@ -11,9 +11,11 @@ internal class RegisterTrialCommand : BaseCommand<BaseCommandSettings>
     {
         var service = context.ServiceProvider.GetRequiredBackstageService<ILicenseRegistrationService>();
 
-        if ( !service.TryRegisterTrialEdition( out var errorMessage ) )
+        var result = service.RegisterTrialEdition();
+
+        if ( !result.IsSuccess )
         {
-            throw new CommandException( errorMessage );
+            throw new CommandException( result.ErrorMessage );
         }
 
         context.Console.WriteSuccess( "You are now using Metalama Trial." );

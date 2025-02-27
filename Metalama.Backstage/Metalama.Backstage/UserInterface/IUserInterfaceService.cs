@@ -1,6 +1,7 @@
 ﻿// Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
 using Metalama.Backstage.Extensibility;
+using System;
 using System.Threading.Tasks;
 
 namespace Metalama.Backstage.UserInterface;
@@ -15,7 +16,9 @@ public interface IUserInterfaceService : IBackstageService
     /// Shows a toast notification. This method does not take the mute and snooze status into account.
     /// This is the job of the <see cref="IToastNotificationService"/>.
     /// </summary>
-    void ShowToastNotification( ToastNotification notification, ref bool notificationReported );
+    void ShowToastNotification( ToastNotification notification );
+
+    DateTime? LastToastNotificationTime { get; }
 }
 
 public enum BrowserMode

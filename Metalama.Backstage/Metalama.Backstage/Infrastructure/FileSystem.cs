@@ -318,6 +318,7 @@ namespace Metalama.Backstage.Infrastructure
             var fileSystemWatcher = new FileSystemWatcher( directory, filter );
             fileSystemWatcher.Created += ( _, args ) => callback( args );
             fileSystemWatcher.Changed += ( _, args ) => callback( args );
+            fileSystemWatcher.Deleted += ( _, args ) => callback( args );
             fileSystemWatcher.EnableRaisingEvents = true;
 
             return fileSystemWatcher;

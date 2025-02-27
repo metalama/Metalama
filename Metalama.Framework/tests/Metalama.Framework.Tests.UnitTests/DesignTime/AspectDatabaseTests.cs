@@ -10,6 +10,7 @@ using Metalama.Framework.Tests.UnitTestHelpers.Mocks;
 using Metalama.Framework.Tests.UnitTestHelpers.TestClasses;
 using Microsoft.CodeAnalysis;
 using Microsoft.Extensions.DependencyInjection;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -583,5 +584,61 @@ public sealed class AspectDatabaseTests( ITestOutputHelper testOutputHelper ) : 
                 "T:ParentTarget"
             ],
             aspectInstances );
+    }
+
+    [Fact]
+    public async Task NoLeakTest()
+    {
+        const string code =
+            """
+            using Metalama.Framework.Aspects;
+
+            class Aspect : TypeAspect { }
+
+            [Aspect]
+            class AttributeTarget;
+            """;
+
+        using var testContext = this.CreateTestContext();
+        using TestDesignTimeAspectPipelineFactory factory = new( testContext );
+
+        var workspaceProvider = factory.ServiceProvider.GetRequiredService<TestWorkspaceProvider>();
+        var projectKey = workspaceProvider.AddOrUpdateProject( testContext, "project", new Dictionary<string, string> { ["code.cs"] = code } );
+
+        var aspectDatabase = new AspectDatabase( factory.ServiceProvider );
+
+        async Task<WeakReference> GetCompilationAsync()
+            => new( await workspaceProvider.GetCompilationAsync( projectKey, testContext.CancellationToken ) );
+
+        var compilationReference = await GetCompilationAsync();
+
+        async Task UseDatabaseAsync( bool hasInstances )
+        {
+            Assert.True( await aspectDatabase.HasValidConfigurationAsync( projectKey, testContext.CancellationToken ) );
+
+            var aspectClasses = await aspectDatabase.GetAspectClassesAsync( projectKey, testContext.CancellationToken );
+
+            AssertAspectClasses( ["Y:global::Aspect"], aspectClasses );
+
+            var aspectInstances = await aspectDatabase.GetAspectInstancesAsync( projectKey, "project", new SerializableTypeId( "Y:global::Aspect" ), default );
+
+            AssertAspectInstances( hasInstances ? ["T:AttributeTarget"] : [], aspectInstances );
+        }
+
+        await UseDatabaseAsync( true );
+
+        GC.Collect();
+
+        // Compilation should still be referenced at this point.
+        Assert.True( compilationReference.IsAlive );
+
+        workspaceProvider.AddOrUpdateProject( testContext, "project", new Dictionary<string, string> { ["code.cs"] = string.Empty } );
+
+        await UseDatabaseAsync( false );
+
+        GC.Collect();
+
+        // The original compilation should no longer be referenced anywhere.
+        Assert.False( compilationReference.IsAlive );
     }
 }

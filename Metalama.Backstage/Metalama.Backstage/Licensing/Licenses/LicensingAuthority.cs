@@ -9,8 +9,8 @@ using System.Security.Cryptography;
 
 namespace Metalama.Backstage.Licensing.Licenses;
 
-#pragma warning disable CA5384
-#pragma warning disable CA5351
+// Allow weak cryptography
+#pragma warning disable CA5384, CA5350, CA5351
 
 /// <summary>
 /// Utility cryptographic methods for use with the PostSharp licensing system.
@@ -18,7 +18,18 @@ namespace Metalama.Backstage.Licensing.Licenses;
 [PublicAPI( "Use in the license generator web and API." )]
 public sealed class LicensingAuthority : IBackstageService
 {
-    private static DSAParameters _testKey = DSA.Create().ExportParameters( true );
+    // Sharing DSA instances and locking is much faster than having several instances of the DSA object
+    // for the same key.
+    private static readonly Lazy<LicensingAuthority> _testAuthority = new( () => new LicensingAuthority( (255, DSA.Create()) ) );
+
+    private static readonly Lazy<LicensingAuthority> _productionAuthority = new(
+        () => new LicensingAuthority(
+            (0,
+             "<DSAKeyValue><P>9cMyBYBokidciAghqE1POnEbcxpBui3PfazddrQjndkDtPskGvBcjS8LIStB/jR0SICKmLMwl7WoocpdXgYTOopgKJ33E4NOIhc1vbQR6vCCidGWlN88hUKCQJ8cGzme/LDmUT5zfK3TfM6LkMU1fYTNARrefIZkSlg4GGIjZ38=</P><Q>m9h5p2kl1vlwuw12AOQbem3yDXU=</Q><G>pBkhekdI1vk084zMbubnu7qtDyTid6x01crQJiERfmk2HgFt13dXHwei/1kgrRJPWrtZVRKMmO8w+p4jfle82n2/BaFNBLouUoQ/fBYPPdDZBocd/tXqBduF5zq1S12tDv8TIIarMTRtj18F5e68cxBPbweVs4n8meqLEQL5AwA=</G><Y>e2otaOKaVFxnEoHI4g1f7BCcrOaAwd1/GTMkEXGaNw3CYucIuOJdvlZEWa/pa4DTUeK4McHOXRJsZMQdHaoh+dK17NdmMxTa2UMokyoIdayu9kw9TbWUy2zXovJ8CHJVP4RU8wlJk1RKjeMuSK3lYPgo2RTbV9UbU2qK1gmVwg4=</Y><J>AAAAAZOzu4FkAIr0MjlqqHtPNWrFTfjw4/qDWuFvHEf7ioaj8vqRao8mbqsLueqvYIYQ8g8w2WNWFAOG6e8waiQhX2O/DRSZNbc/JfdjQqlPli5be6FqNsGnjKXdEt2boONKU/fpGx/m69V+a/4jxg==</J><Seed>1B0yRR/A/kmE1zMUIFiEMmJ328M=</Seed><PgenCounter>Xg==</PgenCounter></DSAKeyValue>"),
+            (1,
+             "<DSAKeyValue><P>vAmBC+eZJaZa7HdlTDAgsfcT0QSjqN8d8fEeZ9E1kxfIAYGerlHFHW/A5muBYy8FyO7W8r4mqxpxcvFQEeEqVe89BUXecHjh6FkTEsT25r/nbV4jnZBxNz16qb7A6t8MCr0jzuzrIGFVP5VG/ad0s/1078WqpwQqJQXHmH/lXX0=</P><Q>+RdtGnwCJw4u2H/goSLtaAGr1U0=</Q><G>sxQQgHIuRgYOMtB+r7EGRO/OTRGXhUrFyZ1R9nVerGGC2juEVWSoydr2JquILOwIO7+1kIOwbkhCjNlZIAdvWRlN5COF7gHfPi1dSX7LzDcNbZDADvrOUmk1KG3hZ3Vf67XIbug2/nq8aij7gbEs4eA26EWWpObO0a+e2QmsQII=</G><Y>dP073SH4QG5KiV5BbZEDLiV3/D2eD18D9jsMVD1p+eMZsffU88/Pxfen1Pe5cyulw8gQkEvlAa3GEmGsaGaa7Qp245NPD8fbEOLFu3tdwMhw/ylRHpjTS7BDRjvGeyGwSS0WTWQCwCyI8LN6Rvg7p4RfhHIaAWWkTJNVAG7AN7g=</Y><J>wUCV+9KzxPW+J3/DIm3sIfVf29Z8u5zPXnEZbMTrkWwdgOTSPuXimtiQku8knyWD3iC+GqyhtoFqdgXqQS6WcadAABb2U5mMTL0V1o6Jy6c0cyPb9blmf5wdZxMKVlXe9lcAO8rP16XhQGVs</J><Seed>h7zytTPqA9Ue3F7c/j+9iXW4Ebw=</Seed><PgenCounter>Aag=</PgenCounter></DSAKeyValue>") ) );
+
+    private static readonly SHA1 _sha1 = SHA1.Create();
 
     private readonly Dictionary<byte, DSA> _keys;
 
@@ -31,51 +42,21 @@ public sealed class LicensingAuthority : IBackstageService
     {
         this._keys = keys.ToDictionary(
             x => checked((byte) x.Id),
-            x =>
-            {
-                var dsa = DSA.Create();
-                dsa.FromXmlString2( x.Key );
-
-                return dsa;
-            } );
+            x => CryptographyHelper.CreateDsaFromXml( x.Key ) );
     }
 
     internal IEnumerable<byte> KeyIds => this._keys.Keys;
 
-    public static LicensingAuthority GetProductionAuthority()
-        => new(
-            (0,
-             "<DSAKeyValue><P>9cMyBYBokidciAghqE1POnEbcxpBui3PfazddrQjndkDtPskGvBcjS8LIStB/jR0SICKmLMwl7WoocpdXgYTOopgKJ33E4NOIhc1vbQR6vCCidGWlN88hUKCQJ8cGzme/LDmUT5zfK3TfM6LkMU1fYTNARrefIZkSlg4GGIjZ38=</P><Q>m9h5p2kl1vlwuw12AOQbem3yDXU=</Q><G>pBkhekdI1vk084zMbubnu7qtDyTid6x01crQJiERfmk2HgFt13dXHwei/1kgrRJPWrtZVRKMmO8w+p4jfle82n2/BaFNBLouUoQ/fBYPPdDZBocd/tXqBduF5zq1S12tDv8TIIarMTRtj18F5e68cxBPbweVs4n8meqLEQL5AwA=</G><Y>e2otaOKaVFxnEoHI4g1f7BCcrOaAwd1/GTMkEXGaNw3CYucIuOJdvlZEWa/pa4DTUeK4McHOXRJsZMQdHaoh+dK17NdmMxTa2UMokyoIdayu9kw9TbWUy2zXovJ8CHJVP4RU8wlJk1RKjeMuSK3lYPgo2RTbV9UbU2qK1gmVwg4=</Y><J>AAAAAZOzu4FkAIr0MjlqqHtPNWrFTfjw4/qDWuFvHEf7ioaj8vqRao8mbqsLueqvYIYQ8g8w2WNWFAOG6e8waiQhX2O/DRSZNbc/JfdjQqlPli5be6FqNsGnjKXdEt2boONKU/fpGx/m69V+a/4jxg==</J><Seed>1B0yRR/A/kmE1zMUIFiEMmJ328M=</Seed><PgenCounter>Xg==</PgenCounter></DSAKeyValue>"),
-            (1,
-             "<DSAKeyValue><P>vAmBC+eZJaZa7HdlTDAgsfcT0QSjqN8d8fEeZ9E1kxfIAYGerlHFHW/A5muBYy8FyO7W8r4mqxpxcvFQEeEqVe89BUXecHjh6FkTEsT25r/nbV4jnZBxNz16qb7A6t8MCr0jzuzrIGFVP5VG/ad0s/1078WqpwQqJQXHmH/lXX0=</P><Q>+RdtGnwCJw4u2H/goSLtaAGr1U0=</Q><G>sxQQgHIuRgYOMtB+r7EGRO/OTRGXhUrFyZ1R9nVerGGC2juEVWSoydr2JquILOwIO7+1kIOwbkhCjNlZIAdvWRlN5COF7gHfPi1dSX7LzDcNbZDADvrOUmk1KG3hZ3Vf67XIbug2/nq8aij7gbEs4eA26EWWpObO0a+e2QmsQII=</G><Y>dP073SH4QG5KiV5BbZEDLiV3/D2eD18D9jsMVD1p+eMZsffU88/Pxfen1Pe5cyulw8gQkEvlAa3GEmGsaGaa7Qp245NPD8fbEOLFu3tdwMhw/ylRHpjTS7BDRjvGeyGwSS0WTWQCwCyI8LN6Rvg7p4RfhHIaAWWkTJNVAG7AN7g=</Y><J>wUCV+9KzxPW+J3/DIm3sIfVf29Z8u5zPXnEZbMTrkWwdgOTSPuXimtiQku8knyWD3iC+GqyhtoFqdgXqQS6WcadAABb2U5mMTL0V1o6Jy6c0cyPb9blmf5wdZxMKVlXe9lcAO8rP16XhQGVs</J><Seed>h7zytTPqA9Ue3F7c/j+9iXW4Ebw=</Seed><PgenCounter>Aag=</PgenCounter></DSAKeyValue>") );
+    public static LicensingAuthority GetProductionAuthority() => _productionAuthority.Value;
 
-    // We must pay attention to have a single instance of the test authority because each instance has a new key pair and tests might call this method several times for the same test.
-    public static LicensingAuthority GetTestAuthority()
-    {
-        // It is critical that:
-        // - Eeach test has its own instance of the DSA class, for thread safety reasons.
-        // - All DSA instances share the same parameters, because some tests may call the GetTestAutority method twice.
-        var dsa = DSA.Create();
-        dsa.ImportParameters( _testKey );
-
-        return new LicensingAuthority( (255, dsa) );
-    }
-
-    public static LicensingAuthority GetFromId( byte authorityId )
-        => authorityId switch
-        {
-            0 => GetProductionAuthority(),
-            1 => GetTestAuthority(),
-            _ => throw new ArgumentOutOfRangeException()
-        };
+    public static LicensingAuthority GetTestAuthority() => _testAuthority.Value;
 
     private static byte[] GetHash( byte[] message )
     {
-#pragma warning disable CA5350
-        using var sha1 = SHA1.Create();
-#pragma warning restore CA5350
-
-        return sha1.ComputeHash( message );
+        lock ( _sha1 )
+        {
+            return _sha1.ComputeHash( message );
+        }
     }
 
     /// <summary>
@@ -91,7 +72,10 @@ public sealed class LicensingAuthority : IBackstageService
             throw new KeyNotFoundException();
         }
 
-        return key.VerifySignature( GetHash( message ), signature );
+        lock ( key )
+        {
+            return key.VerifySignature( GetHash( message ), signature );
+        }
     }
 
     /// <summary>
@@ -104,7 +88,11 @@ public sealed class LicensingAuthority : IBackstageService
     /// </summary>
     internal void Sign( byte[] message, out byte[] signature )
     {
-        var keyValuePair = this._keys.Single();
-        signature = keyValuePair.Value.CreateSignature( GetHash( message ) );
+        var dsa = this._keys.Single().Value;
+
+        lock ( dsa )
+        {
+            signature = dsa.CreateSignature( GetHash( message ) );
+        }
     }
 }

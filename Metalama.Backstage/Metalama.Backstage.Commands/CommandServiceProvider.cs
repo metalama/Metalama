@@ -10,7 +10,7 @@ using System;
 
 namespace Metalama.Backstage.Commands
 {
-    internal class CommandServiceProvider : ICommandServiceProviderProvider
+    internal sealed class CommandServiceProvider : ICommandServiceProviderProvider
     {
         private readonly IApplicationInfo _applicationInfo;
 

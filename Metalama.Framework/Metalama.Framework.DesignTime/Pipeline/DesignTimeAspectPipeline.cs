@@ -1075,9 +1075,7 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
 
     private static async Task WarnIfNotDisposedAsync( WeakReference<DesignTimeAspectPipeline> pipelineRef, Task disposedTask, StackTrace stackTrace )
     {
-#pragma warning disable VSTHRD003
         await Task.WhenAny( Task.Delay( TimeSpan.FromSeconds( 1 ) ), disposedTask );
-#pragma warning restore VSTHRD003
 
         if ( !disposedTask.IsCompleted && pipelineRef.TryGetTarget( out var pipeline ) )
         {
@@ -1195,9 +1193,9 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
         {
             // Register user diagnostics.
             // If we have a new compile-time project, we need to register user diagnostics.
-            if ( configuration!.ClosureDiagnosticManifest is { DiagnosticDefinitions.IsEmpty: false } or { SuppressionDefinitions.IsEmpty: false } )
+            if ( configuration!.DiagnosticManifest is { DiagnosticDefinitions.IsEmpty: false } or { SuppressionDefinitions.IsEmpty: false } )
             {
-                this._userDiagnosticsRegistrationService?.RegisterDescriptors( configuration.ClosureDiagnosticManifest );
+                this._userDiagnosticsRegistrationService?.RegisterDescriptors( configuration.DiagnosticManifest );
             }
 
             return true;

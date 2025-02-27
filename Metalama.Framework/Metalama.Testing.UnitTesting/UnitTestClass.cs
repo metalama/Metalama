@@ -7,7 +7,6 @@ using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Services;
-using StreamJsonRpc;
 using System;
 using System.Runtime.CompilerServices;
 using Xunit;
@@ -36,7 +35,7 @@ namespace Metalama.Testing.UnitTesting
         /// <param name="logger"></param>
         protected UnitTestClass( ITestOutputHelper? logger = null, bool injectLoggingService = true )
         {
-            this._logger = logger;
+            this._logger = logger != null ? new TestOutputHelperWrapper( logger ) : null;
             this._injectLoggingService = injectLoggingService;
         }
 
@@ -173,7 +172,7 @@ namespace Metalama.Testing.UnitTesting
         {
             // We generally don't want to see any exceptions reported during the test.
             // ReSharper disable once ParameterOnlyUsedForPreconditionCheck.Local
-            Assert.DoesNotContain( this._exceptionReporter.ReportedExceptions, e => e is not ConnectionLostException );
+            Assert.DoesNotContain( this._exceptionReporter.ReportedExceptions, e => e.GetType().Name is not "ConnectionLostException" );
         }
     }
 }

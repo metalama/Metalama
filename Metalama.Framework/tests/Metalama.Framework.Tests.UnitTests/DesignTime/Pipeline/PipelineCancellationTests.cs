@@ -47,12 +47,14 @@ public sealed class PipelineCancellationTests : UnitTestClass
     }
 
     [Theory]
-    [ClassData( typeof(GetCancellationPoints) )]
+    [MemberData( nameof(GetCancellationPoints) )]
     public async Task WithCancellation( int cancelOnCancellationPointIndex )
     {
         var wasCancellationRequested = await this.RunTestAsync( cancelOnCancellationPointIndex );
         Assert.True( wasCancellationRequested );
     }
+
+    public static IEnumerable<object[]> GetCancellationPoints() => Enumerable.Range( 1, _maxCancellationPoints ).Select( i => new object[] { i } );
 
     [Fact]
     public async Task MaxCancellationPointsIsCorrect()
@@ -280,11 +282,14 @@ public sealed class PipelineCancellationTests : UnitTestClass
     }
 
     [Theory]
-    [ClassData( typeof(GetGetConfigurationCancellationPoints) )]
+    [MemberData( nameof(GetGetConfigurationCancellationPoints) )]
     public async Task GetConfigurationWithCancellation( int cancelOnCancellationPointIndex )
     {
         Assert.True( await this.RunGetConfigurationTestAsync( cancelOnCancellationPointIndex ) );
     }
+
+    public static IEnumerable<object[]> GetGetConfigurationCancellationPoints()
+        => Enumerable.Range( 1, _getConfigurationMaxCancellationPoints ).Select( i => new object[] { i } );
 
     [Fact]
     public async Task GetConfigurationWithoutCancellation()
@@ -323,21 +328,6 @@ public sealed class PipelineCancellationTests : UnitTestClass
         {
             return true;
         }
-    }
-
-    private sealed class GetCancellationPoints : IEnumerable<object[]>
-    {
-        public IEnumerator<object[]> GetEnumerator() => Enumerable.Range( 1, _maxCancellationPoints ).Select( i => new object[] { i } ).GetEnumerator();
-
-        IEnumerator IEnumerable.GetEnumerator() => this.GetEnumerator();
-    }
-
-    private sealed class GetGetConfigurationCancellationPoints : IEnumerable<object[]>
-    {
-        public IEnumerator<object[]> GetEnumerator()
-            => Enumerable.Range( 1, _getConfigurationMaxCancellationPoints ).Select( i => new object[] { i } ).GetEnumerator();
-
-        IEnumerator IEnumerable.GetEnumerator() => this.GetEnumerator();
     }
 
     private sealed class TestCancellationTokenSource : TestableCancellationTokenSource

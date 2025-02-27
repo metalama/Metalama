@@ -6,10 +6,11 @@ namespace Metalama.Backstage.UserInterface;
 
 #pragma warning disable CA1822
 
+// ReSharper disable MemberCanBeMadeStatic.Global
 public sealed class WebLinks : IBackstageService
 {
     // We don't add campaign tracking query string parameters so we do not override the attribution to the original campaign.
-    public string AfterSetup => GetLink( "metalama-after-activation", false );
+    public string Welcome => GetLink( "metalama-oss-welcome", false ); // TODO - Implement
 
     public string GetTeamTeamTrial => GetLink( "metalama-team-evaluation" );
 
@@ -30,6 +31,8 @@ public sealed class WebLinks : IBackstageService
     public string NewsletterGetCaptchaSiteKeyApi => "https://licensing.postsharp.net/GetCaptchaSiteKey.ashx";
 
     public string NewsletterSubscribeApi => "https://licensing.postsharp.net/MetalamaNewsletter.ashx";
+
+    public string DisableTelemetryInstructions => GetLink( "metalama-disable-telemetry" ); // TODO - Implement
 
     private static string GetLink( string alias, bool trackCampaign = true, string? queryString = null )
     {

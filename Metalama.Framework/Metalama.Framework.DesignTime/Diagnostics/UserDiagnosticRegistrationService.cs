@@ -80,7 +80,7 @@ namespace Metalama.Framework.DesignTime.Diagnostics
             List<string> missingSuppressions = new();
             List<IDiagnosticDefinition> missingDiagnostics = new();
 
-            foreach ( var suppression in diagnosticManifest.SuppressionDefinitions.Select( s => s.SuppressedDiagnosticId )
+            foreach ( var suppression in diagnosticManifest.SuppressionDefinitions.Keys
                          .Distinct() )
             {
                 if ( !file.Suppressions.Contains( suppression ) )
@@ -89,7 +89,7 @@ namespace Metalama.Framework.DesignTime.Diagnostics
                 }
             }
 
-            foreach ( var diagnostic in diagnosticManifest.DiagnosticDefinitions )
+            foreach ( var diagnostic in diagnosticManifest.DiagnosticDefinitions.Values )
             {
                 if ( !DesignTimeDiagnosticDefinitions.StandardDiagnosticDescriptors.ContainsKey( diagnostic.Id )
                      && !file.Diagnostics.ContainsKey( diagnostic.Id ) )

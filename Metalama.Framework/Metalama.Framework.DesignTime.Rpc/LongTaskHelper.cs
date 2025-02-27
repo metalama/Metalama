@@ -5,8 +5,6 @@ using Metalama.Backstage.Diagnostics;
 
 namespace Metalama.Framework.DesignTime.Rpc;
 
-#pragma warning disable VSTHRD003
-
 [PublicAPI]
 public static class LongTaskHelper
 {

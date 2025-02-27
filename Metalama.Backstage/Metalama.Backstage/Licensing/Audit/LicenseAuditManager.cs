@@ -36,7 +36,7 @@ internal sealed class LicenseAuditManager : ILicenseAuditManager
         this._backgroundTasksService = serviceProvider.GetRequiredBackstageService<BackstageBackgroundTasksService>();
     }
 
-    public void ReportLicense( LicenseConsumptionData license )
+    public void ReportLicense( LicenseConsumptionProperties license )
     {
         if ( !license.IsAuditable )
         {

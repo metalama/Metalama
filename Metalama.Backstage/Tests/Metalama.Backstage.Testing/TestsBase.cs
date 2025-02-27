@@ -53,7 +53,7 @@ namespace Metalama.Backstage.Testing
 
         protected ITelemetryConfigurationService TelemetryConfigurationService => this._defaultTestContext.Value.TelemetryConfigurationService;
 
-        protected LicensingAuthority LicensingAuthority { get; } = LicensingAuthority.GetTestAuthority();
+        protected virtual LicensingAuthority LicensingAuthority { get; } = LicensingAuthority.GetTestAuthority();
 
         private TestFileSystem? _uniqueFileSystem;
 

@@ -43,7 +43,7 @@ public static class BackstageServiceFactory
             return true;
         }
     }
-    
+
     public static IServiceProvider CreateServiceProvider( BackstageInitializationOptions options )
     {
         var serviceProviderBuilder = new SimpleServiceProviderBuilder();
@@ -62,7 +62,9 @@ public static class BackstageServiceFactory
 
     public static ILicenseConsumptionService CreateTestLicenseConsumptionService( IServiceProvider serviceProvider, string? licenseKey )
     {
-        var sources = licenseKey == null ? Array.Empty<ExplicitLicenseSource>() : new[] { new ExplicitLicenseSource( licenseKey, serviceProvider ) };
+        var sources = licenseKey == null
+            ? Array.Empty<ExplicitLicenseSource>()
+            : new[] { new ExplicitLicenseSource( licenseKey, LicenseSourceKind.UserProfile, serviceProvider ) };
 
         var service = new LicenseConsumptionService( serviceProvider, sources );
 

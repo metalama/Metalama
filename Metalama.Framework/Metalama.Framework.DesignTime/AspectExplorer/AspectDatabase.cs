@@ -148,7 +148,7 @@ internal sealed class AspectDatabase : IGlobalService
                 return [];
             }
 
-            var pipeline = new IntrospectionAspectPipeline( designTimeConfiguration.Value.ServiceProvider, null );
+            using var pipeline = new IntrospectionAspectPipeline( designTimeConfiguration.Value.ServiceProvider, null );
 
             try
             {

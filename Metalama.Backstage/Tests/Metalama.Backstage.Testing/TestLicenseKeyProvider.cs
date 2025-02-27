@@ -20,58 +20,149 @@ public sealed class TestLicenseKeyProvider
 
     public LicensingAuthority Authority { get; } = LicensingAuthority.GetTestAuthority();
 
-    private string GenerateLicenseKey( int id, Action<LicenseKeyDataBuilder> action )
+    private string GenerateLicenseKey( int id, Action<LicenseKeyDataBuilder> action, bool sign = true, bool endSubscription = true )
     {
-        var builder = new LicenseKeyDataBuilder { LicenseId = id, SubscriptionEndDate = this.SubscriptionExpirationDate };
+        var builder = new LicenseKeyDataBuilder { LicenseId = id };
+
+        if ( endSubscription )
+        {
+            builder.SubscriptionEndDate = this.DefaultSubscriptionExpirationDate;
+        }
+
         action( builder );
 
         // Ensure we always return the same license key for the same input because subsequent signing of the same thing
         // do not return the same signature.
-        var hash = HashUtilities.HashToString( builder.GetSignedBuffer() );
+        var hash = HashUtilities.HashToString( builder.GetSignedBuffer() ) + sign;
 
-        return this._cachedLicenses.GetOrAdd( hash, _ => builder.SignAndSerialize( this.Authority ) );
+        return this._cachedLicenses.GetOrAdd(
+            hash,
+            _ =>
+            {
+                if ( sign && builder.RequiresSignature() )
+                {
+                    return builder.SignAndSerialize( this.Authority );
+                }
+                else
+                {
+                    return builder.SerializeToLicenseString();
+                }
+            } );
     }
 
-    private string GenerateLicenseKey( int id, LicensedProduct product, LicenseType type = LicenseType.Business )
+    private string GenerateLicenseKey(
+        int id,
+        LicenseProduct product,
+        LicenseType type = LicenseType.Business,
+        LicenseGeneration generation = LicenseGeneration.Current,
+        bool sign = true,
+        bool endSubscription = true )
         => this.GenerateLicenseKey(
             id,
             license =>
             {
                 license.Product = product;
                 license.LicenseType = type;
-            } );
 
-    public string PostSharpEssentials => this.GenerateLicenseKey( 1, LicensedProduct.PostSharpUltimate, LicenseType.Community );
+                if ( generation != LicenseGeneration.None )
+                {
+                    license.Generation = generation;
+                }
+            },
+            sign,
+            endSubscription );
 
-    public string PostSharpFramework => this.GenerateLicenseKey( 2, LicensedProduct.PostSharpFramework );
+    public string PostSharpEssentials => this.GenerateLicenseKey( 1, LicenseProduct.PostSharpUltimate, LicenseType.Community, endSubscription: false );
 
-    public string PostSharpUltimate => this.GenerateLicenseKey( 3, LicensedProduct.PostSharpUltimate );
+    public string PostSharpFramework => this.GenerateLicenseKey( 2, LicenseProduct.PostSharpFramework );
+
+    public string PostSharpUltimate => this.GenerateLicenseKey( 3, LicenseProduct.PostSharpUltimate );
 
     public const string PostSharpUltimateOpenSourceRedistributionNamespace = "Oss";
 
-    public string MetalamaProfessionalPersonal => this.GenerateLicenseKey( 4, LicensedProduct.MetalamaProfessional, LicenseType.Personal );
+    public string MetalamaProfessionalPersonal => this.GenerateLicenseKey( 4, LicenseProduct.MetalamaProfessional, LicenseType.Personal );
 
-    public string MetalamaProfessionalBusiness => this.GenerateLicenseKey( 5, LicensedProduct.MetalamaProfessional );
+    public string MetalamaProfessionalBusiness => this.GenerateLicenseKey( 5, LicenseProduct.MetalamaProfessional );
 
-    public string MetalamaCommunity => this.GenerateLicenseKey( 6, LicensedProduct.MetalamaCommunity, LicenseType.Community );
+    public string MetalamaProfessionalBusinessUnsigned => this.GenerateLicenseKey( 5, LicenseProduct.MetalamaProfessional, sign: false );
+
+#pragma warning disable CA1822
+    public string InvalidLicenseKey => "001-invalid";
+#pragma warning restore CA1822
+
+    public string MetalamaCommunity => this.GenerateLicenseKey( 6, LicenseProduct.MetalamaCommunity, LicenseType.Community, endSubscription: false );
 
     [Obsolete]
-    public string MetalamaUltimatePersonal => this.GenerateLicenseKey( 7, LicensedProduct.MetalamaUltimate, LicenseType.Personal );
+    public string MetalamaUltimatePersonal => this.GenerateLicenseKey( 7, LicenseProduct.MetalamaUltimate, LicenseType.Personal );
 
     [Obsolete]
-    public string MetalamaUltimateBusiness => this.GenerateLicenseKey( 8, LicensedProduct.MetalamaUltimate );
+    public string MetalamaUltimateBusiness => this.GenerateLicenseKey( 8, LicenseProduct.MetalamaUltimate );
 
     public string MetalamaProfessionalBusinessNotAuditable
         => this.GenerateLicenseKey(
             9,
             key =>
             {
-                key.Product = LicensedProduct.MetalamaProfessional;
+                key.Product = LicenseProduct.MetalamaProfessional;
                 key.LicenseType = LicenseType.Business;
                 key.Auditable = false;
+                key.Generation = LicenseGeneration.Current;
             } );
 
-    public DateTime SubscriptionExpirationDate { get; } = new( 2050, 1, 1, 0, 0, 0, DateTimeKind.Utc );
+    public string NotYetValid
+        => this.GenerateLicenseKey(
+            10,
+            builder =>
+            {
+                builder.Product = LicenseProduct.MetalamaProfessional;
+                builder.LicenseType = LicenseType.Evaluation;
+                builder.ValidFrom = new DateTime( 2060, 1, 1 );
+                builder.ValidTo = new DateTime( 2061, 1, 1 );
+                builder.Generation = LicenseGeneration.Current;
+            } );
+
+    public string NoLongerValid
+        => this.GenerateLicenseKey(
+            11,
+            builder =>
+            {
+                builder.Product = LicenseProduct.MetalamaProfessional;
+                builder.LicenseType = LicenseType.Evaluation;
+                builder.ValidFrom = new DateTime( 2010, 1, 1 );
+                builder.ValidTo = new DateTime( 2011, 1, 1 );
+                builder.Generation = LicenseGeneration.Current;
+            } );
+
+    public string ExpiredSubscription
+        => this.GenerateLicenseKey(
+            12,
+            builder =>
+            {
+                builder.Product = LicenseProduct.MetalamaProfessional;
+                builder.LicenseType = LicenseType.Business;
+                builder.SubscriptionEndDate = this.ExpiredSubscriptionEndDate;
+                builder.Generation = LicenseGeneration.Current;
+            } );
+
+    public string ExpiredSubscriptionLegacyGeneration
+        => this.GenerateLicenseKey(
+            13,
+            builder =>
+            {
+                builder.Product = LicenseProduct.MetalamaProfessional;
+                builder.LicenseType = LicenseType.Business;
+                builder.SubscriptionEndDate = this.ExpiredSubscriptionEndDate;
+            } );
+
+    [Obsolete]
+    public string MetalamaStarter => this.GenerateLicenseKey( 12, LicenseProduct.MetalamaStarter );
+
+    [Obsolete]
+    public string MetalamaFree => this.GenerateLicenseKey( 13, LicenseProduct.MetalamaFree );
+
+    public DateTime ExpiredSubscriptionEndDate { get; } = new( 2025, 1, 1, 0, 0, 0, DateTimeKind.Utc );
+
+    public DateTime DefaultSubscriptionExpirationDate { get; } = new( 2050, 1, 1, 0, 0, 0, DateTimeKind.Utc );
 
     public string GetLicenseKey( string licenseKeyName )
     {

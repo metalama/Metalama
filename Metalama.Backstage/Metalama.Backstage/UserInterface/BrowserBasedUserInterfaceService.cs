@@ -15,7 +15,7 @@ internal class BrowserBasedUserInterfaceService : UserInterfaceService
         this._logger = serviceProvider.GetLoggerFactory().GetLogger( this.GetType().Name );
     }
 
-    public override void ShowToastNotification( ToastNotification notification, ref bool notificationReported )
+    public override void ShowToastNotification( ToastNotification notification )
     {
         if ( notification.Kind == ToastNotificationKinds.RequiresLicense )
         {
@@ -24,7 +24,7 @@ internal class BrowserBasedUserInterfaceService : UserInterfaceService
             // We are waiting for the method to complete because we have no mechanism to ensure that the process does
             // not end before the method completes.
             Task.Run( () => this.OpenConfigurationWebPageAsync( "Setup" ) ).Wait();
-            notificationReported = true;
+            this.OnToastNotificationShown();
         }
         else
         {

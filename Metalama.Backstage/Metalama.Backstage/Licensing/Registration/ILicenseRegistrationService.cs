@@ -2,30 +2,38 @@
 
 using JetBrains.Annotations;
 using Metalama.Backstage.Extensibility;
+using System;
+using System.Collections.Generic;
 using System.ComponentModel;
-using System.Diagnostics.CodeAnalysis;
 
 namespace Metalama.Backstage.Licensing.Registration;
 
 [PublicAPI]
 public interface ILicenseRegistrationService : IBackstageService, INotifyPropertyChanged
 {
-    bool TryRegisterCommunityEdition( [NotNullWhen( false )] out string? errorMessage );
+    LicenseRegistrationResult RegisterCommunityEdition( CommunityLicenseReason reason );
 
-    bool TryRegisterTrialEdition( [NotNullWhen( false )] out string? errorMessage );
+    [Obsolete]
+    LicenseRegistrationResult RegisterLegacyFreeEdition();
 
-    bool TryRegisterLicense( string licenseString, [NotNullWhen( false )] out string? errorMessage );
+    LicenseRegistrationResult RegisterTrialEdition();
+
+    LicenseRegistrationResult RegisterLicense( string licenseString );
 
     bool CanRegisterTrialEdition { get; }
 
-    bool TryRemoveCurrentLicense( [NotNullWhen( true )] out string? licenseString );
+    void RemoveLicenses();
 
-    LicenseProperties? RegisteredLicense { get; }
+    IEnumerable<LicenseRegistrationProperties> RegisteredLicenses { get; }
 
-    bool TryValidateLicenseKey( string licenseKey, [NotNullWhen( false )] out string? errorMessage );
+    /// <summary>
+    /// Validates the license key and returns a value indicating whether it can be registered using <see cref="RegisterLicense"/>.
+    /// </summary>
+    LicenseRegistrationResult ValidateLicenseKey( string licenseKey );
 
-    bool TryParseLicenseKey(
-        string licenseKey,
-        [NotNullWhen( false )] out string? errorMessage,
-        [NotNullWhen( true )] out LicenseProperties? licenseProperties );
+    /// <summary>
+    /// Attempts to parse a license key into a <see cref="LicenseRegistrationProperties"/>, but does not test
+    /// whether this license key can be registered.
+    /// </summary>
+    LicenseRegistrationResult ParseLicenseKey( string licenseKey );
 }

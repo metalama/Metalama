@@ -42,7 +42,7 @@ namespace Metalama.Backstage.Licensing.Licenses
         /// <summary>
         /// Gets the licensed product.
         /// </summary>
-        public LicensedProduct Product { get; init; }
+        public LicenseProduct Product { get; init; }
 
         /// <summary>
         /// Gets the identifier of the current license.

@@ -13,21 +13,21 @@
             if ($('#subscribeToNewsletterCheckbox').is(':checked')) {
                 $('#recaptchaResponse').val(token);
             }
-         
+
             $('form').submit();
         }
-        
-         $(document).ready(function() {
-                // Select the 'Accept All' checkbox using its ID
-                $('#AcceptAll').change(function() {
-                    // Check or uncheck all other checkboxes based on 'Accept All' state
-                    var isChecked = $(this).is(':checked');
-                    $('input[type="checkbox"]:enabled').not(this).prop('checked', isChecked);
-                });
-        
-             
+
+        $(document).ready(function () {
+            // Select the 'Accept All' checkbox using its ID
+            $('#AcceptAll').change(function () {
+                // Check or uncheck all other checkboxes based on 'Accept All' state
+                var isChecked = $(this).is(':checked');
+                $('input[type="checkbox"]:enabled').not(this).prop('checked', isChecked);
             });
-</script>
+
+
+        });
+    </script>
 }
 
 <form method="post">
@@ -39,7 +39,8 @@
             <input id="subscribeToNewsletterCheckbox" type="checkbox" asp-for="SubscribeToNewsletter">
             <div class="label">
                 <p>
-                    <label asp-for="SubscribeToNewsletter">Subscribe to the Metalama newsletter and the welcome e-mail course.</label>
+                    <label asp-for="SubscribeToNewsletter">Subscribe to the Metalama newsletter and the welcome e-mail
+                        course.</label>
                     <small>You can unsubscribe or change your preferences at any time.</small>
                 </p>
                 <p>
@@ -49,29 +50,13 @@
             </div>
         </div>
     }
-    <div class="checkbox">
-        @{
-            var mandatoryTelemetry = GlobalState.SelectedAction == SelectedAction.Community;
-        }
-
-        <input type="checkbox" asp-for="EnableTelemetry" checked="@mandatoryTelemetry" disabled="@mandatoryTelemetry">
-        <div class="label">
-            <label asp-for="EnableTelemetry">
-                Help improve Metalama by sending <a href="@WebLinks.PrivacyPolicy" target="_blank">anonymous usage and performance statistics</a>.
-
-                @if (mandatoryTelemetry)
-                {
-                    <small>Telemetry is mandatory for Metalama Community users.</small>
-                }
-            </label>
-        </div>
-    </div>
 
     <div class="checkbox">
         <input type="checkbox" asp-for="AcceptLicense">
         <div class="label">
             <label asp-for="AcceptLicense">
-                I accept the terms of the <a href="@WebLinks.LicenseAgreement" target="_blank">License Agreement</a> and the <a href="@WebLinks.PrivacyPolicy" target="_blank">Privacy Policy</a>. I understand
+                I accept the terms of the <a href="@WebLinks.LicenseAgreement" target="_blank">License Agreement</a> and
+                the <a href="@WebLinks.PrivacyPolicy" target="_blank">Privacy Policy</a>. I understand
                 that the software is subject to License Audit and I consent with the collection of usage data.
             </label>
         </div>
@@ -89,7 +74,9 @@
     <div class="continue-button">
         @if (Model.IsDeviceOnline)
         {
-            <button type="submit" class="g-recaptcha" data-sitekey="@Model.RecaptchaSiteKey" data-callback="onSubmit">Continue</button>
+            <button type="submit" class="g-recaptcha" data-sitekey="@Model.RecaptchaSiteKey" data-callback="onSubmit">
+                Continue
+            </button>
         }
         else
         {

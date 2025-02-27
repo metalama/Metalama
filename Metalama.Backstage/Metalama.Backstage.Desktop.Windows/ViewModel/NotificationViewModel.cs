@@ -3,4 +3,4 @@
 namespace Metalama.Backstage.Desktop.Windows.ViewModel;
 
 // ReSharper disable once NotAccessedPositionalProperty.Global
-internal record NotificationViewModel( string Kind, string Title, string Body, NotificationActionViewModel Action );
+internal record NotificationViewModel( string Kind, string Title, string Body, NotificationActionViewModel Action, bool CanSnooze = true, bool CanMute = true );

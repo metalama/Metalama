@@ -29,7 +29,7 @@ internal sealed class LicenseConsumptionService : ILicenseConsumptionService
         this.Changed?.Invoke();
     }
 
-    public ILicenseConsumer CreateConsumer( LicenseConsumptionOptions? options )
+    public ILicenseConsumer CreateConsumer( LicenseConsumptionOptions? options, Action<LicensingMessage>? reportMessage )
     {
         options ??= LicenseConsumptionOptions.Default;
 
@@ -40,10 +40,10 @@ internal sealed class LicenseConsumptionService : ILicenseConsumptionService
         if ( !string.IsNullOrEmpty( options.ProjectLicenseKey ) )
         {
             // ReSharper disable once RedundantSuppressNullableWarningExpression
-            sources.Add( new ExplicitLicenseSource( options.ProjectLicenseKey!, this._services ) );
+            sources.Add( new ExplicitLicenseSource( options.ProjectLicenseKey!, LicenseSourceKind.Project, this._services ) );
         }
 
-        return LicenseConsumer.Create( options, this._services, sources );
+        return LicenseConsumer.Create( options, this._services, sources, reportMessage );
     }
 
     public event Action? Changed;

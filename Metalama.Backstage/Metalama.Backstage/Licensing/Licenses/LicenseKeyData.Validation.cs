@@ -4,6 +4,7 @@ using Metalama.Backstage.Licensing.Licenses.LicenseFields;
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Security.Cryptography;
 
 namespace Metalama.Backstage.Licensing.Licenses
 {
@@ -18,7 +19,7 @@ namespace Metalama.Backstage.Licensing.Licenses
                 return false;
             }
 
-            if ( !Enum.IsDefined( typeof(LicensedProduct), this.Product ) )
+            if ( !Enum.IsDefined( typeof(LicenseProduct), this.Product ) )
             {
                 errorMessage = "the license key licensed product is unknown";
 
@@ -42,19 +43,26 @@ namespace Metalama.Backstage.Licensing.Licenses
 
         public bool VerifySignature( LicensingAuthority licensingAuthority )
         {
-            if ( !this.RequiresSignature() )
+            try
             {
-                return true;
-            }
+                if ( !this.RequiresSignature() )
+                {
+                    return true;
+                }
 
-            if ( this.Signature == null || this.SignatureKeyId == null )
+                if ( this.Signature == null || this.SignatureKeyId == null )
+                {
+                    return false;
+                }
+
+                var buffer = this.GetSignedBuffer();
+
+                return licensingAuthority.VerifySignature( buffer, this.SignatureKeyId.Value, this.Signature );
+            }
+            catch ( CryptographicException )
             {
                 return false;
             }
-
-            var buffer = this.GetSignedBuffer();
-
-            return licensingAuthority.VerifySignature( buffer, this.SignatureKeyId.Value, this.Signature );
         }
     }
 }

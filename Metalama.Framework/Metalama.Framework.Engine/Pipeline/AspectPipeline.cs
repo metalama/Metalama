@@ -141,28 +141,29 @@ public abstract class AspectPipeline : IDisposable
 
         var compileTimeProject = compileTimeProjectRepository.RootProject;
 
-        // Create a project-level service provider.
-        var projectServiceProviderWithoutPlugins =
-            this.ServiceProvider
-                .WithCompileTimeProjectServices( compileTimeProjectRepository )
-                .WithService( this.GetDiagnosticExtensionPolicy() );
+        // Start creating the project-level service provider.
+        var projectServiceProviderWithProject = this.ServiceProvider;
 
-        var projectServiceProviderWithProject = projectServiceProviderWithoutPlugins;
+        projectServiceProviderWithProject = projectServiceProviderWithProject
+            .WithService( compileTimeProject );
+
+        // This service is required by extensions, so we add it soon.
+        projectServiceProviderWithProject = projectServiceProviderWithProject
+            .WithService( new DiagnosticDefinitionDiscoveryService( projectServiceProviderWithProject ) );
 
         // Create compiler plug-ins found in compile-time code and add them to the service provider.
         // We disable caching of the type-interface mapping in the service provider to makes sure the AssemblyLoadContext can be unloaded.
-        projectServiceProviderWithProject = projectServiceProviderWithProject.WithService( compileTimeProject );
-
-        var plugIns = this.LoadPlugIns( diagnosticAdder, compilation, compileTimeProject, projectServiceProviderWithoutPlugins );
+        var plugIns = this.LoadPlugIns( diagnosticAdder, compilation, compileTimeProject, projectServiceProviderWithProject );
 
         projectServiceProviderWithProject = projectServiceProviderWithProject
+            .Underlying
             .WithServices( plugIns.OfType<IProjectService>(), true );
 
-        // Add extensions
+        // Add extensions.
         projectServiceProviderWithProject = projectServiceProviderWithProject.WithService( new PipelineExtensionProvider( extensions ) );
 
         var extensionInitializationContext =
-            new PipelineExtensionContext( this.ProjectOptions, diagnosticAdder );
+            new PipelineExtensionInitializationContext( this.ProjectOptions, diagnosticAdder, projectServiceProviderWithProject );
 
         foreach ( var extension in extensions )
         {
@@ -178,7 +179,13 @@ public abstract class AspectPipeline : IDisposable
             }
         }
 
-        projectServiceProviderWithProject = extensionInitializationContext.Services.Build( projectServiceProviderWithProject );
+        projectServiceProviderWithProject = extensionInitializationContext.ServiceBuilder.Build( projectServiceProviderWithProject );
+
+        // Add project-level services.
+        projectServiceProviderWithProject =
+            projectServiceProviderWithProject
+                .WithCompileTimeProjectServices( compileTimeProjectRepository, extensionInitializationContext.DiagnosticManifest )
+                .WithService( this.GetDiagnosticExtensionPolicy() );
 
         // Set NormalizeWhitespace setting for the compilation.
         projectServiceProviderWithProject =
@@ -256,6 +263,7 @@ public abstract class AspectPipeline : IDisposable
             .ToImmutableArray();
 
         var eligibilityService = new EligibilityService( allAspectClasses );
+        var diagnosticManigest = compileTimeProject.ClosureDiagnosticManifest.Union( extensionInitializationContext.DiagnosticManifest );
 
         // Create the configuration.
         configuration = new AspectPipelineConfiguration(
@@ -269,7 +277,8 @@ public abstract class AspectPipeline : IDisposable
             fabricTypes,
             projectModel,
             projectServiceProviderWithProject.WithService( eligibilityService ),
-            extensions );
+            extensions,
+            diagnosticManigest );
 
         return true;
 

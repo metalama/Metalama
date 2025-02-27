@@ -29,7 +29,7 @@ public partial class LicenseKeyDataBuilder : ILicenseKeyData
     }
 
     public LicenseKeyData Build()
-        => new( this._fields.ToImmutable() )
+        => new( this.Version, this._fields.ToImmutable() )
         {
             Product = this.Product,
             LicenseId = this.LicenseId,
@@ -138,7 +138,7 @@ public partial class LicenseKeyDataBuilder : ILicenseKeyData
     /// <summary>
     /// Gets or sets the licensed product.
     /// </summary>
-    public LicensedProduct Product { get; set; }
+    public LicenseProduct Product { get; set; }
 
     /// <summary>
     /// Gets or sets the identifier of the current license.
