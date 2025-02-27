@@ -95,7 +95,7 @@ internal sealed class IntroduceEventTransformation : IntroduceMemberTransformati
                                 (NameSyntax) syntaxGenerator.TypeSyntax( finalEvent.ExplicitInterfaceImplementations.Single().DeclaringType ) )
                             .WithOptionalTrailingTrivia( ElasticSpace, context.SyntaxGenerationContext.Options )
                         : null,
-                    finalEvent.GetCleanName(),
+                    Identifier(finalEvent.GetCleanName() ),
                     GenerateAccessorList(),
                     default );
 
