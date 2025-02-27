@@ -23,7 +23,7 @@ namespace Metalama.Backstage.Infrastructure
             this.DotNetSdkDirectory = dotNetSdkDirectory
                                       ?? environmentVariableProvider.GetEnvironmentVariable( _dotNetSdkDirectoryEnvironmentVariableName );
 
-            var logger = serviceProvider.GetLoggerFactory().GetLogger( "PlatformInfo" );
+            var logger = serviceProvider.GetBackstageService<EarlyLoggerFactory>()?.GetLogger( "PlatformInfo" );
 
             this.DotNetSdkVersion = Path.GetFileName( this.DotNetSdkDirectory );
             this.DotNetExePath = GetDotNetPath( logger, this.DotNetSdkDirectory );
@@ -31,13 +31,13 @@ namespace Metalama.Backstage.Infrastructure
 
         private const string _dotNetSdkDirectoryEnvironmentVariableName = "MSBuildExtensionsPath";
 
-        private static string GetDotNetPath( ILogger logger, string? dotNetSdkDirectory = null )
+        private static string GetDotNetPath( ILogger? logger, string? dotNetSdkDirectory = null )
         {
             var dotnetFileName = RuntimeInformation.IsOSPlatform( OSPlatform.Windows )
                 ? "dotnet.exe"
                 : "dotnet";
 
-            logger.Trace?.Log( $"Looking for {dotnetFileName} path." );
+            logger?.Trace?.Log( $"Looking for {dotnetFileName} path." );
 
             // We no longer look for the current process being dotnet because of Rider. Rider runs in dotnet.exe, but this
             // instance of dotnet.exe does not have an SDK installed. So, it is better to ignore the current process as a hint.
@@ -53,13 +53,13 @@ namespace Metalama.Backstage.Infrastructure
 
                     if ( File.Exists( dotnetPath ) )
                     {
-                        logger.Trace?.Log( $"{dotnetFileName} found in '{dotnetPath}'." );
+                        logger?.Trace?.Log( $"{dotnetFileName} found in '{dotnetPath}'." );
 
                         return dotnetPath;
                     }
                     else
                     {
-                        logger.Trace?.Log( $"Looked for {dotnetFileName} in '{dotnetPath}', but it did not exist." );
+                        logger?.Trace?.Log( $"Looked for {dotnetFileName} in '{dotnetPath}', but it did not exist." );
                     }
                 }
             }
@@ -73,13 +73,13 @@ namespace Metalama.Backstage.Infrastructure
 
                 if ( File.Exists( dotnetPath ) )
                 {
-                    logger.Trace?.Log( $"dotnet.exe found in '{dotnetPath}'." );
+                    logger?.Trace?.Log( $"dotnet.exe found in '{dotnetPath}'." );
 
                     return dotnetPath;
                 }
                 else
                 {
-                    logger.Trace?.Log( $"Looked for dotnet.exe in '{dotnetPath}' but it did not exist." );
+                    logger?.Trace?.Log( $"Looked for dotnet.exe in '{dotnetPath}' but it did not exist." );
                 }
             }
 
@@ -96,7 +96,7 @@ namespace Metalama.Backstage.Infrastructure
                 {
                     if ( directory.ContainsOrdinal( "ReSharperHost" ) )
                     {
-                        logger.Trace?.Log( $"Rider directory '{directory}' excluded." );
+                        logger?.Trace?.Log( $"Rider directory '{directory}' excluded." );
 
                         continue;
                     }
@@ -105,19 +105,19 @@ namespace Metalama.Backstage.Infrastructure
 
                     if ( File.Exists( dotnetPath ) )
                     {
-                        logger.Trace?.Log( $"{dotnetFileName} found in '{dotnetPath}'." );
+                        logger?.Trace?.Log( $"{dotnetFileName} found in '{dotnetPath}'." );
 
                         return dotnetPath;
                     }
                     else
                     {
-                        logger.Trace?.Log( $"Looked for {dotnetFileName} in '{dotnetPath}', but it did not exist." );
+                        logger?.Trace?.Log( $"Looked for {dotnetFileName} in '{dotnetPath}', but it did not exist." );
                     }
                 }
             }
 
             // The file was not found.
-            logger.Trace?.Log( $"{dotnetFileName} was found nowhere. We hope it will be in the PATH." );
+            logger?.Trace?.Log( $"{dotnetFileName} was found nowhere. We hope it will be in the PATH." );
 
             return "dotnet";
         }
