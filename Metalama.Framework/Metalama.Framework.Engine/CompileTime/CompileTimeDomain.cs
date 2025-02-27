@@ -31,6 +31,7 @@ namespace Metalama.Framework.Engine.CompileTime
     /// </summary>
     public class CompileTimeDomain : IDisposable, IGlobalService
     {
+        private static readonly ConcurrentDictionary<string, object> _locksByPath = new();
         private static int _nextDomainId;
         private readonly ConcurrentDictionary<AssemblyIdentity, Assembly> _assemblyCache = new();
         private readonly int _domainId = Interlocked.Increment( ref _nextDomainId );
@@ -103,8 +104,15 @@ namespace Metalama.Framework.Engine.CompileTime
                 return assembly;
             }
 
-            assembly = this.LoadAssemblyCore( path, options );
-            this.AddAssembly( assembly, path );
+            var @lock = _locksByPath.GetOrAdd( path, _ => new object() );
+
+            lock ( @lock )
+            {
+                assembly = this.LoadAssemblyCore( path, options );
+                this.AddAssembly( assembly, path );
+            }
+
+            _locksByPath.TryRemove( path, out _ );
 
             return assembly;
         }
