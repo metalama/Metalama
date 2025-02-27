@@ -41,7 +41,7 @@ namespace Metalama.Framework.Engine.CompileTime
 
         private AssemblyLoader? _assemblyLoader;
         private ImmutableDictionaryOfArray<string, string> _assemblyPathsByName = ImmutableDictionaryOfArray<string, string>.Empty;
-        
+
         [UsedImplicitly]
         protected ICompileTimeDomainObserver? Observer { get; }
 
@@ -96,34 +96,39 @@ namespace Metalama.Framework.Engine.CompileTime
         /// Loads an assembly in the CLR.
         /// </summary>
         /// <param name="path"></param>
-        /// <param name="collectible">Indicates whether the assembly is supposed to be collectible after the <see cref="CompileTimeDomain"/>
-        /// is disposed of. This should be <c>true</c> for project-specific assemblies and <c>false</c> for extensions.</param>
-        public Assembly LoadAssembly( string path, bool collectible = true )
+        public Assembly LoadAssembly( string path, LoadAssemblyOptions options = default )
         {
             if ( this._assembliesByPath.TryGetValue( path, out var assembly ) )
             {
                 return assembly;
             }
 
-            assembly = this.LoadAssemblyCore( path, collectible );
+            assembly = this.LoadAssemblyCore( path, options );
             this.AddAssembly( assembly, path );
 
             return assembly;
         }
 
-        protected virtual Assembly LoadAssemblyCore( string path, bool collectible )
+        protected virtual Assembly LoadAssemblyCore( string path, LoadAssemblyOptions options )
         {
             var assemblyLoader = this._assemblyLoader ?? throw new ObjectDisposedException( this.ToString() );
 
             try
             {
-                // We use LoadFromStream to avoid to lock the file in the long-running compiler process.
-                
-                using var peStream = RetryHelper.Retry( () => File.OpenRead( path ) );
-                var pdbPath = Path.ChangeExtension( path, ".pdb" );
-                using var pdbStream = File.Exists( pdbPath ) ? RetryHelper.Retry( () => File.OpenRead( pdbPath ) ) : null;
-                
-                return assemblyLoader.LoadFromStream( peStream, pdbStream );
+                if ( options.AvoidLocking )
+                {
+                    // We use LoadFromStream to avoid to lock the file in the long-running compiler process.
+
+                    using var peStream = RetryHelper.Retry( () => File.OpenRead( path ) );
+                    var pdbPath = Path.ChangeExtension( path, ".pdb" );
+                    using var pdbStream = File.Exists( pdbPath ) ? RetryHelper.Retry( () => File.OpenRead( pdbPath ) ) : null;
+
+                    return assemblyLoader.LoadFromStream( peStream, pdbStream );
+                }
+                else
+                {
+                    return assemblyLoader.LoadFromPath( path );
+                }
             }
             catch ( Exception e )
             {

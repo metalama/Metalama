@@ -213,4 +213,6 @@ public interface IProjectOptions : IProjectService, IEquatable<IProjectOptions>
     /// Gets the list of design-time extension assemblies for the current project.
     /// </summary>
     ImmutableArray<ExtensionAssemblyReference> DesignTimeExtensionAssemblies { get; }
+
+    bool AvoidLockingExtensionAssemblies { get; }
 }

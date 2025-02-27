@@ -99,9 +99,11 @@ public abstract class ProjectOptionsWrapper : IProjectOptions
 
     public virtual ImmutableArray<string> SourceGeneratorAttributes => this.Wrapped.SourceGeneratorAttributes;
 
-    public ImmutableArray<ExtensionAssemblyReference> ExtensionAssemblies => this.Wrapped.ExtensionAssemblies;
+    public virtual ImmutableArray<ExtensionAssemblyReference> ExtensionAssemblies => this.Wrapped.ExtensionAssemblies;
 
-    public ImmutableArray<ExtensionAssemblyReference> DesignTimeExtensionAssemblies => this.Wrapped.DesignTimeExtensionAssemblies;
+    public virtual ImmutableArray<ExtensionAssemblyReference> DesignTimeExtensionAssemblies => this.Wrapped.DesignTimeExtensionAssemblies;
+
+    public virtual bool AvoidLockingExtensionAssemblies => this.Wrapped.AvoidLockingExtensionAssemblies;
 
     public sealed override int GetHashCode() => throw new NotImplementedException();
 

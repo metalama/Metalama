@@ -157,6 +157,8 @@ public partial class MSBuildProjectOptions : DefaultProjectOptions
     [Memo]
     public override ImmutableArray<string> SourceGeneratorAttributes => this.GetListOption( MSBuildPropertyNames.MetalamaSourceGeneratorAttributes );
 
+    public override bool AvoidLockingExtensionAssemblies => this.GetBooleanOption( MSBuildPropertyNames.MetalamaAvoidLockingExtensionAssemblies );
+
     [Memo]
     public override ImmutableArray<ExtensionAssemblyReference> DesignTimeExtensionAssemblies
         => this.GetListOption( MSBuildPropertyNames.MetalamaDesignTimeExtensionAssemblies )

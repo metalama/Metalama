@@ -168,7 +168,7 @@ public partial class TestContext : IDisposable, ITempFileManager, IApplicationIn
         // Ensure extensions have been loaded.
         foreach ( var extensionAssembly in options.ExtensionAssemblies )
         {
-            this.Domain.LoadAssembly( extensionAssembly, false );
+            this.Domain.LoadAssembly( extensionAssembly, LoadAssemblyOptions.Shared );
         }
 
         // Load plug-ins.
@@ -264,7 +264,7 @@ public partial class TestContext : IDisposable, ITempFileManager, IApplicationIn
             {
                 domain.Dispose();
             }
-            
+
             // Release all references for GC.
             this.ServiceProvider = ProjectServiceProvider.Empty;
 

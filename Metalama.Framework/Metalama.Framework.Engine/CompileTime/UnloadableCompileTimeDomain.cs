@@ -44,7 +44,7 @@ namespace Metalama.Framework.Engine.CompileTime
 
         public event Action<string>? UnloadError;
 
-        protected override Assembly LoadAssemblyCore( string path, bool collectible )
+        protected override Assembly LoadAssemblyCore( string path, LoadAssemblyOptions options )
         {
             if ( this._disposed )
             {
@@ -58,17 +58,25 @@ namespace Metalama.Framework.Engine.CompileTime
 
             try
             {
-                using var peStream = RetryHelper.Retry( () => File.OpenRead( path ) );
-                var pdbPath = Path.ChangeExtension( path, ".pdb" );
-                using var pdbStream = File.Exists( pdbPath ) ? RetryHelper.Retry( () => File.OpenRead( pdbPath ) ) : null;
-                assembly = this._assemblyLoadContext.AssertNotNull().LoadFromStream( peStream, pdbStream );
+                if ( options.AvoidLocking )
+                {
+                    using var peStream = RetryHelper.Retry( () => File.OpenRead( path ) );
+                    var pdbPath = Path.ChangeExtension( path, ".pdb" );
+                    using var pdbStream = File.Exists( pdbPath ) ? RetryHelper.Retry( () => File.OpenRead( pdbPath ) ) : null;
+
+                    assembly = this._assemblyLoadContext.AssertNotNull().LoadFromStream( peStream, pdbStream );
+                }
+                else
+                {
+                    assembly = this._assemblyLoadContext.AssertNotNull().LoadFromAssemblyPath( path );
+                }
             }
             catch ( Exception e )
             {
                 throw new FileLoadException( $"Cannot load '{path}': {e.Message}", e );
             }
 
-            if ( collectible )
+            if ( !options.IsShared )
             {
                 this.AddCollectibleAssembly( assembly );
             }

@@ -34,6 +34,7 @@
         <CompilerVisibleProperty Include="MetalamaSourceGeneratorAttributes"/>
         <CompilerVisibleProperty Include="MetalamaExtensionAssemblies"/>
         <CompilerVisibleProperty Include="MetalamaDesignTimeExtensionAssemblies"/>
+        <CompilerVisibleProperty Include="MetalamaAvoidLockingExtensionAssemblies"/>
     </ItemGroup>
 
     <!-- More properties are already exported by Metalama.Compiler and don't need to be exported a second time. -->
