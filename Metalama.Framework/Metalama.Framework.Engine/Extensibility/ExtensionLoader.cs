@@ -18,6 +18,6 @@ internal sealed class ExtensionLoader : IExtensionLoader
             ? projectOptions.ExtensionAssemblies
             : projectOptions.DesignTimeExtensionAssemblies;
 
-        return ExtensionLoaderHelper.LoadExtensionTypes( domain, extensionKind, assemblies );
+        return ExtensionLoaderHelper.LoadExtensionTypes( domain, extensionKind, assemblies, projectOptions.AvoidLockingExtensionAssemblies );
     }
 }

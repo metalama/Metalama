@@ -48,6 +48,7 @@ public static class MSBuildPropertyNames
     public const string MetalamaSourceGeneratorAttributes = nameof(MetalamaSourceGeneratorAttributes);
     public const string MetalamaExtensionAssemblies = nameof(MetalamaExtensionAssemblies);
     public const string MetalamaDesignTimeExtensionAssemblies = nameof(MetalamaDesignTimeExtensionAssemblies);
+    public const string MetalamaAvoidLockingExtensionAssemblies = nameof(MetalamaAvoidLockingExtensionAssemblies);
 
     public static ImmutableArray<string> All { get; } = ImmutableArray.Create(
         MetalamaBuildTouchFile,
@@ -83,5 +84,6 @@ public static class MSBuildPropertyNames
         MetalamaCompilerVisiblePropertiesList,
         MetalamaAssemblyLocatorHooksDirectory,
         MetalamaExtensionAssemblies,
-        MetalamaDesignTimeExtensionAssemblies );
+        MetalamaDesignTimeExtensionAssemblies,
+        MetalamaAvoidLockingExtensionAssemblies );
 }
