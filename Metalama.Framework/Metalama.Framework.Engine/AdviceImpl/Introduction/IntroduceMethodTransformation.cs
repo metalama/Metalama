@@ -136,7 +136,7 @@ internal sealed class IntroduceMethodTransformation : IntroduceMemberTransformat
                             finalMethod.GetSyntaxModifierList(),
                             context.SyntaxGenerator.ReturnType( finalMethod ).WithOptionalTrailingTrivia( ElasticSpace, context.SyntaxGenerationContext.Options ),
                             explicitInterfaceSpecifier,
-                            finalMethod.GetCleanName(),
+                            Identifier( finalMethod.GetCleanName() ),
                             context.SyntaxGenerator.TypeParameterList( finalMethod, context.FinalCompilation ),
                             context.SyntaxGenerator.ParameterList( finalMethod, context.FinalCompilation ),
                             context.SyntaxGenerator.ConstraintClauses( finalMethod ),
