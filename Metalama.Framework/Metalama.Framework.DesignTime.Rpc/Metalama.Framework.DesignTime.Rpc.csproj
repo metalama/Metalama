@@ -59,6 +59,7 @@
             <ILMergeOtherInputs Include="$(OutDir)Nerdbank.Streams.dll" Internalize="True" />
             <ILMergeOtherInputs Include="$(OutDir)MessagePack.Annotations.dll" Internalize="True" />
             <ILMergeLibs Include="$(OutDir)"/>
+            <ILMergeLibs Include="$(NuGetPackageRoot)netstandard.library/$(NETStandardLibraryPackageVersion)/build/netstandard2.0/ref"/>
             <ILMergeAllowDuplicate Include="System.Diagnostics.CodeAnalysis.AllowNullAttribute"/>
             <ILMergeAllowDuplicate Include="System.Diagnostics.CodeAnalysis.DisallowNullAttribute"/>
             <ILMergeAllowDuplicate Include="System.Diagnostics.CodeAnalysis.DoesNotReturnAttribute"/>
@@ -82,9 +83,12 @@
     </Target>
 
     <Target Name="ILMerge" AfterTargets="Build" Inputs="$(OutDir)$(AssemblyName).dll;@(ILMergeOtherInputs)" Outputs="$(ILMergeTouchFile)" DependsOnTargets="GetILMergeInputs">
+        <PropertyGroup>
+            <DotnetExePrefix Condition="!$([MSBuild]::IsOSPlatform('windows'))">mono </DotnetExePrefix>
+        </PropertyGroup>
         <Error Text="The ILRepack package is not installed or restored in the project." Condition="'$(ILRepack)'==''"/>
         <Move SourceFiles="$(OutDir)$(AssemblyName).dll" DestinationFiles="$(OutDir)$(AssemblyName).input.dll"/>
-        <Exec Command="$(ILRepack) /parallel /target:library /copyattrs /allowMultiple /out:$(OutDir)$(AssemblyName).dll /lib:@(ILMergeLibs, ' /lib:') $(OutDir)$(AssemblyName).input.dll @(ILMergeOtherInputs, ' ') /internalize /keyfile:$(AssemblyOriginatorKeyFile) /allowdup:@(ILMergeAllowDuplicate, ' /allowdup:')" />
+        <Exec Command="$(DotnetExePrefix) $(ILRepack) /parallel /target:library /copyattrs /allowMultiple /out:$(OutDir)$(AssemblyName).dll /lib:@(ILMergeLibs, ' /lib:') $(OutDir)$(AssemblyName).input.dll @(ILMergeOtherInputs, ' ') /internalize /keyfile:$(AssemblyOriginatorKeyFile) /allowdup:@(ILMergeAllowDuplicate, ' /allowdup:')" />
         
         <Touch Files="$(ILMergeTouchFile)" AlwaysCreate="true"/>
     </Target>
