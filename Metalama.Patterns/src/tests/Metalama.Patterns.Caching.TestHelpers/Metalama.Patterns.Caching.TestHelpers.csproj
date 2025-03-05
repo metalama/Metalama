@@ -6,6 +6,8 @@
     <Nullable>enable</Nullable>
     <Configurations>Debug;Release;LamaDebug</Configurations>
     <IsTestProject>false</IsTestProject>
+    <IsPackable>true</IsPackable>
+    <PackageId>Metalama.Patterns.Caching.TestHelpers</PackageId>
   </PropertyGroup>
 
   <ItemGroup>

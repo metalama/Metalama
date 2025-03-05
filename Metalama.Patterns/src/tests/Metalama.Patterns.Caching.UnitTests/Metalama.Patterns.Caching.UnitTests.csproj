@@ -6,7 +6,6 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <Configurations>Debug;Release;LamaDebug</Configurations>
-    <TestProjectFlags>TimeSensitive</TestProjectFlags>
   </PropertyGroup>
 
   <PropertyGroup>
