@@ -27,7 +27,7 @@
   </ItemGroup>
             
   <ItemGroup>
-    <InternalsVisibleTo Include="Metalama.Patterns.Caching.UnitTests" />
+    <InternalsVisibleTo Include="Metalama.Patterns.Caching.Premium.UnitTests" />
     <InternalsVisibleTo Include="Metalama.Patterns.Caching.TestHelpers" />
   </ItemGroup>
   

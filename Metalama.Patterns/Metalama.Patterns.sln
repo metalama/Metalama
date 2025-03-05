@@ -83,6 +83,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		global.json = global.json
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Metalama.Patterns.Caching.Premium.UnitTests", "src\tests\Metalama.Patterns.Caching.Premium.UnitTests\Metalama.Patterns.Caching.Premium.UnitTests.csproj", "{F63E65EA-8269-43D6-B796-28C2A82C05DB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -264,6 +266,12 @@ Global
 		{60DFCB67-FB6A-49D3-8F30-F1FB4CF4030C}.LamaDebug|Any CPU.Build.0 = Debug|Any CPU
 		{60DFCB67-FB6A-49D3-8F30-F1FB4CF4030C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{60DFCB67-FB6A-49D3-8F30-F1FB4CF4030C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F63E65EA-8269-43D6-B796-28C2A82C05DB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F63E65EA-8269-43D6-B796-28C2A82C05DB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F63E65EA-8269-43D6-B796-28C2A82C05DB}.LamaDebug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F63E65EA-8269-43D6-B796-28C2A82C05DB}.LamaDebug|Any CPU.Build.0 = Debug|Any CPU
+		{F63E65EA-8269-43D6-B796-28C2A82C05DB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F63E65EA-8269-43D6-B796-28C2A82C05DB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -298,6 +306,7 @@ Global
 		{AFEBA594-BD9E-468F-8C44-6EC028D9D497} = {1F68574A-CD56-4767-AED4-A25E6CB16A6E}
 		{23F48964-3304-491D-AD9E-C52D5243A68A} = {8FC0FBE5-8C4C-46A8-9A14-86216D07E331}
 		{60DFCB67-FB6A-49D3-8F30-F1FB4CF4030C} = {8FC0FBE5-8C4C-46A8-9A14-86216D07E331}
+		{F63E65EA-8269-43D6-B796-28C2A82C05DB} = {F255E50D-E07B-4A45-BA47-C730C4A6D9BC}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {2DC2B6F6-5623-43F8-BBBB-ED8072670A80}
