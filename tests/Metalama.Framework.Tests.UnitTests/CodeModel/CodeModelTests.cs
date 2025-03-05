@@ -205,7 +205,7 @@ interface I<T>
             Assert.True( m1.ReturnParameter.IsReturnParameter );
             Assert.False( m1.Parameters.ElementAt( 0 ).IsReturnParameter );
 
-            Assert.Equal( 0, m1.Parameters.OfParameterType( typeof(int) ).First().Index );
+            Assert.Equal( 0, m1.Parameters.OfParameterType( typeof( int ) ).First().Index );
             Assert.Equal( 0, m1.Parameters.OfParameterType<int>().First().Index );
             Assert.Equal( 0, m1.Parameters.OfParameterType( compilation.Factory.GetSpecialType( SpecialType.Int32 ) ).First().Index );
 
@@ -256,6 +256,32 @@ class C<T1, T2>
 
             Assert.Equal( "C<int, string>", method.ReturnType.ToString() );
             Assert.Equal( new[] { "int", "string" }, ((INamedType) method.ReturnType).TypeArguments.SelectAsImmutableArray( t => t.ToString() ) );
+        }
+
+        [Fact]
+        public void MakeGenericInstance()
+        {
+            using var testContext = this.CreateTestContext();
+
+            const string code = @"
+class C<T1, T2> { }
+";
+
+            var compilation = testContext.CreateCompilationModel( code );
+
+            var type = compilation.Types.Single();
+
+            var intType = compilation.Factory.GetSpecialType( SpecialType.Int32 );
+
+            var instance1 = type.MakeGenericInstance( typeof( int ), typeof( int ) );
+            var instance2 = type.MakeGenericInstance( intType, intType );
+            var canonicalInstance = type.MakeGenericInstance( type.TypeParameters[0], type.TypeParameters[1] );
+
+            Assert.Same( type, canonicalInstance );
+            Assert.Same( type, instance1.Definition );
+            Assert.Same( type, instance2.Definition );
+            Assert.Equal( [intType, intType], instance1.TypeArguments );
+            Assert.Equal( [intType, intType], instance2.TypeArguments );
         }
 
         [Fact]
@@ -334,13 +360,13 @@ class C
             var parameterType = Assert.Single( parameterTypes )!;
 
             Assert.Equal( "int[]", parameterType.ToString() );
-            Assert.True( parameterType.IsConvertibleTo( typeof(int[]) ) );
-            Assert.False( parameterType.IsConvertibleTo( typeof(int[,]) ) );
+            Assert.True( parameterType.IsConvertibleTo( typeof( int[] ) ) );
+            Assert.False( parameterType.IsConvertibleTo( typeof( int[,] ) ) );
 
             var arrayType = Assert.IsAssignableFrom<IArrayType>( parameterType );
 
             Assert.Equal( "int", arrayType.ElementType.ToString() );
-            Assert.True( arrayType.ElementType.IsConvertibleTo( typeof(int) ) );
+            Assert.True( arrayType.ElementType.IsConvertibleTo( typeof( int ) ) );
             Assert.Equal( 1, arrayType.Rank );
         }
 
@@ -696,16 +722,16 @@ class C
 
             Assert.Equal(
                 "List<T>.Enumerator",
-                compilation.Factory.GetTypeByReflectionType( typeof(List<>.Enumerator) ).ToString() );
+                compilation.Factory.GetTypeByReflectionType( typeof( List<>.Enumerator ) ).ToString() );
 
             Assert.Equal(
                 "Dictionary<int, string>",
-                compilation.Factory.GetTypeByReflectionType( typeof(Dictionary<int, string>) ).ToString() );
+                compilation.Factory.GetTypeByReflectionType( typeof( Dictionary<int, string> ) ).ToString() );
 
-            Assert.Equal( "int[][,]", compilation.Factory.GetTypeByReflectionType( typeof(int[][,]) ).ToString() );
-            Assert.Equal( "void*", compilation.Factory.GetTypeByReflectionType( typeof(void*) ).ToString() );
+            Assert.Equal( "int[][,]", compilation.Factory.GetTypeByReflectionType( typeof( int[][,] ) ).ToString() );
+            Assert.Equal( "void*", compilation.Factory.GetTypeByReflectionType( typeof( void* ) ).ToString() );
 
-            Assert.Throws<ArgumentException>( () => compilation.Factory.GetTypeByReflectionType( typeof(int).MakeByRefType() ) );
+            Assert.Throws<ArgumentException>( () => compilation.Factory.GetTypeByReflectionType( typeof( int ).MakeByRefType() ) );
         }
 
         [Fact]
@@ -780,19 +806,19 @@ class C<TC>
             var type = Assert.Single( compilation.Types );
 
             var openMethod = type.Methods.First();
-            var closedType = type.MakeGenericInstance( typeof(string) );
+            var closedType = type.MakeGenericInstance( typeof( string ) );
             var closedTypeMethod = closedType.Methods.First();
-            var closedMethod = closedTypeMethod.MakeGenericInstance( typeof(int) );
+            var closedMethod = closedTypeMethod.MakeGenericInstance( typeof( int ) );
 
             Assert.Equal( "(TC, TM)", openMethod.ReturnType.ToString() );
             Assert.Equal( "(string, TM)", closedTypeMethod.ReturnType.ToString() );
             Assert.Equal( "(string, int)", closedMethod.ReturnType.ToString() );
 
             // Generic type from a typeof.
-            _ = ((INamedType) compilation.Factory.GetTypeByReflectionType( typeof(AsyncLocal<>) )).MakeGenericInstance( typeof(int) );
+            _ = ((INamedType) compilation.Factory.GetTypeByReflectionType( typeof( AsyncLocal<> ) )).MakeGenericInstance( typeof( int ) );
 
 #pragma warning disable CS0618 // Type or member is obsolete
-            var closedMethod2 = openMethod.WithTypeArguments( new[] { typeof(int) }, new[] { typeof(string) } );
+            var closedMethod2 = openMethod.WithTypeArguments( new[] { typeof( int ) }, new[] { typeof( string ) } );
 #pragma warning restore CS0618 // Type or member is obsolete
             Assert.Equal( "(int, string)", closedMethod2.ReturnType.ToString() );
         }
@@ -818,7 +844,7 @@ class Class<T>
             using var userCodeContext = testContext.WithExecutionContext( compilation );
 
             var openType = compilation.Types.Single();
-            var typeInstance = openType.MakeGenericInstance( typeof(string) );
+            var typeInstance = openType.MakeGenericInstance( typeof( string ) );
 
             Assert.Equal( "string", openType.Fields.Single( f => !f.IsImplicitlyDeclared ).ForTypeInstance( typeInstance ).Type.ToString() );
             Assert.Equal( "string", openType.Properties.Single().ForTypeInstance( typeInstance ).Type.ToString() );
@@ -868,8 +894,8 @@ class Parent<TParent>
             Assert.False( nonGenericMethodOnOpenNonGenericNestedType.IsGeneric );
 
             // Creating a closed nested type.
-            var closedParentType = openParentType.MakeGenericInstance( typeof(string) );
-            var closedGenericNestedType = closedParentType.Types.OfName( "NestedGeneric" ).Single().MakeGenericInstance( typeof(int) );
+            var closedParentType = openParentType.MakeGenericInstance( typeof( string ) );
+            var closedGenericNestedType = closedParentType.Types.OfName( "NestedGeneric" ).Single().MakeGenericInstance( typeof( int ) );
             Assert.Equal( "int", closedGenericNestedType.TypeArguments.ElementAt( 0 ).ToString() );
 
             // Open method of closed nested type.
@@ -878,7 +904,7 @@ class Parent<TParent>
             Assert.Equal( "(string, int, TMethod)", openMethodOfClosedNestedType.ReturnType.ToString() );
 
             // Closed method in closed nested type.
-            var closedMethod = openMethodOfClosedNestedType.MakeGenericInstance( typeof(long) );
+            var closedMethod = openMethodOfClosedNestedType.MakeGenericInstance( typeof( long ) );
             Assert.Equal( "(string, int, long)", closedMethod.ReturnType.ToString() );
         }
 
@@ -1046,7 +1072,7 @@ class D
 
             var compilation = testContext.CreateCompilationModel( code );
 
-            var systemText = ((INamedType) compilation.Factory.GetTypeByReflectionType( typeof(StringBuilder) )).ContainingNamespace;
+            var systemText = ((INamedType) compilation.Factory.GetTypeByReflectionType( typeof( StringBuilder ) )).ContainingNamespace;
             Assert.Equal( "System.Text", systemText.FullName );
             Assert.Equal( "Text", systemText.Name );
             Assert.NotEmpty( systemText.Types );
@@ -1057,7 +1083,7 @@ class D
             Assert.True( systemText.IsDescendantOf( system ) );
             Assert.True( system.IsDescendantOf( compilation.GlobalNamespace ) );
 
-            Assert.Single( system.Types.OfName( nameof(Math) ) );
+            Assert.Single( system.Types.OfName( nameof( Math ) ) );
             Assert.NotNull( system.Namespaces.OfName( "Collections" ) );
 
             Assert.False( system.BelongsToCurrentProject );
@@ -1132,7 +1158,7 @@ namespace System { class MySystemClass {} }
             Assert.Same( ns2, compilation.GlobalNamespace.GetDescendant( "Ns1.Ns2" ) );
             Assert.Same( compilation.GlobalNamespace, compilation.GlobalNamespace.GetDescendant( "" ) );
 
-            var externalType = (INamedType) compilation.Factory.GetTypeByReflectionType( typeof(EventHandler) );
+            var externalType = (INamedType) compilation.Factory.GetTypeByReflectionType( typeof( EventHandler ) );
             Assert.True( externalType.DeclaringAssembly.IsExternal );
 
             var systemNs = compilation.GlobalNamespace.GetDescendant( "System" ).AssertNotNull();
@@ -1241,7 +1267,7 @@ public class PublicClass
             using var testContext = this.CreateTestContext();
 
             var compilation = testContext.CreateCompilationModel( "" );
-            var intType = (INamedType) compilation.Factory.GetTypeByReflectionType( typeof(int) );
+            var intType = (INamedType) compilation.Factory.GetTypeByReflectionType( typeof( int ) );
             Assert.False( intType.IsNullable );
             Assert.Same( intType, intType.ToNonNullable() );
             Assert.Same( intType, intType.UnderlyingType );
@@ -1257,7 +1283,7 @@ public class PublicClass
             using var testContext = this.CreateTestContext();
 
             var compilation = testContext.CreateCompilationModel( "" );
-            var objectType = (INamedType) compilation.Factory.GetTypeByReflectionType( typeof(object) );
+            var objectType = (INamedType) compilation.Factory.GetTypeByReflectionType( typeof( object ) );
             Assert.Null( objectType.IsNullable );
             Assert.Same( objectType, objectType.UnderlyingType );
             var nonNullableObjectType = (INamedType) objectType.ToNonNullable();
@@ -1353,7 +1379,7 @@ class C {}
                 ignoreErrors: true );
 
             var type = compilation.Types.OfName( "C" ).Single();
-            var attributes = type.Attributes.OfAttributeType( typeof(ObsoleteAttribute) ).ToReadOnlyList();
+            var attributes = type.Attributes.OfAttributeType( typeof( ObsoleteAttribute ) ).ToReadOnlyList();
             Assert.Equal( 2, attributes.Count );
 
             // Check that roundtrip attribute reference resolution work.
@@ -1382,7 +1408,7 @@ class C {}
                     MetadataReference.CreateFromFile( this.GetType().Assembly.Location )
                 } );
 
-            var assemblyWithInternals = ((INamedType) compilation.Factory.GetTypeByReflectionType( typeof(Aspect) )).DeclaringAssembly;
+            var assemblyWithInternals = ((INamedType) compilation.Factory.GetTypeByReflectionType( typeof( Aspect ) )).DeclaringAssembly;
             var consumingAssembly = ((INamedType) compilation.Factory.GetTypeByReflectionType( this.GetType() )).DeclaringAssembly;
 
             Assert.True( assemblyWithInternals.AreInternalsVisibleFrom( consumingAssembly ) );
@@ -1536,9 +1562,9 @@ class C {}
         {
             using var testContext = this.CreateTestContext();
             var compilation = testContext.CreateCompilationModel( "" );
-            var enumType = (INamedType) compilation.Factory.GetTypeByReflectionType( typeof(ConsoleColor) );
+            var enumType = (INamedType) compilation.Factory.GetTypeByReflectionType( typeof( ConsoleColor ) );
 
-            var blue = enumType.Fields[nameof(ConsoleColor.Blue)];
+            var blue = enumType.Fields[nameof( ConsoleColor.Blue )];
             Assert.Equal( (int) ConsoleColor.Blue, blue.ConstantValue!.Value.Value );
         }
 
@@ -2047,7 +2073,7 @@ public partial class B
             {
                 var genericMethodDefinition = compilation.Types.Single().Methods.Single();
 
-                var genericMethodInstance = genericMethodDefinition.MakeGenericInstance( typeof(int) );
+                var genericMethodInstance = genericMethodDefinition.MakeGenericInstance( typeof( int ) );
 
                 Assert.Equal( SpecialType.Int32, genericMethodInstance.ReturnType.SpecialType );
                 Assert.Equal( SpecialType.Int32, genericMethodInstance.Parameters[0].Type.SpecialType );
@@ -2119,6 +2145,33 @@ class C<TC> : B<TC>
             // Inherited members are not definitions.
             var inheritedMethod = compilation.Types.OfName( "C" ).Single().AllMethods.OfName( "BaseMethod2" ).Single();
             Assert.False( inheritedMethod.GetSymbol().IsDefinitionSafe() );
+        }
+
+        [Fact]
+        public void IsDefinitionDeserialized()
+        {
+            using var testContext = this.CreateTestContext();
+
+            const string code = @"
+class A<T> {}
+class C
+{
+    object Field1;
+    A<int> Field2;
+}
+";
+
+            var compilation = testContext.CreateCompilationModel( code );
+
+            var systemType = compilation.Types.OfName( "C" ).Single().Fields.OfName("Field1").Single().Type;
+            var compilationType = compilation.Types.OfName( "C" ).Single().Fields.OfName( "Field2" ).Single().Type;
+            var reference = new DeclarationIdRef<INamedType>( new SerializableDeclarationId( "Y:A<T>|T:A`1" ) );
+            var deserializedType = reference.GetTarget( compilation );
+
+            Assert.False( compilationType.GetSymbol().IsDefinitionSafe() );
+            Assert.True( systemType.GetSymbol().IsDefinitionSafe() );
+            Assert.True( deserializedType.GetSymbol().IsDefinitionSafe() );
+            Assert.True( compilationType.IsConvertibleTo( deserializedType, ConversionKind.TypeDefinition ) );
         }
     }
 }
