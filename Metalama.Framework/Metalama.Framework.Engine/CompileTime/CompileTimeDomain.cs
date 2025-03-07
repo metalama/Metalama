@@ -7,6 +7,7 @@ using Metalama.Framework.Engine.Collections;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.Diagnostics;
+using Metalama.Framework.Engine.Utilities.Roslyn;
 using Metalama.Framework.Services;
 using Microsoft.CodeAnalysis;
 using System;
@@ -104,7 +105,7 @@ namespace Metalama.Framework.Engine.CompileTime
             {
                 return assembly;
             }
-            
+
             // Take a lock to avoid concurrently loading the same assembly twice, which may corrupts the CLR.
             var @lock = _locksByPath.GetOrAdd( path, _ => new object() );
 
@@ -116,10 +117,21 @@ namespace Metalama.Framework.Engine.CompileTime
                 {
                     return assembly;
                 }
-                
+
+                // Checks if an assembly with the same name is already loaded. 
+                var assemblyName = AssemblyName.GetAssemblyName( path );
+                var assembliesOfSameName = AppDomain.CurrentDomain.GetAssemblies().Where( a => a.GetName().Name == assemblyName.Name ).ToList();
+
+                if ( assembliesOfSameName.Count == 1 && AssemblyName.ReferenceMatchesDefinition( assemblyName, assembliesOfSameName[0].GetName() ) )
+                {
+                    this._assembliesByName[path] = (assembliesOfSameName[0], assembliesOfSameName[0].GetName().ToAssemblyIdentity());
+
+                    return assembliesOfSameName[0];
+                }
+
                 // Loads the assembly.
                 assembly = this.LoadAssemblyCore( path, options );
-                
+
                 // Adds the assembly to our collections, including _assembliesByPath.
                 this.AddAssembly( assembly, path );
             }
@@ -186,14 +198,13 @@ namespace Metalama.Framework.Engine.CompileTime
         internal void AddAssembly( Assembly assembly, string? path = null )
         {
             path ??= assembly.Location;
-            var assemblyName = assembly.GetName();
-            var assemblyIdentity = new AssemblyIdentity( assemblyName.Name, assemblyName.Version );
+            var assemblyIdentity = assembly.GetName().ToAssemblyIdentity();
 
             if ( this._assemblyCache.TryAdd( assemblyIdentity, assembly ) )
             {
-                if ( !this._assembliesByName.TryAdd( assemblyName.Name.AssertNotNull(), (assembly, assemblyIdentity) ) )
+                if ( !this._assembliesByName.TryAdd( assemblyIdentity.Name.AssertNotNull(), (assembly, assemblyIdentity) ) )
                 {
-                    this._assembliesByName.TryGetValue( assemblyName.Name, out var existingAssembly );
+                    this._assembliesByName.TryGetValue( assemblyIdentity.Name, out var existingAssembly );
 
                     throw new AssertionFailedException(
                         $"Cannot add '{assemblyIdentity}': A different assembly of the same name ('{existingAssembly.Identity}') was already added." );

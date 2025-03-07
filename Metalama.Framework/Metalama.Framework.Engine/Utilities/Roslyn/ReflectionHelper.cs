@@ -26,24 +26,21 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
 
         internal static AssemblyIdentity ToAssemblyIdentity( this AssemblyName assemblyName )
         {
-            ImmutableArray<byte> publicKeyOrToken = default;
+            ImmutableArray<byte> publicKeyOrToken;
             var hasPublicKey = false;
 
-            var publicKey = assemblyName.GetPublicKey();
-
-            if ( publicKey != null )
+            if ( assemblyName.GetPublicKey() is { Length: > 0 } publicKey )
             {
                 publicKeyOrToken = publicKey.ToImmutableArray();
                 hasPublicKey = true;
             }
+            else if ( assemblyName.GetPublicKeyToken() is { Length: > 0 } publicKeyToken )
+            {
+                publicKeyOrToken = publicKeyToken.ToImmutableArray();
+            }
             else
             {
-                var publicKeyToken = assemblyName.GetPublicKeyToken();
-
-                if ( publicKeyToken != null )
-                {
-                    publicKeyOrToken = publicKeyToken.ToImmutableArray();
-                }
+                publicKeyOrToken = default;
             }
 
             return new AssemblyIdentity(
