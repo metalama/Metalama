@@ -3,7 +3,6 @@
 // ReSharper disable InconsistentNaming
 
 using JetBrains.Annotations;
-using System;
 using System.Collections.Immutable;
 
 namespace Metalama.Framework.Engine.Options;
@@ -34,11 +33,6 @@ public static class MSBuildPropertyNames
     public const string MetalamaWriteHtml = nameof(MetalamaWriteHtml);
     public const string ProjectAssetsFile = nameof(ProjectAssetsFile);
     public const string MetalamaReferenceAssemblyRestoreTimeout = nameof(MetalamaReferenceAssemblyRestoreTimeout);
-    
-    [Obsolete]
-    public const string MetalamaLicense = nameof(MetalamaLicense);
-    [Obsolete] 
-    public const string MetalamaIgnoreUserLicenses = nameof(MetalamaIgnoreUserLicenses);
     public const string MetalamaWriteLicenseUsageData = nameof(MetalamaWriteLicenseUsageData);
     public const string MetalamaRoslynIsCompileTimeOnly = nameof(MetalamaRoslynIsCompileTimeOnly);
     public const string MetalamaCompileTimeTargetFrameworks = nameof(MetalamaCompileTimeTargetFrameworks);
@@ -77,7 +71,6 @@ public static class MSBuildPropertyNames
         MetalamaWriteHtml,
         ProjectAssetsFile,
         MetalamaReferenceAssemblyRestoreTimeout,
-        MetalamaLicense,
         MetalamaWriteLicenseUsageData,
         MetalamaRoslynIsCompileTimeOnly,
         MetalamaCompileTimeTargetFrameworks,

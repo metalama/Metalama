@@ -138,17 +138,6 @@ public interface IProjectOptions : IProjectService, IEquatable<IProjectOptions>
     int? ReferenceAssemblyRestoreTimeout { get; }
 
     /// <summary>
-    /// Gets the license set for the project. In production, the value gets populated from <c>MetalamaLicense</c> MSBuild property.
-    /// </summary>
-    /// <remarks>
-    /// This value is used in design-time. In compile-time, the license consumption manager comes from
-    /// Metalama.Compiler, which already has the additional license set.
-    /// </remarks>
-    string? License { get; }
-
-    bool IgnoreUserProfileLicense { get; }
-
-    /// <summary>
     /// Gets a value indicating whether the json file with license consumption data should be written. If the property
     /// is null, it is considered <c>true</c> in trial mode and <c>false</c> otherwise.
     /// </summary>

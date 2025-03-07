@@ -73,10 +73,6 @@ public abstract class ProjectOptionsWrapper : IProjectOptions
 
     public virtual int? ReferenceAssemblyRestoreTimeout => this.Wrapped.ReferenceAssemblyRestoreTimeout;
 
-    public virtual string? License => this.Wrapped.License;
-
-    public virtual bool IgnoreUserProfileLicense => this.Wrapped.IgnoreUserProfileLicense;
-
     public virtual bool? WriteLicenseUsageData => this.Wrapped.WriteLicenseUsageData;
 
     public virtual bool? WriteTransformedFiles => this.Wrapped.WriteTransformedFiles;
