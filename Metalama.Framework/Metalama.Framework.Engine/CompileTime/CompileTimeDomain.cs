@@ -18,6 +18,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Threading;
 
 // Resharper disable ClassWithVirtualMembersNeverInherited.Global
@@ -118,15 +119,18 @@ namespace Metalama.Framework.Engine.CompileTime
                     return assembly;
                 }
 
-                // Checks if an assembly with the same name is already loaded. 
-                var assemblyName = AssemblyName.GetAssemblyName( path );
-                var assembliesOfSameName = AppDomain.CurrentDomain.GetAssemblies().Where( a => a.GetName().Name == assemblyName.Name ).ToList();
-
-                if ( assembliesOfSameName.Count == 1 && AssemblyName.ReferenceMatchesDefinition( assemblyName, assembliesOfSameName[0].GetName() ) )
+                // In .NET Framework, we must checks if an assembly with the same name is already loaded in the AppDomain because there is no AssemblyLoadContext.
+                if ( RuntimeInformation.FrameworkDescription.StartsWith( ".NET Framework", StringComparison.InvariantCulture ) )
                 {
-                    this._assembliesByName[path] = (assembliesOfSameName[0], assembliesOfSameName[0].GetName().ToAssemblyIdentity());
+                    var assemblyName = AssemblyName.GetAssemblyName( path );
+                    var assembliesOfSameName = AppDomain.CurrentDomain.GetAssemblies().Where( a => a.GetName().Name == assemblyName.Name ).ToList();
 
-                    return assembliesOfSameName[0];
+                    if ( assembliesOfSameName.Count == 1 && AssemblyName.ReferenceMatchesDefinition( assemblyName, assembliesOfSameName[0].GetName() ) )
+                    {
+                        this._assembliesByPath[path] = assembliesOfSameName[0];
+
+                        return assembliesOfSameName[0];
+                    }
                 }
 
                 // Loads the assembly.

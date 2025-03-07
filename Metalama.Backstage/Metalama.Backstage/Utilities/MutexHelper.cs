@@ -2,20 +2,17 @@
 
 using Metalama.Backstage.Diagnostics;
 using System;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using System.Security.AccessControl;
 using System.Security.Principal;
 using System.Threading;
 
-#if DEBUG
-using System.Diagnostics;
-#endif
-
 namespace Metalama.Backstage.Utilities;
 
 public static class MutexHelper
 {
+    private static readonly object _sync = new();
+
     public static IDisposable WithGlobalLock( string name, ILogger? logger = null )
     {
         logger?.Trace?.Log( $"Acquiring lock '{name}'." );
@@ -40,7 +37,7 @@ public static class MutexHelper
         return new MutexHandle( mutex, name, logger );
     }
 
-    internal static bool WithLock( string name, string? prefix, TimeSpan timeout, [NotNullWhen( true )] out IDisposable? mutexHandle, ILogger? logger = null )
+    internal static IDisposable? WithLock( string name, string? prefix, TimeSpan timeout, ILogger? logger = null )
     {
         var mutex = OpenOrCreateMutex( name, prefix, logger );
 
@@ -61,17 +58,13 @@ public static class MutexHelper
         {
             logger?.Trace?.Log( $"Lock '{name}' acquired." );
 
-            mutexHandle = new MutexHandle( mutex, name, logger );
-
-            return true;
+            return new MutexHandle( mutex, name, logger );
         }
         else
         {
             logger?.Trace?.Log( $"Lock '{name}' not acquired." );
 
-            mutexHandle = null;
-
-            return false;
+            return null;
         }
     }
 
@@ -90,106 +83,74 @@ public static class MutexHelper
     {
         logger?.Trace?.Log( $"  Mutex name: '{mutexName}'." );
 
-        // The number of iterations is intentionally very low.
-        // We will restart if the following occurs:
-        //   1) TryOpenExisting fails, i.e. there is no existing mutex.
-        //   2) Creating a new mutex fails, i.e. the mutex was created in the meantime by a process with higher set of rights.
-        // The probability of mutex being destroyed when we call TryOpenExisting again is fairly low.
-
-        for ( var i = 0; /* Intentionally empty */; i++ )
+        // Avoid concurrency within the current process in creating mutexes.
+        // This is an attempt to make debugging easier if there are issues in this method.
+        lock ( _sync )
         {
-            // First try opening the mutex.
-            if ( Mutex.TryOpenExisting( mutexName, out var existingMutex ) )
-            {
-                logger?.Trace?.Log( "  Opened existing mutex." );
+            // The number of iterations is intentionally very low.
+            // We will restart if the following occurs:
+            //   1) TryOpenExisting fails, i.e. there is no existing mutex.
+            //   2) Creating a new mutex fails, i.e. the mutex was created in the meantime by a process with higher set of rights.
+            // The probability of mutex being destroyed when we call TryOpenExisting again is fairly low.
 
-                return existingMutex;
-            }
-            else
+            for ( var i = 0; /* Intentionally empty */; i++ )
             {
-                // Otherwise we will try to create the mutex.
-                try
+                // First try opening the mutex.
+                if ( Mutex.TryOpenExisting( mutexName, out var existingMutex ) )
                 {
-                    if ( RuntimeInformation.IsOSPlatform( OSPlatform.Windows ) )
+                    logger?.Trace?.Log( "  Opened existing mutex." );
+
+                    return existingMutex;
+                }
+                else
+                {
+                    // Otherwise we will try to create the mutex.
+                    try
                     {
-                        // Based on https://stackoverflow.com/a/19717341/41071.
-                        // As I understand it, creating a mutex without security descriptor uses default security, which could be different on different systems.
-                        // I'm not certain this will actually prevent UnauthorizedAccessException, but it's worth trying.
+                        if ( RuntimeInformation.IsOSPlatform( OSPlatform.Windows ) )
+                        {
+                            // Based on https://stackoverflow.com/a/19717341/41071.
+                            // As I understand it, creating a mutex without security descriptor uses default security, which could be different on different systems.
+                            // I'm not certain this will actually prevent UnauthorizedAccessException, but it's worth trying.
 
-                        logger?.Trace?.Log( "  Creating new mutex with access rule." );
+                            logger?.Trace?.Log( "  Creating new mutex with access rule." );
 
-                        var mutexSecurity = new MutexSecurity();
+                            var mutexSecurity = new MutexSecurity();
 
-                        mutexSecurity.AddAccessRule(
-                            new MutexAccessRule(
-                                new SecurityIdentifier( WellKnownSidType.WorldSid, null ),
-                                MutexRights.Synchronize | MutexRights.Modify,
-                                AccessControlType.Allow ) );
+                            mutexSecurity.AddAccessRule(
+                                new MutexAccessRule(
+                                    new SecurityIdentifier( WellKnownSidType.WorldSid, null ),
+                                    MutexRights.Synchronize | MutexRights.Modify,
+                                    AccessControlType.Allow ) );
 
-                        return MutexAcl.Create( false, mutexName, out _, mutexSecurity );
+                            return MutexAcl.Create( false, mutexName, out _, mutexSecurity );
+                        }
+                        else
+                        {
+                            logger?.Trace?.Log( "  Creating new mutex." );
+
+                            return new Mutex( false, mutexName );
+                        }
                     }
-                    else
+                    catch ( UnauthorizedAccessException )
                     {
-                        logger?.Trace?.Log( "  Creating new mutex." );
+                        if ( i < 3 )
+                        {
+                            Thread.Sleep( 0 );
 
-                        return new Mutex( false, mutexName );
+                            // Mutex was probably created in the meantime and is not accessible - we will restart.
+                            logger?.Trace?.Log( "  Mutex was probably created and current process has restricted access to it, restarting." );
+                        }
+                        else
+                        {
+                            // There were too many restarts - just rethrow.
+                            logger?.Trace?.Log( "  Tried to open mutex too many times - throwing the exception received." );
+
+                            throw;
+                        }
                     }
                 }
-                catch ( UnauthorizedAccessException )
-                {
-                    if ( i < 3 )
-                    {
-                        // Mutex was probably created in the meantime and is not accessible - we will restart.
-                        logger?.Trace?.Log( "  Mutex was probably created and current process has restricted access to it, restarting." );
-                    }
-                    else
-                    {
-                        // There were too many restarts - just rethrow.
-                        logger?.Trace?.Log( "  Tried to open mutex too many times - throwing the exception received." );
-
-                        throw;
-                    }
-                }
             }
         }
-    }
-
-    private sealed class MutexHandle : IDisposable
-    {
-        private readonly Mutex _mutex;
-        private readonly string _name;
-        private readonly ILogger? _logger;
-
-#if DEBUG
-        private readonly StackTrace _stackTrace = new();
-#endif
-
-        public MutexHandle( Mutex mutex, string name, ILogger? logger )
-        {
-            this._mutex = mutex;
-            this._name = name;
-            this._logger = logger;
-        }
-
-        public void Dispose()
-        {
-            this._logger?.Trace?.Log( $"Releasing lock '{this._name}'." );
-
-            this._mutex.ReleaseMutex();
-            this._mutex.Dispose();
-
-#if DEBUG
-            GC.SuppressFinalize( this );
-#endif
-        }
-
-#pragma warning disable CA1821
-#if DEBUG
-        ~MutexHandle()
-        {
-            throw new InvalidOperationException( "The mutex was not disposed. It was acquired here: " + Environment.NewLine + this._stackTrace );
-        }
-#endif
-#pragma warning restore CA1821
     }
 }

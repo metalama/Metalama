@@ -58,11 +58,13 @@ public sealed class TempFileManager : ITempFileManager
     /// <param name="force">Ignore last clean-up time.</param>
     public void CleanTempDirectories( bool force = false, bool all = false )
     {
-        if ( !MutexHelper.WithLock(
-                this._standardDirectories.TempDirectory,
-                this._fileSystem.SynchronizationPrefix,
-                TimeSpan.FromMilliseconds( 1 ),
-                out var mutex ) )
+        using var mutex = MutexHelper.WithLock(
+            this._standardDirectories.TempDirectory,
+            this._fileSystem.SynchronizationPrefix,
+            TimeSpan.FromMilliseconds( 1 ),
+            this._logger );
+
+        if ( mutex == null )
         {
             this._logger.Warning?.Log( "Clean-up is already running." );
 

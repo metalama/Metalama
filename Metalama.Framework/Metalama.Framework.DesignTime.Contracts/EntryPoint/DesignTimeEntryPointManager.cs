@@ -20,6 +20,7 @@ namespace Metalama.Framework.DesignTime.Contracts.EntryPoint
     public sealed partial class DesignTimeEntryPointManager : IDesignTimeEntryPointManager
     {
         private const string _appDomainDataName = "Metalama.Framework.DesignTime.Contracts.DesignTimeEntryPointManager";
+        private static readonly object _openOrCreateMutexSync = new object();
 
         [ExcludeFromCodeCoverage]
         public static IDesignTimeEntryPointManager Instance { get; }
@@ -106,39 +107,44 @@ namespace Metalama.Framework.DesignTime.Contracts.EntryPoint
         // This code is duplicated from MutexHelper in Metalama.Backstage and should be kept in sync (this version does not have logging).
         private static Mutex OpenOrCreateMutex( string mutexName )
         {
-            // The number of iterations is intentionally very low.
-            // We will restart if the following occurs:
-            //   1) TryOpenExisting fails, i.e. there is no existing mutex.
-            //   2) Creating a new mutex fails, i.e. the mutex was created in the meantime by a process with higher set of rights.
-            // The probability of mutex being destroyed when we call TryOpenExisting again is fairly low.
-
-            // ReSharper disable once BadSemicolonSpaces
-            for ( var i = 0; /* Intentionally empty. */; i++ )
+            lock ( _openOrCreateMutexSync )
             {
-                // First try opening the mutex.
-                if ( Mutex.TryOpenExisting( mutexName, out var existingMutex ) )
+                // The number of iterations is intentionally very low.
+                // We will restart if the following occurs:
+                //   1) TryOpenExisting fails, i.e. there is no existing mutex.
+                //   2) Creating a new mutex fails, i.e. the mutex was created in the meantime by a process with higher set of rights.
+                // The probability of mutex being destroyed when we call TryOpenExisting again is fairly low.
+
+                // ReSharper disable once BadSemicolonSpaces
+                for ( var i = 0; /* Intentionally empty. */; i++ )
                 {
-                    return existingMutex;
-                }
-                else
-                {
-                    // Otherwise we will try to create the mutex.
-                    try
+                    // First try opening the mutex.
+                    if ( Mutex.TryOpenExisting( mutexName, out var existingMutex ) )
                     {
-                        return MutexAcl.Create( false, mutexName, MutexAcl.AllowUsingMutexToEveryone );
+                        return existingMutex;
                     }
-                    catch ( UnauthorizedAccessException )
+                    else
                     {
-                        if ( i < 3 )
+                        // Otherwise we will try to create the mutex.
+                        try
                         {
-                            // Mutex was probably created in the meantime and is not accessible - we will restart.
-                            // ReSharper disable once RedundantJumpStatement
-                            continue;
+                            return MutexAcl.Create( false, mutexName, MutexAcl.AllowUsingMutexToEveryone );
                         }
-                        else
+                        catch ( UnauthorizedAccessException )
                         {
-                            // There were too many restarts - just rethrow.
-                            throw;
+                            if ( i < 3 )
+                            {
+                                Thread.Sleep( 0 );
+
+                                // Mutex was probably created in the meantime and is not accessible - we will restart.
+                                // ReSharper disable once RedundantJumpStatement
+                                continue;
+                            }
+                            else
+                            {
+                                // There were too many restarts - just rethrow.
+                                throw;
+                            }
                         }
                     }
                 }
