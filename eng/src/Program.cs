@@ -89,6 +89,7 @@ var product = new Product( MetalamaDependencies.Metalama )
         "Metalama.Patterns.Caching.$(PackageVersion).nupkg",
         "Metalama.Patterns.Caching.Aspects.$(PackageVersion).nupkg",
         "Metalama.Patterns.Caching.Backend.$(PackageVersion).nupkg",
+        "Metalama.Patterns.Caching.TestHelpers.$(PackageVersion).nupkg",
         "Metalama.Patterns.Contracts.$(PackageVersion).nupkg",
         "Metalama.Patterns.Memoization.$(PackageVersion).nupkg",
         "Metalama.Patterns.Immutability.$(PackageVersion).nupkg",
@@ -97,7 +98,6 @@ var product = new Product( MetalamaDependencies.Metalama )
         "Flashtrace.$(PackageVersion).nupkg",
         "Flashtrace.Formatters.$(PackageVersion).nupkg" ),
     PrivateArtifacts = Pattern.Create(
-        "Metalama.Patterns.Caching.TestHelpers.$(PackageVersion).nupkg",
         "Metalama.Framework.Tests.UnitTestHelpers.$(PackageVersion).nupkg" ),
     ParametrizedDependencies =
     [
