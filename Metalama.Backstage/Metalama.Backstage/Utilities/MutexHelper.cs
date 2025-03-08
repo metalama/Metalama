@@ -12,6 +12,7 @@ namespace Metalama.Backstage.Utilities;
 public static class MutexHelper
 {
     private static readonly object _sync = new();
+    private static bool? _isThreadingAccessControlAvailable;
 
     public static IDisposable WithGlobalLock( string name, ILogger? logger = null )
     {
@@ -107,32 +108,40 @@ public static class MutexHelper
                     // Otherwise we will try to create the mutex.
                     try
                     {
-                        if ( RuntimeInformation.IsOSPlatform( OSPlatform.Windows ) &&
-                             (RuntimeInformation.FrameworkDescription.StartsWith( ".NET Framework", StringComparison.Ordinal ) ||
-                              (RuntimeInformation.FrameworkDescription.StartsWith( ".NET", StringComparison.Ordinal ) && Environment.Version.Major >= 8)) )
+                        if ( IsThreadingAccessControlAvailable() )
                         {
-                            // Based on https://stackoverflow.com/a/19717341/41071.
-                            // As I understand it, creating a mutex without security descriptor uses default security, which could be different on different systems.
-                            // I'm not certain this will actually prevent UnauthorizedAccessException, but it's worth trying.
+                            try
+                            {
+                                // Based on https://stackoverflow.com/a/19717341/41071.
+                                // As I understand it, creating a mutex without security descriptor uses default security, which could be different on different systems.
+                                // I'm not certain this will actually prevent UnauthorizedAccessException, but it's worth trying.
 
-                            logger?.Trace?.Log( "  Creating new mutex with access rule." );
+                                logger?.Trace?.Log( "  Creating new mutex with access rule." );
 
-                            var mutexSecurity = new MutexSecurity();
+#pragma warning disable CA1416
+                                var mutexSecurity = new MutexSecurity();
 
-                            mutexSecurity.AddAccessRule(
-                                new MutexAccessRule(
-                                    new SecurityIdentifier( WellKnownSidType.WorldSid, null ),
-                                    MutexRights.Synchronize | MutexRights.Modify,
-                                    AccessControlType.Allow ) );
+                                mutexSecurity.AddAccessRule(
+                                    new MutexAccessRule(
+                                        new SecurityIdentifier( WellKnownSidType.WorldSid, null ),
+                                        MutexRights.Synchronize | MutexRights.Modify,
+                                        AccessControlType.Allow ) );
 
-                            return MutexAcl.Create( false, mutexName, out _, mutexSecurity );
+                                return MutexAcl.Create( false, mutexName, out _, mutexSecurity );
+#pragma warning restore CA1416
+                            }
+                            catch ( PlatformNotSupportedException e )
+                            {
+                                logger?.Warning?.Log( e.ToString() );
+                                
+                                // Disabling for further calls.
+                                _isThreadingAccessControlAvailable = false;
+                            }
                         }
-                        else
-                        {
-                            logger?.Trace?.Log( "  Creating new mutex." );
 
-                            return new Mutex( false, mutexName );
-                        }
+                        logger?.Trace?.Log( "  Creating new mutex without access rules." );
+
+                        return new Mutex( false, mutexName );
                     }
                     catch ( UnauthorizedAccessException )
                     {
@@ -154,5 +163,13 @@ public static class MutexHelper
                 }
             }
         }
+    }
+
+    private static bool IsThreadingAccessControlAvailable()
+    {
+        return _isThreadingAccessControlAvailable ??= RuntimeInformation.IsOSPlatform( OSPlatform.Windows ) &&
+                                                      (RuntimeInformation.FrameworkDescription.StartsWith( ".NET Framework", StringComparison.Ordinal ) ||
+                                                       (RuntimeInformation.FrameworkDescription.StartsWith( ".NET", StringComparison.Ordinal )
+                                                        && Environment.Version.Major >= 8));
     }
 }

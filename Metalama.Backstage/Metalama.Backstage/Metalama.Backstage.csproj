@@ -1,7 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFrameworks>netframework4.7.2;net6.0;netstandard2.0</TargetFrameworks>
+        <!-- Target frameworks:
+            - net8.0 is used because System.Threading.AccessControl is implemented in net8.0 but not in net6.0.
+         -->
+        <TargetFrameworks>netframework4.7.2;net6.0;net8.0;netstandard2.0</TargetFrameworks>
 		<!-- Packaging -->
 		<PackageDescription>A Metalama package providing licensing, telemetry and other configuration settings for projects using Metalama.</PackageDescription>
         <PackageReadmeFile>README.md</PackageReadmeFile>
