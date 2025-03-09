@@ -1,5 +1,6 @@
 ﻿// Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
+#if TRACE_JSON
 using Newtonsoft.Json.Serialization;
 using System;
 using System.Diagnostics;
@@ -50,3 +51,4 @@ internal sealed class JsonTraceWriter : ITraceWriter
     // Some warnings are reported as Verbose so we need to capture all messages.
     public TraceLevel LevelFilter => TraceLevel.Verbose;
 }
+#endif

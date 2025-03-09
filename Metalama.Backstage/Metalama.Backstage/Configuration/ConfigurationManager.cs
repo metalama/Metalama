@@ -343,7 +343,11 @@ namespace Metalama.Backstage.Configuration
 
             try
             {
-                var jsonSettings = new JsonSerializerSettings { TraceWriter = new JsonTraceWriter( fileName, this.Logger.WithPrefix( "Json" ) ) };
+                var jsonSettings = new JsonSerializerSettings();
+                
+#if TRACE_JSON 
+                jsonSettings.TraceWriter = new JsonTraceWriter( fileName, this.Logger.WithPrefix( "Json" ) );
+#endif
 
                 settings = (ConfigurationFile?) JsonConvert.DeserializeObject( json, type, jsonSettings );
 
