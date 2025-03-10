@@ -3,31 +3,31 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31912.275
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Metalama.Backstage", "Metalama.Backstage\Metalama.Backstage.csproj", "{B49FF95D-E828-4A93-85F7-AFCAF30A5588}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Metalama.Backstage", "src\Metalama.Backstage\Metalama.Backstage.csproj", "{B49FF95D-E828-4A93-85F7-AFCAF30A5588}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Metalama.Backstage.Commands", "Metalama.Backstage.Commands\Metalama.Backstage.Commands.csproj", "{6A7A96ED-555C-4DF4-9C36-7F15E5902D6F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Metalama.Backstage.Commands", "src\Metalama.Backstage.Commands\Metalama.Backstage.Commands.csproj", "{6A7A96ED-555C-4DF4-9C36-7F15E5902D6F}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Utilities", "Utilities", "{8646425E-F3F1-4741-992D-09F0112F67CD}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "utilities", "utilities", "{8646425E-F3F1-4741-992D-09F0112F67CD}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PostSharp.LicenseKeyReader", "Utilities\PostSharp.LicenseKeyReader\PostSharp.LicenseKeyReader.csproj", "{271AC152-B5E5-417D-9FAF-C095A70A53FA}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PostSharp.LicenseKeyReader", "src\utilities\PostSharp.LicenseKeyReader\PostSharp.LicenseKeyReader.csproj", "{271AC152-B5E5-417D-9FAF-C095A70A53FA}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PostSharp.LicenseKeyGenerator", "Utilities\PostSharp.LicenseKeyGenerator\PostSharp.LicenseKeyGenerator.csproj", "{296E7F83-6009-409E-A53D-06211A20FDC0}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PostSharp.LicenseKeyGenerator", "src\utilities\PostSharp.LicenseKeyGenerator\PostSharp.LicenseKeyGenerator.csproj", "{296E7F83-6009-409E-A53D-06211A20FDC0}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{9D6FD712-60EF-4B8A-95EE-0143DF7E4B97}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "tests", "{9D6FD712-60EF-4B8A-95EE-0143DF7E4B97}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Metalama.Backstage.Testing", "Tests\Metalama.Backstage.Testing\Metalama.Backstage.Testing.csproj", "{35D4322C-116D-461A-9006-B9C838631CAE}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Metalama.Backstage.Testing", "src\tests\Metalama.Backstage.Testing\Metalama.Backstage.Testing.csproj", "{35D4322C-116D-461A-9006-B9C838631CAE}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Metalama.Backstage.Tests", "Tests\Metalama.Backstage.Tests\Metalama.Backstage.Tests.csproj", "{223E7228-F193-4FAD-A993-76FC800E18E4}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Metalama.Backstage.Tests", "src\tests\Metalama.Backstage.Tests\Metalama.Backstage.Tests.csproj", "{223E7228-F193-4FAD-A993-76FC800E18E4}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Metalama.Backstage.Commands.Tests", "Tests\Metalama.Backstage.Commands.Tests\Metalama.Backstage.Commands.Tests.csproj", "{EDF195AE-53FD-4FD1-B560-688EB0AC548B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Metalama.Backstage.Commands.Tests", "src\tests\Metalama.Backstage.Commands.Tests\Metalama.Backstage.Commands.Tests.csproj", "{EDF195AE-53FD-4FD1-B560-688EB0AC548B}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Metalama.Backstage.Worker", "Metalama.Backstage.Worker\Metalama.Backstage.Worker.csproj", "{B1D5955D-CB60-4233-8C95-D0CC456C6939}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Metalama.Backstage.Worker", "src\Metalama.Backstage.Worker\Metalama.Backstage.Worker.csproj", "{B1D5955D-CB60-4233-8C95-D0CC456C6939}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Metalama.Backstage.DotNetTool", "Metalama.Backstage.DotNetTool\Metalama.Backstage.DotNetTool.csproj", "{34D564FB-8BDB-4187-8FCD-249C99E70FDA}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Metalama.Backstage.DotNetTool", "src\Metalama.Backstage.DotNetTool\Metalama.Backstage.DotNetTool.csproj", "{34D564FB-8BDB-4187-8FCD-249C99E70FDA}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Metalama.Backstage.Desktop.Windows", "Metalama.Backstage.Desktop.Windows\Metalama.Backstage.Desktop.Windows.csproj", "{313F720E-D5DF-4755-8325-A9A251A29735}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Metalama.Backstage.Desktop.Windows", "src\Metalama.Backstage.Desktop.Windows\Metalama.Backstage.Desktop.Windows.csproj", "{313F720E-D5DF-4755-8325-A9A251A29735}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Metalama.Backstage.Tools", "Metalama.Backstage.Tools\Metalama.Backstage.Tools.csproj", "{4BF41C96-7870-44B4-84AB-709F2FDDEFB7}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Metalama.Backstage.Tools", "src\Metalama.Backstage.Tools\Metalama.Backstage.Tools.csproj", "{4BF41C96-7870-44B4-84AB-709F2FDDEFB7}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -28,10 +28,10 @@ var product = new Product( MetalamaDependencies.Metalama )
             [
                 // Test payloads should not be formatted because it would break the test output comparison.
                 // In some cases, formatting or redundant keywords may be intentional.
-                "Tests\\Metalama.Framework.Tests.AspectTests\\Tests\\**\\*",
-                "Tests\\Metalama.Framework.Tests.LinkerTests\\Tests\\**\\*",
-                "Tests\\Metalama.Framework.Tests.TemplateTests\\Tests\\**\\*",
-                "Tests\\Metalama.Extensions.*.AspectTests\\**\\*",
+                "src\\tests\\Metalama.Framework.Tests.AspectTests\\Tests\\**\\*",
+                "src\\tests\\Metalama.Framework.Tests.LinkerTests\\Tests\\**\\*",
+                "src\\tests\\Metalama.Framework.Tests.TemplateTests\\Tests\\**\\*",
+                "src\\tests\\Metalama.Extensions.*.AspectTests\\**\\*",
                 "**\\*.g.cs",
 
                 // XML formatting seems to be conflicting.
@@ -42,7 +42,7 @@ var product = new Product( MetalamaDependencies.Metalama )
         {
             SupportsTestCoverage = false, CanFormatCode = false, IsTestOnly = true
         },
-        new DotNetSolution( "Metalama.Framework/Tests/Metalama.Framework.TestApp\\Metalama.Framework.TestApp.sln" )
+        new DotNetSolution( "Metalama.Framework/src/tests/Metalama.Framework.TestApp\\Metalama.Framework.TestApp.sln" )
         {
             IsTestOnly = true, TestMethod = BuildMethod.Build
         },
@@ -52,7 +52,7 @@ var product = new Product( MetalamaDependencies.Metalama )
             CanFormatCode = true,
             FormatExclusions = ["src\\tests\\*AspectTests\\**\\*"],
         },
-        new DotNetSolution( "Metalama.Migration/src/Metalama.Migration.sln" ) { CanFormatCode = true },
+        new DotNetSolution( "Metalama.Migration/Metalama.Migration.sln" ) { CanFormatCode = true },
         new DotNetSolution( "Metalama.LinqPad/Metalama.LinqPad.sln" ) { CanFormatCode = true },
         new DotNetSolution( "Metalama.Patterns/Metalama.Patterns.sln" )
         { 
