@@ -64,8 +64,8 @@
         <ZipDirectory SourceDirectory="$(MSBuildThisFileDirectory)$(IntermediateOutputPath)DesktopSignable" DestinationFile="$(MSBuildThisFileDirectory)$(IntermediateOutputPath)DesktopSignable.zip" Overwrite="true" /> 
         <ZipDirectory SourceDirectory="$(MSBuildThisFileDirectory)$(IntermediateOutputPath)CoreSignable" DestinationFile="$(MSBuildThisFileDirectory)$(IntermediateOutputPath)CoreSignable.zip" Overwrite="true" /> 
         
-        <Exec Command="dotnet Build.dll tools sign &quot;sign -i $(MSBuildThisFileDirectory)$(IntermediateOutputPath)DesktopSignable.zip -o $(MSBuildThisFileDirectory)$(IntermediateOutputPath)DesktopSigned&quot; --nologo" WorkingDirectory="$(MSBuildThisFileDirectory)../../eng/src/bin/Debug/net8.0" />
-        <Exec Command="dotnet Build.dll tools sign &quot;sign -i $(MSBuildThisFileDirectory)$(IntermediateOutputPath)CoreSignable.zip -o $(MSBuildThisFileDirectory)$(IntermediateOutputPath)CoreSigned&quot; --nologo" WorkingDirectory="$(MSBuildThisFileDirectory)../../eng/src/bin/Debug/net8.0" />
+        <Exec Command="dotnet Build.dll tools sign &quot;sign -i $(MSBuildThisFileDirectory)$(IntermediateOutputPath)DesktopSignable.zip -o $(MSBuildThisFileDirectory)$(IntermediateOutputPath)DesktopSigned&quot; --nologo" WorkingDirectory="$(MSBuildThisFileDirectory)../../eng/src/bin/Debug/net9.0" />
+        <Exec Command="dotnet Build.dll tools sign &quot;sign -i $(MSBuildThisFileDirectory)$(IntermediateOutputPath)CoreSignable.zip -o $(MSBuildThisFileDirectory)$(IntermediateOutputPath)CoreSigned&quot; --nologo" WorkingDirectory="$(MSBuildThisFileDirectory)../../eng/src/bin/Debug/net9.0" />
         
         <Unzip DestinationFolder="$(MSBuildThisFileDirectory)$(IntermediateOutputPath)DesktopSigned" SourceFiles="$(MSBuildThisFileDirectory)$(IntermediateOutputPath)DesktopSigned/DesktopSignable.zip" />
         <Unzip DestinationFolder="$(MSBuildThisFileDirectory)$(IntermediateOutputPath)CoreSigned" SourceFiles="$(MSBuildThisFileDirectory)$(IntermediateOutputPath)CoreSigned/CoreSignable.zip" />
