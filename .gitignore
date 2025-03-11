@@ -50,7 +50,6 @@ launchSettings.json
 /eng/tools
 Metalama.Import.props
 coverage.json
-/.vscode
 /.tools
 /dependencies
 /source-dependencies
