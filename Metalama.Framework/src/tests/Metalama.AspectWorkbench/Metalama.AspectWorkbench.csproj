@@ -21,7 +21,7 @@
         <ProjectReference Include="../../Metalama.Framework/Metalama.Framework.csproj" />
         <ProjectReference Include="../../Metalama.Testing.AspectTesting/Metalama.Testing.AspectTesting.csproj" />
         <ProjectReference Include="../Metalama.Framework.Tests.AspectTests/Metalama.Framework.Tests.AspectTests.csproj" />
-        <ProjectReference Include="../1etalama.Framework.Tests.TemplateTests/Metalama.Framework.Tests.TemplateTests.csproj" />
+        <ProjectReference Include="../Metalama.Framework.Tests.TemplateTests/Metalama.Framework.Tests.TemplateTests.csproj" />
     </ItemGroup>
 
 </Project>

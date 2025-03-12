@@ -123,13 +123,19 @@ public abstract partial class FormattedCodeWriter
             .OrderBy( c => c.TextSpan.Start )
             .ThenBy( c => c.ClassificationType );
 
+        bool withinHeaderCommentSequence = true;
+
         foreach ( var csharpSpan in classifiedSpans )
         {
             var classificationType = csharpSpan.ClassificationType;
 
-            if ( classificationType == "comment" && csharpSpan.TextSpan.Start == 0 )
+            if ( classificationType == "comment" && withinHeaderCommentSequence )
             {
                 classificationType = "header";
+            }
+            else
+            {
+                withinHeaderCommentSequence = false;
             }
 
             foreach ( var existingSpan in classifiedTextSpans.GetClassifiedSpans( csharpSpan.TextSpan ) )
