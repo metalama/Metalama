@@ -46,7 +46,7 @@ var product = new Product( MetalamaDependencies.Metalama )
         {
             IsTestOnly = true, TestMethod = BuildMethod.Build
         },
-        new ManyDotNetSolutions( "Metalama.Framework/Tests/Standalone" ) { IsTestOnly = true },
+        new ManyDotNetSolutions( "Metalama.Framework/src/Tests/Standalone" ) { IsTestOnly = true },
         new DotNetSolution( "Metalama.Extensions/Metalama.Extensions.sln" ) 
         { 
             CanFormatCode = true,
