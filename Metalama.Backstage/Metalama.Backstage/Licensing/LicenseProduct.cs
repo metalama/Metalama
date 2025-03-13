@@ -90,7 +90,12 @@ namespace Metalama.Backstage.Licensing
         /// <summary>
         /// PostSharp Essentials.
         /// </summary>
-        PostSharpEssentials = 16
+        PostSharpEssentials = 16,
+
+        /// <summary>
+        /// Metalama Enterprise.
+        /// </summary>
+        MetalamaEnterprise = 17
 
         // 255 is reserved as unknown for testing purposes
     }

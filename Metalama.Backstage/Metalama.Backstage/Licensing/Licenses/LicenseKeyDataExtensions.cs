@@ -40,26 +40,34 @@ namespace Metalama.Backstage.Licensing.Licenses
             };
 #pragma warning restore CS0618
 
+        internal static ServicingPhase NormalizeServicingPhase( this LicenseKeyData licenseKeyData )
+            => licenseKeyData.Generation.GetValueOrDefault() == LicenseGeneration.None
+                ? ServicingPhase.LongTerm
+                : licenseKeyData.SupportLevel ?? licenseKeyData.Product switch
+                {
+                    // Note that Metalama Enterprise is Metalama Professional with a ServicingPhase field set to LongTerm.
+                    LicenseProduct.MetalamaProfessional => ServicingPhase.Extended,
+                    LicenseProduct.MetalamaEnterprise => ServicingPhase.LongTerm,
+                    LicenseProduct.PostSharpFramework => ServicingPhase.Extended,
+                    LicenseProduct.PostSharpUltimate => ServicingPhase.Extended,
+                    _ => ServicingPhase.Default
+                };
+
         internal static string GetDisplayName( this LicenseKeyData licenseKeyData )
-            => NormalizeProduct( licenseKeyData ) switch
+        {
+            var product = NormalizeProduct( licenseKeyData );
+
+            return product switch
             {
-                LicenseProduct.PostSharpFramework => "PostSharp Framework",
-                LicenseProduct.PostSharpUltimate => licenseKeyData.LicenseType == LicenseType.Community ? "PostSharp Essentials" : "PostSharp Ultimate",
-                LicenseProduct.PostSharpDiagnosticsLibrary => "PostSharp Logging",
-                LicenseProduct.PostSharpModelLibrary => "PostSharp MVVM",
-                LicenseProduct.PostSharpThreadingLibrary => "PostSharp Threading",
-                LicenseProduct.PostSharpCachingLibrary => "PostSharp Caching",
-                LicenseProduct.PostSharpEssentials => "PostSharp Essentials",
                 LicenseProduct.MetalamaProfessional => $"Metalama Professional, {licenseKeyData.LicenseType.GetLicenseTypeName()}",
-                LicenseProduct.MetalamaCommunity => "Metalama Community",
 #pragma warning disable CS0618 // Type or member is obsolete
                 LicenseProduct.MetalamaUltimate => $"Metalama Ultimate, {licenseKeyData.LicenseType.GetLicenseTypeName()}",
                 LicenseProduct.MetalamaStarter => $"Metalama Starter, {licenseKeyData.LicenseType.GetLicenseTypeName()}",
-                LicenseProduct.MetalamaFree => "Metalama Free",
 #pragma warning restore CS0618 // Type or member is obsolete
                 LicenseProduct.None => "Metalama Open Source",
-                _ => string.Format( CultureInfo.InvariantCulture, "Unknown Product ({0})", licenseKeyData.Product )
+                _ => product.GetDisplayName()
             };
+        }
 
         internal static Version GetMinPostSharpVersion( this LicenseKeyData licenseKeyData )
         {
@@ -143,7 +151,8 @@ namespace Metalama.Backstage.Licensing.Licenses
                 auditable,
                 licenseServerEligible,
                 licenseKeyData.GetMinPostSharpVersion(),
-                licenseKeyData.Generation );
+                licenseKeyData.Generation.GetValueOrDefault(),
+                licenseKeyData.NormalizeServicingPhase() );
 
             return data;
         }

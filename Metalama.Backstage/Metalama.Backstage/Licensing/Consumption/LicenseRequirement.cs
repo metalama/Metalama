@@ -2,12 +2,23 @@
 
 using JetBrains.Annotations;
 using Metalama.Backstage.Licensing.Consumption.Requirements;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Metalama.Backstage.Licensing.Consumption;
 
 [PublicAPI]
 public abstract class LicenseRequirement
 {
+    public ServicingPhase ServicingPhase { get; }
+
+    protected LicenseRequirement( string componentName, ServicingPhase requiredServicingPhase )
+    {
+        this.ComponentName = componentName;
+        this.ServicingPhase = requiredServicingPhase;
+    }
+
     public virtual bool IsEligible( LicenseConsumptionContext context )
     {
         // Check that we have valid build date.
@@ -20,11 +31,35 @@ public abstract class LicenseRequirement
             return false;
         }
 
-        return true;
+        if ( context.License.ServicingPhase < this.ServicingPhase )
+        {
+            context.Logger.Warning?.Log(
+                $"License '{context.License.DisplayName}' not eligible: this license qualifies for the {context.License.ServicingPhase.GetDisplayName()} servicing phase, but {this.ServicingPhase.GetDisplayName()} is required for this build." );
+
+            return false;
+        }
+
+        var eligibleProducts = this.GetEligibleProducts();
+
+        return eligibleProducts.Count == 0 || eligibleProducts.Contains( context.License.LicenseProduct );
     }
-    
-    public abstract string ComponentName { get; }
-    public abstract string RequiredLicenseDescription { get; }
+
+    protected abstract IReadOnlyList<LicenseProduct> GetEligibleProducts();
+
+    public IReadOnlyList<string> EligibleProductNames
+        => this.GetEligibleProducts()
+            .Where(
+                p => p.GetDefaultServicingPhase() >= this.ServicingPhase
+                     || (this.ServicingPhase == ServicingPhase.LongTerm && p.CanHaveLongTermSupportOption()) )
+            .Select( p => p.GetDisplayName( this.ServicingPhase ) )
+            .ToList();
+
+    public string ComponentName { get; }
+
+    public string ComponentNameWithServicingPhase
+        => this.ServicingPhase == ServicingPhase.Default ? this.ComponentName : $"{this.ComponentName} ({this.ServicingPhase.GetDisplayName()} Support)";
 
     public static LicenseRequirement Any => new AnyLicenseRequirement();
+
+    public static LicenseRequirement None => new NoneLicenseRequirement();
 }

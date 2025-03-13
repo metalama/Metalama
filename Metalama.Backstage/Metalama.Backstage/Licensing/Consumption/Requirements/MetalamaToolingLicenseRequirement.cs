@@ -1,14 +1,15 @@
 ﻿// Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
-using Metalama.Backstage.Licensing.Licenses;
+using System;
+using System.Collections.Generic;
 
 namespace Metalama.Backstage.Licensing.Consumption.Requirements;
 
 public class MetalamaToolingLicenseRequirement : LicenseRequirement
 {
-    private MetalamaToolingLicenseRequirement() { }
-
-    public static LicenseRequirement Instance { get; } = new MetalamaToolingLicenseRequirement();
+    public MetalamaToolingLicenseRequirement( ServicingPhase requiredServicingPhase = ServicingPhase.Default ) : base(
+        "Visual Studio Tools for Metalama",
+        requiredServicingPhase ) { }
 
     public override bool IsEligible( LicenseConsumptionContext context )
     {
@@ -22,6 +23,7 @@ public class MetalamaToolingLicenseRequirement : LicenseRequirement
         {
             case LicenseProduct.MetalamaCommunity:
             case LicenseProduct.MetalamaProfessional:
+            case LicenseProduct.MetalamaEnterprise:
             case LicenseProduct.PostSharpFramework:
             case LicenseProduct.PostSharpUltimate:
 
@@ -38,19 +40,18 @@ public class MetalamaToolingLicenseRequirement : LicenseRequirement
                 return false;
         }
 
-        // Check that the subscription is still active or grace.
-        if ( context.License is
-            { Generation: >= LicenseGeneration.V20251, SubscriptionStatus: SubscriptionStatus.Expired } )
-        {
-            context.Logger.Warning?.Log( $"License '{context.License.DisplayName}' not eligible: subscription has expired." );
-
-            return false;
-        }
-
         return true;
     }
 
-    public override string ComponentName => "Visual Studio Tools for Metalama";
-
-    public override string RequiredLicenseDescription => "Metalama Community or Metalama Professional with an active subscription";
+    protected override IReadOnlyList<LicenseProduct> GetEligibleProducts()
+        =>
+        [
+            LicenseProduct.MetalamaCommunity,
+            LicenseProduct.MetalamaProfessional,
+            LicenseProduct.MetalamaEnterprise,
+            LicenseProduct.PostSharpFramework,
+            LicenseProduct.PostSharpUltimate,
+            LicenseProduct.MetalamaStarter,
+            LicenseProduct.MetalamaUltimate
+        ];
 }

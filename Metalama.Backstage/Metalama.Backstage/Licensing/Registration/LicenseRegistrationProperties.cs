@@ -29,5 +29,6 @@ namespace Metalama.Backstage.Licensing.Registration
         bool Auditable,
         bool LicenseServerEligible,
         Version MinPostSharpVersion,
-        LicenseGeneration Generation ) { }
+        LicenseGeneration Generation,
+        ServicingPhase ServicingPhase ) { }
 }

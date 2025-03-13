@@ -122,18 +122,18 @@ namespace Metalama.Backstage.Licensing.Licenses
 
         public string? OriginVersion => (string?) this.GetFieldValue( LicenseFieldIndex.OriginVersion );
 
-        public LicenseSupportPolicy SupportPolicy =>
-            this.GetFieldValue( LicenseFieldIndex.SupportLevel ) switch
+        public ServicingPhase? SupportLevel
+            => this.GetFieldValue( LicenseFieldIndex.SupportLevel ) switch
             {
-                null => LicenseSupportPolicy.None,
-                byte supportLevel => (LicenseSupportPolicy) supportLevel,
+                null => null,
+                byte supportLevel => (ServicingPhase) supportLevel,
                 _ => throw new InvalidCastException( "Invalid support level." )
             };
 
-        public LicenseGeneration Generation =>
-            this.GetFieldValue( LicenseFieldIndex.Generation ) switch
+        public LicenseGeneration? Generation
+            => this.GetFieldValue( LicenseFieldIndex.Generation ) switch
             {
-                null => 0,
+                null => null,
                 byte generation => (LicenseGeneration) generation,
                 _ => throw new InvalidCastException( "Invalid generation." )
             };
