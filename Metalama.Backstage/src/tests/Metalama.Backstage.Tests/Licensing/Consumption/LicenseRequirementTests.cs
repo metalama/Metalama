@@ -6,9 +6,9 @@ using Metalama.Backstage.Licensing;
 using Metalama.Backstage.Licensing.Consumption;
 using Metalama.Backstage.Licensing.Consumption.Requirements;
 using Metalama.Backstage.Testing;
+using System.Collections.Generic;
 using Xunit;
 using Xunit.Abstractions;
-using System.Collections.Generic;
 
 namespace Metalama.Backstage.Tests.Licensing.Consumption;
 
@@ -210,6 +210,6 @@ public sealed class LicenseRequirementTests : LicenseConsumptionServiceTestsBase
         var consumer = this.CreateConsumptionService( license ).CreateConsumer(reportMessage: messages.Add );
         Assert.False( consumer.TryConsume( new MetalamaExtensionLicenseRequirement( "<Component>", servicingPhase ), messages.Add ) );
 
-        Assert.Contains( productList, messages[0].Text );
+        Assert.Contains( productList, messages[0].Text, System.StringComparison.Ordinal );
     }
 }
