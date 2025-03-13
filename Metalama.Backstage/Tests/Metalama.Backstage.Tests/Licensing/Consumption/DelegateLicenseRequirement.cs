@@ -3,6 +3,7 @@
 using Metalama.Backstage.Licensing;
 using Metalama.Backstage.Licensing.Consumption;
 using System;
+using System.Collections.Generic;
 
 namespace Metalama.Backstage.Tests.Licensing.Consumption;
 
@@ -17,5 +18,5 @@ internal sealed class DelegateLicenseRequirement : LicenseRequirement
 
     public override bool IsEligible( LicenseConsumptionContext context ) => this._predicate( context );
 
-    public override string RequiredLicenseDescription => "<Required License>";
+    protected override IReadOnlyList<LicenseProduct> GetEligibleProducts() => [];
 }

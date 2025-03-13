@@ -1,6 +1,7 @@
 ﻿// Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
 using System;
+using System.Collections.Generic;
 
 namespace Metalama.Backstage.Licensing.Consumption.Requirements;
 
@@ -42,14 +43,15 @@ public class MetalamaToolingLicenseRequirement : LicenseRequirement
         return true;
     }
 
-    public override string RequiredLicenseDescription
-        => this.ServicingPhase switch
-        {
-            ServicingPhase.Default =>
-                "a Metalama Community, Metalama Professional, Metalama Enterprise, PostSharp Framework or PostSharp Ultimate license",
-            ServicingPhase.Extended =>
-                "a Metalama Professional, Metalama Enterprise, PostSharp Framework or PostSharp Ultimate license",
-            ServicingPhase.LongTerm => "a Metalama Enterprise license or a PostSharp Framework or PostSharp Ultimate license with long-term support",
-            _ => throw new ArgumentOutOfRangeException()
-        };
+    protected override IReadOnlyList<LicenseProduct> GetEligibleProducts()
+        =>
+        [
+            LicenseProduct.MetalamaCommunity,
+            LicenseProduct.MetalamaProfessional,
+            LicenseProduct.MetalamaEnterprise,
+            LicenseProduct.PostSharpFramework,
+            LicenseProduct.PostSharpUltimate,
+            LicenseProduct.MetalamaStarter,
+            LicenseProduct.MetalamaUltimate
+        ];
 }

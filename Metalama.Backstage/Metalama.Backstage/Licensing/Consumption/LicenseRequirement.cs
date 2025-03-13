@@ -2,6 +2,9 @@
 
 using JetBrains.Annotations;
 using Metalama.Backstage.Licensing.Consumption.Requirements;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Metalama.Backstage.Licensing.Consumption;
 
@@ -36,15 +39,27 @@ public abstract class LicenseRequirement
             return false;
         }
 
-        return true;
+        var eligibleProducts = this.GetEligibleProducts();
+
+        return eligibleProducts.Count == 0 || eligibleProducts.Contains( context.License.LicenseProduct );
     }
 
-    public string ComponentName { get; }
+    protected abstract IReadOnlyList<LicenseProduct> GetEligibleProducts();
 
-    public abstract string RequiredLicenseDescription { get; }
+    public IReadOnlyList<string> EligibleProductNames
+        => this.GetEligibleProducts()
+            .Where(
+                p => p.GetDefaultServicingPhase() >= this.ServicingPhase
+                     || (this.ServicingPhase == ServicingPhase.LongTerm && p.CanHaveLongTermSupportOption()) )
+            .Select( p => p.GetDisplayName( this.ServicingPhase ) )
+            .ToList();
+
+    public string ComponentName { get; }
 
     public string ComponentNameWithServicingPhase
         => this.ServicingPhase == ServicingPhase.Default ? this.ComponentName : $"{this.ComponentName} ({this.ServicingPhase.GetDisplayName()} Support)";
 
     public static LicenseRequirement Any => new AnyLicenseRequirement();
+
+    public static LicenseRequirement None => new NoneLicenseRequirement();
 }

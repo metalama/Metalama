@@ -236,7 +236,7 @@ namespace Metalama.Backstage.Licensing.Licenses
                 licenseKeyData.SubscriptionEndDate,
                 subscriptionStatus,
                 licenseKeyData.Generation.GetValueOrDefault(),
-                licenseKeyData.NormalizeSupportLevel() );
+                licenseKeyData.NormalizeServicingPhase() );
 
             return true;
         }

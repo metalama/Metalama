@@ -1,5 +1,6 @@
 ﻿// Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
 
+using Metalama.Backstage.Licensing.Consumption;
 using Metalama.Backstage.UserInterface;
 using System.Linq;
 using Xunit;
@@ -24,7 +25,7 @@ public sealed class LicenseUITests : LicenseConsumptionServiceTestsBase
     public void NotificationNotShownWhenFulfilledRequirement()
     {
         var consumer = this.CreateConsumptionService( LicenseKeyProvider.MetalamaProfessionalBusiness ).CreateConsumer();
-        Assert.True( consumer.TryConsume( new DelegateLicenseRequirement( _ => true ) ) );
+        Assert.True( consumer.TryConsume( LicenseRequirement.Any ) );
         Assert.Empty( this.UserInterface.Notifications );
     }
 }

@@ -139,7 +139,9 @@ internal sealed class LicenseConsumer : ILicenseConsumer
         this._logger.Warning?.Log( $"TryConsume({{{requirement}}}: no eligible license found." );
 
         var messageText =
-            $"The component '{requirement.ComponentNameWithServicingPhase}' is not licensed: it requires {requirement.RequiredLicenseDescription}.";
+            $"The component '{requirement.ComponentNameWithServicingPhase}' is not licensed. It requires one of the following products: "
+            + string.Join( ", ", requirement.EligibleProductNames )
+            + ".";
 
         if ( this._licenses.IsEmpty )
         {
