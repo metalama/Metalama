@@ -27,7 +27,7 @@
     </PropertyGroup>
 
     <!-- Imports a script that exports a few MSBuild properties to the compiler. We try to import and not to copy to avoid duplication. -->
-    <Import Project="Metalama.Framework.Package/build/Metalama.CompilerVisibleProperties.props"/>
+    <Import Project="src/Metalama.Framework.Package/build/Metalama.CompilerVisibleProperties.props"/>
 
     <Import Sdk="PostSharp.Engineering.Sdk" Project="BuildOptions.props"/>
 

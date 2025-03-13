@@ -6,9 +6,10 @@ using Metalama.Backstage.Licensing;
 using Metalama.Backstage.Licensing.Consumption;
 using Metalama.Backstage.Licensing.Consumption.Requirements;
 using Metalama.Backstage.Testing;
+using System.Collections.Generic;
+using System.Text.RegularExpressions;
 using Xunit;
 using Xunit.Abstractions;
-using System.Collections.Generic;
 
 namespace Metalama.Backstage.Tests.Licensing.Consumption;
 
@@ -199,17 +200,34 @@ public sealed class LicenseRequirementTests : LicenseConsumptionServiceTestsBase
         var consumer = this.CreateConsumptionService( license ).CreateConsumer();
         Assert.Equal( expectedResult, consumer.TryConsume( new MetalamaExtensionLicenseRequirement( "<Component>", servicingPhase ) ) );
     }
-    
+
     [Theory]
-    [InlineData( nameof(TestLicenseKeyProvider.MetalamaProfessionalBusiness), ServicingPhase.LongTerm, "XX" )]
-    public void MessageIncludesProperProductList( string licenseKeyName, ServicingPhase servicingPhase, string productList )
+    [InlineData(
+        nameof(TestLicenseKeyProvider.MetalamaProfessionalBusiness),
+        ServicingPhase.LongTerm,
+        "Metalama Enterprise, PostSharp Framework with long-term support, PostSharp Ultimate with long-term support" )]
+    [InlineData(
+        nameof(TestLicenseKeyProvider.MetalamaCommunity),
+        ServicingPhase.Extended,
+        "Metalama Professional, Metalama Enterprise, PostSharp Framework, PostSharp Ultimate" )]
+    [InlineData(
+        nameof(TestLicenseKeyProvider.MetalamaCommunity),
+        ServicingPhase.Default,
+        "Metalama Professional, Metalama Enterprise, PostSharp Framework, PostSharp Ultimate, Metalama Starter (legacy), Metalama Ultimate (legacy)" )]
+    public void ErrorMessageContainsExpectedProductList( string licenseKeyName, ServicingPhase servicingPhase, string expectedProductList )
     {
         var messages = new List<LicensingMessage>();
+
         var licenseKey = LicenseKeyProvider.GetLicenseKey( licenseKeyName );
         var license = this.CreateInstrumentedLicenseWrapper( licenseKey );
-        var consumer = this.CreateConsumptionService( license ).CreateConsumer(reportMessage: messages.Add );
-        Assert.False( consumer.TryConsume( new MetalamaExtensionLicenseRequirement( "<Component>", servicingPhase ), messages.Add ) );
+        var consumer = this.CreateConsumptionService( license ).CreateConsumer( reportMessage: messages.Add );
+        Assert.False( consumer.TryConsume( new MetalamaExtensionLicenseRequirement( "<Component>", servicingPhase ), reportMessage: messages.Add ) );
 
-        Assert.Contains( productList, messages[0].Text );
+        var match = Regex.Match( messages[0].Text, "It requires one of the following products\\: ([^\\.]*)\\." );
+
+        Assert.True( match.Success );
+        var productList = match.Groups[1].Value;
+        this.Logger.WriteLine( productList );
+        Assert.Equal( expectedProductList, productList.Trim() );
     }
 }

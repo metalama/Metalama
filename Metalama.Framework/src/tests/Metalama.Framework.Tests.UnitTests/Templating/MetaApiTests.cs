@@ -1,0 +1,42 @@
+// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+// SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
+// Refer to LICENSE.md in the repository root for complete details.
+
+using Metalama.Framework.Aspects;
+using Metalama.Framework.Code.SyntaxBuilders;
+using Metalama.Testing.UnitTesting;
+using System;
+using System.Threading.Tasks;
+using Xunit;
+
+namespace Metalama.Framework.Tests.UnitTests.Templating
+{
+    public sealed class MetaApiTests : UnitTestClass
+    {
+        [Fact]
+        public async Task OutOfContextAsync()
+        {
+            Assert.Throws<InvalidOperationException>( () => meta.Base );
+            Assert.Throws<InvalidOperationException>( () => meta.Tags );
+            Assert.Throws<InvalidOperationException>( () => meta.Target );
+            Assert.Throws<InvalidOperationException>( () => meta.This );
+            Assert.Throws<InvalidOperationException>( () => meta.BaseType );
+            Assert.Throws<InvalidOperationException>( () => meta.ThisType );
+            Assert.Throws<InvalidOperationException>( meta.Proceed );
+            await Assert.ThrowsAsync<InvalidOperationException>( meta.ProceedAsync );
+            Assert.Throws<InvalidOperationException>( meta.ProceedEnumerable );
+            Assert.Throws<InvalidOperationException>( meta.ProceedEnumerator );
+
+            Assert.Throws<InvalidOperationException>( () => meta.CompileTime( 0 ) );
+            Assert.Throws<InvalidOperationException>( () => meta.RunTime( 0 ) );
+            Assert.Throws<InvalidOperationException>( meta.DebugBreak );
+            Assert.Throws<InvalidOperationException>( () => meta.InsertComment( "" ) );
+            Assert.Throws<InvalidOperationException>( () => ExpressionFactory.Parse( "" ) );
+
+#if NET5_0_OR_GREATER
+            Assert.Throws<InvalidOperationException>( meta.ProceedAsyncEnumerable );
+            Assert.Throws<InvalidOperationException>( meta.ProceedAsyncEnumerator );
+#endif
+        }
+    }
+}

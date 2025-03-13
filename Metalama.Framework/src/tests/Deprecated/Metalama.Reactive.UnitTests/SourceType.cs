@@ -1,0 +1,29 @@
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+// SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
+// Refer to LICENSE.md in the repository root for complete details.
+
+using System.Collections.Immutable;
+using Metalama.Reactive.Sources;
+
+namespace Metalama.Reactive.UnitTests
+{
+
+    internal class SourceType
+    {
+        public SourceType( string name, IImmutableList<string>? baseTypes )
+        {
+            this.Name = name;
+            this.BaseTypes = baseTypes ?? ImmutableList<string>.Empty;
+        }
+
+        public string Name { get; }
+
+        public IImmutableList<string> BaseTypes { get; }
+
+        public ReactiveHashSet<Member> Members { get; } = new();
+
+        public ReactiveHashSet<SourceType> NestedTypes { get; } = new();
+    }
+
+    internal record Member( string Name );
+}

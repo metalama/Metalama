@@ -1,0 +1,17 @@
+// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+// SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
+// Refer to LICENSE.md in the repository root for complete details.
+
+using Metalama.Framework.Code;
+
+namespace Metalama.Framework.Aspects;
+
+/// <summary>
+/// An interface that can be implemented by aspect that can be inheritable or non-inheritable
+/// based of a field or property of the aspect. When all the instances of the aspect class are unconditionally inheritable,
+/// the class must be annotated with the <see cref="InheritableAttribute"/> instead.
+/// </summary>
+public interface IConditionallyInheritableAspect : IAspect
+{
+    bool IsInheritable( IDeclaration targetDeclaration, IAspectInstance aspectInstance );
+}

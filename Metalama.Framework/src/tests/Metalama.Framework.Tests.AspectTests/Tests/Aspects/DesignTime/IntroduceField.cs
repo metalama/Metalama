@@ -1,0 +1,28 @@
+// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+// SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
+// Refer to LICENSE.md in the repository root for complete details.
+
+#if TEST_OPTIONS
+// @TestScenario(DesignTime)
+#endif
+
+using Metalama.Framework.Advising;
+using Metalama.Framework.Aspects;
+using Metalama.Framework.Code;
+
+namespace Metalama.Framework.IntegrationTests.Aspects.DesignTime.IntroduceField;
+
+public class IntroductionAttribute : TypeAspect
+{
+    public override void BuildAspect(IAspectBuilder<INamedType> builder)
+    {
+        builder.IntroduceField("ValueType", typeof(int), buildField: fieldBuilder => fieldBuilder.InitializerExpression = TypedConstant.Create(42));
+        builder.IntroduceField("NullableValueType", typeof(int?), buildField: fieldBuilder => fieldBuilder.InitializerExpression = TypedConstant.Create(13));
+        builder.IntroduceField("ReferenceType", typeof(string), buildField: fieldBuilder => fieldBuilder.InitializerExpression = TypedConstant.Create("foo"));
+        builder.IntroduceField("NullableReferenceType", TypeFactory.GetType(typeof(string)).ToNullable(), buildField: fieldBuilder => fieldBuilder.InitializerExpression = TypedConstant.Create("bar"));
+    }
+}
+
+// <target>
+[Introduction]
+internal partial class TargetClass { }

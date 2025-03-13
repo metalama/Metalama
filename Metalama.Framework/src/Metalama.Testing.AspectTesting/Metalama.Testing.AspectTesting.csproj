@@ -1,0 +1,83 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <Import Project="../../build/RoslynVersion/Latest.imports" />
+    
+    <PropertyGroup>
+        <!-- We are targeting .NET 6.0 because we can provide an unloadable implementation of CompileTimeDomain. -->
+        <TargetFrameworks>net472;net6.0</TargetFrameworks>
+        <!-- Packaging -->
+        <Description>Test framework for Metalama aspects and fabrics. This is not your typical test framework. When referencing this package, every _file_ is turned into a test by default. Please read the documentation before use.</Description>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <AssemblyName>Metalama.Testing.AspectTesting$(ThisRoslynVersionProjectSuffix)</AssemblyName>
+		<PackageId>Metalama.Testing.AspectTesting</PackageId>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <!-- Workspaces is used in TestRunner, Workspaces.Lightweight is a dependency of Metalama.Framework.Engine -->
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" VersionOverride="$(ThisRoslynVersion)" />
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Features" VersionOverride="$(ThisRoslynVersion)" />
+        <PackageReference Include="DiffEngine" />
+        <PackageReference Include="xunit.assert" />
+        <PackageReference Include="xunit.extensibility.core" />
+        <PackageReference Include="xunit.extensibility.execution" />
+        <PackageReference Include="Metalama.Backstage" />
+        
+        <!-- Validate that we do not expose internal APIs -->
+        <ProjectReference Include="../Metalama.Framework.Engine.Analyzers/Metalama.Framework.Engine.Analyzers.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+
+        <!-- Explicitly add Microsoft.VisualStudio.Threading and StreamJsonRpc because the reference to Metalama.Framework.DesignTime must have PrivateAssets="all" -->
+        <PackageReference Include="Microsoft.VisualStudio.Threading" VersionOverride="$(MicrosoftVisualStudioThreadingLatestVersion)"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <!-- Explicitly add Metalama.Framework.Engine because the reference to Metalama.Framework.DesignTime must have PrivateAssets="all" -->
+        <ProjectReference Include="../Metalama.Framework.Engine$(ThisRoslynVersionProjectSuffix)/Metalama.Framework.Engine$(ThisRoslynVersionProjectSuffix).csproj" />
+        <ProjectReference Include="../Metalama.Framework.DesignTime$(ThisRoslynVersionProjectSuffix)/Metalama.Framework.DesignTime$(ThisRoslynVersionProjectSuffix).csproj" PrivateAssets="all" />
+        <ProjectReference Include="../Metalama.Framework.Sdk/Metalama.Framework.Sdk.csproj" />
+        <ProjectReference Include="../Metalama.Framework/Metalama.Framework.csproj" />
+        <ProjectReference Include="../Metalama.Testing.UnitTesting$(ThisRoslynVersionProjectSuffix)/Metalama.Testing.UnitTesting$(ThisRoslynVersionProjectSuffix).csproj" />
+
+
+
+    </ItemGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="Metalama.Framework.Tests.AspectTests.$(ThisRoslynVersionNoPreview)" />
+        <InternalsVisibleTo Include="Metalama.Framework.Tests.LinkerTests.$(ThisRoslynVersionNoPreview)" />
+        <InternalsVisibleTo Include="Metalama.Framework.Tests.UnitTests.$(ThisRoslynVersionNoPreview)" />
+        <InternalsVisibleTo Include="Metalama.Framework.Tests.UnitTestHelpers.$(ThisRoslynVersionNoPreview)" />
+        <InternalsVisibleTo Include="Metalama.Framework.Tests.TemplateTests.$(ThisRoslynVersionNoPreview)" />
+        <InternalsVisibleTo Include="Metalama.AspectWorkbench" />
+        <InternalsVisibleTo Include="DynamicProxyGenAssembly2" Key="$(FakeItEasyKey)" LoadsWithinVisualStudio="false" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include="Metalama.Testing.AspectTesting.props">
+            <Pack>true</Pack>
+            <PackagePath>build</PackagePath>
+        </None>
+        <None Include="Metalama.Testing.AspectTesting.targets">
+            <Pack>true</Pack>
+            <PackagePath>build</PackagePath>
+        </None>
+    </ItemGroup>
+
+    <!-- Packaging -->
+    <ItemGroup>
+        <None Include="README.md" Pack="true" PackagePath="/" />
+    </ItemGroup>
+
+    <PropertyGroup>
+        <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);_AddLibrariesToPackage</TargetsForTfmSpecificContentInPackage>
+    </PropertyGroup>
+
+    <Target Name="_AddLibrariesToPackage">
+        <ItemGroup>
+            <TfmSpecificPackageFile Include="$(MSBuildProjectDirectory)/bin/$(Configuration)/$(TargetFramework)/Metalama.Framework.DesignTime.$(ThisRoslynVersionNoPreview).dll" PackagePath="lib/$(TargetFramework)" />
+            <TfmSpecificPackageFile Include="$(MSBuildProjectDirectory)/bin/$(Configuration)/$(TargetFramework)/Metalama.Framework.DesignTime.Rpc.dll" PackagePath="lib/$(TargetFramework)" />
+            <TfmSpecificPackageFile Include="$(MSBuildProjectDirectory)/bin/$(Configuration)/$(TargetFramework)/Metalama.Framework.DesignTime.Contracts.dll" PackagePath="lib/$(TargetFramework)" />
+        </ItemGroup>
+    </Target>
+
+
+</Project>

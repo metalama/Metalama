@@ -1,0 +1,10 @@
+<Project ToolsVersion="Current">
+  <ItemGroup>
+    <Compile Include="../Metalama.Framework.Tests.UnitTestHelpers/**/*.cs" Exclude="../Metalama.Framework.Tests.UnitTestHelpers/bin/**/*.cs;../Metalama.Framework.Tests.UnitTestHelpers/obj/**/*.cs" />
+  </ItemGroup>
+  <Import Project="../../../build/RoslynVersion/Roslyn.4.4.0.props" />
+  <Import Project="../Metalama.Framework.Tests.UnitTestHelpers/Metalama.Framework.Tests.UnitTestHelpers.csproj" />
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+</Project>

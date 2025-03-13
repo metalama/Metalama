@@ -1,0 +1,4 @@
+# If you need any customization of .editorconfig for Metalama.Backstage/src only, this is the right place to add them.
+# The .editorconfig in the repo root is a symlink to a file that is common to all repos.
+
+root = false

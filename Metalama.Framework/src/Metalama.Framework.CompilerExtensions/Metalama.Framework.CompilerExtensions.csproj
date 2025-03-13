@@ -1,0 +1,99 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>netstandard2.0</TargetFramework>
+        <RootNamespace>Metalama.Framework.CompilerExtensions</RootNamespace>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+
+        <!-- Packaging -->
+        <IsPackable>False</IsPackable>
+
+        <!-- Disable vulnerability checking because this project is not surfacing. -->
+        <NuGetAudit>false</NuGetAudit>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Metalama.Compiler.Sdk" PrivateAssets="true">
+            <GeneratePathProperty>True</GeneratePathProperty>
+        </PackageReference>
+        <PackageReference Include="System.Reflection.Emit" />
+    </ItemGroup>
+     
+    <ItemGroup>
+      <Compile Include="../Metalama.Framework.Engine/Utilities/AssemblyLoader.cs" Link="AssemblyLoader.cs" />
+      <Compile Include="..\Metalama.Framework.DesignTime\RoslynEntryPointTypeNames.cs" Link="RoslynEntryPointTypeNames.cs" />
+    </ItemGroup>
+
+    <Target Name="SelectAssembliesToEmbed">
+        <!-- Make sure the dependencies to embed have been built. -->
+        <MSBuild Projects="../Metalama.Framework.CompilerExtensions.Resources/Metalama.Framework.CompilerExtensions.Resources.csproj" Properties="Configuration=$(Configuration)" />
+
+        <!-- List of assemblies that should not be selected -->
+        <PropertyGroup>
+            <AssembliesNotToEmbed>
+                **/Metalama.*;
+                **/Microsoft.CodeAnalysis.*;
+                **/System.*;
+            </AssembliesNotToEmbed>
+        </PropertyGroup>
+
+        <!-- Select assembies -->
+        <ItemGroup>
+            <DesktopAssemblyToSignAndEmbed Include="../Metalama.Framework.CompilerExtensions.Resources/bin/$(Configuration)/net472/Metalama.*.dll" />
+            <CoreAssemblyToSignAndEmbed Include="../Metalama.Framework.CompilerExtensions.Resources/bin/$(Configuration)/net6.0/Metalama.*.dll" />
+
+            <DesktopAssemblyToEmbed Include="../Metalama.Framework.CompilerExtensions.Resources/bin/$(Configuration)/net472/*.dll" Exclude="$(AssembliesNotToEmbed)" />
+            <CoreAssemblyToEmbed Include="../Metalama.Framework.CompilerExtensions.Resources/bin/$(Configuration)/net6.0/*.dll" Exclude="$(AssembliesNotToEmbed)" />
+            
+            <DesktopAssemblyToEmbed Include="../Metalama.Framework.CompilerExtensions.Resources/bin/$(Configuration)/net472/System.Threading.AccessControl.dll" />
+            <CoreAssemblyToEmbed Include="../Metalama.Framework.CompilerExtensions.Resources/bin/$(Configuration)/net6.0/runtimes/win/lib/net6.0/System.Threading.AccessControl.dll" />
+        </ItemGroup>
+    </Target>
+    
+    <!-- The next target is used in the Public build. It signs assemblies before embedding them. -->
+    <Target Name="SignAndEmbedAssemblies" DependsOnTargets="SelectAssembliesToEmbed">
+
+        <MakeDir Directories="$(IntermediateOutputPath)DesktopSignable" />
+        <MakeDir Directories="$(IntermediateOutputPath)DesktopSigned" />
+        <MakeDir Directories="$(IntermediateOutputPath)CoreSignable" />
+        <MakeDir Directories="$(IntermediateOutputPath)CoreSigned" />
+
+        <Copy SourceFiles="@(DesktopAssemblyToSignAndEmbed)" DestinationFolder="$(MSBuildThisFileDirectory)$(IntermediateOutputPath)DesktopSignable" />
+        <Copy SourceFiles="@(CoreAssemblyToSignAndEmbed)" DestinationFolder="$(MSBuildThisFileDirectory)$(IntermediateOutputPath)CoreSignable" />
+
+        <ZipDirectory SourceDirectory="$(MSBuildThisFileDirectory)$(IntermediateOutputPath)DesktopSignable" DestinationFile="$(MSBuildThisFileDirectory)$(IntermediateOutputPath)DesktopSignable.zip" Overwrite="true" /> 
+        <ZipDirectory SourceDirectory="$(MSBuildThisFileDirectory)$(IntermediateOutputPath)CoreSignable" DestinationFile="$(MSBuildThisFileDirectory)$(IntermediateOutputPath)CoreSignable.zip" Overwrite="true" /> 
+        
+        <Exec Command="dotnet Build.dll tools sign &quot;sign -i $(MSBuildThisFileDirectory)$(IntermediateOutputPath)DesktopSignable.zip -o $(MSBuildThisFileDirectory)$(IntermediateOutputPath)DesktopSigned&quot; --nologo" WorkingDirectory="$(MSBuildThisFileDirectory)../../../eng/src/bin/Debug/net9.0" />
+        <Exec Command="dotnet Build.dll tools sign &quot;sign -i $(MSBuildThisFileDirectory)$(IntermediateOutputPath)CoreSignable.zip -o $(MSBuildThisFileDirectory)$(IntermediateOutputPath)CoreSigned&quot; --nologo" WorkingDirectory="$(MSBuildThisFileDirectory)../../../eng/src/bin/Debug/net9.0" />
+        
+        <Unzip DestinationFolder="$(MSBuildThisFileDirectory)$(IntermediateOutputPath)DesktopSigned" SourceFiles="$(MSBuildThisFileDirectory)$(IntermediateOutputPath)DesktopSigned/DesktopSignable.zip" />
+        <Unzip DestinationFolder="$(MSBuildThisFileDirectory)$(IntermediateOutputPath)CoreSigned" SourceFiles="$(MSBuildThisFileDirectory)$(IntermediateOutputPath)CoreSigned/CoreSignable.zip" />
+        
+        <ItemGroup>
+            <_DesktopSignedFileToEmbed Include="$(MSBuildThisFileDirectory)$(IntermediateOutputPath)DesktopSigned/*.dll" />
+            <_CoreSignedFileToEmbed Include="$(MSBuildThisFileDirectory)$(IntermediateOutputPath)CoreSigned/*.dll" />
+
+            <EmbeddedResource Include="@(DesktopAssemblyToEmbed)" Link="Resources/Desktop/%(Filename)%(Extension)" />
+            <EmbeddedResource Include="@(CoreAssemblyToEmbed)" Link="Resources/Core/%(Filename)%(Extension)" />
+            <EmbeddedResource Include="@(_DesktopSignedFileToEmbed)" Link="Resources/Desktop/%(Filename)%(Extension)" />
+            <EmbeddedResource Include="@(_CoreSignedFileToEmbed)" Link="Resources/Core/%(Filename)%(Extension)" />
+        </ItemGroup>
+    </Target>
+    
+    <!-- The next target is used in the Debug and Release builds. Contrarily to the previous target, it does not sign assemblies before embedding them. -->
+    <Target Name="EmbedUnsignedAssemblies" DependsOnTargets="SelectAssembliesToEmbed">
+        <ItemGroup>
+            <EmbeddedResource Include="@(DesktopAssemblyToEmbed)" Link="Resources/Desktop/%(Filename)%(Extension)" />
+            <EmbeddedResource Include="@(CoreAssemblyToEmbed)" Link="Resources/Core/%(Filename)%(Extension)" />
+            <EmbeddedResource Include="@(DesktopAssemblyToSignAndEmbed)" Link="Resources/Desktop/%(Filename)%(Extension)" />
+            <EmbeddedResource Include="@(CoreAssemblyToSignAndEmbed)" Link="Resources/Core/%(Filename)%(Extension)" />
+        </ItemGroup>
+    </Target>
+    
+    <PropertyGroup>
+        <PrepareResourcesDependsOn Condition="'$(EngineeringConfiguration)'=='Public'">$(PrepareResourcesDependsOn);SignAndEmbedAssemblies</PrepareResourcesDependsOn>
+        <PrepareResourcesDependsOn Condition="'$(EngineeringConfiguration)'!='Public'">$(PrepareResourcesDependsOn);EmbedUnsignedAssemblies</PrepareResourcesDependsOn>
+    </PropertyGroup>
+
+</Project>

@@ -1,0 +1,27 @@
+// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+// SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
+// Refer to LICENSE.md in the repository root for complete details.
+
+namespace Metalama.Framework.Engine.CodeModel.Abstractions;
+
+internal enum DeclarationImplementationKind
+{
+    /// <summary>
+    /// A symbol-backed declaration.
+    /// </summary>
+    Symbol,
+
+    /// <summary>
+    /// A declaration backed by source code (e.g., not <see cref="Introduced"/>), but that is not
+    /// represented by a symbol in Roslyn.
+    /// </summary>
+    Pseudo,
+
+    /// <summary>
+    /// A declaration introduced by an aspect.
+    /// </summary>
+    Introduced,
+    
+    Builder,
+    DeserializedAttribute
+}

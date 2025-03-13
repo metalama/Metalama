@@ -1,0 +1,59 @@
+// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+// SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
+// Refer to LICENSE.md in the repository root for complete details.
+
+using JetBrains.Annotations;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.Diagnostics;
+using System.Collections.Immutable;
+
+namespace Metalama.Framework.Engine.Analyzers;
+
+[DiagnosticAnalyzer( LanguageNames.CSharp )]
+[UsedImplicitly]
+public partial class MetalamaInternalsAnalyzer : DiagnosticAnalyzer
+{
+    // Range: 820-829
+    private static readonly DiagnosticDescriptor _cannotConsumeApi = new(
+        "LAMA0820",
+        "Cannot reference an internal Metalama API.",
+        "'{0}' is an internal Metalama API and should not be referenced in user code.",
+        "Metalama",
+        DiagnosticSeverity.Warning,
+        true );
+
+    private static readonly DiagnosticDescriptor _cannotExposeApi = new(
+        "LAMA0821",
+        "Cannot expose an internal Metalama API.",
+        "Cannot expose the internal Metalama API '{0}'.",
+        "Metalama",
+        DiagnosticSeverity.Warning,
+        true );
+
+    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } = ImmutableArray.Create( _cannotConsumeApi, _cannotExposeApi );
+
+    public override void Initialize( AnalysisContext context )
+    {
+        context.ConfigureGeneratedCodeAnalysis( GeneratedCodeAnalysisFlags.None );
+        context.EnableConcurrentExecution();
+        context.RegisterSemanticModelAction( AnalyzeSemanticModel );
+    }
+
+    private static void AnalyzeSemanticModel( SemanticModelAnalysisContext context )
+    {
+        var projectKind = ProjectClassifier.GetProjectKind( context.SemanticModel.Compilation.AssemblyName );
+
+        switch ( projectKind )
+        {
+            case ProjectKind.MetalamaPublicApi:
+                new PublicApiVisitor( context ).Visit( context.SemanticModel.SyntaxTree.GetRoot() );
+
+                break;
+
+            case ProjectKind.UserProject:
+                new UserProjectVisitor( context ).Visit( context.SemanticModel.SyntaxTree.GetRoot() );
+
+                break;
+        }
+    }
+}

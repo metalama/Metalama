@@ -1,0 +1,76 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>WinExe</OutputType>
+        <TargetFramework>net6.0-windows10.0.17763.0</TargetFramework>
+        <RollForward>Major</RollForward>
+        <Nullable>enable</Nullable>
+        <UseWPF>true</UseWPF>
+        <AssemblyTitle>Metalama</AssemblyTitle>
+        <ApplicationIcon>Resources/metalama.ico</ApplicationIcon>
+        <ProductName>Metalama</ProductName>
+        <OutputZipFile>bin\$(MSBuildProjectName).zip</OutputZipFile>
+        <EnableWindowsTargeting>True</EnableWindowsTargeting>
+    </PropertyGroup>
+
+    <!-- It seems the WinRT source generator runs when it shouldn't and causes bogus warnings, see https://github.com/dotnet/sdk/issues/44026, so we disable it. -->
+    <!-- This can be removed once that bug is fixed. -->
+	<Target Name="DisableWinRTSourceGenerator" BeforeTargets="CoreCompile">
+		<ItemGroup>
+			<Analyzer Remove="@(Analyzer)"
+					  Condition="'%(FileName)%(Extension)' == 'WinRT.SourceGenerator.dll'"/>
+		</ItemGroup>
+	</Target>    
+
+    <ItemGroup>
+        <PackageReference Include="JetBrains.Annotations" />
+        <PackageReference Include="Microsoft.Toolkit.Uwp.Notifications" />
+        <!-- Explicitly reference this transitive dependency, so that we get the updated version. -->
+        <PackageReference Include="System.Drawing.Common" />
+        <PackageReference Include="Microsoft.Web.WebView2" />
+        <PackageReference Include="Spectre.Console.Cli" />
+        <PackageReference Include="Newtonsoft.Json" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Remove="logo.png"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Metalama.Backstage\Metalama.Backstage.csproj"/>
+
+        <!-- We need the Worker project to be built first because we invoke it as an executable. -->
+        <ProjectReference Include="..\Metalama.Backstage.Worker\Metalama.Backstage.Worker.csproj"
+                          ReferenceOutputAssembly="false"
+                          SkipGetTargetFrameworkProperties="true"
+                          PrivateAssets="all"/>
+
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Remove="Resources\logo.svg"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Remove="Resources\logo.png"/>
+        <Content Include="Resources\logo.png">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </Content>
+    </ItemGroup>
+
+
+    <Target Name="ResolveZipInputFiles" AfterTargets="Build" Condition="'$(IsCrossTargetingBuild)'!='true'">
+        <ItemGroup>
+            <ZipInputFiles Include="$(OutDir)\**\*"/>
+        </ItemGroup>
+    </Target>
+
+    <Import Project="../../../eng/DeterministicZip.tasks"/>
+
+    <Target Name="Zip" Inputs="@(ZipInputFiles)" Outputs="$(OutputZipFile)" AfterTargets="Build" DependsOnTargets="ResolveZipInputFiles" Condition="'$(IsCrossTargetingBuild)'!='true'">
+
+        <CreateDeterministicZip SourceDirectory="$(OutDir)" DestinationFile="$(OutputZipFile)" PackageBuildDate="$(MetalamaBuildDate)"/>
+        <Message Text="$(MSBuildProjectName) -&gt; $(MSBuildProjectDirectory)\$(OutputZipFile)" Importance="High"/>
+    </Target>
+
+</Project>

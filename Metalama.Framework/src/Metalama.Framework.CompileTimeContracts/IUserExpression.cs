@@ -1,0 +1,19 @@
+// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+// SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
+// Refer to LICENSE.md in the repository root for complete details.
+
+using Metalama.Framework.Code;
+
+namespace Metalama.Framework.CompileTimeContracts
+{
+    /// <summary>
+    /// Adds implementation methods to the public <see cref="IExpression"/> interface. 
+    /// </summary>
+    public interface IUserExpression : IExpression
+    {
+        /// <summary>
+        /// Creates an <see cref="TypedExpressionSyntax"/> for the current <see cref="IUserExpression"/>.
+        /// </summary>
+        TypedExpressionSyntax ToTypedExpressionSyntax( ISyntaxGenerationContext syntaxGenerationContext, IType? targetType = null );
+    }
+}

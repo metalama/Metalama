@@ -1,0 +1,22 @@
+// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+// SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
+// Refer to LICENSE.md in the repository root for complete details.
+
+using System;
+
+namespace Metalama.Framework.DesignTime.Contracts;
+
+internal sealed class DisposeAction : IDisposable
+{
+    private readonly Action _action;
+
+    public DisposeAction( Action action )
+    {
+        this._action = action;
+    }
+
+    public void Dispose()
+    {
+        this._action();
+    }
+}

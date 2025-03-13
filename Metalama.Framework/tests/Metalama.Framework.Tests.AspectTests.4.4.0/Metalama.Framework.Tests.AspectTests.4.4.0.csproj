@@ -1,8 +1,0 @@
-<Project ToolsVersion="Current">
-  <ItemGroup>
-    <Compile Include="../Metalama.Framework.Tests.AspectTests/**/*.cs" Exclude="../Metalama.Framework.Tests.AspectTests/bin/**/*.cs;../Metalama.Framework.Tests.AspectTests/obj/**/*.cs" />
-    <Compile Remove="**/*" Condition="'$(FormattingCode)'=='True'" />
-  </ItemGroup>
-  <Import Project="../../build/RoslynVersion/Roslyn.4.4.0.props" />
-  <Import Project="../Metalama.Framework.Tests.AspectTests/Metalama.Framework.Tests.AspectTests.csproj" />
-</Project>

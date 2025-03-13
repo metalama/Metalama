@@ -1,4 +1,6 @@
-﻿// Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+// SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
+// Refer to LICENSE.md in the repository root for complete details.
 
 using System.IO;
 using Metalama.Framework.GenerateMetaSyntaxRewriter;
@@ -28,10 +30,10 @@ var product = new Product( MetalamaDependencies.Metalama )
             [
                 // Test payloads should not be formatted because it would break the test output comparison.
                 // In some cases, formatting or redundant keywords may be intentional.
-                "Tests\\Metalama.Framework.Tests.AspectTests\\Tests\\**\\*",
-                "Tests\\Metalama.Framework.Tests.LinkerTests\\Tests\\**\\*",
-                "Tests\\Metalama.Framework.Tests.TemplateTests\\Tests\\**\\*",
-                "Tests\\Metalama.Extensions.*.AspectTests\\**\\*",
+                "src\\tests\\Metalama.Framework.Tests.AspectTests\\Tests\\**\\*",
+                "src\\tests\\Metalama.Framework.Tests.LinkerTests\\Tests\\**\\*",
+                "src\\tests\\Metalama.Framework.Tests.TemplateTests\\Tests\\**\\*",
+                "src\\tests\\Metalama.Extensions.*.AspectTests\\**\\*",
                 "**\\*.g.cs",
 
                 // XML formatting seems to be conflicting.
@@ -42,17 +44,17 @@ var product = new Product( MetalamaDependencies.Metalama )
         {
             SupportsTestCoverage = false, CanFormatCode = false, IsTestOnly = true
         },
-        new DotNetSolution( "Metalama.Framework/Tests/Metalama.Framework.TestApp\\Metalama.Framework.TestApp.sln" )
+        new DotNetSolution( "Metalama.Framework/src/tests/Metalama.Framework.TestApp\\Metalama.Framework.TestApp.sln" )
         {
             IsTestOnly = true, TestMethod = BuildMethod.Build
         },
-        new ManyDotNetSolutions( "Metalama.Framework/Tests/Standalone" ) { IsTestOnly = true },
+        new ManyDotNetSolutions( "Metalama.Framework/src/Tests/Standalone" ) { IsTestOnly = true },
         new DotNetSolution( "Metalama.Extensions/Metalama.Extensions.sln" ) 
         { 
             CanFormatCode = true,
             FormatExclusions = ["src\\tests\\*AspectTests\\**\\*"],
         },
-        new DotNetSolution( "Metalama.Migration/src/Metalama.Migration.sln" ) { CanFormatCode = true },
+        new DotNetSolution( "Metalama.Migration/Metalama.Migration.sln" ) { CanFormatCode = true },
         new DotNetSolution( "Metalama.LinqPad/Metalama.LinqPad.sln" ) { CanFormatCode = true },
         new DotNetSolution( "Metalama.Patterns/Metalama.Patterns.sln" )
         { 

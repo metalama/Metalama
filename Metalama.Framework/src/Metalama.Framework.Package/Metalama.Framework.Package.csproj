@@ -1,0 +1,79 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>netstandard2.0</TargetFramework>
+
+        <!-- Packaging -->
+        <PackageId>Metalama.Framework</PackageId>
+        <PackageDescription>Metalama. A tool for aspect-oriented programming (AOP) using templates written in pure C#.</PackageDescription>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <IncludeBuildOutput>false</IncludeBuildOutput>
+        <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);_AddAnalyzersToOutput</TargetsForTfmSpecificContentInPackage>
+
+        <!-- If the build is deterministic, we can have the error : SourceRoot items must include at least one top-level (not nested) item when DeterministicSourcePaths is true -->
+        <Deterministic>False</Deterministic>
+
+        <!-- Disable a warning saying that we have nothing under the lib folder. -->
+        <NoWarn>$(NoWarn);NU5128</NoWarn>
+
+        <UseMetalamaCompiler>Public</UseMetalamaCompiler>
+
+        <!-- Disable the customization done by Metalama.Compiler.Sdk -->
+        <MetalamaCompilerDisablePackCustomization>True</MetalamaCompilerDisablePackCustomization>
+
+        <!-- Avoid creating a package that has no dependencies nor content. -->
+        <IncludeSymbols>false</IncludeSymbols>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <!--- Ignore transtive dependency System.Text.Json 6.0.0 DoS vunerability -->
+        <NuGetAuditSuppress Include=" https://github.com/advisories/GHSA-8g4q-xg66-9fp4" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Update="buildTransitive/*">
+            <Pack>true</Pack>
+            <PackagePath></PackagePath>          
+        </None>
+        <None Update="build/*">
+            <Pack>true</Pack>
+            <PackagePath></PackagePath>
+        </None>
+        <None Update="tools/*">
+            <Pack>true</Pack>
+            <PackagePath></PackagePath>
+        </None>
+    </ItemGroup>
+            
+
+    <ItemGroup>
+        <ProjectReference Include="../Metalama.Framework.EditorExtensions/Metalama.Framework.EditorExtensions.csproj" PrivateAssets="all" />
+        <ProjectReference Include="../Metalama.Framework.CompilerExtensions/Metalama.Framework.CompilerExtensions.csproj" PrivateAssets="all" />
+
+        <!-- Adding PrivateAssets="none" here below is important otherwise PrivateAssets="all" will be transitively inherited from the ProjectReference above -->
+
+        <ProjectReference Include="../Metalama.Framework/Metalama.Framework.csproj" PrivateAssets="none" />
+
+        <PackageReference Include="Microsoft.CSharp" PrivateAssets="none" />
+    </ItemGroup>
+
+
+    <Target Name="_AddAnalyzersToOutput">
+        <ItemGroup>
+            <TfmSpecificPackageFile Include="$(OutputPath)/Metalama.Framework.CompilerExtensions.dll" PackagePath="analyzers/dotnet/cs" />
+            <TfmSpecificPackageFile Include="$(OutputPath)/Metalama.Framework.EditorExtensions.dll" PackagePath="analyzers/dotnet/cs" />
+        </ItemGroup>
+    </Target>
+
+    <Target Name="SetPackageContent" AfterTargets="MetalamaCompilerSetLibAssembliesInPackage">
+        <ItemGroup>
+            <!-- remove everything from lib -->
+            <BuildOutputInPackage Remove="@(BuildOutputInPackage)" />
+        </ItemGroup>
+    </Target>
+
+    <ItemGroup>
+        <None Include="README.md" Pack="true" PackagePath="/" />
+    </ItemGroup>
+
+</Project>

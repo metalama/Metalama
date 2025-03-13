@@ -1,0 +1,38 @@
+// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+// SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
+// Refer to LICENSE.md in the repository root for complete details.
+
+using Metalama.Framework.Aspects;
+using System.Collections.Generic;
+
+namespace Metalama.Framework.Options;
+
+/// <summary>
+/// A base interface for attributes that provide options.
+/// </summary>
+/// <seealso href="@exposing-options"/>
+[RunTimeOrCompileTime]
+public interface IHierarchicalOptionsProvider
+{
+    /// <summary>
+    /// Gets the list of options provided by the current aspect or attribute.
+    /// </summary>
+    /// <param name="context"></param>
+    /// <returns>The list of options.</returns>
+    /// <remarks>
+    /// <para>
+    ///     This interface behaves differently when applied to plain custom attributes than when applied to aspects.
+    /// </para>
+    /// <para>
+    ///     When applied to plain custom attributes, the <see cref="GetOptions"/> method is invoked immediately in the first stage
+    ///     of the compilation process, therefore the provided options are immediately available for readers.
+    /// </para>
+    /// <para>
+    ///     However, when the interface is implemented by an aspect, i.e. any class implementing the <see cref="IAspect"/> interface,
+    ///     the <see cref="GetOptions"/> method is called right before the <see cref="IAspect{T}.BuildAspect"/> method of the aspect
+    ///     is invoked. The provided options are therefore only available to the current aspect instance and any code executing after
+    ///     this aspect instance.
+    /// </para>
+    /// </remarks>
+    IEnumerable<IHierarchicalOptions> GetOptions( in OptionsProviderContext context );
+}

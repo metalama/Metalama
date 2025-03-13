@@ -51,9 +51,9 @@
     </PropertyGroup>
     
     <ItemGroup Condition="'$(ReferenceMetalamaSystemTypes)'!='False'">
-        <ProjectReference Include="$(MSBuildThisFileDirectory)/Metalama.SystemTypes/Metalama.SystemTypes.csproj" ReferenceOutputAssembly="false" />
-        <Reference Include="$(MSBuildThisFileDirectory)/Metalama.SystemTypes/bin/$(Configuration)/netstandard2.0/Metalama.SystemTypes.dll" Condition="'$(_RequiresSystemTypes)'=='True'" />
-        <Reference Include="$(MSBuildThisFileDirectory)/Metalama.SystemTypes/bin/$(Configuration)/net6.0/Metalama.SystemTypes.dll" Condition="'$(_RequiresSystemTypes)'!='True'" />
+        <ProjectReference Include="$(MSBuildThisFileDirectory)/src/Metalama.SystemTypes/Metalama.SystemTypes.csproj" ReferenceOutputAssembly="false" />
+        <Reference Include="$(MSBuildThisFileDirectory)/src/Metalama.SystemTypes/bin/$(Configuration)/netstandard2.0/Metalama.SystemTypes.dll" Condition="'$(_RequiresSystemTypes)'=='True'" />
+        <Reference Include="$(MSBuildThisFileDirectory)/src/Metalama.SystemTypes/bin/$(Configuration)/net6.0/Metalama.SystemTypes.dll" Condition="'$(_RequiresSystemTypes)'!='True'" />
     </ItemGroup>
 
 	<PropertyGroup  Condition="'$(PackMetalamaSystemTypes)'=='True'">
@@ -62,8 +62,8 @@
 
 	<Target Name="MetalamaFrameworkSetLibAssembliesInPackage" DependsOnTargets="ResolveReferences">
 		<ItemGroup>
-          <TfmSpecificPackageFile Include="$(MSBuildThisFileDirectory)/Metalama.SystemTypes/bin/$(Configuration)/netstandard2.0/Metalama.SystemTypes.dll" PackagePath="lib/$(TargetFramework)" Condition="'$(_RequiresSystemTypes)'=='True'" />
-          <TfmSpecificPackageFile Include="$(MSBuildThisFileDirectory)/Metalama.SystemTypes/bin/$(Configuration)/net6.0/Metalama.SystemTypes.dll" PackagePath="lib/$(TargetFramework)" Condition="'$(_RequiresSystemTypes)'!='True'" />
+          <TfmSpecificPackageFile Include="$(MSBuildThisFileDirectory)/src/Metalama.SystemTypes/bin/$(Configuration)/netstandard2.0/Metalama.SystemTypes.dll" PackagePath="lib/$(TargetFramework)" Condition="'$(_RequiresSystemTypes)'=='True'" />
+          <TfmSpecificPackageFile Include="$(MSBuildThisFileDirectory)/src/Metalama.SystemTypes/bin/$(Configuration)/net6.0/Metalama.SystemTypes.dll" PackagePath="lib/$(TargetFramework)" Condition="'$(_RequiresSystemTypes)'!='True'" />
 		</ItemGroup>
 	</Target>
 

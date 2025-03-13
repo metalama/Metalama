@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <Import Project="../../build/RoslynVersion/Latest.imports" />
+
+    <PropertyGroup>
+        <TargetFrameworks>net472;net6.0</TargetFrameworks>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <AssemblyName>Metalama.Testing.UnitTesting$(ThisRoslynVersionProjectSuffix)</AssemblyName>
+        <PackageId>Metalama.Testing.UnitTesting</PackageId>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="Metalama.Testing.AspectTesting$(ThisRoslynVersionProjectSuffix)" />
+        <InternalsVisibleTo Include="Metalama.Framework.Tests.AspectTests.$(ThisRoslynVersionNoPreview)" />
+        <InternalsVisibleTo Include="Metalama.Framework.Tests.UnitTests.$(ThisRoslynVersionNoPreview)" />
+        <InternalsVisibleTo Include="Metalama.Framework.Tests.UnitTestHelpers.$(ThisRoslynVersionNoPreview)" />
+        <InternalsVisibleTo Include="Metalama.Framework.Tests.Workspaces" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="../Metalama.Framework.Engine$(ThisRoslynVersionProjectSuffix)/Metalama.Framework.Engine$(ThisRoslynVersionProjectSuffix).csproj" />
+        <ProjectReference Include="..\Metalama.Framework.DesignTime$(ThisRoslynVersionProjectSuffix)\Metalama.Framework.DesignTime$(ThisRoslynVersionProjectSuffix).csproj" />
+        <ProjectReference Include="../Metalama.Framework.Sdk/Metalama.Framework.Sdk.csproj" />
+        <ProjectReference Include="../Metalama.Framework/Metalama.Framework.csproj" />
+
+        <!-- Validate that we do not expose internal APIs -->
+        <ProjectReference Include="../Metalama.Framework.Engine.Analyzers/Metalama.Framework.Engine.Analyzers.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+
+        <!-- Override dependencies to avoid vulnarability warnings. -->
+        <PackageReference Include="System.Text.Json" VersionOverride="$(SystemTextJsonLatestVersion)" />
+        <PackageReference Include="System.Net.Http" VersionOverride="$(SystemNetHttpLatestVersion)" />
+        <PackageReference Include="System.Text.RegularExpressions" VersionOverride="$(SystemTextRegularExpressionsLatestVersion)" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="xunit.assert" />
+        <PackageReference Include="xunit.abstractions" />
+    </ItemGroup>
+
+    <!-- Packaging -->
+    <ItemGroup>
+        <None Include="README.md" Pack="true" PackagePath="/" />
+    </ItemGroup>
+
+</Project>

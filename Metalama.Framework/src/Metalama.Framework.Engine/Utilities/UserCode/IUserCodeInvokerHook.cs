@@ -1,0 +1,28 @@
+// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+// SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
+// Refer to LICENSE.md in the repository root for complete details.
+
+using JetBrains.Annotations;
+using Metalama.Framework.Services;
+using System;
+using System.Threading.Tasks;
+
+namespace Metalama.Framework.Engine.Utilities.UserCode
+{
+    /// <summary>
+    /// Defines a method <see cref="Invoke{TResult,TPayload}"/> that is invoked when user-written code must be invoked.
+    /// </summary>
+    [PublicAPI] // Implemented by Metalama.Try.
+    public interface IUserCodeInvokerHook : IGlobalService
+    {
+        /// <summary>
+        /// The implementation of this method must call the delegate given delegate. It can wrap the call with any logic.
+        /// </summary>
+        TResult Invoke<TResult, TPayload>( UserCodeFunc<TResult, TPayload> func, ref TPayload payload );
+
+        /// <summary>
+        /// The implementation of this method must call the delegate given delegate. It can wrap the call with any logic.
+        /// </summary>
+        Task<TResult> InvokeAsync<TResult>( Func<Task<TResult>> func );
+    }
+}

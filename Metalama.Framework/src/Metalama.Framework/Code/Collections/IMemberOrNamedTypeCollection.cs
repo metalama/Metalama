@@ -1,0 +1,34 @@
+// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+// SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
+// Refer to LICENSE.md in the repository root for complete details.
+
+using Metalama.Framework.Aspects;
+using Metalama.Framework.Utilities;
+using System.Collections.Generic;
+
+namespace Metalama.Framework.Code.Collections;
+
+/// <summary>
+/// Read-only list of <see cref="IMemberOrNamedType"/>.
+/// </summary>
+/// <remarks>
+///  <para>The order of items in this list is undetermined and may change between versions.</para>
+/// </remarks>
+public interface IMemberOrNamedTypeCollection<out T> : INamedDeclarationCollection<T>
+    where T : IMemberOrNamedType { }
+
+/// <summary>
+/// A collection of named elements.
+/// </summary>
+[InternalImplement]
+[CompileTime]
+public interface INamedDeclarationCollection<out T> : IReadOnlyCollection<T>
+    where T : INamedDeclaration
+{
+    /// <summary>
+    /// Gets the set of members of a given name. Note that for named types, the short name will be matched,
+    /// as opposed to the full, namespace-prefixed name.
+    /// </summary>
+    /// <param name="name">The member name (not including the namespace, for types).</param>
+    IEnumerable<T> OfName( string name );
+}

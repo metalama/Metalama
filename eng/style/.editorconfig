@@ -7,7 +7,8 @@ root = true
 #### Core EditorConfig Options ####
 
 # File header
-file_header_template = Copyright (c) SharpCrafters s.r.o. See the LICENSE.md file in the root directory of this repository root for details.
+file_header_template = Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.\nSharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.\nRefer to LICENSE.md in the repository root for complete details.
+
 
 # Indentation and spacing
 indent_size = 4

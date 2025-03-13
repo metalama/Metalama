@@ -1,0 +1,19 @@
+// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+// SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
+// Refer to LICENSE.md in the repository root for complete details.
+
+using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
+
+namespace Metalama.Framework.Engine.Collections;
+
+internal static class ImmutableDictionaryExtensions
+{
+    public static void AddOrCreate<TKey, TValue>( [NotNull] ref ImmutableDictionary<TKey, TValue>? dictionary, TKey key, TValue value )
+        where TKey : notnull
+    {
+        dictionary ??= ImmutableDictionary<TKey, TValue>.Empty;
+
+        dictionary = dictionary.Add( key, value );
+    }
+}
