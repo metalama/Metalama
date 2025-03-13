@@ -81,7 +81,19 @@ public sealed class SerializableTypeIdResolverForSymbol : SerializableTypeIdReso
         => referenceType.WithNullableAnnotation( NullableAnnotation.NotAnnotated );
 
     protected override ITypeSymbol ConstructGenericType( ITypeSymbol genericType, ITypeSymbol[] typeArguments )
-        => genericType.AssertCast<INamedTypeSymbol>().Construct( typeArguments );
+    {
+        var namedType = genericType.AssertCast<INamedTypeSymbol>();
+
+        if ( typeArguments.SequenceEqual( namedType.TypeParameters ))
+        {
+            // Normalize canonical generic instance.
+            return namedType.ConstructedFrom;
+        }
+        else
+        {
+            return namedType.ConstructedFrom.Construct( typeArguments );
+        }
+    }
 
     protected override ITypeSymbol CreateTupleType( ImmutableArray<ITypeSymbol> elementTypes ) => this.Compilation.CreateTupleTypeSymbol( elementTypes );
 

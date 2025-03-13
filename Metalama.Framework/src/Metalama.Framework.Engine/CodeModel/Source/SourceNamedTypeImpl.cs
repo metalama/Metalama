@@ -164,7 +164,7 @@ internal sealed class SourceNamedTypeImpl : SourceMemberOrNamedType, INamedTypeI
     public bool IsGeneric => this._namedTypeSymbol.IsGenericType;
 
     public bool IsCanonicalGenericInstance
-        => this._namedTypeSymbol.OriginalDefinition == this._namedTypeSymbol && this.GenericContextForSymbolMapping.IsEmptyOrIdentity;
+        => this._namedTypeSymbol.IsDefinitionSafe() && this.GenericContextForSymbolMapping.IsEmptyOrIdentity;
 
     [Memo]
     public INamedTypeCollection Types
@@ -407,7 +407,12 @@ internal sealed class SourceNamedTypeImpl : SourceMemberOrNamedType, INamedTypeI
                 typeArguments.SelectAsArray( a => a.GetSymbol().AssertSymbolNotNull() );
 
             var typeSymbol = this._namedTypeSymbol;
-            var constructedTypeSymbol = typeSymbol.ConstructedFrom.Construct( typeArgumentSymbols );
+
+            // Normalize canonical generic instance.
+            var constructedTypeSymbol =
+                typeArgumentSymbols.SequenceEqual( typeSymbol.ConstructedFrom.TypeParameters )
+                ? typeSymbol.ConstructedFrom
+                : typeSymbol.ConstructedFrom.Construct( typeArgumentSymbols );
 
             return this.Compilation.Factory.GetNamedType( constructedTypeSymbol );
         }

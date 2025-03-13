@@ -213,6 +213,18 @@ class C<T> : A<T> {}
 class D : B<int> {}
 
 class E : C<int> {}
+
+class F<T> where T : struct {}
+
+enum G {}
+
+class Instances
+{
+    public A<int> A;
+    public I2<int> I2;
+    public F<int> F;
+    public F<G> FG;
+}
 ";
 
             var compilation = testContext.CreateCompilationModel( code );
@@ -221,8 +233,13 @@ class E : C<int> {}
             var typeC = compilation.Types.OfName( "C" ).Single();
             var typeD = compilation.Types.OfName( "D" ).Single();
             var typeE = compilation.Types.OfName( "E" ).Single();
+            var typeF = compilation.Types.OfName( "F" ).Single();
             var typeI1 = compilation.Types.OfName( "I1" ).Single();
             var typeI2 = compilation.Types.OfName( "I2" ).Single();
+            var typeInstanceA = compilation.Types.OfName( "Instances" ).Single().Fields.OfName( "A" ).Single().Type;
+            var typeInstanceI2 = compilation.Types.OfName( "Instances" ).Single().Fields.OfName( "I2" ).Single().Type;
+            var typeInstanceF = compilation.Types.OfName( "Instances" ).Single().Fields.OfName( "F" ).Single().Type;
+            var typeInstanceFG = compilation.Types.OfName( "Instances" ).Single().Fields.OfName( "FG" ).Single().Type;
 
             var comparer = (DeclarationEqualityComparer) compilation.CompilationContext.Comparers.Default;
 
@@ -239,6 +256,11 @@ class E : C<int> {}
             Assert.True( comparer.IsConvertibleTo( typeE, typeE, ConversionKind.TypeDefinition, bypassSymbols ) );
             Assert.True( comparer.IsConvertibleTo( typeE, typeI1, ConversionKind.TypeDefinition, bypassSymbols ) );
             Assert.False( comparer.IsConvertibleTo( typeE, typeI2, ConversionKind.TypeDefinition, bypassSymbols ) );
+
+            Assert.True( comparer.IsConvertibleTo( typeInstanceA, typeA, ConversionKind.TypeDefinition, bypassSymbols ) );
+            Assert.True( comparer.IsConvertibleTo( typeInstanceI2, typeI2, ConversionKind.TypeDefinition, bypassSymbols ) );
+            Assert.True( comparer.IsConvertibleTo( typeInstanceF, typeF, ConversionKind.TypeDefinition, bypassSymbols ) );
+            Assert.True( comparer.IsConvertibleTo( typeInstanceFG, typeF, ConversionKind.TypeDefinition, bypassSymbols ) );
         }
     }
 }
