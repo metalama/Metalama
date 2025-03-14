@@ -35,7 +35,7 @@ object DebugBuild : BuildType({
     }
 
     vcs {
-        root(AbsoluteId("Metalama_Metalama20251_MetalamaFramework20251"))
+        root(AbsoluteId("Metalama_Metalama20251_Metalama"))
     }
 
     steps {
@@ -129,7 +129,7 @@ object ReleaseBuild : BuildType({
     }
 
     vcs {
-        root(AbsoluteId("Metalama_Metalama20251_MetalamaFramework20251"))
+        root(AbsoluteId("Metalama_Metalama20251_Metalama"))
     }
 
     steps {
@@ -214,7 +214,7 @@ object PublicBuild : BuildType({
     }
 
     vcs {
-        root(AbsoluteId("Metalama_Metalama20251_MetalamaFramework20251"))
+        root(AbsoluteId("Metalama_Metalama20251_Metalama"))
     }
 
     steps {
@@ -299,7 +299,7 @@ object PublicDeployment : BuildType({
     }
 
     vcs {
-        root(AbsoluteId("Metalama_Metalama20251_MetalamaFramework20251"))
+        root(AbsoluteId("Metalama_Metalama20251_Metalama"))
     }
 
     steps {
