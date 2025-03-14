@@ -17,9 +17,9 @@ Welcome to Metalama, a Roslyn-based framework for code generation and validation
 - 📖 [Documentation](https://doc.metalama.net)
 - 📝 [Annotated Examples](https://doc.metalama.net/examples)
 - 🎥 [Tutorial Videos](https://doc.metalama.net/videos)
-- 🐞 [Bug Reports](https://github.com/postsharp/Metalama/issues)
-- 💬 [Discussions](https://github.com/postsharp/Metalama/discussions)
-- 📜 [Detailed Changelog](https://github.com/orgs/postsharp/discussions/categories/changelog)
+- 🐞 [Bug Reports](https://github.com/metalama/Metalama/issues)
+- 💬 [Discussions](https://github.com/orgs/metalama/discussions)
+- 📜 [Detailed Changelog](https://github.com/orgs/metalama/discussions/categories/changelog)
 - 📢 [Release Notes](https://doc.metalama.net/conceptual/aspects/release-notes)
 - ✨ [Visual Studio Extension](https://marketplace.visualstudio.com/items?itemName=PostSharpTechnologies.PostSharp)
 
@@ -56,27 +56,27 @@ Metalama.Framework --> Metalama.Premium
 
 This repository contains several components that compose the main parts of Metalama.
 
-| Link                                                                           | Description                                                                                                                                     |
-| ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| [Metalama.Framework](Metalama.Framework)                                       | The core implementation of the Metalama Framework.                                                                                              |
-| [Metalama.Backstage](Metalama.Backstage)                                       | Implements infrastructure core for other Metalama projects, like management of configuration and temporary files.                               |
-| [Metalama.Extensions](https://github.com/postsharp/Metalama.Extensions)        | Open-source, professional-grade extensions for Metalama such as dependency injection or architecture  verification.                             |
-| [Metalama.Patterns](https://github.com/postsharp/Metalama.Patterns)            | Ready-to-use, open-source and professional-grade aspects, including caching, code contracts, and `INotifyPropertyChanged`.                      |
-| [Metalama.LinqPad](https://github.com/postsharp/Metalama.LinqPad)              | A LinqPad driver for querying any C# project or solution.                                                                                       |
-| [Metalama.Migration](https://github.com/postsharp/Metalama.Migration)          | The original PostSharp API annotated with guidelines to transition to Metalama.                                                                 |
+| Link                                              | Description                                                                                                                                     |
+| ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| [Metalama.Framework](Metalama.Framework)          | The core implementation of the Metalama Framework.                                                                                              |
+| [Metalama.Backstage](Metalama.Backstage)          | Implements infrastructure core for other Metalama projects, like management of configuration and temporary files.                               |
+| [Metalama.Extensions](Metalama.Extensions)        | Open-source, professional-grade extensions for Metalama such as dependency injection or architecture  verification.                             |
+| [Metalama.Patterns](Metalama.Patterns)            | Ready-to-use, open-source and professional-grade aspects, including caching, code contracts, and `INotifyPropertyChanged`.                      |
+| [Metalama.LinqPad](Metalama.LinqPad)              | A LinqPad driver for querying any C# project or solution.                                                                                       |
+| [Metalama.Migration](Metalama.Migration)          | The original PostSharp API annotated with guidelines to transition to Metalama.                                                                 |
 
 ### Other repositories
 
 There are also other supporting repositories:
 
-| Link                                                                           | License          | Description                                                                                                                                     |
-| ------------------------------------------------------------------------------ | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| [Metalama.Compiler](https://github.com/postsharp/Metalama.Compiler)            | MIT              | A [Roslyn](https://github.com/dotnet/roslyn) fork that introduces an extension point for arbitrary source code transformations.                 |
-| [Metalama.Premium](https://github.com/postsharp/Metalama.Premium)              | Proprietary      | This repository contains prooprietary extensions to Metalama, available to customers with a paid license. Access to this repository is gra    nted to customers who have an active Metalama Enterprise license. |
-| [PostSharp.Engineering](https://github.com/postsharp/PostSharp.Engineering)    | MIT              | A custom multi-repo build and CI framework.                                                                                                     |
-| [Metalama.Community](https://github.com/postsharp/Metalama.Community)          | MIT              | Repository housing community-contributed aspects.                                                                                               |
-| [Metalama.Documentation](https://github.com/postsharp/Metalama.Documentation)  | MIT              | Source repository for documentation hosted on [Metalama Docs](https://doc.metalama.net/).                                                       |
-| [Metalama.Samples](https://github.com/postsharp/Metalama.Samples)              | MIT              | A collection of illustrative samples available at [Metalama Examples](https://doc.metalama.net/examples).                                       |
+| Link                                                                          | License          | Description                                                                                                                                     |
+| ----------------------------------------------------------------------------- | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| [Metalama.Compiler](https://github.com/metalama/Metalama.Compiler)            | MIT              | A [Roslyn](https://github.com/dotnet/roslyn) fork that introduces an extension point for arbitrary source code transformations.                 |
+| [Metalama.Premium](https://github.com/metalama/Metalama.Premium)              | Proprietary      | This repository contains prooprietary extensions to Metalama, available to customers with a paid license. Access to this repository is gra    nted to customers who have an active Metalama Enterprise license. |
+| [PostSharp.Engineering](https://github.com/postsharp/PostSharp.Engineering)   | MIT              | A custom multi-repo build and CI framework.                                                                                                     |
+| [Metalama.Community](https://github.com/postsharp/Metalama.Community)         | MIT              | Repository housing community-contributed aspects.                                                                                               |
+| [Metalama.Documentation](https://github.com/metalama/Metalama.Documentation)  | MIT              | Source repository for documentation hosted on [Metalama Docs](https://doc.metalama.net/).                                                       |
+| [Metalama.Samples](https://github.com/metalama/Metalama.Samples)              | MIT              | A collection of illustrative samples available at [Metalama Examples](https://doc.metalama.net/examples).                                       |
 
 
 
