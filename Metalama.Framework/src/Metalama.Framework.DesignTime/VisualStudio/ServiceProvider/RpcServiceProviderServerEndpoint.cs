@@ -12,7 +12,6 @@ using Metalama.Framework.DesignTime.VisualStudio.Rpc;
 using Metalama.Framework.DesignTime.VisualStudio.ServiceHub;
 using Metalama.Framework.DesignTime.VisualStudio.SourceGenerating;
 using Metalama.Framework.Engine.Services;
-using Metalama.Framework.Services;
 using System.Collections.Immutable;
 
 namespace Metalama.Framework.DesignTime.VisualStudio.ServiceProvider;
@@ -20,7 +19,7 @@ namespace Metalama.Framework.DesignTime.VisualStudio.ServiceProvider;
 /// <summary>
 /// Implements the server endpoint for <see cref="IRpcServiceProviderApi"/>. Runs in the analysis process.
 /// </summary>
-public sealed class RpcServiceProviderServerEndpoint : ServerEndpoint, IGlobalService
+public sealed class RpcServiceProviderServerEndpoint : ServerEndpoint
 {
     // List of services that are loaded by default.
     // This list can be overridden in the constructor for lighter testing scenarios. 
@@ -38,7 +37,7 @@ public sealed class RpcServiceProviderServerEndpoint : ServerEndpoint, IGlobalSe
     private ImmutableArray<IRpcServiceFactory> _serviceFactories;
     private static readonly object _initializeLock = new();
     private static RpcServiceProviderServerEndpoint? _instance;
-    private readonly ServiceHubRpcClient? _serviceHubApiClient;
+    private readonly IServiceHubClientEndpointProvider? _serviceHubApiClientProvider;
     private readonly RpcServiceProviderService _rpcServiceProviderService;
     private readonly object _addServiceLock = new();
 
@@ -74,7 +73,7 @@ public sealed class RpcServiceProviderServerEndpoint : ServerEndpoint, IGlobalSe
         this._rpcServiceProviderService = new RpcServiceProviderService( this, this._serviceFactories.Select( x => x.GetType() ) );
 
         // This service is optional because some tests don't supply it.
-        this._serviceHubApiClient = serviceProvider.GetService<IServiceHubRpcApiClientProvider>()?.ServiceHubApiClient;
+        this._serviceHubApiClientProvider = serviceProvider.GetService<IServiceHubClientEndpointProvider>();
     }
 
     protected override IEnumerable<RpcService> CreateServices()
@@ -95,12 +94,23 @@ public sealed class RpcServiceProviderServerEndpoint : ServerEndpoint, IGlobalSe
 
         this._isHubRegistrationProcessed = true;
 
-        if ( this._serviceHubApiClient != null )
+        if ( this._serviceHubApiClientProvider != null )
         {
+            if ( !this._serviceHubApiClientProvider.TryGetEndpoint( out var serviceHubEndpoint ) )
+            {
+                this.Logger.Warning?.Log( "Cannot get the ServiceHubClientEndpoint." );
+
+                return;
+            }
+
             this.Logger.Trace?.Log( $"Registering the endpoint '{this.PipeName}' on the hub." );
-            var registrationService = await this._serviceHubApiClient.GetApiAsync( cancellationToken );
+            var registrationService = await serviceHubEndpoint.Client.GetApiAsync( cancellationToken );
             await registrationService.RegisterAnalysisServiceAsync( this.PipeName, cancellationToken );
             this.Logger.Trace?.Log( $"Registering the endpoint '{this.PipeName}' on the hub: completed." );
+        }
+        else
+        {
+            this.Logger.Warning?.Log( "ServiceHubClientEndpointProvider is not available." );
         }
     }
 
@@ -108,10 +118,17 @@ public sealed class RpcServiceProviderServerEndpoint : ServerEndpoint, IGlobalSe
     {
         await this.WaitUntilInitializedAsync( cancellationToken );
 
-        if ( this._serviceHubApiClient != null )
+        if ( this._serviceHubApiClientProvider != null )
         {
+            if ( !this._serviceHubApiClientProvider.TryGetEndpoint( out var serviceHubEndpoint ) )
+            {
+                this.Logger.Warning?.Log( "Cannot get the ServiceHubClientEndpoint." );
+
+                return;
+            }
+
             this.Logger.Trace?.Log( $"Registering the project '{projectKey}' on the hub." );
-            var registrationService = await this._serviceHubApiClient.GetApiAsync( cancellationToken );
+            var registrationService = await serviceHubEndpoint.Client.GetApiAsync( cancellationToken );
             await registrationService.RegisterAnalysisServiceProjectAsync( projectKey, this.PipeName, cancellationToken );
         }
     }

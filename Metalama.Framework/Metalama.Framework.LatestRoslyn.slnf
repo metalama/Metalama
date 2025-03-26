@@ -2,10 +2,10 @@
   "solution": {
     "path": "Metalama.Framework.sln",
     "projects": [
-      "src\\Metalama.Framework.CompileTimeContracts\\Metalama.Framework.CompileTimeContracts.csproj",
-      "src\\Metalama.Framework.CompileTime\\Metalama.Framework.CompileTime.csproj",
       "src\\Metalama.Framework.CompilerExtensions.Resources\\Metalama.Framework.CompilerExtensions.Resources.csproj",
       "src\\Metalama.Framework.CompilerExtensions\\Metalama.Framework.CompilerExtensions.csproj",
+      "src\\Metalama.Framework.CompileTimeContracts\\Metalama.Framework.CompileTimeContracts.csproj",
+      "src\\Metalama.Framework.CompileTime\\Metalama.Framework.CompileTime.csproj",
       "src\\Metalama.Framework.DesignTime.Contracts\\Metalama.Framework.DesignTime.Contracts.csproj",
       "src\\Metalama.Framework.DesignTime.Rpc\\Metalama.Framework.DesignTime.Rpc.csproj",
       "src\\Metalama.Framework.DesignTime\\Metalama.Framework.DesignTime.csproj",

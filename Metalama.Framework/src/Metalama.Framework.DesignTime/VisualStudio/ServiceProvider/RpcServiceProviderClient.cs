@@ -6,6 +6,9 @@ using Metalama.Framework.DesignTime.Rpc;
 
 namespace Metalama.Framework.DesignTime.VisualStudio.ServiceProvider;
 
+/// <summary>
+/// Implements the client for <see cref="IRpcServiceProviderApi"/>. Runs in the user process.
+/// </summary>
 internal sealed class RpcServiceProviderClient : RpcClient<IRpcServiceProviderApi>
 {
     public RpcServiceProviderClient( ClientEndpoint endpoint ) : base( endpoint ) { }

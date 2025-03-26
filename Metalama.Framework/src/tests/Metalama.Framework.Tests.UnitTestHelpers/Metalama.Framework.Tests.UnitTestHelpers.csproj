@@ -21,5 +21,9 @@
       <ProjectReference Include="..\..\Metalama.Testing.UnitTesting$(ThisRoslynVersionProjectSuffix)\Metalama.Testing.UnitTesting$(ThisRoslynVersionProjectSuffix).csproj" />
     </ItemGroup>
     
+    <ItemGroup>
+        <InternalsVisibleTo Include="Metalama.Framework.Tests.UnitTests.$(ThisRoslynVersionNoPreview)" />
+    </ItemGroup>
+    
 
 </Project>

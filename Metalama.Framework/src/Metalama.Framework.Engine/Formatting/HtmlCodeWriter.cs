@@ -40,28 +40,42 @@ public sealed class HtmlCodeWriter : FormattedCodeWriter
         this._options = options;
     }
 
-    public Task WriteAsync( Document document, TextWriter textWriter, IEnumerable<Diagnostic>? diagnostics = null )
-        => this.WriteAsync( document, textWriter, diagnostics, null );
+    public Task WriteAsync(
+        Document document,
+        TextWriter textWriter,
+        IEnumerable<Diagnostic>? diagnostics = null,
+        CancellationToken cancellationToken = default )
+        => this.WriteAsync( document, textWriter, diagnostics, null, cancellationToken );
 
     public async Task WriteDiffAsync(
         Document inputDocument,
         Document outputDocument,
         TextWriter inputTextWriter,
         TextWriter outputTextWriter,
-        IEnumerable<Diagnostic> inputDiagnostics )
+        IEnumerable<Diagnostic> inputDiagnostics,
+        CancellationToken cancellationToken )
     {
-        var oldSyntaxTree = await inputDocument.GetSyntaxTreeAsync();
-        var newSyntaxTree = await outputDocument.GetSyntaxTreeAsync();
-        await this.WriteAsync( inputDocument, inputTextWriter, inputDiagnostics, GetDiffInfo( oldSyntaxTree!, newSyntaxTree!, true ) );
-        await this.WriteAsync( outputDocument, outputTextWriter, null, GetDiffInfo( oldSyntaxTree!, newSyntaxTree!, false ) );
+        var oldSyntaxTree = await inputDocument.GetSyntaxTreeAsync( cancellationToken );
+        var newSyntaxTree = await outputDocument.GetSyntaxTreeAsync( cancellationToken );
+        await this.WriteAsync( inputDocument, inputTextWriter, inputDiagnostics, GetDiffInfo( oldSyntaxTree!, newSyntaxTree!, true ), cancellationToken );
+        await this.WriteAsync( outputDocument, outputTextWriter, null, GetDiffInfo( oldSyntaxTree!, newSyntaxTree!, false ), cancellationToken );
     }
 
-    private async Task WriteAsync( Document document, TextWriter textWriter, IEnumerable<Diagnostic>? diagnostics, FileDiffInfo? diffInfo )
+    private async Task WriteAsync(
+        Document document,
+        TextWriter textWriter,
+        IEnumerable<Diagnostic>? diagnostics,
+        FileDiffInfo? diffInfo,
+        CancellationToken cancellationToken )
     {
-        var sourceText = await document.GetTextAsync( CancellationToken.None );
-        var syntaxRoot = (await document.GetSyntaxRootAsync()).AssertNotNull();
+        var sourceText = await document.GetTextAsync( cancellationToken );
+        var syntaxRoot = (await document.GetSyntaxRootAsync( cancellationToken )).AssertNotNull();
 
-        var classifiedTextSpans = await this.GetClassifiedTextSpansAsync( document, addTitles: this._options.AddTitles, diagnostics: diagnostics );
+        var classifiedTextSpans = await this.GetClassifiedTextSpansAsync(
+            document,
+            addTitles: this._options.AddTitles,
+            diagnostics: diagnostics,
+            cancellationToken: cancellationToken );
 
         var finalBuilder = new StringBuilder();      // Builds the whole file.
         var codeLineBuilder = new StringBuilder();   // Builds the current line.
@@ -431,7 +445,8 @@ public sealed class HtmlCodeWriter : FormattedCodeWriter
         Func<string, SyntaxTreeKind> getSyntaxTreeKind,
         Func<string, FileDiffInfo?>? getDiffInfo = null,
         bool includeDiagnostics = false,
-        IEnumerable<Diagnostic>? additionalDiagnostics = null )
+        IEnumerable<Diagnostic>? additionalDiagnostics = null,
+        CancellationToken cancellationToken = default )
     {
         var compilation = partialCompilation.Compilation;
 
@@ -471,7 +486,7 @@ public sealed class HtmlCodeWriter : FormattedCodeWriter
 
         foreach ( var syntaxTree in compilation.SyntaxTrees )
         {
-            var document = project.AddDocument( syntaxTree.FilePath, await syntaxTree.GetRootAsync(), null, syntaxTree.FilePath );
+            var document = project.AddDocument( syntaxTree.FilePath, await syntaxTree.GetRootAsync( cancellationToken ), null, syntaxTree.FilePath );
             project = document.Project;
         }
 
@@ -527,7 +542,7 @@ public sealed class HtmlCodeWriter : FormattedCodeWriter
 
             var diagnostics = includeDiagnostics ? diagnosticsBySyntaxTree![documentPath] : ImmutableArray<Diagnostic>.Empty;
 
-            await writer.WriteAsync( document, textWriter, diagnostics, diffInfo );
+            await writer.WriteAsync( document, textWriter, diagnostics, diffInfo, cancellationToken );
         }
     }
 
@@ -536,7 +551,8 @@ public sealed class HtmlCodeWriter : FormattedCodeWriter
         ProjectServiceProvider serviceProvider,
         PartialCompilation inputCompilation,
         PartialCompilation outputCompilation,
-        IEnumerable<Diagnostic>? additionalDiagnostics = null )
+        IEnumerable<Diagnostic>? additionalDiagnostics = null,
+        CancellationToken cancellationToken = default )
     {
         await WriteAllAsync(
             projectOptions,
@@ -545,14 +561,16 @@ public sealed class HtmlCodeWriter : FormattedCodeWriter
             _ => SyntaxTreeKind.Source,
             p => GetDiffInfoForPath( p, true ),
             true,
-            additionalDiagnostics );
+            additionalDiagnostics,
+            cancellationToken );
 
         await WriteAllAsync(
             projectOptions,
             serviceProvider,
             outputCompilation,
             GetOutputSyntaxTreeKind,
-            p => GetDiffInfoForPath( p, false ) );
+            p => GetDiffInfoForPath( p, false ),
+            cancellationToken: cancellationToken );
 
         FileDiffInfo? GetDiffInfoForPath( string path, bool isOld )
         {

@@ -36,7 +36,7 @@ namespace Metalama.Framework.Tests.UnitTests.CompileTime.GeneratedSerializers
                     diagnosticBag,
                     false,
                     out var project,
-                    CancellationToken.None ),
+                    testContext.CancellationToken ),
                 string.Join( "\n", diagnosticBag.SelectAsReadOnlyCollection( x => x.ToString() ) ) );
 
             return project!;

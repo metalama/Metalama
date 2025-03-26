@@ -14,6 +14,7 @@ using Metalama.Framework.DesignTime.VisualStudio.ServiceProvider;
 using Metalama.Framework.DesignTime.VisualStudio.SourceGenerating;
 using Metalama.Framework.Engine.DesignTime;
 using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Tests.UnitTestHelpers.TestClasses;
 using Metalama.Testing.UnitTesting;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.VisualStudio.Threading;
@@ -192,7 +193,7 @@ public sealed class RemotingTests : UnitTestClass
         server.Start();
 
         using var client = new RpcServiceProviderClientEndpoint( serviceProvider, pipeName );
-        await client.ConnectAsync();
+        await client.ConnectAsync( testContext.CancellationToken );
 
         var result = await (await client.GetApiAsync<IPreviewTransformationRpcApi>( testContext.CancellationToken )).PreviewTransformationAsync(
             ProjectKeyFactory.CreateTest( "myProjectId" ),
@@ -208,18 +209,19 @@ public sealed class RemotingTests : UnitTestClass
         using var testContext = this.CreateTestContext();
         var serviceProvider = testContext.ServiceProvider.Global;
 
-        var discoveryPipeName = $"Metalama_Test_Discovery_{Guid.NewGuid()}";
-        using var userProcessHubEndpoint = new ServiceHubServerEndpoint( serviceProvider, discoveryPipeName );
+        var guid = Guid.NewGuid();
+        var serviceHubPipeName = $"Metalama_Test_UserProcess_ServiceHub_{guid}";
+        using var userProcessHubEndpoint = new ServiceHubServerEndpoint( serviceProvider, serviceHubPipeName );
         userProcessHubEndpoint.Start();
 
-        using var processServiceHubEndpoint = new ServiceHubClientEndpoint( serviceProvider, discoveryPipeName );
-        _ = processServiceHubEndpoint.ConnectAsync();
+        using var analysisProcessHubEndpoint = new ServiceHubClientEndpoint( serviceProvider, serviceHubPipeName );
+        _ = analysisProcessHubEndpoint.ConnectAsync( testContext.CancellationToken );
 
-        var servicePipeName = $"Metalama_Test_Service_{Guid.NewGuid()}";
+        var serviceProviderPipeName = $"Metalama_Test_AnalysisProcess_ServiceProvider_{guid}";
 
         using var analysisProcessEndpoint = new RpcServiceProviderServerEndpoint(
-            serviceProvider.WithService( processServiceHubEndpoint ),
-            servicePipeName,
+            serviceProvider.WithService( new TestServiceHubClientEndpointProvider( analysisProcessHubEndpoint ) ),
+            serviceProviderPipeName,
             [] );
 
         analysisProcessEndpoint.Start();
@@ -239,12 +241,12 @@ public sealed class RemotingTests : UnitTestClass
         var discoveryPipeName = $"Metalama_Test_Discovery_{Guid.NewGuid()}";
 
         using var processServiceHubEndpoint = new ServiceHubClientEndpoint( serviceProvider, discoveryPipeName );
-        _ = processServiceHubEndpoint.ConnectAsync();
+        _ = processServiceHubEndpoint.ConnectAsync( testContext.CancellationToken );
 
         var servicePipeName = $"Metalama_Test_Service_{Guid.NewGuid()}";
 
         using var analysisProcessEndpoint = new RpcServiceProviderServerEndpoint(
-            serviceProvider.WithService( processServiceHubEndpoint ),
+            serviceProvider.WithService( new TestServiceHubClientEndpointProvider( processServiceHubEndpoint ) ),
             servicePipeName,
             [new SourceGeneratorRpcServiceFactory()] );
 
@@ -277,12 +279,12 @@ public sealed class RemotingTests : UnitTestClass
         for ( var i = 0; i < 2; i++ )
         {
             var analysisProcessServiceHubEndpoint = new ServiceHubClientEndpoint( serviceProvider, discoveryPipeName );
-            _ = analysisProcessServiceHubEndpoint.ConnectAsync();
+            _ = analysisProcessServiceHubEndpoint.ConnectAsync( testContext.CancellationToken );
 
             var servicePipeName = $"Metalama_Test_Service_{Guid.NewGuid()}";
 
             var analysisProcessEndpoint = new RpcServiceProviderServerEndpoint(
-                serviceProvider.WithService( analysisProcessServiceHubEndpoint ),
+                serviceProvider.WithService( new TestServiceHubClientEndpointProvider( analysisProcessServiceHubEndpoint ) ),
                 servicePipeName,
                 [] );
 
@@ -326,12 +328,12 @@ public sealed class RemotingTests : UnitTestClass
 
             disposables.Add( analysisProcessServiceHubEndpoint );
 
-            _ = analysisProcessServiceHubEndpoint.ConnectAsync();
+            _ = analysisProcessServiceHubEndpoint.ConnectAsync( testContext.CancellationToken );
 
             var servicePipeName = $"Metalama_Test_Service_{Guid.NewGuid()}";
 
             var analysisProcessEndpoint = new RpcServiceProviderServerEndpoint(
-                serviceProvider.WithService( analysisProcessServiceHubEndpoint ),
+                serviceProvider.WithService( new TestServiceHubClientEndpointProvider( analysisProcessServiceHubEndpoint ) ),
                 servicePipeName,
                 [new SourceGeneratorRpcServiceFactory()] );
 
@@ -387,10 +389,10 @@ public sealed class RemotingTests : UnitTestClass
 
         // Connect the AnalysisService endpoint.
         using var processServiceHubEndpoint = new ServiceHubClientEndpoint( serviceProvider, discoveryPipeName );
-        Assert.True( await processServiceHubEndpoint.ConnectAsync() );
+        Assert.True( await processServiceHubEndpoint.ConnectAsync( testContext.CancellationToken ) );
 
         // The second connect should not do anything.
-        Assert.False( await processServiceHubEndpoint.ConnectAsync() );
+        Assert.False( await processServiceHubEndpoint.ConnectAsync( testContext.CancellationToken ) );
     }
 
     [Fact]
@@ -407,8 +409,8 @@ public sealed class RemotingTests : UnitTestClass
 
         // Connect the AnalysisService endpoint.
         using var processServiceHubEndpoint = new ServiceHubClientEndpoint( serviceProvider, discoveryPipeName );
-        var task1 = processServiceHubEndpoint.ConnectAsync();
-        var task2 = processServiceHubEndpoint.ConnectAsync();
+        var task1 = processServiceHubEndpoint.ConnectAsync( testContext.CancellationToken );
+        var task2 = processServiceHubEndpoint.ConnectAsync( testContext.CancellationToken );
 
         await Task.WhenAll( task1, task2 );
 
@@ -430,11 +432,11 @@ public sealed class RemotingTests : UnitTestClass
 
         // Connect the AnalysisService endpoint.
         using var processServiceHubEndpoint = new ServiceHubClientEndpoint( serviceProvider, discoveryPipeName );
-        _ = processServiceHubEndpoint.ConnectAsync();
+        _ = processServiceHubEndpoint.ConnectAsync( testContext.CancellationToken );
 
         // Connect the CodeLens endpoint.
         using var codeLensClientEndpoint = new CodeLensProcessClientEndpoint( serviceProvider.Underlying, discoveryPipeName );
-        await codeLensClientEndpoint.ConnectAsync();
+        await codeLensClientEndpoint.ConnectAsync( testContext.CancellationToken );
 
         var receivedNotificationTaskSource = new TaskCompletionSource<CompilationResultChangedEventData>();
 

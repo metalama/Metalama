@@ -37,7 +37,7 @@ class X { void M() { IMethod m; } }
                 null,
                 false,
                 false,
-                CancellationToken.None );
+                testContext.CancellationToken );
 
             Assert.Contains( diagnostics, d => d.Id == TemplatingDiagnosticDescriptors.CannotReferenceCompileTimeOnly.Id );
         }
@@ -64,7 +64,7 @@ class X : Metalama.Framework.Aspects.OverrideMethodAspect {  public override dyn
                 null,
                 false,
                 false,
-                CancellationToken.None );
+                testContext.CancellationToken );
 
             Assert.Contains( diagnostics, d => d.Id == TemplatingDiagnosticDescriptors.CompileTimeCodeNeedsNamespaceImport.Id );
         }

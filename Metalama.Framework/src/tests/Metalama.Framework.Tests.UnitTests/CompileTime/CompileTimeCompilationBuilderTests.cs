@@ -417,7 +417,7 @@ public class ReferencedClass
                     null,
                     diagnosticBag,
                     true,
-                    CancellationToken.None,
+                    testContext.CancellationToken,
                     out _ ) );
 
             // Building the project should succeed.
@@ -427,7 +427,7 @@ public class ReferencedClass
                     null,
                     diagnosticBag,
                     false,
-                    CancellationToken.None,
+                    testContext.CancellationToken,
                     out var compileTimeProject1 ) );
 
             // After building, getting from cache should succeed.
@@ -437,7 +437,7 @@ public class ReferencedClass
                     null,
                     diagnosticBag,
                     true,
-                    CancellationToken.None,
+                    testContext.CancellationToken,
                     out var compileTimeProject2 ) );
 
             Assert.Same( compileTimeProject1, compileTimeProject2 );
@@ -468,7 +468,7 @@ public class ReferencedClass
                     null,
                     diagnosticBag,
                     false,
-                    CancellationToken.None,
+                    testContext.CancellationToken,
                     out _ ) );
 
             // After building, getting from cache should fail.
@@ -478,7 +478,7 @@ public class ReferencedClass
                     null,
                     diagnosticBag,
                     true,
-                    CancellationToken.None,
+                    testContext.CancellationToken,
                     out _ ) );
         }
 
@@ -507,7 +507,7 @@ public class ReferencedClass
                     null,
                     diagnosticBag,
                     false,
-                    CancellationToken.None,
+                    testContext.CancellationToken,
                     out _ ) );
 
             // After building, getting from cache should fail because the memory cache is empty and the disk cache checks the assembly name.
@@ -519,7 +519,7 @@ public class ReferencedClass
                     null,
                     diagnosticBag,
                     true,
-                    CancellationToken.None,
+                    testContext.CancellationToken,
                     out _ ) );
         }
 
@@ -555,7 +555,7 @@ public class ReferencedClass
                     null,
                     diagnosticBag,
                     true,
-                    CancellationToken.None,
+                    testContext.CancellationToken,
                     out _ ) );
 
             // Building the project should succeed.
@@ -567,7 +567,7 @@ public class ReferencedClass
                     null,
                     diagnosticBag,
                     false,
-                    CancellationToken.None,
+                    testContext.CancellationToken,
                     out _ ) );
 
             // After building, getting from cache should succeed.
@@ -579,7 +579,7 @@ public class ReferencedClass
                     null,
                     diagnosticBag,
                     true,
-                    CancellationToken.None,
+                    testContext.CancellationToken,
                     out _ ) );
         }
 
@@ -625,7 +625,7 @@ class ReferencingClass
                         null,
                         diagnosticBag,
                         false,
-                        CancellationToken.None,
+                        testContext.CancellationToken,
                         out var referencedCompileTimeProject ) );
 
                 using var peStream = File.Create( referencedPath );
@@ -653,7 +653,7 @@ class ReferencingClass
                         null,
                         diagnosticBag,
                         false,
-                        CancellationToken.None,
+                        rootTestContext.CancellationToken,
                         out _ ) );
             }
         }
@@ -689,7 +689,7 @@ public class ReferencedClass
                     null,
                     diagnosticBag,
                     false,
-                    CancellationToken.None,
+                    testContext.CancellationToken,
                     out var referencedCompileTimeProject ) );
 
             using ( var peStream = File.Create( referencedPath ) )
@@ -710,7 +710,7 @@ public class ReferencedClass
                     null,
                     diagnosticBag,
                     false,
-                    CancellationToken.None,
+                    testContext.CancellationToken,
                     out var compileTimeProject ) );
 
             Assert.NotNull( compileTimeProject );
@@ -778,7 +778,7 @@ public class ReferencedClass
                     null,
                     diagnosticBag,
                     false,
-                    CancellationToken.None,
+                    testContext.CancellationToken,
                     out var compileTimeProject ) );
 
             var transformed = File.ReadAllText( Path.Combine( compileTimeProject!.Directory!, compileTimeProject.CodeFiles[0].TransformedPath ) );
@@ -815,7 +815,7 @@ public class SomeRunTimeClass
                     null,
                     diagnosticBag,
                     false,
-                    CancellationToken.None,
+                    testContext.CancellationToken,
                     out var project ) );
 
             Assert.NotNull( project );
@@ -873,7 +873,7 @@ public class MyAspect : OverrideMethodAspect
                     null,
                     diagnosticBag,
                     false,
-                    CancellationToken.None,
+                    testContext.CancellationToken,
                     out var project ) );
 
             Assert.NotNull( project );

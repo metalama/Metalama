@@ -9,7 +9,6 @@ using Metalama.Framework.Engine.Templating;
 using Metalama.Framework.Engine.Utilities.Threading;
 using Microsoft.CodeAnalysis;
 using System.Collections.Immutable;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace Metalama.Framework.Engine.Pipeline.DesignTime;
@@ -36,10 +35,10 @@ public sealed class TestDesignTimeAspectPipeline : BaseDesignTimeAspectPipeline
                 null,
                 false,
                 true,
-                CancellationToken.None );
+                this.ApplicationExitingToken );
         }
 
-        if ( !this.TryInitialize( diagnosticList, partialCompilation.Compilation, null, CancellationToken.None, out var configuration ) )
+        if ( !this.TryInitialize( diagnosticList, partialCompilation.Compilation, null, this.ApplicationExitingToken, out var configuration ) )
         {
             return new TestDesignTimeAspectPipelineResult(
                 false,

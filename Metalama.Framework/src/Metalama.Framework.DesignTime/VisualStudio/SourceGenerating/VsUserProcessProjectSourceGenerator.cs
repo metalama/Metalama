@@ -46,10 +46,10 @@ internal sealed class VsUserProcessProjectSourceGenerator : ProjectSourceGenerat
         {
             var client = await this._serviceHub.GetClientForProjectAsync<SourceGeneratorRpcClient>(
                 this.ProjectKey,
-                CancellationToken.None );
+                this.ApplicationExitingToken );
 
-            var api = await client.GetApiAsync( CancellationToken.None );
-            await api.RegisterAsync( this.ProjectKey, CancellationToken.None );
+            var api = await client.GetApiAsync( this.ApplicationExitingToken );
+            await api.RegisterAsync( this.ProjectKey, this.ApplicationExitingToken );
         }
         catch ( Exception ex )
         {
@@ -113,7 +113,7 @@ internal sealed class VsUserProcessProjectSourceGenerator : ProjectSourceGenerat
     {
         var clientTask = this._serviceHub.GetClientForProjectAsync<SourceGeneratorRpcClient>(
             projectKey,
-            CancellationToken.None );
+            this.ApplicationExitingToken );
 
         if ( !clientTask.IsCompleted )
         {
@@ -140,8 +140,8 @@ internal sealed class VsUserProcessProjectSourceGenerator : ProjectSourceGenerat
     {
         var client = await this._serviceHub.GetClientForProjectAsync<SourceGeneratorRpcClient>(
             projectKey,
-            CancellationToken.None );
+            this.ApplicationExitingToken );
 
-        await client.GetGeneratedSourcesAsync( projectKey, CancellationToken.None );
+        await client.GetGeneratedSourcesAsync( projectKey, this.ApplicationExitingToken );
     }
 }

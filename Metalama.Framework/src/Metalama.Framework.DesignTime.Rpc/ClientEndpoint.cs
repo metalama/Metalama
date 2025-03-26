@@ -114,7 +114,10 @@ public abstract partial class ClientEndpoint : BaseEndpoint
     protected Task OnConnectedAsync( IEnumerable<RpcClient> clients, CancellationToken cancellationToken )
         => Task.WhenAll( clients.Select( i => i.OnRpcConnectedAsync( cancellationToken ) ) );
 
-    public async Task<bool> ConnectAsync( CancellationToken cancellationToken = default )
+    [Obsolete( "Provide a CancellationToken." )]
+    public Task<bool> ConnectAsync() => this.ConnectAsync( CancellationToken.None );
+
+    public async Task<bool> ConnectAsync( CancellationToken cancellationToken )
     {
         if ( Interlocked.CompareExchange( ref this._connecting, 1, 0 ) != 0 )
         {

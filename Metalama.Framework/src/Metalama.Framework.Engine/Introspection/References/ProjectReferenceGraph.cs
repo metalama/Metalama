@@ -40,7 +40,7 @@ internal sealed class ProjectReferenceGraph : IIntrospectionReferenceGraph
         this._concurrentTaskRunner = serviceProvider.GetRequiredService<IConcurrentTaskRunner>();
     }
 
-    private InboundReferenceIndex GetInboundReferencesIndex()
+    private InboundReferenceIndex GetInboundReferencesIndex( CancellationToken cancellationToken )
     {
         if ( this._referenceIndex != null )
         {
@@ -65,8 +65,9 @@ internal sealed class ProjectReferenceGraph : IIntrospectionReferenceGraph
             this._taskRunner.RunSynchronously(
                 () => this._concurrentTaskRunner.RunConcurrentlyAsync(
                     compilationContext.Compilation.SyntaxTrees,
-                    tree => builder.IndexSyntaxTree( tree, compilationContext.SemanticModelProvider ),
-                    CancellationToken.None ) );
+                    tree => builder.IndexSyntaxTree( tree, compilationContext.SemanticModelProvider, cancellationToken ),
+                    cancellationToken ),
+                cancellationToken );
 
             return this._referenceIndex = builder.ToReadOnly();
         }
@@ -94,7 +95,7 @@ internal sealed class ProjectReferenceGraph : IIntrospectionReferenceGraph
             return result;
         }
 
-        return cache.GetOrAdd( destination, _ => this.GetInboundReferencesCore( destination, childKinds ) );
+        return cache.GetOrAdd( destination, _ => this.GetInboundReferencesCore( destination, childKinds, cancellationToken ) );
     }
 
     public IEnumerable<IIntrospectionReference> GetOutboundReferences( IDeclaration origin, CancellationToken cancellationToken = default )
@@ -124,7 +125,10 @@ internal sealed class ProjectReferenceGraph : IIntrospectionReferenceGraph
                              && SymbolEqualityComparer.Default.Equals( this.Referencing, other.Referencing );
     }
 
-    private IReadOnlyCollection<IIntrospectionReference> GetInboundReferencesCore( IDeclaration destination, IntrospectionChildKinds childKinds )
+    private IReadOnlyCollection<IIntrospectionReference> GetInboundReferencesCore(
+        IDeclaration destination,
+        IntrospectionChildKinds childKinds,
+        CancellationToken cancellationToken )
     {
         var symbol = destination.GetSymbol();
 
@@ -132,7 +136,7 @@ internal sealed class ProjectReferenceGraph : IIntrospectionReferenceGraph
         {
             return [];
         }
-        else if ( this.GetInboundReferencesIndex().TryGetInboundReferences( symbol, out var referencedSymbolInfo ) )
+        else if ( this.GetInboundReferencesIndex( cancellationToken ).TryGetInboundReferences( symbol, out var referencedSymbolInfo ) )
         {
             var descendants = referencedSymbolInfo.DescendantsAndSelf( ChildKindHelper.ToChildKinds( childKinds ) );
 

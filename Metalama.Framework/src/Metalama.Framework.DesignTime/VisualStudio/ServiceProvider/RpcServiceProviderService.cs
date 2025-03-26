@@ -8,6 +8,9 @@ using System.Collections.Immutable;
 
 namespace Metalama.Framework.DesignTime.VisualStudio.ServiceProvider;
 
+/// <summary>
+/// Implements the service for <see cref="IRpcServiceProviderApi"/>. Runs in the analysis process.
+/// </summary>
 internal sealed partial class RpcServiceProviderService : RpcService<IRpcServiceProviderApi>
 {
     private ImmutableArray<RpcServiceInfo> _registeredServices;

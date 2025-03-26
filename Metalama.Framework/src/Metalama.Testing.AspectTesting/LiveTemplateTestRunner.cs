@@ -15,7 +15,6 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
@@ -75,7 +74,7 @@ namespace Metalama.Testing.AspectTesting
             {
                 testResult.HasOutputCode = true;
 
-                var formattedOutputCompilation = await new CodeFormatter().FormatAsync( result.Value, CancellationToken.None );
+                var formattedOutputCompilation = await new CodeFormatter().FormatAsync( result.Value, testContext.CancellationToken );
 
                 var targetSyntaxTree = target.Target.GetPrimarySyntaxReference().AssertNotNull().SyntaxTree;
 

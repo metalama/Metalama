@@ -33,7 +33,7 @@ public sealed class NotificationIntegrationTests : DistributedDesignTimeTestBase
 
         // We need to make sure that the notification listener listens before we run the pipeline,
         // otherwise the notification will be missed.
-        await notificationListenerEndpoint.ConnectAsync();
+        await notificationListenerEndpoint.ConnectAsync( testContext.CancellationToken );
         await testContext.WhenFullyInitialized;
 
         BlockingCollection<CompilationResultChangedEventData> eventQueue = new();

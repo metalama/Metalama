@@ -8,6 +8,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Classification;
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -90,15 +91,16 @@ namespace Metalama.AspectWorkbench.ViewModels
         public async Task<FlowDocument> WriteSyntaxColoringAsync(
             Document document,
             bool areNodesAnnotated = false,
-            IEnumerable<Diagnostic>? diagnostics = null )
+            IEnumerable<Diagnostic>? diagnostics = null,
+            CancellationToken cancellationToken = default )
         {
             static Color WithAlpha( Color brush, double alpha )
             {
                 return Color.FromArgb( (byte) (255 * alpha), brush.R, brush.G, brush.B );
             }
 
-            var classified = await this.GetClassifiedTextSpansAsync( document, areNodesAnnotated, diagnostics );
-            var sourceText = await document.GetTextAsync();
+            var classified = await this.GetClassifiedTextSpansAsync( document, areNodesAnnotated, diagnostics, cancellationToken: cancellationToken );
+            var sourceText = await document.GetTextAsync( cancellationToken );
 
             var paragraph = new Paragraph();
 

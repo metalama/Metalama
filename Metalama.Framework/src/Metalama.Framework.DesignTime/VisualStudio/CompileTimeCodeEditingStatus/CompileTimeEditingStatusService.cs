@@ -9,6 +9,7 @@ using Metalama.Framework.DesignTime.Utilities;
 using Metalama.Framework.DesignTime.VisualStudio.ServiceHub;
 using Metalama.Framework.DesignTime.VisualStudio.ServiceProvider;
 using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Engine.Utilities.Threading;
 using System.Collections.Immutable;
 
 namespace Metalama.Framework.DesignTime.VisualStudio.CompileTimeCodeEditingStatus;
@@ -21,8 +22,10 @@ internal sealed class CompileTimeEditingStatusService : ICompileTimeEditingStatu
 {
     private readonly ServiceHubRpcService _serviceHub;
     private readonly TaskBag _pendingTasks;
-    private bool _userInterfaceAttached;
+    private readonly CancellationToken _applicationExitingToken;
 
+    private bool _userInterfaceAttached;
+    
     // We use an immutable dictionary to have a simple consistent enumerator.
     private volatile ImmutableDictionary<ProjectKey, ImmutableArray<IDiagnosticData>> _compileTimeErrorsByProject =
         ImmutableDictionary<ProjectKey, ImmutableArray<IDiagnosticData>>.Empty;
@@ -34,6 +37,7 @@ internal sealed class CompileTimeEditingStatusService : ICompileTimeEditingStatu
         this._serviceHub = serviceProvider.GetRequiredService<IServiceHubRpcServiceProvider>().ServiceHub;
         this._serviceHub.EventReceived += this.OnEventReceived;
         this._serviceHub.EndpointAdded += this.OnEndpointAdded;
+        this._applicationExitingToken = serviceProvider.GetRequiredService<ApplicationExitManager>().Token;
     }
 
     private void OnEventReceived( RpcEventData eventData )
@@ -118,9 +122,9 @@ internal sealed class CompileTimeEditingStatusService : ICompileTimeEditingStatu
         this._pendingTasks.Run(
             async () =>
             {
-                var client = await endpoint.GetOrWaitForClientAsync<CompileTimeCodeEditingStatusRpcClient>( default );
+                var client = await endpoint.GetOrWaitForClientAsync<CompileTimeCodeEditingStatusRpcClient>( this._applicationExitingToken );
 
-                var compileTimeErrors = await client.GetCompileTimeErrorsAsync( CancellationToken.None );
+                var compileTimeErrors = await client.GetCompileTimeErrorsAsync( this._applicationExitingToken );
                 this.SetCompileTimeErrorsForProjects( compileTimeErrors );
 
                 if ( this._userInterfaceAttached )

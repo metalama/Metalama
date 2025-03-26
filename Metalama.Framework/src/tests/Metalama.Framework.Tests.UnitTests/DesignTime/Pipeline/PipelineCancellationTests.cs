@@ -19,6 +19,7 @@ using Metalama.Framework.Engine.Pipeline.DesignTime;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities.Threading;
 using Metalama.Framework.Tests.UnitTestHelpers.Mocks;
+using Metalama.Framework.Tests.UnitTestHelpers.TestClasses;
 using Metalama.Testing.UnitTesting;
 using System;
 using System.Collections;
@@ -114,11 +115,11 @@ public sealed class PipelineCancellationTests : UnitTestClass
         using var userProcessServiceHubEndpoint = new ServiceHubServerEndpoint( serviceProvider, hubPipeName );
         userProcessServiceHubEndpoint.Start();
         using var analysisProcessServiceHubEndpoint = new ServiceHubClientEndpoint( serviceProvider, hubPipeName );
-        _ = analysisProcessServiceHubEndpoint.ConnectAsync(); // Do not await so we get more randomness.
+        _ = analysisProcessServiceHubEndpoint.ConnectAsync( testContext.CancellationToken ); // Do not await so we get more randomness.
 
         // Start the main services on both ends.
         using var analysisProcessEndpoint = new RpcServiceProviderServerEndpoint(
-            serviceProvider.WithService( analysisProcessServiceHubEndpoint ),
+            serviceProvider.WithService( new TestServiceHubClientEndpointProvider( analysisProcessServiceHubEndpoint ) ),
             servicePipeName,
             [new SourceGeneratorRpcServiceFactory()] );
 
@@ -132,7 +133,7 @@ public sealed class PipelineCancellationTests : UnitTestClass
         var analysisProcessProjectHandlerObserver = new ProjectSourceGeneratorObserver();
 
         var analysisProcessServiceProvider = serviceProvider.WithServices(
-            analysisProcessEndpoint,
+            new TestRpcServiceProviderServerEndpointProvider( analysisProcessEndpoint ),
             pipelineFactory,
             analysisProcessProjectHandlerObserver );
 

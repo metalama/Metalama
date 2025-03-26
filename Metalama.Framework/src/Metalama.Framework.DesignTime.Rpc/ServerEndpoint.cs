@@ -80,7 +80,7 @@ public abstract class ServerEndpoint : BaseEndpoint
         }
     }
 
-    protected void OnConnected( IEnumerable<RpcService> services )
+    private static void OnConnected( IEnumerable<RpcService> services )
     {
         foreach ( var service in services )
         {
@@ -107,7 +107,7 @@ public abstract class ServerEndpoint : BaseEndpoint
 
         var rpc = this.CreateRpc( pipe );
 
-        this.Logger.Trace?.Log( $"Endpoint '{pipeName}': adding services {string.Join( ",", services.Select( s => s.GetType().Name ) )} " );
+        this.Logger.Trace?.Log( $"Endpoint '{pipeName}': adding services {string.Join( ", ", services.Select( s => s.GetType().Name ) )}." );
 
         foreach ( var i in services )
         {
@@ -125,7 +125,7 @@ public abstract class ServerEndpoint : BaseEndpoint
         // Listen to another client.
         this.ExecuteBackgroundTask( ct => this.AcceptNewClientAsync( pipeName, services, ct ) );
 
-        this.OnConnected( services );
+        OnConnected( services );
     }
 
     private void OnRpcDisconnected( object? sender, JsonRpcDisconnectedEventArgs e )

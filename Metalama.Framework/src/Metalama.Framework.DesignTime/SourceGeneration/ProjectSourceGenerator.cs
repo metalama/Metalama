@@ -27,6 +27,8 @@ internal abstract class ProjectSourceGenerator : IDisposable
 
     protected ILogger Logger { get; }
 
+    protected CancellationToken ApplicationExitingToken { get; }
+
     /// <summary>
     /// Gets the latest touch ID for the current project, which should usually be equivalent to the contents of the touch file.
     /// Returns <see langword="null" /> when the touch ID was not yet set by the current process.
@@ -41,15 +43,18 @@ internal abstract class ProjectSourceGenerator : IDisposable
         this.Logger = this.ServiceProvider.GetLoggerFactory().GetLogger( this.GetType().Name );
         this.PendingTasks = new TaskBag( this.Logger, serviceProvider );
         this._taskRunner = this.ServiceProvider.GetRequiredService<ITaskRunner>();
+        this.ApplicationExitingToken = serviceProvider.GetRequiredService<ApplicationExitManager>().Token;
     }
 
     public abstract SourceGeneratorResult GenerateSources( Compilation compilation, TestableCancellationToken cancellationToken );
 
     protected virtual void Dispose( bool disposing )
     {
-        if ( disposing )
+        if ( disposing && !this.ApplicationExitingToken.IsCancellationRequested )
         {
-            this._taskRunner.RunSynchronously( () => this.PendingTasks.WaitAllAsync() );
+            this._taskRunner.RunSynchronously(
+                () => this.PendingTasks.WaitAllAsync( this.ApplicationExitingToken ),
+                cancellationToken: this.ApplicationExitingToken );
         }
     }
 

@@ -25,7 +25,7 @@ public sealed class DesignTimeExtensionManager : IGlobalService
     private readonly ConcurrentDictionary<int, int> _processedOptions = new();
     private readonly CompileTimeDomain _domain;
     private readonly ConcurrentDictionary<Type, IDesignTimeExtension> _extensions = new();
-    private readonly RpcServiceProviderServerEndpoint? _rpcServiceProvider;
+    private readonly IRpcServiceProviderServerEndpointProvider? _rpcServiceProviderServerEndpointProvider;
     private readonly IExtensionLoader _extensionLoader;
 
     private GlobalServiceProvider ServiceProvider { get; }
@@ -35,7 +35,7 @@ public sealed class DesignTimeExtensionManager : IGlobalService
         this._processKind = processKind;
         this.ServiceProvider = serviceProvider;
         this._domain = serviceProvider.GetRequiredService<CompileTimeDomain>();
-        this._rpcServiceProvider = serviceProvider.GetService<RpcServiceProviderServerEndpoint>();
+        this._rpcServiceProviderServerEndpointProvider = serviceProvider.GetService<IRpcServiceProviderServerEndpointProvider>();
         this._extensionLoader = serviceProvider.GetRequiredService<IExtensionLoader>();
     }
 
@@ -50,7 +50,7 @@ public sealed class DesignTimeExtensionManager : IGlobalService
         lock ( this._extensions )
         {
             var extensionTypes = this._extensionLoader.GetExtensionTypes( options, this._domain, ExtensionKind.DesignTime );
-            
+
             foreach ( var extensionType in extensionTypes )
             {
                 if ( this._extensions.ContainsKey( extensionType ) )
@@ -82,7 +82,7 @@ public sealed class DesignTimeExtensionManager : IGlobalService
             this.CodeFixProviderExtensions = this.CodeFixProviderExtensions.AddRange( context.CodeFixProviderExtensions );
             this.CodeRefactoringProviderExtensions = this.CodeRefactoringProviderExtensions.AddRange( context.CodeRefactoringProviderExtensions );
 
-            this._rpcServiceProvider?.AddServices( context.RpcServices );
+            this._rpcServiceProviderServerEndpointProvider?.Endpoint.AddServices( context.RpcServices );
         }
     }
 }

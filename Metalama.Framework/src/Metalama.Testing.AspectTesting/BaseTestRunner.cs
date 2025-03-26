@@ -762,7 +762,7 @@ internal abstract partial class BaseTestRunner
         return project;
     }
 
-    private protected async Task WriteHtmlAsync( TestInput testInput, TestResult testResult )
+    private protected async Task WriteHtmlAsync( TestInput testInput, TestResult testResult, CancellationToken cancellationToken )
     {
         var serviceProvider = testResult.TestContext.AssertNotNull().ServiceProvider;
         var htmlCodeWriter = this.CreateHtmlCodeWriter( serviceProvider, testInput.Options );
@@ -801,7 +801,8 @@ internal abstract partial class BaseTestRunner
                     htmlDirectory,
                     htmlCodeWriter,
                     writeDiff,
-                    designTimePipelineResult.Suppressions );
+                    designTimePipelineResult.Suppressions,
+                    cancellationToken );
             }
         }
     }
@@ -819,7 +820,8 @@ internal abstract partial class BaseTestRunner
         string htmlDirectory,
         HtmlCodeWriter htmlCodeWriter,
         bool writeDiff,
-        ImmutableArray<ScopedSuppression> suppressions )
+        ImmutableArray<ScopedSuppression> suppressions,
+        CancellationToken cancellationToken )
     {
         StreamWriter? inputTextWriter = null;
         StreamWriter? outputTextWriter = null;
@@ -890,7 +892,8 @@ internal abstract partial class BaseTestRunner
                     testSyntaxTree.OutputDocument.AssertNotNull(),
                     inputTextWriter,
                     outputTextWriter,
-                    inputDiagnostics! );
+                    inputDiagnostics!,
+                    cancellationToken );
             }
         }
         else
@@ -902,7 +905,8 @@ internal abstract partial class BaseTestRunner
                     await htmlCodeWriter.WriteAsync(
                         testSyntaxTree.InputDocument,
                         inputTextWriter,
-                        inputDiagnostics! );
+                        inputDiagnostics!,
+                        cancellationToken );
                 }
             }
 
@@ -912,7 +916,8 @@ internal abstract partial class BaseTestRunner
                 {
                     await htmlCodeWriter.WriteAsync(
                         testSyntaxTree.OutputDocument.AssertNotNull(),
-                        outputTextWriter );
+                        outputTextWriter,
+                        cancellationToken: cancellationToken );
                 }
             }
         }

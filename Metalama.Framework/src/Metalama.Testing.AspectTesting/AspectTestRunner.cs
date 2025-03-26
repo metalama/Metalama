@@ -139,7 +139,7 @@ internal class AspectTestRunner : BaseTestRunner
 
         if ( testInput.Options.WriteInputHtml.GetValueOrDefault() || testInput.Options.WriteOutputHtml.GetValueOrDefault() )
         {
-            await this.WriteHtmlAsync( testInput, testResult );
+            await this.WriteHtmlAsync( testInput, testResult, testContext.CancellationToken );
         }
     }
 
@@ -193,7 +193,7 @@ internal class AspectTestRunner : BaseTestRunner
         Assert.Null( codeActionResult.ErrorMessages );
         Assert.NotNull( testResult.InputProject );
 
-        var transformedSolution = await codeActionResult.ApplyAsync( testResult.InputProject!, NullLogger.Instance, true, CancellationToken.None );
+        var transformedSolution = await codeActionResult.ApplyAsync( testResult.InputProject!, NullLogger.Instance, true, testContext.CancellationToken );
         var transformedCompilation = await transformedSolution.GetProject( testResult.InputProject!.Id )!.GetCompilationAsync();
 
         await testResult.SetOutputCompilationAsync( transformedCompilation! );

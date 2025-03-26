@@ -56,18 +56,17 @@ internal class DesignTimeAnalysisProcessServiceProviderFactory : DesignTimeServi
 
         // Initialize the event hub.
         serviceProvider = serviceProvider
-            .WithService( new AnalysisProcessEventHub( serviceProvider ) );
+            .WithService( sp => new AnalysisProcessEventHub( sp ) );
 
         serviceProvider = serviceProvider
-            .WithService( GetWorkspaceProvider( serviceProvider ) )
+            .WithService( sp => GetWorkspaceProvider( sp ) )
             .WithService( sp => new DesignTimeInvalidationService( sp ) );
 
         // Add the pipeline factory.
-        var pipelineFactory = new DesignTimeAspectPipelineFactory( serviceProvider );
-        serviceProvider = serviceProvider.WithService( pipelineFactory );
+        serviceProvider = serviceProvider.WithService( sp => new DesignTimeAspectPipelineFactory( sp ) );
 
         // Add services that depend on the pipeline factory.
-        serviceProvider = serviceProvider.WithService( new AspectDatabase( serviceProvider ) );
+        serviceProvider = serviceProvider.WithService( sp => new AspectDatabase( sp ) );
 
         return serviceProvider;
     }

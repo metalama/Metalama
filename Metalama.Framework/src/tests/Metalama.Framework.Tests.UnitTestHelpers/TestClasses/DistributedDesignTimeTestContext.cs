@@ -14,6 +14,7 @@ using Metalama.Framework.Tests.UnitTestHelpers.Mocks;
 using Metalama.Testing.UnitTesting;
 using System;
 using System.Threading.Tasks;
+using Xunit;
 
 namespace Metalama.Framework.Tests.UnitTestHelpers.TestClasses;
 
@@ -48,8 +49,10 @@ public sealed class DistributedDesignTimeTestContext : TestContext
             analysisProcessServices.Add( sp => new DesignTimeExtensionManager( sp, DesignTimeProcessKind.VsAnalysisProcess ) );
             analysisProcessServices.Add( sp => new AnalysisProcessEventHub( sp ) );
             analysisProcessServices.Add( sp => new TestDesignTimeAspectPipelineFactory( this, sp ) );
-            analysisProcessServices.Add( sp => new ServiceHubClientEndpoint( sp, hubPipeName ) );
-            analysisProcessServices.Add( sp => new RpcServiceProviderServerEndpoint( sp, servicePipeName ) );
+            analysisProcessServices.Add( sp => new TestServiceHubClientEndpointProvider( new ServiceHubClientEndpoint( sp, hubPipeName ) ) );
+
+            analysisProcessServices.Add(
+                sp => new TestRpcServiceProviderServerEndpointProvider( new RpcServiceProviderServerEndpoint( sp, servicePipeName ) ) );
 
             var analysisProcessServiceProvider = (GlobalServiceProvider) this.ServiceProvider.Global.Underlying.WithDisjointSharedServices();
 
@@ -67,13 +70,18 @@ public sealed class DistributedDesignTimeTestContext : TestContext
             // Start the hub service on both ends.
             this._userProcessServiceHubEndpoint = userProcessServiceProvider.GetRequiredService<ServiceHubServerEndpoint>();
             this._userProcessServiceHubEndpoint.Start();
-            this._analysisProcessServiceHubEndpoint = analysisProcessServiceProvider.GetRequiredService<ServiceHubClientEndpoint>();
-            var connectAnalysisProcessTask = this._analysisProcessServiceHubEndpoint.ConnectAsync(); // Do not await so we get more randomness.
+
+            Assert.True(
+                analysisProcessServiceProvider.GetRequiredService<IServiceHubClientEndpointProvider>()
+                    .TryGetEndpoint( out this._analysisProcessServiceHubEndpoint ) );
+
+            var connectAnalysisProcessTask =
+                this._analysisProcessServiceHubEndpoint.ConnectAsync( this.CancellationToken ); // Do not await so we get more randomness.
 
             // Start the main services in the analysis process. It should call the service hub in the user process and call the user process 
             // to create the client.
             this._pipelineFactory = analysisProcessServiceProvider.GetRequiredService<TestDesignTimeAspectPipelineFactory>();
-            this._analysisProcessEndpoint = analysisProcessServiceProvider.GetRequiredService<RpcServiceProviderServerEndpoint>();
+            this._analysisProcessEndpoint = analysisProcessServiceProvider.GetRequiredService<IRpcServiceProviderServerEndpointProvider>().Endpoint;
             this._analysisProcessEndpoint.Start();
 
             this.UserProcessServiceProvider = userProcessServiceProvider;

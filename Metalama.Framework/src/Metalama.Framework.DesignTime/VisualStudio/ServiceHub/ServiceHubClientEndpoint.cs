@@ -6,6 +6,7 @@ using Metalama.Backstage.Utilities;
 using Metalama.Framework.DesignTime.Rpc;
 using Metalama.Framework.DesignTime.VisualStudio.Rpc;
 using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Engine.Utilities.Threading;
 using System.Diagnostics.CodeAnalysis;
 
 namespace Metalama.Framework.DesignTime.VisualStudio.ServiceHub;
@@ -14,22 +15,21 @@ namespace Metalama.Framework.DesignTime.VisualStudio.ServiceHub;
 /// The <see cref="ServiceHubClientEndpoint"/> lives in the analysis process. It registers itself to the server endpoint, <see cref="ServiceHubServerEndpoint"/>,
 /// which lives in the DevEnv UI process.
 /// </summary>
-internal sealed class ServiceHubClientEndpoint : ClientEndpoint, IServiceHubRpcApiClientProvider
+internal sealed class ServiceHubClientEndpoint : ClientEndpoint
 {
     public ServiceHubClientEndpoint( GlobalServiceProvider serviceProvider, string pipeName ) : base(
         serviceProvider.Underlying,
         pipeName )
     {
-        this.ServiceHubApiClient = new ServiceHubRpcClient( this );
+        this.Client = new ServiceHubRpcClient( this );
     }
 
-    protected override IEnumerable<RpcClient> CreateServiceClients() => [this.ServiceHubApiClient];
+    protected override IEnumerable<RpcClient> CreateServiceClients() => [this.Client];
 
-    public ServiceHubRpcClient ServiceHubApiClient { get; }
+    public ServiceHubRpcClient Client { get; }
 
     public static bool TryStart(
         GlobalServiceProvider serviceProvider,
-        CancellationToken cancellationToken,
         [NotNullWhen( true )] out ServiceHubClientEndpoint? serviceHubApiProvider )
     {
         if ( !TryGetPipeName( out var pipeName ) )
@@ -40,7 +40,7 @@ internal sealed class ServiceHubClientEndpoint : ClientEndpoint, IServiceHubRpcA
         }
 
         var endpoint = new ServiceHubClientEndpoint( serviceProvider, pipeName );
-        _ = endpoint.ConnectAsync( cancellationToken );
+        _ = endpoint.ConnectAsync( serviceProvider.GetRequiredService<ApplicationExitManager>().Token );
 
         serviceHubApiProvider = endpoint;
 

@@ -58,6 +58,7 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
     private readonly ProjectVersionProvider _projectVersionProvider;
     private readonly IUserDiagnosticRegistrationService? _userDiagnosticsRegistrationService;
     private readonly DesignTimeExceptionHandler _exceptionHandler;
+    private readonly CancellationToken _applicationExitingToken;
 
     private bool _mustProcessQueue;
 
@@ -98,6 +99,7 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
         this._observer = this.ServiceProvider.GetService<IDesignTimeAspectPipelineObserver>();
         this._eventHub = this.ServiceProvider.Global.GetService<AnalysisProcessEventHub>();
         this._exceptionHandler = this.ServiceProvider.Global.GetRequiredService<DesignTimeExceptionHandler>();
+        this._applicationExitingToken = this.ServiceProvider.Global.GetRequiredService<ApplicationExitManager>().Token;
 
         if ( this._eventHub != null )
         {
@@ -277,7 +279,7 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
             // There was an external build. Touch the files to re-run the analyzer.
             this.Logger.Trace?.Log( $"Detected an external build for project '{this.ProjectKey}'." );
 
-            await this.ResumeAsync( AsyncExecutionContext.Get(), false, CancellationToken.None );
+            await this.ResumeAsync( AsyncExecutionContext.Get(), false, this._applicationExitingToken );
 
             // Raise the event.
             if ( this._eventHub != null )
@@ -976,7 +978,7 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
 
     private async ValueTask ExecuteIfLockAvailableOrEnqueueAsync( Func<AsyncExecutionContext, ValueTask> action, AsyncExecutionContext executionContext )
     {
-        using ( var @lock = await this.WithLockAsync( executionContext, 0, CancellationToken.None ) )
+        using ( var @lock = await this.WithLockAsync( executionContext, 0, this._applicationExitingToken ) )
         {
             if ( @lock.IsAcquired )
             {
@@ -998,7 +1000,7 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
     {
         var executionContext = AsyncExecutionContext.Get();
 
-        using ( await this.WithLockAsync( executionContext, CancellationToken.None ) )
+        using ( await this.WithLockAsync( executionContext, this._applicationExitingToken ) )
         {
             await this.ProcessJobQueueAsync( executionContext );
         }
@@ -1131,7 +1133,7 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
             reportSuppression,
             this.IsCompileTimeSyntaxTreeOutdated( semanticModel.SyntaxTree.FilePath ),
             true,
-            CancellationToken.None );
+            this._applicationExitingToken );
 
     public async Task<(bool Success, PartialCompilation? Compilation, ImmutableArray<Diagnostic> Diagnostics)> ApplyAspectToCodeAsync(
         string aspectTypeName,

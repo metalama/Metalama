@@ -73,6 +73,7 @@ public static class ServiceProviderFactory
         }
 
         serviceProvider = serviceProvider
+            .WithService( new ApplicationExitManager() )
             .WithServiceConditional<ITaskRunner>( _ => new TaskRunner() )
             .WithServiceConditional<IGlobalOptions>( _ => new DefaultGlobalOptions() );
 

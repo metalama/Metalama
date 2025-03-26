@@ -43,6 +43,7 @@ public partial class TestContext : IDisposable, ITempFileManager, IApplicationIn
     private readonly bool _isRoot;
     private readonly StackTrace _stackTrace = new();
     private readonly Lazy<ImmutableArray<object>> _plugIns;
+    private readonly ApplicationExitManager _applicationExitManager;
 
     internal TestProjectOptions TestProjectOptions { get; }
 
@@ -130,6 +131,8 @@ public partial class TestContext : IDisposable, ITempFileManager, IApplicationIn
 
             var serviceProvider = ServiceProviderFactory.GetServiceProvider( backstageServices, typedAdditionalServices );
 
+            this._applicationExitManager = serviceProvider.GetRequiredService<ApplicationExitManager>();
+
             serviceProvider = serviceProvider
                 .WithService( this.TestProjectOptions.DomainObserver );
 
@@ -154,6 +157,7 @@ public partial class TestContext : IDisposable, ITempFileManager, IApplicationIn
     {
         this.TestOutputWriter?.WriteLine( "Timeout. Cancelling the test." );
         this._timeoutCancellationTokenSource?.Cancel();
+        this._applicationExitManager.OnApplicationExiting();
     }
 
     private ImmutableArray<object> LoadPlugIns( TestContextOptions options )
@@ -269,6 +273,8 @@ public partial class TestContext : IDisposable, ITempFileManager, IApplicationIn
             this._timeoutCancellationTokenSource?.Dispose();
             this._timer?.Dispose();
         }
+        
+        this._applicationExitManager.OnApplicationExiting();
 
         if ( disposing )
         {

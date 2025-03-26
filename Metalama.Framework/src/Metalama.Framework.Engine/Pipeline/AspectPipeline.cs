@@ -53,6 +53,8 @@ public abstract class AspectPipeline : IDisposable
 
     protected ILogger Logger { get; }
 
+    protected CancellationToken ApplicationExitingToken { get; }
+
     /// <summary>
     /// Initializes a new instance of the <see cref="AspectPipeline"/> class.
     /// </summary>
@@ -73,6 +75,7 @@ public abstract class AspectPipeline : IDisposable
             .WithService( executionScenario, true );
 
         this.Domain = serviceProvider.Global.GetRequiredService<CompileTimeDomain>();
+        this.ApplicationExitingToken = serviceProvider.Global.GetRequiredService<ApplicationExitManager>().Token;
     }
 
     internal int PipelineInitializationCount { get; private set; }

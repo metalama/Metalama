@@ -39,7 +39,7 @@ public class DesignTimeAspectPipelineFactory : IDisposable, IAspectPipelineConfi
     private readonly ConcurrentDictionary<ProjectKey, DesignTimeAspectPipeline> _pipelinesByProjectKey = new();
     private readonly ILogger _logger;
     private readonly ConcurrentQueue<TaskCompletionSource<DesignTimeAspectPipeline>> _newPipelineListeners = new();
-    private readonly CancellationToken _globalCancellationToken = CancellationToken.None;
+    private readonly CancellationToken _globalCancellationToken;
     private readonly IMetalamaProjectClassifier _projectClassifier;
     private readonly AnalysisProcessEventHub? _eventHub;
     private readonly IProjectOptionsFactory _projectOptionsFactory;
@@ -60,6 +60,7 @@ public class DesignTimeAspectPipelineFactory : IDisposable, IAspectPipelineConfi
         this._taskRunner = serviceProvider.GetRequiredService<ITaskRunner>();
         this._eventHub = serviceProvider.GetService<AnalysisProcessEventHub>();
         this._extensionManager = serviceProvider.GetService<DesignTimeExtensionManager>();
+        this._globalCancellationToken = serviceProvider.GetRequiredService<ApplicationExitManager>().Token;
 
         if ( this._eventHub != null )
         {
@@ -79,7 +80,7 @@ public class DesignTimeAspectPipelineFactory : IDisposable, IAspectPipelineConfi
     {
         try
         {
-            await this.ResumePipelinesAsync( AsyncExecutionContext.Get(), true, CancellationToken.None );
+            await this.ResumePipelinesAsync( AsyncExecutionContext.Get(), true, this._globalCancellationToken );
         }
         catch ( Exception e )
         {

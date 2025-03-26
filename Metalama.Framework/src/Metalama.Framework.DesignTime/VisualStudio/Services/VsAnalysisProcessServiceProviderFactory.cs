@@ -26,21 +26,12 @@ internal sealed class VsAnalysisProcessServiceProviderFactory : DesignTimeAnalys
     {
         serviceProvider = base.AddServices( serviceProvider );
 
-        serviceProvider =
-            serviceProvider.WithServices( new TransformationPreviewServiceImpl( serviceProvider ), new CodeLensServiceImpl( serviceProvider ) );
-
-        if ( ServiceHubClientEndpoint.TryStart(
-                serviceProvider,
-                CancellationToken.None,
-                out var serviceHubApiProvider ) )
-        {
-            serviceProvider = serviceProvider.WithService( serviceHubApiProvider );
-
-            var analysisProcessEndpoint = RpcServiceProviderServerEndpoint.GetInstance( serviceProvider );
-            serviceProvider = serviceProvider.WithService( analysisProcessEndpoint );
-        }
-
-        serviceProvider = serviceProvider.WithService( new VsAnalysisProcessProjectSourceGeneratorFactory( serviceProvider ) );
+        serviceProvider = serviceProvider
+            .WithService( sp => new TransformationPreviewServiceImpl( sp ) )
+            .WithService( sp => new CodeLensServiceImpl( sp ) )
+            .WithService( sp => new ServiceHubClientEndpointProvider( sp ) )
+            .WithService( sp => new RpcServiceProviderServerEndpointProvider( sp ) )
+            .WithService( sp => new VsAnalysisProcessProjectSourceGeneratorFactory( sp ) );
 
         return serviceProvider;
     }

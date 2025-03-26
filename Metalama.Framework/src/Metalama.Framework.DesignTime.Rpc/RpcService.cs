@@ -16,14 +16,14 @@ public abstract class RpcService
 {
     private static int _nextId;
     private readonly TaskCompletionSource<bool> _initialized = new();
-    private readonly int _id = Interlocked.Increment(ref _nextId);
+    private readonly int _id = Interlocked.Increment( ref _nextId );
 
     protected ILogger Logger { get; }
 
     protected RpcService( ServerEndpoint serverEndpoint )
     {
         this.Logger = serverEndpoint.LoggerFactory.GetLogger( this.GetType().Name ).WithPrefix( this._id.ToString() );
-        this.Logger.Trace?.Log( $"Instantiating RpcService." );
+        this.Logger.Trace?.Log( $"Instantiating." );
     }
 
     protected Task WaitUntilInitializedAsync( CancellationToken cancellationToken = default ) => this._initialized.Task.WithCancellation( cancellationToken );

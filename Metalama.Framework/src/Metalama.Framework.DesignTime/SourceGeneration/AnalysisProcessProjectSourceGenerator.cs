@@ -134,7 +134,7 @@ internal class AnalysisProcessProjectSourceGenerator : ProjectSourceGenerator
                 // Publish the changes asynchronously.
                 // But do not make publishing cancellable because the user process expects the source to be published from the moment
                 // that the analysis process received the source.
-                this.PendingTasks.Run( this.PublishAsync, CancellationToken.None );
+                this.PendingTasks.Run( this.PublishAsync, this.ApplicationExitingToken );
 
                 this._currentCancellationSource = null;
             }
@@ -240,7 +240,7 @@ internal class AnalysisProcessProjectSourceGenerator : ProjectSourceGenerator
             this.Logger.Trace?.Log( $"{this.GetType().Name}.Publish('{this.ProjectKey}')" );
 
             // Publish to the interactive process. We need to await before we change the touch file.
-            await this.PublishGeneratedSourcesAsync( this.ProjectKey, CancellationToken.None );
+            await this.PublishGeneratedSourcesAsync( this.ProjectKey, this.ApplicationExitingToken );
 
             // Notify Roslyn that we have changes.
             // Note that we cannot cancel here. If we have published the source code, we must also touch the file.

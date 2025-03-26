@@ -82,19 +82,20 @@ public abstract partial class FormattedCodeWriter
         Document document,
         bool areNodesAnnotated = false,
         IEnumerable<Diagnostic>? diagnostics = null,
-        bool addTitles = false )
+        bool addTitles = false,
+        CancellationToken cancellationToken = default )
     {
-        var sourceText = await document.GetTextAsync();
-        var syntaxTree = (await document.GetSyntaxTreeAsync())!;
+        var sourceText = await document.GetTextAsync( cancellationToken );
+        var syntaxTree = (await document.GetSyntaxTreeAsync( cancellationToken ))!;
 
-        if ( await syntaxTree.GetTextAsync() != sourceText )
+        if ( await syntaxTree.GetTextAsync( cancellationToken ) != sourceText )
         {
             throw new AssertionFailedException( "Source text mismatch from Roslyn." );
         }
 
-        var syntaxRoot = await syntaxTree.GetRootAsync();
+        var syntaxRoot = await syntaxTree.GetRootAsync( cancellationToken );
 
-        var compilation = await document.Project.GetCompilationAsync();
+        var compilation = await document.Project.GetCompilationAsync( cancellationToken );
         var semanticModel = compilation!.GetCachedSemanticModel( syntaxTree );
         var classificationService = new ClassificationService( this._serviceProvider );
 
@@ -103,7 +104,7 @@ public abstract partial class FormattedCodeWriter
         if ( areNodesAnnotated )
         {
             // Aspect Workbench uses this branch.
-            classifiedTextSpans = ClassificationService.GetClassifiedTextSpansOfAnnotatedSyntaxTree( syntaxTree, CancellationToken.None );
+            classifiedTextSpans = ClassificationService.GetClassifiedTextSpansOfAnnotatedSyntaxTree( syntaxTree, cancellationToken );
         }
         else
         {
@@ -111,7 +112,7 @@ public abstract partial class FormattedCodeWriter
             // Note that we don't take into account the output of the template compiler executed from the pipeline,
             // because the template compiler, when executed from the pipeline, only adds annotations to templates, not to the whole syntax tree.
 
-            classifiedTextSpans = classificationService.GetClassifiedTextSpans( semanticModel, false, CancellationToken.None );
+            classifiedTextSpans = classificationService.GetClassifiedTextSpans( semanticModel, false, cancellationToken );
         }
 
         ProcessAnnotations( classifiedTextSpans, syntaxRoot );
@@ -119,7 +120,8 @@ public abstract partial class FormattedCodeWriter
 
         var classifiedSpans = (await Classifier.GetClassifiedSpansAsync(
                 document,
-                syntaxRoot.FullSpan ))
+                syntaxRoot.FullSpan,
+                cancellationToken ))
             .OrderBy( c => c.TextSpan.Start )
             .ThenBy( c => c.ClassificationType );
 

@@ -24,13 +24,13 @@ internal sealed class VsAnalysisProcessProjectSourceGenerator : AnalysisProcessP
         projectOptions,
         projectKey )
     {
-        var endpoint = serviceProvider.GetService<RpcServiceProviderServerEndpoint>();
+        var endpoint = serviceProvider.GetService<IRpcServiceProviderServerEndpointProvider>()?.Endpoint;
 
         if ( endpoint != null )
         {
             this._sourceGeneratorRpcService = endpoint.GetRequiredService<SourceGeneratorRpcService>();
             this._sourceGeneratorRpcService.ClientConnected += this.OnClientConnected;
-            this.PendingTasks.Run( () => endpoint.RegisterProjectAsync( this.ProjectKey, CancellationToken.None ) );
+            this.PendingTasks.Run( () => endpoint.RegisterProjectAsync( this.ProjectKey, this.ApplicationExitingToken ) );
         }
         else
         {

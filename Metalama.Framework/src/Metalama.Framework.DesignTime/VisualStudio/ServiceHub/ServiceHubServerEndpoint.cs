@@ -6,6 +6,7 @@ using Metalama.Framework.DesignTime.Rpc;
 using Metalama.Framework.DesignTime.Rpc.Notifications;
 using Metalama.Framework.DesignTime.VisualStudio.Rpc;
 using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Engine.Utilities.Threading;
 
 namespace Metalama.Framework.DesignTime.VisualStudio.ServiceHub;
 
@@ -18,6 +19,7 @@ public sealed class ServiceHubServerEndpoint : ServerEndpoint, IServiceHubRpcSer
 {
     private static readonly object _initializeLock = new();
     private static ServiceHubServerEndpoint? _instance;
+    private readonly CancellationToken _applicationExitingToken;
 
     internal ServiceHubServerEndpoint( GlobalServiceProvider serviceProvider, string pipeName ) : base(
         serviceProvider.Underlying,
@@ -26,12 +28,13 @@ public sealed class ServiceHubServerEndpoint : ServerEndpoint, IServiceHubRpcSer
         this.ServiceHub = new ServiceHubRpcService( serviceProvider, this );
         this.EventHub = new EventHubRpcService( this );
         this.ServiceHub.EventReceived += this.OnEventReceived;
+        this._applicationExitingToken = serviceProvider.GetRequiredService<ApplicationExitManager>().Token;
     }
 
     private void OnEventReceived( RpcEventData eventData )
     {
         // TODO: Exception handling.
-        _ = this.EventHub.ForwardEventAsync( eventData, CancellationToken.None );
+        _ = this.EventHub.ForwardEventAsync( eventData, this._applicationExitingToken );
     }
 
     public ServiceHubRpcService ServiceHub { get; }
