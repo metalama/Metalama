@@ -62,14 +62,14 @@ internal sealed class AssemblyLoader : IDisposable
             var loadByPathMethod = alcType!.GetMethod( "LoadFromAssemblyPath" )!;
             this._loadFromAssemblyPath = (Func<string, Assembly>) Delegate.CreateDelegate( typeof(Func<string, Assembly>), metalamaAlc, loadByPathMethod );
 
-            var loadFromStreamMethod = alcType!.GetMethod( "LoadFromStream", [typeof(Stream), typeof(Stream)] )!;
+            var loadFromStreamMethod = alcType.GetMethod( "LoadFromStream", [typeof(Stream), typeof(Stream)] )!;
 
             this._loadFromStream = (Func<Stream, Stream?, Assembly>) Delegate.CreateDelegate(
                 typeof(Func<Stream, Stream?, Assembly>),
                 metalamaAlc,
                 loadFromStreamMethod );
 
-            var getAssembliesMethod = alcType!.GetProperty( "Assemblies" )!.GetMethod!;
+            var getAssembliesMethod = alcType.GetProperty( "Assemblies" )!.GetMethod!;
 
             this._getAssemblies = (Func<IEnumerable<Assembly>>?) Delegate.CreateDelegate(
                 typeof(Func<IEnumerable<Assembly>>),
