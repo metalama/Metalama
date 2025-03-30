@@ -16,6 +16,7 @@ using Xunit.Abstractions;
 
 #if NET8_0_OR_GREATER
 using System;
+using System.Collections.Generic;
 using System.Text;
 #endif
 
@@ -357,7 +358,7 @@ class Aspect3 : TypeAspect { }
             var aspects = Enumerable.Range( 1, n ).ToArray();
             random.Shuffle( aspects );
 
-            var aspectOrder = string.Join( ", ", aspects.Reverse().Select( a => $"typeof(Aspect{a})" ) );
+            var aspectOrder = string.Join( ", ", ((IEnumerable<int>)aspects).Reverse().Select( a => $"typeof(Aspect{a})" ) );
 
             stringBuilder.AppendLine( $"[assembly: AspectOrder( {aspectOrder} ) ]" );
             stringBuilder.AppendLine();
