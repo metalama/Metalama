@@ -1,6 +1,4 @@
-![Metalama Logo](https://raw.githubusercontent.com/postsharp/Metalama/master/images/metalama-by-postsharp.svg)
-
-## Metalama.Backstage
+![Metalama Logo](https://raw.githubusercontent.com/metalama/Metalama/master/images/metalama.svg)
 
 The `Metalama.Backstage` package is not meant to be directly referenced in user projects.
 

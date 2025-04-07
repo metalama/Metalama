@@ -1,12 +1,20 @@
-<p align="center">
-<img width="450" src="https://github.com/postsharp/Metalama/raw/master/images/metalama-by-postsharp.svg" alt="Metalama logo" />
-</p>
+![Metalama Logo](https://raw.githubusercontent.com/metalama/Metalama/master/images/metalama.svg)
 
-
-# Metalama.LinqPad
+## About
 
 The `Metalama.LinqPad` package allows you to load any C# project or solution into LINQPad and exposes its code model to queries. This package contains an optional driver, samples, and dumping methods.
 
-For documentation, see the [conceptual](https://doc.metalama.net/conceptual/introspection/linqpad) and [API](https://doc.metalama.net/introspection-api) documentations.
+## Key Features
 
-If you want to do code queries in standard C# projects instead of LinqPad, use the `Metalama.Framework.Workspaces` package.
+- Query your code as a database -- iincluding references, diagnostics, and aspect internals.
+- Two LINQPad drivers to query projects and solutions as a database.
+- Nice formatting of object trees.
+
+## Documentation
+
+* Conceptual documentation: [Inspecting a project using LINQPad](https://doc.metalama.net/conceptual/introspection/linqpad) 
+* API documentation: [Introspection API](https://doc.metalama.net/introspection-api) documentations.
+
+## Related Packages
+
+* `Metalama.Framework.Workspaces` to do code queries in standard C# projects instead of LINQPad.

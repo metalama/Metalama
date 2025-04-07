@@ -5,7 +5,7 @@
     <!-- Properties of NuGet packages-->
     <PropertyGroup>
         <Authors>PostSharp Technologies</Authors>
-        <PackageProjectUrl>https://github.com/postsharp/Metalama</PackageProjectUrl>
+        <PackageProjectUrl>https://github.com/metalama/Metalama</PackageProjectUrl>
         <PackageTags>PostSharp Metalama AOP</PackageTags>
         <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
         <PackageLicenseFile>LICENSE.md</PackageLicenseFile>

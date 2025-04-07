@@ -1,4 +1,4 @@
-![Metalama Logo](https://raw.githubusercontent.com/postsharp/Metalama/master/images/metalama-by-postsharp.svg)
+![Metalama Logo](https://raw.githubusercontent.com/metalama/Metalama/master/images/metalama.svg)
 
 The `Metalama.Framework.Instrospection` package allows you to look at and introspect resulting transformations created by Metalama aspects. 
 

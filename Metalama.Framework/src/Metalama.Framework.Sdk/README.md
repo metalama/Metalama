@@ -1,6 +1,19 @@
-Metalama.Framework.Sdk offers direct access to Metalama's underlying code-modifying capabilities through Roslyn-based APIs.
+![Metalama Logo](https://raw.githubusercontent.com/metalama/Metalama/master/images/metalama.svg)
 
-Unlike Metalama.Framework, our high-level API, aspects built with Metalama.Framework.Sdk must be in their own project, separate from the code they transform. Metalama.Framework.Sdk is much more complex and less safe than Metalama.Framework, and does not allow for a good design-time experience. You should use Metalama.Framework.Sdk only when necessary.
+## About
 
-To learn more visit Metalama documentation page:
-https://doc.metalama.net/sdk/sdk
+`Metalama.Framework.Sdk` allows you to extend Metalama using the Roslyn API.
+
+## Key Features
+
+It has includes three use cases:
+
+- **Inspecting method bodies** using Roslyn's syntax tree and symbols (Metalama's code model does not give you access to this level of details.).
+- **Build custom aspect weavers** to create aspects that perform arbitrary syntax tree transformation.
+- **Build custom metrics**.
+
+## Resources
+
+* Documentation: [Extending Metalama with the Roslyn API](https://doc.metalama.net/conceptual/sdk).
+* Examples: [Metalama.Community](https://github.com/postsharp/Metalama.Community), a set of examples migrated from Fody.
+

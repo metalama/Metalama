@@ -1,4 +1,4 @@
-![Metalama Logo](https://raw.githubusercontent.com/postsharp/Metalama/master/images/metalama-by-postsharp.svg)
+![Metalama Logo](https://raw.githubusercontent.com/metalama/Metalama/master/images/metalama.svg)
 
 The `Metalama.LinqPad` package allows you to load any C# project or solution into LINQPad and exposes its code model to queries. This package contains an optional driver, samples, and dumping methods.
 
