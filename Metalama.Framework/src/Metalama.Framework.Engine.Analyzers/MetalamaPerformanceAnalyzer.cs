@@ -22,7 +22,7 @@ public class MetalamaPerformanceAnalyzer : DiagnosticAnalyzer
     // Range: 830-839
     internal static readonly DiagnosticDescriptor NormalizeWhitespace = new(
         "LAMA0830",
-        "NormalizeWhitespace is expensive.",
+        "NormalizeWhitespace is expensive",
         "The NormalizeWhitespace method is expensive and should only be called when necessary or when performance doesn't matter. Consider using the conditional NormalizeWhitespaceIfNecessary instead.",
         "Metalama",
         DiagnosticSeverity.Warning,
@@ -30,8 +30,8 @@ public class MetalamaPerformanceAnalyzer : DiagnosticAnalyzer
 
     internal static readonly DiagnosticDescriptor SyntaxNodeWith = new(
         "LAMA0831",
-        "Avoid chained With calls on SyntaxNodes.",
-        "Avoid chained With calls on SyntaxNodes, use the PartialUpdate method instead to avoid allocating garbage nodes.",
+        "Avoid chained With calls on SyntaxNodes",
+        "Avoid chained With calls on SyntaxNodes, use the PartialUpdate method instead to avoid allocating garbage nodes",
         "Metalama",
         DiagnosticSeverity.Warning,
         true );
@@ -39,8 +39,8 @@ public class MetalamaPerformanceAnalyzer : DiagnosticAnalyzer
     // ReSharper disable once MemberCanBePrivate.Global
     internal static readonly DiagnosticDescriptor WithTrivia = new(
         "LAMA0832",
-        "Avoid WithLeadingTrivia and WithTrailingTrivia calls.",
-        "Avoid WithLeadingTrivia and WithTrailingTrivia calls, use the WithTriviaIfNecessary method instead.",
+        "Avoid WithLeadingTrivia and WithTrailingTrivia calls",
+        "Avoid WithLeadingTrivia and WithTrailingTrivia calls, use the WithTriviaIfNecessary method instead",
         "Metalama",
         DiagnosticSeverity.Warning,
         true );

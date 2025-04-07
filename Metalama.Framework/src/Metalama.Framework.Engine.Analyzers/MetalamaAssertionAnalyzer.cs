@@ -22,7 +22,7 @@ public class MetalamaAssertionAnalyzer : DiagnosticAnalyzer
     // ReSharper disable once MemberCanBePrivate.Global
     internal static readonly DiagnosticDescriptor AssertNotNullShouldNotBeUsedOnSymbols = new(
         "LAMA0840",
-        "AssertNotNull should not be used to assert ISymbol. Use AssertSymbolNotNull or AssertSymbolNullNotImplemented.",
+        "AssertNotNull should not be used to assert ISymbol, use AssertSymbolNotNull or AssertSymbolNullNotImplemented",
         "The AssertNotNull method does not provide the user the information about introduced type not being yet supported in this particular scenario. Use AssertSymbolNotNull or AssertSymbolNullNotImplemented.",
         "Metalama",
         DiagnosticSeverity.Warning,
@@ -32,7 +32,7 @@ public class MetalamaAssertionAnalyzer : DiagnosticAnalyzer
     // ReSharper disable once UnusedMember.Global
     internal static readonly DiagnosticDescriptor AssertNotNullShouldNotBeUsedOnNonNullable = new(
         "LAMA0841",
-        "Method should not be used to assert non-nullable type.",
+        "Method should not be used to assert non-nullable type",
         "{0} method is intended to assert nullable type not being null and should not be used on non-nullable type. Check the call site and remove the assertion.",
         "Metalama",
         DiagnosticSeverity.Warning,

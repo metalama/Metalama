@@ -19,21 +19,21 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="../Metalama.Framework.Engine$(ThisRoslynVersionProjectSuffix)/Metalama.Framework.Engine$(ThisRoslynVersionProjectSuffix).csproj" />
-        <ProjectReference Include="..\Metalama.Framework.DesignTime$(ThisRoslynVersionProjectSuffix)\Metalama.Framework.DesignTime$(ThisRoslynVersionProjectSuffix).csproj" />
+        <ProjectReference Include="../Metalama.Framework.Engine$(ThisRoslynVersionProjectSuffix)/Metalama.Framework.Engine$(ThisRoslynVersionProjectSuffix).csproj" PrivateAssets="all" />
+        <ProjectReference Include="../Metalama.Framework.DesignTime$(ThisRoslynVersionProjectSuffix)/Metalama.Framework.DesignTime$(ThisRoslynVersionProjectSuffix).csproj" PrivateAssets="all" />
         <ProjectReference Include="../Metalama.Framework.Sdk/Metalama.Framework.Sdk.csproj" />
         <ProjectReference Include="../Metalama.Framework/Metalama.Framework.csproj" />
 
         <!-- Validate that we do not expose internal APIs -->
         <ProjectReference Include="../Metalama.Framework.Engine.Analyzers/Metalama.Framework.Engine.Analyzers.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 
+        <!-- Dependency of the resulting package should be on Implementation package. -->
+        <ProjectReference Condition="$(ThisRoslynVersion) == $(RoslynMaxVersion)" Include="../Metalama.Framework.Implementation.Package/Metalama.Framework.Implementation.Package.csproj" />
+
         <!-- Override dependencies to avoid vulnarability warnings. -->
         <PackageReference Include="System.Text.Json" VersionOverride="$(SystemTextJsonLatestVersion)" />
         <PackageReference Include="System.Net.Http" VersionOverride="$(SystemNetHttpLatestVersion)" />
         <PackageReference Include="System.Text.RegularExpressions" VersionOverride="$(SystemTextRegularExpressionsLatestVersion)" />
-
-        <ProjectReference Condition="$(ThisRoslynVersion) == $(RoslynMaxVersion)" Include="../Metalama.Framework.Implementation.Package/Metalama.Framework.Implementation.Package.csproj" PrivateAssets="all" />
-        
     </ItemGroup>
 
     <ItemGroup>

@@ -11,7 +11,7 @@
     <Import Project="../../../../eng/Coverage.props" />
 
     <PropertyGroup>
-        <TargetFrameworks>netframework4.8;net8.0</TargetFrameworks>
+        <TargetFrameworks>net48;net8.0</TargetFrameworks>
         <IsPackable>false</IsPackable>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <MetalamaTestAutoExclude>False</MetalamaTestAutoExclude>

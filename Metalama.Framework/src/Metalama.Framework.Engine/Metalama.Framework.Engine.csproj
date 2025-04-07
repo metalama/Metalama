@@ -1,4 +1,6 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project>
+
+    <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" Condition="$(MSBuildThisFileFullPath) == $(MSBuildProjectFullPath)" />
 
     <Import Project="../../build/RoslynVersion/Latest.imports" />
     
@@ -90,19 +92,6 @@
         <EmbeddedResource Include="$(AssetsDirectory)/system-types/*.cs" Link="(Resources)/%(Filename)" />
     </ItemGroup>
 
-    <!-- Packaging -->
-    <ItemGroup>
-        <None Include="README.md" Pack="true" PackagePath="/" />
-    </ItemGroup>
+    <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" Condition="$(MSBuildThisFileFullPath) == $(MSBuildProjectFullPath)" />
 
-    <PropertyGroup>
-        <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);_AddAnalyzerToPackage</TargetsForTfmSpecificContentInPackage>
-    </PropertyGroup>
-
-    <Target Name="_AddAnalyzerToPackage">
-        <ItemGroup>
-            <TfmSpecificPackageFile Include="$(MSBuildProjectDirectory)/../Metalama.Framework.Engine.Analyzers/bin/$(Configuration)/netstandard2.0/Metalama.Framework.Engine.Analyzers.dll" PackagePath="analyzers/dotnet/cs" />
-        </ItemGroup>
-    </Target>
-    
 </Project>

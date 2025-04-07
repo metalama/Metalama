@@ -16,16 +16,16 @@ public partial class MetalamaInternalsAnalyzer : DiagnosticAnalyzer
     // Range: 820-829
     private static readonly DiagnosticDescriptor _cannotConsumeApi = new(
         "LAMA0820",
-        "Cannot reference an internal Metalama API.",
-        "'{0}' is an internal Metalama API and should not be referenced in user code.",
+        "Cannot reference an internal Metalama API",
+        "'{0}' is an internal Metalama API and should not be referenced in user code",
         "Metalama",
         DiagnosticSeverity.Warning,
         true );
 
     private static readonly DiagnosticDescriptor _cannotExposeApi = new(
         "LAMA0821",
-        "Cannot expose an internal Metalama API.",
-        "Cannot expose the internal Metalama API '{0}'.",
+        "Cannot expose an internal Metalama API",
+        "Cannot expose the internal Metalama API '{0}'",
         "Metalama",
         DiagnosticSeverity.Warning,
         true );

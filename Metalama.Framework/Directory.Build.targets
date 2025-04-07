@@ -47,7 +47,7 @@
          Newer TFMs get a version of the assembly that forwards the necessary types to system assemblies.
          To disable, use the ReferenceMetalamaSystemTypes property. -->
     <PropertyGroup>
-        <_RequiresSystemTypes Condition="'$(TargetFramework)'=='netstandard2.0' OR '$(TargetFramework)'=='net472' OR '$(TargetFramework)'=='netframework4.8'">True</_RequiresSystemTypes>
+        <_RequiresSystemTypes Condition="'$(TargetFramework)'=='netstandard2.0' OR '$(TargetFramework)'=='net472' OR '$(TargetFramework)'=='net48'">True</_RequiresSystemTypes>
     </PropertyGroup>
     
     <ItemGroup Condition="'$(ReferenceMetalamaSystemTypes)'!='False'">

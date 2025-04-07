@@ -871,7 +871,7 @@ class D{version}
         var baseDirectoryPath = new FileInfo( netMetalamaFrameworkPath ).Directory!.Parent!.FullName;
         var metalamaFrameworkAssemblyName = Path.GetFileName( netMetalamaFrameworkPath );
 
-        var netFrameworkMetalamaFrameworkPath = Path.Combine( baseDirectoryPath, "netframework4.8", metalamaFrameworkAssemblyName );
+        var netFrameworkMetalamaFrameworkPath = Path.Combine( baseDirectoryPath, "net48", metalamaFrameworkAssemblyName );
 
         // It may be possible that only the .Net 6.0 TFM of this project has been built. In that case, this test cannot proceed.
         Skip.If( !File.Exists( netFrameworkMetalamaFrameworkPath ) );

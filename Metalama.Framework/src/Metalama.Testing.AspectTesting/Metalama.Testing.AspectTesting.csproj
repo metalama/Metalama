@@ -31,14 +31,14 @@
 
     <ItemGroup>
         <!-- Explicitly add Metalama.Framework.Engine because the reference to Metalama.Framework.DesignTime must have PrivateAssets="all" -->
-        <ProjectReference Include="../Metalama.Framework.Engine$(ThisRoslynVersionProjectSuffix)/Metalama.Framework.Engine$(ThisRoslynVersionProjectSuffix).csproj" />
-        <ProjectReference Include="../Metalama.Framework.DesignTime$(ThisRoslynVersionProjectSuffix)/Metalama.Framework.DesignTime$(ThisRoslynVersionProjectSuffix).csproj" PrivateAssets="all" />
+        <ProjectReference Include="../Metalama.Framework.Engine$(ThisRoslynVersionProjectSuffix)/Metalama.Framework.Engine$(ThisRoslynVersionProjectSuffix).csproj" PrivateAssets="all" />
         <ProjectReference Include="../Metalama.Framework.DesignTime$(ThisRoslynVersionProjectSuffix)/Metalama.Framework.DesignTime$(ThisRoslynVersionProjectSuffix).csproj" PrivateAssets="all" />
         <ProjectReference Include="../Metalama.Framework.Sdk/Metalama.Framework.Sdk.csproj" />
         <ProjectReference Include="../Metalama.Framework/Metalama.Framework.csproj" />
         <ProjectReference Include="../Metalama.Testing.UnitTesting$(ThisRoslynVersionProjectSuffix)/Metalama.Testing.UnitTesting$(ThisRoslynVersionProjectSuffix).csproj" />
 
-        <ProjectReference Condition="$(ThisRoslynVersion) == $(RoslynMaxVersion)" Include="../Metalama.Framework.Implementation.Package/Metalama.Framework.Implementation.Package.csproj" PrivateAssets="all" />
+        <!-- Dependency of the resulting package should be on Implementation package. -->
+        <ProjectReference Condition="$(ThisRoslynVersion) == $(RoslynMaxVersion)" Include="../Metalama.Framework.Implementation.Package/Metalama.Framework.Implementation.Package.csproj" />
 
     </ItemGroup>
 

@@ -1,5 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
+    <Import Project="../../build/RoslynVersion/Latest.imports" />
+
     <PropertyGroup>
         <TargetFrameworks>net472;net6.0</TargetFrameworks>
         <ImplicitUsings>enable</ImplicitUsings>
@@ -29,15 +31,26 @@ added because the package already contains file 'analyzers/dotnet/cs/Metalama.Fr
     </ItemGroup>
 
     <PropertyGroup>
-        <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);_AddLibrariesToPackage</TargetsForTfmSpecificContentInPackage>
+        <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);_AddLibrariesToPackage;_AddAnalyzerToPackage</TargetsForTfmSpecificContentInPackage>
     </PropertyGroup>
+
+    <!-- Packaging -->
+    <ItemGroup>
+        <None Include="README.md" Pack="true" PackagePath="/" />
+    </ItemGroup>
+
+    <Target Name="_AddAnalyzerToPackage">
+        <ItemGroup>
+            <TfmSpecificPackageFile Include="$(MSBuildProjectDirectory)/../Metalama.Framework.Engine.Analyzers/bin/$(Configuration)/netstandard2.0/Metalama.Framework.Engine.Analyzers.dll" PackagePath="analyzers/dotnet/cs" />
+        </ItemGroup>
+    </Target>
 
     <Target Name="_AddLibrariesToPackage">
         <ItemGroup>
-            <TfmSpecificPackageFile Include="$(MSBuildProjectDirectory)/bin/$(Configuration)/$(TargetFramework)/Metalama.Framework.DesignTime.dll" PackagePath="lib/$(TargetFramework)" />
+            <TfmSpecificPackageFile Include="$(MSBuildProjectDirectory)/bin/$(Configuration)/$(TargetFramework)/Metalama.Framework.DesignTime.$(ThisRoslynVersionNoPreview).dll" PackagePath="lib/$(TargetFramework)" />
             <TfmSpecificPackageFile Include="$(MSBuildProjectDirectory)/bin/$(Configuration)/$(TargetFramework)/Metalama.Framework.DesignTime.Rpc.dll" PackagePath="lib/$(TargetFramework)" />
             <TfmSpecificPackageFile Include="$(MSBuildProjectDirectory)/bin/$(Configuration)/$(TargetFramework)/Metalama.Framework.DesignTime.Contracts.dll" PackagePath="lib/$(TargetFramework)" />
-            <TfmSpecificPackageFile Include="$(MSBuildProjectDirectory)/bin/$(Configuration)/$(TargetFramework)/Metalama.Framework.Engine.dll" PackagePath="lib/$(TargetFramework)" />
+            <TfmSpecificPackageFile Include="$(MSBuildProjectDirectory)/bin/$(Configuration)/$(TargetFramework)/Metalama.Framework.Engine.$(ThisRoslynVersionNoPreview).dll" PackagePath="lib/$(TargetFramework)" />
         </ItemGroup>
     </Target>
     
