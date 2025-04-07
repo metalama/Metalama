@@ -1,6 +1,5 @@
 ![Metalama Logo](https://raw.githubusercontent.com/postsharp/Metalama/master/images/metalama-by-postsharp.svg)
 
-The `Metalama.Framework.DesignTime` package contains design-time logic of the implementation of `Metalama.Framework`. 
 
 It is required by `Metalama.Testing.AspectTesting`.
 

@@ -22,12 +22,14 @@
 
 
     <ItemGroup>
-        <ProjectReference Include="../Metalama.Framework.Engine/Metalama.Framework.Engine.csproj" />
+        <ProjectReference Include="../Metalama.Framework.Engine/Metalama.Framework.Engine.csproj" PrivateAssets="all" />
         <ProjectReference Include="../Metalama.Framework.Introspection/Metalama.Framework.Introspection.csproj" />
         <ProjectReference Include="../Metalama.Framework/Metalama.Framework.csproj" />
         
         <!-- Validate that we do not expose internal APIs -->
         <ProjectReference Include="../Metalama.Framework.Engine.Analyzers/Metalama.Framework.Engine.Analyzers.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+
+        <ProjectReference Include="../Metalama.Framework.Implementation.Package/Metalama.Framework.Implementation.Package.csproj" />
     </ItemGroup>
 
     <ItemGroup>

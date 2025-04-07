@@ -3,8 +3,7 @@
     <PropertyGroup>
         <TargetFramework>netstandard2.0</TargetFramework>
         <RootNamespace>Metalama.Framework.CompileTimeContracts</RootNamespace>
-        <PackageDescription>Defines the interface between the transformed compile-time user code and the Metalama engine.  The package should normally never be referenced in any user project.</PackageDescription>
-        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <IsPackable>False</IsPackable>
     </PropertyGroup>
 
     <ItemGroup>

@@ -33,6 +33,26 @@ added because the package already contains file 'analyzers/dotnet/cs/Metalama.Fr
         <ProjectReference Include="../Metalama.Framework.Engine/Metalama.Framework.Engine.csproj" PrivateAssets="all" />
     </ItemGroup>
 
+    
+    <ItemGroup>
+        <!-- Should contain all package references that projects with PrivateAssets="all" have. -->
+
+        <PackageReference Include="Metalama.Backstage" />
+        <PackageReference Include="Metalama.Backstage.Tools" />
+        <PackageReference Include="Metalama.Compiler.Sdk" />
+
+        <PackageReference Include="DiffPlex" />
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" VersionOverride="$(ThisRoslynVersion)" />
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Features" VersionOverride="$(ThisRoslynVersion)" />
+        <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.Common" VersionOverride="$(ThisRoslynVersion)" />
+        <PackageReference Include="Microsoft.Bcl.HashCode" />
+        <PackageReference Include="K4os.Hash.xxHash" />
+        <PackageReference Include="Microsoft.CSharp" />
+        <PackageReference Include="Newtonsoft.Json" NoWarn="NU1903" />
+        <PackageReference Include="System.Reflection.Emit" />
+        <PackageReference Include="System.Runtime.Serialization.Formatters" />
+    </ItemGroup>
+
     <PropertyGroup>
         <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);_AddLibrariesToPackage;_AddAnalyzerToPackage</TargetsForTfmSpecificContentInPackage>
     </PropertyGroup>
