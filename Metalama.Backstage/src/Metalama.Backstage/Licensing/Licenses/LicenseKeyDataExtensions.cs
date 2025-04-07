@@ -51,7 +51,7 @@ namespace Metalama.Backstage.Licensing.Licenses
                     LicenseProduct.MetalamaEnterprise => ServicingPhase.LongTerm,
                     LicenseProduct.PostSharpFramework => ServicingPhase.Extended,
                     LicenseProduct.PostSharpUltimate => ServicingPhase.Extended,
-                    _ => ServicingPhase.Default
+                    _ => ServicingPhase.Current
                 };
 
         internal static string GetDisplayName( this LicenseKeyData licenseKeyData )

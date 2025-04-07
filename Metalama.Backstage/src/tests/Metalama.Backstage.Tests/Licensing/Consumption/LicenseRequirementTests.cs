@@ -176,20 +176,20 @@ public sealed class LicenseRequirementTests : LicenseConsumptionServiceTestsBase
     }
 
     [Theory]
-    [InlineData( nameof(TestLicenseKeyProvider.MetalamaProfessionalBusinessNoGeneration), ServicingPhase.Default, true )]
+    [InlineData( nameof(TestLicenseKeyProvider.MetalamaProfessionalBusinessNoGeneration), ServicingPhase.Current, true )]
     [InlineData( nameof(TestLicenseKeyProvider.MetalamaProfessionalBusinessNoGeneration), ServicingPhase.Extended, true )]
     [InlineData( nameof(TestLicenseKeyProvider.MetalamaProfessionalBusinessNoGeneration), ServicingPhase.LongTerm, true )]
-    [InlineData( nameof(TestLicenseKeyProvider.MetalamaProfessionalBusiness), ServicingPhase.Default, true )]
+    [InlineData( nameof(TestLicenseKeyProvider.MetalamaProfessionalBusiness), ServicingPhase.Current, true )]
     [InlineData( nameof(TestLicenseKeyProvider.MetalamaProfessionalBusiness), ServicingPhase.Extended, true )]
     [InlineData( nameof(TestLicenseKeyProvider.MetalamaProfessionalBusiness), ServicingPhase.LongTerm, false )]
-    [InlineData( nameof(TestLicenseKeyProvider.MetalamaEnterprise), ServicingPhase.Default, true )]
+    [InlineData( nameof(TestLicenseKeyProvider.MetalamaEnterprise), ServicingPhase.Current, true )]
     [InlineData( nameof(TestLicenseKeyProvider.MetalamaEnterprise), ServicingPhase.Extended, true )]
     [InlineData( nameof(TestLicenseKeyProvider.MetalamaEnterprise), ServicingPhase.LongTerm, true )]
-    [InlineData( nameof(TestLicenseKeyProvider.PostSharpUltimateWithLongTermSupport), ServicingPhase.Default, true )]
+    [InlineData( nameof(TestLicenseKeyProvider.PostSharpUltimateWithLongTermSupport), ServicingPhase.Current, true )]
     [InlineData( nameof(TestLicenseKeyProvider.PostSharpUltimateWithLongTermSupport), ServicingPhase.Extended, true )]
     [InlineData( nameof(TestLicenseKeyProvider.PostSharpUltimateWithLongTermSupport), ServicingPhase.LongTerm, true )]
 #pragma warning disable CS0612 // Type or member is obsolete
-    [InlineData( nameof(TestLicenseKeyProvider.MetalamaUltimateBusiness), ServicingPhase.Default, true )]
+    [InlineData( nameof(TestLicenseKeyProvider.MetalamaUltimateBusiness), ServicingPhase.Current, true )]
     [InlineData( nameof(TestLicenseKeyProvider.MetalamaUltimateBusiness), ServicingPhase.Extended, true )]
     [InlineData( nameof(TestLicenseKeyProvider.MetalamaUltimateBusiness), ServicingPhase.LongTerm, true )]
 #pragma warning restore CS0612 // Type or member is obsolete
@@ -212,7 +212,7 @@ public sealed class LicenseRequirementTests : LicenseConsumptionServiceTestsBase
         "Metalama Professional, Metalama Enterprise, PostSharp Framework, PostSharp Ultimate" )]
     [InlineData(
         nameof(TestLicenseKeyProvider.MetalamaCommunity),
-        ServicingPhase.Default,
+        ServicingPhase.Current,
         "Metalama Professional, Metalama Enterprise, PostSharp Framework, PostSharp Ultimate, Metalama Starter (legacy), Metalama Ultimate (legacy)" )]
     public void ErrorMessageContainsExpectedProductList( string licenseKeyName, ServicingPhase servicingPhase, string expectedProductList )
     {

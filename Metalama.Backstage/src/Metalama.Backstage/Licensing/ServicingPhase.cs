@@ -6,7 +6,7 @@ namespace Metalama.Backstage.Licensing;
 
 public enum ServicingPhase : byte
 {
-    Default = 0,
+    Current = 0,
     Extended = 1,
     LongTerm = 2
 }

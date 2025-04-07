@@ -59,7 +59,7 @@ public abstract class LicenseRequirement
     public string ComponentName { get; }
 
     public string ComponentNameWithServicingPhase
-        => this.ServicingPhase == ServicingPhase.Default ? this.ComponentName : $"{this.ComponentName} ({this.ServicingPhase.GetDisplayName()} Support)";
+        => this.ServicingPhase == ServicingPhase.Current ? this.ComponentName : $"{this.ComponentName} ({this.ServicingPhase.GetDisplayName()} Support)";
 
     public static LicenseRequirement Any => new AnyLicenseRequirement();
 

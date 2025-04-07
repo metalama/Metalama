@@ -50,7 +50,7 @@ internal static class LicenseProductExtensions
             LicenseProduct.MetalamaEnterprise => ServicingPhase.LongTerm,
             LicenseProduct.PostSharpFramework => ServicingPhase.Extended,
             LicenseProduct.PostSharpUltimate => ServicingPhase.Extended,
-            _ => ServicingPhase.Default
+            _ => ServicingPhase.Current
         };
 
     public static bool CanHaveLongTermSupportOption( this LicenseProduct product )

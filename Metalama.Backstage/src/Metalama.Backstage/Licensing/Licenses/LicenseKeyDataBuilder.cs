@@ -295,14 +295,14 @@ public partial class LicenseKeyDataBuilder : ILicenseKeyData
         get
             => this.GetFieldValue( LicenseFieldIndex.ServicingPhase ) switch
             {
-                null => ServicingPhase.Default,
+                null => ServicingPhase.Current,
                 byte supportLevel => (ServicingPhase) supportLevel,
                 _ => throw new InvalidCastException( "Invalid support level." )
             };
 
         set
         {
-            if ( value != ServicingPhase.Default )
+            if ( value != ServicingPhase.Current )
             {
                 this.SetFieldValue<LicenseFieldByte>( LicenseFieldIndex.ServicingPhase, (byte) value );
             }

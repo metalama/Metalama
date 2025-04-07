@@ -59,7 +59,7 @@ public sealed class TestLicenseKeyProvider
         LicenseProduct product,
         LicenseType type = LicenseType.Business,
         LicenseGeneration generation = LicenseGeneration.Current,
-        ServicingPhase servicing = ServicingPhase.Default,
+        ServicingPhase servicing = ServicingPhase.Current,
         bool sign = true,
         bool endSubscription = true )
         => this.GenerateLicenseKey(
@@ -74,7 +74,7 @@ public sealed class TestLicenseKeyProvider
                     license.Generation = generation;
                 }
 
-                if ( servicing != ServicingPhase.Default )
+                if ( servicing != ServicingPhase.Current )
                 {
                     license.ServicingPhase = servicing;
                 }

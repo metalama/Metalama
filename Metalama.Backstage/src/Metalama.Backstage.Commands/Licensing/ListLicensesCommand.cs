@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Backstage.Extensibility;
+using Metalama.Backstage.Licensing;
 using Metalama.Backstage.Licensing.Registration;
 using Spectre.Console;
 using System;
@@ -73,7 +74,7 @@ namespace Metalama.Backstage.Commands.Licensing
 
                     AddRow( "License Expiration", expiration );
                     AddRow( "Maintenance Expiration", Format( data.SubscriptionEndDate ) );
-                    AddRow( "Support Level", data.ServicingPhase.ToString() );
+                    AddRow( "Eligible Servicing Phases", data.ServicingPhase.GetDisplayName( true ) );
 
                     context.Console.Out.Write( table );
                 }

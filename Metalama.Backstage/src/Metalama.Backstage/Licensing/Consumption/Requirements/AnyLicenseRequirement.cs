@@ -8,7 +8,7 @@ namespace Metalama.Backstage.Licensing.Consumption.Requirements;
 
 internal sealed class AnyLicenseRequirement : LicenseRequirement
 {
-    public AnyLicenseRequirement() : base( "Any", ServicingPhase.Default ) { }
+    public AnyLicenseRequirement() : base( "Any", ServicingPhase.Current ) { }
 
     public override bool IsEligible( LicenseConsumptionContext context ) => true;
 

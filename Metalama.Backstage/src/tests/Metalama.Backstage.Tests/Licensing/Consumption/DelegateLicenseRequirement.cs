@@ -13,7 +13,7 @@ internal sealed class DelegateLicenseRequirement : LicenseRequirement
 {
     private readonly Predicate<LicenseConsumptionContext> _predicate;
 
-    public DelegateLicenseRequirement( Predicate<LicenseConsumptionContext> predicate ) : base( "<Component>", ServicingPhase.Default )
+    public DelegateLicenseRequirement( Predicate<LicenseConsumptionContext> predicate ) : base( "<Component>", ServicingPhase.Current )
     {
         this._predicate = predicate;
     }

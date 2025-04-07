@@ -4,14 +4,17 @@
 
 namespace Metalama.Backstage.Licensing;
 
-internal static class ServicingPhaseExtensions
+public static class ServicingPhaseExtensions
 {
-    public static string GetDisplayName( this ServicingPhase servicingPhase )
-        => servicingPhase switch
+    public static string GetDisplayName( this ServicingPhase servicingPhase, bool listAllSupported = false )
+        => (servicingPhase, listAllSupported) switch
         {
-            ServicingPhase.Default => "Mainstream",
-            ServicingPhase.Extended => "Extended",
-            ServicingPhase.LongTerm => "Long Term",
+            (ServicingPhase.Current, false) => "Current",
+            (ServicingPhase.Extended, false) => "Extended",
+            (ServicingPhase.LongTerm, false) => "Long Term",
+            (ServicingPhase.Current, true) => "Current",
+            (ServicingPhase.Extended, true) => "Curent, Extended",
+            (ServicingPhase.LongTerm, true) => "Current, Extented, Long Term",
             _ => servicingPhase.ToString()
         };
 }

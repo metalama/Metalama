@@ -8,7 +8,7 @@ namespace Metalama.Backstage.Licensing.Consumption.Requirements;
 
 public class MetalamaExtensionLicenseRequirement : LicenseRequirement
 {
-    public MetalamaExtensionLicenseRequirement( string componentName, ServicingPhase requiredServicingPhase = ServicingPhase.Default ) : base(
+    public MetalamaExtensionLicenseRequirement( string componentName, ServicingPhase requiredServicingPhase = ServicingPhase.Current ) : base(
         componentName,
         requiredServicingPhase ) { }
 

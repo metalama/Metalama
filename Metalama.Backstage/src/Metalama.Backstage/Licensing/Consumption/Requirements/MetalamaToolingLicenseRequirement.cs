@@ -8,7 +8,7 @@ namespace Metalama.Backstage.Licensing.Consumption.Requirements;
 
 public class MetalamaToolingLicenseRequirement : LicenseRequirement
 {
-    public MetalamaToolingLicenseRequirement( ServicingPhase requiredServicingPhase = ServicingPhase.Default ) : base(
+    public MetalamaToolingLicenseRequirement( ServicingPhase requiredServicingPhase = ServicingPhase.Current ) : base(
         "Visual Studio Tools for Metalama",
         requiredServicingPhase ) { }
 
