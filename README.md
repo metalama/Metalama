@@ -98,8 +98,8 @@ For more details, see [Contributing to Metalama](https://metalama.net/contributi
 
 Below is a list of packages originating from this repository:
 
-| Package Name                                                                                          | License | Description                                                                                           |
-|-------------------------------------------------------------------------------------------------------|---------|-------------------------------------------------------------------------------------------------------|
+| Package Name                                                                                          |Description                                                                                           |
+|-------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------|
 | [Metalama.Framework](https://www.nuget.org/packages/Metalama.Framework/)                             |  This is the public API of the Metalama Framework. It incorporates a reference to Metalama.Compiler, effectively replacing the Roslyn compiler with our custom version.  |
 | [Metalama.Testing.UnitTesting](https://www.nuget.org/packages/Metalama.Testing.UnitTesting/)          |  Provides base classes and utilities for unit testing compile-time code.   |
 | [Metalama.Testing.AspectTesting](https://www.nuget.org/packages/Metalama.Testing.AspectTesting/)      |  A framework based on xUnit for testing code generation by aspects.   |
@@ -135,4 +135,4 @@ Below is a list of packages originating from this repository:
 | [Metalama.Community](https://github.com/metalama/Metalama.Community)     | MIT              | Community-contributed aspects repository.                                   |
 | [Metalama.Documentation](https://github.com/metalama/Metalama.Documentation) | MIT              | Source for documentation hosted on [Metalama Docs](https://doc.metalama.net/). |
 | [Metalama.Samples](https://github.com/metalama/Metalama.Samples)          | MIT              | Illustrative samples available at [Metalama Examples](https://doc.metalama.net/examples). |
-| [Metalama.Premium](https://github.com/metalama/Metalama.Premium) 🔑         | Proprietary      | Extensions available to customers with a paid license.                      |
+| [Metalama.Premium](https://github.com/metalama/Metalama.Premium) 🔑         | Proprietary      | Extensions available to customers with a commercial license.                      |
