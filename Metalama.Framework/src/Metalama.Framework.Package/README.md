@@ -1,4 +1,4 @@
-![Metalama Logo](https://raw.githubusercontent.com/postsharp/Metalama/master/images/metalama-by-postsharp.svg)
+![Metalama Logo](https://raw.githubusercontent.com/postsharp/Metalama/master/images/metalama.svg)
 
 Metalama is a Roslyn-based framework for on-the-fly code generation and validation in C#.
 

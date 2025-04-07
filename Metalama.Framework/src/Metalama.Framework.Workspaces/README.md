@@ -1,4 +1,4 @@
-![Metalama Logo](https://raw.githubusercontent.com/postsharp/Metalama/master/images/metalama-by-postsharp.svg)
+![Metalama Logo](https://raw.githubusercontent.com/postsharp/Metalama/master/images/metalama.svg)
 
 This package allows you to load Metalama in any project, where you can load full pipeline but it's not possible to compile out of this pipeline.
 

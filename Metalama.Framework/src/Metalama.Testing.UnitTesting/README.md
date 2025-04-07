@@ -1,4 +1,4 @@
-![Metalama Logo](https://raw.githubusercontent.com/postsharp/Metalama/master/images/metalama-by-postsharp.svg)
+![Metalama Logo](https://raw.githubusercontent.com/postsharp/Metalama/master/images/metalama.svg)
 
 The `Metalama.Testing.UnitTesting` package is a class library that allows you to unit test compile-time code written against the Metalama code model. 
 

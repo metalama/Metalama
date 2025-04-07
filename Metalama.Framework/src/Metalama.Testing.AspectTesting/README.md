@@ -1,4 +1,4 @@
-![Metalama Logo](https://raw.githubusercontent.com/postsharp/Metalama/master/images/metalama-by-postsharp.svg)
+![Metalama Logo](https://raw.githubusercontent.com/postsharp/Metalama/master/images/metalama.svg)
 
 The `Metalama.Testing.AspectTesting` is a test framework that you can use to test aspects and fabrics and that integrate with all test runners supporting xUnit.
 

@@ -1,220 +1,123 @@
 <p align="center">
-<img width="450" src="images/metalama-by-postsharp.svg" alt="Metalama logo" />
+  <img width="450" src="images/metalama.svg" alt="Metalama logo" />
 </p>
 
-[![Slack](https://img.shields.io/badge/Slack-4A154B?label=Chat%20with%20us&style=flat&logo=slack&logoColor=white)](https://www.postsharp.net/slack)
+**A Roslyn-based meta-programming framework for code generation, architecture validation and aspect-oriented programming in C#.**
 
-Welcome to Metalama, a Roslyn-based framework for code generation and validation, designed to enhance your code quality and productivity in C#. Metalama stands on three foundational principles:
+[Metalama](https://metalama.net) lets you write cleaner, more maintainable .NET code by automating repetitive patterns at compile time using aspects, templates, and compile-time logic. It integrates tightly with the Roslyn compiler, providing full control over how your code is built.
 
-* *Boilerplate Reduction*: Harness the power of aspect-oriented programming to dynamically generate repetitive code during compilation. This ensures your source code stays concise and clear.
-* *Architecture as Code*: Receive real-time validation of your code against your architectural guidelines, patterns, and conventions. Say goodbye to waiting for code reviews.
-* *Tailored Coding Assistance*: Arm your team with personalized code fixes and refactorings.
+## Why Metalama?
+
+- **Write and maintain less code**: Eliminate boilerplate by generating it dynamically during compilation, reducing code lines and bugs by up to 15%.
+- **Validate your codebase in real time**: Enforce adherence to design rules and conventions without waiting for code reviews.
+- **Excel with large, complex, or legacy codebases**: Metalama shines at scale and does not require architectural changes.
+
+## When to use it?
+
+Metalama is ideal for:
+
+- **Large projects**: Automate repetitive patterns across dozens of entities and hundreds of properties or methods.
+- **Large teams**: Align developers on consistent patterns and practices.
+- **Long lifecycle projects**: Maintain quality over years of development.
+
+It's main use cases are:
+
+- **Design Patterns**: [Singleton](https://metalama.net/applications/design-patterns/classic-singleton), [Memento](https://metalama.net/applications/design-patterns/memento), [Factory](https://metalama.net/applications/design-patterns/factory), [Builder](https://metalama.net/applications/design-patterns/builder), [Decorator](https://metalama.net/applications/design-patterns/decorator), [Proxy](https://metalama.net/applications/design-patterns/proxy), ...
+- **UI Patterns**: [INotifyPropertyChanged](https://metalama.net/applications/ui/inotifypropertychanged), [Change Tracking](https://metalama.net/applications/ui/command), [Memoization](https://metalama.net/applications/ui/memoization), [Undo/Redo](https://metalama.net/applications/ui/undo-redo), [Command](https://metalama.net/applications/ui/command), [Dependency Properties](https://metalama.net/applications/ui/dependency-property), ...
+- **Object Services**: Cloning, ToString, Comparison, ...
+- **Defensive Programming**: [Code Contracts](https://metalama.net/applications/contracts) (preconditions, post-conditions, invariants)
+- **DevOps**: [Logging & Tracing](https://metalama.net/applications/devops/logging), [Metrics](https://metalama.net/applications/devops/metrics), [Caching](https://metalama.net/applications/devops/caching), [Exception Handling](https://metalama.net/applications/devops/exception-handling)
 
 
-## Quick Links
+---
 
-- 🌐 [Metalama Website](https://www.postsharp.net/metalama)
+## License
+
+Metalama is released under the [MIT license](LICENSE.md).
+
+Some optional extensions and IDE tooling are released under a proprietary license. 💎
+
+---
+
+## Features
+
+- [Code Generation](https://metalama.net/features/core/code-generation)
+- [Code Validation](https://metalama.net/features/core/code-validation)
+- [Architecture Validation](https://metalama.net/features/core/architecture-verification) 💎
+- [Immediate Editor Feedback](https://metalama.net/features/core/architecture-verification)
+- [Code Fix Toolkit](https://metalama.net/features/core/code-fixes) 💎
+- [Ready-to-Use Aspect Libraries](https://metalama.net/features/productivity/aspect-libraries)
+- [Visual Studio Tooling](https://metalama.net/features/productivity/tooling) 💎
+- [Test Frameworks](https://metalama.net/features/productivity/testing)
+- [Debugging of Transformed Code](https://metalama.net/features/productivity/debugging)
+- [Roslyn Extensibility SDK](https://metalama.net/features/extensibility/roslyn)
+- [Code Query API](https://metalama.net/features/extensibility/code-query)
+
+---
+
+## Resources
+
+- 🌐 [Metalama Website](https://metalama.net)
 - 📖 [Documentation](https://doc.metalama.net)
 - 📝 [Annotated Examples](https://doc.metalama.net/examples)
-- 🎥 [Tutorial Videos](https://doc.metalama.net/videos)
-- 🐞 [Bug Reports](https://github.com/metalama/Metalama/issues)
-- 💬 [Discussions](https://github.com/orgs/metalama/discussions)
 - 📜 [Detailed Changelog](https://github.com/orgs/metalama/discussions/categories/changelog)
 - 📢 [Release Notes](https://doc.metalama.net/conceptual/aspects/release-notes)
-- ✨ [Visual Studio Extension](https://marketplace.visualstudio.com/items?itemName=PostSharpTechnologies.PostSharp)
+- ✨ [Metalama Tools for Visual Studio Extension](https://marketplace.visualstudio.com/items?itemName=PostSharpTechnologies.PostSharp)
 
-## Components
+---
 
+## Quick Start
 
-### Dependency Graph
-
-Here is a graph of the dependencies between the principal packages in this repository:
-
-```mermaid
-flowchart LR
-    
-Metalama.Compiler --> Metalama.Framework
-
-subgraph Metalama repository
-Metalama.Backstage --> Metalama.Framework
-Metalama.Framework --> Metalama.Extensions
-Metalama.Extensions --> Metalama.Migration
-Metalama.Framework --> Metalama.LinqPad
-Metalama.Extensions --> Metalama.Patterns
-end
-
-Metalama.Extensions --> Metalama.Samples
-Metalama.Framework --> Metalama.Community
-Metalama.Migration --> Metalama.Documentation
-Metalama.Samples --> Metalama.Documentation
-Metalama.Patterns --> Metalama.Documentation
-
-Metalama.Framework --> Metalama.Premium
-```
-
-### Packages
-
-This repository contains several components that compose the main parts of Metalama.
-
-| Link                                              | Description                                                                                                                                     |
-| ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| [Metalama.Framework](Metalama.Framework)          | The core implementation of the Metalama Framework.                                                                                              |
-| [Metalama.Backstage](Metalama.Backstage)          | Implements infrastructure core for other Metalama projects, like management of configuration and temporary files.                               |
-| [Metalama.Extensions](Metalama.Extensions)        | Open-source, professional-grade extensions for Metalama such as dependency injection or architecture  verification.                             |
-| [Metalama.Patterns](Metalama.Patterns)            | Ready-to-use, open-source and professional-grade aspects, including caching, code contracts, and `INotifyPropertyChanged`.                      |
-| [Metalama.LinqPad](Metalama.LinqPad)              | A LinqPad driver for querying any C# project or solution.                                                                                       |
-| [Metalama.Migration](Metalama.Migration)          | The original PostSharp API annotated with guidelines to transition to Metalama.                                                                 |
-
-### Other repositories
-
-There are also other supporting repositories:
-
-| Link                                                                          | License          | Description                                                                                                                                     |
-| ----------------------------------------------------------------------------- | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| [Metalama.Compiler](https://github.com/metalama/Metalama.Compiler)            | MIT              | A [Roslyn](https://github.com/dotnet/roslyn) fork that introduces an extension point for arbitrary source code transformations.                 |
-| [Metalama.Premium](https://github.com/metalama/Metalama.Premium)              | Proprietary      | This repository contains prooprietary extensions to Metalama, available to customers with a paid license. Access to this repository is gra    nted to customers who have an active Metalama Enterprise license. |
-| [PostSharp.Engineering](https://github.com/postsharp/PostSharp.Engineering)   | MIT              | A custom multi-repo build and CI framework.                                                                                                     |
-| [Metalama.Community](https://github.com/postsharp/Metalama.Community)         | MIT              | Repository housing community-contributed aspects.                                                                                               |
-| [Metalama.Documentation](https://github.com/metalama/Metalama.Documentation)  | MIT              | Source repository for documentation hosted on [Metalama Docs](https://doc.metalama.net/).                                                       |
-| [Metalama.Samples](https://github.com/metalama/Metalama.Samples)              | MIT              | A collection of illustrative samples available at [Metalama Examples](https://doc.metalama.net/examples).                                       |
-
-
-
-
-## Building
-
-### Requirements
-
-To build Metalama, you will need:
-- Windows 
-- PowerShell
-- .NET SDK (see the exact version in `global.json`).
-
-### Performing a local (development) build
-
-To build Metalama, execute this script from PowerShell:
-
-```powershell
-./Build.ps1 build
-```
-
-The packages are then placed into the `artifacts/publish/private` directory.
-
-This command creates _development builds_, designed to be consumed on your development machine only. Every time you call `Build.ps1 build`, a new package version is created.
-
-### Consuming local builds
-
-To use a local build in a project:
-
-1. Add the following code to your `Directory.Build.props`:
-
-    
-    ```xml
-    <Import Path="path/to/Metalama/Metalama.Imports.props">
-    
-    ```
-
-2. Use `$(MetalamaVersion)` property to reference the version number of any package produced by this repo:
-
-    ```xml
-    <PackageReference Include="Metalama.Framework" Version="$(MetalamaVersion)"/>
-    ```
-
-3. Do a `dotnet restore` every time you complete a new local build. 
-
-
-### Running tests
-
-Execute this script from PowerShell:
-
-```powershell
-./Build.ps1 test
-```
-
-### Building with Docker
-
-We use Docker as a reference build environment, to make sure that all dependencies are made very explicit. 
-
-The Metalama build requires .NET Framework, which requires a Windows Server Core image.
-
-Follow these steps:
-
-1. Switch to Windows containers.
-2. Create the `artifacts` directory:
+1. Add the `Metalama.Framework` package to your project:
 
     ```powershell
-    md artifacts
+    dotnet add package Metalama.Framework
     ```
 
-3. Create the `build-metalama` image:
+2. Optionally, install [Metalama Tools for Visual Studio Extension](https://marketplace.visualstudio.com/items?itemName=PostSharpTechnologies.PostSharp). It's free for individuals, non-commercial uses, and companies with up to 3 users.
 
-    ```powershell
-    docker build . -t build-metalama  
-    ```
+3. Explore the [Metalama Marketplace](https://metalama.net/marketplace) for ready-made aspects or examples.
 
-4. Run the build:
+4. Follow the [Getting Started](https://doc.metalama.net/conceptual/getting-started) guide to create your first aspect.
 
-    ```powershell
-    docker run -v ".\artifacts:c:/src/artifacts" build-metalama pwsh ./Build.ps1 build
-    ```
+---
 
-The packages are then placed into the `artifacts/publish/private` directory.
+## Building Metalama from Source
 
-## Our Git flow
+Please check instructions [here](https://metalama.net/contributing/build-from-source).
 
-* We don't use the `master` nor the `main` branch.
-* We are generally concurrently working on three versions, numbered `YYYY.N`. Typically, one is stable and maintained, the other is `rc` and the third is `preview`.
-* You should generally check out the `release/YYYY.N` branch.
-* Our continuous integration branches are `develop/YYYY.N`. They generally depend on unpublished build artifacts of dependencies and therefore _cannot_ be easily built by the public except by building the dependencies locally. Our `develop/YYYY.N` builds can occasionally be broken.
-* When we publish artifacts (for instance to `nuget.org`):
-  - We update the version of package references to the ones just uploaded to `nuget.org`.
-  - We mark the released commit with the precise package version, e.g. `/release/2023.4.1-preview`.
-  - We merge the `develop/YYYY.N` branch into `release/YYYY.N`.
-* We work on branches named `topic/YYYY.N/whatever` and generally do PRs to `develop/YYYY.N`.
-* After any merge to an "old" `develop/YYYY.N`, the "old" `develop/YYYY.N` is automatically merged into the newer `develop/YYYY.N+1`. A merge commit, named `merge/YYYY.N+1/commit-123456` is automatically created, tested, if possible merged, then deleted.
-* We use a private TeamCity service for our continuous integration.
+---
 
-### Illustration
+## Contributing
 
-The following schema illustrates our workflow. It shows two public builds, `2023.4.1-preview` and `2023.4.2-preview`, each including two bug fixes.
+We welcome contributions! Here's how you can help:
 
-[//]: # (The "commit" before the first "merge develop/2023.4" is a workaround for https://github.com/mermaid-js/mermaid/issues/5898 and should be removed when fixed.)
+- ⭐ Star this repository or review us on [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=PostSharpTechnologies.PostSharp).
+- 📝 Write a blog post or record a video about Metalama.
+- 📦 Share your aspects on the [Metalama Marketplace](https://metalama.net/marketplace).
+- 🛠️ Contribute to [Metalama.Community](https://github.com/postsharp/Metalama.Community).
+- 📚 Improve the documentation. [Learn how](https://metalama.net/contributing/contribute-docs).
+- 🐛 Fix bugs or contribute code. [Learn how](https://metalama.net/contributing/contribute-code).
 
-```mermaid
-%%{init: { 'gitGraph': { 'mainBranchName':'develop/2023.4', 'mainBranchOrder': 1, 'showCommitLabel': false }} }%%
+For more details, see [Contributing to Metalama](https://metalama.net/contributing).
 
-gitGraph:
-    commit
-    branch release/2023.4 order:0
-    branch topic/2023.4/1234-bug-1 order:1
-    checkout topic/2023.4/1234-bug-1
-    commit
-    commit
-    checkout develop/2023.4
-    merge topic/2023.4/1234-bug-1
-    branch topic/2023.4/1235-bug-2  order:2
-    checkout topic/2023.4/1235-bug-2
-    commit
-    commit
-    checkout develop/2023.4
-    merge topic/2023.4/1235-bug-2 tag:"release/2023.4.1-preview" type:HIGHLIGHT
-    checkout release/2023.4
-    commit 
-    merge develop/2023.4
-    branch topic/2023.4/1236-bug-3 order:3
-    checkout topic/2023.4/1236-bug-3
-    commit
-    commit
-    checkout develop/2023.4
-    merge topic/2023.4/1236-bug-3
-    branch topic/2023.4/1237-bug-4 order:4
-    checkout topic/2023.4/1237-bug-4
-    commit
-    commit
-    checkout develop/2023.4
-    merge topic/2023.4/1237-bug-4 tag:"release/2023.4.2-preview" type:HIGHLIGHT
-    checkout release/2023.4
-    merge develop/2023.4
-    
-commit
-```
+---
+
+## Support & Community
+
+- Report issues on GitHub. Follow [these recommendations](https://metalama.net/contributing/file-an-issue).
+- Join [GitHub discussions](https://github.com/orgs/metalama/discussions) for questions and proposals.
+- Enterprise support is available. Learn more about [premium support](https://metalama.net/premium/enterprise-support). 💎
+
+---
+
+## Related Repositories
+
+| Repository                                                                 | License          | Description                                                                 |
+| ------------------------------------------------------------------------- | ---------------- | --------------------------------------------------------------------------- |
+| [Metalama.Compiler](https://github.com/metalama/Metalama.Compiler)        | MIT              | A [Roslyn](https://github.com/dotnet/roslyn) fork for source code transformations. |
+| [Metalama.Premium](https://github.com/metalama/Metalama.Premium) 💎         | Proprietary      | Extensions available to customers with a paid license.                      |
+| [PostSharp.Engineering](https://github.com/postsharp/PostSharp.Engineering) | MIT              | A custom multi-repo build and CI framework.                                 |
+| [Metalama.Community](https://github.com/postsharp/Metalama.Community)     | MIT              | Community-contributed aspects repository.                                   |
+| [Metalama.Documentation](https://github.com/metalama/Metalama.Documentation) | MIT              | Source for documentation hosted on [Metalama Docs](https://doc.metalama.net/). |
+| [Metalama.Samples](https://github.com/metalama/Metalama.Samples)          | MIT              | Illustrative samples available at [Metalama Examples](https://doc.metalama.net/examples). |
