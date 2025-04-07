@@ -170,6 +170,8 @@ public sealed class RpcServiceProviderServerEndpoint : ServerEndpoint
 
         var pipeName = this.AddServices( services );
 
-        this.ExecuteBackgroundTask( ct => this._rpcServiceProviderService.AddServicesAsync( pipeName, newServiceFactories, ct ) );
+        this.ExecuteBackgroundTask(
+            ct => this._rpcServiceProviderService.AddServicesAsync( pipeName, newServiceFactories, ct ),
+            nameof(this._rpcServiceProviderService.AddServicesAsync) );
     }
 }

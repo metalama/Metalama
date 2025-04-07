@@ -83,6 +83,11 @@ public abstract partial class ClientEndpoint : BaseEndpoint
         return (TClient) await awaiter.Task.WarnIfLongAsync( this.Logger, $"waiting for client '{typeof(TClient)}'", cancellationToken );
     }
 
+    public bool IsClientAvailable<TClient>() where TClient : RpcClient
+    {
+        return this.GetClient<TClient>() != null;
+    }
+
     protected virtual Task EnsureInitialServicesRetrievedAsync( CancellationToken cancellationToken ) => Task.CompletedTask;
 
     protected Task AddServiceClientsAsync( string pipeName, ImmutableArray<RpcClient> clients, CancellationToken cancellationToken )

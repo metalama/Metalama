@@ -54,7 +54,7 @@ public abstract class ServerEndpoint : BaseEndpoint
         var pipeName = this.PipeName + "-" + pipeId;
         this.Services = this.Services.AddRange( services );
 
-        this.ExecuteBackgroundTask( ct => this.AcceptNewClientAsync( pipeName, services, ct ) );
+        this.ExecuteBackgroundTask( ct => this.AcceptNewClientAsync( pipeName, services, ct ), nameof(this.AcceptNewClientAsync), true );
 
         return pipeName;
     }
@@ -123,7 +123,7 @@ public abstract class ServerEndpoint : BaseEndpoint
         this.Logger.Trace?.Log( $"The server endpoint '{pipeName}' is ready." );
 
         // Listen to another client.
-        this.ExecuteBackgroundTask( ct => this.AcceptNewClientAsync( pipeName, services, ct ) );
+        this.ExecuteBackgroundTask( ct => this.AcceptNewClientAsync( pipeName, services, ct ), nameof(this.AcceptNewClientAsync), true );
 
         OnConnected( services );
     }

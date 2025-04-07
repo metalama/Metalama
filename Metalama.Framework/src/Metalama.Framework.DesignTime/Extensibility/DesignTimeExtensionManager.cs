@@ -81,7 +81,7 @@ public sealed class DesignTimeExtensionManager : IGlobalService
     public Task<IDesignTimeExtension> GetExtensionAsync( string extensionName, CancellationToken cancellationToken )
         => this.GetExtensionAwaiter( extensionName ).Task.WithCancellation( cancellationToken );
 
-    private void OnExtensionDiscovered( IDesignTimeExtension extension )
+    internal void OnExtensionDiscovered( IDesignTimeExtension extension )
     {
         var context = new DesignTimeInitializationContext( this.ServiceProvider, this._processKind );
 

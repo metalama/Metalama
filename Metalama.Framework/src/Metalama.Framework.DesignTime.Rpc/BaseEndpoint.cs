@@ -6,6 +6,7 @@ using Metalama.Backstage.Diagnostics;
 using Microsoft.VisualStudio.Threading;
 using Newtonsoft.Json;
 using StreamJsonRpc;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 
 namespace Metalama.Framework.DesignTime.Rpc;
@@ -17,6 +18,9 @@ public abstract class BaseEndpoint : IDisposable
 {
     private readonly JsonSerializationBinder _binder;
     private readonly CancellationTokenSource _disposeCancellationSource = new();
+    private readonly ConcurrentDictionary<int, (Task Task, string Description)> _backgroundTasks = new();
+
+    private int _nextBackgroundTaskId;
 
     protected TaskCompletionSource<bool> InitializedTask { get; } = new();
 
@@ -119,9 +123,11 @@ public abstract class BaseEndpoint : IDisposable
     /// <summary>
     /// Executes a background type without awaiting for the result. Reports exceptions to the logger and the <see cref="IRpcExceptionHandler"/>.
     /// </summary>
-    protected void ExecuteBackgroundTask( Func<CancellationToken, Task> action )
+    protected void ExecuteBackgroundTask( Func<CancellationToken, Task> action, string description, bool registerTask = false )
     {
-        _ = Task.Run(
+        var taskId = Interlocked.Increment( ref this._nextBackgroundTaskId );
+
+        var task = Task.Run(
             async () =>
             {
                 try
@@ -133,8 +139,29 @@ public abstract class BaseEndpoint : IDisposable
                     this.Logger.Error?.Log( e.ToString() );
                     this.ExceptionHandler?.OnException( e, this.Logger, this.DisposeCancellationToken.IsCancellationRequested );
                 }
+                finally
+                {
+                    if ( !registerTask )
+                    {
+                        lock ( this._backgroundTasks )
+                        {
+                            this._backgroundTasks.TryRemove( taskId, out _ );
+                        }
+                    }
+                }
             },
             this.DisposeCancellationToken );
+
+        if ( !registerTask )
+        {
+            lock ( this._backgroundTasks )
+            {
+                if ( task is { IsCompleted: false, IsCanceled: false, IsFaulted: false } )
+                {
+                    this._backgroundTasks.TryAdd( taskId, (task, description) );
+                }
+            }
+        }
     }
 
     protected CancellationToken DisposeCancellationToken => this._disposeCancellationSource.Token;
@@ -154,6 +181,17 @@ public abstract class BaseEndpoint : IDisposable
 
         GC.SuppressFinalize( this );
     }
+
+    // ReSharper disable InconsistentlySynchronizedField
+    public Task WhenBackgroundTasksCompletedAsync( CancellationToken cancellationToken )
+        => Task.WhenAll( this._backgroundTasks.Values.Select( t => t.Task ) )
+            .WithCancellation( cancellationToken )
+            .WarnIfLongAsync(
+                this.Logger,
+                $"Awaiting for background task(s):{string.Join( ", ", this._backgroundTasks.Values.Select( x => x.Description ) )}",
+                cancellationToken );
+
+    // ReSharper restore once InconsistentlySynchronizedField
 
     public void Dispose() => this.Dispose( true );
 

@@ -281,7 +281,8 @@ namespace Metalama.Testing.AspectTesting.XunitFramework
                         var serviceProvider = this._serviceProvider.Underlying
                             .WithUntypedService( typeof(ILoggerFactory), new XunitLoggerFactory( logger, false ) )
                             .WithService( new RandomNumberProvider( firstSeed ), true )
-                            .WithServiceConditional<IExtensionLoader>( _ => new TestExtensionLoader( testOptions ) );
+                            .WithServiceConditional<IExtensionLoader>( _ => new TestExtensionLoader( testOptions ) )
+                            .WithDisjointSharedServices();
 
                         var testRunner = TestRunnerFactory.CreateTestRunner(
                             testInput,

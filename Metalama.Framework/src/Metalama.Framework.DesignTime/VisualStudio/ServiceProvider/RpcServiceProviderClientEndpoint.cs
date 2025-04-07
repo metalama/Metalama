@@ -49,8 +49,7 @@ public sealed class RpcServiceProviderClientEndpoint : ClientEndpoint
 
     private async Task EnsureInitialServicesRetrievedCoreAsync( CancellationToken cancellationToken )
     {
-        // The client must be initialized at this point.
-        var api = this._serviceProviderClient.GetApiDangerous();
+        var api = await this._serviceProviderClient.GetApiAsync( cancellationToken );
 
         var registeredServices = await api.GetRegisteredServicesAsync( cancellationToken )
             .WarnIfLongAsync( this.Logger, nameof(IRpcServiceProviderApi.GetRegisteredServicesAsync), cancellationToken );
@@ -124,7 +123,7 @@ public sealed class RpcServiceProviderClientEndpoint : ClientEndpoint
 
         foreach ( var group in servicesAdded.Services.GroupBy( s => s.ExtensionName ) )
         {
-            this.ExecuteBackgroundTask( ct => this.AddServiceClientGroupAsync( pipeName, group.Key, group, ct ) );
+            this.ExecuteBackgroundTask( ct => this.AddServiceClientGroupAsync( pipeName, group.Key, group, ct ), nameof(this.AddServiceClientGroupAsync) );
         }
     }
 
