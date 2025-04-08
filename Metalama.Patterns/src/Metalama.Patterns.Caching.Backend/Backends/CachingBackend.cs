@@ -1076,13 +1076,7 @@ public abstract class CachingBackend : IDisposable, IAsyncDisposable
 
                         if ( !this.TryChangeStatus( CachingBackendStatus.Disposing, CachingBackendStatus.Disposed ) )
                         {
-#if DEBUG
-                            throw new CachingAssertionFailedException();
-#else
-                        this.LogSource.Error.Write( Formatted( "Cannot dispose back-end: cannot change the status to Disposed." ) );
-
-                        return;
-#endif
+                            throw new CachingAssertionFailedException( "Cannot dispose back-end: cannot change the status to Disposed." );
                         }
 
                         this._disposeTask.SetResult( true );
@@ -1092,13 +1086,7 @@ public abstract class CachingBackend : IDisposable, IAsyncDisposable
                     {
                         if ( !this.TryChangeStatus( CachingBackendStatus.Disposing, CachingBackendStatus.DisposeFailed ) )
                         {
-#if DEBUG
-                            throw new CachingAssertionFailedException();
-#else
-                        this.LogSource.Error.Write( Formatted( "Cannot dispose back-end: cannot change the status to DisposeFailed." ) );
-
-                        return;
-#endif
+                            throw new CachingAssertionFailedException( "Cannot dispose back-end: cannot change the status to DisposeFailed.", e );
                         }
 
                         this._disposeTask.SetException( e );
