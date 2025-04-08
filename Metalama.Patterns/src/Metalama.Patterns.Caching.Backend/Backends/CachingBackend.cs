@@ -872,12 +872,18 @@ public abstract class CachingBackend : IDisposable, IAsyncDisposable
 
     private bool TryChangeStatus( CachingBackendStatus expectedStatus, CachingBackendStatus newStatus )
         => Interlocked.CompareExchange( ref this._status, (int) newStatus, (int) expectedStatus ) == (int) expectedStatus;
+    
+    private bool TryChangeStatus( CachingBackendStatus expectedStatus, CachingBackendStatus newStatus, out CachingBackendStatus oldStatus )
+    {
+        oldStatus = (CachingBackendStatus)Interlocked.CompareExchange( ref this._status, (int) newStatus, (int) expectedStatus );
+        return oldStatus == expectedStatus;
+    }
 
     /// <inheritdoc />
     public override string ToString()
         => string.Format( CultureInfo.InvariantCulture, "{{{0} Id={1}, Status={2}}}", this.GetType().Name, this.DebugName, this.Status );
 
-    public ValueTask DisposeAsync() => this.DisposeAsync( default );
+    public ValueTask DisposeAsync() => this.DisposeAsync( CancellationToken.None );
 
     /// <summary>
     /// Returns a <see cref="Task"/> that is signaled to the complete state when all background tasks
@@ -1074,9 +1080,9 @@ public abstract class CachingBackend : IDisposable, IAsyncDisposable
 
                         this._initializeSemaphore.Dispose();
 
-                        if ( !this.TryChangeStatus( CachingBackendStatus.Disposing, CachingBackendStatus.Disposed ) )
+                        if ( !this.TryChangeStatus( CachingBackendStatus.Disposing, CachingBackendStatus.Disposed, out var oldStatus ) )
                         {
-                            throw new CachingAssertionFailedException( "Cannot dispose back-end: cannot change the status to Disposed." );
+                            throw new CachingAssertionFailedException( $"Cannot dispose back-end: cannot change the status to {CachingBackendStatus.Disposed}. The current status is {oldStatus} instead of {CachingBackendStatus.Disposing}." );
                         }
 
                         this._disposeTask.SetResult( true );
@@ -1084,9 +1090,9 @@ public abstract class CachingBackend : IDisposable, IAsyncDisposable
                     }
                     catch ( Exception e )
                     {
-                        if ( !this.TryChangeStatus( CachingBackendStatus.Disposing, CachingBackendStatus.DisposeFailed ) )
+                        if ( !this.TryChangeStatus( CachingBackendStatus.Disposing, CachingBackendStatus.DisposeFailed, out var oldStatus ) )
                         {
-                            throw new CachingAssertionFailedException( "Cannot dispose back-end: cannot change the status to DisposeFailed.", e );
+                            throw new CachingAssertionFailedException( $"Cannot dispose back-end: cannot change the status to {CachingBackendStatus.DisposeFailed}. The current status is {oldStatus} instead of {CachingBackendStatus.Disposing}." );
                         }
 
                         this._disposeTask.SetException( e );
