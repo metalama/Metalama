@@ -1,7 +1,8 @@
 ![Metalama Logo](https://raw.githubusercontent.com/metalama/.github/HEAD/images/metalama.svg)
 
+The `Metalama.Framework.Engine` package contains the implementation of `Metalama.Framework`. 
 
-It is required by `Metalama.Testing.AspectTesting`.
+It is required by `Metalama.Framework.Introspection` and `Metalama.Testing.AspectTesting`.
 
 You should normally never reference it directly in your projects.
 

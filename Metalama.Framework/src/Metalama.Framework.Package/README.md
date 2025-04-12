@@ -1,4 +1,4 @@
-![Metalama Logo](https://raw.githubusercontent.com/metalama/Metalama/master/images/metalama.svg)
+![Metalama Logo](https://raw.githubusercontent.com/metalama/.github/HEAD/images/metalama.svg)
 
 **A Roslyn-based meta-programming framework for code generation, architecture validation and aspect-oriented programming in C#.**
 

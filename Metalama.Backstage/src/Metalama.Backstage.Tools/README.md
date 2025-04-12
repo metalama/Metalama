@@ -1,4 +1,4 @@
-![Metalama Logo](https://raw.githubusercontent.com/metalama/Metalama/master/images/metalama.svg)
+![Metalama Logo](https://raw.githubusercontent.com/metalama/.github/HEAD/images/metalama.svg)
 
 The `Metalama.Backstage.Tools` package is not meant to be referenced in user projects.
 
