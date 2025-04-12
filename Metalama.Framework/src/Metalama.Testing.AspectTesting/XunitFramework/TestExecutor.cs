@@ -81,6 +81,17 @@ namespace Metalama.Testing.AspectTesting.XunitFramework
             IMessageSink executionMessageSink,
             ITestFrameworkExecutionOptions executionOptions )
         {
+            var cancellationTokenSource = new CancellationTokenSource();
+            var cancellationToken = cancellationTokenSource.Token;
+
+            void SendMessage( IMessageSinkMessage message )
+            {
+                if ( !executionMessageSink.OnMessage( message ) )
+                {
+                    cancellationTokenSource.Cancel();
+                }
+            }
+
             var testCasesList = testCases.ToList();
             var hasLaunchedDebugger = false;
             var directoryOptionsReader = new TestDirectoryOptionsReader( this._serviceProvider, this._factory.ProjectProperties.SourceDirectory );
@@ -95,7 +106,7 @@ namespace Metalama.Testing.AspectTesting.XunitFramework
 
             var assemblyMetrics = new Metrics( eventLock );
 
-            executionMessageSink.OnMessage(
+            SendMessage(
                 new TestAssemblyStarting(
                     testCasesList,
                     this._factory.TestAssembly,
@@ -103,146 +114,176 @@ namespace Metalama.Testing.AspectTesting.XunitFramework
                     "CompileTime",
                     "CompileTime" ) );
 
-            foreach ( var collection in collections )
+            try
             {
-                var collectionMetrics = new Metrics( assemblyMetrics );
-
-                collectionMetrics.Started += () => executionMessageSink.OnMessage( new TestCollectionStarting( collection, collection.Key ) );
-
-                collectionMetrics.Finished += () => executionMessageSink.OnMessage(
-                    new TestCollectionFinished(
-                        collection,
-                        collection.Key,
-                        collectionMetrics.ExecutionTime,
-                        collectionMetrics.TestsRun,
-                        collectionMetrics.TestFailed,
-                        collectionMetrics.TestSkipped ) );
-
-                var projectMetadata = this._metadataReader.GetMetadata( collection.Key.TestAssembly.Assembly );
-
-                lock ( _launchingDebuggerLock )
+                foreach ( var collection in collections )
                 {
-                    if ( projectMetadata.MustLaunchDebugger && !hasLaunchedDebugger )
+                    if ( cancellationToken.IsCancellationRequested )
                     {
-                        Debugger.Launch();
-                        hasLaunchedDebugger = true;
+                        return;
+                    }
+
+                    var collectionMetrics = new Metrics( assemblyMetrics );
+
+                    collectionMetrics.Started += () => SendMessage( new TestCollectionStarting( collection, collection.Key ) );
+
+                    collectionMetrics.Finished += () => SendMessage(
+                        new TestCollectionFinished(
+                            collection,
+                            collection.Key,
+                            collectionMetrics.ExecutionTime,
+                            collectionMetrics.TestsRun,
+                            collectionMetrics.TestFailed,
+                            collectionMetrics.TestSkipped ) );
+
+                    var projectMetadata = this._metadataReader.GetMetadata( collection.Key.TestAssembly.Assembly );
+
+                    lock ( _launchingDebuggerLock )
+                    {
+                        if ( projectMetadata.MustLaunchDebugger && !hasLaunchedDebugger )
+                        {
+                            Debugger.Launch();
+                            hasLaunchedDebugger = true;
+                        }
+                    }
+
+                    var projectReferences = projectMetadata.ToProjectReferences();
+
+                    foreach ( var type in collection.GroupBy( c => c.TestMethod.TestClass ) )
+                    {
+                        if ( cancellationToken.IsCancellationRequested )
+                        {
+                            return;
+                        }
+
+                        var typeMetrics = new Metrics( collectionMetrics );
+                        typeMetrics.Started += () => SendMessage( new TestClassStarting( type, type.Key ) );
+
+                        typeMetrics.Finished += () => SendMessage(
+                            new TestClassFinished(
+                                type,
+                                type.Key,
+                                typeMetrics.ExecutionTime,
+                                typeMetrics.TestsRun,
+                                typeMetrics.TestFailed,
+                                typeMetrics.TestSkipped ) );
+
+                        typeMetrics.OnTestsDiscovered( type.Count() );
+
+                        foreach ( var testCase in type )
+                        {
+                            if ( cancellationToken.IsCancellationRequested )
+                            {
+                                return;
+                            }
+
+                            var testMetrics = new Metrics( typeMetrics );
+                            var test = new Test( testCase );
+                            var logger = new TestOutputHelper( executionMessageSink, test );
+
+                            testMetrics.Started += () =>
+                            {
+                                SendMessage( new TestMethodStarting( [testCase], testCase.TestMethod ) );
+                                SendMessage( new TestCaseStarting( testCase ) );
+                                SendMessage( new TestStarting( test ) );
+                            };
+
+                            testMetrics.Finished += () =>
+                            {
+                                SendMessage( new TestFinished( test, testMetrics.ExecutionTime, logger.ToString() ) );
+
+                                SendMessage(
+                                    new TestCaseFinished(
+                                        testCase,
+                                        testMetrics.ExecutionTime,
+                                        testMetrics.TestsRun,
+                                        testMetrics.TestFailed,
+                                        testMetrics.TestSkipped ) );
+
+                                SendMessage(
+                                    new TestMethodFinished(
+                                        [testCase],
+                                        testCase.TestMethod,
+                                        testMetrics.ExecutionTime,
+                                        testMetrics.TestsRun,
+                                        testMetrics.TestFailed,
+                                        testMetrics.TestSkipped ) );
+                            };
+
+                            testMetrics.OnTestsDiscovered( 1 );
+
+                            if ( executionOptions.DisableParallelizationOrDefault() )
+                            {
+                                this._taskRunner.RunSynchronously(
+                                    () => this.RunTestAsync(
+                                        SendMessage,
+                                        projectReferences,
+                                        directoryOptionsReader,
+                                        testCase,
+                                        test,
+                                        testMetrics,
+                                        logger,
+                                        cancellationToken ),
+                                    cancellationToken );
+                            }
+                            else
+                            {
+                                var task = Task.Run(
+                                    () => this.RunTestAsync(
+                                        SendMessage,
+                                        projectReferences,
+                                        directoryOptionsReader,
+                                        testCase,
+                                        test,
+                                        testMetrics,
+                                        logger,
+                                        cancellationToken ),
+                                    cancellationToken );
+
+                                // Throttle execution thanks to the semaphore.
+                                semaphore.Wait( cancellationToken );
+
+                                if ( cancellationToken.IsCancellationRequested )
+                                {
+                                    return;
+                                }
+
+                                // When the task is over, release the semaphore.
+                                _ = task.ContinueWith( _ => semaphore.Release(), TaskScheduler.Current );
+
+                                tasks.TryAdd( task, task );
+                            }
+                        }
                     }
                 }
 
-                var projectReferences = projectMetadata.ToProjectReferences();
-
-                foreach ( var type in collection.GroupBy( c => c.TestMethod.TestClass ) )
-                {
-                    var typeMetrics = new Metrics( collectionMetrics );
-                    typeMetrics.Started += () => executionMessageSink.OnMessage( new TestClassStarting( type, type.Key ) );
-
-                    typeMetrics.Finished += () => executionMessageSink.OnMessage(
-                        new TestClassFinished(
-                            type,
-                            type.Key,
-                            typeMetrics.ExecutionTime,
-                            typeMetrics.TestsRun,
-                            typeMetrics.TestFailed,
-                            typeMetrics.TestSkipped ) );
-
-                    typeMetrics.OnTestsDiscovered( type.Count() );
-
-                    foreach ( var testCase in type )
-                    {
-                        var testMetrics = new Metrics( typeMetrics );
-                        var test = new Test( testCase );
-                        var logger = new TestOutputHelper( executionMessageSink, test );
-
-                        testMetrics.Started += () =>
-                        {
-                            executionMessageSink.OnMessage( new TestMethodStarting( new[] { testCase }, testCase.TestMethod ) );
-                            executionMessageSink.OnMessage( new TestCaseStarting( testCase ) );
-                            executionMessageSink.OnMessage( new TestStarting( test ) );
-                        };
-
-                        testMetrics.Finished += () =>
-                        {
-                            executionMessageSink.OnMessage( new TestFinished( test, testMetrics.ExecutionTime, logger.ToString() ) );
-
-                            executionMessageSink.OnMessage(
-                                new TestCaseFinished(
-                                    testCase,
-                                    testMetrics.ExecutionTime,
-                                    testMetrics.TestsRun,
-                                    testMetrics.TestFailed,
-                                    testMetrics.TestSkipped ) );
-
-                            executionMessageSink.OnMessage(
-                                new TestMethodFinished(
-                                    new[] { testCase },
-                                    testCase.TestMethod,
-                                    testMetrics.ExecutionTime,
-                                    testMetrics.TestsRun,
-                                    testMetrics.TestFailed,
-                                    testMetrics.TestSkipped ) );
-                        };
-
-                        testMetrics.OnTestsDiscovered( 1 );
-
-                        if ( executionOptions.DisableParallelizationOrDefault() )
-                        {
-                            this._taskRunner.RunSynchronously(
-                                () => this.RunTestAsync(
-                                    executionMessageSink,
-                                    projectReferences,
-                                    directoryOptionsReader,
-                                    testCase,
-                                    test,
-                                    testMetrics,
-                                    logger ) );
-                        }
-                        else
-                        {
-                            var task = Task.Run(
-                                () => this.RunTestAsync(
-                                    executionMessageSink,
-                                    projectReferences,
-                                    directoryOptionsReader,
-                                    testCase,
-                                    test,
-                                    testMetrics,
-                                    logger ) );
-
-                            // Throttle execution thanks to the semaphore.
-                            semaphore.Wait();
-
-                            // When the task is over, release the semaphore.
-                            _ = task.ContinueWith( _ => semaphore.Release(), TaskScheduler.Current );
-
-                            tasks.TryAdd( task, task );
-                        }
-                    }
-                }
-            }
-
-            // Wait for all tasks to complete and catch exceptions.
+                // Wait for all tasks to complete and catch exceptions.
 #pragma warning disable VSTHRD002
-            Task.WhenAll( tasks.Keys ).Wait();
+                Task.WhenAll( tasks.Keys ).Wait( cancellationToken );
 #pragma warning restore VSTHRD002
-
-            executionMessageSink.OnMessage(
-                new TestAssemblyFinished(
-                    testCasesList,
-                    this._factory.TestAssembly,
-                    assemblyMetrics.ExecutionTime,
-                    assemblyMetrics.TestsRun,
-                    assemblyMetrics.TestFailed,
-                    assemblyMetrics.TestSkipped ) );
+            }
+            finally
+            {
+                SendMessage(
+                    new TestAssemblyFinished(
+                        testCasesList,
+                        this._factory.TestAssembly,
+                        assemblyMetrics.ExecutionTime,
+                        assemblyMetrics.TestsRun,
+                        assemblyMetrics.TestFailed,
+                        assemblyMetrics.TestSkipped ) );
+            }
         }
 
         private async Task RunTestAsync(
-            IMessageSink executionMessageSink,
+            Action<IMessageSinkMessage> sendMessage,
             TestProjectReferences projectReferences,
             TestDirectoryOptionsReader directoryOptionsReader,
             ITestCase testCase,
             Test test,
             Metrics testMetrics,
-            ITestOutputHelper logger )
+            ITestOutputHelper logger,
+            CancellationToken cancellationToken )
         {
             var testStopwatch = Stopwatch.StartNew();
 
@@ -257,7 +298,7 @@ namespace Metalama.Testing.AspectTesting.XunitFramework
                     {
                         AdditionalMetadataReferences = projectReferences.MetadataReferences,
                         ExtensionAssemblies = projectReferences.ExtensionReferences.SelectAsImmutableArray( r => r.Path.AssertNotNull() ),
-                        CompileTimeAssemblies = projectReferences.CompileTimeAssemblyReferences.Select( x => x.Path ).WhereNotNull().ToImmutableArray(),
+                        CompileTimeAssemblies = [..projectReferences.CompileTimeAssemblyReferences.Select( x => x.Path ).WhereNotNull()],
                         TestPlugInTypes = projectReferences.PlugInTypes
                     };
 
@@ -265,7 +306,7 @@ namespace Metalama.Testing.AspectTesting.XunitFramework
 
                 if ( testInput.IsSkipped )
                 {
-                    executionMessageSink.OnMessage( new TestSkipped( test, testInput.SkipReason ) );
+                    sendMessage( new TestSkipped( test, testInput.SkipReason ) );
 
                     // This raises the messages on parent nodes and need to be called last.
                     testMetrics.OnTestSkipped();
@@ -290,7 +331,7 @@ namespace Metalama.Testing.AspectTesting.XunitFramework
                             projectReferences,
                             logger );
 
-                        await testRunner.RunAndAssertAsync( testInput, testOptions );
+                        await testRunner.RunAndAssertAsync( testInput, testOptions, cancellationToken );
                     }
                     else
                     {
@@ -316,11 +357,11 @@ namespace Metalama.Testing.AspectTesting.XunitFramework
                                 projectReferences,
                                 logger );
 
-                            await testRunner.RunAndAssertAsync( testInput, testOptions );
+                            await testRunner.RunAndAssertAsync( testInput, testOptions, cancellationToken );
                         }
                     }
 
-                    executionMessageSink.OnMessage( new TestPassed( test, testMetrics.ExecutionTime, logger.ToString() ) );
+                    sendMessage( new TestPassed( test, testMetrics.ExecutionTime, logger.ToString() ) );
 
                     // This raises the messages on parent nodes and need to be called last.
                     testMetrics.OnTestSucceeded( testStopwatch.Elapsed );
@@ -339,7 +380,7 @@ namespace Metalama.Testing.AspectTesting.XunitFramework
                     failureInformation = ExceptionUtility.ConvertExceptionToFailureInformation( e );
                 }
 
-                executionMessageSink.OnMessage(
+                sendMessage(
                     new TestFailed(
                         test,
                         testMetrics.ExecutionTime,

@@ -76,7 +76,7 @@ internal abstract partial class BaseTestRunner
 
     protected ITestOutputHelper? Logger { get; }
 
-    public async Task RunAndAssertAsync( TestInput testInput, TestContextOptions testContextOptions )
+    public async Task RunAndAssertAsync( TestInput testInput, TestContextOptions testContextOptions, CancellationToken cancellationToken = default )
     {
         CollectibleExecutionContext? collectibleExecutionContext;
 
@@ -93,7 +93,7 @@ internal abstract partial class BaseTestRunner
 
         try
         {
-            await this.RunAndAssertCoreAsync( testInput, testContextOptions );
+            await this.RunAndAssertCoreAsync( testInput, testContextOptions, cancellationToken );
         }
         finally
         {
@@ -110,7 +110,7 @@ internal abstract partial class BaseTestRunner
 
     protected virtual TestResult CreateTestResult() => new();
 
-    private async Task RunAndAssertCoreAsync( TestInput testInput, TestContextOptions testContextOptions )
+    private async Task RunAndAssertCoreAsync( TestInput testInput, TestContextOptions testContextOptions, CancellationToken cancellationToken )
     {
         var originalCulture = CultureInfo.CurrentCulture;
 
@@ -125,7 +125,7 @@ internal abstract partial class BaseTestRunner
                     ProjectName = testInput.Options.ProjectName ?? testInput.TestName, RunnerServiceProvider = this._serviceProvider
                 };
 
-            using var testContext = new TestContext( transformedOptions );
+            using var testContext = new TestContext( transformedOptions, cancellationToken );
             testContext.TestName = testInput.FullPath;
             testContext.TestOutputWriter = this.Logger;
 

@@ -47,7 +47,9 @@ public partial class TestContext : IDisposable, ITempFileManager, IApplicationIn
 
     internal TestProjectOptions TestProjectOptions { get; }
 
-    private readonly CancellationTokenSource? _timeoutCancellationTokenSource;
+    private readonly CancellationTokenSource? _testCancellationTokenSource;
+    private readonly CancellationTokenRegistration? _cancellationTokenRegistration;
+
     private readonly Timer? _timer;
 
 #pragma warning disable LAMA0821 // Do not expose internal APIs.
@@ -68,7 +70,7 @@ public partial class TestContext : IDisposable, ITempFileManager, IApplicationIn
     /// Gets a <see cref="CancellationToken"/> used to cancel the test in case of timeout. The timeout period is defined
     /// by the <see cref="TestContextOptions.Timeout"/> option.
     /// </summary>
-    public CancellationToken CancellationToken => this._timeoutCancellationTokenSource?.Token ?? default;
+    public CancellationToken CancellationToken { get; }
 
     public ImmutableArray<object> PlugIns => this._plugIns.Value;
 
@@ -79,7 +81,7 @@ public partial class TestContext : IDisposable, ITempFileManager, IApplicationIn
     /// do not call this constructor directly, but instead the <see cref="UnitTestClass.CreateTestContext(IAdditionalServiceCollection,string?,string?)"/>
     /// method.
     /// </summary>
-    public TestContext( TestContextOptions contextOptions ) : this( contextOptions, null ) { }
+    public TestContext( TestContextOptions contextOptions, CancellationToken cancellationToken = default ) : this( contextOptions, null, cancellationToken ) { }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="TestContext"/> class and specify an optional <see cref="IAdditionalServiceCollection"/>. Tests typically
@@ -88,16 +90,20 @@ public partial class TestContext : IDisposable, ITempFileManager, IApplicationIn
     /// </summary>
     public TestContext(
         TestContextOptions contextOptions,
-        IAdditionalServiceCollection? additionalServices = null )
+        IAdditionalServiceCollection? additionalServices,
+        CancellationToken cancellationToken = default )
     {
         if ( !Debugger.IsAttached )
         {
-            this._timeoutCancellationTokenSource = new CancellationTokenSource();
+            this._testCancellationTokenSource = new CancellationTokenSource();
+            this.CancellationToken = this._testCancellationTokenSource.Token;
             this._timer = new Timer( this.OnTimeout, null, contextOptions.Timeout, contextOptions.Timeout );
+            this._cancellationTokenRegistration = cancellationToken.Register( () => this._testCancellationTokenSource.Cancel() );
         }
         else
         {
             // We don't cancel tests when a debugger is attached because it's then normal that a test runs during a long time.
+            this.CancellationToken = cancellationToken;
         }
 
         this._isRoot = true;
@@ -156,7 +162,7 @@ public partial class TestContext : IDisposable, ITempFileManager, IApplicationIn
     private void OnTimeout( object? state )
     {
         this.TestOutputWriter?.WriteLine( "Timeout. Cancelling the test." );
-        this._timeoutCancellationTokenSource?.Cancel();
+        this._testCancellationTokenSource?.Cancel();
         this._applicationExitManager.OnApplicationExiting();
     }
 
@@ -261,7 +267,7 @@ public partial class TestContext : IDisposable, ITempFileManager, IApplicationIn
         if ( this._isRoot )
         {
             this._applicationExitManager.Dispose();
-            
+
             this.TestProjectOptions.Dispose();
 
             if ( this.ServiceProvider.Global.Underlying.TryGetService<CompileTimeDomain>( out var domain ) )
@@ -272,10 +278,11 @@ public partial class TestContext : IDisposable, ITempFileManager, IApplicationIn
             // Release all references for GC.
             this.ServiceProvider = ProjectServiceProvider.Empty;
 
-            this._timeoutCancellationTokenSource?.Dispose();
+            this._testCancellationTokenSource?.Dispose();
+            this._cancellationTokenRegistration?.Dispose();
             this._timer?.Dispose();
         }
-        
+
         if ( disposing )
         {
             GC.SuppressFinalize( this );
