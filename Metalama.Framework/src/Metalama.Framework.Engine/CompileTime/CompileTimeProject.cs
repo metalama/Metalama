@@ -15,6 +15,7 @@ using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Templating.Mapping;
 using Metalama.Framework.Engine.Utilities;
+using Metalama.Framework.Engine.Utilities.Roslyn;
 using Metalama.Framework.Fabrics;
 using Metalama.Framework.Options;
 using Metalama.Framework.Services;
@@ -351,7 +352,7 @@ internal sealed class CompileTimeProject : IProjectService
                     }
                 } );
 
-            assembly = domain.LoadAssembly( outputPath );
+            assembly = domain.LoadAssembly( outputPath, assemblyIdentity.ToAssemblyName() );
         }
 
         // Find interesting types.

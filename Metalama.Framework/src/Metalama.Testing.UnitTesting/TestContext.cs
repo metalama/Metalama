@@ -176,7 +176,7 @@ public partial class TestContext : IDisposable, ITempFileManager, IApplicationIn
         // Ensure extensions have been loaded.
         foreach ( var extensionAssembly in options.ExtensionAssemblies )
         {
-            this.Domain.LoadAssembly( extensionAssembly, LoadAssemblyOptions.Shared );
+            this.Domain.LoadAssembly( extensionAssembly, null, LoadAssemblyOptions.Shared );
         }
 
         // Load plug-ins.
