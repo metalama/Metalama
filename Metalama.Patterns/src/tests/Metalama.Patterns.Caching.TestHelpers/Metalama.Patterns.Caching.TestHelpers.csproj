@@ -8,6 +8,7 @@
     <IsTestProject>false</IsTestProject>
     <IsPackable>true</IsPackable>
     <PackageId>Metalama.Patterns.Caching.TestHelpers</PackageId>
+    <PackageDescription>This package contains helper classes used when developing unit tests for new CachingBackend implementations. You don't need this package in any other scenarios.</PackageDescription>
   </PropertyGroup>
 
   <ItemGroup>
@@ -48,6 +49,10 @@
 
   <ItemGroup>
     <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="/" />
   </ItemGroup>
   
 </Project>

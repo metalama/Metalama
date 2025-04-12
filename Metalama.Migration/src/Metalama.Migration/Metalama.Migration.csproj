@@ -10,8 +10,7 @@
         <NoWarn>CS1591;CS0659;CS0660;CS0661;CS0618</NoWarn>
         <MetalamaCompilerTransformerOrder>Metalama.Framework.CompilerExtensions.MetalamaSourceTransformer,Metalama.Migration.Transformer.Transformer</MetalamaCompilerTransformerOrder>
         <MetalamaEmitCompilerTransformedFiles>True</MetalamaEmitCompilerTransformedFiles>
-        <PackageDescription>A package containing annotated PostSharp API, documenting its Metalama equivalent.</PackageDescription>
-        
+        <PackageDescription>A package containing annotated PostSharp API, documenting its Metalama equivalent. It is only useful when migrating PostSharp to Metalama, and must then be removed.</PackageDescription>
     </PropertyGroup>
 
     <ItemGroup>
@@ -22,6 +21,10 @@
 
     <ItemGroup>
         <ProjectReference Include="../Metalama.Migration.Transformer/Metalama.Migration.Transformer.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include="README.md" Pack="true" PackagePath="/" />
     </ItemGroup>
 
 </Project>

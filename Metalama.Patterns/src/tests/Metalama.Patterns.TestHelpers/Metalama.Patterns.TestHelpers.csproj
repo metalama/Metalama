@@ -8,6 +8,7 @@
     <IsTestProject>false</IsTestProject>
     <IsPackable>true</IsPackable>
     <PackageId>Metalama.Patterns.TestHelpers</PackageId>
+    <PackageDescription>This package contains helper classes used when developing unit tests for new CachingBackend implementations. You don't need this package in any other scenarios.</PackageDescription>
   </PropertyGroup>
 
   <ItemGroup>
@@ -19,6 +20,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\Flashtrace\Flashtrace.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="/" />
   </ItemGroup>
 
 </Project>

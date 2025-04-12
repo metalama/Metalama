@@ -4,12 +4,13 @@
 
     <!-- Properties of NuGet packages-->
     <PropertyGroup>
-        <Authors>PostSharp Technologies</Authors>
+        <Authors>PostSharp Technologies and contributors</Authors>
         <PackageProjectUrl>https://github.com/metalama/Metalama</PackageProjectUrl>
-        <PackageTags Condition="'$PackageTags()'==''">Metalama</PackageTags>
-        <PackageRequireLicenseAcceptance Condition="'$(InternalOnlyPackage)'!='True'">true</PackageRequireLicenseAcceptance>
-        <PackageLicenseFile Condition="'$(InternalOnlyPackage)'!='True'">LICENSE.md</PackageLicenseFile>
-        <PackageReadmeFile Condition="'$(InternalOnlyPackage)'!='True'">README.md</PackageReadmeFile>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <RepositoryUrl>https://github.com/metalama/Metalama</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <PackageReleaseNotes>https://github.com/orgs/metalama/discussions/categories/changelog</PackageReleaseNotes>
+        <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     </PropertyGroup>
 
     <!-- Additional content of NuGet packages -->
@@ -20,6 +21,12 @@
 
     
     <Target Name="CheckPackaging" BeforeTargets="Build" Condition="'$(IsPackable)' == 'true' And '$(InternalOnlyPackage)'!='True'">
+
+        <PropertyGroup>
+            <PackageTags Condition="'$(PackageTags)' == ''">metalama</PackageTags>
+            <PackageReadmeFile Condition="'$(PackageReadmeFile)' == '' And '$(InternalOnlyPackage)' != 'True'">README.md</PackageReadmeFile>                
+        </PropertyGroup>
+
         <Error Text="The PackageDescription property must be defined for packable projects." Condition="'$(PackageDescription.Trim())' == ''"/>
     </Target>
 

@@ -1,1 +1,1 @@
-This is a shared project and package between unit test projects of the Metalama.Framework and the Metalama.Premium repoes.
+This is a shared project and package between unit test projects of the `Metalama.Framework` and the `Metalama.Premium` repos. It should never be used in user projects.
