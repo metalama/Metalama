@@ -12,19 +12,25 @@ jobs:
     runs-on: windows-2022
 
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout the repository
+      uses: actions/checkout@v4
+
     - name: Create the artifacts directory
       run: mkdir artifacts
+
     - name: Prepare the Docker image
       run: docker build . -t build-metalama
+
     - name: Build Metalama inside the Docker image
-      run: docker run -v ".\artifacts:c:/src/artifacts" build-metalama pwsh ./Build.ps1 build -c Public
+      run: docker run -v ".\artifacts:c:/src/artifacts" build-metalama pwsh ./Build.ps1 build -c Public --ci
+
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
       with:
         name: build-artifacts
         path: artifacts/publish/private
         retention-days: 3
+
     - name: Upload logs
       uses: actions/upload-artifact@v4
       with:
