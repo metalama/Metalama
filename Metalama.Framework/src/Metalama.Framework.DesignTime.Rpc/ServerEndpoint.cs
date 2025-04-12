@@ -22,10 +22,14 @@ public abstract class ServerEndpoint : BaseEndpoint
 
     private ImmutableArray<RpcService> Services { get; set; }
 
-    public TService GetRequiredService<TService>()
+    public async ValueTask<TService> GetRequiredServiceAsync<TService>( CancellationToken cancellationToken )
         where TService : RpcService
-        => this.Services.OfType<TService>().SingleOrDefault()
-           ?? throw new InvalidOperationException( $"Service '{typeof(TService).Name}' is not registered." );
+    {
+        await this.WaitUntilInitializedAsync( cancellationToken );
+        
+        return this.Services.OfType<TService>().SingleOrDefault()
+               ?? throw new InvalidOperationException( $"Service '{typeof(TService).Name}' is not registered." );
+    }
 
     protected abstract IEnumerable<RpcService> CreateServices();
 

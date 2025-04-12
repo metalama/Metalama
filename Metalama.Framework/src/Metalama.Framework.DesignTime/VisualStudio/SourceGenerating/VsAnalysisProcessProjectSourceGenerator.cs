@@ -43,8 +43,7 @@ internal sealed class VsAnalysisProcessProjectSourceGenerator : AnalysisProcessP
 
     private async Task InitializeAsync()
     {
-        await this._serviceProviderEndpoint!.WaitUntilInitializedAsync( this.ApplicationExitingToken );
-        this._sourceGeneratorRpcService = this._serviceProviderEndpoint.GetRequiredService<SourceGeneratorRpcService>();
+        this._sourceGeneratorRpcService = await this._serviceProviderEndpoint!.GetRequiredServiceAsync<SourceGeneratorRpcService>( this.ApplicationExitingToken );
         this._sourceGeneratorRpcService.ClientConnected += this.OnClientConnected;
         await this._serviceProviderEndpoint.RegisterProjectAsync( this.ProjectKey, this.ApplicationExitingToken );
     }
