@@ -1,27 +1,30 @@
 # Security Policy
 
-Metalama is a compiler that runs locally on your development machine or on a build agent. 
+Metalama is a compiler that runs locally on your development machine or on a build agent.
 
-It does not access the network except for telemetry.
+It does not access the network except for telemetry purposes. Please check our [privacy policy](https://www.postsharp.net/company/legal/privacy-policy) for details about data collection.
 
-It does not process confidential data except source code, which always remains on the device that executes Metalama.
+We regularly audit our dependencies and use automated tools to scan for known vulnerabilities. Any flagged issues are promptly addressed. Metalama does not process confidential data other than source code, which always remains on the device executing Metalama.
 
-Therefore, potential vulnerabilities in Metalama or in its dependencies should have minimal impact. Nevertheless, we try to keep our dependencies up to date.
+As a result, potential vulnerabilities in Metalama or its dependencies should have minimal impact. Nevertheless, we strive to keep our dependencies up to date.
 
-The most dangerous scenario with Metalama would be a supply chain attach where harmful code would be injected into Metalama and attach its users. To protect ourselves and our customers against this scenario, we implement the following measures:
+The most critical risk associated with Metalama would be a supply chain attack where malicious code is injected into Metalama and affects its users. To mitigate this risk, we implement the following measures:
 
-- The product is open source, except some extensions that are source available
-- We sign our binaries using an Authenticode key on an safe and isolated device, distinct from build agents and development machines. Before signature, we scan the binaries for malware.
-- We product deterministic builds, so customers that produce builds independently from us and compare the binaries.
+- The product is open source, with some extensions being source-available.
+- We sign our binaries using an Authenticode key on a secure and isolated device, separate from build agents and development machines. Before signing, we scan the binaries for malware.
+- We produce deterministic builds, enabling customers to independently build and compare the binaries.
+- We regularly audit our dependencies and use automated tools (e.g., NuGet Package Vulnerability Scanner, GitHub dependabot, GitHub code scanning) to scan for known vulnerabilities. Any flagged issues are promptly addressed.
 
 ## Supported Versions
 
-In case a vulnerability is reported, we would remediate it in all supported versions.
+In the event a vulnerability is reported, we will address it in all supported versions.
 
-Make sure sure that you are using a supported version. We maintain a list of supported versions on [this page](https://postsharp-web-dev.azurewebsites.net/support/policies/versions).
+Ensure that you are using a supported version. We maintain a list of supported versions on [this page](https://www.postsharp.net/support/policies/versions).
 
 ## Reporting a Vulnerability
 
-To report a vulnerability, post an issue to the [Metalama](https://github.com/metalama/Metalama) repo (without details allowing to exploit the vulnerability) and simultaneously an email to <hello@postsharp.net> with full details.
+To report a vulnerability, create an issue in the [Metalama](https://github.com/metalama/Metalama) repository (without including details that could exploit the vulnerability) and simultaneously send an email to <hello@postsharp.net> with full details.
 
-If you don't get a quick reply, [call us](https://www.postsharp.net/contact).
+We aim to acknowledge vulnerability reports within 24 hours and provide a resolution or mitigation plan within 3 days, depending on the severity of the issue.
+
+If you do not receive a prompt response, please [contact us by phone](https://www.postsharp.net/contact).
