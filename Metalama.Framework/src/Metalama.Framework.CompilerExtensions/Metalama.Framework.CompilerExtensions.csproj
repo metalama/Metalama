@@ -92,8 +92,8 @@
     </Target>
     
     <PropertyGroup>
-        <PrepareResourcesDependsOn Condition="'$(EngineeringConfiguration)'=='Public'">$(PrepareResourcesDependsOn);SignAndEmbedAssemblies</PrepareResourcesDependsOn>
-        <PrepareResourcesDependsOn Condition="'$(EngineeringConfiguration)'!='Public'">$(PrepareResourcesDependsOn);EmbedUnsignedAssemblies</PrepareResourcesDependsOn>
+        <PrepareResourcesDependsOn Condition="'$(EngineeringConfiguration)'=='Public' AND '$(DoNotSign)'!='True'">$(PrepareResourcesDependsOn);SignAndEmbedAssemblies</PrepareResourcesDependsOn>
+        <PrepareResourcesDependsOn Condition="'$(EngineeringConfiguration)'!='Public' OR '$(DoNotSign)'=='True'">$(PrepareResourcesDependsOn);EmbedUnsignedAssemblies</PrepareResourcesDependsOn>
     </PropertyGroup>
 
 </Project>
