@@ -102,6 +102,7 @@ namespace Metalama.Framework.Engine.CompileTime
 
         // ReSharper disable once MemberCanBeMadeStatic.Local
         // ReSharper disable once UnusedParameter.Local
+#pragma warning disable CA1822
         private void AddCollectibleAssembly( Assembly assembly )
         {
 #if VERIFY_MEMORY_LEAKS
@@ -111,6 +112,7 @@ namespace Metalama.Framework.Engine.CompileTime
             }
 #endif
         }
+#pragma warning restore CA1822
 
 #if VERIFY_MEMORY_LEAKS
         [ExcludeFromCodeCoverage]
