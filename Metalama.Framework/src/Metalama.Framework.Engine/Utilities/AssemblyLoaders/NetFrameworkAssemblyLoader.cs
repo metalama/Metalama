@@ -17,6 +17,7 @@ internal class NetFrameworkAssemblyLoader : AssemblyLoader
         Func<string, Assembly?> resolveAssembly,
         string? debugName = null ) : base( debugName )
     {
+        AppDomain.CurrentDomain.AssemblyResolve += this.OnAssemblyResolve;
         this._resolveAssembly = resolveAssembly;
     }
 

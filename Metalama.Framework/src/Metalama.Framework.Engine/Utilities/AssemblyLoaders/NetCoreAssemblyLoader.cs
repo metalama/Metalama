@@ -20,33 +20,41 @@ internal class NetCoreAssemblyLoader : AssemblyLoader
     private readonly Func<string, Assembly> _loadFromAssemblyPath;
     private readonly Func<Stream, Stream?, Assembly> _loadFromStream;
     private readonly Func<IEnumerable<Assembly>> _getAssemblies;
-    private readonly Action? _assemblyResolveUnsubscribe;
+    private readonly ResolveEventHandler? _globalResolveHandler;
 
     public NetCoreAssemblyLoader( Func<string, Assembly?> resolveAssembly, Func<Assembly?, bool>? globalResolveHandlerFilter, string? debugName ) : base(
         debugName )
     {
-        var alcType = Type.GetType( "System.Runtime.Loader.AssemblyLoadContext, System.Runtime.Loader" );
+        var alcType = Type.GetType( "System.Runtime.Loader.AssemblyLoadContext, System.Runtime.Loader" )
+                      ?? throw new InvalidOperationException( "Cannot find the AssemblyLoadContext type." );
 
-        var currentAlc = alcType?.GetMethod( "GetLoadContext" )!.Invoke( null, [typeof(AssemblyLoader).Assembly] );
+        var getLoadContextMethod = alcType.GetMethod( "GetLoadContext" )
+                                   ?? throw new InvalidOperationException( "Cannot find the GetLoadContext method." );
+
+        var currentAlc = getLoadContextMethod.Invoke( null, [typeof(AssemblyLoader).Assembly] );
 
         // On .NET Core, we create a custom ALC, into which we load our assemblies.
         // When resolving an assembly name, it first looks into the parent ALC (which can be the compiler ALC for the main Metalama ALC).
         // If that fails, it calls the resolveAssembly delegate.
 
-        _metalamaAlcType ??= GenerateAssemblyLoadContext( alcType! );
+        _metalamaAlcType ??= GenerateAssemblyLoadContext( alcType );
         var metalamaAlc = Activator.CreateInstance( _metalamaAlcType, currentAlc, resolveAssembly, debugName );
 
-        var loadByPathMethod = alcType!.GetMethod( "LoadFromAssemblyPath" )!;
+        var loadByPathMethod = alcType!.GetMethod( "LoadFromAssemblyPath" )
+                               ?? throw new InvalidOperationException( "cannot find the LoadFromAssemblyPath method." );
+
         this._loadFromAssemblyPath = (Func<string, Assembly>) Delegate.CreateDelegate( typeof(Func<string, Assembly>), metalamaAlc, loadByPathMethod );
 
-        var loadFromStreamMethod = alcType.GetMethod( "LoadFromStream", [typeof(Stream), typeof(Stream)] )!;
+        var loadFromStreamMethod = alcType.GetMethod( "LoadFromStream", [typeof(Stream), typeof(Stream)] )
+                                   ?? throw new InvalidOperationException( "Cannot find the LoadFromStream method." );
 
         this._loadFromStream = (Func<Stream, Stream?, Assembly>) Delegate.CreateDelegate(
             typeof(Func<Stream, Stream?, Assembly>),
             metalamaAlc,
             loadFromStreamMethod );
 
-        var getAssembliesMethod = alcType.GetProperty( "Assemblies" )!.GetMethod!;
+        var getAssembliesMethod = alcType.GetProperty( "Assemblies" )?.GetMethod
+                                  ?? throw new InvalidOperationException( "Cannot find the Assemblies property." );
 
         this._getAssemblies = (Func<IEnumerable<Assembly>>?) Delegate.CreateDelegate(
             typeof(Func<IEnumerable<Assembly>>),
@@ -55,16 +63,16 @@ internal class NetCoreAssemblyLoader : AssemblyLoader
 
         if ( globalResolveHandlerFilter != null )
         {
-            var loadByNameMethod = alcType.GetMethod( "LoadFromAssemblyName" )!;
+            var loadByNameMethod = alcType.GetMethod( "LoadFromAssemblyName" )
+                                   ?? throw new InvalidOperationException( "Cannot find the LoadFromAssemblyName method." );
 
             var loadAssemblyFromAssemblyName =
                 (Func<AssemblyName, Assembly>) Delegate.CreateDelegate( typeof(Func<AssemblyName, Assembly>), metalamaAlc, loadByNameMethod );
 
-            Assembly? GlobalResolveHandler( object? s, ResolveEventArgs e )
+            this._globalResolveHandler = ( sender, e )
                 => globalResolveHandlerFilter( e.RequestingAssembly ) ? loadAssemblyFromAssemblyName( new AssemblyName( e.Name ) ) : null;
 
-            AppDomain.CurrentDomain.AssemblyResolve += GlobalResolveHandler;
-            this._assemblyResolveUnsubscribe = () => AppDomain.CurrentDomain.AssemblyResolve -= GlobalResolveHandler;
+            AppDomain.CurrentDomain.AssemblyResolve += this._globalResolveHandler;
         }
     }
 
@@ -194,6 +202,9 @@ internal class NetCoreAssemblyLoader : AssemblyLoader
     {
         base.Dispose();
 
-        this._assemblyResolveUnsubscribe?.Invoke();
+        if ( this._globalResolveHandler != null )
+        {
+            AppDomain.CurrentDomain.AssemblyResolve -= this._globalResolveHandler;
+        }
     }
 }

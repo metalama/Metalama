@@ -15,15 +15,8 @@ jobs:
     - name: Checkout the repository
       uses: actions/checkout@v4
 
-    - name: Create the artifacts directory
-      run: mkdir artifacts
-
-    - name: Prepare the Docker image
-      run: docker build . -t build-metalama
-
-    # Make a public build, but without signing the assemblies because we don't have access to the signature server.
-    - name: Build Metalama inside the Docker image
-      run: docker run -v ".\artifacts:c:/src/artifacts" build-metalama pwsh ./Build.ps1 build -c Public --ci --no-sign
+    - name: Run DockerBuild.ps1 script
+      run: pwsh ./DockerBuild.ps1
 
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
@@ -37,4 +30,4 @@ jobs:
       with:
         name: logs
         path: artifacts/logs
-        retention-days: 3        
+        retention-days: 3
