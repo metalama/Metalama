@@ -105,7 +105,7 @@ namespace Metalama.Framework.Engine.CompileTime
             {
                 throw new InvalidOperationException( "The Dispose method has not been called." );
             }
-            
+
             return this.WaitForDisposalCoreAsync();
         }
 
@@ -116,7 +116,7 @@ namespace Metalama.Framework.Engine.CompileTime
             {
                 return;
             }
-            
+
             if ( Interlocked.CompareExchange( ref this._isWaitingForDisposal, 1, 0 ) != 0 )
             {
                 // Another thread has won.
@@ -159,10 +159,8 @@ namespace Metalama.Framework.Engine.CompileTime
 
                     if ( stopwatch.Elapsed.TotalSeconds > 30 )
                     {
-                       
-                        
                         _alreadyHasUnloadingTimeout = true;
-                        
+
                         var assemblies = string.Join(
                             ",",
                             aliveAssemblies.SelectAsReadOnlyList( r => (Assembly?) r.Target ).WhereNotNull().Select( a => a.GetName().Name ) );

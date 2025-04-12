@@ -16,9 +16,9 @@ internal abstract class AssemblyLoader : IDisposable
 
     private static readonly Version _defaultVersion = new();
 
-    protected AssemblyLoader( string debugName )
+    protected AssemblyLoader( string? debugName )
     {
-        this.DebugName = debugName;
+        this.DebugName = debugName ?? "";
     }
 
     public abstract Assembly LoadFromPath( string assemblyPath );

@@ -10,5 +10,5 @@ namespace Metalama.Framework.Engine.Templating.Statements;
 
 internal interface IStatementListImpl : IStatementList
 {
-    public IReadOnlyList<StatementSyntax> GetSyntaxes( TemplateSyntaxFactoryImpl? templateSyntaxFactory );
+    IReadOnlyList<StatementSyntax> GetSyntaxes( TemplateSyntaxFactoryImpl? templateSyntaxFactory );
 }

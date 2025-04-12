@@ -8,5 +8,5 @@ namespace Metalama.Framework.DesignTime.VisualStudio.ServiceHub;
 
 public interface IServiceHubRpcServiceProvider : IGlobalService
 {
-    public ServiceHubRpcService ServiceHub { get; }
+    ServiceHubRpcService ServiceHub { get; }
 }

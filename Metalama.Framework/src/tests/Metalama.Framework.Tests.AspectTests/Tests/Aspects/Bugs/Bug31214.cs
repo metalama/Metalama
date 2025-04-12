@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System.Collections.Generic;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Bugs.Bug31214;
@@ -14,7 +13,7 @@ public class MyAspect : OverrideMethodAspect
 
     public MyAspect( string title )
     {
-        _title = title;
+        this._title = title;
     }
 
     public override dynamic? OverrideMethod()
@@ -22,7 +21,7 @@ public class MyAspect : OverrideMethodAspect
         var httpResult = "N/A";
 
         Dictionary<string, string> result =
-            new() { { "Title", _title }, { "HTTP result", httpResult } };
+            new() { { "Title", this._title }, { "HTTP result", httpResult } };
 
         return default;
     }
