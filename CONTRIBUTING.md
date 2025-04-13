@@ -9,4 +9,4 @@ We welcome contributions! Here's how you can help:
 - 📚 Improve the documentation. [Learn how](https://metalama.net/contributing/contribute-docs).
 - 🐛 Fix bugs or contribute code. [Learn how](https://metalama.net/contributing/contribute-code).
 
-For more security guidelines, see <https://metalama.net/contributing>.
+For more security guidelines, see <https://metalama.net/contributing>. See also our [Code of Conduct](CODE_OF_CONDUCT.md).
