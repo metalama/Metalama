@@ -9,7 +9,7 @@ namespace Metalama.Backstage.Testing;
 
 public class NullTelemetryUploader : ITelemetryUploader
 {
-    public void StartUpload( bool force = false ) { }
+    public bool StartUpload( bool force = false ) => false;
 
     public Task UploadAsync() => Task.CompletedTask;
 }

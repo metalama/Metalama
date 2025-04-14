@@ -72,7 +72,7 @@ namespace Metalama.Backstage.Testing
         }
 
         protected TestsBase( ITestOutputHelper logger, IApplicationInfo? applicationInfo = null )
-            : this( logger, new BackstageInitializationOptions( applicationInfo ?? new TestApplicationInfo() ) ) { }
+            : this( logger, new BackstageInitializationOptions( applicationInfo ?? new TestApplicationInfo() ) { AutoUploadTelemetry = false } ) { }
 
         /// <summary>
         /// Method that can add services. 
@@ -82,7 +82,10 @@ namespace Metalama.Backstage.Testing
         /// <summary>
         /// Method invoked just after the services are instantiated.
         /// </summary>
-        protected virtual void OnAfterServicesCreated( Services services ) { }
+        protected virtual void OnAfterServicesCreated( Services services )
+        {
+            services.ServiceProvider.GetRequiredBackstageService<BackstageServicesInitializer>().Initialize();
+        }
 
         protected void EnsureServicesInitialized()
         {
@@ -214,7 +217,7 @@ namespace Metalama.Backstage.Testing
                 .AddSingleton<IUserInterfaceService>( serviceProvider => new TestUserInterfaceService( serviceProvider ) )
                 .AddSingleton<IToastNotificationService>( serviceProvider => new ToastNotificationService( serviceProvider ) )
                 .AddSingleton<IToastNotificationStatusService>( serviceProvider => new ToastNotificationStatusService( serviceProvider ) )
-                .AddSingleton<BackstageServicesInitializer>( serviceProvider => new BackstageServicesInitializer( serviceProvider ) )
+                .AddSingleton<BackstageServicesInitializer>( serviceProvider => new BackstageServicesInitializer( serviceProvider, options ) )
                 .AddSingleton<WelcomeService>( serviceProvider => new WelcomeService( serviceProvider ) )
                 .AddSingleton<IIdeExtensionStatusService>( serviceProvider => new IdeExtensionStatusService( serviceProvider ) )
                 .AddSingleton<IToastNotificationDetectionService>( serviceProvider => new ToastNotificationDetectionService( serviceProvider ) )

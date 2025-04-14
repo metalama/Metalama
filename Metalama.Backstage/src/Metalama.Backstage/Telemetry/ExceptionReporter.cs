@@ -22,7 +22,7 @@ using System.Xml;
 
 namespace Metalama.Backstage.Telemetry;
 
-internal sealed class ExceptionReporter : IExceptionReporter, IDisposable
+internal sealed class ExceptionReporter : IExceptionReporter
 {
     private readonly TelemetryQueue _uploadManager;
     private readonly IDateTimeProvider _time;
@@ -35,14 +35,11 @@ internal sealed class ExceptionReporter : IExceptionReporter, IDisposable
     private readonly bool _canIgnoreRecoverableExceptions;
     private readonly LocalExceptionReporter? _localExceptionReporter;
     private readonly ITelemetryConfigurationService _telemetryConfigurationService;
-    private TelemetryConfiguration _configuration;
 
     public ExceptionReporter( TelemetryQueue uploadManager, IServiceProvider serviceProvider )
     {
         this._uploadManager = uploadManager;
         this._configurationManager = serviceProvider.GetRequiredBackstageService<IConfigurationManager>();
-        this._configuration = this._configurationManager.Get<TelemetryConfiguration>();
-        this._configurationManager.ConfigurationFileChanged += this.OnConfigurationChanged;
         this._telemetryConfigurationService = serviceProvider.GetRequiredBackstageService<ITelemetryConfigurationService>();
         this._time = serviceProvider.GetRequiredBackstageService<IDateTimeProvider>();
         this._applicationInfoProvider = serviceProvider.GetRequiredBackstageService<IApplicationInfoProvider>();
@@ -51,14 +48,6 @@ internal sealed class ExceptionReporter : IExceptionReporter, IDisposable
         this._fileSystem = serviceProvider.GetRequiredBackstageService<IFileSystem>();
         this._canIgnoreRecoverableExceptions = serviceProvider.GetRequiredBackstageService<IRecoverableExceptionService>().CanIgnore;
         this._localExceptionReporter = serviceProvider.GetBackstageService<LocalExceptionReporter>();
-    }
-
-    private void OnConfigurationChanged( ConfigurationFile configuration )
-    {
-        if ( configuration is TelemetryConfiguration telemetryConfiguration )
-        {
-            this._configuration = telemetryConfiguration;
-        }
     }
 
     private IEnumerable<string?> CleanStackTrace( string stackTrace )
@@ -182,7 +171,8 @@ internal sealed class ExceptionReporter : IExceptionReporter, IDisposable
             return false;
         }
 
-        if ( this._configuration.Issues.TryGetValue( hash, out var currentStatus ) && currentStatus is ReportingStatus.Ignored or ReportingStatus.Reported )
+        if ( this._configurationManager.Get<TelemetryConfiguration>().Issues.TryGetValue( hash, out var currentStatus )
+             && currentStatus is ReportingStatus.Ignored or ReportingStatus.Reported )
         {
             this._logger.Trace?.Log( $"The issue {hash} should not be reported because its status is {currentStatus}." );
 
@@ -253,20 +243,10 @@ internal sealed class ExceptionReporter : IExceptionReporter, IDisposable
                 this._localExceptionReporter?.ReportException( reportedException, localReportPath );
             }
 
-            if ( !this._telemetryConfigurationService.IsEnabled )
+            if ( !this._telemetryConfigurationService.IsEnabled(
+                    exceptionReportingKind == ExceptionReportingKind.Exception ? TelemetryScenario.Exception : TelemetryScenario.Performance ) )
             {
                 this._logger.Trace?.Log( $"The exception will not be reported remotely because the telemetry is disabled." );
-
-                return;
-            }
-
-            var reportingAction = exceptionReportingKind == ExceptionReportingKind.Exception
-                ? this._configuration.ExceptionReportingAction
-                : this._configuration.PerformanceProblemReportingAction;
-
-            if ( reportingAction != ReportingAction.Yes )
-            {
-                this._logger.Trace?.Log( $"The issue will not be reported because the reporting action in the user profile is set to {reportingAction}." );
 
                 return;
             }
@@ -380,6 +360,4 @@ internal sealed class ExceptionReporter : IExceptionReporter, IDisposable
             }
         }
     }
-
-    public void Dispose() => this._configurationManager.ConfigurationFileChanged -= this.OnConfigurationChanged;
 }

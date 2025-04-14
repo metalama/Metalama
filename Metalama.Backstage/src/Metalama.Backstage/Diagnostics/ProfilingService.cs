@@ -35,6 +35,8 @@ internal sealed class ProfilingService : IProfilingService
     private readonly ITempFileManager _tempFileManager;
 #endif
 
+    private bool _initialized;
+
     public ProfilingService( IServiceProvider serviceProvider )
     {
         this._processKind = serviceProvider.GetRequiredBackstageService<IApplicationInfoProvider>().CurrentApplication.ProcessKind;
@@ -58,6 +60,8 @@ internal sealed class ProfilingService : IProfilingService
             ProfilerContainer.StartProfiler( this._tempFileManager, this._configuration, this._logger );
 #endif
         }
+        
+        this._initialized = true;
     }
 
     /// <summary>
@@ -65,6 +69,11 @@ internal sealed class ProfilingService : IProfilingService
     /// </summary>
     public void CreateMemorySnapshot( string? snapshotName = null )
     {
+        if ( !this._initialized )
+        {
+            throw new InvalidOperationException();
+        }
+        
         if ( this._configuration.Profiling.Processes.TryGetValue( this._processKind.ToString(), out var enabled ) && enabled )
         {
             // ReSharper disable once RedundantBlankLines

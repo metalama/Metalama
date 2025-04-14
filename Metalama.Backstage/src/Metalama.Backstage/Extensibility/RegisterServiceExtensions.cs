@@ -262,7 +262,7 @@ public static class RegisterServiceExtensions
         }
 
         // Add initialization services.
-        serviceProviderBuilder.AddSingleton( serviceProvider => new BackstageServicesInitializer( serviceProvider ) );
+        serviceProviderBuilder.AddSingleton( serviceProvider => new BackstageServicesInitializer( serviceProvider, options ) );
     }
 
     internal static void AddTelemetryServices( this ServiceProviderBuilder serviceProviderBuilder )

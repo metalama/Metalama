@@ -11,11 +11,21 @@ namespace Metalama.Backstage.Telemetry;
 [PublicAPI]
 public interface ITelemetryConfigurationService : IBackstageService
 {
-    void SetStatus( bool? enabled );
+    void Initialize();
+    
+    void SetStatus( bool enabled );
 
     Guid DeviceId { get; }
 
-    bool IsEnabled { get; }
+    bool IsEnabled( TelemetryScenario scenario );
 
     void ResetDeviceId();
+}
+
+public enum TelemetryScenario
+{
+    None,
+    Usage,
+    Exception,
+    Performance
 }

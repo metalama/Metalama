@@ -46,17 +46,24 @@ public static class BackstageServiceFactory
         }
     }
 
+    public static IServiceProvider InitializeBackstageServices( this IServiceProvider serviceProvider )
+    {
+        serviceProvider.GetRequiredBackstageService<BackstageServicesInitializer>().Initialize();
+        serviceProvider.GetRequiredBackstageService<ShutdownService>().Initialize();
+
+        return serviceProvider;
+    }
+
     public static IServiceProvider CreateServiceProvider( BackstageInitializationOptions options )
     {
         var serviceProviderBuilder = new SimpleServiceProviderBuilder();
         serviceProviderBuilder.AddBackstageServices( options );
 
         _serviceProvider = serviceProviderBuilder.ServiceProvider;
-        _serviceProvider.GetRequiredBackstageService<ShutdownService>().Initialize();
-
+        
         if ( options.Initialize )
         {
-            _serviceProvider.GetRequiredBackstageService<BackstageServicesInitializer>().Initialize();
+            _serviceProvider.InitializeBackstageServices();
         }
 
         return _serviceProvider;

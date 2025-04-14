@@ -28,6 +28,7 @@ public sealed class UsageReporterTests : TestsBase
 
     protected override void OnAfterServicesCreated( Services services )
     {
+        base.OnAfterServicesCreated( services );
         services.ConfigurationManager!.Update<TelemetryConfiguration>( c => c with { UsageReportingAction = ReportingAction.Yes } );
     }
 
@@ -67,7 +68,7 @@ public sealed class UsageReporterTests : TestsBase
     [Theory]
     [InlineData( ReportingAction.Yes, true )]
     [InlineData( ReportingAction.No, false )]
-    [InlineData( ReportingAction.Ask, false )]
+    [InlineData( ReportingAction.Default, true )]
     public void UsageIsReportedAsConfiguredWhenTelemetryIsEnabled( ReportingAction usageReportingAction, bool shoudlReport )
     {
         this.ConfigurationManager!.Update<TelemetryConfiguration>( c => c with { UsageReportingAction = usageReportingAction } );

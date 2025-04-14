@@ -9,12 +9,9 @@ namespace Metalama.Backstage.Telemetry;
 [PublicAPI]
 public enum ReportingAction
 {
-    /// <exclude />
-    Ask,
+    Default,
 
-    /// <exclude />
     Yes,
 
-    /// <exclude />
     No
 }

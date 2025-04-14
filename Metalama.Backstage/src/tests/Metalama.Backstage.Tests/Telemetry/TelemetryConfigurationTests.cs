@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Backstage.Telemetry;
 using Metalama.Backstage.Testing;
 using Xunit;
 using Xunit.Abstractions;
@@ -13,19 +14,18 @@ public sealed class TelemetryConfigurationTests : TestsBase
     public TelemetryConfigurationTests( ITestOutputHelper logger ) : base( logger, new TestApplicationInfo() { IsTelemetryEnabled = true } ) { }
 
     [Theory]
-    [InlineData( null, true )]
     [InlineData( true, true )]
     [InlineData( false, false )]
-    public void SetStatus( bool? input, bool output )
+    public void SetStatus( bool input, bool output )
     {
         this.TelemetryConfigurationService.SetStatus( input );
-        Assert.Equal( output, this.TelemetryConfigurationService.IsEnabled );
+        Assert.Equal( output, this.TelemetryConfigurationService.IsEnabled( TelemetryScenario.Usage ) );
     }
 
     [Fact]
     public void EnabledByDefault()
     {
-        Assert.True( this.TelemetryConfigurationService.IsEnabled );
+        Assert.True( this.TelemetryConfigurationService.IsEnabled( TelemetryScenario.Usage ) );
     }
 
     [Theory]
@@ -45,6 +45,6 @@ public sealed class TelemetryConfigurationTests : TestsBase
         }
 
         this.TelemetryConfigurationService.SetStatus( true );
-        Assert.Equal( isEnabled, this.TelemetryConfigurationService.IsEnabled );
+        Assert.Equal( isEnabled, this.TelemetryConfigurationService.IsEnabled( TelemetryScenario.Usage ) );
     }
 }

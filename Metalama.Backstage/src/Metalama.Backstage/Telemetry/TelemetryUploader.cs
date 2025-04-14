@@ -38,6 +38,7 @@ namespace Metalama.Backstage.Telemetry
         private readonly IExceptionReporter _exceptionReporter;
         private readonly List<(string File, Exception Reason)> _failedFiles = [];
         private readonly TelemetryLogger _telemetryLogger;
+        private readonly BackstageBackgroundTasksService _backgroundTasksService;
 
         public TelemetryUploader( IServiceProvider serviceProvider )
         {
@@ -51,6 +52,7 @@ namespace Metalama.Backstage.Telemetry
             this._logger = serviceProvider.GetLoggerFactory().Telemetry();
             this._exceptionReporter = serviceProvider.GetRequiredBackstageService<IExceptionReporter>();
             this._telemetryLogger = serviceProvider.GetRequiredBackstageService<TelemetryLogger>();
+            this._backgroundTasksService = serviceProvider.GetRequiredBackstageService<BackstageBackgroundTasksService>();
         }
 
         private static void CopyStream( Stream inputStream, Stream outputStream )
@@ -253,7 +255,7 @@ namespace Metalama.Backstage.Telemetry
         }
 
         /// <inheritdoc />
-        public void StartUpload( bool force = false )
+        public bool StartUpload( bool force = false )
         {
             var toolExecutor = this._serviceProvider.GetBackstageService<IBackstageToolsExecutor>();
 
@@ -261,7 +263,7 @@ namespace Metalama.Backstage.Telemetry
             {
                 this._logger.Trace?.Log( $"Do not upload now because there is no IWorkerProgram service." );
 
-                return;
+                return false;
             }
 
             var now = this._time.UtcNow;
@@ -276,10 +278,12 @@ namespace Metalama.Backstage.Telemetry
             {
                 this._logger.Trace?.Log( $"It's not time to upload the telemetry yet." );
 
-                return;
+                return false;
             }
 
-            toolExecutor.Start( BackstageTool.Worker, "upload" );
+            this._backgroundTasksService.Enqueue( () => toolExecutor.Start( BackstageTool.Worker, "upload" ) );
+
+            return true;
         }
 
         internal static string ComputeHash( string packageName )

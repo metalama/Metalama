@@ -67,4 +67,6 @@ public record BackstageInitializationOptions( IApplicationInfo ApplicationInfo )
     /// Gets diagnostic (tracing) options. Considered only when <see cref="AddSupportServices"/> is <c>true</c>. 
     /// </summary>
     public DiagnosticsInitializationOptions DiagnosticsOptions { get; init; } = new();
+
+    internal bool AutoUploadTelemetry { get; init; } = true;
 }

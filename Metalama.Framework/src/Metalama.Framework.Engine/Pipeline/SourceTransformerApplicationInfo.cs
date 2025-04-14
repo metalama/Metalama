@@ -35,4 +35,6 @@ internal sealed class SourceTransformerApplicationInfo : ApplicationInfoBase
     public override ImmutableArray<IComponentInfo> Components => ImmutableArray<IComponentInfo>.Empty;
 
     public override bool IsLicenseAuditEnabled => true;
+
+    public override bool IsTelemetryEnabled => true;
 }

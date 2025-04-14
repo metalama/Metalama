@@ -38,7 +38,9 @@ internal static class Program
         serviceProviderBuilder.AddBackstageServices( initializationOptions );
 
 #pragma warning disable ASP0000
-        var serviceProvider = serviceCollection.BuildServiceProvider();
+        var serviceProvider = serviceCollection
+            .BuildServiceProvider()
+            .InitializeBackstageServices();
 #pragma warning restore ASP0000
         _canIgnoreRecoverableExceptions = serviceProvider.GetRequiredBackstageService<IRecoverableExceptionService>().CanIgnore;
 

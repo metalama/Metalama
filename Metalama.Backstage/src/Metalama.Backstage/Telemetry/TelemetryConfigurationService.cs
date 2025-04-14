@@ -17,7 +17,13 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
     private readonly IConfigurationManager _configurationManager;
     private readonly IServiceProvider _serviceProvider;
     private readonly Guid _newDeviceId;
-    private bool? _isEnabled;
+    private readonly ILogger _logger;
+
+    private bool _isUsageTelemetryEnabled;
+    private bool _isPerformanceTelemetryEnabled;
+    private bool _isExceptionTelemetryEnabled;
+    private bool _isGloballyEnabled;
+    private bool _initialized;
 
     internal TelemetryConfigurationService( IServiceProvider serviceProvider, Guid? newDeviceId = null )
         : this( serviceProvider, newDeviceId ?? Guid.NewGuid() ) { }
@@ -28,28 +34,35 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
         this._serviceProvider = serviceProvider;
         this._newDeviceId = newDeviceId;
         this._configurationManager = serviceProvider.GetRequiredBackstageService<IConfigurationManager>();
+        this._configurationManager.ConfigurationFileChanged += this.OnConfigurationChanged;
+        this._logger = this._serviceProvider.GetLoggerFactory().Telemetry();
     }
 
-    private bool IsEnabledCore()
+    private void OnConfigurationChanged( ConfigurationFile configuration )
     {
-        var loggerFactory = this._serviceProvider.GetLoggerFactory();
-        var logger = loggerFactory.Telemetry();
+        if ( configuration is TelemetryConfiguration telemetryConfiguration )
+        {
+            this.ReadConfiguration( telemetryConfiguration );
+        }
+    }
 
+    private bool IsGloballyEnabled()
+    {
         // Check if the current application supports telemetry.
         var applicationInfo = this._serviceProvider.GetRequiredBackstageService<IApplicationInfoProvider>().CurrentApplication;
         var isApplicationTelemetryEnabled = applicationInfo.IsTelemetryEnabled;
 
         if ( !isApplicationTelemetryEnabled )
         {
-            logger.Trace?.Log( $"Telemetry is disabled for '{applicationInfo.Name} {applicationInfo.PackageVersion}'." );
+            this._logger.Trace?.Log( $"Telemetry is disabled for '{applicationInfo.Name} {applicationInfo.PackageVersion}'." );
 
             return false;
         }
 
         // Check if the current process is unattended.
-        if ( applicationInfo.IsUnattendedProcess( loggerFactory ) )
+        if ( applicationInfo.IsUnattendedProcess( this._serviceProvider.GetLoggerFactory() ) )
         {
-            logger.Trace?.Log( $"Telemetry is disabled because the current process is unattended." );
+            this._logger.Trace?.Log( $"Telemetry is disabled because the current process is unattended." );
 
             return false;
         }
@@ -72,15 +85,7 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
 
         if ( isTelemetryOptedOut )
         {
-            logger.Trace?.Log( $"Telemetry is disabled by the opt-out environment variable." );
-
-            return false;
-        }
-
-        // Check the current configuration.
-        if ( this._configurationManager.Get<TelemetryConfiguration>().UsageReportingAction == ReportingAction.No )
-        {
-            logger.Trace?.Log( $"Telemetry is disabled by configuration setting." );
+            this._logger.Trace?.Log( $"Telemetry is disabled by the opt-out environment variable." );
 
             return false;
         }
@@ -88,36 +93,77 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
         return true;
     }
 
-    public void SetStatus( bool? enabled )
+    private void ReadConfiguration( TelemetryConfiguration configuration )
+    {
+        if ( this._isGloballyEnabled )
+        {
+            this._isExceptionTelemetryEnabled = configuration.ExceptionReportingAction != ReportingAction.No;
+            this._isPerformanceTelemetryEnabled = configuration.PerformanceProblemReportingAction != ReportingAction.No;
+            this._isUsageTelemetryEnabled = configuration.UsageReportingAction != ReportingAction.No;
+        }
+
+        // We should not have a null DeviceId here because Initialize sets it.
+        this.DeviceId = configuration.DeviceId ?? Guid.Empty;
+    }
+
+    public void Initialize()
+    {
+        this._configurationManager.UpdateIf<TelemetryConfiguration>(
+            c => c.DeviceId == null,
+            c => c with
+            {
+                DeviceId = this._newDeviceId,
+                UsageReportingAction = ReportingAction.Yes,
+                PerformanceProblemReportingAction = ReportingAction.Yes,
+                ExceptionReportingAction = ReportingAction.Yes,
+                
+                // Make sure we don't upload telemetry data on the first second of use.
+                // Since first-time users are likely not to use the software for more than a few minutes, 
+                // configure so that we will upload data in 15 minutes.
+                LastUploadTime = DateTime.UtcNow.AddDays( -1 ).AddMinutes( 15 )
+            } );
+
+        this._isGloballyEnabled = this.IsGloballyEnabled();
+        this.ReadConfiguration( this._configurationManager.Get<TelemetryConfiguration>() );
+        this._initialized = true;
+    }
+
+    public void SetStatus( bool enabled )
     {
         var reportAction = enabled switch
         {
-            null => ReportingAction.Ask,
             true => ReportingAction.Yes,
             false => ReportingAction.No
         };
 
         this._configurationManager.Update<TelemetryConfiguration>(
             c => c with { UsageReportingAction = reportAction, ExceptionReportingAction = reportAction, PerformanceProblemReportingAction = reportAction } );
-    }
 
-    public Guid DeviceId
-    {
-        get
+        if ( this._isGloballyEnabled )
         {
-            var configuration = this._configurationManager.Get<TelemetryConfiguration>();
-
-            if ( configuration.DeviceId == null )
-            {
-                this._configurationManager.UpdateIf<TelemetryConfiguration>( c => c.DeviceId == null, c => c with { DeviceId = this._newDeviceId } );
-                configuration = this._configurationManager.Get<TelemetryConfiguration>();
-            }
-
-            return configuration.DeviceId!.Value;
+            this._isExceptionTelemetryEnabled = enabled;
+            this._isUsageTelemetryEnabled = enabled;
+            this._isPerformanceTelemetryEnabled = enabled;
         }
     }
 
-    public bool IsEnabled => this._isEnabled ??= this.IsEnabledCore();
+    public Guid DeviceId { get; private set; }
+
+    public bool IsEnabled( TelemetryScenario scenario )
+    {
+        if ( !this._initialized )
+        {
+            throw new InvalidOperationException();
+        }
+
+        return scenario switch
+        {
+            TelemetryScenario.Exception => this._isExceptionTelemetryEnabled,
+            TelemetryScenario.Performance => this._isPerformanceTelemetryEnabled,
+            TelemetryScenario.Usage => this._isUsageTelemetryEnabled,
+            _ => throw new ArgumentOutOfRangeException()
+        };
+    }
 
     public void ResetDeviceId()
     {

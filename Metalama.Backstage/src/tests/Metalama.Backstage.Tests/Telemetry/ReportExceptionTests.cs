@@ -21,10 +21,13 @@ namespace Metalama.Backstage.Tests.Telemetry;
 public sealed class ReportExceptionTests : TestsBase
 {
     public ReportExceptionTests( ITestOutputHelper logger ) : base( logger, new TestApplicationInfo() { IsTelemetryEnabled = true } ) { }
-
+    
     protected override void OnAfterServicesCreated( Services services )
-        => services.ConfigurationManager!.Update<TelemetryConfiguration>(
+    {
+        base.OnAfterServicesCreated( services );
+        services.ConfigurationManager!.Update<TelemetryConfiguration>(
             c => c with { ExceptionReportingAction = ReportingAction.Yes, PerformanceProblemReportingAction = ReportingAction.Yes } );
+    }
 
     private static string CreateStackFrame( string methodName, int lineNumber )
         => $"   at Metalama.Backstage.Tests.Telemetry.ReportExceptionTests.{methodName}() in C:\\src\\Metalama.Backstage\\Tests\\Metalama.Backstage.Tests\\Telemetry\\ReportExceptionTests.cs:line {lineNumber}";
@@ -119,10 +122,10 @@ public sealed class ReportExceptionTests : TestsBase
     [Theory]
     [InlineData( ReportingAction.Yes, ReportingAction.No, ExceptionReportingKind.Exception, true )]
     [InlineData( ReportingAction.No, ReportingAction.Yes, ExceptionReportingKind.Exception, false )]
-    [InlineData( ReportingAction.Ask, ReportingAction.Yes, ExceptionReportingKind.Exception, false )]
     [InlineData( ReportingAction.No, ReportingAction.Yes, ExceptionReportingKind.PerformanceProblem, true )]
     [InlineData( ReportingAction.Yes, ReportingAction.No, ExceptionReportingKind.PerformanceProblem, false )]
-    [InlineData( ReportingAction.Yes, ReportingAction.Ask, ExceptionReportingKind.PerformanceProblem, false )]
+    [InlineData( ReportingAction.Yes, ReportingAction.Default, ExceptionReportingKind.PerformanceProblem, true )]
+    [InlineData( ReportingAction.Default, ReportingAction.Yes, ExceptionReportingKind.Exception, true )]
     public void ExceptionsAreReportedAsConfiguredWhenTelemetryIsEnabled(
         ReportingAction exceptionReportingAction,
         ReportingAction performanceReportingAction,

@@ -24,14 +24,6 @@ public sealed class LicenseAuditTests : LicenseConsumptionServiceTestsBase
 
     public LicenseAuditTests( ITestOutputHelper logger ) : base( logger, isTelemetryEnabled: true ) { }
 
-    protected override void OnAfterServicesCreated( Services services )
-    {
-        base.OnAfterServicesCreated( services );
-
-        // Make sure that the telemetry configuration is initialized so we get a stable DeviceId.
-        services.ServiceProvider.GetRequiredBackstageService<BackstageServicesInitializer>().Initialize();
-    }
-
     protected override void ConfigureServices( ServiceProviderBuilder services )
     {
         base.ConfigureServices( services );
@@ -42,8 +34,7 @@ public sealed class LicenseAuditTests : LicenseConsumptionServiceTestsBase
             .AddSingleton<IUsageReporter>( new NullUsageReporter() )
             .AddSingleton<ILicenseAuditManager>( serviceProvider => new LicenseAuditManager( serviceProvider ) )
             .AddSingleton<TelemetryReportUploader>( serviceProvider => new TelemetryReportUploader( serviceProvider ) )
-            .AddSingleton( serviceProvider => new MatomoAuditUploader( serviceProvider ) )
-            .AddSingleton( serviceProvider => new BackstageServicesInitializer( serviceProvider ) );
+            .AddSingleton( serviceProvider => new MatomoAuditUploader( serviceProvider ) );
     }
 
     private InstrumentedLicenseWrapper CreateAndConsumeLicense( string licenseKey )
