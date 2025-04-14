@@ -36,7 +36,7 @@ public sealed class WelcomeService : IBackstageService
 
     public void OnBackstageInitialized()
     {
-        if ( this._telemetryConfigurationService.IsEnabled )
+        if ( this._telemetryConfigurationService.IsEnabled( TelemetryScenario.Usage ) )
         {
             if ( this._configurationManager.UpdateIf<WelcomeConfiguration>( c => !c.WelcomePageDisplayed, c => c with { WelcomePageDisplayed = true } ) )
             {

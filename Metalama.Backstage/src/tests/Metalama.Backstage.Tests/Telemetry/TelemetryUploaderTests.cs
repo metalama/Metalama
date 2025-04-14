@@ -100,14 +100,28 @@ public sealed class TelemetryUploaderTests : TestsBase
     }
 
     [Fact]
-    public void BackstageWorkerIsStarted()
+    public void BackstageWorkerIsStartedAfter20Minutes()
     {
+        // Advance the time because the telemetry uploader does not upload data for the first 15 minutes after initial execution.
+        this.Time.AddTime( TimeSpan.FromMinutes( 20 ) );
+
         this._uploader.StartUpload();
+
+        Assert.Single( this.ProcessExecutor.StartedProcesses );
 
         var platformInfo = this.ServiceProvider.GetRequiredBackstageService<IPlatformInfo>();
         var expectedExecutedFileName = platformInfo.DotNetExePath;
 
-        Assert.Single( this.ProcessExecutor.StartedProcesses );
         Assert.Equal( expectedExecutedFileName, this.ProcessExecutor.StartedProcesses[0].FileName );
+    }
+
+    [Fact]
+    public void BackstageWorkerIsNotStartedAfter10Minutes()
+    {
+        this.Time.AddTime( TimeSpan.FromMinutes( 10 ) );
+
+        this._uploader.StartUpload();
+
+        Assert.Empty( this.ProcessExecutor.StartedProcesses );
     }
 }

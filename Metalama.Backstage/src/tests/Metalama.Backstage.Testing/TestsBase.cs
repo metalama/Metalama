@@ -82,7 +82,10 @@ namespace Metalama.Backstage.Testing
         /// <summary>
         /// Method invoked just after the services are instantiated.
         /// </summary>
-        protected virtual void OnAfterServicesCreated( Services services ) { }
+        protected virtual void OnAfterServicesCreated( Services services )
+        {
+            services.ServiceProvider.GetRequiredBackstageService<BackstageServicesInitializer>().Initialize();
+        }
 
         protected void EnsureServicesInitialized()
         {

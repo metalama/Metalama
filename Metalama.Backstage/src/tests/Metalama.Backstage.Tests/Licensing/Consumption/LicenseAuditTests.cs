@@ -24,14 +24,6 @@ public sealed class LicenseAuditTests : LicenseConsumptionServiceTestsBase
 
     public LicenseAuditTests( ITestOutputHelper logger ) : base( logger, isTelemetryEnabled: true ) { }
 
-    protected override void OnAfterServicesCreated( Services services )
-    {
-        base.OnAfterServicesCreated( services );
-
-        // Make sure that the telemetry configuration is initialized so we get a stable DeviceId.
-        services.ServiceProvider.GetRequiredBackstageService<BackstageServicesInitializer>().Initialize();
-    }
-
     protected override void ConfigureServices( ServiceProviderBuilder services )
     {
         base.ConfigureServices( services );

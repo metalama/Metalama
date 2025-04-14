@@ -47,7 +47,7 @@ namespace Metalama.Backstage.Commands
 
             serviceProviderBuilder.AddBackstageServices( initializationOptions );
 
-            return serviceCollection.BuildServiceProvider();
+            return serviceCollection.BuildServiceProvider().InitializeBackstageServices();
         }
     }
 }

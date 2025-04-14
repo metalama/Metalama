@@ -12,9 +12,20 @@ namespace Metalama.Backstage.Telemetry;
 [ConfigurationFile( "telemetry.json" )]
 public sealed record TelemetryConfiguration : ConfigurationFile
 {
-    public ReportingAction ExceptionReportingAction { get; init; } = ReportingAction.Ask;
+    public ReportingAction ExceptionReportingAction { get; init; } = ReportingAction.Default;
 
-    public ReportingAction PerformanceProblemReportingAction { get; init; } = ReportingAction.Ask;
+    public ReportingAction PerformanceProblemReportingAction { get; init; } = ReportingAction.Default;
+
+    public ReportingAction UsageReportingAction { get; init; } = ReportingAction.Default;
+
+    public ReportingAction GetReportingAction( TelemetryScenario scenario )
+        => scenario switch
+        {
+            TelemetryScenario.Exception => this.ExceptionReportingAction,
+            TelemetryScenario.Performance => this.PerformanceProblemReportingAction,
+            TelemetryScenario.Usage => this.UsageReportingAction,
+            _ => throw new ArgumentOutOfRangeException()
+        };
 
     // Do not consume directly this property, as it may not be initialized. Consume it through ITelemetryConfigurationService.
     public Guid? DeviceId { get; init; }
@@ -26,8 +37,6 @@ public sealed record TelemetryConfiguration : ConfigurationFile
 
     public ImmutableDictionary<string, DateTime> Sessions { get; init; } =
         ImmutableDictionary<string, DateTime>.Empty.WithComparers( StringComparer.OrdinalIgnoreCase );
-
-    public ReportingAction UsageReportingAction { get; init; } = ReportingAction.Ask;
 
     public TelemetryConfiguration CleanUp( DateTime threshold )
     {

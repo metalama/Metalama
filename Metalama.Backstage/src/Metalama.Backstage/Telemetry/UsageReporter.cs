@@ -19,8 +19,7 @@ internal sealed class UsageReporter : IUsageReporter
     private readonly ILogger _logger;
 
     public bool IsUsageReportingEnabled
-        => this._telemetryConfigurationService.IsEnabled
-           && this._configurationManager.Get<TelemetryConfiguration>().UsageReportingAction == ReportingAction.Yes;
+        => this._telemetryConfigurationService.IsEnabled( TelemetryScenario.Usage );
 
     public UsageReporter( IServiceProvider serviceProvider )
     {

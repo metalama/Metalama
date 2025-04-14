@@ -15,6 +15,8 @@ internal sealed class BackstageServicesInitializer : IBackstageService
     private readonly BackstageBackgroundTasksService _backgroundTasksService;
     private readonly WelcomeService? _welcomeService;
     private readonly IProfilingService? _profilingService;
+    private readonly ITelemetryConfigurationService? _telemetryConfigurationService;
+    private readonly ShutdownService? _shutdownService;
 
     public BackstageServicesInitializer( IServiceProvider serviceProvider )
     {
@@ -22,11 +24,15 @@ internal sealed class BackstageServicesInitializer : IBackstageService
         this._backgroundTasksService = serviceProvider.GetRequiredBackstageService<BackstageBackgroundTasksService>();
         this._profilingService = serviceProvider.GetBackstageService<IProfilingService>();
         this._welcomeService = serviceProvider.GetBackstageService<WelcomeService>();
+        this._shutdownService = serviceProvider.GetBackstageService<ShutdownService>();
+        this._telemetryConfigurationService = serviceProvider.GetBackstageService<ITelemetryConfigurationService>();
     }
 
     public void Initialize()
     {
         this._profilingService?.Initialize();
+        this._telemetryConfigurationService?.Initialize();
+        this._shutdownService?.Initialize();
         this._welcomeService?.OnBackstageInitialized();
 
         // The license manager may enqueue a file but be unable to start the process.
