@@ -126,11 +126,12 @@ public sealed partial class ServiceProvider<TBase> : ServiceProvider, IServicePr
             return this.Clone( builder.ToImmutable(), this.NextProvider );
         }
 
+        // ReSharper disable once UnusedParameter.Local
         static void ReportConfict( Type interfaceType, ServiceNode? conflictingServiceNode = null )
         {
             var message = $"The service provider already contains the service '{interfaceType}'.";
 
-#if DEBUG
+#if TRACK_SERVICE_ALLOCATION
             if ( conflictingServiceNode != null )
             {
                 message += " The allocation stack trace is: " + Environment.NewLine + conflictingServiceNode.AllocationStackTrace + "--";

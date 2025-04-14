@@ -7,7 +7,7 @@ using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Utilities;
 using Metalama.Framework.Engine.Collections;
 using Metalama.Framework.Engine.Services;
-using Metalama.Framework.Engine.Utilities;
+using Metalama.Framework.Engine.Utilities.AssemblyLoaders;
 using Metalama.Framework.Engine.Utilities.Diagnostics;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Metalama.Framework.Services;
@@ -43,7 +43,9 @@ namespace Metalama.Framework.Engine.CompileTime
         private readonly ConcurrentDictionary<string, (Assembly Assembly, AssemblyIdentity Identity)> _assembliesByName = new();
 
         private AssemblyLoader? _assemblyLoader;
-        private ImmutableDictionaryOfArray<string, string> _assemblyPathsByName = ImmutableDictionaryOfArray<string, string>.Empty;
+
+        private ImmutableDictionaryOfArray<string, (string Path, Lazy<AssemblyName> AssemblyName)> _assemblyPathsByName =
+            ImmutableDictionaryOfArray<string, (string Path, Lazy<AssemblyName> AssemblyName)>.Empty;
 
         [UsedImplicitly]
         protected ICompileTimeDomainObserver? Observer { get; }
@@ -53,7 +55,10 @@ namespace Metalama.Framework.Engine.CompileTime
             this.Observer = serviceProvider.GetService<ICompileTimeDomainObserver>();
             this.Observer?.OnDomainCreated( this );
 
-            this._assemblyLoader = new AssemblyLoader( this.ResolveAssembly, debugName: $"CompileTimeDomain {debugName}".TrimEnd() );
+            this._assemblyLoader = AssemblyLoaderFactory.CreateAssemblyLoader(
+                this.ResolveAssembly,
+                null,
+                debugName: $"CompileTimeDomain {debugName}".TrimEnd() );
 
             this._logger = Logger.Domain;
 
@@ -76,15 +81,14 @@ namespace Metalama.Framework.Engine.CompileTime
             else
             {
                 var matchingAssemblies = this._assemblyPathsByName[assemblyName.Name.AssertNotNull()]
-                    .Select( x => (Path: x, AssemblyName: AssemblyName.GetAssemblyName( x )) )
-                    .Where( x => AssemblyName.ReferenceMatchesDefinition( assemblyName, x.AssemblyName ) )
-                    .ToOrderedList( x => x.AssemblyName.Version, descending: true );
+                    .Where( x => AssemblyName.ReferenceMatchesDefinition( assemblyName, x.AssemblyName.Value ) )
+                    .ToOrderedList( x => x.AssemblyName.Value.Version, descending: true );
 
                 if ( matchingAssemblies.Count >= 1 )
                 {
                     this._logger.Trace?.Log( $"Found the assembly '{matchingAssemblies[0].Path}'." );
 
-                    return this.LoadAssembly( matchingAssemblies[0].Path );
+                    return this.LoadAssembly( matchingAssemblies[0].Path, matchingAssemblies[0].AssemblyName.Value );
                 }
             }
 
@@ -98,14 +102,16 @@ namespace Metalama.Framework.Engine.CompileTime
         /// <summary>
         /// Loads an assembly in the CLR.
         /// </summary>
-        /// <param name="path"></param>
-        public Assembly LoadAssembly( string path, LoadAssemblyOptions options = default )
+        /// <param name="path">The assembly path.</param>
+        /// <param name="assemblyName">The <see cref="AssemblyName"/> if known; otherwise <c>null</c>. The objective is to minimize calls
+        /// to <see cref="AssemblyName.GetAssemblyName"/> because they are expensive.</param>
+        public Assembly LoadAssembly( string path, AssemblyName? assemblyName = null, LoadAssemblyOptions options = default )
         {
             this._logger.Trace?.Log( $"Loading '{path}'." );
 
             // We intentionally do not cache assemblies by path because files can be rewritten. We can only cache based on the full identity.
 
-            var assemblyName = AssemblyName.GetAssemblyName( path );
+            assemblyName ??= MetadataReferenceCache.GetAssemblyName( path );
 
             // Verify that the assembly is not already in the current CompileTimeDomain.
             if ( this.TryGetLoadedAssembly( assemblyName, out var existingAssembly ) )
@@ -220,7 +226,7 @@ namespace Metalama.Framework.Engine.CompileTime
                 {
                     ctx.me._logger.Trace?.Log( $"Loading assembly '{ctx.path}'." );
 
-                    var assembly = ctx.me.LoadAssembly( ctx.path );
+                    var assembly = ctx.me.LoadAssembly( ctx.path, ctx.compileTimeIdentity.ToAssemblyName() );
 
                     if ( assembly.FullName != ctx.compileTimeIdentity.ToString() )
                     {
@@ -272,8 +278,14 @@ namespace Metalama.Framework.Engine.CompileTime
         {
             lock ( this._sync )
             {
-                this._assemblyPathsByName = this._assemblyPathsByName.AddRange( systemAssemblyPaths, x => Path.GetFileNameWithoutExtension( x ), x => x );
+                this._assemblyPathsByName = this._assemblyPathsByName.AddRange(
+                    systemAssemblyPaths,
+                    Path.GetFileNameWithoutExtension,
+                    x => (x, new Lazy<AssemblyName>( () => MetadataReferenceCache.GetAssemblyName( x ) )) );
             }
         }
+
+        public bool IsCollectible( Assembly assembly )
+            => this._assemblyLoader?.IsCollectible( assembly ) ?? throw new ObjectDisposedException( this.ToString() );
     }
 }

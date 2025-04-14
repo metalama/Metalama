@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Microsoft.VisualStudio.Threading;
 using StreamJsonRpc;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
@@ -12,7 +13,10 @@ namespace Metalama.Framework.DesignTime.Rpc;
 public abstract class ServerEndpoint : BaseEndpoint
 {
     private readonly ConcurrentDictionary<JsonRpc, NamedPipeServerStream> _pipes = new();
+    private readonly TaskCompletionSource<bool> _startedTask = new();
+
     private int _nextPipeId = 1;
+    private ImmutableArray<RpcService> _services;
 
     protected ServerEndpoint(
         IServiceProvider serviceProvider,
@@ -20,12 +24,16 @@ public abstract class ServerEndpoint : BaseEndpoint
         serviceProvider,
         pipeName ) { }
 
-    private ImmutableArray<RpcService> Services { get; set; }
-
-    public TService GetRequiredService<TService>()
+    public async ValueTask<TService> GetRequiredServiceAsync<TService>( CancellationToken cancellationToken )
         where TService : RpcService
-        => this.Services.OfType<TService>().SingleOrDefault()
-           ?? throw new InvalidOperationException( $"Service '{typeof(TService).Name}' is not registered." );
+    {
+        // Services are not availabable until the Start method has completed.
+        // However, they are available before the server got a client, so we can't use WhenInitializedAsync.
+        await this._startedTask.Task.WithCancellation( cancellationToken );
+
+        return this._services.OfType<TService>().SingleOrDefault()
+               ?? throw new InvalidOperationException( $"Service '{typeof(TService).Name}' is not registered." );
+    }
 
     protected abstract IEnumerable<RpcService> CreateServices();
 
@@ -37,14 +45,15 @@ public abstract class ServerEndpoint : BaseEndpoint
     /// </summary>
     public void Start()
     {
-        if ( !this.Services.IsDefault )
+        if ( !this._services.IsDefault )
         {
             throw new InvalidOperationException( $"The '{this}' endpoint has already been started." );
         }
 
         var services = this.CreateServices().ToImmutableArray();
-        this.Services = services;
+        this._services = services;
         _ = this.StartCoreAsync( this.PipeName, services, this.DisposeCancellationToken );
+        this._startedTask.SetResult( true );
     }
 #pragma warning restore VSTHRD100 // Avoid "async void".
 
@@ -52,7 +61,7 @@ public abstract class ServerEndpoint : BaseEndpoint
     {
         var pipeId = Interlocked.Increment( ref this._nextPipeId );
         var pipeName = this.PipeName + "-" + pipeId;
-        this.Services = this.Services.AddRange( services );
+        this._services = this._services.AddRange( services );
 
         this.ExecuteBackgroundTask( ct => this.AcceptNewClientAsync( pipeName, services, ct ), nameof(this.AcceptNewClientAsync), false );
 
@@ -137,7 +146,7 @@ public abstract class ServerEndpoint : BaseEndpoint
 
     private void OnRpcDisconnected( JsonRpc rpc )
     {
-        foreach ( var i in this.Services )
+        foreach ( var i in this._services )
         {
             i.OnRpcDisconnected( rpc );
         }

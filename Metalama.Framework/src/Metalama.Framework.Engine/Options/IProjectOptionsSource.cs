@@ -21,6 +21,6 @@ namespace Metalama.Framework.Engine.Options
         /// <summary>
         /// Gets a collection of all known configuration names.
         /// </summary>
-        public IEnumerable<string> PropertyNames { get; }
+        IEnumerable<string> PropertyNames { get; }
     }
 }

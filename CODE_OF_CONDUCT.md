@@ -1,0 +1,1 @@
+This community is governed by the [Metalama Community Guidelines](https://metalama.net/contributing/guidelines).

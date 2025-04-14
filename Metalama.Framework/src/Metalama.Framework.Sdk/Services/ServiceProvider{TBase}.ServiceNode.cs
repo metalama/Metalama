@@ -14,7 +14,7 @@ public sealed partial class ServiceProvider<TBase>
         private readonly Func<ServiceProvider<TBase>, object>? _func;
         private object? _service;
 
-#if DEBUG
+#if TRACK_SERVICE_ALLOCATION
         public StackTrace AllocationStackTrace { get; } = new();
 #endif
 

@@ -4,20 +4,26 @@
 
 #if NET5_0_OR_GREATER
 using Metalama.Backstage.Utilities;
-using Metalama.Framework.Code.Collections;
 using Metalama.Framework.Engine.Services;
-using Metalama.Framework.Engine.Utilities;
-using Metalama.Framework.Engine.Utilities.Threading;
 using System;
+using System.IO;
+using System.Reflection;
+using System.Runtime.Loader;
+
+// Memory leak verification is currently disabled because it systematically fails on Gael's computer,
+// although it works on other computers.
+
+#if VERIFY_MEMORY_LEAKS
+using Metalama.Framework.Code.Collections;
+using Metalama.Framework.Engine.Utilities;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.IO;
 using System.Linq;
-using System.Reflection;
-using System.Runtime.Loader;
 using System.Threading;
 using System.Threading.Tasks;
+using Metalama.Framework.Engine.Utilities.Threading;
+#endif
 
 namespace Metalama.Framework.Engine.CompileTime
 {
@@ -27,24 +33,32 @@ namespace Metalama.Framework.Engine.CompileTime
     /// </summary>
     public sealed class UnloadableCompileTimeDomain : CompileTimeDomain
     {
-        private readonly List<WeakReference> _collectibleAssemblies = new();
-        private readonly TaskCompletionSource<bool> _unloadedTask = new();
-        private readonly ITaskRunner _taskRunner;
         private readonly object _disposeLock = new();
 
         private AssemblyLoadContext? _assemblyLoadContext;
-        private int _isWaitingForDisposal;
         private volatile bool _disposed;
+
+#if VERIFY_MEMORY_LEAKS
+        private static bool _alreadyHasUnloadingTimeout;
+        private readonly List<WeakReference> _collectibleAssemblies = new();
+        private readonly ITaskRunner _taskRunner;
+        private int _isWaitingForDisposal;
+        private readonly TaskCompletionSource<bool> _unloadedTask = new();
+#endif
 
         public UnloadableCompileTimeDomain( GlobalServiceProvider serviceProvider ) : base( serviceProvider )
         {
-            CollectibleExecutionContext.RegisterDisposeAction( this.WaitForDisposal );
             this._assemblyLoadContext = new AssemblyLoadContext( "Metalama_" + Guid.NewGuid(), isCollectible: true );
 
+#if VERIFY_MEMORY_LEAKS
+            CollectibleExecutionContext.RegisterDisposeAction( this.WaitForDisposal );
             this._taskRunner = serviceProvider.GetRequiredService<ITaskRunner>();
+#endif
         }
 
+#pragma warning disable CS0067 // Event is never used
         public event Action<string>? UnloadError;
+#pragma warning restore CS0067 // Event is never used
 
         protected override Assembly LoadAssemblyCore( string path, LoadAssemblyOptions options )
         {
@@ -53,25 +67,20 @@ namespace Metalama.Framework.Engine.CompileTime
                 throw new ObjectDisposedException( nameof(UnloadableCompileTimeDomain) );
             }
 
-            // When using LoadFromAssemblyPath, the file is locked and the lock is not disposed when the AssemblyLoadContext is unloaded.
-            // Therefore, we're loading from bytes.
-
             Assembly assembly;
 
             try
             {
-                if ( options.AvoidLocking )
-                {
-                    using var peStream = RetryHelper.Retry( () => File.OpenRead( path ) );
-                    var pdbPath = Path.ChangeExtension( path, ".pdb" );
-                    using var pdbStream = File.Exists( pdbPath ) ? RetryHelper.Retry( () => File.OpenRead( pdbPath ) ) : null;
+                // There seems to be several issues with LoadFromAssemblyPath:
+                // - Performance issues during tests. Tests seem to be very slow. 
+                //   Breaking into the process with the debugger shows of lot of threads are inside LoadFromAssemblyPath.
+                // - Possibly file lock issues, where files are not unlocked, even when the AssemblyLoadContext is disposed of.
+                // Therefore, we always use LoadFromStream. 
+                using var peStream = RetryHelper.Retry( () => File.OpenRead( path ) );
+                var pdbPath = Path.ChangeExtension( path, ".pdb" );
+                using var pdbStream = File.Exists( pdbPath ) ? RetryHelper.Retry( () => File.OpenRead( pdbPath ) ) : null;
 
-                    assembly = this._assemblyLoadContext.AssertNotNull().LoadFromStream( peStream, pdbStream );
-                }
-                else
-                {
-                    assembly = this._assemblyLoadContext.AssertNotNull().LoadFromAssemblyPath( path );
-                }
+                assembly = this._assemblyLoadContext.AssertNotNull().LoadFromStream( peStream, pdbStream );
             }
             catch ( Exception e )
             {
@@ -86,14 +95,21 @@ namespace Metalama.Framework.Engine.CompileTime
             return assembly;
         }
 
+        // ReSharper disable once MemberCanBeMadeStatic.Local
+        // ReSharper disable once UnusedParameter.Local
+#pragma warning disable CA1822
         private void AddCollectibleAssembly( Assembly assembly )
         {
+#if VERIFY_MEMORY_LEAKS
             lock ( this._collectibleAssemblies )
             {
                 this._collectibleAssemblies.Add( new WeakReference( assembly ) );
             }
+#endif
         }
+#pragma warning restore CA1822
 
+#if VERIFY_MEMORY_LEAKS
         [ExcludeFromCodeCoverage]
         private void WaitForDisposal() => this._taskRunner.RunSynchronously( this.WaitForDisposalAsync );
 
@@ -110,6 +126,12 @@ namespace Metalama.Framework.Engine.CompileTime
 
         private async Task WaitForDisposalCoreAsync()
         {
+            // Don't wait twice, because this slows down the tests too significantly and we don't know which one is wrong anyway.
+            if ( _alreadyHasUnloadingTimeout )
+            {
+                return;
+            }
+
             if ( Interlocked.CompareExchange( ref this._isWaitingForDisposal, 1, 0 ) != 0 )
             {
                 // Another thread has won.
@@ -152,6 +174,8 @@ namespace Metalama.Framework.Engine.CompileTime
 
                     if ( stopwatch.Elapsed.TotalSeconds > 30 )
                     {
+                        _alreadyHasUnloadingTimeout = true;
+
                         var assemblies = string.Join(
                             ",",
                             aliveAssemblies.SelectAsReadOnlyList( r => (Assembly?) r.Target ).WhereNotNull().Select( a => a.GetName().Name ) );
@@ -196,6 +220,7 @@ namespace Metalama.Framework.Engine.CompileTime
                 throw;
             }
         }
+#endif
 
         protected override void Dispose( bool disposing )
         {

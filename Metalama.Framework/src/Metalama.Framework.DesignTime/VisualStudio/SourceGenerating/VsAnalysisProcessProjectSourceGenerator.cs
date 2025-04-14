@@ -7,6 +7,7 @@ using Metalama.Framework.DesignTime.SourceGeneration;
 using Metalama.Framework.DesignTime.VisualStudio.ServiceProvider;
 using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Engine.Utilities.Threading;
 using System.Collections.Immutable;
 
 namespace Metalama.Framework.DesignTime.VisualStudio.SourceGenerating;
@@ -17,25 +18,36 @@ namespace Metalama.Framework.DesignTime.VisualStudio.SourceGenerating;
 /// </summary>
 internal sealed class VsAnalysisProcessProjectSourceGenerator : AnalysisProcessProjectSourceGenerator
 {
-    private readonly SourceGeneratorRpcService? _sourceGeneratorRpcService;
+    private readonly RpcServiceProviderServerEndpoint? _serviceProviderEndpoint;
+    private readonly Task _initializationTask;
+
+    private SourceGeneratorRpcService? _sourceGeneratorRpcService;
 
     public VsAnalysisProcessProjectSourceGenerator( GlobalServiceProvider serviceProvider, IProjectOptions projectOptions, ProjectKey projectKey ) : base(
         serviceProvider,
         projectOptions,
         projectKey )
     {
-        var endpoint = serviceProvider.GetService<IRpcServiceProviderServerEndpointProvider>()?.Endpoint;
+        this._serviceProviderEndpoint = serviceProvider.GetService<IRpcServiceProviderServerEndpointProvider>()?.Endpoint;
 
-        if ( endpoint != null )
+        if ( this._serviceProviderEndpoint != null )
         {
-            this._sourceGeneratorRpcService = endpoint.GetRequiredService<SourceGeneratorRpcService>();
-            this._sourceGeneratorRpcService.ClientConnected += this.OnClientConnected;
-            this.PendingTasks.Run( () => endpoint.RegisterProjectAsync( this.ProjectKey, this.ApplicationExitingToken ) );
+            this._initializationTask = this.InitializeAsync();
         }
         else
         {
+            this._initializationTask = Task.CompletedTask;
             this.Logger.Warning?.Log( "The project handler was created without an endpoint." );
         }
+    }
+
+    private async Task InitializeAsync()
+    {
+        this._sourceGeneratorRpcService =
+            await this._serviceProviderEndpoint!.GetRequiredServiceAsync<SourceGeneratorRpcService>( this.ApplicationExitingToken );
+
+        this._sourceGeneratorRpcService.ClientConnected += this.OnClientConnected;
+        this.PendingTasks.Enqueue( () => this._serviceProviderEndpoint!.RegisterProjectAsync( this.ProjectKey, this.ApplicationExitingToken ) );
     }
 
     private void OnClientConnected( ProjectKey projectKey )
@@ -47,32 +59,32 @@ internal sealed class VsAnalysisProcessProjectSourceGenerator : AnalysisProcessP
         }
     }
 
-    protected override Task PublishGeneratedSourcesAsync( ProjectKey projectKey, CancellationToken cancellationToken )
+    protected override async Task PublishGeneratedSourcesAsync( ProjectKey projectKey, CancellationToken cancellationToken )
     {
+        await this._initializationTask.WithCancellation( cancellationToken ).WarnIfLongAsync( this.Logger, nameof(this.InitializeAsync), cancellationToken );
+
         if ( this._sourceGeneratorRpcService == null )
         {
             this.Logger.Warning?.Log( $"Do not publish the generated source for '{projectKey}' because there is no endpoint." );
 
-            return Task.CompletedTask;
+            return;
         }
 
         if ( this.LastSourceGeneratorResult == null )
         {
             this.Logger.Warning?.Log( $"Do not publish the generated source for '{projectKey}' because there is none." );
 
-            return Task.CompletedTask;
+            return;
         }
-        else
-        {
-            this.Logger.Trace?.Log( $"Publishing generated source of '{projectKey}' to the user process." );
 
-            var generatedSources = this.LastSourceGeneratorResult.AdditionalSources
-                .ToImmutableDictionary( x => x.Key, x => x.Value.GeneratedSyntaxTree.ToString() );
+        this.Logger.Trace?.Log( $"Publishing generated source of '{projectKey}' to the user process." );
 
-            return this._sourceGeneratorRpcService.PublishGeneratedSourcesAsync(
-                projectKey,
-                generatedSources,
-                cancellationToken );
-        }
+        var generatedSources = this.LastSourceGeneratorResult.AdditionalSources
+            .ToImmutableDictionary( x => x.Key, x => x.Value.GeneratedSyntaxTree.ToString() );
+
+        await this._sourceGeneratorRpcService.PublishGeneratedSourcesAsync(
+            projectKey,
+            generatedSources,
+            cancellationToken );
     }
 }

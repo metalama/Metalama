@@ -93,6 +93,7 @@ For more details, see [Contributing to Metalama](https://metalama.net/contributi
 - Report issues on GitHub. Follow [these recommendations](https://metalama.net/contributing/file-an-issue).
 - Join [GitHub discussions](https://github.com/orgs/metalama/discussions) for questions and proposals.
 - Enterprise support is available. Learn more about [premium support](https://metalama.net/premium/enterprise-support). 💎
+- Please review our [Community Guidelines](https://metalama.net/contributing/guidelines).
 
 ## Packages
 
@@ -136,3 +137,7 @@ Below is a list of packages originating from this repository:
 | [Metalama.Documentation](https://github.com/metalama/Metalama.Documentation) | MIT              | Source for documentation hosted on [Metalama Docs](https://doc.metalama.net/). |
 | [Metalama.Samples](https://github.com/metalama/Metalama.Samples)          | MIT              | Illustrative samples available at [Metalama Examples](https://doc.metalama.net/examples). |
 | [Metalama.Premium](https://github.com/metalama/Metalama.Premium) 🔑         | Proprietary      | Extensions available to customers with a commercial license.                      |
+
+## Dependencies
+
+Direct and indirect dependencies, as well as their licensing, are documented in <THIRD-PARTY-NOTICES.md>.

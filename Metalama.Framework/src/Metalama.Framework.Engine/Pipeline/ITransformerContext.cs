@@ -15,17 +15,17 @@ internal interface ITransformerContext
 {
     GlobalServiceProvider ServiceProvider { get; }
 
-    public void AddSyntaxTreeTransformations( IEnumerable<SyntaxTreeTransformation> transformations );
+    void AddSyntaxTreeTransformations( IEnumerable<SyntaxTreeTransformation> transformations );
 
-    public Compilation Compilation { get; }
+    Compilation Compilation { get; }
 
     IProjectOptions ProjectOptions { get; }
 
-    public ImmutableArray<ManagedResource> Resources { get; }
+    ImmutableArray<ManagedResource> Resources { get; }
 
-    public void ReportDiagnostic( Diagnostic diagnostic );
+    void ReportDiagnostic( Diagnostic diagnostic );
 
-    public void AddResources( IEnumerable<ManagedResource> resources );
+    void AddResources( IEnumerable<ManagedResource> resources );
 
-    public void RegisterDiagnosticFilter( in DiagnosticFilter filter );
+    void RegisterDiagnosticFilter( in DiagnosticFilter filter );
 }

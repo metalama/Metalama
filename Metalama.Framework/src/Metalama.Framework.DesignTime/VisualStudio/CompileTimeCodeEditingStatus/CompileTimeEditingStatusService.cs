@@ -25,7 +25,7 @@ internal sealed class CompileTimeEditingStatusService : ICompileTimeEditingStatu
     private readonly CancellationToken _applicationExitingToken;
 
     private bool _userInterfaceAttached;
-    
+
     // We use an immutable dictionary to have a simple consistent enumerator.
     private volatile ImmutableDictionary<ProjectKey, ImmutableArray<IDiagnosticData>> _compileTimeErrorsByProject =
         ImmutableDictionary<ProjectKey, ImmutableArray<IDiagnosticData>>.Empty;
@@ -119,7 +119,7 @@ internal sealed class CompileTimeEditingStatusService : ICompileTimeEditingStatu
 
     private void OnEndpointAdded( RpcServiceProviderClientEndpoint endpoint )
     {
-        this._pendingTasks.Run(
+        this._pendingTasks.Enqueue(
             async () =>
             {
                 var client = await endpoint.GetOrWaitForClientAsync<CompileTimeCodeEditingStatusRpcClient>( this._applicationExitingToken );
@@ -129,10 +129,11 @@ internal sealed class CompileTimeEditingStatusService : ICompileTimeEditingStatu
 
                 if ( this._userInterfaceAttached )
                 {
-                    var api = await client.GetApiAsync();
-                    await api.OnUserInterfaceAttachedAsync();
+                    var api = await client.GetApiAsync( this._applicationExitingToken );
+                    await api.OnUserInterfaceAttachedAsync( this._applicationExitingToken );
                 }
-            } );
+            },
+            this._applicationExitingToken );
     }
 
     public async Task OnEditingCompletedAsync( CancellationToken cancellationToken )

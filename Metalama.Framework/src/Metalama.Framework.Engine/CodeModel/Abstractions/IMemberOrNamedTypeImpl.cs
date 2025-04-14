@@ -8,5 +8,5 @@ namespace Metalama.Framework.Engine.CodeModel.Abstractions;
 
 internal interface IMemberOrNamedTypeImpl : IMemberOrNamedType, IDeclarationImpl
 {
-    public bool? HasNewKeyword { get; }
+    bool? HasNewKeyword { get; }
 }

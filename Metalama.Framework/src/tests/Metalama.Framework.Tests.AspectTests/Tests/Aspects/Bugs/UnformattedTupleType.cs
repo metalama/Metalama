@@ -8,7 +8,6 @@
 
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.SyntaxBuilders;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using System;
 using System.Threading.Tasks;
@@ -19,7 +18,7 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Bugs.UnformattedTup
 public class Bug
 {
     [TaskException]
-    public Task<(int a, int b)> Method() => Task.FromResult( ( 1, 2 ) );
+    public Task<(int a, int b)> Method() => Task.FromResult( (1, 2) );
 }
 
 public class TaskExceptionAttribute : OverrideMethodAspect
@@ -33,10 +32,10 @@ public class TaskExceptionAttribute : OverrideMethodAspect
 
         // ReSharper disable once EntityNameCapturedOnly.Local
         // ReSharper disable once InconsistentNaming
-        catch (Exception __ex)
+        catch ( Exception __ex )
         {
             // Converts to TaskEx.FromException(ex) with generic support
-            return ExpressionHelper.TaskExFromException( (INamedType)meta.Target.Method.ReturnType, nameof(__ex) ).Value;
+            return ExpressionHelper.TaskExFromException( (INamedType) meta.Target.Method.ReturnType, nameof(__ex) ).Value;
         }
     }
 
@@ -56,8 +55,8 @@ public static class ExpressionHelper
     {
         public FromExceptionExpression( INamedType returnType, string exceptionName )
         {
-            ReturnType = returnType;
-            ExceptionName = exceptionName;
+            this.ReturnType = returnType;
+            this.ExceptionName = exceptionName;
         }
 
         private INamedType ReturnType { get; }
@@ -70,19 +69,19 @@ public static class ExpressionHelper
 
             builder.AppendVerbatim( "System.Threading.Tasks.Task.FromException" );
 
-            if (ReturnType.IsGeneric)
+            if ( this.ReturnType.IsGeneric )
             {
                 builder.AppendVerbatim( "<" );
 
                 // This worked in 2024.0
                 // It seems like AppendTypeName doesn't like Tuples anymore and is missing a space between the type and name.
                 // i.e. (int a, int b) becomes (inta, intb).
-                builder.AppendTypeName( ReturnType.TypeArguments[0] );
+                builder.AppendTypeName( this.ReturnType.TypeArguments[0] );
                 builder.AppendVerbatim( ">" );
             }
 
             builder.AppendVerbatim( "(" );
-            builder.AppendVerbatim( ExceptionName );
+            builder.AppendVerbatim( this.ExceptionName );
             builder.AppendVerbatim( ")" );
 
             return builder.ToExpression();

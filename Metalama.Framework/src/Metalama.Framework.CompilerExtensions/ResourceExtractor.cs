@@ -2,7 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using Metalama.Framework.Engine.Utilities;
+using Metalama.Framework.Engine.Utilities.AssemblyLoaders;
 using Metalama.Framework.Threading;
 using Microsoft.CodeAnalysis;
 using System;
@@ -31,7 +31,7 @@ public static class ResourceExtractor
     private const string _designTimeContractsAssemblyName = "Metalama.Framework.DesignTime.Contracts";
 
     private static readonly object _initializeLock = new();
-    private static readonly string[] _assembliesShippedWithMetalamaCompiler = new[] { "Metalama.Backstage", "Metalama.Compiler.Interfaces" };
+    private static readonly string[] _assembliesShippedWithMetalamaCompiler = ["Metalama.Backstage", "Metalama.Compiler.Interfaces"];
 
     private static readonly bool _isNetFramework =
         RuntimeInformation.FrameworkDescription.StartsWith( ".NET Framework", StringComparison.OrdinalIgnoreCase );
@@ -101,7 +101,7 @@ public static class ResourceExtractor
 
                     // Since GetAssemblyCore loads the DesignTime.Contracts assembly outside of the AssemblyLoader ALC,
                     // we also need to handle loading its dependencies by specifying the globalResolveHandlerFilter.
-                    _assemblyLoader = new AssemblyLoader(
+                    _assemblyLoader = AssemblyLoaderFactory.CreateAssemblyLoader(
                         name => GetAssembly( name ),
                         a => a?.GetName().Name == _designTimeContractsAssemblyName );
 
@@ -515,7 +515,7 @@ public static class ResourceExtractor
         // assemblies than what we have. In this case, we will return any matching assembly.
 
         var existingAssembly = AppDomain.CurrentDomain.GetAssemblies()
-            .FirstOrDefault( x => !AssemblyLoader.IsCollectible( x ) && matchFunc( requestedAssemblyName, x.GetName() ) );
+            .FirstOrDefault( x => !_assemblyLoader.IsCollectible( x ) && matchFunc( requestedAssemblyName, x.GetName() ) );
 
         if ( existingAssembly != null )
         {

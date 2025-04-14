@@ -9,5 +9,5 @@ namespace Metalama.Framework.Engine.CompileTime;
 
 public interface ICompileTimePreprocessorSymbolProvider : IProjectService
 {
-    public IReadOnlyList<string> PreprocessorSymbols { get; }
+    IReadOnlyList<string> PreprocessorSymbols { get; }
 }

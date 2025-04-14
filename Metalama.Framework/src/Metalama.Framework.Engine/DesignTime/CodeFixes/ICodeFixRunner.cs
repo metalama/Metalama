@@ -25,5 +25,5 @@ public interface ICodeFixRunner : IProjectService
 
 public interface IStandaloneCodeFixRunnerFactory
 {
-    public ICodeFixRunner CreateCodeFixRunner( ProjectServiceProvider serviceProvider, CompileTimeDomain domain );
+    ICodeFixRunner CreateCodeFixRunner( ProjectServiceProvider serviceProvider, CompileTimeDomain domain );
 }

@@ -139,7 +139,7 @@ public class Program
                 metadataReferences.ToImmutableArray(),
                 ImmutableArray<TestAssemblyReference>.Empty,
                 ImmutableArray<TestAssemblyReference>.Empty,
-                ImmutableArray<string>.Empty, 
+                ImmutableArray<string>.Empty,
                 null );
 
             var testProjectProperties =
@@ -171,7 +171,7 @@ public class Program
             try
             {
                 // Start the test.
-                var runTestTask = testRunner.RunAndAssertAsync( testInput, testContextOptions );
+                var runTestTask = testRunner.RunAndAssertAsync( testInput, testContextOptions, CancellationToken.None );
 
                 // Await for the test to get to the main method.
                 if ( insideTestTask != await Task.WhenAny( runTestTask, insideTestTask, Task.Delay( 120000 ) ) )

@@ -1,0 +1,7 @@
+# If you need any customization of .editorconfig for tests only, this is the right place to add them.
+# The .editorconfig in the repo root is a symlink to a file that is common to all repos.
+
+[*.cs]
+dotnet_diagnostic.IDE0009.severity = none
+dotnet_diagnostic.IDE0027.severity = none
+dotnet_diagnostic.IDE0051.severity = none

@@ -20,7 +20,7 @@
     </ItemGroup>
      
     <ItemGroup>
-      <Compile Include="../Metalama.Framework.Engine/Utilities/AssemblyLoader.cs" Link="AssemblyLoader.cs" />
+      <Compile Include="../Metalama.Framework.Engine/Utilities/AssemblyLoaders/*.cs"  />
       <Compile Include="..\Metalama.Framework.DesignTime\RoslynEntryPointTypeNames.cs" Link="RoslynEntryPointTypeNames.cs" />
     </ItemGroup>
 
@@ -92,8 +92,8 @@
     </Target>
     
     <PropertyGroup>
-        <PrepareResourcesDependsOn Condition="'$(EngineeringConfiguration)'=='Public'">$(PrepareResourcesDependsOn);SignAndEmbedAssemblies</PrepareResourcesDependsOn>
-        <PrepareResourcesDependsOn Condition="'$(EngineeringConfiguration)'!='Public'">$(PrepareResourcesDependsOn);EmbedUnsignedAssemblies</PrepareResourcesDependsOn>
+        <PrepareResourcesDependsOn Condition="'$(EngineeringConfiguration)'=='Public' AND '$(DoNotSign)'!='True'">$(PrepareResourcesDependsOn);SignAndEmbedAssemblies</PrepareResourcesDependsOn>
+        <PrepareResourcesDependsOn Condition="'$(EngineeringConfiguration)'!='Public' OR '$(DoNotSign)'=='True'">$(PrepareResourcesDependsOn);EmbedUnsignedAssemblies</PrepareResourcesDependsOn>
     </PropertyGroup>
 
 </Project>

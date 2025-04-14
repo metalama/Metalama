@@ -16,5 +16,5 @@ public interface IIncrementalKeyedCollectionItem<out TKey> : IIncrementalObject,
     /// <summary>
     /// Gets the key that uniquely identifies the item in the collection.
     /// </summary>
-    public TKey Key { get; }
+    TKey Key { get; }
 }

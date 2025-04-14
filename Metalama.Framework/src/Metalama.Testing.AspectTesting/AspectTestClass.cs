@@ -15,6 +15,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Threading;
 using System.Threading.Tasks;
 using Xunit.Abstractions;
 using Xunit.Sdk;
@@ -90,7 +91,7 @@ public abstract class AspectTestClass
     /// </summary>
     /// <param name="relativePath">Relative path of the file relatively to the directory of the caller code.</param>
     [PublicAPI]
-    protected async Task RunTestAsync( string relativePath, [CallerMemberName] string? callerMemberName = null )
+    protected async Task RunTestAsync( string relativePath, CancellationToken cancellationToken = default, [CallerMemberName] string? callerMemberName = null )
     {
         var testSuiteAssembly = this.GetType().Assembly;
         var assemblyAssets = GetAssemblyAssets( this._serviceProvider, testSuiteAssembly );
@@ -110,6 +111,6 @@ public abstract class AspectTestClass
             testInput.Options.ApplyToTestContextOptions( new TestContextOptions { AdditionalMetadataReferences = projectReferences.MetadataReferences } );
 
         var testRunner = TestRunnerFactory.CreateTestRunner( testInput, this._serviceProvider, projectReferences, this._logger );
-        await testRunner.RunAndAssertAsync( testInput, testOptions );
+        await testRunner.RunAndAssertAsync( testInput, testOptions, cancellationToken );
     }
 }

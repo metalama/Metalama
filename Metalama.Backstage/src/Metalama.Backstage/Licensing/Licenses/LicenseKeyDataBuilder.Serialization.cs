@@ -302,26 +302,5 @@ namespace Metalama.Backstage.Licensing.Licenses
                 return false;
             }
         }
-
-        /// <summary>
-        /// Verifies the signature of the current license.
-        /// </summary>
-        /// <returns><c>true</c> if the signature is correct, otherwise <c>false</c>.</returns>
-        private bool VerifySignature( LicensingAuthority authority )
-        {
-            if ( !this.RequiresSignature() )
-            {
-                return true;
-            }
-
-            var signature = this.Signature;
-
-            if ( signature == null || this.SignatureKeyId == null )
-            {
-                throw new InvalidOperationException( "Unknown signature." );
-            }
-
-            return authority.VerifySignature( this.GetSignedBuffer(), this.SignatureKeyId.Value, signature );
-        }
     }
 }

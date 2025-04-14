@@ -80,14 +80,14 @@ namespace Metalama.Backstage.Infrastructure
         /// <returns>
         /// The <see cref="FileAttributes" /> of the file on the path.
         /// </returns>
-        public FileAttributes GetFileAttributes( string path );
+        FileAttributes GetFileAttributes( string path );
 
         /// <summary>
         /// Sets the specified <see cref="FileAttributes" /> of the file on the specified path.
         /// </summary>
         /// <param name="path">The path to the file.</param>
         /// <param name="fileAttributes">A bitwise combination of the enumeration values.</param>
-        public void SetFileAttributes( string path, FileAttributes fileAttributes );
+        void SetFileAttributes( string path, FileAttributes fileAttributes );
 
         /// <summary>
         /// Determines whether the given path refers to an existing directory on disk.

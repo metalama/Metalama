@@ -121,7 +121,7 @@ internal class AnalysisProcessProjectSourceGenerator : ProjectSourceGenerator
             }
 
             // Schedule a new computation.
-            this.PendingTasks.Run( () => this.ComputeAndPublishAsync( compilation, newCancellationToken ), newCancellationToken );
+            this.PendingTasks.Enqueue( () => this.ComputeAndPublishAsync( compilation, newCancellationToken ), newCancellationToken );
         }
         else
         {
@@ -134,7 +134,7 @@ internal class AnalysisProcessProjectSourceGenerator : ProjectSourceGenerator
                 // Publish the changes asynchronously.
                 // But do not make publishing cancellable because the user process expects the source to be published from the moment
                 // that the analysis process received the source.
-                this.PendingTasks.Run( this.PublishAsync, this.ApplicationExitingToken );
+                this.PendingTasks.Enqueue( this.PublishAsync, this.ApplicationExitingToken );
 
                 this._currentCancellationSource = null;
             }

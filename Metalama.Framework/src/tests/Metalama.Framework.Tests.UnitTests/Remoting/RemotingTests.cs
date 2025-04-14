@@ -68,7 +68,7 @@ public sealed class RemotingTests : UnitTestClass
 
         clientEndpoint.EventReceived += eventCollector.OnEventReceived;
 
-        var sourceGeneratorService = server.GetRequiredService<SourceGeneratorRpcService>();
+        var sourceGeneratorService = await server.GetRequiredServiceAsync<SourceGeneratorRpcService>( testContext.CancellationToken );
 
         // If we don't wait until server initialization here, we could raise the event before the server is finished setting up.
         await server.WaitUntilInitializedAsync( cancellationToken );
@@ -113,7 +113,7 @@ public sealed class RemotingTests : UnitTestClass
         await clientEndpoint.ConnectAsync( cancellationToken );
 
         // Publish from the server.
-        var sourceGeneratorService = server.GetRequiredService<SourceGeneratorRpcService>();
+        var sourceGeneratorService = await server.GetRequiredServiceAsync<SourceGeneratorRpcService>( testContext.CancellationToken );
 
         await sourceGeneratorService.PublishGeneratedSourcesAsync(
             projectKey,
@@ -148,7 +148,7 @@ public sealed class RemotingTests : UnitTestClass
         server.Start();
 
         // Publish from the server.
-        var sourceGeneratorService = server.GetRequiredService<SourceGeneratorRpcService>();
+        var sourceGeneratorService = await server.GetRequiredServiceAsync<SourceGeneratorRpcService>( testContext.CancellationToken );
 
         await sourceGeneratorService.PublishGeneratedSourcesAsync(
             projectKey,

@@ -43,13 +43,13 @@ public static class ExtensionLoaderHelper
         // It is essential to materialize the query into a list, otherwise assemblies are not loaded if the caller does not evaluate the query.
 
         return GetExtensionAssemblies( assemblyReferences )
-            .Select( path => domain.LoadAssembly( path, new LoadAssemblyOptions() { IsShared = true, AvoidLocking = avoidLockingAssemblies } ) )
+            .Select( path => domain.LoadAssembly( path, null, new LoadAssemblyOptions() { IsShared = true, AvoidLocking = avoidLockingAssemblies } ) )
             .ToList();
     }
 
     public static List<Type> LoadExtensionTypes( CompileTimeDomain domain, ExtensionKind extensionKind, IEnumerable<string> assemblies )
     {
-        var loadedAssemblies = assemblies.Select( path => domain.LoadAssembly( path, LoadAssemblyOptions.Shared ) ).ToList();
+        var loadedAssemblies = assemblies.Select( path => domain.LoadAssembly( path, null, LoadAssemblyOptions.Shared ) ).ToList();
 
         return LoadExtensionTypes( extensionKind, loadedAssemblies );
     }

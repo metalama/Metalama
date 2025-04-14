@@ -117,7 +117,7 @@ public sealed class RpcServiceProviderServerEndpoint : ServerEndpoint
         }
     }
 
-    public async Task RegisterProjectAsync( ProjectKey projectKey, CancellationToken cancellationToken )
+    internal async Task RegisterProjectAsync( ProjectKey projectKey, CancellationToken cancellationToken )
     {
         await this.WaitUntilInitializedAsync( cancellationToken );
 
