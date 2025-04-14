@@ -100,12 +100,14 @@ public sealed class TelemetryUploaderTests : TestsBase
     }
 
     [Fact]
-    public void BackstageWorkerIsStartedAfter20Minutes()
+    public async Task BackstageWorkerIsStartedAfter20Minutes()
     {
         // Advance the time because the telemetry uploader does not upload data for the first 15 minutes after initial execution.
         this.Time.AddTime( TimeSpan.FromMinutes( 20 ) );
 
-        this._uploader.StartUpload();
+        Assert.True( this._uploader.StartUpload() );
+
+        await this.BackgroundTasks.WhenNoPendingTaskAsync();
 
         Assert.Single( this.ProcessExecutor.StartedProcesses );
 
@@ -120,7 +122,7 @@ public sealed class TelemetryUploaderTests : TestsBase
     {
         this.Time.AddTime( TimeSpan.FromMinutes( 10 ) );
 
-        this._uploader.StartUpload();
+        Assert.False( this._uploader.StartUpload() );
 
         Assert.Empty( this.ProcessExecutor.StartedProcesses );
     }

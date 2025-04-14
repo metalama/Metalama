@@ -17,7 +17,7 @@ public interface ITelemetryUploader : IBackstageService
     /// The upload is started once per day. If the upload has been started in the past 24 hours, this method has no effect,
     /// unless the <paramref name="force"/> parameter is set to <c>true</c>.
     /// </remarks>
-    void StartUpload( bool force = false );
+    bool StartUpload( bool force = false );
 
     /// <summary>
     /// Uploads the telemetry.
