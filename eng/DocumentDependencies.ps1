@@ -114,7 +114,9 @@ $global:PackageUsagePatterns = @{
     "Benchmark*" = "Testing Metalama"
     "LINQPad.*" = "Using LINQPad"
     "CommunityToolkit.Mvvm" = "Testing Metalama"
+    # FluentAssertions is being replaced by AwesomeAssertions in Metalama but the dependency graph still shows it on GitHub.
     "FluentAssertions" = "Testing Metalama"
+    "AwesomeAssertions" = "Testing Metalama"
 }
 
 # Download the SBOM JSON file
@@ -188,7 +190,7 @@ function Discover-PackageInfo {
 
     $baseUrl = "https://api.nuget.org/v3/registration5-gz-semver2/$($packageName.ToLower())/index.json"
     $retryCount = 0
-    $maxRetries = 3
+    $maxRetries = 10
 
     while ($retryCount -lt $maxRetries) {
         try {
@@ -447,9 +449,19 @@ Write-Host "Writing THIRD-PARTY-NOTICES.md..."
 @"
 # Third-Party Notices
 
+This file lists and documents the licenses and notices for third-party dependencies of the Metalama.
+
+> [!WARNING]
+> This file pertains to the whole [Metalama repository](https://github.com/metalama/Metalama). If you find this file in a NuGet package, it does not mean that this package has all the dependencies listed here. Please check the dependencies at [NuGet.org](https://www.nuget.org/packages?q=metalama) for the actual dependencies of the package.
+
+> [!WARNING]
+> In the event that we accidentally failed to list a required notice, please bring it to our attention. Post an issue or email us at <hello@postsharp.net>.
+
+
 ## List of NuGet Dependencies
 
 Metalama has a large number of dependencies, but few flow to the end-user of your products. 
+
 To simplify your impact assessment, we have grouped them into the following categories:
 
 - Building Metalama: These dependencies are used to build Metalama itself. They do not flow with your packages.
@@ -459,12 +471,8 @@ To simplify your impact assessment, we have grouped them into the following cate
 - LINQPad: Only when using LINQPad
 
 > [!NOTE]
-> For brevity, this list does not include dependencies that are part of the `System` or `Microsoft` namespace.
+> For brevity, this list does not include dependencies that are part of the System, Microsoft or Azure namespace.
 
-> [!WARNING]
-> This file includes the licenses and notices for third-party dependencies of the Metalama repository. If you find this file 
-> in a NuGet package, it does not mean that this package has all the dependencies listed here. Please check the dependencies
-> at [NuGet.org](https://www.nuget.org/packages?q=metalama) for the actual dependencies of the package.
 
 | Package Name | License | Authors | Source Repository | Usage | Referenced By |
 |--------------|---------|--------|-------------------|-------|---------------|

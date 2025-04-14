@@ -13,7 +13,7 @@
     <PackageReference Include="xunit" />
     <PackageReference Include="xunit.runner.visualstudio" />
     <PackageReference Include="Xunit.SkippableFact" />
-    <PackageReference Include="FluentAssertions" />
+    <PackageReference Include="AwesomeAssertions" />
     <!-- Prevent MSB3277 warning: -->
     <PackageReference Include="System.Memory" />
     <!-- Prevent MSB3277 warning: -->

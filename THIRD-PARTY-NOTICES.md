@@ -1,40 +1,53 @@
 # Third-Party Notices
 
+This file lists and documents the licenses and notices for third-party dependencies of the Metalama.
+
+> [!WARNING]
+> This file pertains to the whole [Metalama repository](https://github.com/metalama/Metalama). If you find this file in a NuGet package, it does not mean that this package has all the dependencies listed here. Please check the dependencies at [NuGet.org](https://www.nuget.org/packages?q=metalama) for the actual dependencies of the package.
+
+> [!WARNING]
+> In the event that we accidentally failed to list a required notice, please bring it to our attention. Post an issue or email us at <hello@postsharp.net>.
+
+
 ## List of NuGet Dependencies
 
 Metalama has a large number of dependencies, but few flow to the end-user of your products. 
+
 To simplify your impact assessment, we have grouped them into the following categories:
 
 - Building Metalama: These dependencies are used to build Metalama itself. They do not flow with your packages.
-- Building Your Product: These dependencies are used when building your projects. You can typically remove them form your package by marking them as private assets.
+- Building Your Product: These dependencies are used when building your projects. You can typically remove them form 
+  your package by marking them as private assets.
 - Testing: These dependencies are used to test either Metalama or your aspects. They do not flow with your packages.
 - LINQPad: Only when using LINQPad
 
-For brevity, this list does not include dependencies that are part of the System or Microsoft namespace.
+> [!NOTE]
+> For brevity, this list does not include dependencies that are part of the System, Microsoft or Azure namespace.
+
 
 | Package Name | License | Authors | Source Repository | Usage | Referenced By |
 |--------------|---------|--------|-------------------|-------|---------------|
 | [AWSSDK.Core](https://www.nuget.org/packages/AWSSDK.Core) | Apache-2.0 | Amazon Web Services | [aws-sdk-net](https://github.com/aws/aws-sdk-net/) | Building Metalama | AWSSDK.S3 |
 | [AWSSDK.S3](https://www.nuget.org/packages/AWSSDK.S3) | Apache-2.0 | Amazon Web Services | [aws-sdk-net](https://github.com/aws/aws-sdk-net/) | Building Metalama | PostSharp.Engineering.BuildTools |
-| [BenchmarkDotNet](https://www.nuget.org/packages/BenchmarkDotNet) | MIT | .NET Foundation and contributors | [BenchmarkDotNet](https://github.com/dotnet/BenchmarkDotNet) | Testing | Direct |
-| [BenchmarkDotNet.Annotations](https://www.nuget.org/packages/BenchmarkDotNet.Annotations) | MIT | .NET Foundation and contributors | [BenchmarkDotNet](https://github.com/dotnet/BenchmarkDotNet) | Testing | BenchmarkDotNet |
-| [Castle.Core](https://www.nuget.org/packages/Castle.Core) | Apache-2.0 | Castle Project Contributors | [Core](https://github.com/castleproject/Core) | Testing | FakeItEasy |
-| [CommandLineParser](https://www.nuget.org/packages/CommandLineParser) |  | gsscoder,nemec,ericnewton76,moh-hassan | [commandline](https://github.com/commandlineparser/commandline) | Testing | BenchmarkDotNet |
-| [CommunityToolkit.Mvvm](https://www.nuget.org/packages/CommunityToolkit.Mvvm) | MIT | Microsoft | [dotnet](https://github.com/CommunityToolkit/dotnet) | Building Your Product | Direct |
-| [ComparerExtensions](https://www.nuget.org/packages/ComparerExtensions) | Public domain | ComparerExtensions | [ComparerExtensions](https://github.com/jehugaleahsa/ComparerExtensions) | Testing | Direct |
-| [coverlet.collector](https://www.nuget.org/packages/coverlet.collector) | MIT | tonerdo | [coverlet](https://github.com/coverlet-coverage/coverlet) | Testing | Direct |
-| [coverlet.msbuild](https://www.nuget.org/packages/coverlet.msbuild) | MIT | tonerdo | [coverlet](https://github.com/coverlet-coverage/coverlet) | Testing | Direct |
-| [DiffEngine](https://www.nuget.org/packages/DiffEngine) | MIT | [Contributors](https://github.com/VerifyTests/DiffEngine/graphs/contributors) | [DiffEngine](https://github.com/VerifyTests/DiffEngine) | Testing | Direct |
-| [DiffPlex](https://www.nuget.org/packages/DiffPlex) | Apache-2.0 | Matthew Manela | [diffplex](https://github.com/mmanela/diffplex/) | Testing | Direct |
-| [EmptyFiles](https://www.nuget.org/packages/EmptyFiles) | MIT | [Contributors](https://github.com/VerifyTests/EmptyFiles/graphs/contributors) | [EmptyFiles](https://github.com/VerifyTests/EmptyFiles) | Testing | DiffEngine |
-| [FakeItEasy](https://www.nuget.org/packages/FakeItEasy) | MIT | Patrik Hägne, FakeItEasy contributors | [FakeItEasy](https://github.com/FakeItEasy/FakeItEasy) | Testing | Direct |
-| [FakeItEasy.Analyzer.CSharp](https://www.nuget.org/packages/FakeItEasy.Analyzer.CSharp) | MIT | Thomas Levesque, FakeItEasy contributors | [FakeItEasy](https://github.com/FakeItEasy/FakeItEasy) | Testing | Direct |
-| [FluentAssertions](https://www.nuget.org/packages/FluentAssertions) |  | Dennis Doomen,Jonas Nyrup,Xceed | https://xceed.com/products/unit-testing/fluent-assertions/ | Building Your Product | Direct |
-| [Gee.External.Capstone](https://www.nuget.org/packages/Gee.External.Capstone) | MIT | Ahmed Garhy (@9ee1) | [Capstone.NET](https://github.com/9ee1/Capstone.NET) | Testing | BenchmarkDotNet |
+| [BenchmarkDotNet](https://www.nuget.org/packages/BenchmarkDotNet) | MIT | .NET Foundation and contributors | [BenchmarkDotNet](https://github.com/dotnet/BenchmarkDotNet) | Testing Metalama | Direct |
+| [BenchmarkDotNet.Annotations](https://www.nuget.org/packages/BenchmarkDotNet.Annotations) | MIT | .NET Foundation and contributors | [BenchmarkDotNet](https://github.com/dotnet/BenchmarkDotNet) | Testing Metalama | BenchmarkDotNet |
+| [Castle.Core](https://www.nuget.org/packages/Castle.Core) | Apache-2.0 | Castle Project Contributors | [Core](https://github.com/castleproject/Core) | Testing Metalama | FakeItEasy |
+| [CommandLineParser](https://www.nuget.org/packages/CommandLineParser) |  | gsscoder,nemec,ericnewton76,moh-hassan | [commandline](https://github.com/commandlineparser/commandline) | Testing Metalama | BenchmarkDotNet |
+| [CommunityToolkit.Mvvm](https://www.nuget.org/packages/CommunityToolkit.Mvvm) | MIT | Microsoft | [dotnet](https://github.com/CommunityToolkit/dotnet) | Testing Metalama | Direct |
+| [ComparerExtensions](https://www.nuget.org/packages/ComparerExtensions) | Public domain | ComparerExtensions | [ComparerExtensions](https://github.com/jehugaleahsa/ComparerExtensions) | Testing Metalama | Direct |
+| [coverlet.collector](https://www.nuget.org/packages/coverlet.collector) | MIT | tonerdo | [coverlet](https://github.com/coverlet-coverage/coverlet) | Testing Metalama | Direct |
+| [coverlet.msbuild](https://www.nuget.org/packages/coverlet.msbuild) | MIT | tonerdo | [coverlet](https://github.com/coverlet-coverage/coverlet) | Testing Metalama | Direct |
+| [DiffEngine](https://www.nuget.org/packages/DiffEngine) | MIT | [Contributors](https://github.com/VerifyTests/DiffEngine/graphs/contributors) | [DiffEngine](https://github.com/VerifyTests/DiffEngine) | Testing Metalama | Direct |
+| [DiffPlex](https://www.nuget.org/packages/DiffPlex) | Apache-2.0 | Matthew Manela | [diffplex](https://github.com/mmanela/diffplex/) | Testing Metalama | Direct |
+| [EmptyFiles](https://www.nuget.org/packages/EmptyFiles) | MIT | [Contributors](https://github.com/VerifyTests/EmptyFiles/graphs/contributors) | [EmptyFiles](https://github.com/VerifyTests/EmptyFiles) | Testing Metalama | DiffEngine |
+| [FakeItEasy](https://www.nuget.org/packages/FakeItEasy) | MIT | Patrik Hägne, FakeItEasy contributors | [FakeItEasy](https://github.com/FakeItEasy/FakeItEasy) | Testing Metalama | Direct |
+| [FakeItEasy.Analyzer.CSharp](https://www.nuget.org/packages/FakeItEasy.Analyzer.CSharp) | MIT | Thomas Levesque, FakeItEasy contributors | [FakeItEasy](https://github.com/FakeItEasy/FakeItEasy) | Testing Metalama | Direct |
+| [FluentAssertions](https://www.nuget.org/packages/FluentAssertions) |  | Dennis Doomen,Jonas Nyrup,Xceed | https://xceed.com/products/unit-testing/fluent-assertions/ | Testing Metalama | Direct |
+| [Gee.External.Capstone](https://www.nuget.org/packages/Gee.External.Capstone) | MIT | Ahmed Garhy (@9ee1) | [Capstone.NET](https://github.com/9ee1/Capstone.NET) | Testing Metalama | BenchmarkDotNet |
 | [HtmlAgilityPack](https://www.nuget.org/packages/HtmlAgilityPack) | MIT | ZZZ Projects,Simon Mourrier,Jeff Klawiter,Stephan Grell | [html-agility-pack](https://github.com/zzzprojects/html-agility-pack/) | Building Metalama | PostSharp.Engineering.BuildTools |
-| [Iced](https://www.nuget.org/packages/Iced) | MIT | iced project and contributors <https://github.com/icedland> | [iced](https://github.com/icedland/iced) | Testing | BenchmarkDotNet |
+| [Iced](https://www.nuget.org/packages/Iced) | MIT | iced project and contributors <https://github.com/icedland> | [iced](https://github.com/icedland/iced) | Testing Metalama | BenchmarkDotNet |
 | [ILRepack](https://www.nuget.org/packages/ILRepack) | Apache-2.0 | Francois Valdy | [il-repack](https://github.com/gluck/il-repack) | Building Your Product | Direct |
-| [JetBrains.Annotations](https://www.nuget.org/packages/JetBrains.Annotations) | MIT | JetBrains | [JetBrains.Annotations](https://github.com/JetBrains/JetBrains.Annotations) | Building Your Product, Building Metalama | Direct, PostSharp.Engineering.BuildTools |
+| [JetBrains.Annotations](https://www.nuget.org/packages/JetBrains.Annotations) | MIT | JetBrains | [JetBrains.Annotations](https://github.com/JetBrains/JetBrains.Annotations) | Building Metalama | PostSharp.Engineering.BuildTools,  |
 | [JetBrains.FormatRipper](https://www.nuget.org/packages/JetBrains.FormatRipper) | Apache-2.0 | Mikhail Pilin, Konstantin Kretov | [format-ripper](https://github.com/JetBrains/format-ripper) | Building Your Product | JetBrains.HabitatDetector |
 | [JetBrains.HabitatDetector](https://www.nuget.org/packages/JetBrains.HabitatDetector) | Apache-2.0 | Mikhail Pilin | [habitat-detector](https://github.com/JetBrains/habitat-detector) | Building Your Product | JetBrains.Profiler.SelfApi, JetBrains.Profiler.Api |
 | [JetBrains.Profiler.Api](https://www.nuget.org/packages/JetBrains.Profiler.Api) | Apache-2.0 | Mikhail Pilin, Ilia Kirianovskii | [profiler-api](https://github.com/JetBrains/profiler-api/blob/master/README.md) | Building Your Product | JetBrains.Profiler.SelfApi |
@@ -42,34 +55,34 @@ For brevity, this list does not include dependencies that are part of the System
 | [K4os.Hash.xxHash](https://www.nuget.org/packages/K4os.Hash.xxHash) | MIT | Milosz Krajewski | [K4os.Hash.xxHash](https://github.com/MiloszKrajewski/K4os.Hash.xxHash) | Building Your Product | Direct |
 | [LibGit2Sharp](https://www.nuget.org/packages/LibGit2Sharp) | MIT | LibGit2Sharp contributors | [libgit2sharp](https://github.com/libgit2/libgit2sharp/) | Building Your Product | Direct |
 | [LibGit2Sharp.NativeBinaries](https://www.nuget.org/packages/LibGit2Sharp.NativeBinaries) | MIT | LibGit2Sharp contributors | [libgit2sharp.nativebinaries](https://github.com/libgit2/libgit2sharp.nativebinaries) | Building Your Product | LibGit2Sharp |
-| [LINQPad.Reference](https://www.nuget.org/packages/LINQPad.Reference) | Proprietary | Joseph Albahari |  | LINQPad | Direct |
-| [LINQPad.Runtime](https://www.nuget.org/packages/LINQPad.Runtime) | Proprietary | Joseph Albahari |  | LINQPad | Direct |
+| [LINQPad.Reference](https://www.nuget.org/packages/LINQPad.Reference) | Proprietary | Joseph Albahari |  | Using LINQPad | Direct |
+| [LINQPad.Runtime](https://www.nuget.org/packages/LINQPad.Runtime) | Proprietary | Joseph Albahari |  | Using LINQPad | Direct |
 | [MessagePack](https://www.nuget.org/packages/MessagePack) | MIT | neuecc,aarnott | [MessagePack-CSharp](https://github.com/MessagePack-CSharp/MessagePack-CSharp) | Building Your Product | StreamJsonRpc |
 | [MessagePack.Annotations](https://www.nuget.org/packages/MessagePack.Annotations) | MIT | neuecc,aarnott | [MessagePack-CSharp](https://github.com/MessagePack-CSharp/MessagePack-CSharp) | Building Your Product | MessagePack |
 | [MessagePackAnalyzer](https://www.nuget.org/packages/MessagePackAnalyzer) | MIT | neuecc,aarnott | [MessagePack-CSharp](https://github.com/MessagePack-CSharp/MessagePack-CSharp) | Building Your Product | MessagePack |
 | [Nerdbank.Streams](https://www.nuget.org/packages/Nerdbank.Streams) | MIT | Andrew Arnott | [Nerdbank.Streams](https://github.com/AArnott/Nerdbank.Streams) | Building Your Product | StreamJsonRpc |
-| [Newtonsoft.Json](https://www.nuget.org/packages/Newtonsoft.Json) | MIT | James Newton-King | https://www.newtonsoft.com/json | Building Your Product, Building Metalama | Direct, StreamJsonRpc, PostSharp.Engineering.BuildTools, Octokit.GraphQL |
+| [Newtonsoft.Json](https://www.nuget.org/packages/Newtonsoft.Json) | MIT | James Newton-King | [Newtonsoft.Json](https://github.com/JamesNK/Newtonsoft.Json) | Building Metalama, Building Your Product | PostSharp.Engineering.BuildTools, Octokit.GraphQL, StreamJsonRpc,  |
 | [NuGet.Versioning](https://www.nuget.org/packages/NuGet.Versioning) | Apache-2.0 | Microsoft | [Home](https://github.com/NuGet/Home) | Building Metalama | PostSharp.Engineering.BuildTools |
 | [Octokit](https://www.nuget.org/packages/Octokit) | MIT | GitHub | [octokit.net](https://github.com/octokit/octokit.net) | Building Metalama | PostSharp.Engineering.BuildTools |
 | [Octokit.GraphQL](https://www.nuget.org/packages/Octokit.GraphQL) | MIT | GitHub | [octokit.graphql.net](https://github.com/octokit/octokit.graphql.net) | Building Metalama | PostSharp.Engineering.BuildTools |
-| [Perfolizer](https://www.nuget.org/packages/Perfolizer) | MIT | Andrey Akinshin | [perfolizer](https://github.com/AndreyAkinshin/perfolizer) | Testing | BenchmarkDotNet |
+| [Perfolizer](https://www.nuget.org/packages/Perfolizer) | MIT | Andrey Akinshin | [perfolizer](https://github.com/AndreyAkinshin/perfolizer) | Testing Metalama | BenchmarkDotNet |
 | [PostSharp.Engineering.BuildTools](https://www.nuget.org/packages/PostSharp.Engineering.BuildTools) | MIT | PostSharp Technologies | [PostSharp.Engineering](https://github.com/postsharp/PostSharp.Engineering) | Building Metalama | Direct |
 | [Roslynator.Analyzers](https://www.nuget.org/packages/Roslynator.Analyzers) | Apache-2.0 | Josef Pihrt | [roslynator](https://github.com/dotnet/roslynator) | Building Your Product | Direct |
 | [Spectre.Console](https://www.nuget.org/packages/Spectre.Console) | MIT | Patrik Svensson, Phil Scott, Nils Andresen, Cédric Luthi, Frank Ray | [spectre.console](https://github.com/spectreconsole/spectre.console) | Building Metalama | PostSharp.Engineering.BuildTools, Spectre.Console.Cli |
 | [Spectre.Console.Cli](https://www.nuget.org/packages/Spectre.Console.Cli) | MIT | Patrik Svensson, Phil Scott, Nils Andresen, Cédric Luthi, Frank Ray | [spectre.console](https://github.com/spectreconsole/spectre.console) | Building Metalama | PostSharp.Engineering.BuildTools,  |
 | [StreamJsonRpc](https://www.nuget.org/packages/StreamJsonRpc) | MIT | Microsoft | [vs-streamjsonrpc](https://github.com/Microsoft/vs-streamjsonrpc) | Building Your Product | Direct |
 | [Typesense](https://www.nuget.org/packages/Typesense) | MIT | Typesense | [typesense-dotnet](https://github.com/DAXGRID/typesense-dotnet) | Building Metalama | PostSharp.Engineering.BuildTools |
-| [Validation](https://www.nuget.org/packages/Validation) | MS-PL | Andrew Arnott | [Validation](https://github.com/aarnott/Validation) | Testing | Xunit.SkippableFact |
-| [xunit](https://www.nuget.org/packages/xunit) | Apache-2.0 | jnewkirk,bradwilson | [xunit](https://github.com/xunit/xunit) | Testing | Direct, xunit.assemblyfixture |
-| [xunit.abstractions](https://www.nuget.org/packages/xunit.abstractions) | Apache-2.0 | James Newkirk,Brad Wilson | [xunit](https://github.com/xunit/xunit) | Testing | xunit.extensibility.core, xunit.assemblyfixture,  |
-| [xunit.analyzers](https://www.nuget.org/packages/xunit.analyzers) | Apache-2.0 | jnewkirk,bradwilson,marcind | [xunit.analyzers](https://github.com/xunit/xunit.analyzers) | Testing | xunit |
-| [xunit.assemblyfixture](https://www.nuget.org/packages/xunit.assemblyfixture) | MIT | Daniel Cazzulino | [xunit.assemblyfixture](https://github.com/devlooped/xunit.assemblyfixture) | Testing | Direct |
-| [xunit.assert](https://www.nuget.org/packages/xunit.assert) | Apache-2.0 | jnewkirk,bradwilson | [assert.xunit](https://github.com/xunit/assert.xunit) | Testing | xunit,  |
-| [xunit.core](https://www.nuget.org/packages/xunit.core) | Apache-2.0 | jnewkirk,bradwilson | [xunit](https://github.com/xunit/xunit) | Testing | xunit |
-| [xunit.extensibility.core](https://www.nuget.org/packages/xunit.extensibility.core) | Apache-2.0 | jnewkirk,bradwilson | [xunit](https://github.com/xunit/xunit) | Testing | xunit.core, xunit.extensibility.execution,  |
-| [xunit.extensibility.execution](https://www.nuget.org/packages/xunit.extensibility.execution) | Apache-2.0 | jnewkirk,bradwilson | [xunit](https://github.com/xunit/xunit) | Testing | xunit.core, Xunit.SkippableFact,  |
-| [xunit.runner.visualstudio](https://www.nuget.org/packages/xunit.runner.visualstudio) | Apache-2.0 | jnewkirk,bradwilson | [visualstudio.xunit](https://github.com/xunit/visualstudio.xunit) | Testing | Direct |
-| [Xunit.SkippableFact](https://www.nuget.org/packages/Xunit.SkippableFact) | MS-PL | Andrew Arnott | [Xunit.SkippableFact](https://github.com/AArnott/Xunit.SkippableFact) | Testing | Direct |
+| [Validation](https://www.nuget.org/packages/Validation) | MS-PL | Andrew Arnott | [Validation](https://github.com/aarnott/Validation) | Testing Your Aspects | Xunit.SkippableFact |
+| [xunit](https://www.nuget.org/packages/xunit) | Apache-2.0 | jnewkirk,bradwilson | [xunit](https://github.com/xunit/xunit) | Testing Your Aspects | Direct, xunit.assemblyfixture |
+| [xunit.abstractions](https://www.nuget.org/packages/xunit.abstractions) | Apache-2.0 | James Newkirk,Brad Wilson | [xunit](https://github.com/xunit/xunit) | Testing Your Aspects | xunit.extensibility.core, , xunit.assemblyfixture |
+| [xunit.analyzers](https://www.nuget.org/packages/xunit.analyzers) | Apache-2.0 | jnewkirk,bradwilson,marcind | [xunit.analyzers](https://github.com/xunit/xunit.analyzers) | Testing Your Aspects | xunit |
+| [xunit.assemblyfixture](https://www.nuget.org/packages/xunit.assemblyfixture) | MIT | Daniel Cazzulino | [xunit.assemblyfixture](https://github.com/devlooped/xunit.assemblyfixture) | Testing Your Aspects | Direct |
+| [xunit.assert](https://www.nuget.org/packages/xunit.assert) | Apache-2.0 | jnewkirk,bradwilson | [assert.xunit](https://github.com/xunit/assert.xunit) | Testing Your Aspects | Direct, xunit |
+| [xunit.core](https://www.nuget.org/packages/xunit.core) | Apache-2.0 | jnewkirk,bradwilson | [xunit](https://github.com/xunit/xunit) | Testing Your Aspects | xunit |
+| [xunit.extensibility.core](https://www.nuget.org/packages/xunit.extensibility.core) | Apache-2.0 | jnewkirk,bradwilson | [xunit](https://github.com/xunit/xunit) | Testing Your Aspects | xunit.extensibility.execution, , xunit.core |
+| [xunit.extensibility.execution](https://www.nuget.org/packages/xunit.extensibility.execution) | Apache-2.0 | jnewkirk,bradwilson | [xunit](https://github.com/xunit/xunit) | Testing Your Aspects | Xunit.SkippableFact, , xunit.core |
+| [xunit.runner.visualstudio](https://www.nuget.org/packages/xunit.runner.visualstudio) | Apache-2.0 | jnewkirk,bradwilson | [visualstudio.xunit](https://github.com/xunit/visualstudio.xunit) | Testing Your Aspects | Direct |
+| [Xunit.SkippableFact](https://www.nuget.org/packages/Xunit.SkippableFact) | MS-PL | Andrew Arnott | [Xunit.SkippableFact](https://github.com/AArnott/Xunit.SkippableFact) | Testing Your Aspects | Direct |
 
 
 
@@ -900,6 +913,37 @@ For brevity, this list does not include dependencies that are part of the System
 > CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
 > TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 > SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+> 
+
+
+
+---
+
+
+
+## License notices for Newtonsoft.Json
+
+
+> The MIT License (MIT)
+> 
+> Copyright (c) 2007 James Newton-King
+> 
+> Permission is hereby granted, free of charge, to any person obtaining a copy of
+> this software and associated documentation files (the "Software"), to deal in
+> the Software without restriction, including without limitation the rights to
+> use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+> the Software, and to permit persons to whom the Software is furnished to do so,
+> subject to the following conditions:
+> 
+> The above copyright notice and this permission notice shall be included in all
+> copies or substantial portions of the Software.
+> 
+> THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+> IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+> FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+> COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+> IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+> CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 > 
 
 
