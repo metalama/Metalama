@@ -123,16 +123,20 @@ public sealed class RpcServiceProviderClientEndpoint : ClientEndpoint
 
         foreach ( var group in servicesAdded.Services.GroupBy( s => s.ExtensionName ) )
         {
-            this.ExecuteBackgroundTask( ct => this.AddServiceClientGroupAsync( pipeName, group.Key, group, ct ), nameof(this.AddServiceClientGroupAsync) );
+            this.ExecuteBackgroundTask(
+                ct => this.AddServiceClientGroupAsync( pipeName, group.Key, group.ToList(), ct ),
+                nameof(this.AddServiceClientGroupAsync) );
         }
     }
 
     private async Task AddServiceClientGroupAsync(
         string pipeName,
         string? extensionName,
-        IEnumerable<RpcServiceInfo> services,
+        IReadOnlyCollection<RpcServiceInfo> services,
         CancellationToken cancellationToken )
     {
+        this.Logger.Trace?.Log( $"Registering services {string.Join( "; ", services.Select( x => x.FactoryTypeName ) )} from extension '{extensionName}'." );
+
         if ( extensionName != null )
         {
             if ( this._extensionManager == null )
@@ -141,7 +145,17 @@ public sealed class RpcServiceProviderClientEndpoint : ClientEndpoint
             }
 
             // Wait until the extension is registered.
-            await this._extensionManager.GetExtensionAsync( extensionName, cancellationToken );
+            var getExtensionTask = this._extensionManager.GetExtensionAsync( extensionName, cancellationToken );
+
+            if ( !getExtensionTask.IsCompleted )
+            {
+                this.Logger.Trace?.Log( $"Waiting for extension '{extensionName}'." );
+
+                await getExtensionTask
+                    .WarnIfLongAsync( this.Logger, $"Waiting for extension {extensionName} to be registered.", cancellationToken );
+            }
+
+            this.Logger.Trace?.Log( $"The extension '{extensionName}' is available." );
         }
 
         var clients = this.CreateClientsFromServiceInfo( services );

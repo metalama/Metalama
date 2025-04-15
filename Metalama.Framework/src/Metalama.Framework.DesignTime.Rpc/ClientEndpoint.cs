@@ -178,10 +178,12 @@ public abstract partial class ClientEndpoint : BaseEndpoint
                     } );
             }
 
-            this.Logger.Trace?.Log( $"Connecting to the endpoint '{pipeName}'." );
+            this.Logger.Trace?.Log( $"Connecting to the named pipe '{pipeName}'." );
 
             var pipeStream = new NamedPipeClientStream( ".", pipeName, PipeDirection.InOut, PipeOptions.Asynchronous );
             await pipeStream.ConnectAsync( cancellationToken ).WarnIfLongAsync( this.Logger, "Connect to pipe stream.", cancellationToken );
+
+            this.Logger.Trace?.Log( $"Connected to the named pipe '{pipeName}'." );
 
             var rpc = this.CreateRpc( pipeStream );
 
@@ -202,6 +204,7 @@ public abstract partial class ClientEndpoint : BaseEndpoint
                 client.ConfigureRpc( rpc );
             }
 
+            this.Logger.Trace?.Log( $"Start listening to callback channel of the named pipe '{pipeName}'." );
             rpc.StartListening();
             rpc.Disconnected += this.OnRpcDisconnected;
 
@@ -242,6 +245,8 @@ public abstract partial class ClientEndpoint : BaseEndpoint
 
     private void OnRpcDisconnected( object sender, JsonRpcDisconnectedEventArgs e )
     {
+        this.Logger.Warning?.Log( $"RPC disconnected: '{e.Description}'." );
+
         var rpc = (JsonRpc) sender;
 
         if ( this._connectionByStream.TryGetValue( rpc, out var connection ) )

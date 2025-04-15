@@ -127,12 +127,15 @@ public abstract class BaseEndpoint : IDisposable
     {
         var taskId = Interlocked.Increment( ref this._nextBackgroundTaskId );
 
+        this.Logger.Trace?.Log( $"Scheduling background task {taskId}: '{description}'." );
+
         var task = Task.Run(
             async () =>
             {
                 try
                 {
                     await action( this.DisposeCancellationToken );
+                    this.Logger.Trace?.Log( $"Background task {taskId} has completed." );
                 }
                 catch ( Exception e ) when ( this.ExceptionHandler != null )
                 {
