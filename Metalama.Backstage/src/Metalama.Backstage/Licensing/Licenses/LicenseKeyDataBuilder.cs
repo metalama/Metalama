@@ -296,8 +296,8 @@ public partial class LicenseKeyDataBuilder : ILicenseKeyData
             => this.GetFieldValue( LicenseFieldIndex.ServicingPhase ) switch
             {
                 null => ServicingPhase.Current,
-                byte supportLevel => (ServicingPhase) supportLevel,
-                _ => throw new InvalidCastException( "Invalid support level." )
+                byte servicingPhase => (ServicingPhase) servicingPhase,
+                _ => throw new InvalidCastException( "Invalid servicing phase." )
             };
 
         set

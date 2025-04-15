@@ -44,7 +44,7 @@ namespace Metalama.Backstage.Licensing.Licenses
         internal static ServicingPhase NormalizeServicingPhase( this LicenseKeyData licenseKeyData )
             => licenseKeyData.Generation.GetValueOrDefault() == LicenseGeneration.None
                 ? ServicingPhase.LongTerm
-                : licenseKeyData.SupportLevel ?? licenseKeyData.Product switch
+                : licenseKeyData.ServicingPhase ?? licenseKeyData.Product switch
                 {
                     // Note that Metalama Enterprise is Metalama Professional with a ServicingPhase field set to LongTerm.
                     LicenseProduct.MetalamaProfessional => ServicingPhase.Extended,
