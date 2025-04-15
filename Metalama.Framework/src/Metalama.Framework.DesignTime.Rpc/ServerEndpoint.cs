@@ -13,7 +13,6 @@ namespace Metalama.Framework.DesignTime.Rpc;
 public abstract class ServerEndpoint : BaseEndpoint
 {
     private readonly ConcurrentDictionary<JsonRpc, NamedPipeServerStream> _pipes = new();
-    private readonly TaskCompletionSource<bool> _startedTask = new();
 
     private int _nextPipeId = 1;
     private ImmutableArray<RpcService> _services;
@@ -27,9 +26,7 @@ public abstract class ServerEndpoint : BaseEndpoint
     public async ValueTask<TService> GetRequiredServiceAsync<TService>( CancellationToken cancellationToken )
         where TService : RpcService
     {
-        // Services are not availabable until the Start method has completed.
-        // However, they are available before the server got a client, so we can't use WhenInitializedAsync.
-        await this._startedTask.Task.WithCancellation( cancellationToken );
+        await this.WaitUntilInitializedAsync( cancellationToken );
 
         return this._services.OfType<TService>().SingleOrDefault()
                ?? throw new InvalidOperationException( $"Service '{typeof(TService).Name}' is not registered." );
@@ -41,19 +38,28 @@ public abstract class ServerEndpoint : BaseEndpoint
 
 #pragma warning disable VSTHRD100 // Avoid "async void".
     /// <summary>
-    /// Starts the RPC connection, but does not wait until the service is fully started.
+    /// Starts the RPC connection, but does not wait until a client connects.
     /// </summary>
     public void Start()
     {
-        if ( !this._services.IsDefault )
+        try
         {
-            throw new InvalidOperationException( $"The '{this}' endpoint has already been started." );
-        }
+            if ( !this._services.IsDefault )
+            {
+                throw new InvalidOperationException( $"The '{this}' endpoint has already been started." );
+            }
 
-        var services = this.CreateServices().ToImmutableArray();
-        this._services = services;
-        _ = this.StartCoreAsync( this.PipeName, services, this.DisposeCancellationToken );
-        this._startedTask.SetResult( true );
+            var services = this.CreateServices().ToImmutableArray();
+            this._services = services;
+            this.ExecuteBackgroundTask( ct => this.AcceptNewClientAsync( this.PipeName, services, ct ), nameof(this.AcceptNewClientAsync), false );
+            this.InitializedTask.SetResult( true );
+        }
+        catch ( Exception ex )
+        {
+            this.InitializedTask.SetException( ex );
+
+            throw;
+        }
     }
 #pragma warning restore VSTHRD100 // Avoid "async void".
 
@@ -68,32 +74,24 @@ public abstract class ServerEndpoint : BaseEndpoint
         return pipeName;
     }
 
+    public event Action? ClientConnected;
+
     protected virtual Task OnServerPipeCreatedAsync( CancellationToken cancellationToken ) => Task.CompletedTask;
 
-    private async Task StartCoreAsync( string pipeName, ImmutableArray<RpcService> services, CancellationToken cancellationToken )
-    {
-        this.Logger.Trace?.Log( $"Starting the server endpoint '{pipeName}'." );
-
-        try
-        {
-            await this.AcceptNewClientAsync( pipeName, services, cancellationToken );
-
-            this.Logger.Trace?.Log( $"The server endpoint '{pipeName}' is ready." );
-
-            this.InitializedTask.SetResult( true );
-        }
-        catch ( Exception e )
-        {
-            this.InitializedTask.SetException( e );
-            this.ExceptionHandler?.OnException( e, this.Logger, this.DisposeCancellationToken.IsCancellationRequested );
-        }
-    }
-
-    private static void OnConnected( IEnumerable<RpcService> services )
+    private void OnConnected( IEnumerable<RpcService> services )
     {
         foreach ( var service in services )
         {
             service.OnRpcConnected();
+        }
+
+        try
+        {
+            this.ClientConnected?.Invoke();
+        }
+        catch ( Exception ex )
+        {
+            this.Logger.Error?.Log( ex.ToString() );
         }
     }
 
@@ -134,7 +132,7 @@ public abstract class ServerEndpoint : BaseEndpoint
         // Listen to another client.
         this.ExecuteBackgroundTask( ct => this.AcceptNewClientAsync( pipeName, services, ct ), nameof(this.AcceptNewClientAsync), false );
 
-        OnConnected( services );
+        this.OnConnected( services );
     }
 
     private void OnRpcDisconnected( object? sender, JsonRpcDisconnectedEventArgs e )
