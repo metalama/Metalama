@@ -25,8 +25,6 @@ public sealed class WelcomeServiceTests : TestsBase
 
         Assert.Single( this.UserInterface.ExternalWebPagesOpened );
         Assert.StartsWith( webLinks.Welcome, this.UserInterface.ExternalWebPagesOpened.Single().Url, StringComparison.Ordinal );
-        Assert.Single( this.UserInterface.Notifications );
-        Assert.Equal( ToastNotificationKinds.Welcome, this.UserInterface.Notifications.Single().Kind );
     }
 
     [Fact]

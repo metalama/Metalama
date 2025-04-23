@@ -84,19 +84,6 @@ internal static class ViewModelBuilder
 
             return true;
         }
-        else if ( settings.Kind == ToastNotificationKinds.Welcome.Name )
-        {
-            viewModel = new NotificationViewModel(
-                settings.Kind,
-                settings.Title ?? "Welcome to Metalama",
-                settings.Text
-                ?? "Thank you for using Metalama.\nNote that telemetry is enabled by default. Open this notification to learn how to disable telemetry.",
-                new UriActionViewModel( "View", webLinks.DisableTelemetryInstructions ),
-                false,
-                false );
-
-            return true;
-        }
         else
         {
             viewModel = null;

@@ -41,7 +41,6 @@ public sealed class WelcomeService : IBackstageService
             if ( this._configurationManager.UpdateIf<WelcomeConfiguration>( c => !c.WelcomePageDisplayed, c => c with { WelcomePageDisplayed = true } ) )
             {
                 this._userInterfaceService.OpenExternalWebPage( this._webLinks.Welcome, BrowserMode.Default );
-                this._userInterfaceService.ShowToastNotification( new ToastNotification( ToastNotificationKinds.Welcome ) );
             }
         }
     }
