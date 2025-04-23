@@ -32,8 +32,10 @@
         <PackageType>DotNetCliTool</PackageType>
         <ToolCommandName>metalama</ToolCommandName>
 		<PackageDescription>A Metalama command line tool. Used for registering a license key or accessing some configuration settings.</PackageDescription>
-        
         <RollForward>Major</RollForward>
+        
+        <!-- Tool NuGet package includes pdb files, .snupkg will get rejected because of duplicitous PDBs when publishing. -->
+        <IncludeSymbols>false</IncludeSymbols>
     </PropertyGroup>
 
     <ItemGroup>
