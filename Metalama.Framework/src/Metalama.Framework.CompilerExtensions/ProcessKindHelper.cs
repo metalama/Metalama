@@ -42,6 +42,10 @@ public static class ProcessKindHelper
                 {
                     return ProcessKind.Compiler;
                 }
+                else if ( commandLine.Contains( "dotnet-format.dll" ) )
+                {
+                    return ProcessKind.Format;
+                }
                 else
                 {
                     return ProcessKind.Other;
@@ -60,5 +64,6 @@ public enum ProcessKind
     Compiler,
     DevEnv,
     RoslynCodeAnalysisService,
-    Rider
+    Rider,
+    Format
 }

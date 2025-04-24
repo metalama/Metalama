@@ -13,9 +13,9 @@ namespace Metalama.Framework.TestApp
     {
         public override dynamic? OverrideMethod()
         {
-            var parameter = meta.Target.Parameters.LastOrDefault( p => p.Type.IsConvertibleTo( typeof( CancellationToken ) ) );
+            var parameter = meta.Target.Parameters.LastOrDefault(p => p.Type.IsConvertibleTo(typeof(CancellationToken)));
 
-            if ( parameter != null )
+            if (parameter != null)
             {
                 parameter.Value!.ThrowIfCancellationRequested();
             }

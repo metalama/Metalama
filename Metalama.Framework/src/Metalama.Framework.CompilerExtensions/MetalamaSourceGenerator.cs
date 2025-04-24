@@ -25,7 +25,12 @@ namespace Metalama.Framework.CompilerExtensions
             switch ( ProcessKindHelper.CurrentProcessKind )
             {
                 case ProcessKind.Compiler:
-                    //The service is not required.
+                    // The service is not required.
+                    break;
+                
+                case ProcessKind.Format:
+                    // We intentionally avoid generating source because this is untested. This could cause compilation errors and
+                    // warnings in other code, but this is the status until the code is tested.
                     break;
 
                 case ProcessKind.DevEnv:

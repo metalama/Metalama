@@ -13,34 +13,34 @@ namespace Metalama.Framework.TestApp
     internal partial class Program
     {
         [SuppressWarning]
-        private static async Task MethodAsync()
+        private static Task MethodAsync()
         {
-            
+            return Task.CompletedTask;
         }
 
         private static void Main()
         {
-            
+
             Foo();
             new Program().SomeOtherIntroducedMethod();
 
-       
+
             MethodWithTwoAspects();
 
             PrintDebugInfo();
 
             PrintArray();
-            
+
             Cancel();
         }
 
         private void Method() { }
-        
+
         [SwallowExceptionsAspect]
         [PrintDebugInfoAspect]
         public static void MethodWithTwoAspects()
         {
-            Console.WriteLine( "This is method with two aspects" );
+            Console.WriteLine("This is method with two aspects");
         }
 
         [PrintDebugInfoAspect]
@@ -56,17 +56,17 @@ namespace Metalama.Framework.TestApp
         {
             var a = new[] { 1, 2, 3, 4 };
 
-            for ( var i = 0; i < 10; i++ )
+            for (var i = 0; i < 10; i++)
             {
-                PrintArrayAtIndex( a, i );
+                PrintArrayAtIndex(a, i);
             }
         }
 
         [SwallowExceptionsAspect]
-        private static void PrintArrayAtIndex( int[] a, int i )
+        private static void PrintArrayAtIndex(int[] a, int i)
         {
-            Console.WriteLine( a[i] );
-            Thread.Sleep( 100 );
+            Console.WriteLine(a[i]);
+            Thread.Sleep(100);
         }
 
         private static void Cancel()
@@ -75,27 +75,27 @@ namespace Metalama.Framework.TestApp
             cts.Cancel();
 
             Cancellable0();
-            Cancellable1( cts.Token );
+            Cancellable1(cts.Token);
         }
 
         [CancelAspect]
-        private static void Cancellable0() 
+        private static void Cancellable0()
         {
             Console.WriteLine("Hello, Cancellable0.");
         }
 
         [CancelAspect]
-        private static void Cancellable1( CancellationToken ct )
+        private static void Cancellable1(CancellationToken ct)
         {
             Console.WriteLine("Hello, Cancellable1.");
         }
 
         [CancelAspect]
-        private static void Cancellable2( CancellationToken ct1, CancellationToken ct2 )
+        private static void Cancellable2(CancellationToken ct1, CancellationToken ct2)
         {
             Console.WriteLine("Hello, Cancellable2.");
         }
     }
 
-    
+
 }

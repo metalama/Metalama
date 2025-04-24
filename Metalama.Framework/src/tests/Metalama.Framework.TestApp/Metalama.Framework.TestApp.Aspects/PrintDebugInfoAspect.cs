@@ -12,19 +12,19 @@ namespace Metalama.Framework.TestApp
 {
     public class PrintDebugInfoAspect : MethodAspect
     {
-        static DiagnosticDefinition<IDeclaration> myWarning = new( "MY001", Severity.Warning, "Hello, {0} v24." );
+        static DiagnosticDefinition<IDeclaration> myWarning = new("MY001", Severity.Warning, "Hello, {0} v24.");
 
-        public override void BuildAspect(IAspectBuilder<IMethod> aspectBuilder )
+        public override void BuildAspect(IAspectBuilder<IMethod> aspectBuilder)
         {
             aspectBuilder.Advice.Override(aspectBuilder.Target, nameof(OverrideMethod));
-            aspectBuilder.Diagnostics.Report( myWarning.WithArguments(aspectBuilder.Target) );
+            aspectBuilder.Diagnostics.Report(myWarning.WithArguments(aspectBuilder.Target));
         }
 
         // The template is intentionally private to reproduce #30575.
         [Template]
         private dynamic? OverrideMethod()
         {
-            Console.WriteLine( DebugInfo.GetInfo() );
+            Console.WriteLine(DebugInfo.GetInfo());
             return meta.Proceed();
         }
     }

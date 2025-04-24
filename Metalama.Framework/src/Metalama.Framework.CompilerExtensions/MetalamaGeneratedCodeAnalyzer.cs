@@ -19,7 +19,18 @@ public sealed class MetalamaGeneratedCodeAnalyzer : DiagnosticAnalyzer
 
     public MetalamaGeneratedCodeAnalyzer()
     {
-        this._impl = (DiagnosticAnalyzer) ResourceExtractor.CreateInstance( "Metalama.Framework.Engine", "Metalama.Framework.Engine.GeneratedCodeAnalyzer" );
+        switch ( ProcessKindHelper.CurrentProcessKind )
+        {
+            case ProcessKind.Format:
+                break;
+
+            default:
+                this._impl = (DiagnosticAnalyzer) ResourceExtractor.CreateInstance(
+                    "Metalama.Framework.Engine",
+                    "Metalama.Framework.Engine.GeneratedCodeAnalyzer" );
+
+                break;
+        }
     }
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => this._impl?.SupportedDiagnostics ?? ImmutableArray<DiagnosticDescriptor>.Empty;

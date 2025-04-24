@@ -15,9 +15,9 @@ namespace Metalama.Framework.TestApp.Aspects
             {
                 return meta.Proceed();
             }
-            catch ( Exception ex )
+            catch (Exception ex)
             {
-                Console.WriteLine( "Metalama caught: " + ex );
+                Console.WriteLine("Metalama caught: " + ex);
                 return default;
             }
         }

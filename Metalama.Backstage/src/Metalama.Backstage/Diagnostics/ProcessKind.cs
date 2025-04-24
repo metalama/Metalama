@@ -91,5 +91,10 @@ public enum ProcessKind
     /// <summary>
     /// An MSBuild node process.
     /// </summary>
-    MsBuild
+    MsBuild,
+    
+    /// <summary>
+    /// The <c>dotnet format</c> command.
+    /// </summary>
+    Format
 }

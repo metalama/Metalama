@@ -113,6 +113,10 @@ public static class ProcessUtilities
                     {
                         return ProcessKind.MsBuild;
                     }
+                    else if ( commandLine.Contains( "dotnet-format.dll" ) )
+                    {
+                        return ProcessKind.Format;
+                    }
                     else
                     {
                         return ProcessKind.Other;

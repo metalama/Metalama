@@ -17,18 +17,18 @@ namespace Metalama.Framework.TestApp
             this._methodNames = methodNames;
         }
 
-        public void BuildAspect( IAspectBuilder<INamedType> aspectBuilder )
+        public void BuildAspect(IAspectBuilder<INamedType> aspectBuilder)
         {
-            foreach ( var methodName in this._methodNames )
+            foreach (var methodName in this._methodNames)
             {
-                aspectBuilder.Advice.IntroduceMethod( aspectBuilder.Target, nameof( SomeIntroducedMethod ), buildMethod: m => m.Name = methodName );
+                aspectBuilder.Advice.IntroduceMethod(aspectBuilder.Target, nameof(SomeIntroducedMethod), buildMethod: m => m.Name = methodName);
             }
         }
 
         [Template]
         public static void SomeIntroducedMethod()
         {
-            Console.WriteLine( "From IntroduceSomeMethodAspect!" );
+            Console.WriteLine("From IntroduceSomeMethodAspect!");
 
             var x = meta.Proceed();
         }
@@ -36,7 +36,7 @@ namespace Metalama.Framework.TestApp
         [Introduce]
         public void SomeOtherIntroducedMethod()
         {
-            
+
         }
 
         [Introduce]
@@ -45,6 +45,6 @@ namespace Metalama.Framework.TestApp
 
         }
 
-        
+
     }
 }

@@ -10,7 +10,7 @@ namespace Metalama.Framework.TestApp.Test
     {
         [CancelAspect]
 #pragma warning disable IDE0060 // Remove unused parameter
-        public void Test( CancellationToken cancellationToken )
+        public void Test(CancellationToken cancellationToken)
 #pragma warning restore IDE0060 // Remove unused parameter
         {
         }

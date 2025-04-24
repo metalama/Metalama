@@ -23,6 +23,10 @@ namespace Metalama.Framework.CompilerExtensions
             {
                 case ProcessKind.Compiler:
                     break;
+                
+                case ProcessKind.Format:
+                    // Not tested.
+                    break;
 
                 case ProcessKind.RoslynCodeAnalysisService:
                 case ProcessKind.DevEnv:
