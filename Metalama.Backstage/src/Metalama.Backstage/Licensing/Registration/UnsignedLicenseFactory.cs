@@ -36,7 +36,6 @@ namespace Metalama.Backstage.Licensing.Registration
 
             var licenseKeyData = new LicenseKeyDataBuilder()
             {
-                OriginVersion = LicenseKeyDataBuilder.CurrentVersion,
                 Generation = LicenseGeneration.Current,
                 LicenseGuid = Guid.NewGuid(),
                 Product = LicenseProduct.MetalamaProfessional,
@@ -59,7 +58,6 @@ namespace Metalama.Backstage.Licensing.Registration
 
             var licenseKeyData = new LicenseKeyDataBuilder()
             {
-                OriginVersion = LicenseKeyDataBuilder.CurrentVersion,
                 Generation = LicenseGeneration.Current,
                 LicenseGuid = Guid.NewGuid(),
                 Product = LicenseProduct.MetalamaCommunity,
@@ -86,7 +84,6 @@ namespace Metalama.Backstage.Licensing.Registration
 
             var licenseKeyData = new LicenseKeyDataBuilder()
             {
-                OriginVersion = LicenseKeyDataBuilder.CurrentVersion,
                 Generation = LicenseGeneration.Current,
                 LicenseGuid = Guid.NewGuid(),
                 Product = LicenseProduct.MetalamaFree,

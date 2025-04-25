@@ -18,7 +18,7 @@ namespace PostSharp.LicenseKeyGenerator
 
             this._propertyGrid.SelectedObject = new LicenseKeyDataBuilder()
             {
-                OriginVersion = LicenseKeyDataBuilder.CurrentVersion, Generation = LicenseGeneration.Current
+                Generation = LicenseGeneration.Current
             };
 
             // We load the private key on startup to avoid KeyVault exceptions after filling all the data.
