@@ -20,8 +20,8 @@ To simplify your impact assessment, we have grouped them into the following cate
 - **Building Metalama**: These dependencies are used to build Metalama itself. They do not flow with your packages.
 - **Building Your Product**: These dependencies are used when building your projects. You can typically remove them form 
   your package by marking them as private assets.
-- **Testing: These dependencies are used to test either Metalama or your aspects. They do not flow with your packages.
-- **LINQPad**: Only when using LINQPad
+- **Testing**: These dependencies are used to test either Metalama or your aspects. They do not flow with your product.
+- **LINQPad**: Only when using LINQPad.
 
 > [!NOTE]
 > For brevity, this list does not include dependencies that are part of the System, Microsoft or Azure namespaces.
