@@ -140,4 +140,4 @@ Below is a list of packages originating from this repository:
 
 ## Dependencies
 
-Direct and indirect dependencies, as well as their licensing, are documented in <THIRD-PARTY-NOTICES.md>.
+Direct and indirect dependencies, as well as their licensing, are documented in [Third Party Notices](THIRD-PARTY-NOTICES.md).
