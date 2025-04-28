@@ -11,7 +11,13 @@ using Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Utilities;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
+using System.Linq;
+using RefKind = Metalama.Framework.Code.RefKind;
+using TypeKind = Metalama.Framework.Code.TypeKind;
 
 namespace Metalama.Framework.Engine.AdviceImpl.Introduction;
 
@@ -123,6 +129,16 @@ internal sealed class IntroduceMethodAdvice : IntroduceMemberAdvice<IMethod, IMe
         var existingMethod = targetDeclaration.FindClosestVisibleMethod( builder );
 
         var hasNoBody = this.Template?.TemplateClassMember.TemplateInfo.HasNoBody == true;
+
+        if ( existingMethod != null 
+             && existingMethod.GetPrimaryDeclarationSyntax() is MethodDeclarationSyntax methodDeclaration
+             && methodDeclaration.Modifiers.Any( x => x.IsKind(SyntaxKind.PartialKeyword ) ) 
+             && builder.IsPartial )
+        {
+            // TODO: This allows introducing partial methods where definition/implementation exists in code.
+            //       However, errors will not be produced if wrong kind of partial implementation is introduced again.
+            existingMethod = null;
+        }
 
         // TODO: Introduce attributes that are added not present on the existing member?
         if ( existingMethod == null )
