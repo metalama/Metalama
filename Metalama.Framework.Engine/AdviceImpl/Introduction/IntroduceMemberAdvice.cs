@@ -117,8 +117,7 @@ internal abstract class IntroduceMemberAdvice<TTemplate, TIntroduced, TBuilder> 
             isAbstractTypeMember && (templateAttributeProperties?.IsAbstract == true || isImplicitlyAbstract);
 
         builder.IsPartial = 
-            isTemplateWithoutBody 
-            && templateAttributeProperties?.IsPartial == true;
+            templateAttributeProperties?.IsPartial == true;
 
         builder.IsExtern =
             isTemplateWithoutBody
