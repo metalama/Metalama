@@ -29,12 +29,6 @@ namespace Metalama.Backstage.Licensing
         /// Should be normalized to <see cref="PostSharpUltimate"/>.
         /// </summary>
         [Obsolete( "Use PostSharpUltimate instead." )]
-        PostSharp30 = 2,
-
-        /// <summary>
-        /// Should be normalized to <see cref="PostSharpUltimate"/>.
-        /// </summary>
-        [Obsolete( "Use PostSharpUltimate instead." )]
         PostSharpUltimate1 = 2,
 
         /// <summary>
