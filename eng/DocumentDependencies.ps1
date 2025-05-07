@@ -472,7 +472,7 @@ To simplify your impact assessment, we have grouped them into the following cate
 - **LINQPad**: Only when using LINQPad.
 
 > [!NOTE]
-> For brevity, this list does not include dependencies that are part of the `System`, `Microsoft` or `Azure` namespaces.
+> For brevity, this list does not include dependencies that are part of the ``System``, ``Microsoft`` or ``Azure`` namespaces.
 
 
 | Package Name | License | Authors | Source Repository | Usage | Referenced By |

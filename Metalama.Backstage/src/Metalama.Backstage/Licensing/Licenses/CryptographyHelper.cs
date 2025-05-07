@@ -33,7 +33,7 @@ namespace Metalama.Backstage.Licensing.Licenses
         /// <remarks>
         /// This implementation supports .NET Core 2.1, where the <see cref="DSA" /> method is not implemented.
         /// </remarks>
-        private static DSAParameters ParseDsaParameters( string xmlString, bool expectPrivateParameters = false )
+        private static DSAParameters ParseDsaParameters( string xmlString )
         {
             static int ConvertByteArrayToInt( byte[] input )
             {
@@ -69,11 +69,6 @@ namespace Metalama.Backstage.Licensing.Licenses
             };
 
             // ReSharper restore StringLiteralTypo
-
-            if ( expectPrivateParameters )
-            {
-                missingNodes.Add( "X" );
-            }
 
             if ( xmlDoc.DocumentElement!.Name.Equals( "DSAKeyValue", StringComparison.Ordinal ) )
             {
@@ -117,12 +112,6 @@ namespace Metalama.Backstage.Licensing.Licenses
                             break;
 
                         case "X":
-                            if ( !expectPrivateParameters )
-                            {
-                                // We check this so a private key is not accidentally disclosed.
-                                throw new ArgumentException( $"Invalid public key.", nameof(xmlString) );
-                            }
-
                             parameters.X = Convert.FromBase64String( node.InnerText );
                             missingNodes.Remove( node.Name );
 

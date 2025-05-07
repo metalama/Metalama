@@ -1,0 +1,9 @@
+# Ignore list for the SCC line counting tool.
+
+*.g.cs
+*.t.cs
+*.i.cs
+*.js
+*.css
+.idea/
+.vscode
