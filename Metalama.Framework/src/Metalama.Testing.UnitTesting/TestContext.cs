@@ -5,6 +5,7 @@
 using JetBrains.Annotations;
 using Metalama.Backstage.Application;
 using Metalama.Backstage.Configuration;
+using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Infrastructure;
 using Metalama.Backstage.Maintenance;
@@ -130,10 +131,12 @@ public partial class TestContext : IDisposable, ITempFileManager, IApplicationIn
             typedAdditionalServices.GlobalServices.Add( sp => sp.WithServiceConditional<IGlobalOptions>( _ => new TestGlobalOptions() ) );
             typedAdditionalServices.GlobalServices.Add<IExtensionLoader>( _ => new TestExtensionLoader( contextOptions ), true );
 
-            typedAdditionalServices.GlobalServices.Add(
-                sp => sp.WithService<IProjectOptionsFactory>( _ => new TestProjectOptionsFactory( this.ProjectOptions ) ) );
+            typedAdditionalServices.GlobalServices.Add( sp => sp.WithService<IProjectOptionsFactory>( _ => new TestProjectOptionsFactory(
+                                                                                                          this.ProjectOptions ) ) );
 
             backstageServices = typedAdditionalServices.BackstageServices.Build( backstageServices );
+
+            this.Logger = backstageServices.GetLoggerFactory().GetLogger( nameof(TestContext) );
 
             var serviceProvider = ServiceProviderFactory.GetServiceProvider( backstageServices, typedAdditionalServices );
 
@@ -158,6 +161,8 @@ public partial class TestContext : IDisposable, ITempFileManager, IApplicationIn
             throw;
         }
     }
+
+    public ILogger Logger { get; }
 
     private void OnTimeout( object? state )
     {

@@ -68,17 +68,19 @@ public sealed class RemotingTests : UnitTestClass
 
         clientEndpoint.EventReceived += eventCollector.OnEventReceived;
 
-        var sourceGeneratorService = await server.GetRequiredServiceAsync<SourceGeneratorRpcService>( testContext.CancellationToken );
+        var sourceGeneratorService = await server.GetRequiredServiceAsync<SourceGeneratorRpcService>( cancellationToken );
 
         // If we don't wait until server initialization here, we could raise the event before the server is finished setting up.
         await server.WaitUntilInitializedAsync( cancellationToken );
 
         await sourceGeneratorService.PublishGeneratedSourcesAsync(
-            projectKey,
-            ImmutableDictionary.Create<string, string>().Add( sourceTreeName, "content" ),
-            cancellationToken );
+                projectKey,
+                ImmutableDictionary.Create<string, string>().Add( sourceTreeName, "content" ),
+                cancellationToken )
+            .WarnIfLongAsync( testContext.Logger, nameof(sourceGeneratorService.PublishGeneratedSourcesAsync), cancellationToken );
 
-        await eventCollector.WhenTrueAsync( c => c.Events.OfType<GeneratedSourceChangedEventData>().Any(), cancellationToken );
+        await eventCollector.WhenTrueAsync( c => c.Events.OfType<GeneratedSourceChangedEventData>().Any(), cancellationToken )
+            .WarnIfLongAsync( testContext.Logger, nameof(eventCollector.WhenTrueAsync), cancellationToken );
 
         Assert.Single( eventCollector.Events.OfType<GeneratedSourceChangedEventData>(), x => x.ProjectKey == projectKey );
         Assert.Single( eventCollector.Events.OfType<GeneratedSourceChangedEventData>().First().Sources, x => x.Key == sourceTreeName );
