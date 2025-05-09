@@ -83,7 +83,7 @@ public sealed class LicenseAuditTests : LicenseConsumptionServiceTestsBase
             Assert.Equal( HttpMethod.Get, matomoRequest.Method );
 
             Assert.Equal(
-                $"https://postsharp.matomo.cloud/matomo.php?idsite=6&rec=1&action_name=license&_id=36579f554ac8899f&uid=36579f554ac8899f&dimension1={expectedProductName}&dimension2={expectedLicenseType}&dimension3=Metalama&dimension4=1.0&new_visit=0&rand=5cf58a1a689e1e0c",
+                $"https://postsharp.matomo.cloud/matomo.php?idsite=6&rec=1&action_name=license&_id=412522694e2c0786&uid=412522694e2c0786&dimension1={expectedProductName}&dimension2={expectedLicenseType}&dimension3=Metalama&dimension4=1.0&new_visit=0&rand=56addf3428448b3b",
                 matomoRequestUri );
 
             // Second time in the same day.
@@ -113,7 +113,7 @@ public sealed class LicenseAuditTests : LicenseConsumptionServiceTestsBase
             Assert.Equal( HttpMethod.Get, thirdMatomoRequest.Method );
 
             Assert.Equal(
-                $"https://postsharp.matomo.cloud/matomo.php?idsite=6&rec=1&action_name=license&_id=36579f554ac8899f&uid=36579f554ac8899f&dimension1={expectedProductName}&dimension2={expectedLicenseType}&dimension3=Metalama&dimension4=1.0&new_visit=0&rand=624e91464771d36f",
+                $"https://postsharp.matomo.cloud/matomo.php?idsite=6&rec=1&action_name=license&_id=412522694e2c0786&uid=412522694e2c0786&dimension1={expectedProductName}&dimension2={expectedLicenseType}&dimension3=Metalama&dimension4=1.0&new_visit=0&rand=689070376c8cf5f8",
                 thirdMatomoRequestUri );
         }
         else

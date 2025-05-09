@@ -17,9 +17,9 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
     public const string OptOutEnvironmentVariable = "METALAMA_TELEMETRY_OPT_OUT";
     private readonly IConfigurationManager _configurationManager;
     private readonly IServiceProvider _serviceProvider;
-    private readonly Guid _newDeviceId;
     private readonly ILogger _logger;
     private readonly IDateTimeProvider _dateTimeProvider;
+    private readonly RandomNumberGenerator _randomNumberGenerator;
 
     private bool _isUsageTelemetryEnabled;
     private bool _isPerformanceTelemetryEnabled;
@@ -27,19 +27,16 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
     private bool _isGloballyEnabled;
     private bool _initialized;
 
-    internal TelemetryConfigurationService( IServiceProvider serviceProvider, Guid? newDeviceId = null )
-        : this( serviceProvider, newDeviceId ?? Guid.NewGuid() ) { }
-
     // Tests use this constructor to supply a constant Guid.
-    internal TelemetryConfigurationService( IServiceProvider serviceProvider, Guid newDeviceId )
+    internal TelemetryConfigurationService( IServiceProvider serviceProvider )
     {
         this._serviceProvider = serviceProvider;
-        this._newDeviceId = newDeviceId;
         this._configurationManager = serviceProvider.GetRequiredBackstageService<IConfigurationManager>();
         this._configurationManager.ConfigurationFileChanged += this.OnConfigurationChanged;
         this._logger = this._serviceProvider.GetLoggerFactory().Telemetry();
         this._dateTimeProvider = serviceProvider.GetRequiredBackstageService<IDateTimeProvider>();
         this._dateTimeProvider.DateChanged += this.OnDateChanged;
+        this._randomNumberGenerator = serviceProvider.GetRequiredBackstageService<RandomNumberGenerator>();
     }
 
     private void OnDateChanged()
@@ -125,7 +122,7 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
             c => c.DeviceId == null,
             c => c with
             {
-                DeviceId = this._newDeviceId,
+                DeviceId = this._randomNumberGenerator.NextGuid(),
                 UsageReportingAction = ReportingAction.Yes,
                 PerformanceProblemReportingAction = ReportingAction.Yes,
                 ExceptionReportingAction = ReportingAction.Yes,
@@ -134,7 +131,7 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
                 // Since first-time users are likely not to use the software for more than a few minutes, 
                 // configure so that we will upload data in 15 minutes.
                 LastUploadTime = this._dateTimeProvider.UtcNow.AddDays( -1 ).AddMinutes( 15 ),
-                Salt = new RandomNumberGenerator().NextInt64(),
+                Salt = this._randomNumberGenerator.NextInt64(),
                 LastSaltChangeTime = this._dateTimeProvider.UtcNow
             } );
 
@@ -142,9 +139,19 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
         // weekly aggregates are correct because they are the most important.
         var firstOfMonth = this._dateTimeProvider.UtcNow.Date.GetFirstMondayOfMonth();
 
-        this._configurationManager.UpdateIf<TelemetryConfiguration>(
-            c => c.Salt == null || c.LastSaltChangeTime == null || c.LastSaltChangeTime.Value < firstOfMonth,
-            c => c with { Salt = new RandomNumberGenerator().NextInt64(), DeviceId = Guid.NewGuid(), LastSaltChangeTime = this._dateTimeProvider.UtcNow } );
+        var rotated = this._configurationManager.UpdateIf<TelemetryConfiguration>(
+            c => c.Salt == null || c.LastSaltChangeTime == null || (this._dateTimeProvider.UtcNow >= firstOfMonth && c.LastSaltChangeTime.Value < firstOfMonth),
+            c => c with
+            {
+                Salt = this._randomNumberGenerator.NextInt64(),
+                DeviceId = this._randomNumberGenerator.NextGuid(),
+                LastSaltChangeTime = this._dateTimeProvider.UtcNow
+            } );
+
+        if ( rotated )
+        {
+            this._logger.Trace?.Log( "Telemetry IDs and salt were rotated." );
+        }
 
         this._isGloballyEnabled = this.IsGloballyEnabled();
         this.ReadConfiguration( this._configurationManager.Get<TelemetryConfiguration>() );
@@ -194,6 +201,11 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
 
     public void ResetDeviceId()
     {
-        this._configurationManager.Update<TelemetryConfiguration>( c => c with { DeviceId = Guid.NewGuid() } );
+        this._configurationManager.Update<TelemetryConfiguration>( c => c with
+        {
+            DeviceId = this._randomNumberGenerator.NextGuid(),
+            Salt = this._randomNumberGenerator.NextInt64(),
+            LastSaltChangeTime = this._dateTimeProvider.UtcNow
+        } );
     }
 }

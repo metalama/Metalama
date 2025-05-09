@@ -101,14 +101,13 @@ namespace Metalama.Backstage.Testing
             this._configureServicesAction = this.ConfigureServices;
             this._initializationOptions = options ?? new BackstageInitializationOptions( new TestApplicationInfo() );
 
-            this._defaultTestContext = new Lazy<Services>(
-                () =>
-                {
-                    var services = this.CreateServices( this.ConfigureServicesAction, this.InitializationOptions );
-                    this.OnAfterServicesCreated( services );
+            this._defaultTestContext = new Lazy<Services>( () =>
+            {
+                var services = this.CreateServices( this.ConfigureServicesAction, this.InitializationOptions );
+                this.OnAfterServicesCreated( services );
 
-                    return services;
-                } );
+                return services;
+            } );
         }
 
         private readonly Lazy<Services> _defaultTestContext;
@@ -223,7 +222,7 @@ namespace Metalama.Backstage.Testing
                 .AddSingleton<IToastNotificationDetectionService>( serviceProvider => new ToastNotificationDetectionService( serviceProvider ) )
                 .AddSingleton<IStandardDirectories>( serviceProvider => new StandardDirectories( serviceProvider ) )
                 .AddSingleton<IBackstageToolsExtractor>( serviceProvider => new BackstageToolsExtractor( serviceProvider ) )
-                .AddSingleton<ITelemetryConfigurationService>( serviceProvider => new TelemetryConfigurationService( serviceProvider, Guid.Empty ) )
+                .AddSingleton<ITelemetryConfigurationService>( serviceProvider => new TelemetryConfigurationService( serviceProvider ) )
                 .AddSingleton( this.LicensingAuthority );
 
             var serviceProviderBuilder =

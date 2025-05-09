@@ -32,4 +32,23 @@ internal sealed class RandomNumberGenerator : IBackstageService
             return ((long) this._random.Next() << 32) | (uint) this._random.Next();
         }
     }
+
+    public Guid NextGuid()
+    {
+        lock ( this._random )
+        {
+            var bytes = new byte[16];
+            this._random.NextBytes( bytes );
+
+            return new Guid( bytes );
+        }
+    }
+
+    public void NextBytes( byte[] buffer )
+    {
+        lock ( this._random )
+        {
+            this._random.NextBytes( buffer );
+        }
+    }
 }

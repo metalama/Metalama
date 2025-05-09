@@ -21,7 +21,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using IHttpClientFactory = Metalama.Backstage.Infrastructure.IHttpClientFactory;
-using RandomNumberGenerator = System.Security.Cryptography.RandomNumberGenerator;
+using RandomNumberGenerator = Metalama.Backstage.Infrastructure.RandomNumberGenerator;
 
 namespace Metalama.Backstage.Telemetry
 {
@@ -39,6 +39,7 @@ namespace Metalama.Backstage.Telemetry
         private readonly List<(string File, Exception Reason)> _failedFiles = [];
         private readonly TelemetryLogger _telemetryLogger;
         private readonly BackstageBackgroundTasksService _backgroundTasksService;
+        private readonly RandomNumberGenerator _randomNumberGenerator;
 
         public TelemetryUploader( IServiceProvider serviceProvider )
         {
@@ -53,6 +54,7 @@ namespace Metalama.Backstage.Telemetry
             this._exceptionReporter = serviceProvider.GetRequiredBackstageService<IExceptionReporter>();
             this._telemetryLogger = serviceProvider.GetRequiredBackstageService<TelemetryLogger>();
             this._backgroundTasksService = serviceProvider.GetRequiredBackstageService<BackstageBackgroundTasksService>();
+            this._randomNumberGenerator = serviceProvider.GetRequiredBackstageService<RandomNumberGenerator>();
         }
 
         private static void CopyStream( Stream inputStream, Stream outputStream )
@@ -72,23 +74,22 @@ namespace Metalama.Backstage.Telemetry
             using ( var inputStream = this._fileSystem.OpenRead( inputFile ) )
             using ( var outputStream = this._fileSystem.CreateFile( outputFile ) )
             {
-                EncryptStream( inputStream, outputStream );
+                this.EncryptStream( inputStream, outputStream );
             }
         }
 
-        private static void EncryptStream( Stream inputStream, Stream outputStream )
+        private void EncryptStream( Stream inputStream, Stream outputStream )
         {
-            var cryptoStream = GetCryptoStream( outputStream );
+            var cryptoStream = this.GetCryptoStream( outputStream );
             CopyStream( inputStream, cryptoStream );
             cryptoStream.FlushFinalBlock();
         }
 
-        private static CryptoStream GetCryptoStream( Stream outputStream )
+        private CryptoStream GetCryptoStream( Stream outputStream )
         {
             // Create a symmetric random key.
             var symmetricKey = new byte[256 / 8];
-            var randomNumberGenerator = RandomNumberGenerator.Create();
-            randomNumberGenerator.GetBytes( symmetricKey );
+            this._randomNumberGenerator.NextBytes( symmetricKey );
 
             // Retrieve the public key.
             byte[] publicKey;
@@ -317,7 +318,7 @@ namespace Metalama.Backstage.Telemetry
             this._logger.Trace?.Log( $"Creating upload directory '{this._directories.TelemetryUploadPackagesDirectory}'" );
             this._fileSystem.CreateDirectory( this._directories.TelemetryUploadPackagesDirectory );
 
-            var packageId = Guid.NewGuid().ToString();
+            var packageId = this._randomNumberGenerator.NextGuid().ToString();
             var packageName = packageId + ".psf";
             var packagePath = Path.Combine( this._directories.TelemetryUploadPackagesDirectory, packageName );
 

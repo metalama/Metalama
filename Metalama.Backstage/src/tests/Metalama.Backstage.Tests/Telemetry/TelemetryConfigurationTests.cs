@@ -52,17 +52,19 @@ public sealed class TelemetryConfigurationTests : TestsBase
     [Fact]
     public void SaltRotation()
     {
-        this.Time.Set( new DateTime( 2025, 1, 1, 0, 0, 0, DateTimeKind.Utc ) );
+        this.Time.Set( new DateTime( 2025, 4, 10, 0, 0, 0, DateTimeKind.Utc ) );
         this.TelemetryConfigurationService.Initialize();
         var initialSalt = this.TelemetryConfigurationService.Salt;
 
-        // There should be no need to call Initialize after a data change because the TelemetryConfigurationService
-        // should react to a data change.
-        
-        this.Time.Set( new DateTime( 2025, 1, 31, 0, 0, 0, DateTimeKind.Utc ) );
+        // There should be no change on April 30th or even on May the 4th because the first Monday is the 5th.
+        this.Time.Set( new DateTime( 2025, 4, 30, 0, 0, 0, DateTimeKind.Utc ) );
         Assert.Equal( initialSalt, this.TelemetryConfigurationService.Salt );
 
-        this.Time.Set( new DateTime( 2025, 2, 1, 0, 0, 0, DateTimeKind.Utc ) );
+        this.Time.Set( new DateTime( 2025, 5, 4, 0, 0, 0, DateTimeKind.Utc ) );
+        Assert.Equal( initialSalt, this.TelemetryConfigurationService.Salt );
+
+        // Now there should be a change.
+        this.Time.Set( new DateTime( 2025, 5, 5, 0, 0, 0, DateTimeKind.Utc ) );
         Assert.NotEqual( initialSalt, this.TelemetryConfigurationService.Salt );
     }
 }

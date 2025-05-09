@@ -15,6 +15,7 @@ namespace Metalama.Backstage.Licensing.Registration
     internal sealed class UnsignedLicenseFactory
     {
         private readonly IDateTimeProvider _time;
+        private readonly RandomNumberGenerator _randomNumberGenerator;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="UnsignedLicenseFactory"/> class.
@@ -23,6 +24,7 @@ namespace Metalama.Backstage.Licensing.Registration
         public UnsignedLicenseFactory( IServiceProvider services )
         {
             this._time = services.GetRequiredBackstageService<IDateTimeProvider>();
+            this._randomNumberGenerator = services.GetRequiredBackstageService<RandomNumberGenerator>();
         }
 
         /// <summary>
@@ -37,7 +39,7 @@ namespace Metalama.Backstage.Licensing.Registration
             var licenseKeyData = new LicenseKeyDataBuilder()
             {
                 Generation = LicenseGeneration.Current,
-                LicenseGuid = Guid.NewGuid(),
+                LicenseGuid = this._randomNumberGenerator.NextGuid(),
                 Product = LicenseProduct.MetalamaProfessional,
                 LicenseType = LicenseType.Evaluation,
                 ValidFrom = start,
@@ -59,7 +61,7 @@ namespace Metalama.Backstage.Licensing.Registration
             var licenseKeyData = new LicenseKeyDataBuilder()
             {
                 Generation = LicenseGeneration.Current,
-                LicenseGuid = Guid.NewGuid(),
+                LicenseGuid = this._randomNumberGenerator.NextGuid(),
                 Product = LicenseProduct.MetalamaCommunity,
                 LicenseType = LicenseType.Community,
                 ValidFrom = start,
@@ -85,7 +87,7 @@ namespace Metalama.Backstage.Licensing.Registration
             var licenseKeyData = new LicenseKeyDataBuilder()
             {
                 Generation = LicenseGeneration.Current,
-                LicenseGuid = Guid.NewGuid(),
+                LicenseGuid = this._randomNumberGenerator.NextGuid(),
                 Product = LicenseProduct.MetalamaFree,
                 LicenseType = LicenseType.Community,
                 ValidFrom = start

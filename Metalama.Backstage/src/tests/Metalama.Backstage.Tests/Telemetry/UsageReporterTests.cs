@@ -236,7 +236,7 @@ public sealed class UsageReporterTests : TestsBase
                 this.Logger.WriteLine( matomoRequestUri );
 
                 Assert.Equal(
-                    $"https://postsharp.matomo.cloud/matomo.php?idsite=6&rec=1&action_name=usage&_id=36579f554ac8899f&uid=36579f554ac8899f&dimension3=Metalama&dimension4=0.0&new_visit=1&rand={random}",
+                    $"https://postsharp.matomo.cloud/matomo.php?idsite=6&rec=1&action_name=usage&_id=412522694e2c0786&uid=412522694e2c0786&dimension3=Metalama&dimension4=0.0&new_visit=1&rand={random}",
                     matomoRequestUri );
             }
             else
@@ -246,7 +246,7 @@ public sealed class UsageReporterTests : TestsBase
         }
 
         // First session must cause audit.
-        await StartSessionAndAssert( "Project1", true, "5cf58a1a689e1e0c" );
+        await StartSessionAndAssert( "Project1", true, "56addf3428448b3b" );
 
         // Second session (even with different project) must not cause audit.
         await StartSessionAndAssert( "Project1", false, null );
@@ -254,7 +254,7 @@ public sealed class UsageReporterTests : TestsBase
 
         // Third session the next day must cause audit.
         this.Time.AddTime( TimeSpan.FromDays( 1 ) );
-        await StartSessionAndAssert( "Project1", true, "624e91464771d36f" );
+        await StartSessionAndAssert( "Project1", true, "689070376c8cf5f8" );
         await StartSessionAndAssert( "Project2", false, null );
     }
 }
