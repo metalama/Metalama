@@ -61,9 +61,9 @@ public sealed class LicenseAuditTests : LicenseConsumptionServiceTestsBase
     [InlineData( nameof(LicenseKeyProvider.MetalamaProfessionalBusiness), true, "MetalamaProfessional", "Business" )]
     [InlineData( null, true, "MetalamaOpenSource", "OpenSource" )]
     [InlineData( nameof(LicenseKeyProvider.MetalamaProfessionalBusinessNotAuditable), false, null, null )]
-    public async Task LicenseIsAudited( string? licenseKeyName, bool isAuditReportExpected, string? expectedProductName, string? expectedLicenseType )
+    public void LicenseIsAudited( string? licenseKeyName, bool isAuditReportExpected, string? expectedProductName, string? expectedLicenseType )
     {
-        async Task Consume()
+        void Consume()
         {
             if ( licenseKeyName != null )
             {
@@ -75,13 +75,11 @@ public sealed class LicenseAuditTests : LicenseConsumptionServiceTestsBase
                 // No license key is registered.
                 _ = this.CreateConsumptionService().CreateConsumer();
             }
-
-            await this.BackgroundTasks.WhenNoPendingTaskAsync();
         }
 
         if ( isAuditReportExpected )
         {
-            await Consume();
+            Consume();
             var reports = this.GetReports();
             Assert.Single( reports );
 
@@ -100,7 +98,7 @@ public sealed class LicenseAuditTests : LicenseConsumptionServiceTestsBase
             // Second time in the same day.
             this.FileSystem.Reset();
 
-            await Consume();
+            Consume();
             var secondReports = this.GetReports();
             Assert.Empty( secondReports );
 
@@ -109,7 +107,7 @@ public sealed class LicenseAuditTests : LicenseConsumptionServiceTestsBase
             this.HttpClientFactory.Reset();
             this.Time.AddTime( TimeSpan.FromDays( 1.01 ) );
 
-            await Consume();
+            Consume();
             var thirdReports = this.GetReports();
             Assert.Single( thirdReports );
 

@@ -20,6 +20,8 @@ public interface ITelemetryConfigurationService : IBackstageService
     bool IsEnabled( TelemetryScenario scenario );
 
     void ResetDeviceId();
+    
+    long Salt { get; }
 }
 
 public enum TelemetryScenario

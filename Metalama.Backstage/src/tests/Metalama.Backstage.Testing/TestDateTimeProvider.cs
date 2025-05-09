@@ -15,19 +15,31 @@ namespace Metalama.Backstage.Testing
 
         public DateTime UtcNow => this._lastResetTime?.AddMilliseconds( this._stopwatch?.ElapsedMilliseconds ?? 0 ) ?? DateTime.UtcNow;
 
+        public event Action? DateChanged;
+
         public void Stop() => this.Set( DateTime.UtcNow );
 
-        public void Set( DateTime now, bool keepRunning = false )
+        public void Set( DateTime newTime, bool keepRunning = false )
         {
-            if ( now.Kind != DateTimeKind.Utc )
+            if ( newTime.Kind != DateTimeKind.Utc )
             {
-                throw new ArgumentException( "The date time must be in UTC.", nameof(now) );
+                throw new ArgumentException( "The date time must be in UTC.", nameof(newTime) );
             }
 
-            this._lastResetTime = now;
+            var oldTime = this._lastResetTime;
+            this._lastResetTime = newTime;
             this._stopwatch = keepRunning ? Stopwatch.StartNew() : null;
+
+            if ( oldTime != null && oldTime.Value.Date != newTime.Date )
+            {
+                this.DateChanged?.Invoke();
+            }
         }
 
         public void AddTime( TimeSpan timeSpan ) => this.Set( this.UtcNow + timeSpan );
+
+        public void Dispose()
+        {
+        }
     }
 }

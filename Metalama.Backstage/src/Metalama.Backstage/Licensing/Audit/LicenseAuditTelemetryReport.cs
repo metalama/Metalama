@@ -30,9 +30,10 @@ internal sealed class LicenseAuditTelemetryReport : TelemetryReport
     public DateTime BuildDate { get; }
 
 #pragma warning disable CA1822
-    public long UserHash => HashUtilities.HashToInt64( Environment.UserName );
+    public long UserHash => HashUtilities.HashToInt64( Environment.UserName, this._telemetryConfigurationService.Salt );
 #pragma warning restore CA1822
 
+    // DeviceId is already rotated monthly, so there is no need to salt it.
     public long DeviceHash => HashUtilities.HashToInt64( this._telemetryConfigurationService.DeviceId.ToString() );
 
     public DateTime Date { get; }
@@ -91,7 +92,7 @@ internal sealed class LicenseAuditTelemetryReport : TelemetryReport
     /// Date metric implementation based on
     /// PostSharp.Hosting.Program.WriteLicenseAudit method.
     /// </summary>
-    private class LicenseAuditDateMetric : Metric
+    private sealed class LicenseAuditDateMetric : Metric
     {
         private readonly DateTime _value;
 
@@ -110,7 +111,7 @@ internal sealed class LicenseAuditTelemetryReport : TelemetryReport
     /// Hash metric implementation based on
     /// PostSharp.Hosting.Program.WriteLicenseAudit method.
     /// </summary>
-    private class LicenseAuditHashMetric : Metric
+    private sealed class LicenseAuditHashMetric : Metric
     {
         private readonly long _value;
 

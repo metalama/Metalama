@@ -18,6 +18,7 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
     private readonly IServiceProvider _serviceProvider;
     private readonly Guid _newDeviceId;
     private readonly ILogger _logger;
+    private readonly IDateTimeProvider _dateTimeProvider;
 
     private bool _isUsageTelemetryEnabled;
     private bool _isPerformanceTelemetryEnabled;
@@ -36,7 +37,17 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
         this._configurationManager = serviceProvider.GetRequiredBackstageService<IConfigurationManager>();
         this._configurationManager.ConfigurationFileChanged += this.OnConfigurationChanged;
         this._logger = this._serviceProvider.GetLoggerFactory().Telemetry();
+        this._dateTimeProvider = serviceProvider.GetRequiredBackstageService<IDateTimeProvider>();
+        this._dateTimeProvider.DateChanged += this.OnDateChanged;
     }
+
+    private void OnDateChanged()
+    {
+        // Make sure we rotate the DeviceId and Salt consistently every month.
+        this.Initialize();
+    }
+
+    public long Salt { get; private set; }
 
     private void OnConfigurationChanged( ConfigurationFile configuration )
     {
@@ -102,7 +113,8 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
             this._isUsageTelemetryEnabled = configuration.UsageReportingAction != ReportingAction.No;
         }
 
-        // We should not have a null DeviceId here because Initialize sets it.
+        // We should not have null values here because Initialize sets it.
+        this.Salt = configuration.Salt ?? 0;
         this.DeviceId = configuration.DeviceId ?? Guid.Empty;
     }
 
@@ -116,12 +128,20 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
                 UsageReportingAction = ReportingAction.Yes,
                 PerformanceProblemReportingAction = ReportingAction.Yes,
                 ExceptionReportingAction = ReportingAction.Yes,
-                
+
                 // Make sure we don't upload telemetry data on the first second of use.
                 // Since first-time users are likely not to use the software for more than a few minutes, 
                 // configure so that we will upload data in 15 minutes.
-                LastUploadTime = DateTime.UtcNow.AddDays( -1 ).AddMinutes( 15 )
+                LastUploadTime = this._dateTimeProvider.UtcNow.AddDays( -1 ).AddMinutes( 15 ),
+                Salt = new RandomNumberGenerator().NextInt64(),
+                LastSaltChangeTime = this._dateTimeProvider.UtcNow
             } );
+
+        var firstOfMonth = new DateTime( this._dateTimeProvider.UtcNow.Year, this._dateTimeProvider.UtcNow.Month, 1 );
+
+        this._configurationManager.UpdateIf<TelemetryConfiguration>(
+            c => c.Salt == null || c.LastSaltChangeTime == null || c.LastSaltChangeTime.Value < firstOfMonth,
+            c => c with { Salt = new RandomNumberGenerator().NextInt64(), DeviceId = Guid.NewGuid(), LastSaltChangeTime = this._dateTimeProvider.UtcNow } );
 
         this._isGloballyEnabled = this.IsGloballyEnabled();
         this.ReadConfiguration( this._configurationManager.Get<TelemetryConfiguration>() );
@@ -136,8 +156,12 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
             false => ReportingAction.No
         };
 
-        this._configurationManager.Update<TelemetryConfiguration>(
-            c => c with { UsageReportingAction = reportAction, ExceptionReportingAction = reportAction, PerformanceProblemReportingAction = reportAction } );
+        this._configurationManager.Update<TelemetryConfiguration>( c => c with
+        {
+            UsageReportingAction = reportAction,
+            ExceptionReportingAction = reportAction,
+            PerformanceProblemReportingAction = reportAction
+        } );
 
         if ( this._isGloballyEnabled )
         {

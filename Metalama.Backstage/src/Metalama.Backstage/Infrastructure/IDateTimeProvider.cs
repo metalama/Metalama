@@ -7,8 +7,10 @@ using System;
 
 namespace Metalama.Backstage.Infrastructure
 {
-    public interface IDateTimeProvider : IBackstageService
+    public interface IDateTimeProvider : IBackstageService, IDisposable
     {
         DateTime UtcNow { get; }
+
+        event Action? DateChanged;
     }
 }

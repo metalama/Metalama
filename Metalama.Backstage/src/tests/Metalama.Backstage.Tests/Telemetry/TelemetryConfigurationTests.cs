@@ -4,6 +4,7 @@
 
 using Metalama.Backstage.Telemetry;
 using Metalama.Backstage.Testing;
+using System;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -46,5 +47,22 @@ public sealed class TelemetryConfigurationTests : TestsBase
 
         this.TelemetryConfigurationService.SetStatus( true );
         Assert.Equal( isEnabled, this.TelemetryConfigurationService.IsEnabled( TelemetryScenario.Usage ) );
+    }
+
+    [Fact]
+    public void SaltRotation()
+    {
+        this.Time.Set( new DateTime( 2025, 1, 1, 0, 0, 0, DateTimeKind.Utc ) );
+        this.TelemetryConfigurationService.Initialize();
+        var initialSalt = this.TelemetryConfigurationService.Salt;
+
+        // There should be no need to call Initialize after a data change because the TelemetryConfigurationService
+        // should react to a data change.
+        
+        this.Time.Set( new DateTime( 2025, 1, 31, 0, 0, 0, DateTimeKind.Utc ) );
+        Assert.Equal( initialSalt, this.TelemetryConfigurationService.Salt );
+
+        this.Time.Set( new DateTime( 2025, 2, 1, 0, 0, 0, DateTimeKind.Utc ) );
+        Assert.NotEqual( initialSalt, this.TelemetryConfigurationService.Salt );
     }
 }
