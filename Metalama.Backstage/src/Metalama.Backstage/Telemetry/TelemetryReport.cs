@@ -39,9 +39,9 @@ internal abstract class TelemetryReport
     public string ApplicationName => this.ReportedComponent.Name;
 
 #pragma warning disable CA1822
-    public long UserHash => HashUtilities.HashToInt64( Environment.UserName, this._telemetryConfigurationService.Salt );
+    public long UserHash => HashUtilities.ComputeInt64Hmac( Environment.UserName, this._telemetryConfigurationService.Salt );
 #pragma warning restore CA1822
 
     // DeviceId is already rotated monthly, so there is no need to salt it.
-    public long DeviceHash => HashUtilities.HashToInt64( this._telemetryConfigurationService.DeviceId.ToString() );
+    public long DeviceHash => HashUtilities.ComputeInt64Hmac( this._telemetryConfigurationService.DeviceId.ToString(), this._telemetryConfigurationService.Salt );
 }

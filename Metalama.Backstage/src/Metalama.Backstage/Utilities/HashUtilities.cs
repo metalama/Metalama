@@ -2,7 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using System;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace Metalama.Backstage.Utilities
@@ -18,7 +18,7 @@ namespace Metalama.Backstage.Utilities
         /// </summary>
         /// <param name="s">A string.</param>
         /// <returns>An invariant 64-bit hash of <paramref name="s"/>.</returns>
-        public static long HashToInt64( string? s, long? salt = null )
+        public static long ComputeInt64Hmac( string? s, long salt )
         {
             if ( s == null )
             {
@@ -26,28 +26,23 @@ namespace Metalama.Backstage.Utilities
             }
 
             s = s.Trim().ToLowerInvariant().Normalize();
+
             var bytes = Encoding.UTF8.GetBytes( s );
-            var hashedBuffer = bytes;
+            var saltBytes = new byte[8];
 
-            if ( salt != null )
+            unsafe
             {
-                hashedBuffer = new byte[bytes.Length + 8];
-                Array.Copy( bytes, 0, hashedBuffer, 0, bytes.Length );
-
-                unsafe
+                fixed ( byte* p = saltBytes )
                 {
-                    fixed ( byte* p = hashedBuffer )
-                    {
-                        *(long*) (p + bytes.Length) = salt.Value;
-                    }
+                    *(long*) p = salt;
                 }
             }
 
             byte[] hash;
 
-            using ( var md5 = new MD5Managed() )
+            using ( var hmac = new HMACSHA256( saltBytes ) )
             {
-                hash = md5.ComputeHash( hashedBuffer );
+                hash = hmac.ComputeHash( bytes );
             }
 
             long hash64;
