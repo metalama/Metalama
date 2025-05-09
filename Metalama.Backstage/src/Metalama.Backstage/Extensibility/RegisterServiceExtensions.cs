@@ -55,55 +55,54 @@ public static class RegisterServiceExtensions
         ProcessKind processKind,
         DiagnosticsInitializationOptions options )
     {
-        serviceProviderBuilder.AddSingleton<ILoggerFactory>(
-            serviceProvider =>
+        serviceProviderBuilder.AddSingleton<ILoggerFactory>( serviceProvider =>
+        {
+            var dateTimeProvider = serviceProvider.GetRequiredBackstageService<IDateTimeProvider>();
+
+            var configurationManager = serviceProvider.GetRequiredBackstageService<IConfigurationManager>();
+            var configuration = configurationManager.Get<DiagnosticsConfiguration>();
+
+            DebuggerHelper.Launch( configuration, processKind );
+
+            var consoleTracing = Environment.GetEnvironmentVariable( "METALAMA_CONSOLE_TRACE" );
+
+            ILoggerFactory loggerFactory;
+
+            if ( !string.IsNullOrWhiteSpace( consoleTracing ) )
             {
-                var dateTimeProvider = serviceProvider.GetRequiredBackstageService<IDateTimeProvider>();
+                var traceCategories = consoleTracing.Split( ' ', ',', ';' ).ToImmutableHashSet();
+                loggerFactory = new ConsoleLoggerFactory( Console.Out, traceCategories );
+            }
+            else if ( options.TraceAction != null )
+            {
+                loggerFactory = new DelegateLoggerFactory( options.TraceAction, ImmutableHashSet.Create( "*" ) );
+            }
+            else
+            {
+                // Automatically stop logging after a while.
+                var lastAcceptableModificationTime = dateTimeProvider.UtcNow.AddHours( -configuration.Logging.StopLoggingAfterHours );
 
-                var configurationManager = serviceProvider.GetRequiredBackstageService<IConfigurationManager>();
-                var configuration = configurationManager.Get<DiagnosticsConfiguration>();
-
-                DebuggerHelper.Launch( configuration, processKind );
-
-                var consoleTracing = Environment.GetEnvironmentVariable( "METALAMA_CONSOLE_TRACE" );
-
-                ILoggerFactory loggerFactory;
-
-                if ( !string.IsNullOrWhiteSpace( consoleTracing ) )
+                if ( configuration.Timestamp != null && configuration.Timestamp.Value.ToUtcDateTime() < lastAcceptableModificationTime )
                 {
-                    var traceCategories = consoleTracing.Split( ' ', ',', ';' ).ToImmutableHashSet();
-                    loggerFactory = new ConsoleLoggerFactory( Console.Out, traceCategories );
-                }
-                else if ( options.TraceAction != null )
-                {
-                    loggerFactory = new DelegateLoggerFactory( options.TraceAction, ImmutableHashSet.Create( "*" ) );
-                }
-                else
-                {
-                    // Automatically stop logging after a while.
-                    var lastAcceptableModificationTime = dateTimeProvider.UtcNow.AddHours( -configuration.Logging.StopLoggingAfterHours );
+                    configurationManager.UpdateIf<DiagnosticsConfiguration>(
+                        c => c.Logging.Processes.Any( p => p.Value ),
+                        c => c with { Logging = c.Logging with { Processes = c.Logging.Processes.ToImmutableDictionary( x => x.Key, _ => false ) } } );
 
-                    if ( configuration.Timestamp != null && configuration.Timestamp.Value.ToUtcDateTime() < lastAcceptableModificationTime )
-                    {
-                        configurationManager.UpdateIf<DiagnosticsConfiguration>(
-                            c => c.Logging.Processes.Any( p => p.Value ),
-                            c => c with { Logging = c.Logging with { Processes = c.Logging.Processes.ToImmutableDictionary( x => x.Key, _ => false ) } } );
-
-                        configuration = configurationManager.Get<DiagnosticsConfiguration>();
-                    }
-
-                    var applicationInfo = serviceProvider.GetRequiredBackstageService<IApplicationInfoProvider>().CurrentApplication;
-
-                    loggerFactory = new LoggerFactory(
-                        serviceProvider,
-                        configuration,
-                        applicationInfo.ProcessKind );
+                    configuration = configurationManager.Get<DiagnosticsConfiguration>();
                 }
 
-                serviceProvider.GetBackstageService<EarlyLoggerFactory>()?.Replace( loggerFactory );
+                var applicationInfo = serviceProvider.GetRequiredBackstageService<IApplicationInfoProvider>().CurrentApplication;
 
-                return loggerFactory;
-            } );
+                loggerFactory = new LoggerFactory(
+                    serviceProvider,
+                    configuration,
+                    applicationInfo.ProcessKind );
+            }
+
+            serviceProvider.GetBackstageService<EarlyLoggerFactory>()?.Replace( loggerFactory );
+
+            return loggerFactory;
+        } );
 
         serviceProviderBuilder.AddSingleton<IProfilingService>( serviceProvider => new ProfilingService( serviceProvider ) );
     }
@@ -168,14 +167,13 @@ public static class RegisterServiceExtensions
             }
             else
             {
-                serviceProviderBuilder.AddSingleton<ILoggerFactory>(
-                    serviceProvider =>
-                    {
-                        var loggerFactory = options.DiagnosticsOptions.CreateLoggingFactory( serviceProvider );
-                        serviceProvider.GetBackstageService<EarlyLoggerFactory>()?.Replace( loggerFactory );
+                serviceProviderBuilder.AddSingleton<ILoggerFactory>( serviceProvider =>
+                {
+                    var loggerFactory = options.DiagnosticsOptions.CreateLoggingFactory( serviceProvider );
+                    serviceProvider.GetBackstageService<EarlyLoggerFactory>()?.Replace( loggerFactory );
 
-                        return loggerFactory;
-                    } );
+                    return loggerFactory;
+                } );
             }
         }
 
@@ -276,7 +274,7 @@ public static class RegisterServiceExtensions
             .AddSingleton<IUsageReporter>( serviceProvider => new UsageReporter( serviceProvider ) )
             .AddSingleton<ITelemetryConfigurationService>( serviceProvider => new TelemetryConfigurationService( serviceProvider ) )
             .AddSingleton<TelemetryReportUploader>( serviceProvider => new TelemetryReportUploader( serviceProvider ) )
-            .AddSingleton<MatomoAuditUploader>( serviceProvider => new MatomoAuditUploader( serviceProvider ) );
+            .AddSingleton<MatomoUploader>( serviceProvider => new MatomoUploader( serviceProvider ) );
     }
 
     private static void TryAddProcessManagerService( this ServiceProviderBuilder serviceProviderBuilder )

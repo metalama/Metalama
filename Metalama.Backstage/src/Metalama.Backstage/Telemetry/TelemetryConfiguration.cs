@@ -31,12 +31,12 @@ public sealed record TelemetryConfiguration : ConfigurationFile
     public Guid? DeviceId { get; init; }
 
     public DateTime? LastUploadTime { get; init; }
-    
+
     /// <summary>
     /// Gets the value with PIIs should be salted.
     /// </summary>
     public long? Salt { get; init; }
-    
+
     /// <summary>
     /// Gets the last time the <see cref="Salt"/> and <see cref="DeviceId"/> properties was rotated. This should be done monthly.
     /// </summary>
@@ -47,6 +47,8 @@ public sealed record TelemetryConfiguration : ConfigurationFile
 
     public ImmutableDictionary<string, DateTime> Sessions { get; init; } =
         ImmutableDictionary<string, DateTime>.Empty.WithComparers( StringComparer.OrdinalIgnoreCase );
+
+    public DateTime? LastMatomoPostTime { get; init; }
 
     public TelemetryConfiguration CleanUp( DateTime threshold )
     {

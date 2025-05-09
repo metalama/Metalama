@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Backstage.Application;
+using Metalama.Backstage.Configuration;
 using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Infrastructure;
@@ -18,21 +19,43 @@ namespace Metalama.Backstage.Telemetry;
 
 internal sealed class UsageSession : IUsageSession
 {
+    private readonly IServiceProvider _serviceProvider;
     private readonly string _kind;
     private readonly TelemetryReportUploader _telemetryReportUploader;
     private readonly ILogger _logger;
+    private readonly MatomoUploader? _matomoUploader;
+    private readonly IDateTimeProvider _time;
+    private readonly IConfigurationManager _configurationManager;
+    private readonly BackstageBackgroundTasksService _backgroundTasksService;
+
     private bool _isDisposed;
+
+    public bool ShouldCollectMetrics { get; set; }
 
     public MetricCollection Metrics { get; }
 
-    public UsageSession( IServiceProvider serviceProvider, string kind )
+    public UsageSession( IServiceProvider serviceProvider, string kind, bool shouldCollectMetrics )
     {
+        this.ShouldCollectMetrics = shouldCollectMetrics;
+        this._serviceProvider = serviceProvider;
         this._kind = kind;
-        this.Metrics = new MetricCollection();
+
         this._telemetryReportUploader = serviceProvider.GetRequiredBackstageService<TelemetryReportUploader>();
         this._logger = serviceProvider.GetLoggerFactory().Telemetry();
+        this._matomoUploader = serviceProvider.GetBackstageService<MatomoUploader>();
+        this._configurationManager = serviceProvider.GetRequiredBackstageService<IConfigurationManager>();
+        this._time = serviceProvider.GetRequiredBackstageService<IDateTimeProvider>();
+        this._backgroundTasksService = serviceProvider.GetRequiredBackstageService<BackstageBackgroundTasksService>();
 
-        this.InitializeMetrics( serviceProvider );
+        if ( shouldCollectMetrics )
+        {
+            this.Metrics = new MetricCollection();
+            this.InitializeMetrics( serviceProvider );
+        }
+        else
+        {
+            this.Metrics = MetricCollection.EmptyReadOnly;
+        }
 
         if ( this._logger.Trace != null )
         {
@@ -87,8 +110,26 @@ internal sealed class UsageSession : IUsageSession
 
         this.Metrics.Freeze();
 
-        var report = new UsageTelemetryReport( this.Metrics );
-        this._telemetryReportUploader.Upload( report );
+        UsageTelemetryReport? report = null;
+
+        UsageTelemetryReport GetReport() => report ??= report = new UsageTelemetryReport( this._serviceProvider, this.Metrics );
+
+        if ( this.ShouldCollectMetrics )
+        {
+            this._telemetryReportUploader.Upload( GetReport() );
+        }
+
+        if ( this._matomoUploader != null )
+        {
+            var mustPerformAggregateAudit = this._configurationManager.UpdateIf<TelemetryConfiguration>(
+                c => c.LastMatomoPostTime == null || c.LastMatomoPostTime <= this._time.UtcNow.AddDays( -1 ),
+                c => c with { LastMatomoPostTime = this._time.UtcNow } );
+
+            if ( mustPerformAggregateAudit )
+            {
+                this._backgroundTasksService.Enqueue( () => this._matomoUploader.SendUsageAuditAsync( GetReport() ) );
+            }
+        }
     }
 
     private void TraceSample()

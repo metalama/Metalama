@@ -97,12 +97,7 @@ namespace Metalama.Backstage.Licensing
         /// <summary>
         /// Metalama Enterprise.
         /// </summary>
-        MetalamaEnterprise = 17,
-
-        /// <summary>
-        /// Not represented by a license key, but used for telemetry purposes.
-        /// </summary>
-        MetalamaOpenSource = 18
+        MetalamaEnterprise = 17
 
         // 255 is reserved as unknown for testing purposes
     }

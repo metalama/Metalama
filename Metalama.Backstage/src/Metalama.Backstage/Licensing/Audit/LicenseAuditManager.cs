@@ -22,7 +22,7 @@ internal sealed class LicenseAuditManager : ILicenseAuditManager
     private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger _logger;
     private readonly TelemetryReportUploader _telemetryReportUploader;
-    private readonly MatomoAuditUploader? _matomoAuditUploader;
+    private readonly MatomoUploader? _matomoAuditUploader;
     private readonly BackstageBackgroundTasksService _backgroundTasksService;
 
     public LicenseAuditManager( IServiceProvider serviceProvider )
@@ -34,7 +34,7 @@ internal sealed class LicenseAuditManager : ILicenseAuditManager
         this._loggerFactory = serviceProvider.GetLoggerFactory();
         this._logger = this._loggerFactory.Licensing();
         this._telemetryReportUploader = serviceProvider.GetRequiredBackstageService<TelemetryReportUploader>();
-        this._matomoAuditUploader = serviceProvider.GetBackstageService<MatomoAuditUploader>();
+        this._matomoAuditUploader = serviceProvider.GetBackstageService<MatomoUploader>();
         this._backgroundTasksService = serviceProvider.GetRequiredBackstageService<BackstageBackgroundTasksService>();
     }
 
@@ -46,7 +46,7 @@ internal sealed class LicenseAuditManager : ILicenseAuditManager
 
             return;
         }
-        
+
         if ( this._applicationInfo.IsUnattendedProcess( this._loggerFactory ) )
         {
             this._logger.Trace?.Log( "License audit disabled because the current process is unattended." );
@@ -95,7 +95,7 @@ internal sealed class LicenseAuditManager : ILicenseAuditManager
 
             if ( mustPerformAggregateAudit )
             {
-                this._backgroundTasksService.Enqueue( () => this._matomoAuditUploader.UploadAsync( report ) );
+                this._backgroundTasksService.Enqueue( () => this._matomoAuditUploader.SendLicenseAuditAsync( report ) );
             }
         }
     }

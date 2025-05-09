@@ -31,9 +31,11 @@ public sealed class TelemetryUploaderTests : TestsBase
     protected override void ConfigureServices( ServiceProviderBuilder services )
     {
         services
-            .AddSingleton<IHttpClientFactory>(
-                serviceProvider =>
-                    new TestHttpClientFactory( f => new TelemetryTestsPutMessageHandler( serviceProvider, _feedbackDirectory, f ) ) )
+            .AddSingleton<IHttpClientFactory>( serviceProvider =>
+                                                   new TestHttpClientFactory( f => new TelemetryTestsPutMessageHandler(
+                                                                                  serviceProvider,
+                                                                                  _feedbackDirectory,
+                                                                                  f ) ) )
             .AddTelemetryServices();
 
         services.AddTools();
@@ -48,7 +50,7 @@ public sealed class TelemetryUploaderTests : TestsBase
 
         if ( uploadedFileExpected )
         {
-            Assert.Single( processedRequests );
+            Assert.Single( processedRequests, x => x.Request.RequestUri!.ToString().ContainsOrdinal( "bits.postsharp.net" ) );
 
 #if NET
             Assert.Single( uploadedFiles );
@@ -72,7 +74,7 @@ public sealed class TelemetryUploaderTests : TestsBase
     {
         var usageReporter = this.ServiceProvider.GetRequiredBackstageService<IUsageReporter>();
         var session = usageReporter.StartSession( "TestUsage" );
-        session!.Dispose();
+        session.Dispose();
 
         await this.AssertUploadedAsync( true );
     }

@@ -20,7 +20,7 @@ namespace Metalama.Backstage.Worker.Upload
         {
             var appData = (AppData) context.Data!;
             var serviceProvider = appData.ServiceProvider;
-            IDisposable? usageReportingSession = null;
+            IDisposable usageReportingSession = null;
 
             try
             {

@@ -10,5 +10,5 @@ public sealed class NullUsageReporter : IUsageReporter
 {
     public bool IsUsageReportingEnabled => false;
 
-    public IUsageSession? StartSession( string kind, string? projectName ) => null;
+    public IUsageSession StartSession( string kind, string? projectName ) => null;
 }

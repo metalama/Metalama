@@ -2,15 +2,17 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using JetBrains.Annotations;
-using System;
-
 namespace Metalama.Backstage.Telemetry;
 
-[PublicAPI]
-public interface IUsageSession : IDisposable
+internal class NullUsageSession : IUsageSession
 {
-    bool ShouldCollectMetrics { get; }
+    public static IUsageSession Instance { get; } = new NullUsageSession();
 
-    MetricCollection Metrics { get; }
+    private NullUsageSession() { }
+
+    public void Dispose() { }
+
+    public bool ShouldCollectMetrics => false;
+
+    public MetricCollection Metrics { get; } = new( true );
 }

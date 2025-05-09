@@ -12,14 +12,14 @@ using System.Threading.Tasks;
 
 namespace Metalama.Backstage.Telemetry;
 
-internal sealed class MatomoAuditUploader : IBackstageService
+internal sealed class MatomoUploader : IBackstageService
 {
     private readonly ILogger _logger;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly RandomNumberGenerator _randomNumberGenerator;
     private readonly TelemetryLogger _telemetryLogger;
 
-    public MatomoAuditUploader( IServiceProvider serviceProvider )
+    public MatomoUploader( IServiceProvider serviceProvider )
     {
         this._logger = serviceProvider.GetLoggerFactory().GetLogger( "Metrics" );
         this._httpClientFactory = serviceProvider.GetRequiredBackstageService<IHttpClientFactory>();
@@ -27,10 +27,28 @@ internal sealed class MatomoAuditUploader : IBackstageService
         this._telemetryLogger = serviceProvider.GetRequiredBackstageService<TelemetryLogger>();
     }
 
-    public async Task UploadAsync( LicenseAuditTelemetryReport report )
+    public Task SendUsageAuditAsync( UsageTelemetryReport report )
     {
-        var http = this._httpClientFactory.Create();
+        var reportedVersion = report.AssemblyVersion?.ToString( 2 );
 
+        var request =
+#pragma warning disable CA1307
+            $"https://postsharp.matomo.cloud/matomo.php?idsite=6"
+            + $"&rec=1"
+            + $"&action_name=usage"
+            + $"&_id={report.DeviceHash:x}"
+            + $"&uid={report.DeviceHash:x}"
+            + $"&dimension3=Metalama"
+            + $"&dimension4={reportedVersion}"
+            + $"&new_visit=1"
+            + $"&rand={this._randomNumberGenerator.NextInt64():x}";
+#pragma warning restore CA1307
+
+        return this.SendData( request );
+    }
+
+    public async Task SendLicenseAuditAsync( LicenseAuditTelemetryReport report )
+    {
         var licensedProduct = report.License.LicenseProduct switch
         {
             LicenseProduct.PostSharpFramework => "PostSharpFramework",
@@ -46,30 +64,35 @@ internal sealed class MatomoAuditUploader : IBackstageService
             _ => report.License.LicenseType.ToString()
         };
 
-        // Note that we are intentionally and "randomly" reporting the version of the first component that
-        // triggered audit, to prioritize having just one hit per day over having accurate version reporting
-        // (at least for Matomo reporting).
         var reportedVersion = report.AssemblyVersion?.ToString( 2 );
 
         var request =
 #pragma warning disable CA1307
             $"https://postsharp.matomo.cloud/matomo.php?idsite=6"
             + $"&rec=1"
+            + $"&action_name=license"
             + $"&_id={report.DeviceHash:x}"
             + $"&uid={report.DeviceHash:x}"
             + $"&dimension1={licensedProduct}"
             + $"&dimension2={licenseType}"
             + $"&dimension3=Metalama"
             + $"&dimension4={reportedVersion}"
-            + $"&new_visit=1"
+            + $"&new_visit=0"
             + $"&rand={this._randomNumberGenerator.NextInt64():x}";
 #pragma warning restore CA1307
 
+        await this.SendData( request );
+    }
+
+    private async Task SendData( string url )
+    {
         try
         {
-            var response = await http.GetAsync( request );
+            var http = this._httpClientFactory.Create();
 
-            this._telemetryLogger.WriteLine( $"'{request}': {response.ReasonPhrase}." );
+            var response = await http.GetAsync( url );
+
+            this._telemetryLogger.WriteLine( $"'{url}': {response.ReasonPhrase}." );
 
             if ( !response.IsSuccessStatusCode )
             {

@@ -121,12 +121,7 @@ namespace Metalama.Backstage.Licensing
         /// <summary>
         /// A test license key, when something else than licensing itself if tested.
         /// </summary>
-        Test = 21,
-
-        /// <summary>
-        /// Not represented by a license key, but used for telemetry purposes.
-        /// </summary>
-        OpenSource = 22
+        Test = 21
 
         // 255 is reserved as unknown for testing purposes
     }

@@ -37,7 +37,8 @@ public sealed class UsageReporterTests : TestsBase
             .AddSingleton<IApplicationInfoProvider>( new ApplicationInfoProvider( this._applicationInfo ) )
             .AddSingleton( serviceProvider => new TelemetryLogger( serviceProvider ) )
             .AddSingleton<ITelemetryUploader>( new NullTelemetryUploader() )
-            .AddSingleton<TelemetryReportUploader>( serviceProvider => new TelemetryReportUploader( serviceProvider ) );
+            .AddSingleton<TelemetryReportUploader>( serviceProvider => new TelemetryReportUploader( serviceProvider ) )
+            .AddSingleton( services => new MatomoUploader( services ) );
 
     private void ReportSession( string kind = "TestSession" )
     {
@@ -60,8 +61,11 @@ public sealed class UsageReporterTests : TestsBase
         var reporter = new UsageReporter( this.ServiceProvider );
 
         var session = reporter.StartSession( "TestSession", "TestProject" );
-        Assert.Null( session );
+        Assert.False( session.ShouldCollectMetrics );
+        session.Dispose();
+        this.BackgroundTasks.WhenNoPendingTaskAsync().Wait();
         Assert.Empty( this.FileSystem.Mock.AllFiles );
+        Assert.Empty( this.HttpClientFactory.ProcessedRequests );
     }
 
     [Theory]
@@ -109,13 +113,15 @@ public sealed class UsageReporterTests : TestsBase
         var reporter = new UsageReporter( this.ServiceProvider );
         var session = reporter.StartSession( "Usage", projectName );
         Assert.NotNull( session );
+        Assert.True( session.ShouldCollectMetrics );
     }
 
     private void AssertSessionShouldNotBeReported( string projectName = "TestProject" )
     {
         var reporter = new UsageReporter( this.ServiceProvider );
         var session = reporter.StartSession( "Usage", projectName );
-        Assert.Null( session );
+        Assert.NotNull( session );
+        Assert.False( session.ShouldCollectMetrics );
     }
 
     [Fact]
@@ -207,5 +213,48 @@ public sealed class UsageReporterTests : TestsBase
         Assert.Equal( 2, this.FileSystem.Mock.AllFiles.Count( f => Path.GetFileName( f ).StartsWith( "Usage-", StringComparison.Ordinal ) ) );
         Assert.Equal( 1, this.FileSystem.Mock.AllFiles.Count( f => Path.GetFileName( f ).StartsWith( "Telemetry-", StringComparison.Ordinal ) ) );
         Assert.Equal( 3, this.FileSystem.Mock.AllFiles.Count() );
+    }
+
+    [Fact]
+    public async Task SessionReportedToMatomoAsync()
+    {
+        async Task StartSessionAndAssert( string projectName, bool isReportingExpected, string? random )
+        {
+            var reporter = new UsageReporter( this.ServiceProvider );
+
+            this.HttpClientFactory.Reset();
+
+            var session = reporter.StartSession( "TestSession", projectName );
+            session.Dispose();
+            await this.BackgroundTasks.WhenNoPendingTaskAsync();
+
+            if ( isReportingExpected )
+            {
+                var (matomoRequest, _) = Assert.Single( this.HttpClientFactory.ProcessedRequests, r => r.Request.RequestUri?.Host == "postsharp.matomo.cloud" );
+                var matomoRequestUri = matomoRequest.RequestUri?.ToString();
+
+                this.Logger.WriteLine( matomoRequestUri );
+
+                Assert.Equal(
+                    $"https://postsharp.matomo.cloud/matomo.php?idsite=6&rec=1&action_name=usage&_id=36579f554ac8899f&uid=36579f554ac8899f&dimension3=Metalama&dimension4=0.0&new_visit=1&rand={random}",
+                    matomoRequestUri );
+            }
+            else
+            {
+                Assert.Empty( this.HttpClientFactory.ProcessedRequests );
+            }
+        }
+
+        // First session must cause audit.
+        await StartSessionAndAssert( "Project1", true, "5cf58a1a689e1e0c" );
+
+        // Second session (even with different project) must not cause audit.
+        await StartSessionAndAssert( "Project1", false, null );
+        await StartSessionAndAssert( "Project2", false, null );
+
+        // Third session the next day must cause audit.
+        this.Time.AddTime( TimeSpan.FromDays( 1 ) );
+        await StartSessionAndAssert( "Project1", true, "624e91464771d36f" );
+        await StartSessionAndAssert( "Project2", false, null );
     }
 }

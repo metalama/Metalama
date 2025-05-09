@@ -29,7 +29,7 @@ internal sealed class UsageReporter : IUsageReporter
         this._logger = serviceProvider.GetLoggerFactory().Telemetry();
     }
 
-    private bool ShouldReportSession( string projectName )
+    private bool ShouldCollectMetrics( string projectName )
     {
         var now = this._time.UtcNow;
 
@@ -71,24 +71,17 @@ internal sealed class UsageReporter : IUsageReporter
             } );
     }
 
-    public IUsageSession? StartSession( string kind, string? projectName = null )
+    public IUsageSession StartSession( string kind, string? projectName = null )
     {
         if ( !this.IsUsageReportingEnabled )
         {
-            return null;
+            return NullUsageSession.Instance;
         }
 
         // If the project name is not provided, we use the kind as the key
         // to determine if the session should be reported.
         projectName ??= $"<{kind}>";
 
-        if ( this.ShouldReportSession( projectName ) )
-        {
-            return new UsageSession( this._serviceProvider, kind );
-        }
-        else
-        {
-            return null;
-        }
+        return new UsageSession( this._serviceProvider, kind, this.ShouldCollectMetrics( projectName ) );
     }
 }

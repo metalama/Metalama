@@ -18,6 +18,8 @@ namespace Metalama.Backstage.Telemetry
             this.IsReadOnly = isReadOnly;
         }
 
+        public static MetricCollection EmptyReadOnly { get; } = new( true );
+
         public bool IsReadOnly { get; private set; }
 
         public void Freeze() => this.IsReadOnly = true;

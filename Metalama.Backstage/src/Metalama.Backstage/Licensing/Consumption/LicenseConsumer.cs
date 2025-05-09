@@ -75,12 +75,6 @@ internal sealed class LicenseConsumer : ILicenseConsumer
             validLicenses.Add( (license.License, licenseConsumptionData) );
         }
 
-        // Report use of the open-source license if no other license is found.
-        if ( validLicenses.All( l => l.Properties.IsRedistributable ) )
-        {
-            new OpenSourceLicense( services ).ReportUse();
-        }
-
         // Return the LicenseConsumer.
         return new LicenseConsumer( services, validLicenses.ToImmutableArray(), options );
 
