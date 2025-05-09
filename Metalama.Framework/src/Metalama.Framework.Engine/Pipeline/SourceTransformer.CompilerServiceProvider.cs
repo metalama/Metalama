@@ -43,10 +43,9 @@ public sealed partial class SourceTransformer
             // Initialize usage reporting.
             try
             {
-                if ( serviceProvider.GetBackstageService<IUsageReporter>() is { } usageReporter && options.AssemblyName != null
-                                                                                                && usageReporter.ShouldReportSession( options.AssemblyName ) )
+                if ( serviceProvider.GetBackstageService<IUsageReporter>() is { } usageReporter && options.AssemblyName != null )
                 {
-                    this._session = usageReporter.StartSession( "TransformerUsage" );
+                    this._session = usageReporter.StartSession( "TransformerUsage", options.AssemblyName );
                 }
             }
             catch ( Exception e )

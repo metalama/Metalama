@@ -260,6 +260,12 @@ public partial class TestContext : IDisposable, ITempFileManager, IApplicationIn
 
     DateTime IDateTimeProvider.UtcNow => DateTime.UtcNow;
 
+    event Action? IDateTimeProvider.DateChanged
+    {
+        add => throw new NotSupportedException();
+        remove => throw new NotSupportedException();
+    }
+
     /// <summary>
     /// Gets the test name, for diagnostics.
     /// </summary>
