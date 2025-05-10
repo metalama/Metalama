@@ -1,10 +1,10 @@
 <p align="center">
-  <img width="450" src="images/metalama.svg" alt="Metalama logo" />
+  <img width="450" src="../images/metalama.svg" alt="Metalama logo" />
 </p>
 
-**A Roslyn-based meta-programming framework for code generation, architecture validation and aspect-oriented programming in C#.**
+**Metalama is a Roslyn-based meta-programming framework for code generation, architecture validation, and aspect-oriented programming in C#.**
 
-[Metalama](https://metalama.net) lets you write cleaner, more maintainable .NET code by automating repetitive patterns at compile time using aspects, templates, and compile-time logic. It integrates tightly with the Roslyn compiler, providing full control over how your code is built.
+It lets you write cleaner, more maintainable .NET code by automating repetitive patterns at compile time using aspects, templates, and compile-time logic. It integrates tightly with the Roslyn compiler, providing full control over how your code is built.
 
 ## Why Metalama?
 
@@ -22,11 +22,15 @@ Metalama is ideal for:
 
 It's main use cases are:
 
-- **Design Patterns**: [Singleton](https://metalama.net/applications/design-patterns/classic-singleton), [Memento](https://metalama.net/applications/design-patterns/memento), [Factory](https://metalama.net/applications/design-patterns/factory), [Builder](https://metalama.net/applications/design-patterns/builder), [Decorator](https://metalama.net/applications/design-patterns/decorator), [Proxy](https://metalama.net/applications/design-patterns/proxy), ...
-- **UI Patterns**: [INotifyPropertyChanged](https://metalama.net/applications/ui/inotifypropertychanged), [Change Tracking](https://metalama.net/applications/ui/command), [Memoization](https://metalama.net/applications/ui/memoization), [Undo/Redo](https://metalama.net/applications/ui/undo-redo), [Command](https://metalama.net/applications/ui/command), [Dependency Properties](https://metalama.net/applications/ui/dependency-property), ...
+- **Design Patterns**: [Singleton](https://metalama.net/applications/classic-singleton), [Memento](https://metalama.net/applications/memento), [Factory](https://metalama.net/applications/factory), [Builder](https://metalama.net/applications/builder), [Decorator](https://metalama.net/applications/decorator), [Proxy](https://metalama.net/applications/proxy), ...
+- **UI Patterns**: [INotifyPropertyChanged](https://metalama.net/applications/inotifypropertychanged), [Change Tracking](https://metalama.net/applications/command), [Memoization](https://metalama.net/applications/memoization), [Undo/Redo](https://metalama.net/applications/undo-redo), [Command](https://metalama.net/applications/command), [Dependency Properties](https://metalama.net/applications/dependency-property), ...
 - **Object Services**: Cloning, ToString, Comparison, ...
 - **Defensive Programming**: [Code Contracts](https://metalama.net/applications/contracts) (preconditions, post-conditions, invariants)
-- **DevOps**: [Logging & Tracing](https://metalama.net/applications/devops/logging), [Metrics](https://metalama.net/applications/devops/metrics), [Caching](https://metalama.net/applications/devops/caching), [Exception Handling](https://metalama.net/applications/devops/exception-handling)
+- **DevOps**: [Logging & Tracing](https://metalama.net/applications/logging), [Metrics](https://metalama.net/applications/metrics), [Caching](https://metalama.net/applications/caching), [Exception Handling](https://metalama.net/applications/exception-handling)
+- [Architecture Validation](https://metalama.net/applications/architecture-verification) 💎
+- [Refactoring](https://metalama.net/applications/refactoring)
+- In general, [Clean Code](https://metalama.net/applications/clean-code) and [SOLID & DRY Principles](https://metalama.net/applications/solid)
+
 
 ## License
 
@@ -36,17 +40,16 @@ Some optional extensions and IDE tooling are released under a proprietary licens
 
 ## Features
 
-- [Code Generation](https://metalama.net/features/core/code-generation)
-- [Code Validation](https://metalama.net/features/core/code-validation)
-- [Architecture Validation](https://metalama.net/features/core/architecture-verification) 💎
-- [Immediate Editor Feedback](https://metalama.net/features/core/architecture-verification)
-- [Code Fix Toolkit](https://metalama.net/features/core/code-fixes) 💎
-- [Ready-to-Use Aspect Libraries](https://metalama.net/features/productivity/aspect-libraries)
-- [Visual Studio Tooling](https://metalama.net/features/productivity/tooling) 💎
-- [Test Frameworks](https://metalama.net/features/productivity/testing)
-- [Debugging of Transformed Code](https://metalama.net/features/productivity/debugging)
-- [Roslyn Extensibility SDK](https://metalama.net/features/extensibility/roslyn)
-- [Code Query API](https://metalama.net/features/extensibility/code-query)
+- [Code Generation](https://metalama.net/features/code-generation)
+- [Code Validation](https://metalama.net/features/code-validation)
+- [Immediate Editor Feedback](https://metalama.net/features/architecture-verification)
+- [Code Fix Toolkit](https://metalama.net/features/code-fixes) 💎
+- [Ready-to-Use Aspect Libraries](https://metalama.net/features/aspect-libraries)
+- [Visual Studio Tooling](https://metalama.net/features/tooling) 💎
+- [Test Frameworks](https://metalama.net/features/testing)
+- [Debugging of Transformed Code](https://metalama.net/features/debugging)
+- [Roslyn Extensibility SDK](https://metalama.net/features/roslyn)
+- [Code Query API](https://metalama.net/features/code-query)
 
 ## Resources
 
@@ -54,7 +57,7 @@ Some optional extensions and IDE tooling are released under a proprietary licens
 - 📖 [Documentation](https://doc.metalama.net)
 - 📝 [Annotated Examples](https://doc.metalama.net/examples)
 - 📜 [Changelogs](https://github.com/orgs/metalama/discussions/categories/changelog)
-- 📢 [Release Notes](https://doc.metalama.net/conceptual/aspects/release-notes)
+- 📢 [Release Notes](https://doc.metalama.net/conceptual/release-notes)
 - ✨ [Metalama Tools for Visual Studio Extension](https://marketplace.visualstudio.com/items?itemName=PostSharpTechnologies.PostSharp)
 
 ## Quick Start
@@ -70,10 +73,6 @@ Some optional extensions and IDE tooling are released under a proprietary licens
 3. Explore the [Metalama Marketplace](https://metalama.net/marketplace) for ready-made aspects or examples.
 
 4. Follow the [Getting Started](https://doc.metalama.net/conceptual/getting-started) guide to create your first aspect.
-
-## Building Metalama from Source
-
-Please check instructions [here](https://metalama.net/contributing/build-from-source).
 
 ## Contributing
 
@@ -136,7 +135,7 @@ Below is a list of packages originating from this repository:
 | [Metalama.Community](https://github.com/metalama/Metalama.Community)     | MIT              | Community-contributed aspects repository.                                   |
 | [Metalama.Documentation](https://github.com/metalama/Metalama.Documentation) | MIT              | Source for documentation hosted on [Metalama Docs](https://doc.metalama.net/). |
 | [Metalama.Samples](https://github.com/metalama/Metalama.Samples)          | MIT              | Illustrative samples available at [Metalama Examples](https://doc.metalama.net/examples). |
-| [Metalama.Premium](https://github.com/metalama/Metalama.Premium) 🔑         | Proprietary      | Extensions available to customers with a commercial license.                      |
+| [Metalama.Premium](https://github.com/metalama/Metalama.Premium)  💎       | Proprietary      | Extensions available to customers with a commercial license.                      |
 
 ## Dependencies
 
