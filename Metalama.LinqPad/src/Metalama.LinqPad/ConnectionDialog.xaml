@@ -1,6 +1,10 @@
 <Window x:Class="Metalama.LinqPad.ConnectionDialog"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:linqPad="clr-namespace:Metalama.LinqPad"
+        mc:Ignorable="d"
         Title="Metalama Connection"
         Background="{x:Static SystemColors.ControlBrush}"
         SizeToContent="Height"
@@ -8,6 +12,12 @@
         ShowInTaskbar="False"
         Icon="{x:Null}"
         WindowStartupLocation="CenterScreen">
+    <Window.DataContext>
+        <linqPad:ConnectionData Project="SampleProject.sln" 
+                                DisplayName="Sample Connection" 
+                                Persist="True" 
+                                ReportWorkspaceErrors="False" />
+    </Window.DataContext>
     <StackPanel Margin="12">
 
         <DockPanel>
@@ -18,7 +28,7 @@
         </DockPanel>
 
         <!-- ReSharper disable once UnusedMember.Global -->
-        <TextBox Name="txtAssemblyPath" Padding="2" Margin="0,1,0,9" Text="{Binding Project}" />
+        <TextBox Name="AssemblyPathTextBox" Padding="2" Margin="0,1,0,9" Text="{Binding Project}" />
 
         <DockPanel />
 
@@ -26,7 +36,7 @@
 
         <Label Padding="0,0,0,2">Friendly name for this connection (optional):</Label>
         <!-- ReSharper disable once UnusedMember.Global -->
-        <TextBox Name="txtFriendlyName" Padding="2" Text="{Binding DisplayName}" />
+        <TextBox Name="FriendlyNameTextBox" Padding="2" Text="{Binding DisplayName}" />
 
         <DockPanel LastChildFill="False" Margin="0,15,0,0">
             <StackPanel>
@@ -34,10 +44,10 @@
                 <CheckBox IsChecked="{Binding ReportWorkspaceErrors}" VerticalAlignment="Center">Report loading issues</CheckBox>
             </StackPanel>
             <!-- ReSharper disable once UnusedMember.Global -->
-            <Button Name="cancelButton" DockPanel.Dock="Right" Content="Cancel" Margin="6,0,0,0" Padding="10,3"
+            <Button Name="CancelButton" DockPanel.Dock="Right" Content="Cancel" Margin="6,0,0,0" Padding="10,3"
                     MinWidth="60" IsCancel="True" TabIndex="2" />
             <!-- ReSharper disable once UnusedMember.Global -->
-            <Button Name="okButton" DockPanel.Dock="Right" Content="OK" Margin="6,0,0,0" Padding="10,3" MinWidth="60"
+            <Button Name="OkButton" DockPanel.Dock="Right" Content="OK" Margin="6,0,0,0" Padding="10,3" MinWidth="60"
                     IsDefault="True" TabIndex="1" Click="OnOkButtonClick" />
         </DockPanel>
 

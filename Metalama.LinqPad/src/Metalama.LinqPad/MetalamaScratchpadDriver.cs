@@ -40,11 +40,17 @@ namespace Metalama.LinqPad
                 DriverInitialization.Initialize();
                 Logger = BackstageServiceFactory.ServiceProvider.GetLoggerFactory().GetLogger( "LinqPad" );
             }
+
+            if ( !string.IsNullOrEmpty( Environment.GetEnvironmentVariable( "METALAMA_LINQPAD_DEBUG" ) ) )
+            {
+                Debugger.Launch();
+            }
         }
 
         public override bool AreRepositoriesEquivalent( IConnectionInfo c1, IConnectionInfo c2 ) => true;
 
-        public override void OnQueryFinishing( IConnectionInfo cxInfo, object context, QueryExecutionManager executionManager )
+        public override void OnQueryFinishing( IConnectionInfo cxInfo, object context,
+            QueryExecutionManager executionManager )
             => DiagnosticReporter.ClearCounters();
 
         public override string Name => "Metalama Scratchpad";
@@ -107,15 +113,12 @@ namespace {nameSpace}
         public override IEnumerable<string> GetNamespacesToAdd( IConnectionInfo cxInfo )
             => new[]
             {
-                "Metalama.Framework.Workspaces",
-                "Metalama.Framework.Code",
-                "Metalama.Framework.Code.Collections",
-                "Metalama.Framework.Introspection",
-                "Metalama.Framework.Diagnostics",
-                "Metalama.LinqPad"
+                "Metalama.Framework.Workspaces", "Metalama.Framework.Code", "Metalama.Framework.Code.Collections",
+                "Metalama.Framework.Introspection", "Metalama.Framework.Diagnostics", "Metalama.LinqPad"
             };
 
-        private static IReadOnlyList<string> GetAssembliesToAdd( bool addReferenceAssemblies, IConnectionInfo connectionInfo )
+        private static IReadOnlyList<string> GetAssembliesToAdd( bool addReferenceAssemblies,
+            IConnectionInfo connectionInfo )
         {
             List<string> assembliesToReference = [];
 
@@ -142,7 +145,8 @@ namespace {nameSpace}
             return assembliesToReference;
         }
 
-        public override IEnumerable<string> GetAssembliesToAdd( IConnectionInfo cxInfo ) => GetAssembliesToAdd( false, cxInfo );
+        public override IEnumerable<string> GetAssembliesToAdd( IConnectionInfo cxInfo ) =>
+            GetAssembliesToAdd( false, cxInfo );
 
         protected static void Compile( string cSharpSourceCode, string outputFile, IConnectionInfo connectionInfo )
         {
@@ -151,7 +155,12 @@ namespace {nameSpace}
             // CompileSource is a static helper method to compile C# source code using LINQPad's built-in Roslyn libraries.
             // If you prefer, you can add a NuGet reference to the Roslyn libraries and use them directly.
             var compileResult = CompileSource(
-                new CompilationInput { FilePathsToReference = assembliesToReference.ToArray(), OutputPath = outputFile, SourceCode = [cSharpSourceCode] } );
+                new CompilationInput
+                {
+                    FilePathsToReference = assembliesToReference.ToArray(),
+                    OutputPath = outputFile,
+                    SourceCode = [cSharpSourceCode]
+                } );
 
             if ( compileResult.Errors.Length > 0 )
             {
@@ -159,11 +168,14 @@ namespace {nameSpace}
             }
         }
 
-        public override ICustomMemberProvider? GetCustomDisplayMemberProvider( object objectToWrite ) => this._facadeObjectFactory.GetFacade( objectToWrite );
+        public override ICustomMemberProvider? GetCustomDisplayMemberProvider( object objectToWrite ) =>
+            this._facadeObjectFactory.GetFacade( objectToWrite );
 
-        public override void InitializeContext( IConnectionInfo cxInfo, object context, QueryExecutionManager executionManager )
+        public override void InitializeContext( IConnectionInfo cxInfo, object context,
+            QueryExecutionManager executionManager )
         {
-            Util.HtmlHead.AddStyles( "a.error { color: red !important; } span.null, .empty { color: #888 !important; }" );
+            Util.HtmlHead.AddStyles(
+                "a.error { color: red !important; } span.null, .empty { color: #888 !important; }" );
 
             base.InitializeContext( cxInfo, context, executionManager );
 
@@ -182,7 +194,8 @@ namespace {nameSpace}
             base.OverrideDriverDependencies( dependencyInfo );
 
             var packageName = "Metalama.Framework.Workspaces";
-            var packageVersion = AssemblyMetadataReader.GetInstance( typeof(WorkspaceCollection).Assembly ).PackageVersion;
+            var packageVersion = AssemblyMetadataReader.GetInstance( typeof(WorkspaceCollection).Assembly )
+                .PackageVersion;
 
             // We must explicitly add a reference to the Workspace so that content files are copied to the shadow directory.
             dependencyInfo.AddNuGetPackages( [(packageName, packageVersion)] );

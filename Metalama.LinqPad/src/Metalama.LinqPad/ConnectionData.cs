@@ -16,9 +16,9 @@ namespace Metalama.LinqPad
     internal sealed class ConnectionData : INotifyPropertyChanged
     {
         private string? _project;
-        private readonly string? _displayName;
-        private readonly bool _persist;
-        private readonly bool _reportWorkspaceErrors = true;
+        private string? _displayName;
+        private bool _persist;
+        private bool _reportWorkspaceErrors = true;
 
         public ConnectionData( IConnectionInfo connectionInfo )
         {
@@ -32,6 +32,8 @@ namespace Metalama.LinqPad
             this.DisplayName = connectionInfo.DisplayName;
             this.Persist = connectionInfo.Persist;
         }
+
+        public ConnectionData() { }
 
         public string? Project
         {
@@ -47,17 +49,17 @@ namespace Metalama.LinqPad
         {
             get => string.IsNullOrWhiteSpace( this._displayName ) ? Path.GetFileName( this.Project )! : this._displayName;
 
-            private init
+            set
             {
                 this._displayName = value;
                 this.OnPropertyChanged();
             }
         }
 
-        private bool Persist
+        public bool Persist
         {
             get => this._persist;
-            init
+            set
             {
                 this._persist = value;
                 this.OnPropertyChanged();
@@ -67,7 +69,8 @@ namespace Metalama.LinqPad
         public bool ReportWorkspaceErrors
         {
             get => this._reportWorkspaceErrors;
-            private init
+
+            set
             {
                 this._reportWorkspaceErrors = value;
                 this.OnPropertyChanged();
