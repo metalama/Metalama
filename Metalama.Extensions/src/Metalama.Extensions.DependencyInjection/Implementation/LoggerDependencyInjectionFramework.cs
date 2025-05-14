@@ -17,7 +17,7 @@ public sealed class LoggerDependencyInjectionFramework : DefaultDependencyInject
 
     // Our customized injection strategy. Decides how to create the field or property.
     // We actually have no customization except that we return a customized pull strategy instead of the default one.
-    private class InjectionStrategy : DefaultDependencyInjectionStrategy
+    private sealed class InjectionStrategy : DefaultDependencyInjectionStrategy
     {
         public InjectionStrategy( DependencyProperties properties ) : base( properties ) { }
 
@@ -28,7 +28,7 @@ public sealed class LoggerDependencyInjectionFramework : DefaultDependencyInject
     }
 
     // Our customized pull strategy. Decides how to assign the field or property from the constructor.
-    private class LoggerPullStrategy : DefaultPullStrategy
+    private sealed class LoggerPullStrategy : DefaultPullStrategy
     {
         public LoggerPullStrategy( DependencyProperties properties, IFieldOrProperty introducedFieldOrProperty ) : base( properties, introducedFieldOrProperty )
         {

@@ -1,12 +1,17 @@
 ﻿<wpf:ResourceDictionary xml:space="preserve" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:s="clr-namespace:System;assembly=mscorlib" xmlns:ss="urn:shemas-jetbrains-com:settings-storage-xaml" xmlns:wpf="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
-	<s:String x:Key="/Default/Environment/InjectedLayers/FileInjectedLayer/=6AEF8BCF28CD1B4DBB47FDAFCFDBEE73/AbsolutePath/@EntryValue">C:\src\Metalama.Extensions\eng\style\CommonStyle.DotSettings</s:String>
-	<s:String x:Key="/Default/Environment/InjectedLayers/FileInjectedLayer/=6AEF8BCF28CD1B4DBB47FDAFCFDBEE73/RelativePath/@EntryValue">..\eng\style\CommonStyle.DotSettings</s:String>
-	<s:Boolean x:Key="/Default/Environment/InjectedLayers/FileInjectedLayer/=6AEF8BCF28CD1B4DBB47FDAFCFDBEE73/@KeyIndexDefined">True</s:Boolean>
+	<s:Boolean x:Key="/Default/Environment/InjectedLayers/FileInjectedLayer/=7DF34F9813EEAB438C9282476F7AB6F7/@KeyIndexDefined">True</s:Boolean>
+	<s:String x:Key="/Default/Environment/InjectedLayers/FileInjectedLayer/=7DF34F9813EEAB438C9282476F7AB6F7/AbsolutePath/@EntryValue">C:\src\Metalama-2025.1\Metalama\eng\style\CommonStyle.DotSettings</s:String>
+	<s:String x:Key="/Default/Environment/InjectedLayers/FileInjectedLayer/=7DF34F9813EEAB438C9282476F7AB6F7/RelativePath/@EntryValue">..\..\eng\style\CommonStyle.DotSettings</s:String>
+	<s:Boolean x:Key="/Default/Environment/InjectedLayers/InjectedLayerCustomization/=File7DF34F9813EEAB438C9282476F7AB6F7/@KeyIndexDefined">True</s:Boolean>
+	<s:Double x:Key="/Default/Environment/InjectedLayers/InjectedLayerCustomization/=File7DF34F9813EEAB438C9282476F7AB6F7/RelativePriority/@EntryValue">1</s:Double>
 	
 	
 	
-	<s:Boolean x:Key="/Default/Environment/InjectedLayers/InjectedLayerCustomization/=File6AEF8BCF28CD1B4DBB47FDAFCFDBEE73/@KeyIndexDefined">True</s:Boolean>
-	<s:Double x:Key="/Default/Environment/InjectedLayers/InjectedLayerCustomization/=File6AEF8BCF28CD1B4DBB47FDAFCFDBEE73/RelativePriority/@EntryValue">1</s:Double>
+	
+	
+	
+	
+	
 	
 	
 	<s:Boolean x:Key="/Default/UserDictionary/Words/=literality/@EntryIndexedValue">True</s:Boolean></wpf:ResourceDictionary>
