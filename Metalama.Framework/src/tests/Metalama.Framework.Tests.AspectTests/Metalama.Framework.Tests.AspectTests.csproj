@@ -45,18 +45,6 @@
         <Compile Remove="$(MSBuildThisFileDirectory)/Tests/**/__*.cs" />
         <!-- But still show them in solution explorer -->
         <None Include="$(MSBuildThisFileDirectory)/Tests/**/__*.cs" />
-        <Compile Update="Tests\Fabrics\AttributeDiagnostic.cs">
-          <DependentUpon>$([System.String]::Copy('AttributeDiagnostic').Substring( %(Filename.IndexOf('.') ).cs</DependentUpon>
-          <SubType>Code</SubType>
-        </Compile>
-        <Compile Update="Tests\Fabrics\Fabric_ReportDiagnostic.cs">
-          <DependentUpon>$([System.String]::Copy('Fabric_ReportDiagnostic').Substring( %(Filename.IndexOf('.') ).cs</DependentUpon>
-          <SubType>Code</SubType>
-        </Compile>
-        <Compile Update="Tests\Fabrics\ReceiverCaching.cs">
-          <DependentUpon>$([System.String]::Copy('ReceiverCaching').Substring( %(Filename.IndexOf('.') ).cs</DependentUpon>
-          <SubType>Code</SubType>
-        </Compile>
     </ItemGroup>
 
     <ItemGroup>

@@ -20,6 +20,8 @@ namespace Metalama.Framework.Engine.AdviceImpl.Introduction;
 internal sealed class IntroduceConstructorInitializerArgumentTransformation : BaseSyntaxTreeTransformation, IMemberLevelTransformation
 {
     private readonly IFullRef<IConstructor> _constructor;
+    private readonly string _parameterName;
+    private readonly bool _requiresParameterName;
 
     IFullRef<IMember> IMemberLevelTransformation.TargetMember => this._constructor;
 
@@ -31,15 +33,28 @@ internal sealed class IntroduceConstructorInitializerArgumentTransformation : Ba
         AspectLayerInstance aspectLayerInstance,
         IFullRef<IConstructor> constructor,
         int parameterIndex,
-        ExpressionSyntax value ) : base( aspectLayerInstance, constructor )
+        string parameterName,
+        ExpressionSyntax value,
+        bool requiresParameterName ) : base( aspectLayerInstance, constructor )
     {
         this._constructor = constructor;
+        this._parameterName = parameterName;
+        this._requiresParameterName = requiresParameterName;
         this.ParameterIndex = parameterIndex;
         this.Value = value;
     }
 
     public ArgumentSyntax ToSyntax()
-        => SyntaxFactory.Argument( this.Value ).WithAdditionalAnnotations( this.AspectInstance.AspectClass.GeneratedCodeAnnotation );
+    {
+        var argumentSyntax = SyntaxFactory.Argument( this.Value );
+
+        if ( this._requiresParameterName )
+        {
+            argumentSyntax = argumentSyntax.WithNameColon( SyntaxFactory.NameColon( this._parameterName ) );
+        }
+
+        return argumentSyntax.WithAdditionalAnnotations( this.AspectInstance.AspectClass.GeneratedCodeAnnotation );
+    }
 
     public override IFullRef<IDeclaration> TargetDeclaration => this._constructor;
 

@@ -218,13 +218,19 @@ internal sealed class IntroduceConstructorParameterAdvice : Advice<IntroductionA
                         throw new AssertionFailedException( $"Invalid value for PullActionKind: {pullParameterAction.Kind}." );
                 }
 
+                // Determine if we should qualify the argument with the parameter name.
+                // We do this every time there is an optional parameter before the current parameter.
+                var requiresParameterName = baseConstructor.Parameters.Any( p => p.DefaultValue != null && p.Index < baseParameter.Index );
+
                 // Append an argument to the call to the current constructor. 
                 contextCopy.AddTransformation(
                     new IntroduceConstructorInitializerArgumentTransformation(
                         this.AspectLayerInstance,
                         initializedChainedConstructor.ToFullRef(),
                         baseParameter.Index,
-                        parameterValue ) );
+                        baseParameter.Name,
+                        parameterValue,
+                        requiresParameterName ) );
             }
         }
     }
