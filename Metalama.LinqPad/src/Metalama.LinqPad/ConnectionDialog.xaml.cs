@@ -21,8 +21,13 @@ namespace Metalama.LinqPad
         {
             this._connectionInfo = cxInfo;
             this._connectionData = new ConnectionData( cxInfo );
-            this.DataContext = this._connectionData;
+
             this.InitializeComponent();
+
+            // DataContext must be set after InitializeComponent is called
+            // because we need to override design-time data.
+            this.DataContext = this._connectionData;
+
         }
 
         private void OnOkButtonClick( object sender, RoutedEventArgs e )
