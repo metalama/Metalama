@@ -10,9 +10,9 @@ on:
   # To guarantee Maintained check is occasionally updated. See
   # https://github.com/ossf/scorecard/blob/main/docs/checks.md#maintained
   schedule:
-    - cron: '16 3 * * 5'
+    - cron: '0 0 * * 0' # Run every Sunday at midnight UTC
   push:
-    branches: [ "release/2025.1", "topic/2025.1/scoreyard" ]
+    branches: [ "release/2025.1" ]
   workflow_dispatch: # Allow manual triggering of the workflow on any branch
 
 # Declare default permissions as read only.
@@ -23,7 +23,7 @@ jobs:
     name: Scorecard analysis
     runs-on: ubuntu-latest
     # `publish_results: true` only works when run from the default branch. conditional can be removed if disabled.
-  #  if: github.event.repository.default_branch == github.ref_name || github.event_name == 'pull_request'
+    if: github.event.repository.default_branch == github.ref_name || github.event_name == 'pull_request'
     permissions:
       # Needed to upload the results to code-scanning dashboard.
       security-events: write
