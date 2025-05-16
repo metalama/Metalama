@@ -17,7 +17,7 @@
     <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.Http" Version="3.2.0" />
     <PackageVersion Include="Microsoft.Azure.Functions.Worker.Sdk" Version="1.18.1" />
     <PackageVersion Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="8.0.0" />
-    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.13.0" />
     <PackageVersion Include="Microsoft.Win32.Registry" Version="5.0.0" />
     <PackageVersion Include="Roslynator.Analyzers" Version="4.12.8" />
     <PackageVersion Include="System.ComponentModel.Annotations" Version="5.0.0" />
