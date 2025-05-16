@@ -7,19 +7,19 @@
   <PropertyGroup>
     <PostSharpEngineeringVersion Condition="'$(PostSharpEngineeringVersion)'==''">2023.2.153</PostSharpEngineeringVersion>
     <!-- RoslynApiMinVersion is the minimal version of the Roslyn API we support. -->
-    <RoslynApiMinVersion>4.8.0</RoslynApiMinVersion>
+    <RoslynApiMinVersion>4.14.0</RoslynApiMinVersion>
     <RoslynApiMaxVersion>4.12.0</RoslynApiMaxVersion>
     <!-- RoslynMaxVersion is the version of Roslyn that should be referenced by the Workspaces package. -->
     <RoslynMaxVersion>4.12.0</RoslynMaxVersion>
     <!-- xUnitApiVersion is the version of xUnit against which we build the testing framework -->
-    <xUnitApiVersion>2.4.2</xUnitApiVersion>
+    <xUnitApiVersion>2.9.3</xUnitApiVersion>
     <MicrosoftBuildVersion>17.10.4</MicrosoftBuildVersion>
 
     <!-- These are the latest versions of dependencies, which we use in test projects to avoid vulnerability warnings -->
      <MicrosoftVisualStudioThreadingLatestVersion>17.11.20</MicrosoftVisualStudioThreadingLatestVersion>
      <MessagePackLatestVersion>2.5.187</MessagePackLatestVersion>
      <StreamJsonRpcLatestVersion>2.19.27</StreamJsonRpcLatestVersion>
-     <SystemTextJsonLatestVersion>8.0.5</SystemTextJsonLatestVersion>
+     <SystemTextJsonLatestVersion>9.0.5</SystemTextJsonLatestVersion>
      <SystemNetHttpLatestVersion>4.3.4</SystemNetHttpLatestVersion>
      <SystemTextRegularExpressionsLatestVersion>4.3.1</SystemTextRegularExpressionsLatestVersion>
      <SystemFormatsAsn1LatestVersion>8.0.1</SystemFormatsAsn1LatestVersion>
@@ -35,40 +35,40 @@
     <PackageVersion Include="Metalama.Backstage.Tools" Version="$(MetalamaVersion)" />
     <PackageVersion Include="Metalama.Compiler" Version="$(MetalamaCompilerVersion)" />
     <PackageVersion Include="Metalama.Compiler.Sdk" Version="$(MetalamaCompilerVersion)" />
-    <PackageVersion Include="Microsoft.Bcl.HashCode" Version="1.1.1" />
+    <PackageVersion Include="Microsoft.Bcl.HashCode" Version="6.0.0" />
     <PackageVersion Include="Microsoft.Build" Version="$(MicrosoftBuildVersion)" />
     <PackageVersion Include="Microsoft.Build.Framework" Version="$(MicrosoftBuildVersion)" />
     <PackageVersion Include="Microsoft.Build.Tasks.Core" Version="$(MicrosoftBuildVersion)" />
     <PackageVersion Include="Microsoft.Build.Locator" Version="1.7.8" />
     <PackageVersion Include="Microsoft.CSharp" Version="4.7.0" />
-    <PackageVersion Include="Microsoft.Extensions.Logging.Console" Version="8.0.1" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Console" Version="9.0.5" />
     <!-- We should match the versions used by the lowest version of Roslyn we support.-->
-    <PackageVersion Include="Newtonsoft.Json" Version="13.0.1" />
+    <PackageVersion Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageVersion Include="PostSharp.Engineering.BuildTools" Version="$(PostSharpEngineeringVersion)" />
     <PackageVersion Include="PostSharp.Patterns.Model" Version="$(PostSharpPackageVersion)" />
     <!-- This should match the version used by Roslyn in RoslynApiMinVersion -->
-    <PackageVersion Include="System.Collections.Immutable" Version="6.0.0" />
+    <PackageVersion Include="System.Collections.Immutable" Version="9.0.5" />
     <PackageVersion Include="System.Linq.Parallel" Version="4.3.0" />
     <PackageVersion Include="System.Reflection.Emit" Version="4.7.0" />
     <PackageVersion Include="System.Runtime.Serialization.Formatters" Version="4.3.0" />
-    <PackageVersion Include="System.Threading.Tasks.Extensions" Version="4.5.4" />
-    <PackageVersion Include="System.Text.Json" Version="8.0.5" />
+    <PackageVersion Include="System.Threading.Tasks.Extensions" Version="4.6.0" />
+    <PackageVersion Include="System.Text.Json" Version="9.0.5" />
     <PackageVersion Include="xunit.assert" Version="$(xUnitApiVersion)" />
     <PackageVersion Include="xunit.abstractions" Version="2.0.3" />
     <PackageVersion Include="xunit.extensibility.core" Version="$(xUnitApiVersion)" />
     <PackageVersion Include="xunit.extensibility.execution" Version="$(xUnitApiVersion)" />
-    <PackageVersion Include="ILRepack" Version="2.0.38" />
+    <PackageVersion Include="ILRepack" Version="2.0.42" />
 
     <!-- The following package is ILMerged so we can take any version we want,
      however all dependencies must be lower or equal than the minimal we must suppport. -->
-    <PackageVersion Include="StreamJsonRpc" Version="2.14.24" />
+    <PackageVersion Include="StreamJsonRpc" Version="2.22.11" />
     
     <!-- The following packages are dependencies of StreamJsonRpc and we must match the version. 
         We now target the .NET SDK 6 and equivalent VS.
     -->
-    <PackageVersion Include="System.IO.Pipelines" Version="6.0.3"/>
-    <PackageVersion Include="System.Diagnostics.DiagnosticSource" Version="6.0.0"/>
-    <PackageVersion Include="Microsoft.Bcl.AsyncInterfaces" Version="6.0.0"/>
+    <PackageVersion Include="System.IO.Pipelines" Version="9.0.5"/>
+    <PackageVersion Include="System.Diagnostics.DiagnosticSource" Version="9.0.5"/>
+    <PackageVersion Include="Microsoft.Bcl.AsyncInterfaces" Version="9.0.5"/>
     
 
 
