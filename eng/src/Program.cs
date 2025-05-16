@@ -18,10 +18,7 @@ var product = new Product( MetalamaDependencies.Metalama )
 {
     Solutions =
     [
-        new DotNetSolution( "Metalama.Backstage/Metalama.Backstage.sln" )
-        {
-            SupportsTestCoverage = true, CanFormatCode = true
-        },
+        new DotNetSolution( "Metalama.Backstage/Metalama.Backstage.sln" ) { SupportsTestCoverage = true, CanFormatCode = true },
         new DotNetSolution( "Metalama.Framework/Metalama.Framework.sln" )
         {
             SolutionFilterPathForInspectCode = "Metalama.Framework.LatestRoslyn.slnf",
@@ -53,22 +50,16 @@ var product = new Product( MetalamaDependencies.Metalama )
             IsTestOnly = true, TestMethod = BuildMethod.Build
         },
         new ManyDotNetSolutions( "Metalama.Framework/src/Tests/Standalone" ) { IsTestOnly = true },
-        new DotNetSolution( "Metalama.Extensions/Metalama.Extensions.sln" )
-        {
-            CanFormatCode = true, FormatExclusions = ["src\\tests\\*AspectTests\\**\\*"]
-        },
+        new DotNetSolution( "Metalama.Extensions/Metalama.Extensions.sln" ) { CanFormatCode = true, FormatExclusions = ["src\\tests\\*AspectTests\\**\\*"] },
         new DotNetSolution( "Metalama.Migration/Metalama.Migration.sln" ) { CanFormatCode = true },
         new DotNetSolution( "Metalama.LinqPad/Metalama.LinqPad.sln" ) { CanFormatCode = true },
-        new DotNetSolution( "Metalama.Patterns/Metalama.Patterns.sln" )
-        {
-            CanFormatCode = true, FormatExclusions = ["src\\tests\\*AspectTests\\**\\*"]
-        }
+        new DotNetSolution( "Metalama.Patterns/Metalama.Patterns.sln" ) { CanFormatCode = true, FormatExclusions = ["src\\tests\\*AspectTests\\**\\*"] }
     ],
     PublicArtifacts = Pattern.Create(
         "Metalama.Backstage.$(PackageVersion).nupkg",
         "Metalama.Backstage.Commands.$(PackageVersion).nupkg", // Required by SourceLink in Metalama.Framework.
-        "Metalama.Backstage.Testing.$(PackageVersion).nupkg", // Required by SourceLink in Metalama.Framework.
-        "Metalama.Backstage.Tools.$(PackageVersion).nupkg", // Required by Metalama.Testing.AspectTesting via Metalama.Framework.Engine.
+        "Metalama.Backstage.Testing.$(PackageVersion).nupkg",  // Required by SourceLink in Metalama.Framework.
+        "Metalama.Backstage.Tools.$(PackageVersion).nupkg",    // Required by Metalama.Testing.AspectTesting via Metalama.Framework.Engine.
         "Metalama.Framework.$(PackageVersion).nupkg",
         "Metalama.Testing.UnitTesting.$(PackageVersion).nupkg",
         "Metalama.Testing.AspectTesting.$(PackageVersion).nupkg",
@@ -104,9 +95,7 @@ var product = new Product( MetalamaDependencies.Metalama )
     [
         DevelopmentDependencies.PostSharpEngineering.ToDependency(),
         MetalamaDependencies.MetalamaCompiler.ToDependency(
-            new ConfigurationSpecific<BuildConfiguration>(
-                BuildConfiguration.Release, BuildConfiguration.Release, BuildConfiguration.Public
-            ) )
+            new ConfigurationSpecific<BuildConfiguration>( BuildConfiguration.Release, BuildConfiguration.Release, BuildConfiguration.Public ) )
     ],
     ExportedProperties =
     {
@@ -128,27 +117,31 @@ var product = new Product( MetalamaDependencies.Metalama )
                     @"-:%system.teamcity.build.tempDir%/Metalama/CrashReports/**/*.dmp=>logs"
                 ]
             } ),
-    SupportedProperties =
-    {
-        { "PrepareStubs", "The prepare command generates stub files, instead of actual implementations." }
-    },
+    SupportedProperties = { { "PrepareStubs", "The prepare command generates stub files, instead of actual implementations." } },
     ProjectUsages =
     [
         new ProjectUsageInfo(
             @"Metalama\.Framework\.(Engine|DesignTime|CompilerExtensions|EditorExtensions|Implementation).*",
-            DependentPackageUsageKind.Development, ["Metalama.Framework"] ),
-        new ProjectUsageInfo( @"Metalama\.Framework\.(Workspaces|Introspection|Sdk)",
+            DependentPackageUsageKind.Development,
+            ["Metalama.Framework"] ),
+        new ProjectUsageInfo(
+            @"Metalama\.Framework\.(Workspaces|Introspection|Sdk)",
             DependentPackageUsageKind.Development ),
-        new ProjectUsageInfo( @"Metalama\.Framework\.Package", DependentPackageUsageKind.Development,
+        new ProjectUsageInfo(
+            @"Metalama\.Framework\.Package",
+            DependentPackageUsageKind.Development,
             ["Metalama.Framework"] ),
         new ProjectUsageInfo( @"Metalama\.Testing\..*", DependentPackageUsageKind.Development ),
         new ProjectUsageInfo( @"Metalama\.LinqPad", DependentPackageUsageKind.Development ),
-        new ProjectUsageInfo( @"Metalama\.(SourceTransformer|Framework\.CompileTimeContracts|SystemTypes)",
+        new ProjectUsageInfo(
+            @"Metalama\.(SourceTransformer|Framework\.CompileTimeContracts|SystemTypes)",
             DependentPackageUsageKind.Private ),
 
         // This is the Metalama CLI tool.
         new ProjectUsageInfo( @"^metalama$", DependentPackageUsageKind.Development, ["Metalama CLI"] ),
-        new ProjectUsageInfo( @"Metalama\.Backstage", DependentPackageUsageKind.Development,
+        new ProjectUsageInfo(
+            @"Metalama\.Backstage",
+            DependentPackageUsageKind.Development,
             ["Metalama.Framework", "Metalama CLI"] ),
         new ProjectUsageInfo( @"Metalama\.Backstage\.Testing", DependentPackageUsageKind.Private ),
 
