@@ -7,7 +7,7 @@
   <PropertyGroup>
     <PostSharpEngineeringVersion Condition="'$(PostSharpEngineeringVersion)'==''">2023.2.153</PostSharpEngineeringVersion>
     <!-- RoslynApiMinVersion is the minimal version of the Roslyn API we support. -->
-    <RoslynApiMinVersion>4.8.0</RoslynApiMinVersion>
+    <RoslynApiMinVersion>4.14.0</RoslynApiMinVersion>
     <RoslynApiMaxVersion>4.12.0</RoslynApiMaxVersion>
     <!-- RoslynMaxVersion is the version of Roslyn that should be referenced by the Workspaces package. -->
     <RoslynMaxVersion>4.12.0</RoslynMaxVersion>
@@ -47,7 +47,7 @@
     <PackageVersion Include="PostSharp.Engineering.BuildTools" Version="$(PostSharpEngineeringVersion)" />
     <PackageVersion Include="PostSharp.Patterns.Model" Version="$(PostSharpPackageVersion)" />
     <!-- This should match the version used by Roslyn in RoslynApiMinVersion -->
-    <PackageVersion Include="System.Collections.Immutable" Version="6.0.0" />
+    <PackageVersion Include="System.Collections.Immutable" Version="9.0.0" />
     <PackageVersion Include="System.Linq.Parallel" Version="4.3.0" />
     <PackageVersion Include="System.Reflection.Emit" Version="4.7.0" />
     <PackageVersion Include="System.Runtime.Serialization.Formatters" Version="4.3.0" />
@@ -66,9 +66,9 @@
     <!-- The following packages are dependencies of StreamJsonRpc and we must match the version. 
         We now target the .NET SDK 6 and equivalent VS.
     -->
-    <PackageVersion Include="System.IO.Pipelines" Version="6.0.3"/>
+    <PackageVersion Include="System.IO.Pipelines" Version="9.0.0"/>
     <PackageVersion Include="System.Diagnostics.DiagnosticSource" Version="6.0.0"/>
-    <PackageVersion Include="Microsoft.Bcl.AsyncInterfaces" Version="6.0.0"/>
+    <PackageVersion Include="Microsoft.Bcl.AsyncInterfaces" Version="9.0.0"/>
     
 
 
