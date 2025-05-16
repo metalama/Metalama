@@ -1,0 +1,806 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: daily
+
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Backstage/src/Metalama.Backstage.Commands
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Backstage/src/Metalama.Backstage.Desktop.Windows
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Backstage/src/Metalama.Backstage.DotNetTool
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Backstage/src/Metalama.Backstage.Tools
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Backstage/src/Metalama.Backstage.Worker
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Backstage/src/Metalama.Backstage
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Backstage/src/tests/Metalama.Backstage.Commands.Tests
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Backstage/src/tests/Metalama.Backstage.Testing
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Backstage/src/tests/Metalama.Backstage.Tests
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Backstage/src/utilities/PostSharp.LicenseKeyGenerator
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Backstage/src/utilities/PostSharp.LicenseKeyReader
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Extensions/src/Metalama.Extensions.DependencyInjection.ServiceLocator
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Extensions/src/Metalama.Extensions.DependencyInjection
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Extensions/src/Metalama.Extensions.Metrics
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Extensions/src/Metalama.Extensions.Multicast
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Extensions/src/tests/Metalama.Extensions.DependencyInjection.AspectTests
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Extensions/src/tests/Metalama.Extensions.DependencyInjection.ServiceLocator.AspectTests
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Extensions/src/tests/Metalama.Extensions.Metrics.UnitTests
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Extensions/src/tests/Metalama.Extensions.Multicast.AspectTests
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Extensions/src/tests/Metalama.Extensions.PackagingTests
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/Metalama.Framework.CompileTime
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/Metalama.Framework.CompileTimeContracts
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/Metalama.Framework.CompilerExtensions.Resources
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/Metalama.Framework.CompilerExtensions
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/Metalama.Framework.DesignTime.4.8.0
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/Metalama.Framework.DesignTime.Contracts
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/Metalama.Framework.DesignTime.Rpc
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/Metalama.Framework.DesignTime
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/Metalama.Framework.EditorExtensions
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/Metalama.Framework.Engine.4.8.0
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/Metalama.Framework.Engine.Analyzers
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/Metalama.Framework.Engine
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/Metalama.Framework.Implementation.Package
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/Metalama.Framework.Introspection
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/Metalama.Framework.Package
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/Metalama.Framework.Sdk
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/Metalama.Framework.Workspaces
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/Metalama.Framework
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/Metalama.SourceTransformer
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/Metalama.SystemTypes
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/Metalama.Testing.AspectTesting.4.8.0
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/Metalama.Testing.AspectTesting
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/Metalama.Testing.UnitTesting.4.8.0
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/Metalama.Testing.UnitTesting
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/Metalama.Tool
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Deprecated/Metalama.Reactive.UnitTests
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Metalama.AspectWorkbench
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Metalama.Framework.TestApp/Metalama.Framework.TestApp.Aspects
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Metalama.Framework.TestApp/Metalama.Framework.TestApp.Library
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Metalama.Framework.TestApp/Metalama.Framework.TestApp.TestRunner
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Metalama.Framework.TestApp/Metalama.Framework.TestApp
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Metalama.Framework.Tests.AspectTests.4.8.0
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Metalama.Framework.Tests.AspectTests
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Metalama.Framework.Tests.Benchmarks
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Metalama.Framework.Tests.LinkerTests.4.8.0
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Metalama.Framework.Tests.LinkerTests
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Metalama.Framework.Tests.TemplateTests.4.8.0
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Metalama.Framework.Tests.TemplateTests
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Metalama.Framework.Tests.UnitTestHelpers.4.8.0
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Metalama.Framework.Tests.UnitTestHelpers
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Metalama.Framework.Tests.UnitTests.4.8.0
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Metalama.Framework.Tests.UnitTests
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Metalama.Framework.Tests.Workspaces
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/RunManually/MultiVersion/Version1
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/RunManually/MultiVersion/Version2
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Standalone/AdditionalCompileTimePackage
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Standalone/AdditionalDiagnosticAnalyzer
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Standalone/ArtifactsOutputPathInAspectTest
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Standalone/BlazorApp
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Standalone/CodeCoverage
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Standalone/CompileTimeContract/Aspect
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Standalone/CompileTimeContract/Contract
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Standalone/CompileTimeContract/ServiceImpl
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Standalone/CompileTimeContract/Target
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Standalone/CompileTimeContractSimple/Aspect
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Standalone/CompileTimeContractSimple/Target
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Standalone/DefaultLanguageVersion/DotNet
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Standalone/DefaultLanguageVersion/DotNetFramework
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Standalone/GeneratedCodeAnalyzerTests/AspectInGenerated
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Standalone/GeneratedCodeAnalyzerTests/AspectInRegular
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Standalone/IAsyncEnumerableNetStandard
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Standalone/IncorrectTemplateSelected
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Standalone/InterfaceImplementationRefAssembly/Dependency
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Standalone/InterfaceImplementationRefAssembly/Tests
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Standalone/IntroduceAttributeWithParameterOfType
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Standalone/Issue30200
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Standalone/Issue30212/Issue30212.Consumer
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Standalone/Issue30212/Issue30212.Library
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Standalone/Issue30411
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Standalone/Issue30439
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Standalone/Issue30557/Issue30557ClassLibrary
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Standalone/Issue30925
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Standalone/Issue31024/NetCoreBuildLibrary
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Standalone/Issue31024/NetFrameworkBuildApp
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Standalone/Issue31206/Console
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Standalone/Issue31206/Library1
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Standalone/Issue31206/Library2
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Standalone/Issue32772/Issue32772Library
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Standalone/Issue32772/Issue32772SdkLibrary
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Standalone/Issue32780
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Standalone/Issue33290
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Standalone/Issue33890/AspectTestProject
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Standalone/Issue33890/ZAspectLibraryProjectAplhabeticallyOrderedAfterMetalama
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Standalone/Issue33909
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Standalone/LamaDebug
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Standalone/ParametricSuppressions
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Standalone/PrivateTemplateMembersInRefAssembly/Dependency
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Standalone/PrivateTemplateMembersInRefAssembly/Tests
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Standalone/Request30822/Level1/Level2/Level3/Level4
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Standalone/Request31082
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Standalone/SourceGeneratorAttributeEligibility/BuiltInSourceGeneratorAttribute
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Standalone/SourceGeneratorAttributeEligibility/CustomSourceGeneratorAttribute
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Standalone/TestAspectAssemblyVersionConflict/Dependency1
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Standalone/TestAspectAssemblyVersionConflict/Dependency2
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Standalone/TestAspectAssemblyVersionConflict/Dependent
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Standalone/TestAspectAssemblyVersionConflict/Middle1
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Standalone/TestAspectAssemblyVersionConflict/Middle2
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Standalone/TestWeaver/TestWeaver.App
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Standalone/TestWeaver/TestWeaver.Library
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Standalone/TestWeaver/TestWeaver.UnitTests
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Standalone/TestWeaver/TestWeaver.Weaver
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Standalone/TestWeaverSimple/TestWeaver.App
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Standalone/TestWeaverSimple/TestWeaver.Library
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Standalone/TestWeaverSimple/TestWeaver.UnitTests
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Standalone/WorkspaceTest/WorkspaceTest
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Standalone/WriteHtml
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Framework/src/tests/Utilities/SyntaxCover
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.LinqPad/src/Metalama.LinqPad
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.LinqPad/src/tests/Metalama.LinqPad.Tests
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Migration/src/Metalama.Migration.Transformer
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Migration/src/Metalama.Migration
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Patterns/src/Flashtrace.Formatters
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Patterns/src/Flashtrace
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Patterns/src/Metalama.Patterns.Caching.Aspects
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Patterns/src/Metalama.Patterns.Caching.Backend
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Patterns/src/Metalama.Patterns.Caching
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Patterns/src/Metalama.Patterns.Contracts
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Patterns/src/Metalama.Patterns.Immutability
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Patterns/src/Metalama.Patterns.Memoization
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Patterns/src/Metalama.Patterns.Observability
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Patterns/src/Metalama.Patterns.Wpf
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Patterns/src/tests/Flashtrace.Formatters.UnitTests
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Patterns/src/tests/Flashtrace.UnitTests
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Patterns/src/tests/Metalama.Patterns.Caching.AspectTests
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Patterns/src/tests/Metalama.Patterns.Caching.TestHelpers
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Patterns/src/tests/Metalama.Patterns.Caching.UnitTests
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Patterns/src/tests/Metalama.Patterns.Contracts.AspectTests
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Patterns/src/tests/Metalama.Patterns.Contracts.UnitTests
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Patterns/src/tests/Metalama.Patterns.Immutability.AspectTests
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Patterns/src/tests/Metalama.Patterns.Memoization.AspectTests
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Patterns/src/tests/Metalama.Patterns.Observability.AspectTests
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Patterns/src/tests/Metalama.Patterns.Observability.CompileTimeTests
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Patterns/src/tests/Metalama.Patterns.Observability.UnitTests
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Patterns/src/tests/Metalama.Patterns.TestHelpers
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Patterns/src/tests/Metalama.Patterns.Wpf.AspectTests
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Patterns/src/tests/Metalama.Patterns.Wpf.CompileTimeTests
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /Metalama.Patterns/src/tests/Metalama.Patterns.Wpf.UnitTests
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /eng/src
+    schedule:
+      interval: daily
+
+  - package-ecosystem: maven
+    directory: /.teamcity
+    schedule:
+      interval: daily
