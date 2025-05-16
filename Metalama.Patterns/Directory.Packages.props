@@ -14,7 +14,7 @@
     <PackageVersion Include="Microsoft.CodeAnalysis.Elfie" Version="1.0.0" />
     <PackageVersion Include="Microsoft.IO.RecyclableMemoryStream" Version="3.0.1" />
     <PackageVersion Include="PostSharp.Engineering.BuildTools" Version="$(PostSharpEngineeringVersion)" />
-    <PackageVersion Include="JetBrains.Annotations" Version="2024.2.0" PrivateAssets="all" />
+    <PackageVersion Include="JetBrains.Annotations" Version="2024.3.0" PrivateAssets="all" />
     <PackageVersion Include="Metalama.Framework" Version="$(MetalamaVersion)" />
     <PackageVersion Include="Metalama.Framework.Sdk" Version="$(MetalamaVersion)" PrivateAssets="all" />
     <PackageVersion Include="Microsoft.Extensions.Caching.Memory" Version="7.0.0" />
