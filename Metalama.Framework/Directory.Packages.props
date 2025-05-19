@@ -10,7 +10,7 @@
     <RoslynApiMinVersion>4.8.0</RoslynApiMinVersion>
     <RoslynApiMaxVersion>4.12.0</RoslynApiMaxVersion>
     <!-- RoslynMaxVersion is the version of Roslyn that should be referenced by the Workspaces package. -->
-    <RoslynMaxVersion>4.12.0</RoslynMaxVersion>
+    <RoslynMaxVersion>4.14.0</RoslynMaxVersion>
     <!-- xUnitApiVersion is the version of xUnit against which we build the testing framework -->
     <xUnitApiVersion>2.4.2</xUnitApiVersion>
     <MicrosoftBuildVersion>17.10.4</MicrosoftBuildVersion>
@@ -19,7 +19,8 @@
      <MicrosoftVisualStudioThreadingLatestVersion>17.11.20</MicrosoftVisualStudioThreadingLatestVersion>
      <MessagePackLatestVersion>2.5.187</MessagePackLatestVersion>
      <StreamJsonRpcLatestVersion>2.19.27</StreamJsonRpcLatestVersion>
-     <SystemTextJsonLatestVersion>8.0.5</SystemTextJsonLatestVersion>
+     <SystemTextJsonLatestVersion Condition="'$(TargetFramework)'!='net6.0'">9.0.0</SystemTextJsonLatestVersion>
+     <SystemTextJsonLatestVersion Condition="'$(TargetFramework)'=='net6.0'">8.0.5</SystemTextJsonLatestVersion>
      <SystemNetHttpLatestVersion>4.3.4</SystemNetHttpLatestVersion>
      <SystemTextRegularExpressionsLatestVersion>4.3.1</SystemTextRegularExpressionsLatestVersion>
      <SystemFormatsAsn1LatestVersion>8.0.1</SystemFormatsAsn1LatestVersion>

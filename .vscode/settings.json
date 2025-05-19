@@ -3,5 +3,5 @@
         "Crafters",
         "Metalama"
     ],
-    "window.title": "${dirty}${activeEditorShort}${separator}${rootName}${separator}${profileName}${separator}${appName}${separator}[Branch: topic/2025.1/story-35816-packaging]",
+    "window.title": "${dirty}${activeEditorShort}${separator}${rootName}${separator}${profileName}${separator}${appName}${separator}[Branch: topic/2025.1/merge-roslyn-4.14]",
 }
