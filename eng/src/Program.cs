@@ -2,15 +2,16 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using System.IO;
 using Metalama.Framework.GenerateMetaSyntaxRewriter;
 using PostSharp.Engineering.BuildTools;
+using PostSharp.Engineering.BuildTools.BillOfMaterials;
 using PostSharp.Engineering.BuildTools.Build;
 using PostSharp.Engineering.BuildTools.Build.Model;
 using PostSharp.Engineering.BuildTools.Build.Solutions;
 using PostSharp.Engineering.BuildTools.Dependencies.Definitions;
 using PostSharp.Engineering.BuildTools.Dependencies.Model;
 using PostSharp.Engineering.BuildTools.Utilities;
+using System.IO;
 using MetalamaDependencies = PostSharp.Engineering.BuildTools.Dependencies.Definitions.MetalamaDependencies.V2025_1;
 
 var product = new Product( MetalamaDependencies.Metalama )
@@ -49,25 +50,16 @@ var product = new Product( MetalamaDependencies.Metalama )
             IsTestOnly = true, TestMethod = BuildMethod.Build
         },
         new ManyDotNetSolutions( "Metalama.Framework/src/Tests/Standalone" ) { IsTestOnly = true },
-        new DotNetSolution( "Metalama.Extensions/Metalama.Extensions.sln" ) 
-        { 
-            CanFormatCode = true,
-            FormatExclusions = ["src\\tests\\*AspectTests\\**\\*"],
-        },
+        new DotNetSolution( "Metalama.Extensions/Metalama.Extensions.sln" ) { CanFormatCode = true, FormatExclusions = ["src\\tests\\*AspectTests\\**\\*"] },
         new DotNetSolution( "Metalama.Migration/Metalama.Migration.sln" ) { CanFormatCode = true },
         new DotNetSolution( "Metalama.LinqPad/Metalama.LinqPad.sln" ) { CanFormatCode = true },
-        new DotNetSolution( "Metalama.Patterns/Metalama.Patterns.sln" )
-        { 
-            CanFormatCode = true,
-            FormatExclusions = ["src\\tests\\*AspectTests\\**\\*"]
-        }
+        new DotNetSolution( "Metalama.Patterns/Metalama.Patterns.sln" ) { CanFormatCode = true, FormatExclusions = ["src\\tests\\*AspectTests\\**\\*"] }
     ],
     PublicArtifacts = Pattern.Create(
         "Metalama.Backstage.$(PackageVersion).nupkg",
         "Metalama.Backstage.Commands.$(PackageVersion).nupkg", // Required by SourceLink in Metalama.Framework.
-        "Metalama.Backstage.Testing.$(PackageVersion).nupkg", // Required by SourceLink in Metalama.Framework.
-        "Metalama.Backstage.Tools.$(PackageVersion).nupkg", // Required by Metalama.Testing.AspectTesting via Metalama.Framework.Engine.
-
+        "Metalama.Backstage.Testing.$(PackageVersion).nupkg",  // Required by SourceLink in Metalama.Framework.
+        "Metalama.Backstage.Tools.$(PackageVersion).nupkg",    // Required by Metalama.Testing.AspectTesting via Metalama.Framework.Engine.
         "Metalama.Framework.$(PackageVersion).nupkg",
         "Metalama.Testing.UnitTesting.$(PackageVersion).nupkg",
         "Metalama.Testing.AspectTesting.$(PackageVersion).nupkg",
@@ -77,16 +69,12 @@ var product = new Product( MetalamaDependencies.Metalama )
         "Metalama.Framework.Introspection.$(PackageVersion).nupkg",
         "Metalama.Framework.Workspaces.$(PackageVersion).nupkg",
         "Metalama.Tool.$(PackageVersion).nupkg",
-
         "Metalama.Extensions.DependencyInjection.$(PackageVersion).nupkg",
         "Metalama.Extensions.DependencyInjection.ServiceLocator.$(PackageVersion).nupkg",
         "Metalama.Extensions.Multicast.$(PackageVersion).nupkg",
         "Metalama.Extensions.Metrics.$(PackageVersion).nupkg",
-        
         "Metalama.Migration.$(PackageVersion).nupkg",
-        
         "Metalama.LinqPad.$(PackageVersion).nupkg",
-
         "Metalama.Patterns.Caching.$(PackageVersion).nupkg",
         "Metalama.Patterns.Caching.Aspects.$(PackageVersion).nupkg",
         "Metalama.Patterns.Caching.Backend.$(PackageVersion).nupkg",
@@ -107,13 +95,12 @@ var product = new Product( MetalamaDependencies.Metalama )
     [
         DevelopmentDependencies.PostSharpEngineering.ToDependency(),
         MetalamaDependencies.MetalamaCompiler.ToDependency(
-            new ConfigurationSpecific<BuildConfiguration>(
-                BuildConfiguration.Release, BuildConfiguration.Release, BuildConfiguration.Public
-            ) )
+            new ConfigurationSpecific<BuildConfiguration>( BuildConfiguration.Release, BuildConfiguration.Release, BuildConfiguration.Public ) )
     ],
     ExportedProperties =
     {
-        { "Metalama.Framework\\Directory.Packages.props", ["RoslynApiMaxVersion", "RoslynMaxVersion"] }, { "Metalama.Framework\\Directory.Build.props", ["LangMaxVersion"] }
+        { "Metalama.Framework\\Directory.Packages.props", ["RoslynApiMaxVersion", "RoslynMaxVersion"] },
+        { "Metalama.Framework\\Directory.Build.props", ["LangMaxVersion"] }
     },
     Configurations = Product.DefaultConfigurations
         .WithValue(
@@ -122,18 +109,55 @@ var product = new Product( MetalamaDependencies.Metalama )
             {
                 AdditionalArtifactRules =
                 [
-                    $@"+:%system.teamcity.build.tempDir%/Metalama/ExtractExceptions/**/*=>logs",
-                    $@"+:%system.teamcity.build.tempDir%/Metalama/Extract/**/.completed=>logs",
-                    $@"+:%system.teamcity.build.tempDir%/Metalama/CrashReports/**/*=>logs",
+                    @"+:%system.teamcity.build.tempDir%/Metalama/ExtractExceptions/**/*=>logs",
+                    @"+:%system.teamcity.build.tempDir%/Metalama/Extract/**/.completed=>logs",
+                    @"+:%system.teamcity.build.tempDir%/Metalama/CrashReports/**/*=>logs",
 
                     // Do not upload uncompressed crash reports because they are too big.
-                    $@"-:%system.teamcity.build.tempDir%/Metalama/CrashReports/**/*.dmp=>logs"
+                    @"-:%system.teamcity.build.tempDir%/Metalama/CrashReports/**/*.dmp=>logs"
                 ]
             } ),
-    SupportedProperties =
-    {
-        { "PrepareStubs", "The prepare command generates stub files, instead of actual implementations." }
-    },
+    SupportedProperties = { { "PrepareStubs", "The prepare command generates stub files, instead of actual implementations." } },
+    ProjectUsages =
+    [
+        new ProjectUsageInfo(
+            @"Metalama\.Framework\.(Engine|DesignTime|CompilerExtensions|EditorExtensions|Implementation).*",
+            DependentPackageUsageKind.Development,
+            ["Metalama.Framework"] ),
+        new ProjectUsageInfo(
+            @"Metalama\.Framework\.(Workspaces|Introspection|Sdk)",
+            DependentPackageUsageKind.Development ),
+        new ProjectUsageInfo(
+            @"Metalama\.Framework\.Package",
+            DependentPackageUsageKind.Development,
+            ["Metalama.Framework"] ),
+        new ProjectUsageInfo( @"Metalama\.Testing\..*", DependentPackageUsageKind.Development ),
+        new ProjectUsageInfo( @"Metalama\.LinqPad", DependentPackageUsageKind.Development ),
+        new ProjectUsageInfo(
+            @"Metalama\.(SourceTransformer|Framework\.CompileTimeContracts|SystemTypes)",
+            DependentPackageUsageKind.Private ),
+
+        // This is the Metalama CLI tool.
+        new ProjectUsageInfo( @"^metalama$", DependentPackageUsageKind.Development, ["Metalama CLI"] ),
+        new ProjectUsageInfo(
+            @"Metalama\.Backstage",
+            DependentPackageUsageKind.Development,
+            ["Metalama.Framework", "Metalama CLI"] ),
+        new ProjectUsageInfo( @"Metalama\.Backstage\.Testing", DependentPackageUsageKind.Private ),
+
+        // We consider test helpers as private dependencies for Metalama.Premium because using them in other scenarios is not officially supported.
+        new ProjectUsageInfo( @".*TestHelpers.*", DependentPackageUsageKind.Private )
+    ],
+    ConsumableDepsFiles = Pattern.Empty.Remove( "**/Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.deps.json" ),
+    DependentPackageExclusions =
+    [
+        new DependentPackageExclusion( "Metalama.Framework", "Current repository." ),
+        new DependentPackageExclusion( "Metalama.Extensions", "Current repository." ),
+        new DependentPackageExclusion( "Metalama.Backstage", "Current repository." ),
+        new DependentPackageExclusion( "Metalama.Compiler", "See notices in <https://github.com/metalama/Metalama.Compiler>." ),
+
+        new DependentPackageExclusion( "Flashtrace", "Current repository." )
+    ]
 };
 
 product.PrepareCompleted += OnPrepareCompleted;

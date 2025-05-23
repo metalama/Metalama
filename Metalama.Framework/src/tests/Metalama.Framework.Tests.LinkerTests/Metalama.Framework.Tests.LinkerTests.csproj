@@ -31,7 +31,7 @@
         <PackageReference Include="xunit" />
         <PackageReference Include="xunit.runner.visualstudio" />
         <PackageReference Include="Metalama.Compiler.Sdk" />
-        <PackageReference Include="System.Text.Json" NoWarn="NU1903" />
+        <PackageReference Include="System.Text.Json"  VersionOverride="$(SystemTextJsonLatestVersion)" />
         <PackageReference Include="Metalama.Backstage.Testing" />
 
         <!-- These packages ared used in tests -->
