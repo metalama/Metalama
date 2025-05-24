@@ -110,6 +110,12 @@ public abstract class ServerEndpoint : BaseEndpoint
 
         await pipe.WaitForConnectionAsync( cancellationToken );
 
+        if ( this.Observer != null )
+        {
+            // Allows tests to include a synchronization point to reproduce race conditions.
+            await this.Observer.AfterServerGetsClientAsync( this, cancellationToken );
+        }
+
         this.Logger.Trace?.Log( $"Endpoint '{pipeName}': got a client (now has {this.ClientCount + 1})." );
 
         var rpc = this.CreateRpc( pipe );

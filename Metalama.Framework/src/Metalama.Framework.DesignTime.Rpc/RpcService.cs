@@ -76,14 +76,14 @@ public abstract class RpcService<TApi> : RpcService, IDisposable where TApi : IR
 
     protected async Task RaiseEventAsync( RpcEventData eventData, CancellationToken cancellationToken )
     {
+        await this.WaitUntilInitializedAsync( cancellationToken );
+
         if ( this._clients.Count == 0 )
         {
             this.Logger.Trace?.Log( $"RaiseEventAsync: No clients, nothing to do for event {eventData.Category}." );
 
             return;
         }
-
-        await this.WaitUntilInitializedAsync( cancellationToken );
 
         this.Logger.Trace?.Log( $"RaiseEventAsync: Notifying {this._clients.Count} clients with event {eventData.Category}." );
 

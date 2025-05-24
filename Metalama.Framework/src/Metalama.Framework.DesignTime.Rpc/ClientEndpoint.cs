@@ -168,14 +168,13 @@ public abstract partial class ClientEndpoint : BaseEndpoint
                     return true;
                 }
 
-                this.UpdateClientdByInterfaceName(
-                    clientsByInterfaceName =>
+                this.UpdateClientdByInterfaceName( clientsByInterfaceName =>
+                {
+                    foreach ( var client in newClients )
                     {
-                        foreach ( var client in newClients )
-                        {
-                            clientsByInterfaceName.Add( client.InterfaceName, client );
-                        }
-                    } );
+                        clientsByInterfaceName.Add( client.InterfaceName, client );
+                    }
+                } );
             }
 
             this.Logger.Trace?.Log( $"Connecting to the named pipe '{pipeName}'." );
@@ -183,9 +182,17 @@ public abstract partial class ClientEndpoint : BaseEndpoint
             var pipeStream = new NamedPipeClientStream( ".", pipeName, PipeDirection.InOut, PipeOptions.Asynchronous );
             await pipeStream.ConnectAsync( cancellationToken ).WarnIfLongAsync( this.Logger, "Connect to pipe stream.", cancellationToken );
 
+            if ( this.Observer != null )
+            {
+                // Allows tests to include a synchronization point to reproduce race conditions.
+                await this.Observer.AfterClientGetsServerAsync( this, cancellationToken );
+            }
+
             this.Logger.Trace?.Log( $"Connected to the named pipe '{pipeName}'." );
 
+            // Create the callback channel.
             var rpc = this.CreateRpc( pipeStream );
+            rpc.Disconnected += this.OnRpcDisconnected;
 
             if ( firstConnection )
             {
@@ -206,7 +213,12 @@ public abstract partial class ClientEndpoint : BaseEndpoint
 
             this.Logger.Trace?.Log( $"Start listening to callback channel of the named pipe '{pipeName}'." );
             rpc.StartListening();
-            rpc.Disconnected += this.OnRpcDisconnected;
+
+            if ( this.Observer != null )
+            {
+                // Allows tests to include a synchronization point to reproduce race conditions.
+                await this.Observer.AfterClientStartsListeningToCallbackAsync( this, cancellationToken );
+            }
 
             // Update collections.
             InterlockedHelper.Update( ref this._connectionByStream, x => x.Add( rpc, new Connection( pipeStream, rpc, newClients ) ) );
@@ -252,14 +264,13 @@ public abstract partial class ClientEndpoint : BaseEndpoint
         if ( this._connectionByStream.TryGetValue( rpc, out var connection ) )
         {
             // Update collections.
-            this.UpdateClientdByInterfaceName(
-                clientdByInterfaceName =>
+            this.UpdateClientdByInterfaceName( clientdByInterfaceName =>
+            {
+                foreach ( var client in connection.Clients )
                 {
-                    foreach ( var client in connection.Clients )
-                    {
-                        clientdByInterfaceName.Remove( client.InterfaceName );
-                    }
-                } );
+                    clientdByInterfaceName.Remove( client.InterfaceName );
+                }
+            } );
 
             this._connectionByStream = this._connectionByStream.Remove( rpc );
         }

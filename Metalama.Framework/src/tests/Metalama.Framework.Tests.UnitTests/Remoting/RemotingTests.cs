@@ -87,9 +87,18 @@ public sealed class RemotingTests : UnitTestClass
     }
 
     [Fact]
-    public async Task PublishGeneratedSourceBeforeHelloAsync()
+    public async Task PublishGeneratedSourceBeforeCallbackConnectedAsync()
     {
-        using var testContext = this.CreateTestContext();
+        // Add an observer to inject synchronization point
+        var observer = new TestEndpointObserver( this.TestOutput );
+        var additionalServices = new AdditionalServiceCollection();
+        additionalServices.AddUntypedGlobalService( typeof(IEndpointObserver), observer );
+
+        using var testContext = this.CreateTestContext( additionalServices );
+        
+        // ReSharper disable once UseAwaitUsing
+        using var cancellationRegistration = testContext.CancellationToken.Register( () => observer.AfterServerGetsClientBlocker.SetCanceled() );
+
         var serviceProvider = testContext.ServiceProvider;
         var cancellationToken = testContext.CancellationToken;
 
@@ -117,10 +126,18 @@ public sealed class RemotingTests : UnitTestClass
         // Publish from the server.
         var sourceGeneratorService = await server.GetRequiredServiceAsync<SourceGeneratorRpcService>( testContext.CancellationToken );
 
-        await sourceGeneratorService.PublishGeneratedSourcesAsync(
+        var publishGeneratedSourcesAsyncTask = sourceGeneratorService.PublishGeneratedSourcesAsync(
             projectKey,
             ImmutableDictionary.Create<string, string>().Add( sourceTreeName, "content" ),
             cancellationToken );
+
+        // A previous bug was that it completed synchronously and did nothing if no callback was registered.
+        Assert.False( publishGeneratedSourcesAsyncTask.IsCompleted );
+
+        // Unblock _after_ PublishGeneratedSourcesAsync was called.
+        observer.AfterServerGetsClientBlocker.SetResult( true );
+
+        await publishGeneratedSourcesAsyncTask;
 
         await eventCollector.WhenTrueAsync( c => c.Events.OfType<GeneratedSourceChangedEventData>().Any(), cancellationToken );
 
@@ -473,5 +490,30 @@ public sealed class RemotingTests : UnitTestClass
                     JsonSerializationHelper.CreateSerializableSyntaxTree( CSharpSyntaxTree.ParseText( "class TransformedCode {}" ) ),
                     null ) );
         }
+    }
+
+    private sealed class TestEndpointObserver : IEndpointObserver
+    {
+        private readonly ITestOutputHelper _testOutput;
+
+        public TestEndpointObserver( ITestOutputHelper testOutput )
+        {
+            this._testOutput = testOutput;
+        }
+
+        public TaskCompletionSource<bool> AfterServerGetsClientBlocker { get; } = new();
+
+        public async Task AfterServerGetsClientAsync( ServerEndpoint serverEndpoint, CancellationToken cancellationToken )
+        {
+            this._testOutput.WriteLine( "OnServerHasClientAsync: Waiting for barrier." );
+#pragma warning disable VSTHRD003
+            await this.AfterServerGetsClientBlocker.Task;
+#pragma warning restore VSTHRD003
+            this._testOutput.WriteLine( "OnServerHasClientAsync: Completed waiting for barrier." );
+        }
+
+        public Task AfterClientGetsServerAsync( ClientEndpoint clientEndpoint, CancellationToken cancellationToken ) => Task.CompletedTask;
+
+        public Task AfterClientStartsListeningToCallbackAsync( ClientEndpoint clientEndpoint, CancellationToken cancellationToken ) => Task.CompletedTask;
     }
 }
