@@ -95,7 +95,7 @@ public sealed class RemotingTests : UnitTestClass
         additionalServices.AddUntypedGlobalService( typeof(IEndpointObserver), observer );
 
         using var testContext = this.CreateTestContext( additionalServices );
-        
+
         // ReSharper disable once UseAwaitUsing
         using var cancellationRegistration = testContext.CancellationToken.Register( () => observer.AfterServerGetsClientBlocker.SetCanceled() );
 
@@ -166,23 +166,28 @@ public sealed class RemotingTests : UnitTestClass
 
         server.Start();
 
-        // Publish from the server.
+        // Publish from the server. It should wait for the client to connect.
         var sourceGeneratorService = await server.GetRequiredServiceAsync<SourceGeneratorRpcService>( testContext.CancellationToken );
 
-        await sourceGeneratorService.PublishGeneratedSourcesAsync(
+        var publishGeneratedSourcesTask = sourceGeneratorService.PublishGeneratedSourcesAsync(
             projectKey,
             ImmutableDictionary.Create<string, string>().Add( sourceTreeName, "content" ),
             cancellationToken );
 
-        // Start the client.
+        Assert.False( publishGeneratedSourcesTask.IsCompleted );
+
+        // Start the client. This should unblock PublishGeneratedSourcesAsync.
         using var clientEndpoint = new RpcServiceProviderClientEndpoint( serviceProvider, pipeName );
         var eventCollector = new RpcEventCollector();
-        await clientEndpoint.ConnectAsync( cancellationToken );
         clientEndpoint.EventReceived += eventCollector.OnEventReceived;
+        await clientEndpoint.ConnectAsync( cancellationToken );
+
+        await publishGeneratedSourcesTask;
 
         var sourceGeneratorClient = await clientEndpoint.GetClientAsync<SourceGeneratorRpcClient>( cancellationToken );
 
-        // The cache must be empty.
+        // The cache must be empty because the event published by PublishGeneratedSourcesAsync was not processed because ISourceGeneratorRpcApi is not yet registered
+        // because it is registered by GetClientAsync, and therefore is not available when 'publishGeneratedSourcesTask' completes.
         Assert.False( sourceGeneratorClient.TryGetCachedGeneratedSources( projectKey, out _ ) );
 
         // Get the data, which populates the cache.

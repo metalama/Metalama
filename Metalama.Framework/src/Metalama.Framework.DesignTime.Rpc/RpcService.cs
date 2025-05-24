@@ -26,7 +26,8 @@ public abstract class RpcService
         this.Logger.Trace?.Log( $"Instantiating." );
     }
 
-    protected Task WaitUntilInitializedAsync( CancellationToken cancellationToken = default ) => this._initialized.Task.WithCancellation( cancellationToken );
+    protected Task WaitUntilInitializedAsync( CancellationToken cancellationToken = default )
+        => this._initialized.Task.WarnIfLongAsync( this.Logger, nameof(this.WaitUntilInitializedAsync), cancellationToken );
 
     internal abstract void ConfigureRpc( JsonRpc rpc );
 

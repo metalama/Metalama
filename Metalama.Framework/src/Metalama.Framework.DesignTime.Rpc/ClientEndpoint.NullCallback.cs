@@ -14,7 +14,7 @@ public abstract partial class ClientEndpoint
 
         public Task RaiseEventAsync( RpcEventEnvelope envelope, [UsedImplicitly] CancellationToken cancellationToken )
         {
-            this._parent.Logger.Trace?.Log( $"NullCallback.RaiseEventAsync: Received event {envelope.Data.Category} from {envelope.OriginatingApi}." );
+            this._parent.Logger.Trace?.Log( $"NullCallback.RaiseEventAsync: Received event {envelope.Data.GetType().Name} from {envelope.OriginatingApi}." );
 
             return Task.CompletedTask;
         }
