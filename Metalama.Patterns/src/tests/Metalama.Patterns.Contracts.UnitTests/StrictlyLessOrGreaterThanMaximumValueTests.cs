@@ -122,9 +122,8 @@ public sealed class StrictlyLessOrGreaterThanMaximumValueTests : RangeContractTe
         MethodWithDoubleStrictlyGreaterThanUlong( doubleValue );
         MethodWithDecimalStrictlyGreaterThanUlong( decimalValue );
 
-        // TODO #35867
-        // MethodWithLongStrictlyGreaterThanDouble( longValue );
-        // MethodWithUlongStrictlyGreaterThanDouble( ulongValue );
+        MethodWithLongStrictlyGreaterThanDouble( longValue );
+        MethodWithUlongStrictlyGreaterThanDouble( ulongValue );
         MethodWithDoubleStrictlyGreaterThanDouble( doubleValue );
         MethodWithDecimalStrictlyGreaterThanDouble( decimalValue );
     }
@@ -145,9 +144,8 @@ public sealed class StrictlyLessOrGreaterThanMaximumValueTests : RangeContractTe
         MethodWithDoubleStrictlyLessThanUlong( doubleValue );
         MethodWithDecimalStrictlyLessThanUlong( decimalValue );
 
-        // TODO #35867
-        // MethodWithLongStrictlyLessThanDouble( longValue );
-        // MethodWithUlongStrictlyLessThanDouble( ulongValue );
+        MethodWithLongStrictlyLessThanDouble( longValue );
+        MethodWithUlongStrictlyLessThanDouble( ulongValue );
         MethodWithDoubleStrictlyLessThanDouble( doubleValue );
         MethodWithDecimalStrictlyLessThanDouble( decimalValue );
     }
@@ -196,12 +194,10 @@ public sealed class StrictlyLessOrGreaterThanMaximumValueTests : RangeContractTe
     #region Double
 
     // Cannot use doubleLimit by design. Covered by build test.
-    // TODO #35867
-    private static void MethodWithLongStrictlyGreaterThanDouble( /*[StrictlyGreaterThan( (double) _longLimit )]*/ long? a ) { }
+    private static void MethodWithLongStrictlyGreaterThanDouble( [StrictlyGreaterThan( (double) _longLimit )] long? a ) { }
 
     // Cannot use doubleLimit by design. Covered by build test.
-    // TODO #35867
-    private static void MethodWithUlongStrictlyGreaterThanDouble( /*[StrictlyGreaterThan( (double) _ulongLimit )]*/ ulong? a ) { }
+    private static void MethodWithUlongStrictlyGreaterThanDouble( [StrictlyGreaterThan( (double) _ulongLimit )] ulong? a ) { }
 
     private static void MethodWithDoubleStrictlyGreaterThanDouble( [StrictlyGreaterThan( _doubleLimit )] double? a ) { }
 
