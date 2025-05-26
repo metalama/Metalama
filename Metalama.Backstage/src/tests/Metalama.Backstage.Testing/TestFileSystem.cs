@@ -29,6 +29,8 @@ namespace Metalama.Backstage.Testing
             Write
         }
 
+        private const int _historicalYearThreshold = 1815; // Threshold year to handle invalid or default dates.
+
         private readonly ConcurrentDictionary<string, (ManualResetEventSlim Callee, ManualResetEventSlim Caller)> _blockedReads =
             new();
 
@@ -36,21 +38,16 @@ namespace Metalama.Backstage.Testing
             new();
 
         private readonly ConcurrentDictionary<string, Action> _events = new();
-
         private readonly List<string> _failedAccesses = [];
-
         private readonly IDateTimeProvider _time;
-
         private readonly DirectoryWrapper _directory;
-
         private readonly FileWrapper _file;
+        private readonly ConcurrentDictionary<string, ConcurrentDictionary<WatcherHandle, Action<FileSystemEventArgs>>> _changeWatchers = new();
+        private readonly DateTime _initializationTime;
 
         public MockFileSystem Mock { get; private set; } = new();
 
         public IReadOnlyList<string> FailedFileAccesses => this._failedAccesses;
-
-        private readonly ConcurrentDictionary<string, ConcurrentDictionary<WatcherHandle, Action<FileSystemEventArgs>>> _changeWatchers = new();
-        private readonly DateTime _initializationTime;
 
         public TestFileSystem( IServiceProvider serviceProvider )
         {
@@ -175,13 +172,11 @@ namespace Metalama.Backstage.Testing
 
         public DateTime GetDirectoryLastWriteTime( string path ) => this._directory.Execute( ExecutionKind.Manage, 0, path, d => d.GetLastWriteTime( path ) );
 
-        private const int HistoricalYearThreshold = 1815; // Threshold year to handle invalid or default dates.
-
         public DateTime GetDirectoryCreationTime( string path )
         {
             var date = this._directory.Execute( ExecutionKind.Manage, 0, path, d => d.GetCreationTime( path ) );
 
-            return date.Year < HistoricalYearThreshold ? this._initializationTime : date;
+            return date.Year < _historicalYearThreshold ? this._initializationTime : date;
         }
 
         public void SetDirectoryLastWriteTime( string path, DateTime lastWriteTime )
