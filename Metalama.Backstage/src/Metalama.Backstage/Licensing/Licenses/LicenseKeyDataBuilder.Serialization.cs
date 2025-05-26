@@ -104,7 +104,7 @@ namespace Metalama.Backstage.Licensing.Licenses
                         // We read its data to
                         // - Validate that we do understand the must-understand fields.
                         // - Keep the license integrity, e.g. for cloning or signature verification.
-                        shouldReadFieldLength = false; // The lenght is already read by LicenseFieldBytes.
+                        shouldReadFieldLength = false; // The length is already read by LicenseFieldBytes.
                         licenseField = new LicenseFieldBytes();
 
                         break;
