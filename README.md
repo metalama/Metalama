@@ -2,7 +2,11 @@
   <img width="450" src="images/metalama.svg" alt="Metalama logo" />
 </p>
 
- [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/10558/badge)](https://www.bestpractices.dev/projects/10558) [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/metalama/Metalama/badge)](https://scorecard.dev/viewer/?uri=github.com/metalama/Metalama)
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/10558/badge)](https://www.bestpractices.dev/projects/10558) 
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/metalama/Metalama/badge)](https://scorecard.dev/viewer/?uri=github.com/metalama/Metalama)
+[![NuGet Downloads](https://img.shields.io/nuget/dt/Metalama.Compiler)](https://www.nuget.org/packages?q=Metalama&includeComputedFrameworks=true&prerel=true&sortby=totalDownloads-desc)
+[![GitHub Release](https://img.shields.io/github/v/release/metalama/Metalama)](https://github.com/metalama/Metalama/releases)
+
 
 **Metalama is a Roslyn-based meta-programming framework for code generation, architecture validation, and aspect-oriented programming in C#.**
 
