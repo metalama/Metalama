@@ -59,7 +59,7 @@ internal sealed class SourceGeneratorRpcClient : RpcClient<ISourceGeneratorRpcAp
         {
             this._logger.Trace?.Log( $"Received new generated code from the remote host for project '{sourceEventData.ProjectKey}'." );
 
-            // Store the event so that a source generator that would be create later can retrieve it.
+            // Store the event so that a source generator that would be created later can retrieve it.
             this._cachedGeneratedSources[sourceEventData.ProjectKey] = sourceEventData.Sources;
         }
 

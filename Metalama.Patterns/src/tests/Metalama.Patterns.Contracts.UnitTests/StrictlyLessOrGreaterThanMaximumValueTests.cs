@@ -17,7 +17,9 @@ namespace Metalama.Patterns.Contracts.UnitTests;
 public sealed class StrictlyLessOrGreaterThanMaximumValueTests : RangeContractTestsBase
 {
     private const long _longLimit = long.MaxValue - 1;
+    private const double _longLimitAsDouble = ((double) long.MaxValue) / (1 + DoubleTolerance);
     private const ulong _ulongLimit = ulong.MaxValue - 1;
+    private const double _ulongLimitAsDouble = ((double) ulong.MaxValue) / (1 + DoubleTolerance);
     private const double _doubleLimit = double.MaxValue / (1 + DoubleTolerance);
 
     // This has to be double because decimal is not allowed as attribute constructor value.
@@ -194,10 +196,10 @@ public sealed class StrictlyLessOrGreaterThanMaximumValueTests : RangeContractTe
     #region Double
 
     // Cannot use doubleLimit by design. Covered by build test.
-    private static void MethodWithLongStrictlyGreaterThanDouble( [StrictlyGreaterThan( (double) _longLimit )] long? a ) { }
+    private static void MethodWithLongStrictlyGreaterThanDouble( [StrictlyGreaterThan( _longLimitAsDouble )] long? a ) { }
 
     // Cannot use doubleLimit by design. Covered by build test.
-    private static void MethodWithUlongStrictlyGreaterThanDouble( [StrictlyGreaterThan( (double) _ulongLimit )] ulong? a ) { }
+    private static void MethodWithUlongStrictlyGreaterThanDouble( [StrictlyGreaterThan( _ulongLimitAsDouble )] ulong? a ) { }
 
     private static void MethodWithDoubleStrictlyGreaterThanDouble( [StrictlyGreaterThan( _doubleLimit )] double? a ) { }
 

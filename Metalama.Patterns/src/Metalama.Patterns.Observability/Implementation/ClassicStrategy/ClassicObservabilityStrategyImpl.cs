@@ -29,13 +29,13 @@ internal sealed class ClassicObservabilityStrategyImpl : IObservabilityStrategy
     private readonly IMethod? _baseOnPropertyChangedOverridableMethod;
     private readonly IMethod? _baseOnChildPropertyChangedMethod;
     private readonly IMethod? _baseOnObservablePropertyChangedMethod;
-    private readonly bool _targetImplementsInpc;
+    private readonly bool _targetImplementsInterface;
+    private readonly bool _targetImplementsEvent;
 
     public Assets Assets { get; }
 
     // Useful to see when debugging:
     // ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable
-    private readonly bool _baseImplementsInpc;
     private readonly Promise<IMethod> _onPropertyChangedInvocableMethod = new();
     private readonly Promise<IMethod> _onPropertyChangedOverridableMethod = new();
     private readonly Promise<IMethod?> _onChildPropertyChangedMethod = new();
@@ -62,13 +62,24 @@ internal sealed class ClassicObservabilityStrategyImpl : IObservabilityStrategy
 
         // TODO: Consider using BaseType.Definition where possible for better performance.
 
-        this._baseImplementsInpc =
+        var baseTypeHasAspect = target.BaseType is { BelongsToCurrentProject: true }
+                                && target.BaseType.Definition.Enhancements().HasAspect( typeof(ObservableAttribute) );
+
+        var baseImplementsInterface =
             target.BaseType != null && (
                 target.BaseType.IsConvertibleTo( this.Assets.INotifyPropertyChanged )
-                || (target.BaseType is { BelongsToCurrentProject: true }
-                    && target.BaseType.Definition.Enhancements().HasAspect( typeof(ObservableAttribute) )));
+                || baseTypeHasAspect);
 
-        this._targetImplementsInpc = this._baseImplementsInpc || target.IsConvertibleTo( this.Assets.INotifyPropertyChanged );
+        var baseImplementsEvent = target.BaseType != null &&
+                                  (target.BaseType.AllEvents.OfName( nameof(INotifyPropertyChanged.PropertyChanged) )
+                                      .Any() || baseTypeHasAspect);
+
+        this._targetImplementsInterface = baseImplementsInterface || target.IsConvertibleTo( this.Assets.INotifyPropertyChanged );
+
+        this._targetImplementsEvent = baseImplementsEvent ||
+                                      target.AllEvents.OfName( nameof(INotifyPropertyChanged.PropertyChanged) )
+                                          .Any();
+
         (this._baseOnPropertyChangedInvocableMethod, this._baseOnPropertyChangedOverridableMethod) = GetOnPropertyChangedMethods( target );
         this._baseOnChildPropertyChangedMethod = GetOnChildPropertyChangedMethod( target );
         this._baseOnObservablePropertyChangedMethod = GetOnObservablePropertyChangedMethod( target, this.Assets );
@@ -103,7 +114,7 @@ internal sealed class ClassicObservabilityStrategyImpl : IObservabilityStrategy
             return;
         }
 
-        this.IntroduceInterfaceIfRequired();
+        this.IntroduceInterfaceAndEventIfRequired();
 
         // Introduce methods like UpdateA1B1()
         this.IntroduceUpdateMethods();
@@ -154,10 +165,9 @@ internal sealed class ClassicObservabilityStrategyImpl : IObservabilityStrategy
 
         var relevantProperties =
             this.CurrentType.Properties
-                .Where(
-                    p =>
-                        p is { IsStatic: false, IsAutoPropertyOrField: true }
-                        && !p.Attributes.Any( this.Assets.NotObservableAttribute ) );
+                .Where( p =>
+                            p is { IsStatic: false, IsAutoPropertyOrField: true }
+                            && !p.Attributes.Any( this.Assets.NotObservableAttribute ) );
 
         var allValid = true;
 
@@ -175,14 +185,13 @@ internal sealed class ClassicObservabilityStrategyImpl : IObservabilityStrategy
 
         this._propertyPathsForOnChildPropertyChangedMethod.AddRange(
             this.ObservableTypeInfo.AllExpressions
-                .Where(
-                    n => n.InpcBaseHandling switch
-                    {
-                        InpcBaseHandling.OnObservablePropertyChanged when this._onObservablePropertyChangedMethod != null =>
-                            true,
-                        InpcBaseHandling.OnPropertyChanged when n.HasChildren => true,
-                        _ => false
-                    } )
+                .Where( n => n.InpcBaseHandling switch
+                {
+                    InpcBaseHandling.OnObservablePropertyChanged when this._onObservablePropertyChangedMethod != null =>
+                        true,
+                    InpcBaseHandling.OnPropertyChanged when n.HasChildren => true,
+                    _ => false
+                } )
                 .Select( n => n.DottedPropertyPath ) );
     }
 
@@ -261,35 +270,34 @@ internal sealed class ClassicObservabilityStrategyImpl : IObservabilityStrategy
             this.ObservableTypeInfo
                 .AllExpressions
                 .Where( n => n.Depth > 0 )
-                .Where(
-                    node =>
+                .Where( node =>
+                {
+                    var rootPropertyNode = node.Root;
+
+                    if ( rootPropertyNode.ReferencedFieldOrProperty.DeclaringType.Equals( this.CurrentType ) )
                     {
-                        var rootPropertyNode = node.Root;
+                        return false;
+                    }
 
-                        if ( rootPropertyNode.ReferencedFieldOrProperty.DeclaringType.Equals( this.CurrentType ) )
+                    var firstAncestorWithNotNoneHandling = node.Ancestors().FirstOrDefault( n => n.InpcBaseHandling != InpcBaseHandling.None );
+
+                    if ( firstAncestorWithNotNoneHandling != null )
+                    {
+                        switch ( firstAncestorWithNotNoneHandling.InpcBaseHandling )
                         {
-                            return false;
+                            case InpcBaseHandling.OnObservablePropertyChanged when this._onObservablePropertyChangedMethod != null:
+                                return false;
+
+                            case InpcBaseHandling.OnChildPropertyChanged when node.Depth - firstAncestorWithNotNoneHandling.Depth > 1:
+                                return false;
+
+                            case InpcBaseHandling.OnPropertyChanged:
+                                return false;
                         }
+                    }
 
-                        var firstAncestorWithNotNoneHandling = node.Ancestors().FirstOrDefault( n => n.InpcBaseHandling != InpcBaseHandling.None );
-
-                        if ( firstAncestorWithNotNoneHandling != null )
-                        {
-                            switch ( firstAncestorWithNotNoneHandling.InpcBaseHandling )
-                            {
-                                case InpcBaseHandling.OnObservablePropertyChanged when this._onObservablePropertyChangedMethod != null:
-                                    return false;
-
-                                case InpcBaseHandling.OnChildPropertyChanged when node.Depth - firstAncestorWithNotNoneHandling.Depth > 1:
-                                    return false;
-
-                                case InpcBaseHandling.OnPropertyChanged:
-                                    return false;
-                            }
-                        }
-
-                        return true;
-                    } )
+                    return true;
+                } )
                 .ToList();
 
         if ( this._propertyPathsForOnChildPropertyChangedMethod.Count == 0 && nodesForOnChildPropertyChanged.Count == 0 )
@@ -360,7 +368,7 @@ internal sealed class ClassicObservabilityStrategyImpl : IObservabilityStrategy
 
         if ( nodesProcessedByOnObservablePropertyChanged.Count == 0 && this._propertyNamesForOnObservablePropertyChangedMethod.Count == 0 )
         {
-            // We don't create the method because it would not do anything and it would not be invoked.
+            // We don't create the method because it would not do anything, and it would not be invoked.
             // Note that both conditions need to be true, because we still need the method because of the derived types.
             this._onObservablePropertyChangedMethod.Value = null;
 
@@ -416,7 +424,7 @@ internal sealed class ClassicObservabilityStrategyImpl : IObservabilityStrategy
     {
         var isValid = true;
 
-        if ( this._targetImplementsInpc )
+        if ( this._targetImplementsEvent )
         {
             // For clarity, we report just one error.
             if ( this._baseOnPropertyChangedOverridableMethod == null )
@@ -440,12 +448,18 @@ internal sealed class ClassicObservabilityStrategyImpl : IObservabilityStrategy
         return isValid;
     }
 
-    private void IntroduceInterfaceIfRequired()
+    private void IntroduceInterfaceAndEventIfRequired()
     {
-        if ( !this._targetImplementsInpc )
+        if ( !this._targetImplementsInterface )
         {
             this.AspectBuilder.Advice.WithTemplateProvider( Templates.Provider )
                 .ImplementInterface( this.CurrentType, this.Assets.INotifyPropertyChanged );
+        }
+        else if ( !this._targetImplementsEvent )
+        {
+            // The interface is inherited but not implemented. We must add the PropertyChanged event.
+            this.AspectBuilder.Advice.WithTemplateProvider( Templates.Provider )
+                .IntroduceEvent( this.CurrentType, nameof(Templates.ExplicitPropertyChanged) );
         }
     }
 
@@ -773,7 +787,7 @@ internal sealed class ClassicObservabilityStrategyImpl : IObservabilityStrategy
     private HashSet<string>? _existingMemberNames;
 
     /// <summary>
-    /// Gets an unused member name for the target type by adding an numeric suffix until an unused name is found.
+    /// Gets an unused member name for the target type by adding a numeric suffix until an unused name is found.
     /// </summary>
     private string GetAndReserveUnusedMemberName( string desiredName )
     {
@@ -828,13 +842,12 @@ internal sealed class ClassicObservabilityStrategyImpl : IObservabilityStrategy
     {
         // Select methods of correct name, accessibility, and return type.
         var methodsOfCorrectName = type.AllMethods
-            .Where(
-                m => m is
-                {
-                    IsStatic: false,
-                    Accessibility: Accessibility.Public or Accessibility.Protected,
-                    ReturnType.SpecialType: SpecialType.Void
-                } )
+            .Where( m => m is
+            {
+                IsStatic: false,
+                Accessibility: Accessibility.Public or Accessibility.Protected,
+                ReturnType.SpecialType: SpecialType.Void
+            } )
             .Select( m => (MethodNameIndex: Array.IndexOf( _onPropertyChangedMethodNames, m.Name ), Method: m) )
             .Where( x => x.MethodNameIndex >= 0 )
             .ToList();
@@ -848,11 +861,13 @@ internal sealed class ClassicObservabilityStrategyImpl : IObservabilityStrategy
 
         // We must also have a method that we are able to override, and here we support either string or PropertyChangedEventArgs. 
         // We give priority to PropertyChangedEventArgs.
-        var overridableMethod = methodsOfCorrectName.Where(
-                m =>
-                    (m.Method.IsVirtual || m.Method.IsOverride)
-                    && !m.Method.IsSealed
-                    && m.Method.Parameters[0].Type is { SpecialType: SpecialType.String } or INamedType { Name: nameof(PropertyChangedEventArgs) } )
+        var overridableMethod = methodsOfCorrectName.Where( m =>
+                                                                (m.Method.IsVirtual || m.Method.IsOverride)
+                                                                && !m.Method.IsSealed
+                                                                && m.Method.Parameters[0].Type is { SpecialType: SpecialType.String } or INamedType
+                                                                {
+                                                                    Name: nameof(PropertyChangedEventArgs)
+                                                                } )
             .OrderBy( m => m.Method.Parameters[0].Type is { SpecialType: SpecialType.String } ? 0 : 1 )
             .ThenBy( m => m.MethodNameIndex )
             .FirstOrDefault()
@@ -862,33 +877,31 @@ internal sealed class ClassicObservabilityStrategyImpl : IObservabilityStrategy
     }
 
     internal static IMethod? GetOnChildPropertyChangedMethod( INamedType type )
-        => type.AllMethods.SingleOrDefault(
-            m =>
-                !m.IsStatic
-                && m is
-                {
-                    Name: "OnChildPropertyChanged",
-                    Accessibility: Accessibility.Public or Accessibility.Protected,
-                    ReturnType.SpecialType: SpecialType.Void,
-                    Parameters: [{ Type.SpecialType: SpecialType.String }, { Type.SpecialType: SpecialType.String }]
-                } );
+        => type.AllMethods.SingleOrDefault( m =>
+                                                !m.IsStatic
+                                                && m is
+                                                {
+                                                    Name: "OnChildPropertyChanged",
+                                                    Accessibility: Accessibility.Public or Accessibility.Protected,
+                                                    ReturnType.SpecialType: SpecialType.Void,
+                                                    Parameters: [{ Type.SpecialType: SpecialType.String }, { Type.SpecialType: SpecialType.String }]
+                                                } );
 
     internal static IMethod? GetOnObservablePropertyChangedMethod( INamedType type, Assets assets )
-        => type.AllMethods.SingleOrDefault(
-            m =>
-                !m.IsStatic
-                && m is
-                {
-                    Name: "OnObservablePropertyChanged",
-                    Accessibility: Accessibility.Public or Accessibility.Protected,
-                    ReturnType.SpecialType: SpecialType.Void,
-                    Parameters: [{ Type.SpecialType: SpecialType.String }, { } p1, { } p2]
-                }
-                && p1.Type.Equals( assets.NullableINotifyPropertyChanged )
-                && p2.Type.Equals( assets.NullableINotifyPropertyChanged ) );
+        => type.AllMethods.SingleOrDefault( m =>
+                                                !m.IsStatic
+                                                && m is
+                                                {
+                                                    Name: "OnObservablePropertyChanged",
+                                                    Accessibility: Accessibility.Public or Accessibility.Protected,
+                                                    ReturnType.SpecialType: SpecialType.Void,
+                                                    Parameters: [{ Type.SpecialType: SpecialType.String }, { } p1, { } p2]
+                                                }
+                                                && p1.Type.Equals( assets.NullableINotifyPropertyChanged )
+                                                && p2.Type.Equals( assets.NullableINotifyPropertyChanged ) );
 
     /// <summary>
-    /// Validates the the intrinsic characteristics of the given <see cref="IFieldOrProperty"/>, reporting diagnostics if applicable. 
+    /// Validates the intrinsic characteristics of the given <see cref="IFieldOrProperty"/>, reporting diagnostics if applicable. 
     /// The result is cached so that diagnostics are not repeated.
     /// </summary>
     /// <returns><see langword="true"/> if valid, or <see langword="false"/> if invalid.</returns>

@@ -23,6 +23,14 @@ internal sealed class Templates : ITemplateProvider
     [InterfaceMember]
     public event PropertyChangedEventHandler? PropertyChanged;
 
+    // This template is used when the interface is already added to the base list but the PropertyChanged event is not implemented.
+    // It works as a synonym to the PropertyChanged member.
+    // ReSharper disable once EventNeverSubscribedTo.Global
+#pragma warning disable CS0067 // Event is never used
+    [Template( Name = "PropertyChanged" )]
+    public event PropertyChangedEventHandler? ExplicitPropertyChanged;
+#pragma warning restore CS0067 // Event is never used
+
     [Template]
     internal static void OverrideInpcRefTypePropertySetter(
         dynamic? value,

@@ -26,7 +26,7 @@ internal static class DiagnosticDescriptors
         new(
             "LAMA5150",
             Error,
-            "Class '{0}' implements INotifyPropertyChanged but does not define an overridable OnPropertyChanged method with the following signature: "
+            "Class '{0}' implements the PropertyChanged event but does not define an overridable OnPropertyChanged method with the following signature: "
             +
             "`protected virtual void OnPropertyChanged(string)` or `protected virtual void OnPropertyChanged(PropertyChangedEventArgs)`. The method name can also be NotifyOfPropertyChange or RaisePropertyChanged.",
             "OnPropertyChanged is not defined.",

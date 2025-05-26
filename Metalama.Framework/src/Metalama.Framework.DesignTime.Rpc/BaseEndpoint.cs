@@ -20,6 +20,8 @@ public abstract class BaseEndpoint : IDisposable
     private readonly CancellationTokenSource _disposeCancellationSource = new();
     private readonly ConcurrentDictionary<int, (Task Task, string Description)> _backgroundTasks = new();
 
+    protected IEndpointObserver? Observer { get; }
+
     private int _nextBackgroundTaskId;
 
     protected TaskCompletionSource<bool> InitializedTask { get; } = new();
@@ -49,6 +51,7 @@ public abstract class BaseEndpoint : IDisposable
                              ?? throw new InvalidOperationException( "Cannot get the IJsonSerializationBinderProvider" );
 
         this._binder = binderProvider.Binder;
+        this.Observer = serviceProvider.GetService( typeof(IEndpointObserver) ) as IEndpointObserver;
     }
 
     public async ValueTask WaitUntilInitializedAsync( CancellationToken cancellationToken = default )

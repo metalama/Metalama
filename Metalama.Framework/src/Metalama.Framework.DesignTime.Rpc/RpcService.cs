@@ -26,7 +26,8 @@ public abstract class RpcService
         this.Logger.Trace?.Log( $"Instantiating." );
     }
 
-    protected Task WaitUntilInitializedAsync( CancellationToken cancellationToken = default ) => this._initialized.Task.WithCancellation( cancellationToken );
+    protected Task WaitUntilInitializedAsync( CancellationToken cancellationToken = default )
+        => this._initialized.Task.WarnIfLongAsync( this.Logger, nameof(this.WaitUntilInitializedAsync), cancellationToken );
 
     internal abstract void ConfigureRpc( JsonRpc rpc );
 
@@ -76,14 +77,14 @@ public abstract class RpcService<TApi> : RpcService, IDisposable where TApi : IR
 
     protected async Task RaiseEventAsync( RpcEventData eventData, CancellationToken cancellationToken )
     {
+        await this.WaitUntilInitializedAsync( cancellationToken );
+
         if ( this._clients.Count == 0 )
         {
             this.Logger.Trace?.Log( $"RaiseEventAsync: No clients, nothing to do for event {eventData.Category}." );
 
             return;
         }
-
-        await this.WaitUntilInitializedAsync( cancellationToken );
 
         this.Logger.Trace?.Log( $"RaiseEventAsync: Notifying {this._clients.Count} clients with event {eventData.Category}." );
 
