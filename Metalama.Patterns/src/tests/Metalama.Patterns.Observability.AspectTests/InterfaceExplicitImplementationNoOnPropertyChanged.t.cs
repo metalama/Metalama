@@ -1,0 +1,1 @@
+// Error LAMA5150 on `TheClass`: `Class 'TheClass' implements the PropertyChanged event but does not define an overridable OnPropertyChanged method with the following signature: `protected virtual void OnPropertyChanged(string)` or `protected virtual void OnPropertyChanged(PropertyChangedEventArgs)`. The method name can also be NotifyOfPropertyChange or RaisePropertyChanged.`

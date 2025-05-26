@@ -9,14 +9,14 @@ using Metalama.Patterns.Observability.Configuration;
 
 namespace Metalama.Patterns.Observability;
 
-[AttributeUsage( AttributeTargets.Class )]
+[AttributeUsage( AttributeTargets.Class | AttributeTargets.Interface )]
 [Inheritable]
 public sealed class ObservableAttribute : Attribute, IAspect<INamedType>
 {
     void IEligible<INamedType>.BuildEligibility( IEligibilityBuilder<INamedType> builder )
     {
         builder.MustNotBeStatic();
-        builder.MustSatisfy( x => x.TypeKind is TypeKind.Class or TypeKind.RecordClass, x => $"{x} must be a class or a record class" );
+        builder.ExceptForInheritance().MustSatisfy( x => x.TypeKind is TypeKind.Class or TypeKind.RecordClass, x => $"{x} must be a class or a record class" );
     }
 
     void IAspect<INamedType>.BuildAspect( IAspectBuilder<INamedType> builder )
