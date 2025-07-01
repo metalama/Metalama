@@ -4,7 +4,6 @@
 
 using Metalama.Backstage.Infrastructure;
 using Metalama.Backstage.Telemetry;
-using Metalama.Backstage.Welcome;
 using System;
 
 namespace Metalama.Backstage.Extensibility;
@@ -14,7 +13,6 @@ internal sealed class BackstageServicesInitializer : IBackstageService
     private readonly IServiceProvider _serviceProvider;
     private readonly BackstageInitializationOptions _options;
     private readonly BackstageBackgroundTasksService _backgroundTasksService;
-    private readonly WelcomeService? _welcomeService;
     private readonly IProfilingService? _profilingService;
     private readonly ITelemetryConfigurationService? _telemetryConfigurationService;
     private readonly ShutdownService? _shutdownService;
@@ -25,7 +23,6 @@ internal sealed class BackstageServicesInitializer : IBackstageService
         this._options = options;
         this._backgroundTasksService = serviceProvider.GetRequiredBackstageService<BackstageBackgroundTasksService>();
         this._profilingService = serviceProvider.GetBackstageService<IProfilingService>();
-        this._welcomeService = serviceProvider.GetBackstageService<WelcomeService>();
         this._shutdownService = serviceProvider.GetBackstageService<ShutdownService>();
         this._telemetryConfigurationService = serviceProvider.GetBackstageService<ITelemetryConfigurationService>();
     }
@@ -35,7 +32,6 @@ internal sealed class BackstageServicesInitializer : IBackstageService
         this._profilingService?.Initialize();
         this._telemetryConfigurationService?.Initialize();
         this._shutdownService?.Initialize();
-        this._welcomeService?.OnBackstageInitialized();
 
         // The license manager may enqueue a file but be unable to start the process.
         var telemetryUploader = this._serviceProvider.GetBackstageService<ITelemetryUploader>();

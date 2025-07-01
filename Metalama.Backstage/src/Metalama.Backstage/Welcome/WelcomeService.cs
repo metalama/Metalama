@@ -5,19 +5,21 @@
 using JetBrains.Annotations;
 using Metalama.Backstage.Configuration;
 using Metalama.Backstage.Extensibility;
+using Metalama.Backstage.Infrastructure;
 using Metalama.Backstage.Telemetry;
 using Metalama.Backstage.UserInterface;
 using System;
 
 namespace Metalama.Backstage.Welcome;
 
-[PublicAPI( "Used by VSX." )]
+[PublicAPI( "Used by VSX and Metalama.Framework." )]
 public sealed class WelcomeService : IBackstageService
 {
     private readonly IConfigurationManager _configurationManager;
     private readonly WebLinks _webLinks;
     private readonly IUserInterfaceService _userInterfaceService;
     private readonly ITelemetryConfigurationService _telemetryConfigurationService;
+    private readonly BackstageBackgroundTasksService _backgroundTasksService;
 
     internal WelcomeService( IServiceProvider serviceProvider )
     {
@@ -25,6 +27,7 @@ public sealed class WelcomeService : IBackstageService
         this._webLinks = serviceProvider.GetRequiredBackstageService<WebLinks>();
         this._userInterfaceService = serviceProvider.GetRequiredBackstageService<IUserInterfaceService>();
         this._telemetryConfigurationService = serviceProvider.GetRequiredBackstageService<ITelemetryConfigurationService>();
+        this._backgroundTasksService = serviceProvider.GetRequiredBackstageService<BackstageBackgroundTasksService>();
     }
 
     [PublicAPI( "Used by VSX." )]
@@ -34,14 +37,17 @@ public sealed class WelcomeService : IBackstageService
         set => this._configurationManager.Update<WelcomeConfiguration>( c => c with { WelcomePageDisplayed = value } );
     }
 
-    public void OnBackstageInitialized()
+    public void OpenWelcomePageIfRequired()
     {
-        if ( this._telemetryConfigurationService.IsEnabled( TelemetryScenario.Usage ) )
+        this._backgroundTasksService.Enqueue( () =>
         {
-            if ( this._configurationManager.UpdateIf<WelcomeConfiguration>( c => !c.WelcomePageDisplayed, c => c with { WelcomePageDisplayed = true } ) )
+            if ( this._telemetryConfigurationService.IsEnabled( TelemetryScenario.Usage ) )
             {
-                this._userInterfaceService.OpenExternalWebPage( this._webLinks.Welcome, BrowserMode.Default );
+                if ( this._configurationManager.UpdateIf<WelcomeConfiguration>( c => !c.WelcomePageDisplayed, c => c with { WelcomePageDisplayed = true } ) )
+                {
+                    this._userInterfaceService.OpenExternalWebPage( this._webLinks.Welcome, BrowserMode.Default );
+                }
             }
-        }
+        } );
     }
 }

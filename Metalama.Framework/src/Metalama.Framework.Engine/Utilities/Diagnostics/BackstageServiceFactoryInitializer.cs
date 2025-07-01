@@ -18,13 +18,19 @@ public static class BackstageServiceFactoryInitializer
 
     private static void InitializeMetalamaServices() => Logger.Initialize();
 
-    public static void Initialize( BackstageInitializationOptions options )
+    public static bool Initialize( BackstageInitializationOptions options )
     {
         if ( BackstageServiceFactory.Initialize(
                 WithTools( options ),
                 options.ApplicationInfo.Name ) )
         {
             InitializeMetalamaServices();
+
+            return true;
+        }
+        else
+        {
+            return false;
         }
     }
 }

@@ -5,6 +5,7 @@
 using JetBrains.Annotations;
 using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Extensibility;
+using Metalama.Backstage.Welcome;
 using Metalama.Compiler;
 using Metalama.Framework.Engine.AdditionalOutputs;
 using Metalama.Framework.Engine.Diagnostics;
@@ -48,7 +49,10 @@ public sealed partial class SourceTransformer : ISourceTransformerWithServices
                 AddLicensing = false, AddUserInterface = true, AddSupportServices = true, DotNetSdkDirectory = dotNetSdkDirectory
             };
 
-            BackstageServiceFactoryInitializer.Initialize( backstageOptions );
+            if ( BackstageServiceFactoryInitializer.Initialize( backstageOptions ) )
+            {
+                BackstageServiceFactory.ServiceProvider.GetRequiredBackstageService<WelcomeService>().OpenWelcomePageIfRequired();
+            }
         }
 
         var backstageServiceProvider = BackstageServiceFactory.ServiceProvider;

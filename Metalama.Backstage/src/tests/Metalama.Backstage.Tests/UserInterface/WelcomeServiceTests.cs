@@ -7,6 +7,7 @@ using Metalama.Backstage.UserInterface;
 using Metalama.Backstage.Welcome;
 using System;
 using System.Linq;
+using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -17,23 +18,26 @@ public sealed class WelcomeServiceTests : TestsBase
     public WelcomeServiceTests( ITestOutputHelper logger ) : base( logger, new TestApplicationInfo() { IsTelemetryEnabled = true } ) { }
 
     [Fact]
-    public void WelcomePageOpenedOnFirstTime()
+    public async Task WelcomePageOpenedOnFirstTime()
     {
         var webLinks = new WebLinks();
         var welcomeService = new WelcomeService( this.ServiceProvider );
-        welcomeService.OnBackstageInitialized();
+        welcomeService.OpenWelcomePageIfRequired();
+        await this.BackgroundTasks.WhenNoPendingTaskAsync();
 
         Assert.Single( this.UserInterface.ExternalWebPagesOpened );
         Assert.StartsWith( webLinks.Welcome, this.UserInterface.ExternalWebPagesOpened.Single().Url, StringComparison.Ordinal );
     }
 
     [Fact]
-    public void WelcomePageNotOpenedOnSecondTime()
+    public async Task WelcomePageNotOpenedOnSecondTime()
     {
         var welcomeService = new WelcomeService( this.ServiceProvider );
-        welcomeService.OnBackstageInitialized();
+        welcomeService.OpenWelcomePageIfRequired();
+        await this.BackgroundTasks.WhenNoPendingTaskAsync();
         this.UserInterface.ExternalWebPagesOpened.Clear();
-        welcomeService.OnBackstageInitialized();
+        welcomeService.OpenWelcomePageIfRequired();
+        await this.BackgroundTasks.WhenNoPendingTaskAsync();
         Assert.Empty( this.UserInterface.ExternalWebPagesOpened );
     }
 }
