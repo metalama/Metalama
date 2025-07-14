@@ -1419,11 +1419,11 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
         // If the type of a pattern is compile-time-only, the variable is compile-time.
 
         var transformedType = this.Visit( node.Type );
-        var scope = this.GetNodeScope( transformedType );
+        var typeScope = this.GetNodeScope( transformedType );
 
         var typeSymbol = this._syntaxTreeAnnotationMap.GetExpressionType( node.Type )!;
 
-        var context = scope == CompileTimeOnly
+        var context = typeScope == CompileTimeOnly
             ? this._currentScopeContext.CompileTimeOnly( $"local variable of compile-time type '{typeSymbol}'" )
             : null;
 
@@ -1434,7 +1434,9 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
             transformedDesignation = this.Visit( node.Designation );
         }
 
-        return node.Update( transformedType, transformedDesignation ).AddScopeAnnotation( scope );
+        var declarationScope = typeScope.GetExpressionValueScope();
+        
+        return node.Update( transformedType, transformedDesignation ).AddScopeAnnotation( declarationScope );
     }
 
     public override SyntaxNode VisitIsPatternExpression( IsPatternExpressionSyntax node )
