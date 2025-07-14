@@ -18,7 +18,7 @@ public class InpcAutoPropertyWithRef : INotifyPropertyChanged
           oldValue.PropertyChanged -= _handleXPropertyChanged;
         }
         _x = value;
-        OnObservablePropertyChanged("X", oldValue, value);
+        OnObservablePropertyChanged("X", oldValue, (INotifyPropertyChanged? )value);
         OnPropertyChanged("Y");
         OnPropertyChanged("X");
         SubscribeToX(value);

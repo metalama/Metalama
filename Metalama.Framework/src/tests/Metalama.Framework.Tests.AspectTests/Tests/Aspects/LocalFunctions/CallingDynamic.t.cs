@@ -19,19 +19,19 @@ internal class C
   public object? UntypedProperty { get; set; }
   public void M(int a)
   {
-    if (new Func<object, bool>(parameter => CanExecute((int)parameter)).Invoke(a))
+    if (new Func<object, bool>(parameter => CanExecute((object? )(int)parameter)).Invoke(a))
     {
       Console.WriteLine("Hello, world.");
     }
-    Execute1(new Func<object, bool>(parameter => CanExecute((int)parameter)));
-    _ = new C(new Func<object, bool>(parameter => CanExecute((int)parameter)));
-    var x = new Func<object, bool>(parameter => CanExecute((int)parameter));
+    Execute1(new Func<object, bool>(parameter => CanExecute((object? )(int)parameter)));
+    _ = new C(new Func<object, bool>(parameter => CanExecute((object? )(int)parameter)));
+    var x = new Func<object, bool>(parameter => CanExecute((object? )(int)parameter));
     _ = new C
     {
       UntypedProperty = new Action(() => Execute1(new object ()))
     };
-    Execute2(parameter => CanExecute((int)parameter));
-    _ = new C(null, parameter => CanExecute((int)parameter));
+    Execute2(parameter => CanExecute((object? )(int)parameter));
+    _ = new C(null, parameter => CanExecute((object? )(int)parameter));
     var y = () => Execute1(new object ());
     _ = new C
     {

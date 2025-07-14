@@ -16,7 +16,7 @@ public partial class A<T> : INotifyPropertyChanged where T : class, INotifyPrope
       {
         var oldValue = _a1;
         _a1 = value;
-        OnObservablePropertyChanged("A1", (INotifyPropertyChanged? )oldValue, value);
+        OnObservablePropertyChanged("A1", (INotifyPropertyChanged? )oldValue, (INotifyPropertyChanged? )value);
         OnPropertyChanged("A1");
       }
     }

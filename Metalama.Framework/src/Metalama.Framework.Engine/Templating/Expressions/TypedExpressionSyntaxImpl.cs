@@ -169,7 +169,9 @@ namespace Metalama.Framework.Engine.Templating.Expressions
         /// if necessary.
         /// </summary>
         /// <param name="targetType">The target type, or <c>null</c> if no cast must be emitted in any case.</param>
-        public TypedExpressionSyntaxImpl Convert( IType targetType, SyntaxGenerationContext generationContext )
+        /// <param name="requireExactType">Do not rely on implicit conversions and generate a cast whenever the expression type
+        /// does not match exactly the target type. This is useful to avoid ambiguities or errors in overload resolutions.</param>
+        public TypedExpressionSyntaxImpl Convert( IType targetType, SyntaxGenerationContext generationContext, bool requireExactType = false )
         {
             var compilationModel = targetType.GetCompilationModel();
 
@@ -177,7 +179,18 @@ namespace Metalama.Framework.Engine.Templating.Expressions
             {
                 // If we know the type of the current expression, check if a cast is necessary.
 
-                if ( compilationModel.Comparers.Default.IsConvertibleTo( this.ExpressionType, targetType, ConversionKind.Implicit ) )
+                bool requiresCast;
+
+                if ( requireExactType )
+                {
+                    requiresCast = !compilationModel.Comparers.Default.Equals( this.ExpressionType, targetType );
+                }
+                else
+                {
+                    requiresCast = !compilationModel.Comparers.Default.IsConvertibleTo( this.ExpressionType, targetType, ConversionKind.Implicit );
+                }
+                
+                if ( !requiresCast )
                 {
                     return new TypedExpressionSyntaxImpl( this.Syntax, targetType, compilationModel, this.IsReferenceable, this.CanBeNull );
                 }

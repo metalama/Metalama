@@ -25,7 +25,7 @@ public partial class D<T> : INotifyPropertyChanged where T : class, INotifyPrope
           oldValue.PropertyChanged -= _handleD1PropertyChanged;
         }
         _d1 = value;
-        OnObservablePropertyChanged("D1", oldValue, value);
+        OnObservablePropertyChanged("D1", oldValue, (INotifyPropertyChanged? )value);
         OnPropertyChanged("FooX");
         OnPropertyChanged("D1");
         SubscribeToD1(value);

@@ -29,7 +29,7 @@ public class D : INotifyPropertyChanged
           oldValue.PropertyChanged -= _handleCPropertyChanged;
         }
         _c = value;
-        OnObservablePropertyChanged("C", oldValue, value);
+        OnObservablePropertyChanged("C", oldValue, (INotifyPropertyChanged? )value);
         OnPropertyChanged("P");
         OnPropertyChanged("C");
         SubscribeToC(value);

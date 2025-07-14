@@ -191,7 +191,7 @@ public static class DeclarationExtensions
                 }
                 else
                 {
-                    argument = SyntaxFactory.Argument( arg.Convert( parameter.Type, syntaxGenerationContext ).Syntax.RemoveParenthesis() );
+                    argument = SyntaxFactory.Argument( arg.Convert( parameter.Type, syntaxGenerationContext, true ).Syntax.RemoveParenthesis() );
                 }
             }
 

@@ -14,7 +14,7 @@ public class InpcAutoPropertyNoRefs : INotifyPropertyChanged
       {
         var oldValue = _x;
         _x = value;
-        OnObservablePropertyChanged("X", (INotifyPropertyChanged? )oldValue, value);
+        OnObservablePropertyChanged("X", (INotifyPropertyChanged? )oldValue, (INotifyPropertyChanged? )value);
         OnPropertyChanged("X");
       }
     }
