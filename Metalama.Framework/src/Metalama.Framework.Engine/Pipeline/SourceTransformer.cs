@@ -36,22 +36,27 @@ namespace Metalama.Framework.Engine.Pipeline;
 [UsedImplicitly]
 public sealed partial class SourceTransformer : ISourceTransformerWithServices
 {
+    private static readonly object _initializeSync = new();
+    
     public IServiceProvider InitializeServices( InitializeServicesContext context )
     {
-        if ( !BackstageServiceFactoryInitializer.IsInitialized )
+        lock ( _initializeSync )
         {
-            var dotNetSdkDirectory = GetDotNetSdkDirectory( context.AnalyzerConfigOptionsProvider );
-
-            var applicationInfo = new SourceTransformerApplicationInfo( context.Options.IsLongRunningProcess );
-
-            var backstageOptions = new BackstageInitializationOptions( applicationInfo )
+            if ( !BackstageServiceFactoryInitializer.IsInitialized )
             {
-                AddLicensing = false, AddUserInterface = true, AddSupportServices = true, DotNetSdkDirectory = dotNetSdkDirectory
-            };
+                var dotNetSdkDirectory = GetDotNetSdkDirectory( context.AnalyzerConfigOptionsProvider );
 
-            if ( BackstageServiceFactoryInitializer.Initialize( backstageOptions ) )
-            {
-                BackstageServiceFactory.ServiceProvider.GetRequiredBackstageService<WelcomeService>().OpenWelcomePageIfRequired();
+                var applicationInfo = new SourceTransformerApplicationInfo( context.Options.IsLongRunningProcess );
+
+                var backstageOptions = new BackstageInitializationOptions( applicationInfo )
+                {
+                    AddLicensing = false, AddUserInterface = true, AddSupportServices = true, DotNetSdkDirectory = dotNetSdkDirectory
+                };
+
+                if ( BackstageServiceFactoryInitializer.Initialize( backstageOptions ) )
+                {
+                    BackstageServiceFactory.ServiceProvider.GetRequiredBackstageService<WelcomeService>().OpenWelcomePageIfRequired();
+                }
             }
         }
 

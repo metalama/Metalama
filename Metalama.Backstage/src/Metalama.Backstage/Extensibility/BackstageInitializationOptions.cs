@@ -51,13 +51,6 @@ public record BackstageInitializationOptions( IApplicationInfo ApplicationInfo )
     public LicensingInitializationOptions LicensingOptions { get; init; } = new();
 
     /// <summary>
-    /// Gets a value indicating whether the services should be initialized. The default value is <c>true</c>.
-    /// It can be set to <c>false</c> in scenarios where it is not necessary to build up the whole application
-    /// because just a few services will be used.
-    /// </summary>
-    public bool Initialize { get; init; } = true;
-
-    /// <summary>
     /// Gets a value indicating whether toast notifications like <see cref="ToastNotificationKinds.RequiresLicense"/> or
     /// <see cref="ToastNotificationKinds.VsxNotInstalled"/> should be detected and opened. The default value is <c>true</c>.
     /// </summary>
