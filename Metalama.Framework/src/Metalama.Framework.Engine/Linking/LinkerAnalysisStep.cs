@@ -2,6 +2,8 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Code;
+using Metalama.Framework.Engine.AdviceImpl.Override;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CodeModel.Helpers;
@@ -11,15 +13,20 @@ using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Metalama.Framework.Engine.Utilities.Threading;
+using Metalama.Framework.RunTime;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using MethodKind = Microsoft.CodeAnalysis.MethodKind;
+using SpecialType = Metalama.Framework.Code.SpecialType;
 using TypeKind = Microsoft.CodeAnalysis.TypeKind;
+using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 // ReSharper disable MissingIndent
 // ReSharper disable BadExpressionBracesIndent
@@ -71,6 +78,7 @@ namespace Metalama.Framework.Engine.Linking
              */
 
             var inlinerProvider = new InlinerProvider();
+            var typeMemberIdentifierGenerator = new TypeMemberIdentifierGenerator( input.InputCompilationModel );
 
             var referenceResolver =
                 new AspectReferenceResolver(
@@ -87,6 +95,12 @@ namespace Metalama.Framework.Engine.Linking
                 .Where( s => s is IEventSymbol eventSymbol && eventSymbol.IsEventField() == true )
                 .Cast<IEventSymbol>()
                 .ToArray();
+
+            var eventsWithRaiseOverrides =
+                new HashSet<IEventSymbol>(
+                    input.InjectionRegistry.GetInjectedMembers()
+                    .Where( im => im.Semantic == Transformations.InjectedMemberSemantic.OverrideEventRaise )
+                    .Select( im => (IEventSymbol)input.InjectionRegistry.GetSymbolForInjectedMember(im) ) );
 
             var eventFieldRaiseReferences = await GetEventFieldRaiseReferencesAsync( symbolReferenceFinder, overriddenEventFields, cancellationToken );
 
@@ -202,12 +216,21 @@ namespace Metalama.Framework.Engine.Linking
 
             var substitutions = await substitutionGenerator.RunAsync( cancellationToken );
 
+            this.CollectEventBrokerInfo(
+                input.InputCompilationModel,
+                input.InjectionRegistry,
+                typeMemberIdentifierGenerator,
+                out var typeEventBrokers,
+                out var staticDelegates );
+
             var analysisRegistry = new LinkerAnalysisRegistry(
                 input.IntermediateCompilation.CompilationContext,
                 reachableSemantics,
                 inlinedSemantics,
                 substitutions,
-                overrideTargetsWithUnsupportedNonInlinedOverrides );
+                overrideTargetsWithUnsupportedNonInlinedOverrides,
+                typeEventBrokers,
+                staticDelegates );
 
             return
                 new LinkerAnalysisStepOutput(
@@ -218,6 +241,191 @@ namespace Metalama.Framework.Engine.Linking
                     input.LateTransformationRegistry,
                     analysisRegistry,
                     input.ProjectOptions );
+        }
+
+        private void CollectEventBrokerInfo( 
+            CompilationModel intermediateCompilationModel,
+            LinkerInjectionRegistry injectionRegistry, 
+            TypeMemberIdentifierGenerator typeMemberIdentifierGenerator,
+            out IReadOnlyDictionary<IEventSymbol, EventBrokerInfo> eventBrokers,
+            out IReadOnlyDictionary<INamedTypeSymbol, IReadOnlyDictionary<INamedTypeSymbol, StaticDelegateInfo>> staticDelegates )
+        {
+            var invokerTypes = new Dictionary<INamedTypeSymbol, HashSet<INamedTypeSymbol>>( intermediateCompilationModel.CompilationContext.SymbolComparer );
+            var castTypes = new Dictionary<INamedTypeSymbol, HashSet<INamedTypeSymbol>>( intermediateCompilationModel.CompilationContext.SymbolComparer );
+
+            var eventBrokersWritable = new Dictionary<IEventSymbol, EventBrokerInfo>( intermediateCompilationModel.CompilationContext.SymbolComparer );
+            eventBrokers = eventBrokersWritable;
+
+            var staticDelegatesWritable = new Dictionary<INamedTypeSymbol, IReadOnlyDictionary<INamedTypeSymbol, StaticDelegateInfo>>( intermediateCompilationModel.CompilationContext.SymbolComparer );
+            staticDelegates = staticDelegatesWritable;
+
+            foreach ( var injectedMember in injectionRegistry.GetInjectedMembers().Where( im => im.Semantic == Transformations.InjectedMemberSemantic.OverrideEventRaise ) )
+            {
+                switch ( injectedMember.Transformation )
+                {
+                    case OverrideEventTransformation overrideEvent:
+                        var targetEvent = overrideEvent.TargetDeclaration.As<IEvent>().GetTarget( intermediateCompilationModel );
+                        var targetEventSymbol = targetEvent.GetSymbol().AssertNotNull();
+                        var delegateType = targetEvent.Type.AssertNotNull();
+                        var invokeMethod = delegateType.Methods.OfName( "Invoke" ).Single();
+
+                        var raiseMethodName =
+                            injectedMember.Syntax switch
+                            {
+                                MethodDeclarationSyntax methodDeclaration => methodDeclaration.Identifier.ValueText,
+                                _ => throw new NotSupportedException( $"Unsupported syntax for event raise override: {injectedMember.Syntax}." )
+                            };
+
+                        switch ( invokeMethod )
+                        {
+                            case { Parameters.Count: 2, ReturnType: { SpecialType: SpecialType.Void } }:
+                                // Delegate with two parameters and void return type.
+                                var eventArgsType = invokeMethod.Parameters[1].Type;
+                                var objectType = intermediateCompilationModel.Factory.GetSpecialType( Code.SpecialType.Object );
+                                var eventBrokerType =
+                                    ((INamedType) intermediateCompilationModel.Factory.GetTypeByReflectionType( typeof( ActionEventBroker<,> ) ))
+                                    .WithTypeArguments( [delegateType, eventArgsType] );
+
+                                var invokerDelegateType =
+                                    ((INamedType) intermediateCompilationModel.Factory.GetTypeByReflectionType( typeof( Action<,,> ) ))
+                                    .WithTypeArguments( [delegateType, objectType, eventArgsType] );
+                                    
+                                var invokerDelegateTypeSymbol = 
+                                    invokerDelegateType.GetSymbol().AssertNotNull();
+
+                                var castDelegateType =
+                                    ((INamedType) intermediateCompilationModel.Factory.GetTypeByReflectionType( typeof( Func<,> ) ))
+                                    .WithTypeArguments( [eventBrokerType, delegateType] );
+
+                                var castDelegateTypeSymbol =
+                                    castDelegateType.GetSymbol().AssertNotNull();
+
+                                var staticDelegatesForType = 
+                                    (IDictionary<INamedTypeSymbol, StaticDelegateInfo>) staticDelegatesWritable
+                                    .GetOrAdd( targetEventSymbol.ContainingType, _ => new Dictionary<INamedTypeSymbol, StaticDelegateInfo>() );
+
+                                var eventBrokerFieldName =
+                                    typeMemberIdentifierGenerator.AllocateName( targetEventSymbol.ContainingType, $"{targetEvent.Name}Broker", true );
+
+                                if (!staticDelegatesForType.TryGetValue( invokerDelegateTypeSymbol, out var invokerDelegateFieldInfo))
+                                {
+                                    invokerDelegateFieldInfo = new StaticDelegateInfo(
+                                        targetEventSymbol.ContainingType,
+                                        invokerDelegateTypeSymbol,
+                                        context => GetEventBrokerInvokerDelegateInitializationExpression( context, (INamedTypeSymbol)targetEvent.DeclaringType, raiseMethodName ) );
+
+                                    staticDelegatesForType.Add( invokerDelegateTypeSymbol, invokerDelegateFieldInfo );
+                                }
+
+                                if ( !staticDelegatesForType.TryGetValue( castDelegateTypeSymbol, out var castDelegateFieldInfo ) )
+                                {
+                                    castDelegateFieldInfo = new StaticDelegateInfo(
+                                        targetEventSymbol.ContainingType,
+                                        castDelegateTypeSymbol,
+                                        context => GetEventBrokerCastDelegateInitializationExpression() );
+
+                                    staticDelegatesForType.Add( castDelegateTypeSymbol, castDelegateFieldInfo );
+                                }
+
+                                eventBrokersWritable.Add(
+                                    targetEventSymbol,
+                                    new EventBrokerInfo(
+                                        targetEvent.GetSymbol().AssertNotNull(),
+                                        eventBrokerType.GetSymbol().AssertNotNull(), 
+                                        eventBrokerFieldName,
+                                        invokerDelegateFieldInfo,
+                                        castDelegateFieldInfo ) );
+
+                                break; 
+
+                            default:
+                                throw new NotSupportedException( $"Unsupported delegate signature for event broker: {invokeMethod}." );
+                        }
+
+                        break;
+
+                    default:
+                        throw new NotSupportedException( $"Unsupported injected member transformation for event broker: {injectedMember.Transformation}." );
+                }
+            }
+        }
+
+        private static ExpressionSyntax GetEventBrokerCastDelegateInitializationExpression()
+        {
+            return
+                SimpleLambdaExpression(
+                    TokenList( Token( SyntaxKind.StaticKeyword ) ),
+                    Parameter( Identifier( "b" ) ),
+                    null,
+                    ParenthesizedLambdaExpression(
+                        ParameterList(
+                            SeparatedList<ParameterSyntax>(
+                                [
+                                    Parameter(
+                                        Identifier("sender")),
+                                    Token(SyntaxKind.CommaToken),
+                                    Parameter(
+                                        Identifier("args"))
+                                ] ) ),
+                        null,
+                        InvocationExpression(
+                            MemberAccessExpression(
+                                SyntaxKind.SimpleMemberAccessExpression,
+                                IdentifierName( "b" ),
+                                IdentifierName( "Invoke" ) ),
+                            ArgumentList(
+                                SingletonSeparatedList(
+                                    Argument(
+                                        TupleExpression(
+                                            SeparatedList<ArgumentSyntax>(
+                                                [
+                                                    Argument(
+                                                        IdentifierName("sender")),
+                                                    Token(SyntaxKind.CommaToken),
+                                                    Argument(
+                                                        IdentifierName("args"))
+                                                ] ) ) ) ) ) ) ) );
+        }
+
+        private static ExpressionSyntax GetEventBrokerInvokerDelegateInitializationExpression(
+            SyntaxGenerationContext context,
+            INamedTypeSymbol containingType,
+            string invokeMethodName )
+        {
+            return
+                ParenthesizedLambdaExpression(
+                    TokenList( Token( SyntaxKind.StaticKeyword ) ),
+                    ParameterList(
+                        SeparatedList<ParameterSyntax>(
+                            [
+                                Parameter(
+                                    Identifier("handler")),
+                                Token(SyntaxKind.CommaToken),
+                                Parameter(
+                                    Identifier("me")),
+                                Token(SyntaxKind.CommaToken),
+                                Parameter(
+                                    Identifier("args"))
+                            ] ) ),
+                    null,
+                    InvocationExpression(
+                        MemberAccessExpression(
+                            SyntaxKind.SimpleMemberAccessExpression,
+                            ParenthesizedExpression(
+                                CastExpression(
+                                    context.SyntaxGenerator.TypeSyntax(containingType),
+                                    IdentifierName( "me" ) ) ),
+                            IdentifierName( invokeMethodName ) ),
+                        ArgumentList(
+                            SeparatedList<ArgumentSyntax>(
+                                [
+                                    Argument(
+                                        IdentifierName("handler")),
+                                    Token(SyntaxKind.CommaToken),
+                                    Argument(
+                                        IdentifierName("args"))
+                                ] ) ) ) );
+
         }
 
         /// <summary>

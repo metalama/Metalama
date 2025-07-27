@@ -617,6 +617,45 @@ internal sealed class AspectReferenceResolver
                             throw new AssertionFailedException( $"Unexpected property expression: '{expression.Parent}'." );
                     }
 
+                case { Name: LinkerInjectionHelperProvider.EventRaiseMemberName }:
+                    switch ( expression.Parent )
+                    {
+                        case InvocationExpressionSyntax
+                        {
+                            ArgumentList.Arguments:
+                            [
+                            {
+                                Expression: ParenthesizedLambdaExpressionSyntax
+                                {
+                                    ExpressionBody: AssignmentExpressionSyntax { RawKind: (int) SyntaxKind.AddAssignmentExpression, Left: ExpressionSyntax eventExpression }
+                                }
+                            }]
+                        } invocationExpression:
+                            var symbolInfo = semanticModel.GetSymbolInfo( eventExpression );
+
+                            rootNode = invocationExpression;
+
+                            targetSymbol =
+                                symbolInfo switch
+                                {
+                                    // Normal situation with valid symbol.
+                                    { Symbol: { } symbol } => symbol,
+
+                                    // When the code is invalid, there are usually 
+                                    { CandidateSymbols: [{ } symbol] } => symbol,
+
+                                    // We should not get here because this reference would be skipped by AspectReferenceWalker.
+                                    _ => throw new AssertionFailedException( $"Invalid symbol info: {symbolInfo}" )
+                                };
+
+                            targetSymbolSource = eventExpression;
+
+                            return;
+
+                        default:
+                            throw new AssertionFailedException( $"Unexpected property expression: '{expression.Parent}'." );
+                    }
+
                 case not null when SymbolHelpers.GetOperatorKindFromName( helperMethod.Name ) is not OperatorKind.None and var operatorKind:
                     // Referencing an operator.
                     rootNode = expression;

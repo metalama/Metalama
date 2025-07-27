@@ -36,7 +36,7 @@ namespace Metalama.Framework.Code
         /// Gets an object that represents the <c>raise</c> semantic and allows to add aspects and advice
         /// as with a normal method.
         /// </summary>
-        IMethod? RaiseMethod { get; }
+        IMethod RaiseMethod { get; }
 
         /// <summary>
         /// Gets the base event that is overridden by the current event.

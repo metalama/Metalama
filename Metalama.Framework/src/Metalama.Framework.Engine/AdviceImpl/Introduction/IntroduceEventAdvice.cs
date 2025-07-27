@@ -25,6 +25,7 @@ internal sealed class IntroduceEventAdvice : IntroduceMemberAdvice<IEvent, IEven
 {
     private readonly PartiallyBoundTemplateMethod? _addTemplate;
     private readonly PartiallyBoundTemplateMethod? _removeTemplate;
+    private readonly PartiallyBoundTemplateMethod? _invokeTemplate;
 
     public IntroduceEventAdvice(
         AdviceConstructorParameters<INamedType> parameters,
@@ -32,6 +33,7 @@ internal sealed class IntroduceEventAdvice : IntroduceMemberAdvice<IEvent, IEven
         TemplateMember<IEvent>? eventTemplate,
         PartiallyBoundTemplateMethod? addTemplate,
         PartiallyBoundTemplateMethod? removeTemplate,
+        PartiallyBoundTemplateMethod? invokeTemplate,
         IntroductionScope scope,
         OverrideStrategy overrideStrategy,
         Action<IEventBuilder>? buildAction,
@@ -41,6 +43,7 @@ internal sealed class IntroduceEventAdvice : IntroduceMemberAdvice<IEvent, IEven
     {
         this._addTemplate = addTemplate;
         this._removeTemplate = removeTemplate;
+        this._invokeTemplate = invokeTemplate;
     }
 
     protected override EventBuilder CreateBuilder()
@@ -200,7 +203,8 @@ internal sealed class IntroduceEventAdvice : IntroduceMemberAdvice<IEvent, IEven
                         this.AspectLayerInstance,
                         builder.ToFullRef(),
                         this._addTemplate?.ForIntroduction( builder.AddMethod ),
-                        this._removeTemplate?.ForIntroduction( builder.RemoveMethod ) ) );
+                        this._removeTemplate?.ForIntroduction( builder.RemoveMethod ),
+                        this._invokeTemplate?.ForIntroduction( builder.RaiseMethod ) ) );
             }
 
             return this.CreateSuccessResult( AdviceOutcome.Default, builder );
@@ -277,7 +281,8 @@ internal sealed class IntroduceEventAdvice : IntroduceMemberAdvice<IEvent, IEven
                                 this.AspectLayerInstance,
                                 builder.ToFullRef(),
                                 this._addTemplate?.ForIntroduction( builder.AddMethod ),
-                                this._removeTemplate?.ForIntroduction( builder.RemoveMethod ) );
+                                this._removeTemplate?.ForIntroduction( builder.RemoveMethod ),
+                                this._invokeTemplate?.ForIntroduction( builder.RaiseMethod ) );
 
                             context.AddTransformation( builder.CreateTransformation( this.Template ) );
                             context.AddTransformation( overriddenMethod );
@@ -299,7 +304,8 @@ internal sealed class IntroduceEventAdvice : IntroduceMemberAdvice<IEvent, IEven
                                 this.AspectLayerInstance,
                                 existingEvent.ToFullRef(),
                                 this._addTemplate?.ForIntroduction( existingEvent.AddMethod ),
-                                this._removeTemplate?.ForIntroduction( existingEvent.RemoveMethod ) );
+                                this._removeTemplate?.ForIntroduction( existingEvent.RemoveMethod ),
+                                this._invokeTemplate?.ForIntroduction( builder.RaiseMethod ) );
 
                             context.AddTransformation( overriddenMethod );
 
@@ -334,7 +340,8 @@ internal sealed class IntroduceEventAdvice : IntroduceMemberAdvice<IEvent, IEven
                                 this.AspectLayerInstance,
                                 builder.ToFullRef(),
                                 this._addTemplate?.ForIntroduction( builder.AddMethod ),
-                                this._removeTemplate?.ForIntroduction( builder.RemoveMethod ) );
+                                this._removeTemplate?.ForIntroduction( builder.RemoveMethod ),
+                                this._invokeTemplate?.ForIntroduction( builder.RaiseMethod ) );
 
                             context.AddTransformation( builder.CreateTransformation( this.Template ) );
                             context.AddTransformation( overriddenEvent );

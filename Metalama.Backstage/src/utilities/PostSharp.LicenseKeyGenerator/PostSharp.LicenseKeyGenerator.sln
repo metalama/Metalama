@@ -1,0 +1,24 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.2.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PostSharp.LicenseKeyGenerator", "PostSharp.LicenseKeyGenerator.csproj", "{FA044BF8-8F33-E3DE-04DA-3BC7C76894DD}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{FA044BF8-8F33-E3DE-04DA-3BC7C76894DD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FA044BF8-8F33-E3DE-04DA-3BC7C76894DD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FA044BF8-8F33-E3DE-04DA-3BC7C76894DD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FA044BF8-8F33-E3DE-04DA-3BC7C76894DD}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {DD14BF6D-5DEB-4555-B9A9-42FD57856977}
+	EndGlobalSection
+EndGlobal

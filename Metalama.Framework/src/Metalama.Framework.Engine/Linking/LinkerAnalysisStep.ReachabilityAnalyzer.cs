@@ -119,6 +119,7 @@ internal sealed partial class LinkerAnalysisStep
                         case IEventSymbol @event:
                             DepthFirstSearch( @event.AddMethod.AssertNotNull().ToSemantic( IntermediateSymbolSemanticKind.Default ) );
                             DepthFirstSearch( @event.RemoveMethod.AssertNotNull().ToSemantic( IntermediateSymbolSemanticKind.Default ) );
+                            DepthFirstSearch( @event.RaiseMethod.AssertNotNull().ToSemantic( IntermediateSymbolSemanticKind.Default ) );
 
                             break;
                     }

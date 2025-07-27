@@ -24,5 +24,10 @@ internal enum InjectedMemberSemantic
     /// <summary>
     /// The injected member is an auxiliary body with a trivial structure that is meant to receive other transformations (e.g. inserted statements).
     /// </summary>
-    AuxiliaryBody
+    AuxiliaryBody,
+
+    /// <summary>
+    /// The injected member is an override of event raise.
+    /// </summary>
+    OverrideEventRaise,
 }

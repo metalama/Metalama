@@ -33,8 +33,10 @@ internal sealed class LinkerInjectionHelperProvider
     public const string StaticConstructorMemberName = "__StaticConstructor";
     public const string PropertyMemberName = "__Property";
     public const string AsyncVoidMethodMemberName = "__AsyncVoidMethod";
+    public const string EventRaiseMemberName = "__RaiseEvent";
     private const string _eventFieldInitializationExpressionMemberName = "__EventFieldInitializationExpression__";
     private const string _emptyCodeTypeName = "__Empty";
+    private const string _emptyDelegateMemberName = "__EmptyDelegate";
     private const string _sourceCodeTypeName = "__Source";
     private const string _overriddenByTypeName = "__OverriddenBy";
     private const string _auxiliaryTypeName = "__Auxiliary";
@@ -90,6 +92,20 @@ internal sealed class LinkerInjectionHelperProvider
             GenericName(
                 Identifier( _eventFieldInitializationExpressionMemberName ),
                 TypeArgumentList( SingletonSeparatedList( eventFieldType ) ) ) );
+
+    public static ExpressionSyntax GetEventRaiseMemberExpression()
+        => MemberAccessExpression(
+            SyntaxKind.SimpleMemberAccessExpression,
+            IdentifierName( HelperTypeName ),
+            IdentifierName( EventRaiseMemberName ) );
+
+    public static ExpressionSyntax GetEmptyDelegateMemberExpression( TypeSyntax delegateType )
+        => MemberAccessExpression(
+            SyntaxKind.SimpleMemberAccessExpression,
+            IdentifierName( HelperTypeName ),
+            GenericName(
+                Identifier( _emptyDelegateMemberName ),
+                TypeArgumentList( SingletonSeparatedList( delegateType ) ) ) );
 
     public static ExpressionSyntax GetOperatorMemberExpression(
         ContextualSyntaxGenerator syntaxGenerator,
@@ -191,19 +207,19 @@ internal sealed class LinkerInjectionHelperProvider
         var suffix = useNullability ? "?" : "";
 
         var binaryOperators =
-            Enum.GetValues( typeof(OperatorKind) )
+            Enum.GetValues( typeof( OperatorKind ) )
                 .Cast<OperatorKind>()
                 .Where( op => op.GetCategory() == OperatorCategory.Binary )
                 .Select( op => $"public static R{suffix} {op.ToOperatorMethodName()}<A,B,R>(A{suffix} a, B{suffix} b) => default(R{suffix});" );
 
         var unaryOperators =
-            Enum.GetValues( typeof(OperatorKind) )
+            Enum.GetValues( typeof( OperatorKind ) )
                 .Cast<OperatorKind>()
                 .Where( op => op.GetCategory() == OperatorCategory.Unary )
                 .Select( op => $"public static R{suffix} {op.ToOperatorMethodName()}<A,R>(A{suffix} a) => default(R{suffix});" );
 
         var conversionOperators =
-            Enum.GetValues( typeof(OperatorKind) )
+            Enum.GetValues( typeof( OperatorKind ) )
                 .Cast<OperatorKind>()
                 .Where( op => op.GetCategory() == OperatorCategory.Conversion )
                 .Select( op => $"public static R{suffix} {op.ToOperatorMethodName()}<A,R>(A{suffix} a) => default(R{suffix});" );
@@ -219,6 +235,7 @@ internal class {HelperTypeName}
     public static void {StaticConstructorMemberName}() {{}}
     public static ref T{suffix} {PropertyMemberName}<T>(T{suffix} value) => ref Dummy<T{suffix}>.Field;    
     public static void {_eventFieldInitializationExpressionMemberName}<T>(T? value) where T : System.Delegate {{}}
+    public static T {EventRaiseMemberName}<T>(T? value) where T : System.Delegate {{}}
     {string.Join( "\n    ", binaryOperators )}
     {string.Join( "\n    ", unaryOperators )}
     {string.Join( "\n    ", conversionOperators )}
@@ -263,6 +280,12 @@ internal class {HelperTypeName}
     public class Dummy<T>
     {{
         public static T? Field;
+    }}
+
+    // Helper for returning delegate type for event expressions.
+    public class EmptyDelegate<T> where T : System.Delegate
+    {{
+        public static T Value = null!;
     }}
 }}
                 ";

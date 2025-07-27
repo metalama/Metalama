@@ -8,6 +8,7 @@ using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
@@ -80,6 +81,15 @@ internal sealed partial class LinkerLinkingStep
         {
             var newMembers = new List<MemberDeclarationSyntax>();
 
+            var semanticModel = this._semanticModelProvider.GetSemanticModel( node.SyntaxTree );
+            var typeSymbol = semanticModel.GetDeclaredSymbol( node ).AssertNotNull();
+
+            // TODO: Not sure if this is realiable.
+            if ( typeSymbol.GetPrimaryDeclarationSyntax() == node )
+            {
+                newMembers.AddRange( this._rewritingDriver.GetSharedTypeMembers( node, typeSymbol ) );
+            }
+
             foreach ( var member in node.Members )
             {
                 // Go through all members of the type.
@@ -89,8 +99,6 @@ internal sealed partial class LinkerLinkingStep
                 // For members that represent override targets (i.e. overridden members):
                 //  * If the last (transformation order) override is inlineable, replace the member with it's transformed body.
                 //  * Otherwise create a stub that calls the last override.
-
-                var semanticModel = this._semanticModelProvider.GetSemanticModel( node.SyntaxTree );
 
                 var symbols =
                     member switch

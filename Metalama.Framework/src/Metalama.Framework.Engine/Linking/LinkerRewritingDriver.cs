@@ -434,7 +434,12 @@ internal sealed partial class LinkerRewritingDriver
              && this.AnalysisRegistry.HasAnyUnsupportedOverride( this.InjectionRegistry.GetOverrideTarget( symbol ).AssertNotNull() ) )
         {
             // If there are any overrides with unsupported code, we will skip this member.
-            return Array.Empty<MemberDeclarationSyntax>();
+            return [];
+        }
+
+        if (this.InjectionRegistry.IsEventRaiseOverride(symbol))
+        {
+            return [];
         }
 
         return symbol switch
@@ -788,5 +793,33 @@ internal sealed partial class LinkerRewritingDriver
         }
 
         return List( filteredAttributeLists );
+    }
+
+    public IReadOnlyList<MemberDeclarationSyntax> GetSharedTypeMembers( TypeDeclarationSyntax typeNode, INamedTypeSymbol typeSymbol)
+    {
+        var syntaxGenerationContext = this.IntermediateCompilationContext.GetSyntaxGenerationContext( this.SyntaxGenerationOptions, typeNode );
+
+        // Add static fields for event broker initialization.
+        var staticDelegateFields = this.AnalysisRegistry.GetStaticDelegateFields( typeSymbol );
+
+        var sharedMembers = new List<MemberDeclarationSyntax>();
+
+        // TODO: Not caching delegates for now.
+        //foreach (var staticDelegateField in staticDelegateFields )
+        //{
+        //    sharedMembers.Add(
+        //        FieldDeclaration(
+        //            VariableDeclaration(
+        //                syntaxGenerationContext.SyntaxGenerator.TypeSyntax( staticDelegateField.DelegateType ),
+        //                SingletonSeparatedList(
+        //                    VariableDeclarator(
+        //                        Identifier( staticDelegateField.FieldName ),
+        //                        null,
+        //                        EqualsValueClause( staticDelegateField.InitializeExpression ) ) ) ) )
+        //            .WithModifiers(
+        //                TokenList( Token( SyntaxKind.PrivateKeyword ), Token( SyntaxKind.StaticKeyword ), Token( SyntaxKind.ReadOnlyKeyword ) ) ) );
+        //}
+
+        return sharedMembers;
     }
 }

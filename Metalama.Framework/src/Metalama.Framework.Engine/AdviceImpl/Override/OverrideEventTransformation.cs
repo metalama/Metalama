@@ -7,6 +7,7 @@ using Metalama.Framework.Engine.Advising;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.References;
+using Metalama.Framework.Engine.Linking;
 using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.Templating;
 using Metalama.Framework.Engine.Templating.Expressions;
@@ -17,6 +18,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 using MethodKind = Metalama.Framework.Code.MethodKind;
 
@@ -30,16 +32,20 @@ internal sealed class OverrideEventTransformation : OverrideMemberTransformation
 
     private BoundTemplateMethod? RemoveTemplate { get; }
 
+    private BoundTemplateMethod? InvokeTemplate { get; }
+
     public OverrideEventTransformation(
         AspectLayerInstance aspectLayerInstance,
         IFullRef<IEvent> overriddenDeclaration,
         BoundTemplateMethod? addTemplate,
-        BoundTemplateMethod? removeTemplate )
+        BoundTemplateMethod? removeTemplate,
+        BoundTemplateMethod? invokeTemplate )
         : base( aspectLayerInstance, overriddenDeclaration )
     {
         this._overriddenDeclaration = overriddenDeclaration;
         this.AddTemplate = addTemplate;
         this.RemoveTemplate = removeTemplate;
+        this.InvokeTemplate = invokeTemplate;
     }
 
     public override IFullRef<IMember> OverriddenDeclaration => this._overriddenDeclaration;
@@ -86,6 +92,22 @@ internal sealed class OverrideEventTransformation : OverrideMemberTransformation
             removeAccessorBody = this.CreateIdentityAccessorBody( SyntaxKind.RemoveAccessorDeclaration, context );
         }
 
+        BlockSyntax? invokeAccessorBody = null;
+
+        if ( this.InvokeTemplate != null )
+        {
+            templateExpansionError = templateExpansionError || !this.TryExpandAccessorTemplate(
+                context,
+                this.InvokeTemplate,
+                overriddenDeclaration.RaiseMethod,
+                overriddenDeclaration,
+                out invokeAccessorBody );
+        }
+        else
+        {
+            invokeAccessorBody = this.CreateIdentityAccessorBody( SyntaxKind.RemoveAccessorDeclaration, context );
+        }
+
         if ( templateExpansionError )
         {
             // Template expansion error.
@@ -97,8 +119,7 @@ internal sealed class OverrideEventTransformation : OverrideMemberTransformation
             .Insert( 0, SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.PrivateKeyword ) );
 
         // TODO: Do not throw exception when template expansion fails.
-        var overrides = new[]
-        {
+        var eventOverride =
             new InjectedMember(
                 this,
                 EventDeclaration(
@@ -125,10 +146,47 @@ internal sealed class OverrideEventTransformation : OverrideMemberTransformation
                         ] ) ) ),
                 this.AspectLayerId,
                 InjectedMemberSemantic.Override,
-                overriddenDeclaration.ToFullRef() )
-        };
+                overriddenDeclaration.ToFullRef() );
 
-        return overrides;
+        var eventHandlerInvokeMethod = overriddenDeclaration.Type.Methods.OfName( "Invoke" ).Single();
+
+        var invokeOverride =
+            invokeAccessorBody != null
+            ? new InjectedMember(
+                this,
+                MethodDeclaration(
+                    List<AttributeListSyntax>(),
+                    modifiers,
+                    context.SyntaxGenerator.TypeSyntax( eventHandlerInvokeMethod.ReturnType ),
+                    null,
+                    Identifier( eventName + "_Invoke" ),
+                    null,
+                    ParameterList(
+                        SeparatedList(
+                            eventHandlerInvokeMethod.Parameters.SelectAsArray(
+                                p => Parameter(
+                                    List<AttributeListSyntax>(),
+                                    TokenList(),
+                                    context.SyntaxGenerator.TypeSyntax( p.Type ),
+                                    Identifier( p.Name ),
+                                    null ) ) ) ),
+                    List<TypeParameterConstraintClauseSyntax>(),
+                    invokeAccessorBody,
+                    null,
+                    default ),
+                this.AspectLayerId,
+                InjectedMemberSemantic.OverrideEventRaise,
+                overriddenDeclaration.ToFullRef() )
+            : null;
+
+        if ( invokeOverride != null )
+        {
+            return [eventOverride, invokeOverride];
+        }
+        else
+        {
+            return [eventOverride];
+        }
     }
 
     private bool TryExpandAccessorTemplate(
@@ -143,6 +201,7 @@ internal sealed class OverrideEventTransformation : OverrideMemberTransformation
             {
                 MethodKind.EventAdd => this.CreateAddExpression( context ),
                 MethodKind.EventRemove => this.CreateRemoveExpression( context ),
+                MethodKind.EventRaise => this.CreateRaiseExpression( context ),
                 _ => throw new AssertionFailedException( $"Unexpected MethodKind: {accessor.MethodKind}." )
             },
             context.FinalCompilation.Cache.SystemVoidType );
@@ -202,4 +261,10 @@ internal sealed class OverrideEventTransformation : OverrideMemberTransformation
             SyntaxKind.SubtractAssignmentExpression,
             this.CreateMemberAccessExpression( AspectReferenceTargetKind.EventRemoveAccessor, context ),
             IdentifierName( "value" ) );
+
+    private ExpressionSyntax CreateRaiseExpression( MemberInjectionContext context )
+        => context.AspectReferenceSyntaxProvider.GetEventRaiseReference(
+            this.AspectLayerId,
+            (IEvent)this.OverriddenDeclaration.GetTarget( this.InitialCompilation ),
+            context.SyntaxGenerator );
 }

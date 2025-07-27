@@ -2,11 +2,13 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using JetBrains.Annotations;
 using Metalama.Compiler;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.Comparers;
 using Metalama.Framework.Engine.AdviceImpl.Introduction;
+using Metalama.Framework.Engine.AdviceImpl.Override;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 using Metalama.Framework.Engine.CodeModel.References;
@@ -38,6 +40,7 @@ internal sealed class LinkerInjectionRegistry
     private readonly IReadOnlyDictionary<ISymbol, IReadOnlyList<ISymbol>> _overrideTargetToOverrideListMap;
     private readonly IReadOnlyDictionary<ISymbol, InjectedMember> _symbolToInjectedMemberMap;
     private readonly IReadOnlyDictionary<InjectedMember, ISymbol> _injectedMemberToSymbolMap;
+    private readonly IReadOnlyDictionary<ITransformation, IReadOnlyList<InjectedMember>> _transformationToInjectedMemberMap;
     private readonly IReadOnlyDictionary<ISymbol, ISymbol> _overrideToOverrideTargetMap;
     private readonly ISet<ISymbol> _auxiliarySourceMembers;
 
@@ -59,6 +62,7 @@ internal sealed class LinkerInjectionRegistry
         ConcurrentDictionary<ISymbol, IReadOnlyList<ISymbol>> overrideMap;
         ConcurrentDictionary<ISymbol, ISymbol> overrideTargetMap;
         ConcurrentDictionary<ISymbol, InjectedMember> symbolToInjectedMemberMap;
+        ConcurrentDictionary<ITransformation, IReadOnlyList<InjectedMember>> transformationToInjectedMemberMap;
         ConcurrentDictionary<InjectedMember, ISymbol> injectedMemberToSymbolMap;
         HashSet<ISymbol> auxiliarySourceMembers;
 
@@ -93,6 +97,8 @@ internal sealed class LinkerInjectionRegistry
         var overriddenDeclarations = new ConcurrentDictionary<IFullRef<IDeclaration>, List<ISymbol>>( RefEqualityComparer<IDeclaration>.Default );
         var builderToInjectedMemberMap = new ConcurrentDictionary<DeclarationBuilderData, InjectedMember>();
 
+        this._transformationToInjectedMemberMap = transformationToInjectedMemberMap = new ConcurrentDictionary<ITransformation, IReadOnlyList<InjectedMember>>();
+
         void ProcessInjectedMember( InjectedMember injectedMember )
         {
             var injectedMemberSymbol = GetCanonicalSymbolForInjectedMember( injectedMember );
@@ -100,6 +106,17 @@ internal sealed class LinkerInjectionRegistry
             // Basic maps.
             symbolToInjectedMemberMap[injectedMemberSymbol] = injectedMember;
             injectedMemberToSymbolMap[injectedMember] = injectedMemberSymbol;
+
+            if ( injectedMember.Transformation != null )
+            {
+                var injectedMembersForTransformation =
+                    transformationToInjectedMemberMap.GetOrAdd( injectedMember.Transformation, _ => new List<InjectedMember>() );
+
+                lock ( injectedMembersForTransformation )
+                {
+                    ((List<InjectedMember>)injectedMembersForTransformation).Add( injectedMember );
+                }
+            }
 
             if ( injectedMember.Transformation is IOverrideDeclarationTransformation overrideTransformation )
             {
@@ -386,6 +403,19 @@ internal sealed class LinkerInjectionRegistry
         }
     }
 
+    public IReadOnlyList<InjectedMember> GetInjectedMembersForTransformation(ITransformation transformation)
+    {
+        if ( this._transformationToInjectedMemberMap.TryGetValue( transformation, out var injectedMembers ) )
+        {
+            // Transformation that was removed.
+            return injectedMembers;
+        }
+        else
+        {
+            return [];
+        }
+    }
+
     public IIntroduceDeclarationTransformation? GetTransformationForBuilder( DeclarationBuilderData builder )
     {
         if ( this._builderToTransformationMap.TryGetValue( builder, out var transformation ) )
@@ -564,5 +594,33 @@ internal sealed class LinkerInjectionRegistry
         var injectedMember = this.GetInjectedMemberForSymbol( symbol );
 
         return injectedMember?.Transformation?.AspectInstance.AspectClass;
+    }
+
+    public bool IsEventRaiseOverride( ISymbol symbol )
+    {
+        if ( symbol is IMethodSymbol methodSymbol )
+        {
+            return this.GetInjectedMemberForSymbol( methodSymbol ) is { Transformation: IOverrideDeclarationTransformation, Semantic: InjectedMemberSemantic.OverrideEventRaise };
+        }
+        return false;
+    }
+
+    public bool HasEventRaiseOverride( ISymbol symbol )
+    {
+        if ( symbol is IEventSymbol eventSymbol )
+        {
+            var transformation = this.GetInjectedMemberForSymbol( symbol )?.Transformation;
+
+            if (transformation is not OverrideEventTransformation)
+            {
+                return false;
+            }
+
+            if (this.GetInjectedMembersForTransformation( transformation ).SingleOrDefault( m => m.Semantic == InjectedMemberSemantic.OverrideEventRaise ) is { } injectedEventRaise)
+            {
+                return true;
+            }
+        }
+        return false;
     }
 }

@@ -6,6 +6,7 @@ using Metalama.Framework.Engine.Linking.Substitution;
 using Metalama.Framework.Engine.Services;
 using Microsoft.CodeAnalysis;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 
 namespace Metalama.Framework.Engine.Linking;
@@ -19,17 +20,23 @@ internal sealed class LinkerAnalysisRegistry
     private readonly HashSet<IntermediateSymbolSemantic> _inlinedSemantics;
     private readonly IReadOnlyDictionary<InliningContextIdentifier, IReadOnlyDictionary<SyntaxNode, SyntaxNodeSubstitution>> _substitutions;
     private readonly HashSet<ISymbol> _overrideTargetsWithUnsupportedNonInlinedOverrides;
+    private readonly IReadOnlyDictionary<IEventSymbol, EventBrokerInfo> _eventBrokers;
+    private readonly IReadOnlyDictionary<INamedTypeSymbol, IReadOnlyDictionary<INamedTypeSymbol, StaticDelegateInfo>> _staticDelegates;
 
     public LinkerAnalysisRegistry(
         CompilationContext intermediateCompilation,
         HashSet<IntermediateSymbolSemantic> reachableSemantics,
         HashSet<IntermediateSymbolSemantic> inlinedSemantics,
         IReadOnlyDictionary<InliningContextIdentifier, IReadOnlyList<SyntaxNodeSubstitution>> substitutions,
-        HashSet<ISymbol> overrideTargetsWithUnsupportedNonInlinedOverrides )
+        HashSet<ISymbol> overrideTargetsWithUnsupportedNonInlinedOverrides,
+        IReadOnlyDictionary<IEventSymbol, EventBrokerInfo> eventBrokers,
+        IReadOnlyDictionary<INamedTypeSymbol, IReadOnlyDictionary<INamedTypeSymbol, StaticDelegateInfo>> staticDelegates )
     {
         this._reachableSemantics = reachableSemantics;
         this._inlinedSemantics = inlinedSemantics;
         this._overrideTargetsWithUnsupportedNonInlinedOverrides = overrideTargetsWithUnsupportedNonInlinedOverrides;
+        this._eventBrokers = eventBrokers;
+        this._staticDelegates = staticDelegates;
 
         this._substitutions =
             substitutions.ToDictionary(
@@ -81,7 +88,27 @@ internal sealed class LinkerAnalysisRegistry
 
             default:
                 return false;
+        }    
+    }
+
+    public EventBrokerInfo? GetEventBrokerTypeInfo(IEventSymbol @event)
+    {
+        if ( this._eventBrokers.TryGetValue( @event, out var eventBroker ) )
+        {
+            return eventBroker;
         }
+
+        return null;
+    }
+
+    public IReadOnlyList<StaticDelegateInfo> GetStaticDelegateFields( INamedTypeSymbol type )
+    {
+        if ( this._staticDelegates.TryGetValue( type, out var staticDelegateFields ) )
+        {
+            return staticDelegateFields.Values.ToList();
+        }
+
+        return ImmutableArray<StaticDelegateInfo>.Empty;
     }
 
     public bool HasBaseSemanticReferences( ISymbol symbol ) => this.IsReachable( symbol.ToSemantic( IntermediateSymbolSemanticKind.Base ) );

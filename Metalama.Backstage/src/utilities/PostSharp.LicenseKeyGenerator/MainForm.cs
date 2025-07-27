@@ -23,7 +23,7 @@ namespace PostSharp.LicenseKeyGenerator
 
             // We load the private key on startup to avoid KeyVault exceptions after filling all the data.
             const string keyVaultUri = "https://postsharpbusinesssystkv.vault.azure.net/";
-            var client = new SecretClient( new Uri( keyVaultUri ), new DefaultAzureCredential() );
+            var client = new SecretClient( new Uri( keyVaultUri ), new AzureCliCredential() );
             var privateKey0 = client.GetSecret( "Licensing-PrivateKey0" ).Value.Value;
             this._authority = new LicensingAuthority( (0, privateKey0) );
         }

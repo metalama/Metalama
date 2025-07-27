@@ -343,7 +343,7 @@ internal static class TemplateBindingHelper
         // Check that template run-time parameters match the target.
         switch ( targetMethod )
         {
-            case { MethodKind: OurMethodKind.PropertyGet or OurMethodKind.PropertySet or OurMethodKind.EventAdd or OurMethodKind.EventRemove }:
+            case { MethodKind: OurMethodKind.PropertyGet or OurMethodKind.PropertySet or OurMethodKind.EventAdd or OurMethodKind.EventRemove or OurMethodKind.EventRaise }:
             case { OperatorKind: not OperatorKind.None }:
                 // For operators and accessors, if the template has any run-time parameter, then we match parameters by index and their number must be exact.
 
@@ -355,7 +355,7 @@ internal static class TemplateBindingHelper
                         { MethodKind: OurMethodKind.PropertySet, ContainingDeclaration: IIndexer { Parameters.Count: var parameterCount } } => parameterCount
                             + 1,
                         { MethodKind: OurMethodKind.PropertyGet } => 0,
-                        { MethodKind: OurMethodKind.PropertySet or OurMethodKind.EventAdd or OurMethodKind.EventRemove } => 1,
+                        { MethodKind: OurMethodKind.PropertySet or OurMethodKind.EventAdd or OurMethodKind.EventRemove or OurMethodKind.EventRaise } => 1,
                         _ when targetMethod.OperatorKind.GetCategory() is OperatorCategory.Binary => 2,
                         _ when targetMethod.OperatorKind.GetCategory() is OperatorCategory.Conversion or OperatorCategory.Unary => 1,
                         _ => throw new AssertionFailedException( $"Unexpected operator/accessor method: {targetMethod}." )

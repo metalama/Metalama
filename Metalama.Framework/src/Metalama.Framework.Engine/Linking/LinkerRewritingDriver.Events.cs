@@ -6,6 +6,7 @@ using Metalama.Framework.Engine.Formatting;
 using Metalama.Framework.Engine.Linking.Substitution;
 using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.Utilities.Roslyn;
+using Metalama.Framework.RunTime;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -32,6 +33,12 @@ namespace Metalama.Framework.Engine.Linking
                 {
                     // Backing field for event field.
                     members.Add( this.GetEventBackingField( eventDeclaration, symbol, context ) );
+                }
+
+                // If there is an event raise override, we will generate the event broker field.
+                if ( this.InjectionRegistry.HasEventRaiseOverride( symbol ) )
+                {
+                    members.Add( this.GetEventBrokerField( symbol, context ) );
                 }
 
                 if ( this.AnalysisRegistry.IsInlined( lastOverride.ToSemantic( IntermediateSymbolSemanticKind.Default ) ) )
@@ -177,7 +184,7 @@ namespace Metalama.Framework.Engine.Linking
                             Token( closeBraceLeadingTrivia, SyntaxKind.CloseBraceToken, closeBraceTrailingTrivia ) )
                         .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock )
                         .WithGeneratedCodeAnnotation( FormattingAnnotations.SystemGeneratedCodeAnnotation ),
-                    semicolonToken: default(SyntaxToken) );
+                    semicolonToken: default( SyntaxToken ) );
             }
         }
 
@@ -454,6 +461,28 @@ namespace Metalama.Framework.Engine.Linking
                     return IdentifierName( targetSemantic.Symbol.Name );
                 }
             }
+        }
+
+        private MemberDeclarationSyntax GetEventBrokerField(
+            IEventSymbol symbol,
+            SyntaxGenerationContext context )
+        {
+            var eventBrokerTypeInfo = this.AnalysisRegistry.GetEventBrokerTypeInfo( symbol ).AssertNotNull();
+
+            return
+                FieldDeclaration(
+                    VariableDeclaration(
+                        context.SyntaxGenerator.TypeSyntax( eventBrokerTypeInfo.EventBrokerType.WithNullableAnnotation( NullableAnnotation.Annotated ) ),
+                        SingletonSeparatedList(
+                            VariableDeclarator(
+                                Identifier( GetEventBrokerVariableName( symbol ) ),
+                                null,
+                                null ) ) ) );
+        }
+
+        private static string GetEventBrokerVariableName( IEventSymbol @event )
+        {
+            return GetSpecialMemberName( @event, "EventBroker" );
         }
     }
 }
