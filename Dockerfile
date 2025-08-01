@@ -1,5 +1,5 @@
 # We need .NET Framework because of our use of ILRepack.
-FROM mcr.microsoft.com/dotnet/sdk:9.0.203-windowsservercore-ltsc2022@sha256:56117c03ff717d62c69df3b512af541d2c2e822f88f548e2cdbbc6cb06ec2bd6 AS build
+FROM mcr.microsoft.com/dotnet/sdk:9.0.303-windowsservercore-ltsc2022@sha256:39d675f110817d12b616fa1bef354661ce8c0819fc863103bcc63fb7555f2782 AS build
 
 # Copy the source code
 WORKDIR /src
