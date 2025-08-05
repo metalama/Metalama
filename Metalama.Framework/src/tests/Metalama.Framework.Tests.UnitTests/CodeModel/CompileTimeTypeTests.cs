@@ -22,7 +22,7 @@ namespace Metalama.Framework.Tests.UnitTests.CodeModel
         [InlineData( typeof(Task[]) )]
         [InlineData( typeof(Task<int>[]) )]
         [InlineData( typeof(Task<int[]>) )]
-        public void Test( Type type )
+        public void TestResolution( Type type )
         {
             using var testContext = this.CreateTestContext();
             var compilation = testContext.CreateCompilationModel( "/* Intentionally empty */" );
@@ -47,6 +47,33 @@ namespace Metalama.Framework.Tests.UnitTests.CodeModel
             var resolvedType = compileTimeType.Target.GetTarget( compilation );
 
             Assert.NotNull( resolvedType );
+        }
+
+        [Theory]
+        [InlineData( typeof(int), typeof(int), true )]
+        [InlineData( typeof(int), typeof(long), false )]
+        [InlineData( typeof(Task<>), typeof(Task<>), true )]
+        [InlineData( typeof(Task<>), typeof(Task<int>), false )]
+        public void TestEquality( Type a, Type b, bool expectedEqual )
+        {
+            using var testContext = this.CreateTestContext();
+            var compilation = testContext.CreateCompilationModel( "/* Intentionally empty */" );
+            var compilationServices = compilation.CompilationContext;
+
+            var reflectionMapper = new ReflectionMapper( compilation.RoslynCompilation );
+
+            var compileTimeTypeA = compilationServices.CompileTimeTypeFactory.Get( reflectionMapper.GetTypeSymbol( a ) );
+            var compileTimeTypeB = compilationServices.CompileTimeTypeFactory.Get( reflectionMapper.GetTypeSymbol( b ) );
+
+            var typesAreEqual = compileTimeTypeA.Equals( compileTimeTypeB );
+
+            Assert.Equal( expectedEqual, typesAreEqual );
+
+            if ( typesAreEqual )
+            {
+                // Hash codes must be equal too.
+                Assert.Equal( compileTimeTypeA.GetHashCode(), compileTimeTypeB.GetHashCode() );
+            }
         }
     }
 }
