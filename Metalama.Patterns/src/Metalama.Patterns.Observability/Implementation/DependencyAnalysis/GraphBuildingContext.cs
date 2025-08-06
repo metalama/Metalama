@@ -9,6 +9,7 @@ using Metalama.Framework.Engine.CodeModel;
 using Metalama.Patterns.Immutability;
 using Metalama.Patterns.Observability.Configuration;
 using Microsoft.CodeAnalysis;
+using TypeKind = Microsoft.CodeAnalysis.TypeKind;
 
 namespace Metalama.Patterns.Observability.Implementation.DependencyAnalysis;
 
@@ -25,7 +26,7 @@ internal abstract class GraphBuildingContext
         this._compilation = compilation;
     }
 
-    public abstract void ReportDiagnostic( IDiagnostic diagnostic, Location? location = default );
+    public abstract void ReportDiagnostic( IDiagnostic diagnostic, Location? location = null );
 
     public abstract bool TreatAsImplementingInpc( ITypeSymbol type );
 
@@ -78,7 +79,7 @@ internal abstract class GraphBuildingContext
         }
         else
         {
-            return fieldOrPropertyType.IsValueType;
+            return fieldOrPropertyType.TypeKind is TypeKind.Pointer or TypeKind.FunctionPointer or TypeKind.TypeParameter;
         }
     }
 }
