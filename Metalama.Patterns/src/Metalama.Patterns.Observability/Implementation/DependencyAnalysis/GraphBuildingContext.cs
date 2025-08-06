@@ -9,7 +9,6 @@ using Metalama.Framework.Engine.CodeModel;
 using Metalama.Patterns.Immutability;
 using Metalama.Patterns.Observability.Configuration;
 using Microsoft.CodeAnalysis;
-using TypeKind = Microsoft.CodeAnalysis.TypeKind;
 
 namespace Metalama.Patterns.Observability.Implementation.DependencyAnalysis;
 
@@ -50,7 +49,7 @@ internal abstract class GraphBuildingContext
 
     public bool IsAutoPropertyOrField( ISymbol symbol ) => this._compilation.GetDeclaration( symbol ) is IFieldOrProperty { IsAutoPropertyOrField: true };
 
-    public bool IsConstant( IMethodSymbol method ) => this.IsConstantMember( method );
+    public bool IsConstant( ISymbol method ) => this.IsConstantMember( method );
 
     private bool IsConstantMember( ISymbol symbol )
     {
@@ -67,10 +66,8 @@ internal abstract class GraphBuildingContext
         {
             return this.IsDeeplyImmutable( symbol.ContainingType );
         }
-        else
-        {
-            return false;
-        }
+
+        return false;
     }
 
     public bool IsDeeplyImmutable( ITypeSymbol fieldOrPropertyType )
@@ -81,7 +78,7 @@ internal abstract class GraphBuildingContext
         }
         else
         {
-            return fieldOrPropertyType.TypeKind is TypeKind.Pointer or TypeKind.FunctionPointer or TypeKind.TypeParameter;
+            return fieldOrPropertyType.IsValueType;
         }
     }
 }

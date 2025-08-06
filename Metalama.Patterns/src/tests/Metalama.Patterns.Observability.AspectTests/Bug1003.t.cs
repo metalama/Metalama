@@ -1,0 +1,1 @@
+// Warning LAMA5163 on `BaseProperty`: `The 'BaseClass.BaseProperty' property cannot be observed because 'BaseClass' does not implement INotifyPropertyChanged. Consider implementing the INotifyPropertyChanged interface in 'BaseClass', marking 'BaseClass.BaseProperty' with [Constant], or using ConfigureObservability via a fabric.`

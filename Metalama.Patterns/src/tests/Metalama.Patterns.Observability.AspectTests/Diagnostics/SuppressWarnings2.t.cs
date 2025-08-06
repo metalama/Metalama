@@ -1,4 +1,4 @@
-// Warning LAMA5162 on `ComputeNorm1`: `The 'VectorHelper.ComputeNorm1(Vector)' method cannot be analysed, and has not been configured with an observability contract. Mark this method with [ConstantAttribute] or call ConfigureObservability via a fabric.`
+// Warning LAMA5162 on `ComputeNorm1`: `The 'VectorHelper.ComputeNorm1(Vector)' method cannot be observed, and has not been configured with an observability contract. Mark this method with [ConstantAttribute] or call ConfigureObservability via a fabric.`
 using System;
 using System.ComponentModel;
 namespace Metalama.Patterns.Observability.AspectTests.Diagnostics.SuppressWarnings2;
