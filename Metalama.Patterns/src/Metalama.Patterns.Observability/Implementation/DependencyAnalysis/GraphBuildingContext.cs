@@ -26,7 +26,7 @@ internal abstract class GraphBuildingContext
         this._compilation = compilation;
     }
 
-    public abstract void ReportDiagnostic( IDiagnostic diagnostic, Location? location = default );
+    public abstract void ReportDiagnostic( IDiagnostic diagnostic, Location? location = null );
 
     public abstract bool TreatAsImplementingInpc( ITypeSymbol type );
 
@@ -50,7 +50,7 @@ internal abstract class GraphBuildingContext
 
     public bool IsAutoPropertyOrField( ISymbol symbol ) => this._compilation.GetDeclaration( symbol ) is IFieldOrProperty { IsAutoPropertyOrField: true };
 
-    public bool IsConstant( IMethodSymbol method ) => this.IsConstantMember( method );
+    public bool IsConstant( ISymbol method ) => this.IsConstantMember( method );
 
     private bool IsConstantMember( ISymbol symbol )
     {
@@ -67,10 +67,8 @@ internal abstract class GraphBuildingContext
         {
             return this.IsDeeplyImmutable( symbol.ContainingType );
         }
-        else
-        {
-            return false;
-        }
+
+        return false;
     }
 
     public bool IsDeeplyImmutable( ITypeSymbol fieldOrPropertyType )

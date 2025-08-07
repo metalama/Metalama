@@ -135,49 +135,80 @@ internal partial class DependencyGraphBuilder
                      && pathElement.Symbol.ContainingType.Equals( this._declaringType.GetSymbol() ) )
                 {
                     this._context.ReportDiagnostic(
-                        DiagnosticDescriptors.DeclaringTypeDoesNotImplementInpc
+                        DiagnosticDescriptors.DeclaringTypeDoesNotImplementInpcStem
                             .WithArguments( (pathElement.Symbol, pathElement.Symbol.ContainingType) ),
                         symbols[index + 1].Node.GetLocation() );
                 }
             }
 
-            if ( pathElement.Symbol is IFieldSymbol fieldSymbol )
+            switch ( pathElement.Symbol.Kind )
             {
-                var isSafe = fieldSymbol.IsConst ||
-                             (!fieldSymbol.IsStatic && fieldSymbol.GetEffectiveAccessibility() == Accessibility.Private) ||
-                             (fieldSymbol.IsReadOnly && this._context.IsDeeplyImmutable( fieldSymbol.Type ));
+                case SymbolKind.Field:
+                    {
+                        var field = (IFieldSymbol) pathElement.Symbol;
 
-                if ( !isSafe )
-                {
-                    this._context.ReportDiagnostic(
-                        DiagnosticDescriptors.NonPrivateFieldsNonSupported
-                            .WithArguments( fieldSymbol ),
-                        pathElement.Node.GetLocation() );
-                }
-            }
-            else if ( pathElement.Symbol.Kind is SymbolKind.Method )
-            {
-                var method = (IMethodSymbol) pathElement.Symbol;
+                        var isSafe = field.IsConst ||
+                                     (!field.IsStatic && field.GetEffectiveAccessibility() == Accessibility.Private) ||
+                                     (field.IsReadOnly && this._context.IsDeeplyImmutable( field.Type ));
 
-                var isSafe =
+                        if ( !isSafe )
+                        {
+                            this._context.ReportDiagnostic(
+                                DiagnosticDescriptors.NonPrivateFieldsNonSupported
+                                    .WithArguments( field ),
+                                pathElement.Node.GetLocation() );
+                        }
 
-                    // Methods marked as constant are safe.
-                    this._context.IsConstant( method ) ||
+                        break;
+                    }
 
-                    // Methods that have only immutable arguments are safe.
-                    ((method.IsStatic || this._context.IsDeeplyImmutable( method.ContainingType ))
-                     && method.Parameters.All( p => p.RefKind is RefKind.Out || this._context.IsDeeplyImmutable( p.Type ) )) ||
+                case SymbolKind.Property when chainSection == ChainSection.Leaf && index == 0:
+                    {
+                        // We must validate separately leaf properties of the current type because other properties are validated
+                        // through the "stem" branch above, i.e. through their parent, but in this case we have no parent.
 
-                    // All methods that have no output are safe.
-                    (method.ReturnsVoid && !method.Parameters.Any( p => p.RefKind is RefKind.Out or RefKind.Ref ));
+                        var property = (IPropertySymbol) pathElement.Symbol;
 
-                if ( !isSafe )
-                {
-                    this._context.ReportDiagnostic(
-                        DiagnosticDescriptors.WarningMethodOrPropertyIsNotSupportedForDependencyAnalysis.WithArguments(
-                            (pathElement.Symbol.Kind, pathElement.Symbol) ),
-                        pathElement.Node.GetLocation() );
-                }
+                        if ( !this._context.IsConstant( property )
+                             && !this._context.TreatAsImplementingInpc( property.ContainingType! )
+                             && !property.ContainingType.Equals( this._declaringType.GetSymbol() ) )
+                        {
+                            // This condition happens only when referring to a property of the base type.
+                            this._context.ReportDiagnostic(
+                                DiagnosticDescriptors.DeclaringTypeDoesNotImplementInpcLeaf
+                                    .WithArguments( (pathElement.Symbol, pathElement.Symbol.ContainingType) ),
+                                pathElement.Node.GetLocation() );
+                        }
+
+                        break;
+                    }
+
+                case SymbolKind.Method:
+                    {
+                        var method = (IMethodSymbol) pathElement.Symbol;
+
+                        var isSafe =
+
+                            // Methods marked as constant are safe.
+                            this._context.IsConstant( method ) ||
+
+                            // Methods that have only immutable arguments are safe.
+                            ((method.IsStatic || this._context.IsDeeplyImmutable( method.ContainingType ))
+                             && method.Parameters.All( p => p.RefKind is RefKind.Out || this._context.IsDeeplyImmutable( p.Type ) )) ||
+
+                            // All methods that have no output are safe.
+                            (method.ReturnsVoid && !method.Parameters.Any( p => p.RefKind is RefKind.Out or RefKind.Ref ));
+
+                        if ( !isSafe )
+                        {
+                            this._context.ReportDiagnostic(
+                                DiagnosticDescriptors.WarningMethodOrPropertyIsNotSupportedForDependencyAnalysis.WithArguments(
+                                    (pathElement.Symbol.Kind, pathElement.Symbol) ),
+                                pathElement.Node.GetLocation() );
+                        }
+
+                        break;
+                    }
             }
         }
 
@@ -204,9 +235,8 @@ internal partial class DependencyGraphBuilder
                     var firstSymbol = symbols[0].Symbol;
 
                     var supportedStemAndLeafCount = this.IsLocalInstanceMember( firstSymbol )
-                        ? symbols.TakeWhile(
-                                sr => sr.Symbol.Kind == SymbolKind.Property
-                                      || (sr.Symbol.Kind == SymbolKind.Field && sr.Symbol.GetEffectiveAccessibility() == Accessibility.Private) )
+                        ? symbols.TakeWhile( sr => sr.Symbol.Kind == SymbolKind.Property
+                                                   || (sr.Symbol.Kind == SymbolKind.Field && sr.Symbol.GetEffectiveAccessibility() == Accessibility.Private) )
                             .Count()
                         : 0;
 
