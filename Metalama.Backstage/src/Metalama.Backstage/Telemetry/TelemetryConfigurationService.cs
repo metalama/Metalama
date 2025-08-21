@@ -187,7 +187,7 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
     {
         if ( !this._initialized )
         {
-            throw new InvalidOperationException();
+            throw new InvalidOperationException( "The service has not been initialized." );
         }
 
         return scenario switch

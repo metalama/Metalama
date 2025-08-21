@@ -38,6 +38,17 @@ namespace Metalama.Framework.Engine.CompileTime
             {
                 if ( node.GlobalKeyword.IsKind( SyntaxKind.GlobalKeyword ) )
                 {
+                    if ( node.Alias != null )
+                    {
+                        var symbol = this._semanticModel.GetTypeInfo( node.NamespaceOrType ).Type;
+
+                        if ( symbol == null || this._classifier.GetTemplatingScope( symbol ) is TemplatingScope.RunTimeOnly )
+                        {
+                            // Skip. We cannot represent this at compile time.
+                            return;
+                        }
+                    }
+
                     // We remove the trivia to make sure we don't have any preprocessor directive.
                     // Note that we use a ElasticLineFeed because we don't know where the `using` will be used.
                     this._globalUsings.Add( node.WithoutLeadingTrivia().WithTrailingTrivia( SyntaxFactory.ElasticLineFeed ) );

@@ -8,6 +8,7 @@ using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Infrastructure;
 using Metalama.Backstage.UserInterface;
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -80,6 +81,7 @@ internal sealed class LocalExceptionReporter : IBackstageService
                 AppendLineSafe( "Processor Architecture", () => $" {RuntimeInformation.ProcessArchitecture}" );
                 AppendLineSafe( "OS Description", () => $"{RuntimeInformation.OSDescription}" );
                 AppendLineSafe( "OS Architecture", () => $"{RuntimeInformation.OSArchitecture}" );
+                AppendLineSafe( "Process", () => $"{Process.GetCurrentProcess().ProcessName} {Environment.CommandLine}" );
 
                 AppendLineSafe(
                     "Managed thread",

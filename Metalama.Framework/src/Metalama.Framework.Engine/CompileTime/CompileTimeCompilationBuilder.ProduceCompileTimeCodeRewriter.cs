@@ -573,13 +573,12 @@ namespace Metalama.Framework.Engine.CompileTime
                                         default,
                                         ParameterList(
                                             SeparatedList(
-                                                method.Parameters.Select(
-                                                    p => Parameter(
-                                                        default,
-                                                        default,
-                                                        syntaxGenerator.TypeSyntax( p.Type ),
-                                                        Identifier( p.Name ),
-                                                        default ) ) ) ),
+                                                method.Parameters.Select( p => Parameter(
+                                                                              default,
+                                                                              default,
+                                                                              syntaxGenerator.TypeSyntax( p.Type ),
+                                                                              Identifier( p.Name ),
+                                                                              default ) ) ) ),
                                         default,
                                         method.ReturnType.SpecialType == SpecialType.System_Void
                                             ? this._syntaxGenerationContext.SyntaxGenerator.FormattedBlock()
@@ -735,7 +734,7 @@ namespace Metalama.Framework.Engine.CompileTime
 
                     return true;
                 }
-                else 
+                else
                 {
                     return false;
                 }
@@ -850,8 +849,9 @@ namespace Metalama.Framework.Engine.CompileTime
                         var getterIsTemplate = getAccessor != null
                                                && (propertyIsTemplate || !this.SymbolClassifier.GetTemplateInfo( propertySymbol.GetMethod! ).IsNone);
 
-                        var setAccessor = node.AccessorList.Accessors.SingleOrDefault(
-                            a => a.Kind() == SyntaxKind.SetAccessorDeclaration || a.Kind() == SyntaxKind.InitAccessorDeclaration );
+                        var setAccessor =
+                            node.AccessorList.Accessors.SingleOrDefault( a => a.Kind() == SyntaxKind.SetAccessorDeclaration
+                                                                              || a.Kind() == SyntaxKind.InitAccessorDeclaration );
 
                         var setterIsTemplate = setAccessor != null
                                                && (propertyIsTemplate || !this.SymbolClassifier.GetTemplateInfo( propertySymbol.SetMethod! ).IsNone);
@@ -989,8 +989,8 @@ namespace Metalama.Framework.Engine.CompileTime
                             Invariant.Assert( rewrittenProperty.AccessorList != null );
 
                             Invariant.Assert(
-                                !rewrittenProperty.AccessorList!.Accessors.Any(
-                                    a => a.IsKind( SyntaxKind.SetAccessorDeclaration ) || a.IsKind( SyntaxKind.InitAccessorDeclaration ) )
+                                !rewrittenProperty.AccessorList!.Accessors.Any( a => a.IsKind( SyntaxKind.SetAccessorDeclaration )
+                                                                                     || a.IsKind( SyntaxKind.InitAccessorDeclaration ) )
                                 || rewrittenProperty.AccessorList!.Accessors.Any( a => a.IsKind( SyntaxKind.InitAccessorDeclaration ) ) );
 
                             rewritten =
@@ -1426,8 +1426,9 @@ namespace Metalama.Framework.Engine.CompileTime
             public override SyntaxNode VisitCompilationUnit( CompilationUnitSyntax node )
             {
                 // Get the list of members that are not statements, local variables, local functions,...
-                var nonTopLevelMembers = node.Members.Where(
-                        m => m is BaseTypeDeclarationSyntax or NamespaceDeclarationSyntax or DelegateDeclarationSyntax or FileScopedNamespaceDeclarationSyntax )
+                var nonTopLevelMembers = node.Members
+                    .Where( m => m is BaseTypeDeclarationSyntax or NamespaceDeclarationSyntax or DelegateDeclarationSyntax
+                                or FileScopedNamespaceDeclarationSyntax )
                     .ToReadOnlyList();
 
                 var transformedMembers = this.VisitTypeOrNamespaceMembers( nonTopLevelMembers );
@@ -1467,6 +1468,18 @@ namespace Metalama.Framework.Engine.CompileTime
                     return null;
                 }
 #endif
+
+                if ( node.GlobalKeyword.IsKind( SyntaxKind.GlobalKeyword ) && node.Alias != null )
+                {
+                    var semanticModel = this.RunTimeSemanticModelProvider.GetSemanticModel( node.SyntaxTree );
+                    var symbol = semanticModel.GetTypeInfo( node.NamespaceOrType ).Type;
+
+                    if ( symbol == null || this.SymbolClassifier.GetTemplatingScope( symbol ) is TemplatingScope.RunTimeOnly )
+                    {
+                        // Skip. We cannot represent this at compile time.
+                        return null;
+                    }
+                }
 
                 return base.VisitUsingDirective( node );
             }

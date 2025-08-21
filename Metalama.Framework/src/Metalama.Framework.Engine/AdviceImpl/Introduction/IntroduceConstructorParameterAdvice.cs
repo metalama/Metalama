@@ -133,7 +133,7 @@ internal sealed class IntroduceConstructorParameterAdvice : Advice<IntroductionA
 
             var chainedConstructors =
                 sameTypeConstructors.Concat( derivedConstructors )
-                    .Where( c => ((IConstructorImpl) c).GetBaseConstructor() == baseConstructor );
+                    .Where( c => ((IConstructorImpl) c).GetBaseConstructor()?.Definition.Equals( baseConstructor ) == true );
 
             // Process all of these constructors.
             foreach ( var chainedConstructor in chainedConstructors )

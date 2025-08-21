@@ -19,7 +19,7 @@ public static class BackstageServiceFactory
     private static IServiceProvider? _serviceProvider;
 
     public static IServiceProvider ServiceProvider
-        => _serviceProvider ?? throw new InvalidOperationException( "BackstageServiceFactory has not been initialized." );
+        => _serviceProvider ?? throw new InvalidOperationException( "BackstageServiceFactory.Initialize method has not been called." );
 
     public static bool IsInitialized => _serviceProvider != null;
 
@@ -59,16 +59,12 @@ public static class BackstageServiceFactory
         var serviceProviderBuilder = new SimpleServiceProviderBuilder();
         serviceProviderBuilder.AddBackstageServices( options );
 
-        _serviceProvider = serviceProviderBuilder.ServiceProvider;
-        
-        if ( options.Initialize )
-        {
-            _serviceProvider.InitializeBackstageServices();
-        }
+        var serviceProvider = serviceProviderBuilder.ServiceProvider;
+        serviceProvider.InitializeBackstageServices();
 
-        return _serviceProvider;
+        return serviceProvider;
     }
-
+    
     public static ILicenseConsumptionService CreateTestLicenseConsumptionService( IServiceProvider serviceProvider, string? licenseKey )
     {
         var sources = licenseKey == null
