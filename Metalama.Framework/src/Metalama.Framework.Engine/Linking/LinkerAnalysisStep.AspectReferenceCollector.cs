@@ -12,6 +12,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -89,17 +90,42 @@ internal sealed partial class LinkerAnalysisStep
                         break;
 
                     case IEventSymbol @event:
+                        var lastOverride = this._injectionRegistry.GetLastOverride( @event );
+
                         AddImplicitReference(
                             @event.AddMethod.AssertNotNull(),
                             @event,
-                            this._injectionRegistry.GetLastOverride( @event ),
+                            lastOverride,
                             AspectReferenceTargetKind.EventAddAccessor );
 
                         AddImplicitReference(
                             @event.RemoveMethod.AssertNotNull(),
                             @event,
-                            this._injectionRegistry.GetLastOverride( @event ),
+                            lastOverride,
                             AspectReferenceTargetKind.EventRemoveAccessor );
+
+                        if ( this._injectionRegistry.HasEventRaiseOverride(@event))
+                        {
+                            // Add implicit reference pointing from final semantic to the last override of the event raise method.
+                            // TODO: We may need to walk overrides if the raise is missing for the last override.
+                            var lastEventRaiseOverride = (IMethodSymbol)this._injectionRegistry.GetSatelliteOverrideMembers( lastOverride ).Single();
+
+                            AddImplicitReference(
+                                @event.AddMethod.AssertNotNull(),
+                                @event,
+                                lastOverride,
+                                AspectReferenceTargetKind.EventRaiseAccessor,
+                                lastEventRaiseOverride,
+                                false );
+
+                            AddImplicitReference(
+                                @event.RemoveMethod.AssertNotNull(),
+                                @event,
+                                lastOverride,
+                                AspectReferenceTargetKind.EventRaiseAccessor, 
+                                lastEventRaiseOverride, 
+                                false );
+                        }
 
                         break;
                 }
@@ -108,7 +134,9 @@ internal sealed partial class LinkerAnalysisStep
                     IMethodSymbol containingSymbol,
                     ISymbol target,
                     ISymbol lastOverrideSymbol,
-                    AspectReferenceTargetKind targetKind )
+                    AspectReferenceTargetKind targetKind,
+                    IMethodSymbol? explicitSemanticBody = null,
+                    bool? isInlineable = null)
                 {
                     // Implicit reference pointing from final semantic to the last override.
                     var containingSemantic = containingSymbol.ToSemantic( IntermediateSymbolSemanticKind.Final );
@@ -144,14 +172,20 @@ internal sealed partial class LinkerAnalysisStep
                             null,
                             target,
                             lastOverrideSymbol.ToSemantic( IntermediateSymbolSemanticKind.Default ),
+                            explicitSemanticBody?.ToSemantic( IntermediateSymbolSemanticKind.Default ),
                             sourceNode,
                             sourceNode,
                             sourceNode,
                             targetKind,
-                            true,
+                            isInlineable ?? true,
                             true );
 
-                    _ = aspectReferences.TryAdd( containingSemantic, [resolvedReference] );
+                    var referencesForContainingSemantic =(List<ResolvedAspectReference>) aspectReferences.GetOrAdd( containingSemantic, cs => new List<ResolvedAspectReference>() );
+
+                    lock(referencesForContainingSemantic)
+                    {
+                        referencesForContainingSemantic.Add( resolvedReference );
+                    }
 
                     // In case of duplicate declarations (which can happen at design time), the aspect may not be added here.
                 }

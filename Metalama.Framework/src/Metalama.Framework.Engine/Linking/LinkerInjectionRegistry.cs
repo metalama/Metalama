@@ -38,6 +38,8 @@ internal sealed class LinkerInjectionRegistry
     private readonly IReadOnlyCollection<ISymbol> _overrideTargets;
     private readonly IReadOnlyDictionary<DeclarationBuilderData, IIntroduceDeclarationTransformation> _builderToTransformationMap;
     private readonly IReadOnlyDictionary<ISymbol, IReadOnlyList<ISymbol>> _overrideTargetToOverrideListMap;
+    private readonly IReadOnlyDictionary<ISymbol, IReadOnlyList<ISymbol>> _overrideToSatelliteOverrideMemberMap;
+    private readonly IReadOnlyDictionary<ISymbol, ISymbol> _satelliteOverrideMemberToOverrideMap;
     private readonly IReadOnlyDictionary<ISymbol, InjectedMember> _symbolToInjectedMemberMap;
     private readonly IReadOnlyDictionary<InjectedMember, ISymbol> _injectedMemberToSymbolMap;
     private readonly IReadOnlyDictionary<ITransformation, IReadOnlyList<InjectedMember>> _transformationToInjectedMemberMap;
@@ -61,6 +63,8 @@ internal sealed class LinkerInjectionRegistry
         ConcurrentQueue<ISymbol> overrideTargets;
         ConcurrentDictionary<ISymbol, IReadOnlyList<ISymbol>> overrideMap;
         ConcurrentDictionary<ISymbol, ISymbol> overrideTargetMap;
+        ConcurrentDictionary<ISymbol, IReadOnlyList<ISymbol>> overrideToSatelliteOverrideMemberMap;
+        ConcurrentDictionary<ISymbol, ISymbol> satelliteOverrideMemberToOverrideMap;
         ConcurrentDictionary<ISymbol, InjectedMember> symbolToInjectedMemberMap;
         ConcurrentDictionary<ITransformation, IReadOnlyList<InjectedMember>> transformationToInjectedMemberMap;
         ConcurrentDictionary<InjectedMember, ISymbol> injectedMemberToSymbolMap;
@@ -89,6 +93,12 @@ internal sealed class LinkerInjectionRegistry
         this._overrideToOverrideTargetMap =
             overrideTargetMap = new ConcurrentDictionary<ISymbol, ISymbol>( intermediateCompilation.CompilationContext.SymbolComparer );
 
+        this._overrideToSatelliteOverrideMemberMap = overrideToSatelliteOverrideMemberMap =
+            new ConcurrentDictionary<ISymbol, IReadOnlyList<ISymbol>>( intermediateCompilation.CompilationContext.SymbolComparer );
+
+        this._satelliteOverrideMemberToOverrideMap = satelliteOverrideMemberToOverrideMap =
+            new ConcurrentDictionary<ISymbol, ISymbol>( intermediateCompilation.CompilationContext.SymbolComparer );
+
         this._symbolToInjectedMemberMap = symbolToInjectedMemberMap =
             new ConcurrentDictionary<ISymbol, InjectedMember>( intermediateCompilation.CompilationContext.SymbolComparer );
 
@@ -98,6 +108,8 @@ internal sealed class LinkerInjectionRegistry
         var builderToInjectedMemberMap = new ConcurrentDictionary<DeclarationBuilderData, InjectedMember>();
 
         this._transformationToInjectedMemberMap = transformationToInjectedMemberMap = new ConcurrentDictionary<ITransformation, IReadOnlyList<InjectedMember>>();
+
+        var transformationsWithSatelliteMemberOverrides = new HashSet<ITransformation>();
 
         void ProcessInjectedMember( InjectedMember injectedMember )
         {
@@ -120,11 +132,27 @@ internal sealed class LinkerInjectionRegistry
 
             if ( injectedMember.Transformation is IOverrideDeclarationTransformation overrideTransformation )
             {
-                var list = overriddenDeclarations.GetOrAdd( overrideTransformation.OverriddenDeclaration, _ => new List<ISymbol>() );
-
-                lock ( list )
+                switch ( injectedMember.Semantic )
                 {
-                    list.Add( injectedMemberSymbol );
+                    case InjectedMemberSemantic.Override:
+                        // This is a normal override.
+                        var list = overriddenDeclarations.GetOrAdd( overrideTransformation.OverriddenDeclaration, _ => new List<ISymbol>() );
+
+                        lock ( list )
+                        {
+                            list.Add( injectedMemberSymbol );
+                        }
+                        break;
+                    case InjectedMemberSemantic.OverrideEventRaise:
+                        // This is an override of the event raise method - this is a satellite override, which has to be indexed in second phase.
+                        lock ( transformationsWithSatelliteMemberOverrides )
+                        {
+                            transformationsWithSatelliteMemberOverrides.Add( injectedMember.Transformation );
+                        }
+                        break;
+                    default:
+                        throw new AssertionFailedException(
+                            $"Unexpected semantic '{injectedMember.Semantic}' for override transformation {overrideTransformation}." );
                 }
             }
 
@@ -213,6 +241,41 @@ internal sealed class LinkerInjectionRegistry
 #pragma warning disable VSTHRD002 // Avoid problematic synchronous waits
         concurrentTaskRunner.RunConcurrentlyAsync( overriddenDeclarations, ProcessOverride, cancellationToken ).Wait( cancellationToken );
 #pragma warning restore VSTHRD002 // Avoid problematic synchronous waits
+
+        void ProcessTransformationsWithSatelliteMemberOverrides( ITransformation transformation )
+        {
+            var injectedMembersForTransformation = transformationToInjectedMemberMap[transformation];
+
+            var satelliteOverrides = injectedMembersForTransformation
+                .Where( m => m.Semantic == InjectedMemberSemantic.OverrideEventRaise )
+                .ToList();
+
+            Invariant.Assert( satelliteOverrides.Count > 0 );
+
+            var mainOverride = injectedMembersForTransformation.Single(m => m.Semantic == InjectedMemberSemantic.Override);
+            var mainOverrideSymbol = this._injectedMemberToSymbolMap[mainOverride];
+
+            foreach ( var satelliteOverride in satelliteOverrides)
+            {
+                var satelliteOverrideSymbol = this._injectedMemberToSymbolMap[satelliteOverride];
+
+                satelliteOverrideMemberToOverrideMap[satelliteOverrideSymbol] = mainOverrideSymbol;
+
+                if ( overrideToSatelliteOverrideMemberMap.TryGetValue( mainOverrideSymbol, out var satelliteOverridesList ) )
+                {
+                    lock ( satelliteOverridesList )
+                    {
+                        ((List<ISymbol>)satelliteOverridesList).Add( satelliteOverrideSymbol );
+                    }
+                }
+                else
+                {
+                    overrideToSatelliteOverrideMemberMap[mainOverrideSymbol] = new List<ISymbol> { satelliteOverrideSymbol };
+                }
+            }
+        }
+
+        concurrentTaskRunner.RunConcurrentlyAsync( transformationsWithSatelliteMemberOverrides, ProcessTransformationsWithSatelliteMemberOverrides, cancellationToken ).Wait( cancellationToken );
 
         ISymbol GetCanonicalSymbolForInjectedMember( InjectedMember injectedMember )
         {
@@ -600,27 +663,56 @@ internal sealed class LinkerInjectionRegistry
     {
         if ( symbol is IMethodSymbol methodSymbol )
         {
-            return this.GetInjectedMemberForSymbol( methodSymbol ) is { Transformation: IOverrideDeclarationTransformation, Semantic: InjectedMemberSemantic.OverrideEventRaise };
+            return this.GetInjectedMemberForSymbol( methodSymbol ) is { Semantic: InjectedMemberSemantic.OverrideEventRaise };
         }
         return false;
     }
 
     public bool HasEventRaiseOverride( ISymbol symbol )
     {
-        if ( symbol is IEventSymbol eventSymbol )
+        if ( symbol is IEventSymbol eventSymbol && this.IsOverrideTarget(symbol))
         {
-            var transformation = this.GetInjectedMemberForSymbol( symbol )?.Transformation;
+            var overrides = this.GetOverridesForSymbol( eventSymbol );
 
-            if (transformation is not OverrideEventTransformation)
+            if (overrides
+                    .SelectMany(o => this.GetInjectedMembersForTransformation(this.GetInjectedMemberForSymbol(o).Transformation))
+                    .Any( im => im is { Semantic: InjectedMemberSemantic.OverrideEventRaise } ) )
             {
-                return false;
-            }
-
-            if (this.GetInjectedMembersForTransformation( transformation ).SingleOrDefault( m => m.Semantic == InjectedMemberSemantic.OverrideEventRaise ) is { } injectedEventRaise)
-            {
+                // If any of the overrides has an event raise override, then this is true.
                 return true;
             }
         }
+
         return false;
+    }
+
+    public IReadOnlyList<ISymbol> GetSatelliteOverrideMembers( ISymbol mainOverrideSymbol )
+    {
+        mainOverrideSymbol = mainOverrideSymbol.GetCanonicalDefinition();
+
+        if ( this._overrideToSatelliteOverrideMemberMap.TryGetValue( mainOverrideSymbol, out var satelliteOverrides ) )
+        {
+            return satelliteOverrides;
+        }
+
+        return Array.Empty<ISymbol>();
+    }
+
+    public ISymbol? GetMainOverrideForSatelliteOverride( ISymbol satelliteOverrideSymbol )
+    {
+        satelliteOverrideSymbol = satelliteOverrideSymbol.GetCanonicalDefinition();
+
+        if ( this._satelliteOverrideMemberToOverrideMap.TryGetValue( satelliteOverrideSymbol, out var mainOverride ) )
+        {
+            return mainOverride;
+        }
+
+        return null;
+    }
+
+    public bool IsSatelliteOverride( ISymbol symbol )
+    {
+        symbol = symbol.GetCanonicalDefinition();
+        return this._satelliteOverrideMemberToOverrideMap.ContainsKey( symbol );
     }
 }

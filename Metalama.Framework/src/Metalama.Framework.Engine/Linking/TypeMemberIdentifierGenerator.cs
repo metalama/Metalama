@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Engine.CodeModel;
+using Metalama.Framework.Engine.Services;
 using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Concurrent;
@@ -14,9 +15,9 @@ internal class TypeMemberIdentifierGenerator
 {
     private ConcurrentDictionary<INamedTypeSymbol, HashSet<string>> UsedNames { get; }
 
-    public TypeMemberIdentifierGenerator( CompilationModel compilationModel )
+    public TypeMemberIdentifierGenerator( CompilationContext compilationContext )
     {
-        this.UsedNames = new ConcurrentDictionary<INamedTypeSymbol, HashSet<string>>( compilationModel.CompilationContext.SymbolComparer );
+        this.UsedNames = new ConcurrentDictionary<INamedTypeSymbol, HashSet<string>>( compilationContext.SymbolComparer );
     }
 
     private HashSet<string> InitializeType(INamedTypeSymbol typeSymbol)
@@ -33,9 +34,17 @@ internal class TypeMemberIdentifierGenerator
         return usedNames;
     }
 
-    public string AllocateName( INamedTypeSymbol typeSymbol, string hint, bool alwaysUseSuffix)
+    public string AllocateName( INamedTypeSymbol typeSymbol, string hint, IdentifierFlags flags )
     {
         var usedNames = this.UsedNames.GetOrAdd( typeSymbol, static ( typeSymbol, instance ) => instance.InitializeType( typeSymbol ), this );
+        var alwaysUseSuffix = (flags & IdentifierFlags.AlwaysUseSuffix) != 0;
+        var makePrivateFieldName = (flags & IdentifierFlags.MakePrivateFieldName) != 0;
+
+        if (makePrivateFieldName)
+        {
+            // Prefix with underscore and lowercase first letter.
+            hint = $"_{char.ToLowerInvariant(hint[0])}{hint.Substring(1)}";
+        }
 
         lock ( usedNames )
         {
@@ -49,4 +58,12 @@ internal class TypeMemberIdentifierGenerator
             return name;
         }
     }
+}
+
+[Flags]
+internal enum IdentifierFlags
+{
+    None = 0,
+    AlwaysUseSuffix = 1,
+    MakePrivateFieldName = 2
 }

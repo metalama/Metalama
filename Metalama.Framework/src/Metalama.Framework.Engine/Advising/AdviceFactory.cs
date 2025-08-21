@@ -1173,19 +1173,19 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
             this.Validate( targetEvent, AdviceKind.OverrideEvent );
 
             var boundAddTemplate =
-                this.ValidateRequiredTemplateName( addTemplate, TemplateKind.Default )
-                    .GetTemplateMember<IMethod>( this._compilation, this._state.ServiceProvider, this.TemplateProvider, this.GetTagsReader( tags ) )
-                    .ForOverride( targetEvent.AddMethod, this.GetArgsReader( args ) );
+                this.ValidateTemplateName( addTemplate, TemplateKind.Default )
+                    ?.GetTemplateMember<IMethod>( this._compilation, this._state.ServiceProvider, this.TemplateProvider, this.GetTagsReader( tags ) )
+                    ?.ForOverride( targetEvent.AddMethod, this.GetArgsReader( args ) );
 
             var boundRemoveTemplate =
-                this.ValidateRequiredTemplateName( removeTemplate, TemplateKind.Default )
-                    .GetTemplateMember<IMethod>( this._compilation, this._state.ServiceProvider, this.TemplateProvider, this.GetTagsReader( tags ) )
-                    .ForOverride( targetEvent.RemoveMethod, this.GetArgsReader( args ) );
+                this.ValidateTemplateName( removeTemplate, TemplateKind.Default )
+                    ?.GetTemplateMember<IMethod>( this._compilation, this._state.ServiceProvider, this.TemplateProvider, this.GetTagsReader( tags ) )
+                    ?.ForOverride( targetEvent.RemoveMethod, this.GetArgsReader( args ) );
 
             var boundInvokeTemplate =
-                this.ValidateRequiredTemplateName( removeTemplate, TemplateKind.Default )
-                    .GetTemplateMember<IMethod>( this._compilation, this._state.ServiceProvider, this.TemplateProvider, this.GetTagsReader( tags ) )
-                    .ForOverride( targetEvent.RaiseMethod, this.GetArgsReader( args ) );
+                this.ValidateTemplateName( invokeTemplate, TemplateKind.Default )
+                    ?.GetTemplateMember<IMethod>( this._compilation, this._state.ServiceProvider, this.TemplateProvider, this.GetTagsReader( tags ) )
+                    ?.ForOverride( targetEvent.RaiseMethod, this.GetArgsReader( args ) );
 
             var advice = new OverrideEventAdvice(
                 this.GetAdviceConstructorParameters( targetEvent ),

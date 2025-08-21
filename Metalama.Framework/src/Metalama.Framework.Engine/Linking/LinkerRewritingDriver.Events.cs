@@ -47,7 +47,7 @@ namespace Metalama.Framework.Engine.Linking
                 }
                 else
                 {
-                    members.Add( this.GetTrampolineForEvent( eventDeclaration, lastOverride.ToSemantic( IntermediateSymbolSemanticKind.Default ), context ) );
+                    members.Add( this.GetTrampolineForEvent( eventDeclaration, symbol, lastOverride.ToSemantic( IntermediateSymbolSemanticKind.Default ), context ) );
                 }
 
                 if ( !eventDeclaration.GetLinkerDeclarationFlags().HasFlagFast( AspectLinkerDeclarationFlags.EventField )
@@ -94,7 +94,7 @@ namespace Metalama.Framework.Engine.Linking
 
                 return
                 [
-                    this.GetTrampolineForEvent( eventDeclaration, symbol.ToSemantic( IntermediateSymbolSemanticKind.Base ), context ),
+                    this.GetTrampolineForEvent( eventDeclaration, null, symbol.ToSemantic( IntermediateSymbolSemanticKind.Base ), context ),
                     this.GetOriginalImplEvent( eventDeclaration, symbol, context )
                 ];
             }
@@ -112,13 +112,19 @@ namespace Metalama.Framework.Engine.Linking
                 var addAccessorDeclaration = (AccessorDeclarationSyntax) symbol.AddMethod.AssertNotNull().GetPrimaryDeclarationSyntax().AssertNotNull();
                 var removeAccessorDeclaration = (AccessorDeclarationSyntax) symbol.RemoveMethod.AssertNotNull().GetPrimaryDeclarationSyntax().AssertNotNull();
 
-                var transformedAdd = GetLinkedAccessor( semanticKind, addAccessorDeclaration, symbol.AddMethod.AssertNotNull(), isOverrideOrOverrideTarget );
+                var transformedAdd =
+                    GetLinkedAccessor(
+                        semanticKind,
+                        addAccessorDeclaration,
+                        symbol.AddMethod.AssertNotNull(),
+                        isOverrideOrOverrideTarget );
 
-                var transformedRemove = GetLinkedAccessor(
-                    semanticKind,
-                    removeAccessorDeclaration,
-                    symbol.RemoveMethod.AssertNotNull(),
-                    isOverrideOrOverrideTarget );
+                var transformedRemove =
+                    GetLinkedAccessor(
+                        semanticKind,
+                        removeAccessorDeclaration,
+                        symbol.RemoveMethod.AssertNotNull(),
+                        isOverrideOrOverrideTarget );
 
                 var (accessorListLeadingTrivia, accessorStartingTrivia, accessorEndingTrivia, accessorListTrailingTrivia) = eventDeclaration switch
                 {
@@ -395,6 +401,7 @@ namespace Metalama.Framework.Engine.Linking
 
         private EventDeclarationSyntax GetTrampolineForEvent(
             EventDeclarationSyntax @event,
+            IEventSymbol? contextEventSymbol,
             IntermediateSymbolSemantic<IEventSymbol> targetSemantic,
             SyntaxGenerationContext context )
         {
@@ -403,6 +410,8 @@ namespace Metalama.Framework.Engine.Linking
             Invariant.Implies(
                 targetSemantic.Kind is IntermediateSymbolSemanticKind.Base,
                 targetSemantic.Symbol is { IsOverride: true } or { IsVirtual: true } );
+
+            var hasEventBroker = contextEventSymbol != null && this.InjectionRegistry.HasEventRaiseOverride( contextEventSymbol );
 
             var addAccessor = @event.AccessorList?.Accessors.SingleOrDefault( x => x.Kind() == SyntaxKind.AddAccessorDeclaration );
             var removeAccessor = @event.AccessorList?.Accessors.SingleOrDefault( x => x.Kind() == SyntaxKind.RemoveAccessorDeclaration );
@@ -416,22 +425,26 @@ namespace Metalama.Framework.Engine.Linking
                                     addAccessor != null
                                         ? AccessorDeclaration(
                                             SyntaxKind.AddAccessorDeclaration,
-                                            context.SyntaxGenerator.FormattedBlock(
-                                                ExpressionStatement(
-                                                    AssignmentExpression(
-                                                        SyntaxKind.AddAssignmentExpression,
-                                                        GetInvocationTarget(),
-                                                        IdentifierName( "value" ) ) ) ) )
+                                            hasEventBroker
+                                                ? this.GetEventBrokerAdderBody( contextEventSymbol.AssertNotNull(), targetSemantic, context )
+                                                : context.SyntaxGenerator.FormattedBlock(
+                                                    ExpressionStatement(
+                                                        AssignmentExpression(
+                                                            SyntaxKind.AddAssignmentExpression,
+                                                            GetInvocationTarget(),
+                                                            IdentifierName( "value" ) ) ) ) )
                                         : null,
                                     removeAccessor != null
                                         ? AccessorDeclaration(
                                             SyntaxKind.RemoveAccessorDeclaration,
-                                            context.SyntaxGenerator.FormattedBlock(
-                                                ExpressionStatement(
-                                                    AssignmentExpression(
-                                                        SyntaxKind.SubtractAssignmentExpression,
-                                                        GetInvocationTarget(),
-                                                        IdentifierName( "value" ) ) ) ) )
+                                            hasEventBroker
+                                                ? this.GetEventBrokerRemoverBody( contextEventSymbol.AssertNotNull(), targetSemantic, context )
+                                                : context.SyntaxGenerator.FormattedBlock(
+                                                    ExpressionStatement(
+                                                        AssignmentExpression(
+                                                            SyntaxKind.SubtractAssignmentExpression,
+                                                            GetInvocationTarget(),
+                                                            IdentifierName( "value" ) ) ) ) )
                                         : null
                                 }.Where( a => a != null )
                                 .AssertNoneNull() ) ) )
@@ -471,18 +484,171 @@ namespace Metalama.Framework.Engine.Linking
 
             return
                 FieldDeclaration(
+                    List<AttributeListSyntax>(),
+                    TokenList(
+                        Token( TriviaList(), SyntaxKind.PrivateKeyword, TriviaList( ElasticSpace ) ),
+                        Token( TriviaList(), SyntaxKind.VolatileKeyword, TriviaList( ElasticSpace ) ) ),
                     VariableDeclaration(
                         context.SyntaxGenerator.TypeSyntax( eventBrokerTypeInfo.EventBrokerType.WithNullableAnnotation( NullableAnnotation.Annotated ) ),
                         SingletonSeparatedList(
                             VariableDeclarator(
-                                Identifier( GetEventBrokerVariableName( symbol ) ),
+                                Identifier( eventBrokerTypeInfo.EventBrokerFieldName ),
                                 null,
                                 null ) ) ) );
         }
 
-        private static string GetEventBrokerVariableName( IEventSymbol @event )
+        private BlockSyntax GetEventBrokerAdderBody( IEventSymbol symbol, IntermediateSymbolSemantic<IEventSymbol> targetSemantic, SyntaxGenerationContext context )
         {
-            return GetSpecialMemberName( @event, "EventBroker" );
+            var eventBrokerTypeInfo = this.AnalysisRegistry.GetEventBrokerTypeInfo( symbol ).AssertNotNull();
+
+            return
+                context.SyntaxGenerator.FormattedBlock(
+                    IfStatement(
+                    BinaryExpression(
+                        SyntaxKind.EqualsExpression,
+                        MemberAccessExpression(
+                            SyntaxKind.SimpleMemberAccessExpression,
+                            ThisExpression(),
+                            IdentifierName( eventBrokerTypeInfo.EventBrokerFieldName ) ),
+                        LiteralExpression(
+                            SyntaxKind.NullLiteralExpression ) ),
+                    Block(
+                        LocalDeclarationStatement(
+                            VariableDeclaration(
+                                IdentifierName(
+                                    Identifier(
+                                        TriviaList(),
+                                        SyntaxKind.VarKeyword,
+                                        "var",
+                                        "var",
+                                        TriviaList( ElasticSpace ) ) ),
+                                SingletonSeparatedList(
+                                    VariableDeclarator(
+                                        Identifier( "newBroker" ) )
+                                    .WithInitializer(
+                                        EqualsValueClause(
+                                            ObjectCreationExpression(
+                                                Token( TriviaList(), SyntaxKind.NewKeyword, "new", "new", TriviaList( ElasticSpace ) ),
+                                                context.SyntaxGenerator.TypeSyntax( eventBrokerTypeInfo.EventBrokerType ),
+                                                ArgumentList(
+                                                     SeparatedList(
+                                                        [
+                                                            Argument( ThisExpression() ),
+                                                            Argument( IdentifierName( eventBrokerTypeInfo.InvokerDelegate.FieldName ) ),
+                                                            Argument( IdentifierName( eventBrokerTypeInfo.CastDelegate.FieldName ) )
+                                                        ] ) ),
+                                                null ) ) ) ) ) ),
+                        WhileStatement(
+                            BinaryExpression(
+                                SyntaxKind.NotEqualsExpression,
+                                LiteralExpression(
+                                    SyntaxKind.NullLiteralExpression ),
+                                InvocationExpression(
+                                    MemberAccessExpression(
+                                        SyntaxKind.SimpleMemberAccessExpression,
+                                        MemberAccessExpression(
+                                            SyntaxKind.SimpleMemberAccessExpression,
+                                            MemberAccessExpression(
+                                                SyntaxKind.SimpleMemberAccessExpression,
+                                                IdentifierName( "System" ),
+                                                IdentifierName( "Threading" ) ),
+                                            IdentifierName( "Interlocked" ) ),
+                                        IdentifierName( "CompareExchange" ) ) )
+                                .WithArgumentList(
+                                    ArgumentList(
+                                        SeparatedList<ArgumentSyntax>(
+                                            [
+                                                Argument(
+                                                    null,
+                                                    Token( TriviaList(), SyntaxKind.RefKeyword, TriviaList( ElasticSpace) ),
+                                                    MemberAccessExpression(
+                                                        SyntaxKind.SimpleMemberAccessExpression,
+                                                        ThisExpression(),
+                                                        IdentifierName(eventBrokerTypeInfo.EventBrokerFieldName))),
+                                                Token(SyntaxKind.CommaToken),
+                                                Argument(
+                                                    IdentifierName("newBroker")),
+                                                Token(SyntaxKind.CommaToken),
+                                                Argument(
+                                                    LiteralExpression(
+                                                        SyntaxKind.NullLiteralExpression))
+                                            ] ) ) ) ),
+                            EmptyStatement() ) ) ),
+                    IfStatement(
+                        InvocationExpression(
+                            MemberAccessExpression(
+                                SyntaxKind.SimpleMemberAccessExpression,
+                                MemberAccessExpression(
+                                    SyntaxKind.SimpleMemberAccessExpression,
+                                    ThisExpression(),
+                                    IdentifierName( eventBrokerTypeInfo.EventBrokerFieldName ) ), 
+                                IdentifierName( "AddHandler" ) ),
+                            ArgumentList(
+                                SingletonSeparatedList(
+                                    Argument(
+                                        IdentifierName( "value" ) ) ) ) ),
+                        Block(
+                            ExpressionStatement(
+                                AssignmentExpression(
+                                    SyntaxKind.AddAssignmentExpression,
+                                    MemberAccessExpression(
+                                        SyntaxKind.SimpleMemberAccessExpression,
+                                        ThisExpression(),
+                                        IdentifierName(targetSemantic.Symbol.Name) ),
+                                    MemberAccessExpression(
+                                        SyntaxKind.SimpleMemberAccessExpression,
+                                        MemberAccessExpression(
+                                            SyntaxKind.SimpleMemberAccessExpression,
+                                            ThisExpression(),
+                                            IdentifierName( eventBrokerTypeInfo.EventBrokerFieldName ) ),
+                                        IdentifierName( "InvocationDelegate" ) ) ) ) ) ) );
+        }
+
+        private BlockSyntax GetEventBrokerRemoverBody( IEventSymbol symbol, IntermediateSymbolSemantic<IEventSymbol> targetSemantic, SyntaxGenerationContext context )
+        {
+            var eventBrokerTypeInfo = this.AnalysisRegistry.GetEventBrokerTypeInfo( symbol ).AssertNotNull();
+
+            return
+                Block(
+                    IfStatement(
+                    BinaryExpression(
+                        SyntaxKind.LogicalAndExpression,
+                        BinaryExpression(
+                            SyntaxKind.NotEqualsExpression,
+                            MemberAccessExpression(
+                                SyntaxKind.SimpleMemberAccessExpression,
+                                ThisExpression(),
+                                IdentifierName( eventBrokerTypeInfo.EventBrokerFieldName ) ),
+                            LiteralExpression(
+                                SyntaxKind.NullLiteralExpression ) ),
+                        InvocationExpression(
+                            MemberAccessExpression(
+                                SyntaxKind.SimpleMemberAccessExpression,
+                                MemberAccessExpression(
+                                    SyntaxKind.SimpleMemberAccessExpression,
+                                    ThisExpression(),
+                                    IdentifierName( eventBrokerTypeInfo.EventBrokerFieldName ) ),
+                                IdentifierName( "RemoveHandler" ) ) )
+                        .WithArgumentList(
+                            ArgumentList(
+                                SingletonSeparatedList(
+                                    Argument(
+                                        IdentifierName( "value" ) ) ) ) ) ),
+                    Block(
+                        ExpressionStatement(
+                            AssignmentExpression(
+                                SyntaxKind.SubtractAssignmentExpression,
+                                MemberAccessExpression(
+                                    SyntaxKind.SimpleMemberAccessExpression,
+                                    ThisExpression(),
+                                    IdentifierName( targetSemantic.Symbol.Name )),
+                                MemberAccessExpression(
+                                    SyntaxKind.SimpleMemberAccessExpression,
+                                    MemberAccessExpression(
+                                        SyntaxKind.SimpleMemberAccessExpression,
+                                        ThisExpression(),
+                                        IdentifierName( eventBrokerTypeInfo.EventBrokerFieldName ) ),
+                                    IdentifierName( "InvocationDelegate" ) ) ) ) ) ) );
         }
     }
 }

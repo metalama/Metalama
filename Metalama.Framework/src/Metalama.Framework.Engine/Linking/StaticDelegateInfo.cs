@@ -21,12 +21,15 @@ public class StaticDelegateInfo
 
     public INamedTypeSymbol DelegateType { get; }
 
+    public string FieldName { get; }
+
     public Func<SyntaxGenerationContext, ExpressionSyntax> InitializeExpressionFunc { get; }
 
-    public StaticDelegateInfo( INamedTypeSymbol containingType, INamedTypeSymbol delegateType, Func<SyntaxGenerationContext, ExpressionSyntax> initializeExpressionFunc )
+    public StaticDelegateInfo( INamedTypeSymbol containingType, INamedTypeSymbol delegateType, string fieldName, Func<SyntaxGenerationContext, ExpressionSyntax> initializeExpressionFunc )
     {
         this.ContainingType = containingType;
         this.DelegateType = delegateType;
-        this.InitializeExpressionFunc = initializeExpression;
+        this.FieldName = fieldName;
+        this.InitializeExpressionFunc = initializeExpressionFunc;
     }
 }

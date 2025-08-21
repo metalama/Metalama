@@ -14,6 +14,7 @@ using Metalama.Framework.Engine.Templating.Expressions;
 using Metalama.Framework.Engine.Templating.MetaModel;
 using Metalama.Framework.Engine.Transformations;
 using Metalama.Framework.Engine.Utilities.Roslyn;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Generic;
@@ -159,17 +160,29 @@ internal sealed class OverrideEventTransformation : OverrideMemberTransformation
                     modifiers,
                     context.SyntaxGenerator.TypeSyntax( eventHandlerInvokeMethod.ReturnType ),
                     null,
-                    Identifier( eventName + "_Invoke" ),
+                    Identifier( TriviaList(ElasticSpace),  eventName + "_Invoke",  TriviaList() ),
                     null,
                     ParameterList(
                         SeparatedList(
-                            eventHandlerInvokeMethod.Parameters.SelectAsArray(
-                                p => Parameter(
+                            [
+                                Parameter(
                                     List<AttributeListSyntax>(),
                                     TokenList(),
-                                    context.SyntaxGenerator.TypeSyntax( p.Type ),
-                                    Identifier( p.Name ),
-                                    null ) ) ) ),
+                                    context.SyntaxGenerator.TypeSyntax(overriddenDeclaration.Type),
+                                    Identifier( TriviaList(ElasticSpace), "handler", TriviaList() ),
+                                    null),
+                                Parameter(
+                                    List<AttributeListSyntax>(),
+                                    TokenList(),
+                                    TupleType(
+                                        SeparatedList(
+                                            eventHandlerInvokeMethod.Parameters.SelectAsArray(
+                                                p => TupleElement(
+                                                    context.SyntaxGenerator.TypeSyntax( p.Type ),
+                                                    Identifier( TriviaList(ElasticSpace), p.Name, TriviaList() ) ) ) ) ),
+                                    Identifier( "args" ),
+                                    null),
+                            ] ) ),
                     List<TypeParameterConstraintClauseSyntax>(),
                     invokeAccessorBody,
                     null,

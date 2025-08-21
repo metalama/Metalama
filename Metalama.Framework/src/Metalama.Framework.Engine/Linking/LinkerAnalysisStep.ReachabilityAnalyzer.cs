@@ -8,6 +8,7 @@ using Metalama.Framework.Engine.Transformations;
 using Metalama.Framework.Engine.Utilities.Threading;
 using Microsoft.CodeAnalysis;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -119,7 +120,14 @@ internal sealed partial class LinkerAnalysisStep
                         case IEventSymbol @event:
                             DepthFirstSearch( @event.AddMethod.AssertNotNull().ToSemantic( IntermediateSymbolSemanticKind.Default ) );
                             DepthFirstSearch( @event.RemoveMethod.AssertNotNull().ToSemantic( IntermediateSymbolSemanticKind.Default ) );
-                            DepthFirstSearch( @event.RaiseMethod.AssertNotNull().ToSemantic( IntermediateSymbolSemanticKind.Default ) );
+
+                            if ( this._injectionRegistry.HasEventRaiseOverride( @event ) )
+                            {
+                                // If the event has an override for the raise method, we need to visit it as well.
+                                var eventRaiseMember = this._injectionRegistry.GetSatelliteOverrideMembers( @event ).SingleOrDefault();
+
+                                DepthFirstSearch( eventRaiseMember.ToSemantic( IntermediateSymbolSemanticKind.Default ) );
+                            }
 
                             break;
                     }
@@ -165,11 +173,21 @@ internal sealed partial class LinkerAnalysisStep
 
                         break;
 
-                    case IMethodSymbol { AssociatedSymbol: null }:
+                    case IMethodSymbol { AssociatedSymbol: null } method:
+                        if (this._injectionRegistry.IsEventRaiseOverride(method))
+                        {
+                            // Implicit edge from the raise method to the event.
+                            var @event = this._injectionRegistry.GetMainOverrideForSatelliteOverride( method ).AssertNotNull();
+
+                            DepthFirstSearch( new IntermediateSymbolSemantic( @event, current.Kind ) );
+                        }
+
+                        break;
+
+                    case IEventSymbol @event:
                     case IPropertySymbol:
-                    case IEventSymbol:
                     case IFieldSymbol:
-                        // Do nothing on method groups and fields as these do not have implicit references.
+                        // Do nothing on properties and fields as these do not have implicit references.
                         break;
 
                     default:

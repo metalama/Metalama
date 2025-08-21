@@ -7,7 +7,7 @@ using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 
-namespace Metalama.Framework.IntegrationTests.Aspects.Overrides.Events.RaiseHandler
+namespace Metalama.Framework.IntegrationTests.Aspects.Overrides.Events.RaiseAddRemove
 {
     public class OverrideAttribute : EventAspect
     {
@@ -44,17 +44,19 @@ namespace Metalama.Framework.IntegrationTests.Aspects.Overrides.Events.RaiseHand
     // <target>
     internal class TargetClass 
     {
+        private EventHandler? _handler;
+
         [Override]
         public event EventHandler Event
         {
             add
             {
-                Console.WriteLine( "OriginalAdd" );
+                this._handler = value;
             }
 
             remove
             {
-                Console.WriteLine( "OriginalRemove" );
+                this._handler = null;
             }
         }
     }

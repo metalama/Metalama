@@ -437,11 +437,6 @@ internal sealed partial class LinkerRewritingDriver
             return [];
         }
 
-        if (this.InjectionRegistry.IsEventRaiseOverride(symbol))
-        {
-            return [];
-        }
-
         return symbol switch
         {
             IMethodSymbol methodSymbol => methodSymbol.GetImplementedMethodKind() switch
@@ -804,21 +799,23 @@ internal sealed partial class LinkerRewritingDriver
 
         var sharedMembers = new List<MemberDeclarationSyntax>();
 
-        // TODO: Not caching delegates for now.
-        //foreach (var staticDelegateField in staticDelegateFields )
-        //{
-        //    sharedMembers.Add(
-        //        FieldDeclaration(
-        //            VariableDeclaration(
-        //                syntaxGenerationContext.SyntaxGenerator.TypeSyntax( staticDelegateField.DelegateType ),
-        //                SingletonSeparatedList(
-        //                    VariableDeclarator(
-        //                        Identifier( staticDelegateField.FieldName ),
-        //                        null,
-        //                        EqualsValueClause( staticDelegateField.InitializeExpression ) ) ) ) )
-        //            .WithModifiers(
-        //                TokenList( Token( SyntaxKind.PrivateKeyword ), Token( SyntaxKind.StaticKeyword ), Token( SyntaxKind.ReadOnlyKeyword ) ) ) );
-        //}
+        foreach ( var staticDelegateField in staticDelegateFields )
+        {
+            sharedMembers.Add(
+                FieldDeclaration(
+                    List<AttributeListSyntax>(),
+                    TokenList( 
+                        Token( TriviaList(), SyntaxKind.PrivateKeyword, TriviaList( ElasticSpace ) ), 
+                        Token( TriviaList(), SyntaxKind.StaticKeyword, TriviaList( ElasticSpace ) ), 
+                        Token( TriviaList(), SyntaxKind.ReadOnlyKeyword, TriviaList( ElasticSpace ) ) ),
+                    VariableDeclaration(
+                        syntaxGenerationContext.SyntaxGenerator.TypeSyntax( staticDelegateField.DelegateType ),
+                        SingletonSeparatedList(
+                            VariableDeclarator(
+                                Identifier( staticDelegateField.FieldName ),
+                                null,
+                                EqualsValueClause( staticDelegateField.InitializeExpressionFunc(syntaxGenerationContext) ) ) ) ) ) );
+        }
 
         return sharedMembers;
     }

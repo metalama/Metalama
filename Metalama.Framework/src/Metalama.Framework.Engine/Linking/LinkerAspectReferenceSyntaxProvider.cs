@@ -81,7 +81,8 @@ internal sealed class LinkerAspectReferenceSyntaxProvider : AspectReferenceSynta
                             AssignmentExpression(
                                 SyntaxKind.AddAssignmentExpression,
                                 CreateMemberAccessExpression(@event, syntaxGenerator ),
-                                LinkerInjectionHelperProvider.GetEmptyDelegateMemberExpression(syntaxGenerator.TypeSyntax(@event.Type ) ) ) ) )
+                                InvocationExpression(
+                                    LinkerInjectionHelperProvider.GetEmptyDelegateMemberExpression(syntaxGenerator.TypeSyntax(@event.Type ) ) ) ) ) )
                     ] ) ) );
 
     public override ExpressionSyntax GetPropertyReference(

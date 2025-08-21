@@ -19,7 +19,7 @@ internal sealed class OverrideEventAdvice : OverrideMemberAdvice<IEvent, IEvent>
         AdviceConstructorParameters<IEvent> parameters,
         BoundTemplateMethod? addTemplate,
         BoundTemplateMethod? removeTemplate, 
-        BoundTemplateMethod invokeTemplate )
+        BoundTemplateMethod? invokeTemplate )
         : base( parameters )
     {
         Invariant.Assert( addTemplate != null || removeTemplate != null || invokeTemplate != null );

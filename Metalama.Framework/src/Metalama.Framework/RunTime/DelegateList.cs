@@ -60,7 +60,7 @@ internal struct DelegateList<TDelegate, TArgs>
             }
         }
     }
-    public void Invoke( object sender, TArgs args )
+    public void Invoke( object me, TArgs args )
     {
         var currentValue = this._delegates;
 
@@ -70,6 +70,6 @@ internal struct DelegateList<TDelegate, TArgs>
             return;
         }
 
-        this._invoker.Invoke( currentValue, sender, args );
+        this._invoker.Invoke( currentValue, me, args );
     }
 }

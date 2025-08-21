@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.Linking.Inlining;
 using Metalama.Framework.Engine.Linking.Substitution;
@@ -378,6 +379,23 @@ internal sealed partial class LinkerAnalysisStep
                         AddSubstitution(
                             context,
                             new AspectReferenceBackingFieldSubstitution( this._intermediateCompilationContext, nonInlinedReference ) );
+
+                        break;
+
+
+                    case { Kind: IntermediateSymbolSemanticKind.Default, Symbol: IEventSymbol @event }
+                        when nonInlinedReference.TargetKind is AspectReferenceTargetKind.EventRaiseAccessor
+                             && nonInlinedReference.ContainingBody.MethodKind is MethodKind.EventAdd or MethodKind.EventRemove:
+                        // TODO: This should be removed, because there should be only one reference from final semantics's add/remove.
+                        // To not generate a substitution for final.add -> raise or final.remove -> raise.
+                        break;
+
+                    case { Kind: IntermediateSymbolSemanticKind.Default, Symbol: IEventSymbol @event }
+                        when nonInlinedReference.TargetKind is AspectReferenceTargetKind.EventRaiseAccessor:
+
+                        AddSubstitution(
+                            context,
+                            new EventRaiseBrokerSubstitution( this._intermediateCompilationContext, nonInlinedReference.RootNode, nonInlinedReference.ContainingBody ) );
 
                         break;
 

@@ -10,6 +10,8 @@ namespace Metalama.Framework.Engine.Linking;
 
 internal sealed class ResolvedAspectReference
 {
+    private IntermediateSymbolSemantic<IMethodSymbol>? _explicitResolvedSemanticBody;
+
     /// <summary>
     /// Gets the semantic that contains the reference.
     /// </summary>
@@ -39,7 +41,10 @@ internal sealed class ResolvedAspectReference
     /// Gets the symbol semantic for the target body (always a method).
     /// </summary>
     public IntermediateSymbolSemantic<IMethodSymbol> ResolvedSemanticBody
-        => (this.ResolvedSemantic, this.TargetKind) switch
+        => 
+        this._explicitResolvedSemanticBody != null
+        ? this._explicitResolvedSemanticBody.Value
+        : (this.ResolvedSemantic, this.TargetKind) switch
         {
             ({ Symbol: IMethodSymbol method }, AspectReferenceTargetKind.Self) =>
                 method.ToSemantic( this.ResolvedSemantic.Kind ),
@@ -57,7 +62,9 @@ internal sealed class ResolvedAspectReference
         };
 
     public bool HasResolvedSemanticBody
-        => (this.ResolvedSemantic, this.TargetKind) switch
+        =>
+        this._explicitResolvedSemanticBody != null || 
+        ( this.ResolvedSemantic, this.TargetKind) switch
         {
             // TODO PERF: match Kind not symbol type 
             ({ Symbol: IMethodSymbol }, AspectReferenceTargetKind.Self) => true,
@@ -121,6 +128,7 @@ internal sealed class ResolvedAspectReference
         IMethodSymbol? containingLocalFunction,
         ISymbol originalSymbol,
         IntermediateSymbolSemantic resolvedSemantic,
+        IntermediateSymbolSemantic<IMethodSymbol>? explicitResolvedSemanticBody,
         SyntaxNode annotatedNode,
         SyntaxNode rootNode,
         SyntaxNode symbolSourceNode,
@@ -149,6 +157,7 @@ internal sealed class ResolvedAspectReference
         this.TargetKind = targetKind;
         this.IsInlineable = isInlineable;
         this.HasCustomReceiver = hasCustomReceiver;
+        this._explicitResolvedSemanticBody = explicitResolvedSemanticBody;
     }
 
     public override string ToString()
