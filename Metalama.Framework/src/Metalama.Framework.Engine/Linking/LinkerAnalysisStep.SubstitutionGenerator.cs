@@ -369,11 +369,48 @@ internal sealed partial class LinkerAnalysisStep
 
             void AddSubstitutionsForNonInlinedReference( ResolvedAspectReference nonInlinedReference, InliningContextIdentifier context )
             {
-                switch ( nonInlinedReference.ResolvedSemantic )
+                switch ( nonInlinedReference )
                 {
-                    case { Kind: IntermediateSymbolSemanticKind.Default, Symbol: IPropertySymbol property }
+                    case { 
+                        ResolvedSemantic: { Symbol: IEventSymbol @event }, 
+                        ContainingBody: { MethodKind: MethodKind.EventAdd or MethodKind.EventRemove }, 
+                        ContainingSemantic.Kind: IntermediateSymbolSemanticKind.Final, 
+                        TargetKind: AspectReferenceTargetKind.EventRaiseAccessor
+                    }:
+                        // References to event raise are ignored from the final semantic because they are implicitly made by adder/remover substitution.
+                        break;
+
+                    case {
+                        ResolvedSemantic: { Symbol: IEventSymbol @event },
+                        ContainingBody: { MethodKind: MethodKind.EventAdd },
+                        ContainingSemantic.Kind: IntermediateSymbolSemanticKind.Final,
+                        TargetKind: AspectReferenceTargetKind.EventAddAccessor
+                    } when this._injectionRegistry.HasEventRaiseOverride(@event):
+
+                        AddSubstitution(
+                            context,
+                            new EventBrokerAdderSubstitution( this._intermediateCompilationContext, nonInlinedReference ) );
+
+                        break;
+
+
+                    case
+                    {
+                        ResolvedSemantic: { Symbol: IEventSymbol @event },
+                        ContainingBody: { MethodKind: MethodKind.EventRemove},
+                        ContainingSemantic.Kind: IntermediateSymbolSemanticKind.Final,
+                        TargetKind: AspectReferenceTargetKind.EventRemoveAccessor
+                    } when this._injectionRegistry.HasEventRaiseOverride( @event ):
+
+                        AddSubstitution(
+                            context,
+                            new EventBrokerRemoverSubstitution( this._intermediateCompilationContext, nonInlinedReference ) );
+
+                        break;
+
+                    case { ResolvedSemantic: { Kind: IntermediateSymbolSemanticKind.Default, Symbol: IPropertySymbol property } }
                         when property.IsAutoProperty() == true && this._injectionRegistry.IsOverrideTarget( property ):
-                    case { Kind: IntermediateSymbolSemanticKind.Default, Symbol: IEventSymbol @event }
+                    case { ResolvedSemantic: { Kind: IntermediateSymbolSemanticKind.Default, Symbol: IEventSymbol @event } }
                         when @event.IsEventFieldIntroduction() && this._injectionRegistry.IsOverrideTarget( @event ):
                         // For default semantic of auto properties and event fields, generate substitution that redirects to the backing field..
                         AddSubstitution(
@@ -382,30 +419,23 @@ internal sealed partial class LinkerAnalysisStep
 
                         break;
 
-
-                    case { Kind: IntermediateSymbolSemanticKind.Default, Symbol: IEventSymbol @event }
-                        when nonInlinedReference.TargetKind is AspectReferenceTargetKind.EventRaiseAccessor
-                             && nonInlinedReference.ContainingBody.MethodKind is MethodKind.EventAdd or MethodKind.EventRemove:
-                        // TODO: This should be removed, because there should be only one reference from final semantics's add/remove.
-                        // To not generate a substitution for final.add -> raise or final.remove -> raise.
-                        break;
-
-                    case { Kind: IntermediateSymbolSemanticKind.Default, Symbol: IEventSymbol @event }
-                        when nonInlinedReference.TargetKind is AspectReferenceTargetKind.EventRaiseAccessor:
-
+                    case { 
+                        ResolvedSemantic: { Kind: IntermediateSymbolSemanticKind.Default, Symbol: IEventSymbol @event }, 
+                        TargetKind: AspectReferenceTargetKind.EventRaiseAccessor
+                    }:
                         AddSubstitution(
                             context,
                             new EventRaiseBrokerSubstitution( this._intermediateCompilationContext, nonInlinedReference.RootNode, nonInlinedReference.ContainingBody ) );
 
                         break;
 
-                    case { Kind: IntermediateSymbolSemanticKind.Base, Symbol: { IsVirtual: true } baseSymbol }
+                    case { ResolvedSemantic: { Kind: IntermediateSymbolSemanticKind.Base, Symbol: { IsVirtual: true } baseSymbol } }
                         when !this._intermediateCompilationContext.SymbolComparer.Equals(
                             nonInlinedReference.ContainingSemantic.Symbol.ContainingType,
                             baseSymbol.ContainingType ):
-                    case { Kind: IntermediateSymbolSemanticKind.Base, Symbol.IsOverride: true }
+                    case { ResolvedSemantic: { Kind: IntermediateSymbolSemanticKind.Base, Symbol.IsOverride: true } }
                         when this._injectionRegistry.IsOverrideTarget( nonInlinedReference.ResolvedSemantic.Symbol ):
-                    case { Kind: IntermediateSymbolSemanticKind.Base, Symbol: var potentiallyHidingSymbol }
+                    case { ResolvedSemantic: { Kind: IntermediateSymbolSemanticKind.Base, Symbol: var potentiallyHidingSymbol } }
                         when potentiallyHidingSymbol.TryGetHiddenSymbol( this._intermediateCompilationContext.Compilation, out _ )
                              && this._injectionRegistry.IsOverrideTarget( nonInlinedReference.ResolvedSemantic.Symbol ):
                         // Base reference to a virtual member of the parent that is not overridden.
@@ -419,13 +449,13 @@ internal sealed partial class LinkerAnalysisStep
 
                         break;
 
-                    case { Symbol: IPropertySymbol { Parameters.Length: > 0 } }:
+                    case { ResolvedSemantic: { Symbol: IPropertySymbol { Parameters.Length: > 0 } } }:
                         // Indexers (and in future constructors), adds aspect parameter to the target.
                         // TODO: Currently unused because indexer inlining is not supported. See AspectReferenceParameterSubstitution in history.
 
                         break;
 
-                    case { Kind: IntermediateSymbolSemanticKind.Base, Symbol: var symbol }
+                    case { ResolvedSemantic: { Kind: IntermediateSymbolSemanticKind.Base, Symbol: var symbol } }
                         when !this._intermediateCompilationContext.SymbolComparer.IsConvertibleTo(
                             nonInlinedReference.ContainingSemantic.Symbol.ContainingType,
                             symbol.ContainingType ):
@@ -439,9 +469,9 @@ internal sealed partial class LinkerAnalysisStep
 
                         break;
 
-                    case { Kind: IntermediateSymbolSemanticKind.Base, Symbol: { IsOverride: true, IsSealed: false } or { IsVirtual: true } }
+                    case { ResolvedSemantic: { Kind: IntermediateSymbolSemanticKind.Base, Symbol: { IsOverride: true, IsSealed: false } or { IsVirtual: true } } }
                         when !this._injectionRegistry.IsOverrideTarget( nonInlinedReference.ResolvedSemantic.Symbol ):
-                    case { Kind: IntermediateSymbolSemanticKind.Default }
+                    case { ResolvedSemantic: { Kind: IntermediateSymbolSemanticKind.Default } }
                         when this._injectionRegistry.IsOverrideTarget( nonInlinedReference.ResolvedSemantic.Symbol ):
                         // Base references to non-overridden override member is rewritten to "source" member call.
                         // Default reference to override target is rewritten to "source" member call.
@@ -451,13 +481,13 @@ internal sealed partial class LinkerAnalysisStep
 
                         break;
 
-                    case { Kind: IntermediateSymbolSemanticKind.Default }
+                    case { ResolvedSemantic: { Kind: IntermediateSymbolSemanticKind.Default } }
                         when !this._injectionRegistry.IsOverrideTarget( nonInlinedReference.ResolvedSemantic.Symbol )
                              && !this._injectionRegistry.IsOverride( nonInlinedReference.ResolvedSemantic.Symbol ):
                         // Default non-inlined semantics that are not override targets need no substitutions.
                         break;
 
-                    case { Kind: IntermediateSymbolSemanticKind.Base }:
+                    case { ResolvedSemantic: { Kind: IntermediateSymbolSemanticKind.Base } }:
                         // Base references to other members are rewritten to "empty" member call.
                         AddSubstitution(
                             context,

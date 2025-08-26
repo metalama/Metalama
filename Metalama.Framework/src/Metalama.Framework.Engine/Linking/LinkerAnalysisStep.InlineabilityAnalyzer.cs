@@ -146,6 +146,12 @@ internal sealed partial class LinkerAnalysisStep
 
             bool IsInlineableMethod( IntermediateSymbolSemantic<IMethodSymbol> semantic )
             {
+                if (this._injectionRegistry.IsEventRaiseOverride(semantic.Symbol))
+                {
+                    // Event raise override are always inlineable (we will determine inlineability otherwise).
+                    return true;
+                }
+
                 switch ( semantic.Symbol.MethodKind )
                 {
                     case MethodKind.Ordinary:
@@ -208,8 +214,8 @@ internal sealed partial class LinkerAnalysisStep
             bool IsInlineableEvent( IntermediateSymbolSemantic<IEventSymbol> semantic )
             {
                 if ( semantic.Symbol is IEventSymbol
-                     && semantic.Kind == IntermediateSymbolSemanticKind.Default 
-                     && this._injectionRegistry.IsLastOverride( semantic.Symbol) )
+                     && semantic.Kind == IntermediateSymbolSemanticKind.Default
+                     && this._injectionRegistry.IsLastOverride( semantic.Symbol ) )
                 {
                     // First override of event with raise override is never inlineable (we need the trampoline).
                     return false;

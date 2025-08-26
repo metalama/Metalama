@@ -106,7 +106,7 @@ internal sealed class OverrideEventTransformation : OverrideMemberTransformation
         }
         else
         {
-            invokeAccessorBody = this.CreateIdentityAccessorBody( SyntaxKind.RemoveAccessorDeclaration, context );
+            invokeAccessorBody = null;
         }
 
         if ( templateExpansionError )

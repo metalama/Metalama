@@ -670,17 +670,28 @@ internal sealed class LinkerInjectionRegistry
 
     public bool HasEventRaiseOverride( ISymbol symbol )
     {
-        if ( symbol is IEventSymbol eventSymbol && this.IsOverrideTarget(symbol))
+        switch ( symbol )
         {
-            var overrides = this.GetOverridesForSymbol( eventSymbol );
+            case IEventSymbol eventSymbol when this.IsOverrideTarget( eventSymbol ):
+                var overrides = this.GetOverridesForSymbol( eventSymbol );
 
-            if (overrides
-                    .SelectMany(o => this.GetInjectedMembersForTransformation(this.GetInjectedMemberForSymbol(o).Transformation))
+                if ( overrides
+                        .SelectMany( o => this.GetInjectedMembersForTransformation( this.GetInjectedMemberForSymbol( o ).AssertNotNull().Transformation.AssertNotNull() ) )
+                        .Any( im => im is { Semantic: InjectedMemberSemantic.OverrideEventRaise } ) )
+                {
+                    // This is an event where at least one of the overrides had invocation template.
+                    return true;
+                }
+                break;
+
+            case IEventSymbol eventSymbol when this.IsOverride( symbol ):
+                if ( this.GetInjectedMembersForTransformation( this.GetInjectedMemberForSymbol( eventSymbol ).AssertNotNull().Transformation.AssertNotNull() )
                     .Any( im => im is { Semantic: InjectedMemberSemantic.OverrideEventRaise } ) )
-            {
-                // If any of the overrides has an event raise override, then this is true.
-                return true;
-            }
+                {
+                    // This is an override that included invocation template.
+                    return true;
+                }
+                break;
         }
 
         return false;

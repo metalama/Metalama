@@ -34,11 +34,11 @@ internal sealed partial class LinkerRewritingDriver
 
     private CompilationContext IntermediateCompilationContext { get; }
 
-    private LinkerInjectionRegistry InjectionRegistry { get; }
+    public LinkerInjectionRegistry InjectionRegistry { get; }
 
     private LinkerLateTransformationRegistry LateTransformationRegistry { get; }
 
-    private LinkerAnalysisRegistry AnalysisRegistry { get; }
+    public LinkerAnalysisRegistry AnalysisRegistry { get; }
 
     public LinkerRewritingDriver(
         ProjectServiceProvider serviceProvider,

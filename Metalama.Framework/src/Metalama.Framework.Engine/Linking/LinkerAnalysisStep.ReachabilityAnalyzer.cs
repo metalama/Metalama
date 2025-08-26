@@ -173,18 +173,15 @@ internal sealed partial class LinkerAnalysisStep
 
                         break;
 
-                    case IMethodSymbol { AssociatedSymbol: null } method:
-                        if (this._injectionRegistry.IsEventRaiseOverride(method))
-                        {
-                            // Implicit edge from the raise method to the event.
-                            var @event = this._injectionRegistry.GetMainOverrideForSatelliteOverride( method ).AssertNotNull();
+                    case IMethodSymbol eventBrokerMethod when this._injectionRegistry.IsEventRaiseOverride( eventBrokerMethod ):
+                        var eventBrokerEvent = (IEventSymbol) this._injectionRegistry.GetMainOverrideForSatelliteOverride( eventBrokerMethod ).AssertNotNull();
 
-                            DepthFirstSearch( new IntermediateSymbolSemantic( @event, current.Kind ) );
-                        }
+                        DepthFirstSearch( new IntermediateSymbolSemantic( eventBrokerEvent, current.Kind ) );
 
                         break;
 
-                    case IEventSymbol @event:
+                    case IMethodSymbol:
+                    case IEventSymbol:
                     case IPropertySymbol:
                     case IFieldSymbol:
                         // Do nothing on properties and fields as these do not have implicit references.

@@ -104,11 +104,11 @@ internal sealed partial class LinkerAnalysisStep
                             lastOverride,
                             AspectReferenceTargetKind.EventRemoveAccessor );
 
-                        if ( this._injectionRegistry.HasEventRaiseOverride(@event))
+                        if ( this._injectionRegistry.HasEventRaiseOverride( @event ) )
                         {
-                            // Add implicit reference pointing from final semantic to the last override of the event raise method.
+                            // Event with broker - add implicit reference pointing from final semantic to the last override of the event raise method.
                             // TODO: We may need to walk overrides if the raise is missing for the last override.
-                            var lastEventRaiseOverride = (IMethodSymbol)this._injectionRegistry.GetSatelliteOverrideMembers( lastOverride ).Single();
+                            var lastEventRaiseOverride = (IMethodSymbol) this._injectionRegistry.GetSatelliteOverrideMembers( lastOverride ).Single();
 
                             AddImplicitReference(
                                 @event.AddMethod.AssertNotNull(),
@@ -123,7 +123,7 @@ internal sealed partial class LinkerAnalysisStep
                                 @event,
                                 lastOverride,
                                 AspectReferenceTargetKind.EventRaiseAccessor, 
-                                lastEventRaiseOverride, 
+                                lastEventRaiseOverride,
                                 false );
                         }
 

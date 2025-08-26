@@ -1256,8 +1256,8 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
                 .GetTemplateMember<IMethod>( this._compilation, this._state.ServiceProvider, this.TemplateProvider, this.GetTagsReader( tags ) );
 
             var boundInvokeTemplate = 
-                this.ValidateRequiredTemplateName( invokeTemplate, TemplateKind.Default )
-                .GetTemplateMember<IMethod>( this._compilation, this._state.ServiceProvider, this.TemplateProvider, this.GetTagsReader( tags ) );
+                this.ValidateTemplateName( invokeTemplate, TemplateKind.Default )
+                ?.GetTemplateMember<IMethod>( this._compilation, this._state.ServiceProvider, this.TemplateProvider, this.GetTagsReader( tags ) );
 
             var parameterReaders = this.GetArgsReader( args );
 
@@ -1267,7 +1267,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
                 eventTemplate: null,
                 boundAddTemplate.PartialForIntroduction( parameterReaders ),
                 boundRemoveTemplate.PartialForIntroduction( parameterReaders ),
-                boundInvokeTemplate.PartialForIntroduction( parameterReaders ),
+                boundInvokeTemplate?.PartialForIntroduction( parameterReaders ),
                 scope,
                 whenExists,
                 buildEvent,
