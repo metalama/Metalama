@@ -7,18 +7,16 @@ using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 
-namespace Metalama.Framework.IntegrationTests.Aspects.Introductions.Events.RaiseHandler
+namespace Metalama.Framework.IntegrationTests.Aspects.Overrides.EventFields.RaiseAddRemove
 {
-    public class IntroductionAttribute : TypeAspect
+    public class OverrideAttribute : EventAspect
     {
-        public override void BuildAspect( IAspectBuilder<INamedType> builder )
+        public override void BuildAspect( IAspectBuilder<IEvent> builder )
         {
-            builder.IntroduceEvent(
-                "EventFromAccessors",
+            builder.OverrideAccessors(
                 nameof( AddEventTemplate ),
                 nameof( RemoveEventTemplate ),
-                nameof( InvokeEventTemplate ),
-                buildEvent: e => e.Accessibility = Accessibility.Public );
+                nameof( InvokeEventTemplate ));
         }
 
         [Template]
@@ -44,6 +42,9 @@ namespace Metalama.Framework.IntegrationTests.Aspects.Introductions.Events.Raise
     }
 
     // <target>
-    [Introduction]
-    internal class TargetClass { }
+    internal class TargetClass 
+    {
+        [Override]
+        public event EventHandler Event;
+    }
 }

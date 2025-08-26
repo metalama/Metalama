@@ -215,7 +215,8 @@ internal sealed partial class LinkerAnalysisStep
             {
                 if ( semantic.Symbol is IEventSymbol
                      && semantic.Kind == IntermediateSymbolSemanticKind.Default
-                     && this._injectionRegistry.IsLastOverride( semantic.Symbol ) )
+                     && this._injectionRegistry.IsLastOverride( semantic.Symbol )
+                     && this._injectionRegistry.HasEventRaiseOverride( semantic.Symbol ) )
                 {
                     // First override of event with raise override is never inlineable (we need the trampoline).
                     return false;

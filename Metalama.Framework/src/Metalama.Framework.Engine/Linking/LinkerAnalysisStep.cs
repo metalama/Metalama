@@ -100,7 +100,12 @@ namespace Metalama.Framework.Engine.Linking
                 new HashSet<IEventSymbol>(
                     input.InjectionRegistry.GetInjectedMembers()
                     .Where( im => im.Semantic == Transformations.InjectedMemberSemantic.OverrideEventRaise )
-                    .Select( im => (IEventSymbol)im.Declaration.GetTarget( input.InputCompilationModel ).GetSymbol().AssertNotNull() ) );
+                    .Select( im =>
+                    {
+                        var raiseOverrideSymbol = input.InjectionRegistry.GetSymbolForInjectedMember( im );
+                        var eventOverrideSymbol = input.InjectionRegistry.GetMainOverrideForSatelliteOverride( raiseOverrideSymbol );
+                        return (IEventSymbol) input.InjectionRegistry.GetOverrideTarget( eventOverrideSymbol );
+                    } ) );
 
             var eventFieldRaiseReferences = await GetEventFieldRaiseReferencesAsync( symbolReferenceFinder, overriddenEventFields, cancellationToken );
 

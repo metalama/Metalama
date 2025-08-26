@@ -19,7 +19,7 @@ namespace Metalama.Framework.Engine.Linking
     {
         private IReadOnlyList<MemberDeclarationSyntax> RewriteEventField( EventFieldDeclarationSyntax eventFieldDeclaration, IEventSymbol symbol )
         {
-            var generationContext = this.IntermediateCompilationContext.GetSyntaxGenerationContext( this.SyntaxGenerationOptions, eventFieldDeclaration );
+            var context = this.IntermediateCompilationContext.GetSyntaxGenerationContext( this.SyntaxGenerationOptions, eventFieldDeclaration );
 
             if ( this.InjectionRegistry.IsOverrideTarget( symbol ) )
             {
@@ -28,23 +28,34 @@ namespace Metalama.Framework.Engine.Linking
 
                 if ( this.AnalysisRegistry.IsReachable( symbol.ToSemantic( IntermediateSymbolSemanticKind.Default ) ) )
                 {
-                    members.Add( this.GetEventBackingField( eventFieldDeclaration, symbol, generationContext ) );
+                    members.Add( this.GetEventBackingField( eventFieldDeclaration, symbol, context ) );
                 }
 
-                if ( this.AnalysisRegistry.IsInlined( lastOverride.ToSemantic( IntermediateSymbolSemanticKind.Default ) ) )
+                if ( this.InjectionRegistry.HasEventRaiseOverride( symbol ) )
                 {
+                    // If there is an event raise override, we will generate the event broker field.
+                    members.Add( this.GetEventBrokerField( symbol, context ) );
+
+                    // And link the final declaration, which will use broker substitution.
                     members.Add( GetLinkedDeclaration( IntermediateSymbolSemanticKind.Final ) );
                 }
                 else
                 {
-                    members.Add( this.GetTrampolineForEventField( eventFieldDeclaration, lastOverride, generationContext ) );
+                    if ( this.AnalysisRegistry.IsInlined( lastOverride.ToSemantic( IntermediateSymbolSemanticKind.Default ) ) )
+                    {
+                        members.Add( GetLinkedDeclaration( IntermediateSymbolSemanticKind.Final ) );
+                    }
+                    else
+                    {
+                        members.Add( this.GetTrampolineForEventField( eventFieldDeclaration, lastOverride, context ) );
+                    }
                 }
 
                 if ( this.AnalysisRegistry.IsReachable( symbol.ToSemantic( IntermediateSymbolSemanticKind.Base ) )
                      && !this.AnalysisRegistry.IsInlined( symbol.ToSemantic( IntermediateSymbolSemanticKind.Base ) )
                      && this.ShouldGenerateEmptyMember( symbol ) )
                 {
-                    members.Add( this.GetEmptyImplEventField( eventFieldDeclaration.Declaration.Type, symbol, generationContext ) );
+                    members.Add( this.GetEmptyImplEventField( eventFieldDeclaration.Declaration.Type, symbol, context ) );
                 }
 
                 return members;
@@ -65,7 +76,7 @@ namespace Metalama.Framework.Engine.Linking
                         this.GetEmptyImplEventField(
                             eventFieldDeclaration.Declaration.Type,
                             symbol,
-                            generationContext ) );
+                            context ) );
                 }
 
                 if ( this.LateTransformationRegistry.IsPrimaryConstructorInitializedMember( symbol ) )
@@ -104,9 +115,9 @@ namespace Metalama.Framework.Engine.Linking
                         null,
                         Identifier( symbol.Name ),
                         AccessorList(
-                            Token( generationContext.ElasticEndOfLineTriviaList, SyntaxKind.OpenBraceToken, generationContext.ElasticEndOfLineTriviaList ),
+                            Token( context.ElasticEndOfLineTriviaList, SyntaxKind.OpenBraceToken, context.ElasticEndOfLineTriviaList ),
                             List( [transformedAdd, transformedRemove] ),
-                            Token( generationContext.ElasticEndOfLineTriviaList, SyntaxKind.CloseBraceToken, generationContext.ElasticEndOfLineTriviaList ) ),
+                            Token( context.ElasticEndOfLineTriviaList, SyntaxKind.CloseBraceToken, context.ElasticEndOfLineTriviaList ) ),
                         default );
             }
 
@@ -120,12 +131,12 @@ namespace Metalama.Framework.Engine.Linking
                     methodSymbol.ToSemantic( semanticKind ),
                     new SubstitutionContext(
                         this,
-                        generationContext,
+                        context,
                         new InliningContextIdentifier( methodSymbol.ToSemantic( semanticKind ) ) ) );
 
                 var (openBraceLeadingTrivia, openBraceTrailingTrivia, closeBraceLeadingTrivia, closeBraceTrailingTrivia) =
-                    (TriviaList(), generationContext.ElasticEndOfLineTriviaList, generationContext.ElasticEndOfLineTriviaList,
-                     generationContext.ElasticEndOfLineTriviaList);
+                    (TriviaList(), context.ElasticEndOfLineTriviaList, context.ElasticEndOfLineTriviaList,
+                     context.ElasticEndOfLineTriviaList);
 
                 return
                     AccessorDeclaration(
@@ -133,7 +144,7 @@ namespace Metalama.Framework.Engine.Linking
                         FilterAttributeListsForTarget( eventFieldDeclaration.AttributeLists, SyntaxKind.MethodKeyword, false, false )
                             .AddRange( FilterAttributeListsForTarget( eventFieldDeclaration.AttributeLists, SyntaxKind.Parameter, false, true ) ),
                         TokenList(),
-                        Token( TriviaList(), accessorKeyword, generationContext.ElasticEndOfLineTriviaList ),
+                        Token( TriviaList(), accessorKeyword, context.ElasticEndOfLineTriviaList ),
                         Block(
                                 Token( openBraceLeadingTrivia, SyntaxKind.OpenBraceToken, openBraceTrailingTrivia ),
                                 SingletonList<StatementSyntax>( linkedBody ),

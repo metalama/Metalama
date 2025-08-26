@@ -408,6 +408,17 @@ internal sealed partial class LinkerAnalysisStep
 
                         break;
 
+                    case
+                    {
+                        ResolvedSemantic: { Kind: IntermediateSymbolSemanticKind.Default, Symbol: IEventSymbol @event },
+                        TargetKind: AspectReferenceTargetKind.EventRaiseAccessor
+                    }:
+                        AddSubstitution(
+                            context,
+                            new EventRaiseBrokerSubstitution( this._intermediateCompilationContext, nonInlinedReference.RootNode, nonInlinedReference.ContainingBody ) );
+
+                        break;
+
                     case { ResolvedSemantic: { Kind: IntermediateSymbolSemanticKind.Default, Symbol: IPropertySymbol property } }
                         when property.IsAutoProperty() == true && this._injectionRegistry.IsOverrideTarget( property ):
                     case { ResolvedSemantic: { Kind: IntermediateSymbolSemanticKind.Default, Symbol: IEventSymbol @event } }
@@ -416,16 +427,6 @@ internal sealed partial class LinkerAnalysisStep
                         AddSubstitution(
                             context,
                             new AspectReferenceBackingFieldSubstitution( this._intermediateCompilationContext, nonInlinedReference ) );
-
-                        break;
-
-                    case { 
-                        ResolvedSemantic: { Kind: IntermediateSymbolSemanticKind.Default, Symbol: IEventSymbol @event }, 
-                        TargetKind: AspectReferenceTargetKind.EventRaiseAccessor
-                    }:
-                        AddSubstitution(
-                            context,
-                            new EventRaiseBrokerSubstitution( this._intermediateCompilationContext, nonInlinedReference.RootNode, nonInlinedReference.ContainingBody ) );
 
                         break;
 

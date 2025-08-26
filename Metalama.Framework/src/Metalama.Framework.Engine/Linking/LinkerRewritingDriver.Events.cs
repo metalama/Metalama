@@ -35,10 +35,12 @@ namespace Metalama.Framework.Engine.Linking
                     members.Add( this.GetEventBackingField( eventDeclaration, symbol, context ) );
                 }
 
-                // If there is an event raise override, we will generate the event broker field.
                 if ( this.InjectionRegistry.HasEventRaiseOverride( symbol ) )
                 {
+                    // If there is an event raise override, we will generate the event broker field.
                     members.Add( this.GetEventBrokerField( symbol, context ) );
+
+                    // And link the final declaration, which will use broker substitution.
                     members.Add( GetLinkedDeclaration( IntermediateSymbolSemanticKind.Final, true ) );
                 }
                 else
