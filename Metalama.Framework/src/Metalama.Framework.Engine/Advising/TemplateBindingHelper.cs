@@ -262,11 +262,19 @@ internal static class TemplateBindingHelper
         arguments ??= ObjectReader.Empty;
         var parameterMapping = ImmutableDictionary.CreateBuilder<string, ExpressionSyntax>();
 
-        void AddParameter( IParameter methodParameter, IParameterSymbol templateParameter )
+        void AddParameter( IParameter methodParameter, IParameterSymbol templateParameter, ExpressionSyntax? customExpression = null )
         {
-            ExpressionSyntax parameterSyntax = IdentifierName( methodParameter.Name );
-
-            parameterSyntax = TypeAnnotationMapper.AddExpressionTypeAnnotation( parameterSyntax, methodParameter.Type );
+            ExpressionSyntax parameterSyntax;
+            
+            if ( customExpression != null )
+            {
+                parameterSyntax = customExpression;
+            }
+            else
+            {
+                parameterSyntax = IdentifierName( methodParameter.Name );
+                parameterSyntax = TypeAnnotationMapper.AddExpressionTypeAnnotation( parameterSyntax, methodParameter.Type );
+            }
 
             parameterMapping.Add( templateParameter.Name, parameterSyntax );
         }
@@ -343,7 +351,7 @@ internal static class TemplateBindingHelper
         // Check that template run-time parameters match the target.
         switch ( targetMethod )
         {
-            case { MethodKind: OurMethodKind.PropertyGet or OurMethodKind.PropertySet or OurMethodKind.EventAdd or OurMethodKind.EventRemove or OurMethodKind.EventRaise }:
+            case { MethodKind: OurMethodKind.PropertyGet or OurMethodKind.PropertySet or OurMethodKind.EventAdd or OurMethodKind.EventRemove }:
             case { OperatorKind: not OperatorKind.None }:
                 // For operators and accessors, if the template has any run-time parameter, then we match parameters by index and their number must be exact.
 
@@ -386,6 +394,72 @@ internal static class TemplateBindingHelper
                             throw new InvalidTemplateSignatureException(
                                 MetalamaStringFormatter.Format(
                                     $"Cannot use the template '{templateMethodSymbol}' to override the {declarationKind} '{targetMethod}': the type of the template parameter '{templateParameter.Name}' is not compatible with the type of the target {declarationKind} parameter '{methodParameter.Name}'." ) );
+                        }
+                    }
+                }
+
+                break;
+
+            case { MethodKind: OurMethodKind.EventRaise }:
+
+                // For event raise, we expect either 0, 1 (handler) or 1+n (handler + delegate invoke args) parameters.
+                var containingEvent = (IEvent) targetMethod.ContainingDeclaration;
+                var delegateInvokeMethod = containingEvent.Type.Methods.OfName( "Invoke" ).Single();
+
+                var fullParameterCount = 1 + delegateInvokeMethod.Parameters.Count;
+
+                if ( template.TemplateClassMember.RunTimeParameters.Length > 0 )
+                {
+                    // Template has runtime parameters - must be either 1 (handler only) or 1+n (handler + all invoke args)
+                    if ( template.TemplateClassMember.RunTimeParameters.Length != 1 && 
+                         template.TemplateClassMember.RunTimeParameters.Length != fullParameterCount )
+                    {
+                        throw new InvalidTemplateSignatureException(
+                            MetalamaStringFormatter.Format(
+                                $"Cannot use the method '{templateMethodSymbol}' as a template for the event raise accessor '{targetMethod}': this accessor expects either 0, 1 (handler), or {fullParameterCount} (handler + delegate invoke arguments) parameter(s) but got {template.TemplateClassMember.RunTimeParameters.Length}." ) );
+                    }
+
+                    for ( var i = 0; i < template.TemplateClassMember.RunTimeParameters.Length; i++ )
+                    {
+                        var templateParameter = templateMethodSymbol.Parameters[template.TemplateClassMember.RunTimeParameters[i].SourceIndex];
+                        
+                        if ( i == 0 )
+                        {
+                            // First parameter is always the handler/delegate type with special name "handler"
+                            ExpressionSyntax handlerExpression = IdentifierName( "handler" );
+                            handlerExpression = TypeAnnotationMapper.AddExpressionTypeAnnotation( handlerExpression, containingEvent.Type );
+                            
+                            parameterMapping.Add( templateParameter.Name, handlerExpression );
+
+                            if ( !VerifyTemplateType( templateParameter.Type, containingEvent.Type, template, targetMethod, arguments ) )
+                            {
+                                throw new InvalidTemplateSignatureException(
+                                    MetalamaStringFormatter.Format(
+                                        $"Cannot use the template '{templateMethodSymbol}' to override the event raise accessor '{targetMethod}': the type of the template parameter '{templateParameter.Name}' is not compatible with the event delegate type '{containingEvent.Type}'." ) );
+                            }
+                        }
+                        else
+                        {
+                            // Subsequent parameters represent delegate invoke arguments with special tuple-based expressions
+                            var delegateParameterIndex = i - 1;
+                            var delegateParameter = delegateInvokeMethod.Parameters[delegateParameterIndex];
+
+                            var tupleParameterName = targetMethod.Parameters[1].Name; // This is the tuple parameter
+                            ExpressionSyntax tupleAccessExpression = MemberAccessExpression(
+                                Microsoft.CodeAnalysis.CSharp.SyntaxKind.SimpleMemberAccessExpression,
+                                IdentifierName( tupleParameterName ),
+                                IdentifierName( delegateParameter.Name ) );
+
+                            tupleAccessExpression = TypeAnnotationMapper.AddExpressionTypeAnnotation( tupleAccessExpression, delegateParameter.Type );
+
+                            parameterMapping.Add( templateParameter.Name, tupleAccessExpression );
+
+                            if ( !VerifyTemplateType( templateParameter.Type, delegateParameter.Type, template, targetMethod, arguments ) )
+                            {
+                                throw new InvalidTemplateSignatureException(
+                                    MetalamaStringFormatter.Format(
+                                        $"Cannot use the template '{templateMethodSymbol}' to override the event raise accessor '{targetMethod}': the type of the template parameter '{templateParameter.Name}' is not compatible with the type of the delegate invoke parameter '{delegateParameter.Name}'." ) );
+                            }
                         }
                     }
                 }

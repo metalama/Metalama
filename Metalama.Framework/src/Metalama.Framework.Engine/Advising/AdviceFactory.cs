@@ -436,6 +436,25 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
                             .GetAccessor( e => e.RemoveMethod );
                     }
 
+                case MethodKind.EventRaise:
+                    {
+                        var @event = (IEvent) targetMethod.ContainingDeclaration.AssertNotNull();
+
+                        this.Validate( @event, AdviceKind.OverrideEventRaise );
+
+                        var template = this.ValidateRequiredTemplateName( templateSelector.DefaultTemplate, TemplateKind.Default )
+                        .GetTemplateMember<IMethod>( this._compilation, this._state.ServiceProvider, this.TemplateProvider, tagsReader )
+                        .ForOverride( @event.RaiseMethod, this.GetArgsReader( args ) );
+
+                        return new OverrideEventAdvice(
+                                this.GetAdviceConstructorParameters( @event ),
+                                addTemplate: null,
+                                removeTemplate: null,
+                                invokeTemplate: template )
+                            .Execute( this._state )
+                            .GetAccessor( e => e.RaiseMethod );
+                    }
+
                 case MethodKind.PropertyGet:
                     {
                         var propertyOrIndexer = (IFieldOrPropertyOrIndexer) targetMethod.ContainingDeclaration.AssertNotNull();
@@ -1171,6 +1190,11 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         using ( this.WithNonUserCode() )
         {
             this.Validate( targetEvent, AdviceKind.OverrideEvent );
+
+            if ( invokeTemplate != null )
+            {
+                this.Validate( targetEvent, AdviceKind.OverrideEventRaise );
+            }
 
             var boundAddTemplate =
                 this.ValidateTemplateName( addTemplate, TemplateKind.Default )

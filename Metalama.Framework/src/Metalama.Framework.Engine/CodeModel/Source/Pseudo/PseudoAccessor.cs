@@ -168,7 +168,24 @@ internal abstract class PseudoAccessor : IMethodImpl
 
     bool IDeclarationImpl.CanBeInherited => false;
 
-    IEnumerable<IDeclaration> IDeclarationImpl.GetDerivedDeclarations( DerivedTypesOptions options ) => throw new NotSupportedException();
+    IEnumerable<IDeclaration> IDeclarationImpl.GetDerivedDeclarations( DerivedTypesOptions options )
+    {
+        switch ( this.MethodKind )
+        {
+            case  MethodKind.EventRaise:
+                if ( !this.CanBeInherited() )
+                {
+                    return [];
+                }
+                else
+                {
+                    return SourceMember.GetDerivedDeclarationsCore( this, options );
+                }
+
+            default:
+                throw new NotSupportedException();
+        }
+    }
 
     DeclarationImplementationKind IDeclarationImpl.ImplementationKind => DeclarationImplementationKind.Pseudo;
 

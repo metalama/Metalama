@@ -273,7 +273,7 @@ namespace Metalama.Framework.Engine.Linking
                 {
                     case OverrideEventTransformation overrideEvent:
                         var targetEvent = overrideEvent.TargetDeclaration.As<IEvent>().GetTarget( finalCompilationModel );
-                        var targetEventSymbol = intermediateCompilation.SymbolTranslator.Translate( targetEvent.GetSymbol().AssertNotNull() ).AssertNotNull();
+                        var targetEventSymbol = injectionRegistry.GetIntermediateCompilationSymbol<IEventSymbol>( targetEvent ).AssertNotNull();
                         var delegateType = targetEvent.Type.AssertNotNull();
                         var invokeMethod = delegateType.Methods.OfName( "Invoke" ).Single();
 
@@ -295,19 +295,22 @@ namespace Metalama.Framework.Engine.Linking
                                     ((INamedType) finalCompilationModel.Factory.GetTypeByReflectionType( typeof( ActionEventBroker<,> ) ))
                                     .WithTypeArguments( [delegateType, argsType] );
 
+                                var eventBrokerTypeSymbol =
+                                    injectionRegistry.GetIntermediateCompilationSymbol<INamedTypeSymbol>( eventBrokerType ).AssertNotNull();
+
                                 var invokerDelegateType =
                                     ((INamedType) finalCompilationModel.Factory.GetTypeByReflectionType( typeof( Action<,,> ) ))
                                     .WithTypeArguments( [delegateType, objectType, argsType] );
                                     
                                 var invokerDelegateTypeSymbol =
-                                    intermediateCompilation.SymbolTranslator.Translate( invokerDelegateType.GetSymbol().AssertNotNull() ).AssertNotNull();
+                                    injectionRegistry.GetIntermediateCompilationSymbol<INamedTypeSymbol>( invokerDelegateType ).AssertNotNull();
 
                                 var castDelegateType =
                                     ((INamedType) finalCompilationModel.Factory.GetTypeByReflectionType( typeof( Func<,> ) ))
                                     .WithTypeArguments( [eventBrokerType, delegateType] );
 
                                 var castDelegateTypeSymbol =
-                                    intermediateCompilation.SymbolTranslator.Translate( castDelegateType.GetSymbol().AssertNotNull() ).AssertNotNull();
+                                    injectionRegistry.GetIntermediateCompilationSymbol<INamedTypeSymbol>( castDelegateType ).AssertNotNull();
 
                                 var staticDelegatesForType = 
                                     (IDictionary<INamedTypeSymbol, StaticDelegateInfo>) staticDelegatesWritable
@@ -345,8 +348,8 @@ namespace Metalama.Framework.Engine.Linking
                                 eventBrokersWritable.Add(
                                     targetEventSymbol,
                                     new EventBrokerInfo(
-                                        intermediateCompilation.SymbolTranslator.Translate( targetEvent.GetSymbol().AssertNotNull() ).AssertNotNull(),
-                                        intermediateCompilation.SymbolTranslator.Translate( eventBrokerType.GetSymbol().AssertNotNull() ).AssertNotNull(), 
+                                        targetEventSymbol,
+                                        eventBrokerTypeSymbol, 
                                         eventBrokerFieldName,
                                         invokerDelegateFieldInfo,
                                         castDelegateFieldInfo ) );

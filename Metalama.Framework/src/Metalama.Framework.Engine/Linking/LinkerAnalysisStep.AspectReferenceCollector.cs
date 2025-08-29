@@ -266,15 +266,15 @@ internal sealed partial class LinkerAnalysisStep
                     }
                 }
 
-                var aspectReferenceCollector = new AspectReferenceWalker(
+                var aspectReferenceWalker = new AspectReferenceWalker(
                     this._referenceResolver,
                     this._semanticModelProvider.GetSemanticModel( syntax.SyntaxTree ),
                     symbol,
                     nodesContainingAspectReferences );
 
-                aspectReferenceCollector.Visit( syntax );
+                aspectReferenceWalker.Visit( syntax );
 
-                var wasAdded = aspectReferences.TryAdd( semantic, aspectReferenceCollector.AspectReferences );
+                var wasAdded = aspectReferences.TryAdd( semantic, aspectReferenceWalker.AspectReferences );
 
                 Invariant.Assert( wasAdded );
             }

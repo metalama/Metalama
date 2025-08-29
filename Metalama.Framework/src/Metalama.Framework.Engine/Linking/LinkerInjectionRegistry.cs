@@ -10,8 +10,12 @@ using Metalama.Framework.Code.Comparers;
 using Metalama.Framework.Engine.AdviceImpl.Introduction;
 using Metalama.Framework.Engine.AdviceImpl.Override;
 using Metalama.Framework.Engine.CodeModel;
+using Metalama.Framework.Engine.CodeModel.Abstractions;
 using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
+using Metalama.Framework.Engine.CodeModel.Introductions.ConstructedTypes;
+using Metalama.Framework.Engine.CodeModel.Introductions.Introduced;
 using Metalama.Framework.Engine.CodeModel.References;
+using Metalama.Framework.Engine.CodeModel.Source;
 using Metalama.Framework.Engine.Transformations;
 using Metalama.Framework.Engine.Utilities.Comparers;
 using Metalama.Framework.Engine.Utilities.Threading;
@@ -725,5 +729,78 @@ internal sealed class LinkerInjectionRegistry
     {
         symbol = symbol.GetCanonicalDefinition();
         return this._satelliteOverrideMemberToOverrideMap.ContainsKey( symbol );
+    }
+
+    public TSymbol? GetIntermediateCompilationSymbol<TSymbol>( ICompilationElement declaration )
+        where TSymbol : class, ISymbol
+    {
+        // TODO: cache?
+        switch ( declaration )
+        {
+            case ISymbolBasedCompilationElement symbolBasedDeclaration:
+                return (TSymbol?) this._intermediateCompilation.CompilationContext.SymbolTranslator.Translate( symbolBasedDeclaration.Symbol );
+
+            case IntroducedDeclaration { GenericContext: { IsEmptyOrIdentity: true } } introducedDeclaration:
+                var builderData = introducedDeclaration.BuilderData;
+                if ( this._builderToTransformationMap.TryGetValue( builderData, out var transformation ) )
+                {
+                    var injectedMember = this.GetInjectedMembersForTransformation( transformation )
+                        .FirstOrDefault( im => im.BuilderData == builderData );
+
+                    if ( injectedMember != null && this._injectedMemberToSymbolMap.TryGetValue( injectedMember, out var symbol ) )
+                    {
+                        return (TSymbol?) symbol;
+                    }
+                }
+                return null;
+
+            case ConstructedArrayType arrayType:
+                var elementTypeSymbol = this.GetIntermediateCompilationSymbol<ITypeSymbol>( arrayType.ElementType );
+                if ( elementTypeSymbol is ITypeSymbol elementType )
+                {
+                    return (TSymbol?) this._intermediateCompilation.CompilationContext.Compilation.CreateArrayTypeSymbol( elementType, arrayType.Rank );
+                }
+                return null;
+
+            case ConstructedPointerType pointerType:
+                var pointedAtTypeSymbol = this.GetIntermediateCompilationSymbol<ITypeSymbol>( pointerType.PointedAtType );
+                switch ( pointedAtTypeSymbol )
+                {
+                    case ITypeSymbol pointedAtType:                
+                        return (TSymbol?) this._intermediateCompilation.CompilationContext.Compilation.CreatePointerTypeSymbol( pointedAtType );
+                }
+                return null;
+
+            case IntroducedNamedType introducedNamedType:
+                var builder = introducedNamedType.BuilderData;
+                if ( this._builderToTransformationMap.TryGetValue( builder, out var namedTypeTransformation ) )
+                {
+                    var injectedMember = this.GetInjectedMembersForTransformation( namedTypeTransformation )
+                        .FirstOrDefault( im => im.BuilderData == builder );
+                    if ( injectedMember != null && this._injectedMemberToSymbolMap.TryGetValue( injectedMember, out var symbol ) )
+                    {
+                        var namedTypeSymbol = (INamedTypeSymbol) symbol;
+
+                        if (namedTypeSymbol.IsGenericType)
+                        {
+                            var typeArguments = new ITypeSymbol[namedTypeSymbol.TypeArguments.Length];
+                            for (var i = 0; i < typeArguments.Length; i++)
+                            {
+                                var typeArgumentSymbol = this.GetIntermediateCompilationSymbol<ITypeSymbol>( introducedNamedType.TypeArguments[i] );
+                                if (typeArgumentSymbol is not ITypeSymbol typeArgument)
+                                {
+                                    return null;
+                                }
+                                typeArguments[i] = typeArgument;
+                            }
+                            return (TSymbol?) namedTypeSymbol.Construct( typeArguments );
+                        }
+                    }
+                }
+                return null;
+
+            default:
+                throw new AssertionFailedException( $"Unsupported declaration type: {declaration.GetType().FullName}." );
+        }
     }
 }

@@ -15,6 +15,8 @@ internal class C
     return (global::System.String[])new global::System.String[]
     {
       "E:Metalama.Framework.IntegrationTests.Aspects.CodeModel.GetSerializableDeclarationIdForIntroduced.C.Event",
+      "E:Metalama.Framework.IntegrationTests.Aspects.CodeModel.GetSerializableDeclarationIdForIntroduced.C.Event;EventRaise",
+      "E:Metalama.Framework.IntegrationTests.Aspects.CodeModel.GetSerializableDeclarationIdForIntroduced.C.Event;EventRaise",
       "F:Metalama.Framework.IntegrationTests.Aspects.CodeModel.GetSerializableDeclarationIdForIntroduced.C._field",
       "F:Metalama.Framework.IntegrationTests.Aspects.CodeModel.GetSerializableDeclarationIdForIntroduced.C._field;PropertyGet",
       "F:Metalama.Framework.IntegrationTests.Aspects.CodeModel.GetSerializableDeclarationIdForIntroduced.C._field;PropertyGetReturnParameter",
@@ -53,6 +55,7 @@ internal class C
       "M:Metalama.Framework.IntegrationTests.Aspects.CodeModel.GetSerializableDeclarationIdForIntroduced.C.op_LogicalNot(Metalama.Framework.IntegrationTests.Aspects.CodeModel.GetSerializableDeclarationIdForIntroduced.C)~System.Boolean",
       "M:Metalama.Framework.IntegrationTests.Aspects.CodeModel.GetSerializableDeclarationIdForIntroduced.C.op_LogicalNot(Metalama.Framework.IntegrationTests.Aspects.CodeModel.GetSerializableDeclarationIdForIntroduced.C)~System.Boolean;Parameter=0",
       "M:Metalama.Framework.IntegrationTests.Aspects.CodeModel.GetSerializableDeclarationIdForIntroduced.C.op_LogicalNot(Metalama.Framework.IntegrationTests.Aspects.CodeModel.GetSerializableDeclarationIdForIntroduced.C)~System.Boolean;Return",
+      "M:Metalama.Framework.IntegrationTests.Aspects.CodeModel.GetSerializableDeclarationIdForIntroduced.C.raise_Event(System.EventHandler);Parameter=0",
       "M:Metalama.Framework.IntegrationTests.Aspects.CodeModel.GetSerializableDeclarationIdForIntroduced.C.remove_Event(System.EventHandler)",
       "M:Metalama.Framework.IntegrationTests.Aspects.CodeModel.GetSerializableDeclarationIdForIntroduced.C.remove_Event(System.EventHandler);Parameter=0",
       "M:Metalama.Framework.IntegrationTests.Aspects.CodeModel.GetSerializableDeclarationIdForIntroduced.C.remove_Event(System.EventHandler);Return",

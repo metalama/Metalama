@@ -410,12 +410,22 @@ internal sealed partial class LinkerAnalysisStep
 
                     case
                     {
-                        ResolvedSemantic: { Kind: IntermediateSymbolSemanticKind.Default, Symbol: IEventSymbol @event },
-                        TargetKind: AspectReferenceTargetKind.EventRaiseAccessor
-                    }:
+                        ResolvedSemantic: { Symbol: IEventSymbol @event },
+                        TargetKind: AspectReferenceTargetKind.EventRaiseAccessor,
+                        ContainingBody: var bodySymbol
+                    } when this._injectionRegistry.IsEventRaiseOverride( bodySymbol ):
                         AddSubstitution(
                             context,
                             new EventRaiseBrokerSubstitution( this._intermediateCompilationContext, nonInlinedReference.RootNode, nonInlinedReference.ContainingBody ) );
+
+                        break;
+
+                    case
+                    {
+                        ResolvedSemantic: { Kind: IntermediateSymbolSemanticKind.Final, Symbol: IEventSymbol @event },
+                        TargetKind: AspectReferenceTargetKind.EventRaiseAccessor
+                    }:
+                        // These are references made by event field raise invoker which we process separately.
 
                         break;
 

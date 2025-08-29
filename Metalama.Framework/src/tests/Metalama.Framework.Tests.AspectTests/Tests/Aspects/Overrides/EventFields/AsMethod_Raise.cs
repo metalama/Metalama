@@ -7,44 +7,27 @@ using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 
-namespace Metalama.Framework.IntegrationTests.Aspects.Overrides.EventFields.RaiseHandler
+namespace Metalama.Framework.IntegrationTests.Aspects.Overrides.EventFields.AsMethod_Raise
 {
     public class OverrideAttribute : EventAspect
     {
         public override void BuildAspect( IAspectBuilder<IEvent> builder )
         {
-            builder.OverrideAccessors(
-                nameof( AddEventTemplate ),
-                nameof( RemoveEventTemplate ),
-                nameof( InvokeEventTemplate ));
-        }
-
-        [Template]
-        public void AddEventTemplate( EventHandler value )
-        {
-            Console.WriteLine( "Add" );
-            meta.Proceed();
-        }
-
-        [Template]
-        public void RemoveEventTemplate( EventHandler value )
-        {
-            Console.WriteLine( "Remove" );
-            meta.Proceed();
+            builder.With( builder.Target.RaiseMethod ).Override( nameof( InvokeEventTemplate ) );
         }
 
         [Template]
         public void InvokeEventTemplate( EventHandler value )
         {
-            Console.WriteLine( "Invoke" );
+            Console.WriteLine( "Overridden invoke" );
             meta.Proceed();
         }
     }
 
     // <target>
-    internal class TargetClass 
+    internal class TargetClass
     {
         [Override]
-        public event EventHandler EventField;
+        public event EventHandler? Event;
     }
 }
