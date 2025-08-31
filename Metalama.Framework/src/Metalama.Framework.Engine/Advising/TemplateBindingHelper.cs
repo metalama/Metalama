@@ -403,7 +403,7 @@ internal static class TemplateBindingHelper
             case { MethodKind: OurMethodKind.EventRaise }:
 
                 // For event raise, we expect either 0, 1 (handler) or 1+n (handler + delegate invoke args) parameters.
-                var containingEvent = (IEvent) targetMethod.ContainingDeclaration;
+                var containingEvent = (IEvent) targetMethod.ContainingDeclaration.AssertNotNull();
                 var delegateInvokeMethod = containingEvent.Type.Methods.OfName( "Invoke" ).Single();
 
                 var fullParameterCount = 1 + delegateInvokeMethod.Parameters.Count;
@@ -444,10 +444,9 @@ internal static class TemplateBindingHelper
                             var delegateParameterIndex = i - 1;
                             var delegateParameter = delegateInvokeMethod.Parameters[delegateParameterIndex];
 
-                            var tupleParameterName = targetMethod.Parameters[1].Name; // This is the tuple parameter
                             ExpressionSyntax tupleAccessExpression = MemberAccessExpression(
                                 Microsoft.CodeAnalysis.CSharp.SyntaxKind.SimpleMemberAccessExpression,
-                                IdentifierName( tupleParameterName ),
+                                IdentifierName( "args" ),
                                 IdentifierName( delegateParameter.Name ) );
 
                             tupleAccessExpression = TypeAnnotationMapper.AddExpressionTypeAnnotation( tupleAccessExpression, delegateParameter.Type );

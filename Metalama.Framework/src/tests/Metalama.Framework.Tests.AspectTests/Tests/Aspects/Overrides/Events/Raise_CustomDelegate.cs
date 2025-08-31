@@ -7,27 +7,21 @@ using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 
-namespace Metalama.Framework.IntegrationTests.Aspects.Overrides.Events.RaiseDouble
+namespace Metalama.Framework.IntegrationTests.Aspects.Overrides.Events.Raise_CustomDelegate
 {
+    public delegate void MyEventHandler( object sender, int args1, int arg2 );
+
     public class OverrideAttribute : EventAspect
     {
         public override void BuildAspect( IAspectBuilder<IEvent> builder )
         {
-            builder.OverrideAccessors( null, null, nameof( InvokeEventTemplate1 ));
-            builder.OverrideAccessors( null, null, nameof( InvokeEventTemplate2 ) );
+            builder.OverrideAccessors( null, null, nameof( InvokeEventTemplate ));
         }
 
         [Template]
-        public void InvokeEventTemplate1( EventHandler value )
+        public void InvokeEventTemplate()
         {
-            Console.WriteLine( "Invoke1" );
-            meta.Proceed();
-        }
-
-        [Template]
-        public void InvokeEventTemplate2( EventHandler value )
-        {
-            Console.WriteLine( "Invoke2" );
+            Console.WriteLine( "Invoke" );
             meta.Proceed();
         }
     }
@@ -35,10 +29,10 @@ namespace Metalama.Framework.IntegrationTests.Aspects.Overrides.Events.RaiseDoub
     // <target>
     internal class TargetClass 
     {
-        private EventHandler? _handler;
+        private MyEventHandler? _handler;
 
         [Override]
-        public event EventHandler Event
+        public event MyEventHandler Event
         {
             add
             {

@@ -7,30 +7,13 @@ using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 
-namespace Metalama.Framework.IntegrationTests.Aspects.Overrides.Events.RaiseAddRemove
+namespace Metalama.Framework.IntegrationTests.Aspects.Overrides.Events.Raise_TwoSimilarEvents
 {
     public class OverrideAttribute : EventAspect
     {
         public override void BuildAspect( IAspectBuilder<IEvent> builder )
         {
-            builder.OverrideAccessors(
-                nameof( AddEventTemplate ),
-                nameof( RemoveEventTemplate ),
-                nameof( InvokeEventTemplate ));
-        }
-
-        [Template]
-        public void AddEventTemplate()
-        {
-            Console.WriteLine( "Add" );
-            meta.Proceed();
-        }
-
-        [Template]
-        public void RemoveEventTemplate()
-        {
-            Console.WriteLine( "Remove" );
-            meta.Proceed();
+            builder.OverrideAccessors( null, null, nameof( InvokeEventTemplate ));
         }
 
         [Template]
@@ -44,19 +27,34 @@ namespace Metalama.Framework.IntegrationTests.Aspects.Overrides.Events.RaiseAddR
     // <target>
     internal class TargetClass 
     {
-        private EventHandler? _handler;
+        private EventHandler? _handler1;
+        private EventHandler? _handler2;
 
         [Override]
-        public event EventHandler Event
+        public event EventHandler Event1
         {
             add
             {
-                this._handler = value;
+                this._handler1 = value;
             }
 
             remove
             {
-                this._handler = null;
+                this._handler1 = null;
+            }
+        }
+
+        [Override]
+        public event EventHandler Event2
+        {
+            add
+            {
+                this._handler2 = value;
+            }
+
+            remove
+            {
+                this._handler2 = null;
             }
         }
     }

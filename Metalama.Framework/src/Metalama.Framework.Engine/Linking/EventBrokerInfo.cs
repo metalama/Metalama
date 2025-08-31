@@ -5,36 +5,60 @@
 // ReSharper disable MissingIndent
 // ReSharper disable BadExpressionBracesIndent
 
+using Metalama.Framework.Engine.AdviceImpl.Override;
+using Metalama.Framework.Engine.SyntaxGeneration;
+using Metalama.Framework.Engine.Transformations;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System;
+using System.Collections.Generic;
 
 namespace Metalama.Framework.Engine.Linking;
 
 /// <summary>
 /// Contains event broker information for a specific event.
 /// </summary>
-public class EventBrokerInfo
+internal class EventBrokerInfo
 {
     public IEventSymbol Event { get; }
 
     public INamedTypeSymbol EventBrokerType { get; }
 
-    public string EventBrokerFieldName { get; }
-
-    public StaticDelegateInfo InvokerDelegate { get; }
-
     public StaticDelegateInfo CastDelegate { get; }
+
+    public IReadOnlyDictionary<ITransformation, EventBrokerTransformationInfo> Transformations { get; }
 
     public EventBrokerInfo(
         IEventSymbol @event,
         INamedTypeSymbol eventBrokerType,
-        string eventBrokerFieldName,
-        StaticDelegateInfo invokerDelegate,
         StaticDelegateInfo castDelegate )
     {
         this.Event = @event;
         this.EventBrokerType = eventBrokerType;
+        this.CastDelegate = castDelegate;
+        this.Transformations = new Dictionary<ITransformation, EventBrokerTransformationInfo>();
+    }
+}
+
+internal class EventBrokerTransformationInfo
+{
+    public OverrideEventTransformation Transformation { get; }
+    
+    public string EventBrokerFieldName { get; }
+
+    public StaticDelegateInfo InvokerDelegate { get; }
+
+    public Func<SyntaxGenerationContext, ExpressionSyntax> FieldInitializationExpression { get; }
+
+    public EventBrokerTransformationInfo(
+        OverrideEventTransformation transformation,
+        string eventBrokerFieldName,
+        StaticDelegateInfo invokerDelegate,
+        Func<SyntaxGenerationContext, ExpressionSyntax> fieldInitializationExpression )
+    {
+        this.Transformation = transformation;
         this.EventBrokerFieldName = eventBrokerFieldName;
         this.InvokerDelegate = invokerDelegate;
-        this.CastDelegate = castDelegate;
+        this.FieldInitializationExpression = fieldInitializationExpression;
     }
 }

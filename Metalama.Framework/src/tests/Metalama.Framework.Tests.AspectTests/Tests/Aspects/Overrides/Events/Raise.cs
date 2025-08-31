@@ -17,7 +17,7 @@ namespace Metalama.Framework.IntegrationTests.Aspects.Overrides.Events.Raise
         }
 
         [Template]
-        public void InvokeEventTemplate( EventHandler value )
+        public void InvokeEventTemplate()
         {
             Console.WriteLine( "Invoke" );
             meta.Proceed();

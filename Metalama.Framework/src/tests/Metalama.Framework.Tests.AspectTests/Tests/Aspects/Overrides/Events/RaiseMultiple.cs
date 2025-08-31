@@ -7,36 +7,27 @@ using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 
-namespace Metalama.Framework.IntegrationTests.Aspects.Overrides.Events.RaiseAddRemove
+namespace Metalama.Framework.IntegrationTests.Aspects.Overrides.Events.RaiseDouble
 {
     public class OverrideAttribute : EventAspect
     {
         public override void BuildAspect( IAspectBuilder<IEvent> builder )
         {
-            builder.OverrideAccessors(
-                nameof( AddEventTemplate ),
-                nameof( RemoveEventTemplate ),
-                nameof( InvokeEventTemplate ));
+            builder.OverrideAccessors( null, null, nameof( InvokeEventTemplate1 ));
+            builder.OverrideAccessors( null, null, nameof( InvokeEventTemplate2 ) );
         }
 
         [Template]
-        public void AddEventTemplate()
+        public void InvokeEventTemplate1()
         {
-            Console.WriteLine( "Add" );
+            Console.WriteLine( "Invoke1" );
             meta.Proceed();
         }
 
         [Template]
-        public void RemoveEventTemplate()
+        public void InvokeEventTemplate2()
         {
-            Console.WriteLine( "Remove" );
-            meta.Proceed();
-        }
-
-        [Template]
-        public void InvokeEventTemplate()
-        {
-            Console.WriteLine( "Invoke" );
+            Console.WriteLine( "Invoke2" );
             meta.Proceed();
         }
     }

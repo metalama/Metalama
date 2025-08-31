@@ -731,6 +731,20 @@ internal sealed class LinkerInjectionRegistry
         return this._satelliteOverrideMemberToOverrideMap.ContainsKey( symbol );
     }
 
+    /// <summary>
+    /// Gets the transformation associated with the specified intermediate compilation symbol.
+    /// </summary>
+    /// <param name="symbol">The intermediate compilation symbol.</param>
+    /// <returns>The transformation associated with the symbol, or <c>null</c> if no transformation is found.</returns>
+    public ITransformation? GetTransformationForSymbol( ISymbol symbol )
+    {
+        symbol = symbol.GetCanonicalDefinition();
+        
+        var injectedMember = this.GetInjectedMemberForSymbol( symbol );
+        
+        return injectedMember?.Transformation;
+    }
+
     public TSymbol? GetIntermediateCompilationSymbol<TSymbol>( ICompilationElement declaration )
         where TSymbol : class, ISymbol
     {

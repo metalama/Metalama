@@ -31,7 +31,9 @@ internal sealed class EventBrokerAdderSubstitution : SyntaxNodeSubstitution
         var context = substitutionContext.SyntaxGenerationContext;
         var eventOverride = this._aspectReference.ResolvedSemantic.Symbol;
         var @event = (IEventSymbol) substitutionContext.RewritingDriver.InjectionRegistry.GetOverrideTarget(eventOverride ).AssertNotNull();
+        var eventOverrideTransformation = substitutionContext.RewritingDriver.InjectionRegistry.GetTransformationForSymbol( eventOverride ).AssertNotNull();
         var eventBrokerTypeInfo = substitutionContext.RewritingDriver.AnalysisRegistry.GetEventBrokerTypeInfo( @event ).AssertNotNull();
+        var eventBrokerTransformationInfo = eventBrokerTypeInfo.Transformations[eventOverrideTransformation];
 
         return context.SyntaxGenerator.FormattedBlock(
             IfStatement(
@@ -40,71 +42,11 @@ internal sealed class EventBrokerAdderSubstitution : SyntaxNodeSubstitution
                     MemberAccessExpression(
                         SyntaxKind.SimpleMemberAccessExpression,
                         ThisExpression(),
-                        IdentifierName( eventBrokerTypeInfo.EventBrokerFieldName ) ),
+                        IdentifierName( eventBrokerTransformationInfo.EventBrokerFieldName ) ),
                     LiteralExpression(
                         SyntaxKind.NullLiteralExpression ) ),
                 Block(
-                    LocalDeclarationStatement(
-                        VariableDeclaration(
-                            IdentifierName(
-                                Identifier(
-                                    TriviaList(),
-                                    SyntaxKind.VarKeyword,
-                                    "var",
-                                    "var",
-                                    TriviaList( ElasticSpace ) ) ),
-                            SingletonSeparatedList(
-                                VariableDeclarator(
-                                    Identifier( "newBroker" ) )
-                                .WithInitializer(
-                                    EqualsValueClause(
-                                        ObjectCreationExpression(
-                                            Token( TriviaList(), SyntaxKind.NewKeyword, "new", "new", TriviaList( ElasticSpace ) ),
-                                            context.SyntaxGenerator.TypeSyntax( eventBrokerTypeInfo.EventBrokerType ),
-                                            ArgumentList(
-                                                 SeparatedList(
-                                                    [
-                                                        Argument( ThisExpression() ),
-                                                        Argument( IdentifierName( eventBrokerTypeInfo.InvokerDelegate.FieldName ) ),
-                                                        Argument( IdentifierName( eventBrokerTypeInfo.CastDelegate.FieldName ) )
-                                                    ] ) ),
-                                            null ) ) ) ) ) ),
-                    WhileStatement(
-                        BinaryExpression(
-                            SyntaxKind.NotEqualsExpression,
-                            LiteralExpression(
-                                SyntaxKind.NullLiteralExpression ),
-                            InvocationExpression(
-                                MemberAccessExpression(
-                                    SyntaxKind.SimpleMemberAccessExpression,
-                                    MemberAccessExpression(
-                                        SyntaxKind.SimpleMemberAccessExpression,
-                                        MemberAccessExpression(
-                                            SyntaxKind.SimpleMemberAccessExpression,
-                                            IdentifierName( "System" ),
-                                            IdentifierName( "Threading" ) ),
-                                        IdentifierName( "Interlocked" ) ),
-                                    IdentifierName( "CompareExchange" ) ) )
-                            .WithArgumentList(
-                                ArgumentList(
-                                    SeparatedList<ArgumentSyntax>(
-                                        [
-                                            Argument(
-                                                null,
-                                                Token( TriviaList(), SyntaxKind.RefKeyword, TriviaList( ElasticSpace) ),
-                                                MemberAccessExpression(
-                                                    SyntaxKind.SimpleMemberAccessExpression,
-                                                    ThisExpression(),
-                                                    IdentifierName(eventBrokerTypeInfo.EventBrokerFieldName))),
-                                            Token(SyntaxKind.CommaToken),
-                                            Argument(
-                                                IdentifierName("newBroker")),
-                                            Token(SyntaxKind.CommaToken),
-                                            Argument(
-                                                LiteralExpression(
-                                                    SyntaxKind.NullLiteralExpression))
-                                        ] ) ) ) ),
-                        EmptyStatement() ) ) ),
+                    ExpressionStatement( eventBrokerTransformationInfo.FieldInitializationExpression(substitutionContext.SyntaxGenerationContext) ) ) ),
             IfStatement(
                 InvocationExpression(
                     MemberAccessExpression(
@@ -112,7 +54,7 @@ internal sealed class EventBrokerAdderSubstitution : SyntaxNodeSubstitution
                         MemberAccessExpression(
                             SyntaxKind.SimpleMemberAccessExpression,
                             ThisExpression(),
-                            IdentifierName( eventBrokerTypeInfo.EventBrokerFieldName ) ), 
+                            IdentifierName( eventBrokerTransformationInfo.EventBrokerFieldName ) ), 
                         IdentifierName( "AddHandler" ) ),
                     ArgumentList(
                         SingletonSeparatedList(
@@ -131,7 +73,7 @@ internal sealed class EventBrokerAdderSubstitution : SyntaxNodeSubstitution
                                 MemberAccessExpression(
                                     SyntaxKind.SimpleMemberAccessExpression,
                                     ThisExpression(),
-                                    IdentifierName( eventBrokerTypeInfo.EventBrokerFieldName ) ),
+                                    IdentifierName( eventBrokerTransformationInfo.EventBrokerFieldName ) ),
                                 IdentifierName( "InvocationDelegate" ) ) ) ) ) ) );
     }
 }

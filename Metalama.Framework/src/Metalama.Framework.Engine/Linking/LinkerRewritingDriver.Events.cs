@@ -37,8 +37,9 @@ namespace Metalama.Framework.Engine.Linking
 
                 if ( this.InjectionRegistry.HasEventRaiseOverride( symbol ) )
                 {
-                    // If there is an event raise override, we will generate the event broker field.
-                    members.Add( this.GetEventBrokerField( symbol, context ) );
+                    // If there is an event raise override, we will generate all event broker fields that are reachable.
+
+                    members.AddRange( this.GetEventBrokerFields( symbol, context ) );
 
                     // And link the final declaration, which will use broker substitution.
                     members.Add( GetLinkedDeclaration( IntermediateSymbolSemanticKind.Final, true ) );
@@ -475,25 +476,28 @@ namespace Metalama.Framework.Engine.Linking
             }
         }
 
-        private MemberDeclarationSyntax GetEventBrokerField(
+        private IEnumerable<MemberDeclarationSyntax> GetEventBrokerFields(
             IEventSymbol symbol,
             SyntaxGenerationContext context )
         {
             var eventBrokerTypeInfo = this.AnalysisRegistry.GetEventBrokerTypeInfo( symbol ).AssertNotNull();
 
-            return
-                FieldDeclaration(
-                    List<AttributeListSyntax>(),
-                    TokenList(
-                        Token( TriviaList(), SyntaxKind.PrivateKeyword, TriviaList( ElasticSpace ) ),
-                        Token( TriviaList(), SyntaxKind.VolatileKeyword, TriviaList( ElasticSpace ) ) ),
-                    VariableDeclaration(
-                        context.SyntaxGenerator.TypeSyntax( eventBrokerTypeInfo.EventBrokerType.WithNullableAnnotation( NullableAnnotation.Annotated ) ),
-                        SingletonSeparatedList(
-                            VariableDeclarator(
-                                Identifier( eventBrokerTypeInfo.EventBrokerFieldName ),
-                                null,
-                                null ) ) ) );
+            foreach ( var eventBrokerTransformationInfo in eventBrokerTypeInfo.Transformations.Values )
+            {
+                yield return
+                    FieldDeclaration(
+                        List<AttributeListSyntax>(),
+                        TokenList(
+                            Token( TriviaList(), SyntaxKind.PrivateKeyword, TriviaList( ElasticSpace ) ),
+                            Token( TriviaList(), SyntaxKind.VolatileKeyword, TriviaList( ElasticSpace ) ) ),
+                        VariableDeclaration(
+                            context.SyntaxGenerator.TypeSyntax( eventBrokerTypeInfo.EventBrokerType.WithNullableAnnotation( NullableAnnotation.Annotated ) ),
+                            SingletonSeparatedList(
+                                VariableDeclarator(
+                                    Identifier( eventBrokerTransformationInfo.EventBrokerFieldName ),
+                                    null,
+                                    null ) ) ) );
+            }
         }
     }
 }

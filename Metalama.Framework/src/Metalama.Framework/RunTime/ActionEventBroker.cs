@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading;
 
 namespace Metalama.Framework.RunTime;
 
@@ -20,7 +21,7 @@ where TDelegate : Delegate
     ///     Gets a delegate that calls the <see cref="Invoke" /> method.
     /// </summary>
     public TDelegate InvocationDelegate => this._invocationDelegate ??= this._toDelegate( this );
-
+    
     public ActionEventBroker(
         object owner,
         Action<TDelegate, object, TArgs> invoker, /* Static delegate */
@@ -65,5 +66,14 @@ where TDelegate : Delegate
     public static implicit operator TDelegate( ActionEventBroker<TDelegate, TArgs> broker )
     {
         return broker.InvocationDelegate;
+    }
+
+    public static void InitializeField( ref ActionEventBroker<TDelegate, TArgs>? field, object owner, Action<TDelegate, object, TArgs> invokerDelegate, Func<ActionEventBroker<TDelegate, TArgs>, TDelegate> castDelegate )
+    {
+        var newBroker = new ActionEventBroker<TDelegate, TArgs>( owner, invokerDelegate, castDelegate );
+
+        Interlocked.CompareExchange( ref field, newBroker, null );
+
+        // Don't care about the result - if it failed, another thread won
     }
 }
