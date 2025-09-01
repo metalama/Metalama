@@ -1,8 +1,8 @@
 internal class TargetClass
 {
-  private static readonly global::System.Func<global::Metalama.Framework.RunTime.ActionEventBroker<global::System.EventHandler, (global::System.Object? , global::System.EventArgs)>, global::System.EventHandler> Event1CastDelegate_0 = static b => (sender, e) => b.Invoke((sender, e));
+  private static readonly global::System.Func<global::Metalama.Framework.RunTime.ActionEventBroker<global::System.EventHandler, (global::System.Object? , global::System.EventArgs)>, global::System.EventHandler> EventHandlerCastDelegate_0 = static b => (sender, e) => b.Invoke((sender, e));
   private static readonly global::System.Action<global::System.EventHandler, global::System.Object, (global::System.Object? , global::System.EventArgs)> Event1InvokeDelegate_0 = static (handler, me, args) => ((global::Metalama.Framework.IntegrationTests.Aspects.Overrides.Events.Raise_TwoDifferentEvents.TargetClass)me).Event1_Override_Invoke(handler, args);
-  private static readonly global::System.Func<global::Metalama.Framework.RunTime.ActionEventBroker<global::System.EventHandler<global::System.EventArgs>, (global::System.Object? , global::System.EventArgs)>, global::System.EventHandler<global::System.EventArgs>> Event2CastDelegate_0 = static b => (sender, e) => b.Invoke((sender, e));
+  private static readonly global::System.Func<global::Metalama.Framework.RunTime.ActionEventBroker<global::System.EventHandler<global::System.EventArgs>, (global::System.Object? , global::System.EventArgs)>, global::System.EventHandler<global::System.EventArgs>> EventHandlerCastDelegate_2 = static b => (sender, e) => b.Invoke((sender, e));
   private static readonly global::System.Action<global::System.EventHandler<global::System.EventArgs>, global::System.Object, (global::System.Object? , global::System.EventArgs)> Event2InvokeDelegate_0 = static (handler, me, args) => ((global::Metalama.Framework.IntegrationTests.Aspects.Overrides.Events.Raise_TwoDifferentEvents.TargetClass)me).Event2_Override_Invoke(handler, args);
   private EventHandler? _handler1;
   private EventHandler<EventArgs>? _handler2;
@@ -14,7 +14,7 @@ internal class TargetClass
     {
       if (this._event1Broker == null)
       {
-        global::Metalama.Framework.RunTime.ActionEventBroker<global::System.EventHandler, (global::System.Object? , global::System.EventArgs)>.InitializeField(ref this._event1Broker, this, Event1InvokeDelegate_0, Event1CastDelegate_0);
+        global::Metalama.Framework.RunTime.ActionEventBroker<global::System.EventHandler, (global::System.Object? , global::System.EventArgs)>.InitializeField(ref this._event1Broker, this, Event1InvokeDelegate_0, EventHandlerCastDelegate_0);
       }
       if (this._event1Broker.AddHandler(value))
       {
@@ -53,7 +53,7 @@ internal class TargetClass
     {
       if (this._event2Broker == null)
       {
-        global::Metalama.Framework.RunTime.ActionEventBroker<global::System.EventHandler<global::System.EventArgs>, (global::System.Object? , global::System.EventArgs)>.InitializeField(ref this._event2Broker, this, Event2InvokeDelegate_0, Event2CastDelegate_0);
+        global::Metalama.Framework.RunTime.ActionEventBroker<global::System.EventHandler<global::System.EventArgs>, (global::System.Object? , global::System.EventArgs)>.InitializeField(ref this._event2Broker, this, Event2InvokeDelegate_0, EventHandlerCastDelegate_2);
       }
       if (this._event2Broker.AddHandler(value))
       {

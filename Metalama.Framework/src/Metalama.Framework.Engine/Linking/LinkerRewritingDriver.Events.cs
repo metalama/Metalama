@@ -75,7 +75,12 @@ namespace Metalama.Framework.Engine.Linking
             }
             else if ( this.InjectionRegistry.IsOverride( symbol ) )
             {
-                if ( this.AnalysisRegistry.IsReachable( symbol.ToSemantic( IntermediateSymbolSemanticKind.Default ) )
+
+                if ( this.InjectionRegistry.HasEventRaiseOverride( symbol ) )
+                {
+                    return [GetLinkedDeclaration( IntermediateSymbolSemanticKind.Default, true )];
+                }
+                else if ( this.AnalysisRegistry.IsReachable( symbol.ToSemantic( IntermediateSymbolSemanticKind.Default ) )
                      && !this.AnalysisRegistry.IsInlined( symbol.ToSemantic( IntermediateSymbolSemanticKind.Default ) ) )
                 {
                     return [GetLinkedDeclaration( IntermediateSymbolSemanticKind.Default, true )];

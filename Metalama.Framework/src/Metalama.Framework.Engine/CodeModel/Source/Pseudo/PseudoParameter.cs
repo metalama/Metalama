@@ -15,6 +15,7 @@ using Metalama.Framework.Engine.Templating.Expressions;
 using Metalama.Framework.Engine.Utilities;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -27,6 +28,7 @@ namespace Metalama.Framework.Engine.CodeModel.Source.Pseudo
 {
     internal sealed class PseudoParameter : BaseDeclaration, IParameter, IUserExpression
     {
+        private readonly string? _namePrefix;
         private readonly string? _name;
 
         public SymbolBasedDeclaration PropertyOrEvent => (SymbolBasedDeclaration) this.DeclaringAccessor.DeclaringMember.AssertNotNull();
@@ -68,12 +70,13 @@ namespace Metalama.Framework.Engine.CodeModel.Source.Pseudo
 
         public override CompilationModel Compilation => this.DeclaringAccessor.GetCompilationModel();
 
-        public PseudoParameter( PseudoAccessor declaringAccessor, int index, IType type, string? name )
+        public PseudoParameter( PseudoAccessor declaringAccessor, int index, IType type, string? name, string? namePrefix = null )
         {
             this.DeclaringAccessor = declaringAccessor;
             this.Index = index;
             this.Type = type;
             this._name = name;
+            this._namePrefix = namePrefix;
         }
 
         public override string ToDisplayString( CodeDisplayFormat? format = null, CodeDisplayContext? context = null )
@@ -108,14 +111,22 @@ namespace Metalama.Framework.Engine.CodeModel.Source.Pseudo
         bool IExpression.IsAssignable => true;
 
         public ref object? Value
-            => ref RefHelper.Wrap( new SyntaxUserExpression( SyntaxFactory.IdentifierName( this.Name ), this.Type, isReferenceable: true ) );
+            => ref RefHelper.Wrap( new SyntaxUserExpression( this.ValueExpression, this.Type, isReferenceable: true ) );
 
         public TypedExpressionSyntax ToTypedExpressionSyntax( ISyntaxGenerationContext syntaxGenerationContext, IType? targetType = null )
             => new TypedExpressionSyntaxImpl(
-                SyntaxFactory.IdentifierName( this.Name ),
+                this.ValueExpression,
                 this.Type,
                 ((SyntaxSerializationContext) syntaxGenerationContext).CompilationModel,
                 isReferenceable: true );
+
+        private ExpressionSyntax ValueExpression => 
+            this._namePrefix != null
+            ? SyntaxFactory.MemberAccessExpression(
+                SyntaxKind.SimpleMemberAccessExpression,
+                SyntaxFactory.IdentifierName( this._namePrefix ),
+                SyntaxFactory.IdentifierName( this.Name ) )
+            : SyntaxFactory.IdentifierName( this.Name );
 
         public override bool BelongsToCurrentProject => this.ContainingDeclaration.BelongsToCurrentProject;
 

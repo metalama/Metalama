@@ -10,32 +10,38 @@ using System.Collections.Generic;
 using System.Linq;
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Samples.WeakEvent;
+
+#pragma warning disable CS0618 // Type or member is obsolete
+
 internal class WeakEventAttribute : EventAspect
 {
     public override void BuildAspect( IAspectBuilder<IEvent> builder )
     {
         var invokeMethod = builder.Target.Type.Methods.OfName( "Invoke" ).Single();
+
         var argsTupleType = 
             TypeFactory.GetType( $"System.ValueTuple`{invokeMethod.Parameters.Count}" )
-            .WithTypeArguments( invokeMethod.Parameters.SelectAsArray( p => p.Type) );
+            .WithTypeArguments( invokeMethod.Parameters.Select( p => p.Type).ToArray() );
+
         var eventArgsType = invokeMethod.Parameters[1].Type;
 
+        var invokerType =
+            ((INamedType) TypeFactory.GetType( typeof( WeakEventInvokerForEventHandler<> ) )).WithTypeArguments( eventArgsType );
+
+        var containerType =
+            ((INamedType) TypeFactory.GetType( typeof( WeakEventContainer<,,> ) )).WithTypeArguments(
+                builder.Target.Type,
+                argsTupleType,
+                invokerType );
+
         var containerField = builder.With( builder.Target.DeclaringType ).IntroduceField(
-            "weakEventContainer",
+            $"weakEventContainerFor{builder.Target.Name}",
+            containerType,
             IntroductionScope.Instance,
             OverrideStrategy.Fail,
             b =>
             {
-                var invokerType =
-                    ((INamedType) TypeFactory.GetType( typeof( WeakEventInvokerForEventHandler<> ) )).WithTypeArguments( eventArgsType );
 
-                var containerType =
-                    ((INamedType) TypeFactory.GetType( typeof( WeakEventContainer<,,> ) )).WithTypeArguments(
-                        builder.Target.Type,
-                        argsTupleType,
-                        invokerType );
-
-                b.Type = containerType;
             } ).Declaration;
 
         builder.OverrideAccessors(
@@ -45,28 +51,22 @@ internal class WeakEventAttribute : EventAspect
             new { container = containerField } );
     }
 
+    [Template]
     public void OverrideAdd( [CompileTime] IField container, dynamic value )
     {
+        container.Value.AddHandler( value );
     }
 
+    [Template]
     public void OverrideRemove( [CompileTime] IField container, dynamic value )
     {
+        container.Value.RemoveHandler( value );
     }
 
+    [Template]
     public void OverrideInvoke( [CompileTime] IField container, dynamic? handler )
     {
-        try
-        {
-            meta.Proceed();
-        }
-        catch ( Exception e )
-        {
-            Console.WriteLine( e );
-
-            // First time shame on you, second time shame on me.
-            meta.Target.Event.Remove( handler );
-            throw;
-        }
+        container.Value.Invoke( (meta.Target.Parameters[1].Value, meta.Target.Parameters[2].Value) );
     }
 }
 
@@ -128,13 +128,13 @@ public class WeakEventContainer<TDelegate, TArgs, TInvoker>
 // <target>
 internal class TargetCode
 {
-    private List<EventHandler> _delegates = new List<EventHandler>();
+    private List<EventHandler<EventArgs>> _delegates = new List<EventHandler<EventArgs>>();
 
     [WeakEvent]
-    public event EventHandler EventField;
+    public event EventHandler<EventArgs> EventField;
 
     [WeakEvent]
-    public event EventHandler Event
+    public event EventHandler<EventArgs> Event
     {
         add
         {

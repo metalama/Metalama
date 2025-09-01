@@ -257,16 +257,15 @@ namespace Metalama.Framework.Engine.Linking
             LinkerInjectionRegistry injectionRegistry, 
             TypeMemberIdentifierGenerator typeMemberIdentifierGenerator,
             out IReadOnlyDictionary<IEventSymbol, EventBrokerInfo> eventBrokers,
-            out IReadOnlyDictionary<INamedTypeSymbol, IReadOnlyDictionary<INamedTypeSymbol, StaticDelegateInfo>> staticDelegates )
+            out IReadOnlyDictionary<INamedTypeSymbol, IReadOnlyList<StaticDelegateInfo>> staticDelegates )
         {
-            var invokerTypes = new Dictionary<INamedTypeSymbol, HashSet<INamedTypeSymbol>>( intermediateCompilation.SymbolComparer );
-            var castTypes = new Dictionary<INamedTypeSymbol, HashSet<INamedTypeSymbol>>( intermediateCompilation.SymbolComparer );
-
             var eventBrokersWritable = new Dictionary<IEventSymbol, EventBrokerInfo>( intermediateCompilation.SymbolComparer );
             eventBrokers = eventBrokersWritable;
 
-            var staticDelegatesWritable = new Dictionary<INamedTypeSymbol, IReadOnlyDictionary<INamedTypeSymbol, StaticDelegateInfo>>( intermediateCompilation.SymbolComparer );
+            var staticDelegatesWritable = new Dictionary<INamedTypeSymbol, IReadOnlyList<StaticDelegateInfo>>( intermediateCompilation.SymbolComparer );
             staticDelegates = staticDelegatesWritable;
+
+            var castDelegatesByTypeAndDelegateType = new Dictionary<(INamedTypeSymbol ContainingType, INamedTypeSymbol DelegateType), StaticDelegateInfo>();
 
             foreach ( var injectedMember in injectionRegistry.GetInjectedMembers().Where( im => im.Semantic == Transformations.InjectedMemberSemantic.OverrideEventRaise ) )
             {
@@ -290,9 +289,7 @@ namespace Metalama.Framework.Engine.Linking
                             case { ReturnType: { SpecialType: SpecialType.Void }, Parameters: var parameters } when parameters.All( p => p.RefKind == Code.RefKind.None ):
                                 // Delegate with RefKind.None parameters and void return type.
 
-                                var staticDelegatesForType =
-                                    (IDictionary<INamedTypeSymbol, StaticDelegateInfo>) staticDelegatesWritable
-                                    .GetOrAdd( targetEventSymbol.ContainingType, _ => new Dictionary<INamedTypeSymbol, StaticDelegateInfo>( intermediateCompilation.SymbolComparer ) );
+                                var staticDelegatesForType = (List<StaticDelegateInfo>)staticDelegatesWritable.GetOrAdd( targetEventSymbol.ContainingType, _ => new List<StaticDelegateInfo>() );
 
                                 var tupleType = finalCompilationModel.Factory.GetTypeByReflectionName( $"System.ValueTuple`{invokeMethod.Parameters.Count}" );
 
@@ -314,15 +311,17 @@ namespace Metalama.Framework.Engine.Linking
                                     var castDelegateTypeSymbol =
                                         injectionRegistry.GetIntermediateCompilationSymbol<INamedTypeSymbol>( castDelegateType ).AssertNotNull();
 
-                                    if ( !staticDelegatesForType.TryGetValue( castDelegateTypeSymbol, out var castDelegateFieldInfo ) )
+                                    var castDelegateKey = (targetEventSymbol.ContainingType, castDelegateTypeSymbol);
+                                    if ( !castDelegatesByTypeAndDelegateType.TryGetValue( castDelegateKey, out var castDelegateFieldInfo ) )
                                     {
                                         castDelegateFieldInfo = new StaticDelegateInfo(
                                             targetEventSymbol.ContainingType,
                                             castDelegateTypeSymbol,
-                                            typeMemberIdentifierGenerator.AllocateName( targetEventSymbol.ContainingType, $"{targetEvent.Name}CastDelegate", IdentifierFlags.AlwaysUseSuffix ),
+                                            typeMemberIdentifierGenerator.AllocateName( targetEventSymbol.ContainingType, $"{targetEvent.Type.Name}CastDelegate", IdentifierFlags.AlwaysUseSuffix ),
                                             context => GetEventBrokerCastDelegateInitializationExpression( invokeMethod.Parameters ) );
 
-                                        staticDelegatesForType.Add( castDelegateTypeSymbol, castDelegateFieldInfo );
+                                        castDelegatesByTypeAndDelegateType.Add( castDelegateKey, castDelegateFieldInfo );
+                                        staticDelegatesForType.Add( castDelegateFieldInfo );
                                     }
 
                                     eventBrokerInfo = new EventBrokerInfo( targetEventSymbol, eventBrokerTypeSymbol, castDelegateFieldInfo );
@@ -344,20 +343,18 @@ namespace Metalama.Framework.Engine.Linking
                                 var eventBrokerFieldName =
                                     typeMemberIdentifierGenerator.AllocateName( targetEventSymbol.ContainingType, $"{targetEvent.Name}Broker", IdentifierFlags.MakePrivateFieldName );
 
-                                if (!staticDelegatesForType.TryGetValue( invokerDelegateTypeSymbol, out var invokerDelegateFieldInfo))
-                                {
-                                    invokerDelegateFieldInfo = new StaticDelegateInfo(
-                                        targetEventSymbol.ContainingType,
-                                        invokerDelegateTypeSymbol,
-                                        typeMemberIdentifierGenerator.AllocateName( targetEventSymbol.ContainingType, $"{targetEvent.Name}InvokeDelegate", IdentifierFlags.AlwaysUseSuffix ),
-                                        context =>
-                                            GetEventBrokerInvokerDelegateInitializationExpression(
-                                                context,
-                                                targetEventSymbol.ContainingType.AssertNotNull(),
-                                                raiseMethodName ) );
+                                // Create a new invoker delegate for each override (not shared)
+                                var invokerDelegateFieldInfo = new StaticDelegateInfo(
+                                    targetEventSymbol.ContainingType,
+                                    invokerDelegateTypeSymbol,
+                                    typeMemberIdentifierGenerator.AllocateName( targetEventSymbol.ContainingType, $"{targetEvent.Name}InvokeDelegate", IdentifierFlags.AlwaysUseSuffix ),
+                                    context =>
+                                        GetEventBrokerInvokerDelegateInitializationExpression(
+                                            context,
+                                            targetEventSymbol.ContainingType.AssertNotNull(),
+                                            raiseMethodName ) );
 
-                                    staticDelegatesForType.Add( invokerDelegateTypeSymbol, invokerDelegateFieldInfo );
-                                }
+                                staticDelegatesForType.Add( invokerDelegateFieldInfo );
 
                                 var fieldInitializationExpression =
                                     ( SyntaxGenerationContext context ) =>

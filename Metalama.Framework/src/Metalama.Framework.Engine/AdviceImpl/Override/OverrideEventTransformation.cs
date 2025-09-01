@@ -93,20 +93,20 @@ internal sealed class OverrideEventTransformation : OverrideMemberTransformation
             removeAccessorBody = this.CreateIdentityAccessorBody( SyntaxKind.RemoveAccessorDeclaration, context );
         }
 
-        BlockSyntax? invokeAccessorBody = null;
+        BlockSyntax? raiseAccessorBody = null;
 
         if ( this.InvokeTemplate != null )
         {
-            templateExpansionError = templateExpansionError || !this.TryExpandAccessorTemplate(
+            templateExpansionError = templateExpansionError || !this.TryExpandRaiseTemplate(
                 context,
                 this.InvokeTemplate,
                 overriddenDeclaration.RaiseMethod,
                 overriddenDeclaration,
-                out invokeAccessorBody );
+                out raiseAccessorBody );
         }
         else
         {
-            invokeAccessorBody = null;
+            raiseAccessorBody = null;
         }
 
         if ( templateExpansionError )
@@ -152,7 +152,7 @@ internal sealed class OverrideEventTransformation : OverrideMemberTransformation
         var eventHandlerInvokeMethod = overriddenDeclaration.Type.Methods.OfName( "Invoke" ).Single();
 
         var invokeOverride =
-            invokeAccessorBody != null
+            raiseAccessorBody != null
             ? new InjectedMember(
                 this,
                 MethodDeclaration(
@@ -184,7 +184,7 @@ internal sealed class OverrideEventTransformation : OverrideMemberTransformation
                                     null),
                             ] ) ),
                     List<TypeParameterConstraintClauseSyntax>(),
-                    invokeAccessorBody,
+                    raiseAccessorBody,
                     null,
                     default ),
                 this.AspectLayerId,
@@ -214,12 +214,52 @@ internal sealed class OverrideEventTransformation : OverrideMemberTransformation
             {
                 MethodKind.EventAdd => this.CreateAddExpression( context ),
                 MethodKind.EventRemove => this.CreateRemoveExpression( context ),
-                MethodKind.EventRaise => this.CreateRaiseExpression( context ),
                 _ => throw new AssertionFailedException( $"Unexpected MethodKind: {accessor.MethodKind}." )
             },
             context.FinalCompilation.Cache.SystemVoidType );
 
         var metaApi = MetaApi.ForEvent(
+            overriddenDeclaration,
+            accessor,
+            new MetaApiProperties(
+                this.InitialCompilation,
+                context.DiagnosticSink,
+                accessorTemplate.TemplateMember.AsMemberOrNamedType(),
+                this.AspectLayerId,
+                context.SyntaxGenerationContext,
+                this.AspectInstance,
+                context.ServiceProvider,
+                MetaApiStaticity.Default ) );
+
+        var expansionContext = new TemplateExpansionContext(
+            context,
+            metaApi,
+            accessor,
+            accessorTemplate,
+            _ => proceedExpression,
+            this.AspectLayerId );
+
+        var templateDriver = accessorTemplate.TemplateMember.Driver;
+
+        return templateDriver.TryExpandDeclaration( expansionContext, accessorTemplate.TemplateArguments, out body );
+    }
+
+    private bool TryExpandRaiseTemplate(
+        MemberInjectionContext context,
+        BoundTemplateMethod accessorTemplate,
+        IMethod accessor,
+        IEvent overriddenDeclaration,
+        [NotNullWhen( true )] out BlockSyntax? body )
+    {
+        var proceedExpression = new SyntaxUserExpression(
+            accessor.MethodKind switch
+            {
+                MethodKind.EventRaise => this.CreateRaiseExpression( context ),
+                _ => throw new AssertionFailedException( $"Unexpected MethodKind: {accessor.MethodKind}." )
+            },
+            context.FinalCompilation.Cache.SystemVoidType );
+
+        var metaApi = MetaApi.ForEventRaise(
             overriddenDeclaration,
             accessor,
             new MetaApiProperties(

@@ -21,7 +21,7 @@ internal sealed class LinkerAnalysisRegistry
     private readonly IReadOnlyDictionary<InliningContextIdentifier, IReadOnlyDictionary<SyntaxNode, SyntaxNodeSubstitution>> _substitutions;
     private readonly HashSet<ISymbol> _overrideTargetsWithUnsupportedNonInlinedOverrides;
     private readonly IReadOnlyDictionary<IEventSymbol, EventBrokerInfo> _eventBrokers;
-    private readonly IReadOnlyDictionary<INamedTypeSymbol, IReadOnlyDictionary<INamedTypeSymbol, StaticDelegateInfo>> _staticDelegates;
+    private readonly IReadOnlyDictionary<INamedTypeSymbol, IReadOnlyList<StaticDelegateInfo>> _staticDelegates;
 
     public LinkerAnalysisRegistry(
         CompilationContext intermediateCompilation,
@@ -30,7 +30,7 @@ internal sealed class LinkerAnalysisRegistry
         IReadOnlyDictionary<InliningContextIdentifier, IReadOnlyList<SyntaxNodeSubstitution>> substitutions,
         HashSet<ISymbol> overrideTargetsWithUnsupportedNonInlinedOverrides,
         IReadOnlyDictionary<IEventSymbol, EventBrokerInfo> eventBrokers,
-        IReadOnlyDictionary<INamedTypeSymbol, IReadOnlyDictionary<INamedTypeSymbol, StaticDelegateInfo>> staticDelegates )
+        IReadOnlyDictionary<INamedTypeSymbol, IReadOnlyList<StaticDelegateInfo>> staticDelegates )
     {
         this._reachableSemantics = reachableSemantics;
         this._inlinedSemantics = inlinedSemantics;
@@ -105,7 +105,7 @@ internal sealed class LinkerAnalysisRegistry
     {
         if ( this._staticDelegates.TryGetValue( type, out var staticDelegateFields ) )
         {
-            return staticDelegateFields.Values.ToList();
+            return staticDelegateFields;
         }
 
         return ImmutableArray<StaticDelegateInfo>.Empty;
