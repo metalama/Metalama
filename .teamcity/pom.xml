@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 <project>
   <modelVersion>4.0.0</modelVersion>
-  <name>Metalama_Metalama20251_Metalama Config DSL Script</name>
-  <groupId>Metalama_Metalama20251_Metalama</groupId>
-  <artifactId>Metalama_Metalama20251_Metalama_dsl</artifactId>
+  <name>Metalama_Metalama20252_Metalama Config DSL Script</name>
+  <groupId>Metalama_Metalama20252_Metalama</groupId>
+  <artifactId>Metalama_Metalama20252_Metalama_dsl</artifactId>
   <version>1.0-SNAPSHOT</version>
 
   <parent>
