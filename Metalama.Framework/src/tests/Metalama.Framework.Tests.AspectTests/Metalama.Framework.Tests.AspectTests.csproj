@@ -45,6 +45,18 @@
         <Compile Remove="$(MSBuildThisFileDirectory)/Tests/**/__*.cs" />
         <!-- But still show them in solution explorer -->
         <None Include="$(MSBuildThisFileDirectory)/Tests/**/__*.cs" />
+        <Compile Update="Tests\Aspects\Introductions\Methods\Covariant.cs">
+          <DependentUpon>$([System.String]::Copy('Abstract').Substring( %(Filename.IndexOf('.') ).cs</DependentUpon>
+          <SubType>Code</SubType>
+        </Compile>
+        <Compile Update="Tests\Aspects\Introductions\Properties\Covariant.cs">
+          <DependentUpon>$([System.String]::Copy('Covariant').Substring( %(Filename.IndexOf('.') ).cs</DependentUpon>
+          <SubType>Code</SubType>
+        </Compile>
+        <Compile Update="Tests\Aspects\Introductions\Indexers\Covariant.cs">
+          <DependentUpon>$([System.String]::Copy('Covariant').Substring( %(Filename.IndexOf('.') ).cs</DependentUpon>
+          <SubType>Code</SubType>
+        </Compile>
     </ItemGroup>
 
     <ItemGroup>
