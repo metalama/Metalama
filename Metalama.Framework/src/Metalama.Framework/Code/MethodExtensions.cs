@@ -38,7 +38,6 @@ namespace Metalama.Framework.Code
         
         /// <summary>
         /// Determines whether a read-only property or indexer override has a covariant type with respect to the base implementation.
-        /// <seealso href="https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/proposals/csharp-9.0/covariant-returns"/>
         /// </summary>
         /// <seealso href="https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/proposals/csharp-9.0/covariant-returns"/> 
         [CompileTime]
