@@ -23,5 +23,29 @@ namespace Metalama.Framework.Code
 
         [CompileTime]
         public static AsyncInfo GetAsyncInfo( this IMethod method ) => ((ICompilationInternal) method.Compilation).Helpers.GetAsyncInfo( method );
+
+        /// <summary>
+        /// Determines whether a method override has a covariant return type with respect to the base implementation.
+        /// </summary>
+        /// <seealso href="https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/proposals/csharp-9.0/covariant-returns"/>
+        [CompileTime]
+        public static bool HasCovariantReturnType( this IMethod method )
+        {
+            return method.OverriddenMethod != null
+                   && !method.ReturnType.Equals( method.OverriddenMethod.ReturnType )
+                   && method.ReturnType.IsConvertibleTo( method.OverriddenMethod.ReturnType, ConversionKind.Reference );
+        }
+        
+        /// <summary>
+        /// Determines whether a read-only property or indexer override has a covariant type with respect to the base implementation.
+        /// </summary>
+        /// <seealso href="https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/proposals/csharp-9.0/covariant-returns"/> 
+        [CompileTime]
+        public static bool HasCovariantType( this IPropertyOrIndexer propertyOrIndexer )
+        {
+            return propertyOrIndexer.OverriddenMember is IPropertyOrIndexer overriddenMember
+                   && !propertyOrIndexer.Type.Equals( overriddenMember.Type )
+                   && propertyOrIndexer.Type.IsConvertibleTo( overriddenMember.Type, ConversionKind.Reference );
+        }
     }
 }

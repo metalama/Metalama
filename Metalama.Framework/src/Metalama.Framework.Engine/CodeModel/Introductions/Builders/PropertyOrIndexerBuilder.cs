@@ -99,6 +99,8 @@ internal abstract class PropertyOrIndexerBuilder : MemberBuilder, IPropertyOrInd
         }
     }
 
+    public override bool IsDesignTimeObservable => base.IsDesignTimeObservable || this.HasCovariantType();
+
     protected override void FreezeChildren()
     {
         base.FreezeChildren();

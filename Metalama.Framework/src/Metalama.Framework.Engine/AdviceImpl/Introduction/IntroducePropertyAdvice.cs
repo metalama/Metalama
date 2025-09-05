@@ -273,7 +273,7 @@ internal sealed class IntroducePropertyAdvice : IntroduceMemberAdvice<IProperty,
                              existingProperty.DeclaringType),
                             this ) );
             }
-            else if ( !builder.Type.Equals( existingProperty.Type ) )
+            else if ( !builder.Type.IsConvertibleTo( existingProperty.Type, ConversionKind.Reference ) )
             {
                 return
                     this.CreateFailedResult(
