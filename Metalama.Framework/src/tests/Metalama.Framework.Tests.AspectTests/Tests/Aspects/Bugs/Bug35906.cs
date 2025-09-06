@@ -9,7 +9,7 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Bugs.Bug35906;
 
 public sealed class TestAspect : OverrideMethodAspect
 {
-    public Type IntMarkerType { get; set; } = null;
+    public Type? IntMarkerType { get; set; } = null;
 
     public override dynamic OverrideMethod()
     {

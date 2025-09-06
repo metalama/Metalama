@@ -228,7 +228,7 @@ internal sealed class IntroduceIndexerAdvice : IntroduceMemberAdvice<IIndexer, I
                             this ) );
             }
 
-            if ( !builder.Type.Equals( existingIndexer.Type ) )
+            if ( !builder.Type.IsConvertibleTo( existingIndexer.Type, ConversionKind.Reference ) )
             {
                 return
                     this.CreateFailedResult(
