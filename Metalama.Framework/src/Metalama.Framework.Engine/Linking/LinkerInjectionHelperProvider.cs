@@ -235,8 +235,8 @@ internal class {HelperTypeName}
     public static void {StaticConstructorMemberName}() {{}}
     public static ref T{suffix} {PropertyMemberName}<T>(T{suffix} value) => ref Dummy<T{suffix}>.Field;    
     public static void {_eventFieldInitializationExpressionMemberName}<T>(T? value) where T : System.Delegate {{}}
-    public static T {EventRaiseMemberName}<T>(T? value) where T : System.Delegate {{}}
-    public static T {EventRaiseMemberName}<T,U>(T? value, U args) where T : System.Delegate {{}}
+    public static void {EventRaiseMemberName}(System.Action reference) {{}}
+    public static void {EventRaiseMemberName}<TArgs>(System.Action reference, TArgs args) {{}}
     {string.Join( "\n    ", binaryOperators )}
     {string.Join( "\n    ", unaryOperators )}
     {string.Join( "\n    ", conversionOperators )}
@@ -248,6 +248,9 @@ internal class {HelperTypeName}
         return Wrapped;
         static System.Threading.Tasks.Task Wrapped(params object[] args) => System.Threading.Tasks.Task.CompletedTask;
     }}
+
+    // Empty delegate member that is used as a factory for a dummy delegate in event raise expression.
+    public static TDelegate {_emptyDelegateMemberName}<TDelegate>() where TDelegate : System.Delegate => null!;
 
     // Types that are used as additional parameters for members where name cannot be changed.
     public readonly struct {_emptyCodeTypeName} {{}}

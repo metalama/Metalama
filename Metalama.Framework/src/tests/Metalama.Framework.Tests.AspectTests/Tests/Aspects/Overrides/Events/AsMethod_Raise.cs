@@ -7,42 +7,43 @@ using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 
-namespace Metalama.Framework.IntegrationTests.Aspects.Overrides.Events.AsMethod_Raise
-{
-    public class OverrideAttribute : EventAspect
-    {
-        public override void BuildAspect( IAspectBuilder<IEvent> builder )
-        {
-            builder.With( builder.Target.RaiseMethod ).Override( nameof( InvokeEventTemplate ) );
-        }
+#pragma warning disable IDE0052
 
-        [Template]
-        public void InvokeEventTemplate( EventHandler value )
-        {
-            Console.WriteLine( "Overridden invoke" );
-            meta.Proceed();
-        }
+namespace Metalama.Framework.IntegrationTests.Aspects.Overrides.Events.AsMethod_Raise;
+
+public class OverrideAttribute : EventAspect
+{
+    public override void BuildAspect( IAspectBuilder<IEvent> builder )
+    {
+        builder.With( builder.Target.RaiseMethod ).Override( nameof( RaiseEventTemplate ) );
     }
 
-    // <target>
-    internal class TargetClass
+    [Template]
+    public void RaiseEventTemplate( EventHandler value )
     {
-        private EventHandler? _handler;
+        Console.WriteLine( "Overridden raise" );
+        meta.Proceed();
+    }
+}
 
-        [Override]
-        public event EventHandler Event
+// <target>
+internal class TargetClass
+{
+    private EventHandler? _handler;
+
+    [Override]
+    public event EventHandler Event
+    {
+        add
         {
-            add
-            {
-                this._handler = value;
-                Console.WriteLine( "OriginalAdd" );
-            }
+            this._handler = value;
+            Console.WriteLine( "OriginalAdd" );
+        }
 
-            remove
-            {
-                this._handler = null;
-                Console.WriteLine( "OriginalRemove" );
-            }
+        remove
+        {
+            this._handler = null;
+            Console.WriteLine( "OriginalRemove" );
         }
     }
 }

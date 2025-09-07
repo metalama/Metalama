@@ -39,7 +39,8 @@ namespace Metalama.Framework.Engine.Transformations
         public abstract ExpressionSyntax GetEventRaiseReference( 
             AspectLayerId aspectLayer, 
             IEvent @event,
-            ContextualSyntaxGenerator syntaxGenerator );
+            ContextualSyntaxGenerator syntaxGenerator,
+            params ArgumentSyntax[] arguments );
 
         public abstract ExpressionSyntax GetOperatorReference( AspectLayerId aspectLayer, IMethod targetOperator, ContextualSyntaxGenerator syntaxGenerator );
 

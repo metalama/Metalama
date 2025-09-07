@@ -182,7 +182,7 @@ internal sealed partial class LinkerAnalysisStep
 
                     var referencesForContainingSemantic =(List<ResolvedAspectReference>) aspectReferences.GetOrAdd( containingSemantic, cs => new List<ResolvedAspectReference>() );
 
-                    lock(referencesForContainingSemantic)
+                    lock (referencesForContainingSemantic)
                     {
                         referencesForContainingSemantic.Add( resolvedReference );
                     }

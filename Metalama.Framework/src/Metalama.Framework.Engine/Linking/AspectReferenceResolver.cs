@@ -150,7 +150,7 @@ internal sealed class AspectReferenceResolver
         {
             // Resolves the symbol based on expression - this is used when aspect reference targets property/event/field
             // but it is not specified whether the getter/setter/adder/remover is targeted.
-            targetKind = this.ResolveExpressionTarget( resolvedReferencedSymbol, expression );
+            targetKind = ResolveExpressionTarget( resolvedReferencedSymbol, expression );
         }
 
         // At this point we should always target a method or a specific target.
@@ -637,7 +637,9 @@ internal sealed class AspectReferenceResolver
                                     {
                                         ExpressionBody: AssignmentExpressionSyntax { RawKind: (int) SyntaxKind.AddAssignmentExpression, Left: ExpressionSyntax eventExpression }
                                     }
-                                }]
+                                },
+                                ..
+                            ]
                         } invocationExpression:
                             var symbolInfo = semanticModel.GetSymbolInfo( eventExpression );
 
@@ -706,7 +708,7 @@ internal sealed class AspectReferenceResolver
     /// <summary>
     /// Resolved the target reference target kind based on the referenced symbol and the expression.
     /// </summary>
-    private AspectReferenceTargetKind ResolveExpressionTarget( ISymbol referencedSymbol, ExpressionSyntax expression )
+    private static AspectReferenceTargetKind ResolveExpressionTarget( ISymbol referencedSymbol, ExpressionSyntax expression )
     {
         switch (referencedSymbol, expression)
         {

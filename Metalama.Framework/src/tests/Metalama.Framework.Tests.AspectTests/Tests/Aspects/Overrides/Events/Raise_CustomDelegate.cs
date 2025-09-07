@@ -7,42 +7,43 @@ using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 
-namespace Metalama.Framework.IntegrationTests.Aspects.Overrides.Events.Raise_CustomDelegate
+#pragma warning disable IDE0052
+
+namespace Metalama.Framework.IntegrationTests.Aspects.Overrides.Events.Raise_CustomDelegate;
+
+public delegate void MyEventHandler( object sender, int args1, int arg2 );
+
+public class OverrideAttribute : EventAspect
 {
-    public delegate void MyEventHandler( object sender, int args1, int arg2 );
-
-    public class OverrideAttribute : EventAspect
+    public override void BuildAspect( IAspectBuilder<IEvent> builder )
     {
-        public override void BuildAspect( IAspectBuilder<IEvent> builder )
-        {
-            builder.OverrideAccessors( null, null, nameof( InvokeEventTemplate ));
-        }
-
-        [Template]
-        public void InvokeEventTemplate()
-        {
-            Console.WriteLine( "Invoke" );
-            meta.Proceed();
-        }
+        builder.OverrideAccessors( null, null, nameof( RaiseEventTemplate ));
     }
 
-    // <target>
-    internal class TargetClass 
+    [Template]
+    public void RaiseEventTemplate()
     {
-        private MyEventHandler? _handler;
+        Console.WriteLine( "Raise" );
+        meta.Proceed();
+    }
+}
 
-        [Override]
-        public event MyEventHandler Event
+// <target>
+internal class TargetClass 
+{
+    private MyEventHandler? _handler;
+
+    [Override]
+    public event MyEventHandler Event
+    {
+        add
         {
-            add
-            {
-                this._handler = value;
-            }
+            this._handler = value;
+        }
 
-            remove
-            {
-                this._handler = null;
-            }
+        remove
+        {
+            this._handler = null;
         }
     }
 }

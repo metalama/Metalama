@@ -7,55 +7,56 @@ using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 
-namespace Metalama.Framework.IntegrationTests.Aspects.Overrides.Events.Raise_TwoSimilarEvents
+#pragma warning disable IDE0052
+
+namespace Metalama.Framework.IntegrationTests.Aspects.Overrides.Events.Raise_TwoSimilarEvents;
+
+public class OverrideAttribute : EventAspect
 {
-    public class OverrideAttribute : EventAspect
+    public override void BuildAspect( IAspectBuilder<IEvent> builder )
     {
-        public override void BuildAspect( IAspectBuilder<IEvent> builder )
+        builder.OverrideAccessors( null, null, nameof( RaiseEventTemplate ));
+    }
+
+    [Template]
+    public void RaiseEventTemplate()
+    {
+        Console.WriteLine( "Raise" );
+        meta.Proceed();
+    }
+}
+
+// <target>
+internal class TargetClass 
+{
+    private EventHandler? _handler1;
+    private EventHandler? _handler2;
+
+    [Override]
+    public event EventHandler Event1
+    {
+        add
         {
-            builder.OverrideAccessors( null, null, nameof( InvokeEventTemplate ));
+            this._handler1 = value;
         }
 
-        [Template]
-        public void InvokeEventTemplate()
+        remove
         {
-            Console.WriteLine( "Invoke" );
-            meta.Proceed();
+            this._handler1 = null;
         }
     }
 
-    // <target>
-    internal class TargetClass 
+    [Override]
+    public event EventHandler Event2
     {
-        private EventHandler? _handler1;
-        private EventHandler? _handler2;
-
-        [Override]
-        public event EventHandler Event1
+        add
         {
-            add
-            {
-                this._handler1 = value;
-            }
-
-            remove
-            {
-                this._handler1 = null;
-            }
+            this._handler2 = value;
         }
 
-        [Override]
-        public event EventHandler Event2
+        remove
         {
-            add
-            {
-                this._handler2 = value;
-            }
-
-            remove
-            {
-                this._handler2 = null;
-            }
+            this._handler2 = null;
         }
     }
 }

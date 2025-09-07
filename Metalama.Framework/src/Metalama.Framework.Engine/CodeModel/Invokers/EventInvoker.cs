@@ -8,7 +8,6 @@ using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.SyntaxSerialization;
 using Metalama.Framework.Engine.Templating.Expressions;
-using Metalama.Framework.Engine.Transformations;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -55,20 +54,20 @@ internal sealed class EventInvoker : Invoker<IEvent>, IEventInvoker
         return new DelegateUserExpression(
             context =>
             {
+                var arguments = this.Member.GetArguments(
+                    this.Member.Signature.Parameters,
+                    TypedExpressionSyntaxImpl.FromValues( args, context ),
+                    context.SyntaxGenerationContext );
+
                 if ( context.AspectReferenceSyntaxProvider != null )
                 {
                     var receiverInfo = this.GetReceiverInfo( context );
 
-                    return context.AspectReferenceSyntaxProvider.GetEventRaiseReference( receiverInfo.AspectReferenceSpecification.AspectLayerId, this.Member, context.SyntaxGenerator );
+                    return context.AspectReferenceSyntaxProvider.GetEventRaiseReference( receiverInfo.AspectReferenceSpecification.AspectLayerId, this.Member, context.SyntaxGenerator, arguments );
                 }
                 else
                 {
                     var eventAccess = this.CreateEventExpression( AspectReferenceTargetKind.EventRaiseAccessor, context );
-
-                    var arguments = this.Member.GetArguments(
-                        this.Member.Signature.Parameters,
-                        TypedExpressionSyntaxImpl.FromValues( args, context ),
-                        context.SyntaxGenerationContext );
 
                     return ConditionalAccessExpression(
                         eventAccess,

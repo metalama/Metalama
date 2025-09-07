@@ -13,13 +13,13 @@ namespace Metalama.Framework.IntegrationTests.Aspects.Overrides.EventFields.Rais
     {
         public override void BuildAspect( IAspectBuilder<IEvent> builder )
         {
-            builder.OverrideAccessors( null, null, nameof( InvokeEventTemplate ));
+            builder.OverrideAccessors( null, null, nameof( RaiseEventTemplate ));
         }
 
         [Template]
-        public void InvokeEventTemplate( EventHandler value )
+        public void RaiseEventTemplate( EventHandler value )
         {
-            Console.WriteLine( "Invoke" );
+            Console.WriteLine( "Raise" );
             meta.Proceed();
         }
     }

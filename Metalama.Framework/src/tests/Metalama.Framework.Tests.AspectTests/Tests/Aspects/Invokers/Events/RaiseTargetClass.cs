@@ -9,7 +9,7 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Code.Invokers;
 using System.Linq;
 
-namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Invokers.Events.InvokeTargetClass;
+namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Invokers.Events.RaiseTargetClass;
 
 /*
  * Tests invokers targeting a event declared in the target class.

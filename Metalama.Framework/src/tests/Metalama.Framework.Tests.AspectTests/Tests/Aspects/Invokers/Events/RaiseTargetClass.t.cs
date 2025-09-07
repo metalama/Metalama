@@ -5,12 +5,12 @@ public class TargetClass
   public void Foo()
   {
     // Invoke this.Event
-    this.Event?.Invoke(null, global::System.EventArgs.Empty);
+    this.Event?.Invoke((global::System.Object? )null, global::System.EventArgs.Empty);
     // Invoke this.Event
-    this.Event?.Invoke(null, global::System.EventArgs.Empty);
+    this.Event?.Invoke((global::System.Object? )null, global::System.EventArgs.Empty);
     // Invoke this.Event
-    this.Event?.Invoke(null, global::System.EventArgs.Empty);
+    this.Event?.Invoke((global::System.Object? )null, global::System.EventArgs.Empty);
     // Invoke this.Event
-    this.Event?.Invoke(null, global::System.EventArgs.Empty);
+    this.Event?.Invoke((global::System.Object? )null, global::System.EventArgs.Empty);
   }
 }

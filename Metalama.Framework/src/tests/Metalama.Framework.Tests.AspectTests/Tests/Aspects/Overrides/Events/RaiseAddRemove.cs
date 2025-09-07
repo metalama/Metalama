@@ -7,57 +7,58 @@ using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 
-namespace Metalama.Framework.IntegrationTests.Aspects.Overrides.Events.RaiseAddRemove
+#pragma warning disable IDE0052
+
+namespace Metalama.Framework.IntegrationTests.Aspects.Overrides.Events.RaiseAddRemove;
+
+public class OverrideAttribute : EventAspect
 {
-    public class OverrideAttribute : EventAspect
+    public override void BuildAspect( IAspectBuilder<IEvent> builder )
     {
-        public override void BuildAspect( IAspectBuilder<IEvent> builder )
-        {
-            builder.OverrideAccessors(
-                nameof( AddEventTemplate ),
-                nameof( RemoveEventTemplate ),
-                nameof( InvokeEventTemplate ));
-        }
-
-        [Template]
-        public void AddEventTemplate()
-        {
-            Console.WriteLine( "Add" );
-            meta.Proceed();
-        }
-
-        [Template]
-        public void RemoveEventTemplate()
-        {
-            Console.WriteLine( "Remove" );
-            meta.Proceed();
-        }
-
-        [Template]
-        public void InvokeEventTemplate()
-        {
-            Console.WriteLine( "Invoke" );
-            meta.Proceed();
-        }
+        builder.OverrideAccessors(
+            nameof( AddEventTemplate ),
+            nameof( RemoveEventTemplate ),
+            nameof( RaiseEventTemplate ));
     }
 
-    // <target>
-    internal class TargetClass 
+    [Template]
+    public void AddEventTemplate()
     {
-        private EventHandler? _handler;
+        Console.WriteLine( "Add" );
+        meta.Proceed();
+    }
 
-        [Override]
-        public event EventHandler Event
+    [Template]
+    public void RemoveEventTemplate()
+    {
+        Console.WriteLine( "Remove" );
+        meta.Proceed();
+    }
+
+    [Template]
+    public void RaiseEventTemplate()
+    {
+        Console.WriteLine( "Raise" );
+        meta.Proceed();
+    }
+}
+
+// <target>
+internal class TargetClass 
+{
+    private EventHandler? _handler;
+
+    [Override]
+    public event EventHandler Event
+    {
+        add
         {
-            add
-            {
-                this._handler = value;
-            }
+            this._handler = value;
+        }
 
-            remove
-            {
-                this._handler = null;
-            }
+        remove
+        {
+            this._handler = null;
         }
     }
 }

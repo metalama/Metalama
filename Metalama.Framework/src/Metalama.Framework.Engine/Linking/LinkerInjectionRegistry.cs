@@ -2,20 +2,17 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using JetBrains.Annotations;
 using Metalama.Compiler;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.Comparers;
 using Metalama.Framework.Engine.AdviceImpl.Introduction;
-using Metalama.Framework.Engine.AdviceImpl.Override;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CodeModel.Abstractions;
 using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 using Metalama.Framework.Engine.CodeModel.Introductions.ConstructedTypes;
 using Metalama.Framework.Engine.CodeModel.Introductions.Introduced;
 using Metalama.Framework.Engine.CodeModel.References;
-using Metalama.Framework.Engine.CodeModel.Source;
 using Metalama.Framework.Engine.Transformations;
 using Metalama.Framework.Engine.Utilities.Comparers;
 using Metalama.Framework.Engine.Utilities.Threading;
@@ -743,6 +740,90 @@ internal sealed class LinkerInjectionRegistry
         var injectedMember = this.GetInjectedMemberForSymbol( symbol );
         
         return injectedMember?.Transformation;
+    }
+
+    /// <summary>
+    /// Gets the preceding semantic.
+    /// </summary>
+    /// <param name="semantic">The semantic for which to get the preceding semantic.</param>
+    /// <returns>The preceding semantic in the sequence, or <c>null</c> if there is no preceding semantic.</returns>
+    public IntermediateSymbolSemantic<IEventSymbol>? GetPrecedingSemantic( IntermediateSymbolSemantic<IEventSymbol> semantic )
+    {
+        var symbol = semantic.Symbol.GetCanonicalDefinition();
+        
+        switch ( semantic.Kind )
+        {
+            case IntermediateSymbolSemanticKind.Base:
+                // Base is the first in the sequence, no predecessor
+                return null;
+                
+            case IntermediateSymbolSemanticKind.Default when this.IsOverrideTarget( symbol ):
+                // For the original symbol's Default semantic, the predecessor is the Base semantic
+                return new IntermediateSymbolSemantic<IEventSymbol>( (IEventSymbol)symbol, IntermediateSymbolSemanticKind.Base );
+                
+            case IntermediateSymbolSemanticKind.Default when this.IsOverride( symbol ):
+                // For an override's Default semantic, find the previous override in the chain
+                var overrideTarget = this.GetOverrideTarget( symbol );
+                if ( overrideTarget == null )
+                {
+                    return null;
+                }
+                
+                var symbolOverrides = this.GetOverridesForSymbol( overrideTarget );
+                var currentIndex = -1;
+                
+                // Find the current override's position in the list
+                for ( var i = 0; i < symbolOverrides.Count; i++ )
+                {
+                    if ( this._intermediateCompilation.CompilationContext.SymbolComparer.Equals( symbolOverrides[i], symbol ) )
+                    {
+                        currentIndex = i;
+                        break;
+                    }
+                }
+                
+                if ( currentIndex == -1 )
+                {
+                    return null;
+                }
+                
+                if ( currentIndex == 0 )
+                {
+                    // First override, predecessor is the original symbol's Default semantic
+                    return new IntermediateSymbolSemantic<IEventSymbol>( (IEventSymbol)overrideTarget, IntermediateSymbolSemanticKind.Default );
+                }
+                else
+                {
+                    // Previous override in the chain
+                    var previousOverride = symbolOverrides[currentIndex - 1];
+                    return new IntermediateSymbolSemantic<IEventSymbol>( (IEventSymbol)previousOverride, IntermediateSymbolSemanticKind.Default );
+                }
+                
+            case IntermediateSymbolSemanticKind.Final:
+                // For Final semantic, the predecessor is the last override's Default semantic
+                if ( this.IsOverrideTarget( symbol ) )
+                {
+                    var finalOverrides = this.GetOverridesForSymbol( symbol );
+                    if ( finalOverrides.Count > 0 )
+                    {
+                        var lastOverride = finalOverrides[^1];
+                        return new IntermediateSymbolSemantic<IEventSymbol>( (IEventSymbol)lastOverride, IntermediateSymbolSemanticKind.Default );
+                    }
+                    else
+                    {
+                        // No overrides, predecessor is the original symbol's Default semantic
+                        return new IntermediateSymbolSemantic<IEventSymbol>( (IEventSymbol)symbol, IntermediateSymbolSemanticKind.Default );
+                    }
+                }
+                else
+                {
+                    // For non-override target symbols, Final semantic predecessor is their Default semantic
+                    return new IntermediateSymbolSemantic<IEventSymbol>( (IEventSymbol)symbol, IntermediateSymbolSemanticKind.Default );
+                }
+                
+            default:
+                return null;
+        }
     }
 
     public TSymbol? GetIntermediateCompilationSymbol<TSymbol>( ICompilationElement declaration )

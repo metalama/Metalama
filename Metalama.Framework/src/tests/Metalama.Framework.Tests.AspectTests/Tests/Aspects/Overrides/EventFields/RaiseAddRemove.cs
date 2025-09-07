@@ -16,7 +16,7 @@ namespace Metalama.Framework.IntegrationTests.Aspects.Overrides.EventFields.Rais
             builder.OverrideAccessors(
                 nameof( AddEventTemplate ),
                 nameof( RemoveEventTemplate ),
-                nameof( InvokeEventTemplate ));
+                nameof( RaiseEventTemplate ));
         }
 
         [Template]
@@ -34,9 +34,9 @@ namespace Metalama.Framework.IntegrationTests.Aspects.Overrides.EventFields.Rais
         }
 
         [Template]
-        public void InvokeEventTemplate( EventHandler value )
+        public void RaiseEventTemplate( EventHandler value )
         {
-            Console.WriteLine( "Invoke" );
+            Console.WriteLine( "Raise" );
             meta.Proceed();
         }
     }

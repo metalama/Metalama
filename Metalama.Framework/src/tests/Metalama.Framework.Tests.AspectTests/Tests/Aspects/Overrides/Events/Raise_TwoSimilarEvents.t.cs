@@ -1,8 +1,8 @@
 internal class TargetClass
 {
   private static readonly global::System.Func<global::Metalama.Framework.RunTime.ActionEventBroker<global::System.EventHandler, (global::System.Object? , global::System.EventArgs)>, global::System.EventHandler> EventHandlerCastDelegate_0 = static b => (sender, e) => b.Invoke((sender, e));
-  private static readonly global::System.Action<global::System.EventHandler, global::System.Object, (global::System.Object? , global::System.EventArgs)> Event1InvokeDelegate_0 = static (handler, me, args) => ((global::Metalama.Framework.IntegrationTests.Aspects.Overrides.Events.Raise_TwoSimilarEvents.TargetClass)me).Event1_Override_Invoke(handler, args);
-  private static readonly global::System.Action<global::System.EventHandler, global::System.Object, (global::System.Object? , global::System.EventArgs)> Event2InvokeDelegate_0 = static (handler, me, args) => ((global::Metalama.Framework.IntegrationTests.Aspects.Overrides.Events.Raise_TwoSimilarEvents.TargetClass)me).Event2_Override_Invoke(handler, args);
+  private static readonly global::System.Action<global::System.EventHandler, global::System.Object, (global::System.Object? , global::System.EventArgs)> Event1InvokeDelegate_0 = static (handler, me, args) => ((global::Metalama.Framework.IntegrationTests.Aspects.Overrides.Events.Raise_TwoSimilarEvents.TargetClass)me).Event1_Raise_Override(handler, args);
+  private static readonly global::System.Action<global::System.EventHandler, global::System.Object, (global::System.Object? , global::System.EventArgs)> Event2InvokeDelegate_0 = static (handler, me, args) => ((global::Metalama.Framework.IntegrationTests.Aspects.Overrides.Events.Raise_TwoSimilarEvents.TargetClass)me).Event2_Raise_Override( handler, args);
   private EventHandler? _handler1;
   private EventHandler? _handler2;
   private volatile global::Metalama.Framework.RunTime.ActionEventBroker<global::System.EventHandler, (global::System.Object? , global::System.EventArgs)>? _event1Broker;
@@ -39,9 +39,9 @@ internal class TargetClass
       this._handler1 = null;
     }
   }
-  private void Event1_Override_Invoke(global::System.EventHandler handler, (global::System.Object? sender, global::System.EventArgs e) args)
+  private void Event1_Raise_Override( global::System.EventHandler handler, (global::System.Object? sender, global::System.EventArgs e) args)
   {
-    global::System.Console.WriteLine("Invoke");
+    global::System.Console.WriteLine("Raise");
     handler.Invoke(args.sender, args.e);
   }
   private volatile global::Metalama.Framework.RunTime.ActionEventBroker<global::System.EventHandler, (global::System.Object? , global::System.EventArgs)>? _event2Broker;
@@ -78,9 +78,9 @@ internal class TargetClass
       this._handler2 = null;
     }
   }
-  private void Event2_Override_Invoke(global::System.EventHandler handler, (global::System.Object? sender, global::System.EventArgs e) args)
+  private void Event2_Raise_Override( global::System.EventHandler handler, (global::System.Object? sender, global::System.EventArgs e) args)
   {
-    global::System.Console.WriteLine("Invoke");
+    global::System.Console.WriteLine( "Raise" );
     handler.Invoke(args.sender, args.e);
   }
 }

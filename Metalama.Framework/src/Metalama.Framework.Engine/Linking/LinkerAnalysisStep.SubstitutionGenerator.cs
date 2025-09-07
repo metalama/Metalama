@@ -15,7 +15,6 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Security.Cryptography.Xml;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -415,11 +414,10 @@ internal sealed partial class LinkerAnalysisStep
 
                         break;
 
-
                     case
                     {
                         ResolvedSemantic: { Symbol: IEventSymbol @event },
-                        ContainingBody: { MethodKind: MethodKind.EventRemove},
+                        ContainingBody: { MethodKind: MethodKind.EventRemove },
                         ContainingSemantic.Kind: IntermediateSymbolSemanticKind.Final,
                         TargetKind: AspectReferenceTargetKind.EventRemoveAccessor
                     } when this._injectionRegistry.HasEventRaiseOverride( @event ):
@@ -432,25 +430,34 @@ internal sealed partial class LinkerAnalysisStep
 
                     case
                     {
+                        ContainingBody: var method,
                         ResolvedSemantic: { Symbol: IEventSymbol @event },
                         TargetKind: AspectReferenceTargetKind.EventRaiseAccessor
-                    } when this._injectionRegistry.HasEventRaiseOverride( @event ) 
-                           || ( this._injectionRegistry.IsOverride(@event) && this._injectionRegistry.HasEventRaiseOverride( this._injectionRegistry.GetOverrideTarget(@event).AssertNotNull() ) ):
-                        AddSubstitution(
-                            context,
-                            new EventRaiseHandlerCallSubstitution( this._intermediateCompilationContext, nonInlinedReference ) );
-
-                        break;
-
-                    case
-                    {
-                        ResolvedSemantic: { Kind: IntermediateSymbolSemanticKind.Final, Symbol: IEventSymbol @event },
-                        TargetKind: AspectReferenceTargetKind.EventRaiseAccessor
                     }:
-                        var eventBrokerInfo = 
+                        var eventBrokerInfo =
                             this._eventBrokerSemanticIndex.TryGetValue( nonInlinedReference.ResolvedSemantic.ToTyped<IEventSymbol>(), out var info )
                             ? info
                             : null;
+
+                        if ( this._injectionRegistry.IsEventRaiseOverride( method ) )
+                        {
+                            // This is event raise override, which can reference the handler parameter.
+                            var currentEventOverride = (IEventSymbol)this._injectionRegistry.GetMainOverrideForSatelliteOverride( method ).AssertNotNull();
+                            var previousSemantic = this._injectionRegistry.GetPrecedingSemantic( currentEventOverride.ToSemantic( IntermediateSymbolSemanticKind.Default ) );
+                            var currentEventBrokerInfo = 
+                                previousSemantic != null && this._eventBrokerSemanticIndex.TryGetValue( previousSemantic.Value, out var info2 )
+                                ? info2
+                                : null;
+
+                            if ( eventBrokerInfo == currentEventBrokerInfo )
+                            {
+                                AddSubstitution(
+                                    context,
+                                    new EventRaiseHandlerCallSubstitution( this._intermediateCompilationContext, nonInlinedReference ) );
+
+                                break;
+                            }
+                        }
 
                         if ( eventBrokerInfo != null )
                         {
@@ -459,11 +466,21 @@ internal sealed partial class LinkerAnalysisStep
                                 new EventRaiseBrokerCallSubstitution( this._intermediateCompilationContext, nonInlinedReference ) );
                             break;
                         }
-                        else
+                        else if ( this._injectionRegistry.IsOverrideTarget(@event) || this._injectionRegistry.IsOverride(@event) )
                         {
                             AddSubstitution(
                                 context,
                                 new EventRaiseBackingFieldSubstitution(
+                                    this._intermediateCompilationContext,
+                                    nonInlinedReference.RootNode,
+                                    @event ) );
+                        }
+                        else
+                        {
+
+                            AddSubstitution(
+                                context,
+                                new EventRaiseEventFieldSubstitution(
                                     this._intermediateCompilationContext,
                                     nonInlinedReference.RootNode,
                                     @event ) );

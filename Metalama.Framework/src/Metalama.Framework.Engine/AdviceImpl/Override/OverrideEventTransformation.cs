@@ -7,7 +7,6 @@ using Metalama.Framework.Engine.Advising;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.References;
-using Metalama.Framework.Engine.Linking;
 using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.Templating;
 using Metalama.Framework.Engine.Templating.Expressions;
@@ -322,7 +321,7 @@ internal sealed class OverrideEventTransformation : OverrideMemberTransformation
             IdentifierName( "value" ) );
 
     private ExpressionSyntax CreateRaiseExpression( MemberInjectionContext context )
-        => context.AspectReferenceSyntaxProvider.GetEventRaiseReference(
+        => context.AspectReferenceSyntaxProvider.AssertNotNull().GetEventRaiseReference(
             this.AspectLayerId,
             (IEvent)this.OverriddenDeclaration.GetTarget( this.InitialCompilation ),
             context.SyntaxGenerator );

@@ -1,8 +1,8 @@
 internal class TargetCode
 {
   private static readonly Func<ActionEventBroker<EventHandler, (object? , EventArgs)>, EventHandler> EventHandlerCastDelegate_0 = static b => (sender, e) => b.Invoke((sender, e));
-  private static readonly Action<EventHandler, object, (object? , EventArgs)> EventFieldInvokeDelegate_0 = static (handler, me, args) => ((TargetCode)me).EventField_SafeEvent_Invoke(handler, args);
-  private static readonly Action<EventHandler, object, (object? , EventArgs)> EventInvokeDelegate_0 = static (handler, me, args) => ((TargetCode)me).Event_SafeEvent_Invoke(handler, args);
+  private static readonly Action<EventHandler, object, (object? , EventArgs)> EventFieldInvokeDelegate_0 = static (handler, me, args) => ((TargetCode)me).EventField_Raise_SafeEvent( handler, args);
+  private static readonly Action<EventHandler, object, (object? , EventArgs)> EventInvokeDelegate_0 = static (handler, me, args) => ((TargetCode)me).Event_Raise_SafeEvent( handler, args);
   private List<EventHandler> _delegates = new List<EventHandler>();
   private event EventHandler _eventField = default !;
   private volatile ActionEventBroker<EventHandler, (object? , EventArgs)>? _eventFieldBroker;
@@ -39,7 +39,7 @@ internal class TargetCode
       this._eventField -= value;
     }
   }
-  private void EventField_SafeEvent_Invoke(EventHandler handler, (object? sender, EventArgs e) args)
+  private void EventField_Raise_SafeEvent( EventHandler handler, (object? sender, EventArgs e) args)
   {
     try
     {
@@ -97,7 +97,7 @@ internal class TargetCode
       this.Event_Source -= value;
     }
   }
-  private void Event_SafeEvent_Invoke(EventHandler handler, (object? sender, EventArgs e) args)
+  private void Event_Raise_SafeEvent( EventHandler handler, (object? sender, EventArgs e) args)
   {
     try
     {

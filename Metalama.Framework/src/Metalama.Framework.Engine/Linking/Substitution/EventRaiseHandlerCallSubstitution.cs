@@ -29,13 +29,15 @@ internal sealed class EventRaiseHandlerCallSubstitution : SyntaxNodeSubstitution
 
     public override SyntaxNode Substitute( SyntaxNode currentNode, SubstitutionContext substitutionContext )
     {
+        Invariant.Assert( this._containingMethod.Parameters is [{ Type: { TypeKind: TypeKind.Delegate } }, { Type: INamedTypeSymbol { TupleUnderlyingType: not null } }] );
+
         switch ( currentNode )
         {
             case InvocationExpressionSyntax
             {
                 Expression: MemberAccessExpressionSyntax
                 {
-                    Expression: IdentifierNameSyntax { Identifier.ValueText: LinkerInjectionHelperProvider.HelperTypeName },
+                    Expression: IdentifierNameSyntax { Identifier.ValueText: LinkerInjectionHelperProvider.HelperTypeName, Identifier.LeadingTrivia: var leadingTrivia },
                     Name: IdentifierNameSyntax { Identifier.ValueText: LinkerInjectionHelperProvider.EventRaiseMemberName }
                 },
                 ArgumentList.Arguments:
@@ -47,10 +49,9 @@ internal sealed class EventRaiseHandlerCallSubstitution : SyntaxNodeSubstitution
                         }
                     },
                     ..
-                ] arguments 
+                ] arguments,
+                ArgumentList.CloseParenToken.TrailingTrivia: var trailingTrivia
             }:
-                Invariant.Assert( this._containingMethod.Parameters is [{ Type: { TypeKind: TypeKind.Delegate } }, { Type: INamedTypeSymbol { TupleUnderlyingType: not null } }] );
-
                 var handlerName = this._containingMethod.Parameters[0].Name;
                 var argsName = this._containingMethod.Parameters[1].Name;
 
@@ -63,30 +64,34 @@ internal sealed class EventRaiseHandlerCallSubstitution : SyntaxNodeSubstitution
                         InvocationExpression(
                             MemberAccessExpression(
                                 SyntaxKind.SimpleMemberAccessExpression,
-                                IdentifierName( handlerName ),
+                                IdentifierName( Identifier( TriviaList( leadingTrivia ), handlerName, TriviaList() ) ),
                                 IdentifierName( "Invoke" ) ),
                             ArgumentList(
+                                Token( SyntaxKind.OpenParenToken ),
                                 SeparatedList(
                                     tupleElements.Select( e =>
                                         Argument(
                                             MemberAccessExpression(
                                                 SyntaxKind.SimpleMemberAccessExpression,
                                                 IdentifierName( argsName ),
-                                                IdentifierName( e.Name ) ) ) ) ) ) );
+                                                IdentifierName( e.Name ) ) ) ) ),
+                                Token( TriviaList(), SyntaxKind.CloseParenToken, TriviaList( trailingTrivia ) ) ) );
                 }
                 else
                 {
                     // This is invoker call, which specifies argument expressions.
+                    var invokeArguments = EventRaiseArgumentsHelper.ExtractInvokeArguments( arguments );
+
                     return
                         InvocationExpression(
                             MemberAccessExpression(
                                 SyntaxKind.SimpleMemberAccessExpression,
-                                IdentifierName( handlerName ),
+                                IdentifierName( Identifier( TriviaList( leadingTrivia ), handlerName, TriviaList() ) ),
                                 IdentifierName( "Invoke" ) ),
                             ArgumentList(
-                                SeparatedList(
-                                arguments.Skip( 1 ).Select(
-                                    a => Argument( a.Expression ) ) ) ) );
+                                Token( SyntaxKind.OpenParenToken ),
+                                SeparatedList( invokeArguments ),
+                                Token( TriviaList(), SyntaxKind.CloseParenToken, TriviaList( trailingTrivia ) ) ) );
                 }
 
             default:

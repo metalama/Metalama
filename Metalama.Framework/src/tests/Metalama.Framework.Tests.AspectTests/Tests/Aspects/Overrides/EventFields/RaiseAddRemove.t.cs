@@ -1,7 +1,7 @@
 internal class TargetClass
 {
   private static readonly global::System.Func<global::Metalama.Framework.RunTime.ActionEventBroker<global::System.EventHandler, (global::System.Object? , global::System.EventArgs)>, global::System.EventHandler> EventHandlerCastDelegate_0 = static b => (sender, e) => b.Invoke((sender, e));
-  private static readonly global::System.Action<global::System.EventHandler, global::System.Object, (global::System.Object? , global::System.EventArgs)> EventInvokeDelegate_0 = static (handler, me, args) => ((global::Metalama.Framework.IntegrationTests.Aspects.Overrides.EventFields.RaiseAddRemove.TargetClass)me).Event_Override_Invoke(handler, args);
+  private static readonly global::System.Action<global::System.EventHandler, global::System.Object, (global::System.Object? , global::System.EventArgs)> EventInvokeDelegate_0 = static (handler, me, args) => ((global::Metalama.Framework.IntegrationTests.Aspects.Overrides.EventFields.RaiseAddRemove.TargetClass)me).Event_Raise_Override( handler, args);
   private event EventHandler _event = default !;
   private volatile global::Metalama.Framework.RunTime.ActionEventBroker<global::System.EventHandler, (global::System.Object? , global::System.EventArgs)>? _eventBroker;
   [Override]
@@ -39,9 +39,9 @@ internal class TargetClass
       this._event -= value;
     }
   }
-  private void Event_Override_Invoke(global::System.EventHandler handler, (global::System.Object? sender, global::System.EventArgs e) args)
+  private void Event_Raise_Override(global::System.EventHandler handler, (global::System.Object? sender, global::System.EventArgs e) args)
   {
-    global::System.Console.WriteLine("Invoke");
+    global::System.Console.WriteLine("Raise");
     handler.Invoke(args.sender, args.e);
   }
 }

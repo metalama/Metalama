@@ -8,7 +8,6 @@ using Metalama.Framework.Engine.Services;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using System.Linq;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace Metalama.Framework.Engine.Linking.Substitution;
@@ -46,12 +45,15 @@ internal sealed class EventRaiseBrokerCallSubstitution : SyntaxNodeSubstitution
     {
         var currentEventBrokerInfo = substitutionContext.RewritingDriver.AnalysisRegistry.GetVisibleEventBrokerForSemantic( this._targetSemantic ).AssertNotNull();
 
+        var leadingTrivia = currentNode.GetLeadingTrivia();
+
         var eventBrokerExpression =
             this._targetSemantic.Symbol.IsStatic
-            ? (ExpressionSyntax) IdentifierName( currentEventBrokerInfo.EventBrokerFieldName )
+            ? (ExpressionSyntax) IdentifierName( 
+                Identifier( TriviaList( leadingTrivia ), currentEventBrokerInfo.EventBrokerFieldName, TriviaList() ) )
             : MemberAccessExpression(
                 SyntaxKind.SimpleMemberAccessExpression,
-                ThisExpression(),
+                ThisExpression( Token( TriviaList( leadingTrivia ), SyntaxKind.ThisKeyword, TriviaList() ) ),
                 IdentifierName( currentEventBrokerInfo.EventBrokerFieldName ) );
 
         switch ( currentNode )
@@ -69,12 +71,14 @@ internal sealed class EventRaiseBrokerCallSubstitution : SyntaxNodeSubstitution
                     {
                         Expression: ParenthesizedLambdaExpressionSyntax
                         {
-                            ExpressionBody: AssignmentExpressionSyntax { Left: MemberAccessExpressionSyntax eventMemberAccess }
+                            ExpressionBody: AssignmentExpressionSyntax { Left: MemberAccessExpressionSyntax }
                         }
                     },
                     ..
-                ] arguments 
+                ] arguments,
+                ArgumentList.CloseParenToken.TrailingTrivia: var trailingTrivia
             }:
+                var invokeArguments = EventRaiseArgumentsHelper.ExtractInvokeArguments( arguments );
 
                 return 
                     InvocationExpression(
@@ -83,15 +87,16 @@ internal sealed class EventRaiseBrokerCallSubstitution : SyntaxNodeSubstitution
                             eventBrokerExpression,
                             IdentifierName( "Invoke" ) ),
                         ArgumentList(
+                            Token( SyntaxKind.OpenParenToken ),
                             SingletonSeparatedList(
-                                Argument(
-                                    TupleExpression(
-                                        SeparatedList( arguments.Skip( 1 ) ) ) ) ) ) );
+                                Argument( TupleExpression( invokeArguments ) ) ),
+                            Token( TriviaList(), SyntaxKind.CloseParenToken, trailingTrivia ) ) );
 
             case InvocationExpressionSyntax
             {
                 Expression: { },
-                ArgumentList.Arguments: var arguments
+                ArgumentList.Arguments: var arguments,
+                ArgumentList.CloseParenToken.TrailingTrivia: var trailingTrivia
             }:
                 return
                     InvocationExpression(
@@ -100,10 +105,12 @@ internal sealed class EventRaiseBrokerCallSubstitution : SyntaxNodeSubstitution
                             eventBrokerExpression,
                             IdentifierName( "Invoke" ) ),
                         ArgumentList(
+                            Token( SyntaxKind.OpenParenToken ),
                             SingletonSeparatedList(
                                 Argument(
                                     TupleExpression(
-                                        SeparatedList( arguments ) ) ) ) ) );
+                                        SeparatedList( arguments ) ) ) ),
+                            Token( TriviaList(), SyntaxKind.CloseParenToken, trailingTrivia ) ) );
 
             default:
                 throw new AssertionFailedException( $"Unsupported syntax: {currentNode}" );

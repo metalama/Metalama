@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -13,12 +14,12 @@ namespace Metalama.Framework.Engine.Linking.Substitution;
 /// <summary>
 /// Substitutes event raise references and event field invocations where event field's backing field is targeted.
 /// </summary>
-internal sealed class EventRaiseBackingFieldSubstitution : SyntaxNodeSubstitution
+internal sealed class EventRaiseEventFieldSubstitution : SyntaxNodeSubstitution
 {
     private readonly SyntaxNode _rootNode;
     private readonly IEventSymbol _targetEvent;
 
-    public EventRaiseBackingFieldSubstitution( CompilationContext compilationContext, SyntaxNode rootNode, IEventSymbol targetEvent ) : base( compilationContext )
+    public EventRaiseEventFieldSubstitution( CompilationContext compilationContext, SyntaxNode rootNode, IEventSymbol targetEvent ) : base( compilationContext )
     {
         this._rootNode = rootNode;
         this._targetEvent = targetEvent;
@@ -28,16 +29,11 @@ internal sealed class EventRaiseBackingFieldSubstitution : SyntaxNodeSubstitutio
 
     public override SyntaxNode Substitute( SyntaxNode currentNode, SubstitutionContext substitutionContext )
     {
-        var targetName =
-            this._targetEvent.IsEventFieldIntroduction()
-                ? LinkerRewritingDriver.GetBackingFieldName( this._targetEvent )
-                : LinkerRewritingDriver.GetOriginalImplMemberName( this._targetEvent );
-
         switch ( currentNode )
         {
             case IdentifierNameSyntax identifierName:
                 // Replacing the direct invocation.
-                return IdentifierName( Identifier( TriviaList( identifierName.Identifier.LeadingTrivia ), targetName, TriviaList( identifierName.Identifier.TrailingTrivia ) ) );
+                return IdentifierName( Identifier( TriviaList( identifierName.Identifier.LeadingTrivia ), this._targetEvent.Name, TriviaList( identifierName.Identifier.TrailingTrivia ) ) );
 
             case MemberAccessExpressionSyntax { Expression: { }, Name: IdentifierNameSyntax identifierName } simpleMemberAccess:
                 // Replacing the this expression invocation.
@@ -46,7 +42,7 @@ internal sealed class EventRaiseBackingFieldSubstitution : SyntaxNodeSubstitutio
                         IdentifierName(
                             Identifier(
                                 TriviaList( identifierName.Identifier.LeadingTrivia ),
-                                targetName,
+                                this._targetEvent.Name,
                                 TriviaList( identifierName.Identifier.TrailingTrivia ) ) ) );
 
             case InvocationExpressionSyntax
@@ -58,7 +54,7 @@ internal sealed class EventRaiseBackingFieldSubstitution : SyntaxNodeSubstitutio
                 },
                 ArgumentList.Arguments: 
                 [
-                    {                        
+                    {
                         Expression: ParenthesizedLambdaExpressionSyntax 
                         {
                             ExpressionBody: AssignmentExpressionSyntax { Left: MemberAccessExpressionSyntax eventMemberAccess } 
@@ -69,18 +65,21 @@ internal sealed class EventRaiseBackingFieldSubstitution : SyntaxNodeSubstitutio
                 ArgumentList.CloseParenToken.TrailingTrivia: var trailingTrivia
             }:
                 // Replacing the linker expression.
-                var eventFieldAccess = eventMemberAccess.WithName( IdentifierName( Identifier( TriviaList( leadingTrivia ), targetName, TriviaList() ) ) );
+                var backingFieldAccess = 
+                    eventMemberAccess.WithName( IdentifierName( this._targetEvent.Name ) )
+                    .WithRequiredLeadingTrivia( leadingTrivia );
+
                 var invokeArguments = EventRaiseArgumentsHelper.ExtractInvokeArguments( arguments );
 
                 // backingField?.Invoke()
                 return ConditionalAccessExpression(
-                    eventFieldAccess,
+                    backingFieldAccess,
                     InvocationExpression(
                         MemberBindingExpression( IdentifierName( "Invoke" ) ),
                         ArgumentList(
                             Token( SyntaxKind.OpenParenToken ),
                             invokeArguments,
-                            Token( TriviaList(), SyntaxKind.CloseParenToken, TriviaList( trailingTrivia ) ) ) ) );
+                            Token( TriviaList(), SyntaxKind.CloseParenToken, trailingTrivia ) ) ) );
 
             default:
                 throw new AssertionFailedException( $"Unsupported syntax: {currentNode}" );

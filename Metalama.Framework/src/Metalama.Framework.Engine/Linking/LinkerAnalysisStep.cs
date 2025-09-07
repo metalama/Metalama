@@ -5,13 +5,13 @@
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.Collections;
 using Metalama.Framework.Engine.AdviceImpl.Override;
-using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Linking.Inlining;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.SyntaxGeneration;
+using Metalama.Framework.Engine.Transformations;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Metalama.Framework.Engine.Utilities.Threading;
 using Metalama.Framework.RunTime;
@@ -24,11 +24,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 using MethodKind = Microsoft.CodeAnalysis.MethodKind;
 using SpecialType = Metalama.Framework.Code.SpecialType;
 using TypeKind = Microsoft.CodeAnalysis.TypeKind;
-using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
-using Metalama.Framework.Engine.Transformations;
 
 // ReSharper disable MissingIndent
 // ReSharper disable BadExpressionBracesIndent
@@ -105,8 +104,8 @@ namespace Metalama.Framework.Engine.Linking
                     .Select( im =>
                     {
                         var raiseOverrideSymbol = input.InjectionRegistry.GetSymbolForInjectedMember( im );
-                        var eventOverrideSymbol = input.InjectionRegistry.GetMainOverrideForSatelliteOverride( raiseOverrideSymbol );
-                        return (IEventSymbol) input.InjectionRegistry.GetOverrideTarget( eventOverrideSymbol );
+                        var eventOverrideSymbol = input.InjectionRegistry.GetMainOverrideForSatelliteOverride( raiseOverrideSymbol ).AssertNotNull();
+                        return (IEventSymbol) input.InjectionRegistry.GetOverrideTarget( eventOverrideSymbol ).AssertNotNull();
                     } ) );
 
             var eventFieldRaiseReferences = await GetEventFieldRaiseReferencesAsync( symbolReferenceFinder, overriddenEventFields, cancellationToken );
@@ -207,7 +206,7 @@ namespace Metalama.Framework.Engine.Linking
                     symbolReferenceFinder,
                     cancellationToken );
 
-            this.CollectEventBrokerInfo(
+            CollectEventBrokerInfo(
                 input.InputCompilationModel,
                 input.IntermediateCompilation.CompilationContext,
                 input.InjectionRegistry,
@@ -216,7 +215,7 @@ namespace Metalama.Framework.Engine.Linking
                 out var staticDelegates );
 
             var eventBrokerSemanticIndex = 
-                this.BuildEventBrokerSemanticIndex(
+                BuildEventBrokerSemanticIndex(
                     input.IntermediateCompilation.CompilationContext,
                     input.InjectionRegistry,
                     typeEventBrokers );
@@ -260,7 +259,7 @@ namespace Metalama.Framework.Engine.Linking
                     input.ProjectOptions );
         }
 
-        private void CollectEventBrokerInfo( 
+        private static void CollectEventBrokerInfo( 
             CompilationModel finalCompilationModel,
             CompilationContext intermediateCompilation,
             LinkerInjectionRegistry injectionRegistry, 
@@ -303,7 +302,6 @@ namespace Metalama.Framework.Engine.Linking
                                 var tupleType = finalCompilationModel.Factory.GetTypeByReflectionName( $"System.ValueTuple`{invokeMethod.Parameters.Count}" );
 
                                 var argsType = tupleType.WithTypeArguments( invokeMethod.Parameters.SelectAsArray( p => p.Type ) );
-
 
                                 if ( !eventBrokersWritable.TryGetValue( targetEventSymbol, out var eventBrokerInfo ) )
                                 {
@@ -473,7 +471,7 @@ namespace Metalama.Framework.Engine.Linking
                                 ] ) ) ) );
         }
 
-        private IReadOnlyDictionary<IntermediateSymbolSemantic<IEventSymbol>, EventBrokerTransformationInfo?> BuildEventBrokerSemanticIndex(
+        private static IReadOnlyDictionary<IntermediateSymbolSemantic<IEventSymbol>, EventBrokerTransformationInfo?> BuildEventBrokerSemanticIndex(
             CompilationContext intermediateCompilationContext,
             LinkerInjectionRegistry injectionRegistry,
             IReadOnlyDictionary<IEventSymbol, EventBrokerInfo> eventBrokers )
@@ -503,7 +501,7 @@ namespace Metalama.Framework.Engine.Linking
 
                 EventBrokerTransformationInfo? currentVisibleEventBroker = null;
 
-                for (var i = overrides.Count - 1; i >= 0; i++)
+                for (var i = overrides.Count - 1; i >= 0; i--)
                 {
                     if (semanticToBrokerMap.TryGetValue( ((IEventSymbol)overrides[i]).ToSemantic( IntermediateSymbolSemanticKind.Default ), out var eventBrokerTransformationInfo ))
                     {

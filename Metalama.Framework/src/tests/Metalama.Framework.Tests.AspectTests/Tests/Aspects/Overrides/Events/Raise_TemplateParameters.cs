@@ -7,66 +7,71 @@ using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 
-namespace Metalama.Framework.IntegrationTests.Aspects.Overrides.Events.Raise_TemplateParameters
+#pragma warning disable IDE0052
+
+namespace Metalama.Framework.IntegrationTests.Aspects.Overrides.Events.Raise_TemplateParameters;
+
+public class OverrideAttribute : EventAspect
 {
-    public class OverrideAttribute : EventAspect
+    public override void BuildAspect( IAspectBuilder<IEvent> builder )
     {
-        public override void BuildAspect( IAspectBuilder<IEvent> builder )
+        if ( builder.Target.Name == "Event1" )
         {
-            if (builder.Target.Name == "Event1")
-                builder.OverrideAccessors( null, null, nameof( InvokeEventTemplate1 ) );
-            else
-                builder.OverrideAccessors( null, null, nameof( InvokeEventTemplate2 ) );
+            builder.OverrideAccessors( null, null, nameof( RaiseEventTemplate1 ) );
         }
-
-        [Template]
-        public void InvokeEventTemplate1(EventHandler handler)
+        else
         {
-            Console.WriteLine( "Invoke" );
-            handler?.Invoke( meta.This, EventArgs.Empty );
-        }
-
-        [Template]
-        public void InvokeEventTemplate2( EventHandler handler, object sender, EventArgs args )
-        {
-            Console.WriteLine( "Invoke" );
-            Console.WriteLine( $"{sender}" );
-            Console.WriteLine( $"{args}" );
+            builder.OverrideAccessors( null, null, nameof( RaiseEventTemplate2 ) );
         }
     }
 
-    // <target>
-    internal class TargetClass 
+    [Template]
+    public void RaiseEventTemplate1(EventHandler handler)
     {
-        private EventHandler? _handler1;
-        private EventHandler? _handler2;
+        Console.WriteLine( "Raise" );
+        handler?.Invoke( meta.This, EventArgs.Empty );
+    }
 
-        [Override]
-        public event EventHandler Event1
+    [Template]
+    public void RaiseEventTemplate2( EventHandler handler, object sender, EventArgs args )
+    {
+        Console.WriteLine( "Raise" );
+        Console.WriteLine( $"{sender}" );
+        Console.WriteLine( $"{args}" );
+    }
+}
+
+// <target>
+internal class TargetClass 
+{
+    private EventHandler? _handler1;
+    private EventHandler? _handler2;
+
+    [Override]
+    public event EventHandler Event1
+    {
+        add
         {
-            add
-            {
-                this._handler1 = value;
-            }
-
-            remove
-            {
-                this._handler1 = null;
-            }
+            this._handler1 = value;
         }
 
-        [Override]
-        public event EventHandler Event2
+        remove
         {
-            add
-            {
-                this._handler2 = value;
-            }
+            this._handler1 = null;
+        }
+    }
 
-            remove
-            {
-                this._handler2 = null;
-            }
+    [Override]
+    public event EventHandler Event2
+    {
+        add
+        {
+            this._handler2 = value;
+        }
+
+        remove
+        {
+            this._handler2 = null;
         }
     }
 }

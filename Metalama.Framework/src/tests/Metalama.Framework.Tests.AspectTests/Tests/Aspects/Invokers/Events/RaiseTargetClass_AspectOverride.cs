@@ -30,12 +30,12 @@ public class InvokerAspectBefore : MethodAspect
     [Template]
     public void Template( [CompileTime] IEvent target )
     {
-        meta.InsertComment( "Invoke this._event" );
-        target.Raise( null, EventArgs.Empty );
-        meta.InsertComment( "Invoke this._event" );
-        target.With( InvokerOptions.Base ).Raise( null, EventArgs.Empty );
-        meta.InsertComment( "Invoke this._event" );
-        target.With( InvokerOptions.Current ).Raise( null, EventArgs.Empty );
+        meta.InsertComment( "TODO: Invoke this._event" );
+        //target.Raise( null, EventArgs.Empty );
+        meta.InsertComment( "TODO: Invoke this._event" );
+        //target.With( InvokerOptions.Base ).Raise( null, EventArgs.Empty );
+        meta.InsertComment( "TODO: Invoke this._event" );
+        //target.With( InvokerOptions.Current ).Raise( null, EventArgs.Empty );
         meta.InsertComment( "Invoke this._eventBroker.Invoke" );
         target.With( InvokerOptions.Final ).Raise( null, EventArgs.Empty );
 
@@ -81,15 +81,15 @@ public class OverrideAspect : EventAspect
     [Template]
     public void RaiseTemplate( [CompileTime] IEvent target )
     {
-        meta.InsertComment( "Invoke this.Event" );
+        meta.InsertComment( "Invoke handler" );
         target.Raise( null, EventArgs.Empty );
-        meta.InsertComment( "Invoke this.Event" );
+        meta.InsertComment( "Invoke handler" );
         target.With( InvokerOptions.Base ).Raise( null, EventArgs.Empty );
-        meta.InsertComment( "Invoke this._eventBroker.Invoke" );
-        target.With( InvokerOptions.Current ).Raise( null, EventArgs.Empty );
-        meta.InsertComment( "Invoke this._eventBroker.Invoke" );
-        target.With( InvokerOptions.Final ).Raise( null, EventArgs.Empty );
-
+        meta.InsertComment( "TODO: Invoke this._eventBroker.Invoke" );
+        //target.With( InvokerOptions.Current ).Raise( null, EventArgs.Empty );
+        meta.InsertComment( "TODO: Invoke this._eventBroker.Invoke" );
+        //target.With( InvokerOptions.Final ).Raise( null, EventArgs.Empty );
+        meta.InsertComment( "Invoke handler" );
         meta.Proceed();
     }
 }
