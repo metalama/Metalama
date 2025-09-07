@@ -25,7 +25,7 @@ internal sealed class IntroduceEventAdvice : IntroduceMemberAdvice<IEvent, IEven
 {
     private readonly PartiallyBoundTemplateMethod? _addTemplate;
     private readonly PartiallyBoundTemplateMethod? _removeTemplate;
-    private readonly PartiallyBoundTemplateMethod? _invokeTemplate;
+    private readonly PartiallyBoundTemplateMethod? _raiseTemplate;
 
     public IntroduceEventAdvice(
         AdviceConstructorParameters<INamedType> parameters,
@@ -33,7 +33,7 @@ internal sealed class IntroduceEventAdvice : IntroduceMemberAdvice<IEvent, IEven
         TemplateMember<IEvent>? eventTemplate,
         PartiallyBoundTemplateMethod? addTemplate,
         PartiallyBoundTemplateMethod? removeTemplate,
-        PartiallyBoundTemplateMethod? invokeTemplate,
+        PartiallyBoundTemplateMethod? raiseTemplate,
         IntroductionScope scope,
         OverrideStrategy overrideStrategy,
         Action<IEventBuilder>? buildAction,
@@ -43,7 +43,7 @@ internal sealed class IntroduceEventAdvice : IntroduceMemberAdvice<IEvent, IEven
     {
         this._addTemplate = addTemplate;
         this._removeTemplate = removeTemplate;
-        this._invokeTemplate = invokeTemplate;
+        this._raiseTemplate = raiseTemplate;
     }
 
     protected override EventBuilder CreateBuilder()
@@ -204,7 +204,7 @@ internal sealed class IntroduceEventAdvice : IntroduceMemberAdvice<IEvent, IEven
                         builder.ToFullRef(),
                         this._addTemplate?.ForIntroduction( builder.AddMethod ),
                         this._removeTemplate?.ForIntroduction( builder.RemoveMethod ),
-                        this._invokeTemplate?.ForIntroduction( builder.RaiseMethod ) ) );
+                        this._raiseTemplate?.ForIntroduction( builder.RaiseMethod ) ) );
             }
 
             return this.CreateSuccessResult( AdviceOutcome.Default, builder );
@@ -282,7 +282,7 @@ internal sealed class IntroduceEventAdvice : IntroduceMemberAdvice<IEvent, IEven
                                 builder.ToFullRef(),
                                 this._addTemplate?.ForIntroduction( builder.AddMethod ),
                                 this._removeTemplate?.ForIntroduction( builder.RemoveMethod ),
-                                this._invokeTemplate?.ForIntroduction( builder.RaiseMethod ) );
+                                this._raiseTemplate?.ForIntroduction( builder.RaiseMethod ) );
 
                             context.AddTransformation( builder.CreateTransformation( this.Template ) );
                             context.AddTransformation( overriddenMethod );
@@ -305,7 +305,7 @@ internal sealed class IntroduceEventAdvice : IntroduceMemberAdvice<IEvent, IEven
                                 existingEvent.ToFullRef(),
                                 this._addTemplate?.ForIntroduction( existingEvent.AddMethod ),
                                 this._removeTemplate?.ForIntroduction( existingEvent.RemoveMethod ),
-                                this._invokeTemplate?.ForIntroduction( builder.RaiseMethod ) );
+                                this._raiseTemplate?.ForIntroduction( builder.RaiseMethod ) );
 
                             context.AddTransformation( overriddenMethod );
 
@@ -341,7 +341,7 @@ internal sealed class IntroduceEventAdvice : IntroduceMemberAdvice<IEvent, IEven
                                 builder.ToFullRef(),
                                 this._addTemplate?.ForIntroduction( builder.AddMethod ),
                                 this._removeTemplate?.ForIntroduction( builder.RemoveMethod ),
-                                this._invokeTemplate?.ForIntroduction( builder.RaiseMethod ) );
+                                this._raiseTemplate?.ForIntroduction( builder.RaiseMethod ) );
 
                             context.AddTransformation( builder.CreateTransformation( this.Template ) );
                             context.AddTransformation( overriddenEvent );

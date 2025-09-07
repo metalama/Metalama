@@ -33,20 +33,20 @@ internal sealed class OverrideEventTransformation : OverrideMemberTransformation
 
     private BoundTemplateMethod? RemoveTemplate { get; }
 
-    private BoundTemplateMethod? InvokeTemplate { get; }
+    private BoundTemplateMethod? RaiseTemplate { get; }
 
     public OverrideEventTransformation(
         AspectLayerInstance aspectLayerInstance,
         IFullRef<IEvent> overriddenDeclaration,
         BoundTemplateMethod? addTemplate,
         BoundTemplateMethod? removeTemplate,
-        BoundTemplateMethod? invokeTemplate )
+        BoundTemplateMethod? raiseTemplate )
         : base( aspectLayerInstance, overriddenDeclaration )
     {
         this._overriddenDeclaration = overriddenDeclaration;
         this.AddTemplate = addTemplate;
         this.RemoveTemplate = removeTemplate;
-        this.InvokeTemplate = invokeTemplate;
+        this.RaiseTemplate = raiseTemplate;
     }
 
     public override IFullRef<IMember> OverriddenDeclaration => this._overriddenDeclaration;
@@ -95,11 +95,11 @@ internal sealed class OverrideEventTransformation : OverrideMemberTransformation
 
         BlockSyntax? raiseAccessorBody = null;
 
-        if ( this.InvokeTemplate != null )
+        if ( this.RaiseTemplate != null )
         {
             templateExpansionError = templateExpansionError || !this.TryExpandRaiseTemplate(
                 context,
-                this.InvokeTemplate,
+                this.RaiseTemplate,
                 overriddenDeclaration.RaiseMethod,
                 overriddenDeclaration,
                 out raiseAccessorBody );
@@ -151,7 +151,7 @@ internal sealed class OverrideEventTransformation : OverrideMemberTransformation
 
         var eventHandlerInvokeMethod = overriddenDeclaration.Type.Methods.OfName( "Invoke" ).Single();
 
-        var invokeOverride =
+        var raiseOverride =
             raiseAccessorBody != null
             ? new InjectedMember(
                 this,
@@ -160,7 +160,13 @@ internal sealed class OverrideEventTransformation : OverrideMemberTransformation
                     modifiers,
                     context.SyntaxGenerator.TypeSyntax( eventHandlerInvokeMethod.ReturnType ),
                     null,
-                    Identifier( TriviaList(ElasticSpace),  eventName + "_Invoke",  TriviaList() ),
+                    Identifier(
+                        TriviaList(ElasticSpace),
+                        context.InjectionNameProvider.GetRaiseOverrideName(
+                            overriddenDeclaration.DeclaringType,
+                            this.AspectLayerId,
+                            overriddenDeclaration ),
+                        TriviaList() ),
                     null,
                     ParameterList(
                         SeparatedList(
@@ -192,9 +198,9 @@ internal sealed class OverrideEventTransformation : OverrideMemberTransformation
                 overriddenDeclaration.ToFullRef() )
             : null;
 
-        if ( invokeOverride != null )
+        if ( raiseOverride != null )
         {
-            return [eventOverride, invokeOverride];
+            return [eventOverride, raiseOverride];
         }
         else
         {

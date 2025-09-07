@@ -15,7 +15,7 @@ using System.Linq;
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Invokers.Events.RaiseTargetClass_AspectOverride;
 
 /*
- * Tests invokers targeting a event declared in the target class.
+ * Tests invokers targeting a event declared in the target class and with overridden raise.
  */
 
 public class InvokerAspectBefore : MethodAspect
@@ -30,13 +30,13 @@ public class InvokerAspectBefore : MethodAspect
     [Template]
     public void Template( [CompileTime] IEvent target )
     {
-        meta.InsertComment( "Invoke this.Event" );
+        meta.InsertComment( "Invoke this._event" );
         target.Raise( null, EventArgs.Empty );
-        meta.InsertComment( "Invoke this.Event" );
+        meta.InsertComment( "Invoke this._event" );
         target.With( InvokerOptions.Base ).Raise( null, EventArgs.Empty );
-        meta.InsertComment( "Invoke this.Event" );
+        meta.InsertComment( "Invoke this._event" );
         target.With( InvokerOptions.Current ).Raise( null, EventArgs.Empty );
-        meta.InsertComment( "Invoke this.Event" );
+        meta.InsertComment( "Invoke this._eventBroker.Invoke" );
         target.With( InvokerOptions.Final ).Raise( null, EventArgs.Empty );
 
         meta.Proceed();
@@ -54,13 +54,13 @@ public class InvokerAspectAfter : MethodAspect
     [Template]
     public void Template( [CompileTime] IEvent target )
     {
-        meta.InsertComment( "Invoke this.Event" );
+        meta.InsertComment( "Invoke this._eventBroker.Invoke" );
         target.Raise( null, EventArgs.Empty );
-        meta.InsertComment( "Invoke this.Event" );
+        meta.InsertComment( "Invoke this._eventBroker.Invoke" );
         target.With( InvokerOptions.Base ).Raise( null, EventArgs.Empty );
-        meta.InsertComment( "Invoke this.Event" );
+        meta.InsertComment( "Invoke this._eventBroker.Invoke" );
         target.With( InvokerOptions.Current ).Raise( null, EventArgs.Empty );
-        meta.InsertComment( "Invoke this.Event" );
+        meta.InsertComment( "Invoke this._eventBroker.Invoke" );
         target.With( InvokerOptions.Final ).Raise( null, EventArgs.Empty );
 
         meta.Proceed();
@@ -85,9 +85,9 @@ public class OverrideAspect : EventAspect
         target.Raise( null, EventArgs.Empty );
         meta.InsertComment( "Invoke this.Event" );
         target.With( InvokerOptions.Base ).Raise( null, EventArgs.Empty );
-        meta.InsertComment( "Invoke this.Event" );
+        meta.InsertComment( "Invoke this._eventBroker.Invoke" );
         target.With( InvokerOptions.Current ).Raise( null, EventArgs.Empty );
-        meta.InsertComment( "Invoke this.Event" );
+        meta.InsertComment( "Invoke this._eventBroker.Invoke" );
         target.With( InvokerOptions.Final ).Raise( null, EventArgs.Empty );
 
         meta.Proceed();

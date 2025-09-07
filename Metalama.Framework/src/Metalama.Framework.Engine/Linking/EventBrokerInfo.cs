@@ -42,6 +42,8 @@ internal class EventBrokerInfo
 
 internal class EventBrokerTransformationInfo
 {
+    public EventBrokerInfo Parent { get; }
+
     public OverrideEventTransformation Transformation { get; }
     
     public string EventBrokerFieldName { get; }
@@ -51,11 +53,13 @@ internal class EventBrokerTransformationInfo
     public Func<SyntaxGenerationContext, ExpressionSyntax> FieldInitializationExpression { get; }
 
     public EventBrokerTransformationInfo(
+        EventBrokerInfo parent,
         OverrideEventTransformation transformation,
         string eventBrokerFieldName,
         StaticDelegateInfo invokerDelegate,
         Func<SyntaxGenerationContext, ExpressionSyntax> fieldInitializationExpression )
     {
+        this.Parent = parent;
         this.Transformation = transformation;
         this.EventBrokerFieldName = eventBrokerFieldName;
         this.InvokerDelegate = invokerDelegate;

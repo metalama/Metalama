@@ -24,7 +24,8 @@ internal abstract class InsertStatementTransformationContext : TransformationCon
         diagnosticSink,
         syntaxGenerationContext,
         compilation,
-        lexicalScopeProvider ) { }
+        lexicalScopeProvider,
+        null ) { }
 
     public abstract string GetReturnValueVariableName();
 }

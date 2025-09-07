@@ -236,6 +236,7 @@ internal class {HelperTypeName}
     public static ref T{suffix} {PropertyMemberName}<T>(T{suffix} value) => ref Dummy<T{suffix}>.Field;    
     public static void {_eventFieldInitializationExpressionMemberName}<T>(T? value) where T : System.Delegate {{}}
     public static T {EventRaiseMemberName}<T>(T? value) where T : System.Delegate {{}}
+    public static T {EventRaiseMemberName}<T,U>(T? value, U args) where T : System.Delegate {{}}
     {string.Join( "\n    ", binaryOperators )}
     {string.Join( "\n    ", unaryOperators )}
     {string.Join( "\n    ", conversionOperators )}

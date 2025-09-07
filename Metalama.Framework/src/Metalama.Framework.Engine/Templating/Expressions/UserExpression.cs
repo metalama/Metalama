@@ -61,6 +61,7 @@ namespace Metalama.Framework.Engine.Templating.Expressions
                         new SyntaxSerializationContext(
                             compilation,
                             compilation.CompilationContext.GetSyntaxGenerationContext( SyntaxGenerationOptions.Formatted, isNullOblivious: false ),
+                            null,
                             null ) )
                     .NormalizeWhitespace()
                     .ToString();

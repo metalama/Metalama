@@ -1,8 +1,8 @@
 [Introduction]
 internal class TargetClass
 {
+  private static readonly global::System.Func<global::Metalama.Framework.RunTime.ActionEventBroker<global::System.EventHandler, (global::System.Object? , global::System.EventArgs)>, global::System.EventHandler> EventHandlerCastDelegate_0 = static b => (sender, e) => b.Invoke((sender, e));
   private static readonly global::System.Action<global::System.EventHandler, global::System.Object, (global::System.Object? , global::System.EventArgs)> EventFromAccessorsInvokeDelegate_0 = static (handler, me, args) => ((global::Metalama.Framework.IntegrationTests.Aspects.Introductions.Events.RaiseHandler.TargetClass)me).EventFromAccessors_Introduction_Invoke(handler, args);
-  private static readonly global::System.Func<global::Metalama.Framework.RunTime.ActionEventBroker<global::System.EventHandler, (global::System.Object? , global::System.EventArgs)>, global::System.EventHandler> EventFromAccessorsCastDelegate_0 = static b => (owner, args) => b.Invoke((owner, args));
   private event global::System.EventHandler EventFromAccessors_Introduction
   {
     add
@@ -26,9 +26,7 @@ internal class TargetClass
     {
       if (this._eventFromAccessorsBroker == null)
       {
-        var newBroker = new global::Metalama.Framework.RunTime.ActionEventBroker<global::System.EventHandler, (global::System.Object? , global::System.EventArgs)>(this, EventFromAccessorsInvokeDelegate_0, EventFromAccessorsCastDelegate_0);
-        while (null != System.Threading.Interlocked.CompareExchange(ref this._eventFromAccessorsBroker, newBroker, null))
-          ;
+        global::Metalama.Framework.RunTime.ActionEventBroker<global::System.EventHandler, (global::System.Object? , global::System.EventArgs)>.InitializeField(ref this._eventFromAccessorsBroker, this, EventFromAccessorsInvokeDelegate_0, EventHandlerCastDelegate_0);
       }
       if (this._eventFromAccessorsBroker.AddHandler(value))
       {

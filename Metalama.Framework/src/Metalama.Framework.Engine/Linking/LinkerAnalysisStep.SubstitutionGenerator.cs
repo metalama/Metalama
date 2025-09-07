@@ -15,6 +15,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography.Xml;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -48,6 +49,8 @@ internal sealed partial class LinkerAnalysisStep
             IntermediateSymbolSemantic<IMethodSymbol>,
             IReadOnlyList<CallerAttributeReference>> _callerMemberReferencesByContainingSemantic;
 
+        private readonly IReadOnlyDictionary<IntermediateSymbolSemantic<IEventSymbol>, EventBrokerTransformationInfo?> _eventBrokerSemanticIndex;
+
         private readonly IConcurrentTaskRunner _concurrentTaskRunner;
 
         public SubstitutionGenerator(
@@ -63,7 +66,8 @@ internal sealed partial class LinkerAnalysisStep
             IReadOnlyList<IntermediateSymbolSemanticReference> redirectedSymbolReferences,
             IReadOnlyList<ForcefullyInitializedType> forcefullyInitializedTypes,
             IReadOnlyList<IntermediateSymbolSemanticReference> eventFieldRaiseReferences,
-            IReadOnlyList<CallerAttributeReference> callerMemberReferences )
+            IReadOnlyList<CallerAttributeReference> callerMemberReferences,
+            IReadOnlyDictionary<IntermediateSymbolSemantic<IEventSymbol>, EventBrokerTransformationInfo?> eventBrokerSemanticIndex )
         {
             this._concurrentTaskRunner = parent._serviceProvider.GetRequiredService<IConcurrentTaskRunner>();
             this._parent = parent;
@@ -75,6 +79,7 @@ internal sealed partial class LinkerAnalysisStep
             this._bodyAnalysisResults = bodyAnalysisResults;
             this._redirectedSymbols = redirectedSymbols;
             this._forcefullyInitializedTypes = forcefullyInitializedTypes;
+            this._eventBrokerSemanticIndex = eventBrokerSemanticIndex;
 
             this._additionalTransformedSemantics =
                 redirectedSymbolReferences.SelectAsReadOnlyList( x => (IntermediateSymbolSemantic) x.ContainingSemantic )
@@ -169,12 +174,29 @@ internal sealed partial class LinkerAnalysisStep
                 {
                     foreach ( var reference in eventFieldRaiseReferences )
                     {
-                        AddSubstitution(
-                            context,
-                            new EventFieldRaiseSubstitution(
-                                this._intermediateCompilationContext,
-                                reference.ReferencingNode,
-                                (IEventSymbol) reference.TargetSemantic.Symbol ) );
+                        var eventFieldBrokerInfo =
+                            this._eventBrokerSemanticIndex.TryGetValue( reference.TargetSemantic.ToTyped<IEventSymbol>(), out var info )
+                                ? info
+                                : null;
+
+                        if ( eventFieldBrokerInfo != null )
+                        {
+                            AddSubstitution(
+                                context,
+                                new EventRaiseBrokerCallSubstitution(
+                                    this._intermediateCompilationContext,
+                                    reference.ReferencingNode,
+                                    reference.TargetSemantic ) );
+                        }
+                        else
+                        {
+                            AddSubstitution(
+                                context,
+                                new EventRaiseBackingFieldSubstitution(
+                                    this._intermediateCompilationContext,
+                                    reference.ReferencingNode,
+                                    (IEventSymbol) reference.TargetSemantic.Symbol ) );
+                        }
                     }
                 }
 
@@ -307,7 +329,7 @@ internal sealed partial class LinkerAnalysisStep
                     {
                         AddSubstitution(
                             inliningSpecification.ContextIdentifier,
-                            new EventFieldRaiseSubstitution(
+                            new EventRaiseBackingFieldSubstitution(
                                 this._intermediateCompilationContext,
                                 reference.ReferencingNode,
                                 (IEventSymbol) reference.TargetSemantic.Symbol ) );
@@ -411,12 +433,12 @@ internal sealed partial class LinkerAnalysisStep
                     case
                     {
                         ResolvedSemantic: { Symbol: IEventSymbol @event },
-                        TargetKind: AspectReferenceTargetKind.EventRaiseAccessor,
-                        ContainingBody: var bodySymbol
-                    } when this._injectionRegistry.IsEventRaiseOverride( bodySymbol ):
+                        TargetKind: AspectReferenceTargetKind.EventRaiseAccessor
+                    } when this._injectionRegistry.HasEventRaiseOverride( @event ) 
+                           || ( this._injectionRegistry.IsOverride(@event) && this._injectionRegistry.HasEventRaiseOverride( this._injectionRegistry.GetOverrideTarget(@event).AssertNotNull() ) ):
                         AddSubstitution(
                             context,
-                            new EventRaiseBrokerSubstitution( this._intermediateCompilationContext, nonInlinedReference.RootNode, nonInlinedReference.ContainingBody ) );
+                            new EventRaiseHandlerCallSubstitution( this._intermediateCompilationContext, nonInlinedReference ) );
 
                         break;
 
@@ -425,9 +447,29 @@ internal sealed partial class LinkerAnalysisStep
                         ResolvedSemantic: { Kind: IntermediateSymbolSemanticKind.Final, Symbol: IEventSymbol @event },
                         TargetKind: AspectReferenceTargetKind.EventRaiseAccessor
                     }:
-                        // These are references made by event field raise invoker which we process separately.
+                        var eventBrokerInfo = 
+                            this._eventBrokerSemanticIndex.TryGetValue( nonInlinedReference.ResolvedSemantic.ToTyped<IEventSymbol>(), out var info )
+                            ? info
+                            : null;
 
-                        break;
+                        if ( eventBrokerInfo != null )
+                        {
+                            AddSubstitution(
+                                context,
+                                new EventRaiseBrokerCallSubstitution( this._intermediateCompilationContext, nonInlinedReference ) );
+                            break;
+                        }
+                        else
+                        {
+                            AddSubstitution(
+                                context,
+                                new EventRaiseBackingFieldSubstitution(
+                                    this._intermediateCompilationContext,
+                                    nonInlinedReference.RootNode,
+                                    @event ) );
+                        }
+
+                        break; 
 
                     case { ResolvedSemantic: { Kind: IntermediateSymbolSemanticKind.Default, Symbol: IPropertySymbol property } }
                         when property.IsAutoProperty() == true && this._injectionRegistry.IsOverrideTarget( property ):

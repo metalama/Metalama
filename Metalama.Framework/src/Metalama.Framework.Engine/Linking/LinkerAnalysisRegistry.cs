@@ -22,6 +22,7 @@ internal sealed class LinkerAnalysisRegistry
     private readonly HashSet<ISymbol> _overrideTargetsWithUnsupportedNonInlinedOverrides;
     private readonly IReadOnlyDictionary<IEventSymbol, EventBrokerInfo> _eventBrokers;
     private readonly IReadOnlyDictionary<INamedTypeSymbol, IReadOnlyList<StaticDelegateInfo>> _staticDelegates;
+    private readonly IReadOnlyDictionary<IntermediateSymbolSemantic<IEventSymbol>, EventBrokerTransformationInfo?> _eventBrokerSemanticIndex;
 
     public LinkerAnalysisRegistry(
         CompilationContext intermediateCompilation,
@@ -30,13 +31,15 @@ internal sealed class LinkerAnalysisRegistry
         IReadOnlyDictionary<InliningContextIdentifier, IReadOnlyList<SyntaxNodeSubstitution>> substitutions,
         HashSet<ISymbol> overrideTargetsWithUnsupportedNonInlinedOverrides,
         IReadOnlyDictionary<IEventSymbol, EventBrokerInfo> eventBrokers,
-        IReadOnlyDictionary<INamedTypeSymbol, IReadOnlyList<StaticDelegateInfo>> staticDelegates )
+        IReadOnlyDictionary<INamedTypeSymbol, IReadOnlyList<StaticDelegateInfo>> staticDelegates,
+        IReadOnlyDictionary<IntermediateSymbolSemantic<IEventSymbol>, EventBrokerTransformationInfo?> eventBrokerSemanticIndex )
     {
         this._reachableSemantics = reachableSemantics;
         this._inlinedSemantics = inlinedSemantics;
         this._overrideTargetsWithUnsupportedNonInlinedOverrides = overrideTargetsWithUnsupportedNonInlinedOverrides;
         this._eventBrokers = eventBrokers;
         this._staticDelegates = staticDelegates;
+        this._eventBrokerSemanticIndex = eventBrokerSemanticIndex;
 
         this._substitutions =
             substitutions.ToDictionary(
@@ -99,6 +102,12 @@ internal sealed class LinkerAnalysisRegistry
         }
 
         return null;
+    }
+
+    public EventBrokerTransformationInfo? GetVisibleEventBrokerForSemantic( IntermediateSymbolSemantic<IEventSymbol> targetSemantic )
+    {
+        // Use the pre-built index to find the event broker for the target semantic
+        return this._eventBrokerSemanticIndex.TryGetValue( targetSemantic, out var eventBrokerInfo ) ? eventBrokerInfo : null;
     }
 
     public IReadOnlyList<StaticDelegateInfo> GetStaticDelegateFields( INamedTypeSymbol type )

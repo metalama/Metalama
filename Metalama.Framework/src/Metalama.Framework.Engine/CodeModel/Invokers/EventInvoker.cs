@@ -8,6 +8,7 @@ using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.SyntaxSerialization;
 using Metalama.Framework.Engine.Templating.Expressions;
+using Metalama.Framework.Engine.Transformations;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -54,16 +55,25 @@ internal sealed class EventInvoker : Invoker<IEvent>, IEventInvoker
         return new DelegateUserExpression(
             context =>
             {
-                var eventAccess = this.CreateEventExpression( AspectReferenceTargetKind.EventRaiseAccessor, context );
+                if ( context.AspectReferenceSyntaxProvider != null )
+                {
+                    var receiverInfo = this.GetReceiverInfo( context );
 
-                var arguments = this.Member.GetArguments(
-                    this.Member.Signature.Parameters,
-                    TypedExpressionSyntaxImpl.FromValues( args, context ),
-                    context.SyntaxGenerationContext );
+                    return context.AspectReferenceSyntaxProvider.GetEventRaiseReference( receiverInfo.AspectReferenceSpecification.AspectLayerId, this.Member, context.SyntaxGenerator );
+                }
+                else
+                {
+                    var eventAccess = this.CreateEventExpression( AspectReferenceTargetKind.EventRaiseAccessor, context );
 
-                return ConditionalAccessExpression(
-                    eventAccess,
-                    InvocationExpression( MemberBindingExpression( IdentifierName( "Invoke" ) ) ).AddArgumentListArguments( arguments ) );
+                    var arguments = this.Member.GetArguments(
+                        this.Member.Signature.Parameters,
+                        TypedExpressionSyntaxImpl.FromValues( args, context ),
+                        context.SyntaxGenerationContext );
+
+                    return ConditionalAccessExpression(
+                        eventAccess,
+                        InvocationExpression( MemberBindingExpression( IdentifierName( "Invoke" ) ) ).AddArgumentListArguments( arguments ) );
+                }
             },
             this.Member.Signature.ReturnType );
     }

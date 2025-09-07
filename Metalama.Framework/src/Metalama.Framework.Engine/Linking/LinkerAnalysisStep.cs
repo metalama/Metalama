@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Code;
+using Metalama.Framework.Code.Collections;
 using Metalama.Framework.Engine.AdviceImpl.Override;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel;
@@ -206,6 +207,20 @@ namespace Metalama.Framework.Engine.Linking
                     symbolReferenceFinder,
                     cancellationToken );
 
+            this.CollectEventBrokerInfo(
+                input.InputCompilationModel,
+                input.IntermediateCompilation.CompilationContext,
+                input.InjectionRegistry,
+                typeMemberIdentifierGenerator,
+                out var typeEventBrokers,
+                out var staticDelegates );
+
+            var eventBrokerSemanticIndex = 
+                this.BuildEventBrokerSemanticIndex(
+                    input.IntermediateCompilation.CompilationContext,
+                    input.InjectionRegistry,
+                    typeEventBrokers );
+
             var substitutionGenerator = new SubstitutionGenerator(
                 this,
                 input.IntermediateCompilation.CompilationContext,
@@ -219,17 +234,10 @@ namespace Metalama.Framework.Engine.Linking
                 redirectedGetOnlyAutoPropertyReferences,
                 forcefullyInitializedTypes,
                 eventFieldRaiseReferences,
-                callerAttributeReferences );
+                callerAttributeReferences,
+                eventBrokerSemanticIndex );
 
             var substitutions = await substitutionGenerator.RunAsync( cancellationToken );
-
-            this.CollectEventBrokerInfo(
-                input.InputCompilationModel,
-                input.IntermediateCompilation.CompilationContext,
-                input.InjectionRegistry,
-                typeMemberIdentifierGenerator,
-                out var typeEventBrokers,
-                out var staticDelegates );
 
             var analysisRegistry = new LinkerAnalysisRegistry(
                 input.IntermediateCompilation.CompilationContext,
@@ -238,7 +246,8 @@ namespace Metalama.Framework.Engine.Linking
                 substitutions,
                 overrideTargetsWithUnsupportedNonInlinedOverrides,
                 typeEventBrokers,
-                staticDelegates );
+                staticDelegates,
+                eventBrokerSemanticIndex );
 
             return
                 new LinkerAnalysisStepOutput(
@@ -294,6 +303,7 @@ namespace Metalama.Framework.Engine.Linking
                                 var tupleType = finalCompilationModel.Factory.GetTypeByReflectionName( $"System.ValueTuple`{invokeMethod.Parameters.Count}" );
 
                                 var argsType = tupleType.WithTypeArguments( invokeMethod.Parameters.SelectAsArray( p => p.Type ) );
+
 
                                 if ( !eventBrokersWritable.TryGetValue( targetEventSymbol, out var eventBrokerInfo ) )
                                 {
@@ -358,32 +368,32 @@ namespace Metalama.Framework.Engine.Linking
 
                                 var fieldInitializationExpression =
                                     ( SyntaxGenerationContext context ) =>
-                                        InvocationExpression(
-                                            MemberAccessExpression(
-                                                SyntaxKind.SimpleMemberAccessExpression,
-                                                context.SyntaxGenerator.TypeSyntax( eventBrokerInfo.EventBrokerType ),
-                                                IdentifierName( "InitializeField" ) ),
-                                            ArgumentList(
-                                                SeparatedList<ArgumentSyntax>(
-                                                    [
-                                                        Argument(
-                                                            null,
-                                                            Token(TriviaList(), SyntaxKind.RefKeyword, TriviaList(ElasticSpace)),
-                                                            MemberAccessExpression(
-                                                                SyntaxKind.SimpleMemberAccessExpression,
-                                                                ThisExpression(),
-                                                                IdentifierName(eventBrokerFieldName) ) ),
-                                                        Token( SyntaxKind.CommaToken ),
-                                                        Argument( ThisExpression() ),
-                                                        Token( SyntaxKind.CommaToken ),
-                                                        Argument( IdentifierName( invokerDelegateFieldInfo.FieldName ) ),
-                                                        Token( SyntaxKind.CommaToken ),
-                                                        Argument(IdentifierName( eventBrokerInfo.CastDelegate.FieldName ) )
-                                                    ] ) ) );
+                                    InvocationExpression(
+                                        MemberAccessExpression(
+                                            SyntaxKind.SimpleMemberAccessExpression,
+                                            context.SyntaxGenerator.TypeSyntax( eventBrokerInfo.EventBrokerType ),
+                                            IdentifierName( "InitializeField" ) ),
+                                        ArgumentList(
+                                            SeparatedList<ArgumentSyntax>(
+                                                [
+                                                    Argument(
+                                                        null,
+                                                        Token(TriviaList(), SyntaxKind.RefKeyword, TriviaList(ElasticSpace)),
+                                                        MemberAccessExpression(
+                                                            SyntaxKind.SimpleMemberAccessExpression,
+                                                            ThisExpression(),
+                                                            IdentifierName(eventBrokerFieldName) ) ),
+                                                    Token( SyntaxKind.CommaToken ),
+                                                    Argument( ThisExpression() ),
+                                                    Token( SyntaxKind.CommaToken ),
+                                                    Argument( IdentifierName( invokerDelegateFieldInfo.FieldName ) ),
+                                                    Token( SyntaxKind.CommaToken ),
+                                                    Argument(IdentifierName( eventBrokerInfo.CastDelegate.FieldName ) )
+                                                ] ) ) );
 
                                 eventBrokerTransformationsWritable.Add(
                                         overrideEvent,
-                                        new EventBrokerTransformationInfo( overrideEvent, eventBrokerFieldName, invokerDelegateFieldInfo, fieldInitializationExpression ) );
+                                        new EventBrokerTransformationInfo( eventBrokerInfo, overrideEvent, eventBrokerFieldName, invokerDelegateFieldInfo, fieldInitializationExpression ) );
 
                                 break; 
 
@@ -399,7 +409,7 @@ namespace Metalama.Framework.Engine.Linking
             }
         }
 
-        private static ExpressionSyntax GetEventBrokerCastDelegateInitializationExpression(IReadOnlyList<IParameter> invokeParameters )
+        private static ExpressionSyntax GetEventBrokerCastDelegateInitializationExpression( IReadOnlyList<IParameter> invokeParameters )
         {
             return
                 SimpleLambdaExpression(
@@ -426,7 +436,7 @@ namespace Metalama.Framework.Engine.Linking
         private static ExpressionSyntax GetEventBrokerInvokerDelegateInitializationExpression(
             SyntaxGenerationContext context,
             INamedTypeSymbol containingType,
-            string invokeMethodName )
+            string raiseMethodName )
         {
             return
                 ParenthesizedLambdaExpression(
@@ -451,7 +461,7 @@ namespace Metalama.Framework.Engine.Linking
                                 CastExpression(
                                     context.SyntaxGenerator.TypeSyntax(containingType),
                                     IdentifierName( "me" ) ) ),
-                            IdentifierName( invokeMethodName ) ),
+                            IdentifierName( raiseMethodName ) ),
                         ArgumentList(
                             SeparatedList<ArgumentSyntax>(
                                 [
@@ -461,7 +471,52 @@ namespace Metalama.Framework.Engine.Linking
                                     Argument(
                                         IdentifierName("args"))
                                 ] ) ) ) );
+        }
 
+        private IReadOnlyDictionary<IntermediateSymbolSemantic<IEventSymbol>, EventBrokerTransformationInfo?> BuildEventBrokerSemanticIndex(
+            CompilationContext intermediateCompilationContext,
+            LinkerInjectionRegistry injectionRegistry,
+            IReadOnlyDictionary<IEventSymbol, EventBrokerInfo> eventBrokers )
+        {
+            var index = new Dictionary<IntermediateSymbolSemantic<IEventSymbol>, EventBrokerTransformationInfo?>(
+                IntermediateSymbolSemanticEqualityComparer<IEventSymbol>.ForCompilation(intermediateCompilationContext) );
+
+            foreach ( var (eventSymbol, eventBrokerInfo) in eventBrokers )
+            {
+                var overrides = injectionRegistry.GetOverridesForSymbol( eventSymbol );
+                var semanticToBrokerMap = new Dictionary<IntermediateSymbolSemantic<IEventSymbol>, EventBrokerTransformationInfo>(
+                    IntermediateSymbolSemanticEqualityComparer<IEventSymbol>.ForCompilation( intermediateCompilationContext ) );
+
+                for (var i = 0; i < overrides.Count; i++ )
+                {
+                    var overrideTransformation = injectionRegistry.GetTransformationForSymbol(overrides[i]).AssertNotNull();
+
+                    if ( eventBrokerInfo.Transformations.TryGetValue( overrideTransformation, out var eventBrokerTransformationInfo ))
+                    {
+                        var overrideSemantic = ((IEventSymbol)overrides[i]).ToSemantic( IntermediateSymbolSemanticKind.Default );
+                        semanticToBrokerMap.Add( overrideSemantic, eventBrokerTransformationInfo );
+                    }
+                }
+
+                index.Add( eventSymbol.ToSemantic( IntermediateSymbolSemanticKind.Base ), null );
+                index.Add( eventSymbol.ToSemantic( IntermediateSymbolSemanticKind.Default ), null );
+
+                EventBrokerTransformationInfo? currentVisibleEventBroker = null;
+
+                for (var i = overrides.Count - 1; i >= 0; i++)
+                {
+                    if (semanticToBrokerMap.TryGetValue( ((IEventSymbol)overrides[i]).ToSemantic( IntermediateSymbolSemanticKind.Default ), out var eventBrokerTransformationInfo ))
+                    {
+                        currentVisibleEventBroker = eventBrokerTransformationInfo;
+                    }
+
+                    index.Add( ((IEventSymbol)overrides[i]).ToSemantic( IntermediateSymbolSemanticKind.Default ), currentVisibleEventBroker );
+                }
+
+                index.Add( eventSymbol.ToSemantic( IntermediateSymbolSemanticKind.Final ), currentVisibleEventBroker );
+            }
+
+            return index;
         }
 
         /// <summary>
@@ -511,7 +566,7 @@ namespace Metalama.Framework.Engine.Linking
         private async Task GetReachableReferencesAsync(
             IReadOnlyDictionary<IntermediateSymbolSemantic<IMethodSymbol>, IReadOnlyCollection<ResolvedAspectReference>> resolvedReferencesBySource,
             HashSet<IntermediateSymbolSemantic> reachableSemantics,
-            ConcurrentDictionary<IntermediateSymbolSemantic<IMethodSymbol>, IReadOnlyCollection<ResolvedAspectReference>> reachableReferencesBySource,
+            ConcurrentDictionary<IntermediateSymbolSemantic<IMethodSymbol>, IReadOnlyCollection<ResolvedAspectReference>> reachableReferencesByContainingSemantic,
             ConcurrentDictionary<AspectReferenceTarget, IReadOnlyCollection<ResolvedAspectReference>> reachableReferencesByTarget,
             CancellationToken cancellationToken )
         {
@@ -528,7 +583,7 @@ namespace Metalama.Framework.Engine.Linking
                     {
                         bag.Enqueue( reference );
 
-                        ((ConcurrentQueue<ResolvedAspectReference>) reachableReferencesBySource.GetOrAdd(
+                        ((ConcurrentQueue<ResolvedAspectReference>) reachableReferencesByContainingSemantic.GetOrAdd(
                             reference.ContainingSemantic,
                             _ => new ConcurrentQueue<ResolvedAspectReference>() )).Enqueue( reference );
 
@@ -542,7 +597,7 @@ namespace Metalama.Framework.Engine.Linking
 
                 if ( !bag.IsEmpty )
                 {
-                    reachableReferencesBySource[pair.Key] = bag;
+                    reachableReferencesByContainingSemantic[pair.Key] = bag;
                 }
             }
 
