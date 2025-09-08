@@ -51,7 +51,7 @@ internal class WeakEventAttribute : EventAspect
         builder.OverrideAccessors(
             nameof( OverrideAdd ),
             nameof( OverrideRemove ),
-            nameof( OverrideInvoke ),
+            nameof( OverrideRaise ),
             new { container = containerField } );
     }
 
@@ -68,9 +68,9 @@ internal class WeakEventAttribute : EventAspect
     }
 
     [Template]
-    public void OverrideInvoke( [CompileTime] IField container, dynamic? handler )
+    public void OverrideRaise( [CompileTime] IField container, dynamic? handler )
     {
-        container.Value.Invoke( (meta.Target.Parameters[1].Value, meta.Target.Parameters[2].Value) );
+        container.Value.Invoke( (meta.Target.Parameters[0].Value, meta.Target.Parameters[1].Value) );
     }
 }
 
