@@ -6,19 +6,35 @@ using System;
 
 namespace Metalama.Framework.RunTime;
 
-internal struct DelegateList<TDelegate, TArgs>
+/// <summary>
+/// Thread-safe collection of delegates used by event brokers to manage event handlers.
+/// </summary>
+/// <typeparam name="TDelegate">The delegate type. Must be a reference type delegate.</typeparam>
+/// <typeparam name="TArgs">The event arguments type.</typeparam>
+internal class DelegateList<TDelegate, TArgs>
     where TDelegate : class, Delegate
 {
     private readonly Action<TDelegate, object, TArgs> _invoker;
     private volatile TDelegate? _delegates;
 
+    /// <summary>
+    /// Gets whether no delegates are registered.
+    /// </summary>
     public bool IsEmpty => this._delegates == null;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DelegateList"/> class with the specified invoker.
+    /// </summary>
+    /// <param name="invoker">Delegate that defines how to invoke handlers.</param>
     public DelegateList( Action<TDelegate, object, TArgs> invoker )
     {
         this._invoker = invoker ?? throw new ArgumentNullException( nameof( invoker ) );
     }
 
+    /// <summary>
+    /// Adds a delegate using atomic operations.
+    /// </summary>
+    /// <param name="del">The delegate to add.</param>
     public void Add( TDelegate del )
     {
         if ( del == null )
@@ -39,6 +55,10 @@ internal struct DelegateList<TDelegate, TArgs>
         }
     }
 
+    /// <summary>
+    /// Removes a delegate using atomic operations.
+    /// </summary>
+    /// <param name="del">The delegate to remove.</param>
     public void Remove( TDelegate del )
     {
         if ( del == null )
@@ -58,6 +78,12 @@ internal struct DelegateList<TDelegate, TArgs>
             }
         }
     }
+    
+    /// <summary>
+    /// Invokes all registered delegates using the configured invoker.
+    /// </summary>
+    /// <param name="me">The event owner object.</param>
+    /// <param name="args">The event arguments.</param>
     public void Invoke( object me, TArgs args )
     {
         var currentValue = this._delegates;
@@ -68,6 +94,9 @@ internal struct DelegateList<TDelegate, TArgs>
             return;
         }
 
-        this._invoker.Invoke( currentValue, me, args );
+        foreach (var @delegate in currentValue.GetInvocationList())
+        {
+            this._invoker.Invoke( (TDelegate)@delegate, me, args );
+        }
     }
 }

@@ -45,7 +45,7 @@ public static partial class EligibilityRuleFactory
             builder.MustSatisfy(
                 m => m is { ContainingDeclaration: { IsImplicitlyDeclared: false }, MethodKind: MethodKind.EventAdd or MethodKind.EventRemove or MethodKind.EventRaise or MethodKind.PropertyGet or MethodKind.PropertySet } 
                      || !m.IsImplicitlyDeclared,
-                m => $"{m} must be an accessor or explicitly declared" );
+                m => $"{m} must be an accessor or an explicitly declared method" );
             builder.MustNotBeRef();
             builder.MustSatisfy( m => !m.IsExtern, m => $"'{m}' must not be extern" );
             builder.MustNotBePartialMemberWithSourceGeneratorAttribute();

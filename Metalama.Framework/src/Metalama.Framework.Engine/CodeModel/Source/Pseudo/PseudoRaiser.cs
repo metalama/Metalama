@@ -19,12 +19,9 @@ namespace Metalama.Framework.Engine.CodeModel.Source.Pseudo
         [Memo]
         public override IParameterList Parameters
             => new PseudoParameterList(
-                new[] {
-                    new PseudoParameter(this, 0, ((IEvent)this.ContainingDeclaration).Type, "handler")
-                }.Concat(
-                    ((INamedType) this.DeclaringMember.Type).Methods.OfName( "Invoke" )
+                ((INamedType) this.DeclaringMember.Type).Methods.OfName( "Invoke" )
                     .Single()
-                    .Parameters.SelectAsImmutableArray( p => new PseudoParameter( this, p.Index + 1, p.Type, p.Name, "args" ) ) ) );
+                    .Parameters.SelectAsImmutableArray( p => new PseudoParameter( this, p.Index, p.Type, p.Name, "args" ) ) );
 
         public override string Name => "raise_" + this.DeclaringMember.Name;
     }

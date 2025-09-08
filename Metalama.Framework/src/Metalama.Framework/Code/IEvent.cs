@@ -34,7 +34,8 @@ namespace Metalama.Framework.Code
 
         /// <summary>
         /// Gets an object that represents the <c>raise</c> semantic and allows to add aspects and advice
-        /// as with a normal method.
+        /// as with a normal method. In case of non-field-like events that were not overridden, this property cannot be used
+        /// for invocation.
         /// </summary>
         IMethod RaiseMethod { get; }
 

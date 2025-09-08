@@ -39,30 +39,3 @@ internal class EventBrokerInfo
         this.Transformations = new Dictionary<ITransformation, EventBrokerTransformationInfo>();
     }
 }
-
-internal class EventBrokerTransformationInfo
-{
-    public EventBrokerInfo Parent { get; }
-
-    public OverrideEventTransformation Transformation { get; }
-    
-    public string EventBrokerFieldName { get; }
-
-    public StaticDelegateInfo InvokerDelegate { get; }
-
-    public Func<SyntaxGenerationContext, ExpressionSyntax> FieldInitializationExpression { get; }
-
-    public EventBrokerTransformationInfo(
-        EventBrokerInfo parent,
-        OverrideEventTransformation transformation,
-        string eventBrokerFieldName,
-        StaticDelegateInfo invokerDelegate,
-        Func<SyntaxGenerationContext, ExpressionSyntax> fieldInitializationExpression )
-    {
-        this.Parent = parent;
-        this.Transformation = transformation;
-        this.EventBrokerFieldName = eventBrokerFieldName;
-        this.InvokerDelegate = invokerDelegate;
-        this.FieldInitializationExpression = fieldInitializationExpression;
-    }
-}

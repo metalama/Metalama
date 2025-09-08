@@ -61,9 +61,9 @@ internal sealed partial class LinkerAnalysisStep
                 {
                     case IMethodSymbol method:
                         AddImplicitReference(
+                            method.ToSemantic( IntermediateSymbolSemanticKind.Final ),
                             method,
-                            method,
-                            this._injectionRegistry.GetLastOverride( method ),
+                            this._injectionRegistry.GetLastOverride( method ).ToSemantic( IntermediateSymbolSemanticKind.Default ),
                             AspectReferenceTargetKind.Self );
 
                         break;
@@ -72,18 +72,18 @@ internal sealed partial class LinkerAnalysisStep
                         if ( property.GetMethod != null )
                         {
                             AddImplicitReference(
-                                property.GetMethod,
+                                property.GetMethod.ToSemantic(IntermediateSymbolSemanticKind.Final),
                                 property,
-                                this._injectionRegistry.GetLastOverride( property ),
+                                this._injectionRegistry.GetLastOverride( property ).ToSemantic( IntermediateSymbolSemanticKind.Default ),
                                 AspectReferenceTargetKind.PropertyGetAccessor );
                         }
 
                         if ( property.SetMethod != null )
                         {
                             AddImplicitReference(
-                                property.SetMethod,
+                                property.SetMethod.ToSemantic( IntermediateSymbolSemanticKind.Final ),
                                 property,
-                                this._injectionRegistry.GetLastOverride( property ),
+                                this._injectionRegistry.GetLastOverride( property ).ToSemantic( IntermediateSymbolSemanticKind.Default ),
                                 AspectReferenceTargetKind.PropertySetAccessor );
                         }
 
@@ -93,62 +93,67 @@ internal sealed partial class LinkerAnalysisStep
                         var lastOverride = this._injectionRegistry.GetLastOverride( @event );
 
                         AddImplicitReference(
-                            @event.AddMethod.AssertNotNull(),
+                            @event.AddMethod.AssertNotNull().ToSemantic( IntermediateSymbolSemanticKind.Final ),
                             @event,
-                            lastOverride,
+                            lastOverride.ToSemantic( IntermediateSymbolSemanticKind.Default ),
                             AspectReferenceTargetKind.EventAddAccessor );
 
                         AddImplicitReference(
-                            @event.RemoveMethod.AssertNotNull(),
+                            @event.RemoveMethod.AssertNotNull().ToSemantic( IntermediateSymbolSemanticKind.Final ),
                             @event,
-                            lastOverride,
+                            lastOverride.ToSemantic( IntermediateSymbolSemanticKind.Default ),
                             AspectReferenceTargetKind.EventRemoveAccessor );
 
                         if ( this._injectionRegistry.HasEventRaiseOverride( @event ) )
                         {
-                            // Event with broker - add implicit reference pointing from final semantic to the last override of the event raise method.
-                            // TODO: We may need to walk overrides if the raise is missing for the last override.
-                            var lastEventRaiseOverride = (IMethodSymbol) this._injectionRegistry.GetSatelliteOverrideMembers( lastOverride ).Single();
+                            var overrides = this._injectionRegistry.GetOverridesForSymbol( @event );
 
-                            AddImplicitReference(
-                                @event.AddMethod.AssertNotNull(),
-                                @event,
-                                lastOverride,
-                                AspectReferenceTargetKind.EventRaiseAccessor,
-                                lastEventRaiseOverride,
-                                false );
+                            for (var i = overrides.Count - 1; i >= 0; i-- )
+                            {
+                                if ( this._injectionRegistry.HasEventRaiseOverride( overrides[i] ) )
+                                {
+                                    var eventRaiseOverride = (IMethodSymbol?) this._injectionRegistry.GetSatelliteOverrideMembers( lastOverride ).SingleOrDefault();
 
-                            AddImplicitReference(
-                                @event.RemoveMethod.AssertNotNull(),
-                                @event,
-                                lastOverride,
-                                AspectReferenceTargetKind.EventRaiseAccessor, 
-                                lastEventRaiseOverride,
-                                false );
+                                    AddImplicitReference(
+                                        @event.AddMethod.AssertNotNull().ToSemantic( IntermediateSymbolSemanticKind.Final ),
+                                        @event,
+                                        overrides[i].ToSemantic( IntermediateSymbolSemanticKind.Default ),
+                                        AspectReferenceTargetKind.EventRaiseAccessor,
+                                        eventRaiseOverride,
+                                        false );
+
+                                    AddImplicitReference(
+                                        @event.RemoveMethod.AssertNotNull().ToSemantic( IntermediateSymbolSemanticKind.Final ),
+                                        @event,
+                                        overrides[i].ToSemantic( IntermediateSymbolSemanticKind.Default ),
+                                        AspectReferenceTargetKind.EventRaiseAccessor,
+                                        eventRaiseOverride,
+                                        false );
+
+                                    break;
+                                }
+                            }
                         }
 
                         break;
                 }
 
                 void AddImplicitReference(
-                    IMethodSymbol containingSymbol,
-                    ISymbol target,
-                    ISymbol lastOverrideSymbol,
+                    IntermediateSymbolSemantic<IMethodSymbol> containingSemantic,
+                    ISymbol contextSymbol,
+                    IntermediateSymbolSemantic targetSemantic,
                     AspectReferenceTargetKind targetKind,
                     IMethodSymbol? explicitSemanticBody = null,
                     bool? isInlineable = null)
                 {
-                    // Implicit reference pointing from final semantic to the last override.
-                    var containingSemantic = containingSymbol.ToSemantic( IntermediateSymbolSemanticKind.Final );
-
                     var sourceNode =
-                        containingSymbol.GetPrimaryDeclarationSyntax() switch
+                        containingSemantic.Symbol.GetPrimaryDeclarationSyntax() switch
                         {
                             ConstructorDeclarationSyntax constructor => constructor.Body ?? (SyntaxNode?) constructor.ExpressionBody ?? constructor,
                             MethodDeclarationSyntax method => method.Body ?? (SyntaxNode?) method.ExpressionBody ?? method,
                             DestructorDeclarationSyntax destructor => destructor.Body
                                                                       ?? (SyntaxNode?) destructor.ExpressionBody
-                                                                      ?? throw new AssertionFailedException( $"'{containingSymbol}' has no implementation." ),
+                                                                      ?? throw new AssertionFailedException( $"'{containingSemantic.Symbol}' has no implementation." ),
                             OperatorDeclarationSyntax @operator => @operator.Body
                                                                    ?? (SyntaxNode?) @operator.ExpressionBody
                                                                    ?? @operator,
@@ -158,20 +163,20 @@ internal sealed partial class LinkerAnalysisStep
                             AccessorDeclarationSyntax accessor => accessor.Body
                                                                   ?? (SyntaxNode?) accessor.ExpressionBody
                                                                   ?? accessor ?? throw new AssertionFailedException(
-                                                                      $"'{containingSymbol}' has no implementation." ),
+                                                                      $"'{containingSemantic.Symbol}' has no implementation." ),
                             VariableDeclaratorSyntax declarator => declarator
-                                                                   ?? throw new AssertionFailedException( $"'{containingSymbol}' has no implementation." ),
+                                                                   ?? throw new AssertionFailedException( $"'{containingSemantic.Symbol}' has no implementation." ),
                             ArrowExpressionClauseSyntax arrowExpressionClause => arrowExpressionClause,
                             ParameterSyntax { Parent: ParameterListSyntax { Parent: RecordDeclarationSyntax } } recordParameter => recordParameter,
-                            _ => throw new AssertionFailedException( $"Unexpected syntax for '{containingSymbol}'." )
+                            _ => throw new AssertionFailedException( $"Unexpected syntax for '{containingSemantic.Symbol}'." )
                         };
 
                     var resolvedReference =
                         new ResolvedAspectReference(
                             containingSemantic,
                             null,
-                            target,
-                            lastOverrideSymbol.ToSemantic( IntermediateSymbolSemanticKind.Default ),
+                            contextSymbol,
+                            targetSemantic,
                             explicitSemanticBody?.ToSemantic( IntermediateSymbolSemanticKind.Default ),
                             sourceNode,
                             sourceNode,

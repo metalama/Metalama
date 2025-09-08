@@ -370,7 +370,7 @@ namespace Metalama.Framework.Engine.Linking
                                         MemberAccessExpression(
                                             SyntaxKind.SimpleMemberAccessExpression,
                                             context.SyntaxGenerator.TypeSyntax( eventBrokerInfo.EventBrokerType ),
-                                            IdentifierName( "InitializeField" ) ),
+                                            IdentifierName( "Initialize" ) ),
                                         ArgumentList(
                                             SeparatedList<ArgumentSyntax>(
                                                 [
