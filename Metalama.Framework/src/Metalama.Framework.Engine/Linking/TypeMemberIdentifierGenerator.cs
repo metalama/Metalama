@@ -2,7 +2,6 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.Services;
 using Microsoft.CodeAnalysis;
 using System;
@@ -20,7 +19,7 @@ internal class TypeMemberIdentifierGenerator
         this.UsedNames = new ConcurrentDictionary<INamedTypeSymbol, HashSet<string>>( compilationContext.SymbolComparer );
     }
 
-    private HashSet<string> InitializeType(INamedTypeSymbol typeSymbol)
+    private static HashSet<string> InitializeType(INamedTypeSymbol typeSymbol)
     {
         var usedNames = new HashSet<string>( StringComparer.Ordinal );
 
@@ -36,7 +35,7 @@ internal class TypeMemberIdentifierGenerator
 
     public string AllocateName( INamedTypeSymbol typeSymbol, string hint, IdentifierFlags flags )
     {
-        var usedNames = this.UsedNames.GetOrAdd( typeSymbol, static ( typeSymbol, instance ) => instance.InitializeType( typeSymbol ), this );
+        var usedNames = this.UsedNames.GetOrAdd( typeSymbol, static ( typeSymbol, _ ) => InitializeType( typeSymbol ), this );
         var alwaysUseSuffix = (flags & IdentifierFlags.AlwaysUseSuffix) != 0;
         var makePrivateFieldName = (flags & IdentifierFlags.MakePrivateFieldName) != 0;
 

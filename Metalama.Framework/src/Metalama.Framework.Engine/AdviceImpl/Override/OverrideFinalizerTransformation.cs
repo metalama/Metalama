@@ -100,7 +100,7 @@ internal sealed class OverrideFinalizerTransformation : OverrideMemberTransforma
 
     private SyntaxUserExpression CreateProceedExpression( MemberInjectionContext context )
         => new(
-            context.AspectReferenceSyntaxProvider.GetFinalizerReference( this.AspectLayerId ),
+            context.AspectReferenceSyntaxProvider.AssertNotNull().GetFinalizerReference( this.AspectLayerId ),
             context.FinalCompilation.Cache.SystemVoidType );
 
     public override TransformationObservability Observability => TransformationObservability.None;

@@ -169,7 +169,7 @@ internal sealed class IntroduceEventTransformation : IntroduceMemberTransformati
                                                                           && initializerExpression != null
                         => context.SyntaxGenerator.FormattedBlock(
                             ExpressionStatement(
-                                context.AspectReferenceSyntaxProvider.GetEventFieldInitializerExpression(
+                                context.AspectReferenceSyntaxProvider.AssertNotNull().GetEventFieldInitializerExpression(
                                     syntaxGenerator.TypeSyntax( finalEvent.Type ),
                                     initializerExpression ) ) ),
                     _ => context.SyntaxGenerator.FormattedBlock()

@@ -6,7 +6,6 @@
 // @RequiredConstant(NET6_0_OR_GREATER)
 #endif
 
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using System;
 using System.Collections.Generic;

@@ -119,14 +119,14 @@ internal abstract class OverrideIndexerBaseTransformation : OverridePropertyOrIn
 
     protected override ExpressionSyntax CreateProceedGetExpression( MemberInjectionContext context )
         => TransformationHelper.CreateIndexerProceedGetExpression(
-            context.AspectReferenceSyntaxProvider,
+            context.AspectReferenceSyntaxProvider.AssertNotNull(),
             context.SyntaxGenerationContext,
             this.OverriddenIndexer.GetTarget( context.FinalCompilation ),
             this.AspectLayerId );
 
     protected override ExpressionSyntax CreateProceedSetExpression( MemberInjectionContext context )
         => TransformationHelper.CreateIndexerProceedSetExpression(
-            context.AspectReferenceSyntaxProvider,
+            context.AspectReferenceSyntaxProvider.AssertNotNull(),
             context.SyntaxGenerationContext,
             this.OverriddenIndexer.GetTarget( context.FinalCompilation ),
             this.AspectLayerId );

@@ -124,7 +124,7 @@ internal sealed partial class LinkerAnalysisStep
                             if ( this._injectionRegistry.HasEventRaiseOverride( @event ) )
                             {
                                 // If the event has an override for the raise method, we need to visit it as well.
-                                var eventRaiseMember = this._injectionRegistry.GetSatelliteOverrideMembers( @event ).SingleOrDefault();
+                                var eventRaiseMember = this._injectionRegistry.GetSatelliteOverrideMembers( @event ).Single();
 
                                 DepthFirstSearch( eventRaiseMember.ToSemantic( IntermediateSymbolSemanticKind.Default ) );
                             }

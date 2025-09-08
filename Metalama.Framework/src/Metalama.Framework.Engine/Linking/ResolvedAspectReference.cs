@@ -10,7 +10,7 @@ namespace Metalama.Framework.Engine.Linking;
 
 internal sealed class ResolvedAspectReference
 {
-    private IntermediateSymbolSemantic<IMethodSymbol>? _explicitResolvedSemanticBody;
+    private readonly IntermediateSymbolSemantic<IMethodSymbol>? _explicitResolvedSemanticBody;
 
     /// <summary>
     /// Gets the semantic that contains the reference.

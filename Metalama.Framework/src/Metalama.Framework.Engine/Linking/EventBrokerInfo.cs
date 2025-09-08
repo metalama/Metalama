@@ -5,12 +5,8 @@
 // ReSharper disable MissingIndent
 // ReSharper disable BadExpressionBracesIndent
 
-using Metalama.Framework.Engine.AdviceImpl.Override;
-using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.Transformations;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-using System;
 using System.Collections.Generic;
 
 namespace Metalama.Framework.Engine.Linking;

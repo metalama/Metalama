@@ -5,7 +5,6 @@
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.Collections;
 using Metalama.Framework.Engine.Utilities;
-using System;
 using System.Linq;
 
 namespace Metalama.Framework.Engine.CodeModel.Source.Pseudo

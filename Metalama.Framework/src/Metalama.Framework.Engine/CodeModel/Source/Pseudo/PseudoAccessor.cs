@@ -172,7 +172,7 @@ internal abstract class PseudoAccessor : IMethodImpl
     {
         switch ( this.MethodKind )
         {
-            case  MethodKind.EventRaise:
+            case MethodKind.EventRaise:
                 if ( !this.CanBeInherited() )
                 {
                     return [];
