@@ -24,10 +24,7 @@ internal class TargetClass
   {
     add
     {
-      if (this._eventFromAccessorsBroker == null)
-      {
-        global::Metalama.Framework.RunTime.ActionEventBroker<global::System.EventHandler, (global::System.Object? , global::System.EventArgs)>.Initialize(ref this._eventFromAccessorsBroker, this, EventFromAccessorsInvokeDelegate_0, EventHandlerCastDelegate_0);
-      }
+      global::Metalama.Framework.RunTime.ActionEventBroker<global::System.EventHandler, (global::System.Object? , global::System.EventArgs)>.EnsureInitialized(ref this._eventFromAccessorsBroker, this, EventFromAccessorsInvokeDelegate_0, EventHandlerCastDelegate_0);
       if (this._eventFromAccessorsBroker.AddHandler(value))
       {
         this.EventFromAccessors_Introduction += this._eventFromAccessorsBroker.InvocationDelegate;

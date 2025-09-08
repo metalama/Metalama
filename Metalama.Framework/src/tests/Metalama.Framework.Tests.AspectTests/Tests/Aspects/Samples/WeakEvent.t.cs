@@ -11,10 +11,7 @@ internal class TargetCode
   {
     add
     {
-      if (this._eventFieldBroker == null)
-      {
-        ActionEventBroker<EventHandler<EventArgs>, (object? , EventArgs)>.Initialize(ref this._eventFieldBroker, this, EventFieldInvokeDelegate_0, EventHandlerCastDelegate_0);
-      }
+      ActionEventBroker<EventHandler<EventArgs>, (object? , EventArgs)>.EnsureInitialized(ref this._eventFieldBroker, this, EventFieldInvokeDelegate_0, EventHandlerCastDelegate_0);
       if (this._eventFieldBroker.AddHandler(value))
       {
         this.EventField_WeakEvent += this._eventFieldBroker.InvocationDelegate;
@@ -49,10 +46,7 @@ internal class TargetCode
   {
     add
     {
-      if (this._eventBroker == null)
-      {
-        ActionEventBroker<EventHandler<EventArgs>, (object? , EventArgs)>.Initialize(ref this._eventBroker, this, EventInvokeDelegate_0, EventHandlerCastDelegate_0);
-      }
+      ActionEventBroker<EventHandler<EventArgs>, (object? , EventArgs)>.EnsureInitialized(ref this._eventBroker, this, EventInvokeDelegate_0, EventHandlerCastDelegate_0);
       if (this._eventBroker.AddHandler(value))
       {
         this.Event_WeakEvent += this._eventBroker.InvocationDelegate;

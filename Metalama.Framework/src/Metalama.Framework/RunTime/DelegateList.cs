@@ -35,7 +35,7 @@ internal class DelegateList<TDelegate, TArgs>
     /// Adds a delegate using atomic operations.
     /// </summary>
     /// <param name="del">The delegate to add.</param>
-    public void Add( TDelegate del )
+    public bool Add( TDelegate del )
     {
         if ( del == null )
         {
@@ -50,7 +50,7 @@ internal class DelegateList<TDelegate, TArgs>
             if ( System.Threading.Interlocked.CompareExchange( ref this._delegates, newValue, currentValue ) == currentValue )
             {
                 // Successfully updated the delegates.
-                return;
+                return currentValue == null && newValue != null;
             }
         }
     }
@@ -59,7 +59,7 @@ internal class DelegateList<TDelegate, TArgs>
     /// Removes a delegate using atomic operations.
     /// </summary>
     /// <param name="del">The delegate to remove.</param>
-    public void Remove( TDelegate del )
+    public bool Remove( TDelegate del )
     {
         if ( del == null )
         {
@@ -74,7 +74,7 @@ internal class DelegateList<TDelegate, TArgs>
             if ( System.Threading.Interlocked.CompareExchange( ref this._delegates, newValue, currentValue ) == currentValue )
             {
                 // Successfully updated the delegates.
-                return;
+                return currentValue != null && newValue == null;
             }
         }
     }

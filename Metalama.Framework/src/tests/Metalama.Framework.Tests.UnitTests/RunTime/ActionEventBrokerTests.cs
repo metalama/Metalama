@@ -189,7 +189,7 @@ public class ActionEventBrokerTests
             this._onBrokerInvoke = onBrokerInvoke;
 
 #pragma warning disable CS0420 // A reference to a volatile field will not be treated as volatile
-            ActionEventBroker<EventHandler, (object? sender, EventArgs args)>.Initialize(
+            ActionEventBroker<EventHandler, (object? sender, EventArgs args)>.EnsureInitialized(
                 ref this._broker,
                 this,
                 ( h, i, args ) => ((TestClass)i).OnEventViaBroker( h, args ),

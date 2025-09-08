@@ -33,19 +33,9 @@ internal sealed class EventBrokerAdderSubstitution : SyntaxNodeSubstitution
         var eventOverrideTransformation = substitutionContext.RewritingDriver.InjectionRegistry.GetTransformationForSymbol( eventOverride ).AssertNotNull();
         var eventBrokerTypeInfo = substitutionContext.RewritingDriver.AnalysisRegistry.GetEventBrokerTypeInfo( @event ).AssertNotNull();
         var eventBrokerTransformationInfo = eventBrokerTypeInfo.Transformations[eventOverrideTransformation];
-
+        
         return context.SyntaxGenerator.FormattedBlock(
-            IfStatement(
-                BinaryExpression(
-                    SyntaxKind.EqualsExpression,
-                    MemberAccessExpression(
-                        SyntaxKind.SimpleMemberAccessExpression,
-                        ThisExpression(),
-                        IdentifierName( eventBrokerTransformationInfo.EventBrokerFieldName ) ),
-                    LiteralExpression(
-                        SyntaxKind.NullLiteralExpression ) ),
-                Block(
-                    ExpressionStatement( eventBrokerTransformationInfo.FieldInitializationExpression(substitutionContext.SyntaxGenerationContext) ) ) ),
+            ExpressionStatement( eventBrokerTransformationInfo.FieldInitializationExpression( substitutionContext.SyntaxGenerationContext ) ),
             IfStatement(
                 InvocationExpression(
                     MemberAccessExpression(

@@ -56,7 +56,7 @@ public class ActionEventBroker<TDelegate, TArgs>
             return isFirst;
         }
 
-        return true;
+        return false;
     }
 
     /// <summary>
@@ -69,9 +69,10 @@ public class ActionEventBroker<TDelegate, TArgs>
         if ( handler != null )
         {
             this._handlers.Remove( handler );
+            return this._handlers.IsEmpty;
         }
 
-        return this._handlers.IsEmpty;
+        return false;
     }
 
     /// <summary>
@@ -98,7 +99,7 @@ public class ActionEventBroker<TDelegate, TArgs>
     /// <param name="owner">The event owner object.</param>
     /// <param name="invokerDelegate">Delegate that defines how to invoke handlers.</param>
     /// <param name="castDelegate">Delegate that converts the broker to the target delegate type.</param>
-    public static void Initialize( ref ActionEventBroker<TDelegate, TArgs>? field, object owner, Action<TDelegate, object, TArgs> invokerDelegate, Func<ActionEventBroker<TDelegate, TArgs>, TDelegate> castDelegate )
+    public static void EnsureInitialized( ref ActionEventBroker<TDelegate, TArgs>? field, object owner, Action<TDelegate, object, TArgs> invokerDelegate, Func<ActionEventBroker<TDelegate, TArgs>, TDelegate> castDelegate )
     {
         if ( field != null )
         {

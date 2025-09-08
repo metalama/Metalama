@@ -9,10 +9,7 @@ internal class TargetClass
   {
     add
     {
-      if (this._eventBroker == null)
-      {
-        global::Metalama.Framework.RunTime.ActionEventBroker<global::Metalama.Framework.IntegrationTests.Aspects.Overrides.Events.Raise_CustomDelegate.MyEventHandler, (global::System.Object, global::System.Int32, global::System.Int32)>.Initialize(ref this._eventBroker, this, EventInvokeDelegate_0, MyEventHandlerCastDelegate_0);
-      }
+      global::Metalama.Framework.RunTime.ActionEventBroker<global::Metalama.Framework.IntegrationTests.Aspects.Overrides.Events.Raise_CustomDelegate.MyEventHandler, (global::System.Object, global::System.Int32, global::System.Int32)>.EnsureInitialized(ref this._eventBroker, this, EventInvokeDelegate_0, MyEventHandlerCastDelegate_0);
       if (this._eventBroker.AddHandler(value))
       {
         this.Event_Override += this._eventBroker.InvocationDelegate;

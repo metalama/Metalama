@@ -354,7 +354,7 @@ namespace Metalama.Framework.Tests.TemplateTests.Runner
 
             return (new TemplateExpansionContext(
                         serviceProvider,
-                        null, // For templating tests, the is no linker.
+                        null, // For templating tests, there is no linker.
                         metaApi,
                         lexicalScope,
                         syntaxGenerationContext,

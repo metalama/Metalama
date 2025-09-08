@@ -12,10 +12,7 @@ internal class TargetClass
   {
     add
     {
-      if (this._event1Broker == null)
-      {
-        global::Metalama.Framework.RunTime.ActionEventBroker<global::System.EventHandler, (global::System.Object? , global::System.EventArgs)>.Initialize(ref this._event1Broker, this, Event1InvokeDelegate_0, EventHandlerCastDelegate_0);
-      }
+      global::Metalama.Framework.RunTime.ActionEventBroker<global::System.EventHandler, (global::System.Object? , global::System.EventArgs)>.EnsureInitialized(ref this._event1Broker, this, Event1InvokeDelegate_0, EventHandlerCastDelegate_0);
       if (this._event1Broker.AddHandler(value))
       {
         this.Event1_Override += this._event1Broker.InvocationDelegate;
@@ -51,10 +48,7 @@ internal class TargetClass
   {
     add
     {
-      if (this._event2Broker == null)
-      {
-        global::Metalama.Framework.RunTime.ActionEventBroker<global::System.EventHandler<global::System.EventArgs>, (global::System.Object? , global::System.EventArgs)>.Initialize(ref this._event2Broker, this, Event2InvokeDelegate_0, EventHandlerCastDelegate_2);
-      }
+      global::Metalama.Framework.RunTime.ActionEventBroker<global::System.EventHandler<global::System.EventArgs>, (global::System.Object? , global::System.EventArgs)>.EnsureInitialized(ref this._event2Broker, this, Event2InvokeDelegate_0, EventHandlerCastDelegate_2);
       if (this._event2Broker.AddHandler(value))
       {
         this.Event2_Override += this._event2Broker.InvocationDelegate;

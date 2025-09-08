@@ -3,7 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 #if TESTOPTIONS
-// @Skipped(
+// @Skipped(#1028)
 #endif
 
 using Metalama.Framework.Advising;
