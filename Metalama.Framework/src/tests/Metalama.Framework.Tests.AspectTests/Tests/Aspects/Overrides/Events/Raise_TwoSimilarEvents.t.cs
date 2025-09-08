@@ -13,7 +13,7 @@ internal class TargetClass
     {
       if (this._event1Broker == null)
       {
-        global::Metalama.Framework.RunTime.ActionEventBroker<global::System.EventHandler, (global::System.Object? , global::System.EventArgs)>.InitializeField(ref this._event1Broker, this, Event1InvokeDelegate_0, EventHandlerCastDelegate_0);
+        global::Metalama.Framework.RunTime.ActionEventBroker<global::System.EventHandler, (global::System.Object? , global::System.EventArgs)>.Initialize(ref this._event1Broker, this, Event1InvokeDelegate_0, EventHandlerCastDelegate_0);
       }
       if (this._event1Broker.AddHandler(value))
       {
@@ -52,7 +52,7 @@ internal class TargetClass
     {
       if (this._event2Broker == null)
       {
-        global::Metalama.Framework.RunTime.ActionEventBroker<global::System.EventHandler, (global::System.Object? , global::System.EventArgs)>.InitializeField(ref this._event2Broker, this, Event2InvokeDelegate_0, EventHandlerCastDelegate_0);
+        global::Metalama.Framework.RunTime.ActionEventBroker<global::System.EventHandler, (global::System.Object? , global::System.EventArgs)>.Initialize(ref this._event2Broker, this, Event2InvokeDelegate_0, EventHandlerCastDelegate_0);
       }
       if (this._event2Broker.AddHandler(value))
       {

@@ -13,7 +13,7 @@ internal class TargetCode
     {
       if (this._eventFieldBroker == null)
       {
-        ActionEventBroker<EventHandler, (object? , EventArgs)>.InitializeField(ref this._eventFieldBroker, this, EventFieldInvokeDelegate_0, EventHandlerCastDelegate_0);
+        ActionEventBroker<EventHandler, (object? , EventArgs)>.Initialize(ref this._eventFieldBroker, this, EventFieldInvokeDelegate_0, EventHandlerCastDelegate_0);
       }
       if (this._eventFieldBroker.AddHandler(value))
       {
@@ -60,7 +60,7 @@ internal class TargetCode
     {
       if (this._eventBroker == null)
       {
-        ActionEventBroker<EventHandler, (object? , EventArgs)>.InitializeField(ref this._eventBroker, this, EventInvokeDelegate_0, EventHandlerCastDelegate_0);
+        ActionEventBroker<EventHandler, (object? , EventArgs)>.Initialize(ref this._eventBroker, this, EventInvokeDelegate_0, EventHandlerCastDelegate_0);
       }
       if (this._eventBroker.AddHandler(value))
       {

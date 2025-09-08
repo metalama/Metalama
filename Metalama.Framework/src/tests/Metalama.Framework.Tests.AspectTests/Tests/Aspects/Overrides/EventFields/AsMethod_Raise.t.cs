@@ -11,7 +11,7 @@ internal class TargetClass
     {
       if (this._eventBroker == null)
       {
-        global::Metalama.Framework.RunTime.ActionEventBroker<global::System.EventHandler?, (global::System.Object? , global::System.EventArgs)>.InitializeField(ref this._eventBroker, this, EventInvokeDelegate_0, EventHandlerCastDelegate_0);
+        global::Metalama.Framework.RunTime.ActionEventBroker<global::System.EventHandler?, (global::System.Object? , global::System.EventArgs)>.Initialize(ref this._eventBroker, this, EventInvokeDelegate_0, EventHandlerCastDelegate_0);
       }
       if (this._eventBroker.AddHandler(value))
       {
