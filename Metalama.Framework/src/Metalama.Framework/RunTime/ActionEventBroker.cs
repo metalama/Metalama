@@ -3,8 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System;
-using System.Collections.Generic;
-using System.Text;
 using System.Threading;
 
 namespace Metalama.Framework.RunTime;
@@ -41,8 +39,6 @@ where TDelegate : Delegate
             return isFirst;
         }
 
-        // TODO: Make thread safe. WeakEventHandler.Add should determine if we are the first handler. 
-
         return true;
     }
 
@@ -54,8 +50,6 @@ where TDelegate : Delegate
         }
 
         return this._handlers.IsEmpty;
-
-        // TODO: Make thread safe. WeakEventHandler.Remove should determine if we are the last handler.
     }
 
     public void Invoke( TArgs args )
@@ -74,6 +68,6 @@ where TDelegate : Delegate
 
         Interlocked.CompareExchange( ref field, newBroker, null );
 
-        // Don't care about the result - if it failed, another thread won
+        // Don't care about the result - if it failed, another thread won.
     }
 }
