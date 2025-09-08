@@ -18,12 +18,12 @@ internal class DelegateList<TDelegate, TArgs>
     private volatile TDelegate? _delegates;
 
     /// <summary>
-    /// Gets whether no delegates are registered.
+    /// Gets a value indicating whether no delegates are registered.
     /// </summary>
     public bool IsEmpty => this._delegates == null;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="DelegateList"/> class with the specified invoker.
+    /// Initializes a new instance of the <see cref="DelegateList{TDelegate, TArgs}"/> class with the specified invoker.
     /// </summary>
     /// <param name="invoker">Delegate that defines how to invoke handlers.</param>
     public DelegateList( Action<TDelegate, object, TArgs> invoker )
