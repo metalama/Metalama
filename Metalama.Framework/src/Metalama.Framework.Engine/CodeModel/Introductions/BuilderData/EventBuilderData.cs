@@ -25,6 +25,8 @@ internal sealed class EventBuilderData : MemberBuilderData
 
     public MethodBuilderData RemoveMethod { get; }
 
+    public MethodBuilderData RaiseMethod { get; }
+
     public IRef<IEvent>? OverriddenEvent { get; }
 
     public IReadOnlyList<IRef<IEvent>> ExplicitInterfaceImplementations { get; }
@@ -41,6 +43,7 @@ internal sealed class EventBuilderData : MemberBuilderData
         this.Type = builder.Type.ToRef();
         this.AddMethod = new MethodBuilderData( builder.AddMethod, this._ref );
         this.RemoveMethod = new MethodBuilderData( builder.RemoveMethod, this._ref );
+        this.RaiseMethod = new MethodBuilderData( builder.RaiseMethod, this._ref );
         this.OverriddenEvent = builder.OverriddenEvent?.ToRef();
         this.ExplicitInterfaceImplementations = builder.ExplicitInterfaceImplementations.SelectAsImmutableArray( i => i.ToRef() );
         this.IsEventField = builder.IsEventField;

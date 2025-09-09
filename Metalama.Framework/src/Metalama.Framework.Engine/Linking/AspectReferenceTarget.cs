@@ -42,7 +42,7 @@ internal readonly struct AspectReferenceTarget : IEquatable<AspectReferenceTarge
             (IMethodSymbol method, AspectReferenceTargetKind.Self) => (method, AspectReferenceTargetKind.Self),
             (IPropertySymbol property, AspectReferenceTargetKind.PropertyGetAccessor or AspectReferenceTargetKind.PropertySetAccessor)
                 => (property, targetKind),
-            (IEventSymbol @event, AspectReferenceTargetKind.EventAddAccessor or AspectReferenceTargetKind.EventRemoveAccessor)
+            (IEventSymbol @event, AspectReferenceTargetKind.EventAddAccessor or AspectReferenceTargetKind.EventRemoveAccessor or AspectReferenceTargetKind.EventRaiseAccessor)
                 => (@event, targetKind),
             (IPropertySymbol property, AspectReferenceTargetKind.Self) => (property, AspectReferenceTargetKind.Self),
             (IEventSymbol @event, AspectReferenceTargetKind.Self) => (@event, AspectReferenceTargetKind.Self),

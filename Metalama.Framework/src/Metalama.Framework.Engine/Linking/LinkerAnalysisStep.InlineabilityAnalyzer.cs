@@ -29,6 +29,7 @@ internal sealed partial class LinkerAnalysisStep
         private readonly HashSet<IntermediateSymbolSemantic> _reachableSymbolSemantics;
         private readonly CompilationContext _intermediateCompilationContext;
         private readonly InlinerProvider _inlinerProvider;
+        private readonly LinkerInjectionRegistry _injectionRegistry;
         private readonly IReadOnlyDictionary<AspectReferenceTarget, IReadOnlyCollection<ResolvedAspectReference>> _reachableReferencesByTarget;
 
         public InlineabilityAnalyzer(
@@ -36,11 +37,13 @@ internal sealed partial class LinkerAnalysisStep
             CompilationContext intermediateCompilationContext,
             HashSet<IntermediateSymbolSemantic> reachableSymbolSemantics,
             InlinerProvider inlinerProvider,
+            LinkerInjectionRegistry injectionRegistry,
             IReadOnlyDictionary<AspectReferenceTarget, IReadOnlyCollection<ResolvedAspectReference>> reachableReferencesByTarget )
         {
             this._reachableSymbolSemantics = reachableSymbolSemantics;
             this._intermediateCompilationContext = intermediateCompilationContext;
             this._inlinerProvider = inlinerProvider;
+            this._injectionRegistry = injectionRegistry;
             this._reachableReferencesByTarget = reachableReferencesByTarget;
             this._concurrentTaskRunner = serviceProvider.GetRequiredService<IConcurrentTaskRunner>();
         }
@@ -143,6 +146,12 @@ internal sealed partial class LinkerAnalysisStep
 
             bool IsInlineableMethod( IntermediateSymbolSemantic<IMethodSymbol> semantic )
             {
+                if (this._injectionRegistry.IsEventRaiseOverride(semantic.Symbol))
+                {
+                    // Event raise override are always inlineable (we will determine inlineability otherwise).
+                    return true;
+                }
+
                 switch ( semantic.Symbol.MethodKind )
                 {
                     case MethodKind.Ordinary:
@@ -204,6 +213,15 @@ internal sealed partial class LinkerAnalysisStep
 
             bool IsInlineableEvent( IntermediateSymbolSemantic<IEventSymbol> semantic )
             {
+                if ( semantic.Symbol is IEventSymbol
+                     && semantic.Kind == IntermediateSymbolSemanticKind.Default
+                     && this._injectionRegistry.IsLastOverride( semantic.Symbol )
+                     && this._injectionRegistry.HasEventRaiseOverride( semantic.Symbol ) )
+                {
+                    // First override of event with raise override is never inlineable (we need the trampoline).
+                    return false;
+                }
+
                 if ( semantic.Symbol.IsEventFieldIntroduction() )
                 {
                     // Override target that is event field is never inlineable.

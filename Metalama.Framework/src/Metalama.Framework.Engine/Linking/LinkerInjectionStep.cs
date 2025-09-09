@@ -512,8 +512,8 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
                         this._serviceProvider,
                         diagnostics,
                         nameProvider,
-                        aspectReferenceSyntaxProvider,
                         lexicalScopeFactory,
+                        aspectReferenceSyntaxProvider,
                         syntaxGenerationContext,
                         input.FinalCompilationModel );
 

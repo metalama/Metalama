@@ -137,6 +137,17 @@ internal sealed class LinkerInjectionNameProvider : InjectionNameProvider
         return this._injectionHelperProvider.GetAuxiliaryType( context, aspect.AspectClass, ordinal );
     }
 
+    internal override string GetRaiseOverrideName( INamedType targetType, AspectLayerId aspectLayer, IEvent overriddenEvent )
+    {
+        var shortAspectName = aspectLayer.AspectShortName;
+        var shortLayerName = aspectLayer.LayerName;
+        var nameHint =
+            shortLayerName != null
+                ? $"{overriddenEvent.Name}_Raise_{shortAspectName}_{shortLayerName}"
+                : $"{overriddenEvent.Name}_Raise_{shortAspectName}";
+        return this.FindUniqueName( targetType, nameHint );
+    }
+
     private string FindUniqueName( INamedType containingType, string hint )
     {
         // PERF: Do not add into cache until the second collision is encountered.

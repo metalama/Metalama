@@ -84,6 +84,10 @@ namespace Metalama.Framework.Engine.Linking
                     return Array.Empty<MemberDeclarationSyntax>();
                 }
             }
+            else if (this.InjectionRegistry.IsEventRaiseOverride(symbol))
+            {
+                return [GetLinkedDeclaration( IntermediateSymbolSemanticKind.Default, symbol.IsAsync )];
+            }
             else if ( this.AnalysisRegistry.HasBaseSemanticReferences( symbol ) )
             {
                 Invariant.Assert( symbol is { IsOverride: true, IsSealed: false } or { IsVirtual: true } );

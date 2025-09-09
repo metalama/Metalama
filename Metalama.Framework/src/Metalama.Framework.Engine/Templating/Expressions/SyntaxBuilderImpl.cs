@@ -83,7 +83,7 @@ internal class SyntaxBuilderImpl : ISyntaxBuilderImpl
         => new UserStatement(
             SyntaxFactory.ExpressionStatement( ((UserExpression) expression).ToExpressionSyntax( this.CreateSyntaxSerializationContext() ) ) );
 
-    private SyntaxSerializationContext CreateSyntaxSerializationContext() => new( this.Compilation, this._syntaxGenerationContext, this._currentType );
+    private SyntaxSerializationContext CreateSyntaxSerializationContext() => new( this.Compilation, this._syntaxGenerationContext, null, this._currentType );
 
     public void AppendLiteral( object? value, StringBuilder stringBuilder, SpecialType specialType, bool stronglyTyped )
     {

@@ -27,7 +27,7 @@ namespace Metalama.Framework.Code.DeclarationBuilders
         /// <summary>
         /// Gets the <see cref="IMethodBuilder"/> for the event raiser.
         /// </summary>
-        new IMethodBuilder? RaiseMethod { get; }
+        new IMethodBuilder RaiseMethod { get; }
 
         new IExpression? InitializerExpression { get; set; }
     }

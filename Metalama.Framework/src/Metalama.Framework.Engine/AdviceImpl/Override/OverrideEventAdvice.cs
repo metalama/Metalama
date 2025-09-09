@@ -13,17 +13,20 @@ internal sealed class OverrideEventAdvice : OverrideMemberAdvice<IEvent, IEvent>
 {
     private readonly BoundTemplateMethod? _addTemplate;
     private readonly BoundTemplateMethod? _removeTemplate;
+    private readonly BoundTemplateMethod? _raiseTemplate;
 
     public OverrideEventAdvice(
         AdviceConstructorParameters<IEvent> parameters,
         BoundTemplateMethod? addTemplate,
-        BoundTemplateMethod? removeTemplate )
+        BoundTemplateMethod? removeTemplate, 
+        BoundTemplateMethod? raiseTemplate )
         : base( parameters )
     {
-        Invariant.Assert( addTemplate != null || removeTemplate != null );
+        Invariant.Assert( addTemplate != null || removeTemplate != null || raiseTemplate != null );
 
         this._addTemplate = addTemplate;
         this._removeTemplate = removeTemplate;
+        this._raiseTemplate = raiseTemplate;
     }
 
     public override AdviceKind AdviceKind => AdviceKind.OverrideEvent;
@@ -36,7 +39,8 @@ internal sealed class OverrideEventAdvice : OverrideMemberAdvice<IEvent, IEvent>
                 this.AspectLayerInstance,
                 this.TargetDeclaration.ToFullRef(),
                 this._addTemplate,
-                this._removeTemplate ) );
+                this._removeTemplate,
+                this._raiseTemplate ) );
 
         return this.CreateSuccessResult();
     }

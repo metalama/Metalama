@@ -29,4 +29,6 @@ internal abstract class InjectionNameProvider
         InitializerKind reason );
 
     internal abstract TypeSyntax GetOverriddenByType( IAspectInstanceInternal aspect, IMember overriddenMember, SyntaxGenerationContext context );
+
+    internal abstract string GetRaiseOverrideName( INamedType targetType, AspectLayerId aspectLayer, IEvent overriddenEvent );
 }

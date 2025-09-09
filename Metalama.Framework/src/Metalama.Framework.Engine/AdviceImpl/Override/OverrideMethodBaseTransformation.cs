@@ -119,9 +119,9 @@ internal abstract class OverrideMethodBaseTransformation : OverrideMemberTransfo
                             overriddenDeclaration.Parameters.SelectAsReadOnlyList(
                                 p => Argument( null, p.RefKind.InvocationRefKindToken(), IdentifierName( p.Name ) ) ) ) ) ),
             MethodKind.Finalizer =>
-                context.AspectReferenceSyntaxProvider.GetFinalizerReference( this.AspectLayerId ),
+                context.AspectReferenceSyntaxProvider.AssertNotNull().GetFinalizerReference( this.AspectLayerId ),
             MethodKind.Operator =>
-                context.AspectReferenceSyntaxProvider.GetOperatorReference(
+                context.AspectReferenceSyntaxProvider.AssertNotNull().GetOperatorReference(
                     this.AspectLayerId,
                     (IMethod) this.TargetDeclaration.GetTarget( context.FinalCompilation ),
                     context.SyntaxGenerator ),

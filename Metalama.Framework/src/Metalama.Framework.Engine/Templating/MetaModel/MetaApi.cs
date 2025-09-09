@@ -282,6 +282,9 @@ namespace Metalama.Framework.Engine.Templating.MetaModel
         public static MetaApi ForEvent( IEvent @event, IMethod accessor, MetaApiProperties common )
             => new( common.Translate( @event ), common.Translate( accessor ), common );
 
+        public static MetaApi ForEventRaise( IEvent @event, IMethod accessor, MetaApiProperties common )
+            => new( common.Translate( @event ), common.Translate( accessor ), common );
+
         string IDiagnosticSource.DiagnosticSourceDescription
             => $"aspect '{this.AspectInstance?.AspectClass.ShortName}' applied to '{this.AspectInstance?.TargetDeclaration.GetTarget( this.Compilation ).ToDisplayString()}' while applying a template on '{this.Declaration.ToDisplayString()}'";
     }

@@ -54,16 +54,25 @@ internal sealed class EventInvoker : Invoker<IEvent>, IEventInvoker
         return new DelegateUserExpression(
             context =>
             {
-                var eventAccess = this.CreateEventExpression( AspectReferenceTargetKind.EventRaiseAccessor, context );
-
                 var arguments = this.Member.GetArguments(
                     this.Member.Signature.Parameters,
                     TypedExpressionSyntaxImpl.FromValues( args, context ),
                     context.SyntaxGenerationContext );
 
-                return ConditionalAccessExpression(
-                    eventAccess,
-                    InvocationExpression( MemberBindingExpression( IdentifierName( "Invoke" ) ) ).AddArgumentListArguments( arguments ) );
+                if ( context.AspectReferenceSyntaxProvider != null )
+                {
+                    var receiverInfo = this.GetReceiverInfo( context );
+
+                    return context.AspectReferenceSyntaxProvider.GetEventRaiseReference( receiverInfo.AspectReferenceSpecification.AspectLayerId, this.Member, context.SyntaxGenerator, arguments );
+                }
+                else
+                {
+                    var eventAccess = this.CreateEventExpression( AspectReferenceTargetKind.EventRaiseAccessor, context );
+
+                    return ConditionalAccessExpression(
+                        eventAccess,
+                        InvocationExpression( MemberBindingExpression( IdentifierName( "Invoke" ) ) ).AddArgumentListArguments( arguments ) );
+                }
             },
             this.Member.Signature.ReturnType );
     }

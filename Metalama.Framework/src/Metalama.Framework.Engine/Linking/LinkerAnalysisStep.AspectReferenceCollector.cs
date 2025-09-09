@@ -12,6 +12,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -60,9 +61,9 @@ internal sealed partial class LinkerAnalysisStep
                 {
                     case IMethodSymbol method:
                         AddImplicitReference(
+                            method.ToSemantic( IntermediateSymbolSemanticKind.Final ),
                             method,
-                            method,
-                            this._injectionRegistry.GetLastOverride( method ),
+                            this._injectionRegistry.GetLastOverride( method ).ToSemantic( IntermediateSymbolSemanticKind.Default ),
                             AspectReferenceTargetKind.Self );
 
                         break;
@@ -71,56 +72,88 @@ internal sealed partial class LinkerAnalysisStep
                         if ( property.GetMethod != null )
                         {
                             AddImplicitReference(
-                                property.GetMethod,
+                                property.GetMethod.ToSemantic(IntermediateSymbolSemanticKind.Final),
                                 property,
-                                this._injectionRegistry.GetLastOverride( property ),
+                                this._injectionRegistry.GetLastOverride( property ).ToSemantic( IntermediateSymbolSemanticKind.Default ),
                                 AspectReferenceTargetKind.PropertyGetAccessor );
                         }
 
                         if ( property.SetMethod != null )
                         {
                             AddImplicitReference(
-                                property.SetMethod,
+                                property.SetMethod.ToSemantic( IntermediateSymbolSemanticKind.Final ),
                                 property,
-                                this._injectionRegistry.GetLastOverride( property ),
+                                this._injectionRegistry.GetLastOverride( property ).ToSemantic( IntermediateSymbolSemanticKind.Default ),
                                 AspectReferenceTargetKind.PropertySetAccessor );
                         }
 
                         break;
 
                     case IEventSymbol @event:
+                        var lastOverride = this._injectionRegistry.GetLastOverride( @event );
+
                         AddImplicitReference(
-                            @event.AddMethod.AssertNotNull(),
+                            @event.AddMethod.AssertNotNull().ToSemantic( IntermediateSymbolSemanticKind.Final ),
                             @event,
-                            this._injectionRegistry.GetLastOverride( @event ),
+                            lastOverride.ToSemantic( IntermediateSymbolSemanticKind.Default ),
                             AspectReferenceTargetKind.EventAddAccessor );
 
                         AddImplicitReference(
-                            @event.RemoveMethod.AssertNotNull(),
+                            @event.RemoveMethod.AssertNotNull().ToSemantic( IntermediateSymbolSemanticKind.Final ),
                             @event,
-                            this._injectionRegistry.GetLastOverride( @event ),
+                            lastOverride.ToSemantic( IntermediateSymbolSemanticKind.Default ),
                             AspectReferenceTargetKind.EventRemoveAccessor );
+
+                        if ( this._injectionRegistry.HasEventRaiseOverride( @event ) )
+                        {
+                            var overrides = this._injectionRegistry.GetOverridesForSymbol( @event );
+
+                            for (var i = overrides.Count - 1; i >= 0; i-- )
+                            {
+                                if ( this._injectionRegistry.HasEventRaiseOverride( overrides[i] ) )
+                                {
+                                    var eventRaiseOverride = (IMethodSymbol?) this._injectionRegistry.GetSatelliteOverrideMembers( lastOverride ).SingleOrDefault();
+
+                                    AddImplicitReference(
+                                        @event.AddMethod.AssertNotNull().ToSemantic( IntermediateSymbolSemanticKind.Final ),
+                                        @event,
+                                        overrides[i].ToSemantic( IntermediateSymbolSemanticKind.Default ),
+                                        AspectReferenceTargetKind.EventRaiseAccessor,
+                                        eventRaiseOverride,
+                                        false );
+
+                                    AddImplicitReference(
+                                        @event.RemoveMethod.AssertNotNull().ToSemantic( IntermediateSymbolSemanticKind.Final ),
+                                        @event,
+                                        overrides[i].ToSemantic( IntermediateSymbolSemanticKind.Default ),
+                                        AspectReferenceTargetKind.EventRaiseAccessor,
+                                        eventRaiseOverride,
+                                        false );
+
+                                    break;
+                                }
+                            }
+                        }
 
                         break;
                 }
 
                 void AddImplicitReference(
-                    IMethodSymbol containingSymbol,
-                    ISymbol target,
-                    ISymbol lastOverrideSymbol,
-                    AspectReferenceTargetKind targetKind )
+                    IntermediateSymbolSemantic<IMethodSymbol> containingSemantic,
+                    ISymbol contextSymbol,
+                    IntermediateSymbolSemantic targetSemantic,
+                    AspectReferenceTargetKind targetKind,
+                    IMethodSymbol? explicitSemanticBody = null,
+                    bool? isInlineable = null)
                 {
-                    // Implicit reference pointing from final semantic to the last override.
-                    var containingSemantic = containingSymbol.ToSemantic( IntermediateSymbolSemanticKind.Final );
-
                     var sourceNode =
-                        containingSymbol.GetPrimaryDeclarationSyntax() switch
+                        containingSemantic.Symbol.GetPrimaryDeclarationSyntax() switch
                         {
                             ConstructorDeclarationSyntax constructor => constructor.Body ?? (SyntaxNode?) constructor.ExpressionBody ?? constructor,
                             MethodDeclarationSyntax method => method.Body ?? (SyntaxNode?) method.ExpressionBody ?? method,
                             DestructorDeclarationSyntax destructor => destructor.Body
                                                                       ?? (SyntaxNode?) destructor.ExpressionBody
-                                                                      ?? throw new AssertionFailedException( $"'{containingSymbol}' has no implementation." ),
+                                                                      ?? throw new AssertionFailedException( $"'{containingSemantic.Symbol}' has no implementation." ),
                             OperatorDeclarationSyntax @operator => @operator.Body
                                                                    ?? (SyntaxNode?) @operator.ExpressionBody
                                                                    ?? @operator,
@@ -130,28 +163,34 @@ internal sealed partial class LinkerAnalysisStep
                             AccessorDeclarationSyntax accessor => accessor.Body
                                                                   ?? (SyntaxNode?) accessor.ExpressionBody
                                                                   ?? accessor ?? throw new AssertionFailedException(
-                                                                      $"'{containingSymbol}' has no implementation." ),
+                                                                      $"'{containingSemantic.Symbol}' has no implementation." ),
                             VariableDeclaratorSyntax declarator => declarator
-                                                                   ?? throw new AssertionFailedException( $"'{containingSymbol}' has no implementation." ),
+                                                                   ?? throw new AssertionFailedException( $"'{containingSemantic.Symbol}' has no implementation." ),
                             ArrowExpressionClauseSyntax arrowExpressionClause => arrowExpressionClause,
                             ParameterSyntax { Parent: ParameterListSyntax { Parent: RecordDeclarationSyntax } } recordParameter => recordParameter,
-                            _ => throw new AssertionFailedException( $"Unexpected syntax for '{containingSymbol}'." )
+                            _ => throw new AssertionFailedException( $"Unexpected syntax for '{containingSemantic.Symbol}'." )
                         };
 
                     var resolvedReference =
                         new ResolvedAspectReference(
                             containingSemantic,
                             null,
-                            target,
-                            lastOverrideSymbol.ToSemantic( IntermediateSymbolSemanticKind.Default ),
+                            contextSymbol,
+                            targetSemantic,
+                            explicitSemanticBody?.ToSemantic( IntermediateSymbolSemanticKind.Default ),
                             sourceNode,
                             sourceNode,
                             sourceNode,
                             targetKind,
-                            true,
+                            isInlineable ?? true,
                             true );
 
-                    _ = aspectReferences.TryAdd( containingSemantic, [resolvedReference] );
+                    var referencesForContainingSemantic =(List<ResolvedAspectReference>) aspectReferences.GetOrAdd( containingSemantic, cs => new List<ResolvedAspectReference>() );
+
+                    lock (referencesForContainingSemantic)
+                    {
+                        referencesForContainingSemantic.Add( resolvedReference );
+                    }
 
                     // In case of duplicate declarations (which can happen at design time), the aspect may not be added here.
                 }
@@ -232,15 +271,15 @@ internal sealed partial class LinkerAnalysisStep
                     }
                 }
 
-                var aspectReferenceCollector = new AspectReferenceWalker(
+                var aspectReferenceWalker = new AspectReferenceWalker(
                     this._referenceResolver,
                     this._semanticModelProvider.GetSemanticModel( syntax.SyntaxTree ),
                     symbol,
                     nodesContainingAspectReferences );
 
-                aspectReferenceCollector.Visit( syntax );
+                aspectReferenceWalker.Visit( syntax );
 
-                var wasAdded = aspectReferences.TryAdd( semantic, aspectReferenceCollector.AspectReferences );
+                var wasAdded = aspectReferences.TryAdd( semantic, aspectReferenceWalker.AspectReferences );
 
                 Invariant.Assert( wasAdded );
             }

@@ -183,11 +183,15 @@ namespace Metalama.Framework.Engine.Templating.Expressions
 
                 if ( requireExactType )
                 {
-                    requiresCast = !compilationModel.Comparers.Default.Equals( this.ExpressionType, targetType );
+                    requiresCast =
+                        this.Syntax is { RawKind: (int) SyntaxKind.NullLiteralExpression } ||
+                        !compilationModel.Comparers.Default.Equals( this.ExpressionType, targetType );
                 }
                 else
                 {
-                    requiresCast = !compilationModel.Comparers.Default.IsConvertibleTo( this.ExpressionType, targetType, ConversionKind.Implicit );
+                    requiresCast =
+                        this.Syntax is { RawKind: (int) SyntaxKind.NullLiteralExpression } ||
+                        !compilationModel.Comparers.Default.IsConvertibleTo( this.ExpressionType, targetType, ConversionKind.Implicit );
                 }
                 
                 if ( !requiresCast )

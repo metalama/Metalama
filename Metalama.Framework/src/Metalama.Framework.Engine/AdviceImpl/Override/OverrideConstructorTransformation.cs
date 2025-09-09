@@ -124,8 +124,8 @@ internal sealed class OverrideConstructorTransformation : OverrideMemberTransfor
     private SyntaxUserExpression CreateProceedExpression( MemberInjectionContext context, IConstructor overriddenDeclaration )
         => new(
             overriddenDeclaration.IsStatic
-                ? context.AspectReferenceSyntaxProvider.GetStaticConstructorReference( this.AspectLayerId )
-                : context.AspectReferenceSyntaxProvider.GetConstructorReference(
+                ? context.AspectReferenceSyntaxProvider.AssertNotNull().GetStaticConstructorReference( this.AspectLayerId )
+                : context.AspectReferenceSyntaxProvider.AssertNotNull().GetConstructorReference(
                     this.AspectLayerId,
                     overriddenDeclaration,
                     context.SyntaxGenerator ),
