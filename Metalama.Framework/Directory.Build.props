@@ -22,7 +22,7 @@
     <Import Project="../eng/Packaging.props"/>
 
     <!-- We don't want nullability warnings in the Release build since the inlining AssertNotNull creates issues to analyzers -->
-    <PropertyGroup Condition="'$(Configuration)'=='Release' OR ( '$(TargetFramework)'!='net6.0' AND '$(TargetFramework)'!='net7.0' )">
+    <PropertyGroup Condition="'$(Configuration)'=='Release' OR '$(TargetFramework)'!='net8.0'">
         <DisableCodeQuality>True</DisableCodeQuality>
     </PropertyGroup>
 

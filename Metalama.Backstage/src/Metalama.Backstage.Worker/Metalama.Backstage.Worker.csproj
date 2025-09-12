@@ -20,7 +20,7 @@
     <Import Project="$(MetalamaBackstageDirectory)\Metalama.Backstage.Common.props" />
 
     <PropertyGroup>
-        <TargetFramework>net6.0</TargetFramework>
+        <TargetFramework>net8.0</TargetFramework>
         <UseAppHost>false</UseAppHost>
         <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
         <!-- This app should run on any .NET 6+ runtime. -->

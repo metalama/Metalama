@@ -9,7 +9,6 @@ using Metalama.Framework.Engine.CodeModel.Abstractions;
 using Metalama.Framework.Engine.CodeModel.Collections;
 using Metalama.Framework.Engine.CodeModel.GenericContexts;
 using Metalama.Framework.Engine.CodeModel.Helpers;
-using Metalama.Framework.Engine.CodeModel.Invokers;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.SerializableIds;
 using Metalama.Framework.Engine.Utilities;
@@ -20,6 +19,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Reflection;
 using Accessibility = Metalama.Framework.Code.Accessibility;
+using MethodInvoker = Metalama.Framework.Engine.CodeModel.Invokers.MethodInvoker;
 using MethodKind = Metalama.Framework.Code.MethodKind;
 using SyntaxReference = Microsoft.CodeAnalysis.SyntaxReference;
 

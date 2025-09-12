@@ -51,7 +51,7 @@ public class DefaultProjectOptions : IProjectOptions
         }
     }
 
-    public virtual string? TargetFramework => "net6.0";
+    public virtual string? TargetFramework => "net8.0";
 
     public virtual string? TargetFrameworkMoniker => null;
 

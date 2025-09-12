@@ -16,7 +16,7 @@ public static class ExtensionLoaderHelper
 {
     public static IEnumerable<string> GetExtensionAssemblies( IEnumerable<ExtensionAssemblyReference> assemblyReferences )
     {
-        var targetFramework = RuntimeInformation.FrameworkDescription.StartsWith( ".NET Framework", StringComparison.Ordinal ) ? "net472" : "net6.0";
+        var targetFramework = RuntimeInformation.FrameworkDescription.StartsWith( ".NET Framework", StringComparison.Ordinal ) ? "net472" : "net8.0";
 
         return assemblyReferences.Where( a => a.TargetFramework == targetFramework || string.IsNullOrEmpty( a.TargetFramework ) )
             .Select( a => a.Path );

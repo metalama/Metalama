@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFrameworks>netframework4.7.2;net6.0</TargetFrameworks>
+        <TargetFrameworks>netframework4.7.2;net8.0</TargetFrameworks>
         <PackageDescription>A helper package used internally by Metalama to test telemetry and user interface.</PackageDescription>
         
         <IsTestProject>False</IsTestProject>

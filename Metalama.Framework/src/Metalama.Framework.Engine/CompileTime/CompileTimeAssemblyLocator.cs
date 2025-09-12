@@ -36,7 +36,7 @@ internal sealed class CompileTimeAssemblyLocator
 {
     private const string _compileTimeFrameworkAssemblyName = "Metalama.Framework";
     private const string _compilerInterfaceAssemblyName = "Metalama.Compiler.Interface";
-    private const string _defaultCompileTimeTargetFrameworks = "netstandard2.0;net6.0;net48";
+    private const string _defaultCompileTimeTargetFrameworks = "netstandard2.0;net8.0;net48";
     private static readonly ImmutableArray<string> _defaultNugetSources = GetDefaultNuGetSources().ToImmutableArray();
 
     private static IEnumerable<string> GetDefaultNuGetSources()

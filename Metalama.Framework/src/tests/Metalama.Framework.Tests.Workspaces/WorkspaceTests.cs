@@ -74,7 +74,7 @@ namespace Metalama.Framework.Tests.Workspaces
                 @"
 <Project Sdk=""Microsoft.NET.Sdk"">
     <PropertyGroup>
-        <TargetFrameworks>net8.0;net6.0</TargetFrameworks>
+        <TargetFrameworks>net8.0;net8.0</TargetFrameworks>
     </PropertyGroup>
 </Project>
 " );

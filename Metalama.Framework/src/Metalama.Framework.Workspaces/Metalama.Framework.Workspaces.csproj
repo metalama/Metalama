@@ -1,5 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
+
     <PropertyGroup>
         <TargetFramework>net8.0</TargetFramework>
         <RootNamespace>Metalama.Framework.Workspaces</RootNamespace>
@@ -37,6 +38,7 @@
         <PackageReference Include="Microsoft.CodeAnalysis.Common" VersionOverride="$(RoslynMaxVersion)" />
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp" VersionOverride="$(RoslynMaxVersion)" />
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" VersionOverride="$(RoslynMaxVersion)" />
+        
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Features" VersionOverride="$(RoslynMaxVersion)" />
         <PackageReference Include="Newtonsoft.Json" VersionOverride="13.0.3" />
 

@@ -6,7 +6,6 @@ using Metalama.Framework.Engine.Templating;
 using Metalama.Testing.UnitTesting;
 using Microsoft.CodeAnalysis;
 using System.Collections.Generic;
-using System.Threading;
 using Xunit;
 
 namespace Metalama.Framework.Tests.UnitTests.Templating

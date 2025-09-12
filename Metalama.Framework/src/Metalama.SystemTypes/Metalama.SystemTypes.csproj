@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFrameworks>netstandard2.0;net6.0</TargetFrameworks>
+        <TargetFrameworks>netstandard2.0;net8.0</TargetFrameworks>
         <ImplicitUsings>disable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <IsPackable>false</IsPackable>
@@ -19,33 +19,45 @@
         <InternalsVisibleTo Include="Metalama.Framework.Engine.Analyzers" />
 
         <InternalsVisibleTo Include="Metalama.Framework.DesignTime.4.8.0" />
-        <InternalsVisibleTo Include="Metalama.Framework.DesignTime.VisualStudio.4.8.0" />
-        <InternalsVisibleTo Include="Metalama.Framework.Engine.4.8.0" />
-
         <InternalsVisibleTo Include="Metalama.Framework.DesignTime.4.12.0" />
+        <InternalsVisibleTo Include="Metalama.Framework.DesignTime.5.0.0" />
+
+
+        <InternalsVisibleTo Include="Metalama.Framework.DesignTime.VisualStudio.4.8.0" />
         <InternalsVisibleTo Include="Metalama.Framework.DesignTime.VisualStudio.4.12.0" />
+        <InternalsVisibleTo Include="Metalama.Framework.DesignTime.VisualStudio.5.0.0" />
+
+        <InternalsVisibleTo Include="Metalama.Framework.Engine.4.8.0" />
         <InternalsVisibleTo Include="Metalama.Framework.Engine.4.12.0" />
+        <InternalsVisibleTo Include="Metalama.Framework.Engine.5.0.0" />
         
         <InternalsVisibleTo Include="Metalama.Testing.UnitTesting.4.8.0" />
+        <InternalsVisibleTo Include="Metalama.Testing.UnitTesting.4.12.0" />
         <InternalsVisibleTo Include="Metalama.Testing.UnitTesting" />
 
         <InternalsVisibleTo Include="Metalama.Testing.AspectTesting.4.8.0" />
+        <InternalsVisibleTo Include="Metalama.Testing.AspectTesting.4.12.0" />
         <InternalsVisibleTo Include="Metalama.Testing.AspectTesting" />
 
         <InternalsVisibleTo Include="Metalama.Framework.Tests.LinkerTests.4.8.0" />
         <InternalsVisibleTo Include="Metalama.Framework.Tests.LinkerTests.4.12.0" />
+        <InternalsVisibleTo Include="Metalama.Framework.Tests.LinkerTests.5.0.0" />
 
         <InternalsVisibleTo Include="Metalama.Framework.Tests.AspectTests.4.8.0" />
         <InternalsVisibleTo Include="Metalama.Framework.Tests.AspectTests.4.12.0" />
+        <InternalsVisibleTo Include="Metalama.Framework.Tests.AspectTests.5.0.0" />
 
         <InternalsVisibleTo Include="Metalama.Framework.Tests.UnitTests.4.8.0" />
         <InternalsVisibleTo Include="Metalama.Framework.Tests.UnitTests.4.12.0" />
+        <InternalsVisibleTo Include="Metalama.Framework.Tests.UnitTests.5.0.0" />
 
         <InternalsVisibleTo Include="Metalama.Framework.Tests.UnitTestHelpers.4.8.0" />
         <InternalsVisibleTo Include="Metalama.Framework.Tests.UnitTestHelpers.4.12.0" />
+        <InternalsVisibleTo Include="Metalama.Framework.Tests.UnitTestHelpers.5.0.0" />
 
         <InternalsVisibleTo Include="Metalama.Framework.Tests.TemplateTests.4.8.0" />
         <InternalsVisibleTo Include="Metalama.Framework.Tests.TemplateTests.4.12.0" />
+        <InternalsVisibleTo Include="Metalama.Framework.Tests.TemplateTests.5.0.0" />
 
 
     </ItemGroup>

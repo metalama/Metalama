@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net6.0</TargetFramework>
+        <TargetFramework>net8.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <RootNamespace>Metalama.Extensions.DependencyInjection.AspectTests</RootNamespace>
         <NoWarn>IDE0051,CS8618,CS0169,CS1591,CA1822,CS0649</NoWarn>

@@ -71,7 +71,7 @@ public interface IProjectOptions : IProjectService, IEquatable<IProjectOptions>
     string? ProjectName { get; }
 
     /// <summary>
-    /// Gets the short target framework name, for instance <c>net6.0</c>.
+    /// Gets the short target framework name, for instance <c>net8.0</c>.
     /// </summary>
     string? TargetFramework { get; }
 
@@ -152,7 +152,7 @@ public interface IProjectOptions : IProjectService, IEquatable<IProjectOptions>
     bool RoslynIsCompileTimeOnly { get; }
 
     /// <summary>
-    /// Gets a semicolon-separated list of target frameworks that can be used for compile-time code, e.g. <c>netstandard2.0;net6.0;net48</c>.
+    /// Gets a semicolon-separated list of target frameworks that can be used for compile-time code, e.g. <c>netstandard2.0;net8.0;net48</c>.
     /// </summary>
     string? CompileTimeTargetFrameworks { get; }
 

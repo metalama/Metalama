@@ -22,7 +22,7 @@ internal sealed class FakeMetadataReader : ITestAssemblyMetadataReader
             this._projectDirectory,
             this._projectDirectory,
             ImmutableArray<string>.Empty,
-            "net6.0",
+            "net8.0",
             false,
             ImmutableArray<TestAssemblyReference>.Empty,
             ImmutableArray<TestAssemblyReference>.Empty,

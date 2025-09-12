@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFrameworks>netframework4.7.2;net6.0</TargetFrameworks>
+        <TargetFrameworks>netframework4.7.2;net8.0</TargetFrameworks>
         <IsPackable>false</IsPackable>
     </PropertyGroup>
 
@@ -30,7 +30,7 @@
 		<Reference Include="System.Net.Http" />
 	</ItemGroup>
 
-	<ItemGroup Condition="'$(TargetFramework)'=='net6.0'">
+	<ItemGroup Condition="'$(TargetFramework)'=='net8.0'">
 		<FrameworkReference Include="Microsoft.AspNetCore.App" />
 	</ItemGroup>
 
