@@ -404,7 +404,8 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
                     this._currentMetaContext.AddRunTimeSymbolLocal( identifierSymbol!, declaredSymbolNameLocal );
                 }
 
-                return IdentifierName( declaredSymbolNameLocal.Text );
+                return InvocationExpression( this._templateMetaSyntaxFactory.TemplateSyntaxFactoryMember( nameof(ITemplateSyntaxFactory.EscapeIdentifier) ) )
+                    .AddArgumentListArguments( Argument( IdentifierName( declaredSymbolNameLocal ) ) );
             }
             else if ( token.HasMetaVariableAnnotation() )
             {
@@ -525,7 +526,10 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
         {
             if ( this._currentMetaContext!.TryGetRunTimeSymbolLocal( identifierSymbol!, out var declaredSymbolNameLocal ) )
             {
-                return this.MetaSyntaxFactory.IdentifierName( IdentifierName( declaredSymbolNameLocal.Text ) );
+                // Some identifier names must be escaped when used in a different context than the template.
+                return this.MetaSyntaxFactory.IdentifierName(
+                    InvocationExpression( this._templateMetaSyntaxFactory.TemplateSyntaxFactoryMember( nameof(ITemplateSyntaxFactory.EscapeIdentifier) ) )
+                        .AddArgumentListArguments( Argument( SyntaxFactoryEx.LiteralExpression( node.Identifier.Text ) ) ) );
             }
             else if ( identifierSymbol is IParameterSymbol parameterSymbol
                       && SymbolEqualityComparer.Default.Equals( parameterSymbol.ContainingSymbol, this._rootTemplateSymbol ) )
@@ -826,22 +830,22 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
                     InitializerExpression(
                         SyntaxKind.ObjectInitializerExpression,
                         SeparatedList<ExpressionSyntax>(
-                            this._templateCompileTimeTypeParameterNames.SelectAsReadOnlyCollection(
-                                name =>
-                                    AssignmentExpression(
-                                        SyntaxKind.SimpleAssignmentExpression,
-                                        ImplicitElementAccess()
-                                            .WithArgumentList(
-                                                BracketedArgumentList(
-                                                    SingletonSeparatedList(
-                                                        Argument(
-                                                            LiteralExpression(
-                                                                SyntaxKind.StringLiteralExpression,
-                                                                Literal( name ) ) ) ) ) ),
-                                        MemberAccessExpression(
-                                            SyntaxKind.SimpleMemberAccessExpression,
-                                            IdentifierName( name ),
-                                            IdentifierName( propertyName ) ) ) ) ) ) )
+                            this._templateCompileTimeTypeParameterNames.SelectAsReadOnlyCollection( name =>
+                                                                                                        AssignmentExpression(
+                                                                                                            SyntaxKind.SimpleAssignmentExpression,
+                                                                                                            ImplicitElementAccess()
+                                                                                                                .WithArgumentList(
+                                                                                                                    BracketedArgumentList(
+                                                                                                                        SingletonSeparatedList(
+                                                                                                                            Argument(
+                                                                                                                                LiteralExpression(
+                                                                                                                                    SyntaxKind
+                                                                                                                                        .StringLiteralExpression,
+                                                                                                                                    Literal( name ) ) ) ) ) ),
+                                                                                                            MemberAccessExpression(
+                                                                                                                SyntaxKind.SimpleMemberAccessExpression,
+                                                                                                                IdentifierName( name ),
+                                                                                                                IdentifierName( propertyName ) ) ) ) ) ) )
                 .NormalizeWhitespace();
         }
     }

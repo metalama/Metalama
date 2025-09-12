@@ -11,9 +11,6 @@ namespace Metalama.Framework.Engine.CompileTime.Serialization
     /// <summary>
     /// Exception thrown by the <see cref="CompileTimeSerializer"/>.
     /// </summary>
-#if SERIALIZABLE
-    [Serializable]
-#endif
     internal sealed class CompileTimeSerializationException : Exception
     {
         /// <summary>
@@ -33,17 +30,6 @@ namespace Metalama.Framework.Engine.CompileTime.Serialization
         /// <param name="message">Message.</param>
         /// <param name="inner">Inner exception.</param>
         public CompileTimeSerializationException( string message, Exception? inner ) : base( message, inner ) { }
-
-        // ReSharper disable once UnusedMember.Local
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="CompileTimeSerializationException"/> class for deserialization purposes.
-        /// </summary>
-        /// <param name="info"></param>
-        /// <param name="context"></param>
-        private CompileTimeSerializationException(
-            SerializationInfo info,
-            StreamingContext context ) : base( info, context ) { }
 
         internal static CompileTimeSerializationException CreateWithCause( string description, SerializationCause? cause, Exception? innerException = null )
         {

@@ -464,11 +464,11 @@ public sealed class C
             const string code = @"
 class C
 {
-    int field;
+    int @field;
 
     int None { get; set; }
-    ref int Ref => ref field;
-    ref readonly int RefReadonly => ref field;
+    ref int Ref => ref @field;
+    ref readonly int RefReadonly => ref @field;
 }";
 
             var compilation = testContext.CreateCompilationModel( code );

@@ -24,6 +24,7 @@ using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
 using Attribute = System.Attribute;
 using MethodKind = Microsoft.CodeAnalysis.MethodKind;
@@ -317,9 +318,11 @@ public sealed class AspectClass : TemplateClass, IBoundAspectClass
                 // (typically AppDomain.AssemblyResolve event handler).
                 throw new AssertionFailedException( "Assembly version mismatch." );
             }
-
+#if NET8_0_OR_GREATER
+            var untypedPrototype = RuntimeHelpers.GetUninitializedObject( aspectReflectionType ).AssertNotNull();
+#else
             var untypedPrototype = FormatterServices.GetUninitializedObject( aspectReflectionType ).AssertNotNull();
-
+#endif
             prototype = (IAspect) untypedPrototype;
         }
 

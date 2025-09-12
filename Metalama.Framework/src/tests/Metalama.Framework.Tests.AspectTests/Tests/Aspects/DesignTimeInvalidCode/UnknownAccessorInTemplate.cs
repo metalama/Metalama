@@ -4,6 +4,7 @@
 
 #if TEST_OPTIONS
 // @TestScenario(DesignTime)
+// @RequiredConstant(ROSLYN_4_12_0_OR_EARLIER)
 #endif
 
 using System;
@@ -27,7 +28,7 @@ internal class Aspect : PropertyAspect
         }
 
 #if TESTRUNNER
-        setx
+        set
         {
             meta.Proceed();
         }

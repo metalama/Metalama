@@ -38,10 +38,10 @@
         <PackageReference Include="Microsoft.CodeAnalysis.Common" VersionOverride="$(RoslynMaxVersion)" />
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp" VersionOverride="$(RoslynMaxVersion)" />
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" VersionOverride="$(RoslynMaxVersion)" />
-        
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Features" VersionOverride="$(RoslynMaxVersion)" />
         <PackageReference Include="Newtonsoft.Json" VersionOverride="13.0.3" />
 
+        <PackageReference Include="Microsoft.Build" ExcludeAssets="runtime" />
         <PackageReference Include="Microsoft.Build.Locator" />
 
         <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" VersionOverride="$(RoslynMaxVersion)"  GeneratePathProperty="True" PrivateAssets="all" />

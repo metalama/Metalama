@@ -23,5 +23,10 @@ internal sealed class JsonSerializationBinderProvider : IJsonSerializationBinder
             configuration.AddAssemblyWithSameVersionThanType( typeof(ProjectKey), "Metalama.Framework.DesignTime.4.12.0" );
             configuration.AddAssemblyWithSameVersionThanType( typeof(ProjectKey), "Metalama.Framework.Engine.4.12.0" );
 #endif
+            
+#if ROSLYN_5_0_0
+            configuration.AddAssemblyWithSameVersionThanType( typeof(ProjectKey), "Metalama.Framework.DesignTime.5.0.0" );
+            configuration.AddAssemblyWithSameVersionThanType( typeof(ProjectKey), "Metalama.Framework.Engine.5.0.0" );
+#endif
         } );
 }
