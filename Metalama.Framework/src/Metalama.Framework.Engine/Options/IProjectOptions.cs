@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Engine.Formatting;
 using Metalama.Framework.Services;
+using Microsoft.CodeAnalysis.CSharp;
 using System;
 using System.Collections.Immutable;
 
@@ -206,4 +207,9 @@ public interface IProjectOptions : IProjectService, IEquatable<IProjectOptions>
     ImmutableArray<ExtensionAssemblyReference> DesignTimeExtensionAssemblies { get; }
 
     bool AvoidLockingExtensionAssemblies { get; }
+    
+    /// <summary>
+    /// Gets the language version defined in the project. Can include values like <c>latest</c>.
+    /// </summary>
+    LanguageVersion LanguageVersion { get; }
 }

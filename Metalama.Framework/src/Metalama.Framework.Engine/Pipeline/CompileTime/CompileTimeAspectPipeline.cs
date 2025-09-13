@@ -52,7 +52,7 @@ public class CompileTimeAspectPipeline : AspectPipeline
         // in other pipelines.
 
         var languageVersion = ((CSharpParseOptions?) compilation.SyntaxTrees.FirstOrDefault()?.Options)?.LanguageVersion.MapSpecifiedToEffectiveVersion()
-                              ?? SupportedCSharpVersions.Default;
+                              ?? SupportedCSharpVersions.Latest;
 
         if ( languageVersion == LanguageVersion.Preview )
         {

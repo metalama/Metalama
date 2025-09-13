@@ -134,6 +134,8 @@ public partial class TestContext : IDisposable, ITempFileManager, IApplicationIn
             typedAdditionalServices.GlobalServices.Add( sp => sp.WithService<IProjectOptionsFactory>( _ => new TestProjectOptionsFactory(
                                                                                                           this.ProjectOptions ) ) );
 
+            typedAdditionalServices.ProjectServices.Add( sp => new TestLanguageVersionProvider() );
+
             backstageServices = typedAdditionalServices.BackstageServices.Build( backstageServices );
 
             this.Logger = backstageServices.GetLoggerFactory().GetLogger( nameof(TestContext) );

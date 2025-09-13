@@ -4,6 +4,7 @@
 
 using Metalama.Backstage.Utilities;
 using Metalama.Framework.Options;
+using Microsoft.CodeAnalysis.CSharp;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using System.Collections.Generic;
@@ -35,7 +36,8 @@ namespace Metalama.Framework.Engine.CompileTime.Manifest
             IReadOnlyList<CompileTimeDiagnosticManifest> diagnostics,
             bool referencesMetalamaSdk,
             string? metalamaVersion = null,
-            int manifestVersion = 0 )
+            int manifestVersion = 0,
+            LanguageVersion? languageVersion = null )
         {
             this.RunTimeAssemblyIdentity = runTimeAssemblyIdentity;
             this.TargetFramework = targetFramework;
@@ -53,6 +55,7 @@ namespace Metalama.Framework.Engine.CompileTime.Manifest
             this.ReferencesMetalamaSdk = referencesMetalamaSdk;
             this.MetalamaVersion = AssemblyMetadataReader.GetInstance( typeof(CompileTimeProjectManifest).Assembly ).PackageVersion.AssertNotNull();
             this.ManifestVersion = manifestVersion == 0 ? CurrentManifestVersion : manifestVersion;
+            this.LanguageVersion = languageVersion;
 
 #if DEBUG
 
@@ -78,6 +81,8 @@ namespace Metalama.Framework.Engine.CompileTime.Manifest
         public int ManifestVersion { get; }
 
         public const int CurrentManifestVersion = 1;
+        
+        public LanguageVersion? LanguageVersion { get; set; }
 
         /// <summary>
         /// Gets the list of all aspect types (specified by fully qualified name) of the aspect library.

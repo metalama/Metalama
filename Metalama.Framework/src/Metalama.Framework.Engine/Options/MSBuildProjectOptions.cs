@@ -6,6 +6,7 @@ using JetBrains.Annotations;
 using Metalama.Compiler;
 using Metalama.Framework.Engine.Formatting;
 using Metalama.Framework.Engine.Utilities;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Diagnostics;
 using System;
 using System.Collections.Immutable;
@@ -149,6 +150,21 @@ public partial class MSBuildProjectOptions : DefaultProjectOptions
 
     [Memo]
     public override string? AssemblyLocatorHooksDirectory => this.GetStringOption( MSBuildPropertyNames.MetalamaAssemblyLocatorHooksDirectory );
+
+    public override LanguageVersion LanguageVersion
+    {
+        get
+        {
+            var s = this.GetStringOption( MSBuildPropertyNames.LangVersion );
+
+            if ( !LanguageVersionFacts.TryParse( s, out var version ) )
+            {
+                throw new InvalidOperationException( $"Invalid LangVersion value: '{s}'." );
+            }
+
+            return version.MapSpecifiedToEffectiveVersion();
+        }
+    }
 
     [Memo]
     public override ImmutableArray<string> SourceGeneratorAttributes => this.GetListOption( MSBuildPropertyNames.MetalamaSourceGeneratorAttributes );

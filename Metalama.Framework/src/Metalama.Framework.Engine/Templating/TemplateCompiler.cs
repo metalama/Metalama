@@ -29,6 +29,7 @@ namespace Metalama.Framework.Engine.Templating
         private readonly SerializableTypes _serializableTypes;
         private readonly ILogger _logger;
         private readonly IProjectOptions _options;
+        private readonly ILanguageVersionProvider _languageVersionProvider;
 
         public TemplateCompiler(
             ProjectServiceProvider serviceProvider,
@@ -46,6 +47,7 @@ namespace Metalama.Framework.Engine.Templating
             this._observer = serviceProvider.GetService<ITemplateCompilerObserver>();
 
             this._options = serviceProvider.GetRequiredService<IProjectOptions>();
+            this._languageVersionProvider = serviceProvider.GetRequiredService<ILanguageVersionProvider>();
         }
 
         public ILocationAnnotationMapBuilder LocationAnnotationMap => this._syntaxTreeAnnotationMap;
@@ -73,7 +75,7 @@ namespace Metalama.Framework.Engine.Templating
                 currentSyntaxRoot = annotatedTree.GetAnnotatedNodes( markerAnnotation ).Single();
             }
 
-            var maximalAcceptableLanguageVersion = SupportedCSharpVersions.Default;
+            var maximalAcceptableLanguageVersion = this._languageVersionProvider.GetCompileTimeLanguageVersion();
 
             if ( !string.IsNullOrWhiteSpace( this._options.TemplateLanguageVersion ) )
             {

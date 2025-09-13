@@ -5,6 +5,7 @@
 using JetBrains.Annotations;
 using Metalama.Framework.Engine.CompileTime;
 using Microsoft.CodeAnalysis.CSharp;
+using System;
 using System.Collections.Immutable;
 using System.Linq;
 
@@ -21,9 +22,12 @@ namespace Metalama.Framework.Engine.Utilities;
 public static class SupportedCSharpVersions
 {
     /// <summary>
-    /// Gets the default C# version.
+    /// Gets the latest C# version supported by the current Metalama build.
     /// </summary>
-    public static LanguageVersion Default
+    /// <remarks>
+    /// This C# version might not be supported by the .NET SDK. See also <see cref="LanguageVersionProvider"/>.
+    /// </remarks>
+    public static LanguageVersion Latest
 #if ROSLYN_5_0_0_OR_GREATER
         => LanguageVersion.CSharp14;
 #elif ROSLYN_4_12_0_OR_GREATER
@@ -56,7 +60,8 @@ public static class SupportedCSharpVersions
     /// <summary>
     /// Gets the default parse options.
     /// </summary>
-    public static CSharpParseOptions DefaultParseOptions { get; } = CSharpParseOptions.Default.WithLanguageVersion( Default );
+    [Obsolete ]
+    public static CSharpParseOptions DefaultParseOptions { get; } = CSharpParseOptions.Default.WithLanguageVersion( Latest );
 
     internal static LanguageVersion ToLanguageVersion( this RoslynApiVersion apiVersion )
         => apiVersion switch

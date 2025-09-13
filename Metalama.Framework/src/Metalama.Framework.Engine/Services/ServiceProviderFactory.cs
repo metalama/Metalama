@@ -20,6 +20,7 @@ using Metalama.Framework.Engine.Pipeline;
 using Metalama.Framework.Engine.Queries.Aspects;
 using Metalama.Framework.Engine.Queries.Options;
 using Metalama.Framework.Engine.SyntaxSerialization;
+using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.Threading;
 using Metalama.Framework.Engine.Utilities.UserCode;
 using Metalama.Framework.Project;
@@ -84,8 +85,8 @@ public static class ServiceProviderFactory
             .WithServiceConditional<ITestableCancellationTokenSourceFactory>( _ => new DefaultTestableCancellationTokenSource() )
             .WithServiceConditional<IMetalamaProjectClassifier>( _ => new MetalamaProjectClassifier() )
             .WithServiceConditional( sp => new UserCodeInvoker( sp ) )
-            .WithServiceConditional<ICompileTimeAssemblyLocatorProvider>(
-                sp => new CompileTimeAssemblyLocatorProvider( sp.GetRequiredBackstageService<ITempFileManager>() ) )
+            .WithServiceConditional<ICompileTimeAssemblyLocatorProvider>( sp => new CompileTimeAssemblyLocatorProvider(
+                                                                              sp.GetRequiredBackstageService<ITempFileManager>() ) )
             .WithServiceConditional( _ => new FrameworkCompileTimeProjectFactory() )
             .WithServiceConditional( _ => new AttributeClassificationService() )
             .WithServiceConditional<IProjectOptionsFactory>( _ => new MSBuildProjectOptionsFactory() )
@@ -162,7 +163,8 @@ public static class ServiceProviderFactory
             .WithService( provider => new ProjectIntrospectionService( provider ) )
             .WithService( provider => new SourceGeneratorDetectionService( provider ) )
             .WithService( _ => new OptionQueryService() )
-            .WithService( provider => new AspectQueryService( provider ) );
+            .WithService( provider => new AspectQueryService( provider ) )
+            .WithServiceConditional<ILanguageVersionProvider>( provider => new LanguageVersionProvider( provider ) );
 
         if ( projectOptions.FormatCompileTimeCode || projectOptions.CodeFormattingOptions == CodeFormattingOptions.Formatted || projectOptions.WriteHtml )
         {

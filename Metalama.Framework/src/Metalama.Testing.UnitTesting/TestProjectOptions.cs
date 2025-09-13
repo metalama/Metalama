@@ -6,6 +6,8 @@ using Metalama.Backstage.Utilities;
 using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Formatting;
 using Metalama.Framework.Engine.Options;
+using Metalama.Framework.Engine.Utilities;
+using Microsoft.CodeAnalysis.CSharp;
 using System;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
@@ -15,6 +17,11 @@ using System.Reflection;
 using System.Threading;
 
 namespace Metalama.Testing.UnitTesting;
+
+internal class TestLanguageVersionProvider : ILanguageVersionProvider
+{
+    public LanguageVersion GetCompileTimeLanguageVersion() => SupportedCSharpVersions.Latest;
+}
 
 /// <summary>
 /// An implementation of <see cref="IProjectOptions"/> that can be used in tests.

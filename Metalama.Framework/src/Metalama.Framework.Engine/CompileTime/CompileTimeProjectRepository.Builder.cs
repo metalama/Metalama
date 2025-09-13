@@ -410,7 +410,7 @@ internal sealed partial class CompileTimeProjectRepository
             }
 
             // Read source files.
-            var parseOptions = SupportedCSharpVersions.DefaultParseOptions;
+            var parseOptions = new CSharpParseOptions(  );
 
             List<SyntaxTree> syntaxTrees = [];
 

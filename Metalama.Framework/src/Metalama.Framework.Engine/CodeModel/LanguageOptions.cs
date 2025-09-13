@@ -27,7 +27,7 @@ internal sealed class LanguageOptions : IEquatable<LanguageOptions>
         this._features = features;
     }
 
-    public static LanguageOptions Default { get; } = new( SupportedCSharpVersions.Default, ImmutableDictionary<string, string>.Empty );
+    public static LanguageOptions Default { get; } = new( SupportedCSharpVersions.Latest, ImmutableDictionary<string, string>.Empty );
 
     internal LanguageOptions( CSharpParseOptions options ) : this( options.LanguageVersion, options.Features.ToImmutableDictionary() ) { }
 
