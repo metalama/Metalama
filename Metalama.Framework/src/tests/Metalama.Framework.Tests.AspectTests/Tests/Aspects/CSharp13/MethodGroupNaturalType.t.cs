@@ -1,7 +1,7 @@
-class Target
+internal class Target
 {
   [TheAspect]
-  void M()
+  private void M()
   {
     var m_1 = new global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.CSharp13.MethodGroupNaturalType.C().M;
     m_1();

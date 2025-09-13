@@ -1,6 +1,6 @@
-class TargetClass
+internal class TargetClass
 {
-  int Method(int x)
+  private int Method(int x)
   {
     Console.WriteLine("Override2 Begin");
     if (x > 0)

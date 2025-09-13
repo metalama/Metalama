@@ -10,6 +10,10 @@ using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 
+#pragma warning disable IDE0005 // We weirdly have implicit global usings but they don't appear in the inpuc csc files
+using System.Collections.Generic;
+#pragma warning restore IDE005
+
 namespace Metalama.Framework.Tests.PublicPipeline.Aspects.DesignTimeInvalidCode.TransformationTarget_MissingTypeArgument;
 
 /*

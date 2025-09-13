@@ -1,13 +1,13 @@
-class Target
+internal class Target
 {
-  int field;
-  int Foo
+  private int _field;
+  private int Foo
   {
     set
     {
       Console.WriteLine("Before");
       Console.WriteLine("Original");
-      this.field = value;
+      this._field = value;
       Console.WriteLine("After");
     }
   }

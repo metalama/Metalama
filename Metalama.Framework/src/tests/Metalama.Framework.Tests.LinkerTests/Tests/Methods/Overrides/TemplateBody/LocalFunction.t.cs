@@ -1,6 +1,6 @@
-class TargetClass
+internal class TargetClass
 {
-  int IntMethod(int x)
+  private int IntMethod(int x)
   {
     return LocalFunction() + LocalFunction();
     int LocalFunction()
@@ -12,7 +12,7 @@ class TargetClass
       return z;
     }
   }
-  string? StringMethod(string x)
+  private string? StringMethod(string x)
   {
     return ToUpper();
     string? ToUpper()
@@ -26,11 +26,11 @@ class TargetClass
     Console.WriteLine("Original");
     return x;
   }
-  void VoidMethod()
+  private void VoidMethod()
   {
     LocalFunction();
     LocalFunction();
-    void LocalFunction()
+    static void LocalFunction()
     {
       Console.WriteLine("Override");
       Console.WriteLine("Original");

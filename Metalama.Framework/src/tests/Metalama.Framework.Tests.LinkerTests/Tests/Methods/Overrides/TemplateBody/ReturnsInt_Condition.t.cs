@@ -1,9 +1,9 @@
-class Target
+internal class Target
 {
-  int Foo(int x)
+  private int Foo(int x)
   {
     Console.WriteLine("Before");
-    int result = 0;
+    var result = 0;
     if (x == 0)
     {
       Console.WriteLine("Original");

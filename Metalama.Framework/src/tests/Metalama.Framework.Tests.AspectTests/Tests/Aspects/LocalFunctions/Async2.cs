@@ -13,6 +13,8 @@ using Metalama.Framework.Aspects;
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.LocalFunctions.Async2;
 
+#pragma warning disable IDE0062
+
 public class RetryAttribute : OverrideMethodAspect
 {
     // Template for non-async methods.
@@ -26,7 +28,7 @@ public class RetryAttribute : OverrideMethodAspect
     // Template for async methods.
     public override async Task<dynamic?> OverrideAsyncMethod()
     {
-        static async Task<object?> ExecuteCoreAsync()
+        async Task<object?> ExecuteCoreAsync()
         {
             var result = await meta.ProceedAsync();
 

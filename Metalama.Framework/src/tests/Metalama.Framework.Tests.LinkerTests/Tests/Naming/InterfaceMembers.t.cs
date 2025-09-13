@@ -1,43 +1,34 @@
-class Target : ITest
+// Error CS1061 on `_cast<ITest>`: `'Target' does not contain a definition for '_cast' and no accessible extension method '_cast' accepting a first argument of type 'Target' could be found (are you missing a using directive or an assembly reference?)`
+// Error CS1061 on `_cast<ITest>`: `'Target' does not contain a definition for '_cast' and no accessible extension method '_cast' accepting a first argument of type 'Target' could be found (are you missing a using directive or an assembly reference?)`
+// Error CS1061 on `_cast<ITest>`: `'Target' does not contain a definition for '_cast' and no accessible extension method '_cast' accepting a first argument of type 'Target' could be found (are you missing a using directive or an assembly reference?)`
+// Error CS1061 on `_cast<ITest>`: `'Target' does not contain a definition for '_cast' and no accessible extension method '_cast' accepting a first argument of type 'Target' could be found (are you missing a using directive or an assembly reference?)`
+// Error CS1061 on `_cast<ITest>`: `'Target' does not contain a definition for '_cast' and no accessible extension method '_cast' accepting a first argument of type 'Target' could be found (are you missing a using directive or an assembly reference?)`
+internal class Target : ITest
 {
-  private int _foo;
   int ITest.Foo
   {
     get
     {
-      return this._foo;
+      return this._cast<ITest>().Foo;
     }
     set
     {
-      this._foo = value;
+      this._cast<ITest>().Foo = value;
     }
   }
   int ITest.Bar()
   {
-    return this.Metalama_Framework_Tests_LinkerTests_Tests_Naming_InterfaceMembers_ITest_Bar_Source();
-  }
-  private int Metalama_Framework_Tests_LinkerTests_Tests_Naming_InterfaceMembers_ITest_Bar_Source()
-  {
-    return 42;
+    return this._cast<ITest>().Bar();
   }
   event EventHandler ITest.Quz
   {
     add
     {
-      this.Metalama_Framework_Tests_LinkerTests_Tests_Naming_InterfaceMembers_ITest_Quz_Source += value;
+      this._cast<ITest>().Quz += value;
     }
     remove
     {
-      this.Metalama_Framework_Tests_LinkerTests_Tests_Naming_InterfaceMembers_ITest_Quz_Source -= value;
-    }
-  }
-  private event EventHandler Metalama_Framework_Tests_LinkerTests_Tests_Naming_InterfaceMembers_ITest_Quz_Source
-  {
-    add
-    {
-    }
-    remove
-    {
+      this._cast<ITest>().Quz -= value;
     }
   }
 }

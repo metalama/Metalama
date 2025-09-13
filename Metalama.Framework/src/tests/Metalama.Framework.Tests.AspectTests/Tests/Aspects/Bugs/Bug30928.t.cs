@@ -7,7 +7,7 @@ public class SomeDisposable : ISomeInterface
         }
 #endif
 #if !TESTRUNNER
-  void Bar()
+  private void Bar()
   {
     Debug.Fail("");
   }

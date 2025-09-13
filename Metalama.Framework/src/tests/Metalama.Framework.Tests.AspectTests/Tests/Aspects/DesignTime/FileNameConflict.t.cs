@@ -1,7 +1,4 @@
-using System;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
-using Metalama.Framework.Code;
 namespace Metalama.Framework.IntegrationTests.Aspects.DesignTime.FileNameConflict
 {
   // Tests that the pipeline handles types with the same full name.
@@ -15,22 +12,22 @@ namespace Metalama.Framework.IntegrationTests.Aspects.DesignTime.FileNameConflic
   namespace X
   {
     [Introduction]
-    partial class Y
+    internal partial class Y
     {
     }
     [Introduction]
-    partial class Y<T>
+    internal partial class Y<T>
     {
     }
   }
-  partial class X<T>
+  internal partial class X<T>
   {
     [Introduction]
-    partial class Y
+    private partial class Y
     {
     }
     [Introduction]
-    partial class Y<U>
+    private partial class Y<U>
     {
     }
   }

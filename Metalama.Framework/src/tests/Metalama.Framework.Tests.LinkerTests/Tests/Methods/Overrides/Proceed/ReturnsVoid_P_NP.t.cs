@@ -1,6 +1,6 @@
-class Target
+internal class Target
 {
-  void Foo(int x)
+  private void Foo(int x)
   {
     Console.WriteLine("Override2 Start");
     Console.WriteLine("Override1");

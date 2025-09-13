@@ -2,32 +2,33 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using System;
 using static Metalama.Framework.Tests.LinkerTests.Tests.Api;
 
 namespace Metalama.Framework.Tests.LinkerTests.Tests.Fields.Linking.Source_NoPromotion
 {
-    [PseudoLayerOrder("A0")]
-    internal
+    [PseudoLayerOrder( "A0" )]
+
     // <target>
-    class Target
+    internal class Target
     {
         public int Foo
         {
             get
             {
-                System.Console.WriteLine("This is original code (discarded).");
+                Console.WriteLine( "This is original code (discarded)." );
 
                 return 42;
             }
             set
             {
-                System.Console.WriteLine("This is original code (discarded).");
+                Console.WriteLine( "This is original code (discarded)." );
             }
         }
 
         public int Bar;
 
-        [PseudoOverride(nameof(Foo), "A0")]
+        [PseudoOverride( nameof(Foo), "A0" )]
         [PseudoNotInlineable]
         [PseudoNotDiscardable]
         public int Foo_Override0
@@ -35,13 +36,16 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Fields.Linking.Source_NoPro
             get
             {
                 // Should invoke the final declaration.
-                _ = Link(This.Bar, Base);
+                _ = Link( This.Bar, Base );
+
                 // Should invoke the final declaration.
-                _ = Link(This.Bar, Previous );
+                _ = Link( This.Bar, Previous );
+
                 // Should invoke the final declaration.
-                _ = Link(This.Bar, Current);
+                _ = Link( This.Bar, Current );
+
                 // Should invoke the final declaration.
-                _ = Link(This.Bar, Final);
+                _ = Link( This.Bar, Final );
 
                 return 42;
             }
@@ -49,10 +53,13 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Fields.Linking.Source_NoPro
             {
                 // Should invoke the final declaration.
                 Link[This.Bar, Base] = value;
+
                 // Should invoke the final declaration.
                 Link[This.Bar, Previous] = value;
+
                 // Should invoke the final declaration.
                 Link[This.Bar, Current] = value;
+
                 // Should invoke the final declaration.
                 Link[This.Bar, Final] = value;
             }

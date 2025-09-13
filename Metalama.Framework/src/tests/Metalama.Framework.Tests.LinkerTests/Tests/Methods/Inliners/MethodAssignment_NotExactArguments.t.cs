@@ -1,6 +1,6 @@
-class Target
+internal class Target
 {
-  int Foo(int y, int z)
+  private int Foo(int y, int z)
   {
     Console.WriteLine("Before");
     int x;

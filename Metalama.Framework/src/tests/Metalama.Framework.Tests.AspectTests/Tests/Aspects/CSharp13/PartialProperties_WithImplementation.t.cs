@@ -1,8 +1,8 @@
-partial class Target
+internal partial class Target
 {
   [TheAspect]
-  partial int P1 { get; set; }
-  partial int P1
+  private partial int P1 { get; set; }
+  private partial int P1
   {
     get
     {
@@ -15,9 +15,9 @@ partial class Target
       throw new Exception();
     }
   }
-  partial int P2 { get; set; }
+  private partial int P2 { get; set; }
   [TheAspect]
-  partial int P2
+  private partial int P2
   {
     get
     {
@@ -31,8 +31,8 @@ partial class Target
     }
   }
   [TheAspect]
-  partial int P3 { get; }
-  partial int P3
+  private partial int P3 { get; }
+  private partial int P3
   {
     get
     {

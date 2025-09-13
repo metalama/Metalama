@@ -529,7 +529,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
                 // Some identifier names must be escaped when used in a different context than the template.
                 return this.MetaSyntaxFactory.IdentifierName(
                     InvocationExpression( this._templateMetaSyntaxFactory.TemplateSyntaxFactoryMember( nameof(ITemplateSyntaxFactory.EscapeIdentifier) ) )
-                        .AddArgumentListArguments( Argument( SyntaxFactoryEx.LiteralExpression( node.Identifier.Text ) ) ) );
+                        .AddArgumentListArguments( Argument( IdentifierName( declaredSymbolNameLocal ) ) ) );
             }
             else if ( identifierSymbol is IParameterSymbol parameterSymbol
                       && SymbolEqualityComparer.Default.Equals( parameterSymbol.ContainingSymbol, this._rootTemplateSymbol ) )

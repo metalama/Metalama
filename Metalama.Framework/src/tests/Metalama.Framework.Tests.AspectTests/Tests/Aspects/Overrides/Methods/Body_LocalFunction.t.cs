@@ -5,7 +5,7 @@ internal class TargetClass
   {
     global::System.Int32 result;
     result = Foo();
-    int Foo()
+    static int Foo()
     {
       return 42;
     }

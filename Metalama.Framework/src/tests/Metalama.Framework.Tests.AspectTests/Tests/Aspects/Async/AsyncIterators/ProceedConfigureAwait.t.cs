@@ -1,4 +1,4 @@
-class TargetCode
+internal class TargetCode
 {
   [Aspect]
   public async IAsyncEnumerable<int> Enumerable(int a)

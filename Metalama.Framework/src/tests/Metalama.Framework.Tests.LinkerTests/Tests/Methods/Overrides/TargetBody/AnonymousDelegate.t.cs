@@ -1,6 +1,6 @@
-class Target
+internal class Target
 {
-  int IntMethod()
+  private int IntMethod()
   {
     Console.WriteLine("Before");
     global::System.Int32 y;
@@ -9,13 +9,13 @@ class Target
       y = 0;
       goto __aspect_return_1;
     }
-    Action foo = delegate ()
+    var foo = delegate ()
     {
       return;
     };
-    Func<int> bar = delegate ()
+    var bar = delegate ()
     {
-      Func<int> quz = () => 42;
+      var quz = () => 42;
       return quz();
     };
     foo();
@@ -27,20 +27,20 @@ class Target
       Console.WriteLine("After");
     return y;
   }
-  void VoidMethod()
+  private void VoidMethod()
   {
     Console.WriteLine("Before");
     if (new Random().Next() == 0)
     {
       goto __aspect_return_1;
     }
-    Action foo = delegate ()
+    var foo = delegate ()
     {
       return;
     };
-    Func<int> bar = delegate ()
+    var bar = delegate ()
     {
-      Func<int> quz = () => 42;
+      var quz = () => 42;
       return quz();
     };
     foo();

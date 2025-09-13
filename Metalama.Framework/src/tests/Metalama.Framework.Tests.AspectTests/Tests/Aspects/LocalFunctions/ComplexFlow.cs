@@ -10,6 +10,8 @@ using Metalama.Framework.Tests.AspectTests.Tests.Aspects.TemplateTypeParameter.C
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.TemplateTypeParameter.ComplexFlow;
 
+#pragma warning disable IDE0062
+
 /*
  * Verifies that inlining with forced jumps into a local function produces correct code.
  */
@@ -18,7 +20,7 @@ public class OuterAspect : OverrideMethodAspect
 {
     public override dynamic? OverrideMethod()
     {
-        static int OuterLocalFunction()
+        int OuterLocalFunction()
         {
             if (meta.Target.Parameters[0].Value == 27)
             {
@@ -39,7 +41,7 @@ public class InnerAspect : OverrideMethodAspect
 {
     public override dynamic? OverrideMethod()
     {
-        static int InnerLocalFunction()
+        int InnerLocalFunction()
         {
             if (meta.Target.Parameters[0].Value == 42)
             {

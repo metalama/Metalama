@@ -1,4 +1,4 @@
-class Target : Base
+internal class Target : Base
 {
   public static int Foo
   {
@@ -26,12 +26,12 @@ class Target : Base
   {
     get
     {
-      System.Console.WriteLine("This is original code (discarded).");
+      Console.WriteLine("This is original code (discarded).");
       return 42;
     }
     set
     {
-      System.Console.WriteLine("This is original code (discarded).");
+      Console.WriteLine("This is original code (discarded).");
     }
   }
   private static int Bar_Override1_1

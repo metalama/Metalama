@@ -27,7 +27,7 @@ internal struct TargetStruct
 {
   private global::System.String _q1 = default !;
   [global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Contracts.Field_Both.NotNullAttribute]
-  private global::System.String q
+  private global::System.String _q
   {
     get
     {
@@ -49,6 +49,6 @@ internal struct TargetStruct
   }
   public TargetStruct(string q)
   {
-    this.q = q;
+    this._q = q;
   }
 }

@@ -17,7 +17,7 @@ public interface Interface
   }
   private static int _staticAutoProperty;
   [Override]
-  public static int StaticAutoProperty
+  static int StaticAutoProperty
   {
     get
     {
@@ -31,7 +31,7 @@ public interface Interface
     }
   }
   [Override]
-  public static int StaticProperty
+  static int StaticProperty
   {
     get
     {

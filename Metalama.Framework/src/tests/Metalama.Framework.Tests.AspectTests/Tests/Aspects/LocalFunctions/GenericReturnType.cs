@@ -8,6 +8,8 @@ using Metalama.Framework.Code;
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.TemplateTypeParameter.GenericReturnType;
 
+#pragma warning disable IDE0062
+
 public class Override : MethodAspect
 {
     public override void BuildAspect( IAspectBuilder<IMethod> builder )
@@ -18,7 +20,7 @@ public class Override : MethodAspect
     [Template]
     private T Template<[CompileTime] T>()
     {
-        static T LocalFunction()
+        T LocalFunction()
         {
             return meta.Proceed()!;
         }

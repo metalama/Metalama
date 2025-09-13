@@ -1,9 +1,9 @@
-class Target
+internal class Target
 {
-  int Foo()
+  private int Foo()
   {
     Console.WriteLine("Before");
-    int x = 0;
+    var x = 0;
     x = x = this.Foo_Source();
     Console.WriteLine("After");
     return x;

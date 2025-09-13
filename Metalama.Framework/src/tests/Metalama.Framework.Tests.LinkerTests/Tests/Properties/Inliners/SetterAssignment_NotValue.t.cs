@@ -1,7 +1,7 @@
-class Target
+internal class Target
 {
-  int field;
-  int Foo
+  private int _field;
+  private int Foo
   {
     set
     {
@@ -15,7 +15,7 @@ class Target
     set
     {
       Console.WriteLine("Original");
-      this.field = value;
+      this._field = value;
     }
   }
 }

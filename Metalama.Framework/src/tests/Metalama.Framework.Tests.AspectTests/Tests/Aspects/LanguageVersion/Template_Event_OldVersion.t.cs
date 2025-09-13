@@ -3,7 +3,7 @@
 // Error CS8936 on `"""add"""`: `Feature 'raw string literals' is not available in C# 10.0. Please use language version 11.0 or greater.`
 // Error CS8936 on `"""remove"""`: `Feature 'raw string literals' is not available in C# 10.0. Please use language version 11.0 or greater.`
 [TheAspect]
-class Target
+internal class Target
 {
   public event global::System.EventHandler Event1
   {

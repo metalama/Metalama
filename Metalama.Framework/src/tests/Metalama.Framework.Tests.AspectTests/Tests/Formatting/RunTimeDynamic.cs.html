@@ -62,7 +62,7 @@
 <span class='line-number'>5</span>
 <span class='line-number'>6</span><span class="cs-keyword">namespace</span> <span class="cs-namespace-name">Metalama</span><span class="cs-operator">.</span><span class="cs-namespace-name">Framework</span><span class="cs-operator">.</span><span class="cs-namespace-name">Tests</span><span class="cs-operator">.</span><span class="cs-namespace-name">AspectTests</span><span class="cs-operator">.</span><span class="cs-namespace-name">Tests</span><span class="cs-operator">.</span><span class="cs-namespace-name">Formatting</span><span class="cs-operator">.</span><span class="cs-namespace-name">RunTimeDynamic</span>
 <span class='line-number'>7</span><span class="cs-punctuation">{</span>
-<span class='line-number' data-member='Aspect'>8</span><span class="cr-NeutralTrivia">    </span><span class="cr-CompileTime cs-keyword">class</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-class-name">Aspect</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-punctuation">:</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-class-name">OverrideMethodAspect</span>
+<span class='line-number' data-member='Aspect'>8</span><span class="cr-NeutralTrivia">    </span><span class="cr-CompileTime cs-keyword">internal</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-keyword">class</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-class-name">Aspect</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-punctuation">:</span><span class="cr-CompileTime"> </span><span class="cr-CompileTime cs-class-name">OverrideMethodAspect</span>
 <span class='line-number' data-member='Aspect'>9</span><span class="cr-NeutralTrivia">    </span><span class="cr-CompileTime cs-punctuation">{</span>
 <span class='line-number' data-member='Aspect.OverrideMethod'>10</span><span class="cr-NeutralTrivia">        </span><span class="cs-keyword">public</span> <span class="cs-keyword">override</span> <span class="cs-keyword">dynamic</span><span class="cs-operator">?</span> <span class="cs-method-name">OverrideMethod</span><span class="cs-punctuation">()</span>
 <span class='line-number' data-member='Aspect.OverrideMethod'>11</span><span class="cr-NeutralTrivia">        </span><span class="cr-RunTime cs-punctuation">{</span>
@@ -73,10 +73,10 @@
 <span class='line-number' data-member='Aspect.OverrideMethod'>16</span><span class="cr-NeutralTrivia">        </span><span class="cr-RunTime cs-punctuation">}</span>
 <span class='line-number' data-member='Aspect'>17</span><span class="cr-NeutralTrivia">    </span><span class="cr-CompileTime cs-punctuation">}</span>
 <span class='line-number' data-member='Aspect'>18</span>
-<span class='line-number' data-member='TargetCode'>19</span>    <span class="cs-keyword">class</span> <span class="cs-class-name">TargetCode</span>
+<span class='line-number' data-member='TargetCode'>19</span>    <span class="cs-keyword">internal</span> <span class="cs-keyword">class</span> <span class="cs-class-name">TargetCode</span>
 <span class='line-number' data-member='TargetCode'>20</span>    <span class="cs-punctuation">{</span>
 <span class='line-number' data-member='TargetCode.M'>21</span>        <span class="cs-punctuation">[</span><span class="cs-class-name">Aspect</span><span class="cs-punctuation">]</span>
-<span class='line-number' data-member='TargetCode.M'>22</span>        <span class="cs-keyword">void</span> <span class="cs-method-name">M</span><span class="cs-punctuation">(</span><span class="cs-keyword">int</span> <span class="cs-parameter-name">a</span><span class="cs-punctuation">)</span> <span class="cs-punctuation">{}</span>
+<span class='line-number' data-member='TargetCode.M'>22</span>        <span class="cs-keyword">private</span> <span class="cs-keyword">void</span> <span class="cs-method-name">M</span><span class="cs-punctuation">(</span><span class="cs-keyword">int</span> <span class="cs-parameter-name">a</span><span class="cs-punctuation">)</span> <span class="cs-punctuation">{}</span>
 <span class='line-number' data-member='TargetCode'>23</span>    <span class="cs-punctuation">}</span>
 <span class='line-number' data-member='TargetCode'>24</span>
 <span class='line-number' data-member='TargetCode'>25</span>

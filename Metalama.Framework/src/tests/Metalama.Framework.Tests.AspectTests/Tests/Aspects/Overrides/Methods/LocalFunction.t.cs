@@ -9,7 +9,7 @@ internal class TargetClass
     {
       global::System.Int32 x_1;
       x_1 = Bar(Bar(x));
-      int Bar(int x)
+      static int Bar(int x)
       {
         return x + 1;
       }

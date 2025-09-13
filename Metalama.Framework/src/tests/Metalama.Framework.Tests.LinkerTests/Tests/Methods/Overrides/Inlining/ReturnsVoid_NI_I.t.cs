@@ -1,10 +1,10 @@
-class Target
+internal class Target
 {
-  void Foo()
+  private void Foo()
   {
     this.Foo_Override();
   }
-  void Foo_Override()
+  private void Foo_Override()
   {
     Console.WriteLine("Before");
     Console.WriteLine("Original");

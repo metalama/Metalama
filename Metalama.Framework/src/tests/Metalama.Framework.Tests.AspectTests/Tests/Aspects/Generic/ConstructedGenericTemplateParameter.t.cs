@@ -1,4 +1,4 @@
-class TargetCode
+internal class TargetCode
 {
   [Aspect]
   public int M(int[] arg)

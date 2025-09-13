@@ -1,8 +1,8 @@
-partial class Target
+internal partial class Target
 {
   [TheAspect]
-  partial int this[int i] { get; set; }
-  partial int this[int i]
+  private partial int this[int i] { get; set; }
+  private partial int this[int i]
   {
     get
     {
@@ -15,9 +15,9 @@ partial class Target
       throw new Exception();
     }
   }
-  partial int this[string s] { get; set; }
+  private partial int this[string s] { get; set; }
   [TheAspect]
-  partial int this[string s]
+  private partial int this[string s]
   {
     get
     {
@@ -31,8 +31,8 @@ partial class Target
     }
   }
   [TheAspect]
-  partial int this[long i] { get; }
-  partial int this[long i]
+  private partial int this[long i] { get; }
+  private partial int this[long i]
   {
     get
     {

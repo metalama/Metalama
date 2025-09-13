@@ -1,6 +1,6 @@
-class Target
+internal class Target
 {
-  void Foo()
+  private void Foo()
   {
     this.Foo_Override2();
   }
@@ -8,7 +8,7 @@ class Target
   {
     Console.WriteLine("Original");
   }
-  void Foo_Override2()
+  private void Foo_Override2()
   {
     Console.WriteLine("Before2");
     Console.WriteLine("Before1");

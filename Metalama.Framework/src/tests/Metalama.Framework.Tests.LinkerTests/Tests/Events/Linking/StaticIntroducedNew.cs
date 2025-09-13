@@ -2,159 +2,177 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using System;
 using static Metalama.Framework.Tests.LinkerTests.Tests.Api;
 
 namespace Metalama.Framework.Tests.LinkerTests.Tests.Events.Linking.StaticIntroducedNew
 {
     public class Base
     {
-        public static event System.EventHandler Bar
+        public static event EventHandler Bar
         {
-            add
-            {
-            }
-            remove
-            {
-            }
+            add { }
+            remove { }
         }
     }
 
-    [PseudoLayerOrder("A0")]
-    [PseudoLayerOrder("A1")]
-    [PseudoLayerOrder("A2")]
-    [PseudoLayerOrder("A3")]
-    [PseudoLayerOrder("A4")]
-    [PseudoLayerOrder("A5")]
-    internal
+    [PseudoLayerOrder( "A0" )]
+    [PseudoLayerOrder( "A1" )]
+    [PseudoLayerOrder( "A2" )]
+    [PseudoLayerOrder( "A3" )]
+    [PseudoLayerOrder( "A4" )]
+    [PseudoLayerOrder( "A5" )]
+
     // <target>
-    class Target : Base
+    internal class Target : Base
     {
-        public static event System.EventHandler Foo
+        public static event EventHandler Foo
         {
             add
             {
-                System.Console.WriteLine("This is original code (discarded).");
+                Console.WriteLine( "This is original code (discarded)." );
             }
             remove
             {
-                System.Console.WriteLine("This is original code (discarded).");
+                Console.WriteLine( "This is original code (discarded)." );
             }
         }
 
-        [PseudoIntroduction("A1")]
+        [PseudoIntroduction( "A1" )]
         [PseudoNotInlineable]
-        public static new event System.EventHandler Bar
+        public static new event EventHandler Bar
         {
             add
             {
-                System.Console.WriteLine("SHOULD BE DISCARDED (this is introduced code).");
+                Console.WriteLine( "SHOULD BE DISCARDED (this is introduced code)." );
             }
             remove
             {
-                System.Console.WriteLine("SHOULD BE DISCARDED (this is introduced code).");
+                Console.WriteLine( "SHOULD BE DISCARDED (this is introduced code)." );
             }
         }
 
-        [PseudoOverride(nameof(Foo), "A0")]
-        [PseudoNotInlineable]
-        [PseudoNotDiscardable]
-        public static event System.EventHandler Foo_Override0
-        {
-            add
-            {
-                // Should invoke empty code.
-                Link[Static.Target.Bar.add, Api.Base] += value;
-                // Should invoke empty code.
-                Link[Static.Target.Bar.add, Previous] += value;
-                // Should invoke empty code.
-                Link[Static.Target.Bar.add, Current] += value;
-                // Should invoke the final declaration.
-                Link[Static.Target.Bar.add, Final] += value;
-            }
-            remove
-            {
-                // Should invoke empty code.
-                Link[Static.Target.Bar.remove, Api.Base] -= value;
-                // Should invoke empty code.
-                Link[Static.Target.Bar.remove, Previous] -= value;
-                // Should invoke empty code.
-                Link[Static.Target.Bar.remove, Current] -= value;
-                // Should invoke the final declaration.
-                Link[Static.Target.Bar.remove, Final] -= value;
-            }
-        }
-
-        [PseudoOverride(nameof(Foo), "A2")]
+        [PseudoOverride( nameof(Foo), "A0" )]
         [PseudoNotInlineable]
         [PseudoNotDiscardable]
-        public static event System.EventHandler Foo_Override2
+        public static event EventHandler Foo_Override0
         {
             add
             {
-                // Should invoke override 1_2.
+                // Should invoke empty code.
                 Link[Static.Target.Bar.add, Api.Base] += value;
-                // Should invoke override 1_2.
+
+                // Should invoke empty code.
                 Link[Static.Target.Bar.add, Previous] += value;
-                // Should invoke override 1_2.
+
+                // Should invoke empty code.
                 Link[Static.Target.Bar.add, Current] += value;
+
                 // Should invoke the final declaration.
                 Link[Static.Target.Bar.add, Final] += value;
             }
             remove
             {
-                // Should invoke override 1_2.
+                // Should invoke empty code.
                 Link[Static.Target.Bar.remove, Api.Base] -= value;
-                // Should invoke override 1_2.
+
+                // Should invoke empty code.
                 Link[Static.Target.Bar.remove, Previous] -= value;
-                // Should invoke override 1_2.
+
+                // Should invoke empty code.
                 Link[Static.Target.Bar.remove, Current] -= value;
+
                 // Should invoke the final declaration.
                 Link[Static.Target.Bar.remove, Final] -= value;
             }
         }
 
-        [PseudoOverride(nameof(Foo), "A4")]
+        [PseudoOverride( nameof(Foo), "A2" )]
         [PseudoNotInlineable]
         [PseudoNotDiscardable]
-        public static event System.EventHandler Foo_Override4
+        public static event EventHandler Foo_Override2
         {
             add
             {
-                // Should invoke override 3_2.
+                // Should invoke override 1_2.
                 Link[Static.Target.Bar.add, Api.Base] += value;
-                // Should invoke override 3_2.
+
+                // Should invoke override 1_2.
                 Link[Static.Target.Bar.add, Previous] += value;
-                // Should invoke override 3_2.
+
+                // Should invoke override 1_2.
                 Link[Static.Target.Bar.add, Current] += value;
+
                 // Should invoke the final declaration.
                 Link[Static.Target.Bar.add, Final] += value;
             }
             remove
             {
-                // Should invoke override 3_2.
+                // Should invoke override 1_2.
                 Link[Static.Target.Bar.remove, Api.Base] -= value;
-                // Should invoke override 3_2.
+
+                // Should invoke override 1_2.
                 Link[Static.Target.Bar.remove, Previous] -= value;
-                // Should invoke override 3_2.
+
+                // Should invoke override 1_2.
                 Link[Static.Target.Bar.remove, Current] -= value;
+
                 // Should invoke the final declaration.
                 Link[Static.Target.Bar.remove, Final] -= value;
             }
         }
 
-        [PseudoOverride(nameof(Foo), "A6")]
+        [PseudoOverride( nameof(Foo), "A4" )]
         [PseudoNotInlineable]
         [PseudoNotDiscardable]
-        public static event System.EventHandler Foo_Override6
+        public static event EventHandler Foo_Override4
+        {
+            add
+            {
+                // Should invoke override 3_2.
+                Link[Static.Target.Bar.add, Api.Base] += value;
+
+                // Should invoke override 3_2.
+                Link[Static.Target.Bar.add, Previous] += value;
+
+                // Should invoke override 3_2.
+                Link[Static.Target.Bar.add, Current] += value;
+
+                // Should invoke the final declaration.
+                Link[Static.Target.Bar.add, Final] += value;
+            }
+            remove
+            {
+                // Should invoke override 3_2.
+                Link[Static.Target.Bar.remove, Api.Base] -= value;
+
+                // Should invoke override 3_2.
+                Link[Static.Target.Bar.remove, Previous] -= value;
+
+                // Should invoke override 3_2.
+                Link[Static.Target.Bar.remove, Current] -= value;
+
+                // Should invoke the final declaration.
+                Link[Static.Target.Bar.remove, Final] -= value;
+            }
+        }
+
+        [PseudoOverride( nameof(Foo), "A6" )]
+        [PseudoNotInlineable]
+        [PseudoNotDiscardable]
+        public static event EventHandler Foo_Override6
         {
             add
             {
                 // Should invoke the final declaration.
                 Link[Static.Target.Bar.add, Api.Base] += value;
+
                 // Should invoke the final declaration.
                 Link[Static.Target.Bar.add, Previous] += value;
+
                 // Should invoke the final declaration.
                 Link[Static.Target.Bar.add, Current] += value;
+
                 // Should invoke the final declaration.
                 Link[Static.Target.Bar.add, Final] += value;
             }
@@ -162,27 +180,33 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Events.Linking.StaticIntrod
             {
                 // Should invoke the final declaration.
                 Link[Static.Target.Bar.remove, Api.Base] -= value;
+
                 // Should invoke the final declaration.
                 Link[Static.Target.Bar.remove, Previous] -= value;
+
                 // Should invoke the final declaration.
                 Link[Static.Target.Bar.remove, Current] -= value;
+
                 // Should invoke the final declaration.
                 Link[Static.Target.Bar.remove, Final] -= value;
             }
         }
 
-        [PseudoOverride(nameof(Bar), "A1")]
+        [PseudoOverride( nameof(Bar), "A1" )]
         [PseudoNotInlineable]
-        private static event System.EventHandler Bar_Override1_1
+        private static event EventHandler Bar_Override1_1
         {
             add
             {
                 // Should invoke empty code.
                 Link[Static.Target.Bar.add, Api.Base] += value;
+
                 // Should invoke empty code.
                 Link[Static.Target.Bar.add, Previous] += value;
+
                 // Should invoke override 1_2.
                 Link[Static.Target.Bar.add, Current] += value;
+
                 // Should invoke the final declaration.
                 Link[Static.Target.Bar.add, Final] += value;
             }
@@ -190,27 +214,33 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Events.Linking.StaticIntrod
             {
                 // Should invoke empty code.
                 Link[Static.Target.Bar.remove, Api.Base] -= value;
+
                 // Should invoke empty code.
                 Link[Static.Target.Bar.remove, Previous] -= value;
+
                 // Should invoke override 1_2.
                 Link[Static.Target.Bar.remove, Current] -= value;
+
                 // Should invoke the final declaration.
                 Link[Static.Target.Bar.remove, Final] -= value;
             }
         }
 
-        [PseudoOverride(nameof(Bar), "A1")]
+        [PseudoOverride( nameof(Bar), "A1" )]
         [PseudoNotInlineable]
-        private static event System.EventHandler Bar_Override1_2
+        private static event EventHandler Bar_Override1_2
         {
             add
             {
                 // Should invoke empty code.
                 Link[Static.Target.Bar.add, Api.Base] += value;
+
                 // Should invoke override 1_1.
                 Link[Static.Target.Bar.add, Previous] += value;
+
                 // Should invoke override 1_2.
                 Link[Static.Target.Bar.add, Current] += value;
+
                 // Should invoke the final declaration.
                 Link[Static.Target.Bar.add, Final] += value;
             }
@@ -218,27 +248,33 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Events.Linking.StaticIntrod
             {
                 // Should invoke empty code.
                 Link[Static.Target.Bar.remove, Api.Base] -= value;
+
                 // Should invoke override 1_1.
                 Link[Static.Target.Bar.remove, Previous] -= value;
+
                 // Should invoke override 1_2.
                 Link[Static.Target.Bar.remove, Current] -= value;
+
                 // Should invoke the final declaration.
                 Link[Static.Target.Bar.remove, Final] -= value;
             }
         }
 
-        [PseudoOverride(nameof(Bar), "A3")]
+        [PseudoOverride( nameof(Bar), "A3" )]
         [PseudoNotInlineable]
-        private static event System.EventHandler Bar_Override3_1
+        private static event EventHandler Bar_Override3_1
         {
             add
             {
                 // Should invoke override 1_2.
                 Link[Static.Target.Bar.add, Api.Base] += value;
+
                 // Should invoke override 1_2.
                 Link[Static.Target.Bar.add, Previous] += value;
+
                 // Should invoke override 3_2.
                 Link[Static.Target.Bar.add, Current] += value;
+
                 // Should invoke the final declaration.
                 Link[Static.Target.Bar.add, Final] += value;
             }
@@ -246,27 +282,33 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Events.Linking.StaticIntrod
             {
                 // Should invoke override 1_2.
                 Link[Static.Target.Bar.remove, Api.Base] -= value;
+
                 // Should invoke override 1_2.
                 Link[Static.Target.Bar.remove, Previous] -= value;
+
                 // Should invoke override 3_2.
                 Link[Static.Target.Bar.remove, Current] -= value;
+
                 // Should invoke the final declaration.
                 Link[Static.Target.Bar.remove, Final] -= value;
             }
         }
 
-        [PseudoOverride(nameof(Bar), "A3")]
+        [PseudoOverride( nameof(Bar), "A3" )]
         [PseudoNotInlineable]
-        private static event System.EventHandler Bar_Override3_2
+        private static event EventHandler Bar_Override3_2
         {
             add
             {
                 // Should invoke override 1_2.
                 Link[Static.Target.Bar.add, Api.Base] += value;
+
                 // Should invoke override 3_1.
                 Link[Static.Target.Bar.add, Previous] += value;
+
                 // Should invoke override 3_2.
                 Link[Static.Target.Bar.add, Current] += value;
+
                 // Should invoke the final declaration.
                 Link[Static.Target.Bar.add, Final] += value;
             }
@@ -274,27 +316,33 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Events.Linking.StaticIntrod
             {
                 // Should invoke override 1_2.
                 Link[Static.Target.Bar.remove, Api.Base] -= value;
+
                 // Should invoke override 3_1.
                 Link[Static.Target.Bar.remove, Previous] -= value;
+
                 // Should invoke override 3_2.
                 Link[Static.Target.Bar.remove, Current] -= value;
+
                 // Should invoke the final declaration.
                 Link[Static.Target.Bar.remove, Final] -= value;
             }
         }
 
-        [PseudoOverride(nameof(Bar), "A5")]
+        [PseudoOverride( nameof(Bar), "A5" )]
         [PseudoNotInlineable]
-        private static event System.EventHandler Bar_Override5_1
+        private static event EventHandler Bar_Override5_1
         {
             add
             {
                 // Should invoke override 3_2.
                 Link[Static.Target.Bar.add, Api.Base] += value;
+
                 // Should invoke override 3_2.
                 Link[Static.Target.Bar.add, Previous] += value;
+
                 // Should invoke the final declaration.
                 Link[Static.Target.Bar.add, Current] += value;
+
                 // Should invoke the final declaration.
                 Link[Static.Target.Bar.add, Final] += value;
             }
@@ -302,27 +350,33 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Events.Linking.StaticIntrod
             {
                 // Should invoke override 3_2.
                 Link[Static.Target.Bar.remove, Api.Base] -= value;
+
                 // Should invoke override 3_2.
                 Link[Static.Target.Bar.remove, Previous] -= value;
+
                 // Should invoke the final declaration.
                 Link[Static.Target.Bar.remove, Current] -= value;
+
                 // Should invoke the final declaration.
                 Link[Static.Target.Bar.remove, Final] -= value;
             }
         }
 
-        [PseudoOverride(nameof(Bar), "A5")]
+        [PseudoOverride( nameof(Bar), "A5" )]
         [PseudoNotInlineable]
-        private static event System.EventHandler Bar_Override5_2
+        private static event EventHandler Bar_Override5_2
         {
             add
             {
                 // Should invoke override 3_2.
                 Link[Static.Target.Bar.add, Api.Base] += value;
+
                 // Should invoke override 5_1.
                 Link[Static.Target.Bar.add, Previous] += value;
+
                 // Should invoke the final declaration.
                 Link[Static.Target.Bar.add, Current] += value;
+
                 // Should invoke the final declaration.
                 Link[Static.Target.Bar.add, Final] += value;
             }
@@ -330,10 +384,13 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Events.Linking.StaticIntrod
             {
                 // Should invoke override 3_2.
                 Link[Static.Target.Bar.remove, Api.Base] -= value;
+
                 // Should invoke override 5_1.
                 Link[Static.Target.Bar.remove, Previous] -= value;
+
                 // Should invoke the final declaration.
                 Link[Static.Target.Bar.remove, Current] -= value;
+
                 // Should invoke the final declaration.
                 Link[Static.Target.Bar.remove, Final] -= value;
             }

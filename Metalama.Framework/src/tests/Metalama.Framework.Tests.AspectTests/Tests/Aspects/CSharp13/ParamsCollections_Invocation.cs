@@ -9,6 +9,7 @@
 #if ROSLYN_4_12_0_OR_GREATER
 
 using Metalama.Framework.Aspects;
+using Metalama.Framework.Code;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -25,7 +26,7 @@ public class TheAspect : TypeAspect
 
         var method = meta.Target.Type.Methods.Single();
 
-        method.With(value).Invoke(1, 2, 3);
+        method.With( (IExpression) value).Invoke(1, 2, 3);
 
         value.Foo(1, 2, 3);
     }

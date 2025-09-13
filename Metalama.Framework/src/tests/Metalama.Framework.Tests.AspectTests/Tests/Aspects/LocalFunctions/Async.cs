@@ -7,6 +7,7 @@
 #endif
 
 #pragma warning disable CS1998
+#pragma warning disable IDE0062
 
 using System.Threading.Tasks;
 using Metalama.Framework.Aspects;
@@ -24,7 +25,7 @@ public class RetryAttribute : OverrideMethodAspect
     // Template for async methods.
     public override async Task<dynamic?> OverrideAsyncMethod()
     {
-        static async Task<object?> ExecuteCoreAsync()
+        async Task<object?> ExecuteCoreAsync()
         {
             return await meta.ProceedAsync();
         }

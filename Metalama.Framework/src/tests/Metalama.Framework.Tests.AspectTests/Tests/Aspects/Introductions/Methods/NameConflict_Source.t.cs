@@ -9,7 +9,7 @@ internal class TargetClass
   {
     Foo_1();
     return (global::System.Int32)Foo();
-    void Foo_1()
+    static void Foo_1()
     {
     }
   }

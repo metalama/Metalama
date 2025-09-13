@@ -7,11 +7,13 @@ using Metalama.Framework.Aspects;
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.TemplateTypeParameter.NonVoidReturnTypeInVoid_LocalAssignment;
 
+#pragma warning disable IDE0062
+
 public class Override : OverrideMethodAspect
 {
     public override dynamic? OverrideMethod()
     {
-        static int LocalFunction()
+        int LocalFunction()
         {
             var x = meta.Proceed();
 

@@ -1,8 +1,6 @@
 using System;
-using System.Linq;
 using System.Runtime.CompilerServices;
-using Metalama.Framework.Advising;
-using Metalama.Framework.Aspects; 
+using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.CSharp12.InlineArrays_RunTime;
 #pragma warning disable CS0067, CS8618, CS0162, CS0169, CS0414, CA1822, CA1823, IDE0051, IDE0052
@@ -22,10 +20,10 @@ public struct Buffer
 public class C
 {
   [TheAspect]
-  void M()
+  private void M()
   {
     var buffer_1 = new global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.CSharp12.InlineArrays_RunTime.Buffer();
-    for (int i_1 = 0; i_1 < 10; i_1++)
+    for (var i_1 = 0; i_1 < 10; i_1++)
     {
       buffer_1[i_1] = i_1;
     }
@@ -34,7 +32,7 @@ public class C
       global::System.Console.WriteLine(i_2);
     }
     var buffer = new Buffer();
-    for (int i = 0; i < 10; i++)
+    for (var i = 0; i < 10; i++)
     {
       buffer[i] = i;
     }

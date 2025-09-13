@@ -8,7 +8,7 @@ public class Target
   public IEnumerable<int> Foo()
   {
     return (global::System.Collections.Generic.IEnumerable<global::System.Int32>)GetNumbers();
-    global::System.Collections.Generic.IEnumerable<global::System.Int32> GetNumbers()
+    static global::System.Collections.Generic.IEnumerable<global::System.Int32> GetNumbers()
     {
       yield return 42;
     }

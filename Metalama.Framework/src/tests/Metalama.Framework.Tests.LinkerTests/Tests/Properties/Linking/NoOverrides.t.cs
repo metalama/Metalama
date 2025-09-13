@@ -52,7 +52,7 @@ public class Target : Base
     {
     }
   }
-  public new static int BaseStaticHiddenMethod
+  public static new int BaseStaticHiddenMethod
   {
     get
     {

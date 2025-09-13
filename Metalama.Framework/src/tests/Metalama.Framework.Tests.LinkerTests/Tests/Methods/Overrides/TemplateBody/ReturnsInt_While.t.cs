@@ -1,10 +1,10 @@
-class Target
+internal class Target
 {
-  int Foo(int x)
+  private int Foo(int x)
   {
     Console.WriteLine("Before");
-    int i = 0;
-    int k = 0;
+    var i = 0;
+    var k = 0;
     while (i < 0)
     {
       int result;

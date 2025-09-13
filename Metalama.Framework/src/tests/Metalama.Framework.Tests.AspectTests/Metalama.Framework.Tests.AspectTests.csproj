@@ -20,6 +20,7 @@
         <OutputType>Library</OutputType>
         <AssemblyName>Metalama.Framework.Tests.AspectTests.$(ThisRoslynVersionNoPreview)</AssemblyName>
         <LangVersion Condition="'$(LangVersionOverride)'!=''">$(LangVersionOverride)</LangVersion>
+        <ImplicitUsings>disable</ImplicitUsings>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">

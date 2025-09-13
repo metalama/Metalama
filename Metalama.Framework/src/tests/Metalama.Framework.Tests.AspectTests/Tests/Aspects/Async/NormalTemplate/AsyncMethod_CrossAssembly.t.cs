@@ -14,7 +14,7 @@ internal class TargetCode
     return a;
   }
   [Aspect]
-  async Task MethodReturningTask(int a)
+  private async Task MethodReturningTask(int a)
   {
     global::System.Console.WriteLine("Before");
     await this.MethodReturningTask_Source(a);
@@ -41,7 +41,7 @@ internal class TargetCode
     return a;
   }
   [Aspect]
-  async ValueTask MethodReturningValueTask(int a)
+  private async ValueTask MethodReturningValueTask(int a)
   {
     global::System.Console.WriteLine("Before");
     await this.MethodReturningValueTask_Source(a);

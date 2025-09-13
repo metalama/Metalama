@@ -64,7 +64,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
                 SeparatedSyntaxList<ArgumentSyntax> arguments,
                 [NotNullWhen( true )] out SyntaxNode? transformedNode )
             {
-                if ( expression is IdentifierNameSyntax { Identifier.ValueText: "link" } )
+                if ( expression is IdentifierNameSyntax { Identifier.ValueText: nameof(Api.Link) } )
                 {
                     // TODO: Annotation order.
                     if ( arguments.Count is < 1 or > 3 )
@@ -83,29 +83,34 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
                     {
                         var tag = arguments[i].ToString();
 
+                        if ( tag.StartsWith( nameof(Api), StringComparison.Ordinal ) )
+                        {
+                            tag = tag.Substring( nameof(Api).Length + 1 );
+                        }
+
                         switch ( tag )
                         {
-                            case "inline":
+                            case nameof(Api.Inline):
                                 flags |= AspectReferenceFlags.Inlineable;
 
                                 break;
 
-                            case "@base":
+                            case nameof(Api.Base):
                                 order = AspectReferenceOrder.Base;
 
                                 break;
 
-                            case "previous":
+                            case nameof(Api.Previous):
                                 order = AspectReferenceOrder.Previous;
 
                                 break;
 
-                            case "current":
+                            case nameof(Api.Current):
                                 order = AspectReferenceOrder.Current;
 
                                 break;
 
-                            case "final":
+                            case nameof(Api.Final):
                                 order = AspectReferenceOrder.Final;
 
                                 break;

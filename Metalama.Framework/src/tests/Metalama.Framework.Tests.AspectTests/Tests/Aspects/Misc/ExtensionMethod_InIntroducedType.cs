@@ -5,7 +5,6 @@
 using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
-using Metalama.Framework.Engine;
 
 [assembly: Metalama.Framework.Tests.Integration.Tests.Aspects.Misc.ExtensionMethod_InIntroducedType.TheAspect]
 
@@ -28,7 +27,7 @@ internal class TheAspect : CompilationAspect
     {
         base.BuildAspect(builder);
 
-        var typeAdviser = builder.WithNamespace(typeof(TheAspect).Namespace.AssertNotNull()).IntroduceClass("Target", buildType: typeBuilder => typeBuilder.IsStatic = true);
+        var typeAdviser = builder.WithNamespace(typeof(TheAspect).Namespace!).IntroduceClass("Target", buildType: typeBuilder => typeBuilder.IsStatic = true);
         typeAdviser.IntroduceMethod(nameof(ExtensionMethodTemplate));
         typeAdviser.IntroduceMethod(nameof(Usage));
     }

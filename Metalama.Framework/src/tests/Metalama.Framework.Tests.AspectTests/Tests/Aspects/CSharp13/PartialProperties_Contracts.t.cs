@@ -1,8 +1,8 @@
-partial class Target
+internal partial class Target
 {
   [TheAspect]
-  partial string P1 { get; set; }
-  partial string P1
+  private partial string P1 { get; set; }
+  private partial string P1
   {
     get => "foo";
     set
@@ -14,9 +14,9 @@ partial class Target
       throw new Exception();
     }
   }
-  partial string P2 { get; set; }
+  private partial string P2 { get; set; }
   [TheAspect]
-  partial string P2
+  private partial string P2
   {
     get => "foo";
     set
@@ -29,8 +29,8 @@ partial class Target
     }
   }
   [TheAspect]
-  partial string P3 { get; }
-  partial string P3
+  private partial string P3 { get; }
+  private partial string P3
   {
     get
     {

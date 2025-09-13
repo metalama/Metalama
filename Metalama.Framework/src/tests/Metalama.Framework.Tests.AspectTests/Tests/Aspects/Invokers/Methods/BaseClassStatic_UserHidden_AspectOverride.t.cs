@@ -1,7 +1,7 @@
 public class TargetClass : BaseClass
 {
   [OverrideAspect]
-  public new static void Method()
+  public static new void Method()
   { // Invoke TargetClass.Method_Source
     global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Invokers.Methods.BaseClassStatic_UserHidden_AspectOverride.TargetClass.Method_Source();
     // Invoke TargetClass.Method_Source

@@ -1,6 +1,6 @@
-class TargetClass
+internal class TargetClass
 {
-  int IntMethod()
+  private int IntMethod()
   {
     Console.WriteLine("Before");
     global::System.Int32 y;
@@ -27,7 +27,7 @@ class TargetClass
       Console.WriteLine("After");
     return y;
   }
-  void VoidMethod()
+  private void VoidMethod()
   {
     Console.WriteLine("Before");
     if (new Random().Next() == 0)

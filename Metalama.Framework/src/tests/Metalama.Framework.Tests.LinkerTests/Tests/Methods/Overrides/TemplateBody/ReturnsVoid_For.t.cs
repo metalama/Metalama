@@ -1,9 +1,9 @@
-class Target
+internal class Target
 {
-  void Foo()
+  private void Foo()
   {
     Console.WriteLine("Before");
-    for (int i = 0; i < 5; i++)
+    for (var i = 0; i < 5; i++)
     {
       Console.WriteLine("Original");
     }

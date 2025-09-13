@@ -5,6 +5,8 @@
 using System;
 using Metalama.Framework.Aspects;
 
+#pragma warning disable IDE0062
+
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Overrides.Methods.LocalFunction
 {
     public class OverrideAttribute : OverrideMethodAspect
@@ -15,7 +17,7 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Overrides.Methods.L
 
             return Quz();
 
-            static int Quz()
+            int Quz()
             {
                 var x = meta.Proceed();
 
