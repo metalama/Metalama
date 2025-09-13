@@ -8,9 +8,9 @@ using static Metalama.Framework.Tests.LinkerTests.Tests.Api;
 namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Overrides.Jump.ReturnsVoid_FJ_NJ_FJ
 {
     // <target>
-    class Target
+    internal class Target
     {
-        void Foo(int x)
+        private void Foo(int x)
         {
             Console.WriteLine( "Original Start");
             if (x == 0)
@@ -22,15 +22,15 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Overrides.Jump.Retu
         }
 
         [PseudoOverride( nameof(Foo),"TestAspect1")]
-        void Foo_Override1(int x)
+        private void Foo_Override1(int x)
         {
             Console.WriteLine( "Before1");
-            link( _this.Foo, inline)(x);
+            Link( This.Foo, Inline)(x);
             Console.WriteLine( "After1");
         }
 
         [PseudoOverride( nameof(Foo),"TestAspect2")]
-        void Foo_Override2(int x)
+        private void Foo_Override2(int x)
         {
             Console.WriteLine( "Before2");
             if (x == 0)
@@ -38,15 +38,15 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Overrides.Jump.Retu
                 return;
             }
 
-            link( _this.Foo, inline)(x);
+            Link( This.Foo, Inline)(x);
             Console.WriteLine( "After2");
         }
 
         [PseudoOverride( nameof(Foo),"TestAspect3")]
-        void Foo_Override3(int x)
+        private void Foo_Override3(int x)
         {
             Console.WriteLine( "Before3");
-            link( _this.Foo, inline)(x);
+            Link( This.Foo, Inline)(x);
             Console.WriteLine( "After3");
         }
     }

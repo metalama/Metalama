@@ -8,9 +8,9 @@ using static Metalama.Framework.Tests.LinkerTests.Tests.Api;
 namespace Metalama.Framework.Tests.LinkerTests.Tests.Properties.Inliners.GetterAssignment_NotSimpleAssignment
 {
     // <target>
-    class Target
+    internal class Target
     {
-        int Foo
+        private int Foo
         {
             get
             {
@@ -20,13 +20,13 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Properties.Inliners.GetterA
         }
 
         [PseudoOverride( nameof(Foo),"TestAspect")]
-        int Foo_Override
+        private int Foo_Override
         {
             get
             {
                 Console.WriteLine( "Before");
-                int x = 0;
-                x += link( _this.Foo.get, inline );
+                var x = 0;
+                x += Link( This.Foo.get, Inline );
                 Console.WriteLine( "After");
                 return x;
             }

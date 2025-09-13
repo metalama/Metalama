@@ -32,7 +32,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
             public override SyntaxNode? VisitInvocationExpression( InvocationExpressionSyntax node )
             {
                 if ( node.Expression is MemberAccessExpressionSyntax { Name: GenericNameSyntax genericName } memberAccess
-                     && StringComparer.Ordinal.Equals( genericName.Identifier.ValueText, nameof(Api._cast) ) )
+                     && StringComparer.Ordinal.Equals( genericName.Identifier.ValueText, nameof(Api.Cast) ) )
                 {
                     return ParenthesizedExpression(
                         CastExpression(
@@ -171,8 +171,8 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
             {
                 if ( node.Kind() == SyntaxKind.SimpleMemberAccessExpression
                      && node.Expression is IdentifierNameSyntax identifier
-                     && (StringComparer.Ordinal.Equals( identifier.Identifier.ValueText, nameof(Api._static) )
-                         || StringComparer.Ordinal.Equals( identifier.Identifier.ValueText, nameof(Api._local) )) )
+                     && (StringComparer.Ordinal.Equals( identifier.Identifier.ValueText, nameof(Api.Static) )
+                         || StringComparer.Ordinal.Equals( identifier.Identifier.ValueText, nameof(Api.Local) )) )
                 {
                     return node.Name;
                 }
@@ -182,7 +182,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
 
             public override SyntaxNode? VisitIdentifierName( IdentifierNameSyntax node )
             {
-                if ( StringComparer.Ordinal.Equals( node.Identifier.ValueText, nameof(Api._this) ) )
+                if ( StringComparer.Ordinal.Equals( node.Identifier.ValueText, nameof(Api.This) ) )
                 {
                     return ThisExpression();
                 }

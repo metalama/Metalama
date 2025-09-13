@@ -18,7 +18,7 @@ public class Override : MethodAspect
     [Template]
     private T Template<[CompileTime] T>()
     {
-        T LocalFunction()
+        static T LocalFunction()
         {
             return meta.Proceed()!;
         }

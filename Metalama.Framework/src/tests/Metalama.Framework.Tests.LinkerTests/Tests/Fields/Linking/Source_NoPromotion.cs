@@ -7,6 +7,7 @@ using static Metalama.Framework.Tests.LinkerTests.Tests.Api;
 namespace Metalama.Framework.Tests.LinkerTests.Tests.Fields.Linking.Source_NoPromotion
 {
     [PseudoLayerOrder("A0")]
+    internal
     // <target>
     class Target
     {
@@ -34,26 +35,26 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Fields.Linking.Source_NoPro
             get
             {
                 // Should invoke the final declaration.
-                _ = link(_this.Bar, @base);
+                _ = Link(This.Bar, Base);
                 // Should invoke the final declaration.
-                _ = link(_this.Bar, previous);
+                _ = Link(This.Bar, Previous );
                 // Should invoke the final declaration.
-                _ = link(_this.Bar, current);
+                _ = Link(This.Bar, Current);
                 // Should invoke the final declaration.
-                _ = link(_this.Bar, final);
+                _ = Link(This.Bar, Final);
 
                 return 42;
             }
             set
             {
                 // Should invoke the final declaration.
-                link[_this.Bar, @base] = value;
+                Link[This.Bar, Base] = value;
                 // Should invoke the final declaration.
-                link[_this.Bar, previous] = value;
+                Link[This.Bar, Previous] = value;
                 // Should invoke the final declaration.
-                link[_this.Bar, current] = value;
+                Link[This.Bar, Current] = value;
                 // Should invoke the final declaration.
-                link[_this.Bar, final] = value;
+                Link[This.Bar, Final] = value;
             }
         }
     }

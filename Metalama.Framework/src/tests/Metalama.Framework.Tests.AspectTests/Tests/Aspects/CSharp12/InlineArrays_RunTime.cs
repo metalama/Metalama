@@ -9,9 +9,7 @@
 
 #if NET8_0_OR_GREATER && ROSLYN_4_8_0_OR_GREATER
 using System;
-using System.Linq;
 using System.Runtime.CompilerServices;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects; 
 using Metalama.Framework.Code;
 
@@ -27,7 +25,7 @@ public class TheAspect : OverrideMethodAspect
     public override dynamic? OverrideMethod()
     {
         var buffer = new Buffer();
-        for (int i = 0; i < 10; i++)
+        for (var i = 0; i < 10; i++)
         {
             buffer[i] = i;
         }
@@ -52,10 +50,10 @@ public struct Buffer
 public class C
 {
     [TheAspect]
-    void M()
+    private void M()
     {
         var buffer = new Buffer();
-        for (int i = 0; i < 10; i++)
+        for (var i = 0; i < 10; i++)
         {
             buffer[i] = i;
         }

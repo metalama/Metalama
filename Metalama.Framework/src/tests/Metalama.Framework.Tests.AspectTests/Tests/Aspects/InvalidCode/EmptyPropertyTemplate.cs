@@ -6,7 +6,7 @@ using Metalama.Framework.Aspects;
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.InvalidCode.EmptyPropertyTemplate;
 
-class Aspect : TypeAspect
+internal class Aspect : TypeAspect
 {
 #if TESTRUNNER
     [Template]

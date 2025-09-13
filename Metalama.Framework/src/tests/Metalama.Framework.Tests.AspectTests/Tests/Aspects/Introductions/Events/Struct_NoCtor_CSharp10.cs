@@ -6,7 +6,6 @@
 // @LanguageVersion(10)
 #endif
 
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using System;
 

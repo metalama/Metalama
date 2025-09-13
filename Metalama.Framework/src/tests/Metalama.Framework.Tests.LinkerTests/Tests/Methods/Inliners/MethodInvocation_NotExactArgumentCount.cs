@@ -8,23 +8,23 @@ using static Metalama.Framework.Tests.LinkerTests.Tests.Api;
 namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Inliners.MethodInvocation_NotExactArgumentCount
 {
     // <target>
-    class Target
+    internal class Target
     {
-        void Foo(int x)
+        private void Foo(int x)
         {
             Console.WriteLine( "Original");
         }
 
-        void Foo(int x, int y)
+        private void Foo(int x, int y)
         {
             Console.WriteLine("Original");
         }
 
         [PseudoOverride( nameof(Foo),"TestAspect")]
-        void Foo_Override(int x)
+        private void Foo_Override(int x)
         {
             Console.WriteLine( "Before");
-            link( _this.Foo, inline)(x, 42);
+            Link( This.Foo, Inline)(x, 42);
             Console.WriteLine( "After");
         }
     }

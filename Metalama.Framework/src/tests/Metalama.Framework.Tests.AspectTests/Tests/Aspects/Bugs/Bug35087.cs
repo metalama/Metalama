@@ -5,7 +5,6 @@
 using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
-using System;
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Bugs.Bug35087;
 

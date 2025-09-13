@@ -6,7 +6,6 @@
 // @RequiredConstant(NET5_0_OR_GREATER) - Default interface members need to be supported by the runtime.
 #endif
 
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using System;
 
@@ -50,7 +49,7 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Overrides.Events.In
         }
 
         [Override]
-        public static event EventHandler StaticEvent
+static event EventHandler StaticEvent
         {
             add
             {

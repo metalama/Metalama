@@ -17,7 +17,7 @@ public sealed class TestAspect : TypeAspect
         base.BuildAspect( builder );
 
         // typeof(RunTimeOrCompileTimeClass) is RuntimeType, not CompileTimeType, so GetMethod works on it (and returns RuntimeMethodInfo).
-        var method = typeof(RunTimeOrCompileTimeClass).GetMethod( "M" );
+        var method = typeof(RunTimeOrCompileTimeClass).GetMethod( "M" )!;
 
         var arrayBuilder = new ArrayBuilder( typeof(MethodInfo) );
         arrayBuilder.Add( method.ToExpression() );

@@ -41,20 +41,20 @@ namespace Metalama.Framework.Tests.AspectTests.TestInputs.Aspects.Overrides.Even
 
     public interface Interface
     {
-        public event EventHandler? Event;
+        event EventHandler? Event;
 
-        public event EventHandler? InitializerEvent;
+        event EventHandler? InitializerEvent;
     }
 
     public interface IntroducedInterface
     {
-        public event EventHandler? IntroducedEvent;
+        event EventHandler? IntroducedEvent;
 
-        public event EventHandler? InitializerIntroducedEvent;
+        event EventHandler? InitializerIntroducedEvent;
 
-        public event EventHandler? ExplicitIntroducedEvent;
+        event EventHandler? ExplicitIntroducedEvent;
 
-        public event EventHandler? InitializerExplicitIntroducedEvent;
+        event EventHandler? InitializerExplicitIntroducedEvent;
     }
 
     public class IntroductionAttribute : TypeAspect

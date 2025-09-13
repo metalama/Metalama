@@ -4,8 +4,8 @@
 
 using System;
 using System.Collections.Concurrent;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
+using Metalama.Framework.Engine;
 
 namespace Metalama.Framework.Tests.PublicPipeline.Aspects.InvalidCode.TemplateInvalidTypeOf;
 
@@ -32,7 +32,7 @@ internal class Aspect : OverrideMethodAspect
 
 internal class StaticCode
 {
-    public static int Foo(Type type) => type.FullName.Length;
+    public static int Foo(Type type) => type.FullName.AssertNotNull().Length;
 }
 
 internal class TargetCode

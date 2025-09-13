@@ -314,13 +314,3 @@ public sealed class InboundReferenceIndexTests : UnitTestClass
         return (index, observer, references);
     }
 }
-
-internal static class SymbolFormatter
-{
-    public static string ToTestName( this ISymbol symbol )
-        => symbol switch
-        {
-            IParameterSymbol p => p.ContainingSymbol.ToDisplayString( SymbolDisplayFormat.CSharpShortErrorMessageFormat ) + ":" + p.Name,
-            _ => symbol.ToDisplayString( SymbolDisplayFormat.CSharpShortErrorMessageFormat )
-        };
-}

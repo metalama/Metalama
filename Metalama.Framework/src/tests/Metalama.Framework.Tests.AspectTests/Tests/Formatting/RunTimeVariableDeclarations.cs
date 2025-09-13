@@ -9,27 +9,27 @@ using Metalama.Framework.Aspects;
 
 namespace Metalama.Framework.Tests.AspectTests.TestInputs.Highlighting.Declarations.RunTimeVariableDeclarations
 {
-    class RuntimeClass
+    internal class RuntimeClass
     {
         public void RunTimeMethod()
         {
         }
     }
 
-    class Aspect : IAspect
+    internal class Aspect : IAspect
     {
         [Template]
-        dynamic? Template()
+        private dynamic? Template()
         {
             var runTimeClassInstance = new RuntimeClass();
 
-            int scalar = 0;
-            int[] array = new int[10];
+            var scalar = 0;
+            var array = new int[10];
             object @object = "";
-            string @string = "";
+            var @string = "";
             Action action = runTimeClassInstance.RunTimeMethod;
             (int, byte) tuple = (0, 1);
-            Tuple<int, byte> generic = new Tuple<int, byte>(2, 3);
+            var generic = new Tuple<int, byte>(2, 3);
 
             return meta.Proceed();
         }

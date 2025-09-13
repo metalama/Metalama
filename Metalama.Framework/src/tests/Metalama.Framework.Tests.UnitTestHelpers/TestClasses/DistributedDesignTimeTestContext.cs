@@ -25,7 +25,9 @@ public sealed class DistributedDesignTimeTestContext : TestContext
     private ServiceHubServerEndpoint? _userProcessServiceHubEndpoint;
     private ServiceHubClientEndpoint? _analysisProcessServiceHubEndpoint;
     private RpcServiceProviderServerEndpoint? _analysisProcessEndpoint;
+#pragma warning disable IDE0032
     private TestDesignTimeAspectPipelineFactory? _pipelineFactory;
+#pragma warning restore IDE0032
 
     internal DistributedDesignTimeTestContext( TestContextOptions contextOptions, IAdditionalServiceCollection additionalServices ) : base(
         contextOptions with { RequiresExclusivity = true },
@@ -51,8 +53,8 @@ public sealed class DistributedDesignTimeTestContext : TestContext
             analysisProcessServices.Add( sp => new TestDesignTimeAspectPipelineFactory( this, sp ) );
             analysisProcessServices.Add( sp => new TestServiceHubClientEndpointProvider( new ServiceHubClientEndpoint( sp, hubPipeName ) ) );
 
-            analysisProcessServices.Add(
-                sp => new TestRpcServiceProviderServerEndpointProvider( new RpcServiceProviderServerEndpoint( sp, servicePipeName ) ) );
+            analysisProcessServices.Add( sp => new TestRpcServiceProviderServerEndpointProvider(
+                                             new RpcServiceProviderServerEndpoint( sp, servicePipeName ) ) );
 
             var analysisProcessServiceProvider = (GlobalServiceProvider) this.ServiceProvider.Global.Underlying.WithDisjointSharedServices();
 

@@ -70,7 +70,7 @@ public class BaseClass
 // <target>
 public class TargetClass : BaseClass
 {
-    public new static int Property
+    public static new int Property
     {
         get
         {

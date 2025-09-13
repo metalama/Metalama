@@ -8,7 +8,7 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Formatting.IfDirective
 {
     public class SomeClass
     {
-        void TestMain()
+        private void TestMain()
         {
 #if METALAMA
             Console.WriteLine("This should be included.");

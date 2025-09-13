@@ -10,14 +10,14 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Events.Inliners.AddAssignme
     // <target>
     public class Target
     {
-        private EventHandler? field;
+        private EventHandler? _field;
 
-        event EventHandler Foo
+        private event EventHandler Foo
         {
             add
             {
                 Console.WriteLine("Original");
-                this.field += value;
+                this._field += value;
             }
             remove { }
         }
@@ -28,7 +28,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Events.Inliners.AddAssignme
             add
             {
                 Console.WriteLine("Before");
-                link[_this.Foo.add, inline] -= null;
+                Link[This.Foo.add, Inline] -= null;
                 Console.WriteLine("After");
             }
             remove { }

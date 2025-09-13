@@ -9,7 +9,6 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 
 // This is to test that there is actually no inlining, because it would break.

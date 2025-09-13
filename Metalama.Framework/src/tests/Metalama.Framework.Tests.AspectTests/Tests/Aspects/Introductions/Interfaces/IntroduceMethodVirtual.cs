@@ -53,7 +53,7 @@ public class IntroductionAttribute : TypeAspect
     public T TestUsageMethod<[CompileTime] T>(T instance, [CompileTime] IMethod method, [CompileTime] IConstructor implementationConstructor)
     {
         method.With(instance).Invoke();
-        return implementationConstructor.Invoke();
+        return implementationConstructor.Invoke()!;
     }
 }
 

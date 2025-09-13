@@ -155,7 +155,7 @@ public class BaseClass
 public class TargetClass : BaseClass
 {
     [OverrideAspect]
-    public new static int Property
+    public static new int Property
     {
         get
         {

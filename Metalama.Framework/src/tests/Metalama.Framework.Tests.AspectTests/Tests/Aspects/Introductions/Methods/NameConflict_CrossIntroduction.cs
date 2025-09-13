@@ -2,13 +2,12 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.SyntaxBuilders;
 using Metalama.Framework.IntegrationTests.Aspects.Introductions.Methods.NameConflict_CrossIntroduction;
 
-[assembly: AspectOrder( AspectOrderDirection.RunTime, typeof(Introduction2Attribute), typeof(Introduction1Attribute) )]
+[assembly: AspectOrder( AspectOrderDirection.RunTime, typeof( Introduction2Attribute ), typeof( Introduction1Attribute ) )]
 
 namespace Metalama.Framework.IntegrationTests.Aspects.Introductions.Methods.NameConflict_CrossIntroduction
 {
@@ -32,7 +31,7 @@ namespace Metalama.Framework.IntegrationTests.Aspects.Introductions.Methods.Name
 
             return ExpressionFactory.Parse( "Foo1()" ).Value;
 
-            void Foo1() { }
+            static void Foo1() { }
         }
     }
 
@@ -53,7 +52,7 @@ namespace Metalama.Framework.IntegrationTests.Aspects.Introductions.Methods.Name
 
             return ExpressionFactory.Parse( "Foo2()" ).Value;
 
-            void Foo2() { }
+            static void Foo2() { }
         }
 
         [Introduce]
@@ -63,7 +62,7 @@ namespace Metalama.Framework.IntegrationTests.Aspects.Introductions.Methods.Name
 
             return ExpressionFactory.Parse( "Foo1()" ).Value;
 
-            void Foo1() { }
+            static void Foo1() { }
         }
     }
 

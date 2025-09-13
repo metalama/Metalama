@@ -1496,7 +1496,7 @@ namespace RemainingNamespace
             Assert.True( result.IsSuccessful );
 
             var dependencyProject =
-                result.Value.Configuration.CompileTimeProject.ClosureProjects.Single( p => p.RunTimeIdentity.Name == dependencyAssemblyName );
+                result.Value.Configuration.AssertNotNull().CompileTimeProject.AssertNotNull().ClosureProjects.Single( p => p.RunTimeIdentity.Name == dependencyAssemblyName );
 
             // The name must have been trimmed, otherwise the test is worthless.
             Assert.DoesNotContain( dependencyAssemblyName, dependencyProject.CompileTimeIdentity.Name, StringComparison.Ordinal );

@@ -4,7 +4,6 @@
 
 using System;
 using System.Collections.Generic;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Bugs.Bug33446;
@@ -16,7 +15,7 @@ internal class Aspect : OverrideMethodAspect
     {
         return GetNumbers();
 
-        IEnumerable<int> GetNumbers()
+        static IEnumerable<int> GetNumbers()
         {
             yield return 42;
         }

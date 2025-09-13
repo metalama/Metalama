@@ -108,9 +108,9 @@ namespace Metalama.Framework.Tests.TemplateTests.Runner
             }
 
             var testSyntaxTree = testResult.SyntaxTrees.Single();
-            var templateDocument = testSyntaxTree.InputDocument;
+            var templateDocument = testSyntaxTree.InputDocument.AssertNotNull();
             var templateSyntaxRoot = await templateDocument.GetSyntaxRootAsync();
-            var templateSemanticModel = await templateDocument.GetSemanticModelAsync();
+            var templateSemanticModel = await templateDocument.GetSemanticModelAsync().AssertNotNullAsync();
 
             foreach ( var testAnalyzer in this._testAnalyzers )
             {
@@ -401,7 +401,7 @@ namespace Metalama.Framework.Tests.TemplateTests.Runner
                 INamedTypeSymbol type,
                 CompilationContext compilationContext,
                 IDiagnosticAdder diagnosticAdder,
-                out ImmutableDictionary<string, TemplateClassMember>? members )
+                out ImmutableDictionary<string, TemplateClassMember> members )
             {
                 members = ImmutableDictionary<string, TemplateClassMember>.Empty;
 

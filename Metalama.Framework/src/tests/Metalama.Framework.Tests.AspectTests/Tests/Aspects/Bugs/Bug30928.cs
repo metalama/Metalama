@@ -16,7 +16,7 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Bugs.Bug30928
 
     // <target>
     public class SomeDisposable : ISomeInterface
-    {   
+    {
 #if TESTRUNNER
         void Foo()
         {
@@ -25,7 +25,7 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Bugs.Bug30928
 #endif
 
 #if !TESTRUNNER
-        void Bar()
+        private void Bar()
         {
             Debug.Fail("");
         }

@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 
 namespace Metalama.Framework.IntegrationTests.Aspects.Introductions.Events.ExistingConflictNewStatic
@@ -94,7 +93,7 @@ namespace Metalama.Framework.IntegrationTests.Aspects.Introductions.Events.Exist
 
     internal class DerivedClass : BaseClass
     {
-        public new static event EventHandler BaseClassEventHiddenByEvent
+        public static new event EventHandler BaseClassEventHiddenByEvent
         {
             add { }
 

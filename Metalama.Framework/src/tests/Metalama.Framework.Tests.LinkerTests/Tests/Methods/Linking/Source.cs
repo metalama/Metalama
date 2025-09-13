@@ -11,6 +11,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Linking.Source
     [PseudoLayerOrder("A2")]
     [PseudoLayerOrder("A3")]
     [PseudoLayerOrder("A4")]
+    internal
     // <target>
     class Target
     {
@@ -30,13 +31,13 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Linking.Source
         public void Bar_A1_Override1()
         {
             // Should invoke this.Foo_Source.
-            link(_this.Foo, @base)();
+            Link(This.Foo, Base)();
             // Should invoke this.Foo_Source.
-            link(_this.Foo, previous)();
+            Link(This.Foo, Previous )();
             // Should invoke this.Foo_Source.
-            link(_this.Foo, current)();
+            Link(This.Foo, Current)();
             // Should invoke this.Foo.
-            link(_this.Foo, final)();
+            Link(This.Foo, Final)();
         }
 
         [PseudoOverride(nameof(Bar), "A2")]
@@ -45,13 +46,13 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Linking.Source
         public void Bar_A2_Override2()
         {
             // Should invoke this.Foo_Source.
-            link(_this.Foo, @base)();
+            Link(This.Foo, Base)();
             // Should invoke this.Foo_Source.
-            link(_this.Foo, previous)();
+            Link(This.Foo, Previous )();
             // Should invoke this.Foo_A2_Override3.
-            link(_this.Foo, current)();
+            Link(This.Foo, Current)();
             // Should invoke this.Foo.
-            link(_this.Foo, final)();
+            Link(This.Foo, Final)();
         }
 
         [PseudoOverride(nameof(Foo), "A2")]
@@ -60,13 +61,13 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Linking.Source
         public void Foo_A2_Override3()
         {
             // Should invoke this.Foo_Source.
-            link(_this.Foo, @base)();
+            Link(This.Foo, Base)();
             // Should invoke this.Foo_Source.
-            link(_this.Foo, previous)();
+            Link(This.Foo, Previous )();
             // Should invoke Foo_A2_Override3.
-            link(_this.Foo, current)();
+            Link(This.Foo, Current)();
             // Should invoke this.Foo.
-            link(_this.Foo, final)();
+            Link(This.Foo, Final)();
         }
 
         [PseudoOverride(nameof(Bar), "A2")]
@@ -75,13 +76,13 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Linking.Source
         public void Bar_A2_Override4()
         {
             // Should invoke this.Foo_Source.
-            link(_this.Foo, @base)();
+            Link(This.Foo, Base)();
             // Should invoke this.Foo_A2_Override3.
-            link(_this.Foo, previous)();
+            Link(This.Foo, Previous )();
             // Should invoke this.Foo_A2_Override3.
-            link(_this.Foo, current)();
+            Link(This.Foo, Current)();
             // Should invoke this.Foo.
-            link(_this.Foo, final)();
+            Link(This.Foo, Final)();
         }
 
         [PseudoOverride(nameof(Bar), "A3")]
@@ -90,13 +91,13 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Linking.Source
         public void Bar_A3_Override5()
         {
             // Should invoke this.Foo_A2_Override3.
-            link(_this.Foo, @base)();
+            Link(This.Foo, Base)();
             // Should invoke this.Foo_A2_Override3.
-            link(_this.Foo, previous)();
+            Link(This.Foo, Previous )();
             // Should invoke this.Foo.
-            link(_this.Foo, current)();
+            Link(This.Foo, Current)();
             // Should invoke this.Foo.
-            link(_this.Foo, final)();
+            Link(This.Foo, Final)();
         }
 
         [PseudoOverride(nameof(Foo), "A3")]
@@ -105,13 +106,13 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Linking.Source
         public void Foo_A3_Override6()
         {
             // Should invoke this.Foo_A2_Override3.
-            link(_this.Foo, @base)();
+            Link(This.Foo, Base)();
             // Should invoke this.Foo_A2_Override3.
-            link(_this.Foo, previous)();
+            Link(This.Foo, Previous )();
             // Should invoke this.Foo.
-            link(_this.Foo, current)();
+            Link(This.Foo, Current)();
             // Should invoke this.Foo.
-            link(_this.Foo, final)();
+            Link(This.Foo, Final)();
         }
 
         [PseudoOverride(nameof(Bar), "A3")]
@@ -120,13 +121,13 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Linking.Source
         public void Bar_A3_Override7()
         {
             // Should invoke this.Foo_A2_Override3.
-            link(_this.Foo, @base)();
+            Link(This.Foo, Base)();
             // Should invoke this.Foo_A3_Override6.
-            link(_this.Foo, previous)();
+            Link(This.Foo, Previous )();
             // Should invoke this.Foo.
-            link(_this.Foo, current)();
+            Link(This.Foo, Current)();
             // Should invoke this.Foo.
-            link(_this.Foo, final)();
+            Link(This.Foo, Final)();
         }
 
         [PseudoOverride(nameof(Foo), "A3")]
@@ -135,13 +136,13 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Linking.Source
         public void Foo_A3_Override8()
         {
             // Should invoke this.Foo_A2_Override3.
-            link(_this.Foo, @base)();
+            Link(This.Foo, Base)();
             // Should invoke this.Foo_A3_Override6.
-            link(_this.Foo, previous)();
+            Link(This.Foo, Previous )();
             // Should invoke this.Foo.
-            link(_this.Foo, current)();
+            Link(This.Foo, Current)();
             // Should invoke this.Foo.
-            link(_this.Foo, final)();
+            Link(This.Foo, Final)();
         }
 
         [PseudoOverride(nameof(Bar), "A3")]
@@ -150,13 +151,13 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Linking.Source
         public void Bar_A3_Override9()
         {
             // Should invoke this.Foo_A2_Override3.
-            link(_this.Foo, @base)();
+            Link(This.Foo, Base)();
             // Should invoke this.Foo.
-            link(_this.Foo, previous)();
+            Link(This.Foo, Previous )();
             // Should invoke this.Foo.
-            link(_this.Foo, current)();
+            Link(This.Foo, Current)();
             // Should invoke this.Foo.
-            link(_this.Foo, final)();
+            Link(This.Foo, Final)();
         }
 
         [PseudoOverride(nameof(Bar), "A4")]
@@ -165,13 +166,13 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Linking.Source
         public void Bar_A4_Override10()
         {
             // Should invoke this.Foo.
-            link(_this.Foo, @base)();
+            Link(This.Foo, Base)();
             // Should invoke this.Foo.
-            link(_this.Foo, previous)();
+            Link(This.Foo, Previous )();
             // Should invoke this.Foo.
-            link(_this.Foo, current)();
+            Link(This.Foo, Current)();
             // Should invoke this.Foo.
-            link(_this.Foo, final)();
+            Link(This.Foo, Final)();
         }
     }
 }

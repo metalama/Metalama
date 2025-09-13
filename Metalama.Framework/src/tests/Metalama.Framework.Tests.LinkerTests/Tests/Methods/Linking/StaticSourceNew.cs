@@ -21,6 +21,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Linking.StaticSourc
     [PseudoLayerOrder("A4")]
     [PseudoLayerOrder("A5")]
     [PseudoLayerOrder("A6")]
+    internal
     // <target>
     class Target : Base
     {
@@ -40,13 +41,13 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Linking.StaticSourc
         public static void Foo_Override0()
         {
             // Should invoke source code.
-            link(_static.Target.Bar, @base)();
+            Link(Static.Target.Bar, Api.Base)();
             // Should invoke source code.
-            link(_static.Target.Bar, previous)();
+            Link(Static.Target.Bar, Previous )();
             // Should invoke source code.
-            link(_static.Target.Bar, current)();
+            Link(Static.Target.Bar, Current)();
             // Should invoke the final declaration.
-            link(_static.Target.Bar, final)();
+            Link(Static.Target.Bar, Final)();
         }
 
         [PseudoOverride(nameof(Foo), "A2")]
@@ -55,13 +56,13 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Linking.StaticSourc
         public static void Foo_Override2()
         {
             // Should invoke override 1_2.
-            link(_static.Target.Bar, @base)();
+            Link(Static.Target.Bar, Api.Base)();
             // Should invoke override 1_2.
-            link(_static.Target.Bar, previous)();
+            Link(Static.Target.Bar, Previous )();
             // Should invoke override 1_2.
-            link(_static.Target.Bar, current)();
+            Link(Static.Target.Bar, Current)();
             // Should invoke the final declaration.
-            link(_static.Target.Bar, final)();
+            Link(Static.Target.Bar, Final)();
         }
 
         [PseudoOverride(nameof(Foo), "A4")]
@@ -70,13 +71,13 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Linking.StaticSourc
         public static void Foo_Override4()
         {
             // Should invoke override 3_2.
-            link(_static.Target.Bar, @base)();
+            Link(Static.Target.Bar, Api.Base)();
             // Should invoke override 3_2.
-            link(_static.Target.Bar, previous)();
+            Link(Static.Target.Bar, Previous )();
             // Should invoke override 3_2.
-            link(_static.Target.Bar, current)();
+            Link(Static.Target.Bar, Current)();
             // Should invoke the final declaration.
-            link(_static.Target.Bar, final)();
+            Link(Static.Target.Bar, Final)();
         }
 
         [PseudoOverride(nameof(Foo), "A6")]
@@ -85,97 +86,97 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Linking.StaticSourc
         public static void Foo_Override6()
         {
             // Should invoke the final declaration.
-            link(_static.Target.Bar, @base)();
+            Link(Static.Target.Bar, Api.Base)();
             // Should invoke the final declaration.
-            link(_static.Target.Bar, previous)();
+            Link(Static.Target.Bar, Previous )();
             // Should invoke the final declaration.
-            link(_static.Target.Bar, current)();
+            Link(Static.Target.Bar, Current)();
             // Should invoke the final declaration.
-            link(_static.Target.Bar, final)();
+            Link(Static.Target.Bar, Final)();
         }
 
         [PseudoOverride(nameof(Bar), "A1")]
         [PseudoNotInlineable]
-        static void Bar_Override1_1()
+        private static void Bar_Override1_1()
         {
             // Should invoke source code.
-            link(_static.Target.Bar, @base)();
+            Link(Static.Target.Bar, Api.Base)();
             // Should invoke source code.
-            link(_static.Target.Bar, previous)();
+            Link(Static.Target.Bar, Previous )();
             // Should invoke override 1_2.
-            link(_static.Target.Bar, current)();
+            Link(Static.Target.Bar, Current)();
             // Should invoke the final declaration.
-            link(_static.Target.Bar, final)();
+            Link(Static.Target.Bar, Final)();
         }
 
         [PseudoOverride(nameof(Bar), "A1")]
         [PseudoNotInlineable]
-        static void Bar_Override1_2()
+        private static void Bar_Override1_2()
         {
             // Should invoke source code.
-            link(_static.Target.Bar, @base)();
+            Link(Static.Target.Bar, Api.Base)();
             // Should invoke override 1_1.
-            link(_static.Target.Bar, previous)();
+            Link(Static.Target.Bar, Previous )();
             // Should invoke override 1_2.
-            link(_static.Target.Bar, current)();
+            Link(Static.Target.Bar, Current)();
             // Should invoke the final declaration.
-            link(_static.Target.Bar, final)();
+            Link(Static.Target.Bar, Final)();
         }
 
         [PseudoOverride(nameof(Bar), "A3")]
         [PseudoNotInlineable]
-        static void Bar_Override3_1()
+        private static void Bar_Override3_1()
         {
             // Should invoke override 1_2.
-            link(_static.Target.Bar, @base)();
+            Link(Static.Target.Bar, Api.Base)();
             // Should invoke override 1_2.
-            link(_static.Target.Bar, previous)();
+            Link(Static.Target.Bar, Previous )();
             // Should invoke override 3_2.
-            link(_static.Target.Bar, current)();
+            Link(Static.Target.Bar, Current)();
             // Should invoke the final declaration.
-            link(_static.Target.Bar, final)();
+            Link(Static.Target.Bar, Final)();
         }
 
         [PseudoOverride(nameof(Bar), "A3")]
         [PseudoNotInlineable]
-        static void Bar_Override3_2()
+        private static void Bar_Override3_2()
         {
             // Should invoke override 1_2.
-            link(_static.Target.Bar, @base)();
+            Link(Static.Target.Bar, Api.Base)();
             // Should invoke override 3_1.
-            link(_static.Target.Bar, previous)();
+            Link(Static.Target.Bar, Previous )();
             // Should invoke override 3_2.
-            link(_static.Target.Bar, current)();
+            Link(Static.Target.Bar, Current)();
             // Should invoke the final declaration.
-            link(_static.Target.Bar, final)();
+            Link(Static.Target.Bar, Final)();
         }
 
         [PseudoOverride(nameof(Bar), "A5")]
         [PseudoNotInlineable]
-        static void Bar_Override5_1()
+        private static void Bar_Override5_1()
         {
             // Should invoke override 3_2.
-            link(_static.Target.Bar, @base)();
+            Link(Static.Target.Bar, Api.Base)();
             // Should invoke override 3_2.
-            link(_static.Target.Bar, previous)();
+            Link(Static.Target.Bar, Previous )();
             // Should invoke the final declaration.
-            link(_static.Target.Bar, current)();
+            Link(Static.Target.Bar, Current)();
             // Should invoke the final declaration.
-            link(_static.Target.Bar, final)();
+            Link(Static.Target.Bar, Final)();
         }
 
         [PseudoOverride(nameof(Bar), "A5")]
         [PseudoNotInlineable]
-        static void Bar_Override5_2()
+        private static void Bar_Override5_2()
         {
             // Should invoke override 3_2.
-            link(_static.Target.Bar, @base)();
+            Link(Static.Target.Bar, Api.Base)();
             // Should invoke override 5_1.
-            link(_static.Target.Bar, previous)();
+            Link(Static.Target.Bar, Previous )();
             // Should invoke the final declaration.
-            link(_static.Target.Bar, current)();
+            Link(Static.Target.Bar, Current)();
             // Should invoke the final declaration.
-            link(_static.Target.Bar, final)();
+            Link(Static.Target.Bar, Final)();
         }
     }
 }

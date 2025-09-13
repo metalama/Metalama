@@ -58,7 +58,7 @@ public class IntroductionAttribute : TypeAspect
     {
         T t;
 
-        ExpressionBuilder e = new ExpressionBuilder();
+        var e = new ExpressionBuilder();
 
         e.AppendVerbatim("t = p");
 

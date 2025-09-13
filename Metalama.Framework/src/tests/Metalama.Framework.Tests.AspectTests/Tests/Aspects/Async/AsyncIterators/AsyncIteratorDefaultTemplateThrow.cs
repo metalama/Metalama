@@ -9,16 +9,14 @@
 #if NET5_0_OR_GREATER
 using System;
 using System.Threading.Tasks;
-using System.Collections;
 using System.Collections.Generic;
-using Metalama.Framework;
 using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects; 
 using Metalama.Framework.Code;
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Async.AsyncIterators.AsyncIteratorDefaultTemplateThrow;
 
-class Aspect : MethodAspect
+internal class Aspect : MethodAspect
 {
     public override void BuildAspect(IAspectBuilder<IMethod> builder)
     {
@@ -36,7 +34,7 @@ class Aspect : MethodAspect
 }
 
 // <target>
-class TargetCode
+internal class TargetCode
 {
     [Aspect]
     public async IAsyncEnumerable<int> Enumerable(int a)

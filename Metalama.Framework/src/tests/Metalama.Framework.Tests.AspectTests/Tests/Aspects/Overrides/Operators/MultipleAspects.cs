@@ -3,11 +3,10 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.IntegrationTests.Aspects.Overrides.Operators.MultipleAspects;
 
-[assembly: AspectOrder( AspectOrderDirection.RunTime, typeof(OuterOverrideAttribute), typeof(InnerOverrideAttribute) )]
+[assembly: AspectOrder( AspectOrderDirection.RunTime, typeof( OuterOverrideAttribute ), typeof( InnerOverrideAttribute ) )]
 
 namespace Metalama.Framework.IntegrationTests.Aspects.Overrides.Operators.MultipleAspects
 {

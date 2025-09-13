@@ -8,11 +8,10 @@ using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.DeclarationBuilders;
-using Metalama.Framework.Fabrics;
 
 using Metalama.Framework.Tests.AspectTests.Tests.Aspects.Attributes.Trivia_DocComment;
 
-[assembly: AspectOrder( AspectOrderDirection.CompileTime, typeof(AddChildAspectsAspect), typeof(TestAspect))]
+[assembly: AspectOrder( AspectOrderDirection.CompileTime, typeof( AddChildAspectsAspect ), typeof( TestAspect ) )]
 
 
 #pragma warning disable CS0169, CS0649
@@ -47,7 +46,7 @@ public class TestAttribute : Attribute { }
 
 public class AddChildAspectsAspect : TypeAspect
 {
-    override public void BuildAspect( IAspectBuilder<INamedType> builder )
+    public override void BuildAspect( IAspectBuilder<INamedType> builder )
     {
         foreach (var type in builder.Target.Types)
         {

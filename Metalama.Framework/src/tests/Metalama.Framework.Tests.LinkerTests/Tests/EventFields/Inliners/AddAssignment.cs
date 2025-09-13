@@ -10,17 +10,17 @@ using static Metalama.Framework.Tests.LinkerTests.Tests.Api;
 namespace Metalama.Framework.Tests.LinkerTests.Tests.EventFields.Inliners.AddAssignment
 {
     // <target>
-    class Target
+    internal class Target
     {
-        event EventHandler? Foo;
+        private event EventHandler? Foo;
 
         [PseudoOverride(nameof(Foo), "TestAspect")]
-        event EventHandler Foo_Override
+        private event EventHandler Foo_Override
         {
             add
             {
                 Console.WriteLine("Before");
-                link[_this.Foo.add, inline] += value;
+                Link[This.Foo.add, Inline] += value;
                 Console.WriteLine("After");
             }
             remove { }

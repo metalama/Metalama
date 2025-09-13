@@ -7,6 +7,7 @@ using System.Linq;
 using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
+using Metalama.Framework.Engine;
 
 #pragma warning disable CS0169, CS0649
 
@@ -65,16 +66,16 @@ namespace Metalama.Framework.Tests.AspectTests.Aspects.Samples.Memento
         [InterfaceMember]
         public IMemento Save()
         {
-            var mementoType = (INamedType)meta.Tags["mementoType"];
+            var mementoType = (INamedType)meta.Tags["mementoType"].AssertNotNull();
             var fieldExpressions = meta.Target.Type.FieldsAndProperties.Where( f => f.IsAutoPropertyOrField == true && !f.IsImplicitlyDeclared );
 
-            return mementoType.Constructors.Single().Invoke( fieldExpressions );
+            return mementoType.Constructors.Single().Invoke( fieldExpressions )!;
         }
 
         [InterfaceMember]
         public void Restore( IMemento memento )
         {
-            var mementoType = (INamedType)meta.Tags["mementoType"];
+            var mementoType = (INamedType)meta.Tags["mementoType"].AssertNotNull();
 
             foreach (var fieldOrProperty in meta.Target.Type.FieldsAndProperties.Where( f => f.IsAutoPropertyOrField == true && !f.IsImplicitlyDeclared ))
             {

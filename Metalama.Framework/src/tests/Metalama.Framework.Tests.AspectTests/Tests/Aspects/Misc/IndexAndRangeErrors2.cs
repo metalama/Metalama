@@ -8,7 +8,6 @@
 
 using System;
 using System.Linq;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 
 #pragma warning disable CS0618 // Type or member is obsolete

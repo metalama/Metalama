@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.TemplateTypeParameter.NonVoidReturnTypeInVoid_LocalAssignment;
@@ -12,7 +11,7 @@ public class Override : OverrideMethodAspect
 {
     public override dynamic? OverrideMethod()
     {
-        int LocalFunction()
+        static int LocalFunction()
         {
             var x = meta.Proceed();
 

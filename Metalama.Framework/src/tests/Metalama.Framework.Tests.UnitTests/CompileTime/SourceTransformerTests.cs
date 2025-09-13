@@ -10,6 +10,7 @@ using Metalama.Framework.Tests.UnitTestHelpers.Mocks;
 using Metalama.Testing.UnitTesting;
 using Microsoft.CodeAnalysis;
 using System.Linq;
+using System.Threading;
 using Xunit;
 
 namespace Metalama.Framework.Tests.UnitTests.CompileTime;
@@ -70,7 +71,7 @@ public sealed class SourceTransformerTests : UnitTestClass
                         d.Severity >= DiagnosticSeverity.Warning &&
                         !context.ReportedSuppressions.Any(
                             s => d.Id == s.Descriptor.SuppressedDiagnosticId &&
-                                 suppressionRunner.TryGetSuppression( d, default, out _ ) ) )
+                                 suppressionRunner.TryGetSuppression( d, CancellationToken.None, out _ ) ) )
                 .ToList();
 
         Assert.Empty( survivingDiagnostics );

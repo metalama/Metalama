@@ -7,10 +7,10 @@ using System;
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Formatting.SwitchStatements;
 
-class Aspect : IAspect
+internal class Aspect : IAspect
 {
     [Template]
-    dynamic? Template()
+    private dynamic? Template()
     {
         switch (0)
         {

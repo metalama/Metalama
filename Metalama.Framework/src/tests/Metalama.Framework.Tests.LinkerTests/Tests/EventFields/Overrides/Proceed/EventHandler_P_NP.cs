@@ -10,12 +10,12 @@ using static Metalama.Framework.Tests.LinkerTests.Tests.Api;
 namespace Metalama.Framework.Tests.LinkerTests.Tests.EventFields.Overrides.Proceed.EventHandler_P_NP
 {
     // <target>
-    class Target
+    internal class Target
     {
-        event EventHandler? Foo;
+        private event EventHandler? Foo;
 
         [PseudoOverride(nameof(Foo), "TestAspect1")]
-        event EventHandler Foo_Override1
+        private event EventHandler Foo_Override1
         {
             add
             {
@@ -28,18 +28,18 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.EventFields.Overrides.Proce
         }
 
         [PseudoOverride(nameof(Foo), "TestAspect2")]
-        event EventHandler Foo_Override2
+        private event EventHandler Foo_Override2
         {
             add
             {
                 Console.WriteLine("Override2 Start");
-                link[_this.Foo.add, inline] += value;
+                Link[This.Foo.add, Inline] += value;
                 Console.WriteLine("Override2 End");
             }
             remove
             {
                 Console.WriteLine("Override2 Start");
-                link[_this.Foo.remove, inline] -= value;
+                Link[This.Foo.remove, Inline] -= value;
                 Console.WriteLine("Override2 End");
             }
         }

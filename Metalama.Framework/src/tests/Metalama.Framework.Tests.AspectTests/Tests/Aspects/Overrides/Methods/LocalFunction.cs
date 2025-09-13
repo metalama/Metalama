@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Overrides.Methods.LocalFunction
@@ -16,7 +15,7 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Overrides.Methods.L
 
             return Quz();
 
-            int Quz()
+            static int Quz()
             {
                 var x = meta.Proceed();
 
@@ -33,7 +32,7 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Overrides.Methods.L
         {
             return Bar( Bar( x ) );
 
-            int Bar( int x )
+            static int Bar( int x )
             {
                 return x + 1;
             }

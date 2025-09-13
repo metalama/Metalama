@@ -82,7 +82,7 @@ public abstract class PreviewTestsBase : DesignTimeTestBase
         var document = workspace.GetDocumentOrNull( _mainProjectName, previewedSyntaxTreeName )
                        ?? workspace.GetProject( _mainProjectName ).AddDocument( previewedSyntaxTreeName, string.Empty );
 
-        var formattedDocument = await UserProcessTransformationPreviewService.FormatOutputAsync( document, result, testContext.CancellationToken );
+        var formattedDocument = (await UserProcessTransformationPreviewService.FormatOutputAsync( document, result, testContext.CancellationToken ))!;
 
         var text = await formattedDocument.GetTextAsync();
 

@@ -5,10 +5,9 @@
 using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
-using Metalama.Framework.Fabrics;
 using Metalama.Framework.Tests.AspectTests.Tests.Aspects.AddAspect.AddToIntroducedType;
 
-[assembly: AspectOrder( AspectOrderDirection.RunTime, typeof(Aspect2), typeof(Aspect1) )]
+[assembly: AspectOrder( AspectOrderDirection.RunTime, typeof( Aspect2 ), typeof( Aspect1 ) )]
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.AddAspect.AddToIntroducedType;
 

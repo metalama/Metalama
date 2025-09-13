@@ -8,7 +8,7 @@
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.TestFramework.ReferenceDependencyFromMain;
 
-class Program
+internal class Program
 {
-    static void TestMain() => Dependency.M();
+    private static void TestMain() => Dependency.M();
 }

@@ -8,21 +8,20 @@
 #endif
 
 using Metalama.Framework.Aspects;
-using Metalama.Framework.Code;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.CSharp13.RefUnsafeInIteratorsAsync_Target_Specific;
 
-class TheAspect : OverrideMethodAspect
+internal class TheAspect : OverrideMethodAspect
 {
     public override dynamic? OverrideMethod()
     {
         throw new NotImplementedException();
     }
 
-    public async override Task<dynamic?> OverrideAsyncMethod()
+    public override async Task<dynamic?> OverrideAsyncMethod()
     {
         Console.WriteLine($"Entering {meta.Target.Method}.");
 
@@ -71,7 +70,7 @@ class TheAspect : OverrideMethodAspect
 #if ROSLYN_4_12_0_OR_GREATER
 
 // <target>
-class Target
+internal class Target
 {
     [TheAspect]
     private async Task Async()
@@ -87,7 +86,7 @@ class Target
         }
 
         // ref
-        ref int r = ref (new int[1])[0];
+        ref var r = ref (new int[1])[0];
 
         // ref struct
         Span<int> s = stackalloc int[1];
@@ -109,7 +108,7 @@ class Target
         }
 
         // ref
-        ref int r = ref (new int[1])[0];
+        ref var r = ref (new int[1])[0];
 
         // ref struct
         Span<int> s = stackalloc int[1];
@@ -132,7 +131,7 @@ class Target
         }
 
         // ref
-        ref int r = ref (new int[1])[0];
+        ref var r = ref (new int[1])[0];
 
         // ref struct
         Span<int> s = stackalloc int[1];

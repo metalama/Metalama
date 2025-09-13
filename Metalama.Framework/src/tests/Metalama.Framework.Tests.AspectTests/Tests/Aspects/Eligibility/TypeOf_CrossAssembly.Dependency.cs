@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System.Linq;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.Collections;
@@ -21,21 +20,21 @@ public class TestAspect : MethodAspect
 
         builder.MustSatisfy(
             method => method.Attributes.Any(
-                a => a.ConstructorArguments is { Length: 1 } && a.ConstructorArguments.Single().Value as string == runTimeClass.Name ),
+                a => a.ConstructorArguments is { Length: 1 } && (a.ConstructorArguments.Single().Value as string) == runTimeClass.Name ),
             method => $"{method} must have a an attribute with {runTimeClass} argument" );
 
         var runTimeOrCompileTimeClass = typeof(RunTimeOrCompileTimeClass);
 
         builder.MustSatisfy(
             method => method.Attributes.Any(
-                a => a.ConstructorArguments is { Length: 1 } && a.ConstructorArguments.Single().Value as string == runTimeOrCompileTimeClass.Name ),
+                a => a.ConstructorArguments is { Length: 1 } && (a.ConstructorArguments.Single().Value as string) == runTimeOrCompileTimeClass.Name ),
             method => $"{method} must have a an attribute with {runTimeOrCompileTimeClass} argument" );
 
         var compileTimeClass = typeof(CompileTimeClass);
 
         builder.MustSatisfy(
             method => method.Attributes.Any(
-                a => a.ConstructorArguments is { Length: 1 } && a.ConstructorArguments.Single().Value as string == compileTimeClass.Name ),
+                a => a.ConstructorArguments is { Length: 1 } && (a.ConstructorArguments.Single().Value as string) == compileTimeClass.Name ),
             method => $"{method} must have a an attribute with {compileTimeClass} argument" );
     }
 }

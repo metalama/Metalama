@@ -7,8 +7,6 @@
 // @RequiredConstant(ROSLYN_4_12_0_OR_EARLIER)
 #endif
 
-using System;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 
 namespace Metalama.Framework.Tests.PublicPipeline.Aspects.DesignTimeInvalidCode.UnknownAccessorInTemplate;

@@ -5,21 +5,19 @@
 using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
-using System;
-using System.Diagnostics;
 
 namespace Metalama.Framework.Tests.Integration.Tests.Aspects.Misc.ExtensionMethods;
 
-class TheAspect : TypeAspect
+internal class TheAspect : TypeAspect
 {
     [Introduce]
-    static void ExtensionMethodTemplate([This] object self) { }
+    private static void ExtensionMethodTemplate([This] object self) { }
 
     [Template]
-    static void RegularTemplate(in int o) { }
+    private static void RegularTemplate(in int o) { }
 
     [Introduce]
-    static void Usage()
+    private static void Usage()
     {
         dynamic o = meta.Cast(TypeFactory.GetType(typeof(object)), new object());
 
@@ -40,6 +38,6 @@ class TheAspect : TypeAspect
 
 // <target>
 [TheAspect]
-static class Target
+internal static class Target
 {
 }

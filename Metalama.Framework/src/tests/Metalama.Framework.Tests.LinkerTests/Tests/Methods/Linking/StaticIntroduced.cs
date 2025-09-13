@@ -13,6 +13,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Linking.StaticIntro
     [PseudoLayerOrder("A3")]
     [PseudoLayerOrder("A4")]
     [PseudoLayerOrder("A5")]
+    internal
     // <target>
     class Target
     {
@@ -34,13 +35,13 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Linking.StaticIntro
         public static void Foo_Override0()
         {
             // Should invoke empty code.
-            link(_static.Target.Bar, @base)();
+            Link(Static.Target.Bar, Base)();
             // Should invoke empty code.
-            link(_static.Target.Bar, previous)();
+            Link(Static.Target.Bar, Previous )();
             // Should invoke empty code.
-            link(_static.Target.Bar, current)();
+            Link(Static.Target.Bar, Current)();
             // Should invoke the final declaration.
-            link(_static.Target.Bar, final)();
+            Link(Static.Target.Bar, Final)();
         }
 
         [PseudoOverride(nameof(Foo), "A2")]
@@ -49,13 +50,13 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Linking.StaticIntro
         public static void Foo_Override2()
         {
             // Should invoke override 1_2.
-            link(_static.Target.Bar, @base)();
+            Link(Static.Target.Bar, Base)();
             // Should invoke override 1_2.
-            link(_static.Target.Bar, previous)();
+            Link(Static.Target.Bar, Previous )();
             // Should invoke override 1_2.
-            link(_static.Target.Bar, current)();
+            Link(Static.Target.Bar, Current)();
             // Should invoke the final declaration.
-            link(_static.Target.Bar, final)();
+            Link(Static.Target.Bar, Final)();
         }
 
         [PseudoOverride(nameof(Foo), "A4")]
@@ -64,13 +65,13 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Linking.StaticIntro
         public static void Foo_Override4()
         {
             // Should invoke override 3_2.
-            link(_static.Target.Bar, @base)();
+            Link(Static.Target.Bar, Base)();
             // Should invoke override 3_2.
-            link(_static.Target.Bar, previous)();
+            Link(Static.Target.Bar, Previous )();
             // Should invoke override 3_2.
-            link(_static.Target.Bar, current)();
+            Link(Static.Target.Bar, Current)();
             // Should invoke the final declaration.
-            link(_static.Target.Bar, final)();
+            Link(Static.Target.Bar, Final)();
         }
 
         [PseudoOverride(nameof(Foo), "A6")]
@@ -79,13 +80,13 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Linking.StaticIntro
         public static void Foo_Override6()
         {
             // Should invoke the final declaration.
-            link(_static.Target.Bar, @base)();
+            Link(Static.Target.Bar, Base)();
             // Should invoke the final declaration.
-            link(_static.Target.Bar, previous)();
+            Link(Static.Target.Bar, Previous )();
             // Should invoke the final declaration.
-            link(_static.Target.Bar, current)();
+            Link(Static.Target.Bar, Current)();
             // Should invoke the final declaration.
-            link(_static.Target.Bar, final)();
+            Link(Static.Target.Bar, Final)();
         }
 
         [PseudoOverride(nameof(Bar), "A1")]
@@ -93,13 +94,13 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Linking.StaticIntro
         private static void Bar_Override1_1()
         {
             // Should invoke empty code.
-            link(_static.Target.Bar, @base)();
+            Link(Static.Target.Bar, Base)();
             // Should invoke empty code.
-            link(_static.Target.Bar, previous)();
+            Link(Static.Target.Bar, Previous )();
             // Should invoke override 1_2.
-            link(_static.Target.Bar, current)();
+            Link(Static.Target.Bar, Current)();
             // Should invoke the final declaration.
-            link(_static.Target.Bar, final)();
+            Link(Static.Target.Bar, Final)();
         }
 
         [PseudoOverride(nameof(Bar), "A1")]
@@ -107,13 +108,13 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Linking.StaticIntro
         private static void Bar_Override1_2()
         {
             // Should invoke empty code.
-            link(_static.Target.Bar, @base)();
+            Link(Static.Target.Bar, Base)();
             // Should invoke override 1_1.
-            link(_static.Target.Bar, previous)();
+            Link(Static.Target.Bar, Previous )();
             // Should invoke override 1_2.
-            link(_static.Target.Bar, current)();
+            Link(Static.Target.Bar, Current)();
             // Should invoke the final declaration.
-            link(_static.Target.Bar, final)();
+            Link(Static.Target.Bar, Final)();
         }
 
         [PseudoOverride(nameof(Bar), "A3")]
@@ -121,13 +122,13 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Linking.StaticIntro
         private static void Bar_Override3_1()
         {
             // Should invoke override 1_2.
-            link(_static.Target.Bar, @base)();
+            Link(Static.Target.Bar, Base)();
             // Should invoke override 1_2.
-            link(_static.Target.Bar, previous)();
+            Link(Static.Target.Bar, Previous )();
             // Should invoke override 3_2.
-            link(_static.Target.Bar, current)();
+            Link(Static.Target.Bar, Current)();
             // Should invoke the final declaration.
-            link(_static.Target.Bar, final)();
+            Link(Static.Target.Bar, Final)();
         }
 
         [PseudoOverride(nameof(Bar), "A3")]
@@ -135,13 +136,13 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Linking.StaticIntro
         private static void Bar_Override3_2()
         {
             // Should invoke override 1_2.
-            link(_static.Target.Bar, @base)();
+            Link(Static.Target.Bar, Base)();
             // Should invoke override 3_1.
-            link(_static.Target.Bar, previous)();
+            Link(Static.Target.Bar, Previous )();
             // Should invoke override 3_2.
-            link(_static.Target.Bar, current)();
+            Link(Static.Target.Bar, Current)();
             // Should invoke the final declaration.
-            link(_static.Target.Bar, final)();
+            Link(Static.Target.Bar, Final)();
         }
 
         [PseudoOverride(nameof(Bar), "A5")]
@@ -149,13 +150,13 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Linking.StaticIntro
         private static void Bar_Override5_1()
         {
             // Should invoke override 3_2.
-            link(_static.Target.Bar, @base)();
+            Link(Static.Target.Bar, Base)();
             // Should invoke override 3_2.
-            link(_static.Target.Bar, previous)();
+            Link(Static.Target.Bar, Previous )();
             // Should invoke the final declaration.
-            link(_static.Target.Bar, current)();
+            Link(Static.Target.Bar, Current)();
             // Should invoke the final declaration.
-            link(_static.Target.Bar, final)();
+            Link(Static.Target.Bar, Final)();
         }
 
         [PseudoOverride(nameof(Bar), "A5")]
@@ -163,13 +164,13 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Linking.StaticIntro
         private static void Bar_Override5_2()
         {
             // Should invoke override 3_2.
-            link(_static.Target.Bar, @base)();
+            Link(Static.Target.Bar, Base)();
             // Should invoke override 5_1.
-            link(_static.Target.Bar, previous)();
+            Link(Static.Target.Bar, Previous )();
             // Should invoke the final declaration.
-            link(_static.Target.Bar, current)();
+            Link(Static.Target.Bar, Current)();
             // Should invoke the final declaration.
-            link(_static.Target.Bar, final)();
+            Link(Static.Target.Bar, Final)();
         }
     }
 }

@@ -9,17 +9,12 @@
 #if NET5_0_OR_GREATER
 using System;
 using System.Threading.Tasks;
-using System.Collections;
 using System.Collections.Generic;
-using Metalama.Framework;
-using Metalama.Testing.AspectTesting;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects; 
-using Metalama.Framework.Code;
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Async.AsyncIterators.AsyncIteratorDefaultTemplateWithoutAsyncProceed;
 
-class Aspect : OverrideMethodAspect
+internal class Aspect : OverrideMethodAspect
 {
     public override dynamic? OverrideMethod()
     {
@@ -28,7 +23,7 @@ class Aspect : OverrideMethodAspect
 }
 
 // <target>
-class TargetCode
+internal class TargetCode
 {
     [Aspect]
     public IAsyncEnumerable<int> EnumerableWithoutAsync(int a) => Enumerable(a);

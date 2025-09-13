@@ -9,7 +9,7 @@ using Metalama.Framework.Aspects;
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Formatting.RunTimeDynamic
 {
-    class Aspect : OverrideMethodAspect
+    internal class Aspect : OverrideMethodAspect
     {
         public override dynamic? OverrideMethod()
         {
@@ -20,10 +20,10 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Formatting.RunTimeDynamic
         }
     }
 
-    class TargetCode
+    internal class TargetCode
     {
         [Aspect]
-        void M(int a) {}
+        private void M(int a) {}
     }
 
 

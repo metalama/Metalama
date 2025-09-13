@@ -24,11 +24,15 @@ using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Runtime.Serialization;
 using Attribute = System.Attribute;
 using MethodKind = Microsoft.CodeAnalysis.MethodKind;
 using TypeKind = Microsoft.CodeAnalysis.TypeKind;
+
+#if NET8_0_OR_GREATER
+using System.Runtime.CompilerServices;
+#else
+using System.Runtime.Serialization;
+#endif
 
 namespace Metalama.Framework.Engine.Aspects;
 

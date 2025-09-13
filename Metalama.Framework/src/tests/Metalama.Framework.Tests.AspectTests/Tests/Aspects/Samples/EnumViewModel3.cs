@@ -10,11 +10,10 @@ using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using System;
-using System.Diagnostics;
 using System.Linq;
 using Metalama.Framework.Tests.AspectTests.Tests.Aspects.Samples.EnumViewModel3;
 
-[assembly: EnumViewModel( typeof(DayOfWeek), "Doc.EnumViewModel" )]
+[assembly: EnumViewModel( typeof( DayOfWeek ), "Doc.EnumViewModel" )]
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Samples.EnumViewModel3;
 

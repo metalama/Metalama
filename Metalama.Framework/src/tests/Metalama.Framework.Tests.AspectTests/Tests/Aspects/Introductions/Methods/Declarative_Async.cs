@@ -8,7 +8,6 @@
 
 using System;
 using System.Threading.Tasks;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 
 namespace Metalama.Framework.IntegrationTests.Aspects.Introductions.Methods.Declarative_Async

@@ -9,7 +9,6 @@
 #if ROSLYN_4_12_0_OR_GREATER
 
 using Metalama.Framework.Aspects;
-using Metalama.Framework.Code;
 using System;
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.CSharp13.PartialProperties_Contracts;
@@ -26,22 +25,22 @@ public class TheAspect : ContractAspect
 }
 
 // <target>
-partial class Target
+internal partial class Target
 {
     [TheAspect]
-    partial string P1 { get; set; }
+    private partial string P1 { get; set; }
 
-    partial string P1 { get => "foo"; set => throw new Exception(); }
+    private partial string P1 { get => "foo"; set => throw new Exception(); }
 
-    partial string P2 { get; set; }
-
-    [TheAspect]
-    partial string P2 { get => "foo"; set => throw new Exception(); }
+    private partial string P2 { get; set; }
 
     [TheAspect]
-    partial string P3 { get; }
+    private partial string P2 { get => "foo"; set => throw new Exception(); }
 
-    partial string P3 { get => "foo"; }
+    [TheAspect]
+    private partial string P3 { get; }
+
+    private partial string P3 { get => "foo"; }
 }
 
 #endif

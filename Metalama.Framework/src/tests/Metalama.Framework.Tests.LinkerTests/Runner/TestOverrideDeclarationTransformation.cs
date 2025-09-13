@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Code;
+using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.References;
@@ -23,9 +24,9 @@ internal sealed class TestOverrideDeclarationTransformation : TestTransformation
     public IFullRef<IDeclaration> OverriddenDeclaration { get; }
 
     public TestOverrideDeclarationTransformation(
-        AspectLayerInstance aspectLayerInstance, 
-        InsertPosition insertPosition, 
-        IFullRef<IDeclaration> overriddenDeclaration, 
+        AspectLayerInstance aspectLayerInstance,
+        InsertPosition insertPosition,
+        IFullRef<IDeclaration> overriddenDeclaration,
         MemberDeclarationSyntax syntax )
         : base( aspectLayerInstance, insertPosition )
     {
@@ -37,7 +38,7 @@ internal sealed class TestOverrideDeclarationTransformation : TestTransformation
 
     public override IRef<IDeclaration> TargetDeclaration => this.OverriddenDeclaration;
 
-    public override SyntaxTree TransformedSyntaxTree => this.OverriddenDeclaration.GetPrimaryDeclarationSyntax().SyntaxTree;
+    public override SyntaxTree TransformedSyntaxTree => this.OverriddenDeclaration.GetPrimaryDeclarationSyntax().AssertNotNull().SyntaxTree;
 
     public override IEnumerable<InjectedMember> GetInjectedMembers( MemberInjectionContext context )
     {

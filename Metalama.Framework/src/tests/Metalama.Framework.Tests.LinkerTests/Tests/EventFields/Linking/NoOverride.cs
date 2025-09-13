@@ -9,7 +9,7 @@ using System;
 namespace Metalama.Framework.Tests.LinkerTests.Tests.EventFields.Linking.NoOverride
 {
     // <target>
-    class Target
+    internal class Target
     {
         [PseudoIntroduction("TestAspect")]
         [PseudoNotInlineable]

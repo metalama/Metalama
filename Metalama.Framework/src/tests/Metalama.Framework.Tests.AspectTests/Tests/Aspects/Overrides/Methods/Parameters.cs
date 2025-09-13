@@ -26,7 +26,7 @@ namespace Metalama.Framework.IntegrationTests.Aspects.Overrides.Methods.Paramete
                 Console.WriteLine( $"Param {param.Name} = {param.Value}" );
             }
 
-            Console.WriteLine( $"Returns {meta.Target.Method.ReturnParameter.Type.ToString()}" );
+            Console.WriteLine( $"Returns {meta.Target.Method.ReturnParameter.Type}" );
 
             return result;
         }

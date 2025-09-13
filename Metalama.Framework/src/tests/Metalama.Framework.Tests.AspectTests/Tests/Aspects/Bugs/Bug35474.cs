@@ -40,10 +40,10 @@ public class IntroductionAspect : TypeAspect
     }
 
     [Template]
-    void ConstructorTemplate( dynamic x ) { }
+    private void ConstructorTemplate( dynamic x ) { }
 
     [Template]
-    dynamic IntroducedMethod( dynamic arg )
+    private dynamic? IntroducedMethod( dynamic arg )
     {
         return default;
     }
@@ -54,7 +54,7 @@ public class ReadAspect : TypeAspect
     [Introduce(WhenExists = OverrideStrategy.New)]
     public void PrintBaseConstructors()
     {
-        foreach (var c in meta.Target.Type.BaseType.Constructors.OrderBy( c=>c.ToString() ))
+        foreach (var c in meta.Target.Type.BaseType!.Constructors.OrderBy( c=>c.ToString() ))
         {
             Console.WriteLine( c.ToDisplayString(  ) );
         }
@@ -63,7 +63,7 @@ public class ReadAspect : TypeAspect
     [Introduce(WhenExists = OverrideStrategy.New)]
     public void PrintBaseMethods()
     {
-        foreach (var c in meta.Target.Type.BaseType.Methods.OrderBy( m=>m.ToString() ))
+        foreach (var c in meta.Target.Type.BaseType!.Methods.OrderBy( m=>m.ToString() ))
         {
             Console.WriteLine( c.ToDisplayString(  ) );
         }

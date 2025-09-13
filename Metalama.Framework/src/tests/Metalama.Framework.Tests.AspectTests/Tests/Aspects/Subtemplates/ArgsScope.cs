@@ -2,19 +2,16 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using System;
-using System.Runtime.Serialization;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.SyntaxBuilders;
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Subtemplates.ArgsScope;
 
-class Aspect : TypeAspect
+internal class Aspect : TypeAspect
 {
     [Introduce]
-    void Format(UnsafeStringBuilder stringBuilder, IFormatterRepository formatterRepository)
+    private void Format(UnsafeStringBuilder stringBuilder, IFormatterRepository formatterRepository)
     {
         var fieldOrProperties = meta.Target.Type.FieldsAndProperties;
 
@@ -45,24 +42,24 @@ class Aspect : TypeAspect
     }
 }
 
-class UnsafeStringBuilder
+internal class UnsafeStringBuilder
 {
     public void Append(string s) { }
 }
 
-interface IFormatterRepository
+internal interface IFormatterRepository
 {
     IFormatter<T> Get<T>();
 }
 
-interface IFormatter<in T>
+internal interface IFormatter<in T>
 {
     void Format(UnsafeStringBuilder stringBuilder, T? value);
 }
 
 // <target>
 [Aspect]
-class TargetCode
+internal class TargetCode
 {
-    int P { get; set; }
+    private int P { get; set; }
 }

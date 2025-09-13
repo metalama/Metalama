@@ -9,7 +9,6 @@
 
 #if ROSLYN_4_8_0_OR_GREATER
 
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.CSharp12.EmptyType;

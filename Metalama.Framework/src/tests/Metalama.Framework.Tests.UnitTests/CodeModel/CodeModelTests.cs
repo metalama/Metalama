@@ -1603,7 +1603,7 @@ class C {}
             Assert.True( partialNonVoid.IsPartial );
 
             var partialDefinition = (IMethodSymbol) compilation.Types.Single().GetSymbol().AssertSymbolNotNull().GetMembers( "PartialVoid_Impl" ).Single();
-            var partialImplementation = partialDefinition.PartialImplementationPart;
+            var partialImplementation = partialDefinition.PartialImplementationPart.AssertNotNull();
 
             Assert.NotSame( partialDefinition, partialImplementation );
 
@@ -1641,7 +1641,7 @@ class C {}
             Assert.True( partialProperty.IsPartial );
 
             var partialDefinition = (IPropertySymbol) type.GetSymbol().AssertSymbolNotNull().GetMembers( "PartialP" ).Single();
-            var partialImplementation = partialDefinition.PartialImplementationPart;
+            var partialImplementation = partialDefinition.PartialImplementationPart.AssertNotNull();
 
             Assert.NotSame( partialDefinition, partialImplementation );
 
@@ -1674,8 +1674,8 @@ class C {}
             var intType = compilation.Factory.GetSpecialType( SpecialType.Int32 );
             var stringType = compilation.Factory.GetSpecialType( SpecialType.String );
 
-            var nonPartialIndexer = type.Indexers.OfExactSignature( [intType] );
-            var partialIndexer = type.Indexers.OfExactSignature( [stringType] );
+            var nonPartialIndexer = type.Indexers.OfExactSignature( [intType] )!;
+            var partialIndexer = type.Indexers.OfExactSignature( [stringType] )!;
 
             Assert.False( nonPartialIndexer.IsPartial );
             Assert.True( partialIndexer.IsPartial );
@@ -1686,7 +1686,7 @@ class C {}
                 .Cast<IPropertySymbol>()
                 .Single( i => i.Parameters.Single().Type.SpecialType == Microsoft.CodeAnalysis.SpecialType.System_String );
 
-            var partialImplementation = partialDefinition.PartialImplementationPart;
+            var partialImplementation = partialDefinition.PartialImplementationPart!;
 
             Assert.NotSame( partialDefinition, partialImplementation );
 
@@ -1988,7 +1988,7 @@ public partial class B
 
             var compilation = testContext.CreateCompilationModel( code );
             var type = compilation.Types.Single();
-            var typeParameterSymbol = type.TypeParameters.Single().GetSymbol();
+            var typeParameterSymbol = type.TypeParameters.Single().GetSymbol().AssertNotNull();
 
             var factory = compilation.Factory;
 
@@ -2099,7 +2099,7 @@ public partial class B
             var compilation = testContext.CreateCompilationModel( code );
 
             var interfaceType = (INamedType) compilation.Types.Single().Fields.OfName( "f1" ).Single().Type;
-            var interfaceMethod = interfaceType.Properties.OfName( "Count" ).Single().GetMethod;
+            var interfaceMethod = interfaceType.Properties.OfName( "Count" ).Single().GetMethod.AssertNotNull();
 
             Assert.True( interfaceType.TryFindImplementationForInterfaceMember( interfaceMethod, out var roundtrip ) );
             Assert.Same( interfaceMethod, roundtrip );
@@ -2136,17 +2136,17 @@ class C<TC> : B<TC>
             // All members are definitions.
             foreach ( var member in compilation.Types.OfName( "B" ).Single().Members() )
             {
-                Assert.True( member.GetSymbol().IsDefinitionSafe() );
+                Assert.True( member.GetSymbol().AssertNotNull().IsDefinitionSafe() );
             }
 
             foreach ( var member in compilation.Types.OfName( "C" ).Single().Members() )
             {
-                Assert.True( member.GetSymbol().IsDefinitionSafe() );
+                Assert.True( member.GetSymbol().AssertNotNull().IsDefinitionSafe() );
             }
 
             // Inherited members are not definitions.
             var inheritedMethod = compilation.Types.OfName( "C" ).Single().AllMethods.OfName( "BaseMethod2" ).Single();
-            Assert.False( inheritedMethod.GetSymbol().IsDefinitionSafe() );
+            Assert.False( inheritedMethod.GetSymbol().AssertNotNull().IsDefinitionSafe() );
         }
 
         [Fact]
@@ -2170,9 +2170,9 @@ class C
             var reference = new DeclarationIdRef<INamedType>( new SerializableDeclarationId( "Y:A<T>|T:A`1" ) );
             var deserializedType = reference.GetTarget( compilation );
 
-            Assert.False( compilationType.GetSymbol().IsDefinitionSafe() );
-            Assert.True( systemType.GetSymbol().IsDefinitionSafe() );
-            Assert.True( deserializedType.GetSymbol().IsDefinitionSafe() );
+            Assert.False( compilationType.GetSymbol().AssertNotNull().IsDefinitionSafe() );
+            Assert.True( systemType.GetSymbol().AssertNotNull().IsDefinitionSafe() );
+            Assert.True( deserializedType.GetSymbol().AssertNotNull().IsDefinitionSafe() );
             Assert.True( compilationType.IsConvertibleTo( deserializedType, ConversionKind.TypeDefinition ) );
         }
 
@@ -2329,7 +2329,7 @@ class C
 
             using var testContext = this.CreateTestContext();
             var compilation2 = testContext.CreateCompilation( code2, code1, ignoreErrors: true );
-            var compilation1 = compilation2.Types.First().BaseType.Compilation;
+            var compilation1 = compilation2.Types.First().BaseType.AssertNotNull().Compilation;
 
             var allTypes = compilation1.AllTypes.Concat( compilation2.AllTypes ).ToList();
             var allMembers = allTypes.SelectMany( t => t.Methods ).ToList();
@@ -2339,7 +2339,9 @@ class C
                 foreach ( var member in allMembers )
                 {
                     var ourValue = member.IsAccessibleFrom( type );
-                    var roslynValue = member.Compilation.GetRoslynCompilation().IsSymbolAccessibleWithin( member.GetSymbol(), type.GetSymbol() );
+
+                    var roslynValue = member.Compilation.GetRoslynCompilation()
+                        .IsSymbolAccessibleWithin( member.GetSymbol().AssertNotNull(), type.GetSymbol().AssertNotNull() );
 
                     if ( ourValue != roslynValue )
                     {

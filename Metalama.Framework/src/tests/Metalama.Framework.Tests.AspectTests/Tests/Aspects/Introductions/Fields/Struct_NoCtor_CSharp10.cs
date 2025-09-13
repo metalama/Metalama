@@ -6,7 +6,6 @@
 // @LanguageVersion(10)
 #endif
 
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 
 namespace Metalama.Framework.IntegrationTests.Aspects.Introductions.Field.Struct_NoCtor_CSharp10

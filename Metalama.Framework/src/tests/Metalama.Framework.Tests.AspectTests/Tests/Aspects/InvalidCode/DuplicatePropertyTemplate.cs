@@ -12,7 +12,7 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.InvalidCode.Duplica
 
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor.
 
-class Aspect : TypeAspect
+internal class Aspect : TypeAspect
 {
     [Template]
     public object Instance { get; set; }

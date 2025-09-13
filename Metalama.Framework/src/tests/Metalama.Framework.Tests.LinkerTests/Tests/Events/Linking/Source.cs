@@ -10,6 +10,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Events.Linking.Source
     [PseudoLayerOrder("A2")]
     [PseudoLayerOrder("A3")]
     [PseudoLayerOrder("A4")]
+    internal
     // <target>
     class Target
     {
@@ -45,24 +46,24 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Events.Linking.Source
             add
             {
                 // Should invoke this.Foo_Source.
-                link[_this.Foo.add, @base] += value;
+                Link[This.Foo.add, Base] += value;
                 // Should invoke this.Foo_Source.
-                link[_this.Foo.add, previous] += value;
+                Link[This.Foo.add, Previous] += value;
                 // Should invoke this.Foo_Source.
-                link[_this.Foo.add, current] += value;
+                Link[This.Foo.add, Current] += value;
                 // Should invoke this.Foo.
-                link[_this.Foo.add, final] += value;
+                Link[This.Foo.add, Final] += value;
             }
             remove
             {
                 // Should invoke this.Foo_Source.
-                link[_this.Foo.remove, @base] -= value;
+                Link[This.Foo.remove, Base] -= value;
                 // Should invoke this.Foo_Source.
-                link[_this.Foo.remove, previous] -= value;
+                Link[This.Foo.remove, Previous] -= value;
                 // Should invoke this.Foo_Source.
-                link[_this.Foo.remove, current] -= value;
+                Link[This.Foo.remove, Current] -= value;
                 // Should invoke this.Foo.
-                link[_this.Foo.remove, final] -= value;
+                Link[This.Foo.remove, Final] -= value;
             }
         }
 
@@ -74,24 +75,24 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Events.Linking.Source
             add
             {
                 // Should invoke this.Foo_Source.
-                link[_this.Foo.add, @base] += value;
+                Link[This.Foo.add, Base] += value;
                 // Should invoke this.Foo_Source.
-                link[_this.Foo.add, previous] += value;
+                Link[This.Foo.add, Previous] += value;
                 // Should invoke this.Foo_A2_Override3.
-                link[_this.Foo.add, current] += value;
+                Link[This.Foo.add, Current] += value;
                 // Should invoke this.Foo.
-                link[_this.Foo.add, final] += value;
+                Link[This.Foo.add, Final] += value;
             }
             remove
             {
                 // Should invoke this.Foo_Source.
-                link[_this.Foo.remove, @base] -= value;
+                Link[This.Foo.remove, Base] -= value;
                 // Should invoke this.Foo_Source.
-                link[_this.Foo.remove, previous] -= value;
+                Link[This.Foo.remove, Previous] -= value;
                 // Should invoke this.Foo_A2_Override3.
-                link[_this.Foo.remove, current] -= value;
+                Link[This.Foo.remove, Current] -= value;
                 // Should invoke this.Foo.
-                link[_this.Foo.remove, final] -= value;
+                Link[This.Foo.remove, Final] -= value;
             }
         }
 
@@ -103,24 +104,24 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Events.Linking.Source
             add
             {
                 // Should invoke this.Foo_Source.
-                link[_this.Foo.add, @base] += value;
+                Link[This.Foo.add, Base] += value;
                 // Should invoke this.Foo_Source.
-                link[_this.Foo.add, previous] += value;
+                Link[This.Foo.add, Previous] += value;
                 // Should invoke Foo_A2_Override3.
-                link[_this.Foo.add, current] += value;
+                Link[This.Foo.add, Current] += value;
                 // Should invoke this.Foo.
-                link[_this.Foo.add, final] += value;
+                Link[This.Foo.add, Final] += value;
             }
             remove
             {
                 // Should invoke this.Foo_Source.
-                link[_this.Foo.remove, @base] -= value;
+                Link[This.Foo.remove, Base] -= value;
                 // Should invoke this.Foo_Source.
-                link[_this.Foo.remove, previous] -= value;
+                Link[This.Foo.remove, Previous] -= value;
                 // Should invoke Foo_A2_Override3.
-                link[_this.Foo.remove, current] -= value;
+                Link[This.Foo.remove, Current] -= value;
                 // Should invoke this.Foo.
-                link[_this.Foo.remove, final] -= value;
+                Link[This.Foo.remove, Final] -= value;
             }
         }
 
@@ -132,24 +133,24 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Events.Linking.Source
             add
             {
                 // Should invoke this.Foo_Source.
-                link[_this.Foo.add, @base] += value;
+                Link[This.Foo.add, Base] += value;
                 // Should invoke this.Foo_A2_Override3.
-                link[_this.Foo.add, previous] += value;
+                Link[This.Foo.add, Previous] += value;
                 // Should invoke this.Foo_A2_Override3.
-                link[_this.Foo.add, current] += value;
+                Link[This.Foo.add, Current] += value;
                 // Should invoke this.Foo.
-                link[_this.Foo.add, final] += value;
+                Link[This.Foo.add, Final] += value;
             }
             remove
             {
                 // Should invoke this.Foo_Source.
-                link[_this.Foo.remove, @base] -= value;
+                Link[This.Foo.remove, Base] -= value;
                 // Should invoke this.Foo_A2_Override3.
-                link[_this.Foo.remove, previous] -= value;
+                Link[This.Foo.remove, Previous] -= value;
                 // Should invoke this.Foo_A2_Override3.
-                link[_this.Foo.remove, current] -= value;
+                Link[This.Foo.remove, Current] -= value;
                 // Should invoke this.Foo.
-                link[_this.Foo.remove, final] -= value;
+                Link[This.Foo.remove, Final] -= value;
             }
         }
 
@@ -161,24 +162,24 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Events.Linking.Source
             add
             {
                 // Should invoke this.Foo_A2_Override3.
-                link[_this.Foo.add, @base] += value;
+                Link[This.Foo.add, Base] += value;
                 // Should invoke this.Foo_A2_Override3.
-                link[_this.Foo.add, previous] += value;
+                Link[This.Foo.add, Previous] += value;
                 // Should invoke this.Foo.
-                link[_this.Foo.add, current] += value;
+                Link[This.Foo.add, Current] += value;
                 // Should invoke this.Foo.
-                link[_this.Foo.add, final] += value;
+                Link[This.Foo.add, Final] += value;
             }
             remove
             {
                 // Should invoke this.Foo_A2_Override3.
-                link[_this.Foo.remove, @base] -= value;
+                Link[This.Foo.remove, Base] -= value;
                 // Should invoke this.Foo_A2_Override3.
-                link[_this.Foo.remove, previous] -= value;
+                Link[This.Foo.remove, Previous] -= value;
                 // Should invoke this.Foo.
-                link[_this.Foo.remove, current] -= value;
+                Link[This.Foo.remove, Current] -= value;
                 // Should invoke this.Foo.
-                link[_this.Foo.remove, final] -= value;
+                Link[This.Foo.remove, Final] -= value;
             }
         }
 
@@ -190,24 +191,24 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Events.Linking.Source
             add
             {
                 // Should invoke this.Foo_A2_Override3.
-                link[_this.Foo.add, @base] += value;
+                Link[This.Foo.add, Base] += value;
                 // Should invoke this.Foo_A2_Override3.
-                link[_this.Foo.add, previous] += value;
+                Link[This.Foo.add, Previous] += value;
                 // Should invoke this.Foo.
-                link[_this.Foo.add, current] += value;
+                Link[This.Foo.add, Current] += value;
                 // Should invoke this.Foo.
-                link[_this.Foo.add, final] += value;
+                Link[This.Foo.add, Final] += value;
             }
             remove
             {
                 // Should invoke this.Foo_A2_Override3.
-                link[_this.Foo.remove, @base] -= value;
+                Link[This.Foo.remove, Base] -= value;
                 // Should invoke this.Foo_A2_Override3.
-                link[_this.Foo.remove, previous] -= value;
+                Link[This.Foo.remove, Previous] -= value;
                 // Should invoke this.Foo.
-                link[_this.Foo.remove, current] -= value;
+                Link[This.Foo.remove, Current] -= value;
                 // Should invoke this.Foo.
-                link[_this.Foo.remove, final] -= value;
+                Link[This.Foo.remove, Final] -= value;
             }
         }
 
@@ -219,24 +220,24 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Events.Linking.Source
             add
             {
                 // Should invoke this.Foo_A2_Override3.
-                link[_this.Foo.add, @base] += value;
+                Link[This.Foo.add, Base] += value;
                 // Should invoke this.Foo_A3_Override6.
-                link[_this.Foo.add, previous] += value;
+                Link[This.Foo.add, Previous] += value;
                 // Should invoke this.Foo.
-                link[_this.Foo.add, current] += value;
+                Link[This.Foo.add, Current] += value;
                 // Should invoke this.Foo.
-                link[_this.Foo.add, final] += value;
+                Link[This.Foo.add, Final] += value;
             }
             remove
             {
                 // Should invoke this.Foo_A2_Override3.
-                link[_this.Foo.remove, @base] -= value;
+                Link[This.Foo.remove, Base] -= value;
                 // Should invoke this.Foo_A3_Override6.
-                link[_this.Foo.remove, previous] -= value;
+                Link[This.Foo.remove, Previous] -= value;
                 // Should invoke this.Foo.
-                link[_this.Foo.remove, current] -= value;
+                Link[This.Foo.remove, Current] -= value;
                 // Should invoke this.Foo.
-                link[_this.Foo.remove, final] -= value;
+                Link[This.Foo.remove, Final] -= value;
             }
         }
 
@@ -248,24 +249,24 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Events.Linking.Source
             add
             {
                 // Should invoke this.Foo_A2_Override3.
-                link[_this.Foo.add, @base] += value;
+                Link[This.Foo.add, Base] += value;
                 // Should invoke this.Foo_A3_Override6.
-                link[_this.Foo.add, previous] += value;
+                Link[This.Foo.add, Previous] += value;
                 // Should invoke this.Foo.
-                link[_this.Foo.add, current] += value;
+                Link[This.Foo.add, Current] += value;
                 // Should invoke this.Foo.
-                link[_this.Foo.add, final] += value;
+                Link[This.Foo.add, Final] += value;
             }
             remove
             {
                 // Should invoke this.Foo_A2_Override3.
-                link[_this.Foo.remove, @base] -= value;
+                Link[This.Foo.remove, Base] -= value;
                 // Should invoke this.Foo_A3_Override6.
-                link[_this.Foo.remove, previous] -= value;
+                Link[This.Foo.remove, Previous] -= value;
                 // Should invoke this.Foo.
-                link[_this.Foo.remove, current] -= value;
+                Link[This.Foo.remove, Current] -= value;
                 // Should invoke this.Foo.
-                link[_this.Foo.remove, final] -= value;
+                Link[This.Foo.remove, Final] -= value;
             }
         }
 
@@ -277,24 +278,24 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Events.Linking.Source
             add
             {
                 // Should invoke this.Foo_A2_Override3.
-                link[_this.Foo.add, @base] += value;
+                Link[This.Foo.add, Base] += value;
                 // Should invoke this.Foo.
-                link[_this.Foo.add, previous] += value;
+                Link[This.Foo.add, Previous] += value;
                 // Should invoke this.Foo.
-                link[_this.Foo.add, current] += value;
+                Link[This.Foo.add, Current] += value;
                 // Should invoke this.Foo.
-                link[_this.Foo.add, final] += value;
+                Link[This.Foo.add, Final] += value;
             }
             remove
             {
                 // Should invoke this.Foo_A2_Override3.
-                link[_this.Foo.remove, @base] -= value;
+                Link[This.Foo.remove, Base] -= value;
                 // Should invoke this.Foo.
-                link[_this.Foo.remove, previous] -= value;
+                Link[This.Foo.remove, Previous] -= value;
                 // Should invoke this.Foo.
-                link[_this.Foo.remove, current] -= value;
+                Link[This.Foo.remove, Current] -= value;
                 // Should invoke this.Foo.
-                link[_this.Foo.remove, final] -= value;
+                Link[This.Foo.remove, Final] -= value;
             }
         }
 
@@ -306,24 +307,24 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Events.Linking.Source
             add
             {
                 // Should invoke this.Foo.
-                link[_this.Foo.add, @base] += value;
+                Link[This.Foo.add, Base] += value;
                 // Should invoke this.Foo.
-                link[_this.Foo.add, previous] += value;
+                Link[This.Foo.add, Previous] += value;
                 // Should invoke this.Foo.
-                link[_this.Foo.add, current] += value;
+                Link[This.Foo.add, Current] += value;
                 // Should invoke this.Foo.
-                link[_this.Foo.add, final] += value;
+                Link[This.Foo.add, Final] += value;
             }
             remove
             {
                 // Should invoke this.Foo.
-                link[_this.Foo.remove, @base] -= value;
+                Link[This.Foo.remove, Base] -= value;
                 // Should invoke this.Foo.
-                link[_this.Foo.remove, previous] -= value;
+                Link[This.Foo.remove, Previous] -= value;
                 // Should invoke this.Foo.
-                link[_this.Foo.remove, current] -= value;
+                Link[This.Foo.remove, Current] -= value;
                 // Should invoke this.Foo.
-                link[_this.Foo.remove, final] -= value;
+                Link[This.Foo.remove, Final] -= value;
             }
         }
     }

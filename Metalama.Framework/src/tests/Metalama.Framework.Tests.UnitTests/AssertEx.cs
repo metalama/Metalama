@@ -40,7 +40,17 @@ namespace Metalama.Framework.Tests.UnitTests
             }
         }
 
-        public static void EolInvariantEqual( string expected, string actual )
-            => Assert.Equal( expected.NormalizeEndOfLines().Trim(), actual.NormalizeEndOfLines().Trim() );
+        public static void EolInvariantEqual( string? expected, string? actual )
+        {
+            if ( expected == null )
+            {
+                Assert.Null( actual );
+            }
+            else
+            {
+                Assert.NotNull( actual );
+                Assert.Equal( expected.NormalizeEndOfLines().Trim(), actual.NormalizeEndOfLines().Trim() );
+            }
+        }
     }
 }

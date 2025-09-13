@@ -10,13 +10,13 @@ using Metalama.Framework.Aspects;
 namespace Metalama.Framework.Tests.AspectTests.Tests.Formatting.AllDeclarations
 {
     // We need at least an aspect otherwise the template annotator does not run.
-    class Aspect : OverrideMethodAspect
+    internal class Aspect : OverrideMethodAspect
     {
         public override dynamic? OverrideMethod() => null;
     }
     
     [CompileTime]
-    struct CompileTimeStruct
+    internal struct CompileTimeStruct
     {
         public event EventHandler FieldEvent;
         public event EventHandler ManualEvent
@@ -28,7 +28,7 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Formatting.AllDeclarations
         public string Property { get; set; }
     }
 
-    struct RunTimeStruct
+    internal struct RunTimeStruct
     {
         public event EventHandler FieldEvent;
         public event EventHandler ManualEvent
@@ -41,14 +41,14 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Formatting.AllDeclarations
     }
 
     [CompileTime]
-    record CompileTimeRecord( int f );
+    internal record CompileTimeRecord( int f );
 
-    record RunTimeRecord( int f );
+    internal record RunTimeRecord( int f );
 
     [CompileTime]
-    delegate void CompileTimeDelegate();
+    internal delegate void CompileTimeDelegate();
 
-    delegate void RunTimeDelegate();
+    internal delegate void RunTimeDelegate();
 
 
 

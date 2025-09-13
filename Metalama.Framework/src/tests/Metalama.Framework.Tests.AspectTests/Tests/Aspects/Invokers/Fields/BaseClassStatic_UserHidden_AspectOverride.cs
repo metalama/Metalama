@@ -148,7 +148,7 @@ public class BaseClass
 public class TargetClass : BaseClass
 {
     [OverrideAspect]
-    public new static int Field;
+    public static new int Field;
 
     [InvokerBeforeAspect]
     public int InvokerBefore

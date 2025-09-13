@@ -16,7 +16,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
@@ -26,6 +25,7 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Code.Types;
 using System.Reflection;
 using System.Runtime.Loader;
+using System.Threading;
 using SpecialType = Metalama.Framework.Code.SpecialType;
 #endif
 

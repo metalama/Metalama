@@ -28,7 +28,7 @@ public class TheAspect : Aspect, IAspect<IIndexer>
     }
 
     [Template]
-    dynamic? GetterTemplate(dynamic index)
+    private dynamic? GetterTemplate(dynamic index)
     {
         Console.WriteLine("This is aspect code.");
 
@@ -36,7 +36,7 @@ public class TheAspect : Aspect, IAspect<IIndexer>
     }
 
     [Template]
-    void SetterTemplate(dynamic index, dynamic value)
+    private void SetterTemplate(dynamic index, dynamic value)
     {
         Console.WriteLine("This is aspect code.");
 
@@ -45,7 +45,7 @@ public class TheAspect : Aspect, IAspect<IIndexer>
 }
 
 // <target>
-partial class Target
+internal partial class Target
 {
 #if TESTRUNNER
     [TheAspect]

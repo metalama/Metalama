@@ -3,11 +3,10 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Tests.AspectTests.Tests.Aspects.Contracts.Constructor_Order;
 
-[assembly: AspectOrder( AspectOrderDirection.RunTime, typeof(NotNullAttribute), typeof(NotEmptyAttribute) )]
+[assembly: AspectOrder( AspectOrderDirection.RunTime, typeof( NotNullAttribute ), typeof( NotEmptyAttribute ) )]
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Contracts.Constructor_Order
 {
@@ -26,7 +25,7 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Contracts.Construct
     {
         public override void Validate( dynamic? value )
         {
-            if (value.Length == 0)
+            if (value!.Length == 0)
             {
                 throw new ArgumentNullException( meta.Target.Parameter.Name );
             }

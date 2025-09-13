@@ -7,10 +7,9 @@ using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.DeclarationBuilders;
-using Metalama.Framework.Fabrics;
 using Metalama.Framework.Tests.AspectTests.Tests.Aspects.Attributes.KeepsTrivia;
 
-[assembly: AspectOrder( AspectOrderDirection.CompileTime, typeof(AddMyAspect), typeof(MyAspect))]
+[assembly: AspectOrder( AspectOrderDirection.CompileTime, typeof( AddMyAspect ), typeof( MyAspect ) )]
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Attributes.KeepsTrivia;
 
@@ -36,7 +35,7 @@ public class AddMyAspect : TypeAspect
 }
 
 [AddMyAspect]
-class P
+internal class P
 {
     // <target>
     internal partial class C { }

@@ -3,11 +3,10 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Aspects;
-using Metalama.Framework.Code;
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.LocalFunctions.ScopeAttribute;
 
-class Aspect : OverrideMethodAspect
+internal class Aspect : OverrideMethodAspect
 {
     public override dynamic? OverrideMethod()
     {
@@ -29,11 +28,11 @@ class Aspect : OverrideMethodAspect
     }
 }
 
-class TargetCode
+internal class TargetCode
 {
     // <target>
     [Aspect]
-    void Method()
+    private void Method()
     {
     }
 }

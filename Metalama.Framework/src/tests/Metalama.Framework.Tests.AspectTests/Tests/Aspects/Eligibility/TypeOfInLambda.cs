@@ -4,13 +4,14 @@
 
 using System;
 using System.Linq;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.Collections;
 using Metalama.Framework.Eligibility;
 
 namespace Metalama.Framework.Tests.AspectTests.Aspects.Eligibility.TypeOfInLambda;
+
+#pragma warning disable IDE0082 // 'typeof' can be converted to 'nameof'
 
 internal class TestAspect : MethodAspect
 {
@@ -20,17 +21,17 @@ internal class TestAspect : MethodAspect
     {
         builder.MustSatisfy(
             method => method.Attributes.Any(
-                a => a.ConstructorArguments is { Length: 1 } && a.ConstructorArguments.Single().Value as string == typeof(RunTimeClass).Name ),
+                a => a.ConstructorArguments is { Length: 1 } && (a.ConstructorArguments.Single().Value as string) == typeof(RunTimeClass).Name ),
             method => $"{method} must have a an attribute with {typeof(RunTimeClass)} argument" );
 
         builder.MustSatisfy(
             method => method.Attributes.Any(
-                a => a.ConstructorArguments is { Length: 1 } && a.ConstructorArguments.Single().Value as string == typeof(RunTimeOrCompileTimeClass).Name ),
+                a => a.ConstructorArguments is { Length: 1 } && (a.ConstructorArguments.Single().Value as string) == typeof(RunTimeOrCompileTimeClass).Name ),
             method => $"{method} must have a an attribute with {typeof(RunTimeOrCompileTimeClass)} argument" );
 
         builder.MustSatisfy(
             method => method.Attributes.Any(
-                a => a.ConstructorArguments is { Length: 1 } && a.ConstructorArguments.Single().Value as string == typeof(CompileTimeClass).Name ),
+                a => a.ConstructorArguments is { Length: 1 } && (a.ConstructorArguments.Single().Value as string) == typeof(CompileTimeClass).Name ),
             method => $"{method} must have a an attribute with {typeof(CompileTimeClass)} argument" );
     }
 }

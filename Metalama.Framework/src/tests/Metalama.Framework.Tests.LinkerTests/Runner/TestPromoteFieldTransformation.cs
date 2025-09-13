@@ -19,9 +19,9 @@ internal sealed class TestPromoteFieldTransformation : TestIntroduceDeclarationT
     public IFullRef<IMember>? ReplacedMember { get; }
 
     public TestPromoteFieldTransformation(
-        AspectLayerInstance aspectLayerInstance, 
-        InsertPosition insertPosition, 
-        IFullRef<IField> promotedField, 
+        AspectLayerInstance aspectLayerInstance,
+        InsertPosition insertPosition,
+        IFullRef<IField> promotedField,
         PropertyBuilderData builderData,
         MemberDeclarationSyntax syntax )
         : base( aspectLayerInstance, insertPosition, builderData, syntax )

@@ -9,7 +9,6 @@
 #pragma warning disable CS0169
 
 using System;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 
 namespace Metalama.Framework.Tests.PublicPipeline.Aspects.Overrides.Fields.DesignTime

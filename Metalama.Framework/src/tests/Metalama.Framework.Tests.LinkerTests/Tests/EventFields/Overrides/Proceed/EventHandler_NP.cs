@@ -9,12 +9,12 @@ using System;
 namespace Metalama.Framework.Tests.LinkerTests.Tests.EventFields.Overrides.Proceed.EventHandler_NP
 {
     // <target>
-    class Target
+    internal class Target
     {
-        event EventHandler? Foo;
+        private event EventHandler? Foo;
 
         [PseudoOverride(nameof(Foo), "TestAspect")]
-        event EventHandler Foo_Override1
+        private event EventHandler Foo_Override1
         {
             add
             {

@@ -8,60 +8,60 @@ using static Metalama.Framework.Tests.LinkerTests.Tests.Api;
 namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Overrides.TemplateBody.LocalFunction
 {
     // <target>
-    class TargetClass
+    internal class TargetClass
     {
-        int IntMethod(int x)
+        private int IntMethod(int x)
         {
             Console.WriteLine("Original");
             return x;
         }
 
         [PseudoOverride( nameof(IntMethod), "TestAspect")]
-        int IntMethod_Override(int x)
+        private int IntMethod_Override(int x)
         {
             return LocalFunction() + LocalFunction();
 
             int LocalFunction()
             {
                 Console.WriteLine("Override");
-                var z = link(_this.IntMethod, inline)(x);
+                var z = Link(This.IntMethod, Inline)(x);
                 return z;
             }
         }
 
-        string? StringMethod(string x)
+        private string? StringMethod(string x)
         {
             Console.WriteLine("Original");
             return x;
         }
 
         [PseudoOverride(nameof(StringMethod), "TestAspect")]
-        string? StringMethod_Override(string? x)
+        private string? StringMethod_Override(string? x)
         {
             return ToUpper();
 
             string? ToUpper()
             {
                 Console.WriteLine("Override");
-                return link(_this.StringMethod, inline)(x)?.ToUpper();
+                return Link(This.StringMethod, Inline)(x)?.ToUpper();
             }
         }
 
-        void VoidMethod()
+        private void VoidMethod()
         {
             Console.WriteLine("Original");
         }
 
         [PseudoOverride(nameof(VoidMethod), "TestAspect")]
-        void VoidMethod_Override()
+        private void VoidMethod_Override()
         {
             LocalFunction();
             LocalFunction();
 
-            void LocalFunction()
+            static void LocalFunction()
             {
                 Console.WriteLine("Override");
-                link(_this.VoidMethod, inline)();
+                Link(This.VoidMethod, Inline)();
             }
         }
     }

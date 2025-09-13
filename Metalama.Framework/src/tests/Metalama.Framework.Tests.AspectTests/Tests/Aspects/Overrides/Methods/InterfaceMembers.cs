@@ -6,7 +6,6 @@
 // @RequiredConstant(NET5_0_OR_GREATER) - Default interface members need to be supported by the runtime.
 #endif
 
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using System;
 
@@ -38,7 +37,7 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Overrides.Methods.I
         }
 
         [Override]
-        public static int StaticMethod()
+static int StaticMethod()
         {
             Console.WriteLine("Original implementation");
             return 42;

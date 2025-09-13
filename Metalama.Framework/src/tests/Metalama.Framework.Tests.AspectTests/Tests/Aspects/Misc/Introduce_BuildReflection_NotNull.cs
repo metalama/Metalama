@@ -7,11 +7,10 @@
 
 using System;
 using System.Linq;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Tests.AspectTests.Tests.Aspects.Misc.Introduce_BuildReflection_NotNull;
 
-[assembly: AspectOrder( AspectOrderDirection.RunTime, typeof(Verification), typeof(Introduction) )]
+[assembly: AspectOrder( AspectOrderDirection.RunTime, typeof( Verification ), typeof( Introduction ) )]
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Misc.Introduce_BuildReflection_NotNull
 {

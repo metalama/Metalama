@@ -6,7 +6,6 @@
 // @RequiredConstant(NETFRAMEWORK)
 #endif
 
-using System.Collections.Generic;
 
 #if TESTRUNNER
 namespace System;
@@ -30,9 +29,13 @@ internal readonly struct Index : IEquatable<Index>
         }
 
         if (fromEnd)
+        {
             _value = ~value;
+        }
         else
+        {
             _value = value;
+        }
     }
 
     private Index(int value)
@@ -69,9 +72,13 @@ internal readonly struct Index : IEquatable<Index>
         get
         {
             if (_value < 0)
+            {
                 return ~_value;
+            }
             else
+            {
                 return _value;
+            }
         }
     }
 
@@ -79,7 +86,7 @@ internal readonly struct Index : IEquatable<Index>
 
     public int GetOffset(int length)
     {
-        int offset = _value;
+        var offset = _value;
         if (IsFromEnd)
         {
             offset += length + 1;
@@ -98,7 +105,9 @@ internal readonly struct Index : IEquatable<Index>
     public override string ToString()
     {
         if (IsFromEnd)
+        {
             return ToStringFromEnd();
+        }
 
         return ((uint)Value).ToString();
     }

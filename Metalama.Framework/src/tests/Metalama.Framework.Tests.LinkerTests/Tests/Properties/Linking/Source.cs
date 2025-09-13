@@ -10,6 +10,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Properties.Linking.Source
     [PseudoLayerOrder("A2")]
     [PseudoLayerOrder("A3")]
     [PseudoLayerOrder("A4")]
+    internal
     // <target>
     class Target
     {
@@ -49,25 +50,25 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Properties.Linking.Source
             get
             {
                 // Should invoke this.Foo_Source.
-                _ = link(_this.Foo.get, @base);
+                _ = Link(This.Foo.get, Base);
                 // Should invoke this.Foo_Source.
-                _ = link(_this.Foo.get, previous);
+                _ = Link(This.Foo.get, Previous );
                 // Should invoke this.Foo_Source.
-                _ = link(_this.Foo.get, current);
+                _ = Link(This.Foo.get, Current);
                 // Should invoke this.Foo.
-                _ = link(_this.Foo.get, final);
+                _ = Link(This.Foo.get, Final);
                 return 42;
             }
             set
             {
                 // Should invoke this.Foo_Source.
-                link[_this.Foo.set, @base] = value;
+                Link[This.Foo.set, Base] = value;
                 // Should invoke this.Foo_Source.
-                link[_this.Foo.set, previous] = value;
+                Link[This.Foo.set, Previous] = value;
                 // Should invoke this.Foo_Source.
-                link[_this.Foo.set, current] = value;
+                Link[This.Foo.set, Current] = value;
                 // Should invoke this.Foo.
-                link[_this.Foo.set, final] = value;
+                Link[This.Foo.set, Final] = value;
             }
         }
 
@@ -79,25 +80,25 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Properties.Linking.Source
             get
             {
                 // Should invoke this.Foo_Source.
-                _ = link(_this.Foo.get, @base);
+                _ = Link(This.Foo.get, Base);
                 // Should invoke this.Foo_Source.
-                _ = link(_this.Foo.get, previous);
+                _ = Link(This.Foo.get, Previous );
                 // Should invoke this.Foo_A2_Override3.
-                _ = link(_this.Foo.get, current);
+                _ = Link(This.Foo.get, Current);
                 // Should invoke this.Foo.
-                _ = link(_this.Foo.get, final);
+                _ = Link(This.Foo.get, Final);
                 return 42;
             }
             set
             {
                 // Should invoke this.Foo_Source.
-                link[_this.Foo.set, @base] = value;
+                Link[This.Foo.set, Base] = value;
                 // Should invoke this.Foo_Source.
-                link[_this.Foo.set, previous] = value;
+                Link[This.Foo.set, Previous] = value;
                 // Should invoke this.Foo_A2_Override3.
-                link[_this.Foo.set, current] = value;
+                Link[This.Foo.set, Current] = value;
                 // Should invoke this.Foo.
-                link[_this.Foo.set, final] = value;
+                Link[This.Foo.set, Final] = value;
             }
         }
 
@@ -109,25 +110,25 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Properties.Linking.Source
             get
             {
                 // Should invoke this.Foo_Source.
-                _ = link(_this.Foo.get, @base);
+                _ = Link(This.Foo.get, Base);
                 // Should invoke this.Foo_Source.
-                _ = link(_this.Foo.get, previous);
+                _ = Link(This.Foo.get, Previous );
                 // Should invoke Foo_A2_Override3.
-                _ = link(_this.Foo.get, current);
+                _ = Link(This.Foo.get, Current);
                 // Should invoke this.Foo.
-                _ = link(_this.Foo.get, final);
+                _ = Link(This.Foo.get, Final);
                 return 42;
             }
             set
             {
                 // Should invoke this.Foo_Source.
-                link[_this.Foo.set, @base] = value;
+                Link[This.Foo.set, Base] = value;
                 // Should invoke this.Foo_Source.
-                link[_this.Foo.set, previous] = value;
+                Link[This.Foo.set, Previous] = value;
                 // Should invoke Foo_A2_Override3.
-                link[_this.Foo.set, current] = value;
+                Link[This.Foo.set, Current] = value;
                 // Should invoke this.Foo.
-                link[_this.Foo.set, final] = value;
+                Link[This.Foo.set, Final] = value;
             }
         }
 
@@ -139,25 +140,25 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Properties.Linking.Source
             get
             {
                 // Should invoke this.Foo_Source.
-                _ = link(_this.Foo.get, @base);
+                _ = Link(This.Foo.get, Base);
                 // Should invoke this.Foo_A2_Override3.
-                _ = link(_this.Foo.get, previous);
+                _ = Link(This.Foo.get, Previous );
                 // Should invoke this.Foo_A2_Override3.
-                _ = link(_this.Foo.get, current);
+                _ = Link(This.Foo.get, Current);
                 // Should invoke this.Foo.
-                _ = link(_this.Foo.get, final);
+                _ = Link(This.Foo.get, Final);
                 return 42;
             }
             set
             {
                 // Should invoke this.Foo_Source.
-                link[_this.Foo.set, @base] = value;
+                Link[This.Foo.set, Base] = value;
                 // Should invoke this.Foo_A2_Override3.
-                link[_this.Foo.set, previous] = value;
+                Link[This.Foo.set, Previous] = value;
                 // Should invoke this.Foo_A2_Override3.
-                link[_this.Foo.set, current] = value;
+                Link[This.Foo.set, Current] = value;
                 // Should invoke this.Foo.
-                link[_this.Foo.set, final] = value;
+                Link[This.Foo.set, Final] = value;
             }
         }
 
@@ -169,25 +170,25 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Properties.Linking.Source
             get
             {
                 // Should invoke this.Foo_A2_Override3.
-                _ = link(_this.Foo.get, @base);
+                _ = Link(This.Foo.get, Base);
                 // Should invoke this.Foo_A2_Override3.
-                _ = link(_this.Foo.get, previous);
+                _ = Link(This.Foo.get, Previous );
                 // Should invoke this.Foo.
-                _ = link(_this.Foo.get, current);
+                _ = Link(This.Foo.get, Current);
                 // Should invoke this.Foo.
-                _ = link(_this.Foo.get, final);
+                _ = Link(This.Foo.get, Final);
                 return 42;
             }
             set
             {
                 // Should invoke this.Foo_A2_Override3.
-                link[_this.Foo.set, @base] = value;
+                Link[This.Foo.set, Base] = value;
                 // Should invoke this.Foo_A2_Override3.
-                link[_this.Foo.set, previous] = value;
+                Link[This.Foo.set, Previous] = value;
                 // Should invoke this.Foo.
-                link[_this.Foo.set, current] = value;
+                Link[This.Foo.set, Current] = value;
                 // Should invoke this.Foo.
-                link[_this.Foo.set, final] = value;
+                Link[This.Foo.set, Final] = value;
             }
         }
 
@@ -199,25 +200,25 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Properties.Linking.Source
             get
             {
                 // Should invoke this.Foo_A2_Override3.
-                _ = link(_this.Foo.get, @base);
+                _ = Link(This.Foo.get, Base);
                 // Should invoke this.Foo_A2_Override3.
-                _ = link(_this.Foo.get, previous);
+                _ = Link(This.Foo.get, Previous );
                 // Should invoke this.Foo.
-                _ = link(_this.Foo.get, current);
+                _ = Link(This.Foo.get, Current);
                 // Should invoke this.Foo.
-                _ = link(_this.Foo.get, final);
+                _ = Link(This.Foo.get, Final);
                 return 42;
             }
             set
             {
                 // Should invoke this.Foo_A2_Override3.
-                link[_this.Foo.set, @base] = value;
+                Link[This.Foo.set, Base] = value;
                 // Should invoke this.Foo_A2_Override3.
-                link[_this.Foo.set, previous] = value;
+                Link[This.Foo.set, Previous] = value;
                 // Should invoke this.Foo.
-                link[_this.Foo.set, current] = value;
+                Link[This.Foo.set, Current] = value;
                 // Should invoke this.Foo.
-                link[_this.Foo.set, final] = value;
+                Link[This.Foo.set, Final] = value;
             }
         }
 
@@ -229,25 +230,25 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Properties.Linking.Source
             get
             {
                 // Should invoke this.Foo_A2_Override3.
-                _ = link(_this.Foo.get, @base);
+                _ = Link(This.Foo.get, Base);
                 // Should invoke this.Foo_A3_Override6.
-                _ = link(_this.Foo.get, previous);
+                _ = Link(This.Foo.get, Previous );
                 // Should invoke this.Foo.
-                _ = link(_this.Foo.get, current);
+                _ = Link(This.Foo.get, Current);
                 // Should invoke this.Foo.
-                _ = link(_this.Foo.get, final);
+                _ = Link(This.Foo.get, Final);
                 return 42;
             }
             set
             {
                 // Should invoke this.Foo_A2_Override3.
-                link[_this.Foo.set, @base] = value;
+                Link[This.Foo.set, Base] = value;
                 // Should invoke this.Foo_A3_Override6.
-                link[_this.Foo.set, previous] = value;
+                Link[This.Foo.set, Previous] = value;
                 // Should invoke this.Foo.
-                link[_this.Foo.set, current] = value;
+                Link[This.Foo.set, Current] = value;
                 // Should invoke this.Foo.
-                link[_this.Foo.set, final] = value;
+                Link[This.Foo.set, Final] = value;
             }
         }
 
@@ -259,25 +260,25 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Properties.Linking.Source
             get
             {
                 // Should invoke this.Foo_A2_Override3.
-                _ = link(_this.Foo.get, @base);
+                _ = Link(This.Foo.get, Base);
                 // Should invoke this.Foo_A3_Override6.
-                _ = link(_this.Foo.get, previous);
+                _ = Link(This.Foo.get, Previous );
                 // Should invoke this.Foo.
-                _ = link(_this.Foo.get, current);
+                _ = Link(This.Foo.get, Current);
                 // Should invoke this.Foo.
-                _ = link(_this.Foo.get, final);
+                _ = Link(This.Foo.get, Final);
                 return 42;
             }
             set
             {
                 // Should invoke this.Foo_A2_Override3.
-                link[_this.Foo.set, @base] = value;
+                Link[This.Foo.set, Base] = value;
                 // Should invoke this.Foo_A3_Override6.
-                link[_this.Foo.set, previous] = value;
+                Link[This.Foo.set, Previous] = value;
                 // Should invoke this.Foo.
-                link[_this.Foo.set, current] = value;
+                Link[This.Foo.set, Current] = value;
                 // Should invoke this.Foo.
-                link[_this.Foo.set, final] = value;
+                Link[This.Foo.set, Final] = value;
             }
         }
 
@@ -289,25 +290,25 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Properties.Linking.Source
             get
             {
                 // Should invoke this.Foo_A2_Override3.
-                _ = link(_this.Foo.get, @base);
+                _ = Link(This.Foo.get, Base);
                 // Should invoke this.Foo.
-                _ = link(_this.Foo.get, previous);
+                _ = Link(This.Foo.get, Previous );
                 // Should invoke this.Foo.
-                _ = link(_this.Foo.get, current);
+                _ = Link(This.Foo.get, Current);
                 // Should invoke this.Foo.
-                _ = link(_this.Foo.get, final);
+                _ = Link(This.Foo.get, Final);
                 return 42;
             }
             set
             {
                 // Should invoke this.Foo_A2_Override3.
-                link[_this.Foo.set, @base] = value;
+                Link[This.Foo.set, Base] = value;
                 // Should invoke this.Foo.
-                link[_this.Foo.set, previous] = value;
+                Link[This.Foo.set, Previous] = value;
                 // Should invoke this.Foo.
-                link[_this.Foo.set, current] = value;
+                Link[This.Foo.set, Current] = value;
                 // Should invoke this.Foo.
-                link[_this.Foo.set, final] = value;
+                Link[This.Foo.set, Final] = value;
             }
         }
 
@@ -319,25 +320,25 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Properties.Linking.Source
             get
             {
                 // Should invoke this.Foo.
-                _ = link(_this.Foo.get, @base);
+                _ = Link(This.Foo.get, Base);
                 // Should invoke this.Foo.
-                _ = link(_this.Foo.get, previous);
+                _ = Link(This.Foo.get, Previous );
                 // Should invoke this.Foo.
-                _ = link(_this.Foo.get, current);
+                _ = Link(This.Foo.get, Current);
                 // Should invoke this.Foo.
-                _ = link(_this.Foo.get, final);
+                _ = Link(This.Foo.get, Final);
                 return 42;
             }
             set
             {
                 // Should invoke this.Foo.
-                link[_this.Foo.set, @base] = value;
+                Link[This.Foo.set, Base] = value;
                 // Should invoke this.Foo.
-                link[_this.Foo.set, previous] = value;
+                Link[This.Foo.set, Previous] = value;
                 // Should invoke this.Foo.
-                link[_this.Foo.set, current] = value;
+                Link[This.Foo.set, Current] = value;
                 // Should invoke this.Foo.
-                link[_this.Foo.set, final] = value;
+                Link[This.Foo.set, Final] = value;
             }
         }
     }

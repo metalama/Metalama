@@ -8,9 +8,9 @@ using static Metalama.Framework.Tests.LinkerTests.Tests.Api;
 namespace Metalama.Framework.Tests.LinkerTests.Tests.Properties.Overrides.Body.BlockBodies
 {
     // <target>
-    class Target
+    internal class Target
     {
-        int Foo
+        private int Foo
         {
             get
             {
@@ -23,17 +23,17 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Properties.Overrides.Body.B
         }
 
         [PseudoOverride( nameof(Foo),"TestAspect")]
-        int Foo_Override
+        private int Foo_Override
         {
             get
             {
                 Console.WriteLine( "Get");
-                return link[ _this.Foo.get, inline ];
+                return Link[ This.Foo.get, Inline ];
             }
             set
             {
                 Console.WriteLine( "Set");
-                link[ _this.Foo.set, inline ] = value;
+                Link[ This.Foo.set, Inline ] = value;
             }
         }
     }

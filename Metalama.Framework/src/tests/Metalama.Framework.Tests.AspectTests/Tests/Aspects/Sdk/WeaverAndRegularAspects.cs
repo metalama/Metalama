@@ -4,7 +4,6 @@
 
 using System;
 using System.Threading.Tasks;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.AspectWeavers;
@@ -14,7 +13,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
-[assembly: AspectOrder( AspectOrderDirection.RunTime, typeof(RegularAspect1), typeof(WeaverAspect), typeof(RegularAspect2) )]
+[assembly: AspectOrder( AspectOrderDirection.RunTime, typeof( RegularAspect1 ), typeof( WeaverAspect ), typeof( RegularAspect2 ) )]
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Sdk.WeaverAndRegularAspects
 {

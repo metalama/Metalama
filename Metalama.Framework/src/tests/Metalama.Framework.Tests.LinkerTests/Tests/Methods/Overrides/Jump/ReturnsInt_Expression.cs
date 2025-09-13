@@ -8,9 +8,9 @@ using static Metalama.Framework.Tests.LinkerTests.Tests.Api;
 namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Overrides.Jump.ReturnsInt_Expression
 {
     // <target>
-    class Target
+    internal class Target
     {
-        int Foo(int x)
+        private int Foo(int x)
         {
             Console.WriteLine( "Original Start");
             if (x == 0)
@@ -22,6 +22,6 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Overrides.Jump.Retu
         }
 
         [PseudoOverride( nameof(Foo),"TestAspect")]
-        int Foo_Override(int x) => link( _this.Foo, inline)(x);
+        private int Foo_Override(int x) => Link( This.Foo, Inline)(x);
     }
 }

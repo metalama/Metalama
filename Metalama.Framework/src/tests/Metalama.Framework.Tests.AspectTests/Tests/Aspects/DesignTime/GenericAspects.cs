@@ -9,8 +9,6 @@
 
 #if ROSLYN_4_4_0_OR_GREATER
 
-using System;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 
 namespace Metalama.Framework.IntegrationTests.Aspects.DesignTime.GenericAspects;
@@ -30,7 +28,7 @@ public class TestAspect<T> : TypeAspect
     [Introduce]
     public T M2()
     {
-        return default;
+        return default!;
     }
 }
 
@@ -39,7 +37,7 @@ public class TestAspect<T, U> : TypeAspect
     [Introduce]
     public T M3(U v)
     {
-        return default;
+        return default!;
     }
 }
 

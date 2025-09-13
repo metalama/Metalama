@@ -10,24 +10,24 @@ using static Metalama.Framework.Tests.LinkerTests.Tests.Api;
 namespace Metalama.Framework.Tests.LinkerTests.Tests.EventFields.Overrides.Inlining.ReturnsVoid_I_NI
 {
     // <target>
-    class Target
+    internal class Target
     {
-        event EventHandler? Foo;
+        private event EventHandler? Foo;
 
         [PseudoOverride( nameof(Foo),"TestAspect")]
-        event EventHandler? Foo_Override
+        private event EventHandler? Foo_Override
         {
             add
             {
                 Console.WriteLine("Before");
-                link[_this.Foo.add] += value;
+                Link[This.Foo.add] += value;
                 Console.WriteLine("After");
             }
 
             remove
             {
                 Console.WriteLine("Before");
-                link[_this.Foo.remove] -= value;
+                Link[This.Foo.remove] -= value;
                 Console.WriteLine("After");
             }
         }

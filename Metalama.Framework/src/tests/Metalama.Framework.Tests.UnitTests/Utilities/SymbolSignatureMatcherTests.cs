@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Metalama.Testing.UnitTesting;
@@ -35,21 +36,20 @@ public class SymbolSignatureMatcherTests : UnitTestClass
 
         var oldCompilation = context.CreateCSharpCompilation( oldCode );
 
-        var oldType = oldCompilation.GetTypeByMetadataName( "MyString" );
+        var oldType = oldCompilation.GetTypeByMetadataName( "MyString" ).AssertNotNull();
         var oldOverload = oldType.GetMembers( "TrimStart" ).Single();
 
         var newCompilation = context.CreateCSharpCompilation( newCode );
 
-        var newOverload = newCompilation.GetTypeByMetadataName( "MyString" )
+        var newOverload = newCompilation.GetTypeByMetadataName( "MyString" ).AssertNotNull()
             .GetMembers( "TrimStart" )
             .OfType<IMethodSymbol>()
             .Single( m => !m.Parameters[0].IsParams );
 
-        var foundOverloads = SymbolSignatureMatcher.GetMembersOfCompatibleSignature( 
-            oldType,
-            CompilationContextFactory.GetCompilationContext( oldCompilation ),
+        var foundOverloads = oldType.GetMembersOfCompatibleSignature(
+            oldCompilation.GetCompilationContext(),
             newOverload,
-            CompilationContextFactory.GetCompilationContext( newCompilation ) );
+            newCompilation.GetCompilationContext() );
 
         Assert.Same( oldOverload, Assert.Single( foundOverloads ) );
     }
@@ -91,21 +91,20 @@ public class SymbolSignatureMatcherTests : UnitTestClass
 
         var oldCompilation = context.CreateCSharpCompilation( oldCode );
 
-        var oldType = oldCompilation.GetTypeByMetadataName( "MyStringBuilder" );
+        var oldType = oldCompilation.GetTypeByMetadataName( "MyStringBuilder").AssertNotNull();
         var oldOverload = oldType.GetMembers( "Append" ).Single();
 
         var newCompilation = context.CreateCSharpCompilation( newCode );
 
-        var newOverload = newCompilation.GetTypeByMetadataName( "MyStringBuilder" )
+        var newOverload = newCompilation.GetTypeByMetadataName( "MyStringBuilder" ).AssertNotNull()
             .GetMembers( "Append" )
             .OfType<IMethodSymbol>()
             .Single( m => m.Parameters[0].RefKind == RefKind.Ref );
 
-        var foundOverloads = SymbolSignatureMatcher.GetMembersOfCompatibleSignature(
-            oldType,
-            CompilationContextFactory.GetCompilationContext( oldCompilation ),
+        var foundOverloads = oldType.GetMembersOfCompatibleSignature(
+            oldCompilation.GetCompilationContext(),
             newOverload,
-            CompilationContextFactory.GetCompilationContext( newCompilation ) );
+            newCompilation.GetCompilationContext() );
 
         Assert.Same( oldOverload, Assert.Single( foundOverloads ) );
     }

@@ -6,7 +6,7 @@ using static Metalama.Framework.Tests.LinkerTests.Tests.Api;
 
 namespace Metalama.Framework.Tests.LinkerTests.Tests.Properties.Linking.IntroducedNew
 {
-    class Base
+    internal class Base
     {
         public virtual int Bar
         {
@@ -30,6 +30,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Properties.Linking.Introduc
     [PseudoLayerOrder("A4")]
     [PseudoLayerOrder("A5")]
     [PseudoLayerOrder("A6")]
+    internal
     // <target>
     class Target : Base
     {
@@ -71,25 +72,25 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Properties.Linking.Introduc
             get
             {
                 // Should invoke base declaration.
-                _ = link(_this.Bar.get, @base);
+                _ = Link(This.Bar.get, Api.Base);
                 // Should invoke base declaration.
-                _ = link(_this.Bar.get, previous);
+                _ = Link(This.Bar.get, Previous );
                 // Should invoke base declaration.
-                _ = link(_this.Bar.get, current);
+                _ = Link(This.Bar.get, Current);
                 // Should invoke the final declaration.
-                _ = link(_this.Bar.get, final);
+                _ = Link(This.Bar.get, Final);
                 return 42;
             }
             set
             {
                 // Should invoke base declaration.
-                link[_this.Bar.set, @base] = value;
+                Link[This.Bar.set, Api.Base] = value;
                 // Should invoke base declaration.
-                link[_this.Bar.set, previous] = value;
+                Link[This.Bar.set, Previous] = value;
                 // Should invoke base declaration.
-                link[_this.Bar.set, current] = value;
+                Link[This.Bar.set, Current] = value;
                 // Should invoke the final declaration.
-                link[_this.Bar.set, final] = value;
+                Link[This.Bar.set, Final] = value;
             }
         }
 
@@ -101,25 +102,25 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Properties.Linking.Introduc
             get
             {
                 // Should invoke override 1_2.
-                _ = link(_this.Bar.get, @base);
+                _ = Link(This.Bar.get, Api.Base);
                 // Should invoke override 1_2.
-                _ = link(_this.Bar.get, previous);
+                _ = Link(This.Bar.get, Previous );
                 // Should invoke override 1_2.
-                _ = link(_this.Bar.get, current);
+                _ = Link(This.Bar.get, Current);
                 // Should invoke the final declaration.
-                _ = link(_this.Bar.get, final);
+                _ = Link(This.Bar.get, Final);
                 return 42;
             }
             set
             {
                 // Should invoke override 1_2.
-                link[_this.Bar.set, @base] = value;
+                Link[This.Bar.set, Api.Base] = value;
                 // Should invoke override 1_2.
-                link[_this.Bar.set, previous] = value;
+                Link[This.Bar.set, Previous] = value;
                 // Should invoke override 1_2.
-                link[_this.Bar.set, current] = value;
+                Link[This.Bar.set, Current] = value;
                 // Should invoke the final declaration.
-                link[_this.Bar.set, final] = value;
+                Link[This.Bar.set, Final] = value;
             }
         }
 
@@ -131,25 +132,25 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Properties.Linking.Introduc
             get
             {
                 // Should invoke override 3_2.
-                _ = link(_this.Bar.get, @base);
+                _ = Link(This.Bar.get, Api.Base);
                 // Should invoke override 3_2.
-                _ = link(_this.Bar.get, previous);
+                _ = Link(This.Bar.get, Previous );
                 // Should invoke override 3_2.
-                _ = link(_this.Bar.get, current);
+                _ = Link(This.Bar.get, Current);
                 // Should invoke the final declaration.
-                _ = link(_this.Bar.get, final);
+                _ = Link(This.Bar.get, Final);
                 return 42;
             }
             set
             {
                 // Should invoke override 3_2.
-                link[_this.Bar.set, @base] = value;
+                Link[This.Bar.set, Api.Base] = value;
                 // Should invoke override 3_2.
-                link[_this.Bar.set, previous] = value;
+                Link[This.Bar.set, Previous] = value;
                 // Should invoke override 3_2.
-                link[_this.Bar.set, current] = value;
+                Link[This.Bar.set, Current] = value;
                 // Should invoke the final declaration.
-                link[_this.Bar.set, final] = value;
+                Link[This.Bar.set, Final] = value;
             }
         }
 
@@ -161,25 +162,25 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Properties.Linking.Introduc
             get
             {
                 // Should invoke the final declaration.
-                _ = link(_this.Bar.get, @base);
+                _ = Link(This.Bar.get, Api.Base);
                 // Should invoke the final declaration.
-                _ = link(_this.Bar.get, previous);
+                _ = Link(This.Bar.get, Previous );
                 // Should invoke the final declaration.
-                _ = link(_this.Bar.get, current);
+                _ = Link(This.Bar.get, Current);
                 // Should invoke the final declaration.
-                _ = link(_this.Bar.get, final);
+                _ = Link(This.Bar.get, Final);
                 return 42;
             }
             set
             {
                 // Should invoke the final declaration.
-                link[_this.Bar.set, @base] = value;
+                Link[This.Bar.set, Api.Base] = value;
                 // Should invoke the final declaration.
-                link[_this.Bar.set, previous] = value;
+                Link[This.Bar.set, Previous] = value;
                 // Should invoke the final declaration.
-                link[_this.Bar.set, current] = value;
+                Link[This.Bar.set, Current] = value;
                 // Should invoke the final declaration.
-                link[_this.Bar.set, final] = value;
+                Link[This.Bar.set, Final] = value;
             }
         }
 
@@ -190,25 +191,25 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Properties.Linking.Introduc
             get
             {
                 // Should invoke base declaration.
-                _ = link(_this.Bar.get, @base);
+                _ = Link(This.Bar.get, Api.Base);
                 // Should invoke base declaration.
-                _ = link(_this.Bar.get, previous);
+                _ = Link(This.Bar.get, Previous );
                 // Should invoke override 1_2.
-                _ = link(_this.Bar.get, current);
+                _ = Link(This.Bar.get, Current);
                 // Should invoke the final declaration.
-                _ = link(_this.Bar.get, final);
+                _ = Link(This.Bar.get, Final);
                 return 42;
             }
             set
             {
                 // Should invoke base declaration.
-                link[_this.Bar.set, @base] = value;
+                Link[This.Bar.set, Api.Base] = value;
                 // Should invoke base declaration.
-                link[_this.Bar.set, previous] = value;
+                Link[This.Bar.set, Previous] = value;
                 // Should invoke override 1_2.
-                link[_this.Bar.set, current] = value;
+                Link[This.Bar.set, Current] = value;
                 // Should invoke the final declaration.
-                link[_this.Bar.set, final] = value;
+                Link[This.Bar.set, Final] = value;
             }
         }
 
@@ -219,25 +220,25 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Properties.Linking.Introduc
             get
             {
                 // Should invoke base declaration.
-                _ = link(_this.Bar.get, @base);
+                _ = Link(This.Bar.get, Api.Base);
                 // Should invoke override 1_1.
-                _ = link(_this.Bar.get, previous);
+                _ = Link(This.Bar.get, Previous );
                 // Should invoke override 1_2.
-                _ = link(_this.Bar.get, current);
+                _ = Link(This.Bar.get, Current);
                 // Should invoke the final declaration.
-                _ = link(_this.Bar.get, final);
+                _ = Link(This.Bar.get, Final);
                 return 42;
             }
             set
             {
                 // Should invoke base declaration.
-                link[_this.Bar.set, @base] = value;
+                Link[This.Bar.set, Api.Base] = value;
                 // Should invoke override 1_1.
-                link[_this.Bar.set, previous] = value;
+                Link[This.Bar.set, Previous] = value;
                 // Should invoke override 1_2.
-                link[_this.Bar.set, current] = value;
+                Link[This.Bar.set, Current] = value;
                 // Should invoke the final declaration.
-                link[_this.Bar.set, final] = value;
+                Link[This.Bar.set, Final] = value;
             }
         }
 
@@ -248,25 +249,25 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Properties.Linking.Introduc
             get
             {
                 // Should invoke override 1_2.
-                _ = link(_this.Bar.get, @base);
+                _ = Link(This.Bar.get, Api.Base);
                 // Should invoke override 1_2.
-                _ = link(_this.Bar.get, previous);
+                _ = Link(This.Bar.get, Previous );
                 // Should invoke override 3_2.
-                _ = link(_this.Bar.get, current);
+                _ = Link(This.Bar.get, Current);
                 // Should invoke the final declaration.
-                _ = link(_this.Bar.get, final);
+                _ = Link(This.Bar.get, Final);
                 return 42;
             }
             set
             {
                 // Should invoke override 1_2.
-                link[_this.Bar.set, @base] = value;
+                Link[This.Bar.set, Api.Base] = value;
                 // Should invoke override 1_2.
-                link[_this.Bar.set, previous] = value;
+                Link[This.Bar.set, Previous] = value;
                 // Should invoke override 3_2.
-                link[_this.Bar.set, current] = value;
+                Link[This.Bar.set, Current] = value;
                 // Should invoke the final declaration.
-                link[_this.Bar.set, final] = value;
+                Link[This.Bar.set, Final] = value;
             }
         }
 
@@ -277,25 +278,25 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Properties.Linking.Introduc
             get
             {
                 // Should invoke override 1_2.
-                _ = link(_this.Bar.get, @base);
+                _ = Link(This.Bar.get, Api.Base);
                 // Should invoke override 3_1.
-                _ = link(_this.Bar.get, previous);
+                _ = Link(This.Bar.get, Previous );
                 // Should invoke override 3_2.
-                _ = link(_this.Bar.get, current);
+                _ = Link(This.Bar.get, Current);
                 // Should invoke the final declaration.
-                _ = link(_this.Bar.get, final);
+                _ = Link(This.Bar.get, Final);
                 return 42;
             }
             set
             {
                 // Should invoke override 1_2.
-                link[_this.Bar.set, @base] = value;
+                Link[This.Bar.set, Api.Base] = value;
                 // Should invoke override 3_1.
-                link[_this.Bar.set, previous] = value;
+                Link[This.Bar.set, Previous] = value;
                 // Should invoke override 3_2.
-                link[_this.Bar.set, current] = value;
+                Link[This.Bar.set, Current] = value;
                 // Should invoke the final declaration.
-                link[_this.Bar.set, final] = value;
+                Link[This.Bar.set, Final] = value;
             }
         }
 
@@ -306,25 +307,25 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Properties.Linking.Introduc
             get
             {
                 // Should invoke override 3_2.
-                _ = link(_this.Bar.get, @base);
+                _ = Link(This.Bar.get, Api.Base);
                 // Should invoke override 3_2.
-                _ = link(_this.Bar.get, previous);
+                _ = Link(This.Bar.get, Previous );
                 // Should invoke the final declaration.
-                _ = link(_this.Bar.get, current);
+                _ = Link(This.Bar.get, Current);
                 // Should invoke the final declaration.
-                _ = link(_this.Bar.get, final);
+                _ = Link(This.Bar.get, Final);
                 return 42;
             }
             set
             {
                 // Should invoke override 3_2.
-                link[_this.Bar.set, @base] = value;
+                Link[This.Bar.set, Api.Base] = value;
                 // Should invoke override 3_2.
-                link[_this.Bar.set, previous] = value;
+                Link[This.Bar.set, Previous] = value;
                 // Should invoke the final declaration.
-                link[_this.Bar.set, current] = value;
+                Link[This.Bar.set, Current] = value;
                 // Should invoke the final declaration.
-                link[_this.Bar.set, final] = value;
+                Link[This.Bar.set, Final] = value;
             }
         }
 
@@ -335,25 +336,25 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Properties.Linking.Introduc
             get
             {
                 // Should invoke override 3_2.
-                _ = link(_this.Bar.get, @base);
+                _ = Link(This.Bar.get, Api.Base);
                 // Should invoke override 5_1.
-                _ = link(_this.Bar.get, previous);
+                _ = Link(This.Bar.get, Previous );
                 // Should invoke the final declaration.
-                _ = link(_this.Bar.get, current);
+                _ = Link(This.Bar.get, Current);
                 // Should invoke the final declaration.
-                _ = link(_this.Bar.get, final);
+                _ = Link(This.Bar.get, Final);
                 return 42;
             }
             set
             {
                 // Should invoke override 3_2.
-                link[_this.Bar.set, @base] = value;
+                Link[This.Bar.set, Api.Base] = value;
                 // Should invoke override 5_1.
-                link[_this.Bar.set, previous] = value;
+                Link[This.Bar.set, Previous] = value;
                 // Should invoke the final declaration.
-                link[_this.Bar.set, current] = value;
+                Link[This.Bar.set, Current] = value;
                 // Should invoke the final declaration.
-                link[_this.Bar.set, final] = value;
+                Link[This.Bar.set, Final] = value;
             }
         }
     }

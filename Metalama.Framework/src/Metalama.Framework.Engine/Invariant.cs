@@ -11,6 +11,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 #if DEBUG
 using System.Linq;
+using System.Threading.Tasks;
 #endif
 using System.Runtime.CompilerServices;
 using NotNullAttribute = System.Diagnostics.CodeAnalysis.NotNullAttribute;
@@ -163,6 +164,85 @@ namespace Metalama.Framework.Engine
         {
 #pragma warning disable CS8777
             return obj!;
+#pragma warning restore CS8777
+        }
+#endif
+
+        [Obsolete( "Use AssertNotNullAsync" )]
+        public static Task<T> AssertNotNull<T>( [NotNull] this Task<T?>? task, [CallerArgumentExpression( nameof(task) )] string? description = null )
+            where T : class
+            => AssertNotNullAsync( task, description );
+
+        [Obsolete( "Use AssertNotNullAsync" )]
+        public static ValueTask<T> AssertNotNull<T>( [NotNull] this ValueTask<T?> task, [CallerArgumentExpression( nameof(task) )] string? description = null )
+            where T : class
+            => AssertNotNullAsync( task, description );
+
+        /// <summary>
+        /// Checks that a <see cref="Task"/> and its result are non-null and throws an <see cref="AssertionFailedException"/> if it is not.
+        /// </summary>
+#if DEBUG
+        [DebuggerStepThrough]
+        public static async Task<T> AssertNotNullAsync<T>(
+            [NotNull] this Task<T?>? task,
+            [CallerArgumentExpression( nameof(task) )] string? description = null )
+            where T : class
+        {
+            if ( task == null )
+            {
+                throw new AssertionFailedException( $"The reference to {typeof(T).Name} must not be null: '{description}'." );
+            }
+
+            var obj = await task;
+
+            if ( obj == null )
+            {
+                throw new AssertionFailedException( $"The result of the task must not be null: '{description}'." );
+            }
+
+            return obj;
+        }
+#else
+        [MethodImpl( MethodImplOptions.AggressiveInlining )]
+        [DebuggerStepThrough]
+        public static async Task<T> AssertNotNullAsync<T>( [NotNull] this Task<T?>? task, [CallerArgumentExpression( nameof(task) )] string? description =
+ null )
+            where T : class
+        {
+#pragma warning disable CS8777
+            return task!;
+#pragma warning restore CS8777
+        }
+#endif
+
+        /// <summary>
+        /// Checks that a <see cref="ValueTask"/> and its return value are non-null and throws an <see cref="AssertionFailedException"/> if it is not.
+        /// </summary>
+#if DEBUG
+        [DebuggerStepThrough]
+        public static async ValueTask<T> AssertNotNullAsync<T>(
+            [NotNull] this ValueTask<T?> task,
+            [CallerArgumentExpression( nameof(task) )] string? description = null )
+            where T : class
+        {
+            var obj = await task;
+
+            if ( obj == null )
+            {
+                throw new AssertionFailedException( $"The result of the task must not be null: '{description}'." );
+            }
+
+            return obj;
+        }
+#else
+        [MethodImpl( MethodImplOptions.AggressiveInlining )]
+        [DebuggerStepThrough]
+        public static async Task<T> AssertNotNullAsync<T>( [NotNull] this Task<T?>? task, [CallerArgumentExpression( nameof(task) )] string? description =
+ null )
+            where T : class
+        {
+#pragma warning disable CS8777
+            return task!;
 #pragma warning restore CS8777
         }
 #endif

@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Code;
+using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Testing.UnitTesting;
@@ -61,9 +62,9 @@ namespace Metalama.Framework.Tests.UnitTests.CodeModel
         [InlineData( (short) 1 )]
         [InlineData( (ushort) 1 )]
         [InlineData( 1 )]
-        [InlineData( (uint) 1 )]
-        [InlineData( (long) 1 )]
-        [InlineData( (ulong) 1 )]
+        [InlineData( 1U )]
+        [InlineData( 1L )]
+        [InlineData( 1UL )]
         [InlineData( "" )]
 #pragma warning restore SA1139
         public void CreateFromValue( object value )
@@ -87,9 +88,9 @@ namespace Metalama.Framework.Tests.UnitTests.CodeModel
         [InlineData( new[] { (short) 1 } )]
         [InlineData( new[] { (ushort) 1 } )]
         [InlineData( new[] { 1 } )]
-        [InlineData( new[] { (uint) 1 } )]
-        [InlineData( new[] { (long) 1 } )]
-        [InlineData( new[] { (ulong) 1 } )]
+        [InlineData( new[] { 1U } )]
+        [InlineData( new[] { 1L } )]
+        [InlineData( new[] { 1UL } )]
         [InlineData( new object[] { new[] { "" } } )]
         [InlineData( new object[] { new[] { typeof(int) } } )]
         [InlineData( new[] { ConsoleColor.Blue } )]
@@ -152,9 +153,9 @@ namespace Metalama.Framework.Tests.UnitTests.CodeModel
         [InlineData( (short) 1, typeof(short) )]
         [InlineData( (ushort) 1, typeof(ushort) )]
         [InlineData( 1, typeof(int) )]
-        [InlineData( (uint) 1, typeof(uint) )]
-        [InlineData( (long) 1, typeof(long) )]
-        [InlineData( (ulong) 1, typeof(ulong) )]
+        [InlineData( 1U, typeof(uint) )]
+        [InlineData( 1L, typeof(long) )]
+        [InlineData( 1UL, typeof(ulong) )]
         [InlineData( "", typeof(string) )]
 #pragma warning restore SA1139
         public void CreateFromValueTyped( object value, Type type )
@@ -178,9 +179,9 @@ namespace Metalama.Framework.Tests.UnitTests.CodeModel
         [InlineData( (short) 1, typeof(short) )]
         [InlineData( (ushort) 1, typeof(ushort) )]
         [InlineData( 1, typeof(int) )]
-        [InlineData( (uint) 1, typeof(uint) )]
-        [InlineData( (long) 1, typeof(long) )]
-        [InlineData( (ulong) 1, typeof(ulong) )]
+        [InlineData( 1U, typeof(uint) )]
+        [InlineData( 1L, typeof(long) )]
+        [InlineData( 1UL, typeof(ulong) )]
         [InlineData( "", typeof(string) )]
 #pragma warning restore SA1139
         public void CreateFromValueSingleItemArray( object value, Type type )
@@ -206,9 +207,9 @@ namespace Metalama.Framework.Tests.UnitTests.CodeModel
         [InlineData( (short) 1, typeof(short?) )]
         [InlineData( (ushort) 1, typeof(ushort?) )]
         [InlineData( 1, typeof(int?) )]
-        [InlineData( (uint) 1, typeof(uint?) )]
-        [InlineData( (long) 1, typeof(long?) )]
-        [InlineData( (ulong) 1, typeof(ulong?) )]
+        [InlineData( 1U, typeof(uint?) )]
+        [InlineData( 1L, typeof(long?) )]
+        [InlineData( 1UL, typeof(ulong?) )]
 #pragma warning restore SA1139
         public void CreateFromValueTypedNullable( object value, Type type )
         {
@@ -273,22 +274,23 @@ namespace Metalama.Framework.Tests.UnitTests.CodeModel
         [InlineData( (short) 1 )]
         [InlineData( (ushort) 1 )]
         [InlineData( 1 )]
-        [InlineData( (uint) 1 )]
-        [InlineData( (long) 1 )]
-        [InlineData( (ulong) 1 )]
-        [InlineData( (string) "1" )]
+        [InlineData( 1U )]
+        [InlineData( 1L )]
+        [InlineData( 1UL )]
+        [InlineData( "1" )]
         [InlineData( new[] { 1, 2, 3 } )]
         [InlineData( [new object?[] { 4, 5, null }] )]
-        public void RoundtripValue( object? value )
+        public void RoundtripValue( object value )
         {
             using var testContext = this.CreateTestContext();
             var emptyCompilation = testContext.CreateCompilationModel( "" );
             using var userCodeContext = testContext.WithExecutionContext( emptyCompilation );
 
             var typedConstant = TypedConstant.Create( value );
-            var roundtrip = typedConstant.Value;
+            var roundtrip = typedConstant.Value.AssertNotNull();
 
             Assert.Equal( value, roundtrip );
+
             Assert.Equal( value.GetType(), roundtrip.GetType() );
         }
     }

@@ -4,7 +4,6 @@
 
 using Metalama.Framework.Fabrics;
 using Metalama.Framework.Options;
-using System.Linq;
 
 namespace Doc.AspectConfiguration
 {

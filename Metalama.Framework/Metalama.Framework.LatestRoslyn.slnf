@@ -2,18 +2,14 @@
   "solution": {
     "path": "Metalama.Framework.sln",
     "projects": [
-      "src\\Metalama.Framework.CompilerExtensions.Resources\\Metalama.Framework.CompilerExtensions.Resources.csproj",
-      "src\\Metalama.Framework.CompilerExtensions\\Metalama.Framework.CompilerExtensions.csproj",
       "src\\Metalama.Framework.CompileTimeContracts\\Metalama.Framework.CompileTimeContracts.csproj",
       "src\\Metalama.Framework.CompileTime\\Metalama.Framework.CompileTime.csproj",
       "src\\Metalama.Framework.DesignTime.Contracts\\Metalama.Framework.DesignTime.Contracts.csproj",
       "src\\Metalama.Framework.DesignTime.Rpc\\Metalama.Framework.DesignTime.Rpc.csproj",
       "src\\Metalama.Framework.DesignTime\\Metalama.Framework.DesignTime.csproj",
-      "src\\Metalama.Framework.EditorExtensions\\Metalama.Framework.EditorExtensions.csproj",
       "src\\Metalama.Framework.Engine.Analyzers\\Metalama.Framework.Engine.Analyzers.csproj",
       "src\\Metalama.Framework.Engine\\Metalama.Framework.Engine.csproj",
       "src\\Metalama.Framework.Introspection\\Metalama.Framework.Introspection.csproj",
-      "src\\Metalama.Framework.Package\\Metalama.Framework.Package.csproj",
       "src\\Metalama.Framework.Sdk\\Metalama.Framework.Sdk.csproj",
       "src\\Metalama.Framework.Workspaces\\Metalama.Framework.Workspaces.csproj",
       "src\\Metalama.Framework\\Metalama.Framework.csproj",

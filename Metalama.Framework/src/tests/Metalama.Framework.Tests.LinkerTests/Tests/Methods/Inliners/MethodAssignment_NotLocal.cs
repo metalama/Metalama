@@ -8,23 +8,23 @@ using static Metalama.Framework.Tests.LinkerTests.Tests.Api;
 namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Inliners.MethodAssignment_NotLocal
 {
     // <target>
-    class Target
+    internal class Target
     {
-        int x;
+        private int _x;
 
-        int Foo()
+        private int Foo()
         {
             Console.WriteLine( "Original");
             return 42;
         }
 
         [PseudoOverride( nameof(Foo),"TestAspect")]
-        int Foo_Override()
+        private int Foo_Override()
         {
             Console.WriteLine( "Before");
-            x = link( _this.Foo, inline)();
+            this._x = Link( This.Foo, Inline)();
             Console.WriteLine( "After");
-            return x;
+            return this._x;
         }
     }
 }

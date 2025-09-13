@@ -2,10 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
-using Metalama.Framework.Code;
-using Metalama.Framework.Code.SyntaxBuilders;
 
 namespace Metalama.Framework.IntegrationTests.Aspects.CodeModel.Default
 {
@@ -14,8 +11,8 @@ namespace Metalama.Framework.IntegrationTests.Aspects.CodeModel.Default
         public override dynamic? OverrideMethod()
         {
             var classDefault = meta.Default( meta.Target.Method.ReturnType );
-            var literalDefault = meta.Default( ( (IParameter)meta.Target.Method.Parameters[1] ).Type );
-            var structDefault = meta.Default( ( (IParameter)meta.Target.Method.Parameters[2] ).Type );
+            var literalDefault = meta.Default( meta.Target.Method.Parameters[1].Type );
+            var structDefault = meta.Default( meta.Target.Method.Parameters[2].Type );
 
             return default;
         }

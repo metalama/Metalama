@@ -8,11 +8,10 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Tests.AspectTests.Tests.Aspects.Bugs.Bug32707;
 
-[assembly: AspectOrder( AspectOrderDirection.RunTime, typeof(MyOverride1Aspect), typeof(MyContractAspect), typeof(MyOverride2Aspect) )]
+[assembly: AspectOrder( AspectOrderDirection.RunTime, typeof( MyOverride1Aspect ), typeof( MyContractAspect ), typeof( MyOverride2Aspect ) )]
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Bugs.Bug32707;
 

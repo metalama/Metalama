@@ -22,7 +22,7 @@ internal class MyAspect : OverrideMethodAspect
 internal interface IInterfaceA
 {
     [MyAspect]
-    public Task SomeMethodAsync();
+Task SomeMethodAsync();
 }
 
 internal interface IInterfaceB : IInterfaceA { }

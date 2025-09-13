@@ -10,7 +10,7 @@ using System;
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Fabrics.AddAspectIfEligibleException;
 
-class MyAspect : TypeAspect
+internal class MyAspect : TypeAspect
 {
     public override void BuildEligibility( IEligibilityBuilder<INamedType> builder )
     {
@@ -18,7 +18,7 @@ class MyAspect : TypeAspect
     }
 }
 
-class Fabric : ProjectFabric
+internal class Fabric : ProjectFabric
 {
     public override void AmendProject(IProjectAmender amender)
     {

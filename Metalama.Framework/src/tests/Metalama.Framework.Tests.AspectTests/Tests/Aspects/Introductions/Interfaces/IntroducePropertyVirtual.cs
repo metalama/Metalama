@@ -70,7 +70,7 @@ public class IntroductionAttribute : TypeAspect
     public T TestUsageMethod<[CompileTime] T>(T instance, [CompileTime] IProperty property, [CompileTime] IConstructor implementationConstructor)
     {
         property.With(instance).Value = property.With(instance).Value + 1;
-        return implementationConstructor.Invoke();
+        return implementationConstructor.Invoke()!;
     }
 }
 

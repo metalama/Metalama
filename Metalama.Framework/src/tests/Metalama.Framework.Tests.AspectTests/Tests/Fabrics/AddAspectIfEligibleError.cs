@@ -7,13 +7,13 @@ using Metalama.Framework.Fabrics;
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Fabrics.AddAspectIfEligibleError;
 
-class MyAspect : TypeAspect
+internal class MyAspect : TypeAspect
 {
     [Template]
-    ref int Method(ref int x) => ref x;
+    private ref int Method(ref int x) => ref x;
 }
 
-class Fabric : ProjectFabric
+internal class Fabric : ProjectFabric
 {
     public override void AmendProject(IProjectAmender amender)
     {

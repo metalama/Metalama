@@ -7,16 +7,16 @@ using static Metalama.Framework.Tests.LinkerTests.Tests.Api;
 namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Overrides.Signature.ReturnsVoid_NoParameter
 {
     // <target>
-    class Target
+    internal class Target
     {
-        void Foo()
+        private void Foo()
         {
         }
 
         [PseudoOverride( nameof(Foo),"TestAspect")]
-        void Foo_Override()
+        private void Foo_Override()
         {
-            link( _this.Foo, inline)();
+            Link( This.Foo, Inline)();
         }
     }
 }

@@ -11,7 +11,6 @@
 using System;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects; 
 using Metalama.Framework.Code;
 
@@ -29,7 +28,7 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.CSharp12.InlineArra
             base.BuildAspect(builder);
 
             var buffer = new Buffer();
-            for (int i = 0; i < 10; i++)
+            for (var i = 0; i < 10; i++)
             {
                 buffer[i] = i;
             }
@@ -42,7 +41,7 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.CSharp12.InlineArra
         public override dynamic? OverrideMethod()
         {
             var buffer2 = meta.CompileTime(new Buffer());
-            foreach (int i in meta.CompileTime(Enumerable.Range(0, 10)))
+            foreach (var i in meta.CompileTime(Enumerable.Range(0, 10)))
             {
                 buffer2[i] = i;
             }
@@ -68,7 +67,7 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.CSharp12.InlineArra
     public class C
     {
         [TheAspect]
-        void M()
+        private void M()
         {
         }
     }

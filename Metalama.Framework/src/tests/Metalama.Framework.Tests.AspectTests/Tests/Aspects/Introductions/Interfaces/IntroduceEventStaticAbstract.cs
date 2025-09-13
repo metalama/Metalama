@@ -73,7 +73,7 @@ public class IntroductionAttribute : TypeAspect
     public static void TestUsageMethod([CompileTime] ITypeParameter genericParameter, [CompileTime] IEvent interfaceEvent, [CompileTime] IEvent implementationEvent)
     {
         // Calling static members of type parameters is not currently supported (generic parameter does not "gain" members from constraints).
-        ExpressionBuilder builder = new ExpressionBuilder();
+        var builder = new ExpressionBuilder();
         builder.AppendTypeName(genericParameter);
         builder.AppendVerbatim($".{interfaceEvent.Name}");
         builder.AppendVerbatim($" += ");

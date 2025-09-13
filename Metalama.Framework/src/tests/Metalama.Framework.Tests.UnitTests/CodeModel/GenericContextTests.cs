@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CodeModel.GenericContexts;
 using Metalama.Framework.Engine.CodeModel.Source;
@@ -39,7 +40,7 @@ public sealed class GenericContextTests : UnitTestClass
         Assert.Equal( "C<int>.D", mappedClassD.ToString() );
 
         // Map through ITypeSymbol.
-        var mappedClassDSymbol = ((SymbolGenericContext) genericTypeInstance.GenericContext).MapToSymbol( classD.GetSymbol() );
+        var mappedClassDSymbol = ((SymbolGenericContext) genericTypeInstance.GenericContext).MapToSymbol( classD.GetSymbol() ).AssertNotNull();
         Assert.Equal( "C<int>.D", mappedClassDSymbol.ToString() );
     }
 
@@ -70,6 +71,6 @@ public sealed class GenericContextTests : UnitTestClass
 
         // Map through ITypeSymbol.
         var mappedClassDSymbol = ((SymbolGenericContext) genericTypeInstance.GenericContext).MapToSymbol( classD.GetSymbol() );
-        Assert.Equal( "C<int>.D<string>", mappedClassDSymbol.ToString() );
+        Assert.Equal( "C<int>.D<string>", mappedClassDSymbol?.ToString() );
     }
 }

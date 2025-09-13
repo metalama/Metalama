@@ -10,7 +10,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Events.Inliners.RemoveAssig
     // <target>
     public class Target
     {
-        private EventHandler? field;
+        private EventHandler? _field;
 
         public event EventHandler? Foo
         {
@@ -18,7 +18,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Events.Inliners.RemoveAssig
             remove
             {
                 Console.WriteLine("Original");
-                this.field -= value;
+                this._field -= value;
             }
         }
 
@@ -29,7 +29,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Events.Inliners.RemoveAssig
             remove
             {
                 Console.WriteLine("Before");
-                link[_this.Foo.remove, inline] -= value;
+                Link[This.Foo.remove, Inline] -= value;
                 Console.WriteLine("After");
             }
         }

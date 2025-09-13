@@ -3,12 +3,11 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System.Linq;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Tests.AspectTests.Tests.Aspects.Misc.SkipAspect;
 
-[assembly: AspectOrder( AspectOrderDirection.RunTime, typeof(IsSkippedAspect), typeof(SkippedAspect) )]
+[assembly: AspectOrder( AspectOrderDirection.RunTime, typeof( IsSkippedAspect ), typeof( SkippedAspect ) )]
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Misc.SkipAspect;
 

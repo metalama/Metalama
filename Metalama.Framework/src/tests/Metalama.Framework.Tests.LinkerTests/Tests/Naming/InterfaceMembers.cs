@@ -10,7 +10,7 @@ using static Metalama.Framework.Tests.LinkerTests.Tests.Api;
 
 namespace Metalama.Framework.Tests.LinkerTests.Tests.Naming.InterfaceMembers;
 
-interface ITest
+internal interface ITest
 {
     int Foo { get; set; }
 
@@ -20,7 +20,7 @@ interface ITest
 }
 
 // <target>
-class Target : ITest
+internal class Target : ITest
 {
     int ITest.Foo { get; set; }
 
@@ -29,11 +29,11 @@ class Target : ITest
     {
         get
         {
-            return link[_this._cast<ITest>().Foo.set];
+            return Link[This._cast<ITest>().Foo.set];
         }
         set
         {
-            link[_this._cast<ITest>().Foo.set] = value;
+            Link[This._cast<ITest>().Foo.set] = value;
         }
     }
 
@@ -43,9 +43,9 @@ class Target : ITest
     }
 
     [PseudoOverride(nameof(ITest.Bar), "TestAspect")]
-    int Bar_Override()
+    private int Bar_Override()
     {
-        return link(_this._cast<ITest>().Bar)();
+        return Link(This._cast<ITest>().Bar)();
     }
 
     event EventHandler ITest.Quz
@@ -55,9 +55,9 @@ class Target : ITest
     }
 
     [PseudoOverride(nameof(ITest.Quz), "TestAspect")]
-    event EventHandler Quz_Override
+    private event EventHandler Quz_Override
     {
-        add { link[_this._cast<ITest>().Quz.add] += value; }
-        remove { link[_this._cast<ITest>().Quz.remove] -= value; }
+        add { Link[This._cast<ITest>().Quz.add] += value; }
+        remove { Link[This._cast<ITest>().Quz.remove] -= value; }
     }
 }

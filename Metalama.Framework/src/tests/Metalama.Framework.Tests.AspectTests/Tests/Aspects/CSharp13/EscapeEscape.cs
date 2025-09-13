@@ -9,7 +9,6 @@
 #if ROSLYN_4_12_0_OR_GREATER
 
 using Metalama.Framework.Aspects;
-using Metalama.Framework.Code;
 using System;
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.CSharp13.EscapeEscape;
@@ -27,10 +26,10 @@ public class TheAspect : OverrideMethodAspect
 }
 
 // <target>
-class Target
+internal class Target
 {
     [TheAspect]
-    void M()
+    private void M()
     {
         Console.WriteLine("\e[3mThis is italic text from target.\e[0m");
     }

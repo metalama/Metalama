@@ -8,17 +8,16 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Eligibility;
 using Metalama.Framework.Tests.AspectTests.Aspects.Diagnostics.IncorrectMetaMember;
 using System;
-using System.Linq;
 
 #pragma warning disable CS0169
 
 [assembly:
     AspectOrder(
         AspectOrderDirection.RunTime,
-        typeof(FieldAspectTest),
-        typeof(FieldOrPropertyAspectTest),
-        typeof(IndexerAspectTest),
-        typeof(PropertyAspectTest) )]
+        typeof( FieldAspectTest ),
+        typeof( FieldOrPropertyAspectTest ),
+        typeof( IndexerAspectTest ),
+        typeof( PropertyAspectTest ) )]
 
 namespace Metalama.Framework.Tests.AspectTests.Aspects.Diagnostics.IncorrectMetaMember;
 

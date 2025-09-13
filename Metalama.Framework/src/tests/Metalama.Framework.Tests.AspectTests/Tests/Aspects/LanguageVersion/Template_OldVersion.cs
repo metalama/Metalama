@@ -9,11 +9,11 @@
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.LanguageVersion.Template_OldVersion;
 
-class Target
+internal class Target
 {
     // <target>
     [TheAspect]
-    void M()
+    private void M()
     {
 
     }

@@ -4,6 +4,7 @@
 
 using Metalama.Compiler;
 using Metalama.Framework.Diagnostics;
+using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Pipeline.CompileTime;
@@ -30,7 +31,7 @@ public sealed class DiagnosticRegistrationTests : UnitTestClass
 
         Assert.True( result.IsSuccessful );
 
-        Assert.Single( result.Value.Configuration.DiagnosticManifest.DiagnosticDefinitions.Keys, "TEST01" );
+        Assert.Single( result.Value.Configuration.AssertNotNull().DiagnosticManifest.DiagnosticDefinitions.Keys, "TEST01" );
         Assert.Single( result.Value.Configuration.DiagnosticManifest.SuppressionDefinitions.Keys, "TEST01" );
     }
 
@@ -64,7 +65,7 @@ public sealed class DiagnosticRegistrationTests : UnitTestClass
 
         Assert.True( result.IsSuccessful );
 
-        Assert.Single( result.Value.Configuration.DiagnosticManifest.DiagnosticDefinitions.Keys, "MY001" );
+        Assert.Single( result.Value.Configuration.AssertNotNull().DiagnosticManifest.DiagnosticDefinitions.Keys, "MY001" );
         Assert.Single( result.Value.Configuration.DiagnosticManifest.SuppressionDefinitions.Keys, "CS0169" );
     }
 
@@ -98,7 +99,7 @@ public sealed class DiagnosticRegistrationTests : UnitTestClass
 
         Assert.True( result.IsSuccessful );
 
-        Assert.Single( result.Value.Configuration.DiagnosticManifest.DiagnosticDefinitions.Keys, "MY001" );
+        Assert.Single( result.Value.Configuration!.DiagnosticManifest.DiagnosticDefinitions.Keys, "MY001" );
     }
 
     private sealed class TestExtension : PipelineExtension

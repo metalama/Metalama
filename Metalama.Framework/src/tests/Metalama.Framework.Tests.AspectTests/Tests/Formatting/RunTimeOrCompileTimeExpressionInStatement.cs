@@ -14,7 +14,7 @@ public class Aspect : OverrideMethodAspect
         {
         }
 
-        if ((true))
+        if (true)
         {
         }
 

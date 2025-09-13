@@ -26,6 +26,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Events.Linking.StaticSource
     [PseudoLayerOrder("A4")]
     [PseudoLayerOrder("A5")]
     [PseudoLayerOrder("A6")]
+    internal
     // <target>
     class Target : Base
     {
@@ -61,24 +62,24 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Events.Linking.StaticSource
             add
             {
                 // Should invoke source code.
-                link[_static.Target.Bar.add, @base] += value;
+                Link[Static.Target.Bar.add, Api.Base] += value;
                 // Should invoke source code.
-                link[_static.Target.Bar.add, previous] += value;
+                Link[Static.Target.Bar.add, Previous] += value;
                 // Should invoke source code.
-                link[_static.Target.Bar.add, current] += value;
+                Link[Static.Target.Bar.add, Current] += value;
                 // Should invoke the final declaration.
-                link[_static.Target.Bar.add, final] += value;
+                Link[Static.Target.Bar.add, Final] += value;
             }
             remove
             {
                 // Should invoke source code.
-                link[_static.Target.Bar.remove, @base] -= value;
+                Link[Static.Target.Bar.remove, Api.Base] -= value;
                 // Should invoke source code.
-                link[_static.Target.Bar.remove, previous] -= value;
+                Link[Static.Target.Bar.remove, Previous] -= value;
                 // Should invoke source code.
-                link[_static.Target.Bar.remove, current] -= value;
+                Link[Static.Target.Bar.remove, Current] -= value;
                 // Should invoke the final declaration.
-                link[_static.Target.Bar.remove, final] -= value;
+                Link[Static.Target.Bar.remove, Final] -= value;
             }
         }
 
@@ -90,24 +91,24 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Events.Linking.StaticSource
             add
             {
                 // Should invoke override 1_2.
-                link[_static.Target.Bar.add, @base] += value;
+                Link[Static.Target.Bar.add, Api.Base] += value;
                 // Should invoke override 1_2.
-                link[_static.Target.Bar.add, previous] += value;
+                Link[Static.Target.Bar.add, Previous] += value;
                 // Should invoke override 1_2.
-                link[_static.Target.Bar.add, current] += value;
+                Link[Static.Target.Bar.add, Current] += value;
                 // Should invoke the final declaration.
-                link[_static.Target.Bar.add, final] += value;
+                Link[Static.Target.Bar.add, Final] += value;
             }
             remove
             {
                 // Should invoke override 1_2.
-                link[_static.Target.Bar.remove, @base] -= value;
+                Link[Static.Target.Bar.remove, Api.Base] -= value;
                 // Should invoke override 1_2.
-                link[_static.Target.Bar.remove, previous] -= value;
+                Link[Static.Target.Bar.remove, Previous] -= value;
                 // Should invoke override 1_2.
-                link[_static.Target.Bar.remove, current] -= value;
+                Link[Static.Target.Bar.remove, Current] -= value;
                 // Should invoke the final declaration.
-                link[_static.Target.Bar.remove, final] -= value;
+                Link[Static.Target.Bar.remove, Final] -= value;
             }
         }
 
@@ -119,24 +120,24 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Events.Linking.StaticSource
             add
             {
                 // Should invoke override 3_2.
-                link[_static.Target.Bar.add, @base] += value;
+                Link[Static.Target.Bar.add, Api.Base] += value;
                 // Should invoke override 3_2.
-                link[_static.Target.Bar.add, previous] += value;
+                Link[Static.Target.Bar.add, Previous] += value;
                 // Should invoke override 3_2.
-                link[_static.Target.Bar.add, current] += value;
+                Link[Static.Target.Bar.add, Current] += value;
                 // Should invoke the final declaration.
-                link[_static.Target.Bar.add, final] += value;
+                Link[Static.Target.Bar.add, Final] += value;
             }
             remove
             {
                 // Should invoke override 3_2.
-                link[_static.Target.Bar.remove, @base] -= value;
+                Link[Static.Target.Bar.remove, Api.Base] -= value;
                 // Should invoke override 3_2.
-                link[_static.Target.Bar.remove, previous] -= value;
+                Link[Static.Target.Bar.remove, Previous] -= value;
                 // Should invoke override 3_2.
-                link[_static.Target.Bar.remove, current] -= value;
+                Link[Static.Target.Bar.remove, Current] -= value;
                 // Should invoke the final declaration.
-                link[_static.Target.Bar.remove, final] -= value;
+                Link[Static.Target.Bar.remove, Final] -= value;
             }
         }
 
@@ -148,24 +149,24 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Events.Linking.StaticSource
             add
             {
                 // Should invoke the final declaration.
-                link[_static.Target.Bar.add, @base] += value;
+                Link[Static.Target.Bar.add, Api.Base] += value;
                 // Should invoke the final declaration.
-                link[_static.Target.Bar.add, previous] += value;
+                Link[Static.Target.Bar.add, Previous] += value;
                 // Should invoke the final declaration.
-                link[_static.Target.Bar.add, current] += value;
+                Link[Static.Target.Bar.add, Current] += value;
                 // Should invoke the final declaration.
-                link[_static.Target.Bar.add, final] += value;
+                Link[Static.Target.Bar.add, Final] += value;
             }
             remove
             {
                 // Should invoke the final declaration.
-                link[_static.Target.Bar.remove, @base] -= value;
+                Link[Static.Target.Bar.remove, Api.Base] -= value;
                 // Should invoke the final declaration.
-                link[_static.Target.Bar.remove, previous] -= value;
+                Link[Static.Target.Bar.remove, Previous] -= value;
                 // Should invoke the final declaration.
-                link[_static.Target.Bar.remove, current] -= value;
+                Link[Static.Target.Bar.remove, Current] -= value;
                 // Should invoke the final declaration.
-                link[_static.Target.Bar.remove, final] -= value;
+                Link[Static.Target.Bar.remove, Final] -= value;
             }
         }
 
@@ -176,24 +177,24 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Events.Linking.StaticSource
             add
             {
                 // Should invoke source code.
-                link[_static.Target.Bar.add, @base] += value;
+                Link[Static.Target.Bar.add, Api.Base] += value;
                 // Should invoke source code.
-                link[_static.Target.Bar.add, previous] += value;
+                Link[Static.Target.Bar.add, Previous] += value;
                 // Should invoke override 1_2.
-                link[_static.Target.Bar.add, current] += value;
+                Link[Static.Target.Bar.add, Current] += value;
                 // Should invoke the final declaration.
-                link[_static.Target.Bar.add, final] += value;
+                Link[Static.Target.Bar.add, Final] += value;
             }
             remove
             {
                 // Should invoke source code.
-                link[_static.Target.Bar.remove, @base] -= value;
+                Link[Static.Target.Bar.remove, Api.Base] -= value;
                 // Should invoke source code.
-                link[_static.Target.Bar.remove, previous] -= value;
+                Link[Static.Target.Bar.remove, Previous] -= value;
                 // Should invoke override 1_2.
-                link[_static.Target.Bar.remove, current] -= value;
+                Link[Static.Target.Bar.remove, Current] -= value;
                 // Should invoke the final declaration.
-                link[_static.Target.Bar.remove, final] -= value;
+                Link[Static.Target.Bar.remove, Final] -= value;
             }
         }
 
@@ -204,24 +205,24 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Events.Linking.StaticSource
             add
             {
                 // Should invoke source code.
-                link[_static.Target.Bar.add, @base] += value;
+                Link[Static.Target.Bar.add, Api.Base] += value;
                 // Should invoke override 1_1.
-                link[_static.Target.Bar.add, previous] += value;
+                Link[Static.Target.Bar.add, Previous] += value;
                 // Should invoke override 1_2.
-                link[_static.Target.Bar.add, current] += value;
+                Link[Static.Target.Bar.add, Current] += value;
                 // Should invoke the final declaration.
-                link[_static.Target.Bar.add, final] += value;
+                Link[Static.Target.Bar.add, Final] += value;
             }
             remove
             {
                 // Should invoke source code.
-                link[_static.Target.Bar.remove, @base] -= value;
+                Link[Static.Target.Bar.remove, Api.Base] -= value;
                 // Should invoke override 1_1.
-                link[_static.Target.Bar.remove, previous] -= value;
+                Link[Static.Target.Bar.remove, Previous] -= value;
                 // Should invoke override 1_2.
-                link[_static.Target.Bar.remove, current] -= value;
+                Link[Static.Target.Bar.remove, Current] -= value;
                 // Should invoke the final declaration.
-                link[_static.Target.Bar.remove, final] -= value;
+                Link[Static.Target.Bar.remove, Final] -= value;
             }
         }
 
@@ -232,24 +233,24 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Events.Linking.StaticSource
             add
             {
                 // Should invoke override 1_2.
-                link[_static.Target.Bar.add, @base] += value;
+                Link[Static.Target.Bar.add, Api.Base] += value;
                 // Should invoke override 1_2.
-                link[_static.Target.Bar.add, previous] += value;
+                Link[Static.Target.Bar.add, Previous] += value;
                 // Should invoke override 3_2.
-                link[_static.Target.Bar.add, current] += value;
+                Link[Static.Target.Bar.add, Current] += value;
                 // Should invoke the final declaration.
-                link[_static.Target.Bar.add, final] += value;
+                Link[Static.Target.Bar.add, Final] += value;
             }
             remove
             {
                 // Should invoke override 1_2.
-                link[_static.Target.Bar.remove, @base] -= value;
+                Link[Static.Target.Bar.remove, Api.Base] -= value;
                 // Should invoke override 1_2.
-                link[_static.Target.Bar.remove, previous] -= value;
+                Link[Static.Target.Bar.remove, Previous] -= value;
                 // Should invoke override 3_2.
-                link[_static.Target.Bar.remove, current] -= value;
+                Link[Static.Target.Bar.remove, Current] -= value;
                 // Should invoke the final declaration.
-                link[_static.Target.Bar.remove, final] -= value;
+                Link[Static.Target.Bar.remove, Final] -= value;
             }
         }
 
@@ -260,24 +261,24 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Events.Linking.StaticSource
             add
             {
                 // Should invoke override 1_2.
-                link[_static.Target.Bar.add, @base] += value;
+                Link[Static.Target.Bar.add, Api.Base] += value;
                 // Should invoke override 3_1.
-                link[_static.Target.Bar.add, previous] += value;
+                Link[Static.Target.Bar.add, Previous] += value;
                 // Should invoke override 3_2.
-                link[_static.Target.Bar.add, current] += value;
+                Link[Static.Target.Bar.add, Current] += value;
                 // Should invoke the final declaration.
-                link[_static.Target.Bar.add, final] += value;
+                Link[Static.Target.Bar.add, Final] += value;
             }
             remove
             {
                 // Should invoke override 1_2.
-                link[_static.Target.Bar.remove, @base] -= value;
+                Link[Static.Target.Bar.remove, Api.Base] -= value;
                 // Should invoke override 3_1.
-                link[_static.Target.Bar.remove, previous] -= value;
+                Link[Static.Target.Bar.remove, Previous] -= value;
                 // Should invoke override 3_2.
-                link[_static.Target.Bar.remove, current] -= value;
+                Link[Static.Target.Bar.remove, Current] -= value;
                 // Should invoke the final declaration.
-                link[_static.Target.Bar.remove, final] -= value;
+                Link[Static.Target.Bar.remove, Final] -= value;
             }
         }
 
@@ -288,24 +289,24 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Events.Linking.StaticSource
             add
             {
                 // Should invoke override 3_2.
-                link[_static.Target.Bar.add, @base] += value;
+                Link[Static.Target.Bar.add, Api.Base] += value;
                 // Should invoke override 3_2.
-                link[_static.Target.Bar.add, previous] += value;
+                Link[Static.Target.Bar.add, Previous] += value;
                 // Should invoke the final declaration.
-                link[_static.Target.Bar.add, current] += value;
+                Link[Static.Target.Bar.add, Current] += value;
                 // Should invoke the final declaration.
-                link[_static.Target.Bar.add, final] += value;
+                Link[Static.Target.Bar.add, Final] += value;
             }
             remove
             {
                 // Should invoke override 3_2.
-                link[_static.Target.Bar.remove, @base] -= value;
+                Link[Static.Target.Bar.remove, Api.Base] -= value;
                 // Should invoke override 3_2.
-                link[_static.Target.Bar.remove, previous] -= value;
+                Link[Static.Target.Bar.remove, Previous] -= value;
                 // Should invoke the final declaration.
-                link[_static.Target.Bar.remove, current] -= value;
+                Link[Static.Target.Bar.remove, Current] -= value;
                 // Should invoke the final declaration.
-                link[_static.Target.Bar.remove, final] -= value;
+                Link[Static.Target.Bar.remove, Final] -= value;
             }
         }
 
@@ -316,24 +317,24 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Events.Linking.StaticSource
             add
             {
                 // Should invoke override 3_2.
-                link[_static.Target.Bar.add, @base] += value;
+                Link[Static.Target.Bar.add, Api.Base] += value;
                 // Should invoke override 5_1.
-                link[_static.Target.Bar.add, previous] += value;
+                Link[Static.Target.Bar.add, Previous] += value;
                 // Should invoke the final declaration.
-                link[_static.Target.Bar.add, current] += value;
+                Link[Static.Target.Bar.add, Current] += value;
                 // Should invoke the final declaration.
-                link[_static.Target.Bar.add, final] += value;
+                Link[Static.Target.Bar.add, Final] += value;
             }
             remove
             {
                 // Should invoke override 3_2.
-                link[_static.Target.Bar.remove, @base] -= value;
+                Link[Static.Target.Bar.remove, Api.Base] -= value;
                 // Should invoke override 5_1.
-                link[_static.Target.Bar.remove, previous] -= value;
+                Link[Static.Target.Bar.remove, Previous] -= value;
                 // Should invoke the final declaration.
-                link[_static.Target.Bar.remove, current] -= value;
+                Link[Static.Target.Bar.remove, Current] -= value;
                 // Should invoke the final declaration.
-                link[_static.Target.Bar.remove, final] -= value;
+                Link[Static.Target.Bar.remove, Final] -= value;
             }
         }
     }

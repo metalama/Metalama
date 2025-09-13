@@ -7,7 +7,7 @@ using static Metalama.Framework.Tests.LinkerTests.Tests.Api;
 
 namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Overrides.TargetBody.UsingLocal_Jump
 {
-    class Disposable : IDisposable
+    internal class Disposable : IDisposable
     {
         public void Dispose()
         {
@@ -15,9 +15,9 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Overrides.TargetBod
     }
 
     // <target>
-    class Target
+    internal class Target
     {
-        void Foo(int x)
+        private void Foo(int x)
         {
             if (x >= 1)
             {
@@ -62,8 +62,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Overrides.TargetBod
         }
 
         [PseudoOverride( nameof(Foo), "TestAspect1")]
-
-        void Foo_Override1(int x)
+        private void Foo_Override1(int x)
         {
             using var z41 = new Disposable();
             using var z42 = new Disposable();
@@ -82,7 +81,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Overrides.TargetBod
 
             Console.WriteLine($"Mid aspect1 {z51} {z52}");
 
-            link(_this.Foo, inline)(x);
+            Link(This.Foo, Inline)(x);
 
             if (x == 2)
             {
@@ -98,8 +97,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Overrides.TargetBod
         }
 
         [PseudoOverride(nameof(Foo), "TestAspect2")]
-
-        void Foo_Override2(int x)
+        private void Foo_Override2(int x)
         {
             using var z71 = new Disposable();
             using var z72 = new Disposable();
@@ -118,7 +116,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Overrides.TargetBod
 
             Console.WriteLine($"Mid aspect2 {z81} {z82}");
 
-            link(_this.Foo, inline)(x);
+            Link(This.Foo, Inline)(x);
 
             if (x == 2)
             {

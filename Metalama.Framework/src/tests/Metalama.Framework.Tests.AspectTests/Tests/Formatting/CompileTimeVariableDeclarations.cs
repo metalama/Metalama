@@ -8,25 +8,26 @@ using Metalama.Framework.Aspects;
 namespace Metalama.Framework.Tests.AspectTests.TestInputs.Highlighting.Declarations.CompileTimeVariableDeclarations
 {
     [CompileTime]
-    class CompileTimeClass
+    internal class CompileTimeClass
     {
         public void CompileTimeMethod()
         {
         }
     }
 
-    class Aspect : IAspect
+    internal class Aspect : IAspect
     {
         [Template]
-        dynamic? Template()
+        private dynamic? Template()
         {
-            var compiletimeClassInstance = new CompileTimeClass();
+            var compileTimeClassInstance = new CompileTimeClass();
 
+#pragma warning disable IDE0007 // Use implicit type
             int scalar = meta.CompileTime(0);
             int[] array = meta.CompileTime(new int[10]);
             object @object = meta.CompileTime("");
             string @string = meta.CompileTime("");
-            Action action = compiletimeClassInstance.CompileTimeMethod;
+            Action action = compileTimeClassInstance.CompileTimeMethod;
             (int, byte) tuple = meta.CompileTime((0, (byte)1));
             Tuple<int, byte> generic = meta.CompileTime(new Tuple<int, byte>(2, 3));
 

@@ -9,8 +9,6 @@
 #if ROSLYN_4_12_0_OR_GREATER
 
 using Metalama.Framework.Aspects;
-using Metalama.Framework.Code;
-using System;
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.CSharp13.MethodGroupNaturalType;
 
@@ -26,22 +24,22 @@ public class TheAspect : OverrideMethodAspect
 }
 
 // <target>
-class Target
+internal class Target
 {
     [TheAspect]
-    void M()
+    private void M()
     {
         var m = new C().M;
         m();
     }
 }
 
-class C
+internal class C
 {
     public void M() { }
 }
 
-static class E
+internal static class E
 {
     public static void M(this C c, object o) { }
 }

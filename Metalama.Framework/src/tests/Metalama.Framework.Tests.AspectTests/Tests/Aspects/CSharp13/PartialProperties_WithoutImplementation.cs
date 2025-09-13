@@ -9,7 +9,6 @@
 #if ROSLYN_4_12_0_OR_GREATER
 
 using Metalama.Framework.Aspects;
-using Metalama.Framework.Code;
 using System;
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.CSharp13.PartialProperties_WithoutImplementation;
@@ -34,7 +33,7 @@ public class TheAspect : OverrideFieldOrPropertyAspect
 }
 
 // <target>
-partial class Target
+internal partial class Target
 {
 #if TESTRUNNER
     [TheAspect]

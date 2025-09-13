@@ -316,6 +316,6 @@ class C<TC> : B<TC>
         Assert.Contains( "B<Introduced>.BaseMethod2()", genericClassInstance.AllMethods.SelectAsArray( m => m.ToString() ) );
 
         var overridingMethod = genericClassInstance.Methods.OfName( "BaseMethod" ).Single();
-        Assert.Equal( "B<Introduced>.BaseMethod()", overridingMethod.OverriddenMethod.ToString() );
+        Assert.Equal( "B<Introduced>.BaseMethod()", overridingMethod.OverriddenMethod?.ToString() );
     }
 }
