@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Compiler;
+using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities.Caching;
 using Microsoft.CodeAnalysis.Diagnostics;
 using System;
@@ -14,11 +15,14 @@ namespace Metalama.Framework.Engine.Options;
 public sealed class MSBuildProjectOptionsFactory : IDisposable, IProjectOptionsFactory
 {
     private readonly TimeBasedCache<AnalyzerConfigOptions, MSBuildProjectOptions> _cache;
+    private readonly GlobalServiceProvider _serviceProvider;
 
-    public MSBuildProjectOptionsFactory() : this( null ) { }
-    
-    public MSBuildProjectOptionsFactory( IEnumerable<string>? relevantProperties )
+    public MSBuildProjectOptionsFactory( GlobalServiceProvider serviceProvider ) : this( null, serviceProvider ) { }
+
+    public MSBuildProjectOptionsFactory( IEnumerable<string>? relevantProperties, GlobalServiceProvider serviceProvider )
     {
+        this._serviceProvider = serviceProvider;
+
         this._cache = new TimeBasedCache<AnalyzerConfigOptions, MSBuildProjectOptions>(
             TimeSpan.FromMinutes( 10 ),
             new AnalyzerConfigOptionsComparer( relevantProperties ) );
@@ -39,6 +43,6 @@ public sealed class MSBuildProjectOptionsFactory : IDisposable, IProjectOptionsF
             return this._cache.GetOrAdd( options, o => new MSBuildProjectOptions( o ) );
         }
     }
-    
+
     public void Dispose() => this._cache.Dispose();
 }

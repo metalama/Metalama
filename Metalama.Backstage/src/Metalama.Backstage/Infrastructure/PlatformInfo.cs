@@ -12,26 +12,17 @@ namespace Metalama.Backstage.Infrastructure
 {
     internal sealed class PlatformInfo : IPlatformInfo
     {
-        private const string _dotNetSdkDirectoryEnvironmentVariableName = "MSBuildExtensionsPath";
 
         private readonly IServiceProvider _serviceProvider;
         private readonly Lazy<string> _dotNetExePath;
 
-        public string? DotNetSdkDirectory { get; }
-
         public string DotNetExePath => this._dotNetExePath.Value;
 
-        public string? DotNetSdkVersion { get; }
 
-        public PlatformInfo( IServiceProvider serviceProvider, string? dotNetSdkDirectory )
+        public PlatformInfo( IServiceProvider serviceProvider)
         {
             this._serviceProvider = serviceProvider;
-            var environmentVariableProvider = serviceProvider.GetRequiredBackstageService<IEnvironmentVariableProvider>();
 
-            this.DotNetSdkDirectory = dotNetSdkDirectory
-                                      ?? environmentVariableProvider.GetEnvironmentVariable( _dotNetSdkDirectoryEnvironmentVariableName );
-
-            this.DotNetSdkVersion = Path.GetFileName( this.DotNetSdkDirectory );
             this._dotNetExePath = new Lazy<string>( this.GetDotNetPath );
         }
 
@@ -48,27 +39,6 @@ namespace Metalama.Backstage.Infrastructure
             // We no longer look for the current process being dotnet because of Rider. Rider runs in dotnet.exe, but this
             // instance of dotnet.exe does not have an SDK installed. So, it is better to ignore the current process as a hint.
 
-            // Look in the DotNetSdkDirectory, if we know it.
-            var dotNetSdkDirectory = this.DotNetSdkDirectory;
-
-            if ( !string.IsNullOrEmpty( dotNetSdkDirectory ) )
-            {
-                for ( var directory = dotNetSdkDirectory; directory != null; directory = Path.GetDirectoryName( directory ) )
-                {
-                    var dotnetPath = Path.Combine( directory, dotnetFileName );
-
-                    if ( File.Exists( dotnetPath ) )
-                    {
-                        logger?.Trace?.Log( $"{dotnetFileName} found in '{dotnetPath}'." );
-
-                        return dotnetPath;
-                    }
-                    else
-                    {
-                        logger?.Trace?.Log( $"Looked for {dotnetFileName} in '{dotnetPath}', but it did not exist." );
-                    }
-                }
-            }
 
             // Search dotnet.exe in well-known locations.
             if ( RuntimeInformation.IsOSPlatform( OSPlatform.Windows ) )

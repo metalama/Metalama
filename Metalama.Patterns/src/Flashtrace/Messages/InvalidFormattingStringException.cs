@@ -11,7 +11,6 @@ namespace Flashtrace.Messages;
 /// when user code provides an invalid formatting string.
 /// </summary>
 [PublicAPI]
-[Serializable]
 public sealed class InvalidFormattingStringException : FormatException
 {
     /// <summary>

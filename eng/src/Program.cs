@@ -51,9 +51,9 @@ var product = new Product( MetalamaDependencies.Metalama )
         },
         new ManyDotNetSolutions( "Metalama.Framework/src/Tests/Standalone" ) { IsTestOnly = true },
         new DotNetSolution( "Metalama.Extensions/Metalama.Extensions.sln" ) { CanFormatCode = true, FormatExclusions = ["src\\tests\\*AspectTests\\**\\*"] },
+        new DotNetSolution( "Metalama.Patterns/Metalama.Patterns.sln" ) { CanFormatCode = true, FormatExclusions = ["src\\tests\\*AspectTests\\**\\*"] },
         new DotNetSolution( "Metalama.Migration/Metalama.Migration.sln" ) { CanFormatCode = true },
         new DotNetSolution( "Metalama.LinqPad/Metalama.LinqPad.sln" ) { CanFormatCode = true },
-        new DotNetSolution( "Metalama.Patterns/Metalama.Patterns.sln" ) { CanFormatCode = true, FormatExclusions = ["src\\tests\\*AspectTests\\**\\*"] }
     ],
     PublicArtifacts = Pattern.Create(
         "Metalama.Backstage.$(PackageVersion).nupkg",

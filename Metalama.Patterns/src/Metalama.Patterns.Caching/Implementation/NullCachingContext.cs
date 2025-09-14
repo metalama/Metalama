@@ -4,7 +4,6 @@
 
 namespace Metalama.Patterns.Caching.Implementation;
 
-[Serializable]
 internal sealed class NullCachingContext : MarshalByRefObject, ICachingContext
 {
     private NullCachingContext() { }

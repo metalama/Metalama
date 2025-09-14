@@ -106,6 +106,8 @@ public abstract class ProjectOptionsWrapper : IProjectOptions
 
     public LanguageVersion LanguageVersion => this.Wrapped.LanguageVersion;
 
+    public string? SdkVersion => this.Wrapped.SdkVersion;
+
     public sealed override int GetHashCode() => throw new NotImplementedException();
 
     public sealed override bool Equals( object? obj ) => this.Equals( obj as IProjectOptions );

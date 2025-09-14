@@ -4,7 +4,6 @@
 
 namespace Metalama.Patterns.Caching.TestHelpers
 {
-    [Serializable]
     public class CachedValueClass
     {
         private int? _id;

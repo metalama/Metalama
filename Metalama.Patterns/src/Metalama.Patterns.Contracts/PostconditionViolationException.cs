@@ -2,14 +2,11 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using System.Runtime.Serialization;
-
 namespace Metalama.Patterns.Contracts;
 
 /// <summary>
 /// The exception that is thrown when a postcondition contract was not fulfilled by a method.
 /// </summary>
-[Serializable]
 public class PostconditionViolationException : ApplicationException
 {
     /// <summary>
@@ -49,12 +46,4 @@ public class PostconditionViolationException : ApplicationException
     /// <param name="innerException">Inner exception.</param>
     public PostconditionViolationException( string message, Exception? innerException )
         : base( message, innerException ) { }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="PostconditionViolationException"/> class with serialized data.
-    /// </summary>
-    /// <param name="info">The <see cref="SerializationInfo"/> that holds the serialized object data about the exception being thrown.</param>
-    /// <param name="context">The <see cref="StreamingContext"/> that contains contextual information about the source or destination.</param>
-    protected PostconditionViolationException( SerializationInfo info, StreamingContext context )
-        : base( info, context ) { }
 }

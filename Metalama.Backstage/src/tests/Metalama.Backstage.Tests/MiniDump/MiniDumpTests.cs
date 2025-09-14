@@ -26,7 +26,7 @@ public sealed class MiniDumpTests : TestsBase
             .AddSingleton<IApplicationInfoProvider>( new ApplicationInfoProvider( new TestApplicationInfo() ) )
             .AddSingleton<IConfigurationManager>( serviceProvider => new InMemoryConfigurationManager( serviceProvider ) )
             .AddSingleton<ITempFileManager>( serviceProvider => new TempFileManager( serviceProvider ) )
-            .AddSingleton<IPlatformInfo>( serviceProvider => new PlatformInfo( serviceProvider, null ) );
+            .AddSingleton<IPlatformInfo>( serviceProvider => new PlatformInfo( serviceProvider ) );
     }
 
     [Fact( Skip = "Required dotnet dump on the build agent." )]

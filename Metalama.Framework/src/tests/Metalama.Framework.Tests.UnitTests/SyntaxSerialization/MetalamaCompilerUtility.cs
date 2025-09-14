@@ -27,7 +27,7 @@ namespace Metalama.Framework.Tests.UnitTests.SyntaxSerialization
 
             void WriteFile( string name, string text ) => File.WriteAllText( Path.Combine( dir, name ), text );
 
-            GlobalJsonHelper.WriteCurrentVersion( dir, serviceProvider.GetRequiredBackstageService<IPlatformInfo>() );
+            GlobalJsonHelper.WriteCurrentVersion( dir, null );
 
             var metadataReader = AssemblyMetadataReader.GetInstance( typeof(AspectPipeline).Assembly );
 

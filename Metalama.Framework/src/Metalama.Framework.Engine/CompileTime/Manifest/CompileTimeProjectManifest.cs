@@ -81,8 +81,17 @@ namespace Metalama.Framework.Engine.CompileTime.Manifest
         public int ManifestVersion { get; }
 
         public const int CurrentManifestVersion = 1;
-        
+
         public LanguageVersion? LanguageVersion { get; set; }
+
+        // Prior versions of Metalama did not write LanguageVersion, but the maximum version was 13.
+        public LanguageVersion ResolvedLanguageVersion 
+        #if ROSLYN_4_12_0_OR_GREATER
+         => this.LanguageVersion ?? Microsoft.CodeAnalysis.CSharp.LanguageVersion.CSharp13;
+         #else
+         => this.LanguageVersion ?? Microsoft.CodeAnalysis.CSharp.LanguageVersion.CSharp12;
+         #endif
+
 
         /// <summary>
         /// Gets the list of all aspect types (specified by fully qualified name) of the aspect library.

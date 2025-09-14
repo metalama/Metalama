@@ -207,9 +207,11 @@ public interface IProjectOptions : IProjectService, IEquatable<IProjectOptions>
     ImmutableArray<ExtensionAssemblyReference> DesignTimeExtensionAssemblies { get; }
 
     bool AvoidLockingExtensionAssemblies { get; }
-    
+
     /// <summary>
     /// Gets the language version defined in the project. Can include values like <c>latest</c>.
     /// </summary>
     LanguageVersion LanguageVersion { get; }
+
+    string? SdkVersion { get; }
 }

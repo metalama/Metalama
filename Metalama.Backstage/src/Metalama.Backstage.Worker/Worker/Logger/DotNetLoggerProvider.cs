@@ -23,7 +23,7 @@ public class DotNetLoggerProvider : ILoggerProvider, IDotNetLogger
 
     public IDotNetLogger CreateLogger( string categoryName ) => this;
 
-    public IDisposable BeginScope<TState>( TState state ) => new DotNetLoggerScope();
+    public IDisposable BeginScope<TState>( TState state )  where TState : notnull => new DotNetLoggerScope();
 
     public bool IsEnabled( LogLevel logLevel ) => this.GetLogWriter( logLevel ) != null;
 

@@ -37,20 +37,18 @@ namespace Metalama.Framework.Engine.Pipeline;
 public sealed partial class SourceTransformer : ISourceTransformerWithServices
 {
     private static readonly object _initializeSync = new();
-    
+
     public IServiceProvider InitializeServices( InitializeServicesContext context )
     {
         lock ( _initializeSync )
         {
             if ( !BackstageServiceFactoryInitializer.IsInitialized )
             {
-                var dotNetSdkDirectory = GetDotNetSdkDirectory( context.AnalyzerConfigOptionsProvider );
-
                 var applicationInfo = new SourceTransformerApplicationInfo( context.Options.IsLongRunningProcess );
 
                 var backstageOptions = new BackstageInitializationOptions( applicationInfo )
                 {
-                    AddLicensing = false, AddUserInterface = true, AddSupportServices = true, DotNetSdkDirectory = dotNetSdkDirectory
+                    AddLicensing = false, AddUserInterface = true, AddSupportServices = true
                 };
 
                 if ( BackstageServiceFactoryInitializer.Initialize( backstageOptions ) )
@@ -63,17 +61,6 @@ public sealed partial class SourceTransformer : ISourceTransformerWithServices
         var backstageServiceProvider = BackstageServiceFactory.ServiceProvider;
 
         return new CompilerServiceProvider( backstageServiceProvider, context.AnalyzerConfigOptionsProvider );
-    }
-
-    private static string? GetDotNetSdkDirectory( AnalyzerConfigOptionsProvider analyzerConfigOptionsProvider )
-    {
-        if ( !analyzerConfigOptionsProvider.GlobalOptions.TryGetValue( "build_property.NETCoreSdkBundledVersionsProps", out var propsFilePath )
-             || string.IsNullOrEmpty( propsFilePath ) )
-        {
-            return null;
-        }
-
-        return Path.GetFullPath( Path.GetDirectoryName( propsFilePath )! );
     }
 
     private static void ReportException( Exception e, IServiceProvider serviceProvider, bool throwReporterExceptions )
@@ -114,13 +101,12 @@ public sealed partial class SourceTransformer : ISourceTransformerWithServices
             // ReSharper disable once AccessToDisposedClosure
 
             var pipelineResult =
-                taskRunner.RunSynchronously(
-                    () => pipeline.ExecuteAsync(
-                        context.ReportDiagnostic,
-                        suppressions.Enqueue,
-                        context.Compilation,
-                        context.Resources,
-                        TestableCancellationToken.None ) );
+                taskRunner.RunSynchronously( () => pipeline.ExecuteAsync(
+                                                 context.ReportDiagnostic,
+                                                 suppressions.Enqueue,
+                                                 context.Compilation,
+                                                 context.Resources,
+                                                 TestableCancellationToken.None ) );
 
             HandleSuppressions( context, projectServiceProvider, suppressions );
 

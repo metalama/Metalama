@@ -13,6 +13,6 @@ internal static class MessageHelper
         where T : IMessage
     {
         // TODO: Investigate modernizing message types (eg, to readonly struct) to avoid need for Unsafe.AsRef.
-        Unsafe.AsRef( message ).Write( recordBuilder, item );
+        Unsafe.AsRef( in message ).Write( recordBuilder, item );
     }
 }

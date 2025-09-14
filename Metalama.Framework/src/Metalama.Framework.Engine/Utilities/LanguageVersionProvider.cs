@@ -13,13 +13,11 @@ namespace Metalama.Framework.Engine.Utilities;
 
 internal class LanguageVersionProvider : ILanguageVersionProvider
 {
-    private readonly IPlatformInfo _platformInfo;
     private readonly IProjectOptions _projectOptions;
     private LanguageVersion? _cachedValue;
 
     public LanguageVersionProvider( ProjectServiceProvider serviceProvider )
     {
-        this._platformInfo = serviceProvider.Global.GetRequiredBackstageService<IPlatformInfo>();
         this._projectOptions = serviceProvider.GetRequiredService<IProjectOptions>();
     }
 
@@ -32,14 +30,16 @@ internal class LanguageVersionProvider : ILanguageVersionProvider
 
     private LanguageVersion GetCompileTimeLanguageVersionCore()
     {
-        if ( this._platformInfo.DotNetSdkVersion == null )
+        if ( this._projectOptions.SdkVersion == null )
         {
             throw new InvalidOperationException( "Unknown version of the .NET SDK." );
         }
 
-        if ( !Version.TryParse( this._platformInfo.DotNetSdkVersion, out var version ) )
+        var mainVersion = this._projectOptions.SdkVersion.Split( '-' )[0];
+
+        if ( !Version.TryParse( mainVersion, out var version ) )
         {
-            throw new AssertionFailedException( $"Cannot parse the .NET SDK version '{this._platformInfo.DotNetSdkVersion}'." );
+            throw new AssertionFailedException( $"Cannot parse the .NET SDK version '{this._projectOptions.SdkVersion}'." );
         }
 
         var sdkSupportedVersion = version.Major switch

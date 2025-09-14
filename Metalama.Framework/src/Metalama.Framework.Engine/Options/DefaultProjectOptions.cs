@@ -120,6 +120,8 @@ public class DefaultProjectOptions : IProjectOptions
 
     public virtual LanguageVersion LanguageVersion => SupportedCSharpVersions.Latest;
 
+    public virtual string? SdkVersion => null;
+
     // IProjectOptions is currently not used as a dictionary key, so we can throw here.
     public sealed override int GetHashCode() => throw new NotImplementedException();
 
