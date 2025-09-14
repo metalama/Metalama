@@ -60,7 +60,6 @@ public static class SupportedCSharpVersions
     /// <summary>
     /// Gets the default parse options.
     /// </summary>
-    [Obsolete ]
     public static CSharpParseOptions DefaultParseOptions { get; } = CSharpParseOptions.Default.WithLanguageVersion( Latest );
 
     internal static LanguageVersion ToLanguageVersion( this RoslynApiVersion apiVersion )

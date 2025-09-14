@@ -12,14 +12,12 @@ namespace Metalama.Backstage.Infrastructure
 {
     internal sealed class PlatformInfo : IPlatformInfo
     {
-
         private readonly IServiceProvider _serviceProvider;
         private readonly Lazy<string> _dotNetExePath;
 
         public string DotNetExePath => this._dotNetExePath.Value;
 
-
-        public PlatformInfo( IServiceProvider serviceProvider)
+        public PlatformInfo( IServiceProvider serviceProvider )
         {
             this._serviceProvider = serviceProvider;
 
@@ -38,7 +36,6 @@ namespace Metalama.Backstage.Infrastructure
 
             // We no longer look for the current process being dotnet because of Rider. Rider runs in dotnet.exe, but this
             // instance of dotnet.exe does not have an SDK installed. So, it is better to ignore the current process as a hint.
-
 
             // Search dotnet.exe in well-known locations.
             if ( RuntimeInformation.IsOSPlatform( OSPlatform.Windows ) )
