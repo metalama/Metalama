@@ -37,7 +37,7 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Overrides.Methods.I
         }
 
         [Override]
-static int StaticMethod()
+        static int StaticMethod()
         {
             Console.WriteLine("Original implementation");
             return 42;

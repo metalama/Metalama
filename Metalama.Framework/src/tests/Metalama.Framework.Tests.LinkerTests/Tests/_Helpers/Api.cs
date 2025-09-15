@@ -6,11 +6,11 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests
 {
     public static class Api
     {
-        public const string Inline = "Inline";
-        public const string Base = "Base";
-        public const string Previous = "Previous";
-        public const string Current = "Current";
-        public const string Final = "Final";
+        public const string Inline = nameof(Inline);
+        public const string Base = nameof(Base);
+        public const string Previous = nameof(Previous);
+        public const string Current = nameof(Current);
+        public const string Final = nameof(Final);
 
         public static dynamic This = new object();
         public static dynamic Static = new object();

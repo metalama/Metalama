@@ -54,10 +54,10 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Overrides.Propertie
         }
 
         [Override]
-static int StaticAutoProperty { get; set; }
+        static int StaticAutoProperty { get; set; }
 
         [Override]
-static int StaticProperty
+        static int StaticProperty
         {
             get
             {
