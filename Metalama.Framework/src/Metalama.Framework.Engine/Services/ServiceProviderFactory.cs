@@ -89,7 +89,7 @@ public static class ServiceProviderFactory
                                                                               sp.GetRequiredBackstageService<ITempFileManager>() ) )
             .WithServiceConditional( _ => new FrameworkCompileTimeProjectFactory() )
             .WithServiceConditional( _ => new AttributeClassificationService() )
-            .WithServiceConditional<IProjectOptionsFactory>( sp => new MSBuildProjectOptionsFactory( sp ) )
+            .WithServiceConditional<IProjectOptionsFactory>( sp => new MSBuildProjectOptionsFactory() )
             .WithServiceConditional( _ => new ObjectReaderFactory() )
             .WithServiceConditional<IExtensionLoader>( _ => new ExtensionLoader() );
 

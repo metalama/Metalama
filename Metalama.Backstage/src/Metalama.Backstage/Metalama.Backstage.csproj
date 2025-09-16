@@ -42,6 +42,5 @@
         <InternalsVisibleTo Include="Metalama.Backstage.Testing" />
     </ItemGroup>
 
-    <Import Sdk="PostSharp.Engineering.Sdk" Project="SystemTypes.props" />
 
 </Project>

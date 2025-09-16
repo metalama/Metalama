@@ -9,8 +9,6 @@
         </PackageDescription>
         
         <IsPackable>True</IsPackable>
-        <PackMetalamaSystemTypes>True</PackMetalamaSystemTypes>
-        
     </PropertyGroup>
     
     <ItemGroup>

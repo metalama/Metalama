@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Backstage.Diagnostics;
-using Metalama.Backstage.Infrastructure;
 using Metalama.Backstage.Maintenance;
 using Metalama.Backstage.Utilities;
 using Metalama.Compiler;
@@ -177,7 +176,7 @@ internal sealed class CompileTimeAssemblyLocator
         // Also provide our embedded assemblies.
 
         var embeddedAssemblies =
-            new[] { _compileTimeFrameworkAssemblyName, _compilerInterfaceAssemblyName, "Metalama.SystemTypes" }.SelectAsImmutableArray( name
+            new[] { _compileTimeFrameworkAssemblyName, _compilerInterfaceAssemblyName }.SelectAsImmutableArray( name
                 => (MetadataReference)
                 MetadataReference.CreateFromStream(
                     this.GetType().Assembly.GetManifestResourceStream( name + ".dll" )

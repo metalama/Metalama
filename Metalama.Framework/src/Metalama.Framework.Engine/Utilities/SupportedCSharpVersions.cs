@@ -5,7 +5,6 @@
 using JetBrains.Annotations;
 using Metalama.Framework.Engine.CompileTime;
 using Microsoft.CodeAnalysis.CSharp;
-using System;
 using System.Collections.Immutable;
 using System.Linq;
 

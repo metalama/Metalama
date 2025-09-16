@@ -25,6 +25,4 @@
         <PackageReference Include="Newtonsoft.Json" NoWarn="NU1903" />
     </ItemGroup>
 
-    <Import Sdk="PostSharp.Engineering.Sdk" Project="SystemTypes.props" />
-
 </Project>

@@ -27,7 +27,7 @@ internal sealed class DesignTimeClassificationService : IClassificationService, 
     {
         this._serviceProvider = serviceProvider;
         this._projectClassifier = serviceProvider.GetRequiredService<IMetalamaProjectClassifier>();
-        this._msBuildProjectOptionsFactory = new MSBuildProjectOptionsFactory( [MSBuildPropertyNames.MetalamaCompileTimePackages], serviceProvider );
+        this._msBuildProjectOptionsFactory = new MSBuildProjectOptionsFactory( [MSBuildPropertyNames.MetalamaCompileTimePackages] );
     }
 
     public bool ContainsCompileTimeCode( SyntaxNode syntaxRoot ) => ClassificationService.ContainsCompileTimeCode( syntaxRoot );

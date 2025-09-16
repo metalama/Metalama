@@ -7,8 +7,6 @@
         i.e. it will take the dependency on Metalama.Compiler from the dependency on Metalama.Framework. -->
     <UseMetalamaCompiler>False</UseMetalamaCompiler>
     <GenerateAssemblyInfo>False</GenerateAssemblyInfo>
-
-    <ReferenceMetalamaSystemTypes>False</ReferenceMetalamaSystemTypes>
 	</PropertyGroup>
 	
   <!-- Imports Directory.Build.props of the upper directory. Use this code in any non-root Directory.Build.* even if the file does not exit. -->

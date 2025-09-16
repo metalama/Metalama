@@ -37,7 +37,7 @@ public sealed class CompileTimeAssemblyLocatorProvider : ICompileTimeAssemblyLoc
 
         if ( !this._referenceAssemblyLocators.TryGetValue( additionalReferences, out var referenceAssemblyLocator ) )
         {
-            // We lock instead of using ConcurrentDictionary because instantiating the class is expensive.
+            // We look instead of using ConcurrentDictionary because instantiating the class is expensive.
             lock ( this._sync )
             {
                 if ( !this._referenceAssemblyLocators.TryGetValue( additionalReferences, out referenceAssemblyLocator ) )

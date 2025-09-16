@@ -4,7 +4,6 @@
 
 using Metalama.Backstage.Extensibility;
 using Metalama.Framework.Engine.Services;
-using Metalama.Framework.Engine.Utilities;
 using Metalama.Testing.UnitTesting;
 
 namespace Metalama.Testing.AspectTesting;

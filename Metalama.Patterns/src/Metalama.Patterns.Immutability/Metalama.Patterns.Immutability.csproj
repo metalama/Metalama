@@ -32,6 +32,4 @@
         <InternalsVisibleTo Include="Metalama.Patterns.Immutability.CompileTimeTests"/>
     </ItemGroup>
     
-    <Import Sdk="PostSharp.Engineering.Sdk" Project="SystemTypes.props" />
-
 </Project>

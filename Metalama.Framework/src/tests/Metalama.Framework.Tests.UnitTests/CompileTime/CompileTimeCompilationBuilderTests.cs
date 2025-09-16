@@ -58,9 +58,10 @@ namespace Foo
 }
 ";
 
-            var rewriter = new CompileTimeCompilationBuilder.RemoveInvalidUsingRewriter( compilation );
-
-            var actual = rewriter.Visit( compilation.SyntaxTrees.Single().GetRoot() )!.ToFullString();
+            var syntaxTree = compilation.SyntaxTrees.Single();
+            var rewriter = new CompileTimeCompilationBuilder.RemoveInvalidUsingRewriter( compilation, syntaxTree );
+           
+            var actual = rewriter.Visit( syntaxTree.GetRoot() )!.ToFullString();
 
             AssertEx.EolInvariantEqual( expected, actual );
         }

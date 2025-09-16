@@ -2,7 +2,6 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using Metalama.Backstage.Diagnostics;
 using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code.Collections;
@@ -26,6 +25,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
+using ILogger = Metalama.Backstage.Diagnostics.ILogger;
 
 namespace Metalama.Framework.Engine.CompileTime;
 
@@ -59,8 +59,6 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                 (typeof(RuntimeEnvironment), TemplatingScope.RunTimeOnly),
                 (typeof(RuntimeInformation), TemplatingScope.RunTimeOnly),
                 (typeof(Marshal), TemplatingScope.RunTimeOnly),
-
-                // We must have all types from Metalama.SystemTypes.
                 (typeof(Index), TemplatingScope.RunTimeOrCompileTime),
                 (typeof(Range), TemplatingScope.RunTimeOrCompileTime),
                 (typeof(IsExternalInit), TemplatingScope.RunTimeOrCompileTime),
@@ -75,7 +73,8 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                 (typeof(DoesNotReturnIfAttribute), TemplatingScope.RunTimeOrCompileTime),
                 (typeof(MemberNotNullAttribute), TemplatingScope.RunTimeOrCompileTime),
                 (typeof(MemberNotNullWhenAttribute), TemplatingScope.RunTimeOrCompileTime),
-                (typeof(RequiredMemberAttribute), TemplatingScope.RunTimeOrCompileTime)
+                (typeof(RequiredMemberAttribute), TemplatingScope.RunTimeOrCompileTime),
+                (typeof(EmbeddedAttribute), TemplatingScope.RunTimeOrCompileTime)
             }.SelectAsReadOnlyList( t => (Name: t.ReflectionType.Name.AssertNotNull(), Namespace: t.ReflectionType.Namespace.AssertNotNull(), t.Scope) )
             .Concat( [("_Attribute", "System.Runtime.InteropServices", null)] )
             .ToDictionary( x => x.Name, x => (x.Namespace, x.Scope) );
@@ -102,7 +101,7 @@ internal sealed class SymbolClassifier : ISymbolClassifier
     private readonly INamedTypeSymbol? _templateAttribute;
     private readonly INamedTypeSymbol? _declarativeAdviceAttribute;
 
-    private readonly ConcurrentDictionary<ISymbol, TemplatingScope?>[] _caches;
+    private readonly ConcurrentDictionary<ISymbol, TemplatingScopeAndRule?>[] _caches;
 
     private readonly ConcurrentDictionary<ISymbol, TemplateInfo> _cacheInheritedTemplateInfo;
     private readonly ConcurrentDictionary<ISymbol, TemplateInfo> _cacheNonInheritedTemplateInfo;
@@ -145,7 +144,7 @@ internal sealed class SymbolClassifier : ISymbolClassifier
         this._cacheIsTemplateOnly = new ConcurrentDictionary<ISymbol, bool>( this._symbolEqualityComparer );
 
         this._caches = Enumerable.Range( 0, (int) GetTemplatingScopeOptions.Count )
-            .Select( _ => new ConcurrentDictionary<ISymbol, TemplatingScope?>( this._symbolEqualityComparer ) )
+            .Select( _ => new ConcurrentDictionary<ISymbol, TemplatingScopeAndRule?>( this._symbolEqualityComparer ) )
             .ToArray();
 
         this._attributeDeserializer = attributeDeserializer;
@@ -257,21 +256,21 @@ internal sealed class SymbolClassifier : ISymbolClassifier
         return new TemplateInfo( memberId, templateAttributeType, (IAdviceAttribute?) attributeInstance );
     }
 
-    private static TemplatingScope? GetTemplatingScope( AttributeData attribute )
+    private static TemplatingScopeAndRule? GetTemplatingScope( AttributeData attribute )
         => attribute.AttributeClass?.Name switch
         {
-            nameof(CompileTimeAttribute) => TemplatingScope.CompileTimeOnly,
-            nameof(RunTimeAttribute) => TemplatingScope.RunTimeOnly,
-            nameof(CompileTimeReturningRunTimeAttribute) => TemplatingScope.CompileTimeOnlyReturningRuntimeOnly,
-            nameof(TemplateAttribute) => TemplatingScope.CompileTimeOnly,
-            nameof(RunTimeOrCompileTimeAttribute) => TemplatingScope.RunTimeOrCompileTime,
-            nameof(ForcedGenericRunTimeOrCompileTimeAttribute) => TemplatingScope.ForcedRunTimeOrCompileTime,
-            nameof(IntroduceAttribute) => TemplatingScope.RunTimeOnly,
-            nameof(InterfaceMemberAttribute) => TemplatingScope.RunTimeOnly,
+            nameof(CompileTimeAttribute) => (TemplatingScope.CompileTimeOnly, TemplatingRule.Attribute),
+            nameof(RunTimeAttribute) => (TemplatingScope.RunTimeOnly, TemplatingRule.Attribute),
+            nameof(CompileTimeReturningRunTimeAttribute) => (TemplatingScope.CompileTimeOnlyReturningRuntimeOnly, TemplatingRule.Attribute),
+            nameof(TemplateAttribute) => (TemplatingScope.CompileTimeOnly, TemplatingRule.Attribute),
+            nameof(RunTimeOrCompileTimeAttribute) => (TemplatingScope.RunTimeOrCompileTime, TemplatingRule.Attribute),
+            nameof(ForcedGenericRunTimeOrCompileTimeAttribute) => (TemplatingScope.ForcedRunTimeOrCompileTime, TemplatingRule.Attribute),
+            nameof(IntroduceAttribute) => (TemplatingScope.RunTimeOnly, TemplatingRule.Attribute),
+            nameof(InterfaceMemberAttribute) => (TemplatingScope.RunTimeOnly, TemplatingRule.Attribute),
             _ => null
         };
 
-    private static TemplatingScope? GetAssemblyScope( IAssemblySymbol? assembly )
+    private static TemplatingScopeAndRule? GetAssemblyScope( IAssemblySymbol? assembly )
     {
         if ( assembly == null )
         {
@@ -281,7 +280,7 @@ internal sealed class SymbolClassifier : ISymbolClassifier
         switch ( assembly.Name )
         {
             case "Metalama.Compiler.Interface":
-                return TemplatingScope.CompileTimeOnly;
+                return (TemplatingScope.CompileTimeOnly, TemplatingRule.WellKnown);
         }
 
         var scopeFromAttributes = assembly.GetAttributes()
@@ -289,7 +288,7 @@ internal sealed class SymbolClassifier : ISymbolClassifier
             .SelectAsArray( GetTemplatingScope )
             .FirstOrDefault( s => s != null );
 
-        if ( scopeFromAttributes is not (null or TemplatingScope.RunTimeOrCompileTime) )
+        if ( scopeFromAttributes?.Scope is not (null or TemplatingScope.RunTimeOrCompileTime) )
         {
             // Note that we can't say anything about an assembly explicitly marked as RunTimeOrCompileTime, since we
             // must take the decision for each type.
@@ -299,17 +298,19 @@ internal sealed class SymbolClassifier : ISymbolClassifier
         return null;
     }
 
-    public TemplatingScope GetTemplatingScope( ISymbol symbol )
+    public TemplatingScope GetTemplatingScope( ISymbol symbol ) => this.GetTemplatingScopeAndRule( symbol ).Scope;
+
+    public TemplatingScopeAndRule GetTemplatingScopeAndRule( ISymbol symbol )
     {
         symbol.ThrowIfBelongsToDifferentCompilationThan( this._compilationContext );
 
         var scope = this.GetTemplatingScopeCore( symbol, GetTemplatingScopeOptions.Default, ImmutableLinkedList<ISymbol>.Empty, null )
-            .GetValueOrDefault( TemplatingScope.RunTimeOnly );
+            .GetValueOrDefault( (TemplatingScope.RunTimeOnly, TemplatingRule.Default) );
 
         // These statuses are internal concepts, so hide them from other parts of the code.
-        if ( scope is TemplatingScope.ForcedRunTimeOrCompileTime or TemplatingScope.ImplicitlyRunTimeOrCompileTime )
+        if ( scope.Scope is TemplatingScope.ForcedRunTimeOrCompileTime or TemplatingScope.ImplicitlyRunTimeOrCompileTime )
         {
-            return TemplatingScope.RunTimeOrCompileTime;
+            return (TemplatingScope.RunTimeOrCompileTime, scope.Rule);
         }
 
         return scope;
@@ -366,14 +367,14 @@ internal sealed class SymbolClassifier : ISymbolClassifier
         _ = this.GetTemplatingScopeCore( symbol, GetTemplatingScopeOptions.Default, ImmutableLinkedList<ISymbol>.Empty, tracer );
 
         var conflictNode = tracer.SelectManyRecursive( t => t.Children, true )
-            .Where( t => t.Result is TemplatingScope.Conflict )
+            .Where( t => t.Result?.Scope is TemplatingScope.Conflict )
             .MaxByOrNull( t => t.Depth );
 
         if ( conflictNode == null )
         {
             // Nothing to report.
         }
-        else if ( conflictNode.Result == TemplatingScope.DynamicTypeConstruction )
+        else if ( conflictNode.Result?.Scope == TemplatingScope.DynamicTypeConstruction )
         {
             diagnosticAdder.Report(
                 TemplatingDiagnosticDescriptors.InvalidDynamicTypeConstruction.CreateRoslynDiagnostic(
@@ -382,8 +383,8 @@ internal sealed class SymbolClassifier : ISymbolClassifier
         }
         else
         {
-            var firstRunTimeOnly = conflictNode.Children.FirstOrDefault( c => c.Result == TemplatingScope.RunTimeOnly );
-            var firstCompileTimeOnly = conflictNode.Children.FirstOrDefault( c => c.Result == TemplatingScope.CompileTimeOnly );
+            var firstRunTimeOnly = conflictNode.Children.FirstOrDefault( c => c.Result?.Scope == TemplatingScope.RunTimeOnly );
+            var firstCompileTimeOnly = conflictNode.Children.FirstOrDefault( c => c.Result?.Scope == TemplatingScope.CompileTimeOnly );
 
             if ( firstCompileTimeOnly == null || firstRunTimeOnly == null )
             {
@@ -402,9 +403,9 @@ internal sealed class SymbolClassifier : ISymbolClassifier
     }
 
     // This method exists so that it is easy to put a breakpoint on conflict.
-    private static TemplatingScope OnConflict() => TemplatingScope.Conflict;
+    private static TemplatingScopeAndRule OnConflict() => (TemplatingScope.Conflict, TemplatingRule.Other);
 
-    private TemplatingScope? GetTemplatingScopeCore(
+    private TemplatingScopeAndRule? GetTemplatingScopeCore(
         ISymbol symbol,
         GetTemplatingScopeOptions options,
         ImmutableLinkedList<ISymbol> symbolsBeingProcessed,
@@ -414,7 +415,7 @@ internal sealed class SymbolClassifier : ISymbolClassifier
 
         if ( symbol.Kind == SymbolKind.Namespace )
         {
-            return TemplatingScope.RunTimeOrCompileTime;
+            return (TemplatingScope.RunTimeOrCompileTime, TemplatingRule.Other);
         }
 
         // Recursion happens when are are classifying a type like `class C : IEquatable<C>`. The recursion in this example is on C.
@@ -427,7 +428,7 @@ internal sealed class SymbolClassifier : ISymbolClassifier
         // Cache lookup.
         var cache = this._caches[(int) options];
 
-        TemplatingScope? scope;
+        TemplatingScopeAndRule? scope;
 
         if ( parentTracer == null )
         {
@@ -448,24 +449,24 @@ internal sealed class SymbolClassifier : ISymbolClassifier
         scope = GetRawScope();
 
         // Fix compile-time-only symbols according to their expression type.
-        if ( scope == TemplatingScope.CompileTimeOnly )
+        if ( scope?.Scope == TemplatingScope.CompileTimeOnly )
         {
             if ( symbol.GetExpressionType() is { } expressionType )
             {
                 var expressionTypeScope = this.GetTemplatingScopeCore( expressionType, options, symbolsBeingProcessedIncludingCurrent, tracer );
 
-                switch ( expressionTypeScope )
+                switch ( expressionTypeScope?.Scope )
                 {
                     case TemplatingScope.RunTimeOnly:
                     case TemplatingScope.Dynamic:
                     case TemplatingScope.CompileTimeOnlyReturningRuntimeOnly:
-                        scope = TemplatingScope.CompileTimeOnlyReturningRuntimeOnly;
+                        scope = (TemplatingScope.CompileTimeOnlyReturningRuntimeOnly, expressionTypeScope.Value.Rule);
 
                         break;
 
                     case TemplatingScope.RunTimeOrCompileTime:
                     case TemplatingScope.ImplicitlyRunTimeOrCompileTime:
-                        scope = TemplatingScope.CompileTimeOnlyReturningBoth;
+                        scope = (TemplatingScope.CompileTimeOnlyReturningBoth, expressionTypeScope.Value.Rule);
 
                         break;
                 }
@@ -474,13 +475,15 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                 if ( symbol is IMethodSymbol methodSymbol
                      && methodSymbol.GetReturnTypeAttributes().Any( a => a.AttributeClass?.Name == nameof(CompileTimeAttribute) ) )
                 {
-                    scope = scope == TemplatingScope.CompileTimeOnlyReturningRuntimeOnly ? OnConflict() : TemplatingScope.CompileTimeOnly;
+                    scope = scope?.Scope == TemplatingScope.CompileTimeOnlyReturningRuntimeOnly
+                        ? OnConflict()
+                        : (TemplatingScope.CompileTimeOnly, TemplatingRule.Other);
                 }
             }
             else if ( symbol is ITypeParameterSymbol { DeclaringMethod: { } declaringMethod } && !this.GetTemplateInfo( declaringMethod ).IsNone )
             {
                 // Compile-time template parameters always represent run-time types.
-                scope = TemplatingScope.CompileTimeOnlyReturningRuntimeOnly;
+                scope = (TemplatingScope.CompileTimeOnlyReturningRuntimeOnly, TemplatingRule.Other);
             }
         }
 
@@ -492,7 +495,7 @@ internal sealed class SymbolClassifier : ISymbolClassifier
 
         return scope;
 
-        TemplatingScope? GetRawScope()
+        TemplatingScopeAndRule? GetRawScope()
         {
             // From well-known types.
 
@@ -505,27 +508,27 @@ internal sealed class SymbolClassifier : ISymbolClassifier
             {
                 // Dynamic.
                 case IDynamicTypeSymbol:
-                    return TemplatingScope.Dynamic;
+                    return (TemplatingScope.Dynamic, TemplatingRule.Other);
 
                 // Type parameters.
                 case ITypeParameterSymbol typeParameterSymbol:
                     var scopeFromAttribute = GetScopeFromAttributes( tracer, typeParameterSymbol );
 
-                    if ( scopeFromAttribute == TemplatingScope.CompileTimeOnly && typeParameterSymbol.ContainingSymbol is IMethodSymbol m
-                                                                               && !this.GetTemplateInfo( m ).IsNone )
+                    if ( scopeFromAttribute?.Scope == TemplatingScope.CompileTimeOnly && typeParameterSymbol.ContainingSymbol is IMethodSymbol m
+                                                                                      && !this.GetTemplateInfo( m ).IsNone )
                     {
-                        return TemplatingScope.CompileTimeOnlyReturningRuntimeOnly;
+                        return (TemplatingScope.CompileTimeOnlyReturningRuntimeOnly, TemplatingRule.Attribute);
                     }
 
                     if ( scopeFromAttribute != null )
                     {
-                        return scopeFromAttribute.Value;
+                        return (scopeFromAttribute.Value.Scope, TemplatingRule.Attribute);
                     }
                     else if ( typeParameterSymbol.ContainingSymbol.Kind == SymbolKind.Method
                               && !this.GetTemplateInfo( typeParameterSymbol.ContainingSymbol ).IsNone )
                     {
                         // Template parameters are run-time by default.
-                        return TemplatingScope.RunTimeOnly;
+                        return (TemplatingScope.RunTimeOnly, TemplatingRule.Other);
                     }
                     else if ( (options & GetTemplatingScopeOptions.TypeParametersAreNeutral) != 0 )
                     {
@@ -549,20 +552,24 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                 case IErrorTypeSymbol:
                     // We treat all error symbols as run-time to avoid including error types in the compile-time compilations,
                     // which may cause a high number of errors during the solution load at design time.
-                    return TemplatingScope.RunTimeOnly;
+                    return (TemplatingScope.RunTimeOnly, TemplatingRule.Other);
 
                 // Array.
                 case IArrayTypeSymbol array:
                     {
                         var elementScope = this.GetTemplatingScopeCore( array.ElementType, options, symbolsBeingProcessedIncludingCurrent, tracer );
 
-                        if ( elementScope is TemplatingScope.Dynamic )
+                        if ( elementScope == null )
                         {
-                            return TemplatingScope.DynamicTypeConstruction;
+                            return null;
+                        }
+                        else if ( elementScope.Value.Scope is TemplatingScope.Dynamic )
+                        {
+                            return (TemplatingScope.DynamicTypeConstruction, TemplatingRule.Other);
                         }
                         else
                         {
-                            return elementScope?.GetExpressionValueScope();
+                            return (elementScope.Value.Scope.GetExpressionValueScope(), TemplatingRule.Other);
                         }
                     }
 
@@ -573,7 +580,7 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                 // Generic type instances.
                 case INamedTypeSymbol { IsGenericType: true } namedType when !namedType.IsGenericTypeDefinition():
                     {
-                        List<TemplatingScope?> scopes = new( namedType.TypeArguments.Length + 1 );
+                        List<TemplatingScopeAndRule?> scopes = new( namedType.TypeArguments.Length + 1 );
 
                         var declarationScope = this.GetTemplatingScopeCore(
                             namedType.OriginalDefinition,
@@ -584,12 +591,11 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                         scopes.Add( declarationScope );
 
                         scopes.AddRange(
-                            namedType.TypeArguments.Select(
-                                arg => this.GetTemplatingScopeCore(
-                                    arg,
-                                    options | GetTemplatingScopeOptions.TypeParametersAreNeutral,
-                                    symbolsBeingProcessedIncludingCurrent,
-                                    tracer ) ) );
+                            namedType.TypeArguments.Select( arg => this.GetTemplatingScopeCore(
+                                                                arg,
+                                                                options | GetTemplatingScopeOptions.TypeParametersAreNeutral,
+                                                                symbolsBeingProcessedIncludingCurrent,
+                                                                tracer ) ) );
 
                         var compileTimeOnlyCount = 0;
                         var runTimeCount = 0;
@@ -597,7 +603,7 @@ internal sealed class SymbolClassifier : ISymbolClassifier
 
                         foreach ( var typeArgumentScope in scopes )
                         {
-                            switch ( typeArgumentScope )
+                            switch ( typeArgumentScope?.Scope )
                             {
                                 case null:
                                 case TemplatingScope.ImplicitlyRunTimeOrCompileTime:
@@ -615,10 +621,10 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                                         case nameof(IAsyncEnumerable<object>):
                                         case nameof(ConfiguredCancelableAsyncEnumerable<object>):
                                         case nameof(IAsyncEnumerator<object>):
-                                            return TemplatingScope.Dynamic;
+                                            return (TemplatingScope.Dynamic, TemplatingRule.Other);
 
                                         default:
-                                            return TemplatingScope.DynamicTypeConstruction;
+                                            return (TemplatingScope.DynamicTypeConstruction, TemplatingRule.Other);
                                     }
 
                                 case TemplatingScope.RunTimeOnly:
@@ -639,19 +645,19 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                                     break;
 
                                 case TemplatingScope.Conflict:
-                                    return TemplatingScope.Conflict;
+                                    return (TemplatingScope.Conflict, TemplatingRule.Other);
 
                                 case TemplatingScope.DynamicTypeConstruction:
-                                    return TemplatingScope.DynamicTypeConstruction;
+                                    return (TemplatingScope.DynamicTypeConstruction, TemplatingRule.Other);
 
                                 default:
                                     throw new AssertionFailedException( $"Unexpected scope: {typeArgumentScope}." );
                             }
                         }
 
-                        if ( declarationScope == TemplatingScope.ForcedRunTimeOrCompileTime )
+                        if ( declarationScope?.Scope == TemplatingScope.ForcedRunTimeOrCompileTime )
                         {
-                            return TemplatingScope.ForcedRunTimeOrCompileTime;
+                            return (TemplatingScope.ForcedRunTimeOrCompileTime, TemplatingRule.Other);
                         }
 
                         switch ( runTimeCount )
@@ -660,18 +666,18 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                                 return OnConflict();
 
                             case > 0:
-                                return TemplatingScope.RunTimeOnly;
+                                return (TemplatingScope.RunTimeOnly, TemplatingRule.Other);
 
                             default:
                                 {
                                     if ( compileTimeOnlyCount > 0 )
                                     {
-                                        return TemplatingScope.CompileTimeOnly;
+                                        return (TemplatingScope.CompileTimeOnly, TemplatingRule.Other);
                                     }
                                     else if ( runTimeOrCompileTimeCount > 0
                                               || (options & GetTemplatingScopeOptions.ImplicitRuntimeOrCompileTimeAsNull) == 0 )
                                     {
-                                        return TemplatingScope.RunTimeOrCompileTime;
+                                        return (TemplatingScope.RunTimeOrCompileTime, TemplatingRule.Other);
                                     }
                                     else
                                     {
@@ -699,7 +705,7 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                             }
                         }
 
-                        return combinedScope;
+                        return combinedScope == null ? null : (combinedScope.Value, TemplatingRule.Other);
                     }
 
                 // Type definitions
@@ -708,8 +714,8 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                         // Note: Type with [CompileTime] on a base type or an interface should be considered compile-time,
                         // even if it has a generic argument from an external assembly (which makes it run-time). So generic arguments should come last.
 
-                        var combinedScope = GetScopeFromAttributes( tracer, namedType );
-                        TemplatingScope? declaringTypeScope = null;
+                        var combinedScope = GetScopeFromAttributes( tracer, namedType )?.Scope;
+                        TemplatingScopeAndRule? declaringTypeScope = null;
 
                         // Check the scope of the containing type.
                         if ( combinedScope == null )
@@ -724,9 +730,9 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                                     symbolsBeingProcessedIncludingCurrent,
                                     tracer );
 
-                                if ( declaringTypeScope == TemplatingScope.CompileTimeOnly )
+                                if ( declaringTypeScope?.Scope == TemplatingScope.CompileTimeOnly )
                                 {
-                                    return TemplatingScope.CompileTimeOnly;
+                                    return (TemplatingScope.CompileTimeOnly, TemplatingRule.Other);
                                 }
                                 else
                                 {
@@ -737,14 +743,14 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                             }
                             else
                             {
-                                combinedScope = GetAssemblyScope( symbol.ContainingAssembly );
+                                combinedScope = GetAssemblyScope( symbol.ContainingAssembly )?.Scope;
                             }
                         }
 
                         // We don't look at the rest if the scope is known at this point.
                         if ( combinedScope != null )
                         {
-                            return combinedScope;
+                            return (combinedScope.Value, TemplatingRule.Other);
                         }
 
                         var isAvailableAtCompileTime = this._compileTimeAssemblyLocator.IsSymbolAvailable( namedType, this._compilationContext );
@@ -768,7 +774,7 @@ internal sealed class SymbolClassifier : ISymbolClassifier
 
                         if ( combinedScope != null )
                         {
-                            return combinedScope;
+                            return (combinedScope.Value, TemplatingRule.Other);
                         }
 
                         // From generic arguments.
@@ -787,12 +793,12 @@ internal sealed class SymbolClassifier : ISymbolClassifier
 
                         // If a type is not classified after all these inference rules were evaluated,
                         // and if it is not a nested type,  we consider it is a run-time type.
-                        return combinedScope ?? declaringTypeScope ?? TemplatingScope.RunTimeOnly;
+                        return (combinedScope ?? declaringTypeScope?.Scope ?? TemplatingScope.RunTimeOnly, TemplatingRule.Other);
                     }
 
                 case INamespaceSymbol:
                     // Namespace can be either run-time, build-time or both. We don't do more now but we may have to do it based on assemblies defining the namespace.
-                    return TemplatingScope.RunTimeOrCompileTime;
+                    return (TemplatingScope.RunTimeOrCompileTime, TemplatingRule.Other);
 
                 case IParameterSymbol parameter:
                     {
@@ -822,13 +828,13 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                     // Local variables are classified by the template annotator. The SymbolClassifier can be called by other components
                     // for a local variable, but then it cannot give any answer. We could return null, but then the RunTime fallback would be
                     // applied. So we use RunTimeOrCompileTime.
-                    return TemplatingScope.RunTimeOrCompileTime;
+                    return (TemplatingScope.RunTimeOrCompileTime, TemplatingRule.Other);
 
                 case IDiscardSymbol:
-                    return TemplatingScope.RunTimeOrCompileTime;
+                    return (TemplatingScope.RunTimeOrCompileTime, TemplatingRule.Other);
 
                 case IFunctionPointerTypeSymbol:
-                    return TemplatingScope.RunTimeOnly;
+                    return (TemplatingScope.RunTimeOnly, TemplatingRule.Other);
 
                 // The default case covers all members.
                 default:
@@ -841,12 +847,12 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                             if ( templateInfo.CanBeReferencedAsRunTimeCode )
                             {
                                 // Introductions can be referenced from run-time code.
-                                return TemplatingScope.RunTimeOnly;
+                                return (TemplatingScope.RunTimeOnly, TemplatingRule.Other);
                             }
                             else
                             {
                                 // Other templates cannot be referenced anywhere, but this should be enforced elsewhere.
-                                return TemplatingScope.CompileTimeOnly;
+                                return (TemplatingScope.CompileTimeOnly, TemplatingRule.Other);
                             }
                         }
 
@@ -862,25 +868,26 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                         if ( memberScope == null && symbol.ContainingSymbol != null )
                         {
                             memberScope = this.GetTemplatingScopeCore( symbol.ContainingSymbol, options, symbolsBeingProcessedIncludingCurrent, tracer )
-                                          ?? TemplatingScope.RunTimeOnly;
+                                          ?? (TemplatingScope.RunTimeOnly, TemplatingRule.Other);
 
-                            if ( memberScope == TemplatingScope.Conflict )
+                            if ( memberScope?.Scope == TemplatingScope.Conflict )
                             {
                                 // If the declaring type has conflict scope, we consider it has neutral scope,
                                 // otherwise we would report errors on all type members and this is confusing.
                                 memberScope = null;
                             }
-                            else if ( memberScope is TemplatingScope.ImplicitlyRunTimeOrCompileTime
+                            else if ( memberScope?.Scope is TemplatingScope.ImplicitlyRunTimeOrCompileTime
                                       && this._compileTimeAssemblyLocator.IsSymbolAvailable( symbol, this._compilationContext ) == false )
                             {
                                 // If the type exists in the compile-time references but not the member, the member is run-time only.
                                 // This happens with new members added to .NET Standard 2.0 in other frameworks.
-                                memberScope = TemplatingScope.RunTimeOnly;
+                                memberScope = (TemplatingScope.RunTimeOnly, TemplatingRule.Other);
                             }
                         }
 
                         // If the scope is given by other means, we do not try to guess by signature.
-                        if ( memberScope != null && memberScope is not (TemplatingScope.RunTimeOrCompileTime or TemplatingScope.ForcedRunTimeOrCompileTime
+                        if ( memberScope != null && memberScope?.Scope is not (TemplatingScope.RunTimeOrCompileTime
+                                or TemplatingScope.ForcedRunTimeOrCompileTime
                                 or TemplatingScope.ImplicitlyRunTimeOrCompileTime) )
                         {
                             return memberScope;
@@ -893,7 +900,19 @@ internal sealed class SymbolClassifier : ISymbolClassifier
 
                         var signatureMemberOptions = options | GetTemplatingScopeOptions.TypeParametersAreNeutral;
 
-                        static TemplatingScope? ApplyDefault( TemplatingScope? s )
+                        static TemplatingScopeAndRule? ApplyDefaultScope( TemplatingScope? s )
+                        {
+                            if ( s != null )
+                            {
+                                return (s.Value, TemplatingRule.Other);
+                            }
+                            else
+                            {
+                                return (TemplatingScope.RunTimeOrCompileTime, TemplatingRule.Other);
+                            }
+                        }
+
+                        static TemplatingScopeAndRule? ApplyDefaultScopeAndRule( TemplatingScopeAndRule? s )
                         {
                             if ( s != null )
                             {
@@ -901,7 +920,7 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                             }
                             else
                             {
-                                return TemplatingScope.RunTimeOrCompileTime;
+                                return (TemplatingScope.RunTimeOrCompileTime, TemplatingRule.Other);
                             }
                         }
 
@@ -941,15 +960,15 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                                                     tracer )
                                                 ?.GetExpressionValueScope();
 
-                                            if ( typeArgumentScope is not (TemplatingScope.RunTimeOrCompileTime
-                                                    or TemplatingScope.ImplicitlyRunTimeOrCompileTime) && typeArgumentScope != signatureScope )
+                                            if ( typeArgumentScope?.Scope is not (TemplatingScope.RunTimeOrCompileTime
+                                                    or TemplatingScope.ImplicitlyRunTimeOrCompileTime) && typeArgumentScope?.Scope != signatureScope )
                                             {
                                                 return OnConflict();
                                             }
                                         }
                                     }
 
-                                    return ApplyDefault( signatureScope );
+                                    return ApplyDefaultScope( signatureScope );
                                 }
 
                             case IPropertySymbol property:
@@ -963,21 +982,21 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                                         this.CombineScope( parameter.Type, signatureMemberOptions, symbolsBeingProcessed, ref signatureScope, tracer );
                                     }
 
-                                    return ApplyDefault( signatureScope );
+                                    return ApplyDefaultScope( signatureScope );
                                 }
 
                             case IFieldSymbol field:
                                 {
                                     var typeScope = this.GetTemplatingScopeCore( field.Type, signatureMemberOptions, symbolsBeingProcessed, tracer );
 
-                                    return ApplyDefault( typeScope );
+                                    return ApplyDefaultScopeAndRule( typeScope );
                                 }
 
                             case IEventSymbol @event:
                                 {
                                     var eventScope = this.GetTemplatingScopeCore( @event.Type, signatureMemberOptions, symbolsBeingProcessed, tracer );
 
-                                    return ApplyDefault( eventScope );
+                                    return ApplyDefaultScopeAndRule( eventScope );
                                 }
 
                             default:
@@ -987,7 +1006,7 @@ internal sealed class SymbolClassifier : ISymbolClassifier
             }
         }
 
-        static TemplatingScope? GetScopeFromAttributes( SymbolClassifierTracer? tracer, ISymbol? symbol )
+        static TemplatingScopeAndRule? GetScopeFromAttributes( SymbolClassifierTracer? tracer, ISymbol? symbol )
         {
             if ( symbol == null )
             {
@@ -1005,7 +1024,7 @@ internal sealed class SymbolClassifier : ISymbolClassifier
             scopeFromAttributes ??= symbol.GetExplicitOrImplicitInterfaceImplementations()
                 .Select( i => GetScopeFromAttributes( tracer, i ) )
                 .Where( s => s != null )
-                .Aggregate( (TemplatingScope?) null, ( s1, s2 ) => s1?.GetCombinedValueScope( s2!.Value ) ?? s2 );
+                .Aggregate( (TemplatingScopeAndRule?) null, ( s1, s2 ) => (s1?.Scope.GetCombinedValueScope( s2!.Value.Scope )).AddRule() ?? s2 );
 
             if ( scopeFromAttributes != null )
             {
@@ -1039,18 +1058,18 @@ internal sealed class SymbolClassifier : ISymbolClassifier
         {
             return;
         }
-        else if ( typeScope is TemplatingScope.Dynamic or TemplatingScope.DynamicTypeConstruction )
+        else if ( typeScope.Value.Scope is TemplatingScope.Dynamic or TemplatingScope.DynamicTypeConstruction )
         {
             // Dynamic members are allowed only in templates, where CombineScope is not called.
             // In other situations (i.e. in this method, always), it means the member is run-time-only.
-            typeScope = TemplatingScope.RunTimeOnly;
+            typeScope = (TemplatingScope.RunTimeOnly, TemplatingRule.Other);
         }
 
-        if ( typeScope != combinedScope )
+        if ( typeScope?.Scope != combinedScope )
         {
-            combinedScope = (typeScope, combinedScope) switch
+            combinedScope = (typeScope?.Scope, combinedScope) switch
             {
-                (_, null) => typeScope,
+                (_, null) => typeScope?.Scope,
                 (TemplatingScope.Conflict, _) => TemplatingScope.Conflict,
                 (_, TemplatingScope.Conflict) => TemplatingScope.Conflict,
                 (TemplatingScope.CompileTimeOnlyReturningRuntimeOnly, TemplatingScope.RunTimeOnly) => TemplatingScope.RunTimeOnly,
@@ -1058,11 +1077,11 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                     TemplatingScope.RunTimeOnly,
                 (TemplatingScope.ImplicitlyRunTimeOrCompileTime, TemplatingScope.RunTimeOrCompileTime) => TemplatingScope.RunTimeOrCompileTime,
                 (_, TemplatingScope.RunTimeOrCompileTime or TemplatingScope.ForcedRunTimeOrCompileTime
-                    or TemplatingScope.ImplicitlyRunTimeOrCompileTime) => typeScope,
+                    or TemplatingScope.ImplicitlyRunTimeOrCompileTime) => typeScope?.Scope,
                 (TemplatingScope.RunTimeOrCompileTime or TemplatingScope.ForcedRunTimeOrCompileTime or TemplatingScope.ImplicitlyRunTimeOrCompileTime, _) =>
                     combinedScope,
-                (TemplatingScope.RunTimeOnly, TemplatingScope.CompileTimeOnly) => OnConflict(),
-                (TemplatingScope.CompileTimeOnly, TemplatingScope.RunTimeOnly) => OnConflict(),
+                (TemplatingScope.RunTimeOnly, TemplatingScope.CompileTimeOnly) => OnConflict().Scope,
+                (TemplatingScope.CompileTimeOnly, TemplatingScope.RunTimeOnly) => OnConflict().Scope,
                 _ => throw new AssertionFailedException( $"Invalid combination: ({typeScope}, {combinedScope})" )
             };
         }
@@ -1081,7 +1100,7 @@ internal sealed class SymbolClassifier : ISymbolClassifier
             symbolsBeingProcessed,
             tracer );
 
-        CombineBaseTypeScope( baseTypeScope, ref combinedScope, baseType.TypeKind == TypeKind.Interface, derivedTypeIsAvailableAtCompileTime );
+        CombineBaseTypeScope( baseTypeScope?.Scope, ref combinedScope, baseType.TypeKind == TypeKind.Interface, derivedTypeIsAvailableAtCompileTime );
     }
 
     private static void CombineBaseTypeScope(
@@ -1129,8 +1148,8 @@ internal sealed class SymbolClassifier : ISymbolClassifier
             (TemplatingScope.Conflict, _) => TemplatingScope.Conflict,
             (_, TemplatingScope.Conflict) => TemplatingScope.Conflict,
 
-            (TemplatingScope.RunTimeOnly, TemplatingScope.CompileTimeOnly) => OnConflict(),
-            (TemplatingScope.CompileTimeOnly, TemplatingScope.RunTimeOnly) => OnConflict(),
+            (TemplatingScope.RunTimeOnly, TemplatingScope.CompileTimeOnly) => OnConflict().Scope,
+            (TemplatingScope.CompileTimeOnly, TemplatingScope.RunTimeOnly) => OnConflict().Scope,
             _ => throw new AssertionFailedException( $"Invalid combination: ({baseTypeScope}, {combinedScope})" )
         };
     }
@@ -1148,17 +1167,17 @@ internal sealed class SymbolClassifier : ISymbolClassifier
             tracer );
 
         if ( combinedScope == TemplatingScope.ForcedRunTimeOrCompileTime
-             && typeArgumentScope is TemplatingScope.CompileTimeOnly or TemplatingScope.RunTimeOnly )
+             && typeArgumentScope?.Scope is TemplatingScope.CompileTimeOnly or TemplatingScope.RunTimeOnly )
         {
             // The combined scope stays forced RTOCT.
             return;
         }
 
         // Otherwise, behaves the same as base types.
-        CombineBaseTypeScope( typeArgumentScope, ref combinedScope, false, false );
+        CombineBaseTypeScope( typeArgumentScope?.Scope, ref combinedScope, false, false );
     }
 
-    private bool TryGetWellKnownScope( ISymbol symbol, out TemplatingScope? scope )
+    private bool TryGetWellKnownScope( ISymbol symbol, out TemplatingScopeAndRule? scope )
     {
         scope = null;
 
@@ -1177,7 +1196,7 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                          _wellKnownTypes.TryGetValue( name, out var config ) &&
                          config.Namespace == t.ContainingNamespace.GetFullName() )
                     {
-                        scope = config.Scope;
+                        scope = config.Scope.AddRule( TemplatingRule.WellKnown );
 
                         return true;
                     }
@@ -1187,7 +1206,7 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                 if ( namedType.ContainingNamespace.GetFirstLevel()?.Name == "System"
                      && this._compileTimeAssemblyLocator.IsSymbolAvailable( namedType, this._compilationContext ) == true )
                 {
-                    scope = TemplatingScope.ImplicitlyRunTimeOrCompileTime;
+                    scope = (TemplatingScope.ImplicitlyRunTimeOrCompileTime, TemplatingRule.WellKnown);
 
                     return true;
                 }
@@ -1195,7 +1214,7 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                 // Check Roslyn types.
                 if ( namedType.ContainingNamespace.GetFullName()?.StartsWith( "Microsoft.CodeAnalysis", StringComparison.Ordinal ) == true )
                 {
-                    scope = this._roslynIsCompileTimeOnly ? TemplatingScope.CompileTimeOnly : TemplatingScope.RunTimeOrCompileTime;
+                    scope = (this._roslynIsCompileTimeOnly ? TemplatingScope.CompileTimeOnly : TemplatingScope.RunTimeOrCompileTime, TemplatingRule.WellKnown);
 
                     return true;
                 }
@@ -1208,7 +1227,7 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                     if ( _wellKnownMembers.TryGetValue( (namedType.MetadataName, symbol.MetadataName), out var config ) &&
                          config.Namespace == namedType.ContainingNamespace.GetFullName() )
                     {
-                        scope = config.Scope;
+                        scope = (config.Scope!.Value, TemplatingRule.WellKnown);
 
                         return true;
                     }

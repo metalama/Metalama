@@ -314,7 +314,7 @@ internal sealed partial class CompileTimeCompilationBuilder
         }
 
         compileTimeCompilation = compileTimeCompilation.AddSyntaxTrees( syntaxTrees );
-        compileTimeCompilation = new RemoveInvalidUsingRewriter( compileTimeCompilation ).VisitTrees( compileTimeCompilation );
+        compileTimeCompilation = compileTimeCompilation.RewriteAll( ( c, t ) => new RemoveInvalidUsingRewriter( c, t ) );
 
         if ( this._projectOptions is { FormatCompileTimeCode: true } )
         {
@@ -343,7 +343,10 @@ internal sealed partial class CompileTimeCompilationBuilder
     public static bool IsCompileTimeAssemblyName( string assemblyName )
         => assemblyName.StartsWith( CompileTimeAssemblyPrefix, StringComparison.OrdinalIgnoreCase );
 
-    private CSharpCompilation CreateEmptyCompileTimeCompilation( string assemblyName, IEnumerable<CompileTimeProject> referencedProjects, LanguageVersion languageVersion )
+    private CSharpCompilation CreateEmptyCompileTimeCompilation(
+        string assemblyName,
+        IEnumerable<CompileTimeProject> referencedProjects,
+        LanguageVersion languageVersion )
     {
         var assemblyLocator = this._serviceProvider.GetReferenceAssemblyLocator();
         var preprocessorServiceProvider = this._serviceProvider.GetService<ICompileTimePreprocessorSymbolProvider>();
@@ -1243,7 +1246,10 @@ internal sealed partial class CompileTimeCompilationBuilder
 
         var outputPaths = this._outputPathHelper.GetOutputPaths( runTimeAssemblyName, targetFramework, projectHash );
 
-        var compilation = this.CreateEmptyCompileTimeCompilation( outputPaths.CompileTimeAssemblyName, referencedProjects, manifest.LanguageVersion ?? SupportedCSharpVersions.Latest )
+        var compilation = this.CreateEmptyCompileTimeCompilation(
+                outputPaths.CompileTimeAssemblyName,
+                referencedProjects,
+                manifest.LanguageVersion ?? SupportedCSharpVersions.Latest )
             .AddSyntaxTrees( syntaxTrees );
 
         var alternateOrdinal = 0;

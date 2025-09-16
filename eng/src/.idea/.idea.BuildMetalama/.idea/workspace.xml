@@ -10,34 +10,104 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="520fcf95-a81b-453b-a66c-f2ff11a1ea4a" name="Changes" comment="" />
+    <list default="true" id="520fcf95-a81b-453b-a66c-f2ff11a1ea4a" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/.idea/.idea.BuildMetalama/.idea/copilot.data.migration.agent.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/.idea.BuildMetalama/.idea/copilot.data.migration.edit.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../.teamcity/settings.kts" beforeDir="false" afterPath="$PROJECT_DIR$/../../.teamcity/settings.kts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Directory.Packages.props" beforeDir="false" afterPath="$PROJECT_DIR$/../../Directory.Packages.props" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Metalama.Backstage/Directory.Build.props" beforeDir="false" afterPath="$PROJECT_DIR$/../../Metalama.Backstage/Directory.Build.props" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Metalama.Backstage/src/Metalama.Backstage.Worker/Metalama.Backstage.Worker.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/../../Metalama.Backstage/src/Metalama.Backstage.Worker/Metalama.Backstage.Worker.csproj" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Metalama.Backstage/src/Metalama.Backstage/Metalama.Backstage.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/../../Metalama.Backstage/src/Metalama.Backstage/Metalama.Backstage.csproj" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Metalama.Extensions/Directory.Build.props" beforeDir="false" afterPath="$PROJECT_DIR$/../../Metalama.Extensions/Directory.Build.props" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Metalama.Extensions/src/Metalama.Extensions.DependencyInjection.ServiceLocator/Metalama.Extensions.DependencyInjection.ServiceLocator.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/../../Metalama.Extensions/src/Metalama.Extensions.DependencyInjection.ServiceLocator/Metalama.Extensions.DependencyInjection.ServiceLocator.csproj" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Metalama.Extensions/src/Metalama.Extensions.DependencyInjection/Metalama.Extensions.DependencyInjection.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/../../Metalama.Extensions/src/Metalama.Extensions.DependencyInjection/Metalama.Extensions.DependencyInjection.csproj" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Metalama.Extensions/src/Metalama.Extensions.Multicast/Metalama.Extensions.Multicast.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/../../Metalama.Extensions/src/Metalama.Extensions.Multicast/Metalama.Extensions.Multicast.csproj" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Metalama.Framework/Directory.Build.props" beforeDir="false" afterPath="$PROJECT_DIR$/../../Metalama.Framework/Directory.Build.props" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Metalama.Framework/Directory.Build.targets" beforeDir="false" afterPath="$PROJECT_DIR$/../../Metalama.Framework/Directory.Build.targets" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Metalama.Framework/Metalama.Framework.LatestRoslyn.slnf" beforeDir="false" afterPath="$PROJECT_DIR$/../../Metalama.Framework/Metalama.Framework.LatestRoslyn.slnf" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Metalama.Framework/Metalama.Framework.sln" beforeDir="false" afterPath="$PROJECT_DIR$/../../Metalama.Framework/Metalama.Framework.sln" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Metalama.Framework/src/Metalama.Framework.CompileTime/Metalama.Framework.CompileTime.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/../../Metalama.Framework/src/Metalama.Framework.CompileTime/Metalama.Framework.CompileTime.csproj" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Metalama.Framework/src/Metalama.Framework.DesignTime.Contracts/Metalama.Framework.DesignTime.Contracts.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/../../Metalama.Framework/src/Metalama.Framework.DesignTime.Contracts/Metalama.Framework.DesignTime.Contracts.csproj" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Metalama.Framework/src/Metalama.Framework.DesignTime/Services/DesignTimeServiceProviderFactory.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../../Metalama.Framework/src/Metalama.Framework.DesignTime/Services/DesignTimeServiceProviderFactory.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Metalama.Framework/src/Metalama.Framework.DesignTime/VisualStudio/Classification/DesignTimeClassificationService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../../Metalama.Framework/src/Metalama.Framework.DesignTime/VisualStudio/Classification/DesignTimeClassificationService.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Metalama.Framework/src/Metalama.Framework.Engine/CallerArgumentExpressionAttribute.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Metalama.Framework/src/Metalama.Framework.Engine/CompileTime/CompileTimeAssemblyLocator.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../../Metalama.Framework/src/Metalama.Framework.Engine/CompileTime/CompileTimeAssemblyLocator.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Metalama.Framework/src/Metalama.Framework.Engine/CompileTime/CompileTimeAssemblyLocatorProvider.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../../Metalama.Framework/src/Metalama.Framework.Engine/CompileTime/CompileTimeAssemblyLocatorProvider.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Metalama.Framework/src/Metalama.Framework.Engine/CompileTime/CompileTimeCompilationBuilder.RemoveInvalidUsingsRewriter.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../../Metalama.Framework/src/Metalama.Framework.Engine/CompileTime/CompileTimeCompilationBuilder.RemoveInvalidUsingsRewriter.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Metalama.Framework/src/Metalama.Framework.Engine/CompileTime/ISymbolClassifier.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../../Metalama.Framework/src/Metalama.Framework.Engine/CompileTime/ISymbolClassifier.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Metalama.Framework/src/Metalama.Framework.Engine/CompileTime/Manifest/CompileTimeProjectManifest.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../../Metalama.Framework/src/Metalama.Framework.Engine/CompileTime/Manifest/CompileTimeProjectManifest.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Metalama.Framework/src/Metalama.Framework.Engine/CompileTime/SymbolClassifier.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../../Metalama.Framework/src/Metalama.Framework.Engine/CompileTime/SymbolClassifier.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Metalama.Framework/src/Metalama.Framework.Engine/CompileTime/SymbolClassifierTracer.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../../Metalama.Framework/src/Metalama.Framework.Engine/CompileTime/SymbolClassifierTracer.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Metalama.Framework/src/Metalama.Framework.Engine/CompileTime/TemplatingScope.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../../Metalama.Framework/src/Metalama.Framework.Engine/CompileTime/TemplatingScope.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Metalama.Framework/src/Metalama.Framework.Engine/CompileTime/TemplatingScopeExtensions.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../../Metalama.Framework/src/Metalama.Framework.Engine/CompileTime/TemplatingScopeExtensions.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Metalama.Framework/src/Metalama.Framework.Engine/InterpolatedStringHandlerArgumentAttribute.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Metalama.Framework/src/Metalama.Framework.Engine/InterpolatedStringHandlerAttribute.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Metalama.Framework/src/Metalama.Framework.Engine/Invariant.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../../Metalama.Framework/src/Metalama.Framework.Engine/Invariant.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Metalama.Framework/src/Metalama.Framework.Engine/Metalama.Framework.Engine.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/../../Metalama.Framework/src/Metalama.Framework.Engine/Metalama.Framework.Engine.csproj" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Metalama.Framework/src/Metalama.Framework.Engine/Options/MSBuildProjectOptions.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../../Metalama.Framework/src/Metalama.Framework.Engine/Options/MSBuildProjectOptions.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Metalama.Framework/src/Metalama.Framework.Engine/Options/MSBuildProjectOptionsFactory.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../../Metalama.Framework/src/Metalama.Framework.Engine/Options/MSBuildProjectOptionsFactory.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Metalama.Framework/src/Metalama.Framework.Engine/Pipeline/SourceTransformer.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../../Metalama.Framework/src/Metalama.Framework.Engine/Pipeline/SourceTransformer.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Metalama.Framework/src/Metalama.Framework.Engine/Services/ServiceProviderFactory.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../../Metalama.Framework/src/Metalama.Framework.Engine/Services/ServiceProviderFactory.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Metalama.Framework/src/Metalama.Framework.Engine/Utilities/GlobalJsonHelper.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../../Metalama.Framework/src/Metalama.Framework.Engine/Utilities/GlobalJsonHelper.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Metalama.Framework/src/Metalama.Framework.Engine/Utilities/LanguageVersionProvider.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../../Metalama.Framework/src/Metalama.Framework.Engine/Utilities/LanguageVersionProvider.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Metalama.Framework/src/Metalama.Framework.Engine/Utilities/SupportedCSharpVersions.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../../Metalama.Framework/src/Metalama.Framework.Engine/Utilities/SupportedCSharpVersions.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Metalama.Framework/src/Metalama.Framework/Aspects/meta.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../../Metalama.Framework/src/Metalama.Framework/Aspects/meta.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Metalama.Framework/src/Metalama.Framework/Metalama.Framework.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/../../Metalama.Framework/src/Metalama.Framework/Metalama.Framework.csproj" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Metalama.Framework/src/Metalama.SystemTypes/Metalama.SystemTypes.csproj" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Metalama.Framework/src/Metalama.Testing.AspectTesting/TestFrameworkServiceFactoryProvider.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../../Metalama.Framework/src/Metalama.Testing.AspectTesting/TestFrameworkServiceFactoryProvider.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Metalama.Framework/src/tests/Metalama.Framework.Tests.UnitTests/SyntaxSerialization/MetalamaCompilerUtility.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../../Metalama.Framework/src/tests/Metalama.Framework.Tests.UnitTests/SyntaxSerialization/MetalamaCompilerUtility.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Metalama.Framework/src/tests/Standalone/BlazorApp/global.json" beforeDir="false" afterPath="$PROJECT_DIR$/../../Metalama.Framework/src/tests/Standalone/BlazorApp/global.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Metalama.Framework/src/tests/Standalone/Directory.Build.props" beforeDir="false" afterPath="$PROJECT_DIR$/../../Metalama.Framework/src/tests/Standalone/Directory.Build.props" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Metalama.Framework/src/tests/Standalone/Issue31024/NetCoreBuildLibrary/ClassLibrary1.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/../../Metalama.Framework/src/tests/Standalone/Issue31024/NetCoreBuildLibrary/ClassLibrary1.csproj" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Metalama.Framework/src/tests/Standalone/Issue31024/NetFrameworkBuildApp/ConsoleApp1.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/../../Metalama.Framework/src/tests/Standalone/Issue31024/NetFrameworkBuildApp/ConsoleApp1.csproj" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Metalama.Patterns/Directory.Build.props" beforeDir="false" afterPath="$PROJECT_DIR$/../../Metalama.Patterns/Directory.Build.props" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Metalama.Patterns/src/Flashtrace.Formatters/Flashtrace.Formatters.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/../../Metalama.Patterns/src/Flashtrace.Formatters/Flashtrace.Formatters.csproj" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Metalama.Patterns/src/Flashtrace/Flashtrace.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/../../Metalama.Patterns/src/Flashtrace/Flashtrace.csproj" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Metalama.Patterns/src/Metalama.Patterns.Caching.Aspects/Metalama.Patterns.Caching.Aspects.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/../../Metalama.Patterns/src/Metalama.Patterns.Caching.Aspects/Metalama.Patterns.Caching.Aspects.csproj" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Metalama.Patterns/src/Metalama.Patterns.Caching.Backend/Metalama.Patterns.Caching.Backend.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/../../Metalama.Patterns/src/Metalama.Patterns.Caching.Backend/Metalama.Patterns.Caching.Backend.csproj" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Metalama.Patterns/src/Metalama.Patterns.Caching/Metalama.Patterns.Caching.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/../../Metalama.Patterns/src/Metalama.Patterns.Caching/Metalama.Patterns.Caching.csproj" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Metalama.Patterns/src/Metalama.Patterns.Contracts/Metalama.Patterns.Contracts.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/../../Metalama.Patterns/src/Metalama.Patterns.Contracts/Metalama.Patterns.Contracts.csproj" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Metalama.Patterns/src/Metalama.Patterns.Immutability/Metalama.Patterns.Immutability.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/../../Metalama.Patterns/src/Metalama.Patterns.Immutability/Metalama.Patterns.Immutability.csproj" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Metalama.Patterns/src/Metalama.Patterns.Memoization/Metalama.Patterns.Memoization.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/../../Metalama.Patterns/src/Metalama.Patterns.Memoization/Metalama.Patterns.Memoization.csproj" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Metalama.Patterns/src/Metalama.Patterns.Observability/Metalama.Patterns.Observability.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/../../Metalama.Patterns/src/Metalama.Patterns.Observability/Metalama.Patterns.Observability.csproj" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Metalama.Patterns/src/Metalama.Patterns.Wpf/Metalama.Patterns.Wpf.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/../../Metalama.Patterns/src/Metalama.Patterns.Wpf/Metalama.Patterns.Wpf.csproj" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/.idea.BuildMetalama/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.BuildMetalama/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Program.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Program.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../global.json" beforeDir="false" afterPath="$PROJECT_DIR$/../../global.json" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
+  <component name="ChangesViewManager">
+    <option name="groupingKeys">
+      <option value="directory" />
+      <option value="repository" />
+    </option>
+  </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/../.." />
   </component>
-  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
-  "lastFilter": {
-    "state": "OPEN",
-    "assignee": "gfraiteur"
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;gfraiteur&quot;
   }
-}]]></component>
-  <component name="GithubPullRequestsUISettings"><![CDATA[{
-  "selectedUrlAndAccountId": {
-    "url": "https://github.com/metalama/Metalama.git",
-    "accountId": "006976dd-5752-4e89-ac89-dd9a9f32f1df"
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/metalama/Metalama.git&quot;,
+    &quot;accountId&quot;: &quot;006976dd-5752-4e89-ac89-dd9a9f32f1df&quot;
   }
-}]]></component>
+}</component>
   <component name="HighlightingSettingsPerFile">
     <setting file="mock://C:/src/Metalama-2025.1/Metalama/eng/src/Program.cs" root0="SKIP_HIGHLIGHTING" />
   </component>
   <component name="MetaFilesCheckinStateConfiguration" checkMetaFiles="true" />
-  <component name="ProjectColorInfo"><![CDATA[{
-  "associatedIndex": 3
-}]]></component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 3
+}</component>
   <component name="ProjectId" id="2xAedAAonKoq5ILv4T2ZrB29h0J" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
@@ -48,8 +118,8 @@
     "ModuleVcsDetector.initialDetectionPerformed": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "topic/2025.1/security-2025-05-16-2",
-    "last_opened_file_path": "C:/src/Metalama-2025.1/Metalama/eng/src/BuildMetalama.sln",
+    "git-widget-placeholder": "#1053 on topic/2026.0/merge-netsdk-10.100-preview-7",
+    "last_opened_file_path": "C:/src/Metalama-2026.0/Metalama/eng/src/BuildMetalama.sln",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
@@ -69,10 +139,10 @@
       <option name="ENV_FILE_PATHS" value="" />
       <option name="REDIRECT_INPUT_PATH" value="" />
       <option name="PTY_MODE" value="Auto" />
+      <option name="MIXED_MODE_DEBUG" value="0" />
       <option name="USE_MONO" value="0" />
       <option name="RUNTIME_ARGUMENTS" value="" />
       <option name="AUTO_ATTACH_CHILDREN" value="0" />
-      <option name="MIXED_MODE_DEBUG" value="0" />
       <option name="PROJECT_PATH" value="$PROJECT_DIR$/BuildMetalama.csproj" />
       <option name="PROJECT_EXE_PATH_TRACKING" value="1" />
       <option name="PROJECT_ARGUMENTS_TRACKING" value="1" />
@@ -92,6 +162,7 @@
       <option name="presentableId" value="Default" />
       <updated>1747385389277</updated>
       <workItem from="1747385390349" duration="9409000" />
+      <workItem from="1758003282388" duration="664000" />
     </task>
     <task id="LOCAL-00001" summary="Formatting. Adding Rider files">
       <option name="closed" value="true" />

@@ -9,15 +9,13 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Threading.Tasks;
 using System.Runtime.CompilerServices;
-
+using System.Threading.Tasks;
 using NotNullAttribute = System.Diagnostics.CodeAnalysis.NotNullAttribute;
 
 #if DEBUG
 using System.Linq;
 #endif
-
 
 namespace Metalama.Framework.Engine
 {
@@ -188,7 +186,8 @@ namespace Metalama.Framework.Engine
         [DebuggerStepThrough]
         public static async Task<T> AssertNotNullAsync<T>(
             [NotNull] this Task<T?>? task,
-            [CallerArgumentExpression( nameof(task) )] string? description = null )
+            [CallerArgumentExpression( nameof(task) )]
+            string? description = null )
             where T : class
         {
             if ( task == null )
@@ -225,7 +224,8 @@ namespace Metalama.Framework.Engine
         [DebuggerStepThrough]
         public static async ValueTask<T> AssertNotNullAsync<T>(
             [NotNull] this ValueTask<T?> task,
-            [CallerArgumentExpression( nameof(task) )] string? description = null )
+            [CallerArgumentExpression( nameof(task) )]
+            string? description = null )
             where T : class
         {
             var obj = await task;
@@ -240,7 +240,8 @@ namespace Metalama.Framework.Engine
 #else
         [MethodImpl( MethodImplOptions.AggressiveInlining )]
         [DebuggerStepThrough]
-        public static ValueTask<T> AssertNotNullAsync<T>( [NotNull] this ValueTask<T?> task, [CallerArgumentExpression( nameof(task) )] string? description = null )
+        public static ValueTask<T> AssertNotNullAsync<T>( [NotNull] this ValueTask<T?> task, [CallerArgumentExpression( nameof(task) )] string? description =
+ null )
             where T : class
         {
 #pragma warning disable CS8777

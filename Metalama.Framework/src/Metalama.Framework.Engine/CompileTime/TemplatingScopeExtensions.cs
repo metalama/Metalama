@@ -42,6 +42,9 @@ namespace Metalama.Framework.Engine.CompileTime
                 _ => scope
             };
 
+        public static TemplatingScopeAndRule GetExpressionValueScope( this TemplatingScopeAndRule scope, bool preferCompileTime = false )
+            => (scope.Scope.GetExpressionValueScope(), scope.Rule);
+
         public static TemplatingScope GetExpressionValueScope( this TemplatingScope scope, bool preferCompileTime = false )
             => scope switch
             {
@@ -116,5 +119,8 @@ namespace Metalama.Framework.Engine.CompileTime
                 Conflict => ExecutionScope.RunTime, // It seems this may happen at design-time during a background rebuild.
                 _ => throw new AssertionFailedException( $"Unexpected scope: {templatingScope}" )
             };
+
+        public static TemplatingScopeAndRule? AddRule( this TemplatingScope? scope, TemplatingRule rule = TemplatingRule.Other )
+            => scope == null ? null : new TemplatingScopeAndRule( scope.Value, rule );
     }
 }

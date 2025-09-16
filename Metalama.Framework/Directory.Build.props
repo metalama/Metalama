@@ -20,6 +20,7 @@
     <Import Project="../eng/Versions.props"/>
     <Import Project="../eng/StrongName.props"/>
     <Import Project="../eng/Packaging.props"/>
+    
 
     <!-- We don't want nullability warnings in the Release build since the inlining AssertNotNull creates issues to analyzers -->
     <PropertyGroup Condition="'$(Configuration)'=='Release' OR '$(TargetFramework)'!='net8.0'">
@@ -30,14 +31,15 @@
     <Import Project="src/Metalama.Framework.Package/build/Metalama.CompilerVisibleProperties.props"/>
 
     <Import Sdk="PostSharp.Engineering.Sdk" Project="BuildOptions.props"/>
+    <Import Sdk="PostSharp.Engineering.Sdk" Project="EmbeddedSystemTypes.props" />
+    <Import Sdk="PostSharp.Engineering.Sdk" Project="SourceLink.props"/>
 
     <PropertyGroup>
         <!-- The latest version supported by Metalama Compiler may be higher that the latest version supported by Metalama Framework. -->
         <LangVersion>$(LangMaxVersion)</LangVersion>
     </PropertyGroup>
 
-    <Import Sdk="PostSharp.Engineering.Sdk" Project="SourceLink.props"/>
-
+    
     <ItemGroup>
         <!-- Resharper annotations -->
         <PackageReference Include="JetBrains.Annotations" PrivateAssets="all" />

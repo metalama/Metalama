@@ -5,6 +5,7 @@
 using Metalama.Framework.Engine.Utilities.Caching;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using System;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
@@ -47,6 +48,24 @@ public static class CompilationExtensions
         => SemanticModelProvider.GetInstance( compilation ).GetSemanticModel( syntaxTree, ignoreAccessibility );
 
     public static SemanticModelProvider GetSemanticModelProvider( this Compilation compilation ) => SemanticModelProvider.GetInstance( compilation );
+
+    public static Compilation RewriteAll( this Compilation compilation, Func<Compilation, SyntaxTree,CSharpSyntaxRewriter> getRewriter )
+    {
+        var modifiedCompilation = compilation;
+        foreach ( var tree in compilation.SyntaxTrees )
+        {
+            var rewriter = getRewriter( compilation, tree );
+            var root = tree.GetRoot();
+            var rewrittenRoot = rewriter.Visit( root );
+
+            if ( root != rewrittenRoot )
+            {
+                modifiedCompilation = modifiedCompilation.ReplaceSyntaxTree( tree, tree.WithRootAndOptions( rewrittenRoot, tree.Options ) );
+            }
+        }
+
+        return modifiedCompilation;
+    }
 
     internal static LanguageVersion GetLanguageVersion( this Compilation compilation )
     {

@@ -78,7 +78,7 @@ internal abstract class DesignTimeServiceProviderFactory
 
     protected virtual ServiceProvider<IGlobalService> AddServices( ServiceProvider<IGlobalService> serviceProvider )
         => serviceProvider
-            .WithServiceConditional<IProjectOptionsFactory>( sp => new MSBuildProjectOptionsFactory( sp ) )
+            .WithServiceConditional<IProjectOptionsFactory>( sp => new MSBuildProjectOptionsFactory() )
             .WithServiceConditional<IUserDiagnosticRegistrationService>( sp => new UserDiagnosticRegistrationService( sp ) )
             .WithServiceConditional<DesignTimeExtensionManager>( sp => this.CreateExtensionManager( sp ) );
 

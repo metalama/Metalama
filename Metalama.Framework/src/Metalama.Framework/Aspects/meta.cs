@@ -25,9 +25,9 @@ namespace Metalama.Framework.Aspects
     /// <seealso href="@templates"/>
     [CompileTime]
     [TemplateKeyword]
-#pragma warning disable SA1300, IDE1006 // Element should begin with upper-case letter
+#pragma warning disable SA1300, IDE1006, CS8981 // Element should begin with upper-case letter
     public static class meta
-#pragma warning restore SA1300, IDE1006 // Element should begin with upper-case letter
+#pragma warning restore SA1300, IDE1006, CS8981 // Element should begin with upper-case letter
     {
         private static IMetaApi CurrentContext => MetalamaExecutionContext.CurrentInternal.MetaApi ?? throw CreateException();
 

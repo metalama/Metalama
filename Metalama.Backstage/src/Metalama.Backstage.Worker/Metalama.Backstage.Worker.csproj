@@ -12,8 +12,6 @@
         <DebugType>portable</DebugType>
         <RollForward>Major</RollForward>
     </PropertyGroup>
-
-    <Import Sdk="PostSharp.Engineering.Sdk" Project="SystemTypes.props" />
     
 
     <!-- <Import Project="$(MetalamaBackstageDirectory)\Metalama.Backstage.csproj" /> -->
