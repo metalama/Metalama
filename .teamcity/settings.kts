@@ -42,7 +42,6 @@ object DebugBuild : BuildType({
         powerShell {
             name = "Prepare the Docker image"
             id = "PrepareImage"
-            param("TimeOut", "7200")
             scriptMode = file {
                 path = "DockerBuild.ps1"
             }
@@ -52,7 +51,6 @@ object DebugBuild : BuildType({
         powerShell {
             name = "Build"
             id = "Build"
-            
             scriptMode = file {
                 path = "DockerBuild.ps1"
             }
@@ -60,11 +58,8 @@ object DebugBuild : BuildType({
             scriptArgs = "-ImageName metalama-2026.0 -NoBuildImage test --configuration Debug --buildNumber %build.number% --buildType %system.teamcity.buildType.id% %BuildArguments%"
         }
     }
-
     failureConditions {
-         stopBuildOnFailure = true
-         param("executionTimeoutMin", "%TimeOut%")
-        }
+         executionTimeoutMin = 60
     }
 
     requirements {
@@ -122,7 +117,6 @@ object ReleaseBuild : BuildType({
         powerShell {
             name = "Prepare the Docker image"
             id = "PrepareImage"
-            param("TimeOut", "7200")
             scriptMode = file {
                 path = "DockerBuild.ps1"
             }
@@ -132,7 +126,6 @@ object ReleaseBuild : BuildType({
         powerShell {
             name = "Build"
             id = "Build"
-            
             scriptMode = file {
                 path = "DockerBuild.ps1"
             }
@@ -140,11 +133,8 @@ object ReleaseBuild : BuildType({
             scriptArgs = "-ImageName metalama-2026.0 -NoBuildImage test --configuration Release --buildNumber %build.number% --buildType %system.teamcity.buildType.id% %BuildArguments%"
         }
     }
-
     failureConditions {
-         stopBuildOnFailure = true
-         param("executionTimeoutMin", "%TimeOut%")
-        }
+         executionTimeoutMin = 60
     }
 
     requirements {
@@ -193,7 +183,6 @@ object PublicBuild : BuildType({
         powerShell {
             name = "Prepare the Docker image"
             id = "PrepareImage"
-            param("TimeOut", "7200")
             scriptMode = file {
                 path = "DockerBuild.ps1"
             }
@@ -203,7 +192,6 @@ object PublicBuild : BuildType({
         powerShell {
             name = "Build"
             id = "Build"
-            
             scriptMode = file {
                 path = "DockerBuild.ps1"
             }
@@ -211,11 +199,8 @@ object PublicBuild : BuildType({
             scriptArgs = "-ImageName metalama-2026.0 -NoBuildImage test --configuration Public --buildNumber %build.number% --buildType %system.teamcity.buildType.id% %BuildArguments%"
         }
     }
-
     failureConditions {
-         stopBuildOnFailure = true
-         param("executionTimeoutMin", "%TimeOut%")
-        }
+         executionTimeoutMin = 60
     }
 
     requirements {
@@ -264,7 +249,6 @@ object PublicDeployment : BuildType({
         powerShell {
             name = "Publish"
             id = "Publish"
-            
             scriptMode = file {
                 path = "Build.ps1"
             }
@@ -272,11 +256,8 @@ object PublicDeployment : BuildType({
             scriptArgs = "publish --configuration Public %PublishArguments%"
         }
     }
-
     failureConditions {
-         stopBuildOnFailure = true
-         param("executionTimeoutMin", "%TimeOut%")
-        }
+         executionTimeoutMin = 30
     }
 
     requirements {
