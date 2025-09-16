@@ -26,14 +26,14 @@ RUN powershell -ExecutionPolicy Bypass -File dotnet-install.ps1 -Version 9.0.305
 RUN Remove-Item C:\\dotnet-install.ps1
 
 
-# Copy Visual Studio configuration
+# Copy Visual Studio configuration. See eng/docker-context/README.md
 COPY vsconfig.json /vsconfig.json
+COPY VisualStudio.17.Release.chman /VisualStudio.17.Release.chman
 
-# Install Visual Studio Build Tools.
-# To find a version, inspect the JSON file https://aka.ms/vs/17/release/channel and choose the payload URL.
+# Install Visual Studio Build Tools. 
 RUN Invoke-WebRequest -Uri https://aka.ms/vs/17/release/vs_buildtools.exe -OutFile vs_buildtools.exe; `
     $process = Start-Process .\vs_buildtools.exe -NoNewWindow -Wait -PassThru `
-        -ArgumentList  "--quiet", "--wait", "--norestart", "--nocache",  "--installPath", "C:\BuildTools", "--installChannelUri", "https://aka.ms/vs/17/release/channel", "--installCatalogUri", "https://download.visualstudio.microsoft.com/download/pr/c2e2845d-bdff-44fc-ac00-3d488e9f5675/dc1d78c601c2839b8099ef634ff1f8304b1bd26a2dd485e3b2a70d12f7f9ae7c/VisualStudio.vsman", "--productId", "Microsoft.VisualStudio.Product.BuildTools", "--config", "\vsconfig.json"; `
+        -ArgumentList  "--quiet", "--wait", "--norestart", "--nocache",  "--installPath", "C:\BuildTools", "--installChannelUri", "c:\VisualStudio.17.Release.chman", "--installCatalogUri", "https://download.visualstudio.microsoft.com/download/pr/eb5f7427-d28f-4e06-95cc-093f6c2070c8/3480d7a528bad877857c92843bb1e9ce8ebd48a2bffcee366a98a7343f4d32fb/VisualStudio.vsman", "--productId", "Microsoft.VisualStudio.Product.BuildTools", "--config", "\vsconfig.json"; `
         Get-ChildItem "$env:TEMP\dd_*.log" -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "=== Contents of $($_.Name) ==="; Get-Content $_.FullName; Write-Host "=== End of $($_.Name) ===" }; `
     if ($process.ExitCode -ne 0) { exit $process.ExitCode }; `
     Remove-Item C:\\vs_buildtools.exe;
