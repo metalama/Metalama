@@ -57,3 +57,4 @@ coverage.json
 .sonarqube
 /.config/dotnet-tools.json
 .generated
+eng/DockerMounts.g.ps1

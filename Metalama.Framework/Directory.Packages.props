@@ -2,17 +2,7 @@
 <Project>
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
-    
-    <RestoreSources>
-      $(RestoreSources);
-      https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-tools/nuget/v3/index.json
-    </RestoreSources>
-
-     <!-- Allow prerelease packages -->
-    <RestorePrerelease>true</RestorePrerelease>
-   
-
-    <RestorePackagesConfig>true</RestorePackagesConfig>
+      <RestorePrerelease>true</RestorePrerelease>
 
   </PropertyGroup>
 
@@ -77,7 +67,6 @@
     <PackageVersion Include="System.Collections.Immutable" Version="6.0.0" />
     <PackageVersion Include="System.Linq.Parallel" Version="4.3.0" />
     <PackageVersion Include="System.Reflection.Emit" Version="4.7.0" />
-    <PackageVersion Include="System.Runtime.Serialization.Formatters" Version="4.3.0" />
     <PackageVersion Include="System.Threading.Tasks.Extensions" Version="4.5.4" />
     <PackageVersion Include="System.Text.Json" Version="$(SystemTextJsonMinVersion)" />
     <PackageVersion Include="xunit.assert" Version="$(xUnitApiVersion)" />

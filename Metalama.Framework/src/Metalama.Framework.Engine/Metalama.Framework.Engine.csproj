@@ -64,7 +64,6 @@
         <PackageReference Include="Microsoft.CSharp" />
         <PackageReference Include="Newtonsoft.Json" NoWarn="NU1903" />
         <PackageReference Include="System.Reflection.Emit" />
-        <PackageReference Include="System.Runtime.Serialization.Formatters" />
     </ItemGroup>
 
     <ItemGroup>
