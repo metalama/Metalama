@@ -1,8 +1,14 @@
 internal class TargetCode
 {
   private static readonly Func<ActionEventBroker<EventHandler<EventArgs>, (object? , EventArgs)>, EventHandler<EventArgs>> EventHandlerCastDelegate_0 = static b => (sender, e) => b.Invoke((sender, e));
-  private static readonly Action<EventHandler<EventArgs>, object, (object? , EventArgs)> EventFieldInvokeDelegate_0 = static (handler, me, args) => ((TargetCode)me).EventField_Raise_WeakEvent( handler, args);
-  private static readonly Action<EventHandler<EventArgs>, object, (object? , EventArgs)> EventInvokeDelegate_0 = static (handler, me, args) => ((TargetCode)me).Event_Raise_WeakEvent( handler, args);
+  private static readonly Action<EventHandler<EventArgs>, object, (object? , EventArgs)> EventFieldInvokeDelegate_0 = static (handler, me, args) => ((TargetCode)me).EventField_Raise_WeakEvent(handler, args);
+  private static readonly Action<EventHandler<EventArgs>, object> EventFieldAddDelegate_0 = static (handler, me) => ((TargetCode)me).EventField_WeakEvent += handler;
+  private static readonly Action<EventHandler<EventArgs>, object> EventFieldRemoveDelegate_0 = static (handler, me) => ((TargetCode)me).EventField_WeakEvent -= handler;
+  private static readonly ActionEventBrokerDelegateSet<EventHandler<EventArgs>, (object? , EventArgs)> EventFieldDelegateSet_0 = new ActionEventBrokerDelegateSet<EventHandler<EventArgs>, (object? , EventArgs)>(EventFieldInvokeDelegate_0, EventHandlerCastDelegate_0, EventFieldAddDelegate_0, EventFieldRemoveDelegate_0);
+  private static readonly Action<EventHandler<EventArgs>, object, (object? , EventArgs)> EventInvokeDelegate_0 = static (handler, me, args) => ((TargetCode)me).Event_Raise_WeakEvent(handler, args);
+  private static readonly Action<EventHandler<EventArgs>, object> EventAddDelegate_0 = static (handler, me) => ((TargetCode)me).Event_WeakEvent += handler;
+  private static readonly Action<EventHandler<EventArgs>, object> EventRemoveDelegate_0 = static (handler, me) => ((TargetCode)me).Event_WeakEvent -= handler;
+  private static readonly ActionEventBrokerDelegateSet<EventHandler<EventArgs>, (object? , EventArgs)> EventDelegateSet_0 = new ActionEventBrokerDelegateSet<EventHandler<EventArgs>, (object? , EventArgs)>(EventInvokeDelegate_0, EventHandlerCastDelegate_0, EventAddDelegate_0, EventRemoveDelegate_0);
   private List<EventHandler<EventArgs>> _delegates = new List<EventHandler<EventArgs>>();
   private event EventHandler<EventArgs> _eventField = default !;
   private volatile ActionEventBroker<EventHandler<EventArgs>, (object? , EventArgs)>? _eventFieldBroker;
@@ -11,18 +17,12 @@ internal class TargetCode
   {
     add
     {
-      ActionEventBroker<EventHandler<EventArgs>, (object? , EventArgs)>.EnsureInitialized(ref this._eventFieldBroker, this, EventFieldInvokeDelegate_0, EventHandlerCastDelegate_0);
-      if (this._eventFieldBroker.AddHandler(value))
-      {
-        this.EventField_WeakEvent += this._eventFieldBroker.InvocationDelegate;
-      }
+      ActionEventBroker<EventHandler<EventArgs>, (object? , EventArgs)>.EnsureInitialized(ref this._eventFieldBroker, this, EventFieldDelegateSet_0);
+      this._eventFieldBroker.AddHandler(value);
     }
     remove
     {
-      if (this._eventFieldBroker != null && this._eventFieldBroker.RemoveHandler(value))
-      {
-        this.EventField_WeakEvent -= this._eventFieldBroker.InvocationDelegate;
-      }
+      this._eventFieldBroker.RemoveHandler(value);
     }
   }
   private event EventHandler<EventArgs> EventField_WeakEvent
@@ -36,7 +36,7 @@ internal class TargetCode
       weakEventContainerForEventField.RemoveHandler(value);
     }
   }
-  private void EventField_Raise_WeakEvent( EventHandler<EventArgs> handler, (object? sender, EventArgs e) args)
+  private void EventField_Raise_WeakEvent(EventHandler<EventArgs> handler, (object? sender, EventArgs e) args)
   {
     weakEventContainerForEventField.Invoke((args.sender, args.e));
   }
@@ -46,18 +46,12 @@ internal class TargetCode
   {
     add
     {
-      ActionEventBroker<EventHandler<EventArgs>, (object? , EventArgs)>.EnsureInitialized(ref this._eventBroker, this, EventInvokeDelegate_0, EventHandlerCastDelegate_0);
-      if (this._eventBroker.AddHandler(value))
-      {
-        this.Event_WeakEvent += this._eventBroker.InvocationDelegate;
-      }
+      ActionEventBroker<EventHandler<EventArgs>, (object? , EventArgs)>.EnsureInitialized(ref this._eventBroker, this, EventDelegateSet_0);
+      this._eventBroker.AddHandler(value);
     }
     remove
     {
-      if (this._eventBroker != null && this._eventBroker.RemoveHandler(value))
-      {
-        this.Event_WeakEvent -= this._eventBroker.InvocationDelegate;
-      }
+      this._eventBroker.RemoveHandler(value);
     }
   }
   private event EventHandler<EventArgs> Event_WeakEvent
@@ -71,7 +65,7 @@ internal class TargetCode
       weakEventContainerForEvent.RemoveHandler(value);
     }
   }
-  private void Event_Raise_WeakEvent( EventHandler<EventArgs> handler, (object? sender, EventArgs e) args)
+  private void Event_Raise_WeakEvent(EventHandler<EventArgs> handler, (object? sender, EventArgs e) args)
   {
     weakEventContainerForEvent.Invoke((args.sender, args.e));
   }

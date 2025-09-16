@@ -20,14 +20,14 @@ internal class EventBrokerInfo
 
     public INamedTypeSymbol EventBrokerType { get; }
 
-    public StaticDelegateInfo CastDelegate { get; }
+    public StaticFieldInfo CastDelegate { get; }
 
     public IReadOnlyDictionary<ITransformation, EventBrokerTransformationInfo> Transformations { get; }
 
     public EventBrokerInfo(
         IEventSymbol @event,
         INamedTypeSymbol eventBrokerType,
-        StaticDelegateInfo castDelegate )
+        StaticFieldInfo castDelegate )
     {
         this.Event = @event;
         this.EventBrokerType = eventBrokerType;

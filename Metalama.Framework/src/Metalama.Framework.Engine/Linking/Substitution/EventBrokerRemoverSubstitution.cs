@@ -27,51 +27,26 @@ internal sealed class EventBrokerRemoverSubstitution : SyntaxNodeSubstitution
 
     public override SyntaxNode Substitute( SyntaxNode currentNode, SubstitutionContext substitutionContext )
     {
+        var context = substitutionContext.SyntaxGenerationContext;
         var eventOverride = this._aspectReference.ResolvedSemantic.Symbol;
         var @event = (IEventSymbol) substitutionContext.RewritingDriver.InjectionRegistry.GetOverrideTarget( eventOverride ).AssertNotNull();
         var eventOverrideTransformation = substitutionContext.RewritingDriver.InjectionRegistry.GetTransformationForSymbol( eventOverride ).AssertNotNull();
         var eventBrokerTypeInfo = substitutionContext.RewritingDriver.AnalysisRegistry.GetEventBrokerTypeInfo( @event ).AssertNotNull();
         var eventBrokerTransformationInfo = eventBrokerTypeInfo.Transformations[eventOverrideTransformation];
 
-        return Block(
-            IfStatement(
-                BinaryExpression(
-                    SyntaxKind.LogicalAndExpression,
-                    BinaryExpression(
-                        SyntaxKind.NotEqualsExpression,
+        return context.SyntaxGenerator.FormattedBlock(
+            ExpressionStatement(
+                InvocationExpression(
+                    MemberAccessExpression(
+                        SyntaxKind.SimpleMemberAccessExpression,
                         MemberAccessExpression(
                             SyntaxKind.SimpleMemberAccessExpression,
                             ThisExpression(),
                             IdentifierName( eventBrokerTransformationInfo.EventBrokerFieldName ) ),
-                        LiteralExpression(
-                            SyntaxKind.NullLiteralExpression ) ),
-                    InvocationExpression(
-                        MemberAccessExpression(
-                            SyntaxKind.SimpleMemberAccessExpression,
-                            MemberAccessExpression(
-                                SyntaxKind.SimpleMemberAccessExpression,
-                                ThisExpression(),
-                                IdentifierName( eventBrokerTransformationInfo.EventBrokerFieldName ) ),
-                            IdentifierName( "RemoveHandler" ) ) )
-                    .WithArgumentList(
-                        ArgumentList(
-                            SingletonSeparatedList(
-                                Argument(
-                                    IdentifierName( "value" ) ) ) ) ) ),
-                Block(
-                    ExpressionStatement(
-                        AssignmentExpression(
-                            SyntaxKind.SubtractAssignmentExpression,
-                            MemberAccessExpression(
-                                SyntaxKind.SimpleMemberAccessExpression,
-                                ThisExpression(),
-                                IdentifierName( this._aspectReference.ResolvedSemantic.ToTyped<IEventSymbol>().Symbol.Name )),
-                            MemberAccessExpression(
-                                SyntaxKind.SimpleMemberAccessExpression,
-                                MemberAccessExpression(
-                                    SyntaxKind.SimpleMemberAccessExpression,
-                                    ThisExpression(),
-                                    IdentifierName( eventBrokerTransformationInfo.EventBrokerFieldName ) ),
-                                IdentifierName( "InvocationDelegate" ) ) ) ) ) ) );
+                        IdentifierName( "RemoveHandler" ) ),
+                    ArgumentList(
+                        SingletonSeparatedList(
+                            Argument(
+                                IdentifierName( "value" ) ) ) ) ) ) );
     }
 }

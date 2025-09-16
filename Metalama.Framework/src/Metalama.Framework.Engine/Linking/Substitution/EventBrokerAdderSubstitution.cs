@@ -36,7 +36,7 @@ internal sealed class EventBrokerAdderSubstitution : SyntaxNodeSubstitution
         
         return context.SyntaxGenerator.FormattedBlock(
             ExpressionStatement( eventBrokerTransformationInfo.FieldInitializationExpression( substitutionContext.SyntaxGenerationContext ) ),
-            IfStatement(
+            ExpressionStatement(
                 InvocationExpression(
                     MemberAccessExpression(
                         SyntaxKind.SimpleMemberAccessExpression,
@@ -48,21 +48,6 @@ internal sealed class EventBrokerAdderSubstitution : SyntaxNodeSubstitution
                     ArgumentList(
                         SingletonSeparatedList(
                             Argument(
-                                IdentifierName( "value" ) ) ) ) ),
-                Block(
-                    ExpressionStatement(
-                        AssignmentExpression(
-                            SyntaxKind.AddAssignmentExpression,
-                            MemberAccessExpression(
-                                SyntaxKind.SimpleMemberAccessExpression,
-                                ThisExpression(),
-                                IdentifierName(this._aspectReference.ResolvedSemantic.ToTyped<IEventSymbol>().Symbol.Name) ),
-                            MemberAccessExpression(
-                                SyntaxKind.SimpleMemberAccessExpression,
-                                MemberAccessExpression(
-                                    SyntaxKind.SimpleMemberAccessExpression,
-                                    ThisExpression(),
-                                    IdentifierName( eventBrokerTransformationInfo.EventBrokerFieldName ) ),
-                                IdentifierName( "InvocationDelegate" ) ) ) ) ) ) );
+                                IdentifierName( "value" ) ) ) ) ) ) );
     }
 }

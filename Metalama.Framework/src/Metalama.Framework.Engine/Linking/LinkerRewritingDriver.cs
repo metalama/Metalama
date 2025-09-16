@@ -809,7 +809,7 @@ internal sealed partial class LinkerRewritingDriver
                         Token( TriviaList(), SyntaxKind.StaticKeyword, TriviaList( ElasticSpace ) ), 
                         Token( TriviaList(), SyntaxKind.ReadOnlyKeyword, TriviaList( ElasticSpace ) ) ),
                     VariableDeclaration(
-                        syntaxGenerationContext.SyntaxGenerator.TypeSyntax( staticDelegateField.DelegateType ),
+                        syntaxGenerationContext.SyntaxGenerator.TypeSyntax( staticDelegateField.FieldType ),
                         SingletonSeparatedList(
                             VariableDeclarator(
                                 Identifier( staticDelegateField.FieldName ),
