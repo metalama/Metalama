@@ -3,19 +3,11 @@
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
       <RestorePrerelease>true</RestorePrerelease>
-
+      <PackageSources>
+        $(RestoreSources);
+        https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-tools/nuget/v3/index.json
+      </PackageSources>
   </PropertyGroup>
-
-    <!-- Package source mapping -->
-  <ItemGroup>
-    <PackageSourceMapping Include="https://api.nuget.org/v3/index.json">
-      <Pattern>*</Pattern>
-    </PackageSourceMapping>
-    
-    <PackageSourceMapping Include="https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-tools/nuget/v3/index.json">
-      <Pattern>Microsoft.CodeAnalysis.*</Pattern>
-    </PackageSourceMapping>
-  </ItemGroup>
 
   <!-- Set versions of dependencies that need special treatment or consist of multiple packages of the same version. -->
   <PropertyGroup>
