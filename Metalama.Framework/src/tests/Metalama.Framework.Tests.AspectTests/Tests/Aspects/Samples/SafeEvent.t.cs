@@ -1,14 +1,7 @@
 internal class TargetCode
 {
-  private static readonly Func<ActionEventBroker<EventHandler, (object? , EventArgs)>, EventHandler> EventHandlerCastDelegate_0 = static b => (sender, e) => b.Invoke((sender, e));
-  private static readonly Action<EventHandler, object, (object? , EventArgs)> EventFieldInvokeDelegate_0 = static (handler, me, args) => ((TargetCode)me).EventField_Raise_SafeEvent(handler, args);
-  private static readonly Action<EventHandler, object> EventFieldAddDelegate_0 = static (handler, me) => ((TargetCode)me).EventField_SafeEvent += handler;
-  private static readonly Action<EventHandler, object> EventFieldRemoveDelegate_0 = static (handler, me) => ((TargetCode)me).EventField_SafeEvent -= handler;
-  private static readonly ActionEventBrokerDelegateSet<EventHandler, (object? , EventArgs)> EventFieldDelegateSet_0 = new ActionEventBrokerDelegateSet<EventHandler, (object? , EventArgs)>(EventFieldInvokeDelegate_0, EventHandlerCastDelegate_0, EventFieldAddDelegate_0, EventFieldRemoveDelegate_0);
-  private static readonly Action<EventHandler, object, (object? , EventArgs)> EventInvokeDelegate_0 = static (handler, me, args) => ((TargetCode)me).Event_Raise_SafeEvent(handler, args);
-  private static readonly Action<EventHandler, object> EventAddDelegate_0 = static (handler, me) => ((TargetCode)me).Event_SafeEvent += handler;
-  private static readonly Action<EventHandler, object> EventRemoveDelegate_0 = static (handler, me) => ((TargetCode)me).Event_SafeEvent -= handler;
-  private static readonly ActionEventBrokerDelegateSet<EventHandler, (object? , EventArgs)> EventDelegateSet_0 = new ActionEventBrokerDelegateSet<EventHandler, (object? , EventArgs)>(EventInvokeDelegate_0, EventHandlerCastDelegate_0, EventAddDelegate_0, EventRemoveDelegate_0);
+  private static readonly ActionEventBrokerDelegateSet<EventHandler, (object? , EventArgs)> EventFieldDelegateSet_0 = new ActionEventBrokerDelegateSet<EventHandler, (object? , EventArgs)>(static (handler, me, args) => ((TargetCode)me).EventField_Raise_SafeEvent(handler, args), static b => (sender, e) => b.Invoke((sender, e)), static (handler, me) => ((TargetCode)me).EventField_SafeEvent += handler, static (handler, me) => ((TargetCode)me).EventField_SafeEvent -= handler);
+  private static readonly ActionEventBrokerDelegateSet<EventHandler, (object? , EventArgs)> EventDelegateSet_0 = new ActionEventBrokerDelegateSet<EventHandler, (object? , EventArgs)>(static (handler, me, args) => ((TargetCode)me).Event_Raise_SafeEvent(handler, args), static b => (sender, e) => b.Invoke((sender, e)), static (handler, me) => ((TargetCode)me).Event_SafeEvent += handler, static (handler, me) => ((TargetCode)me).Event_SafeEvent -= handler);
   private List<EventHandler> _delegates = new List<EventHandler>();
   private event EventHandler _eventField = default !;
   private volatile ActionEventBroker<EventHandler, (object? , EventArgs)>? _eventFieldBroker;

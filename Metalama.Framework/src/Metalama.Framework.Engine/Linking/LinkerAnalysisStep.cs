@@ -273,8 +273,6 @@ namespace Metalama.Framework.Engine.Linking
             var staticFieldsWritable = new Dictionary<INamedTypeSymbol, IReadOnlyList<StaticFieldInfo>>( intermediateCompilation.SymbolComparer );
             staticfields = staticFieldsWritable;
 
-            var castDelegatesByTypeAndDelegateType = new Dictionary<(INamedTypeSymbol ContainingType, INamedTypeSymbol DelegateType), StaticFieldInfo>();
-
             foreach ( var injectedMember in injectionRegistry.GetInjectedMembers().Where( im => im.Semantic == Transformations.InjectedMemberSemantic.OverrideEventRaise ) )
             {
                 switch ( injectedMember.Transformation )
@@ -321,84 +319,12 @@ namespace Metalama.Framework.Engine.Linking
                                     var eventBrokerTypeSymbol =
                                         injectionRegistry.GetIntermediateCompilationSymbol<INamedTypeSymbol>( eventBrokerType ).AssertNotNull();
 
-                                    var castDelegateType =
-                                        ((INamedType) finalCompilationModel.Factory.GetTypeByReflectionType( typeof( Func<,> ) ))
-                                        .WithTypeArguments( [eventBrokerType, delegateType] );
-
-                                    var castDelegateTypeSymbol =
-                                        injectionRegistry.GetIntermediateCompilationSymbol<INamedTypeSymbol>( castDelegateType ).AssertNotNull();
-
-                                    var castDelegateKey = (targetEventSymbol.ContainingType, castDelegateTypeSymbol);
-                                    if ( !castDelegatesByTypeAndDelegateType.TryGetValue( castDelegateKey, out var castDelegateFieldInfo ) )
-                                    {
-                                        castDelegateFieldInfo = new StaticFieldInfo(
-                                            targetEventSymbol.ContainingType,
-                                            castDelegateTypeSymbol,
-                                            typeMemberIdentifierGenerator.AllocateName( targetEventSymbol.ContainingType, $"{targetEvent.Type.Name}CastDelegate", IdentifierFlags.AlwaysUseSuffix ),
-                                            context => GetEventBrokerCastDelegateInitializationExpression( invokeMethod.Parameters ) );
-
-                                        castDelegatesByTypeAndDelegateType.Add( castDelegateKey, castDelegateFieldInfo );
-                                        staticDelegatesForType.Add( castDelegateFieldInfo );
-                                    }
-
-                                    eventBrokerInfo = new EventBrokerInfo( targetEventSymbol, eventBrokerTypeSymbol, castDelegateFieldInfo );
+                                    eventBrokerInfo = new EventBrokerInfo( targetEventSymbol, eventBrokerTypeSymbol );
 
                                     eventBrokersWritable.Add( targetEventSymbol, eventBrokerInfo );
                                 }
 
                                 var eventBrokerTransformationsWritable = (Dictionary<ITransformation, EventBrokerTransformationInfo>) eventBrokerInfo.Transformations;
-
-                                var objectType = finalCompilationModel.Factory.GetSpecialType( Code.SpecialType.Object );
-
-                                var invokerDelegateType =
-                                    ((INamedType) finalCompilationModel.Factory.GetTypeByReflectionType( typeof( Action<,,> ) ))
-                                    .WithTypeArguments( [delegateType, objectType, argsType] );
-                                    
-                                var invokerDelegateTypeSymbol =
-                                    injectionRegistry.GetIntermediateCompilationSymbol<INamedTypeSymbol>( invokerDelegateType ).AssertNotNull();
-
-                                var eventBrokerFieldName =
-                                    typeMemberIdentifierGenerator.AllocateName( targetEventSymbol.ContainingType, $"{targetEvent.Name}Broker", IdentifierFlags.MakePrivateFieldName );
-
-                                // Create a new invoker, add and remove delegates for each override (not shared)
-                                var invokerDelegateFieldInfo = new StaticFieldInfo(
-                                    targetEventSymbol.ContainingType,
-                                    invokerDelegateTypeSymbol,
-                                    typeMemberIdentifierGenerator.AllocateName( targetEventSymbol.ContainingType, $"{targetEvent.Name}InvokeDelegate", IdentifierFlags.AlwaysUseSuffix ),
-                                    context =>
-                                        GetEventBrokerInvokerDelegateInitializationExpression(
-                                            context,
-                                            targetEventSymbol.ContainingType.AssertNotNull(),
-                                            raiseMethodName ) );
-
-                                var accessorDelegateType =
-                                    ((INamedType) finalCompilationModel.Factory.GetTypeByReflectionType( typeof( Action<,> ) ))
-                                    .WithTypeArguments( [delegateType, objectType] );
-
-                                var accessorDelegateTypeSymbol =
-                                    injectionRegistry.GetIntermediateCompilationSymbol<INamedTypeSymbol>( accessorDelegateType ).AssertNotNull();
-
-                                var addDelegateFieldInfo = new StaticFieldInfo(
-                                    targetEventSymbol.ContainingType,
-                                    accessorDelegateTypeSymbol,
-                                    typeMemberIdentifierGenerator.AllocateName( targetEventSymbol.ContainingType, $"{targetEvent.Name}AddDelegate", IdentifierFlags.AlwaysUseSuffix ),
-                                    context =>
-                                        GetEventBrokerEventAccessDelegateInitializationExpression(
-                                            context,
-                                            targetEventSymbol.ContainingType.AssertNotNull(),
-                                            SyntaxKind.AddAssignmentExpression,
-                                            overrideName ) );
-
-                                var removeDelegateFieldInfo = new StaticFieldInfo(
-                                    targetEventSymbol.ContainingType,
-                                    accessorDelegateTypeSymbol,
-                                    typeMemberIdentifierGenerator.AllocateName( targetEventSymbol.ContainingType, $"{targetEvent.Name}RemoveDelegate", IdentifierFlags.AlwaysUseSuffix ),
-                                    context =>
-                                        GetEventBrokerEventAccessDelegateInitializationExpression(
-                                            context,
-                                            targetEventSymbol.ContainingType.AssertNotNull(),
-                                            SyntaxKind.SubtractAssignmentExpression,
-                                            overrideName ) );
 
                                 var delegateSetType =
                                     ((INamedType) finalCompilationModel.Factory.GetTypeByReflectionType( typeof( ActionEventBrokerDelegateSet<,> ) ))
@@ -415,15 +341,15 @@ namespace Metalama.Framework.Engine.Linking
                                         GetEventBrokerDelegateSetInitializationExpression(
                                             context,
                                             delegateSetTypeSymbol,
-                                            eventBrokerInfo.CastDelegate,
-                                            invokerDelegateFieldInfo,
-                                            addDelegateFieldInfo,
-                                            removeDelegateFieldInfo ) );
+                                            targetEventSymbol.ContainingType.AssertNotNull(),
+                                            raiseMethodName,
+                                            overrideName,
+                                            invokeMethod.Parameters ) );
 
-                                staticDelegatesForType.Add( invokerDelegateFieldInfo );
-                                staticDelegatesForType.Add( addDelegateFieldInfo );
-                                staticDelegatesForType.Add( removeDelegateFieldInfo );
                                 staticDelegatesForType.Add( delegateSetField );
+
+                                var eventBrokerFieldName =
+                                    typeMemberIdentifierGenerator.AllocateName( targetEventSymbol.ContainingType, $"{targetEvent.Name}Broker", IdentifierFlags.MakePrivateFieldName );
 
                                 var fieldInitializationExpression =
                                     ( SyntaxGenerationContext context ) =>
@@ -563,23 +489,28 @@ namespace Metalama.Framework.Engine.Linking
 
         private static ExpressionSyntax GetEventBrokerDelegateSetInitializationExpression(
             SyntaxGenerationContext context,
-            INamedTypeSymbol delegateSetTypeSymbol, 
-            StaticFieldInfo castDelegateFieldInfo,
-            StaticFieldInfo invokerDelegateFieldInfo,
-            StaticFieldInfo addDelegateFieldInfo,
-            StaticFieldInfo removeDelegateFieldInfo )
+            INamedTypeSymbol delegateSetTypeSymbol,
+            INamedTypeSymbol containingType,
+            string raiseMethodName,
+            string overrideName,
+            IReadOnlyList<IParameter> invokeParameters )
         {
             return
                 ObjectCreationExpression(
+                    Token(TriviaList(context.ElasticEndOfLineTriviaList), SyntaxKind.NewKeyword, TriviaList(ElasticSpace)),
                     context.SyntaxGenerator.TypeSyntax( delegateSetTypeSymbol ),
                     ArgumentList(
-                        SeparatedList(
-                            [
-                                Argument( IdentifierName( invokerDelegateFieldInfo.FieldName ) ),
-                                Argument( IdentifierName( castDelegateFieldInfo.FieldName ) ),
-                                Argument( IdentifierName( addDelegateFieldInfo.FieldName ) ),
-                                Argument( IdentifierName( removeDelegateFieldInfo.FieldName ) )
-                            ] ) ),
+                        Token(TriviaList(), SyntaxKind.OpenParenToken, TriviaList(context.ElasticEndOfLineTriviaList)),
+                        SeparatedList<ArgumentSyntax>(
+                            NodeOrTokenList(
+                                Argument( GetEventBrokerInvokerDelegateInitializationExpression( context, containingType, raiseMethodName ) ),
+                                Token(TriviaList(), SyntaxKind.CommaToken, context.ElasticEndOfLineTriviaList),
+                                Argument( GetEventBrokerCastDelegateInitializationExpression( invokeParameters ) ),
+                                Token(TriviaList(), SyntaxKind.CommaToken, context.ElasticEndOfLineTriviaList),
+                                Argument( GetEventBrokerEventAccessDelegateInitializationExpression( context, containingType, SyntaxKind.AddAssignmentExpression, overrideName ) ),
+                                Token(TriviaList(), SyntaxKind.CommaToken, context.ElasticEndOfLineTriviaList),
+                                Argument( GetEventBrokerEventAccessDelegateInitializationExpression( context, containingType, SyntaxKind.SubtractAssignmentExpression, overrideName ) ) ) ),
+                        Token(TriviaList(context.ElasticEndOfLineTriviaList), SyntaxKind.CloseParenToken, TriviaList()) ),
                     null );
         }
 
@@ -588,14 +519,16 @@ namespace Metalama.Framework.Engine.Linking
             LinkerInjectionRegistry injectionRegistry,
             IReadOnlyDictionary<IEventSymbol, EventBrokerInfo> eventBrokers )
         {
-            var index = new Dictionary<IntermediateSymbolSemantic<IEventSymbol>, EventBrokerTransformationInfo?>(
-                IntermediateSymbolSemanticEqualityComparer<IEventSymbol>.ForCompilation(intermediateCompilationContext) );
+            var index = 
+                new Dictionary<IntermediateSymbolSemantic<IEventSymbol>, EventBrokerTransformationInfo?>(
+                    IntermediateSymbolSemanticEqualityComparer<IEventSymbol>.ForCompilation(intermediateCompilationContext) );
 
             foreach ( var (eventSymbol, eventBrokerInfo) in eventBrokers )
             {
                 var overrides = injectionRegistry.GetOverridesForSymbol( eventSymbol );
-                var semanticToBrokerMap = new Dictionary<IntermediateSymbolSemantic<IEventSymbol>, EventBrokerTransformationInfo>(
-                    IntermediateSymbolSemanticEqualityComparer<IEventSymbol>.ForCompilation( intermediateCompilationContext ) );
+                var semanticToBrokerMap = 
+                    new Dictionary<IntermediateSymbolSemantic<IEventSymbol>, EventBrokerTransformationInfo>(
+                        IntermediateSymbolSemanticEqualityComparer<IEventSymbol>.ForCompilation( intermediateCompilationContext ) );
 
                 for (var i = 0; i < overrides.Count; i++ )
                 {
