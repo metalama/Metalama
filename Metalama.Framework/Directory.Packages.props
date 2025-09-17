@@ -2,11 +2,7 @@
 <Project>
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
-      <RestorePrerelease>true</RestorePrerelease>
-      <PackageSources>
-        $(RestoreSources);
-        https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-tools/nuget/v3/index.json
-      </PackageSources>
+    <RestorePrerelease>true</RestorePrerelease>
   </PropertyGroup>
 
   <!-- Set versions of dependencies that need special treatment or consist of multiple packages of the same version. -->

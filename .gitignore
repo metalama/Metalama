@@ -59,4 +59,5 @@ coverage.json
 .sonarqube
 /.config/dotnet-tools.json
 .generated
-
+*/.idea/workspace.xml
+nuget.config

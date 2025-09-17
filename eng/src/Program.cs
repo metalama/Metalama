@@ -18,6 +18,7 @@ using MetalamaDependencies = PostSharp.Engineering.BuildTools.Dependencies.Defin
 var product = new Product( MetalamaDependencies.Metalama )
 {
     OverriddenBuildAgentRequirements = BuildAgentRequirements.WindowsDockerHost,
+    GenerateNuGetConfig = true,
     Solutions =
     [
         new DotNetSolution( "Metalama.Backstage/Metalama.Backstage.sln" ) { SupportsTestCoverage = true, CanFormatCode = true },
