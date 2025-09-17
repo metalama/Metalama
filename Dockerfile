@@ -61,6 +61,11 @@ RUN if ($env:MOUNTPOINTS) { `
         } `
     }
 
+# Import secrets
+COPY ReadSecrets.ps1 c:\ReadSecrets.ps1    
+COPY secrets.g.json c:\secrets.g.json
+RUN c:\ReadSecrets.ps1 c:\secrets.g.json   
+
 # Configure NuGet
 ENV NUGET_PACKAGES=c:\packages
 
