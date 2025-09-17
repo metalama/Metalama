@@ -22,6 +22,9 @@ RUN Invoke-WebRequest -Uri https://dot.net/v1/dotnet-install.ps1 -OutFile dotnet
 # Install .NET SDK 9 (must match global.json).
 RUN powershell -ExecutionPolicy Bypass -File dotnet-install.ps1 -Version 9.0.305 -InstallDir 'C:\Program Files\dotnet'; 
 
+# Install .NET SDK 8 for tests
+RUN powershell -ExecutionPolicy Bypass -File dotnet-install.ps1 -Version 8.0.414 -InstallDir 'C:\Program Files\dotnet'; 
+
 # Clean up.
 RUN Remove-Item C:\\dotnet-install.ps1
 
