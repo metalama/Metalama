@@ -13,7 +13,7 @@ internal class TargetClass
     }
     remove
     {
-      this._eventBroker.RemoveHandler(value);
+      this._eventBroker?.RemoveHandler(value);
     }
   }
   private event global::System.EventHandler? Event_Override

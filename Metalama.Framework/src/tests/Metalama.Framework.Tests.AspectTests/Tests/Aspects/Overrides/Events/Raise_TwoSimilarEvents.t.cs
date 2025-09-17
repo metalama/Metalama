@@ -15,7 +15,7 @@ internal class TargetClass
     }
     remove
     {
-      this._event1Broker.RemoveHandler(value);
+      this._event1Broker?.RemoveHandler(value);
     }
   }
   private event global::System.EventHandler Event1_Override
@@ -45,7 +45,7 @@ internal class TargetClass
     }
     remove
     {
-      this._event2Broker.RemoveHandler(value);
+      this._event2Broker?.RemoveHandler(value);
     }
   }
   private event global::System.EventHandler Event2_Override

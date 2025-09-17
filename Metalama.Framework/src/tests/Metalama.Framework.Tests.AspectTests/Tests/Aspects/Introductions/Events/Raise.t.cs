@@ -28,7 +28,7 @@ internal class TargetClass
     }
     remove
     {
-      this._eventFromAccessorsBroker.RemoveHandler(value);
+      this._eventFromAccessorsBroker?.RemoveHandler(value);
     }
   }
 }

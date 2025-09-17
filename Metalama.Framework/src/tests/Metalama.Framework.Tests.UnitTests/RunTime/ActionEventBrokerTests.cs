@@ -208,7 +208,7 @@ public class ActionEventBrokerTests
             }
             remove
             {
-                this._broker.RemoveHandler( value );
+                this._broker?.RemoveHandler( value );
             }
         }
 

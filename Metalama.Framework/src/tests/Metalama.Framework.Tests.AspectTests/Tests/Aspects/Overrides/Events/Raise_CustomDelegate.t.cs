@@ -13,7 +13,7 @@ internal class TargetClass
     }
     remove
     {
-      this._eventBroker.RemoveHandler(value);
+        this._eventBroker?.RemoveHandler(value);
     }
   }
   private event global::Metalama.Framework.IntegrationTests.Aspects.Overrides.Events.Raise_CustomDelegate.MyEventHandler Event_Override

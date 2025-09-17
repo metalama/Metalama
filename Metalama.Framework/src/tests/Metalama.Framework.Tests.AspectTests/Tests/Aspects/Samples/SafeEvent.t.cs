@@ -15,7 +15,7 @@ internal class TargetCode
     }
     remove
     {
-      this._eventFieldBroker.RemoveHandler(value);
+      this._eventFieldBroker?.RemoveHandler(value);
     }
   }
   private event EventHandler EventField_SafeEvent
@@ -53,7 +53,7 @@ internal class TargetCode
     }
     remove
     {
-      this._eventBroker.RemoveHandler(value);
+      this._eventBroker?.RemoveHandler(value);
     }
   }
   private event EventHandler Event_Source

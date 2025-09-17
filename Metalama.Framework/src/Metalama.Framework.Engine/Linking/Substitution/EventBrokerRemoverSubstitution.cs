@@ -36,17 +36,17 @@ internal sealed class EventBrokerRemoverSubstitution : SyntaxNodeSubstitution
 
         return context.SyntaxGenerator.FormattedBlock(
             ExpressionStatement(
-                InvocationExpression(
+                ConditionalAccessExpression(
                     MemberAccessExpression(
                         SyntaxKind.SimpleMemberAccessExpression,
-                        MemberAccessExpression(
-                            SyntaxKind.SimpleMemberAccessExpression,
-                            ThisExpression(),
-                            IdentifierName( eventBrokerTransformationInfo.EventBrokerFieldName ) ),
-                        IdentifierName( "RemoveHandler" ) ),
-                    ArgumentList(
-                        SingletonSeparatedList(
-                            Argument(
-                                IdentifierName( "value" ) ) ) ) ) ) );
+                        ThisExpression(),
+                        IdentifierName( eventBrokerTransformationInfo.EventBrokerFieldName ) ),
+                    InvocationExpression(
+                        MemberBindingExpression(
+                            IdentifierName( "RemoveHandler" ) ),
+                        ArgumentList(
+                            SingletonSeparatedList(
+                                Argument(
+                                    IdentifierName( "value" ) ) ) ) ) ) ) );
     }
 }
