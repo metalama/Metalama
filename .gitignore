@@ -61,4 +61,5 @@ coverage.json
 .generated
 nuget.config
 global.json
-**/workspace.xml
+**/.idea/workspace.xml
+**/.idea/copilot.data.*.xml

@@ -731,7 +731,7 @@ public class ReferencedClass
                                    static Type Type2 = typeof(CompileTimeOnlyClass);
                                    static string Name1 = nameof(RunTimeOnlyClass);
                                    static string Name2 = nameof(CompileTimeOnlyClass);
-                                
+
                                    void Method() { var t = typeof(RunTimeOnlyClass); }
                                    string Property => nameof(RunTimeOnlyClass);
                                 }
@@ -755,7 +755,7 @@ public class ReferencedClass
                                        static global::System.Type Type2 = typeof(global::CompileTimeOnlyClass);
                                        static string Name1 = "RunTimeOnlyClass";
                                        static string Name2 = "CompileTimeOnlyClass";
-                                    
+
                                        void Method() { var t = global::Metalama.Framework.CompileTimeContracts.TypeOfResolver.Resolve("typeof(global::RunTimeOnlyClass)",((string?)null),"RunTimeOnlyClass","RunTimeOnlyClass","RunTimeOnlyClass"); }
                                        string Property => "RunTimeOnlyClass";
                                     }
@@ -853,7 +853,7 @@ public class MyAspect : OverrideMethodAspect
             var compileTimeSyntaxTrees = GetCompileTimeCode( testContext, new Dictionary<string, string> { { "main.cs", code } }, outputKind );
 
             return compileTimeSyntaxTrees
-                .Single( x => !x.Key.StartsWith( "__", StringComparison.Ordinal ) )
+                .Single( x => !CompileTimeConstants.IsPredefinedSyntaxTree( x.Key ) )
                 .Value;
         }
 
@@ -1277,7 +1277,8 @@ using System;
 using Metalama.Framework.Advising; 
 using Metalama.Framework.Aspects; 
 
-namespace RemainingNamespace
+namespace
+RemainingNamespace
 {
     [CompileTime]
     public class MyCompileTimeAttribute : Attribute { }
@@ -1303,7 +1304,7 @@ namespace RemainingNamespace
                                         {
                                             public override dynamic? OverrideMethod() { return meta.Proceed(); }
                                         }
-                                
+
                                         class Aspect2 : OverrideFieldOrPropertyAspect
                                         {
                                             public override dynamic? OverrideProperty
@@ -1312,12 +1313,12 @@ namespace RemainingNamespace
                                                 set {}
                                             }
                                         }
-                                
+
                                         class RunTimeOnlyClass {}
-                                
+
                                         [CompileTime]
                                         class CompileTimeOnlyClass {}
-                                
+
                                         class Aspect3 : TypeAspect 
                                         {
                                             [Template]
