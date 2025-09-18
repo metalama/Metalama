@@ -8,16 +8,29 @@ using PostSharp.Engineering.BuildTools.BillOfMaterials;
 using PostSharp.Engineering.BuildTools.Build;
 using PostSharp.Engineering.BuildTools.Build.Model;
 using PostSharp.Engineering.BuildTools.Build.Solutions;
-using PostSharp.Engineering.BuildTools.ContinuousIntegration.Model;
 using PostSharp.Engineering.BuildTools.Dependencies.Definitions;
 using PostSharp.Engineering.BuildTools.Dependencies.Model;
-using PostSharp.Engineering.BuildTools.Utilities;
+using PostSharp.Engineering.BuildTools.Docker;
 using System.IO;
 using MetalamaDependencies = PostSharp.Engineering.BuildTools.Dependencies.Definitions.MetalamaDependencies.V2026_0;
 
 var product = new Product( MetalamaDependencies.Metalama )
 {
-    OverriddenBuildAgentRequirements = BuildAgentRequirements.WindowsDockerHost,
+    OverriddenBuildAgentRequirements = new ContainerRequirements( ContainerHostKind.Windows )
+    {
+        Components =
+        [
+            new DotNetComponent( "9.0.305", DotNetComponentKind.Sdk ),
+            new DotNetComponent( "8.0.20", DotNetComponentKind.AspNetCoreRuntime ),
+            new VisualStudioBuildToolsComponent(
+            [
+                "Microsoft.Net.Component.4.7.2.TargetingPack",
+                "Microsoft.Net.Component.4.7.2.SDK",
+                "Microsoft.Net.Component.4.8.TargetingPack",
+                "Microsoft.Net.Component.4.8.SDK"
+            ] )
+        ]
+    },
     GenerateNuGetConfig = true,
     Solutions =
     [
@@ -56,7 +69,7 @@ var product = new Product( MetalamaDependencies.Metalama )
         new DotNetSolution( "Metalama.Extensions/Metalama.Extensions.sln" ) { CanFormatCode = true, FormatExclusions = ["src\\tests\\*AspectTests\\**\\*"] },
         new DotNetSolution( "Metalama.Patterns/Metalama.Patterns.sln" ) { CanFormatCode = true, FormatExclusions = ["src\\tests\\*AspectTests\\**\\*"] },
         new DotNetSolution( "Metalama.Migration/Metalama.Migration.sln" ) { CanFormatCode = true },
-        new DotNetSolution( "Metalama.LinqPad/Metalama.LinqPad.sln" ) { CanFormatCode = true },
+        new DotNetSolution( "Metalama.LinqPad/Metalama.LinqPad.sln" ) { CanFormatCode = true }
     ],
     PublicArtifacts = Pattern.Create(
         "Metalama.Backstage.$(PackageVersion).nupkg",
@@ -121,6 +134,8 @@ var product = new Product( MetalamaDependencies.Metalama )
                 ]
             } ),
     SupportedProperties = { { "PrepareStubs", "The prepare command generates stub files, instead of actual implementations." } },
+
+    // Bill of Materials
     ProjectUsages =
     [
         new ProjectUsageInfo(
@@ -169,14 +184,15 @@ return new EngineeringApp( product ).Run( args );
 
 static void OnPrepareCompleted( PrepareCompletedEventArgs args )
 {
-    
+    /*
+
     if ( !TestLicenseKeyDownloader.Download( args.Context, args.Settings ) )
     {
         args.IsFailed = true;
 
         return;
     }
-    
+*/
 
     args.Context.Console.WriteHeading( "Generating code" );
 
