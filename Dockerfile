@@ -41,6 +41,9 @@ RUN Invoke-WebRequest -Uri https://aka.ms/vs/17/release/vs_buildtools.exe -OutFi
     if ($process.ExitCode -ne 0) { exit $process.ExitCode }; `
     Remove-Item C:\\vs_buildtools.exe;
 
+# Install Azure CLI
+RUN winget install Microsoft.AzureCLI
+
 
 # Enable long path support
 RUN Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem' -Name 'LongPathsEnabled' -Value 1
@@ -51,6 +54,9 @@ RUN cmd /c "setx PATH \"$env:PATH;C:\\Program Files\\PowerShell\\7;C:\\git\\cmd;
 # Prepare environment
 ENV PSExecutionPolicyPreference=Bypass
 ENV POWERSHELL_UPDATECHECK=FALSE
+ENV TEMP=C:\Temp
+ENV TMP=C:\Temp
+RUN md c:\Temp | Out-Null
 
 ##################################################################################################################################
 ## The following is required for integration with DockerBuild.ps1 and PostSharp.Engineering. It should not be modified.         ##
