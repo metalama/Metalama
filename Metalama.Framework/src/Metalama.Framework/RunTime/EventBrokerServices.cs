@@ -3,18 +3,16 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Metalama.Framework.RunTime;
 
 /// <summary>
 /// Provides services and configuration for event brokers.
 /// </summary>
-public static class EventBrokerServices
+internal static class EventBrokerServices
 {
     /// <summary>
-    /// Timeout for acquiring locks in event brokers. Defaults to 10 seconds.
+    /// Gets or sets the timeout for acquiring locks in event brokers. Defaults to 10 seconds.
     /// </summary>
     public static TimeSpan LockTimeout { get; set; } = TimeSpan.FromSeconds( 10 );
 }

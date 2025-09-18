@@ -9,7 +9,7 @@ namespace Metalama.Framework.RunTime
     /// <summary>
     /// Represents a set of instance-independent delegates used by an <see cref="ActionEventBroker{TDelegate, TArgs}"/>.
     /// </summary>
-    public class ActionEventBrokerDelegateSet<TDelegate, TArgs>
+    public sealed class ActionEventBrokerDelegateSet<TDelegate, TArgs>
         where TDelegate : Delegate
     {
         public Action<TDelegate, object, TArgs> Invoker { get; }
