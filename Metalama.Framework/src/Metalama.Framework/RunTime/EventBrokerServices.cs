@@ -14,7 +14,7 @@ namespace Metalama.Framework.RunTime;
 internal static class EventBrokerServices
 {
     /// <summary>
-    /// Gets the timeout for acquiring locks in event brokers. Defaults to 10 seconds.
+    /// Gets or sets the timeout for acquiring locks in event brokers. Defaults to 10 seconds.
     /// </summary>
     public static TimeSpan LockTimeout { get; set; } = TimeSpan.FromSeconds( 10 );
 }
