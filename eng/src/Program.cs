@@ -167,13 +167,20 @@ product.PrepareCompleted += OnPrepareCompleted;
 
 return new EngineeringApp( product ).Run( args );
 
-static void OnPrepareCompleted( PrepareCompletedEventArgs arg )
+static void OnPrepareCompleted( PrepareCompletedEventArgs args )
 {
-    TestLicenseKeyDownloader.Download( arg.Context );
+    
+    if ( !TestLicenseKeyDownloader.Download( args.Context, args.Settings ) )
+    {
+        args.IsFailed = true;
 
-    arg.Context.Console.WriteHeading( "Generating code" );
+        return;
+    }
+    
 
-    var srcDirectory = Path.Combine( arg.Context.RepoDirectory, "Metalama.Framework" );
+    args.Context.Console.WriteHeading( "Generating code" );
+
+    var srcDirectory = Path.Combine( args.Context.RepoDirectory, "Metalama.Framework" );
 
     GenerateMetaSyntaxRewriter.Generate( srcDirectory );
 }
