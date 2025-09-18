@@ -13,7 +13,7 @@ namespace Metalama.Framework.RunTime;
 /// </summary>
 /// <typeparam name="TDelegate">The event delegate type.</typeparam>
 /// <typeparam name="TArgs">The event arguments type.</typeparam>
-public class ActionEventBroker<TDelegate, TArgs>
+public sealed class ActionEventBroker<TDelegate, TArgs>
     where TDelegate : Delegate
 {
     private readonly DelegateList<TDelegate, TArgs> _handlers;
