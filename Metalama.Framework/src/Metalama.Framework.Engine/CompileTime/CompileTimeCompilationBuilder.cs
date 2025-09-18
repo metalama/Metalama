@@ -62,9 +62,9 @@ internal sealed partial class CompileTimeCompilationBuilder
     private readonly ITaskRunner _taskRunner;
     private readonly ILanguageVersionProvider _languageVersionProvider;
 
-    private static readonly Lazy<ImmutableDictionary<string, string>> _predefinedTypesSyntaxTree = new( GetPredefinedSyntaxTrees );
+    private static readonly Lazy<IReadOnlyDictionary<string, (string Text, ulong Hash)>> _predefinedTypesSyntaxTree = new( GetPredefinedSyntaxTrees );
 
-    private static ImmutableDictionary<string, string> GetPredefinedSyntaxTrees()
+    private static IReadOnlyDictionary<string, (string Text, ulong Hash)> GetPredefinedSyntaxTrees()
     {
         const string prefix = "_Resources_.";
 
@@ -75,17 +75,21 @@ internal sealed partial class CompileTimeCompilationBuilder
 
         var files = assembly.GetManifestResourceNames()
             .Where( n => n.ContainsOrdinal( prefix ) )
-            .ToImmutableDictionary(
+            .ToDictionary(
                 name => CompileTimeConstants.GetPrefixedSyntaxTreeName( name.Substring( name.IndexOf( prefix, StringComparison.Ordinal ) + prefix.Length ) )
                         + ".cs",
                 name =>
                 {
                     using var reader = new StreamReader( assembly.GetManifestResourceStream( name )! );
 
-                    return reader.ReadToEnd();
+                    var text = reader.ReadToEnd();
+                    XXH64 hash = new();
+                    hash.Update( text );
+
+                    return (text, hash.Digest());
                 } );
 
-        if ( files.IsEmpty )
+        if ( files.Count == 0 )
         {
             throw new AssertionFailedException( "Could not find the predefined syntax trees." );
         }
@@ -240,8 +244,14 @@ internal sealed partial class CompileTimeCompilationBuilder
 
         var runTimeCompilation = compilationContext.SourceCompilation;
         var languageVersion = this._languageVersionProvider.GetCompileTimeLanguageVersion();
+        var transformedFileGenerator = new TransformedPathGenerator();
 
-        compileTimeCompilation = this.CreateEmptyCompileTimeCompilation( outputPaths.CompileTimeAssemblyName, referencedProjects, languageVersion );
+        compileTimeCompilation = this.CreateEmptyCompileTimeCompilation(
+            outputPaths.CompileTimeAssemblyName,
+            referencedProjects,
+            languageVersion,
+            transformedFileGenerator );
+
         var serializableTypes = GetSerializableTypes( compilationContext, treesWithCompileTimeCode, cancellationToken );
 
         var compileTimeCompilationContext = compileTimeCompilation.GetCompilationContext();
@@ -265,7 +275,6 @@ internal sealed partial class CompileTimeCompilationBuilder
         var compileTimeToSourceMap = this._observer == null ? null : new Dictionary<string, string>();
 
         // Creates the new syntax trees. Store them in a dictionary mapping the transformed trees to the source trees.
-        var transformedFileGenerator = new TransformedPathGenerator();
 
         var syntaxTrees = treesWithCompileTimeCode
             .SelectAsArray( t => (SyntaxTree: t, FileName: Path.GetFileNameWithoutExtension( t.FilePath ),
@@ -346,7 +355,8 @@ internal sealed partial class CompileTimeCompilationBuilder
     private CSharpCompilation CreateEmptyCompileTimeCompilation(
         string assemblyName,
         IEnumerable<CompileTimeProject> referencedProjects,
-        LanguageVersion languageVersion )
+        LanguageVersion languageVersion,
+        TransformedPathGenerator transformedFileGenerator )
     {
         var assemblyLocator = this._serviceProvider.GetReferenceAssemblyLocator();
         var preprocessorServiceProvider = this._serviceProvider.GetService<ICompileTimePreprocessorSymbolProvider>();
@@ -363,7 +373,11 @@ internal sealed partial class CompileTimeCompilationBuilder
         var references = assemblyLocator.MetadataReferences;
 
         var predefinedSyntaxTrees =
-            _predefinedTypesSyntaxTree.Value.SelectAsArray( x => CSharpSyntaxTree.ParseText( x.Value, parseOptions, x.Key, Encoding.UTF8 ) );
+            _predefinedTypesSyntaxTree.Value.SelectAsArray( x => CSharpSyntaxTree.ParseText(
+                                                                x.Value.Text,
+                                                                parseOptions,
+                                                                transformedFileGenerator.GetTransformedFilePath( x.Key, x.Value.Hash ),
+                                                                Encoding.UTF8 ) );
 
         var compilation = CSharpCompilation.Create(
                 assemblyName,
@@ -407,7 +421,7 @@ internal sealed partial class CompileTimeCompilationBuilder
                 if ( path.Length > 254 )
                 {
                     // We should generate, upstream, a path that is short enough. At this stage, it is too late to shorten it.
-                    throw new AssertionFailedException( $"Path too long: '{path}'" );
+                    throw new AssertionFailedException( $"Path too long: '{path}' has {path.Length} characters." );
                 }
 
                 var text = compileTimeSyntaxTree.GetText().ToString();
@@ -1249,7 +1263,8 @@ internal sealed partial class CompileTimeCompilationBuilder
         var compilation = this.CreateEmptyCompileTimeCompilation(
                 outputPaths.CompileTimeAssemblyName,
                 referencedProjects,
-                manifest.LanguageVersion ?? SupportedCSharpVersions.Latest )
+                manifest.LanguageVersion ?? SupportedCSharpVersions.Latest,
+                new TransformedPathGenerator() )
             .AddSyntaxTrees( syntaxTrees );
 
         var alternateOrdinal = 0;

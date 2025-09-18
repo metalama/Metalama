@@ -9,13 +9,14 @@ namespace Metalama.Framework.Engine.CompileTime
 {
     public static class CompileTimeConstants
     {
-        internal static string GetPrefixedSyntaxTreeName( string name ) => "(" + name + ")";
+        private const string _predefinedSyntaxTreePrefix = "~";
+        internal static string GetPrefixedSyntaxTreeName( string name ) => _predefinedSyntaxTreePrefix + name;
 
         public static bool IsPredefinedSyntaxTree( string path )
         {
             var fileName = Path.GetFileNameWithoutExtension( path );
 
-            return fileName.StartsWith( "(", StringComparison.Ordinal ) && fileName.EndsWith( ")", StringComparison.Ordinal );
+            return fileName.StartsWith( _predefinedSyntaxTreePrefix, StringComparison.Ordinal );
         }
 
         internal const string CompileTimeProjectResourceName = "Metalama.CompileTimeProject.zip";

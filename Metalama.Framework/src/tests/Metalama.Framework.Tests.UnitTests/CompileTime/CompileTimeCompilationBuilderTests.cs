@@ -853,7 +853,7 @@ public class MyAspect : OverrideMethodAspect
             var compileTimeSyntaxTrees = GetCompileTimeCode( testContext, new Dictionary<string, string> { { "main.cs", code } }, outputKind );
 
             return compileTimeSyntaxTrees
-                .Single( x => !x.Key.StartsWith( "__", StringComparison.Ordinal ) )
+                .Single( x => !CompileTimeConstants.IsPredefinedSyntaxTree(  x.Key ) )
                 .Value;
         }
 
@@ -1277,7 +1277,8 @@ using System;
 using Metalama.Framework.Advising; 
 using Metalama.Framework.Aspects; 
 
-namespace RemainingNamespace
+namespace
+RemainingNamespace
 {
     [CompileTime]
     public class MyCompileTimeAttribute : Attribute { }
