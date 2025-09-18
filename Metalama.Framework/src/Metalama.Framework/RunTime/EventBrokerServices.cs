@@ -3,8 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Metalama.Framework.RunTime;
 
