@@ -88,16 +88,16 @@ internal sealed partial class SymbolTranslator
                         //       Ideally this should skip all introductions, but that requires integration with the caller.
                         var originalCandidates = symbol.ContainingType.GetMembers( symbol.Name )
                             .Where( m => m.Kind == symbol.Kind && StructuralSymbolComparer.ContainingDeclarationOblivious.Equals( m, symbol ) )
-                            .ToList();
+                            .ToArray();
 
-                        if ( originalCandidates.Count != candidates.Count )
+                        if ( originalCandidates.Length != candidates.Count )
                         {
-                            // If there is different count, return just the first.
+                            // If there is different count, return the first (see above TODO).
                             return candidates[0];
                         }
                         else
                         {
-                            for ( var i = 0; i < originalCandidates.Count; i++ )
+                            for ( var i = 0; i < originalCandidates.Length; i++ )
                             {
                                 if ( SymbolEqualityComparer.Default.Equals( originalCandidates[i], symbol ) )
                                 {
