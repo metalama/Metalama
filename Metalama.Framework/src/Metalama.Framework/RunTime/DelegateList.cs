@@ -14,22 +14,12 @@ namespace Metalama.Framework.RunTime;
 internal class DelegateList<TDelegate, TArgs>
     where TDelegate : class, Delegate
 {
-    private readonly Action<TDelegate, object, TArgs> _invoker;
     private volatile TDelegate? _delegates;
 
     /// <summary>
     /// Gets a value indicating whether no delegates are registered.
     /// </summary>
     public bool IsEmpty => this._delegates == null;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="DelegateList{TDelegate, TArgs}"/> class with the specified invoker.
-    /// </summary>
-    /// <param name="invoker">Delegate that defines how to invoke handlers.</param>
-    public DelegateList( Action<TDelegate, object, TArgs> invoker )
-    {
-        this._invoker = invoker ?? throw new ArgumentNullException( nameof( invoker ) );
-    }
 
     /// <summary>
     /// Adds a delegate using atomic operations.
@@ -84,7 +74,7 @@ internal class DelegateList<TDelegate, TArgs>
     /// </summary>
     /// <param name="me">The event owner object.</param>
     /// <param name="args">The event arguments.</param>
-    public void Invoke( object me, TArgs args )
+    public void Invoke( Action<TDelegate, object, TArgs> invoker, object me, TArgs args )
     {
         var currentValue = this._delegates;
 
@@ -96,7 +86,7 @@ internal class DelegateList<TDelegate, TArgs>
 
         foreach (var @delegate in currentValue.GetInvocationList())
         {
-            this._invoker.Invoke( (TDelegate)@delegate, me, args );
+            invoker.Invoke( (TDelegate)@delegate, me, args );
         }
     }
 }

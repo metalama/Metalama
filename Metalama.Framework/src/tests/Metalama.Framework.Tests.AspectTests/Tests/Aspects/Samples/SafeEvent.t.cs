@@ -1,8 +1,7 @@
 internal class TargetCode
 {
-  private static readonly Func<ActionEventBroker<EventHandler, (object? , EventArgs)>, EventHandler> EventHandlerCastDelegate_0 = static b => (sender, e) => b.Invoke((sender, e));
-  private static readonly Action<EventHandler, object, (object? , EventArgs)> EventFieldInvokeDelegate_0 = static (handler, me, args) => ((TargetCode)me).EventField_Raise_SafeEvent( handler, args);
-  private static readonly Action<EventHandler, object, (object? , EventArgs)> EventInvokeDelegate_0 = static (handler, me, args) => ((TargetCode)me).Event_Raise_SafeEvent( handler, args);
+  private static readonly ActionEventBrokerDelegateSet<EventHandler, (object? , EventArgs)> EventFieldDelegateSet_0 = new ActionEventBrokerDelegateSet<EventHandler, (object? , EventArgs)>(static (handler, me, args) => ((TargetCode)me).EventField_Raise_SafeEvent(handler, args), static b => (sender, e) => b.Invoke((sender, e)), static (handler, me) => ((TargetCode)me).EventField_SafeEvent += handler, static (handler, me) => ((TargetCode)me).EventField_SafeEvent -= handler);
+  private static readonly ActionEventBrokerDelegateSet<EventHandler, (object? , EventArgs)> EventDelegateSet_0 = new ActionEventBrokerDelegateSet<EventHandler, (object? , EventArgs)>(static (handler, me, args) => ((TargetCode)me).Event_Raise_SafeEvent(handler, args), static b => (sender, e) => b.Invoke((sender, e)), static (handler, me) => ((TargetCode)me).Event_SafeEvent += handler, static (handler, me) => ((TargetCode)me).Event_SafeEvent -= handler);
   private List<EventHandler> _delegates = new List<EventHandler>();
   private event EventHandler _eventField = default !;
   private volatile ActionEventBroker<EventHandler, (object? , EventArgs)>? _eventFieldBroker;
@@ -11,18 +10,12 @@ internal class TargetCode
   {
     add
     {
-      ActionEventBroker<EventHandler, (object? , EventArgs)>.EnsureInitialized(ref this._eventFieldBroker, this, EventFieldInvokeDelegate_0, EventHandlerCastDelegate_0);
-      if (this._eventFieldBroker.AddHandler(value))
-      {
-        this.EventField_SafeEvent += this._eventFieldBroker.InvocationDelegate;
-      }
+      ActionEventBroker<EventHandler, (object? , EventArgs)>.EnsureInitialized(ref this._eventFieldBroker, this, EventFieldDelegateSet_0);
+      this._eventFieldBroker.AddHandler(value);
     }
     remove
     {
-      if (this._eventFieldBroker != null && this._eventFieldBroker.RemoveHandler(value))
-      {
-        this.EventField_SafeEvent -= this._eventFieldBroker.InvocationDelegate;
-      }
+      this._eventFieldBroker?.RemoveHandler(value);
     }
   }
   private event EventHandler EventField_SafeEvent
@@ -36,7 +29,7 @@ internal class TargetCode
       this._eventField -= value;
     }
   }
-  private void EventField_Raise_SafeEvent( EventHandler handler, (object? sender, EventArgs e) args)
+  private void EventField_Raise_SafeEvent(EventHandler handler, (object? sender, EventArgs e) args)
   {
     try
     {
@@ -55,18 +48,12 @@ internal class TargetCode
   {
     add
     {
-      ActionEventBroker<EventHandler, (object? , EventArgs)>.EnsureInitialized(ref this._eventBroker, this, EventInvokeDelegate_0, EventHandlerCastDelegate_0);
-      if (this._eventBroker.AddHandler(value))
-      {
-        this.Event_SafeEvent += this._eventBroker.InvocationDelegate;
-      }
+      ActionEventBroker<EventHandler, (object? , EventArgs)>.EnsureInitialized(ref this._eventBroker, this, EventDelegateSet_0);
+      this._eventBroker.AddHandler(value);
     }
     remove
     {
-      if (this._eventBroker != null && this._eventBroker.RemoveHandler(value))
-      {
-        this.Event_SafeEvent -= this._eventBroker.InvocationDelegate;
-      }
+      this._eventBroker?.RemoveHandler(value);
     }
   }
   private event EventHandler Event_Source
@@ -91,7 +78,7 @@ internal class TargetCode
       this.Event_Source -= value;
     }
   }
-  private void Event_Raise_SafeEvent( EventHandler handler, (object? sender, EventArgs e) args)
+  private void Event_Raise_SafeEvent(EventHandler handler, (object? sender, EventArgs e) args)
   {
     try
     {

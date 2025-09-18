@@ -192,8 +192,11 @@ public class ActionEventBrokerTests
             ActionEventBroker<EventHandler, (object? sender, EventArgs args)>.EnsureInitialized(
                 ref this._broker,
                 this,
-                ( h, i, args ) => ((TestClass)i).OnEventViaBroker( h, args ),
-                broker => ( sender, args ) => broker.Invoke( (sender, args) ) );
+                new ActionEventBrokerDelegateSet<EventHandler, (object? sender, EventArgs args)>(
+                    ( h, i, args ) => ((TestClass) i).OnEventViaBroker( h, args ),
+                    broker => ( sender, args ) => broker.Invoke( (sender, args) ),
+                    ( h, i ) => ((TestClass) i)._originalEvent += h,
+                    ( h, i ) => ((TestClass) i)._originalEvent -= h ) );
 #pragma warning restore CS0420 // A reference to a volatile field will not be treated as volatile
         }
 
@@ -201,17 +204,11 @@ public class ActionEventBrokerTests
         {
             add
             {
-                if (this._broker.AddHandler( value ))
-                {
-                    _originalEvent += this._broker.InvocationDelegate;
-                }
+                this._broker.AddHandler( value );
             }
             remove
             {
-                if (this._broker.RemoveHandler( value ))
-                {
-                    _originalEvent -= this._broker.InvocationDelegate;
-                }
+                this._broker?.RemoveHandler( value );
             }
         }
 

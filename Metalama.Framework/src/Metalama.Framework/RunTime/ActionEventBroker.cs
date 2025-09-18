@@ -13,66 +13,104 @@ namespace Metalama.Framework.RunTime;
 /// </summary>
 /// <typeparam name="TDelegate">The event delegate type.</typeparam>
 /// <typeparam name="TArgs">The event arguments type.</typeparam>
-public class ActionEventBroker<TDelegate, TArgs>
+public sealed class ActionEventBroker<TDelegate, TArgs>
     where TDelegate : Delegate
 {
     private readonly DelegateList<TDelegate, TArgs> _handlers;
     private readonly object _owner;
-    private readonly Func<ActionEventBroker<TDelegate, TArgs>, TDelegate> _toDelegate;
+    private readonly ActionEventBrokerDelegateSet<TDelegate, TArgs> _delegates;
     private TDelegate? _invocationDelegate;
 
     /// <summary>
     /// Gets a delegate that calls the <see cref="Invoke" /> method.
     /// </summary>
-    public TDelegate InvocationDelegate => this._invocationDelegate ??= this._toDelegate( this );
+    public TDelegate InvocationDelegate => this._invocationDelegate ??= this._delegates.ToDelegate( this );
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ActionEventBroker{TDelegate, TArgs}"/> class.
     /// </summary>
     /// <param name="owner">The object that owns this event broker.</param>
-    /// <param name="invoker">Delegate that defines how to invoke handlers.</param>
-    /// <param name="toDelegate">Delegate that converts this broker to the target delegate type.</param>
+    /// <param name="delegates">Delegates required for operation of this class.</param>
     private ActionEventBroker(
         object owner,
-        Action<TDelegate, object, TArgs> invoker, /* Static delegate */
-        Func<ActionEventBroker<TDelegate, TArgs>, TDelegate> toDelegate /* Static delegate */ )
+        ActionEventBrokerDelegateSet<TDelegate, TArgs> delegates)
     {
         this._owner = owner;
-        this._toDelegate = toDelegate;
-        this._handlers = new DelegateList<TDelegate, TArgs>( invoker );
+        this._delegates = delegates;
+        this._handlers = new();
     }
 
     /// <summary>
     /// Adds an event handler.
     /// </summary>
     /// <param name="handler">The handler to add.</param>
-    /// <returns><c>true</c> if this was the first handler added; otherwise, <c>false</c>.</returns>
-    public bool AddHandler( TDelegate? handler )
+    public void AddHandler( TDelegate? handler )
     {
         if ( handler != null )
         {
-            var isFirst = this._handlers.IsEmpty;
-            this._handlers.Add( handler );
-            return isFirst;
-        }
+            var lockTaken = false;
 
-        return false;
+            try
+            {
+                Monitor.TryEnter( this._handlers, EventBrokerServices.LockTimeout, ref lockTaken );
+
+                if ( !lockTaken )
+                {
+                    throw new TimeoutException( "Timeout waiting to acquire lock in ActionEventBroker. This indicates complex underlying event or a deadlock." );
+                }
+
+                var wasFirst = this._handlers.IsEmpty;
+                this._handlers.Add( handler );
+
+                if ( wasFirst )
+                {
+                    this._delegates.BaseAdd( this.InvocationDelegate, this._owner );
+                }
+            }
+            finally
+            {
+                if ( lockTaken )
+                {
+                    Monitor.Exit( this._handlers );
+                }
+            }
+        }
     }
 
     /// <summary>
     /// Removes an event handler.
     /// </summary>
     /// <param name="handler">The handler to remove.</param>
-    /// <returns><c>true</c> if no handlers remain after removal; otherwise, <c>false</c>.</returns>
-    public bool RemoveHandler( TDelegate? handler )
+    public void RemoveHandler( TDelegate? handler )
     {
         if ( handler != null )
         {
-            this._handlers.Remove( handler );
-            return this._handlers.IsEmpty;
-        }
+            var lockTaken = false;
 
-        return false;
+            try
+            {
+                Monitor.TryEnter( this._handlers, EventBrokerServices.LockTimeout, ref lockTaken );
+
+                if ( !lockTaken )
+                {
+                    throw new TimeoutException( "Timeout waiting to acquire lock in ActionEventBroker. This indicates complex underlying event or a deadlock." );
+                }
+
+                this._handlers.Remove( handler );
+
+                if ( this._handlers.IsEmpty )
+                {
+                    this._delegates.BaseRemove( this.InvocationDelegate, this._owner );
+                }
+            }
+            finally
+            {
+                if ( lockTaken )
+                {
+                    Monitor.Exit( this._handlers );
+                }
+            }
+        }
     }
 
     /// <summary>
@@ -81,7 +119,7 @@ public class ActionEventBroker<TDelegate, TArgs>
     /// <param name="args">The event arguments.</param>
     public void Invoke( TArgs args )
     {
-        this._handlers.Invoke( this._owner, args );
+        this._handlers.Invoke( this._delegates.Invoker, this._owner, args );
     }
 
     /// <summary>
@@ -97,16 +135,15 @@ public class ActionEventBroker<TDelegate, TArgs>
     /// </summary>
     /// <param name="field">The field to initialize.</param>
     /// <param name="owner">The event owner object.</param>
-    /// <param name="invokerDelegate">Delegate that defines how to invoke handlers.</param>
-    /// <param name="castDelegate">Delegate that converts the broker to the target delegate type.</param>
-    public static void EnsureInitialized( ref ActionEventBroker<TDelegate, TArgs>? field, object owner, Action<TDelegate, object, TArgs> invokerDelegate, Func<ActionEventBroker<TDelegate, TArgs>, TDelegate> castDelegate )
+    /// <param name="delegates">Delegates required for inner working of event brokers.</param>
+    public static void EnsureInitialized( ref ActionEventBroker<TDelegate, TArgs>? field, object owner, ActionEventBrokerDelegateSet<TDelegate, TArgs> delegates )
     {
         if ( field != null )
         {
             return;
         }
 
-        var newBroker = new ActionEventBroker<TDelegate, TArgs>( owner, invokerDelegate, castDelegate );
+        var newBroker = new ActionEventBroker<TDelegate, TArgs>( owner, delegates );
 
         Interlocked.CompareExchange( ref field, newBroker, null );
 

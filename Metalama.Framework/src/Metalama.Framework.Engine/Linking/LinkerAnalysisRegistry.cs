@@ -21,7 +21,7 @@ internal sealed class LinkerAnalysisRegistry
     private readonly IReadOnlyDictionary<InliningContextIdentifier, IReadOnlyDictionary<SyntaxNode, SyntaxNodeSubstitution>> _substitutions;
     private readonly HashSet<ISymbol> _overrideTargetsWithUnsupportedNonInlinedOverrides;
     private readonly IReadOnlyDictionary<IEventSymbol, EventBrokerInfo> _eventBrokers;
-    private readonly IReadOnlyDictionary<INamedTypeSymbol, IReadOnlyList<StaticDelegateInfo>> _staticDelegates;
+    private readonly IReadOnlyDictionary<INamedTypeSymbol, IReadOnlyList<StaticFieldInfo>> _staticDelegates;
     private readonly IReadOnlyDictionary<IntermediateSymbolSemantic<IEventSymbol>, EventBrokerTransformationInfo?> _eventBrokerSemanticIndex;
 
     public LinkerAnalysisRegistry(
@@ -31,7 +31,7 @@ internal sealed class LinkerAnalysisRegistry
         IReadOnlyDictionary<InliningContextIdentifier, IReadOnlyList<SyntaxNodeSubstitution>> substitutions,
         HashSet<ISymbol> overrideTargetsWithUnsupportedNonInlinedOverrides,
         IReadOnlyDictionary<IEventSymbol, EventBrokerInfo> eventBrokers,
-        IReadOnlyDictionary<INamedTypeSymbol, IReadOnlyList<StaticDelegateInfo>> staticDelegates,
+        IReadOnlyDictionary<INamedTypeSymbol, IReadOnlyList<StaticFieldInfo>> staticDelegates,
         IReadOnlyDictionary<IntermediateSymbolSemantic<IEventSymbol>, EventBrokerTransformationInfo?> eventBrokerSemanticIndex )
     {
         this._reachableSemantics = reachableSemantics;
@@ -110,14 +110,14 @@ internal sealed class LinkerAnalysisRegistry
         return this._eventBrokerSemanticIndex.TryGetValue( targetSemantic, out var eventBrokerInfo ) ? eventBrokerInfo : null;
     }
 
-    public IReadOnlyList<StaticDelegateInfo> GetStaticDelegateFields( INamedTypeSymbol type )
+    public IReadOnlyList<StaticFieldInfo> GetStaticDelegateFields( INamedTypeSymbol type )
     {
         if ( this._staticDelegates.TryGetValue( type, out var staticDelegateFields ) )
         {
             return staticDelegateFields;
         }
 
-        return ImmutableArray<StaticDelegateInfo>.Empty;
+        return ImmutableArray<StaticFieldInfo>.Empty;
     }
 
     public bool HasBaseSemanticReferences( ISymbol symbol ) => this.IsReachable( symbol.ToSemantic( IntermediateSymbolSemanticKind.Base ) );
