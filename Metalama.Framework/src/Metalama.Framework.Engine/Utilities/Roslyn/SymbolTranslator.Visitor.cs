@@ -83,7 +83,30 @@ internal sealed partial class SymbolTranslator
                 default:
                     if ( this._allowMultipleCandidates )
                     {
-                        return candidates[0];
+                        // If there are multiple candidates, try to match the order from the original compilation.
+                        // TODO: This matching expects the number of declarations to be the same.
+                        //       Ideally this should skip all introductions, but that requires integration with the caller.
+                        var originalCandidates = symbol.ContainingType.GetMembers( symbol.Name )
+                            .Where( m => m.Kind == symbol.Kind && StructuralSymbolComparer.ContainingDeclarationOblivious.Equals( m, symbol ) )
+                            .ToList();
+
+                        if ( originalCandidates.Count != candidates.Count )
+                        {
+                            // If there is different count, return just the first.
+                            return candidates[0];
+                        }
+                        else
+                        {
+                            for ( var i = 0; i < originalCandidates.Count; i++ )
+                            {
+                                if ( SymbolEqualityComparer.Default.Equals( originalCandidates[i], symbol ) )
+                                {
+                                    return candidates[i];
+                                }
+                            }
+
+                            return candidates[0];
+                        }
                     }
                     else
                     {
