@@ -82,7 +82,7 @@ internal sealed class TelemetryTestsPutMessageHandler : TestHttpMessageHandler
 
         foreach ( var header in requestMessage.Content.Headers )
         {
-            httpContext.Request.Headers.Add( header.Key, new StringValues( header.Value.ToArray() ) );
+            httpContext.Request.Headers.Append( header.Key, new StringValues( header.Value.ToArray() ) );
         }
 
         var stream = new MemoryStream();
