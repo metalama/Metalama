@@ -4,6 +4,8 @@
 
 using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Extensibility;
+using Metalama.Backstage.Utilities;
+using Metalama.Framework.Engine;
 using Microsoft.Build.Locator;
 using System;
 using System.Collections.Generic;
@@ -12,6 +14,7 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
 
 namespace Metalama.Framework.Workspaces;
 
@@ -51,28 +54,65 @@ internal static class MSBuildInitializer
         {
             _logger.Trace?.Log( $"Loaded assembly: '{assembly}' from '{assembly.Location}'." );
         }
-
-        var instances = new List<VisualStudioInstance>();
-
-        foreach ( var instance in MSBuildLocator.QueryVisualStudioInstances(
-                     new VisualStudioInstanceQueryOptions { DiscoveryTypes = DiscoveryType.DotNetSdk, WorkingDirectory = projectDirectory } ) )
+        
+        // We choose the .NET SDK using `dotnet --list-sdks` because MSBuildLocator does not find .NET SDKs installed 
+        // using dotnet-installer.ps1 on Docker.
+        if ( !ToolInvocationHelper.InvokeTool(
+                _logger,
+                "dotnet",
+                "--list-sdks",
+                Environment.CurrentDirectory,
+                out var exitCode,
+                out var sdkListString ) )
         {
-            _logger.Trace?.Log( $"Found {instance.Name} {instance.Version} at '{instance.MSBuildPath}'." );
-
-            instances.Add( instance );
+            throw new MSBuildInitializationException( $"`dotnet --list-sdks` failed with exit code {exitCode}." + Environment.NewLine + sdkListString );
         }
 
-        _visualStudioInstance = instances.OrderByDescending( i => i.Version )
-            .Where( HasMatchingProcessorArchitecture )
-            .FirstOrDefault();
+        var parseSdkList = new Regex( @"^(?<version>[0-9]+(?:\.[0-9]+)*(?:-[A-Za-z0-9\.]+)?)\s+\[(?<directory>[^\]]+)\]$", RegexOptions.Compiled );
 
-        if ( _visualStudioInstance == null )
+        var sdks = sdkListString.Split( '\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries )
+            .Select( x => parseSdkList.Match( x ) )
+            .Where( x => x.Success )
+            .Select( x => (Version: x.Groups["version"].Value, Directory: Path.Combine( x.Groups["directory"].Value, x.Groups["version"].Value )) )
+            .Select( x =>
+                         (IsParsed: Version.TryParse( x.Version.Split( '-' )[0], out var parsedVersion ), ParsedVersion: parsedVersion, x.Version,
+                          x.Directory) )
+            .Where( x => x.IsParsed )
+            .ToReadOnlyList();
+
+        var highestSdk = sdks
+            .Where( i => i.ParsedVersion.Major <= Environment.Version.Major )
+            .OrderByDescending( i => i.ParsedVersion )
+            .ThenBy( i => i.Version )
+            .FirstOrDefault( x => HasMatchingProcessorArchitecture( x.Directory ) );
+
+        if ( highestSdk.Directory == null )
         {
             throw new MSBuildInitializationException(
                 $"Cannot find a .NET SDK compatible with the current runtime (.NET {Environment.Version} {RuntimeInformation.RuntimeIdentifier}) for the project in '{projectDirectory}'. "
                 +
-                "Consider installing a compatible SDK, or run the process with a different runtime." ) { HasArchitectureMismatch = instances.Count > 0 };
+                "Consider installing a compatible SDK, or run the process with a different runtime." ) { HasArchitectureMismatch = sdks.Count > 0 };
         }
+
+        var constructor = typeof(VisualStudioInstance).GetConstructor(
+            BindingFlags.NonPublic | BindingFlags.Instance,
+            [
+                typeof(string), typeof(string), typeof(Version),
+                typeof(DiscoveryType)
+            ] );
+
+        if ( constructor == null )
+        {
+            throw new AssertionFailedException( $"Cannot find the internal constructor for {nameof(VisualStudioInstance)}." );
+        }
+
+        _visualStudioInstance = (VisualStudioInstance) constructor.Invoke(
+        [
+            $".NET SDK {highestSdk.Version}",
+            highestSdk.Directory,
+            highestSdk.ParsedVersion,
+            DiscoveryType.DotNetSdk
+        ] );
 
         _logger.Trace?.Log( $"Registering MSBuild instance {_visualStudioInstance.Name} {_visualStudioInstance.Version}." );
 
@@ -83,9 +123,9 @@ internal static class MSBuildInitializer
         AppDomain.CurrentDomain.FirstChanceException += OnFirstChanceException;
     }
 
-    private static bool HasMatchingProcessorArchitecture( VisualStudioInstance instance )
+    private static bool HasMatchingProcessorArchitecture( string directory )
     {
-        var versionFile = Path.Combine( instance.MSBuildPath, ".version" );
+        var versionFile = Path.Combine( directory, ".version" );
 
         if ( !File.Exists( versionFile ) )
         {
@@ -108,7 +148,7 @@ internal static class MSBuildInitializer
 
         if ( !string.Equals( platform, expectedPlatform, StringComparison.OrdinalIgnoreCase ) )
         {
-            _logger.Trace?.Log( $"The SDK '{instance.MSBuildPath}' is for platform '{platform}' instead of '{expectedPlatform}'." );
+            _logger.Trace?.Log( $"The SDK '{directory}' is for platform '{platform}' instead of '{expectedPlatform}'." );
 
             return false;
         }

@@ -232,7 +232,7 @@ namespace Metalama.Framework.Workspaces
 
             // We need to initialize MSBuild once per process. The initialization may depend on `global.json`.
             // In case we are using a single process to analyze projects with repos with different global.json,
-            // weird things may appear. Currently this case is not covered.
+            // weird things may appear. Currently, this case is not covered.
             if ( !MSBuildLocator.IsRegistered )
             {
                 MSBuildInitializer.Initialize( Path.GetDirectoryName( Path.GetFullPath( projects[0] ) )! );

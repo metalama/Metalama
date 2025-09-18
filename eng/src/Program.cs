@@ -21,7 +21,7 @@ var product = new Product( MetalamaDependencies.Metalama )
         Components =
         [
             new DotNetComponent( "9.0.305", DotNetComponentKind.Sdk ),
-            new DotNetComponent( "8.0.414", DotNetComponentKind.Sdk ),
+            new DotNetComponent( "8.0.20", DotNetComponentKind.AspNetCoreRuntime ),
             new VisualStudioBuildToolsComponent(
             [
                 "Microsoft.Net.Component.4.7.2.TargetingPack",
