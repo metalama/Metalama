@@ -44,8 +44,8 @@ RUN Invoke-WebRequest -Uri https://dot.net/v1/dotnet-install.ps1 -OutFile dotnet
     [Environment]::SetEnvironmentVariable('PATH', $newPath, 'Machine'); 
 
 
-# Install .NET AspNetCoreRuntime 8.0.20
-RUN powershell -ExecutionPolicy Bypass -File dotnet-install.ps1 -Version 8.0.20 -Runtime aspnetcore -InstallDir 'C:\Program Files\dotnet'; 
+# Install .NET Sdk 8.0.414
+RUN powershell -ExecutionPolicy Bypass -File dotnet-install.ps1 -Version 8.0.414 -InstallDir 'C:\Program Files\dotnet'; 
 
 
 # Install .NET Sdk 9.0.305

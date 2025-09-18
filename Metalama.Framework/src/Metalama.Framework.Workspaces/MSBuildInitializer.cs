@@ -90,7 +90,7 @@ internal static class MSBuildInitializer
         {
             throw new MSBuildInitializationException(
                 $"Cannot find a .NET SDK compatible with the current runtime (.NET {Environment.Version} {RuntimeInformation.RuntimeIdentifier}) for the project in '{projectDirectory}'. "
-                +
+                +$"Found the following SDKs: {string.Join( ",", sdks.Select( x => x.Version ) )}, but they not compatible with the current runtime." +
                 "Consider installing a compatible SDK, or run the process with a different runtime." ) { HasArchitectureMismatch = sdks.Count > 0 };
         }
 
