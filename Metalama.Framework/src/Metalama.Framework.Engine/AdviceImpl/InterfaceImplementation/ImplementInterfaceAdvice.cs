@@ -466,7 +466,7 @@ internal sealed partial class ImplementInterfaceAdvice : Advice<ImplementInterfa
 
                             void IntroduceMethod( bool isExplicit, bool isOverride )
                             {
-                                var isIteratorMethod = templateMethod?.IsIteratorMethod ?? redirectionTargetMethod.AssertNotNull().IsIteratorMethod() == true;
+                                var isIteratorMethod = templateMethod?.IsIteratorMethod ?? (redirectionTargetMethod.AssertNotNull().IsIteratorMethod() == true);
                                 var isVirtual = templateAttributeProperties?.IsVirtual ?? templateMethodDeclaration is { IsVirtual: true };
 
                                 var methodBuilder = this.GetImplMethodBuilder( targetType, interfaceMethod, isIteratorMethod, isExplicit, isVirtual, isOverride );

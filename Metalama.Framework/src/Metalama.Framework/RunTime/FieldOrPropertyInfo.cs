@@ -69,7 +69,7 @@ namespace Metalama.Framework.RunTime
         public Type ValueType
             => this.UnderlyingMemberInfo switch
             {
-                FieldInfo field => field.FieldType,
+                FieldInfo @field => @field.FieldType,
                 PropertyInfo property => property.PropertyType,
                 _ => throw new InvalidOperationException()
             };

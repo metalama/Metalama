@@ -48,7 +48,7 @@ namespace Metalama.Framework.Engine.Templating.MetaModel
             return TemplatingDiagnosticDescriptors.MetaMemberNotAvailable.CreateException(
                 (this._common.Template.GetDeclaration( this.Compilation ), "meta.Target." + memberName, this.Declaration,
                  this.Declaration.DeclarationKind,
-                 description ?? "I" + memberName, alternativeSuggestion) );
+                 description ?? ("I" + memberName), alternativeSuggestion) );
         }
 
         ICompilation IMetaTarget.Compilation => this.Compilation;

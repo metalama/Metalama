@@ -1,0 +1,12 @@
+<Project>
+    <PropertyGroup>
+        <SuppressNETCoreSdkPreviewMessage>True</SuppressNETCoreSdkPreviewMessage>
+
+        <!-- Disabling new features while the SDK is not stable:
+           - IDE0032: change to automatic property (with field keyword)
+           - IDE0031: simplify null-conditional assignment
+        -->
+        <NoWarn>$(NoWarn);IDE0032;IDE0031</NoWarn>
+
+    </PropertyGroup>
+</Project>

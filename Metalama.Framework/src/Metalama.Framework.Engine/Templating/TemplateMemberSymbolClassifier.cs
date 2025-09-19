@@ -6,7 +6,10 @@ using Metalama.Framework.Aspects;
 using Metalama.Framework.Engine.CompileTime;
 using Microsoft.CodeAnalysis;
 using System.Linq;
+
+#pragma warning disable CS0436 // .NET 10 SDK RC1 bug.
 using SymbolExtensions = Metalama.Framework.Engine.Utilities.Roslyn.SymbolExtensions;
+#pragma warning restore CS0436
 
 namespace Metalama.Framework.Engine.Templating;
 

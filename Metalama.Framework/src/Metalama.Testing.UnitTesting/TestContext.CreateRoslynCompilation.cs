@@ -77,7 +77,7 @@ public partial class TestContext
         ImmutableArray<string> implicitUsings = default,
         NullableContextOptions nullableContextOptions = NullableContextOptions.Enable,
         bool warnAsErrors = false )
-        => CSharpCompilation.Create( name ?? "test_" + RandomIdGenerator.GenerateId() )
+        => CSharpCompilation.Create( name ?? ("test_" + RandomIdGenerator.GenerateId()) )
             .WithOptions( this.GetCompilationOptions( outputKind, implicitUsings, nullableContextOptions, warnAsErrors ) )
             .AddReferences( metadataReferences );
 

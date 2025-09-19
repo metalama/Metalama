@@ -1,5 +1,7 @@
 <Project>
 
+    <Import Project="..\Directory.Build.props" />
+
     <PropertyGroup>
         <RepoDirectory>$(MSBuildThisFileDirectory)..\</RepoDirectory>
         <RepoKind>GitHub</RepoKind>

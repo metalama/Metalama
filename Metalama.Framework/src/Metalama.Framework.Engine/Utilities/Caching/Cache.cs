@@ -40,7 +40,7 @@ public abstract class Cache<TKey, TValue, TTag> : ICache<TKey, TValue>
         {
             var caches = this._caches;
 
-            return caches.Recent.Count + caches.Old?.Count ?? 0;
+            return (caches.Recent.Count + caches.Old?.Count) ?? 0;
         }
     }
 

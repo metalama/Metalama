@@ -21,7 +21,7 @@ var product = new Product( MetalamaDependencies.Metalama )
         Components =
         [
             // Must match global.json.
-            new DotNetComponent( "9.0.305", DotNetComponentKind.Sdk ),
+            new DotNetComponent( "10.0.100-rc.1.25451.107", DotNetComponentKind.Sdk ),
             
             // The runtime is required by all tests.
             // The SDK is required by the Workspace tests.
