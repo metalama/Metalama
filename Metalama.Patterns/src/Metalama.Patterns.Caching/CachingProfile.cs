@@ -88,7 +88,7 @@ public sealed class CachingProfile : ICacheItemConfiguration
     /// </summary>
     public bool OwnsBackend
     {
-        get => this._ownsBackend ?? this.BackendFactory != null;
+        get => this._ownsBackend ?? (this.BackendFactory != null);
         init => this._ownsBackend = value;
     }
 

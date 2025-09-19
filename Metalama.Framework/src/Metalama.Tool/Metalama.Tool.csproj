@@ -29,7 +29,6 @@
         <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
         <WarningLevel>4</WarningLevel>
         <PackAsTool>true</PackAsTool>
-        <PackageType>DotNetCliTool</PackageType>
         <ToolCommandName>metalama</ToolCommandName>
 		<PackageDescription>A Metalama command line tool. Used for registering a license key or accessing some configuration settings.</PackageDescription>
         <RollForward>Major</RollForward>
