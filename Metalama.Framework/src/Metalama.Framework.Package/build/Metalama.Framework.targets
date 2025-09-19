@@ -98,5 +98,17 @@
         <Error Text="The item '%(_InvalidPath.Identity)' has a FullPath containing an invalid character ('|' or ',')." 
             Condition="@(_InvalidPath->Count()) > 0" />
   </Target>
+
+   <Target Name="MetalamaCheckLangVersion" BeforeTargets="CoreCompile">
+    <Warning
+      Text="The C# language version of the current project was updated from $(_LangVersionBeforeMetalamaFix) to $(LangVersion), because that is the lowest version supported by Metalama Framework. To hide this warning, set &lt;LangVersion&gt; to at least $(LangVersion) in your project file." 
+       Condition="'$(_LangVersionBeforeMetalamaFix)' != ''"
+      />
+
+    <Error  Text="The 'preview' C# version is not supported by Metalama. Change the language version to 'latest'."
+        Condition="'$(LangVersion)'=='preview'"
+    />
+
+  </Target>
     
 </Project>

@@ -4,7 +4,6 @@
     <TargetFrameworks>net4.8;net8.0-windows</TargetFrameworks>
     <ImplicitUsings>disable</ImplicitUsings>
 	  <Nullable>enable</Nullable>
-	  <LangVersion>10.0</LangVersion>
   </PropertyGroup>
 
   <ItemGroup>

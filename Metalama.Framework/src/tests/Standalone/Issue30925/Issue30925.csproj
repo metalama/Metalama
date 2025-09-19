@@ -6,7 +6,6 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <MetalamaAllowPreviewLanguageFeatures>True</MetalamaAllowPreviewLanguageFeatures>
-    <LangVersion>preview</LangVersion>
   </PropertyGroup>
 
   <ItemGroup>
