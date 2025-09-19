@@ -4,6 +4,7 @@
 
 using JetBrains.Annotations;
 using Metalama.Framework.Engine.CompileTime;
+using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis.CSharp;
 using System.Collections.Immutable;
 using System.Linq;
@@ -54,7 +55,7 @@ public static class SupportedCSharpVersions
         LanguageVersion.CSharp11,
         LanguageVersion.CSharp10 );
 
-    internal static string[] FormatSupportedVersions() => All.SelectAsArray( x => x.ToDisplayString() );
+    internal static string[] FormatSupportedVersions() => All.SelectAsArray( x => x.ToDisplayStringSafe() );
 
     /// <summary>
     /// Gets the default parse options.

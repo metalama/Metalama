@@ -32,6 +32,17 @@
 
     </PropertyGroup>
 
+      <!-- The LangVersionImplicitlySet property is set by Metalama.Compiler when LangVersion is not defined, according to the current target framework.
+         We change this value to our own lowest supported version. 
+        -->
+    <PropertyGroup Condition="'$(LangVersionImplicitlySet)'=='True' AND '$(LangVersion)'!='12.0' AND '$(LangVersion)'!='13.0' AND '$(LangVersion)'!='14.0' AND '$(LangVersion)'!='default' AND '$(LangVersion)'!='latest' AND '$(LangVersion)'!='latestMajor' AND '$(LangVersion)'!='preview'">
+        <_LangVersionBeforeMetalamaFix>$(LangVersion)</_LangVersionBeforeMetalamaFix>
+        <LangVersion>12.0</LangVersion>
+    </PropertyGroup>
+
+
+
+
 
     <ItemGroup Condition="'$(MetalamaCompileTimeProject)'=='True'">
         <AssemblyAttributes Include="Metalama.Framework.Aspects.CompileTimeAttribute"/>
@@ -101,14 +112,9 @@
 
    <Target Name="MetalamaCheckLangVersion" BeforeTargets="CoreCompile">
     <Warning
-      Text="The C# language version of the current project was updated from $(_LangVersionBeforeMetalamaFix) to $(LangVersion), because that is the lowest version supported by Metalama Framework. To hide this warning, set &lt;LangVersion&gt; to at least $(LangVersion) in your project file." 
+      Text="The C# language version of the current project was updated from $(_LangVersionBeforeMetalamaFix) to $(LangVersion) despite the project targeting $(TargetFramework) because $(LangVersion) is the lowest version supported by Metalama Framework. To use C# $(LangVersion) features in $(TargetFramework), add a package like Polyfill. To suppress this warning, set &lt;LangVersion&gt; to at least $(LangVersion) in your project file." 
        Condition="'$(_LangVersionBeforeMetalamaFix)' != ''"
       />
-
-    <Error  Text="The 'preview' C# version is not supported by Metalama. Change the language version to 'latest'."
-        Condition="'$(LangVersion)'=='preview'"
-    />
-
   </Target>
     
 </Project>

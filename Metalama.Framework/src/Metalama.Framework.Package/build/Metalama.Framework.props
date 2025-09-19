@@ -51,20 +51,5 @@
         <MetalamaTransformedCodeAnalyzer Include="Metalama.Framework.CompilerExtensions.MetalamaGeneratedCodeAnalyzer" />
     </ItemGroup>
 
-    <Choose>
-        <When Condition="'$(LangVersion)' == ''">
-            <PropertyGroup>
-                <LangVersion>latest</LangVersion>
-            </PropertyGroup>
-        </When>
-        <When Condition="'$(LangVersion)'!='12.0' AND '$(LangVersion)'!='13.0' AND '$(LangVersion)'!='14.0' AND '$(LangVersion)'!='default' AND '$(LangVersion)'!='latest' AND '$(LangVersion)'!='latestMajor' AND '$(LangVersion)'!='preview'">
-            <PropertyGroup>
-                <_LangVersionBeforeMetalamaFix>$(LangVersion)</_LangVersionBeforeMetalamaFix>
-                <LangVersion>12.0</LangVersion>
-            </PropertyGroup>
-        </When>
-  </Choose>
-
-
-
+  
 </Project>
