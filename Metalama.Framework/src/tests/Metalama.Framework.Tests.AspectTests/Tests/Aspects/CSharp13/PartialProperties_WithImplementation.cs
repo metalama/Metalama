@@ -9,7 +9,6 @@
 #if ROSLYN_4_12_0_OR_GREATER
 
 using Metalama.Framework.Aspects;
-using Metalama.Framework.Code;
 using System;
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.CSharp13.PartialProperties_WithImplementation;
@@ -34,22 +33,22 @@ public class TheAspect : OverrideFieldOrPropertyAspect
 }
 
 // <target>
-partial class Target
+internal partial class Target
 {
     [TheAspect]
-    partial int P1 { get; set; }
+    private partial int P1 { get; set; }
 
-    partial int P1 { get => 0; set => throw new Exception(); }
+    private partial int P1 { get => 0; set => throw new Exception(); }
 
-    partial int P2 { get; set; }
-
-    [TheAspect]
-    partial int P2 { get => 0; set => throw new Exception(); }
+    private partial int P2 { get; set; }
 
     [TheAspect]
-    partial int P3 { get; }
+    private partial int P2 { get => 0; set => throw new Exception(); }
 
-    partial int P3 { get => 0; }
+    [TheAspect]
+    private partial int P3 { get; }
+
+    private partial int P3 { get => 0; }
 
 }
 

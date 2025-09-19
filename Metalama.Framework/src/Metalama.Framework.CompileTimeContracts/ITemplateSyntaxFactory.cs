@@ -71,17 +71,17 @@ public interface ITemplateSyntaxFactory
     TypedExpressionSyntax GetTypedExpression( IExpression expression );
 
     TypedExpressionSyntax RunTimeExpression( ExpressionSyntax syntax, string? type = null );
-    
+
     // This is to easily work around errors when we emit a redundant call to RunTimeExpression.
     [PublicAPI]
     TypedExpressionSyntax RunTimeExpression( IUserExpression syntax, string? type = null );
 
     ExpressionSyntax ConvertToExpressionSyntax( object value );
-    
+
     IUserExpression GetUserExpression( object expression );
 
     ExpressionSyntax SuppressNullableWarningExpression( ExpressionSyntax operand, string? type = null );
-    
+
     IUserExpression SuppressNullableWarningUserExpression( object operand, string? type = null );
 
     ExpressionSyntax ConditionalAccessExpression( ExpressionSyntax expression, ExpressionSyntax whenNotNullExpression );
@@ -117,4 +117,8 @@ public interface ITemplateSyntaxFactory
     IExpression DefineLocalVariable( List<StatementOrTrivia> statementList, string name, ExpressionSyntax expression );
 
     IExpression DefineLocalVariable( List<StatementOrTrivia> statementList, string name, IExpression expression );
+
+    string EscapeIdentifier( string name );
+
+    SyntaxToken EscapeIdentifier( SyntaxToken token );
 }

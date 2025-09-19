@@ -5,7 +5,6 @@
 // This test verifies that there is no error when writing the HTML file for an introduced syntax tree,
 // but it does not test the HTML itself.
 
-using System;
 using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;

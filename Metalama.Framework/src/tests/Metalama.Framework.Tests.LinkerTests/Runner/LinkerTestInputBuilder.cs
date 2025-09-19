@@ -124,7 +124,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
                     var node = this._syntaxNodeMap.AssertNotNull()[nodeId] switch
                     {
                         MemberDeclarationSyntax memberDeclaration => memberDeclaration,
-                        VariableDeclaratorSyntax variableDeclaration => (MemberDeclarationSyntax) variableDeclaration.Parent.Parent,
+                        VariableDeclaratorSyntax variableDeclaration => (MemberDeclarationSyntax) variableDeclaration.Parent.AssertNotNull().Parent.AssertNotNull(),
                         _ => throw new AssertionFailedException( $"Unsupported." ),
                     };
 

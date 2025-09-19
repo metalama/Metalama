@@ -2,8 +2,6 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using System.Runtime.Serialization;
-
 namespace Flashtrace;
 
 /// <summary>
@@ -13,7 +11,6 @@ namespace Flashtrace;
 /// Throw <see cref="FlashtraceAssertionFailedException"/> instead of using <see cref="System.Diagnostics.Debug"/>
 /// assert methods so that the compiler can track execution flow.
 /// </remarks>
-[Serializable]
 public sealed class FlashtraceAssertionFailedException : ApplicationException
 {
     /// <summary>
@@ -30,8 +27,4 @@ public sealed class FlashtraceAssertionFailedException : ApplicationException
     /// Initializes a new instance of the <see cref="FlashtraceAssertionFailedException"/> class specifying the error message and the inner <see cref="Exception"/>.
     /// </summary>
     public FlashtraceAssertionFailedException( string message, Exception inner ) : base( message, inner ) { }
-
-    private FlashtraceAssertionFailedException(
-        SerializationInfo info,
-        StreamingContext context ) : base( info, context ) { }
 }

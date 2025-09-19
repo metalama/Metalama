@@ -3,9 +3,10 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Code;
+using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.Aspects;
-using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 using Metalama.Framework.Engine.CodeModel.Helpers;
+using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 using Metalama.Framework.Engine.Transformations;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -23,8 +24,8 @@ internal class TestIntroduceDeclarationTransformation : TestTransformationBase, 
     public DeclarationBuilderData DeclarationBuilderData { get; }
 
     public TestIntroduceDeclarationTransformation(
-        AspectLayerInstance aspectLayerInstance, 
-        InsertPosition insertPosition, 
+        AspectLayerInstance aspectLayerInstance,
+        InsertPosition insertPosition,
         DeclarationBuilderData declarationBuilderData,
         MemberDeclarationSyntax syntax )
         : base( aspectLayerInstance, insertPosition )
@@ -35,12 +36,18 @@ internal class TestIntroduceDeclarationTransformation : TestTransformationBase, 
 
     public override TransformationObservability Observability => TransformationObservability.Always;
 
-    public override SyntaxTree TransformedSyntaxTree => this.DeclarationBuilderData.ContainingDeclaration.GetPrimaryDeclarationSyntax().SyntaxTree;
+    public override SyntaxTree TransformedSyntaxTree
+        => this.DeclarationBuilderData.ContainingDeclaration.GetPrimaryDeclarationSyntax().AssertNotNull().SyntaxTree;
 
     public override IRef<IDeclaration> TargetDeclaration => this.DeclarationBuilderData.ToFullRef();
 
     public override IEnumerable<InjectedMember> GetInjectedMembers( MemberInjectionContext context )
     {
-        yield return new InjectedMember( this, this._syntax, this.AspectLayerId, InjectedMemberSemantic.Introduction, this.DeclarationBuilderData.ContainingDeclaration );
+        yield return new InjectedMember(
+            this,
+            this._syntax,
+            this.AspectLayerId,
+            InjectedMemberSemantic.Introduction,
+            this.DeclarationBuilderData.ContainingDeclaration );
     }
 }

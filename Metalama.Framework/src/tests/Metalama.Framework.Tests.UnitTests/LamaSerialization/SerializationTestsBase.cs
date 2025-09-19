@@ -11,6 +11,7 @@ using Metalama.Framework.Services;
 using Metalama.Testing.UnitTesting;
 using System;
 using System.Collections;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Runtime.CompilerServices;
 using Xunit;
@@ -48,7 +49,7 @@ namespace Metalama.Framework.Tests.UnitTests.LamaSerialization
             string code,
             [CallerFilePath] string? callerFile = null,
             [CallerMemberName] string? callerMemberName = null )
-            => (SerializationTestContext) base.CreateTestContext( new SerializationTestContextOptions { Code = code }, null, callerFile, callerMemberName );
+            => (SerializationTestContext) this.CreateTestContext( new SerializationTestContextOptions { Code = code }, null, callerFile, callerMemberName );
 
         // ReSharper restore ExplicitCallerInfoArgument
 
@@ -59,6 +60,7 @@ namespace Metalama.Framework.Tests.UnitTests.LamaSerialization
             return TestSerialization( testContext, instance, assert, testEquality );
         }
 
+        [return:NotNullIfNotNull(nameof(instance))]
         protected static T? TestSerialization<T>(
             SerializationTestContext testContext,
             T? instance,

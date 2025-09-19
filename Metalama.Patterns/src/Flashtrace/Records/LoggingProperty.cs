@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using JetBrains.Annotations;
-using System.Runtime.Serialization;
 
 namespace Flashtrace.Records;
 
@@ -43,12 +42,6 @@ public sealed class LoggingProperty
             }
         }
     }
-
-    /// <summary>
-    /// Gets or sets the formatter used to render the <see cref="Value"/> as a string. By default, the default formatter
-    /// for the property value type is used.
-    /// </summary>
-    public IFormatter? Formatter { get; set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether the property will be included in the log message. The default value is <c>false</c>.

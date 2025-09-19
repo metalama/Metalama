@@ -17,6 +17,7 @@ using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.Templating;
 using Metalama.Framework.Engine.Transformations;
 using Metalama.Framework.Engine.Utilities;
+using Metalama.Framework.Engine.Utilities.Roslyn;
 using Metalama.Framework.Engine.Utilities.Threading;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -52,7 +53,7 @@ public class CompileTimeAspectPipeline : AspectPipeline
         // in other pipelines.
 
         var languageVersion = ((CSharpParseOptions?) compilation.SyntaxTrees.FirstOrDefault()?.Options)?.LanguageVersion.MapSpecifiedToEffectiveVersion()
-                              ?? SupportedCSharpVersions.Default;
+                              ?? SupportedCSharpVersions.Latest;
 
         if ( languageVersion == LanguageVersion.Preview )
         {
@@ -71,7 +72,7 @@ public class CompileTimeAspectPipeline : AspectPipeline
             diagnosticAdder.Report(
                 GeneralDiagnosticDescriptors.CSharpVersionNotSupported.CreateRoslynDiagnostic(
                     null,
-                    (languageVersion.ToDisplayString(), "LangVersion", SupportedCSharpVersions.FormatSupportedVersions()) ) );
+                    (languageVersion.ToDisplayStringSafe(), "LangVersion", SupportedCSharpVersions.FormatSupportedVersions()) ) );
 
             return false;
         }

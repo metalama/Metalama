@@ -2,7 +2,6 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using Metalama.Backstage.Infrastructure;
 using Metalama.Backstage.Utilities;
 using Metalama.Framework.Engine.Pipeline;
 using Metalama.Framework.Engine.Services;
@@ -27,7 +26,7 @@ namespace Metalama.Framework.Tests.UnitTests.SyntaxSerialization
 
             void WriteFile( string name, string text ) => File.WriteAllText( Path.Combine( dir, name ), text );
 
-            GlobalJsonHelper.WriteCurrentVersion( dir, serviceProvider.GetRequiredBackstageService<IPlatformInfo>() );
+            GlobalJsonHelper.WriteCurrentVersion( dir, null );
 
             var metadataReader = AssemblyMetadataReader.GetInstance( typeof(AspectPipeline).Assembly );
 

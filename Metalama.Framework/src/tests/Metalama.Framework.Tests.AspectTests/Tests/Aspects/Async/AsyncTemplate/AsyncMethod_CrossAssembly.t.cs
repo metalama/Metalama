@@ -1,12 +1,12 @@
-class TargetCode
+internal class TargetCode
 {
   [Aspect]
-  int NormalMethod(int a)
+  private int NormalMethod(int a)
   {
     return a;
   }
   [Aspect]
-  async Task<int> AsyncTaskResultMethod(int a)
+  private async Task<int> AsyncTaskResultMethod(int a)
   {
     await global::System.Threading.Tasks.Task.Yield();
     var result = await this.AsyncTaskResultMethod_Source(a);
@@ -19,7 +19,7 @@ class TargetCode
     return a;
   }
   [Aspect]
-  async Task AsyncTaskMethod()
+  private async Task AsyncTaskMethod()
   {
     await global::System.Threading.Tasks.Task.Yield();
     await this.AsyncTaskMethod_Source();

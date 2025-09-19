@@ -1,5 +1,4 @@
 using System;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code.SyntaxBuilders;
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Misc.Issue31089;

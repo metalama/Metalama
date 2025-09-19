@@ -8,16 +8,16 @@ using static Metalama.Framework.Tests.LinkerTests.Tests.Api;
 namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Overrides.TemplateBody.LocalFunction_ComplexFlow
 {
     // <target>
-    class TargetClass
+    internal class TargetClass
     {
-        int Method(int x)
+        private int Method(int x)
         {
             Console.WriteLine("Original Begin");
             return x + 1;
         }
 
         [PseudoOverride( nameof(Method), "TestAspect1")]
-        int Method_Override1(int x)
+        private int Method_Override1(int x)
         {
             Console.WriteLine("Override1 Begin");
 
@@ -35,7 +35,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Overrides.TemplateB
                 Console.WriteLine("Override1 Local Function Begin");
                 if (x > 0)
                 {
-                    return link(_this.Method, inline)(x); ;
+                    return Link(This.Method, Inline)(x); ;
                 }
 
                 Console.WriteLine("Override1 Local Function End");
@@ -44,7 +44,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Overrides.TemplateB
         }
 
         [PseudoOverride(nameof(Method), "TestAspect2")]
-        int Method_Override2(int x)
+        private int Method_Override2(int x)
         {
             Console.WriteLine("Override2 Begin");
 
@@ -62,7 +62,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Overrides.TemplateB
                 Console.WriteLine("Override2 Local Function Begin");
                 if (x > 0)
                 {
-                    return link(_this.Method, inline)(x);
+                    return Link(This.Method, Inline)(x);
                 }
 
                 Console.WriteLine("Override2 Local Function End");

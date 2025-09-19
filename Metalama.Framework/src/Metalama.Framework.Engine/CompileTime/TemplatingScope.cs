@@ -2,11 +2,22 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+#pragma warning disable SA1209
+global using TemplatingScopeAndRule =
+    ( Metalama.Framework.Engine.CompileTime.TemplatingScope Scope, Metalama.Framework.Engine.CompileTime.TemplatingRule Rule );
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Engine.Templating;
 
 namespace Metalama.Framework.Engine.CompileTime
 {
+    internal enum TemplatingRule
+    {
+        Default,
+        WellKnown,
+        Other,
+        Attribute
+    }
+
     /// <summary>
     /// Defines where a symbol or an expression can be used, i.e. in compile-time code, in run-time code, or both.
     /// </summary>

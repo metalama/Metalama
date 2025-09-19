@@ -34,7 +34,7 @@ internal sealed partial class RoslynVersionSyntaxVerifier : SafeSyntaxWalker
         this._diagnostics.Report(
             TemplatingDiagnosticDescriptors.TemplateUsesUnsupportedLanguageVersion.CreateRoslynDiagnostic(
                 node.GetLocation(),
-                this.MaximalAcceptableLanguageVersion.ToDisplayString() ) );
+                this.MaximalAcceptableLanguageVersion.ToDisplayStringSafe() ) );
     }
 
     // ReSharper disable once UnusedMember.Local

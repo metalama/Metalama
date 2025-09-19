@@ -4,7 +4,7 @@
     
     <PropertyGroup>
         <!-- We are targeting .NET 6.0 because we can provide an unloadable implementation of CompileTimeDomain. -->
-        <TargetFrameworks>net472;net6.0</TargetFrameworks>
+        <TargetFrameworks>net472;net8.0</TargetFrameworks>
         <!-- Packaging -->
         <Description>Test framework for Metalama aspects and fabrics. This is not your typical test framework. When referencing this package, every _file_ is turned into a test by default. Please read the documentation before use.</Description>
         

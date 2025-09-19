@@ -5,13 +5,11 @@
     <Import Project="../../build/RoslynVersion/Latest.imports" />
     
     <PropertyGroup>
-        <TargetFrameworks>net472;net6.0</TargetFrameworks>
+        <TargetFrameworks>net472;net8.0</TargetFrameworks>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <MetalamaCompilerDisablePackCustomization>True</MetalamaCompilerDisablePackCustomization>
         <UseMetalamaCompiler>Private</UseMetalamaCompiler>
         <AssemblyName>Metalama.Framework.Engine.$(ThisRoslynVersionNoPreview)</AssemblyName>
-        <!-- We need to pack Metalama.SystemTypes.dll because the test projects will not include it if they do not target .NET Standard 2.0 themselves. -->
-        <PackMetalamaSystemTypes>True</PackMetalamaSystemTypes>
         <!-- Packaging -->
         <IsPackable>False</IsPackable>
 
@@ -27,11 +25,6 @@
             <LogicalName>Metalama.Framework.dll</LogicalName>
         </EmbeddedResource>
 
-        <!-- Metalama.Framework depends on Metalama.SystemTypes, so we have to embed that as well. -->
-        <EmbeddedResource Include="../Metalama.SystemTypes/bin/$(Configuration)/netstandard2.0/Metalama.SystemTypes.dll">
-            <LogicalName>Metalama.SystemTypes.dll</LogicalName>
-        </EmbeddedResource>
-        
         <!-- We also embed the self-contained build of Metalama.Compiler.Interface.dll because at run-time, this project
             may receive the build containing forwarders (this happens in Metalama.Try). However, we need to compile against
             the self-contained version. -->
@@ -71,7 +64,6 @@
         <PackageReference Include="Microsoft.CSharp" />
         <PackageReference Include="Newtonsoft.Json" NoWarn="NU1903" />
         <PackageReference Include="System.Reflection.Emit" />
-        <PackageReference Include="System.Runtime.Serialization.Formatters" />
     </ItemGroup>
 
     <ItemGroup>

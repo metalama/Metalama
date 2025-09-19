@@ -2,9 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
-using Metalama.Framework.Code;
 
 namespace Metalama.Framework.IntegrationTests.Aspects.CodeModel.Cast
 {
@@ -14,7 +12,7 @@ namespace Metalama.Framework.IntegrationTests.Aspects.CodeModel.Cast
         {
             var castNull = meta.Cast( meta.Target.Method.ReturnType, null );
             var castParam = meta.Cast( meta.Target.Method.ReturnType, (object?)meta.Target.Parameters[0].Value );
-            var castLiteral = meta.Cast( ( (IParameter)meta.Target.Method.Parameters[1] ).Type, 1 );
+            var castLiteral = meta.Cast( meta.Target.Method.Parameters[1].Type, 1 );
 
             return default;
         }

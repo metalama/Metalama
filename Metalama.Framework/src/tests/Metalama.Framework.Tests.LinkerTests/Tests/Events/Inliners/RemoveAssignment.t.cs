@@ -1,6 +1,6 @@
 public class Target
 {
-  private EventHandler? field;
+  private EventHandler? _field;
   public event EventHandler? Foo
   {
     add
@@ -10,7 +10,7 @@ public class Target
     {
       Console.WriteLine("Before");
       Console.WriteLine("Original");
-      this.field -= value;
+      this._field -= value;
       Console.WriteLine("After");
     }
   }

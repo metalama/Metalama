@@ -6,10 +6,10 @@ using Metalama.Framework.Aspects;
 
 namespace Metalama.Framework.Tests.AspectTests.TestInputs.Highlighting.IfStatements.TemplateKeywords
 {
-    class Aspect : IAspect
+    internal class Aspect : IAspect
     {
         [Template]
-        dynamic? Template()
+        private dynamic? Template()
         {
             meta.CompileTime( 0 );
             meta.CompileTime<long>( 0 );

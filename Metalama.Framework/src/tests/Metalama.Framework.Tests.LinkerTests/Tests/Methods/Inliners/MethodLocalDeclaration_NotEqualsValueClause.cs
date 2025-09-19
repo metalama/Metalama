@@ -8,19 +8,19 @@ using static Metalama.Framework.Tests.LinkerTests.Tests.Api;
 namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Inliners.MethodLocalDeclaration_NotEqualsValueClause
 {
     // <target>
-    class Target
+    internal class Target
     {
-        int Foo()
+        private int Foo()
         {
             Console.WriteLine( "Original");
             return 42;
         }
 
         [PseudoOverride( nameof(Foo),"TestAspect")]
-        int Foo_Override()
+        private int Foo_Override()
         {
             Console.WriteLine( "Before");
-            var (x, y) = (0, link( _this.Foo, inline)());
+            var (x, y) = (0, Link( This.Foo, Inline)());
             Console.WriteLine( "After");
             return x;
         }

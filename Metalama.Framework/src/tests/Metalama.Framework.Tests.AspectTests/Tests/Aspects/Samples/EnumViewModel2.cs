@@ -93,11 +93,11 @@ public class EnumViewModelAttribute : TypeAspect
     {
         get
         {
-            var field = (IField)meta.Tags["member"]!;
+            var @field = (IField)meta.Tags["member"]!;
 
             // Note that the next line does not work for the "zero" flag, but currently Metalama does not expose the constant value of the enum
             // member so we cannot test its value at compile time.
-            return ( meta.This._value & field.Value ) == ( (IField)meta.Tags["member"]! ).Value;
+            return ( meta.This._value & @field.Value ) == ( (IField)meta.Tags["member"]! ).Value;
         }
     }
 

@@ -22,6 +22,7 @@ public static class MSBuildPropertyNames
     public const string MetalamaUserCodeTrusted = nameof(MetalamaUserCodeTrusted);
     public const string MSBuildProjectFullPath = nameof(MSBuildProjectFullPath);
     public const string TargetFramework = nameof(TargetFramework);
+    public const string LangVersion = nameof(LangVersion);
     public const string NuGetTargetMoniker = nameof(NuGetTargetMoniker);
     public const string Configuration = nameof(Configuration);
     public const string MetalamaDesignTimeEnabled = nameof(MetalamaDesignTimeEnabled);
@@ -61,6 +62,7 @@ public static class MSBuildPropertyNames
         MetalamaUserCodeTrusted,
         MSBuildProjectFullPath,
         TargetFramework,
+        LangVersion,
         NuGetTargetMoniker,
         Configuration,
         MetalamaDesignTimeEnabled,

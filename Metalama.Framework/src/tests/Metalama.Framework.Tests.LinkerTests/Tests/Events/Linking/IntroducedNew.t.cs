@@ -1,6 +1,6 @@
-class Target : Base
+internal class Target : Base
 {
-  public event System.EventHandler Foo
+  public event EventHandler Foo
   {
     add
     {
@@ -11,7 +11,7 @@ class Target : Base
       this.Foo_Override6 -= value;
     }
   }
-  private event System.EventHandler Bar_Override1_1
+  private event EventHandler Bar_Override1_1
   {
     add
     {
@@ -36,7 +36,7 @@ class Target : Base
       this.Bar -= value;
     }
   }
-  private event System.EventHandler Bar_Override1_2
+  private event EventHandler Bar_Override1_2
   {
     add
     {
@@ -61,7 +61,7 @@ class Target : Base
       this.Bar -= value;
     }
   }
-  private event System.EventHandler Bar_Override3_1
+  private event EventHandler Bar_Override3_1
   {
     add
     {
@@ -86,7 +86,7 @@ class Target : Base
       this.Bar -= value;
     }
   }
-  private event System.EventHandler Bar_Override3_2
+  private event EventHandler Bar_Override3_2
   {
     add
     {
@@ -111,7 +111,7 @@ class Target : Base
       this.Bar -= value;
     }
   }
-  private event System.EventHandler Bar_Override5_1
+  private event EventHandler Bar_Override5_1
   {
     add
     {
@@ -136,7 +136,7 @@ class Target : Base
       this.Bar -= value;
     }
   }
-  private event System.EventHandler Bar_Override5_2
+  private event EventHandler Bar_Override5_2
   {
     add
     {
@@ -161,7 +161,7 @@ class Target : Base
       this.Bar -= value;
     }
   }
-  public event System.EventHandler Foo_Override0
+  public event EventHandler Foo_Override0
   {
     add
     {
@@ -186,7 +186,7 @@ class Target : Base
       this.Bar -= value;
     }
   }
-  public event System.EventHandler Foo_Override2
+  public event EventHandler Foo_Override2
   {
     add
     {
@@ -211,7 +211,7 @@ class Target : Base
       this.Bar -= value;
     }
   }
-  public event System.EventHandler Foo_Override4
+  public event EventHandler Foo_Override4
   {
     add
     {
@@ -236,7 +236,7 @@ class Target : Base
       this.Bar -= value;
     }
   }
-  public event System.EventHandler Foo_Override6
+  public event EventHandler Foo_Override6
   {
     add
     {
@@ -261,7 +261,7 @@ class Target : Base
       this.Bar -= value;
     }
   }
-  public new event System.EventHandler Bar
+  public new event EventHandler Bar
   {
     add
     {

@@ -60,8 +60,8 @@ public class SideBySideVersionTestsBase( ITestOutputHelper logger ) : DesignTime
             projectReferences: ["master"],
             preprocessorSymbols: ["METALAMA"] );
 
-        var dependentCompilation = await workspaceProvider.GetCompilationAsync( dependentProjectKey );
-        var dependentCodeSyntaxTree = await workspaceProvider.GetDocument( "dependent", "dependent.cs" ).GetSyntaxTreeAsync();
+        var dependentCompilation = (await workspaceProvider.GetCompilationAsync( dependentProjectKey ))!;
+        var dependentCodeSyntaxTree = (await workspaceProvider.GetDocument( "dependent", "dependent.cs" ).GetSyntaxTreeAsync())!;
 
         return (currentVersionPipelineFactory, dependentCompilation, dependentCodeSyntaxTree);
     }

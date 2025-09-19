@@ -1,5 +1,5 @@
 [Aspect]
-class Target
+internal class Target
 {
   public void ConditionFalse()
   {
@@ -7,13 +7,13 @@ class Target
   public void ConditionTrue()
   {
     LocalFunction();
-    void LocalFunction()
+    static void LocalFunction()
     {
     }
   }
   public global::System.Int32 Loop()
   {
-    int sum = 0;
+    var sum = 0;
     sum += LocalFunction();
     int LocalFunction() => 0;
     sum += LocalFunction_1();

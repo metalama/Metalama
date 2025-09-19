@@ -1,5 +1,5 @@
 [TheAspect]
-static class Target
+internal static class Target
 {
   private static void ExtensionMethodTemplate(this global::System.Object self)
   {

@@ -52,7 +52,7 @@ public abstract class BaseClass : ISomeInterface { }
 
 public interface ISomeInterface
 {
-    public interface INested { }
+    interface INested { }
 }
 
 public interface ISomeInterface<T> { }

@@ -102,9 +102,9 @@ public interface IPropertyStore
 
 public interface IInterceptor
 {
-    public T Invoke<T>( Func<T> next );
+    T Invoke<T>( Func<T> next );
 
-    public void Invoke( Action next );
+    void Invoke( Action next );
 }
 
 // <target>

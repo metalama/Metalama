@@ -63,11 +63,11 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Bugs.Bug31218
             }
 
             foreach (var property in builder.Target.Properties.Where(
-                         p => !p.IsImplicitlyDeclared && (
-                             ( p.Accessibility == Accessibility.Public || p.Accessibility == Accessibility.Protected
+                         p => !p.IsImplicitlyDeclared 
+                         &&  ( p.Accessibility == Accessibility.Public || p.Accessibility == Accessibility.Protected
                                                                        || p.IsExplicitInterfaceImplementation )
                              && !p.Type.IsNullable.GetValueOrDefault()
-                             && p.Type.IsReferenceType.GetValueOrDefault() ) )
+                             && p.Type.IsReferenceType.GetValueOrDefault() ) 
                     )
             {
                 builder.With( property )

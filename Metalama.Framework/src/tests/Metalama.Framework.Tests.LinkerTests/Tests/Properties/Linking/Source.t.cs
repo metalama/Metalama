@@ -1,4 +1,4 @@
-class Target
+internal class Target
 {
   public int Foo
   {
@@ -15,12 +15,12 @@ class Target
   {
     get
     {
-      System.Console.WriteLine("This is original code (discarded).");
+      Console.WriteLine("This is original code (discarded).");
       return 42;
     }
     set
     {
-      System.Console.WriteLine("This is original code (discarded).");
+      Console.WriteLine("This is original code (discarded).");
     }
   }
   public int Bar

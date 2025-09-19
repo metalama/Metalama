@@ -8,20 +8,20 @@ using static Metalama.Framework.Tests.LinkerTests.Tests.Api;
 namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Inliners.MethodCastReturn_NotReturnStatement
 {
     // <target>
-    class Target
+    internal class Target
     {
 
-        int Foo()
+        private int Foo()
         {
             Console.WriteLine( "Original");
             return 42;
         }
 
         [PseudoOverride( nameof(Foo),"TestAspect")]
-        int Foo_Override()
+        private int Foo_Override()
         {
             Console.WriteLine( "Before");
-            return _ = (int)link( _this.Foo, inline)();
+            return _ = (int)Link( This.Foo, Inline)();
         }
     }
 }

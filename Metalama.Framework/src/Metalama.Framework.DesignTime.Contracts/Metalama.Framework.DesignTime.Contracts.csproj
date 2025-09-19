@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFrameworks>net472;net6.0</TargetFrameworks>
+        <TargetFrameworks>net472;net8.0</TargetFrameworks>
         <RootNamespace>Metalama.Framework.DesignTime.Contracts</RootNamespace>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
@@ -24,7 +24,5 @@
         <!-- We must match the version used by the lowest version of Visual Studion supported by the VSX. -->
         <PackageReference Include="Newtonsoft.Json" NoWarn="NU1903" />
     </ItemGroup>
-
-    <Import Sdk="PostSharp.Engineering.Sdk" Project="SystemTypes.props" />
 
 </Project>

@@ -1,4 +1,4 @@
-class Target
+internal class Target
 {
   public void Foo()
   {
@@ -6,7 +6,7 @@ class Target
   }
   private void Foo_Source()
   {
-    System.Console.WriteLine("This is original code (discarded).");
+    Console.WriteLine("This is original code (discarded).");
   }
   public void Bar()
   {

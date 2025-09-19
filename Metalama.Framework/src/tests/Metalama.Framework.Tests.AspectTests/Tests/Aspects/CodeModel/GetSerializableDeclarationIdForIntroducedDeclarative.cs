@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.SyntaxBuilders;
@@ -11,7 +10,7 @@ using Metalama.Framework.IntegrationTests.Aspects.CodeModel.GetSerializableDecla
 
 #pragma warning disable CS0067, CS0169
 
-[assembly: AspectOrder( AspectOrderDirection.RunTime, typeof(SerializeAttribute), typeof(IntroduceMembersAttribute) )]
+[assembly: AspectOrder( AspectOrderDirection.RunTime, typeof( SerializeAttribute ), typeof( IntroduceMembersAttribute ) )]
 
 namespace Metalama.Framework.IntegrationTests.Aspects.CodeModel.GetSerializableDeclarationIdForIntroducedDeclarative;
 

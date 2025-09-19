@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using JetBrains.Annotations;
+using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.CompileTime.Serialization;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Serialization;
@@ -86,7 +87,7 @@ public sealed class DeserializationSurrogateTests : SerializationTestsBase
         public class Serializer : ReferenceTypeSerializer<DeserializationClass>
         {
             public override DeserializationClass CreateInstance( IArgumentsReader constructorArguments )
-                => new( constructorArguments.GetValue<string>( "id" ) );
+                => new( constructorArguments.GetValue<string>( "id" ).AssertNotNull() );
 
             public override void SerializeObject( DeserializationClass obj, IArgumentsWriter constructorArguments, IArgumentsWriter initializationArguments )
                 => constructorArguments.SetValue( "id", obj.Id );

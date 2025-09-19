@@ -1,6 +1,6 @@
 public class TargetClass : BaseClass
 {
-  public new static int Property
+  public static new int Property
   {
     get
     {
@@ -14,7 +14,8 @@ public class TargetClass : BaseClass
   public int Invoker
   {
     get
-    { // Invoke BaseClass.Property
+    {
+      // Invoke BaseClass.Property
       _ = global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Invokers.Properties.BaseClassStatic_UserHidden.BaseClass.Property;
       // Invoke BaseClass.Property
       _ = global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Invokers.Properties.BaseClassStatic_UserHidden.BaseClass.Property;

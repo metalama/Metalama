@@ -1,4 +1,4 @@
-class Target : ITest
+internal class Target : ITest
 {
   private int _foo;
   int ITest.Foo

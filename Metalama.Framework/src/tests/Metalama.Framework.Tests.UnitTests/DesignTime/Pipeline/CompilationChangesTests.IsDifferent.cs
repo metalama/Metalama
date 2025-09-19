@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.DesignTime.Pipeline.Diff;
-using Metalama.Testing.UnitTesting;
 using Microsoft.CodeAnalysis.CSharp;
 using Xunit;
 

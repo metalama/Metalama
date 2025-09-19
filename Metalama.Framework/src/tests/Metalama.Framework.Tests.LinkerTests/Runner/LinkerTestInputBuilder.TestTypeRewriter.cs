@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
+using Metalama.Framework.Code.Comparers;
 using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel;
@@ -23,7 +24,6 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
-using Metalama.Framework.Code.Comparers;
 
 // ReSharper disable SuspiciousTypeConversion.Global
 
@@ -35,8 +35,8 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
         {
             private readonly TestRewriter _owner;
             private readonly Stack<(TypeDeclarationSyntax Type, List<MemberDeclarationSyntax> Members)> _currentTypeStack;
-            private InsertPositionRecord? _currentInsertPosition;
             private readonly Dictionary<IFullRef<IField>, IFullRef<IProperty>> _promotions;
+            private InsertPositionRecord? _currentInsertPosition;
 
             public TestTypeRewriter( TestRewriter owner )
             {
@@ -415,7 +415,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
 
                             if ( replacementAttribute != null )
                             {
-                                var argument = (InvocationExpressionSyntax) replacementAttribute.ArgumentList.Arguments[0].Expression;
+                                var argument = (InvocationExpressionSyntax) replacementAttribute.ArgumentList.AssertNotNull().Arguments[0].Expression;
                                 var nameofArgument = argument.ArgumentList.Arguments[0];
                                 var nameofArgumentInfo = semanticModel.GetSymbolInfo( nameofArgument.Expression );
                                 var replacedFieldSymbol = nameofArgumentInfo.Symbol.AssertNotNull();
@@ -510,7 +510,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
                             new TestPromoteFieldTransformation(
                                 aspectLayerInstance,
                                 insertPosition,
-                                ((PropertyBuilderData) builderData).OriginalField,
+                                ((PropertyBuilderData) builderData).OriginalField.AssertNotNull(),
                                 (PropertyBuilderData) builderData,
                                 introductionSyntax );
                     }
@@ -576,7 +576,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
                                 CandidateReason: CandidateReason.MemberGroup,
                                 CandidateSymbols: [{ ContainingType.TypeKind: Microsoft.CodeAnalysis.TypeKind.Interface } interfaceMemberSymbol]
                             } =>
-                            semanticModel.GetDeclaredSymbol( node )
+                            semanticModel.GetDeclaredSymbol( node ).AssertNotNull()
                                 .ContainingType.FindImplementationForInterfaceMember( interfaceMemberSymbol )
                                 .AssertNotNull(),
                         {
@@ -586,12 +586,12 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
                             symbols.All( s => s is IMethodSymbol { ContainingType.TypeKind: Microsoft.CodeAnalysis.TypeKind.Interface } )
                             && node is MethodDeclarationSyntax { ParameterList.Parameters: { } parameters }
                             && symbols.Count( s => ((IMethodSymbol) s).Parameters.Length == parameters.Count ) == 1 =>
-                            semanticModel.GetDeclaredSymbol( node )
+                            semanticModel.GetDeclaredSymbol( node ).AssertNotNull()
                                 .ContainingType.FindImplementationForInterfaceMember(
                                     symbols.Single( s => ((IMethodSymbol) s).Parameters.Length == parameters.Count ) )
                                 .AssertNotNull(),
                         { Symbol: { ContainingType.TypeKind: Microsoft.CodeAnalysis.TypeKind.Interface } interfaceMemberSymbol } =>
-                            semanticModel.GetDeclaredSymbol( node )
+                            semanticModel.GetDeclaredSymbol( node ).AssertNotNull()
                                 .ContainingType.FindImplementationForInterfaceMember( interfaceMemberSymbol )
                                 .AssertNotNull(),
                         { CandidateReason: CandidateReason.MemberGroup, CandidateSymbols: [{ } symbol] } => symbol,

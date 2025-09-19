@@ -1,7 +1,7 @@
 public class Target
 {
   private event EventHandler? _foo;
-  event EventHandler? Foo
+  private event EventHandler? Foo
   {
     add
     {

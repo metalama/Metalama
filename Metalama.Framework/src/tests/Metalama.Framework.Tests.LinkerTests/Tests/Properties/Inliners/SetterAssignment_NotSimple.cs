@@ -8,28 +8,28 @@ using static Metalama.Framework.Tests.LinkerTests.Tests.Api;
 namespace Metalama.Framework.Tests.LinkerTests.Tests.Properties.Inliners.SetterAssignment_NotSimple
 {
     // <target>
-    class Target
+    internal class Target
     {
-        int field;
+        private int _field;
 
-        int Foo
+        private int Foo
         {
             get { return 0; }
             set
             {
                 Console.WriteLine( "Original");
-                this.field = value;
+                this._field = value;
             }
         }
 
         [PseudoOverride( nameof(Foo),"TestAspect")]
-        int Foo_Override
+        private int Foo_Override
         {
-            get { return link[_this.Foo.set, inline]; }
+            get { return Link[This.Foo.set, Inline]; }
             set
             {
                 Console.WriteLine( "Before");
-                link[ _this.Foo.set, inline ] += value;
+                Link[ This.Foo.set, Inline ] += value;
                 Console.WriteLine( "After");
             }
         }

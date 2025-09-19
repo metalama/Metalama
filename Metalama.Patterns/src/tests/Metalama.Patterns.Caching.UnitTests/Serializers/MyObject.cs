@@ -7,7 +7,6 @@ using System.Runtime.Serialization;
 namespace Metalama.Patterns.Caching.Tests.Serializers;
 
 [DataContract]
-[Serializable]
 internal sealed class MyObject
 {
     // ReSharper disable once MemberCanBePrivate.Local

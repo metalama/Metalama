@@ -1,4 +1,4 @@
-class Target : Base
+internal class Target : Base
 {
   public static void Foo()
   {
@@ -12,7 +12,7 @@ class Target : Base
   {
     Console.WriteLine("This is original code.");
   }
-  static void Bar_Override1_1()
+  private static void Bar_Override1_1()
   {
     // Should invoke source code.
     global::Metalama.Framework.Tests.LinkerTests.Tests.Methods.Linking.StaticSourceNew.Target.Bar_Source();
@@ -23,7 +23,7 @@ class Target : Base
     // Should invoke the final declaration.
     Target.Bar();
   }
-  static void Bar_Override1_2()
+  private static void Bar_Override1_2()
   {
     // Should invoke source code.
     global::Metalama.Framework.Tests.LinkerTests.Tests.Methods.Linking.StaticSourceNew.Target.Bar_Source();
@@ -34,7 +34,7 @@ class Target : Base
     // Should invoke the final declaration.
     Target.Bar();
   }
-  static void Bar_Override3_1()
+  private static void Bar_Override3_1()
   {
     // Should invoke override 1_2.
     Target.Bar_Override1_2();
@@ -45,7 +45,7 @@ class Target : Base
     // Should invoke the final declaration.
     Target.Bar();
   }
-  static void Bar_Override3_2()
+  private static void Bar_Override3_2()
   {
     // Should invoke override 1_2.
     Target.Bar_Override1_2();
@@ -56,7 +56,7 @@ class Target : Base
     // Should invoke the final declaration.
     Target.Bar();
   }
-  static void Bar_Override5_1()
+  private static void Bar_Override5_1()
   {
     // Should invoke override 3_2.
     Target.Bar_Override3_2();
@@ -67,7 +67,7 @@ class Target : Base
     // Should invoke the final declaration.
     Target.Bar();
   }
-  static void Bar_Override5_2()
+  private static void Bar_Override5_2()
   {
     // Should invoke override 3_2.
     Target.Bar_Override3_2();

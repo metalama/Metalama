@@ -8,9 +8,9 @@ using static Metalama.Framework.Tests.LinkerTests.Tests.Api;
 namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Overrides.TargetBody.SwitchVoid_EndFlow
 {
     // <target>
-    class Target
+    internal class Target
     {
-        void Foo(int x)
+        private void Foo(int x)
         {
             switch(x)
             {
@@ -22,11 +22,10 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Overrides.TargetBod
         }
 
         [PseudoOverride( nameof(Foo), "TestAspect")]
-
-        void Foo_Override(int x)
+        private void Foo_Override(int x)
         {
             Console.WriteLine("Aspect");
-            link(_this.Foo, inline)(x);
+            Link(This.Foo, Inline)(x);
         }
     }
 }

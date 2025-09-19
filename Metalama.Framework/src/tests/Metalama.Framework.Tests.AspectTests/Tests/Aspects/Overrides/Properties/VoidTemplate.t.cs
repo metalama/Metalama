@@ -7,7 +7,7 @@ internal class TargetClass
     get
     {
       var value = this._p;
-      return (global::System.Int32)(value == null ? default : value);
+      return (global::System.Int32)value;
     }
     set
     {

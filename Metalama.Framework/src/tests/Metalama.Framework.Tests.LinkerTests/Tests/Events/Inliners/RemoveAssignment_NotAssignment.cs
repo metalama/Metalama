@@ -12,7 +12,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Events.Inliners.RemoveAssig
     // <target>
     public class Target
     {
-        event EventHandler? Foo;
+        private event EventHandler? Foo;
 
         [PseudoOverride(nameof(Foo), "TestAspect")]
         private event EventHandler Foo_Override
@@ -23,7 +23,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Events.Inliners.RemoveAssig
             remove
             {
                 Console.WriteLine("Before");
-                link[_this.Foo.raise, inline]?.Invoke(null, new EventArgs());
+                Link[This.Foo.raise, Inline]?.Invoke(null, new EventArgs());
                 Console.WriteLine("After");
             }
         }

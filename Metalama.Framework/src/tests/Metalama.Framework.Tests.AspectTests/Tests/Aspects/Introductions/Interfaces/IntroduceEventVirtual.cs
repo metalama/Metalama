@@ -68,7 +68,7 @@ public class IntroductionAttribute : TypeAspect
     public T TestUsageMethod<[CompileTime] T>(T instance, [CompileTime] IEvent @event, [CompileTime] IConstructor implementationConstructor )
     {
         @event.With(instance).Add((EventHandler)((s, ea) => { Console.WriteLine("Handler"); }));
-        return implementationConstructor.Invoke();
+        return implementationConstructor.Invoke()!;
     }
 }
 

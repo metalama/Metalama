@@ -14,7 +14,7 @@ public class TheAspect : TypeAspect
 {
     public override void BuildAspect( IAspectBuilder<INamedType> builder )
     {
-        var baseNested = builder.Target.BaseType.Types.SingleOrDefault();
+        var baseNested = builder.Target.BaseType!.Types.SingleOrDefault();
 
         var nestedType = builder.IntroduceClass(
             "Builder",

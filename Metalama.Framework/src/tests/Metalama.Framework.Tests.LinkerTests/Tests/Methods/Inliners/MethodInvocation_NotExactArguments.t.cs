@@ -1,6 +1,6 @@
-class Target
+internal class Target
 {
-  void Foo(int x, int y)
+  private void Foo(int x, int y)
   {
     Console.WriteLine("Before");
     this.Foo_Source(y, x);

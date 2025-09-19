@@ -608,7 +608,7 @@ namespace Metalama.Framework.Engine.Templating
                     return default;
                 }
 
-                var scope = this._classifier.GetTemplatingScope( declaredSymbol );
+                var (scope, rule) = this._classifier.GetTemplatingScopeAndRule( declaredSymbol );
 
                 // Report an error for TypeFabric nested in a compile-time type.
                 if ( scope == TemplatingScope.CompileTimeOnly
@@ -736,6 +736,7 @@ namespace Metalama.Framework.Engine.Templating
 
                 // Report error when we have compile-time code but no namespace import for fast detection.
                 if ( scope != TemplatingScope.RunTimeOnly
+                     && rule != TemplatingRule.WellKnown
                      && !this._hasCompileTimeCodeFast
                      && !SystemTypeDetector.IsSystemType( declaredSymbol.GetClosestContainingType()! ) )
                 {

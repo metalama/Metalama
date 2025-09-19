@@ -40,13 +40,13 @@
         <!-- Select assembies -->
         <ItemGroup>
             <DesktopAssemblyToSignAndEmbed Include="../Metalama.Framework.CompilerExtensions.Resources/bin/$(Configuration)/net472/Metalama.*.dll" />
-            <CoreAssemblyToSignAndEmbed Include="../Metalama.Framework.CompilerExtensions.Resources/bin/$(Configuration)/net6.0/Metalama.*.dll" />
+            <CoreAssemblyToSignAndEmbed Include="../Metalama.Framework.CompilerExtensions.Resources/bin/$(Configuration)/net8.0/Metalama.*.dll" />
 
             <DesktopAssemblyToEmbed Include="../Metalama.Framework.CompilerExtensions.Resources/bin/$(Configuration)/net472/*.dll" Exclude="$(AssembliesNotToEmbed)" />
-            <CoreAssemblyToEmbed Include="../Metalama.Framework.CompilerExtensions.Resources/bin/$(Configuration)/net6.0/*.dll" Exclude="$(AssembliesNotToEmbed)" />
+            <CoreAssemblyToEmbed Include="../Metalama.Framework.CompilerExtensions.Resources/bin/$(Configuration)/net8.0/*.dll" Exclude="$(AssembliesNotToEmbed)" />
             
             <DesktopAssemblyToEmbed Include="../Metalama.Framework.CompilerExtensions.Resources/bin/$(Configuration)/net472/System.Threading.AccessControl.dll" />
-            <CoreAssemblyToEmbed Include="../Metalama.Framework.CompilerExtensions.Resources/bin/$(Configuration)/net6.0/runtimes/win/lib/net6.0/System.Threading.AccessControl.dll" />
+            <CoreAssemblyToEmbed Include="../Metalama.Framework.CompilerExtensions.Resources/bin/$(Configuration)/net8.0/runtimes/win/lib/net8.0/System.Threading.AccessControl.dll" />
         </ItemGroup>
     </Target>
     

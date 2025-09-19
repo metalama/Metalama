@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Code;
+using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.CompileTime.Serialization;
 using System.Linq;
@@ -91,7 +92,7 @@ public sealed class AttributeSerializationTests : SerializationTestsBase
 
         // Test that two references to the same attribute resolve to the same IAttribute.
         var array = new[] { attribute1.ToRef(), attribute1.ToRef() };
-        var roundtripArray = TestSerialization( testContext, array, testEquality: false );
+        var roundtripArray = TestSerialization( testContext, array, testEquality: false ).AssertNotNull();
 
         Assert.Same( roundtripArray[0].GetTarget( compilationModel1 ), roundtripArray[1].GetTarget( compilationModel1 ) );
     }

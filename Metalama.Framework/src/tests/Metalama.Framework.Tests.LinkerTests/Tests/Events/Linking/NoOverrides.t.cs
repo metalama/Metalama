@@ -49,7 +49,7 @@ public class Target : Base
     {
     }
   }
-  public new static event EventHandler BaseStaticHiddenMethod
+  public static new event EventHandler BaseStaticHiddenMethod
   {
     add
     {

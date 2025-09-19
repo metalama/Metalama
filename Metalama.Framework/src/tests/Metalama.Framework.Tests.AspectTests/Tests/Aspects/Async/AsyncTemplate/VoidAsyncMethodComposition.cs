@@ -4,11 +4,10 @@
 
 using System;
 using System.Threading.Tasks;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Tests.AspectTests.Tests.Aspects.Async.AsyncTemplate.VoidAsyncMethodComposition;
 
-[assembly: AspectOrder( AspectOrderDirection.RunTime, typeof(Aspect1), typeof(Aspect2) )]
+[assembly: AspectOrder( AspectOrderDirection.RunTime, typeof( Aspect1 ), typeof( Aspect2 ) )]
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Async.AsyncTemplate.VoidAsyncMethodComposition
 {

@@ -1,12 +1,12 @@
-class Target
+internal class Target
 {
-  int x;
-  int Foo()
+  private int _x;
+  private int Foo()
   {
     Console.WriteLine("Before");
-    x = this.Foo_Source();
+    this._x = this.Foo_Source();
     Console.WriteLine("After");
-    return x;
+    return this._x;
   }
   private int Foo_Source()
   {

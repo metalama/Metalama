@@ -26,7 +26,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Overrides.TemplateB
         {
             Console.WriteLine( "Before" );
             int? result = null;
-            result = _local.x?.link( _local.Foo, inline )( this );
+            result = Local.x?.link( Local.Foo, Inline )( this );
 
             Console.WriteLine( "After" );
 

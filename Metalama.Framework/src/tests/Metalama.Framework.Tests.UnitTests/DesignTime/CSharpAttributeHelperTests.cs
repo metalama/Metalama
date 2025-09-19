@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.DesignTime.Refactoring;
+using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.SyntaxGeneration;
 using Microsoft.CodeAnalysis;
@@ -664,7 +665,7 @@ namespace Test
             var symbolToBeDecorated = semanticModel.GetDeclaredSymbol( syntaxNodeToBeDecorated );
 
             var resultSolution = await CSharpAttributeHelper.AddAttributeAsync(
-                this._testFileDocument,
+                this._testFileDocument.AssertNotNull(),
                 symbolToBeDecorated!,
                 attributeDescription,
                 context,
@@ -683,7 +684,7 @@ namespace Test
             var (_, context) = await this.GetModelAndContextAsync( syntaxNodeToBeDecorated );
 
             var resultSolution = await CSharpAttributeHelper.AddAttributeAsync(
-                this._testFileDocument,
+                this._testFileDocument.AssertNotNull(),
                 syntaxNodeToBeDecorated,
                 attributeDescription,
                 context,
@@ -695,9 +696,9 @@ namespace Test
             return resultRoot!;
         }
 
-        private async Task<(SemanticModel, SyntaxGenerationContext)> GetModelAndContextAsync( SyntaxNode syntaxNodeToBeDecorated )
+        private async Task<(SemanticModel SemanticModel, SyntaxGenerationContext SyntaxGenerationContext)> GetModelAndContextAsync( SyntaxNode syntaxNodeToBeDecorated )
         {
-            var semanticModel = await this._testFileDocument!.GetSemanticModelAsync();
+            var semanticModel = await this._testFileDocument!.GetSemanticModelAsync().AssertNotNullAsync();
 
             var context = semanticModel.Compilation.GetCompilationContext()
                 .GetSyntaxGenerationContext( SyntaxGenerationOptions.Formatted, syntaxNodeToBeDecorated );

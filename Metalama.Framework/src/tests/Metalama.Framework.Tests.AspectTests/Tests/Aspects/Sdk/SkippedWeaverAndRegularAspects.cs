@@ -3,13 +3,12 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Tests.AspectTests.Tests.Aspects.Sdk.SkippedWeaverAndRegularAspects;
 
 // Tests weaver between two regular aspects that is never run (so it doesn't have to actually exist).
 
-[assembly: AspectOrder( AspectOrderDirection.RunTime, typeof(RegularAspect1), typeof(WeaverAspect), typeof(RegularAspect2) )]
+[assembly: AspectOrder( AspectOrderDirection.RunTime, typeof( RegularAspect1 ), typeof( WeaverAspect ), typeof( RegularAspect2 ) )]
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Sdk.SkippedWeaverAndRegularAspects
 {

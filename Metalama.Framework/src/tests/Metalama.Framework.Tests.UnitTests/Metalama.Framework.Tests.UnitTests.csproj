@@ -9,8 +9,7 @@
         <RootNamespace>Metalama.Framework.Tests.UnitTests</RootNamespace>
         <AssemblyName>Metalama.Framework.Tests.UnitTests.$(ThisRoslynVersionNoPreview)</AssemblyName>
         <UseMetalamaCompiler>Private</UseMetalamaCompiler>
-        <!-- It must be preview and not 12.0 because of Rider. -->
-        <LangVersion>preview</LangVersion>
+        <LangVersion>12.0</LangVersion>
         <!-- 
             There is intentionally no override of LangVersion for previous Roslyn tests as compilations created by test helpers have correct language version set.
             This way we can use asserts in the latest language. To differentiate tests, use ROSLYN_X_Y_OR_GREATER.

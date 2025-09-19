@@ -6,7 +6,6 @@ using System;
 using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
-using Metalama.Framework.Fabrics;
 
 namespace Metalama.Framework.Tests.Integration.Tests.Aspects.Subtemplates.Issue35646;
 

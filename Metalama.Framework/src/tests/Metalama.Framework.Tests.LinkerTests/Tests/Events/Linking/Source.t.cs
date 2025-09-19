@@ -1,6 +1,6 @@
-class Target
+internal class Target
 {
-  public event System.EventHandler Foo
+  public event EventHandler Foo
   {
     add
     {
@@ -11,18 +11,18 @@ class Target
       this.Foo_A3_Override8 -= value;
     }
   }
-  private event System.EventHandler Foo_Source
+  private event EventHandler Foo_Source
   {
     add
     {
-      System.Console.WriteLine("This is original code (discarded).");
+      Console.WriteLine("This is original code (discarded).");
     }
     remove
     {
-      System.Console.WriteLine("This is original code (discarded).");
+      Console.WriteLine("This is original code (discarded).");
     }
   }
-  public event System.EventHandler Bar
+  public event EventHandler Bar
   {
     add
     {
@@ -33,7 +33,7 @@ class Target
       this.Bar_A4_Override10 -= value;
     }
   }
-  public event System.EventHandler Bar_A1_Override1
+  public event EventHandler Bar_A1_Override1
   {
     add
     {
@@ -58,7 +58,7 @@ class Target
       this.Foo -= value;
     }
   }
-  public event System.EventHandler Bar_A2_Override2
+  public event EventHandler Bar_A2_Override2
   {
     add
     {
@@ -83,7 +83,7 @@ class Target
       this.Foo -= value;
     }
   }
-  public event System.EventHandler Bar_A2_Override4
+  public event EventHandler Bar_A2_Override4
   {
     add
     {
@@ -108,7 +108,7 @@ class Target
       this.Foo -= value;
     }
   }
-  public event System.EventHandler Bar_A3_Override5
+  public event EventHandler Bar_A3_Override5
   {
     add
     {
@@ -133,7 +133,7 @@ class Target
       this.Foo -= value;
     }
   }
-  public event System.EventHandler Bar_A3_Override7
+  public event EventHandler Bar_A3_Override7
   {
     add
     {
@@ -158,7 +158,7 @@ class Target
       this.Foo -= value;
     }
   }
-  public event System.EventHandler Bar_A3_Override9
+  public event EventHandler Bar_A3_Override9
   {
     add
     {
@@ -183,7 +183,7 @@ class Target
       this.Foo -= value;
     }
   }
-  public event System.EventHandler Bar_A4_Override10
+  public event EventHandler Bar_A4_Override10
   {
     add
     {
@@ -208,7 +208,7 @@ class Target
       this.Foo -= value;
     }
   }
-  public event System.EventHandler Foo_A2_Override3
+  public event EventHandler Foo_A2_Override3
   {
     add
     {
@@ -233,7 +233,7 @@ class Target
       this.Foo -= value;
     }
   }
-  public event System.EventHandler Foo_A3_Override6
+  public event EventHandler Foo_A3_Override6
   {
     add
     {
@@ -258,7 +258,7 @@ class Target
       this.Foo -= value;
     }
   }
-  public event System.EventHandler Foo_A3_Override8
+  public event EventHandler Foo_A3_Override8
   {
     add
     {

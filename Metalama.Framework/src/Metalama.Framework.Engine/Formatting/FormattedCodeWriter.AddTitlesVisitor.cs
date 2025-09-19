@@ -36,7 +36,9 @@ namespace Metalama.Framework.Engine.Formatting
 
                 var symbolInfo = this._semanticModel.GetSymbolInfo( node );
 
+#pragma warning disable RS1039 // This call to 'SemanticModel.GetDeclaredSymbol()' will always return 'null'
                 var symbol = symbolInfo.Symbol ?? this._semanticModel.GetDeclaredSymbol( node );
+#pragma warning restore RS1039 // This call to 'SemanticModel.GetDeclaredSymbol()' will always return 'null'
 
                 if ( symbol != null )
                 {

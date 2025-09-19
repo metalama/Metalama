@@ -6,14 +6,13 @@ using System;
 using System.Collections.Generic;
 using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
-using Metalama.Framework.Fabrics;
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.DeclarationBuilders;
 using Metalama.Framework.Eligibility;
 using Metalama.Framework.Options;
 using Metalama.Framework.Tests.AspectTests.Tests.Options;
 
-[assembly: AspectOrder( AspectOrderDirection.RunTime, typeof(ShowOptionsAspect), typeof(ModifyOptionsAspect) )]
+[assembly: AspectOrder( AspectOrderDirection.RunTime, typeof( ShowOptionsAspect ), typeof( ModifyOptionsAspect ) )]
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Options;
 

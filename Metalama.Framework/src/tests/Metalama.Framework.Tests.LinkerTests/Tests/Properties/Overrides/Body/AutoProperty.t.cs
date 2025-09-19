@@ -1,7 +1,7 @@
-class Target
+internal class Target
 {
   private int _foo;
-  int Foo
+  private int Foo
   {
     get
     {

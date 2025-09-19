@@ -9,7 +9,6 @@
 #if ROSLYN_4_8_0_OR_GREATER
 
 using System;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Contracts.ConstructorPrimary_Parameter_Out;
@@ -29,7 +28,7 @@ internal class NotNullAttribute : ContractAspect
 internal class Target( [NotNull] out int x )
 {
     // This is just to keep out parameter possible.
-    private int z = ( x = 42 );
+    private int _z = x = 42;
 }
 
 #endif

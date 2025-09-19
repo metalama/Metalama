@@ -1,6 +1,6 @@
-class Target
+internal class Target
 {
-  int Foo()
+  private int Foo()
   {
     return 42;
   }

@@ -1,6 +1,6 @@
-class Target
+internal class Target
 {
-  void Foo()
+  private void Foo()
   {
     Console.WriteLine("Before");
     var action = (Action)this.Foo_Source;

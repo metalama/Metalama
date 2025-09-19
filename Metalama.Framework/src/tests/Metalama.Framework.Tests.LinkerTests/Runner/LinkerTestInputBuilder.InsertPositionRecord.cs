@@ -13,12 +13,12 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
         internal sealed class InsertPositionRecord
         {
             /// <summary>
-            /// The relation of the insertion.
+            /// Gets the relation of the insertion.
             /// </summary>
             public InsertPositionRelation Relation { get; }
 
             /// <summary>
-            /// The node ID of the node that is the target of the insertion in case this targets a source declaration.
+            /// Gets the node ID of the node that is the target of the insertion in case this targets a source declaration.
             /// </summary>
             public string? NodeId { get; }
 

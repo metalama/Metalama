@@ -3,7 +3,7 @@ internal class TargetClass
   [Override]
   private int Method()
   {
-    void LocalFunction()
+    static void LocalFunction()
     {
       _ = (global::System.Int32)42;
     }
@@ -13,7 +13,7 @@ internal class TargetClass
   [Override]
   private int Method_ExpressionBody()
   {
-    void LocalFunction()
+    static void LocalFunction()
     {
       _ = (global::System.Int32)42;
     }

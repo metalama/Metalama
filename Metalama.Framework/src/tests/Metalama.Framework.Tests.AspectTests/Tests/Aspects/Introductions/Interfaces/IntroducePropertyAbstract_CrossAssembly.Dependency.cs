@@ -6,7 +6,6 @@ using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using System;
-using System.Linq;
 
 #pragma warning disable CS0626
 
@@ -56,6 +55,6 @@ public class IntroductionAttribute : TypeAspect
     public T TestUsageMethod<[CompileTime] T>(T instance, [CompileTime] IProperty property, [CompileTime] IConstructor implementationConstructor)
     {
         property.With(instance).Value = property.With(instance).Value + 1;
-        return implementationConstructor.Invoke();
+        return implementationConstructor.Invoke()!;
     }
 }

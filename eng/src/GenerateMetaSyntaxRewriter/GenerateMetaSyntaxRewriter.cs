@@ -15,7 +15,7 @@ internal static class GenerateMetaSyntaxRewriter
     {
         var deprecatedVersionNames = Array.Empty<string>();
         string[] legacyVersionNames = ["4.0.1", "4.4.0"]; // versions that should be considered when generating code, but not have their own generated code
-        string[] versionNames = [.. legacyVersionNames, "4.8.0", "4.12.0"];
+        string[] versionNames = [.. legacyVersionNames, "4.8.0", "4.12.0", "5.0.0"];
 
         var syntaxDocuments = new SyntaxDocument[versionNames.Length];
 

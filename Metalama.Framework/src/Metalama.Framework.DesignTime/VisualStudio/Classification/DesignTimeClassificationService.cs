@@ -21,12 +21,13 @@ internal sealed class DesignTimeClassificationService : IClassificationService, 
     private readonly IMetalamaProjectClassifier _projectClassifier;
     private readonly WeakCache<IProjectOptions, ClassificationService> _projectClassificationServices = new();
 
-    private readonly MSBuildProjectOptionsFactory _msBuildProjectOptionsFactory = new( [MSBuildPropertyNames.MetalamaCompileTimePackages] );
+    private readonly MSBuildProjectOptionsFactory _msBuildProjectOptionsFactory;
 
     public DesignTimeClassificationService( ServiceProvider<IGlobalService> serviceProvider )
     {
         this._serviceProvider = serviceProvider;
         this._projectClassifier = serviceProvider.GetRequiredService<IMetalamaProjectClassifier>();
+        this._msBuildProjectOptionsFactory = new MSBuildProjectOptionsFactory( [MSBuildPropertyNames.MetalamaCompileTimePackages] );
     }
 
     public bool ContainsCompileTimeCode( SyntaxNode syntaxRoot ) => ClassificationService.ContainsCompileTimeCode( syntaxRoot );

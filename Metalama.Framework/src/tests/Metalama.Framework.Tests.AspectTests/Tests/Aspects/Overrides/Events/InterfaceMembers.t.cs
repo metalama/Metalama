@@ -15,7 +15,7 @@ public interface Interface
     }
   }
   [Override]
-  public static event EventHandler StaticEvent
+  static event EventHandler StaticEvent
   {
     add
     {

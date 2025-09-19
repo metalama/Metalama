@@ -6,7 +6,7 @@ internal class TargetClass
   {
     Foo1_1();
     return (global::System.Int32)Foo1();
-    void Foo1_1()
+    static void Foo1_1()
     {
     }
   }
@@ -14,7 +14,7 @@ internal class TargetClass
   {
     Foo2_1();
     return (global::System.Int32)Foo2();
-    void Foo2_1()
+    static void Foo2_1()
     {
     }
   }
@@ -30,7 +30,7 @@ internal class TargetClass
   {
     Foo1_1();
     return (global::System.Int32)Foo1();
-    void Foo1_1()
+    static void Foo1_1()
     {
     }
   }

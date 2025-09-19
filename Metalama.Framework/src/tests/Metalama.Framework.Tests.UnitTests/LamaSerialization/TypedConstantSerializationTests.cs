@@ -19,15 +19,15 @@ public sealed class TypedConstantSerializationTests : SerializationTestsBase
 
     [Theory]
     [InlineData( 1 )]
-    [InlineData( (uint) 2 )]
-    [InlineData( (long) 3 )]
-    [InlineData( (ulong) 4 )]
+    [InlineData( 2U )]
+    [InlineData( 3L )]
+    [InlineData( 4UL )]
     [InlineData( (byte) 7 )]
     [InlineData( (sbyte) 8 )]
     [InlineData( (short) 9 )]
     [InlineData( (ushort) 10 )]
     [InlineData( 5.0 )]
-    [InlineData( (float) 11.0 )]
+    [InlineData( 11.0F )]
     [InlineData( "str" )]
     public void TestPrimitive( object value )
     {

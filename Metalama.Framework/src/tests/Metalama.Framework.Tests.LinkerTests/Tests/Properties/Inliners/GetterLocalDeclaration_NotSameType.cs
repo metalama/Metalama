@@ -7,7 +7,7 @@ using static Metalama.Framework.Tests.LinkerTests.Tests.Api;
 
 namespace Metalama.Framework.Tests.LinkerTests.Tests.Properties.Inliners.GetterLocalDeclaration_NotSameType
 {
-    class Base
+    internal class Base
     {
         public virtual int Foo
         {
@@ -19,7 +19,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Properties.Inliners.GetterL
     }
 
     // <target>
-    class Target : Base
+    internal class Target : Base
     {
         [PseudoIntroduction(nameof(Foo), "TestAspect")]
         public override int Foo
@@ -32,12 +32,12 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Properties.Inliners.GetterL
         }
 
         [PseudoOverride( nameof(Foo),"TestAspect")]
-        int Foo_Override
+        private int Foo_Override
         {
             get
             {
                 Console.WriteLine( "Before");
-                int x = link( _this.Foo.get, inline, @base);
+                int x = Link( This.Foo.get, Inline, Api.Base);
                 Console.WriteLine( "After");
                 return x;
             }

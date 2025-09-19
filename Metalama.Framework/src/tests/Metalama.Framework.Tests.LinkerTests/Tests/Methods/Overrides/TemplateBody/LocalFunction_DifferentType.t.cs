@@ -1,6 +1,6 @@
-class TargetClass
+internal class TargetClass
 {
-  int IntMethod_VoidLocalFunction(int x)
+  private int IntMethod_VoidLocalFunction(int x)
   {
     LocalFunction();
     LocalFunction();
@@ -12,18 +12,18 @@ class TargetClass
       _ = (global::System.Int32)x;
     }
   }
-  void VoidMethod_IntLocalFunction()
+  private void VoidMethod_IntLocalFunction()
   {
     _ = LocalFunction();
     _ = LocalFunction();
-    int LocalFunction()
+    static int LocalFunction()
     {
       Console.WriteLine("Override");
       Console.WriteLine("Original");
       return 42;
     }
   }
-  int IntMethod_StringLocalFunction(int x)
+  private int IntMethod_StringLocalFunction(int x)
   {
     return LocalFunction().Length + LocalFunction().Length;
     string LocalFunction()

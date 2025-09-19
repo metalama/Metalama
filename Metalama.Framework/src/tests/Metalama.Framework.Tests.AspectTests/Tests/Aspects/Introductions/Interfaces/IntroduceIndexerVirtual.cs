@@ -67,7 +67,7 @@ public class IntroductionAttribute : TypeAspect
     public T TestUsageMethod<[CompileTime] T>(T instance, [CompileTime] IIndexer indexer, [CompileTime] IConstructor implementationConstructor)
     {
         indexer.With(instance).SetValue(indexer.With(instance).GetValue(42) + 1, 42);
-        return implementationConstructor.Invoke();
+        return implementationConstructor.Invoke()!;
     }
 }
 

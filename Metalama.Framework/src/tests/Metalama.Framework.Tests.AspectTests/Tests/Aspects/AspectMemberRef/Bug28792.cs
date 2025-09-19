@@ -7,7 +7,6 @@ using System.Linq;
 using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
-using Metalama.Framework.Code.SyntaxBuilders;
 using Microsoft.Win32;
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.AspectMembersRef.Bug28792

@@ -5,10 +5,9 @@
 using System;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
-using Metalama.Framework.Fabrics;
 using Metalama.Framework.Tests.AspectTests.Tests.Aspects.AddAspect.AddChildAspectError;
 
-[assembly: AspectOrder( AspectOrderDirection.RunTime, typeof(Aspect1), typeof(Aspect2) )]
+[assembly: AspectOrder( AspectOrderDirection.RunTime, typeof( Aspect1 ), typeof( Aspect2 ) )]
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.AddAspect.AddChildAspectError
 {

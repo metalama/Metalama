@@ -22,7 +22,7 @@ internal class TargetClass
     }
     Method_NameConflict_1();
     return p;
-    void Method_NameConflict_1()
+    static void Method_NameConflict_1()
     {
     }
   }

@@ -10,7 +10,7 @@ using Metalama.Framework.Aspects;
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.DesignTimeInvalidCode.IncompleteWhile;
 
-class Aspect : OverrideMethodAspect
+internal class Aspect : OverrideMethodAspect
 {
     public override dynamic? OverrideMethod()
     {
@@ -25,10 +25,10 @@ class Aspect : OverrideMethodAspect
     }
 }
 
-class Target
+internal class Target
 {
     [Aspect]
-    void M()
+    private void M()
     {
     }
 }

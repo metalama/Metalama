@@ -5,12 +5,11 @@
 using System;
 using System.Collections.Concurrent;
 using System.Text;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.IntegrationTests.Aspects.Overrides.Composition.LogAndCache;
 
-[assembly: AspectOrderAttribute( AspectOrderDirection.RunTime, typeof(LogAttribute), typeof(CacheAttribute) )]
+[assembly: AspectOrderAttribute( AspectOrderDirection.RunTime, typeof( LogAttribute ), typeof( CacheAttribute ) )]
 
 namespace Metalama.Framework.IntegrationTests.Aspects.Overrides.Composition.LogAndCache
 {

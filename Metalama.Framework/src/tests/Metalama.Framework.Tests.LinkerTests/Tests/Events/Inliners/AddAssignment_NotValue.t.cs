@@ -1,7 +1,7 @@
 public class Target
 {
-  private EventHandler? field;
-  event EventHandler Foo
+  private EventHandler? _field;
+  private event EventHandler Foo
   {
     add
     {
@@ -20,7 +20,7 @@ public class Target
     add
     {
       Console.WriteLine("Original");
-      this.field += value;
+      this._field += value;
     }
     remove
     {

@@ -42,7 +42,7 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Contracts.Construct
     {
         public override void Validate( dynamic? value )
         {
-            if (value.Length == 0)
+            if (value!.Length == 0)
             {
                 throw new ArgumentNullException( meta.Target.Parameter.Name );
             }

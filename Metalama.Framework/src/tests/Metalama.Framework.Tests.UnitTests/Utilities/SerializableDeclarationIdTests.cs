@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Code;
+using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.Source.Pseudo;
@@ -168,6 +169,6 @@ class C
         var compilation = testContext.CreateCompilation( code );
         var field = compilation.Types.Single().Fields.Single();
 
-        Roundtrip( compilation, field.Type.GetSymbol(), false );
+        Roundtrip( compilation, field.Type.GetSymbol().AssertSymbolNotNull(), false );
     }
 }

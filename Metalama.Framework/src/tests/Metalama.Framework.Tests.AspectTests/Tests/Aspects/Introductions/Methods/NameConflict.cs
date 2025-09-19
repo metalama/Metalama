@@ -67,7 +67,7 @@ namespace Metalama.Framework.IntegrationTests.Aspects.Introductions.Methods.Name
 
             return p;
 
-            void Method_NameConflict() { }
+            static void Method_NameConflict() { }
         }
 
         [Template]

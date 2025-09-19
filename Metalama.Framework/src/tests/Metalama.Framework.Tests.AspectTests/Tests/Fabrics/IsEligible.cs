@@ -7,7 +7,6 @@ using System.Linq;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Eligibility;
-using Metalama.Framework.Fabrics;
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Misc.IsEligible;
 

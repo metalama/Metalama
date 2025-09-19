@@ -1,6 +1,6 @@
-class Target
+internal class Target
 {
-  event EventHandler? Foo
+  private event EventHandler? Foo
   {
     add
     {

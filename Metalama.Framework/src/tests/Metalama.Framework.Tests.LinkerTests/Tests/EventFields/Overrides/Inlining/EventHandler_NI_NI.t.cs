@@ -1,7 +1,7 @@
-class Target
+internal class Target
 {
   private event EventHandler? _foo;
-  event EventHandler? Foo
+  private event EventHandler? Foo
   {
     add
     {
@@ -12,7 +12,7 @@ class Target
       this.Foo_Override -= value;
     }
   }
-  event EventHandler? Foo_Override
+  private event EventHandler? Foo_Override
   {
     add
     {

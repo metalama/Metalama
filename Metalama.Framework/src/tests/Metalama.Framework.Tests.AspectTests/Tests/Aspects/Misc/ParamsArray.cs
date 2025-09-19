@@ -5,18 +5,16 @@
 using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
-using System;
-using System.Diagnostics;
 
 namespace Metalama.Framework.Tests.Integration.Tests.Aspects.Misc.ParamsArray;
 
 public class TheAspect : TypeAspect
 {
     [Introduce]
-    void ParamsArray(params int[] ints) { }
+    private void ParamsArray(params int[] ints) { }
 
     [Introduce]
-    void Usage()
+    private void Usage()
     {
         ParamsArray(1, 2, 3);
 
@@ -24,7 +22,7 @@ public class TheAspect : TypeAspect
     }
 
     [Template]
-    int ArrayIndexerGetter(params int[] ints) => 0;
+    private int ArrayIndexerGetter(params int[] ints) => 0;
 
     public override void BuildAspect(IAspectBuilder<INamedType> builder)
     {

@@ -117,7 +117,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Events.Linking.NoOverrides
             }
         }
 
-        public new static event EventHandler BaseStaticHiddenMethod
+        public static new event EventHandler BaseStaticHiddenMethod
         {
             add
             {
@@ -175,187 +175,187 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Events.Linking.NoOverrides
             add
             {
                 // Should invoke this.
-                link[_this.BaseMethod.add, @base] += value;
+                Link[This.BaseMethod.add, Api.Base] += value;
                 // Should invoke this.
-                link[_this.BaseMethod.add, previous] += value;
+                Link[This.BaseMethod.add, Previous] += value;
                 // Should invoke this.
-                link[_this.BaseMethod.add, current] += value;
+                Link[This.BaseMethod.add, Current] += value;
                 // Should invoke this.
-                link[_this.BaseMethod.add, final] += value;
+                Link[This.BaseMethod.add, Final] += value;
 
                 // Should invoke current type.
-                link[_static.Target.BaseStaticMethod.add, @base] += value;
+                Link[Static.Target.BaseStaticMethod.add, Api.Base] += value;
                 // Should invoke current type.
-                link[_static.Target.BaseStaticMethod.add, previous] += value;
+                Link[Static.Target.BaseStaticMethod.add, Previous] += value;
                 // Should invoke current type.
-                link[_static.Target.BaseStaticMethod.add, current] += value;
+                Link[Static.Target.BaseStaticMethod.add, Current] += value;
                 // Should invoke current type.
-                link[_static.Target.BaseStaticMethod.add, final] += value;
+                Link[Static.Target.BaseStaticMethod.add, Final] += value;
 
                 // Should invoke base.
-                link[_this.BaseVirtualMethod.add, @base] += value;
+                Link[This.BaseVirtualMethod.add, Api.Base] += value;
                 // Should invoke base.
-                link[_this.BaseVirtualMethod.add, previous] += value;
+                Link[This.BaseVirtualMethod.add, Previous] += value;
                 // Should invoke base.
-                link[_this.BaseVirtualMethod.add, current] += value;
+                Link[This.BaseVirtualMethod.add, Current] += value;
                 // Should invoke this.
-                link[_this.BaseVirtualMethod.add, final] += value;
+                Link[This.BaseVirtualMethod.add, Final] += value;
 
                 // Should invoke _Source.
-                link[_this.BaseVirtualOverriddenMethod.add, @base] += value;
+                Link[This.BaseVirtualOverriddenMethod.add, Api.Base] += value;
                 // Should invoke _Source.
-                link[_this.BaseVirtualOverriddenMethod.add, previous] += value;
+                Link[This.BaseVirtualOverriddenMethod.add, Previous] += value;
                 // Should invoke _Source.
-                link[_this.BaseVirtualOverriddenMethod.add, current] += value;
+                Link[This.BaseVirtualOverriddenMethod.add, Current] += value;
                 // Should invoke this.
-                link[_this.BaseVirtualOverriddenMethod.add, final] += value;
+                Link[This.BaseVirtualOverriddenMethod.add, Final] += value;
 
                 // Should invoke _Source.
-                link[_this.BaseVirtualHiddenMethod.add, @base] += value;
+                Link[This.BaseVirtualHiddenMethod.add, Api.Base] += value;
                 // Should invoke _Source.
-                link[_this.BaseVirtualHiddenMethod.add, previous] += value;
+                Link[This.BaseVirtualHiddenMethod.add, Previous] += value;
                 // Should invoke _Source.
-                link[_this.BaseVirtualHiddenMethod.add, current] += value;
+                Link[This.BaseVirtualHiddenMethod.add, Current] += value;
                 // Should invoke this.
-                link[_this.BaseVirtualHiddenMethod.add, final] += value;
+                Link[This.BaseVirtualHiddenMethod.add, Final] += value;
 
                 // Should invoke this.
-                link[_this.BaseHiddenMethod.add, @base] += value;
+                Link[This.BaseHiddenMethod.add, Api.Base] += value;
                 // Should invoke this.
-                link[_this.BaseHiddenMethod.add, previous] += value;
+                Link[This.BaseHiddenMethod.add, Previous] += value;
                 // Should invoke this.
-                link[_this.BaseHiddenMethod.add, current] += value;
+                Link[This.BaseHiddenMethod.add, Current] += value;
                 // Should invoke this.
-                link[_this.BaseHiddenMethod.add, final] += value;
+                Link[This.BaseHiddenMethod.add, Final] += value;
 
                 // Should invoke current type.
-                link[_static.Target.BaseStaticHiddenMethod.add, @base] += value;
+                Link[Static.Target.BaseStaticHiddenMethod.add, Api.Base] += value;
                 // Should invoke current type.
-                link[_static.Target.BaseStaticHiddenMethod.add, previous] += value;
+                Link[Static.Target.BaseStaticHiddenMethod.add, Previous] += value;
                 // Should invoke current type.
-                link[_static.Target.BaseStaticHiddenMethod.add, current] += value;
+                Link[Static.Target.BaseStaticHiddenMethod.add, Current] += value;
                 // Should invoke current type.
-                link[_static.Target.BaseStaticHiddenMethod.add, final] += value;
+                Link[Static.Target.BaseStaticHiddenMethod.add, Final] += value;
 
                 // Should invoke this.
-                link[_this.LocalMethod.add, @base] += value;
+                Link[This.LocalMethod.add, Api.Base] += value;
                 // Should invoke this.
-                link[_this.LocalMethod.add, previous] += value;
+                Link[This.LocalMethod.add, Previous] += value;
                 // Should invoke this.
-                link[_this.LocalMethod.add, current] += value;
+                Link[This.LocalMethod.add, Current] += value;
                 // Should invoke this.
-                link[_this.LocalMethod.add, final] += value;
+                Link[This.LocalMethod.add, Final] += value;
 
                 // Should invoke _Source.
-                link[_this.LocalVirtualMethod.add, @base] += value;
+                Link[This.LocalVirtualMethod.add, Api.Base] += value;
                 // Should invoke _Source.
-                link[_this.LocalVirtualMethod.add, previous] += value;
+                Link[This.LocalVirtualMethod.add, Previous] += value;
                 // Should invoke _Source.
-                link[_this.LocalVirtualMethod.add, current] += value;
+                Link[This.LocalVirtualMethod.add, Current] += value;
                 // Should invoke this.
-                link[_this.LocalVirtualMethod.add, final] += value;
+                Link[This.LocalVirtualMethod.add, Final] += value;
 
                 // Should invoke current type.
-                link[_static.Target.LocalStaticMethod.add, @base] += value;
+                Link[Static.Target.LocalStaticMethod.add, Api.Base] += value;
                 // Should invoke current type.
-                link[_static.Target.LocalStaticMethod.add, previous] += value;
+                Link[Static.Target.LocalStaticMethod.add, Previous] += value;
                 // Should invoke current type.
-                link[_static.Target.LocalStaticMethod.add, current] += value;
+                Link[Static.Target.LocalStaticMethod.add, Current] += value;
                 // Should invoke current type.
-                link[_static.Target.LocalStaticMethod.add, final] += value;
+                Link[Static.Target.LocalStaticMethod.add, Final] += value;
             }
 
             remove
             {
                 // Should invoke this.
-                link[_this.BaseMethod.remove, @base] -= value;
+                Link[This.BaseMethod.remove, Api.Base] -= value;
                 // Should invoke this.
-                link[_this.BaseMethod.remove, previous] -= value;
+                Link[This.BaseMethod.remove, Previous] -= value;
                 // Should invoke this.
-                link[_this.BaseMethod.remove, current] -= value;
+                Link[This.BaseMethod.remove, Current] -= value;
                 // Should invoke this.
-                link[_this.BaseMethod.remove, final] -= value;
+                Link[This.BaseMethod.remove, Final] -= value;
 
                 // Should invoke current type.
-                link[_static.Target.BaseStaticMethod.remove, @base] -= value;
+                Link[Static.Target.BaseStaticMethod.remove, Api.Base] -= value;
                 // Should invoke current type.
-                link[_static.Target.BaseStaticMethod.remove, previous] -= value;
+                Link[Static.Target.BaseStaticMethod.remove, Previous] -= value;
                 // Should invoke current type.
-                link[_static.Target.BaseStaticMethod.remove, current] -= value;
+                Link[Static.Target.BaseStaticMethod.remove, Current] -= value;
                 // Should invoke current type.
-                link[_static.Target.BaseStaticMethod.remove, final] -= value;
+                Link[Static.Target.BaseStaticMethod.remove, Final] -= value;
 
                 // Should invoke base.
-                link[_this.BaseVirtualMethod.remove, @base] -= value;
+                Link[This.BaseVirtualMethod.remove, Api.Base] -= value;
                 // Should invoke base.
-                link[_this.BaseVirtualMethod.remove, previous] -= value;
+                Link[This.BaseVirtualMethod.remove, Previous] -= value;
                 // Should invoke base.
-                link[_this.BaseVirtualMethod.remove, current] -= value;
+                Link[This.BaseVirtualMethod.remove, Current] -= value;
                 // Should invoke this.
-                link[_this.BaseVirtualMethod.remove, final] -= value;
+                Link[This.BaseVirtualMethod.remove, Final] -= value;
 
                 // Should invoke _Source.
-                link[_this.BaseVirtualOverriddenMethod.remove, @base] -= value;
+                Link[This.BaseVirtualOverriddenMethod.remove, Api.Base] -= value;
                 // Should invoke _Source.
-                link[_this.BaseVirtualOverriddenMethod.remove, previous] -= value;
+                Link[This.BaseVirtualOverriddenMethod.remove, Previous] -= value;
                 // Should invoke _Source.
-                link[_this.BaseVirtualOverriddenMethod.remove, current] -= value;
+                Link[This.BaseVirtualOverriddenMethod.remove, Current] -= value;
                 // Should invoke this.
-                link[_this.BaseVirtualOverriddenMethod.remove, final] -= value;
+                Link[This.BaseVirtualOverriddenMethod.remove, Final] -= value;
 
                 // Should invoke _Source.
-                link[_this.BaseVirtualHiddenMethod.remove, @base] -= value;
+                Link[This.BaseVirtualHiddenMethod.remove, Api.Base] -= value;
                 // Should invoke _Source.
-                link[_this.BaseVirtualHiddenMethod.remove, previous] -= value;
+                Link[This.BaseVirtualHiddenMethod.remove, Previous] -= value;
                 // Should invoke _Source.
-                link[_this.BaseVirtualHiddenMethod.remove, current] -= value;
+                Link[This.BaseVirtualHiddenMethod.remove, Current] -= value;
                 // Should invoke this.
-                link[_this.BaseVirtualHiddenMethod.remove, final] -= value;
+                Link[This.BaseVirtualHiddenMethod.remove, Final] -= value;
 
                 // Should invoke this.
-                link[_this.BaseHiddenMethod.remove, @base] -= value;
+                Link[This.BaseHiddenMethod.remove, Api.Base] -= value;
                 // Should invoke this.
-                link[_this.BaseHiddenMethod.remove, previous] -= value;
+                Link[This.BaseHiddenMethod.remove, Previous] -= value;
                 // Should invoke this.
-                link[_this.BaseHiddenMethod.remove, current] -= value;
+                Link[This.BaseHiddenMethod.remove, Current] -= value;
                 // Should invoke this.
-                link[_this.BaseHiddenMethod.remove, final] -= value;
+                Link[This.BaseHiddenMethod.remove, Final] -= value;
 
                 // Should invoke current type.
-                link[_static.Target.BaseStaticHiddenMethod.remove, @base] -= value;
+                Link[Static.Target.BaseStaticHiddenMethod.remove, Api.Base] -= value;
                 // Should invoke current type.
-                link[_static.Target.BaseStaticHiddenMethod.remove, previous] -= value;
+                Link[Static.Target.BaseStaticHiddenMethod.remove, Previous] -= value;
                 // Should invoke current type.
-                link[_static.Target.BaseStaticHiddenMethod.remove, current] -= value;
+                Link[Static.Target.BaseStaticHiddenMethod.remove, Current] -= value;
                 // Should invoke current type.
-                link[_static.Target.BaseStaticHiddenMethod.remove, final] -= value;
+                Link[Static.Target.BaseStaticHiddenMethod.remove, Final] -= value;
 
                 // Should invoke this.
-                link[_this.LocalMethod.remove, @base] -= value;
+                Link[This.LocalMethod.remove, Api.Base] -= value;
                 // Should invoke this.
-                link[_this.LocalMethod.remove, previous] -= value;
+                Link[This.LocalMethod.remove, Previous] -= value;
                 // Should invoke this.
-                link[_this.LocalMethod.remove, current] -= value;
+                Link[This.LocalMethod.remove, Current] -= value;
                 // Should invoke this.
-                link[_this.LocalMethod.remove, final] -= value;
+                Link[This.LocalMethod.remove, Final] -= value;
 
                 // Should invoke _Source.
-                link[_this.LocalVirtualMethod.remove, @base] -= value;
+                Link[This.LocalVirtualMethod.remove, Api.Base] -= value;
                 // Should invoke _Source.
-                link[_this.LocalVirtualMethod.remove, previous] -= value;
+                Link[This.LocalVirtualMethod.remove, Previous] -= value;
                 // Should invoke _Source.
-                link[_this.LocalVirtualMethod.remove, current] -= value;
+                Link[This.LocalVirtualMethod.remove, Current] -= value;
                 // Should invoke this.
-                link[_this.LocalVirtualMethod.remove, final] -= value;
+                Link[This.LocalVirtualMethod.remove, Final] -= value;
 
                 // Should invoke current type.
-                link[_static.Target.LocalStaticMethod.remove, @base] -= value;
+                Link[Static.Target.LocalStaticMethod.remove, Api.Base] -= value;
                 // Should invoke current type.
-                link[_static.Target.LocalStaticMethod.remove, previous] -= value;
+                Link[Static.Target.LocalStaticMethod.remove, Previous] -= value;
                 // Should invoke current type.
-                link[_static.Target.LocalStaticMethod.remove, current] -= value;
+                Link[Static.Target.LocalStaticMethod.remove, Current] -= value;
                 // Should invoke current type.
-                link[_static.Target.LocalStaticMethod.remove, final] -= value;
+                Link[Static.Target.LocalStaticMethod.remove, Final] -= value;
             }
         }
     }

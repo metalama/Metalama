@@ -21,7 +21,7 @@ public class OverrideAttribute : PropertyAspect
     public void OverrideMethod()
     {
         var value = meta.Proceed();
-        meta.Return( value == null ? default : value );
+        meta.Return( value  );
     }
 }
 

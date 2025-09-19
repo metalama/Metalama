@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 
 namespace Metalama.Framework.IntegrationTests.Aspects.Introductions.Properties.ExistingConflictNew
@@ -257,7 +256,7 @@ namespace Metalama.Framework.IntegrationTests.Aspects.Introductions.Properties.E
             get => 33;
         }
 
-        public new static int HiddenBaseClassProperty_Static
+        public static new int HiddenBaseClassProperty_Static
         {
             get => 33;
         }

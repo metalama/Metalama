@@ -38,4 +38,13 @@ resharper_access_to_disposed_closure_highlighting = none
 dotnet_diagnostic.CA1805.severity = none
 dotnet_diagnostic.CA1825.severity = none
 dotnet_diagnostic.CA1821.severity = none
-
+dotnet_diagnostic.SA1402.severity = none
+dotnet_diagnostic.IDE0025.severity = none
+dotnet_diagnostic.IDE1006.severity = none
+dotnet_diagnostic.IDE0032.severity = none
+dotnet_diagnostic.IDE0039.severity = none
+dotnet_diagnostic.IDE0052.severity = none
+dotnet_diagnostic.IDE0026.severity = none
+dotnet_diagnostic.IDE0052.severity = none
+dotnet_diagnostic.IDE0021.severity = none
+dotnet_diagnostic.IDE0270.severity = none

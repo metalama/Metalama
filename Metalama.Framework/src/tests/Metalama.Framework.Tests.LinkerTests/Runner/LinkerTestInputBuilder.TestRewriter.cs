@@ -113,7 +113,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
             {
                 var typeRewriter = new TestTypeRewriter( this );
 
-                var newNode = (ClassDeclarationSyntax) typeRewriter.VisitClassDeclaration( node );
+                var newNode = (ClassDeclarationSyntax) typeRewriter.VisitClassDeclaration( node ).AssertNotNull();
 
                 if ( HasLayerOrderAttribute( node ) )
                 {
@@ -127,7 +127,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
             {
                 var typeRewriter = new TestTypeRewriter( this );
 
-                var newNode = (RecordDeclarationSyntax) typeRewriter.VisitRecordDeclaration( node );
+                var newNode = (RecordDeclarationSyntax) typeRewriter.VisitRecordDeclaration( node ).AssertNotNull();
 
                 if ( HasLayerOrderAttribute( node ) )
                 {
@@ -141,7 +141,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
             {
                 var typeRewriter = new TestTypeRewriter( this );
 
-                var newNode = (StructDeclarationSyntax) typeRewriter.VisitStructDeclaration( node );
+                var newNode = (StructDeclarationSyntax) typeRewriter.VisitStructDeclaration( node ).AssertNotNull();
 
                 if ( HasLayerOrderAttribute( node ) )
                 {

@@ -51,4 +51,5 @@
         <MetalamaTransformedCodeAnalyzer Include="Metalama.Framework.CompilerExtensions.MetalamaGeneratedCodeAnalyzer" />
     </ItemGroup>
 
+  
 </Project>

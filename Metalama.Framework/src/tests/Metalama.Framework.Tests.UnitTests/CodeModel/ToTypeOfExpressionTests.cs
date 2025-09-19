@@ -4,13 +4,13 @@
 
 using Metalama.Framework.Code;
 using Metalama.Framework.CompileTimeContracts;
+using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CodeModel.GenericContexts;
 using Metalama.Framework.Engine.CodeModel.Source.ConstructedTypes;
 using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.SyntaxSerialization;
 using Metalama.Testing.UnitTesting;
-using Microsoft.CodeAnalysis;
 using System.Linq;
 using Xunit;
 using RefKind = Microsoft.CodeAnalysis.RefKind;
@@ -79,9 +79,9 @@ namespace Metalama.Framework.Tests.UnitTests.CodeModel
 
             var functionPointerTypeSymbol = compilation.GetRoslynCompilation()
                 .CreateFunctionPointerTypeSymbol(
-                    compilation.Factory.GetSpecialType( SpecialType.Int32 ).GetSymbol(),
+                    compilation.Factory.GetSpecialType( SpecialType.Int32 ).GetSymbol().AssertSymbolNotNull(),
                     RefKind.None,
-                    [(ITypeSymbol) compilation.Factory.GetSpecialType( SpecialType.Int32 ).GetSymbol()],
+                    [compilation.Factory.GetSpecialType( SpecialType.Int32 ).GetSymbol().AssertSymbolNotNull()],
                     [RefKind.None] );
 
             var functionPointerType = new SymbolFunctionPointerType( functionPointerTypeSymbol, compilation, GenericContext.Empty );

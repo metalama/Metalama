@@ -8,26 +8,26 @@ using static Metalama.Framework.Tests.LinkerTests.Tests.Api;
 namespace Metalama.Framework.Tests.LinkerTests.Tests.Properties.Inliners.SetterAssignment_NotExpressionStatement
 {
     // <target>
-    class Target
+    internal class Target
     {
-        int field;
+        private int _field;
 
-        int Foo
+        private int Foo
         {
             set
             {
                 Console.WriteLine( "Original");
-                this.field = value;
+                this._field = value;
             }
         }
 
         [PseudoOverride( nameof(Foo),"TestAspect")]
-        int Foo_Override
+        private int Foo_Override
         {
             set
             {
                 Console.WriteLine( "Before");
-                _ = link[ _this.Foo.set, inline ] = value;
+                _ = Link[ This.Foo.set, Inline ] = value;
                 Console.WriteLine( "After");
             }
         }

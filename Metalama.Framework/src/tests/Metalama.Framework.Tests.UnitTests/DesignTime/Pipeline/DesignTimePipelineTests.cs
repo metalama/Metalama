@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.DesignTime.Pipeline;
+using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Formatting;
@@ -23,6 +24,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
@@ -1140,7 +1142,7 @@ class D{version}
         Assert.True( factory.TryExecute( testContext.ProjectOptions, updatedCompilation, default, out _ ) );
 
         // Resume the pipeline.
-        await factory.ResumePipelinesAsync( AsyncExecutionContext.Get(), false, default );
+        await factory.ResumePipelinesAsync( AsyncExecutionContext.Get(), false, CancellationToken.None );
 
         // Run the pipeline again.
         Assert.True( factory.TryExecute( testContext.ProjectOptions, updatedCompilation, default, out var updatedResults ) );
@@ -1364,7 +1366,7 @@ class D{version}
                         Console.WriteLine("This is the overridden getter.");
                         return meta.Proceed();
                     }
-            
+
                     set
                     {
                         Console.WriteLine($"This is the overridden setter.");
@@ -1447,7 +1449,7 @@ class D{version}
                 {
                     builder.MustSatisfy(method => !method.Enhancements().HasAspect<Aspect2>(), _ => $"");
                 }
-            
+
                 public override dynamic? OverrideMethod()
                 {
                     throw new NotImplementedException();
@@ -1465,13 +1467,13 @@ class D{version}
             class TargetCode
             {
                 private void NoAspectMethod() {}
-            
+
                 [Aspect1]
                 private int Aspect1Method(int a)
                 {
                     return a;
                 }
-            
+
                 [Aspect2]
                 private void Aspect2Method() { }
             }
@@ -1481,7 +1483,7 @@ class D{version}
 
         using TestDesignTimeAspectPipelineFactory factory = new( testContext );
 
-        var pipeline = factory.GetOrCreatePipeline( testContext.ProjectOptions, compilation );
+        var pipeline = factory.GetOrCreatePipeline( testContext.ProjectOptions, compilation ).AssertNotNull();
 
         Assert.True( pipeline.TryExecute( compilation, default, out _ ) );
 
@@ -1557,7 +1559,7 @@ class D{version}
                 public class IntroduceDependencyAttribute : DeclarativeAdviceAttribute
                 {
                     internal static readonly SuppressionDefinition NonNullableFieldMustContainValue = new( "CS8618" );
-                
+
                     public sealed override void BuildAdvice( IMemberOrNamedType templateMember, string templateMemberId, IAspectBuilder<IDeclaration> builder )
                     {
                         builder.Diagnostics.Suppress( NonNullableFieldMustContainValue, templateMember );
@@ -1620,7 +1622,7 @@ class D{version}
 
         WeakReference<DesignTimeAspectPipeline> CreatePipeline( IProjectOptions options )
         {
-            var pipeline = factory.GetOrCreatePipeline( options, targetCompilation );
+            var pipeline = factory.GetOrCreatePipeline( options, targetCompilation ).AssertNotNull();
 
             return new WeakReference<DesignTimeAspectPipeline>( pipeline );
         }
@@ -1639,14 +1641,14 @@ class D{version}
             class MyOptions : IHierarchicalOptions<IMethod>, IHierarchicalOptions<ICompilation>
             {
                 public bool? IsEnabled { get; init; }
-            
+
                 public object ApplyChanges(object changes, in ApplyChangesContext context)
                 {
                     var other = (MyOptions)changes;
-            
+
                     return new MyOptions { IsEnabled = other.IsEnabled ?? this.IsEnabled };
                 }
-            
+
                 public IHierarchicalOptions? GetDefaultOptions(OptionsInitializationContext context) => null;
             }
 
@@ -1654,7 +1656,7 @@ class D{version}
             class MyOptionsAttribute : Attribute, IHierarchicalOptionsProvider
             {
                 public bool IsEnabled { get; init; }
-            
+
                 public IEnumerable<IHierarchicalOptions> GetOptions(in OptionsProviderContext context)
                 {
                     return [new MyOptions { IsEnabled = this.IsEnabled }];
@@ -1671,11 +1673,11 @@ class D{version}
             class Aspect : MethodAspect
             {
                 static DiagnosticDefinition notEnabledWarning = new("NE", Severity.Warning, "Not enabled.");
-            
+
                 public override void BuildAspect(IAspectBuilder<IMethod> builder)
                 {
                     var options = builder.Target.Enhancements().GetOptions<MyOptions>();
-            
+
                     if (options.IsEnabled != true)
                     {
                         builder.Diagnostics.Report(notEnabledWarning);
@@ -1699,10 +1701,7 @@ class D{version}
 
         var code = new Dictionary<string, string>
         {
-            ["options.cs"] = options,
-            ["aspect.cs"] = aspect,
-            ["optionsAttribute.cs"] = "",
-            ["target.cs"] = target,
+            ["options.cs"] = options, ["aspect.cs"] = aspect, ["optionsAttribute.cs"] = "", ["target.cs"] = target,
 #if NETFRAMEWORK
             ["isexternalinit.cs"] = "namespace System.Runtime.CompilerServices { internal static class IsExternalInit; }"
 #endif

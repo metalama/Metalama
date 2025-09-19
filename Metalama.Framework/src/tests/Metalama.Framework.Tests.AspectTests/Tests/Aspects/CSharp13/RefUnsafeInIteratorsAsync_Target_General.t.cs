@@ -1,4 +1,4 @@
-class Target
+internal class Target
 {
   [TheAspect]
   private async Task Async()
@@ -28,7 +28,7 @@ class Target
       }
     }
     // ref
-    ref int r = ref (new int[1])[0];
+    ref var r = ref (new int[1])[0];
     // ref struct
     Span<int> s = stackalloc int[1];
     await Task.Yield();
@@ -60,7 +60,7 @@ class Target
       }
     }
     // ref
-    ref int r = ref (new int[1])[0];
+    ref var r = ref (new int[1])[0];
     // ref struct
     Span<int> s = stackalloc int[1];
     yield return 2;

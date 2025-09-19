@@ -11,6 +11,6 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.LanguageVersion.Tem
 
 // <target>
 [TheAspect]
-class Target
+internal class Target
 {
 }

@@ -36,7 +36,7 @@ internal sealed class DevBackstageToolsLocator : IBackstageToolsLocator
     {
         if ( tool == BackstageTool.Worker )
         {
-            return Path.Combine( _rootDirectory, tool.Name, "bin", _buildConfiguration, "net6.0", "Packed" );
+            return Path.Combine( _rootDirectory, tool.Name, "bin", _buildConfiguration, "net8.0", "Packed" );
         }
         else
         {

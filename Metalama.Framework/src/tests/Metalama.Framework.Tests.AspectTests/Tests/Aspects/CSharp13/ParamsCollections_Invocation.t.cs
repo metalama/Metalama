@@ -4,7 +4,7 @@ public class Target
   public Target(params List<int> ints)
   {
   }
-  void Foo(params List<int> ints)
+  private void Foo(params List<int> ints)
   {
   }
   private static void M()

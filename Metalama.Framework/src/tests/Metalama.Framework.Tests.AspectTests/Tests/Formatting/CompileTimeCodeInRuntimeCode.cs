@@ -7,10 +7,10 @@ using Metalama.Framework.Aspects;
 
 namespace Metalama.Framework.Tests.AspectTests.TestInputs.Highlighting.Declarations.CompileTimeCodeInRuntimeCode
 {
-    class Aspect : IAspect
+    internal class Aspect : IAspect
     {
         [Template]
-        dynamic? Template()
+        private dynamic? Template()
         {
             Console.WriteLine( $"Invoking {meta.Target.Method.ToDisplayString()}" );
 

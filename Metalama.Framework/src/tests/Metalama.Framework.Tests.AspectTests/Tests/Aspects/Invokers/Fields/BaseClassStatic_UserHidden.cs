@@ -63,7 +63,7 @@ public class BaseClass
 // <target>
 public class TargetClass : BaseClass
 {
-    public new static int Field;
+    public static new int Field;
 
     [InvokerAspect]
     public int Invoker

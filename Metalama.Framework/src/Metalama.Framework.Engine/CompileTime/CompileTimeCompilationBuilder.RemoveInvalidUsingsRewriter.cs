@@ -6,6 +6,7 @@ using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System.Collections.Generic;
 
 namespace Metalama.Framework.Engine.CompileTime
 {
@@ -17,23 +18,55 @@ namespace Metalama.Framework.Engine.CompileTime
         /// </summary>
         internal sealed class RemoveInvalidUsingRewriter : SafeSyntaxRewriter
         {
+            private readonly SyntaxTree _syntaxTree;
             private readonly SemanticModelProvider _semanticModelProvider;
+            private SemanticModel? _semanticModel;
+            private List<SyntaxTrivia>? _removedTrivia;
 
-            public RemoveInvalidUsingRewriter( Compilation compileTimeCompilation )
+            public RemoveInvalidUsingRewriter( Compilation compileTimeCompilation, SyntaxTree syntaxTree )
             {
+                this._syntaxTree = syntaxTree;
                 this._semanticModelProvider = compileTimeCompilation.GetSemanticModelProvider();
             }
 
             public override SyntaxNode? VisitUsingDirective( UsingDirectiveSyntax node )
             {
-                var symbolInfo = this._semanticModelProvider.GetSemanticModel( node.SyntaxTree ).GetSymbolInfo( node.GetNamespaceOrType() );
+                this._semanticModel ??= this._semanticModelProvider.GetSemanticModel( this._syntaxTree );
+                var symbolInfo = this._semanticModel.GetSymbolInfo( node.GetNamespaceOrType() );
 
                 if ( symbolInfo.Symbol == null )
                 {
+                    this._removedTrivia ??= new List<SyntaxTrivia>();
+                    this._removedTrivia.AddRange( node.GetLeadingTrivia() );
+                    this._removedTrivia.AddRange( node.GetTrailingTrivia() );
+
                     return null;
                 }
 
                 return node;
+            }
+
+            protected override SyntaxNode? VisitCore( SyntaxNode? node )
+            {
+                if ( node == null )
+                {
+                    return null;
+                }
+
+                var transformedNode = base.VisitCore( node );
+
+                if ( transformedNode == null )
+                {
+                    return null;
+                }
+                
+                if ( this._removedTrivia is { Count: > 0 } )
+                {
+                    transformedNode = transformedNode.WithLeadingTrivia( transformedNode.GetLeadingTrivia().InsertRange( 0, this._removedTrivia ) );
+                    this._removedTrivia.Clear();
+                }
+
+                return transformedNode;
             }
         }
     }

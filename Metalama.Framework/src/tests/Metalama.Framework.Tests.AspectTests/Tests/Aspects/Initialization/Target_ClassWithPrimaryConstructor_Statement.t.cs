@@ -1,14 +1,14 @@
 [Aspect]
-abstract class TargetCode : Base
+internal abstract class TargetCode : Base
 {
-  int x1;
+  private int x1;
   public new int x2;
   private readonly int x3;
   public required int x4;
   [MyAttribute]
   private protected int x5;
-  int x6 { get; }
-  int x7 { get; set; }
+  private int x6 { get; }
+  private int x7 { get; set; }
   public int x8 { get; private set; }
   public int x9 { get; protected set; }
   protected internal int x10 { get; init; }
@@ -16,12 +16,12 @@ abstract class TargetCode : Base
   public virtual int x12 { get; }
   public override int x13 { get; }
   public sealed override int x14 { get; }
-  new int x15 { get; }
+  private new int x15 { get; }
   [MyAttribute]
-  int x16 { get; }
+  private int x16 { get; }
   [field: MyAttribute]
-  int x17 { get; }
-  int x18, x19;
+  private int x17 { get; }
+  private int x18, x19;
   public TargetCode()
   {
     x1 = 1;

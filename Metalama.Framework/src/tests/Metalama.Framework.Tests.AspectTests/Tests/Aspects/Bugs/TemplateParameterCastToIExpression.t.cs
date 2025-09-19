@@ -1,6 +1,6 @@
-class Target
+internal class Target
 {
-  void M([Aspect] int p)
+  private void M([Aspect] int p)
   {
     if (p > 0)
     {

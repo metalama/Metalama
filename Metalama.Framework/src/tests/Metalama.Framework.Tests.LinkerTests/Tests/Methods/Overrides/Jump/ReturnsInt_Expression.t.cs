@@ -1,6 +1,6 @@
-class Target
+internal class Target
 {
-  int Foo(int x)
+  private int Foo(int x)
   {
     return this.Foo_Source(x);
   }

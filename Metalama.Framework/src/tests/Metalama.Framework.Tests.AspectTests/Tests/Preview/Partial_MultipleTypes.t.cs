@@ -1,9 +1,8 @@
 using System;
-using Metalama.Framework.Aspects;
 namespace Metalama.Framework.Tests.AspectTests.Tests.Preview.Partial_MultipleTypes;
 internal partial class TargetClass
 {
-  partial class NestedClass1
+  private partial class NestedClass1
   {
     [TestAspect]
     public void Bar()
@@ -11,7 +10,7 @@ internal partial class TargetClass
       Console.WriteLine("Transformed");
     }
   }
-  partial class NestedClass2
+  private partial class NestedClass2
   {
     [TestAspect]
     public void Bar()

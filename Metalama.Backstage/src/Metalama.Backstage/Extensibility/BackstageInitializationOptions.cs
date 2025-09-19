@@ -19,11 +19,6 @@ namespace Metalama.Backstage.Extensibility;
 public record BackstageInitializationOptions( IApplicationInfo ApplicationInfo )
 {
     /// <summary>
-    /// Gets the full path of the .NET SDK directory of the current process.
-    /// </summary>
-    public string? DotNetSdkDirectory { get; init; }
-
-    /// <summary>
     /// Gets a value indicating whether logging and telemetry services should be registered.
     /// </summary>
     public bool AddSupportServices { get; init; }

@@ -3,13 +3,11 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Aspects;
-using Metalama.Framework.Code;
 using Metalama.Framework.Code.Invokers;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using Metalama.Framework.Tests.AspectTests.Tests.Aspects.Invokers.Properties.CallerMemberAttribute;
 
-[assembly: AspectOrder(AspectOrderDirection.CompileTime, typeof(OverrideAspect), typeof(InvokerAspect))]
+[assembly: AspectOrder( AspectOrderDirection.CompileTime, typeof( OverrideAspect ), typeof( InvokerAspect ) )]
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Invokers.Properties.CallerMemberAttribute;
 

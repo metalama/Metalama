@@ -1,4 +1,4 @@
-partial class Target
+internal partial class Target
 {
   [TheAspect]
   partial int P1 { get; set; }

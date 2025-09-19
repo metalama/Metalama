@@ -10,12 +10,32 @@ using PostSharp.Engineering.BuildTools.Build.Model;
 using PostSharp.Engineering.BuildTools.Build.Solutions;
 using PostSharp.Engineering.BuildTools.Dependencies.Definitions;
 using PostSharp.Engineering.BuildTools.Dependencies.Model;
-using PostSharp.Engineering.BuildTools.Utilities;
+using PostSharp.Engineering.BuildTools.Docker;
 using System.IO;
 using MetalamaDependencies = PostSharp.Engineering.BuildTools.Dependencies.Definitions.MetalamaDependencies.V2026_0;
 
 var product = new Product( MetalamaDependencies.Metalama )
 {
+    OverriddenBuildAgentRequirements = new ContainerRequirements( ContainerHostKind.Windows )
+    {
+        Components =
+        [
+            // Must match global.json.
+            new DotNetComponent( "9.0.305", DotNetComponentKind.Sdk ),
+            
+            // The runtime is required by all tests.
+            // The SDK is required by the Workspace tests.
+            new DotNetComponent( "8.0.414", DotNetComponentKind.Sdk ),
+            new VisualStudioBuildToolsComponent(
+            [
+                "Microsoft.Net.Component.4.7.2.TargetingPack",
+                "Microsoft.Net.Component.4.7.2.SDK",
+                "Microsoft.Net.Component.4.8.TargetingPack",
+                "Microsoft.Net.Component.4.8.SDK"
+            ] )
+        ]
+    },
+    GenerateNuGetConfig = true,
     Solutions =
     [
         new DotNetSolution( "Metalama.Backstage/Metalama.Backstage.sln" ) { SupportsTestCoverage = true, CanFormatCode = true },
@@ -51,9 +71,9 @@ var product = new Product( MetalamaDependencies.Metalama )
         },
         new ManyDotNetSolutions( "Metalama.Framework/src/Tests/Standalone" ) { IsTestOnly = true },
         new DotNetSolution( "Metalama.Extensions/Metalama.Extensions.sln" ) { CanFormatCode = true, FormatExclusions = ["src\\tests\\*AspectTests\\**\\*"] },
+        new DotNetSolution( "Metalama.Patterns/Metalama.Patterns.sln" ) { CanFormatCode = true, FormatExclusions = ["src\\tests\\*AspectTests\\**\\*"] },
         new DotNetSolution( "Metalama.Migration/Metalama.Migration.sln" ) { CanFormatCode = true },
-        new DotNetSolution( "Metalama.LinqPad/Metalama.LinqPad.sln" ) { CanFormatCode = true },
-        new DotNetSolution( "Metalama.Patterns/Metalama.Patterns.sln" ) { CanFormatCode = true, FormatExclusions = ["src\\tests\\*AspectTests\\**\\*"] }
+        new DotNetSolution( "Metalama.LinqPad/Metalama.LinqPad.sln" ) { CanFormatCode = true }
     ],
     PublicArtifacts = Pattern.Create(
         "Metalama.Backstage.$(PackageVersion).nupkg",
@@ -118,6 +138,8 @@ var product = new Product( MetalamaDependencies.Metalama )
                 ]
             } ),
     SupportedProperties = { { "PrepareStubs", "The prepare command generates stub files, instead of actual implementations." } },
+
+    // Bill of Materials
     ProjectUsages =
     [
         new ProjectUsageInfo(
@@ -164,13 +186,21 @@ product.PrepareCompleted += OnPrepareCompleted;
 
 return new EngineeringApp( product ).Run( args );
 
-static void OnPrepareCompleted( PrepareCompletedEventArgs arg )
+static void OnPrepareCompleted( PrepareCompletedEventArgs args )
 {
-    TestLicenseKeyDownloader.Download( arg.Context );
+    /*
 
-    arg.Context.Console.WriteHeading( "Generating code" );
+    if ( !TestLicenseKeyDownloader.Download( args.Context, args.Settings ) )
+    {
+        args.IsFailed = true;
 
-    var srcDirectory = Path.Combine( arg.Context.RepoDirectory, "Metalama.Framework" );
+        return;
+    }
+*/
+
+    args.Context.Console.WriteHeading( "Generating code" );
+
+    var srcDirectory = Path.Combine( args.Context.RepoDirectory, "Metalama.Framework" );
 
     GenerateMetaSyntaxRewriter.Generate( srcDirectory );
 }

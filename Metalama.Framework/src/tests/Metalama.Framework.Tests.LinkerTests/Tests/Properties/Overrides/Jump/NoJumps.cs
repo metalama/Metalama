@@ -8,10 +8,10 @@ using static Metalama.Framework.Tests.LinkerTests.Tests.Api;
 namespace Metalama.Framework.Tests.LinkerTests.Tests.Properties.Overrides.Jump.NoJumps
 {
     // <target>
-    class Target
+    internal class Target
     {
-        int _foo;
-        int Foo
+        private int _foo;
+        private int Foo
         {
             get
             {
@@ -25,13 +25,13 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Properties.Overrides.Jump.N
         }
 
         [PseudoOverride( nameof(Foo),"TestAspect1")]
-        int Foo_Override1
+        private int Foo_Override1
         {
             get
             {
                 Console.WriteLine( "Get1");
                 int foo;
-                foo = link( _this.Foo.get, inline);
+                foo = Link( This.Foo.get, Inline);
                 if (foo > 0)
                 {
                     return foo;
@@ -46,7 +46,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Properties.Overrides.Jump.N
                 Console.WriteLine( "Set1");
                 if (value != 0)
                 {
-                    link[ _this.Foo.set, inline ] = value;
+                    Link[ This.Foo.set, Inline ] = value;
                 }
                 else
                 {
@@ -56,17 +56,17 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Properties.Overrides.Jump.N
         }
 
         [PseudoOverride( nameof(Foo),"TestAspect2")]
-        int Foo_Override2
+        private int Foo_Override2
         {
             get
             {
                 Console.WriteLine( "Get2");
-                return link[ _this.Foo.get, inline ];
+                return Link[ This.Foo.get, Inline ];
             }
             set
             {
                 Console.WriteLine( "Set2");
-                link[ _this.Foo.set, inline ] = value;
+                Link[ This.Foo.set, Inline ] = value;
             }
         }
     }

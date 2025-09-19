@@ -32,7 +32,6 @@
 
         <!-- The following references change 'dynamic' into 'object' -->
         <ProjectReference Include="../Metalama.SourceTransformer/Metalama.SourceTransformer.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
-        <ProjectReference Include="../Metalama.SystemTypes/Metalama.SystemTypes.csproj" />
     </ItemGroup>
 
 </Project>

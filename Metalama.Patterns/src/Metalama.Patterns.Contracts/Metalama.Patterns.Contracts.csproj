@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFrameworks>net471;net6.0;netstandard2.0</TargetFrameworks>
+        <TargetFrameworks>net472;net8.0;netstandard2.0</TargetFrameworks>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <Configurations>Debug;Release;LamaDebug;LamaDebug</Configurations>
@@ -23,8 +23,5 @@
 		<PackageReference Include="JetBrains.Annotations" PrivateAssets="all" />
 		<InternalsVisibleTo Include="Metalama.Patterns.Contracts.UnitTests" />
     </ItemGroup>
-
-
-    <Import Sdk="PostSharp.Engineering.Sdk" Project="SystemTypes.props" />
 
 </Project>

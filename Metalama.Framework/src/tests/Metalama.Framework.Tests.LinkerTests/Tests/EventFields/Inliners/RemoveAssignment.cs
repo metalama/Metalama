@@ -10,18 +10,18 @@ using static Metalama.Framework.Tests.LinkerTests.Tests.Api;
 namespace Metalama.Framework.Tests.LinkerTests.Tests.EventFields.Inliners.RemoveAssignment
 {
     // <target>
-    class Target
+    internal class Target
     {
-        event EventHandler? Foo;
+        private event EventHandler? Foo;
 
         [PseudoOverride(nameof(Foo), "TestAspect")]
-        event EventHandler? Foo_Override
+        private event EventHandler? Foo_Override
         {
             add { }
             remove
             {
                 Console.WriteLine("Before");
-                link[_this.Foo.remove, inline] -= value;
+                Link[This.Foo.remove, Inline] -= value;
                 Console.WriteLine("After");
             }
         }

@@ -3,12 +3,9 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System;
-
-namespace Metalama.Framework.Tests.PublicPipeline.Aspects.Misc.NestedNestedAspect;
-
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 
+namespace Metalama.Framework.Tests.PublicPipeline.Aspects.Misc.NestedNestedAspect;
 [CompileTime]
 public class Outer
 {

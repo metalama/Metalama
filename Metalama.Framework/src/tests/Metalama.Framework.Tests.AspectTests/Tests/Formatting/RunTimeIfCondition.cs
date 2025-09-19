@@ -6,7 +6,7 @@ using Metalama.Framework.Aspects;
 
 namespace Metalama.Framework.Tests.AspectTests.TestInputs.Highlighting.IfStatements.RunTimeIfCondition
 {
-    class RunTimeClass
+    internal class RunTimeClass
     {
         public void RunTimeMethod()
         {
@@ -14,22 +14,22 @@ namespace Metalama.Framework.Tests.AspectTests.TestInputs.Highlighting.IfStateme
     }
 
     [CompileTime]
-    class CompileTimeClass
+    internal class CompileTimeClass
     {
         public void CompileTimeMethod()
         {
         }
     }
 
-    class Aspect : IAspect
+    internal class Aspect : IAspect
     {
         [Template]
-        dynamic? Template()
+        private dynamic? Template()
         {
             var runTimeObject = new RunTimeClass();
             var compileTimeObject = new CompileTimeClass();
 
-            int runTimeVariable = 1;
+            var runTimeVariable = 1;
 
             if (runTimeVariable == 1)
             {

@@ -11,13 +11,13 @@ using Metalama.Framework.Code;
 namespace Metalama.Framework.Tests.AspectTests.TestInputs.Highlighting.IfStatements.CompileTimePatternMatching
 {
     [CompileTime]
-    enum SwitchEnum
+    internal enum SwitchEnum
     {
         one = 1,
         two = 2,
     }
 
-    class Aspect : OverrideMethodAspect
+    internal class Aspect : OverrideMethodAspect
     {
         public override dynamic? OverrideMethod()
         {

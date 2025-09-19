@@ -33,7 +33,8 @@ warning IDE0028: Collection initialization can be simplified (https://learn.micr
     <Import Project="..\eng\Versions.props"/>
     <Import Project="..\eng\StrongName.props"/>
     <Import Project="..\eng\Packaging.props"/>
-
+    
+    <Import Sdk="PostSharp.Engineering.Sdk" Project="EmbeddedSystemTypes.props" />
     <Import Sdk="PostSharp.Engineering.Sdk" Project="BuildOptions.props"/>
     <Import Sdk="PostSharp.Engineering.Sdk" Project="SourceLink.props"/>
 

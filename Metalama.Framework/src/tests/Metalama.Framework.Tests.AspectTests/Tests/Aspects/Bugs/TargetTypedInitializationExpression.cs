@@ -14,7 +14,7 @@ public class TheAspect : TypeAspect
     [Introduce]
     public void IntroducedMethod()
     {
-        var initializerExpression = meta.Target.Type.Fields.Single().InitializerExpression;
+        var initializerExpression = meta.Target.Type.Fields.Single().InitializerExpression!;
         _ = new StrongBox<object>( initializerExpression.Value );
     }
 }

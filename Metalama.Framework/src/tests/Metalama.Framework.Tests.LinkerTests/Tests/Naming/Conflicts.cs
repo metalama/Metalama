@@ -3,15 +3,17 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System;
+using System.Diagnostics.CodeAnalysis;
 using static Metalama.Framework.Tests.LinkerTests.Tests.Api;
 
 #pragma warning disable CS0067
 #pragma warning disable CS0649
 
 namespace Metalama.Framework.Tests.LinkerTests.Tests.Naming.Conflicts
-{    
+{
     // <target>
-    class Target
+    [SuppressMessage( "Style", "IDE1006:Naming Styles" )]
+    internal class Target
     {
         public int Foo { get; set; }
 
@@ -20,11 +22,11 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Naming.Conflicts
         {
             get
             {
-                return link[_this.Foo.set];
+                return Link[This.Foo.set];
             }
             set
             {
-                link[_this.Foo.set] = value;
+                Link[This.Foo.set] = value;
             }
         }
 

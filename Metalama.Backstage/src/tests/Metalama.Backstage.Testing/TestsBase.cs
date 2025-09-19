@@ -197,7 +197,7 @@ namespace Metalama.Backstage.Testing
                 .AddSingleton( new BackstageInitializationOptionsProvider( options ) )
                 .AddSingleton<IDateTimeProvider>( this.Time )
                 .AddSingleton<IProcessExecutor>( this.ProcessExecutor )
-                .AddSingleton<IPlatformInfo>( serviceProvider => new PlatformInfo( serviceProvider, null ) )
+                .AddSingleton<IPlatformInfo>( serviceProvider => new PlatformInfo( serviceProvider ) )
                 .AddSingleton( this.BackgroundTasks )
                 .AddSingleton<IHttpClientFactory>( _ => new TestHttpClientFactory() )
                 .AddSingleton<WebLinks>( _ => new WebLinks() )

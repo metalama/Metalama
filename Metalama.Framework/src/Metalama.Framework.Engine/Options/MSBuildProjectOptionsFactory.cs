@@ -16,7 +16,7 @@ public sealed class MSBuildProjectOptionsFactory : IDisposable, IProjectOptionsF
     private readonly TimeBasedCache<AnalyzerConfigOptions, MSBuildProjectOptions> _cache;
 
     public MSBuildProjectOptionsFactory() : this( null ) { }
-    
+
     public MSBuildProjectOptionsFactory( IEnumerable<string>? relevantProperties )
     {
         this._cache = new TimeBasedCache<AnalyzerConfigOptions, MSBuildProjectOptions>(
@@ -39,6 +39,6 @@ public sealed class MSBuildProjectOptionsFactory : IDisposable, IProjectOptionsF
             return this._cache.GetOrAdd( options, o => new MSBuildProjectOptions( o ) );
         }
     }
-    
+
     public void Dispose() => this._cache.Dispose();
 }

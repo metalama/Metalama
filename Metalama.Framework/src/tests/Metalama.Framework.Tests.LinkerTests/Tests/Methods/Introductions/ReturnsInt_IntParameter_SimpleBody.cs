@@ -5,7 +5,7 @@
 namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Introductions.ReturnsInt_IntParameter_SimpleBody
 {
     // <target>
-    class Target
+    internal class Target
     {
         [PseudoIntroduction("TestAspect")]
         public int Foo(int x)

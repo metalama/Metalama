@@ -2,7 +2,6 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.SyntaxBuilders;
@@ -11,9 +10,9 @@ using System;
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Bugs.TemplateParameterCastToIExpression;
 
-class Aspect : ContractAspect
+internal class Aspect : ContractAspect
 {
-    NumericRange Range { get; } = new();
+    private NumericRange Range { get; } = new();
 
     public override void Validate(dynamic? value)
     {
@@ -36,7 +35,7 @@ class Aspect : ContractAspect
 }
 
 [RunTimeOrCompileTime]
-class NumericRange : ICompileTimeSerializable
+internal class NumericRange : ICompileTimeSerializable
 {
     public bool GeneratePattern(IType type, ExpressionBuilder expressionBuilder, IExpression value)
     {
@@ -48,7 +47,7 @@ class NumericRange : ICompileTimeSerializable
 }
 
 // <target>
-class Target
+internal class Target
 {
-    void M([Aspect] int p) { }
+    private void M([Aspect] int p) { }
 }

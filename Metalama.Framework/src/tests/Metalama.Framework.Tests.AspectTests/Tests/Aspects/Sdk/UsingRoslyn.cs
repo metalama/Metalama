@@ -16,7 +16,7 @@ public class TestAspect : TypeAspect
     public override void BuildAspect( IAspectBuilder<INamedType> builder )
     {
         var type = builder.Target;
-        var symbol = type.GetSymbol();
+        var symbol = type.GetSymbol()!;
         var id = symbol.GetDocumentationCommentId();
 
         builder.IntroduceMethod( nameof(Bar), args: new { id, symbol, type } );
@@ -27,7 +27,7 @@ public class TestAspect : TypeAspect
     {
         Console.WriteLine( id );
         Console.WriteLine( symbol.GetDocumentationCommentId() );
-        Console.WriteLine( type.GetSymbol().GetDocumentationCommentId() );
+        Console.WriteLine( type.GetSymbol()!.GetDocumentationCommentId() );
     }
 }
 

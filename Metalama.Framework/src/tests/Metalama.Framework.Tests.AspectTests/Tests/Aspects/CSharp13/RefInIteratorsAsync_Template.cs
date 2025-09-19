@@ -6,6 +6,8 @@
 // @RequiredConstant(ROSLYN_4_12_0_OR_GREATER)
 #endif
 
+#if ROSLYN_4_12_0_OR_GREATER
+
 using Metalama.Framework.Aspects;
 using System;
 using System.Collections.Generic;
@@ -13,9 +15,7 @@ using System.Threading.Tasks;
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.CSharp13.RefInIteratorsAsync_Template;
 
-#if ROSLYN_4_12_0_OR_GREATER
-
-class TheAspect : TypeAspect
+internal class TheAspect : TypeAspect
 {
     // Unsafe is not allowed in templates (LAMA0101), ref and ref structs are.
 
@@ -25,7 +25,7 @@ class TheAspect : TypeAspect
         await Task.Yield();
 
         // ref
-        ref int r = ref (new int[1])[0];
+        ref var r = ref (new int[1])[0];
 
         // ref struct
         Span<int> s = stackalloc int[1];
@@ -39,7 +39,7 @@ class TheAspect : TypeAspect
         yield return 1;
 
         // ref
-        ref int r = ref (new int[1])[0];
+        ref var r = ref (new int[1])[0];
 
         // ref struct
         Span<int> s = stackalloc int[1];
@@ -54,7 +54,7 @@ class TheAspect : TypeAspect
         yield return 1;
 
         // ref
-        ref int r = ref (new int[1])[0];
+        ref var r = ref (new int[1])[0];
 
         // ref struct
         Span<int> s = stackalloc int[1];
@@ -66,7 +66,7 @@ class TheAspect : TypeAspect
 
 // <target>
 [TheAspect]
-class Target
+internal class Target
 {
 }
 

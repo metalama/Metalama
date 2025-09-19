@@ -1,7 +1,7 @@
-class Target
+internal class Target
 {
   private event EventHandler? _foo;
-  event EventHandler? Foo
+  private event EventHandler? Foo
   {
     add
     {
@@ -16,7 +16,7 @@ class Target
       Console.WriteLine("After2");
     }
   }
-  event EventHandler? Foo_Override1
+  private event EventHandler? Foo_Override1
   {
     add
     {

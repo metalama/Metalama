@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFrameworks>net472;net6.0</TargetFrameworks>
+        <TargetFrameworks>net472;net8.0</TargetFrameworks>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <RootNamespace>Metalama.Framework.Introspection</RootNamespace>
@@ -21,6 +21,7 @@
     <ItemGroup>
         <InternalsVisibleTo Include="Metalama.Framework.Engine.4.8.0" />
         <InternalsVisibleTo Include="Metalama.Framework.Engine.4.12.0" />
+        <InternalsVisibleTo Include="Metalama.Framework.Engine.5.0.0" />
     </ItemGroup>
 
     <!-- Packaging -->

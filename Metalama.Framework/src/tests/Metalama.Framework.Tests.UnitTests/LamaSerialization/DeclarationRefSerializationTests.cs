@@ -18,7 +18,6 @@ public sealed class DeclarationRefSerializationTests : SerializationTestsBase
         var initialRef = testContext.Compilation.Types.Single().ToRef();
 
         var roundtripRef = TestSerialization( testContext, initialRef, testEquality: false );
-
         var initialSymbol = initialRef.GetTarget( testContext.Compilation );
         var roundtripSymbol = roundtripRef.GetTarget( testContext.Compilation );
 

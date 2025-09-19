@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Code;
+using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Testing.UnitTesting;
 using System.Linq;
@@ -387,18 +388,18 @@ record struct D(int x) {}
             var compilation = testContext.CreateCompilationModel( code );
 
             var noInitializer = compilation.Types.OfName( "NoInitializer" ).Single();
-            Assert.Equal( ConstructorInitializerKind.None, noInitializer.PrimaryConstructor.InitializerKind );
+            Assert.Equal( ConstructorInitializerKind.None, noInitializer.PrimaryConstructor.AssertNotNull().InitializerKind );
 
             var @interface = compilation.Types.OfName( "Interface" ).Single();
-            Assert.Equal( ConstructorInitializerKind.None, @interface.PrimaryConstructor.InitializerKind );
+            Assert.Equal( ConstructorInitializerKind.None, @interface.PrimaryConstructor.AssertNotNull().InitializerKind );
 
             if ( !kind.ContainsOrdinal( "struct" ) )
             {
                 var derivedSimple = compilation.Types.OfName( "DerivedSimple" ).Single();
-                Assert.Equal( ConstructorInitializerKind.None, derivedSimple.PrimaryConstructor.InitializerKind );
+                Assert.Equal( ConstructorInitializerKind.None, derivedSimple.PrimaryConstructor.AssertNotNull().InitializerKind );
 
                 var derivedInitializer = compilation.Types.OfName( "DerivedInitializer" ).Single();
-                Assert.Equal( ConstructorInitializerKind.Base, derivedInitializer.PrimaryConstructor.InitializerKind );
+                Assert.Equal( ConstructorInitializerKind.Base, derivedInitializer.PrimaryConstructor.AssertNotNull().InitializerKind );
             }
         }
     }

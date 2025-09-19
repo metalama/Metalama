@@ -17,13 +17,13 @@ internal sealed class SymbolClassifierTracer
 
     public SymbolClassifierTracer( ISymbol symbol ) : this( symbol, 0 ) { }
 
-    public TemplatingScope? Result { get; private set; }
+    public TemplatingScopeAndRule? Result { get; private set; }
 
     public ISymbol? Symbol { get; }
 
     public int Depth { get; }
 
-    public void SetResult( TemplatingScope? result ) => this.Result = result;
+    public void SetResult( TemplatingScopeAndRule? result ) => this.Result = result;
 
     public List<SymbolClassifierTracer> Children { get; } = new();
 

@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Aspects;
-using System.Runtime.Serialization;
 
 namespace Metalama.Patterns.Caching;
 
@@ -14,7 +13,6 @@ namespace Metalama.Patterns.Caching;
 /// Throw <see cref="CachingAssertionFailedException"/> instead of using <see cref="System.Diagnostics.Debug"/>
 /// assert methods so that the compiler can track execution flow.
 /// </remarks>
-[Serializable]
 [RunTimeOrCompileTime]
 public sealed class CachingAssertionFailedException
     : ApplicationException
@@ -33,8 +31,4 @@ public sealed class CachingAssertionFailedException
     /// Initializes a new instance of the <see cref="CachingAssertionFailedException"/> class specifying the error message and the inner <see cref="Exception"/>.
     /// </summary>
     public CachingAssertionFailedException( string message, Exception inner ) : base( message, inner ) { }
-
-    private CachingAssertionFailedException(
-        SerializationInfo info,
-        StreamingContext context ) : base( info, context ) { }
 }

@@ -1,6 +1,6 @@
-class Target : Base
+internal class Target : Base
 {
-  public static event System.EventHandler Foo
+  public static event EventHandler Foo
   {
     add
     {
@@ -11,7 +11,7 @@ class Target : Base
       Foo_Override6 -= value;
     }
   }
-  public static new event System.EventHandler Bar
+  public static new event EventHandler Bar
   {
     add
     {
@@ -22,18 +22,18 @@ class Target : Base
       Bar_Override5_2 -= value;
     }
   }
-  private static event System.EventHandler Bar_Source
+  private static event EventHandler Bar_Source
   {
     add
     {
-      System.Console.WriteLine("This is original code (discarded).");
+      Console.WriteLine("This is original code (discarded).");
     }
     remove
     {
-      System.Console.WriteLine("This is original code (discarded).");
+      Console.WriteLine("This is original code (discarded).");
     }
   }
-  private static event System.EventHandler Bar_Override1_1
+  private static event EventHandler Bar_Override1_1
   {
     add
     {
@@ -58,7 +58,7 @@ class Target : Base
       Target.Bar -= value;
     }
   }
-  private static event System.EventHandler Bar_Override1_2
+  private static event EventHandler Bar_Override1_2
   {
     add
     {
@@ -83,7 +83,7 @@ class Target : Base
       Target.Bar -= value;
     }
   }
-  private static event System.EventHandler Bar_Override3_1
+  private static event EventHandler Bar_Override3_1
   {
     add
     {
@@ -108,7 +108,7 @@ class Target : Base
       Target.Bar -= value;
     }
   }
-  private static event System.EventHandler Bar_Override3_2
+  private static event EventHandler Bar_Override3_2
   {
     add
     {
@@ -133,7 +133,7 @@ class Target : Base
       Target.Bar -= value;
     }
   }
-  private static event System.EventHandler Bar_Override5_1
+  private static event EventHandler Bar_Override5_1
   {
     add
     {
@@ -158,7 +158,7 @@ class Target : Base
       Target.Bar -= value;
     }
   }
-  private static event System.EventHandler Bar_Override5_2
+  private static event EventHandler Bar_Override5_2
   {
     add
     {
@@ -183,7 +183,7 @@ class Target : Base
       Target.Bar -= value;
     }
   }
-  public static event System.EventHandler Foo_Override0
+  public static event EventHandler Foo_Override0
   {
     add
     {
@@ -208,7 +208,7 @@ class Target : Base
       Target.Bar -= value;
     }
   }
-  public static event System.EventHandler Foo_Override2
+  public static event EventHandler Foo_Override2
   {
     add
     {
@@ -233,7 +233,7 @@ class Target : Base
       Target.Bar -= value;
     }
   }
-  public static event System.EventHandler Foo_Override4
+  public static event EventHandler Foo_Override4
   {
     add
     {
@@ -258,7 +258,7 @@ class Target : Base
       Target.Bar -= value;
     }
   }
-  public static event System.EventHandler Foo_Override6
+  public static event EventHandler Foo_Override6
   {
     add
     {

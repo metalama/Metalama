@@ -5,17 +5,17 @@
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Bugs.LongCallChain;
 
 // <target>
-class C
+internal class C
 {
-    C WithColumn(string s) => this;
-    C AsInt64() => this;
-    C PrimaryKey() => this;
-    C Identity() => this;
-    C AsInt16() => this;
-    C AsFixedLengthAnsiString(int l) => this;
-    C AsFixedLengthString(int l) => this;
-    C WithDefaultValue(object o) => this;
-    C Nullable() => this;
+    private C WithColumn(string s) => this;
+    private C AsInt64() => this;
+    private C PrimaryKey() => this;
+    private C Identity() => this;
+    private C AsInt16() => this;
+    private C AsFixedLengthAnsiString(int l) => this;
+    private C AsFixedLengthString(int l) => this;
+    private C WithDefaultValue(object o) => this;
+    private C Nullable() => this;
 
     protected void DoCreateSysEnv()
     {

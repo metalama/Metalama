@@ -1,5 +1,5 @@
 [TestLiveTemplate(typeof(LiveAspect))]
-class Target
+internal class Target
 {
   private int i;
   private int j;

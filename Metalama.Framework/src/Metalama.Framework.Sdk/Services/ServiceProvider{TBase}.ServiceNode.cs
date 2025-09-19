@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System;
-using System.Diagnostics;
 
 namespace Metalama.Framework.Engine.Services;
 

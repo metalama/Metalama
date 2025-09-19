@@ -1,4 +1,5 @@
-class Target
+[SuppressMessage("Style", "IDE1006:Naming Styles")]
+internal class Target
 {
   private int _foo4;
   public int Foo

@@ -60,10 +60,11 @@ internal sealed partial class CompileTimeCompilationBuilder
     private readonly ILogger _logger;
     private readonly OutputPathHelper _outputPathHelper;
     private readonly ITaskRunner _taskRunner;
+    private readonly ILanguageVersionProvider _languageVersionProvider;
 
-    private static readonly Lazy<ImmutableDictionary<string, string>> _predefinedTypesSyntaxTree = new( GetPredefinedSyntaxTrees );
+    private static readonly Lazy<IReadOnlyDictionary<string, (string Text, ulong Hash)>> _predefinedTypesSyntaxTree = new( GetPredefinedSyntaxTrees );
 
-    private static ImmutableDictionary<string, string> GetPredefinedSyntaxTrees()
+    private static IReadOnlyDictionary<string, (string Text, ulong Hash)> GetPredefinedSyntaxTrees()
     {
         const string prefix = "_Resources_.";
 
@@ -74,17 +75,21 @@ internal sealed partial class CompileTimeCompilationBuilder
 
         var files = assembly.GetManifestResourceNames()
             .Where( n => n.ContainsOrdinal( prefix ) )
-            .ToImmutableDictionary(
+            .ToDictionary(
                 name => CompileTimeConstants.GetPrefixedSyntaxTreeName( name.Substring( name.IndexOf( prefix, StringComparison.Ordinal ) + prefix.Length ) )
                         + ".cs",
                 name =>
                 {
                     using var reader = new StreamReader( assembly.GetManifestResourceStream( name )! );
 
-                    return reader.ReadToEnd();
+                    var text = reader.ReadToEnd();
+                    XXH64 hash = new();
+                    hash.Update( text );
+
+                    return (text, hash.Digest());
                 } );
 
-        if ( files.IsEmpty )
+        if ( files.Count == 0 )
         {
             throw new AssertionFailedException( "Could not find the predefined syntax trees." );
         }
@@ -110,6 +115,7 @@ internal sealed partial class CompileTimeCompilationBuilder
         this._tempFileManager = serviceProvider.Underlying.GetRequiredBackstageService<ITempFileManager>();
         this._outputPathHelper = new OutputPathHelper( this._tempFileManager );
         this._taskRunner = serviceProvider.Global.GetRequiredService<ITaskRunner>();
+        this._languageVersionProvider = serviceProvider.GetRequiredService<ILanguageVersionProvider>();
     }
 
     private ulong ComputeSourceHash( FrameworkName? targetFramework, IReadOnlyList<SyntaxTree> compileTimeTrees )
@@ -237,8 +243,15 @@ internal sealed partial class CompileTimeCompilationBuilder
         }
 
         var runTimeCompilation = compilationContext.SourceCompilation;
+        var languageVersion = this._languageVersionProvider.GetCompileTimeLanguageVersion();
+        var transformedFileGenerator = new TransformedPathGenerator();
 
-        compileTimeCompilation = this.CreateEmptyCompileTimeCompilation( outputPaths.CompileTimeAssemblyName, referencedProjects );
+        compileTimeCompilation = this.CreateEmptyCompileTimeCompilation(
+            outputPaths.CompileTimeAssemblyName,
+            referencedProjects,
+            languageVersion,
+            transformedFileGenerator );
+
         var serializableTypes = GetSerializableTypes( compilationContext, treesWithCompileTimeCode, cancellationToken );
 
         var compileTimeCompilationContext = compileTimeCompilation.GetCompilationContext();
@@ -262,34 +275,31 @@ internal sealed partial class CompileTimeCompilationBuilder
         var compileTimeToSourceMap = this._observer == null ? null : new Dictionary<string, string>();
 
         // Creates the new syntax trees. Store them in a dictionary mapping the transformed trees to the source trees.
-        var transformedFileGenerator = new TransformedPathGenerator();
 
         var syntaxTrees = treesWithCompileTimeCode
-            .SelectAsArray(
-                t => (SyntaxTree: t, FileName: Path.GetFileNameWithoutExtension( t.FilePath ),
-                      Hash: XXH64.DigestOf( Encoding.UTF8.GetBytes( t.GetText().ToString() ) )) )
+            .SelectAsArray( t => (SyntaxTree: t, FileName: Path.GetFileNameWithoutExtension( t.FilePath ),
+                                  Hash: XXH64.DigestOf( Encoding.UTF8.GetBytes( t.GetText().ToString() ) )) )
             .OrderBy( t => t.FileName )
             .ThenBy( t => t.Hash )
-            .Select(
-                t =>
-                {
-                    var path = transformedFileGenerator.GetTransformedFilePath( t.FileName, t.Hash );
+            .Select( t =>
+            {
+                var path = transformedFileGenerator.GetTransformedFilePath( t.FileName, t.Hash );
 
-                    var compileTimeSyntaxRoot = produceCompileTimeCodeRewriter.Visit( t.SyntaxTree.GetRoot() )
-                        .AssertNotNull();
+                var compileTimeSyntaxRoot = produceCompileTimeCodeRewriter.Visit( t.SyntaxTree.GetRoot() )
+                    .AssertNotNull();
 
-                    compileTimeToSourceMap?.Add( path, t.SyntaxTree.FilePath );
+                compileTimeToSourceMap?.Add( path, t.SyntaxTree.FilePath );
 
-                    // Remove all preprocessor trivias.
-                    // PERF: only do this if the node actually contains preprocessor directives.
-                    compileTimeSyntaxRoot = new RemovePreprocessorDirectivesRewriter().Visit( compileTimeSyntaxRoot ).AssertNotNull();
+                // Remove all preprocessor trivias.
+                // PERF: only do this if the node actually contains preprocessor directives.
+                compileTimeSyntaxRoot = new RemovePreprocessorDirectivesRewriter().Visit( compileTimeSyntaxRoot ).AssertNotNull();
 
-                    return CSharpSyntaxTree.Create(
-                        (CSharpSyntaxNode) compileTimeSyntaxRoot,
-                        SupportedCSharpVersions.DefaultParseOptions,
-                        path,
-                        Encoding.UTF8 );
-                } )
+                return CSharpSyntaxTree.Create(
+                    (CSharpSyntaxNode) compileTimeSyntaxRoot,
+                    new CSharpParseOptions( languageVersion ),
+                    path,
+                    Encoding.UTF8 );
+            } )
             .ToReadOnlyList();
 
         locationAnnotationMap = templateCompiler.LocationAnnotationMap;
@@ -313,7 +323,7 @@ internal sealed partial class CompileTimeCompilationBuilder
         }
 
         compileTimeCompilation = compileTimeCompilation.AddSyntaxTrees( syntaxTrees );
-        compileTimeCompilation = new RemoveInvalidUsingRewriter( compileTimeCompilation ).VisitTrees( compileTimeCompilation );
+        compileTimeCompilation = compileTimeCompilation.RewriteAll( ( c, t ) => new RemoveInvalidUsingRewriter( c, t ) );
 
         if ( this._projectOptions is { FormatCompileTimeCode: true } )
         {
@@ -342,24 +352,34 @@ internal sealed partial class CompileTimeCompilationBuilder
     public static bool IsCompileTimeAssemblyName( string assemblyName )
         => assemblyName.StartsWith( CompileTimeAssemblyPrefix, StringComparison.OrdinalIgnoreCase );
 
-    private CSharpCompilation CreateEmptyCompileTimeCompilation( string assemblyName, IEnumerable<CompileTimeProject> referencedProjects )
+    private CSharpCompilation CreateEmptyCompileTimeCompilation(
+        string assemblyName,
+        IEnumerable<CompileTimeProject> referencedProjects,
+        LanguageVersion languageVersion,
+        TransformedPathGenerator transformedFileGenerator )
     {
         var assemblyLocator = this._serviceProvider.GetReferenceAssemblyLocator();
         var preprocessorServiceProvider = this._serviceProvider.GetService<ICompileTimePreprocessorSymbolProvider>();
-        
+
         var preprocessorSymbols =
             preprocessorServiceProvider != null
                 ? preprocessorServiceProvider.PreprocessorSymbols.Concat( "NETSTANDARD_2_0" )
                 : ["NETSTANDARD_2_0"];
 
-        var parseOptions = new CSharpParseOptions( preprocessorSymbols: preprocessorSymbols, languageVersion: SupportedCSharpVersions.Default );
+        var parseOptions = new CSharpParseOptions(
+            preprocessorSymbols: preprocessorSymbols,
+            languageVersion: languageVersion );
 
         var references = assemblyLocator.MetadataReferences;
 
         var predefinedSyntaxTrees =
-            _predefinedTypesSyntaxTree.Value.SelectAsArray( x => CSharpSyntaxTree.ParseText( x.Value, parseOptions, x.Key, Encoding.UTF8 ) );
+            _predefinedTypesSyntaxTree.Value.SelectAsArray( x => CSharpSyntaxTree.ParseText(
+                                                                x.Value.Text,
+                                                                parseOptions,
+                                                                transformedFileGenerator.GetTransformedFilePath( x.Key, x.Value.Hash ),
+                                                                Encoding.UTF8 ) );
 
-        return CSharpCompilation.Create(
+        var compilation = CSharpCompilation.Create(
                 assemblyName,
                 predefinedSyntaxTrees,
                 references,
@@ -368,6 +388,8 @@ internal sealed partial class CompileTimeCompilationBuilder
                 referencedProjects
                     .Where( r => r is { IsEmpty: false, IsFramework: false } )
                     .Select( r => r.ToMetadataReference() ) );
+
+        return compilation;
     }
 
     private bool TryEmit(
@@ -399,7 +421,7 @@ internal sealed partial class CompileTimeCompilationBuilder
                 if ( path.Length > 254 )
                 {
                     // We should generate, upstream, a path that is short enough. At this stage, it is too late to shorten it.
-                    throw new AssertionFailedException( $"Path too long: '{path}'" );
+                    throw new AssertionFailedException( $"Path too long: '{path}' has {path.Length} characters." );
                 }
 
                 var text = compileTimeSyntaxTree.GetText().ToString();
@@ -749,9 +771,8 @@ internal sealed partial class CompileTimeCompilationBuilder
 
         // If the compilation does not reference Metalama.Framework, do not create a compile-time project.
         if ( !runTimeCompilation.References.OfType<PortableExecutableReference>()
-                .Any(
-                    p => p.FilePath != null && Path.GetFileNameWithoutExtension( p.FilePath )
-                        .Equals( "Metalama.Framework", StringComparison.OrdinalIgnoreCase ) ) )
+                .Any( p => p.FilePath != null && Path.GetFileNameWithoutExtension( p.FilePath )
+                          .Equals( "Metalama.Framework", StringComparison.OrdinalIgnoreCase ) ) )
         {
             this._logger.Trace?.Log( $"TryGetCompileTimeProject( '{runTimeCompilation.AssemblyName}' ) : no reference to Metalama.Framework" );
             project = null;
@@ -1025,13 +1046,12 @@ internal sealed partial class CompileTimeCompilationBuilder
                     // Without this local function, the closure for this method causes a memory leak.
                     static DiagnosticAdderAdapter CreateDiagnosticAdder( IDiagnosticAdder diagnosticSink, List<Diagnostic> diagnostics )
                     {
-                        return new DiagnosticAdderAdapter(
-                            diagnostic =>
-                            {
-                                // Report diagnostics to the current sink and also store them for the cache.
-                                diagnosticSink.Report( diagnostic );
-                                diagnostics.Add( diagnostic );
-                            } );
+                        return new DiagnosticAdderAdapter( diagnostic =>
+                        {
+                            // Report diagnostics to the current sink and also store them for the cache.
+                            diagnosticSink.Report( diagnostic );
+                            diagnostics.Add( diagnostic );
+                        } );
                     }
 
                     var diagnosticAdder = CreateDiagnosticAdder( diagnosticSink, diagnostics );
@@ -1118,9 +1138,8 @@ internal sealed partial class CompileTimeCompilationBuilder
                             .ToReadOnlyList();
 
                         var fabricTypes = allTypes
-                            .Where(
-                                t => IsFabric( t ) &&
-                                     !compilationForManifest.HasImplicitConversion( t, transitiveFabricType ) )
+                            .Where( t => IsFabric( t ) &&
+                                         !compilationForManifest.HasImplicitConversion( t, transitiveFabricType ) )
                             .ToReadOnlyList();
 
                         var fabricTypeNames = fabricTypes
@@ -1170,7 +1189,8 @@ internal sealed partial class CompileTimeCompilationBuilder
                             sourceHash,
                             textMapDirectory.FilesByTargetPath.Values.Select( f => new CompileTimeFileManifest( f ) ).ToArray(),
                             diagnostics.SelectAsArray( d => new CompileTimeDiagnosticManifest( d, sourceFilePathIndexes! ) ),
-                            referencesMetalamaSdk );
+                            referencesMetalamaSdk,
+                            languageVersion: this._languageVersionProvider.GetCompileTimeLanguageVersion() );
 
                         project = CompileTimeProject.Create(
                             this._serviceProvider,
@@ -1240,7 +1260,11 @@ internal sealed partial class CompileTimeCompilationBuilder
 
         var outputPaths = this._outputPathHelper.GetOutputPaths( runTimeAssemblyName, targetFramework, projectHash );
 
-        var compilation = this.CreateEmptyCompileTimeCompilation( outputPaths.CompileTimeAssemblyName, referencedProjects )
+        var compilation = this.CreateEmptyCompileTimeCompilation(
+                outputPaths.CompileTimeAssemblyName,
+                referencedProjects,
+                manifest.LanguageVersion ?? SupportedCSharpVersions.Latest,
+                new TransformedPathGenerator() )
             .AddSyntaxTrees( syntaxTrees );
 
         var alternateOrdinal = 0;

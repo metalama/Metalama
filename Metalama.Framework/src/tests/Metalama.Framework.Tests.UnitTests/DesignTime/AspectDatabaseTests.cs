@@ -5,6 +5,7 @@
 using Metalama.Framework.Code;
 using Metalama.Framework.DesignTime.AspectExplorer;
 using Metalama.Framework.DesignTime.Pipeline;
+using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.Pipeline.DesignTime;
 using Metalama.Framework.Engine.Services;
@@ -15,6 +16,7 @@ using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
@@ -31,8 +33,7 @@ public sealed class AspectDatabaseTests( ITestOutputHelper testOutputHelper ) : 
         services.AddGlobalService( provider => new TestWorkspaceProvider( provider ) );
     }
 
-    private static void AssertAspectClasses( IEnumerable<string> expected, IEnumerable<string> actual )
-        => Assert.Equal( expected, actual.OrderBy( id => id ) );
+    private static void AssertAspectClasses( IEnumerable<string> expected, IEnumerable<string> actual ) => Assert.Equal( expected, actual.OrderBy( id => id ) );
 
     private static void AssertAspectInstances( IEnumerable<string> expected, IEnumerable<AspectDatabaseAspectInstance> actual )
         => Assert.Equal( expected, actual.Select( aspectInstance => aspectInstance.TargetDeclarationId ).OrderBy( s => s ) );
@@ -41,7 +42,7 @@ public sealed class AspectDatabaseTests( ITestOutputHelper testOutputHelper ) : 
         => Assert.Equal(
             expected,
             actual.SelectMany( i => i.Transformations ).Select( aspectTransformation => aspectTransformation.Description ).OrderBy( s => s ) );
-    
+
     [Fact]
     public async Task BasicTest()
     {
@@ -93,7 +94,11 @@ public sealed class AspectDatabaseTests( ITestOutputHelper testOutputHelper ) : 
             ],
             aspectClasses );
 
-        var aspectInstances = await aspectDatabase.GetAspectInstancesAsync( projectKey, "project", new SerializableTypeId( "Y:global::Aspect" ), default );
+        var aspectInstances = await aspectDatabase.GetAspectInstancesAsync(
+            projectKey,
+            "project",
+            new SerializableTypeId( "Y:global::Aspect" ),
+            CancellationToken.None );
 
         AssertAspectInstances(
             [
@@ -132,22 +137,22 @@ public sealed class AspectDatabaseTests( ITestOutputHelper testOutputHelper ) : 
                                 public override void BuildAspect(IAspectBuilder<INamedType> builder)
                                 {
                                     base.BuildAspect(builder);
-                            
+
                                     if (builder.Target.Methods.OfName("M").FirstOrDefault() is { } method)
                                     {
                                         //builder.Advice.Override(method, nameof(Template));
                                         builder.With(method).AddAspect<MethodAspect>();
                                     }
-                            
+
                                     if (builder.Target.Constructors.OfExactSignature(Array.Empty<IType>()) is { } constructor)
                                     {
                                         builder.Advice.IntroduceParameter(constructor, "p", typeof(int), TypedConstant.Create(0));
                                     }
                                 }
-                            
+
                                 [Introduce]
                                 int i;
-                            
+
                                 [Template]
                                 void Template() { }
                             }
@@ -157,7 +162,7 @@ public sealed class AspectDatabaseTests( ITestOutputHelper testOutputHelper ) : 
                                 public override void BuildAspect(IAspectBuilder<ICompilation> builder)
                                 {
                                     base.BuildAspect(builder);
-                            
+
                                     builder.IntroduceAttribute( AttributeConstruction.Create(typeof(MyAttribute)));
                                 }
                             }
@@ -181,7 +186,11 @@ public sealed class AspectDatabaseTests( ITestOutputHelper testOutputHelper ) : 
 
         Assert.True( await aspectDatabase.HasValidConfigurationAsync( projectKey, testContext.CancellationToken ) );
 
-        var aspectInstances = await aspectDatabase.GetAspectInstancesAsync( projectKey, "project", new SerializableTypeId( "Y:global::Aspect" ), default );
+        var aspectInstances = await aspectDatabase.GetAspectInstancesAsync(
+            projectKey,
+            "project",
+            new SerializableTypeId( "Y:global::Aspect" ),
+            CancellationToken.None );
 
         AssertAspectTransformations(
             [
@@ -196,7 +205,7 @@ public sealed class AspectDatabaseTests( ITestOutputHelper testOutputHelper ) : 
             projectKey,
             "project",
             new SerializableTypeId( "Y:global::CompilationAttribute" ),
-            default );
+            CancellationToken.None );
 
         AssertAspectTransformations(
             ["Introduce attribute of type 'MyAttribute' into 'project'"],
@@ -246,7 +255,7 @@ public sealed class AspectDatabaseTests( ITestOutputHelper testOutputHelper ) : 
 
         var aspectDatabase = new AspectDatabase( factory.ServiceProvider );
 
-        var aspectClasses = await aspectDatabase.GetAspectClassesAsync( projectKey, default );
+        var aspectClasses = await aspectDatabase.GetAspectClassesAsync( projectKey, CancellationToken.None );
 
         AssertAspectClasses( ["Y:global::Aspect"], aspectClasses );
 
@@ -261,14 +270,14 @@ public sealed class AspectDatabaseTests( ITestOutputHelper testOutputHelper ) : 
 
         // Have to recompute configuration to get the event raised.
         await pipeline.GetConfigurationAsync(
-            PartialCompilation.CreateComplete( await workspaceProvider.GetCompilationAsync( projectKey ) ),
+            PartialCompilation.CreateComplete( await workspaceProvider.GetCompilationAsync( projectKey ).AssertNotNullAsync() ).AssertNotNull(),
             ignoreStatus: true,
             AsyncExecutionContext.Get(),
             default );
 
         Assert.Equal( 1, aspectClassesChanges );
 
-        aspectClasses = await aspectDatabase.GetAspectClassesAsync( projectKey, default );
+        aspectClasses = await aspectDatabase.GetAspectClassesAsync( projectKey, CancellationToken.None );
 
         AssertAspectClasses(
             [
@@ -279,7 +288,7 @@ public sealed class AspectDatabaseTests( ITestOutputHelper testOutputHelper ) : 
 
         var aspectClass = new SerializableTypeId( "Y:global::Aspect" );
 
-        var aspectInstances = await aspectDatabase.GetAspectInstancesAsync( projectKey, "project", aspectClass, default );
+        var aspectInstances = await aspectDatabase.GetAspectInstancesAsync( projectKey, "project", aspectClass, CancellationToken.None );
 
         AssertAspectInstances( ["T:Target"], aspectInstances );
 
@@ -291,12 +300,12 @@ public sealed class AspectDatabaseTests( ITestOutputHelper testOutputHelper ) : 
         workspaceProvider.AddOrUpdateProject( testContext, "project", code );
 
         // Have to re-execute to get the event raised.
-        await pipeline.ExecuteAsync( await workspaceProvider.GetCompilationAsync( projectKey ), AsyncExecutionContext.Get() );
+        await pipeline.ExecuteAsync( await workspaceProvider.GetCompilationAsync( projectKey ).AssertNotNullAsync(), AsyncExecutionContext.Get() );
 
         Assert.Equal( 1, aspectClassesChanges );
         Assert.Equal( 1, aspectInstancesChanges );
 
-        aspectInstances = await aspectDatabase.GetAspectInstancesAsync( projectKey, "project", aspectClass, default );
+        aspectInstances = await aspectDatabase.GetAspectInstancesAsync( projectKey, "project", aspectClass, CancellationToken.None );
 
         AssertAspectInstances( ["T:NewTarget", "T:Target"], aspectInstances );
     }
@@ -335,16 +344,26 @@ public sealed class AspectDatabaseTests( ITestOutputHelper testOutputHelper ) : 
 
         var aspectDatabase = new AspectDatabase( factory.ServiceProvider );
 
-        var aspectClasses1 = await aspectDatabase.GetAspectClassesAsync( projectKey1, default );
+        var aspectClasses1 = await aspectDatabase.GetAspectClassesAsync( projectKey1, CancellationToken.None );
         AssertAspectClasses( ["Y:global::Aspect"], aspectClasses1 );
 
-        var aspectClasses2 = await aspectDatabase.GetAspectClassesAsync( projectKey2, default );
+        var aspectClasses2 = await aspectDatabase.GetAspectClassesAsync( projectKey2, CancellationToken.None );
         AssertAspectClasses( ["Y:global::Aspect"], aspectClasses2 );
 
-        var aspectInstances1 = await aspectDatabase.GetAspectInstancesAsync( projectKey1, "project1", new SerializableTypeId( "Y:global::Aspect" ), default );
+        var aspectInstances1 = await aspectDatabase.GetAspectInstancesAsync(
+            projectKey1,
+            "project1",
+            new SerializableTypeId( "Y:global::Aspect" ),
+            CancellationToken.None );
+
         AssertAspectInstances( ["M:Target1.M"], aspectInstances1 );
 
-        var aspectInstances2 = await aspectDatabase.GetAspectInstancesAsync( projectKey2, "project2", new SerializableTypeId( "Y:global::Aspect" ), default );
+        var aspectInstances2 = await aspectDatabase.GetAspectInstancesAsync(
+            projectKey2,
+            "project2",
+            new SerializableTypeId( "Y:global::Aspect" ),
+            CancellationToken.None );
+
         AssertAspectInstances( ["M:Target2.M"], aspectInstances2 );
     }
 
@@ -363,7 +382,7 @@ public sealed class AspectDatabaseTests( ITestOutputHelper testOutputHelper ) : 
                 public override void BuildAspect(IAspectBuilder<INamedType> builder)
                 {
                     base.BuildAspect(builder);
-            
+
                     builder.Advice.IntroduceParameter(builder.Target.Constructors.Single(), "p", typeof(int), TypedConstant.Create(0));
                 }
             }
@@ -390,7 +409,11 @@ public sealed class AspectDatabaseTests( ITestOutputHelper testOutputHelper ) : 
 
         var aspectDatabase = new AspectDatabase( factory.ServiceProvider );
 
-        var aspectInstances = await aspectDatabase.GetAspectInstancesAsync( projectKey, "project", new SerializableTypeId( "Y:global::MyAspect" ), default );
+        var aspectInstances = await aspectDatabase.GetAspectInstancesAsync(
+            projectKey,
+            "project",
+            new SerializableTypeId( "Y:global::MyAspect" ),
+            CancellationToken.None );
 
 #pragma warning disable IDE0053 // Use expression body for lambda expression
         Assert.Collection(
@@ -401,8 +424,6 @@ public sealed class AspectDatabaseTests( ITestOutputHelper testOutputHelper ) : 
 
                 Assert.Collection(
                     aspectInstance.Transformations,
-
-                    // ReSharper disable once ParameterOnlyUsedForPreconditionCheck.Local
                     transformation =>
                     {
                         Assert.Equal( "Introduce parameter 'p' into constructor 'WithCtor.WithCtor()'.", transformation.Description );
@@ -415,15 +436,11 @@ public sealed class AspectDatabaseTests( ITestOutputHelper testOutputHelper ) : 
 
                 Assert.Collection(
                     aspectInstance.Transformations.OrderBy( i => i.TargetDeclarationId ),
-
-                    // ReSharper disable once ParameterOnlyUsedForPreconditionCheck.Local
                     transformation =>
                     {
                         Assert.Equal( "Introduce parameter 'p' into constructor 'WithoutCtor.WithoutCtor()'.", transformation.Description );
                         Assert.Equal( "M:WithoutCtor.#ctor", transformation.TargetDeclarationId );
                     },
-
-                    // ReSharper disable once ParameterOnlyUsedForPreconditionCheck.Local
                     transformation =>
                     {
                         Assert.Equal( "Introduce constructor 'WithoutCtor()' into type 'WithoutCtor'.", transformation.Description );
@@ -455,13 +472,13 @@ public sealed class AspectDatabaseTests( ITestOutputHelper testOutputHelper ) : 
             class Target
             {
                 public Target([NotNull] string s) { }
-            
+
                 [NotNull]
                 public string this[[NotNull] string s] => s;
-            
+
                 [NotNull]
                 public string Name { get; set; }
-            
+
                 [return: NotNull]
                 string M([NotNull] string s) => s;
             }
@@ -479,7 +496,7 @@ public sealed class AspectDatabaseTests( ITestOutputHelper testOutputHelper ) : 
             projectKey,
             "project",
             new SerializableTypeId( "Y:global::NotNullAttribute" ),
-            default );
+            CancellationToken.None );
 
         Assert.NotNull( aspectInstances );
 
@@ -556,7 +573,7 @@ public sealed class AspectDatabaseTests( ITestOutputHelper testOutputHelper ) : 
         var workspaceProvider = factory.ServiceProvider.GetRequiredService<TestWorkspaceProvider>();
         var projectKey = workspaceProvider.AddOrUpdateProject( testContext, "project", new Dictionary<string, string> { ["code.cs"] = code } );
 
-        var compilation = await workspaceProvider.GetCompilationAsync( projectKey, testContext.CancellationToken );
+        var compilation = (await workspaceProvider.GetCompilationAsync( projectKey, testContext.CancellationToken )).AssertNotNull();
         Assert.Empty( compilation.GetDiagnostics( testContext.CancellationToken ).Where( d => d.Severity == DiagnosticSeverity.Error ) );
 
         var aspectDatabase = new AspectDatabase( factory.ServiceProvider );
@@ -609,8 +626,7 @@ public sealed class AspectDatabaseTests( ITestOutputHelper testOutputHelper ) : 
 
         var aspectDatabase = new AspectDatabase( factory.ServiceProvider );
 
-        async Task<WeakReference> GetCompilationAsync()
-            => new( await workspaceProvider.GetCompilationAsync( projectKey, testContext.CancellationToken ) );
+        async Task<WeakReference> GetCompilationAsync() => new( await workspaceProvider.GetCompilationAsync( projectKey, testContext.CancellationToken ) );
 
         var compilationReference = await GetCompilationAsync();
 
@@ -622,7 +638,11 @@ public sealed class AspectDatabaseTests( ITestOutputHelper testOutputHelper ) : 
 
             AssertAspectClasses( ["Y:global::Aspect"], aspectClasses );
 
-            var aspectInstances = await aspectDatabase.GetAspectInstancesAsync( projectKey, "project", new SerializableTypeId( "Y:global::Aspect" ), default );
+            var aspectInstances = await aspectDatabase.GetAspectInstancesAsync(
+                projectKey,
+                "project",
+                new SerializableTypeId( "Y:global::Aspect" ),
+                CancellationToken.None );
 
             AssertAspectInstances( hasInstances ? ["T:AttributeTarget"] : [], aspectInstances );
         }

@@ -10,12 +10,12 @@ using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel.Abstractions;
 using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 using Metalama.Framework.Engine.CodeModel.Introductions.Collections;
-using Metalama.Framework.Engine.CodeModel.Invokers;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.ReflectionMocks;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using MethodInvoker = Metalama.Framework.Engine.CodeModel.Invokers.MethodInvoker;
 
 namespace Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 

@@ -8,7 +8,7 @@ public interface Interface
     return 42;
   }
   [Override]
-  public static int StaticMethod()
+  static int StaticMethod()
   {
     global::System.Console.WriteLine("Override.");
     Console.WriteLine("Original implementation");

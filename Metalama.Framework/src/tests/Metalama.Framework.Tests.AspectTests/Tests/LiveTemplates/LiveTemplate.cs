@@ -7,7 +7,6 @@
 #endif
 
 using System;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Testing.AspectTesting;
 

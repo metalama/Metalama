@@ -7,7 +7,6 @@
 #endif
 using System;
 using System.Linq;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code.SyntaxBuilders;
 
@@ -27,7 +26,7 @@ public class TheAspect : TypeAspect
         var executeExpression = ExpressionFactory.Capture( new Action( () => { executeMethod.Invoke( new object() ); } ) );
 
         // These references should NOT be simplified.
-        if (canExecuteExpression.Value.Invoke( meta.Target.Parameters[0].Value ))
+        if (canExecuteExpression.Value!.Invoke( meta.Target.Parameters[0].Value ))
         {
             Console.WriteLine( "Hello, world." );
         }

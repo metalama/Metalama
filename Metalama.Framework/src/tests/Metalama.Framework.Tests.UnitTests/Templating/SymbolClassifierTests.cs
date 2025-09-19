@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Code;
+using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CompileTime;
@@ -16,7 +17,6 @@ using System.Linq;
 using Xunit;
 
 #if NET7_0_OR_GREATER
-using Metalama.Framework.Engine;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 #endif
 
@@ -31,12 +31,12 @@ namespace Metalama.Framework.Tests.UnitTests.Templating
 
         private void AssertScope( INamedType declaration, TemplatingScope expectedScope, IDiagnosticAdder? diagnosticAdder = null )
         {
-            this.AssertScope( declaration.GetCompilationModel().RoslynCompilation, declaration.GetSymbol(), expectedScope, diagnosticAdder );
+            this.AssertScope( declaration.GetCompilationModel().RoslynCompilation, declaration.GetSymbol().AssertSymbolNotNull(), expectedScope, diagnosticAdder );
         }
 
         private void AssertScope( IType type, TemplatingScope expectedScope, IDiagnosticAdder? diagnosticAdder = null )
         {
-            this.AssertScope( type.GetCompilationModel().RoslynCompilation, type.GetSymbol(), expectedScope, diagnosticAdder );
+            this.AssertScope( type.GetCompilationModel().RoslynCompilation, type.GetSymbol().AssertSymbolNotNull(), expectedScope, diagnosticAdder );
         }
 
         private void AssertScope(
@@ -548,7 +548,7 @@ internal class C : TypeAspect
 ";
 
             var compilation = testContext.CreateCompilationModel( code );
-            var field = (PropertyDeclarationSyntax) compilation.Types.Single().Properties.Single().GetPrimaryDeclarationSyntax();
+            var field = (PropertyDeclarationSyntax) compilation.Types.Single().Properties.Single().GetPrimaryDeclarationSyntax().AssertNotNull();
             var invocation = field.DescendantNodes().OfType<InvocationExpressionSyntax>().Single();
 
             var semanticModel = compilation.RoslynCompilation.GetSemanticModel( field.SyntaxTree );

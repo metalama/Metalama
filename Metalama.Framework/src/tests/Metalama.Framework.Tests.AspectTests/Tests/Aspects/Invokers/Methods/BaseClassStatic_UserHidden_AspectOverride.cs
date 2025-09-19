@@ -100,7 +100,7 @@ public class BaseClass
 public class TargetClass : BaseClass
 {
     [OverrideAspect]
-    public new static void Method() { }
+    public static new void Method() { }
 
     [InvokerBeforeAspect]
     public void InvokerBefore() { }

@@ -4,10 +4,9 @@
 
 #if TEST_OPTIONS
 // @TestScenario(DesignTime)
+// @RequiredConstant(ROSLYN_4_12_0_OR_EARLIER)
 #endif
 
-using System;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 
 namespace Metalama.Framework.Tests.PublicPipeline.Aspects.DesignTimeInvalidCode.UnknownAccessorInTemplate;
@@ -27,7 +26,7 @@ internal class Aspect : PropertyAspect
         }
 
 #if TESTRUNNER
-        setx
+        set
         {
             meta.Proceed();
         }

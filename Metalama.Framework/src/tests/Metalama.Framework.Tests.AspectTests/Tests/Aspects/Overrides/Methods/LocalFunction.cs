@@ -3,8 +3,9 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
+
+#pragma warning disable IDE0062
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Overrides.Methods.LocalFunction
 {
@@ -33,7 +34,7 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Overrides.Methods.L
         {
             return Bar( Bar( x ) );
 
-            int Bar( int x )
+            static int Bar( int x )
             {
                 return x + 1;
             }

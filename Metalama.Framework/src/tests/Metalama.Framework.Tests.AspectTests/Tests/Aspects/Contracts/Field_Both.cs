@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 
 #pragma warning disable CS8618, CS0169
@@ -34,11 +33,11 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Contracts.Field_Bot
     internal struct TargetStruct
     {
         [NotNull]
-        private string q;
+        private string _q;
 
         public TargetStruct( string q )
         {
-            this.q = q;
+            this._q = q;
         }
     }
 }

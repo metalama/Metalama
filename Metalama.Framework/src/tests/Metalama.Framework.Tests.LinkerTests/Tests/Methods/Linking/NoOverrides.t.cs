@@ -17,7 +17,7 @@ public class Target : Base
   public new void BaseHiddenMethod()
   {
   }
-  public new static void BaseStaticHiddenMethod()
+  public static new void BaseStaticHiddenMethod()
   {
   }
   public void LocalMethod()

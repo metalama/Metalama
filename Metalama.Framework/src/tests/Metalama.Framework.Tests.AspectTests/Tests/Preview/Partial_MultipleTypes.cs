@@ -24,7 +24,7 @@ internal class TestAspect : OverrideMethodAspect
 
 internal partial class TargetClass
 {
-    partial class NestedClass1
+    private partial class NestedClass1
     {
         [TestAspect]
         public void Foo() { }

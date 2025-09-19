@@ -17,7 +17,7 @@ public class TheAspect : TypeAspect
     }
 
     [Template]
-    private Task<T> SomeMethod<[CompileTime] T>() => Task.FromResult( default(T) );
+    private Task<T?> SomeMethod<[CompileTime] T>() => Task.FromResult( default(T) );
 }
 
 #pragma warning disable CS8619

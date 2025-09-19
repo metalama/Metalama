@@ -7,7 +7,7 @@ using static Metalama.Framework.Tests.LinkerTests.Tests.Api;
 
 namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Inliners.MethodReturn_NotSameType
 {
-    class Base
+    internal class Base
     {
         public virtual int Foo()
         {
@@ -16,7 +16,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Inliners.MethodRetu
     }
 
     // <target>
-    class Target : Base
+    internal class Target : Base
     {
         [PseudoIntroduction(nameof(Foo), "TestAspect")]
         public override int Foo()
@@ -26,10 +26,10 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Inliners.MethodRetu
         }
 
         [PseudoOverride( nameof(Foo),"TestAspect")]
-        int Foo_Override()
+        private int Foo_Override()
         {
             Console.WriteLine( "Before");
-            return link( _this.Foo, inline, @base)();
+            return Link( This.Foo, Inline, Api.Base)();
         }
     }
 }

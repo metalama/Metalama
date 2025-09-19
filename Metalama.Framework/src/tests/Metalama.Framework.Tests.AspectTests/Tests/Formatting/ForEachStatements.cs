@@ -9,21 +9,21 @@ using Metalama.Framework.Aspects;
 
 namespace Metalama.Framework.Tests.AspectTests.TestInputs.Highlighting.ForEachStatements.ForEachStatements
 {
-    class RunTimeClass
+    internal class RunTimeClass
     {
         public IEnumerable<int> runTimeEnumerable;
     }
 
     [CompileTime]
-    class CompileTimeClass
+    internal class CompileTimeClass
     {
         public IEnumerable<int> compileTimeEnumerable;
     }
 
-    class Aspect : IAspect
+    internal class Aspect : IAspect
     {
         [Template]
-        dynamic? Template()
+        private dynamic? Template()
         {
             var runTimeObject = new RunTimeClass();
             var compileTimeObject = new CompileTimeClass();

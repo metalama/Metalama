@@ -3,7 +3,6 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
     <Deterministic>false</Deterministic>
-    <LangVersion>10.0</LangVersion>
   </PropertyGroup>
   
   <ItemGroup>

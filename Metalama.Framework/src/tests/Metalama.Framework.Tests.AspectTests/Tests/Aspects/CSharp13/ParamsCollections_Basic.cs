@@ -12,20 +12,19 @@ using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using System;
-using System.Diagnostics;
 
 namespace Metalama.Framework.Tests.Integration.Tests.Aspects.CSharp13.ParamsCollections_Basic;
 
 public class TheAspect : TypeAspect
 {
     [Introduce]
-    void ParamsArray(params int[] ints) { }
+    private void ParamsArray(params int[] ints) { }
 
     [Introduce]
-    void ParamsSpan(params ReadOnlySpan<int> ints) { }
+    private void ParamsSpan(params ReadOnlySpan<int> ints) { }
 
     [Introduce]
-    void Usage()
+    private void Usage()
     {
         ParamsArray(1, 2, 3);
         ParamsSpan(1, 2, 3);
@@ -34,10 +33,10 @@ public class TheAspect : TypeAspect
     }
 
     [Template]
-    int ArrayIndexerGetter(params int[] ints) => 0;
+    private int ArrayIndexerGetter(params int[] ints) => 0;
 
     [Template]
-    int SpanIndexerGetter(params ReadOnlySpan<int> ints) => 0;
+    private int SpanIndexerGetter(params ReadOnlySpan<int> ints) => 0;
 
     public override void BuildAspect(IAspectBuilder<INamedType> builder)
     {

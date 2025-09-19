@@ -20,8 +20,8 @@
     <PackageVersion Include="System.Reflection.Metadata" Version="8.0.1" />
     <PackageVersion Include="xunit" Version="2.9.2" /> <!-- Waiting with update to V3 where timeout for non-async tests will be handled better. In V2, this is not supported. -->
     <PackageVersion Include="xunit.abstractions" Version="2.0.3" />
-    <PackageVersion Include="xunit.assemblyfixture" Condition="'$(TargetFramework)'!='net471'" Version="2.2.0" />
-    <PackageVersion Include="xunit.assemblyfixture" Condition="'$(TargetFramework)'=='net471'" Version="2.0.3" />
+    <PackageVersion Include="xunit.assemblyfixture" Condition="'$(TargetFramework)'!='net472'" Version="2.2.0" />
+    <PackageVersion Include="xunit.assemblyfixture" Condition="'$(TargetFramework)'=='net472'" Version="2.0.3" />
     <PackageVersion Include="xunit.assert" Version="2.9.2" />
     <PackageVersion Include="xunit.extensibility.core" Version="2.9.2" />
     <PackageVersion Include="xunit.extensibility.execution" Version="2.9.2" />

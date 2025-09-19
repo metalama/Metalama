@@ -6,14 +6,13 @@
 // @Include(_Common.cs)
 #endif
 
-using System;
 using System.Linq;
 using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Tests.AspectTests.Tests.Aspects.Annotations.AddAnnotationToDifferentType;
 
-[assembly: AspectOrder( AspectOrderDirection.RunTime, typeof(ReadAnnotationAspect), typeof(AddAnnotationAspect) )]
+[assembly: AspectOrder( AspectOrderDirection.RunTime, typeof( ReadAnnotationAspect ), typeof( AddAnnotationAspect ) )]
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Annotations.AddAnnotationToDifferentType;
 

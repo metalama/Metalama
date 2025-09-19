@@ -16,7 +16,7 @@ public partial class C
         #endif
     }
 
-    class Fabric : TypeFabric
+    private class Fabric : TypeFabric
     {
         [Introduce]
         public void IntroducedMethod() { }

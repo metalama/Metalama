@@ -8,9 +8,9 @@ using static Metalama.Framework.Tests.LinkerTests.Tests.Api;
 namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Overrides.TargetBody.LocalFunction
 {
     // <target>
-    class TargetClass
+    internal class TargetClass
     {
-        int IntMethod()
+        private int IntMethod()
         {
             if (new Random().Next() == 0)
             {
@@ -37,11 +37,11 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Overrides.TargetBod
         }
 
         [PseudoOverride( nameof(IntMethod), "TestAspect")]
-        int IntMethod_Override()
+        private int IntMethod_Override()
         {
             Console.WriteLine( "Before");
 
-            var y = link(_this.IntMethod, inline)();
+            var y = Link(This.IntMethod, Inline)();
 
             Console.WriteLine( "After");
 
@@ -49,7 +49,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Overrides.TargetBod
         }
 
 
-        void VoidMethod()
+        private void VoidMethod()
         {
             if (new Random().Next() == 0)
             {
@@ -75,11 +75,11 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Overrides.TargetBod
         }
 
         [PseudoOverride(nameof(VoidMethod), "TestAspect")]
-        void VoidMethod_Override()
+        private void VoidMethod_Override()
         {
             Console.WriteLine("Before");
 
-            link(_this.VoidMethod, inline)();
+            Link(This.VoidMethod, Inline)();
 
             Console.WriteLine("After");
         }

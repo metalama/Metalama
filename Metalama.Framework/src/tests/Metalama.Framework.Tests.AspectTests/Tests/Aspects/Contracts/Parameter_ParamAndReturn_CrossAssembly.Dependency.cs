@@ -3,9 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
-using Metalama.Framework.Code;
 
 #pragma warning disable CS8618
 

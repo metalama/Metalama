@@ -8,25 +8,25 @@ using static Metalama.Framework.Tests.LinkerTests.Tests.Api;
 namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Inliners.MethodReturn_NotExactReturnType
 {
     // <target>
-    class Target
+    internal class Target
     {
-        int Foo()
+        private int Foo()
         {
             Console.WriteLine( "Original");
             return 42;
         }
 
-        short Foo2()
+        private short Foo2()
         {
             Console.WriteLine("Original");
             return 42;
         }
 
         [PseudoOverride( nameof(Foo),"TestAspect")]
-        int Foo_Override()
+        private int Foo_Override()
         {
             Console.WriteLine( "Before");
-            return link( _this.Foo2, inline)();
+            return Link( This.Foo2, Inline)();
         }
     }
 }

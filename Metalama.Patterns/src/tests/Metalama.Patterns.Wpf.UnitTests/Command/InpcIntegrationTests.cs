@@ -41,7 +41,7 @@ public sealed class InpcIntegrationTests
         TestCanExecuteChanged( c.FooCommand, b => c.CanExecuteFoo = b );
     }
 
-    // TODO: Test disabled due to #34010 - [Observable] overrides the setter, framework generates unsupported `init` keyword in net471.
+    // TODO: Test disabled due to #34010 - [Observable] overrides the setter, framework generates unsupported `init` keyword in net472.
 
 #if NETCOREAPP
     [Fact]

@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFrameworks>net471;net6.0;netstandard2.0</TargetFrameworks>
+        <TargetFrameworks>net472;net8.0;netstandard2.0</TargetFrameworks>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
@@ -24,7 +24,7 @@
     </ItemGroup>
 
 
-    <ItemGroup Condition="'$(TargetFramework)' == 'net471'">
+    <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
         <PackageReference Include="System.Runtime.Serialization.Xml" />
         <PackageReference Include="System.Threading" />
         <PackageReference Include="System.Threading.Thread" />
@@ -50,8 +50,5 @@
     <ItemGroup>
         <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
     </ItemGroup>
-
-
-    <Import Sdk="PostSharp.Engineering.Sdk" Project="SystemTypes.props" />
 
 </Project>

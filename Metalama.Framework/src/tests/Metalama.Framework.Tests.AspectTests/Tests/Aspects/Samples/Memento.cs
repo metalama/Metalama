@@ -65,16 +65,16 @@ namespace Metalama.Framework.Tests.AspectTests.Aspects.Samples.Memento
         [InterfaceMember]
         public IMemento Save()
         {
-            var mementoType = (INamedType)meta.Tags["mementoType"];
+            var mementoType = (INamedType)meta.Tags["mementoType"]!;
             var fieldExpressions = meta.Target.Type.FieldsAndProperties.Where( f => f.IsAutoPropertyOrField == true && !f.IsImplicitlyDeclared );
 
-            return mementoType.Constructors.Single().Invoke( fieldExpressions );
+            return mementoType.Constructors.Single().Invoke( fieldExpressions )!;
         }
 
         [InterfaceMember]
         public void Restore( IMemento memento )
         {
-            var mementoType = (INamedType)meta.Tags["mementoType"];
+            var mementoType = (INamedType)meta.Tags["mementoType"]!;
 
             foreach (var fieldOrProperty in meta.Target.Type.FieldsAndProperties.Where( f => f.IsAutoPropertyOrField == true && !f.IsImplicitlyDeclared ))
             {

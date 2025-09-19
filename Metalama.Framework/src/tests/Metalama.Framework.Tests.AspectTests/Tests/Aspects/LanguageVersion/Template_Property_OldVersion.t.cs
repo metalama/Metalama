@@ -3,7 +3,7 @@
 // Error CS8936 on `"""get"""`: `Feature 'raw string literals' is not available in C# 10.0. Please use language version 11.0 or greater.`
 // Error CS8936 on `"""set"""`: `Feature 'raw string literals' is not available in C# 10.0. Please use language version 11.0 or greater.`
 [TheAspect]
-class Target
+internal class Target
 {
   public global::System.String Property1
   {

@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Backstage.Diagnostics;
-using Metalama.Backstage.Infrastructure;
 using Metalama.Backstage.Maintenance;
 using Metalama.Backstage.Utilities;
 using Metalama.Compiler;
@@ -36,7 +35,7 @@ internal sealed class CompileTimeAssemblyLocator
 {
     private const string _compileTimeFrameworkAssemblyName = "Metalama.Framework";
     private const string _compilerInterfaceAssemblyName = "Metalama.Compiler.Interface";
-    private const string _defaultCompileTimeTargetFrameworks = "netstandard2.0;net6.0;net48";
+    private const string _defaultCompileTimeTargetFrameworks = "netstandard2.0;net8.0;net48";
     private static readonly ImmutableArray<string> _defaultNugetSources = GetDefaultNuGetSources().ToImmutableArray();
 
     private static IEnumerable<string> GetDefaultNuGetSources()
@@ -65,10 +64,10 @@ internal sealed class CompileTimeAssemblyLocator
 
     private readonly string _cacheDirectory;
     private readonly ILogger _logger;
-    private readonly IPlatformInfo _platformInfo;
     private readonly DotNetTool _dotNetTool;
     private readonly int _restoreTimeout;
     private readonly ImmutableArray<string> _targetFrameworks;
+    private readonly string? _sdkVersion;
 
     /// <summary>
     /// This compilation is used by the <see cref="SymbolClassifier"/> to determine if an API is available
@@ -102,8 +101,8 @@ internal sealed class CompileTimeAssemblyLocator
     internal CompileTimeAssemblyLocator( in ProjectServiceProvider serviceProvider, string additionalReferences, ITempFileManager tempFileManager )
     {
         this._logger = serviceProvider.GetLoggerFactory().GetLogger( nameof(CompileTimeAssemblyLocator) );
+        this._sdkVersion = serviceProvider.GetRequiredService<IProjectOptions>().SdkVersion;
 
-        this._platformInfo = serviceProvider.Global.GetRequiredBackstageService<IPlatformInfo>();
         this._dotNetTool = new DotNetTool( serviceProvider.Global );
 
         var projectOptions = serviceProvider.GetRequiredService<IProjectOptions>();
@@ -177,12 +176,12 @@ internal sealed class CompileTimeAssemblyLocator
         // Also provide our embedded assemblies.
 
         var embeddedAssemblies =
-            new[] { _compileTimeFrameworkAssemblyName, _compilerInterfaceAssemblyName, "Metalama.SystemTypes" }.SelectAsImmutableArray(
-                name => (MetadataReference)
-                    MetadataReference.CreateFromStream(
-                        this.GetType().Assembly.GetManifestResourceStream( name + ".dll" )
-                        ?? throw new InvalidOperationException( $"{name}.dll not found in assembly manifest resources." ),
-                        filePath: $"[{this.GetType().Assembly.Location}]{name}.dll" ) );
+            new[] { _compileTimeFrameworkAssemblyName, _compilerInterfaceAssemblyName }.SelectAsImmutableArray( name
+                => (MetadataReference)
+                MetadataReference.CreateFromStream(
+                    this.GetType().Assembly.GetManifestResourceStream( name + ".dll" )
+                    ?? throw new InvalidOperationException( $"{name}.dll not found in assembly manifest resources." ),
+                    filePath: $"[{this.GetType().Assembly.Location}]{name}.dll" ) );
 
         this._logger.Trace?.Log( "System assemblies: " + string.Join( ", ", referencePaths ) );
         this._logger.Trace?.Log( "Metalama assemblies: " + string.Join( ", ", metalamaImplementationPaths ) );
@@ -212,7 +211,7 @@ internal sealed class CompileTimeAssemblyLocator
                 this.MetadataReferences,
                 new CSharpCompilationOptions( OutputKind.DynamicallyLinkedLibrary, deterministic: true, optimizationLevel: OptimizationLevel.Debug ) );
 
-        this._referenceCompilationContext = CompilationContextFactory.GetCompilationContext( this._referenceCompilation );
+        this._referenceCompilationContext = this._referenceCompilation.GetCompilationContext();
     }
 
     private string GetAdditionalCompileTimeAssembliesDirectory()
@@ -226,7 +225,7 @@ internal sealed class CompileTimeAssemblyLocator
         }
         else
         {
-            platform = this._targetFrameworks.FirstOrDefault( f => f is ['n', 'e', 't', >= '6' and <= '9', ..] )
+            platform = this._targetFrameworks.FirstOrDefault( f => f is ['n', 'e', 't', '1' or (>= '6' and <= '9'), ..] )
                        ?? throw new InvalidOperationException( "Custom MetalamaCompileTimeTargetFrameworks did not include .NET 6+." );
         }
 
@@ -329,6 +328,7 @@ internal sealed class CompileTimeAssemblyLocator
             case IMethodSymbol { MethodKind: MethodKind.BuiltinOperator }:
                 // For some reason, DocumentationId mapping does not work for operators.
                 availableSymbol = null;
+
                 return null;
 
             default:
@@ -339,6 +339,7 @@ internal sealed class CompileTimeAssemblyLocator
                     if ( symbolId == null )
                     {
                         availableSymbol = null;
+
                         return false;
                     }
 
@@ -354,16 +355,21 @@ internal sealed class CompileTimeAssemblyLocator
                             if ( this.TryGetAvailableSymbol( containingType, compilation, out var compileTimeContainingType ) != true )
                             {
                                 availableSymbol = null;
+
                                 return false;
                             }
 
-                            var compileTimeMembers = SymbolSignatureMatcher.GetMembersOfCompatibleSignature( (INamedTypeSymbol) compileTimeContainingType!, this._referenceCompilationContext, symbol, compilation );
+                            var compileTimeMembers = ((INamedTypeSymbol) compileTimeContainingType!).GetMembersOfCompatibleSignature(
+                                this._referenceCompilationContext,
+                                symbol,
+                                compilation );
 
                             compileTimeSymbol = compileTimeMembers.FirstOrDefault();
                         }
                     }
 
                     availableSymbol = compileTimeSymbol;
+
                     return availableSymbol != null;
                 }
         }
@@ -411,7 +417,7 @@ internal sealed class CompileTimeAssemblyLocator
 
             Directory.CreateDirectory( this._cacheDirectory );
 
-            GlobalJsonHelper.WriteCurrentVersion( this._cacheDirectory, this._platformInfo );
+            GlobalJsonHelper.WriteCurrentVersion( this._cacheDirectory, this._sdkVersion );
 
             var initialTargets = "";
             var hooksPropsImport = "";

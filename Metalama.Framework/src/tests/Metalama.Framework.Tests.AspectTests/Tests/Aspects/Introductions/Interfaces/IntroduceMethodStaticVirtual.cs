@@ -66,7 +66,7 @@ public class IntroductionAttribute : TypeAspect
     public static void TestUsageMethod([CompileTime] ITypeParameter genericParameter, [CompileTime] IMethod interfaceMethod, [CompileTime] IMethod implementationMethod)
     {
         // Calling static methods of type parameters is not currently supported (generic parameter does not "gain" methods from constraints).
-        ExpressionBuilder builder = new ExpressionBuilder();
+        var builder = new ExpressionBuilder();
         builder.AppendTypeName(genericParameter);
         builder.AppendVerbatim($".{interfaceMethod.Name}()");
         meta.InsertStatement(builder.ToExpression());

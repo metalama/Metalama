@@ -1,4 +1,4 @@
-class Target
+internal class Target
 {
   public static int Foo
   {

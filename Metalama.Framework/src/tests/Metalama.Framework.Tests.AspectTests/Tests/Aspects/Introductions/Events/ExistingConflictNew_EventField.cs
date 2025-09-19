@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 
 #pragma warning disable CS0067
@@ -203,7 +202,7 @@ namespace Metalama.Framework.IntegrationTests.Aspects.Introductions.Events.Exist
             }
         }
 
-        public new static event EventHandler? HiddenBaseClassEvent_Static
+        public static new event EventHandler? HiddenBaseClassEvent_Static
         {
             add
             {

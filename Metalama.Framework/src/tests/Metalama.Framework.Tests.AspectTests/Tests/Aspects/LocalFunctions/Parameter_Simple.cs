@@ -16,7 +16,7 @@ internal class Aspect : TypeAspect
     {
         Log( "foo" );
 
-        void Log( string instance ) => Console.WriteLine( instance );
+        static void Log( string instance ) => Console.WriteLine( instance );
     }
 
     public override void BuildAspect( IAspectBuilder<INamedType> builder )

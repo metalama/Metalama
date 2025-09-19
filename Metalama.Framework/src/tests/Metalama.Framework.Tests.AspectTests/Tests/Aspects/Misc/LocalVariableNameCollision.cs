@@ -5,13 +5,12 @@
 using Metalama.Framework.Aspects;
 using System;
 using System.Linq;
-using System.Collections.Generic;
 
 namespace Metalama.Framework.Tests.Integration.Tests.Aspects.LocalVariableNameCollision;
 
 #pragma warning disable CS0168, CS0164, CS0618, CS0219
 
-class Aspect : OverrideMethodAspect
+internal class Aspect : OverrideMethodAspect
 {
     public override dynamic? OverrideMethod()
     {
@@ -21,7 +20,7 @@ class Aspect : OverrideMethodAspect
 }
 
 // <target>
-class TargetClass
+internal class TargetClass
 {
     [Aspect]
     public int TargetMethod()

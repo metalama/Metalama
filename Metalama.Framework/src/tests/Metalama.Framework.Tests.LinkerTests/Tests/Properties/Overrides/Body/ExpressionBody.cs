@@ -10,18 +10,18 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Properties.Overrides.Body.E
 #pragma warning disable CA1805
 
     // <target>
-    class Target
+    internal class Target
     {
-        int _foo = 0;
-        int Foo => this._foo;
+        private int _foo = 0;
+        private int Foo => this._foo;
 
         [PseudoOverride( nameof(Foo),"TestAspect")]
-        int Foo_Override
+        private int Foo_Override
         {
             get
             {
                 Console.WriteLine( "Get");
-                return link[ _this.Foo.get, inline ];
+                return Link[ This.Foo.get, Inline ];
             }
         }
     }

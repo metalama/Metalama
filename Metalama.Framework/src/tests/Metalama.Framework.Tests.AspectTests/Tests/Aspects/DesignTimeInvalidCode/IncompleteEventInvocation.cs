@@ -13,7 +13,7 @@ using System.ComponentModel;
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.DesignTimeInvalidCode.IncompleteEventInvocation;
 
-class Aspect : OverrideMethodAspect
+internal class Aspect : OverrideMethodAspect
 {
     [Introduce]
     public event PropertyChangedEventHandler? PropertyChanged1;
@@ -32,10 +32,10 @@ class Aspect : OverrideMethodAspect
     }
 }
 
-class Target
+internal class Target
 {
     [Aspect]
-    void M()
+    private void M()
     {
     }
 }

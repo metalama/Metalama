@@ -4,6 +4,7 @@
 
 using JetBrains.Annotations;
 using Metalama.Framework.Engine.CompileTime;
+using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis.CSharp;
 using System.Collections.Immutable;
 using System.Linq;
@@ -21,15 +22,20 @@ namespace Metalama.Framework.Engine.Utilities;
 public static class SupportedCSharpVersions
 {
     /// <summary>
-    /// Gets the default C# version.
+    /// Gets the latest C# version supported by the current Metalama build.
     /// </summary>
-    public static LanguageVersion Default
-#if ROSLYN_4_12_0_OR_GREATER
+    /// <remarks>
+    /// This C# version might not be supported by the .NET SDK. See also <see cref="LanguageVersionProvider"/>.
+    /// </remarks>
+    public static LanguageVersion Latest
+#if ROSLYN_5_0_0_OR_GREATER
+        => LanguageVersion.CSharp14;
+#elif ROSLYN_4_12_0_OR_GREATER
         => LanguageVersion.CSharp13;
 #elif ROSLYN_4_8_0_OR_GREATER
         => LanguageVersion.CSharp12;
 #else
-        => LanguageVersion.CSharp11;
+        #error Invalid Roslyn version;
 #endif
 
 #pragma warning disable SA1114 // Parameter list should follow declaration
@@ -37,6 +43,9 @@ public static class SupportedCSharpVersions
     /// Gets all supported language versions.
     /// </summary>
     public static ImmutableHashSet<LanguageVersion> All { get; } = ImmutableHashSet.Create(
+#if ROSLYN_5_0_0_OR_GREATER
+        LanguageVersion.CSharp14,
+#endif
 #if ROSLYN_4_12_0_OR_GREATER
         LanguageVersion.CSharp13,
 #endif
@@ -46,12 +55,12 @@ public static class SupportedCSharpVersions
         LanguageVersion.CSharp11,
         LanguageVersion.CSharp10 );
 
-    internal static string[] FormatSupportedVersions() => All.SelectAsArray( x => x.ToDisplayString() );
+    internal static string[] FormatSupportedVersions() => All.SelectAsArray( x => x.ToDisplayStringSafe() );
 
     /// <summary>
     /// Gets the default parse options.
     /// </summary>
-    public static CSharpParseOptions DefaultParseOptions { get; } = CSharpParseOptions.Default.WithLanguageVersion( Default );
+    public static CSharpParseOptions DefaultParseOptions { get; } = CSharpParseOptions.Default.WithLanguageVersion( Latest );
 
     internal static LanguageVersion ToLanguageVersion( this RoslynApiVersion apiVersion )
         => apiVersion switch
@@ -60,6 +69,7 @@ public static class SupportedCSharpVersions
             RoslynApiVersion.V4_4_0 => (LanguageVersion) 1100,
             RoslynApiVersion.V4_8_0 => (LanguageVersion) 1200,
             RoslynApiVersion.V4_12_0 => (LanguageVersion) 1300,
+            RoslynApiVersion.V5_0_0 => (LanguageVersion) 1400,
             _ => throw new AssertionFailedException( $"Unexpected Roslyn API version {apiVersion}." )
         };
 
@@ -69,7 +79,8 @@ public static class SupportedCSharpVersions
             RoslynApiVersion.V4_0_1 => "4.0.1",
             RoslynApiVersion.V4_4_0 => "4.4.0",
             RoslynApiVersion.V4_8_0 => "4.8.0",
-            RoslynApiVersion.V4_12_0 => "4.12.0-1.final",
+            RoslynApiVersion.V4_12_0 => "4.12.0",
+            RoslynApiVersion.V5_0_0 => "5.0.0-2.25460.106",
             _ => throw new AssertionFailedException( $"Unexpected Roslyn version {roslynVersion}." )
         };
 }

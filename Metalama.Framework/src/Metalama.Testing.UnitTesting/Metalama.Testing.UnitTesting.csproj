@@ -3,7 +3,7 @@
     <Import Project="../../build/RoslynVersion/Latest.imports" />
 
     <PropertyGroup>
-        <TargetFrameworks>net472;net6.0</TargetFrameworks>
+        <TargetFrameworks>net472;net8.0</TargetFrameworks>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <AssemblyName>Metalama.Testing.UnitTesting$(ThisRoslynVersionProjectSuffix)</AssemblyName>
         <PackageId>Metalama.Testing.UnitTesting</PackageId>
@@ -24,6 +24,7 @@
         <ProjectReference Include="../Metalama.Framework.Sdk/Metalama.Framework.Sdk.csproj" />
         <ProjectReference Include="../Metalama.Framework/Metalama.Framework.csproj" />
 
+
         <!-- Validate that we do not expose internal APIs -->
         <ProjectReference Include="../Metalama.Framework.Engine.Analyzers/Metalama.Framework.Engine.Analyzers.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 
@@ -31,7 +32,7 @@
         <ProjectReference Condition="$(ThisRoslynVersion) == $(RoslynApiMaxVersion)" Include="../Metalama.Framework.Implementation.Package/Metalama.Framework.Implementation.Package.csproj" />
 
         <!-- Override dependencies to avoid vulnarability warnings. -->
-        <PackageReference Include="System.Text.Json" VersionOverride="$(SystemTextJsonLatestVersion)" />
+        <PackageReference Include="System.Text.Json" VersionOverride="$(SystemTextJsonVersion)" />
         <PackageReference Include="System.Net.Http" VersionOverride="$(SystemNetHttpLatestVersion)" />
         <PackageReference Include="System.Text.RegularExpressions" VersionOverride="$(SystemTextRegularExpressionsLatestVersion)" />
     </ItemGroup>

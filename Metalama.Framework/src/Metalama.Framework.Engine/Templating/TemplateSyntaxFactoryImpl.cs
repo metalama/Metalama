@@ -23,6 +23,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using MethodKind = Metalama.Framework.Code.MethodKind;
 using SpecialType = Metalama.Framework.Code.SpecialType;
 
 namespace Metalama.Framework.Engine.Templating
@@ -742,6 +743,16 @@ namespace Metalama.Framework.Engine.Templating
 
         public IExpression DefineLocalVariable( List<StatementOrTrivia> statementList, string name, IExpression expression )
             => this.DefineLocalVariableVar( statementList, name, expression.ToExpressionSyntax( this.SyntaxSerializationContext ), expression.Type );
+
+        public string EscapeIdentifier( string name )
+        {
+            return name == "field" &&
+                   this._templateExpansionContext.TargetDeclaration is IMethod { MethodKind: MethodKind.PropertyGet or MethodKind.PropertySet }
+                ? "@field"
+                : name;
+        }
+
+        public SyntaxToken EscapeIdentifier( SyntaxToken token ) => SyntaxFactory.Identifier( this.EscapeIdentifier( token.Text ) );
 
         public ExpressionSyntax ConvertToExpressionSyntax( object value )
             => value switch

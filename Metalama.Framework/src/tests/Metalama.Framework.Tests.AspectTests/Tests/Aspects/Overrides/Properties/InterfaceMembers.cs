@@ -6,7 +6,6 @@
 // @RequiredConstant(NET5_0_OR_GREATER) - Default interface members need to be supported by the runtime.
 #endif
 
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using System;
 
@@ -55,10 +54,10 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Overrides.Propertie
         }
 
         [Override]
-        public static int StaticAutoProperty { get; set; }
+        static int StaticAutoProperty { get; set; }
 
         [Override]
-        public static int StaticProperty
+        static int StaticProperty
         {
             get
             {

@@ -7,23 +7,23 @@ using System.Threading.Tasks;
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Async.AsyncTemplate.AsyncMethod_CrossAssembly
 {
     // <target>
-    class TargetCode
+    internal class TargetCode
     {
         [Aspect]
-        int NormalMethod(int a)
+        private int NormalMethod(int a)
         {
             return a;
         }
         
         [Aspect]
-        async Task<int> AsyncTaskResultMethod(int a)
+        private async Task<int> AsyncTaskResultMethod(int a)
         {
             await Task.Yield();
             return a;
         }
 
         [Aspect]
-        async Task AsyncTaskMethod()
+        private async Task AsyncTaskMethod()
         {
             await Task.Yield();
         }

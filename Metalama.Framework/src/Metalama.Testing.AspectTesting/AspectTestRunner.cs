@@ -16,7 +16,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
@@ -26,6 +25,7 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Code.Types;
 using System.Reflection;
 using System.Runtime.Loader;
+using System.Threading;
 using SpecialType = Metalama.Framework.Code.SpecialType;
 #endif
 
@@ -266,10 +266,10 @@ internal class AspectTestRunner : BaseTestRunner
         // Execute the pipeline with unformatted options to check well-formness of syntax trees.
         if ( testInput.Options.TestUnformattedOutput == true )
         {
-            using var unformattedOptons = new TestProjectOptions( testContext.TestProjectOptions, CodeFormattingOptions.None );
+            using var unformattedOptions = new TestProjectOptions( testContext.TestProjectOptions, CodeFormattingOptions.None );
 
             var unformattedServiceProvider =
-                testContext.ServiceProvider.WithService( unformattedOptons, true );
+                testContext.ServiceProvider.WithService( unformattedOptions, true );
 
             var unformattedPipeline = new CompileTimeAspectPipeline( unformattedServiceProvider );
 

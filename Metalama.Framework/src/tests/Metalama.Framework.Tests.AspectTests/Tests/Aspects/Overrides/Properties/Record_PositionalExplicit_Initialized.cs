@@ -5,12 +5,11 @@
 using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
-using Metalama.Framework.Fabrics;
 using System;
 using System.Linq;
 using Metalama.Framework.Tests.AspectTests.Tests.Aspects.Overrides.Properties.Record_PositionalExplicit_Initialized;
 
-[assembly: AspectOrder( AspectOrderDirection.CompileTime, typeof(ApplyAspect), typeof(MyAspect))]
+[assembly: AspectOrder( AspectOrderDirection.CompileTime, typeof( ApplyAspect ), typeof( MyAspect ) )]
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Overrides.Properties.Record_PositionalExplicit_Initialized;
 

@@ -3,15 +3,10 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System;
-using System.Runtime.Serialization;
 
 namespace Metalama.Testing.AspectTesting;
 
-[Serializable]
 public sealed class InvalidTestTargetException : Exception
 {
     public InvalidTestTargetException( string message ) : base( message ) { }
-
-    private InvalidTestTargetException( SerializationInfo info, StreamingContext context )
-        : base( info, context ) { }
 }

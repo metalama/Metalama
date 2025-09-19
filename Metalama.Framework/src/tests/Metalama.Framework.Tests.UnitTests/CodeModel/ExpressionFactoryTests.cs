@@ -5,6 +5,7 @@
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.SyntaxBuilders;
 using Metalama.Framework.CompileTimeContracts;
+using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.Formatting;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.SyntaxGeneration;
@@ -17,10 +18,10 @@ namespace Metalama.Framework.Tests.UnitTests.CodeModel;
 
 public sealed class ExpressionFactoryTests : UnitTestClass
 {
-    private static readonly SyntaxGenerationOptions _syntaxGenerationOptions = new( new CodeFormattingOptions() );
+    private static readonly SyntaxGenerationOptions _syntaxGenerationOptions = new( CodeFormattingOptions.Default );
 
     private sealed record ExpressionInfo( string Syntax, IType? Type );
-    
+
     protected override void AddSyntaxGenerationOptions( IAdditionalServiceCollection services )
     {
         services.AddProjectService( SyntaxGenerationOptions.Unformatted );
@@ -50,7 +51,7 @@ public sealed class ExpressionFactoryTests : UnitTestClass
         Assert.Equal( "null", expression.Syntax );
 
         // The expression should be untyped (target typed) but the Metalama model does not allow for it.
-        Assert.Equal( "object", expression.Type.ToString() );
+        Assert.Equal( "object", expression.Type.AssertNotNull().ToString() );
     }
 
     [Fact]
@@ -59,7 +60,7 @@ public sealed class ExpressionFactoryTests : UnitTestClass
         var expression = this.GetExpression( ExpressionFactory.Null<string> );
 
         Assert.Equal( "null", expression.Syntax );
-        Assert.Equal( "string?", expression.Type.ToString() );
+        Assert.Equal( "string?", expression.Type.AssertNotNull().ToString() );
     }
 
     [Fact]
@@ -70,7 +71,7 @@ public sealed class ExpressionFactoryTests : UnitTestClass
         Assert.Equal( "default", expression.Syntax );
 
         // The expression should be untyped (target typed) but the Metalama model does not allow for it.
-        Assert.Equal( "object", expression.Type.ToString() );
+        Assert.Equal( "object", expression.Type.AssertNotNull().ToString() );
     }
 
     [Fact]
@@ -79,7 +80,7 @@ public sealed class ExpressionFactoryTests : UnitTestClass
         var expression = this.GetExpression( ExpressionFactory.Default<string> );
 
         Assert.Equal( "default(global::System.String)", expression.Syntax );
-        Assert.Equal( "string?", expression.Type.ToString() );
+        Assert.Equal( "string?", expression.Type.AssertNotNull().ToString() );
     }
 
     [Fact]
@@ -88,7 +89,7 @@ public sealed class ExpressionFactoryTests : UnitTestClass
         var expression = this.GetExpression( ExpressionFactory.Default<int> );
 
         Assert.Equal( "default(global::System.Int32)", expression.Syntax );
-        Assert.Equal( "int", expression.Type.ToString() );
+        Assert.Equal( "int", expression.Type.AssertNotNull().ToString() );
     }
 
     [Fact]
@@ -97,7 +98,7 @@ public sealed class ExpressionFactoryTests : UnitTestClass
         var expression = this.GetExpression( () => ExpressionFactory.Literal( (object?) null ) );
 
         Assert.Equal( "null", expression.Syntax );
-        Assert.Equal( "string?", expression.Type.ToString() );
+        Assert.Equal( "string?", expression.Type.AssertNotNull().ToString() );
     }
 
     [Fact]
@@ -106,6 +107,6 @@ public sealed class ExpressionFactoryTests : UnitTestClass
         var expression = this.GetExpression( () => ExpressionFactory.Literal( (object?) 5 ) );
 
         Assert.Equal( "5", expression.Syntax );
-        Assert.Equal( "int", expression.Type.ToString() );
+        Assert.Equal( "int", expression.Type.AssertNotNull().ToString() );
     }
 }

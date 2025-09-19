@@ -71,7 +71,7 @@ public class AdditionalDiagnosticAnalyzerTests : UnitTestClass
         var analyzer = new AdditionalDiagnosticAnalyzer();
 
         var compilation = testContext.CreateCompilation( code, ignoreErrors: ignoreErrors );
-        var type = compilation.Types.Single( t => t.TypeKind is TypeKind.Class ).GetSymbol();
+        var type = compilation.Types.Single( t => t.TypeKind is TypeKind.Class ).GetSymbol()!;
 
         var analysisContext = new TestSymbolActionContext( type, compilation.GetRoslynCompilation() );
         analyzer.AnalyzeNamedTypeSymbol( analysisContext );

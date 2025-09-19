@@ -28,7 +28,7 @@ public class TheAspect : Aspect, IAspect<IIndexer>
     }
 
     [Template]
-    dynamic? GetterTemplate(dynamic index)
+    private dynamic? GetterTemplate(dynamic index)
     {
         Console.WriteLine("This is aspect code.");
 
@@ -36,7 +36,7 @@ public class TheAspect : Aspect, IAspect<IIndexer>
     }
 
     [Template]
-    void SetterTemplate(dynamic index, dynamic value)
+    private void SetterTemplate(dynamic index, dynamic value)
     {
         Console.WriteLine("This is aspect code.");
 
@@ -45,22 +45,22 @@ public class TheAspect : Aspect, IAspect<IIndexer>
 }
 
 // <target>
-partial class Target
+internal partial class Target
 {
     [TheAspect]
-    partial int this[int i] { get; set; }
+    private partial int this[int i] { get; set; }
 
-    partial int this[int i] { get => 0; set => throw new Exception(); }
+    private partial int this[int i] { get => 0; set => throw new Exception(); }
 
-    partial int this[string s] { get; set; }
-
-    [TheAspect]
-    partial int this[string s] { get => 0; set => throw new Exception(); }
+    private partial int this[string s] { get; set; }
 
     [TheAspect]
-    partial int this[long i] { get; }
+    private partial int this[string s] { get => 0; set => throw new Exception(); }
 
-    partial int this[long i] { get => 0; }
+    [TheAspect]
+    private partial int this[long i] { get; }
+
+    private partial int this[long i] { get => 0; }
 }
 
 #endif

@@ -3,6 +3,8 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Engine.Formatting;
+using Metalama.Framework.Engine.Utilities;
+using Microsoft.CodeAnalysis.CSharp;
 using System;
 using System.Collections.Immutable;
 using System.IO;
@@ -51,7 +53,7 @@ public class DefaultProjectOptions : IProjectOptions
         }
     }
 
-    public virtual string? TargetFramework => "net6.0";
+    public virtual string? TargetFramework => "net8.0";
 
     public virtual string? TargetFrameworkMoniker => null;
 
@@ -115,6 +117,10 @@ public class DefaultProjectOptions : IProjectOptions
     public virtual ImmutableArray<ExtensionAssemblyReference> DesignTimeExtensionAssemblies => ImmutableArray<ExtensionAssemblyReference>.Empty;
 
     public virtual bool AvoidLockingExtensionAssemblies => false;
+
+    public virtual LanguageVersion LanguageVersion => SupportedCSharpVersions.Latest;
+
+    public virtual string? SdkVersion => null;
 
     // IProjectOptions is currently not used as a dictionary key, so we can throw here.
     public sealed override int GetHashCode() => throw new NotImplementedException();

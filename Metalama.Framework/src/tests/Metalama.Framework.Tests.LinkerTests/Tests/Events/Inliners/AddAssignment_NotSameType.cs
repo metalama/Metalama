@@ -33,7 +33,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Events.Inliners.AddAssignme
             add
             {
                 Console.WriteLine("Before");
-                link[_this.Foo.add, inline, @base] += value;
+                Link[This.Foo.add, Inline, Api.Base] += value;
                 Console.WriteLine("After");
             }
             remove { }

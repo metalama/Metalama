@@ -10,6 +10,7 @@
     <Import Sdk="PostSharp.Engineering.Sdk" Project="BuildOptions.props"/>
     <Import Sdk="PostSharp.Engineering.Sdk" Project="StrongName.props"/>
     <Import Sdk="PostSharp.Engineering.Sdk" Project="SourceLink.props"/>
+     <Import Sdk="PostSharp.Engineering.Sdk" Project="EmbeddedSystemTypes.props" />
 
     <PropertyGroup>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>

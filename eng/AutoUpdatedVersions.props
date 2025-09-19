@@ -2,7 +2,7 @@
 <Project>
 
     <PropertyGroup>
-        <MetalamaCompilerVersion></MetalamaCompilerVersion>
+        <MetalamaCompilerVersion>0.0</MetalamaCompilerVersion>
     </PropertyGroup>
 
 </Project>

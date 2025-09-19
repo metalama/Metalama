@@ -29,7 +29,12 @@ public sealed class PreprocessorFixerTests : UnitTestClass
 
         var node = SyntaxFactory.ParseCompilationUnit( code );
 
-        var generationContext = new SyntaxGenerationContext( compilationContext: null!, isNullOblivious: false, isPartial: false, SyntaxGenerationOptions.Formatted, "\r\n" );
+        var generationContext = new SyntaxGenerationContext(
+            compilationContext: null!,
+            isNullOblivious: false,
+            isPartial: false,
+            SyntaxGenerationOptions.Formatted,
+            "\r\n" );
 
         var fixedNode = PreprocessorFixer.Fix( node, generationContext );
 
@@ -42,18 +47,23 @@ public sealed class PreprocessorFixerTests : UnitTestClass
         const string code = """
                             class C
                             {
-                            	[Foo]
+                                [Foo]
                             #if NET5_0_OR_GREATER
                             #endif
-                            	void M()
-                            	{
-                            	}
+                                void M()
+                                {
+                                }
                             }
                             """;
 
         var node = SyntaxFactory.ParseCompilationUnit( code );
 
-        var generationContext = new SyntaxGenerationContext( compilationContext: null!, isNullOblivious: false, isPartial: false, SyntaxGenerationOptions.Formatted, "\r\n" );
+        var generationContext = new SyntaxGenerationContext(
+            compilationContext: null!,
+            isNullOblivious: false,
+            isPartial: false,
+            SyntaxGenerationOptions.Formatted,
+            "\r\n" );
 
         var fixedNode = PreprocessorFixer.Fix( node, generationContext );
 

@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Eligibility;
@@ -39,7 +38,7 @@ internal class TargetCode
         [MethodAspect]
         [MethodBaseAspect]
         [return: Contract]
-        int LocalFunction( [Contract] int a ) => a;
+        static int LocalFunction( [Contract] int a ) => a;
 
         LocalFunction( a );
 

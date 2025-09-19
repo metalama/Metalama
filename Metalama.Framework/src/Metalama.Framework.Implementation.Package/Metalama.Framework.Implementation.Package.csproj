@@ -3,7 +3,7 @@
     <Import Project="../../build/RoslynVersion/Latest.imports" />
 
     <PropertyGroup>
-        <TargetFrameworks>net472;net6.0</TargetFrameworks>
+        <TargetFrameworks>net472;net8.0</TargetFrameworks>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
 
@@ -50,7 +50,6 @@ added because the package already contains file 'analyzers/dotnet/cs/Metalama.Fr
         <PackageReference Include="Microsoft.CSharp" />
         <PackageReference Include="Newtonsoft.Json" NoWarn="NU1903" />
         <PackageReference Include="System.Reflection.Emit" />
-        <PackageReference Include="System.Runtime.Serialization.Formatters" />
     </ItemGroup>
 
     <PropertyGroup>

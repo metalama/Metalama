@@ -2,173 +2,205 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using System;
 using static Metalama.Framework.Tests.LinkerTests.Tests.Api;
 
 namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Linking.Introduced
 {
-    [PseudoLayerOrder("A0")]
-    [PseudoLayerOrder("A1")]
-    [PseudoLayerOrder("A2")]
-    [PseudoLayerOrder("A3")]
-    [PseudoLayerOrder("A4")]
-    [PseudoLayerOrder("A5")]
+    [PseudoLayerOrder( "A0" )]
+    [PseudoLayerOrder( "A1" )]
+    [PseudoLayerOrder( "A2" )]
+    [PseudoLayerOrder( "A3" )]
+    [PseudoLayerOrder( "A4" )]
+    [PseudoLayerOrder( "A5" )]
+
     // <target>
-    class Target
+    internal class Target
     {
         public void Foo()
         {
-            System.Console.WriteLine("This is original code (discarded).");
+            Console.WriteLine( "This is original code (discarded)." );
         }
 
-        [PseudoIntroduction("A1")]
+        [PseudoIntroduction( "A1" )]
         [PseudoNotInlineable]
         public void Bar()
         {
-            System.Console.WriteLine("SHOULD BE DISCARDED (this is introduced code).");
+            Console.WriteLine( "SHOULD BE DISCARDED (this is introduced code)." );
         }
 
-        [PseudoOverride(nameof(Foo), "A0")]
+        [PseudoOverride( nameof(Foo), "A0" )]
         [PseudoNotInlineable]
         [PseudoNotDiscardable]
         public void Foo_Override0()
         {
             // Should invoke empty code.
-            link(_this.Bar, @base)();
+            Link( This.Bar, Base )();
+
             // Should invoke empty code.
-            link(_this.Bar, previous)();
+            Link( This.Bar, Previous )();
+
             // Should invoke empty code.
-            link(_this.Bar, current)();
+            Link( This.Bar, Current )();
+
             // Should invoke the final declaration.
-            link(_this.Bar, final)();
+            Link( This.Bar, Final )();
         }
 
-        [PseudoOverride(nameof(Foo), "A2")]
+        [PseudoOverride( nameof(Foo), "A2" )]
         [PseudoNotInlineable]
         [PseudoNotDiscardable]
         public void Foo_Override2()
         {
             // Should invoke override 1_2.
-            link(_this.Bar, @base)();
+            Link( This.Bar, Base )();
+
             // Should invoke override 1_2.
-            link(_this.Bar, previous)();
+            Link( This.Bar, Previous )();
+
             // Should invoke override 1_2.
-            link(_this.Bar, current)();
+            Link( This.Bar, Current )();
+
             // Should invoke the final declaration.
-            link(_this.Bar, final)();
+            Link( This.Bar, Final )();
         }
 
-        [PseudoOverride(nameof(Foo), "A4")]
+        [PseudoOverride( nameof(Foo), "A4" )]
         [PseudoNotInlineable]
         [PseudoNotDiscardable]
         public void Foo_Override4()
         {
             // Should invoke override 3_2.
-            link(_this.Bar, @base)();
+            Link( This.Bar, Base )();
+
             // Should invoke override 3_2.
-            link(_this.Bar, previous)();
+            Link( This.Bar, Previous )();
+
             // Should invoke override 3_2.
-            link(_this.Bar, current)();
+            Link( This.Bar, Current )();
+
             // Should invoke the final declaration.
-            link(_this.Bar, final)();
+            Link( This.Bar, Final )();
         }
 
-        [PseudoOverride(nameof(Foo), "A6")]
+        [PseudoOverride( nameof(Foo), "A6" )]
         [PseudoNotInlineable]
         [PseudoNotDiscardable]
         public void Foo_Override6()
         {
             // Should invoke the final declaration.
-            link(_this.Bar, @base)();
+            Link( This.Bar, Base )();
+
             // Should invoke the final declaration.
-            link(_this.Bar, previous)();
+            Link( This.Bar, Previous )();
+
             // Should invoke the final declaration.
-            link(_this.Bar, current)();
+            Link( This.Bar, Current )();
+
             // Should invoke the final declaration.
-            link(_this.Bar, final)();
+            Link( This.Bar, Final )();
         }
 
-        [PseudoOverride(nameof(Bar), "A1")]
+        [PseudoOverride( nameof(Bar), "A1" )]
         [PseudoNotInlineable]
         private void Bar_Override1_1()
         {
             // Should invoke empty code.
-            link(_this.Bar, @base)();
+            Link( This.Bar, Base )();
+
             // Should invoke empty code.
-            link(_this.Bar, previous)();
+            Link( This.Bar, Previous )();
+
             // Should invoke override 1_2.
-            link(_this.Bar, current)();
+            Link( This.Bar, Current )();
+
             // Should invoke the final declaration.
-            link(_this.Bar, final)();
+            Link( This.Bar, Final )();
         }
 
-        [PseudoOverride(nameof(Bar), "A1")]
+        [PseudoOverride( nameof(Bar), "A1" )]
         [PseudoNotInlineable]
         private void Bar_Override1_2()
         {
             // Should invoke empty code.
-            link(_this.Bar, @base)();
+            Link( This.Bar, Base )();
+
             // Should invoke override 1_1.
-            link(_this.Bar, previous)();
+            Link( This.Bar, Previous )();
+
             // Should invoke override 1_2.
-            link(_this.Bar, current)();
+            Link( This.Bar, Current )();
+
             // Should invoke the final declaration.
-            link(_this.Bar, final)();
+            Link( This.Bar, Final )();
         }
 
-        [PseudoOverride(nameof(Bar), "A3")]
+        [PseudoOverride( nameof(Bar), "A3" )]
         [PseudoNotInlineable]
         private void Bar_Override3_1()
         {
             // Should invoke override 1_2.
-            link(_this.Bar, @base)();
+            Link( This.Bar, Base )();
+
             // Should invoke override 1_2.
-            link(_this.Bar, previous)();
+            Link( This.Bar, Previous )();
+
             // Should invoke override 3_2.
-            link(_this.Bar, current)();
+            Link( This.Bar, Current )();
+
             // Should invoke the final declaration.
-            link(_this.Bar, final)();
+            Link( This.Bar, Final )();
         }
 
-        [PseudoOverride(nameof(Bar), "A3")]
+        [PseudoOverride( nameof(Bar), "A3" )]
         [PseudoNotInlineable]
         private void Bar_Override3_2()
         {
             // Should invoke override 1_2.
-            link(_this.Bar, @base)();
+            Link( This.Bar, Base )();
+
             // Should invoke override 3_1.
-            link(_this.Bar, previous)();
+            Link( This.Bar, Previous )();
+
             // Should invoke override 3_2.
-            link(_this.Bar, current)();
+            Link( This.Bar, Current )();
+
             // Should invoke the final declaration.
-            link(_this.Bar, final)();
+            Link( This.Bar, Final )();
         }
 
-        [PseudoOverride(nameof(Bar), "A5")]
+        [PseudoOverride( nameof(Bar), "A5" )]
         [PseudoNotInlineable]
         private void Bar_Override5_1()
         {
             // Should invoke override 3_2.
-            link(_this.Bar, @base)();
+            Link( This.Bar, Base )();
+
             // Should invoke override 3_2.
-            link(_this.Bar, previous)();
+            Link( This.Bar, Previous )();
+
             // Should invoke the final declaration.
-            link(_this.Bar, current)();
+            Link( This.Bar, Current )();
+
             // Should invoke the final declaration.
-            link(_this.Bar, final)();
+            Link( This.Bar, Final )();
         }
 
-        [PseudoOverride(nameof(Bar), "A5")]
+        [PseudoOverride( nameof(Bar), "A5" )]
         [PseudoNotInlineable]
         private void Bar_Override5_2()
         {
             // Should invoke override 3_2.
-            link(_this.Bar, @base)();
+            Link( This.Bar, Base )();
+
             // Should invoke override 5_1.
-            link(_this.Bar, previous)();
+            Link( This.Bar, Previous )();
+
             // Should invoke the final declaration.
-            link(_this.Bar, current)();
+            Link( This.Bar, Current )();
+
             // Should invoke the final declaration.
-            link(_this.Bar, final)();
+            Link( This.Bar, Final )();
         }
     }
 }

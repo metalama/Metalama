@@ -22,7 +22,7 @@ namespace Metalama.Framework.IntegrationTests.Aspects.AspectMemberRef.InterfaceM
         public void SomeMethod()
         {
             Method();
-            Property = Property + 1;
+            Property++;
             Event += EventHandler;
         }
 

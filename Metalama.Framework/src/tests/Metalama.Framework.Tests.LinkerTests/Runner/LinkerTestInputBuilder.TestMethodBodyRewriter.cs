@@ -32,7 +32,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
             public override SyntaxNode? VisitInvocationExpression( InvocationExpressionSyntax node )
             {
                 if ( node.Expression is MemberAccessExpressionSyntax { Name: GenericNameSyntax genericName } memberAccess
-                     && StringComparer.Ordinal.Equals( genericName.Identifier.ValueText, nameof(Api._cast) ) )
+                     && StringComparer.Ordinal.Equals( genericName.Identifier.ValueText, nameof(Api.Cast) ) )
                 {
                     return ParenthesizedExpression(
                         CastExpression(
@@ -64,7 +64,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
                 SeparatedSyntaxList<ArgumentSyntax> arguments,
                 [NotNullWhen( true )] out SyntaxNode? transformedNode )
             {
-                if ( expression is IdentifierNameSyntax { Identifier.ValueText: "link" } )
+                if ( expression is IdentifierNameSyntax { Identifier.ValueText: nameof(Api.Link) } )
                 {
                     // TODO: Annotation order.
                     if ( arguments.Count is < 1 or > 3 )
@@ -83,29 +83,34 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
                     {
                         var tag = arguments[i].ToString();
 
+                        if ( tag.StartsWith( nameof(Api), StringComparison.Ordinal ) )
+                        {
+                            tag = tag.Substring( nameof(Api).Length + 1 );
+                        }
+
                         switch ( tag )
                         {
-                            case "inline":
+                            case nameof(Api.Inline):
                                 flags |= AspectReferenceFlags.Inlineable;
 
                                 break;
 
-                            case "@base":
+                            case nameof(Api.Base):
                                 order = AspectReferenceOrder.Base;
 
                                 break;
 
-                            case "previous":
+                            case nameof(Api.Previous):
                                 order = AspectReferenceOrder.Previous;
 
                                 break;
 
-                            case "current":
+                            case nameof(Api.Current):
                                 order = AspectReferenceOrder.Current;
 
                                 break;
 
-                            case "final":
+                            case nameof(Api.Final):
                                 order = AspectReferenceOrder.Final;
 
                                 break;
@@ -171,8 +176,8 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
             {
                 if ( node.Kind() == SyntaxKind.SimpleMemberAccessExpression
                      && node.Expression is IdentifierNameSyntax identifier
-                     && (StringComparer.Ordinal.Equals( identifier.Identifier.ValueText, nameof(Api._static) )
-                         || StringComparer.Ordinal.Equals( identifier.Identifier.ValueText, nameof(Api._local) )) )
+                     && (StringComparer.Ordinal.Equals( identifier.Identifier.ValueText, nameof(Api.Static) )
+                         || StringComparer.Ordinal.Equals( identifier.Identifier.ValueText, nameof(Api.Local) )) )
                 {
                     return node.Name;
                 }
@@ -182,7 +187,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
 
             public override SyntaxNode? VisitIdentifierName( IdentifierNameSyntax node )
             {
-                if ( StringComparer.Ordinal.Equals( node.Identifier.ValueText, nameof(Api._this) ) )
+                if ( StringComparer.Ordinal.Equals( node.Identifier.ValueText, nameof(Api.This) ) )
                 {
                     return ThisExpression();
                 }

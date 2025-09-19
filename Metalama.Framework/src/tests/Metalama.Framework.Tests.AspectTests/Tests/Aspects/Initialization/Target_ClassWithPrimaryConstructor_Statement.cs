@@ -22,16 +22,16 @@ public class Aspect : TypeAspect
 {
     public override void BuildAspect( IAspectBuilder<INamedType> builder )
     {
-        for (int i = 1; i <= 19; i++)
+        for (var i = 1; i <= 19; i++)
         {
             builder.AddInitializer( StatementFactory.Parse($"x{i} = {i};"), InitializerKind.BeforeInstanceConstructor);
         }
     }
 }
 
-class MyAttribute : Attribute { }
+internal class MyAttribute : Attribute { }
 
-class Base
+internal class Base
 {
     public int x2;
 
@@ -44,17 +44,17 @@ class Base
 
 // <target>
 [Aspect]
-abstract class TargetCode() : Base
+internal abstract class TargetCode() : Base
 {
-    int x1;
+    private int x1;
     public new int x2;
     private readonly int x3;
     public required int x4;
     [MyAttribute]
     private protected int x5;
 
-    int x6 { get; }
-    int x7 { get; set; }
+    private int x6 { get; }
+    private int x7 { get; set; }
     public int x8 { get; private set; }
     public int x9 { get; protected set; }
     protected internal int x10 { get; init; }
@@ -62,13 +62,13 @@ abstract class TargetCode() : Base
     public virtual int x12 { get; }
     public override int x13 { get; }
     public sealed override int x14 { get; }
-    new int x15 { get; }
+    private new int x15 { get; }
     [MyAttribute]
-    int x16 { get; }
+    private int x16 { get; }
     [field: MyAttribute]
-    int x17 { get; }
+    private int x17 { get; }
 
-    int x18, x19;
+    private int x18, x19;
 }
 
 #endif

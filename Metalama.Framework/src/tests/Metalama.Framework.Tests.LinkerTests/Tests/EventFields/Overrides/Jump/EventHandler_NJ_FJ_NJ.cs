@@ -10,12 +10,12 @@ using static Metalama.Framework.Tests.LinkerTests.Tests.Api;
 namespace Metalama.Framework.Tests.LinkerTests.Tests.EventFields.Overrides.Jump.EventHandler_NJ_FJ_NJ
 {
     // <target>
-    class Target
+    internal class Target
     {
-        event EventHandler? Foo;
+        private event EventHandler? Foo;
 
         [PseudoOverride( nameof(Foo),"TestAspect1")]
-        event EventHandler Foo_Override1
+        private event EventHandler Foo_Override1
         {
             add
             {
@@ -24,7 +24,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.EventFields.Overrides.Jump.
                 {
                     return;
                 }
-                link[_this.Foo.add, inline] += value;
+                Link[This.Foo.add, Inline] += value;
                 Console.WriteLine("After1");
             }
 
@@ -35,25 +35,25 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.EventFields.Overrides.Jump.
                 {
                     return;
                 }
-                link[_this.Foo.remove, inline] += value;
+                Link[This.Foo.remove, Inline] += value;
                 Console.WriteLine("After1");
             }
         }
 
         [PseudoOverride( nameof(Foo),"TestAspect2")]
-        event EventHandler Foo_Override2
+        private event EventHandler Foo_Override2
         {
             add
             {
                 Console.WriteLine("Before2");
-                link[_this.Foo.add, inline] += value;
+                Link[This.Foo.add, Inline] += value;
                 Console.WriteLine("After2");
             }
 
             remove
             {
                 Console.WriteLine("Before2");
-                link[_this.Foo.remove, inline] += value;
+                Link[This.Foo.remove, Inline] += value;
                 Console.WriteLine("After2");
             }
         }

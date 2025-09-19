@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Engine.Formatting;
 using Metalama.Framework.Services;
+using Microsoft.CodeAnalysis.CSharp;
 using System;
 using System.Collections.Immutable;
 
@@ -71,7 +72,7 @@ public interface IProjectOptions : IProjectService, IEquatable<IProjectOptions>
     string? ProjectName { get; }
 
     /// <summary>
-    /// Gets the short target framework name, for instance <c>net6.0</c>.
+    /// Gets the short target framework name, for instance <c>net8.0</c>.
     /// </summary>
     string? TargetFramework { get; }
 
@@ -152,7 +153,7 @@ public interface IProjectOptions : IProjectService, IEquatable<IProjectOptions>
     bool RoslynIsCompileTimeOnly { get; }
 
     /// <summary>
-    /// Gets a semicolon-separated list of target frameworks that can be used for compile-time code, e.g. <c>netstandard2.0;net6.0;net48</c>.
+    /// Gets a semicolon-separated list of target frameworks that can be used for compile-time code, e.g. <c>netstandard2.0;net8.0;net48</c>.
     /// </summary>
     string? CompileTimeTargetFrameworks { get; }
 
@@ -206,4 +207,11 @@ public interface IProjectOptions : IProjectService, IEquatable<IProjectOptions>
     ImmutableArray<ExtensionAssemblyReference> DesignTimeExtensionAssemblies { get; }
 
     bool AvoidLockingExtensionAssemblies { get; }
+
+    /// <summary>
+    /// Gets the language version defined in the project. Can include values like <c>latest</c>.
+    /// </summary>
+    LanguageVersion LanguageVersion { get; }
+
+    string? SdkVersion { get; }
 }

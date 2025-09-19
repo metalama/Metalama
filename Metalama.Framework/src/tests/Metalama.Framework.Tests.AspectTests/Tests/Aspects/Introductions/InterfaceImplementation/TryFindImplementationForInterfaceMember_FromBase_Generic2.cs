@@ -32,7 +32,7 @@ public class IntroduceInterfaceAttribute : TypeAspect
     public void M1<[CompileTime]T>( T i ) { }
 
     [Template]
-    public T M2<[CompileTime] T>() => default;
+    public T? M2<[CompileTime] T>() => default;
 }
 
 public class CheckInterfaceAttribute : TypeAspect

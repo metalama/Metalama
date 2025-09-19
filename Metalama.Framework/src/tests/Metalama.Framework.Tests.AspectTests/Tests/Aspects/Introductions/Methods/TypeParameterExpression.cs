@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System.Collections.Generic;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code.SyntaxBuilders;
 
@@ -14,7 +13,7 @@ public class IntroductionAttribute : TypeAspect
     [Introduce]
     public void DeclarativeMethod<T>()
     {
-        List<T> list = new();
+        List<T?> list = new();
 
         var expression = ExpressionFactory.Capture( list.Remove( default ) );
 

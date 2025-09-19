@@ -4,7 +4,7 @@ internal class Target
   {
     if (this is global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Contracts.MetaThis.IBuffable)
     {
-      speed = speed * 2;
+      speed *= 2;
     }
     return speed;
   }

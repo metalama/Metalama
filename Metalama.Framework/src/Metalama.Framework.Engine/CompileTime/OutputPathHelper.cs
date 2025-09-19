@@ -97,7 +97,7 @@ internal sealed class OutputPathHelper
             CleanUpStrategy.WhenUnused );
 
         // Make sure that the base path is short enough. There should be 16 characters left.
-        const int maxPathLength = 255;
+        const int maxPathLength = 254;
         var remainingPathLength = maxPathLength - directory.Length;
 
         var minRemainingPathLength = MaxOutputFilenameLength + SuffixAndPrefixLength;

@@ -3,7 +3,7 @@
     <PropertyGroup>
         <OutputType>Exe</OutputType>
         <!-- We target the two frameworks for which csc.exe is built.  -->
-        <TargetFrameworks>net6.0;net472</TargetFrameworks>
+        <TargetFrameworks>net8.0;net472</TargetFrameworks>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <IsPackable>false</IsPackable>
@@ -23,6 +23,7 @@
 
     <ItemGroup>
         <ProjectReference Include="../Metalama.Framework.DesignTime.4.8.0/Metalama.Framework.DesignTime.4.8.0.csproj" />
+        <ProjectReference Include="../Metalama.Framework.DesignTime.4.12.0/Metalama.Framework.DesignTime.4.12.0.csproj" />
         <ProjectReference Include="../Metalama.Framework.DesignTime/Metalama.Framework.DesignTime.csproj" />
     </ItemGroup>
 </Project>

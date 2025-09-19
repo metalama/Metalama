@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Engine.Formatting;
+using Microsoft.CodeAnalysis.CSharp;
 using System;
 using System.Collections.Immutable;
 
@@ -102,6 +103,10 @@ public abstract class ProjectOptionsWrapper : IProjectOptions
     public virtual ImmutableArray<ExtensionAssemblyReference> DesignTimeExtensionAssemblies => this.Wrapped.DesignTimeExtensionAssemblies;
 
     public virtual bool AvoidLockingExtensionAssemblies => this.Wrapped.AvoidLockingExtensionAssemblies;
+
+    public LanguageVersion LanguageVersion => this.Wrapped.LanguageVersion;
+
+    public string? SdkVersion => this.Wrapped.SdkVersion;
 
     public sealed override int GetHashCode() => throw new NotImplementedException();
 

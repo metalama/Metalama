@@ -7,16 +7,15 @@
 #endif
 
 using Metalama.Framework.Aspects;
-using Metalama.Framework.Fabrics;
 using Metalama.Framework.Code;
 using Metalama.Testing.AspectTesting;
 
 namespace Metalama.Framework.IntegrationTests.LiveTemplates.LiveTemplateWithChildAspect;
 
-class CommonAspect : TypeAspect
+internal class CommonAspect : TypeAspect
 {
     [Introduce]
-    int i;
+    private int i;
 }
 
 [EditorExperience(SuggestAsLiveTemplate = true)]
@@ -24,7 +23,7 @@ class CommonAspect : TypeAspect
 internal class LiveAspect : TypeAspect
 {
     [Introduce]
-    int j;
+    private int j;
 
     public override void BuildAspect(IAspectBuilder<INamedType> builder)
     {
@@ -34,6 +33,6 @@ internal class LiveAspect : TypeAspect
 
 // <target>
 [TestLiveTemplate(typeof(LiveAspect))]
-class Target
+internal class Target
 {
 }

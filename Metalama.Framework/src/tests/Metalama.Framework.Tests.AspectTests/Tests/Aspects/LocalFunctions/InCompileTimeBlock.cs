@@ -9,7 +9,7 @@ using System.Linq;
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.LocalFunctions.InCompileTimeBlock;
 
-class Aspect : TypeAspect
+internal class Aspect : TypeAspect
 {
     public override void BuildAspect(IAspectBuilder<INamedType> builder)
     {
@@ -28,14 +28,14 @@ class Aspect : TypeAspect
         {
             LocalFunction();
 
-            void LocalFunction() { }
+            static void LocalFunction() { }
         }
     }
 
     [Template]
     public int ForeachTemplate([CompileTime] int n)
     {
-        int sum = 0;
+        var sum = 0;
 
         foreach (var i in Enumerable.Range(0, n))
         {
@@ -49,6 +49,6 @@ class Aspect : TypeAspect
 
 // <target>
 [Aspect]
-class Target
+internal class Target
 {
 }

@@ -47,7 +47,7 @@ public class BaseClass
 // <target>
 public class TargetClass : BaseClass
 {
-    public new static void Method() { }
+    public static new void Method() { }
 
     [InvokerAspect]
     public void Invoker() { }
