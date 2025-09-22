@@ -33,8 +33,9 @@ var product = new Product( MetalamaDependencies.Metalama )
             // The SDK is required by the Workspace tests.
             new DotNetComponent( "8.0.414", DotNetComponentKind.Sdk ),
             
-            // Required by some tests.
-            new DotNetComponent( "6.0.36", DotNetComponentKind.DotNetRuntime ),
+            // .NET 6 Runtime is used by most tests.
+            // ASP.NET Core is used at least by Backstage tests.
+            new DotNetComponent( "6.0.36", DotNetComponentKind.AspNetCoreRuntime ),
             
             // Required by some tests.
             new VisualStudioBuildToolsComponent(
