@@ -292,7 +292,8 @@ internal sealed class AspectReferenceResolver
                 resolvedReferencedSymbolSourceNode,
                 targetKind,
                 isInlineable,
-                hasCustomReceiver );
+                hasCustomReceiver,
+                false );
         }
     }
 

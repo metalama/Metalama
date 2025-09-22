@@ -280,6 +280,7 @@ namespace Metalama.Framework.Engine.Linking
                     case OverrideEventTransformation overrideEvent:
                         var targetEvent = overrideEvent.TargetDeclaration.As<IEvent>().GetTarget( finalCompilationModel );
                         var overrideMember = injectionRegistry.GetInjectedMembersForTransformation( overrideEvent ).Single(im => im.Semantic == InjectedMemberSemantic.Override);
+                        var overrideEventSymbol = injectionRegistry.GetSymbolForInjectedMember( overrideMember ).AssertNotNull();
                         var overrideName = overrideMember.Syntax switch
                         {
                             EventDeclarationSyntax eventDeclaration => eventDeclaration.Identifier.ValueText,
@@ -296,6 +297,14 @@ namespace Metalama.Framework.Engine.Linking
                                 MethodDeclarationSyntax methodDeclaration => methodDeclaration.Identifier.ValueText,
                                 _ => throw new NotSupportedException( $"Unsupported syntax for event raise override: {injectedMember.Syntax}." )
                             };
+                        
+                        // Generate broker proxy name for non-last overrides
+                        string? brokerProxyName = null;
+                        if ( !injectionRegistry.IsLastOverride( overrideEventSymbol ) )
+                        {
+                            brokerProxyName =
+                                    typeMemberIdentifierGenerator.AllocateName( targetEventSymbol.ContainingType, $"{overrideName}Brokered", IdentifierFlags.None );
+                        }
 
                         switch ( invokeMethod )
                         {
@@ -376,7 +385,7 @@ namespace Metalama.Framework.Engine.Linking
 
                                 eventBrokerTransformationsWritable.Add(
                                         overrideEvent,
-                                        new EventBrokerTransformationInfo( eventBrokerInfo, overrideEvent, eventBrokerFieldName, fieldInitializationExpression ) );
+                                        new EventBrokerTransformationInfo( eventBrokerInfo, overrideEvent, eventBrokerFieldName, fieldInitializationExpression, brokerProxyName ) );
 
                                 break; 
 

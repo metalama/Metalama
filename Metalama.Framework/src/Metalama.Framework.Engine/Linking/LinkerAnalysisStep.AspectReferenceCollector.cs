@@ -108,30 +108,36 @@ internal sealed partial class LinkerAnalysisStep
                         {
                             var overrides = this._injectionRegistry.GetOverridesForSymbol( @event );
 
+                            var previousSemantic = @event.ToSemantic( IntermediateSymbolSemanticKind.Final );
+
                             for (var i = overrides.Count - 1; i >= 0; i-- )
                             {
                                 if ( this._injectionRegistry.HasEventRaiseOverride( overrides[i] ) )
                                 {
-                                    var eventRaiseOverride = (IMethodSymbol?) this._injectionRegistry.GetSatelliteOverrideMembers( lastOverride ).SingleOrDefault();
+                                    var eventRaiseOverride = (IMethodSymbol?) this._injectionRegistry.GetSatelliteOverrideMembers( overrides[i] ).SingleOrDefault();
+                                    var sourceAddSemantic = previousSemantic.Symbol.AddMethod.AssertNotNull().ToSemantic( previousSemantic.Kind );
+                                    var sourceRemoveSemantic = previousSemantic.Symbol.RemoveMethod.AssertNotNull().ToSemantic( previousSemantic.Kind );
 
                                     AddImplicitReference(
-                                        @event.AddMethod.AssertNotNull().ToSemantic( IntermediateSymbolSemanticKind.Final ),
+                                        sourceAddSemantic,
                                         @event,
                                         overrides[i].ToSemantic( IntermediateSymbolSemanticKind.Default ),
                                         AspectReferenceTargetKind.EventRaiseAccessor,
                                         eventRaiseOverride,
-                                        false );
+                                        false,
+                                        i != overrides.Count - 1 );
 
                                     AddImplicitReference(
-                                        @event.RemoveMethod.AssertNotNull().ToSemantic( IntermediateSymbolSemanticKind.Final ),
+                                        sourceRemoveSemantic,
                                         @event,
                                         overrides[i].ToSemantic( IntermediateSymbolSemanticKind.Default ),
                                         AspectReferenceTargetKind.EventRaiseAccessor,
                                         eventRaiseOverride,
-                                        false );
-
-                                    break;
+                                        false,
+                                        i != overrides.Count - 1 );
                                 }
+
+                                previousSemantic = overrides[i].ToSemantic( IntermediateSymbolSemanticKind.Default ).ToTyped<IEventSymbol>();
                             }
                         }
 
@@ -144,7 +150,8 @@ internal sealed partial class LinkerAnalysisStep
                     IntermediateSymbolSemantic targetSemantic,
                     AspectReferenceTargetKind targetKind,
                     IMethodSymbol? explicitSemanticBody = null,
-                    bool? isInlineable = null)
+                    bool? isInlineable = null,
+                    bool? isVirtual = null )
                 {
                     var sourceNode =
                         containingSemantic.Symbol.GetPrimaryDeclarationSyntax() switch
@@ -183,7 +190,8 @@ internal sealed partial class LinkerAnalysisStep
                             sourceNode,
                             targetKind,
                             isInlineable ?? true,
-                            true );
+                            true,
+                            isVirtual ?? false);
 
                     var referencesForContainingSemantic =(List<ResolvedAspectReference>) aspectReferences.GetOrAdd( containingSemantic, cs => new List<ResolvedAspectReference>() );
 
@@ -279,9 +287,9 @@ internal sealed partial class LinkerAnalysisStep
 
                 aspectReferenceWalker.Visit( syntax );
 
-                var wasAdded = aspectReferences.TryAdd( semantic, aspectReferenceWalker.AspectReferences );
+                var existingReferences = (List<ResolvedAspectReference>) aspectReferences.GetOrAdd( semantic, cs => new List<ResolvedAspectReference>() );
 
-                Invariant.Assert( wasAdded );
+                existingReferences.AddRange( aspectReferenceWalker.AspectReferences );
             }
         }
     }

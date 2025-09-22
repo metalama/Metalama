@@ -4,8 +4,6 @@
 
 using Metalama.Framework.Engine.Services;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
-using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace Metalama.Framework.Engine.Linking.Substitution;
 
@@ -34,19 +32,9 @@ internal sealed class EventBrokerRemoverSubstitution : SyntaxNodeSubstitution
         var eventBrokerTypeInfo = substitutionContext.RewritingDriver.AnalysisRegistry.GetEventBrokerTypeInfo( @event ).AssertNotNull();
         var eventBrokerTransformationInfo = eventBrokerTypeInfo.Transformations[eventOverrideTransformation];
 
-        return context.SyntaxGenerator.FormattedBlock(
-            ExpressionStatement(
-                ConditionalAccessExpression(
-                    MemberAccessExpression(
-                        SyntaxKind.SimpleMemberAccessExpression,
-                        ThisExpression(),
-                        IdentifierName( eventBrokerTransformationInfo.EventBrokerFieldName ) ),
-                    InvocationExpression(
-                        MemberBindingExpression(
-                            IdentifierName( "RemoveHandler" ) ),
-                        ArgumentList(
-                            SingletonSeparatedList(
-                                Argument(
-                                    IdentifierName( "value" ) ) ) ) ) ) ) );
+        return 
+            EventBrokerSyntaxHelper.CreateRemoveHandlerBody(
+                context,
+                eventBrokerTransformationInfo.EventBrokerFieldName );
     }
 }

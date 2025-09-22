@@ -392,6 +392,10 @@ internal sealed partial class LinkerAnalysisStep
             {
                 switch ( nonInlinedReference )
                 {
+                    case { IsVirtual: true }:
+                        // Any virtual reference is skipped.
+                        break;
+
                     case { 
                         ResolvedSemantic: { Symbol: IEventSymbol @event }, 
                         ContainingBody: { MethodKind: MethodKind.EventAdd or MethodKind.EventRemove }, 
@@ -425,6 +429,29 @@ internal sealed partial class LinkerAnalysisStep
                         AddSubstitution(
                             context,
                             new EventBrokerRemoverSubstitution( this._intermediateCompilationContext, nonInlinedReference ) );
+
+                        break;
+
+                    // Unified case for non-inlined references to event add/remove accessors when target has event raise overrides
+                    case
+                    {
+                        ResolvedSemantic: { Symbol: IEventSymbol @event },
+                        TargetKind: AspectReferenceTargetKind.EventAddAccessor or AspectReferenceTargetKind.EventRemoveAccessor
+                    } when this._injectionRegistry.HasEventRaiseOverride( @event ):
+
+                        var proxyEventBrokerInfo = this._eventBrokerSemanticIndex.TryGetValue( nonInlinedReference.ResolvedSemantic.ToTyped<IEventSymbol>(), out var brokerInfo )
+                            ? brokerInfo
+                            : null;
+
+                        if ( proxyEventBrokerInfo?.BrokerProxyName != null )
+                        {
+                            AddSubstitution(
+                                context,
+                                new EventBrokerProxySubstitution( 
+                                    this._intermediateCompilationContext, 
+                                    nonInlinedReference, 
+                                    proxyEventBrokerInfo.BrokerProxyName ) );
+                        }
 
                         break;
 
