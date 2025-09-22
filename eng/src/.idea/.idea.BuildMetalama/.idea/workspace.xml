@@ -10,20 +10,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="520fcf95-a81b-453b-a66c-f2ff11a1ea4a" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/.idea.BuildMetalama/.idea/copilot.data.migration.agent.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/.idea.BuildMetalama/.idea/copilot.data.migration.ask.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/.idea.BuildMetalama/.idea/copilot.data.migration.ask2agent.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/.idea.BuildMetalama/.idea/copilot.data.migration.edit.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/../../.gitignore" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../Directory.Packages.props" beforeDir="false" afterPath="$PROJECT_DIR$/../../Directory.Packages.props" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../DockerBuild.ps1" beforeDir="false" afterPath="$PROJECT_DIR$/../../DockerBuild.ps1" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../Dockerfile" beforeDir="false" afterPath="$PROJECT_DIR$/../../Dockerfile" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../Metalama.Framework/src/tests/Standalone/BlazorApp/global.json" beforeDir="false" afterPath="$PROJECT_DIR$/../../Metalama.Framework/src/tests/Standalone/BlazorApp/global.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/.idea.BuildMetalama/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.BuildMetalama/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Program.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Program.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../global.json" beforeDir="false" />
-    </list>
+    <list default="true" id="520fcf95-a81b-453b-a66c-f2ff11a1ea4a" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -106,7 +93,7 @@
       <option name="presentableId" value="Default" />
       <updated>1747385389277</updated>
       <workItem from="1747385390349" duration="9409000" />
-      <workItem from="1758532804180" duration="609000" />
+      <workItem from="1758532804180" duration="1512000" />
     </task>
     <task id="LOCAL-00001" summary="Formatting. Adding Rider files">
       <option name="closed" value="true" />
@@ -116,7 +103,15 @@
       <option name="project" value="LOCAL" />
       <updated>1747401024833</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="Update engineering and dockerize the build.">
+      <option name="closed" value="true" />
+      <created>1758533434368</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1758533434368</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -138,7 +133,8 @@
   <component name="VcsManagerConfiguration">
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
     <MESSAGE value="Formatting. Adding Rider files" />
-    <option name="LAST_COMMIT_MESSAGE" value="Formatting. Adding Rider files" />
+    <MESSAGE value="Update engineering and dockerize the build." />
+    <option name="LAST_COMMIT_MESSAGE" value="Update engineering and dockerize the build." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
