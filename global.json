@@ -1,9 +1,0 @@
-{
-  "sdk": {
-    "version": "9.0.200",
-    "rollForward": "patch"
-  },
-  "msbuild-sdks": {
-    "PostSharp.Engineering.Sdk": "2023.2.178"
-  }
-}
