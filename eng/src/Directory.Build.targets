@@ -1,5 +1,0 @@
-<Project>
-
-    <!-- Override the Directory.Build.targets from the repository root to avoid referencing of packages of invalid version. -->
-
-</Project>
