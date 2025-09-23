@@ -26,11 +26,11 @@ namespace Metalama.Framework.Aspects
         }
 
         // TODO: When template parameters are properly resolved during expansion, the parameter name here should change to "handler".
-        [Template]
-        public abstract void OverrideAdd( dynamic value );
+        [Template( IsEmpty = true )]
+        public virtual void OverrideAdd( dynamic value ) => throw new NotImplementedException();
 
-        [Template]
-        public abstract void OverrideRemove( dynamic value );
+        [Template( IsEmpty = true )]
+        public virtual void OverrideRemove( dynamic value ) => throw new NotImplementedException();
 
         [Template( IsEmpty = true )]
         public virtual dynamic? OverrideRaise( dynamic handler ) => throw new NotImplementedException();
