@@ -33,7 +33,7 @@ namespace Metalama.Framework.Aspects
         public abstract void OverrideRemove( dynamic value );
 
         [Template( IsEmpty = true )]
-        public virtual void OverrideRaise( dynamic handler ) => throw new NotImplementedException();
+        public virtual dynamic? OverrideRaise( dynamic handler ) => throw new NotImplementedException();
 
         // TODO: Add this back after invoke overrides are implemented.
         // [Template]

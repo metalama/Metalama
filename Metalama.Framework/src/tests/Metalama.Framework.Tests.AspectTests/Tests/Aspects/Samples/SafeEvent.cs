@@ -24,11 +24,11 @@ internal class SafeEventAttribute : OverrideEventAspect
         meta.Proceed();
     }
 
-    public override void OverrideRaise( dynamic? handler )
+    public override dynamic? OverrideRaise( dynamic? handler )
     {
         try
         {
-            meta.Proceed();
+            return meta.Proceed();
         }
         catch ( Exception e )
         {

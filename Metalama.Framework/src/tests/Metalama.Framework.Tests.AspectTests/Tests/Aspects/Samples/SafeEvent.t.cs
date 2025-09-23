@@ -34,6 +34,7 @@ internal class TargetCode
     try
     {
       handler.Invoke(args.sender, args.e);
+      return;
     }
     catch (Exception e)
     {
@@ -83,6 +84,7 @@ internal class TargetCode
     try
     {
       handler.Invoke(args.sender, args.e);
+      return;
     }
     catch (Exception e)
     {
