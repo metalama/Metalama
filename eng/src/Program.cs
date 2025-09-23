@@ -35,7 +35,9 @@ var product = new Product( MetalamaDependencies.Metalama )
             
             // .NET 6 Runtime is used by most tests.
             // ASP.NET Core is used at least by Backstage tests.
+            // Windows Desktop is used by Xaml tests.
             new DotNetComponent( "6.0.36", DotNetComponentKind.AspNetCoreRuntime ),
+            new DotNetComponent( "6.0.36", DotNetComponentKind.WindowsDesktopRuntime ),
             
             // Required by some tests.
             new VisualStudioBuildToolsComponent(

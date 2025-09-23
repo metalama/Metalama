@@ -56,6 +56,10 @@ RUN Invoke-WebRequest -Uri https://dot.net/v1/dotnet-install.ps1 -OutFile dotnet
 RUN powershell -ExecutionPolicy Bypass -File dotnet-install.ps1 -Version 6.0.36 -Runtime aspnetcore -InstallDir 'C:\Program Files\dotnet'; 
 
 
+# Install .NET WindowsDesktopRuntime 6.0.36
+RUN powershell -ExecutionPolicy Bypass -File dotnet-install.ps1 -Version 6.0.36 -Runtime windowsdesktop -InstallDir 'C:\Program Files\dotnet'; 
+
+
 # Install .NET Sdk 8.0.414
 RUN powershell -ExecutionPolicy Bypass -File dotnet-install.ps1 -Version 8.0.414 -InstallDir 'C:\Program Files\dotnet'; 
 

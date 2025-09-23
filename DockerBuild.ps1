@@ -109,7 +109,7 @@ if (-not $KeepEnv)
         }
         if (-not $env:GIT_USER_NAME)
         {
-            $env:GIT_USER_EMAIL = 'teamcity'
+            $env:GIT_USER_NAME = 'teamcity'
         }
     }
 
