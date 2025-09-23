@@ -437,21 +437,16 @@ internal sealed partial class LinkerAnalysisStep
                     {
                         ResolvedSemantic: { Symbol: IEventSymbol @event },
                         TargetKind: AspectReferenceTargetKind.EventAddAccessor or AspectReferenceTargetKind.EventRemoveAccessor
-                    } when this._injectionRegistry.HasEventRaiseOverride( @event ):
+                    } when this._injectionRegistry.HasEventRaiseOverride( @event ) 
+                           && this._eventBrokerSemanticIndex.TryGetValue( nonInlinedReference.ResolvedSemantic.ToTyped<IEventSymbol>(), out var proxyEventBrokerInfo ) 
+                           && proxyEventBrokerInfo?.BrokerProxyName != null:
 
-                        var proxyEventBrokerInfo = this._eventBrokerSemanticIndex.TryGetValue( nonInlinedReference.ResolvedSemantic.ToTyped<IEventSymbol>(), out var brokerInfo )
-                            ? brokerInfo
-                            : null;
-
-                        if ( proxyEventBrokerInfo?.BrokerProxyName != null )
-                        {
-                            AddSubstitution(
-                                context,
-                                new EventBrokerProxySubstitution( 
-                                    this._intermediateCompilationContext, 
-                                    nonInlinedReference, 
-                                    proxyEventBrokerInfo.BrokerProxyName ) );
-                        }
+                        AddSubstitution(
+                            context,
+                            new EventBrokerProxySubstitution(
+                                this._intermediateCompilationContext,
+                                nonInlinedReference,
+                                proxyEventBrokerInfo.BrokerProxyName ) );
 
                         break;
 

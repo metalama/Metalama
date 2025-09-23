@@ -82,7 +82,7 @@ namespace Metalama.Framework.Engine.Linking
                         var overrideTarget = (IEventSymbol) this.InjectionRegistry.GetLastOverride( symbol );
                         var eventBrokerInfo = this.AnalysisRegistry.GetVisibleEventBrokerForSemantic( overrideTarget.ToSemantic( IntermediateSymbolSemanticKind.Default ) ).AssertNotNull();
 
-                        return [GetLinkedDeclaration( IntermediateSymbolSemanticKind.Default, true ), GetEventBrokerProxy(eventBrokerInfo) ];
+                        return [GetLinkedDeclaration( IntermediateSymbolSemanticKind.Default, true ), GetEventBrokerProxy( eventBrokerInfo, context )];
                     }
                     else
                     {
@@ -517,7 +517,7 @@ namespace Metalama.Framework.Engine.Linking
             }
         }
 
-        private static MemberDeclarationSyntax GetEventBrokerProxy( EventBrokerTransformationInfo eventBrokerInfo )
+        private static MemberDeclarationSyntax GetEventBrokerProxy( EventBrokerTransformationInfo eventBrokerInfo, SyntaxGenerationContext context )
         {
             if ( eventBrokerInfo.BrokerProxyName == null )
             {
@@ -525,7 +525,6 @@ namespace Metalama.Framework.Engine.Linking
             }
 
             var eventSymbol = eventBrokerInfo.Parent.Event;
-            var context = this.IntermediateCompilationContext.GetSyntaxGenerationContext( this.SyntaxGenerationOptions );
 
             var fieldInitializationExpression = eventBrokerInfo.FieldInitializationExpression( context );
 
