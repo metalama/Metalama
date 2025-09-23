@@ -1277,8 +1277,7 @@ using System;
 using Metalama.Framework.Advising; 
 using Metalama.Framework.Aspects; 
 
-namespace
-RemainingNamespace
+namespace RemainingNamespace
 {
     [CompileTime]
     public class MyCompileTimeAttribute : Attribute { }

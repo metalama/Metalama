@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 namespace System;
 // Stripped-down version of System.Index; tests that including it in the code base does not cause issues.
 internal readonly struct Index : IEquatable<Index>
@@ -10,13 +11,9 @@ internal readonly struct Index : IEquatable<Index>
       ThrowHelper.ThrowValueArgumentOutOfRange_NeedNonNegNumException();
     }
     if (fromEnd)
-    {
       _value = ~value;
-    }
     else
-    {
       _value = value;
-    }
   }
   private Index(int value)
   {
@@ -45,19 +42,15 @@ internal readonly struct Index : IEquatable<Index>
     get
     {
       if (_value < 0)
-      {
         return ~_value;
-      }
       else
-      {
         return _value;
-      }
     }
   }
   public bool IsFromEnd => _value < 0;
   public int GetOffset(int length)
   {
-    var offset = _value;
+    int offset = _value;
     if (IsFromEnd)
     {
       offset += length + 1;
@@ -71,9 +64,7 @@ internal readonly struct Index : IEquatable<Index>
   public override string ToString()
   {
     if (IsFromEnd)
-    {
       return ToStringFromEnd();
-    }
     return ((uint)Value).ToString();
   }
   private string ToStringFromEnd()
