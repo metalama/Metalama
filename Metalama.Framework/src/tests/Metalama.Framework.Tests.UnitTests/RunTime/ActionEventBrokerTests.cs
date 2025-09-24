@@ -192,7 +192,7 @@ public class ActionEventBrokerTests
             ActionEventBroker<EventHandler, (object? sender, EventArgs args)>.EnsureInitialized(
                 ref this._broker,
                 this,
-                new ActionEventBrokerDelegateSet<EventHandler, (object? sender, EventArgs args)>(
+                new ActionEventBrokerCallbacks<EventHandler, (object? sender, EventArgs args)>(
                     ( h, i, args ) => ((TestClass) i).OnEventViaBroker( h, args ),
                     broker => ( sender, args ) => broker.Invoke( (sender, args) ),
                     ( h, i ) => ((TestClass) i)._originalEvent += h,

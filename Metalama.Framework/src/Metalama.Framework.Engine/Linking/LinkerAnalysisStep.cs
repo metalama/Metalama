@@ -336,7 +336,7 @@ namespace Metalama.Framework.Engine.Linking
                                 var eventBrokerTransformationsWritable = (Dictionary<ITransformation, EventBrokerTransformationInfo>) eventBrokerInfo.Transformations;
 
                                 var delegateSetType =
-                                    ((INamedType) finalCompilationModel.Factory.GetTypeByReflectionType( typeof( ActionEventBrokerDelegateSet<,> ) ))
+                                    ((INamedType) finalCompilationModel.Factory.GetTypeByReflectionType( typeof( ActionEventBrokerCallbacks<,> ) ))
                                     .WithTypeArguments( [delegateType, argsType] );
 
                                 var delegateSetTypeSymbol =

@@ -18,13 +18,13 @@ public sealed class ActionEventBroker<TDelegate, TArgs>
 {
     private readonly DelegateList<TDelegate, TArgs> _handlers;
     private readonly object _owner;
-    private readonly ActionEventBrokerDelegateSet<TDelegate, TArgs> _delegates;
+    private readonly ActionEventBrokerCallbacks<TDelegate, TArgs> _delegates;
     private TDelegate? _invocationDelegate;
 
     /// <summary>
     /// Gets a delegate that calls the <see cref="Invoke" /> method.
     /// </summary>
-    public TDelegate InvocationDelegate => this._invocationDelegate ??= this._delegates.ToDelegate( this );
+    public TDelegate InvocationDelegate => this._invocationDelegate ??= this._delegates.GetBrokerInvocationDelegate( this );
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ActionEventBroker{TDelegate, TArgs}"/> class.
@@ -33,7 +33,7 @@ public sealed class ActionEventBroker<TDelegate, TArgs>
     /// <param name="delegates">Delegates required for operation of this class.</param>
     private ActionEventBroker(
         object owner,
-        ActionEventBrokerDelegateSet<TDelegate, TArgs> delegates)
+        ActionEventBrokerCallbacks<TDelegate, TArgs> delegates)
     {
         this._owner = owner;
         this._delegates = delegates;
@@ -64,7 +64,7 @@ public sealed class ActionEventBroker<TDelegate, TArgs>
 
                 if ( wasFirst )
                 {
-                    this._delegates.BaseAdd( this.InvocationDelegate, this._owner );
+                    this._delegates.AddHandler( this.InvocationDelegate, this._owner );
                 }
             }
             finally
@@ -100,7 +100,7 @@ public sealed class ActionEventBroker<TDelegate, TArgs>
 
                 if ( this._handlers.IsEmpty )
                 {
-                    this._delegates.BaseRemove( this.InvocationDelegate, this._owner );
+                    this._delegates.RemoveHandler( this.InvocationDelegate, this._owner );
                 }
             }
             finally
@@ -119,7 +119,7 @@ public sealed class ActionEventBroker<TDelegate, TArgs>
     /// <param name="args">The event arguments.</param>
     public void Invoke( TArgs args )
     {
-        this._handlers.Invoke( this._delegates.Invoker, this._owner, args );
+        this._handlers.Invoke( this._delegates.InvokeHandler, this._owner, args );
     }
 
     /// <summary>
@@ -136,7 +136,7 @@ public sealed class ActionEventBroker<TDelegate, TArgs>
     /// <param name="field">The field to initialize.</param>
     /// <param name="owner">The event owner object.</param>
     /// <param name="delegates">Delegates required for inner working of event brokers.</param>
-    public static void EnsureInitialized( ref ActionEventBroker<TDelegate, TArgs>? field, object owner, ActionEventBrokerDelegateSet<TDelegate, TArgs> delegates )
+    public static void EnsureInitialized( ref ActionEventBroker<TDelegate, TArgs>? field, object owner, ActionEventBrokerCallbacks<TDelegate, TArgs> delegates )
     {
         if ( field != null )
         {
