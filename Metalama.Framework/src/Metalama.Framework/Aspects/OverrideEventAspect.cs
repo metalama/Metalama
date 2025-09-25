@@ -26,22 +26,18 @@ namespace Metalama.Framework.Aspects
                 nameof( this.OverrideInvoke ) );
         }
 
-        // TODO: When template parameters are properly resolved during expansion, the parameter name here should change to "handler".
         [Template( IsEmpty = true )]
-        public virtual void OverrideAdd( dynamic value ) => throw new NotImplementedException();
+        public virtual void OverrideAdd( dynamic handler ) => throw new NotImplementedException();
 
         [Template( IsEmpty = true )]
-        public virtual void OverrideRemove( dynamic value ) => throw new NotImplementedException();
-
-        [Template( IsEmpty = true )]
-        public virtual dynamic? OverrideRaise() => throw new NotImplementedException();
+        public virtual void OverrideRemove( dynamic handler ) => throw new NotImplementedException();
 
         [Template( IsEmpty = true )]
         public virtual dynamic? OverrideInvoke( dynamic handler ) => throw new NotImplementedException();
 
-        // TODO: Add this back after invoke overrides are implemented.
-        // [Template]
-        // public abstract void OverrideInvoke( dynamic handler );
+        // TODO: Enable when support for overriding raise is added.
+        // [Template( IsEmpty = true )]
+        // public virtual dynamic? OverrideRaise() => throw new NotImplementedException();
 
         public override void BuildEligibility( IEligibilityBuilder<IEvent> builder )
         {

@@ -1169,8 +1169,8 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         IEvent targetEvent,
         string? addTemplate,
         string? removeTemplate,
-        string? raiseTemplate,
         string? invokeTemplate,
+        string? raiseTemplate,
         object? args = null,
         object? tags = null )
     {
@@ -1252,8 +1252,8 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         string name,
         string addTemplate,
         string removeTemplate,
-        string? raiseTemplate = null,
         string? invokeTemplate = null,
+        string? raiseTemplate = null,
         IntroductionScope scope = IntroductionScope.Default,
         OverrideStrategy whenExists = OverrideStrategy.Default,
         Action<IEventBuilder>? buildEvent = null,

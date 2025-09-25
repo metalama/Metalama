@@ -513,11 +513,11 @@ namespace Metalama.Framework.Advising
         /// <param name="removeTemplate">The name of the method of the aspect class whose type and implementation will be used as a template for the remover, or <c>null</c>
         ///     the adder should not be overridden. This method must be annotated with <see cref="TemplateAttribute"/>. The signature of this method must
         ///     be <c>void Remove(T value)</c> where <c>T</c> is either <c>dynamic</c> or a type compatible with the type of the event.</param>
-        /// <param name="raiseTemplate">Not yet implemented.</param>
         /// <param name="invokeTemplate">The name of the method of the aspect class whose type and implementation will be used as a template for intercepting invocation of 
-        ///     event's handlers. The signature of this method must be <c>T Remove()</c>, <c>T Remove(U handler)</c>, or <c>T Remove(U handler, V1 param1, V2 param2, ...)</c>  
+        ///     event's handlers. The signature of this method must be <c>T Invoke()</c>, <c>T Invoke(U handler)</c>, or <c>T Invoke(U handler, V1 param1, V2 param2, ...)</c>  
         ///     where <c>T</c> is either <c>dynamic</c> or a type compatible with the return value of the event's delegate type, <c>U</c> is either dynamic or the event's 
         ///     delegate type, <c>Vn</c> are types matching the delegate's parameters.</param>
+        /// <param name="raiseTemplate">Not yet implemented.</param>
         /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods.</param>
         /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property of the
         ///     <see cref="meta"/> API.</param>
@@ -526,8 +526,8 @@ namespace Metalama.Framework.Advising
             IEvent targetEvent,
             string? addTemplate = null,
             string? removeTemplate = null,
-            string? raiseTemplate = null,
             string? invokeTemplate = null,
+            string? raiseTemplate = null,
             object? args = null,
             object? tags = null );
 
@@ -569,11 +569,11 @@ namespace Metalama.Framework.Advising
         /// <param name="removeTemplate">The name of the method of the aspect class whose type and implementation will be used as a template for the remover.
         ///     This method must be annotated with <see cref="TemplateAttribute"/>. The signature of this method must
         ///     be <c>void Add(T value)</c> where <c>T</c> is either <c>dynamic</c> or a type compatible with the type of the event.</param>
-        /// <param name="raiseTemplate">Not implemented.</param>
         /// <param name="invokeTemplate">The name of the method of the aspect class whose type and implementation will be used as a template for intercepting invocation of 
-        ///     event's handlers. The signature of this method must be <c>T Remove()</c>, <c>T Remove(U handler)</c>, or <c>T Remove(U handler, V1 param1, V2 param2, ...)</c>  
+        ///     event's handlers. The signature of this method must be <c>T Invoke()</c>, <c>T Invoke(U handler)</c>, or <c>T Invoke(U handler, V1 param1, V2 param2, ...)</c>  
         ///     where <c>T</c> is either <c>dynamic</c> or a type compatible with the return value of the event's delegate type, <c>U</c> is either dynamic or the event's 
         ///     delegate type, <c>Vn</c> are types matching the delegate's parameters.</param>
+        /// <param name="raiseTemplate">Not implemented.</param>
         /// <param name="scope">Determines the scope (e.g. <see cref="IntroductionScope.Instance"/> or <see cref="IntroductionScope.Static"/>) of the introduced
         ///     event. The default scope depends on the scope of the template event. If the event is static, the introduced event is static. However, if the
         ///     template event is non-static, then the introduced event copies of the scope of the target declaration of the aspect.</param>
@@ -590,8 +590,8 @@ namespace Metalama.Framework.Advising
             string eventName,
             string addTemplate,
             string removeTemplate,
-            string? raiseTemplate = null,
             string? invokeTemplate = null,
+            string? raiseTemplate = null,
             IntroductionScope scope = IntroductionScope.Default,
             OverrideStrategy whenExists = OverrideStrategy.Default,
             Action<IEventBuilder>? buildEvent = null,

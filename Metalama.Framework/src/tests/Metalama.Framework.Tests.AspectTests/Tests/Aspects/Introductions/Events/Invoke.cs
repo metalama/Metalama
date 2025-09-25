@@ -19,9 +19,9 @@ public class IntroductionAttribute : TypeAspect
     {
         builder.IntroduceEvent(
             "EventFromAccessors",
-            nameof(AddEventTemplate),
-            nameof(RemoveEventTemplate),
-            invokeTemplate: nameof(InvokeEventTemplate),
+            nameof( AddEventTemplate ),
+            nameof( RemoveEventTemplate ),
+            invokeTemplate: nameof( InvokeEventTemplate ),
             buildEvent: e => e.Accessibility = Accessibility.Public );
     }
 
