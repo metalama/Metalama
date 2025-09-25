@@ -704,15 +704,20 @@ public static class AdviserExtensions
     ///     the adder should not be overridden. This method must be annotated with <see cref="TemplateAttribute"/>. The signature of this method must
     ///     be <c>void Remove(T value)</c> where <c>T</c> is either <c>dynamic</c> or a type compatible with the type of the event.</param>
     /// <param name="raiseTemplate">Not yet implemented.</param>
+    /// <param name="invokeTemplate">The name of the method of the aspect class whose type and implementation will be used as a template for intercepting invocation of 
+    ///     event's handlers. The signature of this method must be <c>T Remove()</c>, <c>T Remove(U handler)</c>, or <c>T Remove(U handler, V1 param1, V2 param2, ...)</c>  
+    ///     where <c>T</c> is either <c>dynamic</c> or a type compatible with the return value of the event's delegate type, <c>U</c> is either dynamic or the event's 
+    ///     delegate type, <c>Vn</c> are types matching the delegate's parameters.</param>
     /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods.</param>
     /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property of the
     ///     <see cref="meta"/> API.</param>
     /// <seealso href="@overriding-events"/>
     public static IOverrideAdviceResult<IEvent> OverrideAccessors(
         this IAdviser<IEvent> adviser,
-        string? addTemplate,
-        string? removeTemplate,
+        string? addTemplate = null,
+        string? removeTemplate = null,
         string? raiseTemplate = null,
+        string? invokeTemplate = null,
         object? args = null,
         object? tags = null )
         => ((IAdviserInternal) adviser).AdviceFactory.OverrideAccessors(
@@ -720,6 +725,7 @@ public static class AdviserExtensions
             addTemplate,
             removeTemplate,
             raiseTemplate,
+            invokeTemplate,
             args,
             tags );
 
@@ -771,6 +777,10 @@ public static class AdviserExtensions
     ///     This method must be annotated with <see cref="TemplateAttribute"/>. The signature of this method must
     ///     be <c>void Add(T value)</c> where <c>T</c> is either <c>dynamic</c> or a type compatible with the type of the event.</param>
     /// <param name="raiseTemplate">Not implemented.</param>
+    /// <param name="invokeTemplate">The name of the method of the aspect class whose type and implementation will be used as a template for intercepting invocation of 
+    ///     event's handlers. The signature of this method must be <c>T Remove()</c>, <c>T Remove(U handler)</c>, or <c>T Remove(U handler, V1 param1, V2 param2, ...)</c>  
+    ///     where <c>T</c> is either <c>dynamic</c> or a type compatible with the return value of the event's delegate type, <c>U</c> is either dynamic or the event's 
+    ///     delegate type, <c>Vn</c> are types matching the delegate's parameters.</param>
     /// <param name="scope">Determines the scope (e.g. <see cref="IntroductionScope.Instance"/> or <see cref="IntroductionScope.Static"/>) of the introduced
     ///     event. The default scope depends on the scope of the template event. If the event is static, the introduced event is static. However, if the
     ///     template event is non-static, then the introduced event copies of the scope of the target declaration of the aspect.</param>
@@ -788,6 +798,7 @@ public static class AdviserExtensions
         string addTemplate,
         string removeTemplate,
         string? raiseTemplate = null,
+        string? invokeTemplate = null,
         IntroductionScope scope = IntroductionScope.Default,
         OverrideStrategy whenExists = OverrideStrategy.Default,
         Action<IEventBuilder>? buildEvent = null,
@@ -799,6 +810,7 @@ public static class AdviserExtensions
             addTemplate,
             removeTemplate,
             raiseTemplate,
+            invokeTemplate,
             scope,
             whenExists,
             buildEvent,

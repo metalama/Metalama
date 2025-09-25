@@ -32,20 +32,20 @@ internal sealed class OverrideEventTransformation : OverrideMemberTransformation
 
     private BoundTemplateMethod? RemoveTemplate { get; }
 
-    private BoundTemplateMethod? RaiseTemplate { get; }
+    private BoundTemplateMethod? InvokeTemplate { get; }
 
     public OverrideEventTransformation(
         AspectLayerInstance aspectLayerInstance,
         IFullRef<IEvent> overriddenDeclaration,
         BoundTemplateMethod? addTemplate,
         BoundTemplateMethod? removeTemplate,
-        BoundTemplateMethod? raiseTemplate )
+        BoundTemplateMethod? invokeTemplate )
         : base( aspectLayerInstance, overriddenDeclaration )
     {
         this._overriddenDeclaration = overriddenDeclaration;
         this.AddTemplate = addTemplate;
         this.RemoveTemplate = removeTemplate;
-        this.RaiseTemplate = raiseTemplate;
+        this.InvokeTemplate = invokeTemplate;
     }
 
     public override IFullRef<IMember> OverriddenDeclaration => this._overriddenDeclaration;
@@ -94,11 +94,11 @@ internal sealed class OverrideEventTransformation : OverrideMemberTransformation
 
         BlockSyntax? raiseAccessorBody = null;
 
-        if ( this.RaiseTemplate != null )
+        if ( this.InvokeTemplate != null )
         {
-            templateExpansionError = templateExpansionError || !this.TryExpandRaiseTemplate(
+            templateExpansionError = templateExpansionError || !this.TryExpandInvokeTemplate(
                 context,
-                this.RaiseTemplate,
+                this.InvokeTemplate,
                 overriddenDeclaration.RaiseMethod,
                 overriddenDeclaration,
                 out raiseAccessorBody );
@@ -249,7 +249,7 @@ internal sealed class OverrideEventTransformation : OverrideMemberTransformation
         return templateDriver.TryExpandDeclaration( expansionContext, accessorTemplate.TemplateArguments, out body );
     }
 
-    private bool TryExpandRaiseTemplate(
+    private bool TryExpandInvokeTemplate(
         MemberInjectionContext context,
         BoundTemplateMethod accessorTemplate,
         IMethod accessor,
@@ -259,7 +259,7 @@ internal sealed class OverrideEventTransformation : OverrideMemberTransformation
         var proceedExpression = new SyntaxUserExpression(
             accessor.MethodKind switch
             {
-                MethodKind.EventRaise => this.CreateRaiseExpression( context ),
+                MethodKind.EventRaise => this.CreateInvokeExpression( context ),
                 _ => throw new AssertionFailedException( $"Unexpected MethodKind: {accessor.MethodKind}." )
             },
             context.FinalCompilation.Cache.SystemVoidType );
@@ -320,7 +320,7 @@ internal sealed class OverrideEventTransformation : OverrideMemberTransformation
             this.CreateMemberAccessExpression( AspectReferenceTargetKind.EventRemoveAccessor, context ),
             IdentifierName( "value" ) );
 
-    private ExpressionSyntax CreateRaiseExpression( MemberInjectionContext context )
+    private ExpressionSyntax CreateInvokeExpression( MemberInjectionContext context )
         => context.AspectReferenceSyntaxProvider.AssertNotNull().GetEventRaiseReference(
             this.AspectLayerId,
             (IEvent)this.OverriddenDeclaration.GetTarget( this.InitialCompilation ),

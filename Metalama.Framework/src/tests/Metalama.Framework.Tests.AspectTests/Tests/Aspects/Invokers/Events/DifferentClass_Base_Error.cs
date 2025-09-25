@@ -24,8 +24,7 @@ public class InvokerAspect : EventAspect
         builder.OverrideAccessors(
             nameof(AddTemplate),
             nameof(RemoveTemplate),
-            null,
-            new { target = ( (INamedType)builder.Target.DeclaringType.Fields.Single().Type ).Events.OfName( "Event" ).Single() } );
+            args: new { target = ( (INamedType)builder.Target.DeclaringType.Fields.Single().Type ).Events.OfName( "Event" ).Single() } );
     }
 
     [Template]
@@ -58,7 +57,7 @@ public class DifferentClass
 // <target>
 public class TargetClass
 {
-    private DifferentClass? instance;
+    private DifferentClass? _instance;
 
     [InvokerAspect]
     public event EventHandler Invoker

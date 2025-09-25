@@ -335,27 +335,27 @@ namespace Metalama.Framework.Engine.Linking
 
                                 var eventBrokerTransformationsWritable = (Dictionary<ITransformation, EventBrokerTransformationInfo>) eventBrokerInfo.Transformations;
 
-                                var delegateSetType =
+                                var brokerCallbacksType =
                                     ((INamedType) finalCompilationModel.Factory.GetTypeByReflectionType( typeof( ActionEventBrokerCallbacks<,> ) ))
                                     .WithTypeArguments( [delegateType, argsType] );
 
-                                var delegateSetTypeSymbol =
-                                    injectionRegistry.GetIntermediateCompilationSymbol<INamedTypeSymbol>( delegateSetType ).AssertNotNull();
+                                var brokerCallbacksTypeSymbol =
+                                    injectionRegistry.GetIntermediateCompilationSymbol<INamedTypeSymbol>( brokerCallbacksType ).AssertNotNull();
 
-                                var delegateSetField = new StaticFieldInfo(
+                                var brokerCallbacksField = new StaticFieldInfo(
                                     targetEventSymbol.ContainingType,
-                                    delegateSetTypeSymbol,
-                                    typeMemberIdentifierGenerator.AllocateName( targetEventSymbol.ContainingType, $"{targetEvent.Name}DelegateSet", IdentifierFlags.AlwaysUseSuffix ),
+                                    brokerCallbacksTypeSymbol,
+                                    typeMemberIdentifierGenerator.AllocateName( targetEventSymbol.ContainingType, $"{targetEvent.Name}BrokerCallbacks", IdentifierFlags.AlwaysUseSuffix ),
                                     context =>
-                                        GetEventBrokerDelegateSetInitializationExpression(
+                                        GetEventBrokerCallbacksInitializationExpression(
                                             context,
-                                            delegateSetTypeSymbol,
+                                            brokerCallbacksTypeSymbol,
                                             targetEventSymbol.ContainingType.AssertNotNull(),
                                             raiseMethodName,
                                             overrideName,
                                             invokeMethod.Parameters ) );
 
-                                staticDelegatesForType.Add( delegateSetField );
+                                staticDelegatesForType.Add( brokerCallbacksField );
 
                                 var eventBrokerFieldName =
                                     typeMemberIdentifierGenerator.AllocateName( targetEventSymbol.ContainingType, $"{targetEvent.Name}Broker", IdentifierFlags.MakePrivateFieldName );
@@ -380,7 +380,7 @@ namespace Metalama.Framework.Engine.Linking
                                                     Token( SyntaxKind.CommaToken ),
                                                     Argument( ThisExpression() ),
                                                     Token( SyntaxKind.CommaToken ),
-                                                    Argument( IdentifierName( delegateSetField.FieldName ) )
+                                                    Argument( IdentifierName( brokerCallbacksField.FieldName ) )
                                                 ] ) ) );
 
                                 eventBrokerTransformationsWritable.Add(
@@ -496,9 +496,9 @@ namespace Metalama.Framework.Engine.Linking
                         IdentifierName( "handler" ) ) );
         }
 
-        private static ExpressionSyntax GetEventBrokerDelegateSetInitializationExpression(
+        private static ExpressionSyntax GetEventBrokerCallbacksInitializationExpression(
             SyntaxGenerationContext context,
-            INamedTypeSymbol delegateSetTypeSymbol,
+            INamedTypeSymbol brokerCallbacksTypeSymbol,
             INamedTypeSymbol containingType,
             string raiseMethodName,
             string overrideName,
@@ -507,7 +507,7 @@ namespace Metalama.Framework.Engine.Linking
             return
                 ObjectCreationExpression(
                     Token(TriviaList(context.ElasticEndOfLineTriviaList), SyntaxKind.NewKeyword, TriviaList(ElasticSpace)),
-                    context.SyntaxGenerator.TypeSyntax( delegateSetTypeSymbol ),
+                    context.SyntaxGenerator.TypeSyntax( brokerCallbacksTypeSymbol ),
                     ArgumentList(
                         Token(TriviaList(), SyntaxKind.OpenParenToken, TriviaList(context.ElasticEndOfLineTriviaList)),
                         SeparatedList<ArgumentSyntax>(

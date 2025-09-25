@@ -1,6 +1,6 @@
 public class TargetClass
 {
-  private static readonly global::Metalama.Framework.RunTime.ActionEventBrokerCallbacks<global::System.EventHandler, (global::System.Object? , global::System.EventArgs)> EventDelegateSet_0 = new global::Metalama.Framework.RunTime.ActionEventBrokerCallbacks<global::System.EventHandler, (global::System.Object? , global::System.EventArgs)>(static (handler, me, args) => ((global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Invokers.Events.RaiseTargetClass_AspectOverride.TargetClass)me).Event_Raise_OverrideAspect(handler, args), static b => (sender, e) => b.Invoke((sender, e)), static (handler, me) => ((global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Invokers.Events.RaiseTargetClass_AspectOverride.TargetClass)me).Event_OverrideAspect += handler, static (handler, me) => ((global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Invokers.Events.RaiseTargetClass_AspectOverride.TargetClass)me).Event_OverrideAspect -= handler);
+  private static readonly global::Metalama.Framework.RunTime.ActionEventBrokerCallbacks<global::System.EventHandler, (global::System.Object? , global::System.EventArgs)> EventBrokerCallbacks_0 = new global::Metalama.Framework.RunTime.ActionEventBrokerCallbacks<global::System.EventHandler, (global::System.Object? , global::System.EventArgs)>(static (handler, me, args) => ((global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Invokers.Events.RaiseTargetClass_AspectOverride.TargetClass)me).Event_Raise_OverrideAspect(handler, args), static b => (sender, e) => b.Invoke((sender, e)), static (handler, me) => ((global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Invokers.Events.RaiseTargetClass_AspectOverride.TargetClass)me).Event_OverrideAspect += handler, static (handler, me) => ((global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Invokers.Events.RaiseTargetClass_AspectOverride.TargetClass)me).Event_OverrideAspect -= handler);
   private event EventHandler _event = default !;
   private volatile global::Metalama.Framework.RunTime.ActionEventBroker<global::System.EventHandler, (global::System.Object? , global::System.EventArgs)>? _eventBroker;
   [OverrideAspect]
@@ -8,7 +8,7 @@ public class TargetClass
   {
     add
     {
-      global::Metalama.Framework.RunTime.ActionEventBroker<global::System.EventHandler, (global::System.Object? , global::System.EventArgs)>.EnsureInitialized(ref this._eventBroker, this, EventDelegateSet_0);
+      global::Metalama.Framework.RunTime.ActionEventBroker<global::System.EventHandler, (global::System.Object? , global::System.EventArgs)>.EnsureInitialized(ref this._eventBroker, this, EventBrokerCallbacks_0);
       this._eventBroker.AddHandler(value);
     }
     remove

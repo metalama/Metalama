@@ -1,7 +1,7 @@
 internal class TargetCode
 {
-  private static readonly ActionEventBrokerCallbacks<EventHandler, (object? , EventArgs)> EventFieldDelegateSet_0 = new ActionEventBrokerCallbacks<EventHandler, (object? , EventArgs)>(static (handler, me, args) => ((TargetCode)me).EventField_Raise_SafeEvent(handler, args), static b => (sender, e) => b.Invoke((sender, e)), static (handler, me) => ((TargetCode)me).EventField_SafeEvent += handler, static (handler, me) => ((TargetCode)me).EventField_SafeEvent -= handler);
-  private static readonly ActionEventBrokerCallbacks<EventHandler, (object? , EventArgs)> EventDelegateSet_0 = new ActionEventBrokerCallbacks<EventHandler, (object? , EventArgs)>(static (handler, me, args) => ((TargetCode)me).Event_Raise_SafeEvent(handler, args), static b => (sender, e) => b.Invoke((sender, e)), static (handler, me) => ((TargetCode)me).Event_SafeEvent += handler, static (handler, me) => ((TargetCode)me).Event_SafeEvent -= handler);
+  private static readonly ActionEventBrokerCallbacks<EventHandler, (object? , EventArgs)> EventFieldBrokerCallbacks_0 = new ActionEventBrokerCallbacks<EventHandler, (object? , EventArgs)>(static (handler, me, args) => ((TargetCode)me).EventField_Raise_SafeEvent(handler, args), static b => (sender, e) => b.Invoke((sender, e)), static (handler, me) => ((TargetCode)me).EventField_SafeEvent += handler, static (handler, me) => ((TargetCode)me).EventField_SafeEvent -= handler);
+  private static readonly ActionEventBrokerCallbacks<EventHandler, (object? , EventArgs)> EventBrokerCallbacks_0 = new ActionEventBrokerCallbacks<EventHandler, (object? , EventArgs)>(static (handler, me, args) => ((TargetCode)me).Event_Raise_SafeEvent(handler, args), static b => (sender, e) => b.Invoke((sender, e)), static (handler, me) => ((TargetCode)me).Event_SafeEvent += handler, static (handler, me) => ((TargetCode)me).Event_SafeEvent -= handler);
   private List<EventHandler> _delegates = new List<EventHandler>();
   private event EventHandler _eventField = default !;
   private volatile ActionEventBroker<EventHandler, (object? , EventArgs)>? _eventFieldBroker;
@@ -10,7 +10,7 @@ internal class TargetCode
   {
     add
     {
-      ActionEventBroker<EventHandler, (object? , EventArgs)>.EnsureInitialized(ref this._eventFieldBroker, this, EventFieldDelegateSet_0);
+      ActionEventBroker<EventHandler, (object? , EventArgs)>.EnsureInitialized(ref this._eventFieldBroker, this, EventFieldBrokerCallbacks_0);
       this._eventFieldBroker.AddHandler(value);
     }
     remove
@@ -49,7 +49,7 @@ internal class TargetCode
   {
     add
     {
-      ActionEventBroker<EventHandler, (object? , EventArgs)>.EnsureInitialized(ref this._eventBroker, this, EventDelegateSet_0);
+      ActionEventBroker<EventHandler, (object? , EventArgs)>.EnsureInitialized(ref this._eventBroker, this, EventBrokerCallbacks_0);
       this._eventBroker.AddHandler(value);
     }
     remove

@@ -22,8 +22,7 @@ public class InvokerAspect : EventAspect
         builder.OverrideAccessors(
             nameof(AddTemplate),
             nameof(RemoveTemplate),
-            null,
-            new { target = builder.Target.DeclaringType!.BaseType!.Events.OfName( "Event" ).Single() } );
+            args: new { target = builder.Target.DeclaringType!.BaseType!.Events.OfName( "Event" ).Single() } );
     }
 
     [Template]
@@ -69,7 +68,7 @@ public class BaseClass
 // <target>
 public class TargetClass : BaseClass
 {
-    public new static event EventHandler Event
+    public static new event EventHandler Event
     {
         add { }
         remove { }

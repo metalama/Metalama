@@ -24,7 +24,7 @@ internal class SafeEventAttribute : OverrideEventAspect
         meta.Proceed();
     }
 
-    public override dynamic? OverrideRaise( dynamic? handler )
+    public override dynamic? OverrideInvoke( dynamic? handler )
     {
         try
         {

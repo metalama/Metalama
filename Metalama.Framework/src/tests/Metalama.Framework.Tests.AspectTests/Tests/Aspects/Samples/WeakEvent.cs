@@ -51,8 +51,8 @@ internal class WeakEventAttribute : EventAspect
         builder.OverrideAccessors(
             nameof( OverrideAdd ),
             nameof( OverrideRemove ),
-            nameof( OverrideRaise ),
-            new { container = containerField } );
+            invokeTemplate: nameof( OverrideRaise ),
+            args: new { container = containerField } );
     }
 
     [Template]

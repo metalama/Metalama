@@ -39,9 +39,9 @@ namespace Metalama.Framework.Tests.AspectTests.TestInputs.Aspects.Overrides.Even
         }
 
         [Template]
-        public void OverrideRaise( dynamic value )
+        public void OverrideInvoke( dynamic value )
         {
-            Console.WriteLine( "This is the raise template." );
+            Console.WriteLine( "This is the invoke template." );
             meta.Proceed();
         }
     }
