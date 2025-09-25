@@ -13,28 +13,28 @@ using Metalama.Framework.Code;
 
 #pragma warning disable IDE0052
 
-namespace Metalama.Framework.IntegrationTests.Aspects.Overrides.Events.Raise_TwoSimilarEvents;
+namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Overrides.Events.Invoke_TwoDifferentEvents;
 
 public class OverrideAttribute : EventAspect
 {
     public override void BuildAspect( IAspectBuilder<IEvent> builder )
     {
-        builder.OverrideAccessors( null, null, nameof( RaiseEventTemplate ));
+        builder.OverrideAccessors( invokeTemplate: nameof( InvokeEventTemplate ));
     }
 
     [Template]
-    public void RaiseEventTemplate()
+    public void InvokeEventTemplate()
     {
-        Console.WriteLine( "Raise" );
+        Console.WriteLine( "Invoke" );
         meta.Proceed();
     }
 }
 
 // <target>
-internal class TargetClass 
+internal class TargetClass
 {
     private EventHandler? _handler1;
-    private EventHandler? _handler2;
+    private EventHandler<EventArgs>? _handler2;
 
     [Override]
     public event EventHandler Event1
@@ -51,7 +51,7 @@ internal class TargetClass
     }
 
     [Override]
-    public event EventHandler Event2
+    public event EventHandler<EventArgs> Event2
     {
         add
         {

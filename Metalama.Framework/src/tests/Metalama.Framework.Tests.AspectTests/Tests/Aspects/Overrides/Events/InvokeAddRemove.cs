@@ -2,6 +2,10 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+#if TESTOPTIONS
+// @RequiredConstant(NET6_0_OR_GREATER)
+#endif
+
 using System;
 using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
@@ -9,21 +13,37 @@ using Metalama.Framework.Code;
 
 #pragma warning disable IDE0052
 
-namespace Metalama.Framework.IntegrationTests.Aspects.Overrides.Events.Raise_CustomDelegate;
-
-public delegate void MyEventHandler( object sender, int args1, int arg2 );
+namespace Metalama.Framework.IntegrationTests.Aspects.Overrides.Events.InvokeAddRemove;
 
 public class OverrideAttribute : EventAspect
 {
     public override void BuildAspect( IAspectBuilder<IEvent> builder )
     {
-        builder.OverrideAccessors( null, null, nameof( RaiseEventTemplate ));
+        builder.OverrideAccessors(
+            nameof( AddEventTemplate ),
+            nameof( RemoveEventTemplate ),
+            null,
+            nameof( InvokeEventTemplate ));
     }
 
     [Template]
-    public void RaiseEventTemplate()
+    public void AddEventTemplate()
     {
-        Console.WriteLine( "Raise" );
+        Console.WriteLine( "Add" );
+        meta.Proceed();
+    }
+
+    [Template]
+    public void RemoveEventTemplate()
+    {
+        Console.WriteLine( "Remove" );
+        meta.Proceed();
+    }
+
+    [Template]
+    public void InvokeEventTemplate()
+    {
+        Console.WriteLine( "Invoke" );
         meta.Proceed();
     }
 }
@@ -31,10 +51,10 @@ public class OverrideAttribute : EventAspect
 // <target>
 internal class TargetClass 
 {
-    private MyEventHandler? _handler;
+    private EventHandler? _handler;
 
     [Override]
-    public event MyEventHandler Event
+    public event EventHandler Event
     {
         add
         {

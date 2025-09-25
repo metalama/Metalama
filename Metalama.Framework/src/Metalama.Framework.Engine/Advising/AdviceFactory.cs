@@ -438,21 +438,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
 
                 case MethodKind.EventRaise:
                     {
-                        var @event = (IEvent) targetMethod.ContainingDeclaration.AssertNotNull();
-
-                        this.Validate( @event, AdviceKind.OverrideEventInvoke );
-
-                        var template = this.ValidateRequiredTemplateName( templateSelector.DefaultTemplate, TemplateKind.Default )
-                        .GetTemplateMember<IMethod>( this._compilation, this._state.ServiceProvider, this.TemplateProvider, tagsReader )
-                        .ForOverride( @event.RaiseMethod, this.GetArgsReader( args ) );
-
-                        return new OverrideEventAdvice(
-                                this.GetAdviceConstructorParameters( @event ),
-                                addTemplate: null,
-                                removeTemplate: null,
-                                invokeTemplate: template )
-                            .Execute( this._state )
-                            .GetAccessor( e => e.RaiseMethod );
+                        throw new NotImplementedException( "Overriding event raise is not implemented." );
                     }
 
                 case MethodKind.PropertyGet:

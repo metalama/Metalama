@@ -4,13 +4,13 @@ public class TargetClass
   [InvokerAspect]
   public void Foo()
   {
-    // Invoke this.Event
+    // Raise this.Event
     this.Event?.Invoke((global::System.Object? )null, global::System.EventArgs.Empty);
-    // Invoke this.Event
+    // Raise this.Event
     this.Event?.Invoke((global::System.Object? )null, global::System.EventArgs.Empty);
-    // Invoke this.Event
+    // Raise this.Event
     this.Event?.Invoke((global::System.Object? )null, global::System.EventArgs.Empty);
-    // Invoke this.Event
+    // Raise this.Event
     this.Event?.Invoke((global::System.Object? )null, global::System.EventArgs.Empty);
   }
 }

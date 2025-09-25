@@ -13,14 +13,14 @@ using Metalama.Framework.Code;
 
 #pragma warning disable IDE0052
 
-namespace Metalama.Framework.IntegrationTests.Aspects.Overrides.Events.Raise_RaiseGap;
+namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Overrides.Events.Invoke_InvokeGap;
 
 public class OverrideAttribute : EventAspect
 {
     public override void BuildAspect( IAspectBuilder<IEvent> builder )
     {
-        builder.OverrideAccessors( nameof( AddEventTemplate ), nameof( RemoveEventTemplate ), nameof( InvokeEventTemplate ), args: new { ordinal = 0 } );
-        builder.OverrideAccessors( nameof( AddEventTemplate ), nameof( RemoveEventTemplate ), null, args: new { ordinal = 1 } );
+        builder.OverrideAccessors( nameof( AddEventTemplate ), nameof( RemoveEventTemplate ), invokeTemplate: nameof( InvokeEventTemplate ), args: new { ordinal = 0 } );
+        builder.OverrideAccessors( nameof( AddEventTemplate ), nameof( RemoveEventTemplate ), args: new { ordinal = 1 } );
     }
 
     [Template]

@@ -13,35 +13,19 @@ using Metalama.Framework.Code;
 
 #pragma warning disable IDE0052
 
-namespace Metalama.Framework.IntegrationTests.Aspects.Overrides.Events.Raise_RaiseGapRaise;
+namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Overrides.Events.Invoke;
 
 public class OverrideAttribute : EventAspect
 {
     public override void BuildAspect( IAspectBuilder<IEvent> builder )
     {
-        builder.OverrideAccessors( nameof( AddEventTemplate ), nameof( RemoveEventTemplate ), nameof( InvokeEventTemplate ), args: new { ordinal = 0 } );
-        builder.OverrideAccessors( nameof( AddEventTemplate ), nameof( RemoveEventTemplate ), null, args: new { ordinal = 1 } );
-        builder.OverrideAccessors( nameof( AddEventTemplate ), nameof( RemoveEventTemplate ), nameof( InvokeEventTemplate ), args: new { ordinal = 2 } );
+        builder.OverrideAccessors( invokeTemplate: nameof( InvokeEventTemplate ));
     }
 
     [Template]
-    public void AddEventTemplate( [CompileTime] int ordinal )
+    public void InvokeEventTemplate()
     {
-        Console.WriteLine( $"Add {ordinal}" );
-        meta.Proceed();
-    }
-
-    [Template]
-    public void RemoveEventTemplate( [CompileTime] int ordinal )
-    {
-        Console.WriteLine( $"Remove {ordinal}" );
-        meta.Proceed();
-    }
-
-    [Template]
-    public void InvokeEventTemplate( [CompileTime] int ordinal )
-    {
-        Console.WriteLine( $"Invoke {ordinal}" );
+        Console.WriteLine( "Invoke" );
         meta.Proceed();
     }
 }

@@ -11,19 +11,19 @@ using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 
-namespace Metalama.Framework.IntegrationTests.Aspects.Overrides.EventFields.Raise
+namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Overrides.EventFields.Invoke
 {
     public class OverrideAttribute : EventAspect
     {
         public override void BuildAspect( IAspectBuilder<IEvent> builder )
         {
-            builder.OverrideAccessors( null, null, nameof( RaiseEventTemplate ));
+            builder.OverrideAccessors( invokeTemplate: nameof( InvokeEventTemplate ));
         }
 
         [Template]
-        public void RaiseEventTemplate( EventHandler value )
+        public void InvokeEventTemplate( EventHandler value )
         {
-            Console.WriteLine( "Raise" );
+            Console.WriteLine( "Invoke" );
             meta.Proceed();
         }
     }

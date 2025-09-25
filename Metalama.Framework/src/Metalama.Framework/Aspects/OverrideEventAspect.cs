@@ -22,7 +22,7 @@ namespace Metalama.Framework.Aspects
             builder.OverrideAccessors(
                 nameof(this.OverrideAdd),
                 nameof(this.OverrideRemove),
-                nameof(this.OverrideRaise),
+                null,
                 nameof( this.OverrideInvoke ) );
         }
 

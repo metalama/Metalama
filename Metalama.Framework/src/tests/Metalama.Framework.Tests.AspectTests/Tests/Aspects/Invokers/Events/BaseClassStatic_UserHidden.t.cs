@@ -1,6 +1,6 @@
 public class TargetClass : BaseClass
 {
-  public new static event EventHandler Event
+  public static new event EventHandler Event
   {
     add
     {

@@ -13,36 +13,35 @@ using Metalama.Framework.Code;
 
 #pragma warning disable IDE0052
 
-namespace Metalama.Framework.IntegrationTests.Aspects.Overrides.Events.RaiseAddRemove;
+namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Overrides.Events.Invoke_InvokeGapInvoke;
 
 public class OverrideAttribute : EventAspect
 {
     public override void BuildAspect( IAspectBuilder<IEvent> builder )
     {
-        builder.OverrideAccessors(
-            nameof( AddEventTemplate ),
-            nameof( RemoveEventTemplate ),
-            nameof( RaiseEventTemplate ));
+        builder.OverrideAccessors( nameof( AddEventTemplate ), nameof( RemoveEventTemplate ), invokeTemplate: nameof( InvokeEventTemplate ), args: new { ordinal = 0 } );
+        builder.OverrideAccessors( nameof( AddEventTemplate ), nameof( RemoveEventTemplate ), args: new { ordinal = 1 } );
+        builder.OverrideAccessors( nameof( AddEventTemplate ), nameof( RemoveEventTemplate ), invokeTemplate: nameof( InvokeEventTemplate ), args: new { ordinal = 2 } );
     }
 
     [Template]
-    public void AddEventTemplate()
+    public void AddEventTemplate( [CompileTime] int ordinal )
     {
-        Console.WriteLine( "Add" );
+        Console.WriteLine( $"Add {ordinal}" );
         meta.Proceed();
     }
 
     [Template]
-    public void RemoveEventTemplate()
+    public void RemoveEventTemplate( [CompileTime] int ordinal )
     {
-        Console.WriteLine( "Remove" );
+        Console.WriteLine( $"Remove {ordinal}" );
         meta.Proceed();
     }
 
     [Template]
-    public void RaiseEventTemplate()
+    public void InvokeEventTemplate( [CompileTime] int ordinal )
     {
-        Console.WriteLine( "Raise" );
+        Console.WriteLine( $"Invoke {ordinal}" );
         meta.Proceed();
     }
 }
