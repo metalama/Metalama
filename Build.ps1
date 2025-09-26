@@ -15,7 +15,7 @@ $EngPath = 'eng'
 $ProductName = 'Metalama'
 ####
 
-if ( $StartVsmon  )
+if ($StartVsmon)
 {
     $vsmonport = 4024
     Write-Host "Starting Visual Studio Remote Debugger, listening at port $vsmonport." -ForegroundColor Cyan
@@ -25,22 +25,23 @@ if ( $StartVsmon  )
 }
 
 # Change the prompt and window title in Docker.
-if ( $env:RUNNING_IN_DOCKER  )
+if ($env:RUNNING_IN_DOCKER)
 {
-    function global:prompt {
+    function global:prompt
+    {
         $host.UI.RawUI.WindowTitle = "[docker] " + (Get-Location).Path
-        "[docker] $(Get-Location)> "
+        "[docker] $( Get-Location )> "
     }
 }
 
 
-if ( -not $Interactive -or $BuildArgs )
+if (-not $Interactive -or $BuildArgs)
 {
     # Change the working directory so we can use a global.json that is specific to eng.
     $previousLocation = Get-Location
-    
+
     Set-Location $PSScriptRoot\$EngPath\src
-    
+
     try
     {
 
