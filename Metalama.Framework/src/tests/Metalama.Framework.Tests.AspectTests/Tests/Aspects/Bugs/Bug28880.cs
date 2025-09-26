@@ -44,9 +44,9 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Bugs.Bug28880
 
     internal class TestEventAspect : OverrideEventAspect
     {
-        public override void OverrideAdd( dynamic value ) => throw new NotImplementedException();
+        public override void OverrideAdd( dynamic handler ) => throw new NotImplementedException();
 
-        public override void OverrideRemove( dynamic value ) => throw new NotImplementedException();
+        public override void OverrideRemove( dynamic handler ) => throw new NotImplementedException();
     }
 
     // <target>

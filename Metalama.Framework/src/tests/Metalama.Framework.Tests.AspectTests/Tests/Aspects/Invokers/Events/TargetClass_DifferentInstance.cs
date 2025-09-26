@@ -24,16 +24,15 @@ public class InvokerAspect : EventAspect
         builder.OverrideAccessors(
             nameof(AddTemplate),
             nameof(RemoveTemplate),
-            null,
-            new { target = ( (INamedType)builder.Target.DeclaringType.Fields.Single().Type ).Events.OfName( "Event" ).Single() } );
+            args: new { target = ( (INamedType)builder.Target.DeclaringType.Fields.Single().Type ).Events.OfName( "Event" ).Single() } );
     }
 
     [Template]
     public void AddTemplate( [CompileTime] IEvent target )
     {
-        meta.InsertComment( "Invoke instance.Event" );
+        meta.InsertComment( "Invoke _instance.Event" );
         target.With( (IExpression?)meta.Target.Event.DeclaringType.Fields.Single().Value! ).Add( meta.RunTime( TargetClass.StaticTarget ) );
-        meta.InsertComment( "Invoke instance.Event" );
+        meta.InsertComment( "Invoke _instance.Event" );
 
         target.With( (IExpression?)meta.Target.Event.DeclaringType.Fields.Single().Value!, InvokerOptions.Final )
             .Add( meta.RunTime( TargetClass.StaticTarget ) );
@@ -44,9 +43,9 @@ public class InvokerAspect : EventAspect
     [Template]
     public void RemoveTemplate( [CompileTime] IEvent target )
     {
-        meta.InsertComment( "Invoke instance.Event" );
+        meta.InsertComment( "Invoke _instance.Event" );
         target.With( (IExpression?)meta.Target.Event.DeclaringType.Fields.Single().Value! ).Remove( meta.RunTime( TargetClass.StaticTarget ) );
-        meta.InsertComment( "Invoke instance.Event" );
+        meta.InsertComment( "Invoke _instance.Event" );
 
         target.With( (IExpression?)meta.Target.Event.DeclaringType.Fields.Single().Value!, InvokerOptions.Final )
             .Remove( meta.RunTime( TargetClass.StaticTarget ) );
@@ -64,7 +63,7 @@ public class TargetClass
         remove { }
     }
 
-    private TargetClass? instance;
+    private TargetClass? _instance;
 
     [InvokerAspect]
     public event EventHandler Invoker

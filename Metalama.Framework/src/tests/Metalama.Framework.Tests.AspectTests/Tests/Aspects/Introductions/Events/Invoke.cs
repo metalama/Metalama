@@ -11,58 +11,42 @@ using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 
-#pragma warning disable IDE0052
+namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Introductions.Events.Invoke;
 
-namespace Metalama.Framework.IntegrationTests.Aspects.Overrides.Events.RaiseAddRemove;
-
-public class OverrideAttribute : EventAspect
+public class IntroductionAttribute : TypeAspect
 {
-    public override void BuildAspect( IAspectBuilder<IEvent> builder )
+    public override void BuildAspect( IAspectBuilder<INamedType> builder )
     {
-        builder.OverrideAccessors(
+        builder.IntroduceEvent(
+            "EventFromAccessors",
             nameof( AddEventTemplate ),
             nameof( RemoveEventTemplate ),
-            nameof( RaiseEventTemplate ));
+            invokeTemplate: nameof( InvokeEventTemplate ),
+            buildEvent: e => e.Accessibility = Accessibility.Public );
     }
 
     [Template]
-    public void AddEventTemplate()
+    public void AddEventTemplate( EventHandler value )
     {
         Console.WriteLine( "Add" );
         meta.Proceed();
     }
 
     [Template]
-    public void RemoveEventTemplate()
+    public void RemoveEventTemplate( EventHandler value )
     {
         Console.WriteLine( "Remove" );
         meta.Proceed();
     }
 
     [Template]
-    public void RaiseEventTemplate()
+    public void InvokeEventTemplate( EventHandler value )
     {
-        Console.WriteLine( "Raise" );
+        Console.WriteLine( "Invoke" );
         meta.Proceed();
     }
 }
 
 // <target>
-internal class TargetClass 
-{
-    private EventHandler? _handler;
-
-    [Override]
-    public event EventHandler Event
-    {
-        add
-        {
-            this._handler = value;
-        }
-
-        remove
-        {
-            this._handler = null;
-        }
-    }
-}
+[Introduction]
+internal class TargetClass { }

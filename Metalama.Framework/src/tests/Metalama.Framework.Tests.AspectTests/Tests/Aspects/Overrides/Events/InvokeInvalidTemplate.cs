@@ -7,13 +7,13 @@ using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 
-namespace Metalama.Framework.IntegrationTests.Aspects.Overrides.Events.RaiseInvalidTemplate
+namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Overrides.Events.InvokeInvalidTemplate
 {
     public class Override1Attribute : EventAspect
     {
         public override void BuildAspect( IAspectBuilder<IEvent> builder )
         {
-            builder.OverrideAccessors( null, null, nameof( InvokeEventTemplate ));
+            builder.OverrideAccessors( invokeTemplate: nameof( InvokeEventTemplate ));
         }
 
         [Template]
@@ -27,7 +27,7 @@ namespace Metalama.Framework.IntegrationTests.Aspects.Overrides.Events.RaiseInva
     {
         public override void BuildAspect( IAspectBuilder<IEvent> builder )
         {
-            builder.OverrideAccessors( null, null, nameof( InvokeEventTemplate ) );
+            builder.OverrideAccessors( invokeTemplate: nameof( InvokeEventTemplate ) );
         }
 
         [Template]
@@ -41,7 +41,7 @@ namespace Metalama.Framework.IntegrationTests.Aspects.Overrides.Events.RaiseInva
     {
         public override void BuildAspect( IAspectBuilder<IEvent> builder )
         {
-            builder.OverrideAccessors( null, null, nameof( InvokeEventTemplate ) );
+            builder.OverrideAccessors( invokeTemplate: nameof( InvokeEventTemplate ) );
         }
 
         [Template]
@@ -55,7 +55,7 @@ namespace Metalama.Framework.IntegrationTests.Aspects.Overrides.Events.RaiseInva
     {
         public override void BuildAspect( IAspectBuilder<IEvent> builder )
         {
-            builder.OverrideAccessors( null, null, nameof( InvokeEventTemplate ) );
+            builder.OverrideAccessors( invokeTemplate: nameof( InvokeEventTemplate ) );
         }
 
         [Template]

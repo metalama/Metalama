@@ -166,7 +166,7 @@ public static partial class EligibilityRuleFactory
             AdviceKind.OverrideMethod => OverrideMethodAdviceRule,
             AdviceKind.OverrideFieldOrPropertyOrIndexer => OverrideFieldOrPropertyOrIndexerAdviceRule,
             AdviceKind.OverrideEvent => OverrideEventAdviceRule,
-            AdviceKind.OverrideEventRaise => OverrideEventRaiseAdviceRule,
+            AdviceKind.OverrideEventInvoke => OverrideEventRaiseAdviceRule,
             AdviceKind.IntroduceMethod => _introduceRule,
             AdviceKind.IntroduceFinalizer => _introduceRule,
             AdviceKind.IntroduceOperator => _introduceRule,

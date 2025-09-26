@@ -17,8 +17,8 @@ namespace Metalama.Framework.Tests.AspectTests.TestInputs.Aspects.Introductions.
         {
             builder.IntroduceEvent(
                 "IntroducedEvent",
-                nameof(Template),
-                nameof(Template),
+                nameof( Template ),
+                nameof( Template ),
                 args: new { x = 42 } );
         }
 

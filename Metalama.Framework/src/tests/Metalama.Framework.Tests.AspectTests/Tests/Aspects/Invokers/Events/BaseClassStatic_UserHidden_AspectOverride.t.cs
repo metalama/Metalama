@@ -1,7 +1,7 @@
 public class TargetClass : BaseClass
 {
   [OverrideAspect]
-  public new static event EventHandler Event
+  public static new event EventHandler Event
   {
     add
     { // Invoke TargetClass.Event_Source

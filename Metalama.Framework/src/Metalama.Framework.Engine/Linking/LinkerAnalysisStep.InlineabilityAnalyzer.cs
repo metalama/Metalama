@@ -222,6 +222,16 @@ internal sealed partial class LinkerAnalysisStep
                     return false;
                 }
 
+                // Block inlining for any override that has event raise overrides
+                if ( semantic.Symbol is IEventSymbol eventSymbol
+                     && semantic.Kind == IntermediateSymbolSemanticKind.Default
+                     && this._injectionRegistry.IsOverride( eventSymbol )
+                     && this._injectionRegistry.HasEventRaiseOverride( eventSymbol ) )
+                {
+                    // Overrides that have event raise overrides are not inlineable.
+                    return false;
+                }
+
                 if ( semantic.Symbol.IsEventFieldIntroduction() )
                 {
                     // Override target that is event field is never inlineable.

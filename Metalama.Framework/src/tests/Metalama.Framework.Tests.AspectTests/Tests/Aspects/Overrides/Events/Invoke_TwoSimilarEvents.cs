@@ -13,35 +13,20 @@ using Metalama.Framework.Code;
 
 #pragma warning disable IDE0052
 
-namespace Metalama.Framework.IntegrationTests.Aspects.Overrides.Events.Raise_TemplateParameters;
+namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Overrides.Events.Invoke_TwoSimilarEvents;
 
 public class OverrideAttribute : EventAspect
 {
     public override void BuildAspect( IAspectBuilder<IEvent> builder )
     {
-        if ( builder.Target.Name == "Event1" )
-        {
-            builder.OverrideAccessors( null, null, nameof( RaiseEventTemplate1 ) );
-        }
-        else
-        {
-            builder.OverrideAccessors( null, null, nameof( RaiseEventTemplate2 ) );
-        }
+        builder.OverrideAccessors( invokeTemplate: nameof( InvokeEventTemplate ));
     }
 
     [Template]
-    public void RaiseEventTemplate1(EventHandler handler)
+    public void InvokeEventTemplate()
     {
-        Console.WriteLine( "Raise" );
-        handler?.Invoke( meta.This, EventArgs.Empty );
-    }
-
-    [Template]
-    public void RaiseEventTemplate2( EventHandler handler, object sender, EventArgs args )
-    {
-        Console.WriteLine( "Raise" );
-        Console.WriteLine( $"{sender}" );
-        Console.WriteLine( $"{args}" );
+        Console.WriteLine( "Invoke" );
+        meta.Proceed();
     }
 }
 

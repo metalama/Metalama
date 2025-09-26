@@ -14,21 +14,11 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Samples.SafeEvent;
 
 internal class SafeEventAttribute : OverrideEventAspect
 {
-    public override void OverrideAdd( dynamic value )
-    {
-        meta.Proceed();
-    }
-
-    public override void OverrideRemove( dynamic value )
-    {
-        meta.Proceed();
-    }
-
-    public override void OverrideRaise( dynamic? handler )
+    public override dynamic? OverrideInvoke( dynamic? handler )
     {
         try
         {
-            meta.Proceed();
+            return meta.Proceed();
         }
         catch ( Exception e )
         {

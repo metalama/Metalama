@@ -31,13 +31,13 @@ public class InvokerAspect : MethodAspect
     [Template]
     public void Template( [CompileTime] IEvent target )
     {
-        meta.InsertComment( "Invoke this.Event" );
+        meta.InsertComment( "Raise this.Event" );
         target.Raise( null, EventArgs.Empty );
-        meta.InsertComment( "Invoke this.Event" );
+        meta.InsertComment( "Raise this.Event" );
         target.With( InvokerOptions.Base ).Raise( null, EventArgs.Empty );
-        meta.InsertComment( "Invoke this.Event" );
+        meta.InsertComment( "Raise this.Event" );
         target.With( InvokerOptions.Current ).Raise( null, EventArgs.Empty );
-        meta.InsertComment( "Invoke this.Event" );
+        meta.InsertComment( "Raise this.Event" );
         target.With( InvokerOptions.Final ).Raise( null, EventArgs.Empty );
 
         meta.Proceed();

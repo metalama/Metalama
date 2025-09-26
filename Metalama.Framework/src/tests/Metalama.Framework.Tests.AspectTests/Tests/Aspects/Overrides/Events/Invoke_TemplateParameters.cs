@@ -13,28 +13,43 @@ using Metalama.Framework.Code;
 
 #pragma warning disable IDE0052
 
-namespace Metalama.Framework.IntegrationTests.Aspects.Overrides.Events.Raise_TwoDifferentEvents;
+namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Overrides.Events.Invoke_TemplateParameters;
 
 public class OverrideAttribute : EventAspect
 {
     public override void BuildAspect( IAspectBuilder<IEvent> builder )
     {
-        builder.OverrideAccessors( null, null, nameof( RaiseEventTemplate ));
+        if ( builder.Target.Name == "Event1" )
+        {
+            builder.OverrideAccessors( invokeTemplate: nameof( InvokeEventTemplate1 ) );
+        }
+        else
+        {
+            builder.OverrideAccessors( invokeTemplate: nameof( InvokeEventTemplate2 ) );
+        }
     }
 
     [Template]
-    public void RaiseEventTemplate()
+    public void InvokeEventTemplate1(EventHandler handler)
     {
-        Console.WriteLine( "Raise" );
-        meta.Proceed();
+        Console.WriteLine( "Invoke" );
+        handler?.Invoke( meta.This, EventArgs.Empty );
+    }
+
+    [Template]
+    public void InvokeEventTemplate2( EventHandler handler, object sender, EventArgs args )
+    {
+        Console.WriteLine( "Invoke" );
+        Console.WriteLine( $"{sender}" );
+        Console.WriteLine( $"{args}" );
     }
 }
 
 // <target>
-internal class TargetClass
+internal class TargetClass 
 {
     private EventHandler? _handler1;
-    private EventHandler<EventArgs>? _handler2;
+    private EventHandler? _handler2;
 
     [Override]
     public event EventHandler Event1
@@ -51,7 +66,7 @@ internal class TargetClass
     }
 
     [Override]
-    public event EventHandler<EventArgs> Event2
+    public event EventHandler Event2
     {
         add
         {

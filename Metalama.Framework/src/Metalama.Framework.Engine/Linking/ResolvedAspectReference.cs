@@ -123,6 +123,12 @@ internal sealed class ResolvedAspectReference
     /// </summary>
     public bool HasCustomReceiver { get; }
 
+    /// <summary>
+    /// Gets a value indicating whether the reference virtual, i.e. will have no substitution.
+    /// Such references are used for concepts driven by the linker, for example event brokers.
+    /// </summary>
+    public bool IsVirtual { get; }
+
     public ResolvedAspectReference(
         IntermediateSymbolSemantic<IMethodSymbol> containingSemantic,
         IMethodSymbol? containingLocalFunction,
@@ -134,9 +140,13 @@ internal sealed class ResolvedAspectReference
         SyntaxNode symbolSourceNode,
         AspectReferenceTargetKind targetKind,
         bool isInlineable,
-        bool hasCustomReceiver )
+        bool hasCustomReceiver,
+        bool isVirtual )
     {
-        Invariant.AssertNot( containingSemantic.Kind != IntermediateSymbolSemanticKind.Final && symbolSourceNode is not ExpressionSyntax );
+        Invariant.AssertNot(
+            containingSemantic.Kind != IntermediateSymbolSemanticKind.Final
+            && symbolSourceNode is not ExpressionSyntax 
+            && targetKind != AspectReferenceTargetKind.EventRaiseAccessor );
 
         Invariant.AssertNot(
             resolvedSemantic.Symbol is IMethodSymbol
@@ -158,6 +168,7 @@ internal sealed class ResolvedAspectReference
         this.IsInlineable = isInlineable;
         this.HasCustomReceiver = hasCustomReceiver;
         this._explicitResolvedSemanticBody = explicitResolvedSemanticBody;
+        this.IsVirtual = isVirtual;
     }
 
     public override string ToString()

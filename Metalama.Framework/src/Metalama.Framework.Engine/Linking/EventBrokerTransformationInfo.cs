@@ -22,15 +22,19 @@ internal class EventBrokerTransformationInfo
 
     public Func<SyntaxGenerationContext, ExpressionSyntax> FieldInitializationExpression { get; }
 
+    public string? BrokerProxyName { get; }
+
     public EventBrokerTransformationInfo(
         EventBrokerInfo parent,
         OverrideEventTransformation transformation,
         string eventBrokerFieldName,
-        Func<SyntaxGenerationContext, ExpressionSyntax> fieldInitializationExpression )
+        Func<SyntaxGenerationContext, ExpressionSyntax> fieldInitializationExpression,
+        string? brokerProxyName = null )
     {
         this.Parent = parent;
         this.Transformation = transformation;
         this.EventBrokerFieldName = eventBrokerFieldName;
         this.FieldInitializationExpression = fieldInitializationExpression;
+        this.BrokerProxyName = brokerProxyName;
     }
 }

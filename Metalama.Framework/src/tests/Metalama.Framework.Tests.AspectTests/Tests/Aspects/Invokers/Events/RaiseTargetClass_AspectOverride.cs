@@ -76,14 +76,12 @@ public class OverrideAspect : EventAspect
     public override void BuildAspect( IAspectBuilder<IEvent> builder )
     {
         builder.OverrideAccessors( 
-            null, 
-            null, 
-            nameof( RaiseTemplate ),
-            new { target = builder.Target.DeclaringType!.Events.OfName( "Event" ).Single() } );
+            invokeTemplate: nameof( InvokeTemplate ),
+            args: new { target = builder.Target.DeclaringType!.Events.OfName( "Event" ).Single() } );
     }
 
     [Template]
-    public void RaiseTemplate( [CompileTime] IEvent target )
+    public void InvokeTemplate( [CompileTime] IEvent target )
     {
         meta.InsertComment( "Invoke handler" );
         target.Raise( null, EventArgs.Empty );

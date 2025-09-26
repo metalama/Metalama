@@ -22,8 +22,7 @@ public class InvokerAspect : EventAspect
         builder.OverrideAccessors(
             nameof(AddTemplate),
             nameof(RemoveTemplate),
-            null,
-            new { target = builder.Target.DeclaringType!.Events.OfName( "Event" ).Single() } );
+            args: new { target = builder.Target.DeclaringType!.Events.OfName( "Event" ).Single() } );
     }
 
     [Template]

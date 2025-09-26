@@ -414,7 +414,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
                                 this.GetAdviceConstructorParameters( @event ),
                                 addTemplate: template,
                                 removeTemplate: null,
-                                raiseTemplate: null )
+                                invokeTemplate: null )
                             .Execute( this._state )
                             .GetAccessor( e => e.AddMethod );
                     }
@@ -431,28 +431,14 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
                                 this.GetAdviceConstructorParameters( @event ),
                                 addTemplate: null,
                                 removeTemplate: template,
-                                raiseTemplate: null )
+                                invokeTemplate: null )
                             .Execute( this._state )
                             .GetAccessor( e => e.RemoveMethod );
                     }
 
                 case MethodKind.EventRaise:
                     {
-                        var @event = (IEvent) targetMethod.ContainingDeclaration.AssertNotNull();
-
-                        this.Validate( @event, AdviceKind.OverrideEventRaise );
-
-                        var template = this.ValidateRequiredTemplateName( templateSelector.DefaultTemplate, TemplateKind.Default )
-                        .GetTemplateMember<IMethod>( this._compilation, this._state.ServiceProvider, this.TemplateProvider, tagsReader )
-                        .ForOverride( @event.RaiseMethod, this.GetArgsReader( args ) );
-
-                        return new OverrideEventAdvice(
-                                this.GetAdviceConstructorParameters( @event ),
-                                addTemplate: null,
-                                removeTemplate: null,
-                                raiseTemplate: template )
-                            .Execute( this._state )
-                            .GetAccessor( e => e.RaiseMethod );
+                        throw new NotImplementedException( "Overriding event raise is not implemented." );
                     }
 
                 case MethodKind.PropertyGet:
@@ -1183,17 +1169,23 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         IEvent targetEvent,
         string? addTemplate,
         string? removeTemplate,
+        string? invokeTemplate,
         string? raiseTemplate,
         object? args = null,
         object? tags = null )
     {
         using ( this.WithNonUserCode() )
         {
+            if (raiseTemplate != null)
+            {
+                throw new NotImplementedException( "Using raiseTemplate is not currently supported." );
+            }
+
             this.Validate( targetEvent, AdviceKind.OverrideEvent );
 
-            if ( raiseTemplate != null )
+            if ( invokeTemplate != null )
             {
-                this.Validate( targetEvent, AdviceKind.OverrideEventRaise );
+                this.Validate( targetEvent, AdviceKind.OverrideEventInvoke );
             }
 
             var boundAddTemplate =
@@ -1206,8 +1198,8 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
                     ?.GetTemplateMember<IMethod>( this._compilation, this._state.ServiceProvider, this.TemplateProvider, this.GetTagsReader( tags ) )
                     ?.ForOverride( targetEvent.RemoveMethod, this.GetArgsReader( args ) );
 
-            var boundRaiseTemplate =
-                this.ValidateTemplateName( raiseTemplate, TemplateKind.Default )
+            var boundInvokeTemplate =
+                this.ValidateTemplateName( invokeTemplate, TemplateKind.Default )
                     ?.GetTemplateMember<IMethod>( this._compilation, this._state.ServiceProvider, this.TemplateProvider, this.GetTagsReader( tags ) )
                     ?.ForOverride( targetEvent.RaiseMethod, this.GetArgsReader( args ) );
 
@@ -1215,7 +1207,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
                 this.GetAdviceConstructorParameters( targetEvent ),
                 boundAddTemplate,
                 boundRemoveTemplate,
-                boundRaiseTemplate );
+                boundInvokeTemplate );
 
             return advice.Execute( this._state );
         }
@@ -1260,6 +1252,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         string name,
         string addTemplate,
         string removeTemplate,
+        string? invokeTemplate = null,
         string? raiseTemplate = null,
         IntroductionScope scope = IntroductionScope.Default,
         OverrideStrategy whenExists = OverrideStrategy.Default,
@@ -1269,6 +1262,11 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
     {
         using ( this.WithNonUserCode() )
         {
+            if ( raiseTemplate != null )
+            {
+                throw new NotImplementedException( "Using raiseTemplate is not currently supported." );
+            }
+
             this.Validate( targetType, AdviceKind.IntroduceEvent );
 
             var boundAddTemplate = 
@@ -1279,8 +1277,8 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
                 this.ValidateRequiredTemplateName( removeTemplate, TemplateKind.Default )
                 .GetTemplateMember<IMethod>( this._compilation, this._state.ServiceProvider, this.TemplateProvider, this.GetTagsReader( tags ) );
 
-            var boundRaiseTemplate = 
-                this.ValidateTemplateName( raiseTemplate, TemplateKind.Default )
+            var boundInvokeTemplate = 
+                this.ValidateTemplateName( invokeTemplate, TemplateKind.Default )
                 ?.GetTemplateMember<IMethod>( this._compilation, this._state.ServiceProvider, this.TemplateProvider, this.GetTagsReader( tags ) );
 
             var parameterReaders = this.GetArgsReader( args );
@@ -1291,7 +1289,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
                 eventTemplate: null,
                 boundAddTemplate.PartialForIntroduction( parameterReaders ),
                 boundRemoveTemplate.PartialForIntroduction( parameterReaders ),
-                boundRaiseTemplate?.PartialForIntroduction( parameterReaders ),
+                boundInvokeTemplate?.PartialForIntroduction( parameterReaders ),
                 scope,
                 whenExists,
                 buildEvent,

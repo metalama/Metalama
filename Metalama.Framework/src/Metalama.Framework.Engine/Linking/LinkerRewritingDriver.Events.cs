@@ -77,7 +77,17 @@ namespace Metalama.Framework.Engine.Linking
 
                 if ( this.InjectionRegistry.HasEventRaiseOverride( symbol ) )
                 {
-                    return [GetLinkedDeclaration( IntermediateSymbolSemanticKind.Default, true )];
+                    if (!this.InjectionRegistry.IsLastOverride(symbol))
+                    {
+                        var overrideTarget = (IEventSymbol) this.InjectionRegistry.GetLastOverride( symbol );
+                        var eventBrokerInfo = this.AnalysisRegistry.GetVisibleEventBrokerForSemantic( overrideTarget.ToSemantic( IntermediateSymbolSemanticKind.Default ) ).AssertNotNull();
+
+                        return [GetLinkedDeclaration( IntermediateSymbolSemanticKind.Default, true ), GetEventBrokerProxy( eventBrokerInfo, context )];
+                    }
+                    else
+                    {
+                        return [GetLinkedDeclaration( IntermediateSymbolSemanticKind.Default, true )];
+                    }
                 }
                 else if ( this.AnalysisRegistry.IsReachable( symbol.ToSemantic( IntermediateSymbolSemanticKind.Default ) )
                      && !this.AnalysisRegistry.IsInlined( symbol.ToSemantic( IntermediateSymbolSemanticKind.Default ) ) )
@@ -500,8 +510,52 @@ namespace Metalama.Framework.Engine.Linking
                                 VariableDeclarator(
                                     Identifier( eventBrokerTransformationInfo.EventBrokerFieldName ),
                                     null,
-                                    null ) ) ) );
+                                    null ) ) ) )
+                    .NormalizeWhitespaceIfNecessary( context )
+                    .WithOptionalLeadingAndTrailingLineFeed( context )
+                    .WithGeneratedCodeAnnotation( FormattingAnnotations.SystemGeneratedCodeAnnotation );
             }
+        }
+
+        private static MemberDeclarationSyntax GetEventBrokerProxy( EventBrokerTransformationInfo eventBrokerInfo, SyntaxGenerationContext context )
+        {
+            if ( eventBrokerInfo.BrokerProxyName == null )
+            {
+                throw new AssertionFailedException( "BrokerProxyName should not be null when generating event broker proxy." );
+            }
+
+            var eventSymbol = eventBrokerInfo.Parent.Event;
+
+            var fieldInitializationExpression = eventBrokerInfo.FieldInitializationExpression( context );
+
+            var addAccessor = AccessorDeclaration( SyntaxKind.AddAccessorDeclaration )
+                .WithBody(
+                    EventBrokerSyntaxHelper.CreateAddHandlerBody(
+                        context,
+                        eventBrokerInfo.EventBrokerFieldName,
+                        fieldInitializationExpression ) );
+
+            var removeAccessor = AccessorDeclaration( SyntaxKind.RemoveAccessorDeclaration )
+                .WithBody(
+                    EventBrokerSyntaxHelper.CreateRemoveHandlerBody(
+                        context,
+                        eventBrokerInfo.EventBrokerFieldName ) );
+
+            return 
+                EventDeclaration(
+                    List<AttributeListSyntax>(),
+                    eventSymbol.IsStatic
+                        ? TokenList(
+                            SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.PublicKeyword ),
+                            SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.StaticKeyword ) )
+                        : TokenList( SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.PublicKeyword ) ),
+                    context.SyntaxGenerator.TypeSyntax( eventSymbol.Type ),
+                    null,
+                    Identifier( eventBrokerInfo.BrokerProxyName ),
+                    AccessorList( List( [addAccessor, removeAccessor] ) ) )
+                .NormalizeWhitespaceIfNecessary( context )
+                .WithOptionalLeadingAndTrailingLineFeed( context )
+                .WithGeneratedCodeAnnotation( FormattingAnnotations.SystemGeneratedCodeAnnotation );
         }
     }
 }

@@ -7,7 +7,7 @@ using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 
-namespace Metalama.Framework.IntegrationTests.Aspects.Overrides.Events.RaiseInvalidDelegate
+namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Overrides.Events.InvokeInvalidDelegate
 {
     // Custom delegate with non-void return type
     public delegate int InvalidReturnDelegate(object sender, EventArgs e);
@@ -19,7 +19,7 @@ namespace Metalama.Framework.IntegrationTests.Aspects.Overrides.Events.RaiseInva
     {
         public override void BuildAspect( IAspectBuilder<IEvent> builder )
         {
-            builder.OverrideAccessors( null, null, nameof( InvokeEventTemplate ));
+            builder.OverrideAccessors( invokeTemplate: nameof( InvokeEventTemplate ));
         }
 
         [Template]

@@ -143,8 +143,8 @@ internal sealed class LinkerInjectionNameProvider : InjectionNameProvider
         var shortLayerName = aspectLayer.LayerName;
         var nameHint =
             shortLayerName != null
-                ? $"{overriddenEvent.Name}_Raise_{shortAspectName}_{shortLayerName}"
-                : $"{overriddenEvent.Name}_Raise_{shortAspectName}";
+                ? $"{overriddenEvent.Name}_Invoke_{shortAspectName}_{shortLayerName}"
+                : $"{overriddenEvent.Name}_Invoke_{shortAspectName}";
         return this.FindUniqueName( targetType, nameHint );
     }
 

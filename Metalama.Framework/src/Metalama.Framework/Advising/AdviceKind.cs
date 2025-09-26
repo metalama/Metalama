@@ -36,5 +36,6 @@ public enum AdviceKind
     OverrideConstructorChainCall,
     IntroduceType,
     IntroduceNamespace,
-    OverrideEventRaise
+    OverrideEventRaise,
+    OverrideEventInvoke
 }

@@ -13,19 +13,19 @@ using Metalama.Framework.Code;
 
 #pragma warning disable IDE0052
 
-namespace Metalama.Framework.IntegrationTests.Aspects.Overrides.Events.Raise;
+namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Overrides.Events.Invoke;
 
 public class OverrideAttribute : EventAspect
 {
     public override void BuildAspect( IAspectBuilder<IEvent> builder )
     {
-        builder.OverrideAccessors( null, null, nameof( RaiseEventTemplate ));
+        builder.OverrideAccessors( invokeTemplate: nameof( InvokeEventTemplate ));
     }
 
     [Template]
-    public void RaiseEventTemplate()
+    public void InvokeEventTemplate()
     {
-        Console.WriteLine( "Raise" );
+        Console.WriteLine( "Invoke" );
         meta.Proceed();
     }
 }

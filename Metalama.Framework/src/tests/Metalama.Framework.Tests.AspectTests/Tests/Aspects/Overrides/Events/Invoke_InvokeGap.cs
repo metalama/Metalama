@@ -3,7 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 #if TESTOPTIONS
-// @Skipped(Multiple overrides not supported yet)
+// @RequiredConstant(NET6_0_OR_GREATER)
 #endif
 
 using System;
@@ -13,27 +13,34 @@ using Metalama.Framework.Code;
 
 #pragma warning disable IDE0052
 
-namespace Metalama.Framework.IntegrationTests.Aspects.Overrides.Events.RaiseDouble;
+namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Overrides.Events.Invoke_InvokeGap;
 
 public class OverrideAttribute : EventAspect
 {
     public override void BuildAspect( IAspectBuilder<IEvent> builder )
     {
-        builder.OverrideAccessors( null, null, nameof( InvokeEventTemplate1 ));
-        builder.OverrideAccessors( null, null, nameof( InvokeEventTemplate2 ) );
+        builder.OverrideAccessors( nameof( AddEventTemplate ), nameof( RemoveEventTemplate ), invokeTemplate: nameof( InvokeEventTemplate ), args: new { ordinal = 0 } );
+        builder.OverrideAccessors( nameof( AddEventTemplate ), nameof( RemoveEventTemplate ), args: new { ordinal = 1 } );
     }
 
     [Template]
-    public void InvokeEventTemplate1()
+    public void AddEventTemplate( [CompileTime] int ordinal )
     {
-        Console.WriteLine( "Invoke1" );
+        Console.WriteLine( $"Add {ordinal}" );
         meta.Proceed();
     }
 
     [Template]
-    public void InvokeEventTemplate2()
+    public void RemoveEventTemplate( [CompileTime] int ordinal )
     {
-        Console.WriteLine( "Invoke2" );
+        Console.WriteLine( $"Remove {ordinal}" );
+        meta.Proceed();
+    }
+
+    [Template]
+    public void InvokeEventTemplate( [CompileTime] int ordinal )
+    {
+        Console.WriteLine( $"Invoke {ordinal}" );
         meta.Proceed();
     }
 }
