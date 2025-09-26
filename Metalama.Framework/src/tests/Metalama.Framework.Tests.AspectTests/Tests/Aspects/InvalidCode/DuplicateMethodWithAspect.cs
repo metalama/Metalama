@@ -4,6 +4,7 @@
 
 #if TESTOPTIONS
 // @RequiredConstant(NET8_0_OR_GREATER)
+// @Skipped(#1069)
 #endif
 
 using Metalama.Framework.Aspects;
