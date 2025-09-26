@@ -3,79 +3,79 @@ namespace System;
 // Stripped-down version of System.Index; tests that including it in the code base does not cause issues.
 internal readonly struct Index : IEquatable<Index>
 {
-    private readonly int _value;
-    public Index(int value, bool fromEnd = false)
+  private readonly int _value;
+  public Index(int value, bool fromEnd = false)
+  {
+    if (value < 0)
     {
-        if (value < 0)
-        {
-            ThrowHelper.ThrowValueArgumentOutOfRange_NeedNonNegNumException();
-        }
-        if (fromEnd)
-            _value = ~value;
-        else
-            _value = value;
+      ThrowHelper.ThrowValueArgumentOutOfRange_NeedNonNegNumException();
     }
-    private Index(int value)
+    if (fromEnd)
+      _value = ~value;
+    else
+      _value = value;
+  }
+  private Index(int value)
+  {
+    _value = value;
+  }
+  public static Index Start => new Index(0);
+  public static Index End => new Index(~0);
+  public static Index FromStart(int value)
+  {
+    if (value < 0)
     {
-        _value = value;
+      ThrowHelper.ThrowValueArgumentOutOfRange_NeedNonNegNumException();
     }
-    public static Index Start => new Index(0);
-    public static Index End => new Index(~0);
-    public static Index FromStart(int value)
+    return new Index(value);
+  }
+  public static Index FromEnd(int value)
+  {
+    if (value < 0)
     {
-        if (value < 0)
-        {
-            ThrowHelper.ThrowValueArgumentOutOfRange_NeedNonNegNumException();
-        }
-        return new Index(value);
+      ThrowHelper.ThrowValueArgumentOutOfRange_NeedNonNegNumException();
     }
-    public static Index FromEnd(int value)
+    return new Index(~value);
+  }
+  public int Value
+  {
+    get
     {
-        if (value < 0)
-        {
-            ThrowHelper.ThrowValueArgumentOutOfRange_NeedNonNegNumException();
-        }
-        return new Index(~value);
+      if (_value < 0)
+        return ~_value;
+      else
+        return _value;
     }
-    public int Value
+  }
+  public bool IsFromEnd => _value < 0;
+  public int GetOffset(int length)
+  {
+    int offset = _value;
+    if (IsFromEnd)
     {
-        get
-        {
-            if (_value < 0)
-                return ~_value;
-            else
-                return _value;
-        }
+      offset += length + 1;
     }
-    public bool IsFromEnd => _value < 0;
-    public int GetOffset(int length)
+    return offset;
+  }
+  public override bool Equals(object? value) => value is Index && _value == ((Index)value)._value;
+  public bool Equals(Index other) => _value == other._value;
+  public override int GetHashCode() => _value;
+  public static implicit operator Index(int value) => FromStart(value);
+  public override string ToString()
+  {
+    if (IsFromEnd)
+      return ToStringFromEnd();
+    return ((uint)Value).ToString();
+  }
+  private string ToStringFromEnd()
+  {
+    return '^' + Value.ToString();
+  }
+  private static class ThrowHelper
+  {
+    public static void ThrowValueArgumentOutOfRange_NeedNonNegNumException()
     {
-        int offset = _value;
-        if (IsFromEnd)
-        {
-            offset += length + 1;
-        }
-        return offset;
+      throw new ArgumentOutOfRangeException("value", "Non-negative number required.");
     }
-    public override bool Equals(object? value) => value is Index && _value == ((Index)value)._value;
-    public bool Equals(Index other) => _value == other._value;
-    public override int GetHashCode() => _value;
-    public static implicit operator Index(int value) => FromStart(value);
-    public override string ToString()
-    {
-        if (IsFromEnd)
-            return ToStringFromEnd();
-        return ((uint)Value).ToString();
-    }
-    private string ToStringFromEnd()
-    {
-        return '^' + Value.ToString();
-    }
-    private static class ThrowHelper
-    {
-        public static void ThrowValueArgumentOutOfRange_NeedNonNegNumException()
-        {
-            throw new ArgumentOutOfRangeException("value", "Non-negative number required.");
-        }
-    }
+  }
 }
