@@ -56,6 +56,7 @@ var product = new Product( MetalamaDependencies.Metalama )
     GenerateNuGetConfig = true,
     DotNetSdkVersion = new DotNetSdkVersion( dotNetSdkVersion ),
     MSBuildVersion = new Version( 17, 14 ),
+    BuildTimeout = TimeSpan.FromMinutes( 45 ),
     Solutions =
     [
         new DotNetSolution( "Metalama.Backstage/Metalama.Backstage.sln" ) { SupportsTestCoverage = true, CanFormatCode = true },
