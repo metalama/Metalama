@@ -1,6 +1,0 @@
-{
-  "comment": "Don't specify .NET SDK version here, so that the latest installed version is used.",
-  "msbuild-sdks": {
-    "PostSharp.Engineering.Sdk": "2023.2.178"
-  }
-}

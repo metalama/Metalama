@@ -34,6 +34,8 @@ _ReSharper*/
 /shipping/
 *.g.cs
 *.g.props
+*.g.ps1
+*.g.json
 .packages
 .idea/**/workspace.xml
 .idea/**/tasks.xml
@@ -57,3 +59,7 @@ coverage.json
 .sonarqube
 /.config/dotnet-tools.json
 .generated
+nuget.config
+global.json
+**/.idea/workspace.xml
+**/.idea/copilot.data.*.xml
