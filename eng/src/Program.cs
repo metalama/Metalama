@@ -132,12 +132,6 @@ var product = new Product( MetalamaDependencies.Metalama )
         "Metalama.Framework.Tests.UnitTestHelpers.$(PackageVersion).nupkg",
         "Metalama.Framework.DesignTime.Contracts.$(PackageVersion).nupkg",
         "Metalama.Framework.DesignTime.Rpc.$(PackageVersion).nupkg" ),
-    ParametrizedDependencies =
-    [
-        DevelopmentDependencies.PostSharpEngineering.ToDependency(),
-        MetalamaDependencies.MetalamaCompiler.ToDependency(
-            new ConfigurationSpecific<BuildConfiguration>( BuildConfiguration.Release, BuildConfiguration.Release, BuildConfiguration.Public ) )
-    ],
     ExportedProperties =
     {
         { "Metalama.Framework\\Directory.Packages.props", ["RoslynApiMaxVersion", "RoslynMaxVersion"] },
