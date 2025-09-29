@@ -132,7 +132,7 @@ namespace Metalama.Framework.Engine.Templating
                     "The compile-time declaration '{0}' contains compile-time code but it does not explicitly import any of the the '{1}' namespaces. "
                     + "This may cause an inconsistent design-time experience. Add the [{2}] attribute to '{0}' and import this namespace explicitly.",
                     _category,
-                    Error );
+                    Warning );
 
         internal static readonly DiagnosticDefinition<(ISymbol ReferencedDeclaration, ISymbol ReferencingDeclaration)>
             OnlyMethodsCanBeSubtemplates
