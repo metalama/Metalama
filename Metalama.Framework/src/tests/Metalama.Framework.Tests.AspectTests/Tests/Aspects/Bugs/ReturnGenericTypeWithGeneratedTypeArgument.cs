@@ -8,7 +8,7 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Code.SyntaxBuilders;
 using System.Collections.Generic;
 
-namespace ConsoleApp1;
+namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Bugs.ReturnGenericTypeWithGeneratedTypeArgument;
 
 //https://github.com/metalama/Metalama/issues/1049
 public class MyAspectAttribute : TypeAspect
@@ -37,7 +37,7 @@ public class MyAspectAttribute : TypeAspect
     [Template]
     public dynamic MethodTemplate()
     {
-        return ExpressionFactory.Parse( "new IntroducedType[0]" );
+        return default;
     }
 }
 
