@@ -2,7 +2,7 @@
 <Project>
 
     <PropertyGroup>
-        <MetalamaCompilerVersion>2025.1.7</MetalamaCompilerVersion>
-    </PropertyGroup>
+        <MetalamaCompilerVersion>2025.1.8-dev-release-56</MetalamaCompilerVersion>
+    <PostSharpEngineeringVersion>2023.2.235.1370-local-GaelFraiteur-debug</PostSharpEngineeringVersion></PropertyGroup>
 
 </Project>
