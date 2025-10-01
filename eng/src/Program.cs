@@ -8,15 +8,10 @@ using PostSharp.Engineering.BuildTools.BillOfMaterials;
 using PostSharp.Engineering.BuildTools.Build;
 using PostSharp.Engineering.BuildTools.Build.Model;
 using PostSharp.Engineering.BuildTools.Build.Solutions;
-using PostSharp.Engineering.BuildTools.Dependencies.Definitions;
-using PostSharp.Engineering.BuildTools.Dependencies.Model;
 using PostSharp.Engineering.BuildTools.Docker;
-using PostSharp.Engineering.BuildTools.Docker;
-using System;
+using PostSharp.Engineering.BuildTools.Utilities;
 using System.IO;
 using MetalamaDependencies = PostSharp.Engineering.BuildTools.Dependencies.Definitions.MetalamaDependencies.V2026_0;
-
-const string dotNetSdkVersion = "9.0.205";
 
 var product = new Product( MetalamaDependencies.Metalama )
 {
@@ -26,22 +21,23 @@ var product = new Product( MetalamaDependencies.Metalama )
         [
             // Must match global.json.
             new DotNetComponent( "10.0.100-rc.1.25451.107", DotNetComponentKind.Sdk ),
-            
+
             // The runtime is required by all tests.
             // The SDK is required by the Workspace tests.
             new DotNetComponent( "8.0.414", DotNetComponentKind.Sdk ),
-            
+
             // Required by some tests.
             new VisualStudioBuildToolsComponent(
-            [
-                "Microsoft.Net.Component.4.7.2.TargetingPack",
-                "Microsoft.Net.Component.4.7.2.SDK",
-                "Microsoft.Net.Component.4.8.TargetingPack",
-                "Microsoft.Net.Component.4.8.SDK",
-                
-                // Required to download test license keys.
-                new AzureCliComponent()
-            ] )
+                VisualStudioBuildToolsComponentVersion.v17_14_15,
+                [
+                    "Microsoft.Net.Component.4.7.2.TargetingPack",
+                    "Microsoft.Net.Component.4.7.2.SDK",
+                    "Microsoft.Net.Component.4.8.TargetingPack",
+                    "Microsoft.Net.Component.4.8.SDK"
+                ] ),
+
+            // Required to download test license keys.
+            new AzureCliComponent()
         ]
     },
     GenerateNuGetConfig = true,
@@ -200,11 +196,11 @@ static void OnPrepareCompleted( PrepareCompletedEventArgs args )
             return;
         }
         else
-    {
+        {
             args.Context.Console.WriteWarning( "Ignoring errors while downloading test license keys." );
         }
     }
-    
+
     args.Context.Console.WriteHeading( "Generating code" );
 
     args.Context.Console.WriteHeading( "Generating code" );
