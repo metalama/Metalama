@@ -138,6 +138,7 @@ internal sealed partial class TemplateExpansionContext : UserCodeExecutionContex
         Func<TemplateKind, IUserExpression>? proceedExpressionProvider,
         AspectLayerId aspectLayerId ) : this(
         transformationContext.ServiceProvider,
+        transformationContext.AspectReferenceSyntaxProvider,
         metaApi,
         transformationContext.LexicalScopeProvider.GetLexicalScope( declarationForLexicalScope.ToFullRef() ),
         transformationContext.SyntaxGenerationContext,
@@ -153,6 +154,7 @@ internal sealed partial class TemplateExpansionContext : UserCodeExecutionContex
         TemplateProvider templateProvider,
         AspectLayerId aspectLayerId ) : this(
         transformationContext.ServiceProvider,
+        transformationContext.AspectReferenceSyntaxProvider,
         metaApi,
         transformationContext.LexicalScopeProvider.GetLexicalScope( declarationForLexicalScope.ToFullRef() ),
         transformationContext.SyntaxGenerationContext,
@@ -164,6 +166,7 @@ internal sealed partial class TemplateExpansionContext : UserCodeExecutionContex
     // Resharper disable MemberCanBePrivate.Global
     internal TemplateExpansionContext(
         ProjectServiceProvider serviceProvider,
+        AspectReferenceSyntaxProvider? aspectReferenceSyntaxProvider,
         MetaApi metaApi,
         TemplateLexicalScope lexicalScope,
         SyntaxGenerationContext syntaxGenerationContext,
@@ -187,7 +190,7 @@ internal sealed partial class TemplateExpansionContext : UserCodeExecutionContex
         this._methodTemplate = methodTemplate?.TemplateMember;
         this.TemplateProvider = templateProvider;
         this.SyntaxSerializationService = serviceProvider.GetRequiredService<SyntaxSerializationService>();
-        this.SyntaxSerializationContext = new SyntaxSerializationContext( metaApi.Compilation, syntaxGenerationContext, metaApi.Type );
+        this.SyntaxSerializationContext = new SyntaxSerializationContext( metaApi.Compilation, syntaxGenerationContext, aspectReferenceSyntaxProvider, metaApi.Type );
         this.SyntaxGenerationContext = syntaxGenerationContext;
         this.LexicalScope = lexicalScope;
         this._proceedExpressionProvider = proceedExpressionProvider;

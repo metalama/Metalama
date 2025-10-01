@@ -34,11 +34,11 @@ internal sealed partial class LinkerRewritingDriver
 
     private CompilationContext IntermediateCompilationContext { get; }
 
-    private LinkerInjectionRegistry InjectionRegistry { get; }
+    public LinkerInjectionRegistry InjectionRegistry { get; }
 
     private LinkerLateTransformationRegistry LateTransformationRegistry { get; }
 
-    private LinkerAnalysisRegistry AnalysisRegistry { get; }
+    public LinkerAnalysisRegistry AnalysisRegistry { get; }
 
     public LinkerRewritingDriver(
         ProjectServiceProvider serviceProvider,
@@ -434,7 +434,7 @@ internal sealed partial class LinkerRewritingDriver
              && this.AnalysisRegistry.HasAnyUnsupportedOverride( this.InjectionRegistry.GetOverrideTarget( symbol ).AssertNotNull() ) )
         {
             // If there are any overrides with unsupported code, we will skip this member.
-            return Array.Empty<MemberDeclarationSyntax>();
+            return [];
         }
 
         return symbol switch
@@ -788,5 +788,35 @@ internal sealed partial class LinkerRewritingDriver
         }
 
         return List( filteredAttributeLists );
+    }
+
+    public IReadOnlyList<MemberDeclarationSyntax> GetSharedTypeMembers( TypeDeclarationSyntax typeNode, INamedTypeSymbol typeSymbol)
+    {
+        var syntaxGenerationContext = this.IntermediateCompilationContext.GetSyntaxGenerationContext( this.SyntaxGenerationOptions, typeNode );
+
+        // Add static fields for event broker initialization.
+        var staticDelegateFields = this.AnalysisRegistry.GetStaticDelegateFields( typeSymbol );
+
+        var sharedMembers = new List<MemberDeclarationSyntax>();
+
+        foreach ( var staticDelegateField in staticDelegateFields )
+        {
+            sharedMembers.Add(
+                FieldDeclaration(
+                    List<AttributeListSyntax>(),
+                    TokenList( 
+                        Token( TriviaList(), SyntaxKind.PrivateKeyword, TriviaList( ElasticSpace ) ), 
+                        Token( TriviaList(), SyntaxKind.StaticKeyword, TriviaList( ElasticSpace ) ), 
+                        Token( TriviaList(), SyntaxKind.ReadOnlyKeyword, TriviaList( ElasticSpace ) ) ),
+                    VariableDeclaration(
+                        syntaxGenerationContext.SyntaxGenerator.TypeSyntax( staticDelegateField.FieldType ),
+                        SingletonSeparatedList(
+                            VariableDeclarator(
+                                Identifier( staticDelegateField.FieldName ),
+                                null,
+                                EqualsValueClause( staticDelegateField.InitializeExpressionFunc(syntaxGenerationContext) ) ) ) ) ) );
+        }
+
+        return sharedMembers;
     }
 }

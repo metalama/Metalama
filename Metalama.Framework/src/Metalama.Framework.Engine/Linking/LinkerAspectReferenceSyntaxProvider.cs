@@ -61,6 +61,40 @@ internal sealed class LinkerAspectReferenceSyntaxProvider : AspectReferenceSynta
                                                     IdentifierName( p.Name ) ) ) ) ),
                             null ) ) ) ) );
 
+    public override ExpressionSyntax GetEventRaiseReference(
+        AspectLayerId aspectLayer,
+        IEvent @event,
+        ContextualSyntaxGenerator syntaxGenerator,
+        params ArgumentSyntax[] arguments )
+    {
+        var eventReferenceArgument =
+            Argument(
+                ParenthesizedLambdaExpression(
+                    ParameterList(),
+                    null,
+                    AssignmentExpression(
+                        SyntaxKind.AddAssignmentExpression,
+                        CreateMemberAccessExpression( @event, syntaxGenerator ),
+                        InvocationExpression(
+                            LinkerInjectionHelperProvider.GetEmptyDelegateMemberExpression( syntaxGenerator.TypeSyntax( @event.Type ) ) ) ) ) );
+
+        return 
+            InvocationExpression(
+                LinkerInjectionHelperProvider.GetEventRaiseMemberExpression()
+                    .WithAspectReferenceAnnotation(
+                        aspectLayer,
+                        AspectReferenceOrder.Previous,
+                        flags: AspectReferenceFlags.Inlineable ),
+                ArgumentList(
+                    SeparatedList(
+                        arguments.Length == 0
+                        ? new[] { eventReferenceArgument }
+                        : [
+                            eventReferenceArgument,
+                            Argument( null, default, TupleExpression( SeparatedList( arguments ) ) )
+                        ] ) ) );
+    }
+
     public override ExpressionSyntax GetPropertyReference(
         AspectLayerId aspectLayer,
         IProperty targetProperty,

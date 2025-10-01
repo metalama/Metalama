@@ -200,7 +200,7 @@ internal sealed class AspectReferenceResolver
                      && replacedMember.HasSymbol()) )
             {
                 // Historical note: the incorrect "!" symbol removed from the above line cost me at least 8 hours of debugging.
-                
+
                 // There is no introduction, i.e. this is a user source symbol (or a promoted field) => reference the version present in source.
                 var declaredInCurrentType = this._comparer.Equals( containingSemantic.Symbol.ContainingType, resolvedReferencedSymbol.ContainingType );
 
@@ -274,17 +274,26 @@ internal sealed class AspectReferenceResolver
 
         ResolvedAspectReference CreateResolved( IntermediateSymbolSemantic resolvedSemantic )
         {
+            IntermediateSymbolSemantic<IMethodSymbol>? explicitResolvedSemanticBody = null;
+
+            if (targetKind == AspectReferenceTargetKind.EventRaiseAccessor)
+            {
+                explicitResolvedSemanticBody = ((IMethodSymbol?) this._injectionRegistry.GetSatelliteOverrideMembers( resolvedSemantic.Symbol ).SingleOrDefault())?.ToSemantic( IntermediateSymbolSemanticKind.Default );
+            }
+
             return new ResolvedAspectReference(
                 containingSemantic,
                 containingLocalFunction,
                 resolvedReferencedSymbol,
                 resolvedSemantic,
+                explicitResolvedSemanticBody,
                 expression,
                 resolvedRootNode,
                 resolvedReferencedSymbolSourceNode,
                 targetKind,
                 isInlineable,
-                hasCustomReceiver );
+                hasCustomReceiver,
+                false );
         }
     }
 
@@ -312,7 +321,7 @@ internal sealed class AspectReferenceResolver
                     resolvedIndex = lowerOverride.Index;
                     resolvedInjectedMember = lowerOverride.Override;
                 }
-                else if ( targetIntroductionIndex != null 
+                else if ( targetIntroductionIndex != null
                           && targetIntroductionIndex.Value.WithoutTransformationIndex() < annotationLayerIndex.WithoutTransformationIndex()
                           && HasImplicitImplementation( referencedSymbol ) )
                 {
@@ -617,6 +626,47 @@ internal sealed class AspectReferenceResolver
                             throw new AssertionFailedException( $"Unexpected property expression: '{expression.Parent}'." );
                     }
 
+                case { Name: LinkerInjectionHelperProvider.EventRaiseMemberName }:
+                    switch ( expression.Parent )
+                    {
+                        case InvocationExpressionSyntax
+                        {
+                            ArgumentList.Arguments:
+                            [
+                                {
+                                    Expression: ParenthesizedLambdaExpressionSyntax
+                                    {
+                                        ExpressionBody: AssignmentExpressionSyntax { RawKind: (int) SyntaxKind.AddAssignmentExpression, Left: ExpressionSyntax eventExpression }
+                                    }
+                                },
+                                ..
+                            ]
+                        } invocationExpression:
+                            var symbolInfo = semanticModel.GetSymbolInfo( eventExpression );
+
+                            rootNode = invocationExpression;
+
+                            targetSymbol =
+                                symbolInfo switch
+                                {
+                                    // Normal situation with valid symbol.
+                                    { Symbol: { } symbol } => symbol,
+
+                                    // When the code is invalid, there are usually 
+                                    { CandidateSymbols: [{ } symbol] } => symbol,
+
+                                    // We should not get here because this reference would be skipped by AspectReferenceWalker.
+                                    _ => throw new AssertionFailedException( $"Invalid symbol info: {symbolInfo}" )
+                                };
+
+                            targetSymbolSource = eventExpression;
+
+                            return;
+
+                        default:
+                            throw new AssertionFailedException( $"Unexpected property expression: '{expression.Parent}'." );
+                    }
+
                 case not null when SymbolHelpers.GetOperatorKindFromName( helperMethod.Name ) is not OperatorKind.None and var operatorKind:
                     // Referencing an operator.
                     rootNode = expression;
@@ -656,29 +706,32 @@ internal sealed class AspectReferenceResolver
         targetSymbolSource = expression;
     }
 
+    /// <summary>
+    /// Resolved the target reference target kind based on the referenced symbol and the expression.
+    /// </summary>
     private static AspectReferenceTargetKind ResolveExpressionTarget( ISymbol referencedSymbol, ExpressionSyntax expression )
     {
         switch (referencedSymbol, expression)
         {
-            case (IPropertySymbol, { Parent: AssignmentExpressionSyntax }):
+            case (IPropertySymbol, { Parent: AssignmentExpressionSyntax } ):
                 return AspectReferenceTargetKind.PropertySetAccessor;
 
-            case (IPropertySymbol, _):
+            case (IPropertySymbol, _ ):
                 return AspectReferenceTargetKind.PropertyGetAccessor;
 
-            case (IFieldSymbol, { Parent: AssignmentExpressionSyntax }):
+            case (IFieldSymbol, { Parent: AssignmentExpressionSyntax } ):
                 return AspectReferenceTargetKind.PropertySetAccessor;
 
-            case (IFieldSymbol, _):
+            case (IFieldSymbol, _ ):
                 return AspectReferenceTargetKind.PropertyGetAccessor;
 
-            case (IEventSymbol, { Parent: AssignmentExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.AddAssignmentExpression } }):
+            case (IEventSymbol, { Parent: AssignmentExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.AddAssignmentExpression } } ):
                 return AspectReferenceTargetKind.EventAddAccessor;
 
-            case (IEventSymbol, { Parent: AssignmentExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.SubtractAssignmentExpression } }):
+            case (IEventSymbol, { Parent: AssignmentExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.SubtractAssignmentExpression } } ):
                 return AspectReferenceTargetKind.EventRemoveAccessor;
 
-            case (IEventSymbol, _):
+            case (IEventSymbol, _ ):
                 return AspectReferenceTargetKind.EventRaiseAccessor;
 
             default:
@@ -724,38 +777,38 @@ internal sealed class AspectReferenceResolver
     {
         switch (referencedSymbol, resolvedSymbol)
         {
-            case (IMethodSymbol { MethodKind: MethodKind.Constructor }, IMethodSymbol { MethodKind: MethodKind.Constructor }):
-            case (IMethodSymbol { MethodKind: MethodKind.StaticConstructor }, IMethodSymbol { MethodKind: MethodKind.Ordinary }):
-            case (IMethodSymbol { MethodKind: MethodKind.Ordinary }, IMethodSymbol { MethodKind: MethodKind.Ordinary }):
-            case (IMethodSymbol { MethodKind: MethodKind.ExplicitInterfaceImplementation }, IMethodSymbol { MethodKind: MethodKind.Ordinary }):
+            case (IMethodSymbol { MethodKind: MethodKind.Constructor }, IMethodSymbol { MethodKind: MethodKind.Constructor } ):
+            case (IMethodSymbol { MethodKind: MethodKind.StaticConstructor }, IMethodSymbol { MethodKind: MethodKind.Ordinary } ):
+            case (IMethodSymbol { MethodKind: MethodKind.Ordinary }, IMethodSymbol { MethodKind: MethodKind.Ordinary } ):
+            case (IMethodSymbol { MethodKind: MethodKind.ExplicitInterfaceImplementation }, IMethodSymbol { MethodKind: MethodKind.Ordinary } ):
             case (IMethodSymbol { MethodKind: MethodKind.ExplicitInterfaceImplementation },
-                IMethodSymbol { MethodKind: MethodKind.ExplicitInterfaceImplementation }):
-            case (IMethodSymbol { MethodKind: MethodKind.Destructor }, IMethodSymbol { MethodKind: MethodKind.Ordinary }):
-            case (IMethodSymbol { MethodKind: MethodKind.Conversion or MethodKind.UserDefinedOperator }, IMethodSymbol { MethodKind: MethodKind.Ordinary }):
-            case (IPropertySymbol, IPropertySymbol):
-            case (IEventSymbol, IEventSymbol):
-            case (IFieldSymbol, IFieldSymbol):
+                IMethodSymbol { MethodKind: MethodKind.ExplicitInterfaceImplementation } ):
+            case (IMethodSymbol { MethodKind: MethodKind.Destructor }, IMethodSymbol { MethodKind: MethodKind.Ordinary } ):
+            case (IMethodSymbol { MethodKind: MethodKind.Conversion or MethodKind.UserDefinedOperator }, IMethodSymbol { MethodKind: MethodKind.Ordinary } ):
+            case (IPropertySymbol, IPropertySymbol ):
+            case (IEventSymbol, IEventSymbol ):
+            case (IFieldSymbol, IFieldSymbol ):
                 return resolvedSymbol;
 
-            case (IMethodSymbol { MethodKind: MethodKind.PropertyGet }, IPropertySymbol):
+            case (IMethodSymbol { MethodKind: MethodKind.PropertyGet }, IPropertySymbol ):
                 // This seems to happen only in invalid compilations.
                 throw new AssertionFailedException( Justifications.CoverageMissing );
 
             // return propertySymbol.GetMethod.AssertNotNull();
 
-            case (IMethodSymbol { MethodKind: MethodKind.PropertySet }, IPropertySymbol):
+            case (IMethodSymbol { MethodKind: MethodKind.PropertySet }, IPropertySymbol ):
                 // This seems to happen only in invalid compilations.
                 throw new AssertionFailedException( Justifications.CoverageMissing );
 
             // return propertySymbol.SetMethod.AssertNotNull();
 
-            case (IMethodSymbol { MethodKind: MethodKind.EventAdd }, IEventSymbol):
+            case (IMethodSymbol { MethodKind: MethodKind.EventAdd }, IEventSymbol ):
                 // This seems to happen only in invalid compilations.
                 throw new AssertionFailedException( Justifications.CoverageMissing );
 
             // return eventSymbol.AddMethod.AssertNotNull();
 
-            case (IMethodSymbol { MethodKind: MethodKind.EventRemove }, IEventSymbol):
+            case (IMethodSymbol { MethodKind: MethodKind.EventRemove }, IEventSymbol ):
                 // This seems to happen only in invalid compilations.
                 throw new AssertionFailedException( Justifications.CoverageMissing );
 

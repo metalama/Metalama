@@ -116,14 +116,14 @@ internal abstract class OverridePropertyBaseTransformation : OverridePropertyOrI
 
     protected override ExpressionSyntax CreateProceedGetExpression( MemberInjectionContext context )
         => TransformationHelper.CreatePropertyProceedGetExpression(
-            context.AspectReferenceSyntaxProvider,
+            context.AspectReferenceSyntaxProvider.AssertNotNull(),
             context.SyntaxGenerationContext,
             this.OverriddenProperty.GetTarget( context.FinalCompilation ),
             this.AspectLayerId );
 
     protected override ExpressionSyntax CreateProceedSetExpression( MemberInjectionContext context )
         => TransformationHelper.CreatePropertyProceedSetExpression(
-            context.AspectReferenceSyntaxProvider,
+            context.AspectReferenceSyntaxProvider.AssertNotNull(),
             context.SyntaxGenerationContext,
             this.OverriddenProperty.GetTarget( context.FinalCompilation ),
             this.AspectLayerId );

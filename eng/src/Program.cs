@@ -10,12 +10,53 @@ using PostSharp.Engineering.BuildTools.Build.Model;
 using PostSharp.Engineering.BuildTools.Build.Solutions;
 using PostSharp.Engineering.BuildTools.Dependencies.Definitions;
 using PostSharp.Engineering.BuildTools.Dependencies.Model;
+using PostSharp.Engineering.BuildTools.Docker;
 using PostSharp.Engineering.BuildTools.Utilities;
+using System;
 using System.IO;
 using MetalamaDependencies = PostSharp.Engineering.BuildTools.Dependencies.Definitions.MetalamaDependencies.V2026_0;
 
+const string dotNetSdkVersion = "9.0.205";
+
 var product = new Product( MetalamaDependencies.Metalama )
 {
+    OverriddenBuildAgentRequirements = new ContainerRequirements( ContainerHostKind.Windows )
+    {
+        Components =
+        [
+            new DotNetComponent( dotNetSdkVersion, DotNetComponentKind.Sdk ),
+
+            // For PostSharp.Engineering.
+            new DotNetComponent( "9.0.9", DotNetComponentKind.DotNetRuntime ),
+
+            // The runtime is required by all tests.
+            // The SDK is required by the Workspace tests.
+            new DotNetComponent( "8.0.414", DotNetComponentKind.Sdk ),
+            
+            // .NET 6 Runtime is used by most tests.
+            // ASP.NET Core is used at least by Backstage tests.
+            // Windows Desktop is used by Xaml tests.
+            new DotNetComponent( "6.0.36", DotNetComponentKind.AspNetCoreRuntime ),
+            new DotNetComponent( "6.0.36", DotNetComponentKind.WindowsDesktopRuntime ),
+            
+            // Required by some tests.
+            new VisualStudioBuildToolsComponent(
+                VisualStudioBuildToolsComponentVersion.v17_14_15,
+                [
+                    "Microsoft.Net.Component.4.7.2.TargetingPack",
+                    "Microsoft.Net.Component.4.7.2.SDK",
+                    "Microsoft.Net.Component.4.8.TargetingPack",
+                    "Microsoft.Net.Component.4.8.SDK"
+                ] ),
+
+            // Required to download test license keys.
+            new AzureCliComponent()
+        ]
+    },
+    GenerateNuGetConfig = true,
+    DotNetSdkVersion = new DotNetSdkVersion( dotNetSdkVersion ),
+    MSBuildVersion = new Version( 17, 14 ),
+    BuildTimeout = TimeSpan.FromMinutes( 45 ),
     Solutions =
     [
         new DotNetSolution( "Metalama.Backstage/Metalama.Backstage.sln" ) { SupportsTestCoverage = true, CanFormatCode = true },
@@ -91,12 +132,6 @@ var product = new Product( MetalamaDependencies.Metalama )
         "Metalama.Framework.Tests.UnitTestHelpers.$(PackageVersion).nupkg",
         "Metalama.Framework.DesignTime.Contracts.$(PackageVersion).nupkg",
         "Metalama.Framework.DesignTime.Rpc.$(PackageVersion).nupkg" ),
-    ParametrizedDependencies =
-    [
-        DevelopmentDependencies.PostSharpEngineering.ToDependency(),
-        MetalamaDependencies.MetalamaCompiler.ToDependency(
-            new ConfigurationSpecific<BuildConfiguration>( BuildConfiguration.Release, BuildConfiguration.Release, BuildConfiguration.Public ) )
-    ],
     ExportedProperties =
     {
         { "Metalama.Framework\\Directory.Packages.props", ["RoslynApiMaxVersion", "RoslynMaxVersion"] },
@@ -164,13 +199,25 @@ product.PrepareCompleted += OnPrepareCompleted;
 
 return new EngineeringApp( product ).Run( args );
 
-static void OnPrepareCompleted( PrepareCompletedEventArgs arg )
+static void OnPrepareCompleted( PrepareCompletedEventArgs args )
 {
-    TestLicenseKeyDownloader.Download( arg.Context );
+    if ( !TestLicenseKeyDownloader.Download( args.Context, args.Settings ) )
+    {
+        if ( args.Context.IsContinuousIntegrationBuild )
+        {
+            args.IsFailed = true;
 
-    arg.Context.Console.WriteHeading( "Generating code" );
+            return;
+        }
+        else
+        {
+            args.Context.Console.WriteWarning( "Ignoring errors while downloading test license keys." );
+        }
+    }
+    
+    args.Context.Console.WriteHeading( "Generating code" );
 
-    var srcDirectory = Path.Combine( arg.Context.RepoDirectory, "Metalama.Framework" );
+    var srcDirectory = Path.Combine( args.Context.RepoDirectory, "Metalama.Framework" );
 
     GenerateMetaSyntaxRewriter.Generate( srcDirectory );
 }

@@ -22,7 +22,7 @@ namespace Metalama.Framework.Engine.CodeModel
             => declaration switch
             {
                 ISymbolBasedCompilationElement { SymbolMustBeMapped: false, Symbol: { } symbol } => symbol,
-                ISymbolBasedCompilationElement when returnNullIfMappingRequired => throw new ArgumentOutOfRangeException(
+                ISymbolBasedCompilationElement when !returnNullIfMappingRequired => throw new ArgumentOutOfRangeException(
                     nameof(declaration),
                     $"The symbol of '{declaration}' is available, but it must be mapped with the generic context" ),
                 _ => null // not symbol-backed.

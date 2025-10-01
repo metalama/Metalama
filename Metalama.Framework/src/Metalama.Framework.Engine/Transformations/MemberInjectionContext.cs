@@ -13,18 +13,15 @@ internal sealed class MemberInjectionContext : TransformationContext
 {
     public InjectionNameProvider InjectionNameProvider { get; }
 
-    public AspectReferenceSyntaxProvider AspectReferenceSyntaxProvider { get; }
-
     public MemberInjectionContext(
         ProjectServiceProvider serviceProvider,
         UserDiagnosticSink diagnosticSink,
         InjectionNameProvider injectionNameProvider,
-        AspectReferenceSyntaxProvider aspectReferenceSyntaxProvider,
         ITemplateLexicalScopeProvider lexicalScopeProvider,
+        AspectReferenceSyntaxProvider aspectReferenceSyntaxProvider,
         SyntaxGenerationContext syntaxGenerationContext,
-        CompilationModel compilation ) : base( serviceProvider, diagnosticSink, syntaxGenerationContext, compilation, lexicalScopeProvider )
+        CompilationModel compilation ) : base( serviceProvider, diagnosticSink, syntaxGenerationContext, compilation, lexicalScopeProvider, aspectReferenceSyntaxProvider )
     {
-        this.AspectReferenceSyntaxProvider = aspectReferenceSyntaxProvider;
         this.InjectionNameProvider = injectionNameProvider;
     }
 }

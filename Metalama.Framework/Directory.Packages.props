@@ -1,11 +1,11 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project>
+  <Import Project="../Directory.Packages.props"/>
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
   <!-- Set versions of dependencies that need special treatment or consist of multiple packages of the same version. -->
   <PropertyGroup>
-    <PostSharpEngineeringVersion Condition="'$(PostSharpEngineeringVersion)'==''">2023.2.153</PostSharpEngineeringVersion>
     <!-- RoslynApiMinVersion is the minimal version of the Roslyn API we support. -->
     <RoslynApiMinVersion>4.8.0</RoslynApiMinVersion>
     <RoslynApiMaxVersion>4.12.0</RoslynApiMaxVersion>
@@ -45,7 +45,6 @@
     <PackageVersion Include="Microsoft.Extensions.Logging.Console" Version="8.0.1" />
     <!-- We should match the versions used by the lowest version of Roslyn we support.-->
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.1" />
-    <PackageVersion Include="PostSharp.Engineering.BuildTools" Version="$(PostSharpEngineeringVersion)" />
     <PackageVersion Include="PostSharp.Patterns.Model" Version="$(PostSharpPackageVersion)" />
     <!-- This should match the version used by Roslyn in RoslynApiMinVersion -->
     <PackageVersion Include="System.Collections.Immutable" Version="6.0.0" />

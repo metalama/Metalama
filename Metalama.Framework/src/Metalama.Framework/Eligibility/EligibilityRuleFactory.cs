@@ -42,7 +42,10 @@ public static partial class EligibilityRuleFactory
         builder =>
         {
             builder.ExceptForInheritance().MustNotBeAbstract();
-            builder.MustBeExplicitlyDeclared();
+            builder.MustSatisfy(
+                m => m is { ContainingDeclaration: { IsImplicitlyDeclared: false }, MethodKind: MethodKind.EventAdd or MethodKind.EventRemove or MethodKind.EventRaise or MethodKind.PropertyGet or MethodKind.PropertySet } 
+                     || !m.IsImplicitlyDeclared,
+                m => $"{m} must be an accessor or an explicitly declared method" );
             builder.MustNotBeRef();
             builder.MustSatisfy( m => !m.IsExtern, m => $"'{m}' must not be extern" );
             builder.MustNotBePartialMemberWithSourceGeneratorAttribute();
@@ -65,6 +68,20 @@ public static partial class EligibilityRuleFactory
         {
             builder.ExceptForInheritance().MustNotBeAbstract();
             builder.MustBeExplicitlyDeclared();
+            builder.DeclaringType().AddRule( _overrideDeclaringTypeRule );
+        } );
+
+    internal static IEligibilityRule<IDeclaration> OverrideEventRaiseAdviceRule { get; } = CreateRule<IDeclaration, IEvent>(
+        builder =>
+        {
+            builder.MustSatisfy(
+                e => e.Type.Methods.OfName( "Invoke" ).Single().ReturnType.SpecialType == SpecialType.Void,
+                e => $"'{e}' must have delegate type with void return value" );
+
+            builder.MustSatisfy( 
+                e => e.Type.Methods.OfName( "Invoke" ).Single().Parameters.All( p => p.RefKind == RefKind.None ),
+                e => $"'{e}' must have delegate type without a parameter of out/ref/in/pointer type");
+
             builder.DeclaringType().AddRule( _overrideDeclaringTypeRule );
         } );
 
@@ -149,6 +166,7 @@ public static partial class EligibilityRuleFactory
             AdviceKind.OverrideMethod => OverrideMethodAdviceRule,
             AdviceKind.OverrideFieldOrPropertyOrIndexer => OverrideFieldOrPropertyOrIndexerAdviceRule,
             AdviceKind.OverrideEvent => OverrideEventAdviceRule,
+            AdviceKind.OverrideEventInvoke => OverrideEventRaiseAdviceRule,
             AdviceKind.IntroduceMethod => _introduceRule,
             AdviceKind.IntroduceFinalizer => _introduceRule,
             AdviceKind.IntroduceOperator => _introduceRule,

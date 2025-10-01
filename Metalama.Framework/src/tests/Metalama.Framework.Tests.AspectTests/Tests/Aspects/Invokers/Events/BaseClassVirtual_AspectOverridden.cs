@@ -25,8 +25,7 @@ public class InvokerBeforeAspect : EventAspect
         builder.OverrideAccessors(
             nameof(AddTemplate),
             nameof(RemoveTemplate),
-            null,
-            new { target = builder.Target.DeclaringType!.BaseType!.Events.OfName( "Event" ).Single() } );
+            args: new { target = builder.Target.DeclaringType!.BaseType!.Events.OfName( "Event" ).Single() } );
     }
 
     [Template]
@@ -102,8 +101,7 @@ public class InvokerAfterAspect : EventAspect
         builder.OverrideAccessors(
             nameof(AddTemplate),
             nameof(RemoveTemplate),
-            null,
-            new { target = builder.Target.DeclaringType!.BaseType!.Events.OfName( "Event" ).Single() } );
+            args: new { target = builder.Target.DeclaringType!.BaseType!.Events.OfName( "Event" ).Single() } );
     }
 
     [Template]

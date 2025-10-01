@@ -169,8 +169,8 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                                 serviceProvider,
                                 diagnostics,
                                 injectionNameProvider,
-                                aspectReferenceSyntaxProvider,
                                 lexicalScopeFactory,
+                                aspectReferenceSyntaxProvider,
                                 syntaxGenerationContext,
                                 finalCompilationModel );
 
