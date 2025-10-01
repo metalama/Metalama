@@ -19,8 +19,8 @@ namespace Metalama.Framework.IntegrationTests.Aspects.Introductions.Events.Param
         {
             builder.IntroduceEvent(
                 "Event",
-                nameof(Template),
-                nameof(Template) );
+                nameof( Template ),
+                nameof( Template ) );
         }
 
         [Template]

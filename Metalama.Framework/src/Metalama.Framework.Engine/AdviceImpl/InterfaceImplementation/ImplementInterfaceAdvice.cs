@@ -821,7 +821,8 @@ internal sealed partial class ImplementInterfaceAdvice : Advice<ImplementInterfa
                                                     this.AspectLayerInstance,
                                                     existingEvent.ToFullRef(),
                                                     accessorTemplates.Add?.ForOverride( existingEvent.AddMethod ),
-                                                    accessorTemplates.Remove?.ForOverride( existingEvent.RemoveMethod ) ) );
+                                                    accessorTemplates.Remove?.ForOverride( existingEvent.RemoveMethod ),
+                                                    null ) );
 
                                             implementedInterfaceMembers.Add(
                                                 new MemberImplementationResult(
@@ -903,7 +904,8 @@ internal sealed partial class ImplementInterfaceAdvice : Advice<ImplementInterfa
                                                 this.AspectLayerInstance,
                                                 eventBuilder.ToFullRef(),
                                                 accessorTemplates.Add?.ForOverride( eventBuilder.AddMethod ),
-                                                accessorTemplates.Remove?.ForOverride( eventBuilder.RemoveMethod ) ) );
+                                                accessorTemplates.Remove?.ForOverride( eventBuilder.RemoveMethod ),
+                                                null ) );
                                     }
                                     else
                                     {

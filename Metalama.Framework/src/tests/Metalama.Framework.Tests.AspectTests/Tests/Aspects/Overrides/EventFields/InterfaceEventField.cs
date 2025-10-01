@@ -53,13 +53,13 @@ public class OverrideEventAttribute : OverrideEventAspect
 {
     public OverrideEventAttribute() { }
 
-    public override void OverrideAdd( dynamic value )
+    public override void OverrideAdd( dynamic handler )
     {
         Console.WriteLine( "Overriden add." );
         meta.Proceed();
     }
 
-    public override void OverrideRemove( dynamic value )
+    public override void OverrideRemove( dynamic handler )
     {
         Console.WriteLine( "Overriden remove." );
         meta.Proceed();

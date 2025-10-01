@@ -413,7 +413,8 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
                         return new OverrideEventAdvice(
                                 this.GetAdviceConstructorParameters( @event ),
                                 addTemplate: template,
-                                removeTemplate: null )
+                                removeTemplate: null,
+                                invokeTemplate: null )
                             .Execute( this._state )
                             .GetAccessor( e => e.AddMethod );
                     }
@@ -429,9 +430,15 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
                         return new OverrideEventAdvice(
                                 this.GetAdviceConstructorParameters( @event ),
                                 addTemplate: null,
-                                removeTemplate: template )
+                                removeTemplate: template,
+                                invokeTemplate: null )
                             .Execute( this._state )
                             .GetAccessor( e => e.RemoveMethod );
+                    }
+
+                case MethodKind.EventRaise:
+                    {
+                        throw new NotImplementedException( "Overriding event raise is not implemented." );
                     }
 
                 case MethodKind.PropertyGet:
@@ -1163,37 +1170,44 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         string? addTemplate,
         string? removeTemplate,
         string? invokeTemplate,
+        string? raiseTemplate,
         object? args = null,
         object? tags = null )
     {
         using ( this.WithNonUserCode() )
         {
-            if ( invokeTemplate != null )
+            if (raiseTemplate != null)
             {
-                throw GeneralDiagnosticDescriptors.UnsupportedFeature.CreateException( $"Invoker overrides." );
-            }
-
-            if ( invokeTemplate != null )
-            {
-                throw new NotImplementedException( "Support for overriding event raisers is not yet implemented." );
+                throw new NotImplementedException( "Using raiseTemplate is not currently supported." );
             }
 
             this.Validate( targetEvent, AdviceKind.OverrideEvent );
 
+            if ( invokeTemplate != null )
+            {
+                this.Validate( targetEvent, AdviceKind.OverrideEventInvoke );
+            }
+
             var boundAddTemplate =
-                this.ValidateRequiredTemplateName( addTemplate, TemplateKind.Default )
-                    .GetTemplateMember<IMethod>( this._compilation, this._state.ServiceProvider, this.TemplateProvider, this.GetTagsReader( tags ) )
-                    .ForOverride( targetEvent.AddMethod, this.GetArgsReader( args ) );
+                this.ValidateTemplateName( addTemplate, TemplateKind.Default )
+                    ?.GetTemplateMember<IMethod>( this._compilation, this._state.ServiceProvider, this.TemplateProvider, this.GetTagsReader( tags ) )
+                    ?.ForOverride( targetEvent.AddMethod, this.GetArgsReader( args ) );
 
             var boundRemoveTemplate =
-                this.ValidateRequiredTemplateName( removeTemplate, TemplateKind.Default )
-                    .GetTemplateMember<IMethod>( this._compilation, this._state.ServiceProvider, this.TemplateProvider, this.GetTagsReader( tags ) )
-                    .ForOverride( targetEvent.RemoveMethod, this.GetArgsReader( args ) );
+                this.ValidateTemplateName( removeTemplate, TemplateKind.Default )
+                    ?.GetTemplateMember<IMethod>( this._compilation, this._state.ServiceProvider, this.TemplateProvider, this.GetTagsReader( tags ) )
+                    ?.ForOverride( targetEvent.RemoveMethod, this.GetArgsReader( args ) );
+
+            var boundInvokeTemplate =
+                this.ValidateTemplateName( invokeTemplate, TemplateKind.Default )
+                    ?.GetTemplateMember<IMethod>( this._compilation, this._state.ServiceProvider, this.TemplateProvider, this.GetTagsReader( tags ) )
+                    ?.ForOverride( targetEvent.RaiseMethod, this.GetArgsReader( args ) );
 
             var advice = new OverrideEventAdvice(
                 this.GetAdviceConstructorParameters( targetEvent ),
                 boundAddTemplate,
-                boundRemoveTemplate );
+                boundRemoveTemplate,
+                boundInvokeTemplate );
 
             return advice.Execute( this._state );
         }
@@ -1222,6 +1236,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
                 eventTemplate,
                 add?.PartialForIntroduction(),
                 remove?.PartialForIntroduction(),
+                null,
                 scope,
                 whenExists,
                 buildEvent,
@@ -1238,6 +1253,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         string addTemplate,
         string removeTemplate,
         string? invokeTemplate = null,
+        string? raiseTemplate = null,
         IntroductionScope scope = IntroductionScope.Default,
         OverrideStrategy whenExists = OverrideStrategy.Default,
         Action<IEventBuilder>? buildEvent = null,
@@ -1246,13 +1262,24 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
     {
         using ( this.WithNonUserCode() )
         {
+            if ( raiseTemplate != null )
+            {
+                throw new NotImplementedException( "Using raiseTemplate is not currently supported." );
+            }
+
             this.Validate( targetType, AdviceKind.IntroduceEvent );
 
-            var boundAddTemplate = this.ValidateRequiredTemplateName( addTemplate, TemplateKind.Default )
+            var boundAddTemplate = 
+                this.ValidateRequiredTemplateName( addTemplate, TemplateKind.Default )
                 .GetTemplateMember<IMethod>( this._compilation, this._state.ServiceProvider, this.TemplateProvider, this.GetTagsReader( tags ) );
 
-            var boundRemoveTemplate = this.ValidateRequiredTemplateName( removeTemplate, TemplateKind.Default )
+            var boundRemoveTemplate = 
+                this.ValidateRequiredTemplateName( removeTemplate, TemplateKind.Default )
                 .GetTemplateMember<IMethod>( this._compilation, this._state.ServiceProvider, this.TemplateProvider, this.GetTagsReader( tags ) );
+
+            var boundInvokeTemplate = 
+                this.ValidateTemplateName( invokeTemplate, TemplateKind.Default )
+                ?.GetTemplateMember<IMethod>( this._compilation, this._state.ServiceProvider, this.TemplateProvider, this.GetTagsReader( tags ) );
 
             var parameterReaders = this.GetArgsReader( args );
 
@@ -1262,6 +1289,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
                 eventTemplate: null,
                 boundAddTemplate.PartialForIntroduction( parameterReaders ),
                 boundRemoveTemplate.PartialForIntroduction( parameterReaders ),
+                boundInvokeTemplate?.PartialForIntroduction( parameterReaders ),
                 scope,
                 whenExists,
                 buildEvent,

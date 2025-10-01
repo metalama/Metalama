@@ -19,13 +19,13 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Overrides.Events.In
 
     internal class OverrideAttribute : OverrideEventAspect
     {
-        public override void OverrideAdd( dynamic value )
+        public override void OverrideAdd( dynamic handler )
         {
             Console.WriteLine( "Override." );
             meta.Proceed();
         }
 
-        public override void OverrideRemove( dynamic value )
+        public override void OverrideRemove( dynamic handler )
         {
             Console.WriteLine( "Override." );
             meta.Proceed();

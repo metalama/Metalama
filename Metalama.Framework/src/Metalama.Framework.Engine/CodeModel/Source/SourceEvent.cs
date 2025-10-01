@@ -49,7 +49,6 @@ namespace Metalama.Framework.Engine.CodeModel.Source
         [Memo]
         public IMethod RemoveMethod => this.Compilation.Factory.GetMethod( this._symbol.RemoveMethod! );
 
-        // TODO: pseudo-accessor
         [Memo]
         public IMethod RaiseMethod
             => this._symbol.RaiseMethod == null

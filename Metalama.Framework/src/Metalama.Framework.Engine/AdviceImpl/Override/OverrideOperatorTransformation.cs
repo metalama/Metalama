@@ -105,7 +105,7 @@ internal sealed class OverrideOperatorTransformation : OverrideMemberTransformat
     private SyntaxUserExpression CreateProceedExpression( MemberInjectionContext context, IMethod overriddenDeclaration )
     {
         return new SyntaxUserExpression(
-            context.AspectReferenceSyntaxProvider.GetOperatorReference(
+            context.AspectReferenceSyntaxProvider.AssertNotNull().GetOperatorReference(
                 this.AspectLayerId,
                 overriddenDeclaration,
                 context.SyntaxGenerator ),

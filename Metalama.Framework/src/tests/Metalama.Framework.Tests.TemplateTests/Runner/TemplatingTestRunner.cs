@@ -322,12 +322,9 @@ namespace Metalama.Framework.Tests.TemplateTests.Runner
                 .Single();
 
             var semanticModel = compilation.RoslynCompilation.GetSemanticModel( compilation.RoslynCompilation.SyntaxTrees.First() );
-            var roslynTargetMethodSymbol = semanticModel.GetDeclaredSymbol( roslynTargetMethod );
-
-            if ( roslynTargetMethodSymbol == null )
-            {
-                throw new InvalidOperationException( "The symbol of the target method was not found." );
-            }
+            var roslynTargetMethodSymbol = 
+                semanticModel.GetDeclaredSymbol( roslynTargetMethod )
+                ?? throw new InvalidOperationException( "The symbol of the target method was not found." );
 
             // ReSharper disable once SuspiciousTypeConversion.Global
             var lexicalScopeFactory = new LexicalScopeFactory( compilation );
@@ -357,6 +354,7 @@ namespace Metalama.Framework.Tests.TemplateTests.Runner
 
             return (new TemplateExpansionContext(
                         serviceProvider,
+                        null, // For templating tests, there is no linker.
                         metaApi,
                         lexicalScope,
                         syntaxGenerationContext,

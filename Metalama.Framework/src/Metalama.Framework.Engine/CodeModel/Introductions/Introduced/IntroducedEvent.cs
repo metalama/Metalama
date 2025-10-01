@@ -48,7 +48,8 @@ internal sealed class IntroducedEvent : IntroducedMember, IEventImpl
     [Memo]
     public IMethod RemoveMethod => new IntroducedAccessor( this, this.EventBuilderData.RemoveMethod );
 
-    public IMethod? RaiseMethod => null;
+    [Memo]
+    public IMethod RaiseMethod => new IntroducedAccessor( this, this.EventBuilderData.RaiseMethod );
 
     [Memo]
     public IEvent? OverriddenEvent => this.MapDeclaration( this.EventBuilderData.OverriddenEvent );

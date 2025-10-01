@@ -185,7 +185,7 @@ internal sealed class IntroduceConstructorParameterAdvice : Advice<IntroductionA
                     case PullActionKind.UseExpression:
                         parameterValue =
                             pullParameterAction.Expression.AssertNotNull()
-                                .ToExpressionSyntax( new SyntaxSerializationContext( compilation, chainedSyntaxGenerationContext, constructor.DeclaringType ) );
+                                .ToExpressionSyntax( new SyntaxSerializationContext( compilation, chainedSyntaxGenerationContext, null, constructor.DeclaringType ) );
 
                         break;
 

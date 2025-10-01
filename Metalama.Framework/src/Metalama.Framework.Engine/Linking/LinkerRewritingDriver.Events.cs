@@ -34,13 +34,25 @@ namespace Metalama.Framework.Engine.Linking
                     members.Add( this.GetEventBackingField( eventDeclaration, symbol, context ) );
                 }
 
-                if ( this.AnalysisRegistry.IsInlined( lastOverride.ToSemantic( IntermediateSymbolSemanticKind.Default ) ) )
+                if ( this.InjectionRegistry.HasEventRaiseOverride( symbol ) )
                 {
+                    // If there is an event raise override, we will generate all event broker fields that are reachable.
+
+                    members.AddRange( this.GetEventBrokerFields( symbol, context ) );
+
+                    // And link the final declaration, which will use broker substitution.
                     members.Add( GetLinkedDeclaration( IntermediateSymbolSemanticKind.Final, true ) );
                 }
                 else
                 {
-                    members.Add( this.GetTrampolineForEvent( eventDeclaration, lastOverride.ToSemantic( IntermediateSymbolSemanticKind.Default ), context ) );
+                    if ( this.AnalysisRegistry.IsInlined( lastOverride.ToSemantic( IntermediateSymbolSemanticKind.Default ) ) )
+                    {
+                        members.Add( GetLinkedDeclaration( IntermediateSymbolSemanticKind.Final, true ) );
+                    }
+                    else
+                    {
+                        members.Add( this.GetTrampolineForEvent( eventDeclaration, symbol, lastOverride.ToSemantic( IntermediateSymbolSemanticKind.Default ), context ) );
+                    }
                 }
 
                 if ( !eventDeclaration.GetLinkerDeclarationFlags().HasFlagFast( AspectLinkerDeclarationFlags.EventField )
@@ -62,7 +74,22 @@ namespace Metalama.Framework.Engine.Linking
             }
             else if ( this.InjectionRegistry.IsOverride( symbol ) )
             {
-                if ( this.AnalysisRegistry.IsReachable( symbol.ToSemantic( IntermediateSymbolSemanticKind.Default ) )
+
+                if ( this.InjectionRegistry.HasEventRaiseOverride( symbol ) )
+                {
+                    if (!this.InjectionRegistry.IsLastOverride(symbol))
+                    {
+                        var overrideTarget = (IEventSymbol) this.InjectionRegistry.GetLastOverride( symbol );
+                        var eventBrokerInfo = this.AnalysisRegistry.GetVisibleEventBrokerForSemantic( overrideTarget.ToSemantic( IntermediateSymbolSemanticKind.Default ) ).AssertNotNull();
+
+                        return [GetLinkedDeclaration( IntermediateSymbolSemanticKind.Default, true ), GetEventBrokerProxy( eventBrokerInfo, context )];
+                    }
+                    else
+                    {
+                        return [GetLinkedDeclaration( IntermediateSymbolSemanticKind.Default, true )];
+                    }
+                }
+                else if ( this.AnalysisRegistry.IsReachable( symbol.ToSemantic( IntermediateSymbolSemanticKind.Default ) )
                      && !this.AnalysisRegistry.IsInlined( symbol.ToSemantic( IntermediateSymbolSemanticKind.Default ) ) )
                 {
                     return [GetLinkedDeclaration( IntermediateSymbolSemanticKind.Default, true )];
@@ -87,7 +114,7 @@ namespace Metalama.Framework.Engine.Linking
 
                 return
                 [
-                    this.GetTrampolineForEvent( eventDeclaration, symbol.ToSemantic( IntermediateSymbolSemanticKind.Base ), context ),
+                    this.GetTrampolineForEvent( eventDeclaration, null, symbol.ToSemantic( IntermediateSymbolSemanticKind.Base ), context ),
                     this.GetOriginalImplEvent( eventDeclaration, symbol, context )
                 ];
             }
@@ -105,13 +132,19 @@ namespace Metalama.Framework.Engine.Linking
                 var addAccessorDeclaration = (AccessorDeclarationSyntax) symbol.AddMethod.AssertNotNull().GetPrimaryDeclarationSyntax().AssertNotNull();
                 var removeAccessorDeclaration = (AccessorDeclarationSyntax) symbol.RemoveMethod.AssertNotNull().GetPrimaryDeclarationSyntax().AssertNotNull();
 
-                var transformedAdd = GetLinkedAccessor( semanticKind, addAccessorDeclaration, symbol.AddMethod.AssertNotNull(), isOverrideOrOverrideTarget );
+                var transformedAdd =
+                    GetLinkedAccessor(
+                        semanticKind,
+                        addAccessorDeclaration,
+                        symbol.AddMethod.AssertNotNull(),
+                        isOverrideOrOverrideTarget );
 
-                var transformedRemove = GetLinkedAccessor(
-                    semanticKind,
-                    removeAccessorDeclaration,
-                    symbol.RemoveMethod.AssertNotNull(),
-                    isOverrideOrOverrideTarget );
+                var transformedRemove =
+                    GetLinkedAccessor(
+                        semanticKind,
+                        removeAccessorDeclaration,
+                        symbol.RemoveMethod.AssertNotNull(),
+                        isOverrideOrOverrideTarget );
 
                 var (accessorListLeadingTrivia, accessorStartingTrivia, accessorEndingTrivia, accessorListTrailingTrivia) = eventDeclaration switch
                 {
@@ -177,7 +210,7 @@ namespace Metalama.Framework.Engine.Linking
                             Token( closeBraceLeadingTrivia, SyntaxKind.CloseBraceToken, closeBraceTrailingTrivia ) )
                         .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock )
                         .WithGeneratedCodeAnnotation( FormattingAnnotations.SystemGeneratedCodeAnnotation ),
-                    semicolonToken: default(SyntaxToken) );
+                    semicolonToken: default( SyntaxToken ) );
             }
         }
 
@@ -388,6 +421,7 @@ namespace Metalama.Framework.Engine.Linking
 
         private EventDeclarationSyntax GetTrampolineForEvent(
             EventDeclarationSyntax @event,
+            IEventSymbol? contextEventSymbol,
             IntermediateSymbolSemantic<IEventSymbol> targetSemantic,
             SyntaxGenerationContext context )
         {
@@ -454,6 +488,74 @@ namespace Metalama.Framework.Engine.Linking
                     return IdentifierName( targetSemantic.Symbol.Name );
                 }
             }
+        }
+
+        private IEnumerable<MemberDeclarationSyntax> GetEventBrokerFields(
+            IEventSymbol symbol,
+            SyntaxGenerationContext context )
+        {
+            var eventBrokerTypeInfo = this.AnalysisRegistry.GetEventBrokerTypeInfo( symbol ).AssertNotNull();
+
+            foreach ( var eventBrokerTransformationInfo in eventBrokerTypeInfo.Transformations.Values )
+            {
+                yield return
+                    FieldDeclaration(
+                        List<AttributeListSyntax>(),
+                        TokenList(
+                            Token( TriviaList(), SyntaxKind.PrivateKeyword, TriviaList( ElasticSpace ) ),
+                            Token( TriviaList(), SyntaxKind.VolatileKeyword, TriviaList( ElasticSpace ) ) ),
+                        VariableDeclaration(
+                            context.SyntaxGenerator.TypeSyntax( eventBrokerTypeInfo.EventBrokerType.WithNullableAnnotation( NullableAnnotation.Annotated ) ),
+                            SingletonSeparatedList(
+                                VariableDeclarator(
+                                    Identifier( eventBrokerTransformationInfo.EventBrokerFieldName ),
+                                    null,
+                                    null ) ) ) )
+                    .NormalizeWhitespaceIfNecessary( context )
+                    .WithOptionalLeadingAndTrailingLineFeed( context )
+                    .WithGeneratedCodeAnnotation( FormattingAnnotations.SystemGeneratedCodeAnnotation );
+            }
+        }
+
+        private static MemberDeclarationSyntax GetEventBrokerProxy( EventBrokerTransformationInfo eventBrokerInfo, SyntaxGenerationContext context )
+        {
+            if ( eventBrokerInfo.BrokerProxyName == null )
+            {
+                throw new AssertionFailedException( "BrokerProxyName should not be null when generating event broker proxy." );
+            }
+
+            var eventSymbol = eventBrokerInfo.Parent.Event;
+
+            var fieldInitializationExpression = eventBrokerInfo.FieldInitializationExpression( context );
+
+            var addAccessor = AccessorDeclaration( SyntaxKind.AddAccessorDeclaration )
+                .WithBody(
+                    EventBrokerSyntaxHelper.CreateAddHandlerBody(
+                        context,
+                        eventBrokerInfo.EventBrokerFieldName,
+                        fieldInitializationExpression ) );
+
+            var removeAccessor = AccessorDeclaration( SyntaxKind.RemoveAccessorDeclaration )
+                .WithBody(
+                    EventBrokerSyntaxHelper.CreateRemoveHandlerBody(
+                        context,
+                        eventBrokerInfo.EventBrokerFieldName ) );
+
+            return 
+                EventDeclaration(
+                    List<AttributeListSyntax>(),
+                    eventSymbol.IsStatic
+                        ? TokenList(
+                            SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.PublicKeyword ),
+                            SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.StaticKeyword ) )
+                        : TokenList( SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.PublicKeyword ) ),
+                    context.SyntaxGenerator.TypeSyntax( eventSymbol.Type ),
+                    null,
+                    Identifier( eventBrokerInfo.BrokerProxyName ),
+                    AccessorList( List( [addAccessor, removeAccessor] ) ) )
+                .NormalizeWhitespaceIfNecessary( context )
+                .WithOptionalLeadingAndTrailingLineFeed( context )
+                .WithGeneratedCodeAnnotation( FormattingAnnotations.SystemGeneratedCodeAnnotation );
         }
     }
 }

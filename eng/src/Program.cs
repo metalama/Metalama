@@ -11,8 +11,12 @@ using PostSharp.Engineering.BuildTools.Build.Solutions;
 using PostSharp.Engineering.BuildTools.Dependencies.Definitions;
 using PostSharp.Engineering.BuildTools.Dependencies.Model;
 using PostSharp.Engineering.BuildTools.Docker;
+using PostSharp.Engineering.BuildTools.Docker;
+using System;
 using System.IO;
 using MetalamaDependencies = PostSharp.Engineering.BuildTools.Dependencies.Definitions.MetalamaDependencies.V2026_0;
+
+const string dotNetSdkVersion = "9.0.205";
 
 var product = new Product( MetalamaDependencies.Metalama )
 {
@@ -26,12 +30,17 @@ var product = new Product( MetalamaDependencies.Metalama )
             // The runtime is required by all tests.
             // The SDK is required by the Workspace tests.
             new DotNetComponent( "8.0.414", DotNetComponentKind.Sdk ),
+            
+            // Required by some tests.
             new VisualStudioBuildToolsComponent(
             [
                 "Microsoft.Net.Component.4.7.2.TargetingPack",
                 "Microsoft.Net.Component.4.7.2.SDK",
                 "Microsoft.Net.Component.4.8.TargetingPack",
-                "Microsoft.Net.Component.4.8.SDK"
+                "Microsoft.Net.Component.4.8.SDK",
+                
+                // Required to download test license keys.
+                new AzureCliComponent()
             ] )
         ]
     },
@@ -111,12 +120,6 @@ var product = new Product( MetalamaDependencies.Metalama )
         "Metalama.Framework.Tests.UnitTestHelpers.$(PackageVersion).nupkg",
         "Metalama.Framework.DesignTime.Contracts.$(PackageVersion).nupkg",
         "Metalama.Framework.DesignTime.Rpc.$(PackageVersion).nupkg" ),
-    ParametrizedDependencies =
-    [
-        DevelopmentDependencies.PostSharpEngineering.ToDependency(),
-        MetalamaDependencies.MetalamaCompiler.ToDependency(
-            new ConfigurationSpecific<BuildConfiguration>( BuildConfiguration.Release, BuildConfiguration.Release, BuildConfiguration.Public ) )
-    ],
     ExportedProperties =
     {
         { "Metalama.Framework\\Directory.Packages.props", ["RoslynApiMaxVersion", "RoslynMaxVersion"] },
@@ -188,15 +191,21 @@ return new EngineeringApp( product ).Run( args );
 
 static void OnPrepareCompleted( PrepareCompletedEventArgs args )
 {
-    /*
-
     if ( !TestLicenseKeyDownloader.Download( args.Context, args.Settings ) )
     {
-        args.IsFailed = true;
+        if ( args.Context.IsContinuousIntegrationBuild )
+        {
+            args.IsFailed = true;
 
-        return;
+            return;
+        }
+        else
+    {
+            args.Context.Console.WriteWarning( "Ignoring errors while downloading test license keys." );
+        }
     }
-*/
+    
+    args.Context.Console.WriteHeading( "Generating code" );
 
     args.Context.Console.WriteHeading( "Generating code" );
 

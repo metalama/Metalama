@@ -1,0 +1,2 @@
+// CompileTimeAspectPipeline.ExecuteAsync failed.
+// Error LAMA0041 on `Event`: `'Exception of type 'System.NotImplementedException' thrown while executing BuildAspect for aspect [OverrideAttribute] applied to 'TargetClass.Event': Overriding event raise is not implemented. Exception details are in '(none)'. To attach a debugger to the compiler, use the  '-p:MetalamaDebugCompiler=True' command-line option.`

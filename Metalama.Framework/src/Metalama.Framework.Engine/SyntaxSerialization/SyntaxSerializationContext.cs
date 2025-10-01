@@ -9,6 +9,7 @@ using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.SyntaxGeneration;
+using Metalama.Framework.Engine.Transformations;
 using Metalama.Framework.Engine.Utilities;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -23,12 +24,18 @@ internal sealed class SyntaxSerializationContext : ISyntaxGenerationContext
     public SyntaxSerializationContext( CompilationModel compilation, SyntaxGenerationOptions syntaxGenerationOptions ) : this(
         compilation,
         compilation.CompilationContext.GetSyntaxGenerationContext( syntaxGenerationOptions ),
+        null,
         null ) { }
 
-    public SyntaxSerializationContext( CompilationModel compilation, SyntaxGenerationContext syntaxGenerationContext, INamedType? currentType )
+    public SyntaxSerializationContext( 
+        CompilationModel compilation, 
+        SyntaxGenerationContext syntaxGenerationContext, 
+        AspectReferenceSyntaxProvider? aspectReferenceSyntaxProvider, 
+        INamedType? currentType )
     {
         this.CompilationModel = compilation;
         this.SyntaxGenerationContext = syntaxGenerationContext;
+        this.AspectReferenceSyntaxProvider = aspectReferenceSyntaxProvider;
         this.CurrentType = currentType;
     }
 
@@ -41,6 +48,8 @@ internal sealed class SyntaxSerializationContext : ISyntaxGenerationContext
     public CompilationModel CompilationModel { get; }
 
     public SyntaxGenerationContext SyntaxGenerationContext { get; }
+
+    public AspectReferenceSyntaxProvider? AspectReferenceSyntaxProvider { get; }
 
     // ReSharper disable once UnusedAutoPropertyAccessor.Global
     public INamedType? CurrentType { get; }

@@ -51,6 +51,7 @@ internal sealed class IntroduceConstructorTransformation
         var syntaxSerializationContext = new SyntaxSerializationContext(
             context.FinalCompilation,
             context.SyntaxGenerationContext,
+            context.AspectReferenceSyntaxProvider,
             constructorBuilder.DeclaringType );
 
         var arguments =

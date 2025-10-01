@@ -8,6 +8,7 @@ using Metalama.Framework.Engine.Transformations;
 using Metalama.Framework.Engine.Utilities.Threading;
 using Microsoft.CodeAnalysis;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -120,6 +121,14 @@ internal sealed partial class LinkerAnalysisStep
                             DepthFirstSearch( @event.AddMethod.AssertNotNull().ToSemantic( IntermediateSymbolSemanticKind.Default ) );
                             DepthFirstSearch( @event.RemoveMethod.AssertNotNull().ToSemantic( IntermediateSymbolSemanticKind.Default ) );
 
+                            if ( this._injectionRegistry.HasEventRaiseOverride( @event ) )
+                            {
+                                // If the event has an override for the raise method, we need to visit it as well.
+                                var eventRaiseMember = this._injectionRegistry.GetSatelliteOverrideMembers( @event ).Single();
+
+                                DepthFirstSearch( eventRaiseMember.ToSemantic( IntermediateSymbolSemanticKind.Default ) );
+                            }
+
                             break;
                     }
                 }
@@ -164,11 +173,18 @@ internal sealed partial class LinkerAnalysisStep
 
                         break;
 
-                    case IMethodSymbol { AssociatedSymbol: null }:
-                    case IPropertySymbol:
+                    case IMethodSymbol eventBrokerMethod when this._injectionRegistry.IsEventRaiseOverride( eventBrokerMethod ):
+                        var eventBrokerEvent = (IEventSymbol) this._injectionRegistry.GetMainOverrideForSatelliteOverride( eventBrokerMethod ).AssertNotNull();
+
+                        DepthFirstSearch( new IntermediateSymbolSemantic( eventBrokerEvent, current.Kind ) );
+
+                        break;
+
+                    case IMethodSymbol:
                     case IEventSymbol:
+                    case IPropertySymbol:
                     case IFieldSymbol:
-                        // Do nothing on method groups and fields as these do not have implicit references.
+                        // Do nothing on properties and fields as these do not have implicit references.
                         break;
 
                     default:

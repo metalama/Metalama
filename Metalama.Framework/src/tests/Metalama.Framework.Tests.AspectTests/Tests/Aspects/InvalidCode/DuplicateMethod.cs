@@ -5,7 +5,7 @@
 using System;
 using Metalama.Framework.Aspects;
 
-namespace Metalama.Framework.Tests.PublicPipeline.Aspects.InvalidCode.DuplicateDeclaration;
+namespace Metalama.Framework.Tests.PublicPipeline.Aspects.InvalidCode.DuplicateMethod;
 
 /*
  * Tests that ambiguous declaration does not cause a crash in the linker. The output may not be correct.

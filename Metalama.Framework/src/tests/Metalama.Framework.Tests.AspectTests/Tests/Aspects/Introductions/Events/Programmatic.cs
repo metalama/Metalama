@@ -18,8 +18,8 @@ namespace Metalama.Framework.IntegrationTests.Aspects.Introductions.Events.Progr
 
             builder.IntroduceEvent(
                 "EventFromAccessors",
-                nameof(AddEventTemplate),
-                nameof(RemoveEventTemplace),
+                nameof( AddEventTemplate ),
+                nameof( RemoveEventTemplace ),
                 buildEvent: e => e.Accessibility = Accessibility.Public );
 
             // TODO: Expression bodied template.

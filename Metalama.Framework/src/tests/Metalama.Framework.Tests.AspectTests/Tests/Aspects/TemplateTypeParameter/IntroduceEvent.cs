@@ -17,7 +17,7 @@ public class Aspect : TypeAspect
     {
         base.BuildAspect( builder );
 
-        builder.IntroduceEvent( "Event", nameof(Template), nameof(Template), args: new { T = typeof(EventHandler), x = 42 } );
+        builder.IntroduceEvent( "Event", nameof( Template ), nameof( Template ), args: new { T = typeof( EventHandler ), x = 42 } );
     }
 
     [Template]

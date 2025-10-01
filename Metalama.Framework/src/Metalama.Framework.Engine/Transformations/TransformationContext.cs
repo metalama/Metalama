@@ -26,17 +26,21 @@ internal abstract class TransformationContext
 
     public ITemplateLexicalScopeProvider LexicalScopeProvider { get; }
 
+    public AspectReferenceSyntaxProvider? AspectReferenceSyntaxProvider { get; }
+
     protected TransformationContext(
         ProjectServiceProvider serviceProvider,
         UserDiagnosticSink diagnosticSink,
         SyntaxGenerationContext syntaxGenerationContext,
         CompilationModel compilation,
-        ITemplateLexicalScopeProvider lexicalScopeProvider )
+        ITemplateLexicalScopeProvider lexicalScopeProvider,
+        AspectReferenceSyntaxProvider? aspectReferenceSyntaxProvider )
     {
         this.ServiceProvider = serviceProvider;
         this.DiagnosticSink = diagnosticSink;
         this.SyntaxGenerationContext = syntaxGenerationContext;
         this.FinalCompilation = compilation;
         this.LexicalScopeProvider = lexicalScopeProvider;
+        this.AspectReferenceSyntaxProvider = aspectReferenceSyntaxProvider;
     }
 }

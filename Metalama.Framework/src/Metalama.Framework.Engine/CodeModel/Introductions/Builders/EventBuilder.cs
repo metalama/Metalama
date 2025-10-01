@@ -68,11 +68,14 @@ internal sealed class EventBuilder : MemberBuilder, IEventBuilder, IEventImpl
     [Memo]
     public AccessorBuilder RemoveMethod => new( this, MethodKind.EventRemove, this.IsEventField );
 
+    [Memo]
+    public AccessorBuilder RaiseMethod => new( this, MethodKind.EventRaise, true );
+
     IMethodBuilder IEventBuilder.AddMethod => this.AddMethod;
 
     IMethodBuilder IEventBuilder.RemoveMethod => this.RemoveMethod;
 
-    public IMethodBuilder? RaiseMethod => null;
+    IMethodBuilder IEventBuilder.RaiseMethod => this.RaiseMethod;
 
     public IEvent? OverriddenEvent { get; set; }
 
@@ -105,7 +108,7 @@ internal sealed class EventBuilder : MemberBuilder, IEventBuilder, IEventImpl
 
     IMethod IEvent.RemoveMethod => this.RemoveMethod;
 
-    IMethod? IEvent.RaiseMethod => this.RaiseMethod;
+    IMethod IEvent.RaiseMethod => this.RaiseMethod;
 
     // TODO: When an interface is introduced, explicit implementation should appear here.
     public IReadOnlyList<IEvent> ExplicitInterfaceImplementations { get; private set; } = Array.Empty<IEvent>();
@@ -162,6 +165,7 @@ internal sealed class EventBuilder : MemberBuilder, IEventBuilder, IEventImpl
 
         this.AddMethod.Freeze();
         this.RemoveMethod.Freeze();
+        this.RaiseMethod.Freeze();
     }
 
     protected override void EnsureReferenceInitialized()

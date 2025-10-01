@@ -10,6 +10,8 @@ namespace Metalama.Framework.Engine.Linking;
 
 internal sealed class ResolvedAspectReference
 {
+    private readonly IntermediateSymbolSemantic<IMethodSymbol>? _explicitResolvedSemanticBody;
+
     /// <summary>
     /// Gets the semantic that contains the reference.
     /// </summary>
@@ -39,7 +41,10 @@ internal sealed class ResolvedAspectReference
     /// Gets the symbol semantic for the target body (always a method).
     /// </summary>
     public IntermediateSymbolSemantic<IMethodSymbol> ResolvedSemanticBody
-        => (this.ResolvedSemantic, this.TargetKind) switch
+        => 
+        this._explicitResolvedSemanticBody != null
+        ? this._explicitResolvedSemanticBody.Value
+        : (this.ResolvedSemantic, this.TargetKind) switch
         {
             ({ Symbol: IMethodSymbol method }, AspectReferenceTargetKind.Self) =>
                 method.ToSemantic( this.ResolvedSemantic.Kind ),
@@ -57,7 +62,9 @@ internal sealed class ResolvedAspectReference
         };
 
     public bool HasResolvedSemanticBody
-        => (this.ResolvedSemantic, this.TargetKind) switch
+        =>
+        this._explicitResolvedSemanticBody != null || 
+        ( this.ResolvedSemantic, this.TargetKind) switch
         {
             // TODO PERF: match Kind not symbol type 
             ({ Symbol: IMethodSymbol }, AspectReferenceTargetKind.Self) => true,
@@ -116,19 +123,30 @@ internal sealed class ResolvedAspectReference
     /// </summary>
     public bool HasCustomReceiver { get; }
 
+    /// <summary>
+    /// Gets a value indicating whether the reference virtual, i.e. will have no substitution.
+    /// Such references are used for concepts driven by the linker, for example event brokers.
+    /// </summary>
+    public bool IsVirtual { get; }
+
     public ResolvedAspectReference(
         IntermediateSymbolSemantic<IMethodSymbol> containingSemantic,
         IMethodSymbol? containingLocalFunction,
         ISymbol originalSymbol,
         IntermediateSymbolSemantic resolvedSemantic,
+        IntermediateSymbolSemantic<IMethodSymbol>? explicitResolvedSemanticBody,
         SyntaxNode annotatedNode,
         SyntaxNode rootNode,
         SyntaxNode symbolSourceNode,
         AspectReferenceTargetKind targetKind,
         bool isInlineable,
-        bool hasCustomReceiver )
+        bool hasCustomReceiver,
+        bool isVirtual )
     {
-        Invariant.AssertNot( containingSemantic.Kind != IntermediateSymbolSemanticKind.Final && symbolSourceNode is not ExpressionSyntax );
+        Invariant.AssertNot(
+            containingSemantic.Kind != IntermediateSymbolSemanticKind.Final
+            && symbolSourceNode is not ExpressionSyntax 
+            && targetKind != AspectReferenceTargetKind.EventRaiseAccessor );
 
         Invariant.AssertNot(
             resolvedSemantic.Symbol is IMethodSymbol
@@ -149,6 +167,8 @@ internal sealed class ResolvedAspectReference
         this.TargetKind = targetKind;
         this.IsInlineable = isInlineable;
         this.HasCustomReceiver = hasCustomReceiver;
+        this._explicitResolvedSemanticBody = explicitResolvedSemanticBody;
+        this.IsVirtual = isVirtual;
     }
 
     public override string ToString()
