@@ -5,7 +5,7 @@
   </PropertyGroup>
   <!-- Set versions of dependencies that need special treatment or consist of multiple packages of the same version. -->
   <PropertyGroup>
-    <PostSharpEngineeringVersion Condition="'$(PostSharpEngineeringVersion)'==''">2023.2.250</PostSharpEngineeringVersion>
+    <PostSharpEngineeringVersion Condition="'$(PostSharpEngineeringVersion)'==''">2023.2.251</PostSharpEngineeringVersion>
   </PropertyGroup>
   <ItemGroup>
     <PackageVersion Include="PostSharp.Engineering.BuildTools" Version="$(PostSharpEngineeringVersion)" />
