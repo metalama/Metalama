@@ -3,6 +3,7 @@
   <Import Project="../Directory.Packages.props"/>
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <!-- Required while .NET SDK 10 is pre-release.  -->
     <RestorePrerelease>true</RestorePrerelease>
   </PropertyGroup>
 
