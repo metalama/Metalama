@@ -5,7 +5,7 @@ internal abstract class DerivedClass : BaseClass
   {
     get
     {
-      return null;
+      return null !;
     }
   }
 }
