@@ -1,0 +1,1 @@
+The objective of this project is to test that the compile-time project will successfully compile in C# 10.

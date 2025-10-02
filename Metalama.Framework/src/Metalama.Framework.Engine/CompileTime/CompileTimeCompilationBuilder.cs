@@ -344,6 +344,8 @@ internal sealed partial class CompileTimeCompilationBuilder
             }
         }
 
+        compileTimeCompilation = RemoveDuplicateEmbeddedAttributes( compileTimeCompilation );
+
         this._observer?.OnCompileTimeCompilation( compileTimeCompilation, compileTimeToSourceMap.AssertNotNull() );
 
         return true;
@@ -362,9 +364,7 @@ internal sealed partial class CompileTimeCompilationBuilder
         var preprocessorServiceProvider = this._serviceProvider.GetService<ICompileTimePreprocessorSymbolProvider>();
 
         var preprocessorSymbols =
-            preprocessorServiceProvider != null
-                ? preprocessorServiceProvider.PreprocessorSymbols.Concat( "NETSTANDARD_2_0" )
-                : ["NETSTANDARD_2_0"];
+            (preprocessorServiceProvider?.PreprocessorSymbols ?? []).Concat( ["NETSTANDARD_2_0", "EMBED_SYSTEM_TYPES"] );
 
         var parseOptions = new CSharpParseOptions(
             preprocessorSymbols: preprocessorSymbols,
@@ -1266,6 +1266,8 @@ internal sealed partial class CompileTimeCompilationBuilder
                 manifest.LanguageVersion ?? SupportedCSharpVersions.Latest,
                 new TransformedPathGenerator() )
             .AddSyntaxTrees( syntaxTrees );
+
+        compilation = (CSharpCompilation) RemoveDuplicateEmbeddedAttributes( compilation );
 
         var alternateOrdinal = 0;
 

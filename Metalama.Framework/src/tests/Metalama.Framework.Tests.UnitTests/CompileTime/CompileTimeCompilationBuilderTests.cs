@@ -1505,5 +1505,59 @@ RemainingNamespace
             // The name must have been trimmed, otherwise the test is worthless.
             Assert.DoesNotContain( dependencyAssemblyName, dependencyProject.CompileTimeIdentity.Name, StringComparison.Ordinal );
         }
+
+        [Fact]
+        public void RemoveDuplicateEmbeddedAttributes()
+        {
+            using var testContext = this.CreateTestContext();
+
+            const string inputA = """
+                                  namespace Microsoft.CodeAnalysis
+                                  {
+                                      partial class EmbeddedAttribute {}
+                                  }
+                                  """;
+
+            const string inputB = """
+                                  #define YES
+                                  namespace Microsoft
+                                  {
+                                    namespace CodeAnalysis 
+                                    {
+                                        #if YES
+                                        partial class EmbeddedAttribute {}
+                                        #endif
+                                    }
+                                  }
+                                  """;
+
+            var inputCode = new Dictionary<string, string>() { ["A.cs"] = inputA, ["B.cs"] = inputB };
+
+            var compilation = testContext.CreateCSharpCompilation( inputCode, ignoreErrors: true );
+
+            var newCompilation = CompileTimeCompilationBuilder.RemoveDuplicateEmbeddedAttributes( compilation );
+
+            AssertEx.EolInvariantEqual( inputA, GetActual( "A.cs" ) );
+
+            AssertEx.EolInvariantEqual(
+                """
+                #define YES
+                namespace Microsoft
+                {
+                  namespace CodeAnalysis 
+                  {
+                      #if YES
+                      
+                      #endif
+                  }
+                }
+                """,
+                GetActual( "B.cs" ) );
+
+            string GetActual( string filePath )
+            {
+                return newCompilation.SyntaxTrees.Single( t => t.FilePath == filePath ).GetText().ToString();
+            }
+        }
     }
 }
