@@ -10,7 +10,7 @@ using Metalama.Framework.Aspects;
 namespace PostSharp.Aspects.Advices
 {
     /// <summary>
-    /// In Metalama, implement the <see cref="IAspect{T}.BuildAspect"/> method and use <c>builder</c>.<see cref="IAspectBuilder.Advice"/>.<see cref="IAdviceFactory.OverrideAccessors(Metalama.Framework.Code.IFieldOrPropertyOrIndexer,in Metalama.Framework.Advising.GetterTemplateSelector,string?,object?,object?)"/>
+    /// In Metalama, implement the <see cref="IAspect{T}.BuildAspect"/> method and use <c>builder</c>.<see cref="IAspectBuilder.Advice"/>.<see cref="IAdviceFactory.OverrideAccessors(Metalama.Framework.Code.IEvent, string?, string?, string?, string?, object?, object?)"/>
     /// </summary>
     [Obsolete( "", true )]
     [AttributeUsage( AttributeTargets.Method, AllowMultiple = true )]
