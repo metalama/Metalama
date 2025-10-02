@@ -6,6 +6,8 @@ using Metalama.Framework.RunTime;
 using System;
 using Xunit;
 
+// ReSharper disable ConvertToLocalFunction
+
 #pragma warning disable IDE0039 // Use local function
 
 namespace Metalama.Framework.Tests.UnitTests.RunTime;
@@ -19,7 +21,7 @@ public class ActionEventBrokerTests
         var test = new TestClass( () => brokerInvocations++ );
 
         var handlerInvocations = 0;
-        EventHandler handler = ( s, e ) => handlerInvocations++;
+        EventHandler handler = ( _, _ ) => handlerInvocations++;
 
         test.Event += handler;
 
@@ -37,8 +39,8 @@ public class ActionEventBrokerTests
 
         var handler1Invocations = 0;
         var handler2Invocations = 0;
-        EventHandler handler1 = ( s, e ) => handler1Invocations++;
-        EventHandler handler2 = ( s, e ) => handler2Invocations++;
+        EventHandler handler1 = ( _, _ ) => handler1Invocations++;
+        EventHandler handler2 = ( _, _ ) => handler2Invocations++;
 
         test.Event += handler1;
         test.Event += handler2;
@@ -57,7 +59,7 @@ public class ActionEventBrokerTests
         var test = new TestClass( () => brokerInvocations++ );
 
         var handlerInvocations = 0;
-        EventHandler handler = ( s, e ) => handlerInvocations++;
+        EventHandler handler = ( _, _ ) => handlerInvocations++;
 
         test.Event += handler;
         test.Event += handler;
@@ -75,7 +77,7 @@ public class ActionEventBrokerTests
         var test = new TestClass( () => brokerInvocations++ );
 
         var handlerInvocations = 0;
-        EventHandler handler = ( s, e ) => handlerInvocations++;
+        EventHandler handler = ( _, _ ) => handlerInvocations++;
 
         test.Event += handler;
         test.Event -= handler;
@@ -94,8 +96,8 @@ public class ActionEventBrokerTests
 
         var handler1Invocations = 0;
         var handler2Invocations = 0;
-        EventHandler handler1 = ( s, e ) => handler1Invocations++;
-        EventHandler handler2 = ( s, e ) => handler2Invocations++;
+        EventHandler handler1 = ( _, _ ) => handler1Invocations++;
+        EventHandler handler2 = ( _, _ ) => handler2Invocations++;
 
         test.Event += handler1;
         test.Event += handler2;
@@ -115,7 +117,7 @@ public class ActionEventBrokerTests
         var test = new TestClass( () => brokerInvocations++ );
 
         var handlerInvocations = 0;
-        EventHandler handler = ( s, e ) => handlerInvocations++;
+        EventHandler handler = ( _, _ ) => handlerInvocations++;
 
         test.Event += handler;
         test.Event += handler;
@@ -135,8 +137,8 @@ public class ActionEventBrokerTests
 
         var registeredHandlerInvocations = 0;
         var unregisteredHandlerInvocations = 0;
-        EventHandler registeredHandler = ( s, e ) => registeredHandlerInvocations++;
-        EventHandler unregisteredHandler = ( s, e ) => unregisteredHandlerInvocations++;
+        EventHandler registeredHandler = ( _, _ ) => registeredHandlerInvocations++;
+        EventHandler unregisteredHandler = ( _, _ ) => unregisteredHandlerInvocations++;
 
         test.Event += registeredHandler;
         test.Event -= unregisteredHandler; // Try to remove a different delegate
@@ -157,9 +159,9 @@ public class ActionEventBrokerTests
         var handler1Invocations = 0;
         var handler2Invocations = 0;
         var handler3Invocations = 0;
-        EventHandler handler1 = ( s, e ) => handler1Invocations++;
-        EventHandler handler2 = ( s, e ) => handler2Invocations++;
-        EventHandler handler3 = ( s, e ) => handler3Invocations++;
+        EventHandler handler1 = ( _, _ ) => handler1Invocations++;
+        EventHandler handler2 = ( _, _ ) => handler2Invocations++;
+        EventHandler handler3 = ( _, _ ) => handler3Invocations++;
 
         var multicastHandler = handler1 + handler2 + handler3;
 
@@ -176,23 +178,24 @@ public class ActionEventBrokerTests
 
     public class TestClass
     {
-#pragma warning disable IDE0044 // Add readonly modifier
-        private volatile ActionEventBroker<EventHandler, (object? sender, EventArgs args)> _broker;
-#pragma warning restore IDE0044 // Add readonly modifier
-        private EventHandler? _originalEvent;
         private readonly Action _onBrokerInvoke;
 
+#pragma warning disable IDE0044 // Add readonly modifier
+        private volatile ActionEventBroker<EventHandler, (object? Sender, EventArgs Args)>? _broker;
+#pragma warning restore IDE0044 // Add readonly modifier
+        private EventHandler? _originalEvent;
+
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
-        public TestClass(Action onBrokerInvoke)
+        public TestClass( Action onBrokerInvoke )
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
         {
             this._onBrokerInvoke = onBrokerInvoke;
 
 #pragma warning disable CS0420 // A reference to a volatile field will not be treated as volatile
-            ActionEventBroker<EventHandler, (object? sender, EventArgs args)>.EnsureInitialized(
+            ActionEventBroker<EventHandler, (object? Sender, EventArgs Args)>.EnsureInitialized(
                 ref this._broker,
                 this,
-                new ActionEventBrokerCallbacks<EventHandler, (object? sender, EventArgs args)>(
+                new ActionEventBrokerCallbacks<EventHandler, (object? Sender, EventArgs Args)>(
                     ( h, i, args ) => ((TestClass) i).OnEventViaBroker( h, args ),
                     broker => ( sender, args ) => broker.Invoke( (sender, args) ),
                     ( h, i ) => ((TestClass) i)._originalEvent += h,
@@ -202,25 +205,16 @@ public class ActionEventBrokerTests
 
         public event EventHandler Event
         {
-            add
-            {
-                this._broker.AddHandler( value );
-            }
-            remove
-            {
-                this._broker?.RemoveHandler( value );
-            }
+            add => this._broker?.AddHandler( value );
+            remove => this._broker?.RemoveHandler( value );
         }
 
-        public void OnEvent(EventArgs args)
-        {
-            this._originalEvent?.Invoke( this, args );
-        }
+        public void OnEvent( EventArgs args ) => this._originalEvent?.Invoke( this, args );
 
-        private void OnEventViaBroker(EventHandler handler, (object? sender, EventArgs args) args)
+        private void OnEventViaBroker( EventHandler handler, (object? Sender, EventArgs Args) args )
         {
             this._onBrokerInvoke();
-            handler.Invoke( args.sender, args.args );
+            handler.Invoke( args.Sender, args.Args );
         }
     }
 }

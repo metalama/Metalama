@@ -42,7 +42,7 @@ namespace PostSharp.Aspects
         public EventInfo Event { get; set; }
 
         /// <summary>
-        /// In PostSharp, gets arguments in an <see cref="EventInterceptionAspect.OnInvokeHandler"/> advice. In Metalama, this advice type is not supported.
+        /// Use <see cref="meta"/>.<see cref="meta.Target"/>.<see cref="IMetaTarget.Parameters"/>.
         /// </summary>
         public Arguments Arguments { get; }
 
@@ -71,13 +71,15 @@ namespace PostSharp.Aspects
         public abstract void RemoveHandler( Delegate handler );
 
         /// <summary>
-        /// Not supported in Metalama.
+        /// Use <see cref="meta"/>.<see cref="meta.Proceed"/> from the advice that overrides the event invoker.
+        /// Invoking the invoker from another advice is not supported.
         /// </summary>
-        [Obsolete( "", true )]
         public abstract void ProceedInvokeHandler();
 
         /// <summary>
-        /// Not supported in Metalama.
+        /// From <see cref="OverrideEventAspect.OverrideInvoke"/>,  change the parameter values
+        /// using <see cref="meta"/>.<see cref="meta.Target"/>.<see cref="IMetaTarget.Parameters"/>.<c>[*].Value = *</c>,
+        /// then call <see cref="meta"/>.<see cref="meta.Proceed"/>. Invoking the invoker from another advice is not supported.
         /// </summary>
         [Obsolete( "", true )]
         public abstract object InvokeHandler( Delegate handler, Arguments arguments );

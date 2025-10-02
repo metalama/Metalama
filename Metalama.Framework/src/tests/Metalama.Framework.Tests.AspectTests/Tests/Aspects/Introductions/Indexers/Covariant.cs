@@ -6,7 +6,6 @@
 // @RequiredConstant(NET5_0_OR_GREATER)
 #endif
 
-using System;
 using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
@@ -17,18 +16,18 @@ namespace Metalama.Framework.IntegrationTests.Aspects.Introductions.Indexer.Cova
     {
         public override void BuildAspect( IAspectBuilder<INamedType> builder )
         {
-            builder.IntroduceIndexer( typeof(int), nameof(this.Indexer), null,  whenExists: OverrideStrategy.Override );
+            builder.IntroduceIndexer( typeof(int), nameof(this.Indexer), null, whenExists: OverrideStrategy.Override );
         }
 
         [Template]
-        public DerivedClass Indexer(int i) => null;
+        public DerivedClass Indexer( int i ) => null!;
     }
 
     internal class BaseClass
     {
-        public virtual BaseClass this[int i] => null;
+        public virtual BaseClass this[ int i ] => null!;
     }
-    
+
     // <target>
     [Introduction]
     internal abstract class DerivedClass : BaseClass { }

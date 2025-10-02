@@ -2,6 +2,12 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Aspects;
+using Metalama.Framework.Advising;
+using Metalama.Framework.Code;
+
+// ReSharper disable PartialTypeWithSinglePart
+
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.DesignTime.Covariant;
 
 #if TEST_OPTIONS
@@ -9,21 +15,14 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.DesignTime.Covarian
 // @RequiredConstant(NET5_0_OR_GREATER)
 #endif
 
-
-using Metalama.Framework.Aspects; 
-using Metalama.Framework.Advising;
-using Metalama.Framework.Code;
-using Metalama.Framework.Diagnostics;
-using Metalama.Framework.Eligibility;
-
-class MyAspect : TypeAspect
+internal class MyAspect : TypeAspect
 {
-    public override void BuildAspect(IAspectBuilder<INamedType> builder)
+    public override void BuildAspect( IAspectBuilder<INamedType> builder )
     {
-        base.BuildAspect(builder);
+        base.BuildAspect( builder );
 
         var targetType = builder.Target;
-        
+
         // Method
         builder.IntroduceMethod(
             nameof(this.GetCovariantMethodTemplate),
@@ -32,15 +31,16 @@ class MyAspect : TypeAspect
             {
                 m.Name = "CovariantGetMethod";
                 m.ReturnType = targetType.ToNullable();
-            });
+            } );
+
         builder.IntroduceMethod(
             nameof(this.GetNonCovariantMethodTemplate),
             whenExists: OverrideStrategy.Override,
             buildMethod: m =>
             {
                 m.Name = "NonCovariantGetMethod";
-            });
-        
+            } );
+
         // Property
         builder.IntroduceProperty(
             nameof(this.CovariantPropertyTemplate),
@@ -49,15 +49,16 @@ class MyAspect : TypeAspect
             {
                 m.Name = "CovariantProperty";
                 m.Type = targetType.ToNullable();
-            });
+            } );
+
         builder.IntroduceProperty(
             nameof(this.NonCovariantPropertyTemplate),
             whenExists: OverrideStrategy.Override,
             buildProperty: m =>
             {
                 m.Name = "NonCovariantProperty";
-            });
-        
+            } );
+
         // Indexer
         builder.IntroduceIndexer(
             typeof(int),
@@ -68,7 +69,8 @@ class MyAspect : TypeAspect
             {
                 m.IsVirtual = true;
                 m.Type = targetType.ToNullable();
-            });
+            } );
+
         builder.IntroduceIndexer(
             typeof(string),
             null,
@@ -77,33 +79,32 @@ class MyAspect : TypeAspect
             buildIndexer: m =>
             {
                 m.IsVirtual = true;
-            });
+            } );
     }
 
     [Template]
     public virtual dynamic? GetCovariantMethodTemplate() => null;
 
     [Template]
-    public virtual string GetNonCovariantMethodTemplate() => null;
+    public virtual string GetNonCovariantMethodTemplate() => null!;
 
     [Template]
     public virtual dynamic? CovariantPropertyTemplate => null;
 
     [Template]
-    public virtual string NonCovariantPropertyTemplate => null;
-    
-    [Template]
-    public virtual dynamic? CovariantIndexerTemplate(int index) => null;
+    public virtual string NonCovariantPropertyTemplate => null!;
 
     [Template]
-    public virtual string NonCovariantIndexerTemplate(string index) => null;
+    public virtual dynamic? CovariantIndexerTemplate( int index ) => null;
 
+    [Template]
+    public virtual string NonCovariantIndexerTemplate( string index ) => null!;
 }
 
 // <target>
 [MyAspect]
-partial class B { }
+internal partial class B { }
 
 // <target>
 [MyAspect]
-partial class D : B { }
+internal partial class D : B { }

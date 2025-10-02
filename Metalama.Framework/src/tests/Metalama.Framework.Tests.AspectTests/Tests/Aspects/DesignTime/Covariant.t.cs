@@ -1,8 +1,8 @@
 [MyAspect]
-partial class B
+internal partial class B
 {
 }
 [MyAspect]
-partial class D : B
+internal partial class D : B
 {
 }
