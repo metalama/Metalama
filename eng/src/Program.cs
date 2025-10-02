@@ -28,6 +28,9 @@ var product = new Product( MetalamaDependencies.Metalama )
             // The SDK is required by the Workspace tests.
             new DotNetComponent( "8.0.414", DotNetComponentKind.Sdk ),
 
+            // Requires by eng.
+            new DotNetComponent( "9.0.9", DotNetComponentKind.DotNetRuntime ),
+
             // Required by some tests.
             new VisualStudioBuildToolsComponent(
                 VisualStudioBuildToolsComponentVersion.v17_14_15,
