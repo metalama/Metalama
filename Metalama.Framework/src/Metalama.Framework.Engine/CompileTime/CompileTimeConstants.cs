@@ -9,7 +9,8 @@ namespace Metalama.Framework.Engine.CompileTime
 {
     public static class CompileTimeConstants
     {
-        private const string _predefinedSyntaxTreePrefix = "~";
+        private const string _predefinedSyntaxTreePrefix = "sys!";
+
         internal static string GetPrefixedSyntaxTreeName( string name ) => _predefinedSyntaxTreePrefix + name;
 
         public static bool IsPredefinedSyntaxTree( string path )
