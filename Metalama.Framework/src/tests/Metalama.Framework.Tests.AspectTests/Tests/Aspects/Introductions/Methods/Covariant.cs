@@ -6,7 +6,6 @@
 // @RequiredConstant(NET5_0_OR_GREATER)
 #endif
 
-using System;
 using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
@@ -17,18 +16,18 @@ namespace Metalama.Framework.IntegrationTests.Aspects.Introductions.Methods.Cova
     {
         public override void BuildAspect( IAspectBuilder<INamedType> builder )
         {
-            builder.IntroduceMethod( nameof(M), whenExists: OverrideStrategy.Override );
+            builder.IntroduceMethod( nameof(this.M), whenExists: OverrideStrategy.Override );
         }
 
         [Template]
-        public DerivedClass M() => null;
+        public DerivedClass M() => null!;
     }
 
     internal class BaseClass
     {
-        public virtual BaseClass M() => null;
+        public virtual BaseClass M() => null!;
     }
-    
+
     // <target>
     [Introduction]
     internal abstract class DerivedClass : BaseClass { }

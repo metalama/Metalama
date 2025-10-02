@@ -10,7 +10,7 @@ using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 
-namespace Metalama.Framework.IntegrationTests.Aspects.Introductions.Properties.Covariant
+namespace Metalama.Framework.IntegrationTests.Aspects.Introductions.Properties.Covariant_Nullable
 {
     internal class IntroductionAttribute : TypeAspect
     {
@@ -20,12 +20,12 @@ namespace Metalama.Framework.IntegrationTests.Aspects.Introductions.Properties.C
         }
 
         [Template]
-        public DerivedClass P => null!;
+        public DerivedClass? P => null;
     }
 
     internal class BaseClass
     {
-        public virtual BaseClass P => null!;
+        public virtual BaseClass? P => null;
     }
 
     // <target>

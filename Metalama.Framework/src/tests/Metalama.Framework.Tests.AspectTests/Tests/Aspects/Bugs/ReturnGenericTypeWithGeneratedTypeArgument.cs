@@ -5,7 +5,6 @@
 using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
-using Metalama.Framework.Code.SyntaxBuilders;
 using System.Collections.Generic;
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Bugs.ReturnGenericTypeWithGeneratedTypeArgument;
@@ -16,17 +15,20 @@ public class MyAspectAttribute : TypeAspect
     public override void BuildAspect( IAspectBuilder<INamedType> builder )
     {
         base.BuildAspect( builder );
-        var introducedType = builder.IntroduceClass( "IntroducedType",
-            buildType: t =>
-            {
-                t.Accessibility = Accessibility.Public;
-            } ).Declaration;
 
+        var introducedType = builder.IntroduceClass(
+                "IntroducedType",
+                buildType: t =>
+                {
+                    t.Accessibility = Accessibility.Public;
+                } )
+            .Declaration;
 
-        var retType = ((INamedType) TypeFactory.GetType( typeof( IEnumerable<> ) ))
+        var retType = ((INamedType) TypeFactory.GetType( typeof(IEnumerable<>) ))
             .WithTypeArguments( introducedType );
 
-        builder.IntroduceMethod( nameof( MethodTemplate ),
+        builder.IntroduceMethod(
+            nameof(this.MethodTemplate),
             buildMethod: m =>
             {
                 m.Name = "Method";
@@ -37,12 +39,10 @@ public class MyAspectAttribute : TypeAspect
     [Template]
     public dynamic MethodTemplate()
     {
-        return default;
+        return default!;
     }
 }
 
 // <target>
 [MyAspect]
-public class MyClass
-{
-}
+public class MyClass { }
