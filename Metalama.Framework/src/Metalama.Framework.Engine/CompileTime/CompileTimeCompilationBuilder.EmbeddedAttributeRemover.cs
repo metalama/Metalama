@@ -32,11 +32,11 @@ internal sealed partial class CompileTimeCompilationBuilder
             .Skip( 1 )
             .ToHashSet();
 
-        var syntaxTreesToRewrite = nodesToRemove.SelectAsArray( n => n.SyntaxTree ).Distinct();
+        var syntaxTreesToRewrite = nodesToRemove.SelectAsReadOnlyCollection( n => n.SyntaxTree ).Distinct();
 
         foreach ( var syntaxTree in syntaxTreesToRewrite )
         {
-            var newSyntaxRoot = new EmbeddedAttributeRemover( nodesToRemove ).Visit( syntaxTree.GetRoot() );
+            var newSyntaxRoot = new EmbeddedAttributeRemover( nodesToRemove ).Visit( syntaxTree.GetRoot() ).AssertNotNull();
             var newSyntaxTree = syntaxTree.WithRootAndOptions( newSyntaxRoot, syntaxTree.Options );
             compilation = compilation.ReplaceSyntaxTree( syntaxTree, newSyntaxTree );
         }
