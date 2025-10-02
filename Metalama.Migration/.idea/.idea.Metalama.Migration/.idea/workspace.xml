@@ -4,7 +4,16 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="fb4953a8-5d63-4f6a-bbfd-3efeb0772f05" name="Changes" comment="" />
+    <list default="true" id="fb4953a8-5d63-4f6a-bbfd-3efeb0772f05" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/../Metalama.Framework/src/Metalama.Framework.Engine/Metalama.Framework.Engine.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/../Metalama.Framework/src/Metalama.Framework.Engine/Metalama.Framework.Engine.csproj" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/.idea.Metalama.Migration/.idea/projectSettingsUpdater.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.Metalama.Migration/.idea/projectSettingsUpdater.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Metalama.Migration/Aspects/Advices/OnEventAddHandlerAdvice.cs" beforeDir="false" afterPath="$PROJECT_DIR$/src/Metalama.Migration/Aspects/Advices/OnEventAddHandlerAdvice.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Metalama.Migration/Aspects/Advices/OnEventInvokeHandlerAdvice.cs" beforeDir="false" afterPath="$PROJECT_DIR$/src/Metalama.Migration/Aspects/Advices/OnEventInvokeHandlerAdvice.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Metalama.Migration/Aspects/Advices/OnEventRemoveHandlerAdvice.cs" beforeDir="false" afterPath="$PROJECT_DIR$/src/Metalama.Migration/Aspects/Advices/OnEventRemoveHandlerAdvice.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Metalama.Migration/Aspects/EventInterceptionArgs.cs" beforeDir="false" afterPath="$PROJECT_DIR$/src/Metalama.Migration/Aspects/EventInterceptionArgs.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../eng/src/BuildMetalama.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/../eng/src/BuildMetalama.csproj" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../eng/src/Program.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../eng/src/Program.cs" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -13,22 +22,22 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
   </component>
-  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
-  "lastFilter": {
-    "state": "OPEN",
-    "assignee": "gfraiteur"
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;gfraiteur&quot;
   }
-}]]></component>
-  <component name="GithubPullRequestsUISettings"><![CDATA[{
-  "selectedUrlAndAccountId": {
-    "url": "https://github.com/metalama/Metalama.git",
-    "accountId": "006976dd-5752-4e89-ac89-dd9a9f32f1df"
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/metalama/Metalama.git&quot;,
+    &quot;accountId&quot;: &quot;006976dd-5752-4e89-ac89-dd9a9f32f1df&quot;
   }
-}]]></component>
+}</component>
   <component name="MetaFilesCheckinStateConfiguration" checkMetaFiles="true" />
-  <component name="ProjectColorInfo"><![CDATA[{
-  "associatedIndex": 6
-}]]></component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 6
+}</component>
   <component name="ProjectId" id="2uu5213QQ31Ng6jzTlbRQq8VRGz" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
@@ -38,7 +47,7 @@
   "keyToString": {
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "topic/2025.1/gael-2025-03-27",
+    "git-widget-placeholder": "develop/2026.0",
     "ignore.virus.scanning.warn.message": "true",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
@@ -57,6 +66,7 @@
       <option name="presentableId" value="Default" />
       <updated>1743085408005</updated>
       <workItem from="1743085409345" duration="737000" />
+      <workItem from="1759394718858" duration="445000" />
     </task>
     <task id="LOCAL-00001" summary="XmlDoc: fixing code refernces.">
       <option name="closed" value="true" />
@@ -78,5 +88,23 @@
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
     <MESSAGE value="XmlDoc: fixing code refernces." />
     <option name="LAST_COMMIT_MESSAGE" value="XmlDoc: fixing code refernces." />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <breakpoint enabled="true" type="DotNet_Exception_Breakpoints">
+          <properties exception="System.OperationCanceledException" breakIfHandledByOtherCode="false" displayValue="System.OperationCanceledException" />
+          <option name="timeStamp" value="1" />
+        </breakpoint>
+        <breakpoint enabled="true" type="DotNet_Exception_Breakpoints">
+          <properties exception="System.Threading.Tasks.TaskCanceledException" breakIfHandledByOtherCode="false" displayValue="System.Threading.Tasks.TaskCanceledException" />
+          <option name="timeStamp" value="2" />
+        </breakpoint>
+        <breakpoint enabled="true" type="DotNet_Exception_Breakpoints">
+          <properties exception="System.Threading.ThreadAbortException" breakIfHandledByOtherCode="false" displayValue="System.Threading.ThreadAbortException" />
+          <option name="timeStamp" value="3" />
+        </breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
   </component>
 </project>
