@@ -4,12 +4,14 @@
 
 using System;
 
+using Metalama.Framework.Advising;
+using Metalama.Framework.Aspects;
+
 namespace PostSharp.Aspects.Advices
 {
     /// <summary>
-    /// There is no equivalent to this feature in Metalama.
+    /// In Metalama, implement the <see cref="IAspect{T}.BuildAspect"/> method and use <c>builder</c>.<see cref="IAspectBuilder.Advice"/>.<see cref="IAdviceFactory.OverrideAccessors(Metalama.Framework.Code.IEvent, string?, string?, string?, string?, object?, object?)"/>
     /// </summary>
-    /// <seealso href="@overriding-events"/>
     [Obsolete( "", true )]
     [AttributeUsage( AttributeTargets.Method, AllowMultiple = true )]
     public sealed class OnEventInvokeHandlerAdvice : GroupingAdvice { }

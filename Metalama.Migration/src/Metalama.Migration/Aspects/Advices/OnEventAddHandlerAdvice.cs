@@ -9,7 +9,7 @@ using System;
 namespace PostSharp.Aspects.Advices
 {
     /// <summary>
-    /// In Metalama, implement the <see cref="IAspect{T}.BuildAspect"/> method and use <c>builder</c>.<see cref="IAspectBuilder.Advice"/>.<see cref="IAdviceFactory.OverrideAccessors(Metalama.Framework.Code.IEvent, string?, string?, string?, object?, object?)"/>
+    /// In Metalama, implement the <see cref="IAspect{T}.BuildAspect"/> method and use <c>builder</c>.<see cref="IAspectBuilder.Advice"/>.<see cref="IAdviceFactory.OverrideAccessors(Metalama.Framework.Code.IEvent, string?, string?, string?, string?, object?, object?)"/>
     /// </summary>
     /// <seealso href="@overriding-events"/>
     [AttributeUsage( AttributeTargets.Method, AllowMultiple = true )]
