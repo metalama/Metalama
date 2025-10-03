@@ -69,9 +69,6 @@
     <PackageVersion Include="System.IO.Pipelines" Version="6.0.3" />
     <PackageVersion Include="System.Diagnostics.DiagnosticSource" Version="6.0.0" />
     <PackageVersion Include="Microsoft.Bcl.AsyncInterfaces" Version="6.0.0" />
-      
-      <!-- TODO: Check which version we can afford. -->
-      <PackageVersion Include="NuGet.Configuration" Version="6.14.0" />
-
+    
   </ItemGroup>
 </Project>
