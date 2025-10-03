@@ -2,7 +2,6 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using NuGet.Configuration;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -15,20 +14,6 @@ namespace Metalama.Framework.Engine.Utilities;
 
 internal static class NuGetHelper
 {
-    private static readonly Lazy<Func<SettingBase, XNode>> _asNodeLambda = new( () =>
-    {
-        var getNode = typeof(SettingBase).GetProperty( "Node", BindingFlags.Instance | BindingFlags.NonPublic )
-            ?.GetMethod ?? throw new AssertionFailedException( $"Cannot find property NuGet.Configuration.SettingsBase.XNode." );
-
-        var parameter = Expression.Parameter( typeof(SettingBase) );
-        var expression = Expression.Call( parameter, getNode );
-
-        return Expression.Lambda<Func<SettingBase, XNode>>( expression, parameter ).Compile();
-    } );
-
-    // ReSharper disable once SuspiciousTypeConversion.Global
-    public static XNode AsXNode( this ISettings nuGetSettings ) => _asNodeLambda.Value( (SettingBase) nuGetSettings );
-
     public static List<string> GetConfigFiles( string projectPath )
     {
         List<string> configFiles = new();
