@@ -52,5 +52,18 @@ namespace Metalama.Framework.Tests.UnitTests
                 Assert.Equal( expected.NormalizeEndOfLines().Trim(), actual.NormalizeEndOfLines().Trim() );
             }
         }
+
+        public static void WhitespaceInvariantEqual( string? expected, string? actual )
+        {
+            if ( expected == null )
+            {
+                Assert.Null( actual );
+            }
+            else
+            {
+                Assert.NotNull( actual );
+                Assert.Equal( expected.NormalizeWhitespace().Trim(), actual.NormalizeWhitespace().Trim() );
+            }
+        }
     }
 }

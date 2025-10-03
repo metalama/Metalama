@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using K4os.Hash.xxHash;
 using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Maintenance;
 using Metalama.Backstage.Utilities;
@@ -24,6 +25,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using IMethodSymbol = Microsoft.CodeAnalysis.IMethodSymbol;
+using System.Globalization;
 
 namespace Metalama.Framework.Engine.CompileTime;
 
@@ -76,6 +78,7 @@ internal sealed class CompileTimeAssemblyLocator
     private readonly Compilation _referenceCompilation;
 
     private readonly CompilationContext _referenceCompilationContext;
+    private readonly IReadOnlyList<string>? _nugetConfigFiles;
 
     /// <summary>
     /// Gets the name (without path and extension) of all compile-time assemblies, including Metalama, Roslyn and .NET standard.
@@ -127,6 +130,13 @@ internal sealed class CompileTimeAssemblyLocator
                 $"Custom MetalamaCompileTimeTargetFrameworks has to include 'netstandard2.0', but it was {this._targetFrameworks}" );
         }
 
+        // Load nuget.config.
+        if ( projectOptions.ProjectPath != null )
+        {
+            this._nugetConfigFiles = NuGetHelper.GetConfigFiles( projectOptions.ProjectPath );
+        }
+
+        // Get additional NuGet source through the legacy RestoreSources project option.
         string? additionalNugetSources = null;
 
         if ( projectOptions.RestoreSources != null )
@@ -142,9 +152,20 @@ internal sealed class CompileTimeAssemblyLocator
             }
         }
 
-        // ReSharper disable once RedundantLogicalConditionalExpressionOperand
-        var projectHash =
-            HashUtilities.HashString( $"{additionalReferences}\n{targetFrameworksString}\n{additionalNugetSources}\n{RoslynApiVersion.Current}" );
+        // Compute a unique hash for the combination of factors.
+        var hashBuilder = new XXH64();
+        hashBuilder.Update( additionalReferences );
+        hashBuilder.Update( targetFrameworksString );
+        hashBuilder.Update( additionalNugetSources );
+        hashBuilder.Update( RoslynApiVersion.Current );
+
+        foreach ( var nugetConfigFile in this._nugetConfigFiles ?? [] )
+        {
+            var nugetConfigContent = File.ReadAllText( nugetConfigFile );
+            hashBuilder.Update( nugetConfigContent );
+        }
+
+        var projectHash = hashBuilder.Digest().ToString( "x", CultureInfo.InvariantCulture );
 
         this._cacheDirectory = tempFileManager.GetTempDirectory( TempDirectories.AssemblyLocator, CleanUpStrategy.WhenUnused, projectHash );
 
@@ -483,10 +504,20 @@ internal sealed class CompileTimeAssemblyLocator
 
             File.WriteAllText( projectFilePath, projectText );
 
+            // Writing a dummy program.
             var programFilePath = Path.Combine( this._cacheDirectory, "Program.cs" );
             this._logger.Trace?.Log( $"Writing '{programFilePath}'." );
 
             File.WriteAllText( programFilePath, "System.Console.WriteLine(\"Hello, world.\");" );
+
+            // Writing nuget.config.
+            if ( this._nugetConfigFiles is { Count: > 0 } )
+            {
+                var nugetConfig = NuGetHelper.MergeConfigFiles( this._nugetConfigFiles ).AssertNotNull().ToString();
+                var nuGetConfigPath = Path.Combine( this._cacheDirectory, "nuget.config" );
+                this._logger.Trace?.Log( $"Writing '{nuGetConfigPath}'." );
+                File.WriteAllText( nuGetConfigPath, nugetConfig );
+            }
 
             // We may consider executing msbuild.exe instead of dotnet.exe when the build itself runs using msbuild.exe.
             // This way we wouldn't need to require a .NET SDK to be installed. Also, it seems that Rider requires the full path.

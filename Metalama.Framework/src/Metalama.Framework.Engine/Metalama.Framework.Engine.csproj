@@ -62,6 +62,7 @@
         <PackageReference Include="Microsoft.Bcl.HashCode" />
         <PackageReference Include="K4os.Hash.xxHash" />
         <PackageReference Include="Newtonsoft.Json" NoWarn="NU1903" />
+        
     </ItemGroup>
 
     <ItemGroup>
