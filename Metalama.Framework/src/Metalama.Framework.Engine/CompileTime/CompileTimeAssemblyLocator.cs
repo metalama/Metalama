@@ -21,11 +21,11 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using IMethodSymbol = Microsoft.CodeAnalysis.IMethodSymbol;
-using System.Globalization;
 
 namespace Metalama.Framework.Engine.CompileTime;
 
