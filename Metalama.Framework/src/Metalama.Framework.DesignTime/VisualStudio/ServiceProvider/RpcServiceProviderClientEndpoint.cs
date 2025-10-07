@@ -19,6 +19,7 @@ public sealed class RpcServiceProviderClientEndpoint : ClientEndpoint
     private readonly GlobalServiceProvider _serviceProvider;
     private readonly RpcServiceProviderClient _serviceProviderClient;
     private readonly DesignTimeExtensionManager? _extensionManager;
+    private readonly object _initializeSync = new();
 
     private Task? _ensureInitialServicesRetrievedTask;
 
@@ -35,16 +36,17 @@ public sealed class RpcServiceProviderClientEndpoint : ClientEndpoint
 
     protected override Task EnsureInitialServicesRetrievedAsync( CancellationToken cancellationToken )
     {
-        if ( this._ensureInitialServicesRetrievedTask == null )
+        lock ( this._initializeSync )
         {
-            this._ensureInitialServicesRetrievedTask = this.EnsureInitialServicesRetrievedCoreAsync( cancellationToken );
+            if ( this._ensureInitialServicesRetrievedTask == null )
+            {
+                this._ensureInitialServicesRetrievedTask = this.EnsureInitialServicesRetrievedCoreAsync( cancellationToken );
 
-            return this._ensureInitialServicesRetrievedTask;
+                return this._ensureInitialServicesRetrievedTask;
+            }
         }
-        else
-        {
-            return this._ensureInitialServicesRetrievedTask.WithCancellation( cancellationToken );
-        }
+
+        return this._ensureInitialServicesRetrievedTask.WithCancellation( cancellationToken );
     }
 
     private async Task EnsureInitialServicesRetrievedCoreAsync( CancellationToken cancellationToken )
@@ -88,7 +90,7 @@ public sealed class RpcServiceProviderClientEndpoint : ClientEndpoint
         where T : class, IRpcApi
     {
         var client = await this.GetClientAsync<RpcClient<T>>( cancellationToken );
-
+        
         return await client.GetApiAsync( cancellationToken );
     }
 
