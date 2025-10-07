@@ -36,6 +36,11 @@ var product = new Product( MetalamaDependencies.Metalama )
             new VisualStudioBuildToolsComponent(
                 VisualStudioBuildToolsComponentVersion.v17_14_15,
                 [
+                    // Required to test MSBuild.
+                    "Microsoft.Component.MSBuild",
+                    "Microsoft.NetCore.Component.SDK",
+                    
+                    // Required because we target these frameworks.
                     "Microsoft.Net.Component.4.7.2.TargetingPack",
                     "Microsoft.Net.Component.4.7.2.SDK",
                     "Microsoft.Net.Component.4.8.TargetingPack",
