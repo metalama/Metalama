@@ -47,13 +47,19 @@ internal sealed class RemoteWorkspaceProvider : WorkspaceProvider
             return false;
         }
 
+        // In Roslyn 4, RemoteWorkspaceManager.Default is a field.
         var remoteWorkspaceManagerDefaultField = remoteWorkspaceManagerType.GetField(
             "Default",
             BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic );
+        
+        // In Roslyn 5, RemoteWorkspaceManager.Default is a property.
+        var remoteWorkspaceManagerDefaultProperty = remoteWorkspaceManagerType.GetProperty( 
+            "Default",
+            BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic );
 
-        if ( remoteWorkspaceManagerDefaultField == null )
+        if ( remoteWorkspaceManagerDefaultField == null && remoteWorkspaceManagerDefaultProperty == null )
         {
-            logger.Warning?.Log( "Cannot find the RemoteWorkspaceManager.Default property." );
+            logger.Warning?.Log( "Cannot find the RemoteWorkspaceManager.Default field or property." );
 
             workspaceProvider = null;
 
@@ -76,7 +82,7 @@ internal sealed class RemoteWorkspaceProvider : WorkspaceProvider
             return false;
         }
 
-        var defaultWorkspaceManager = remoteWorkspaceManagerDefaultField.GetValue( null );
+        var defaultWorkspaceManager = remoteWorkspaceManagerDefaultField?.GetValue( null ) ?? remoteWorkspaceManagerDefaultProperty?.GetValue( null );
 
         if ( defaultWorkspaceManager == null )
         {
