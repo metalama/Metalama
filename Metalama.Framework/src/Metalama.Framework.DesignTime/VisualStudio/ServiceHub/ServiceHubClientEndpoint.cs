@@ -54,10 +54,22 @@ internal sealed class ServiceHubClientEndpoint : ClientEndpoint
         Engine.Utilities.Diagnostics.Logger.Remoting.Trace?.Log(
             $"Parent processes: {string.Join( ", ", parentProcesses.SelectAsImmutableArray( x => x.ToString() ) )}" );
 
-        if ( parentProcesses.Count < 2 ||
-             !string.Equals( parentProcesses[0].ProcessName, "Microsoft.ServiceHub.Controller", StringComparison.OrdinalIgnoreCase ) ||
-             !string.Equals( parentProcesses[1].ProcessName, "devenv", StringComparison.OrdinalIgnoreCase )
+        ProcessInfo devEnvProcess;
+
+        if ( parentProcesses.Count >= 2 &&
+             string.Equals( parentProcesses[0].ProcessName, "Microsoft.ServiceHub.Controller", StringComparison.OrdinalIgnoreCase ) &&
+             string.Equals( parentProcesses[1].ProcessName, "devenv", StringComparison.OrdinalIgnoreCase )
            )
+        {
+            // VS 2022.
+            devEnvProcess = parentProcesses[1];
+        }
+        else if ( parentProcesses.Count >= 1 && string.Equals( parentProcesses[0].ProcessName, "devenv", StringComparison.OrdinalIgnoreCase ) )
+        {
+            // VS 2026.
+            devEnvProcess = parentProcesses[0];
+        }
+        else
         {
             Engine.Utilities.Diagnostics.Logger.Remoting.Error?.Log( "The process 'devenv' could not be found. " );
             pipeName = null;
@@ -65,9 +77,7 @@ internal sealed class ServiceHubClientEndpoint : ClientEndpoint
             return false;
         }
 
-        var parentProcess = parentProcesses[1];
-
-        pipeName = PipeNameProvider.GetPipeName( EndpointRole.Discovery, parentProcess.ProcessId );
+        pipeName = PipeNameProvider.GetPipeName( EndpointRole.Discovery, devEnvProcess.ProcessId );
 
         return true;
     }
