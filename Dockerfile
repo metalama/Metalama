@@ -26,6 +26,8 @@ RUN Invoke-WebRequest -Uri https://github.com/git-for-windows/git/releases/downl
     $pathsToAdd = @('C:\git\cmd', 'C:\git\bin', 'C:\git\usr\bin'); `
     $newPath = [Environment]::GetEnvironmentVariable('PATH', 'Machine') + ';' + ($pathsToAdd -join ';'); `
     [Environment]::SetEnvironmentVariable('PATH', $newPath, 'Machine');
+    
+RUN "C:\Git\cmd\git.exe" config --system core.longpaths true
 
 
 # Install PowerShell 7
@@ -68,7 +70,7 @@ RUN powershell -ExecutionPolicy Bypass -File dotnet-install.ps1 -Version 10.0.10
 COPY VisualStudio.17.14.15.Release.chman /VisualStudio.17.14.15.Release.chman
 RUN Invoke-WebRequest -Uri https://aka.ms/vs/17/release/vs_buildtools.exe -OutFile vs_buildtools.exe; `
     $process = Start-Process .\vs_buildtools.exe -NoNewWindow -Wait -PassThru `
-        -ArgumentList  "--quiet", "--wait", "--norestart", "--nocache",  "--installPath", "C:\BuildTools", "--installChannelUri", "c:\VisualStudio.17.14.15.Release.chman", "--installCatalogUri", "https://download.visualstudio.microsoft.com/download/pr/eb5f7427-d28f-4e06-95cc-093f6c2070c8/3480d7a528bad877857c92843bb1e9ce8ebd48a2bffcee366a98a7343f4d32fb/VisualStudio.vsman", "--productId", "Microsoft.VisualStudio.Product.BuildTools", "--add", "Microsoft.Net.Component.4.7.2.TargetingPack", "--add", "Microsoft.Net.Component.4.7.2.SDK", "--add", "Microsoft.Net.Component.4.8.TargetingPack", "--add", "Microsoft.Net.Component.4.8.SDK"; `        
+        -ArgumentList  "--quiet", "--wait", "--norestart", "--nocache",  "--installPath", "C:\BuildTools", "--installChannelUri", "c:\VisualStudio.17.14.15.Release.chman", "--installCatalogUri", "https://download.visualstudio.microsoft.com/download/pr/eb5f7427-d28f-4e06-95cc-093f6c2070c8/3480d7a528bad877857c92843bb1e9ce8ebd48a2bffcee366a98a7343f4d32fb/VisualStudio.vsman", "--productId", "Microsoft.VisualStudio.Product.BuildTools", "--add", "Microsoft.Component.MSBuild", "--add", "Microsoft.NetCore.Component.SDK", "--add", "Microsoft.Net.Component.4.7.2.TargetingPack", "--add", "Microsoft.Net.Component.4.7.2.SDK", "--add", "Microsoft.Net.Component.4.8.TargetingPack", "--add", "Microsoft.Net.Component.4.8.SDK"; `        
     if ($process.ExitCode -ne 0) { `
      Get-ChildItem "$env:TEMP\dd_*.log" -ErrorAction SilentlyContinue | ForEach-Object { `
         Write-Host "=== Contents of $($_.Name) ==="; `

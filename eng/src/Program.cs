@@ -10,6 +10,7 @@ using PostSharp.Engineering.BuildTools.Build.Model;
 using PostSharp.Engineering.BuildTools.Build.Solutions;
 using PostSharp.Engineering.BuildTools.Docker;
 using PostSharp.Engineering.BuildTools.Utilities;
+using System;
 using System.IO;
 using MetalamaDependencies = PostSharp.Engineering.BuildTools.Dependencies.Definitions.MetalamaDependencies.V2026_0;
 
@@ -35,6 +36,11 @@ var product = new Product( MetalamaDependencies.Metalama )
             new VisualStudioBuildToolsComponent(
                 VisualStudioBuildToolsComponentVersion.v17_14_15,
                 [
+                    // Required to test MSBuild.
+                    "Microsoft.Component.MSBuild",
+                    "Microsoft.NetCore.Component.SDK",
+                    
+                    // Required because we target these frameworks.
                     "Microsoft.Net.Component.4.7.2.TargetingPack",
                     "Microsoft.Net.Component.4.7.2.SDK",
                     "Microsoft.Net.Component.4.8.TargetingPack",
@@ -47,6 +53,7 @@ var product = new Product( MetalamaDependencies.Metalama )
     },
     DotNetSdkVersion = new DotNetSdkVersion( dotNetSdkVersion ) { AllowPrerelease = true },
     GenerateNuGetConfig = true,
+    MSBuildVersion = new Version( 17, 14 ),
     Solutions =
     [
         new DotNetSolution( "Metalama.Backstage/Metalama.Backstage.sln" ) { SupportsTestCoverage = true, CanFormatCode = true },
@@ -77,6 +84,12 @@ var product = new Product( MetalamaDependencies.Metalama )
             SupportsTestCoverage = false, CanFormatCode = false, IsTestOnly = true
         },
         new DotNetSolution( "Metalama.Framework/src/tests/Metalama.Framework.TestApp\\Metalama.Framework.TestApp.sln" )
+        {
+            IsTestOnly = true, TestMethod = BuildMethod.Build
+        },
+
+        // Do at least one test with MSBuild because there can be different errors.
+        new MsbuildSolution( "Metalama.Framework/src/tests/Metalama.Framework.TestApp\\Metalama.Framework.TestApp.sln" )
         {
             IsTestOnly = true, TestMethod = BuildMethod.Build
         },
