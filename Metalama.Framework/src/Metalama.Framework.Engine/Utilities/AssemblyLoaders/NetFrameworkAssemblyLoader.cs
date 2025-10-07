@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 
 namespace Metalama.Framework.Engine.Utilities.AssemblyLoaders;
@@ -21,7 +22,24 @@ internal class NetFrameworkAssemblyLoader : AssemblyLoader
         this._resolveAssembly = resolveAssembly;
     }
 
-    private Assembly? OnAssemblyResolve( object? sender, ResolveEventArgs args ) => this._resolveAssembly( args.Name );
+    private Assembly? OnAssemblyResolve( object? sender, ResolveEventArgs args )
+    {
+        // Specific to .NET Framework:
+        // First look in the AppDomain if the assembly is already loaded.
+        var requestedAssemblyName = new AssemblyName( args.Name );
+        var loadedAssembly = AppDomain.CurrentDomain.GetAssemblies().Where( a => a.GetName().Name == requestedAssemblyName.Name
+        && AssemblyName.ReferenceMatchesDefinition( requestedAssemblyName, a.GetName() ) )
+            .OrderByDescending( a => a.GetName().Version )
+            .FirstOrDefault();
+
+        if ( loadedAssembly != null )
+        {
+            return loadedAssembly;
+        }
+
+        // If not found, invoke the CLR-agnostic logic.
+        return this._resolveAssembly( args.Name );
+    }
 
     public override Assembly LoadFromPath( string assemblyPath ) => Assembly.LoadFile( assemblyPath );
 
