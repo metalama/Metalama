@@ -40,7 +40,7 @@ namespace Metalama.AspectWorkbench.ViewModels
             sourceDirectory: null,
             [
                 "NET5_0_OR_GREATER", "NET6_0_OR_GREATER", "NET7_0_OR_GREATER", "NET8_0_OR_GREATER", "NET9_0_OR_GREATER", "ROSLYN_4_4_0_OR_GREATER",
-                "ROSLYN_4_8_0_OR_GREATER", "ROSLYN_4_12_0_OR_GREATER"
+                "ROSLYN_4_8_0_OR_GREATER", "ROSLYN_4_12_0_OR_GREATER", "ROSLYN_5_0_0_OR_GREATER"
             ],
             "net9.0",
             [] );

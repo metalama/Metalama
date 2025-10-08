@@ -11,17 +11,19 @@
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Engine.Templating;
 
-namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.CSharp13.FieldKeyword;
+namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.CSharp13.NullConditionalAssignment_Template;
 
 internal class TheAspect : TypeAspect
 {
     [Introduce]
-    public string? Property
+    public object? Property
     {
-        get => field;
-        set
+        get
         {
-            field = value;
+            meta.Target.Property.Value?.Property = 1;
+            meta.Target.Property.Value?.Property?.Property = 2;
+
+            return null;
         }
     }
 }
