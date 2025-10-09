@@ -12,5 +12,7 @@ public enum OperatorCategory
     None,
     Unary,
     Binary,
-    Conversion
+    Conversion,
+    BinaryAssignment,
+    UnaryAssignment
 }

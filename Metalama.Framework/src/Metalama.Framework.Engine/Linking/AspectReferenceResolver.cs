@@ -276,9 +276,11 @@ internal sealed class AspectReferenceResolver
         {
             IntermediateSymbolSemantic<IMethodSymbol>? explicitResolvedSemanticBody = null;
 
-            if (targetKind == AspectReferenceTargetKind.EventRaiseAccessor)
+            if ( targetKind == AspectReferenceTargetKind.EventRaiseAccessor )
             {
-                explicitResolvedSemanticBody = ((IMethodSymbol?) this._injectionRegistry.GetSatelliteOverrideMembers( resolvedSemantic.Symbol ).SingleOrDefault())?.ToSemantic( IntermediateSymbolSemanticKind.Default );
+                explicitResolvedSemanticBody =
+                    ((IMethodSymbol?) this._injectionRegistry.GetSatelliteOverrideMembers( resolvedSemantic.Symbol ).SingleOrDefault())?.ToSemantic(
+                        IntermediateSymbolSemanticKind.Default );
             }
 
             return new ResolvedAspectReference(
@@ -404,16 +406,15 @@ internal sealed class AspectReferenceResolver
             // Order coming from transformation needs to be incremented by 1, because 0 represents state before the aspect layer.
             return
                 referencedDeclarationOverrides
-                    .SelectAsReadOnlyList(
-                        x =>
-                        {
-                            var injectedMember = @this._injectionRegistry.GetInjectedMemberForSymbol( x ).AssertNotNull();
+                    .SelectAsReadOnlyList( x =>
+                    {
+                        var injectedMember = @this._injectionRegistry.GetInjectedMemberForSymbol( x ).AssertNotNull();
 
-                            return
-                                new OverrideIndex(
-                                    @this.GetMemberLayerIndex( injectedMember ),
-                                    injectedMember );
-                        } )
+                        return
+                            new OverrideIndex(
+                                @this.GetMemberLayerIndex( injectedMember ),
+                                injectedMember );
+                    } )
                     .Materialize()
                     .AssertSorted( x => x.Index );
         }
@@ -636,7 +637,10 @@ internal sealed class AspectReferenceResolver
                                 {
                                     Expression: ParenthesizedLambdaExpressionSyntax
                                     {
-                                        ExpressionBody: AssignmentExpressionSyntax { RawKind: (int) SyntaxKind.AddAssignmentExpression, Left: ExpressionSyntax eventExpression }
+                                        ExpressionBody: AssignmentExpressionSyntax
+                                        {
+                                            RawKind: (int) SyntaxKind.AddAssignmentExpression, Left: ExpressionSyntax eventExpression
+                                        }
                                     }
                                 },
                                 ..
@@ -667,7 +671,7 @@ internal sealed class AspectReferenceResolver
                             throw new AssertionFailedException( $"Unexpected property expression: '{expression.Parent}'." );
                     }
 
-                case not null when SymbolHelpers.GetOperatorKindFromName( helperMethod.Name ) is not OperatorKind.None and var operatorKind:
+                case not null when OperatorData.GetOperatorKindFromName( helperMethod.Name ) is not OperatorKind.None and var operatorKind:
                     // Referencing an operator.
                     rootNode = expression;
                     targetSymbolSource = expression;
@@ -676,22 +680,20 @@ internal sealed class AspectReferenceResolver
                     {
                         targetSymbol = containingSymbol.ContainingType.GetMembers( referencedSymbol.Name )
                             .OfType<IMethodSymbol>()
-                            .Single(
-                                m =>
-                                    m.Parameters.Length == 2
-                                    && SignatureTypeComparer.Instance.Equals( m.Parameters[0].Type, helperMethod.Parameters[0].Type )
-                                    && SignatureTypeComparer.Instance.Equals( m.Parameters[1].Type, helperMethod.Parameters[1].Type )
-                                    && SignatureTypeComparer.Instance.Equals( m.ReturnType, helperMethod.ReturnType ) );
+                            .Single( m =>
+                                         m.Parameters.Length == 2
+                                         && SignatureTypeComparer.Instance.Equals( m.Parameters[0].Type, helperMethod.Parameters[0].Type )
+                                         && SignatureTypeComparer.Instance.Equals( m.Parameters[1].Type, helperMethod.Parameters[1].Type )
+                                         && SignatureTypeComparer.Instance.Equals( m.ReturnType, helperMethod.ReturnType ) );
                     }
                     else
                     {
                         targetSymbol = containingSymbol.ContainingType.GetMembers( referencedSymbol.Name )
                             .OfType<IMethodSymbol>()
-                            .Single(
-                                m =>
-                                    m.Parameters.Length == 1
-                                    && SignatureTypeComparer.Instance.Equals( m.Parameters[0].Type, helperMethod.Parameters[0].Type )
-                                    && SignatureTypeComparer.Instance.Equals( m.ReturnType, helperMethod.ReturnType ) );
+                            .Single( m =>
+                                         m.Parameters.Length == 1
+                                         && SignatureTypeComparer.Instance.Equals( m.Parameters[0].Type, helperMethod.Parameters[0].Type )
+                                         && SignatureTypeComparer.Instance.Equals( m.ReturnType, helperMethod.ReturnType ) );
                     }
 
                     return;
@@ -713,25 +715,25 @@ internal sealed class AspectReferenceResolver
     {
         switch (referencedSymbol, expression)
         {
-            case (IPropertySymbol, { Parent: AssignmentExpressionSyntax } ):
+            case (IPropertySymbol, { Parent: AssignmentExpressionSyntax }):
                 return AspectReferenceTargetKind.PropertySetAccessor;
 
-            case (IPropertySymbol, _ ):
+            case (IPropertySymbol, _):
                 return AspectReferenceTargetKind.PropertyGetAccessor;
 
-            case (IFieldSymbol, { Parent: AssignmentExpressionSyntax } ):
+            case (IFieldSymbol, { Parent: AssignmentExpressionSyntax }):
                 return AspectReferenceTargetKind.PropertySetAccessor;
 
-            case (IFieldSymbol, _ ):
+            case (IFieldSymbol, _):
                 return AspectReferenceTargetKind.PropertyGetAccessor;
 
-            case (IEventSymbol, { Parent: AssignmentExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.AddAssignmentExpression } } ):
+            case (IEventSymbol, { Parent: AssignmentExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.AddAssignmentExpression } }):
                 return AspectReferenceTargetKind.EventAddAccessor;
 
-            case (IEventSymbol, { Parent: AssignmentExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.SubtractAssignmentExpression } } ):
+            case (IEventSymbol, { Parent: AssignmentExpressionSyntax { OperatorToken.RawKind: (int) SyntaxKind.SubtractAssignmentExpression } }):
                 return AspectReferenceTargetKind.EventRemoveAccessor;
 
-            case (IEventSymbol, _ ):
+            case (IEventSymbol, _):
                 return AspectReferenceTargetKind.EventRaiseAccessor;
 
             default:
@@ -777,38 +779,38 @@ internal sealed class AspectReferenceResolver
     {
         switch (referencedSymbol, resolvedSymbol)
         {
-            case (IMethodSymbol { MethodKind: MethodKind.Constructor }, IMethodSymbol { MethodKind: MethodKind.Constructor } ):
-            case (IMethodSymbol { MethodKind: MethodKind.StaticConstructor }, IMethodSymbol { MethodKind: MethodKind.Ordinary } ):
-            case (IMethodSymbol { MethodKind: MethodKind.Ordinary }, IMethodSymbol { MethodKind: MethodKind.Ordinary } ):
-            case (IMethodSymbol { MethodKind: MethodKind.ExplicitInterfaceImplementation }, IMethodSymbol { MethodKind: MethodKind.Ordinary } ):
+            case (IMethodSymbol { MethodKind: MethodKind.Constructor }, IMethodSymbol { MethodKind: MethodKind.Constructor }):
+            case (IMethodSymbol { MethodKind: MethodKind.StaticConstructor }, IMethodSymbol { MethodKind: MethodKind.Ordinary }):
+            case (IMethodSymbol { MethodKind: MethodKind.Ordinary }, IMethodSymbol { MethodKind: MethodKind.Ordinary }):
+            case (IMethodSymbol { MethodKind: MethodKind.ExplicitInterfaceImplementation }, IMethodSymbol { MethodKind: MethodKind.Ordinary }):
             case (IMethodSymbol { MethodKind: MethodKind.ExplicitInterfaceImplementation },
-                IMethodSymbol { MethodKind: MethodKind.ExplicitInterfaceImplementation } ):
-            case (IMethodSymbol { MethodKind: MethodKind.Destructor }, IMethodSymbol { MethodKind: MethodKind.Ordinary } ):
-            case (IMethodSymbol { MethodKind: MethodKind.Conversion or MethodKind.UserDefinedOperator }, IMethodSymbol { MethodKind: MethodKind.Ordinary } ):
-            case (IPropertySymbol, IPropertySymbol ):
-            case (IEventSymbol, IEventSymbol ):
-            case (IFieldSymbol, IFieldSymbol ):
+                IMethodSymbol { MethodKind: MethodKind.ExplicitInterfaceImplementation }):
+            case (IMethodSymbol { MethodKind: MethodKind.Destructor }, IMethodSymbol { MethodKind: MethodKind.Ordinary }):
+            case (IMethodSymbol { MethodKind: MethodKind.Conversion or MethodKind.UserDefinedOperator }, IMethodSymbol { MethodKind: MethodKind.Ordinary }):
+            case (IPropertySymbol, IPropertySymbol):
+            case (IEventSymbol, IEventSymbol):
+            case (IFieldSymbol, IFieldSymbol):
                 return resolvedSymbol;
 
-            case (IMethodSymbol { MethodKind: MethodKind.PropertyGet }, IPropertySymbol ):
+            case (IMethodSymbol { MethodKind: MethodKind.PropertyGet }, IPropertySymbol):
                 // This seems to happen only in invalid compilations.
                 throw new AssertionFailedException( Justifications.CoverageMissing );
 
             // return propertySymbol.GetMethod.AssertNotNull();
 
-            case (IMethodSymbol { MethodKind: MethodKind.PropertySet }, IPropertySymbol ):
+            case (IMethodSymbol { MethodKind: MethodKind.PropertySet }, IPropertySymbol):
                 // This seems to happen only in invalid compilations.
                 throw new AssertionFailedException( Justifications.CoverageMissing );
 
             // return propertySymbol.SetMethod.AssertNotNull();
 
-            case (IMethodSymbol { MethodKind: MethodKind.EventAdd }, IEventSymbol ):
+            case (IMethodSymbol { MethodKind: MethodKind.EventAdd }, IEventSymbol):
                 // This seems to happen only in invalid compilations.
                 throw new AssertionFailedException( Justifications.CoverageMissing );
 
             // return eventSymbol.AddMethod.AssertNotNull();
 
-            case (IMethodSymbol { MethodKind: MethodKind.EventRemove }, IEventSymbol ):
+            case (IMethodSymbol { MethodKind: MethodKind.EventRemove }, IEventSymbol):
                 // This seems to happen only in invalid compilations.
                 throw new AssertionFailedException( Justifications.CoverageMissing );
 
