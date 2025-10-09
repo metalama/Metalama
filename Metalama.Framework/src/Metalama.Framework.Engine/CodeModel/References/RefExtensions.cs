@@ -75,6 +75,7 @@ public static class RefExtensions
 
     public static SyntaxTree? GetPrimarySyntaxTree( this IRef reference ) => ((IFullRef) reference).PrimarySyntaxTree;
 
+#if DEBUG
     internal static Type[] GetPossibleDeclarationInterfaceTypes( this DeclarationKind declarationKind, RefTargetKind refTargetKind = RefTargetKind.Default )
         => refTargetKind switch
         {
@@ -94,12 +95,12 @@ public static class RefExtensions
             RefTargetKind.EventRaise => [typeof(IMethod)],
             RefTargetKind.EventRaiseParameter => [typeof(IParameter)],
             RefTargetKind.EventRaiseReturnParameter => [typeof(IParameter)],
-            RefTargetKind.NamedType => [typeof(INamedType)],
+            RefTargetKind.NamedType => [typeof(INamedType), typeof(ITypeExtension)],
             RefTargetKind.Default => declarationKind switch
             {
                 DeclarationKind.Type => [typeof(IType)],
                 DeclarationKind.Compilation => [typeof(ICompilation)],
-                DeclarationKind.NamedType => [typeof(INamedType)],
+                DeclarationKind.NamedType => [typeof(INamedType), typeof(ITypeExtension)],
                 DeclarationKind.Method or DeclarationKind.Operator or DeclarationKind.Finalizer => [typeof(IMethod)],
                 DeclarationKind.Property => [typeof(IProperty), typeof(IField)],
                 DeclarationKind.Indexer => [typeof(IIndexer)],
@@ -117,10 +118,14 @@ public static class RefExtensions
 
             _ => throw new ArgumentOutOfRangeException( nameof(refTargetKind), refTargetKind, null )
         };
+#endif
 
     internal static ISymbolRef<IDeclaration> ToRef( this ISymbol symbol, RefFactory refFactory ) => refFactory.FromDeclarationSymbol( symbol );
 
-    internal static ISymbolRef<INamedType> ToRef( this INamedTypeSymbol symbol, RefFactory refFactory ) => refFactory.FromSymbol<INamedType>( symbol );
+    internal static ISymbolRef<INamedType> ToRef( this INamedTypeSymbol symbol, RefFactory refFactory ) => symbol.IsExtension ? refFactory.FromSymbol<ITypeExtension>( symbol ) : refFactory.FromSymbol<INamedType>( symbol );
+
+    internal static ISymbolRef<ITypeExtension> ToTypeExtensionRef( this INamedTypeSymbol symbol, RefFactory refFactory )
+        => refFactory.FromSymbol<ITypeExtension>( symbol );
 
     internal static ISymbolRef<INamespace> ToRef( this INamespaceSymbol symbol, RefFactory refFactory ) => refFactory.FromSymbol<INamespace>( symbol );
 

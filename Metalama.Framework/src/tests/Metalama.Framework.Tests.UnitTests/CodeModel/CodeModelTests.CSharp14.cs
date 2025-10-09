@@ -5,9 +5,15 @@
 #if ROSLYN_5_0_0_OR_GREATER
 
 using Metalama.Framework.Code;
+using Metalama.Framework.Engine;
+using Metalama.Framework.Engine.CodeModel.Helpers;
+using Microsoft.CodeAnalysis;
+using System.Collections.Generic;
 using System.Linq;
 using Xunit;
 using MethodKind = Metalama.Framework.Code.MethodKind;
+using SpecialType = Metalama.Framework.Code.SpecialType;
+using TypeKind = Microsoft.CodeAnalysis.TypeKind;
 
 namespace Metalama.Framework.Tests.UnitTests.CodeModel;
 
@@ -34,7 +40,7 @@ public sealed partial class CodeModelTests
         Assert.Equal( MethodKind.Operator, @operator.MethodKind );
         Assert.Equal( OperatorKind.IncrementAssignment, @operator.OperatorKind );
     }
-    
+
     [Fact]
     public void BinaryCompoundOperator()
     {
@@ -55,6 +61,63 @@ public sealed partial class CodeModelTests
         var @operator = compilation.Types.Single().Methods.Single();
         Assert.Equal( MethodKind.Operator, @operator.MethodKind );
         Assert.Equal( OperatorKind.AdditionAssignment, @operator.OperatorKind );
+    }
+
+    [Fact]
+    public void ExtensionMembers()
+    {
+        const string code = """
+                            using System.Collections.Generic;
+                            using System.Linq;
+                            public static class MyExtensions
+                            {
+                                extension(IEnumerable<int> source)
+                                {
+                                    public IEnumerable<int> ValuesGreaterThan(int threshold)
+                                        => source.Where(x => x > threshold);
+                                }
+
+                                extension(IEnumerable<int> source)
+                                {
+                                    public IEnumerable<int> ValuesGreaterThanZero
+                                        => source.ValuesGreaterThan(0);
+                                }
+                                
+                                extension(IEnumerable<string> source)
+                                {
+                                  public IEnumerable<string> ValuesDifferentTo(string threshold)
+                                      => source.Where(x => x != threshold);
+
+                                  public IEnumerable<string> ValuesNonNull
+                                      => source.ValuesDifferentTo(null);
+                                }
+                            }
+                            """;
+
+        using var testContext = this.CreateTestContext();
+        var compilation = testContext.CreateCompilation( code );
+        var type = compilation.Types.Single();
+
+        Assert.Empty( type.Types );
+        Assert.All( type.Methods, m => Assert.True( m.IsImplicitlyDeclared ) );
+        Assert.Equal( 3, type.Extensions.Count );
+
+        var extension1 = type.Extensions.ForType( typeof(IEnumerable<int>) ).OrderBy( x=>x.Sources[0].Span.Start  ).First();
+        Assert.Equal( Code.TypeKind.Extension, extension1.TypeKind );
+        Assert.Null( extension1.ExtensionParameter.DeclaringMember );
+        
+        // Methods.
+        var method = Assert.Single( extension1.Methods );
+        Assert.Same( extension1, method.DeclaringType );
+        
+        // Depth.
+        Assert.Equal( type.Depth + 1, extension1.Depth );
+        Assert.Equal( extension1.Depth + 1, method.Depth );
+        
+        // Refs.
+        var reference = extension1.ToRef();
+        var roundloop = reference.GetTarget( compilation );
+        Assert.Same( extension1, roundloop );
     }
 }
 

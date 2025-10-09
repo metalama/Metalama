@@ -35,7 +35,7 @@ namespace Metalama.Framework.Engine.CodeModel.Source.Pseudo
 
         private IMethod DeclaringAccessor { get; }
 
-        public IHasParameters DeclaringMember => this.DeclaringAccessor;
+        public IHasParameters? DeclaringMember => this.DeclaringAccessor;
 
         public RefKind RefKind
             => this.DeclaringAccessor.ContainingDeclaration switch
@@ -110,8 +110,7 @@ namespace Metalama.Framework.Engine.CodeModel.Source.Pseudo
 
         bool IExpression.IsAssignable => true;
 
-        public ref object? Value
-            => ref RefHelper.Wrap( new SyntaxUserExpression( this.ValueExpression, this.Type, isReferenceable: true ) );
+        public ref object? Value => ref RefHelper.Wrap( new SyntaxUserExpression( this.ValueExpression, this.Type, isReferenceable: true ) );
 
         public TypedExpressionSyntax ToTypedExpressionSyntax( ISyntaxGenerationContext syntaxGenerationContext, IType? targetType = null )
             => new TypedExpressionSyntaxImpl(
@@ -120,13 +119,13 @@ namespace Metalama.Framework.Engine.CodeModel.Source.Pseudo
                 ((SyntaxSerializationContext) syntaxGenerationContext).CompilationModel,
                 isReferenceable: true );
 
-        private ExpressionSyntax ValueExpression => 
-            this._namePrefix != null
-            ? SyntaxFactory.MemberAccessExpression(
-                SyntaxKind.SimpleMemberAccessExpression,
-                SyntaxFactory.IdentifierName( this._namePrefix ),
-                SyntaxFactory.IdentifierName( this.Name ) )
-            : SyntaxFactory.IdentifierName( this.Name );
+        private ExpressionSyntax ValueExpression
+            => this._namePrefix != null
+                ? SyntaxFactory.MemberAccessExpression(
+                    SyntaxKind.SimpleMemberAccessExpression,
+                    SyntaxFactory.IdentifierName( this._namePrefix ),
+                    SyntaxFactory.IdentifierName( this.Name ) )
+                : SyntaxFactory.IdentifierName( this.Name );
 
         public override bool BelongsToCurrentProject => this.ContainingDeclaration.BelongsToCurrentProject;
 

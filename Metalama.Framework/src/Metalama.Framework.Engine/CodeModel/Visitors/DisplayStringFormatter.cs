@@ -400,6 +400,14 @@ internal sealed class DisplayStringFormatter : CompilationElementVisitor
         }
     }
 
+    protected override void VisitTypeExtension( ITypeExtension typeExtension )
+    {
+        this.VisitNamedType( typeExtension.DeclaringType );
+        this.Append( ".extension(" );
+        this.Visit( typeExtension.ExtendedType );
+        this.Append( ")" );
+    }
+
     protected override void VisitTypeParameter( ITypeParameter typeParameter )
     {
         using ( StackOverflowHelper.Detect() )

@@ -130,6 +130,7 @@ internal sealed class IntroducedNamedType : IntroducedMemberOrNamedType, INamedT
     [Memo]
     public IFieldOrPropertyCollection FieldsAndProperties => new FieldAndPropertiesCollection( this.Fields, this.Properties );
 
+    [Memo]
     public IFieldOrPropertyCollection AllFieldsAndProperties => new AllFieldsAndPropertiesCollection( this );
 
     [Memo]
@@ -147,10 +148,12 @@ internal sealed class IntroducedNamedType : IntroducedMemberOrNamedType, INamedT
             this,
             this.Compilation.GetMethodCollection( this.Ref.DefinitionRef ) );
 
+    [Memo]
     public IMethodCollection AllMethods => new AllMethodsCollection( this );
 
     IConstructor? INamedType.PrimaryConstructor => null;
 
+    [Memo]
     public IConstructorCollection Constructors
         => new ConstructorCollection(
             this,
@@ -159,6 +162,9 @@ internal sealed class IntroducedNamedType : IntroducedMemberOrNamedType, INamedT
     IConstructor? INamedType.StaticConstructor => null;
 
     IMethod? INamedType.Finalizer => null;
+
+    [Memo]
+    public ITypeExtensionCollection Extensions => new TypeExtensionCollection( this, [] );
 
     public INamedType TypeDefinition => this.Definition;
 

@@ -38,7 +38,11 @@ internal static class SymbolNormalizer
         GenericContext genericContext,
         RefFactory refFactory )
     {
-        if ( GenericContextHelper.IsCanonicalGenericTypeInstance( namedTypeSymbol ) )
+        if ( namedTypeSymbol.IsExtension )
+        {
+            return (namedTypeSymbol, GenericContext.Empty);
+        }
+        else if ( GenericContextHelper.IsCanonicalGenericTypeInstance( namedTypeSymbol ) )
         {
             var definition = namedTypeSymbol.OriginalDefinition.WithNullableAnnotation( namedTypeSymbol.NullableAnnotation );
 
@@ -75,6 +79,6 @@ internal static class SymbolNormalizer
             SymbolKind.Method => GetCanonicalSymbol( (IMethodSymbol) symbol, genericContext, refFactory ),
             SymbolKind.Property => GetCanonicalSymbol( (IPropertySymbol) symbol, genericContext ),
             SymbolKind.NamedType => GetCanonicalSymbol( (INamedTypeSymbol) symbol, genericContext, refFactory ),
-            _ => (symbol, genericContext),
+            _ => (symbol, genericContext)
         };
 }

@@ -151,6 +151,8 @@ namespace Metalama.Framework.Code
         /// </summary>
         IMethod? Finalizer { get; }
 
+        ITypeExtensionCollection Extensions { get; }
+
         /// <summary>
         /// Gets a value indicating whether the type is <c>readonly</c>.
         /// </summary>
@@ -188,7 +190,7 @@ namespace Metalama.Framework.Code
         new IRef<INamedType> ToRef();
 
         new INamedType ToNullable();
-        
+
         // Note that ToNonNullable, when called with Nullable<T>, can return an ITypeParameter and therefore cannot be cast to INamedType.
 
         INamedType MakeGenericInstance( IReadOnlyList<IType> typeArguments );

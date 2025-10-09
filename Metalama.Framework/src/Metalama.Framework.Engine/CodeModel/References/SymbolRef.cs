@@ -56,9 +56,11 @@ internal sealed partial class SymbolRef<T> : FullRef<T>, ISymbolRef<T>
         RefFactory refFactory,
         RefTargetKind targetKind = RefTargetKind.Default ) : base( refFactory )
     {
+#if DEBUG
         Invariant.Assert(
             symbol.GetDeclarationKind( refFactory.CompilationContext ).GetPossibleDeclarationInterfaceTypes( targetKind ).Contains( typeof(T) ),
             $"The interface type was expected to be of type {string.Join( " or ", symbol.GetDeclarationKind( refFactory.CompilationContext ).GetPossibleDeclarationInterfaceTypes( targetKind ).SelectAsReadOnlyCollection( t => t.Name ) )} but was {typeof(T)}." );
+#endif
 
         // Verify that RefTargetKind is used only in reference to declarations that don't have a symbol, i.e. the reference must be normalized
         // before calling the constructor.
@@ -72,6 +74,10 @@ internal sealed partial class SymbolRef<T> : FullRef<T>, ISymbolRef<T>
             (targetKind is RefTargetKind.EventRaise or RefTargetKind.EventRaiseParameter or RefTargetKind.EventRaiseReturnParameter &&
              symbol.Kind == SymbolKind.Event),
             $"Invalid RefTargetKind.{targetKind} for {symbol.Kind}." );
+        
+        // Verify that we're using ITypeExtension.
+        Invariant.Assert(
+            symbol is not INamedTypeSymbol namedTypeSymbol || typeof(T) == (namedTypeSymbol.IsExtension ? typeof(ITypeExtension) : typeof(INamedType)) );
 
         this.Symbol = symbol;
         this.TargetKind = targetKind;
@@ -192,17 +198,17 @@ internal sealed partial class SymbolRef<T> : FullRef<T>, ISymbolRef<T>
             this.CompilationContext == otherRef.CompilationContext ||
             comparison is RefComparison.Structural or RefComparison.StructuralIncludeNullability,
             "Compilation mismatch in a non-structural comparison." );
-        
+
         if ( this.TargetKind != otherRef.TargetKind )
         {
             return false;
         }
-        
+
         if ( !comparison.GetSymbolComparer( this.CompilationContext, otherRef.CompilationContext ).Equals( this.Symbol, otherRef.Symbol ) )
         {
             return false;
         }
-        
+
         if ( !this._genericContextForSymbolMapping.Equals( otherRef._genericContextForSymbolMapping ) )
         {
             return false;

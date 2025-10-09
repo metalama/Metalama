@@ -79,10 +79,13 @@ internal sealed partial class IntroducedRef<T> : FullRef<T>, IIntroducedRef
     [Conditional( "DEBUG" )]
     private static void CheckBuilderData( DeclarationBuilderData builderData )
     {
+#if DEBUG
+
         // Type parameter must match the builder type.
         Invariant.Assert(
             builderData.DeclarationKind.GetPossibleDeclarationInterfaceTypes().Contains( typeof(T) ),
             $"The interface type was expected to be of type {string.Join( " or", builderData.DeclarationKind.GetPossibleDeclarationInterfaceTypes().SelectAsReadOnlyCollection( t => t.Name ) )} but was {typeof(T)}." );
+#endif
 
         // Constructor replacements must be resolved upstream, but this invariant can no longer be enforced here because the reference
         // is built when the BuilderData is being built.
@@ -111,8 +114,7 @@ internal sealed partial class IntroducedRef<T> : FullRef<T>, IIntroducedRef
 
     public override SerializableDeclarationId ToSerializableId() => this.ConstructedDeclaration.ToSerializableId();
 
-    protected override ISymbol GetSymbolIgnoringRefKind( CompilationContext compilationContext )
-        => throw new NotSupportedException();
+    protected override ISymbol GetSymbolIgnoringRefKind( CompilationContext compilationContext ) => throw new NotSupportedException();
 
     public override ISymbol GetClosestContainingSymbol()
     {

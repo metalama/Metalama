@@ -27,18 +27,27 @@ namespace Metalama.Framework.Engine.CodeModel.Source
     /// This class exists because it needs to add a dependency context check before each member access, which makes
     /// it hard to use [Memo].
     /// </summary>
-    internal sealed class SourceNamedType : SourceMemberOrNamedType, INamedTypeImpl
+    internal class SourceNamedType : SourceMemberOrNamedType, INamedTypeImpl
     {
         private readonly INamedTypeSymbol _typeSymbol;
 
         public SourceNamedTypeImpl Implementation { get; }
 
-        internal SourceNamedType( INamedTypeSymbol typeSymbol, CompilationModel compilation, GenericContext? genericContextForSymbolMapping ) : base(
+        internal SourceNamedType(
+            INamedTypeSymbol typeSymbol,
+            CompilationModel compilation,
+            GenericContext? genericContextForSymbolMapping ) : this( typeSymbol, compilation, genericContextForSymbolMapping, new SourceNamedTypeImpl( typeSymbol, compilation, genericContextForSymbolMapping ))
+        {
+            
+        }
+
+        protected SourceNamedType( INamedTypeSymbol typeSymbol, CompilationModel compilation, GenericContext? genericContextForSymbolMapping, SourceNamedTypeImpl implementation ) : base(
             compilation,
             genericContextForSymbolMapping )
         {
             this._typeSymbol = typeSymbol;
-            this.Implementation = new SourceNamedTypeImpl( this, typeSymbol, compilation, genericContextForSymbolMapping );
+            this.Implementation = implementation;
+            implementation.Facade = this;
         }
 
         protected override void OnUsingDeclaration() => UserCodeExecutionContext.CurrentOrNull?.AddDependencyFrom( this );
@@ -265,14 +274,12 @@ namespace Metalama.Framework.Engine.CodeModel.Source
             }
         }
 
-        [Memo]
-        private IRef<INamedType> Ref => this.RefFactory.FromSymbolBasedDeclaration<INamedType>( this );
 
-        IRef<INamedType> INamedType.ToRef() => this.Ref;
+        public IRef<INamedType> ToRef() => this.Implementation.Ref;
 
-        IRef<IType> IType.ToRef() => this.Ref;
+        IRef<IType> IType.ToRef() => this.Implementation.Ref;
 
-        IRef<INamespaceOrNamedType> INamespaceOrNamedType.ToRef() => this.Ref;
+        IRef<INamespaceOrNamedType> INamespaceOrNamedType.ToRef() => this.Implementation.Ref;
 
         INamedTypeCollection INamedType.NestedTypes => this.Types;
 
@@ -463,6 +470,16 @@ namespace Metalama.Framework.Engine.CodeModel.Source
                 this.OnUsingDeclaration();
 
                 return this.Implementation.Finalizer;
+            }
+        }
+
+        public ITypeExtensionCollection Extensions
+        {
+            get
+            {
+                this.OnUsingDeclaration();
+
+                return this.Implementation.Extensions;
             }
         }
 

@@ -45,7 +45,7 @@ internal partial class AccessorBuilder
 
         public override DeclarationKind DeclarationKind => DeclarationKind.Parameter;
 
-        public override IHasParameters DeclaringMember => this.Accessor;
+        public override IHasParameters? DeclaringMember => this.Accessor;
 
         public override ParameterInfo ToParameterInfo()
         {

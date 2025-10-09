@@ -110,7 +110,7 @@ internal partial class AccessorBuilder
                     $"Setting the name of indexer accessor {this._accessor} parameter {this.Index} is not supported. Set the name on the indexer parameter instead." );
         }
 
-        public override IHasParameters DeclaringMember => this._accessor;
+        public override IHasParameters? DeclaringMember => this._accessor;
 
         public override bool IsReturnParameter => false;
 

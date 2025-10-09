@@ -77,6 +77,7 @@ namespace Metalama.Framework.Code
         /// <summary>
         /// At design time, a type that does not exist.
         /// </summary>
-        Error
+        Error,
+        Extension
     }
 }
