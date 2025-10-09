@@ -9,7 +9,6 @@
 #if ROSLYN_5_0_0_OR_GREATER
 
 using Metalama.Framework.Aspects;
-using Metalama.Framework.Engine.Templating;
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.CSharp13.NullConditionalAssignment_Template;
 

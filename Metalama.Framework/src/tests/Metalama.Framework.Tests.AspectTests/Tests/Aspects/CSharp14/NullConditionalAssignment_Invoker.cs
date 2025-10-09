@@ -10,7 +10,6 @@
 
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code.Invokers;
-using System;
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.CSharp13.NullConditionalAssignment_Invoker;
 
