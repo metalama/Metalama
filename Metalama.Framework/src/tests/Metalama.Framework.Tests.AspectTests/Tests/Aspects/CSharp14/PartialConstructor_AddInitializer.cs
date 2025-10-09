@@ -38,7 +38,7 @@ internal partial class C
 
     public partial C() 
     {
-        Console.WriteLine("Attention au chien.")
+        Console.WriteLine("Attention au chien.");
     }
 #endif
 }
