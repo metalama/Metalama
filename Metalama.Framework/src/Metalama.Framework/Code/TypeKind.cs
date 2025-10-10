@@ -45,7 +45,7 @@ namespace Metalama.Framework.Code
         Enum,
 
         /// <summary>
-        /// Generic parameter (<see cref="ITypeParameter"/>.
+        /// Generic parameter (<see cref="ITypeParameter"/>).
         /// </summary>
         TypeParameter,
 

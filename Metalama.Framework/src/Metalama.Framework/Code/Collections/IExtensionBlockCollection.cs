@@ -18,7 +18,7 @@ public interface IExtensionBlockCollection : IReadOnlyCollection<IExtensionBlock
     IEnumerable<IExtensionBlock> OfReceivingType( IType type );
 
     /// <summary>
-    /// Gets the list of extension blocks extending a specific type (i.e. matching a specific <see cref="IExtensionBlock.ReceiverType"/>),, given as a <see cref="Type"/>.
+    /// Gets the list of extension blocks extending a specific type (i.e. matching a specific <see cref="IExtensionBlock.ReceiverType"/>), given as a <see cref="Type"/>.
     /// </summary>
     IEnumerable<IExtensionBlock> OfReceivingType( Type type );
 }
