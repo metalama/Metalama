@@ -34,7 +34,7 @@
         <!-- The maximal language version supported by this Metalama version.
              The LangMaxVersion property is exported to other repos. -->
         <LangMaxVersion>13.0</LangMaxVersion>
-        <LangVersion>$(LangVersion)</LangVersion>
+        <LangVersion>$(LangMaxVersion)</LangVersion>
 
     </PropertyGroup>
 
