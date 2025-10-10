@@ -35,7 +35,7 @@ namespace Metalama.Framework.Engine.CodeModel.Source.Pseudo
 
         private IMethod DeclaringAccessor { get; }
 
-        public IHasParameters? DeclaringMember => this.DeclaringAccessor;
+        public IHasParameters DeclaringMember => this.DeclaringAccessor;
 
         public RefKind RefKind
             => this.DeclaringAccessor.ContainingDeclaration switch
@@ -52,7 +52,7 @@ namespace Metalama.Framework.Engine.CodeModel.Source.Pseudo
 
         public int Index { get; }
 
-        public TypedConstant? DefaultValue => default;
+        public TypedConstant? DefaultValue => null;
 
         public bool IsParams => false;
 

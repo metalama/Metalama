@@ -50,9 +50,9 @@ internal sealed class IntroducedParameter : IntroducedDeclaration, IParameterImp
 
     public bool IsThis => this._parameterBuilder.IsThis;
 
-    public IHasParameters? DeclaringMember { get; }
+    public IHasParameters DeclaringMember { get; }
 
-    public override IDeclaration ContainingDeclaration => this.DeclaringMember;
+    public override IDeclaration ContainingDeclaration => this.DeclaringMember.AssertNotNull();
 
     public ParameterInfo ToParameterInfo() => throw new NotImplementedException();
 

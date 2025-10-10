@@ -36,12 +36,17 @@ namespace Metalama.Framework.Engine.CodeModel.Source
         internal SourceNamedType(
             INamedTypeSymbol typeSymbol,
             CompilationModel compilation,
-            GenericContext? genericContextForSymbolMapping ) : this( typeSymbol, compilation, genericContextForSymbolMapping, new SourceNamedTypeImpl( typeSymbol, compilation, genericContextForSymbolMapping ))
-        {
-            
-        }
+            GenericContext? genericContextForSymbolMapping ) : this(
+            typeSymbol,
+            compilation,
+            genericContextForSymbolMapping,
+            new SourceNamedTypeImpl( typeSymbol, compilation, genericContextForSymbolMapping ) ) { }
 
-        protected SourceNamedType( INamedTypeSymbol typeSymbol, CompilationModel compilation, GenericContext? genericContextForSymbolMapping, SourceNamedTypeImpl implementation ) : base(
+        protected SourceNamedType(
+            INamedTypeSymbol typeSymbol,
+            CompilationModel compilation,
+            GenericContext? genericContextForSymbolMapping,
+            SourceNamedTypeImpl implementation ) : base(
             compilation,
             genericContextForSymbolMapping )
         {
@@ -273,7 +278,6 @@ namespace Metalama.Framework.Engine.CodeModel.Source
                 return this.Implementation.ContainingNamespace;
             }
         }
-
 
         public IRef<INamedType> ToRef() => this.Implementation.Ref;
 

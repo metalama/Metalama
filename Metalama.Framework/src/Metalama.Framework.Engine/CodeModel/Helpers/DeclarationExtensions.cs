@@ -180,7 +180,7 @@ public static class DeclarationExtensions
                             throw new DiagnosticException(
                                 GeneralDiagnosticDescriptors.CannotPassExpressionToByRefParameter.CreateRoslynDiagnostic(
                                     null,
-                                    (arg.Syntax.ToString(), parameter.Name, parameter.DeclaringMember) ) );
+                                    (arg.Syntax.ToString(), parameter.Name, parameter.DeclaringMember.AssertNotNull()) ) );
                         }
 
                         refKindKeyword = parameter.RefKind is RefKind.Ref ? SyntaxKind.RefKeyword : SyntaxKind.OutKeyword;

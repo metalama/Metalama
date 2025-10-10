@@ -3,19 +3,13 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 #if ROSLYN_5_0_0_OR_GREATER && NET7_0_OR_GREATER
-
 // We don't run these tests with old frameworks because they require the type CompilerFeatureRequiredAttribute.
 
 using Metalama.Framework.Code;
-using Metalama.Framework.Engine;
-using Metalama.Framework.Engine.CodeModel.Helpers;
-using Microsoft.CodeAnalysis;
 using System.Collections.Generic;
 using System.Linq;
 using Xunit;
 using MethodKind = Metalama.Framework.Code.MethodKind;
-using SpecialType = Metalama.Framework.Code.SpecialType;
-using TypeKind = Microsoft.CodeAnalysis.TypeKind;
 
 namespace Metalama.Framework.Tests.UnitTests.CodeModel;
 
@@ -104,18 +98,18 @@ public sealed partial class CodeModelTests
         Assert.All( type.Methods, m => Assert.True( m.IsImplicitlyDeclared ) );
         Assert.Equal( 3, type.Extensions.Count );
 
-        var extension1 = type.Extensions.ForType( typeof(IEnumerable<int>) ).OrderBy( x=>x.Sources[0].Span.Start  ).First();
-        Assert.Equal( Code.TypeKind.Extension, extension1.TypeKind );
+        var extension1 = type.Extensions.ForType( typeof(IEnumerable<int>) ).OrderBy( x => x.Sources[0].Span.Start ).First();
+        Assert.Equal( TypeKind.Extension, extension1.TypeKind );
         Assert.Null( extension1.ExtensionParameter.DeclaringMember );
-        
+
         // Methods.
         var method = Assert.Single( extension1.Methods );
         Assert.Same( extension1, method.DeclaringType );
-        
+
         // Depth.
         Assert.Equal( type.Depth + 1, extension1.Depth );
         Assert.Equal( extension1.Depth + 1, method.Depth );
-        
+
         // Refs.
         var reference = extension1.ToRef();
         var roundloop = reference.GetTarget( compilation );

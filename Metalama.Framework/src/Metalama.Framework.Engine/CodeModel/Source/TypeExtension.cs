@@ -9,7 +9,11 @@ namespace Metalama.Framework.Engine.CodeModel.Source;
 
 internal sealed class TypeExtension : SourceNamedType, ITypeExtension
 {
-    internal TypeExtension( INamedTypeSymbol typeSymbol, CompilationModel compilation ) : base( typeSymbol, compilation, null, new TypeExtensionImpl( typeSymbol, compilation  ) ) { }
+    internal TypeExtension( INamedTypeSymbol typeSymbol, CompilationModel compilation ) : base(
+        typeSymbol,
+        compilation,
+        null,
+        new TypeExtensionImpl( typeSymbol, compilation ) ) { }
 
     public IType ExtendedType
     {
@@ -33,5 +37,5 @@ internal sealed class TypeExtension : SourceNamedType, ITypeExtension
 
     public new IRef<ITypeExtension> ToRef() => base.ToRef().As<ITypeExtension>();
 
-    public INamedType DeclaringType => base.DeclaringType.AssertNotNull();
+    public new INamedType DeclaringType => base.DeclaringType.AssertNotNull();
 }

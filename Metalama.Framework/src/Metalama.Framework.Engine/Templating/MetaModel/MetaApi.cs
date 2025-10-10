@@ -106,7 +106,7 @@ namespace Metalama.Framework.Engine.Templating.MetaModel
         {
             Exception CreateException()
             {
-                var explanation = this.Declaration is IParameter parameter
+                var explanation = this.Declaration is IParameter { DeclaringMember: not null } parameter
                     ? (FormattableString) $"the target parameter is contained in a static {parameter.DeclaringMember.DeclarationKind}"
                     : $"the target {this.Declaration.DeclarationKind} is static";
 
@@ -212,7 +212,7 @@ namespace Metalama.Framework.Engine.Templating.MetaModel
                     break;
             }
 
-            this._type = parameter.DeclaringMember.DeclaringType;
+            this._type = parameter.DeclaringMember?.DeclaringType ?? ((ITypeExtension) parameter.ContainingDeclaration.AssertNotNull()).DeclaringType;
             this._parameter = parameter;
             this._contractDirection = contractDirection;
         }

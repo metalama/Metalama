@@ -40,7 +40,7 @@ internal partial class EligibilityHelper
                 : EligibleScenarios.All;
 
         public FormattableString? GetIneligibilityJustification( EligibleScenarios requestedEligibility, IDescribedObject<IDeclaration> describedObject )
-            => ((IMethod) ((IParameter) describedObject.Object).DeclaringMember).MethodKind switch
+            => ((IMethod) ((IParameter) describedObject.Object).DeclaringMember.AssertNotNull()).MethodKind switch
             {
                 MethodKind.LocalFunction => $"it is a parameter of a local function",
                 MethodKind.Lambda => $"it is a parameter of a lambda",

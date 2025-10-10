@@ -32,7 +32,7 @@ internal abstract class BaseParameterBuilder : NamedDeclarationBuilder, IParamet
 
     public abstract bool IsThis { get; set; }
 
-    public abstract IHasParameters? DeclaringMember { get; }
+    public abstract IHasParameters DeclaringMember { get; }
 
     public abstract ParameterInfo ToParameterInfo();
 

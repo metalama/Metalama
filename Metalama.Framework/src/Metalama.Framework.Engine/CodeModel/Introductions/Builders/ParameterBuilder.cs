@@ -174,7 +174,7 @@ internal sealed class ParameterBuilder : BaseParameterBuilder
 
     public override DeclarationKind DeclarationKind => DeclarationKind.Parameter;
 
-    public override IHasParameters? DeclaringMember { get; }
+    public override IHasParameters DeclaringMember { get; }
 
     public override ParameterInfo ToParameterInfo() => throw new NotImplementedException();
 
