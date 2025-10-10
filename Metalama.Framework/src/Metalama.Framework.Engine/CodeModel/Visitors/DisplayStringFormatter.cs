@@ -218,7 +218,7 @@ internal sealed class DisplayStringFormatter : CompilationElementVisitor
     {
         if ( this._format.IncludeParent )
         {
-            this.Visit( declaration.DeclaringMember );
+            this.Visit( declaration.ContainingDeclaration.AssertNotNull() );
             this.Append( "@" );
         }
 
@@ -408,6 +408,14 @@ internal sealed class DisplayStringFormatter : CompilationElementVisitor
         {
             this.Append( "?" );
         }
+    }
+
+    protected override void VisitTypeExtension( IExtensionBlock extensionBlock )
+    {
+        this.VisitNamedType( extensionBlock.DeclaringType );
+        this.Append( ".extension(" );
+        this.Visit( extensionBlock.ReceiverType );
+        this.Append( ")" );
     }
 
     protected override void VisitTypeParameter( ITypeParameter typeParameter )

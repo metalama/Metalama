@@ -14,7 +14,7 @@ public class RequiredAttribute : ParameterAspect
 {
     public override void BuildAspect( IAspectBuilder<IParameter> builder )
     {
-        builder.With( (IMethod)builder.Target.DeclaringMember ).Override( nameof(Template), tags: new { ParameterName = builder.Target.Name } );
+        builder.With( (IMethod)builder.Target.DeclaringMember! ).Override( nameof(Template), tags: new { ParameterName = builder.Target.Name } );
     }
 
     [Template]

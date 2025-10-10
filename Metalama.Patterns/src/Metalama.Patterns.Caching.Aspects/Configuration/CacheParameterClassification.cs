@@ -40,8 +40,7 @@ public sealed class CacheParameterClassification
 
     // ReSharper disable once RedundantSuppressNullableWarningExpression
     public static CacheParameterClassification Ineligible()
-        => new(
-            ( parameter, classifier )
-                => CachingDiagnosticDescriptors.Cache.ParameterClassifiedAsIneligible.WithArguments(
-                    ((IMethod) parameter.DeclaringMember, classifier.ToString()!, parameter.Name) ) );
+        => new( ( parameter, classifier )
+                    => CachingDiagnosticDescriptors.Cache.ParameterClassifiedAsIneligible.WithArguments(
+                        ((IMethod) parameter.DeclaringMember!, classifier.ToString()!, parameter.Name) ) );
 }

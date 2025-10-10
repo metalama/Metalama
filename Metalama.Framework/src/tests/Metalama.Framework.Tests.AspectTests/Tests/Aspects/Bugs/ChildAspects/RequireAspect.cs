@@ -16,7 +16,7 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.AddAspect.RequireAs
     {
         public override void BuildAspect( IAspectBuilder<IParameter> builder )
         {
-            builder.Outbound.Select( t => (IMethod) t.DeclaringMember ).RequireAspect<Aspect2>();
+            builder.Outbound.Select( t => (IMethod) t.DeclaringMember! ).RequireAspect<Aspect2>();
         }
     }
 

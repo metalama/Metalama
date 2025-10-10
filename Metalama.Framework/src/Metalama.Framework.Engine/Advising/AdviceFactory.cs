@@ -361,6 +361,16 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
                     MetalamaStringFormatter.Format(
                         $"The advised target '{target}' is not contained in the target of the aspect '{this._aspectTargetType ?? this._aspectTarget}'." ) );
             }
+            
+            // Check that we are not advising extension blocks.
+            var namedType = target.GetClosestNamedType();
+
+            if ( namedType is { TypeKind: TypeKind.Extension } )
+            {
+                throw new InvalidOperationException(
+                    MetalamaStringFormatter.Format(
+                        $"The advised target '{target}' is contained in an extension block." ) ); 
+            }
         }
     }
 

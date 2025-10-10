@@ -181,8 +181,11 @@ public partial class DeclarationFactory
         IGenericContext? genericContext = null,
         Type? interfaceType = null )
     {
+#if DEBUG
+
         // Note that interfaceType may be a non-final interface, e.g. IFieldOrProperty.
         Invariant.Assert( interfaceType == null || builder.DeclarationKind.GetPossibleDeclarationInterfaceTypes().Any( interfaceType.IsAssignableFrom ) );
+#endif
 
         return builder switch
         {

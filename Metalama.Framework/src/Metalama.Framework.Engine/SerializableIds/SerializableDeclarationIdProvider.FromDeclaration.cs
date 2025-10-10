@@ -43,7 +43,7 @@ public static partial class SerializableDeclarationIdProvider
 
             case IParameter parameter:
                 {
-                    var parentId = DocumentationIdHelper.CreateDeclarationId( parameter.DeclaringMember ).AssertNotNull();
+                    var parentId = DocumentationIdHelper.CreateDeclarationId( parameter.ContainingDeclaration.AssertNotNull() ).AssertNotNull();
 
                     id = new SerializableDeclarationId( $"{parentId};Parameter={parameter.Index}" );
 

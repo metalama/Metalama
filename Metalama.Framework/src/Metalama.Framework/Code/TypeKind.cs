@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Aspects;
+using Metalama.Framework.Code.Types;
 
 namespace Metalama.Framework.Code
 {
@@ -13,70 +14,75 @@ namespace Metalama.Framework.Code
     public enum TypeKind
     {
         /// <summary>
-        /// Array.
+        /// Array (<see cref="IArrayType"/>).
         /// </summary>
         Array,
 
         /// <summary>
-        /// <c>class</c>.
+        /// <c>class</c> (<see cref="INamedType"/>).
         /// </summary>
         /// <see cref="RecordClass"/>
         Class,
 
         /// <summary>
-        /// <c>record class</c> (i.e. <c>record</c>).
+        /// <c>record class</c> (i.e. <c>record</c>) (<see cref="INamedType"/>).
         /// </summary>
         RecordClass,
 
         /// <summary>
-        /// <c>delegate</c>.
+        /// <c>delegate</c> (<see cref="INamedType"/>).
         /// </summary>
         Delegate,
 
         /// <summary>
-        /// <c>dynamic</c>.
+        /// <c>dynamic</c> (<see cref="IDynamicType"/>).
         /// </summary>
         Dynamic,
 
         /// <summary>
-        /// <c>enum</c>.
+        /// <c>enum</c> (<see cref="INamedType"/>).
         /// </summary>
         Enum,
 
         /// <summary>
-        /// Generic parameter.
+        /// Generic parameter (<see cref="ITypeParameter"/>).
         /// </summary>
         TypeParameter,
 
         /// <summary>
-        /// <c>interface</c>.
+        /// <c>interface</c> (<see cref="INamedType"/>).
         /// </summary>
         Interface,
 
         /// <summary>
-        /// Unmanaged pointer (<c>*</c>).
+        /// Unmanaged pointer (<c>*</c>) (<see cref="IPointerType"/>).
         /// </summary>
         Pointer,
 
         /// <summary>
         /// <c>struct</c>.
         /// </summary>
-        /// <seealso cref="RecordStruct"/>
+        /// <seealso cref="RecordStruct"/> (<see cref="INamedType"/>).
         Struct,
 
         /// <summary>
-        /// <c>record struct</c>.
+        /// <c>record struct</c> (<see cref="INamedType"/>).
         /// </summary>
         RecordStruct,
 
         /// <summary>
-        /// Function pointer (<c>delegate*</c>).
+        /// Function pointer (<c>delegate*</c>) (<see cref="IFunctionPointerType"/>).
         /// </summary>
         FunctionPointer,
 
         /// <summary>
         /// At design time, a type that does not exist.
         /// </summary>
-        Error
+        Error,
+        
+        /// <summary>
+        /// An extension block (<see cref="IExtensionBlock"/>).
+        /// </summary>
+        Extension
     }
 }

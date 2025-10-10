@@ -6,6 +6,7 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.Utilities;
+using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Generic;
@@ -280,24 +281,26 @@ internal sealed partial class SymbolRef<T>
             return false;
         }
 
-        if ( symbol.ContainingAssembly == compilation.RoslynCompilation.Assembly )
+        if ( symbol.ContainingAssembly == compilation.RoslynCompilation.Assembly && !IsIncludedInPartialCompilation( symbol ) )
         {
             // For types defined in the current assembly, we need to take partial compilations into account.
-
-            return IsIncludedInPartialCompilation( symbol );
-
-            bool IsIncludedInPartialCompilation( INamedTypeSymbol t )
-            {
-                return t switch
-                {
-                    { ContainingType: { } containingType } => IsIncludedInPartialCompilation( containingType ),
-                    _ => compilation.PartialCompilation.Types.Contains( t.OriginalDefinition )
-                };
-            }
+            return false;
         }
-        else
+
+        if ( symbol.IsExtensionSafe() )
         {
-            return true;
+            return false;
+        }
+
+        return true;
+
+        bool IsIncludedInPartialCompilation( INamedTypeSymbol t )
+        {
+            return t switch
+            {
+                { ContainingType: { } containingType } => IsIncludedInPartialCompilation( containingType ),
+                _ => compilation.PartialCompilation.Types.Contains( t.OriginalDefinition )
+            };
         }
     }
 

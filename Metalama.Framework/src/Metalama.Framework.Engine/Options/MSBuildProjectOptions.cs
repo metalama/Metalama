@@ -160,7 +160,10 @@ public partial class MSBuildProjectOptions : DefaultProjectOptions
 
             if ( !LanguageVersionFacts.TryParse( s, out var version ) )
             {
-                throw new InvalidOperationException( $"Invalid LangVersion value: '{s}'." );
+                // This can happen if the property is set to an invalid value, but also if the IDE runs
+                // a lower Roslyn version than the one required by the project. In this case, we return 
+                // the latest supported version of the current Metalama build, for the current Roslyn version.
+                return SupportedCSharpVersions.Latest;
             }
 
             return version.MapSpecifiedToEffectiveVersion();

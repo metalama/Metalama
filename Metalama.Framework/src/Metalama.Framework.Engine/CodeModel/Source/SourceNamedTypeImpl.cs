@@ -16,6 +16,7 @@ using Metalama.Framework.Engine.CodeModel.Visitors;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.Comparers;
 using Metalama.Framework.Engine.Utilities.Roslyn;
+using Metalama.Framework.Utilities;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -32,13 +33,13 @@ using TypeKind = Metalama.Framework.Code.TypeKind;
 
 namespace Metalama.Framework.Engine.CodeModel.Source;
 
-internal sealed class SourceNamedTypeImpl : SourceMemberOrNamedType, INamedTypeImpl
+internal class SourceNamedTypeImpl : SourceMemberOrNamedType, INamedTypeImpl
 {
-    private readonly SourceNamedType _facade;
+    private readonly Promise<SourceNamedType> _facade = new();
 
-    private readonly INamedTypeSymbol _namedTypeSymbol;
+    protected INamedTypeSymbol NamedTypeSymbol { get; }
 
-    public override ISymbol Symbol => this._namedTypeSymbol;
+    public override ISymbol Symbol => this.NamedTypeSymbol;
 
     public override bool CanBeInherited => this.IsReferenceType.GetValueOrDefault() && !this.IsSealed;
 
@@ -46,27 +47,36 @@ internal sealed class SourceNamedTypeImpl : SourceMemberOrNamedType, INamedTypeI
         => this.Compilation.GetDerivedTypes( this, options );
 
     internal SourceNamedTypeImpl(
-        SourceNamedType facade,
         INamedTypeSymbol namedTypeSymbol,
         CompilationModel compilation,
         GenericContext? genericContextForSymbolMapping ) : base( compilation, genericContextForSymbolMapping )
     {
-        this._facade = facade;
-        this._namedTypeSymbol = namedTypeSymbol.AssertBelongsToCompilationContext( compilation.CompilationContext );
+        this.NamedTypeSymbol = namedTypeSymbol.AssertBelongsToCompilationContext( compilation.CompilationContext );
     }
 
-    TypeKind IType.TypeKind
-        => this._namedTypeSymbol.TypeKind switch
+    protected virtual void CheckSymbol()
+    {
+        Invariant.Assert( !this.NamedTypeSymbol.IsExtensionSafe() );
+    }
+
+    internal SourceNamedType Facade
+    {
+        get => this._facade.Value;
+        set => this._facade.Value = value;
+    }
+
+    public virtual TypeKind TypeKind
+        => this.NamedTypeSymbol.TypeKind switch
         {
-            Microsoft.CodeAnalysis.TypeKind.Class when !this._namedTypeSymbol.IsRecord => TypeKind.Class,
-            Microsoft.CodeAnalysis.TypeKind.Class when this._namedTypeSymbol.IsRecord => TypeKind.RecordClass,
+            Microsoft.CodeAnalysis.TypeKind.Class when !this.NamedTypeSymbol.IsRecord => TypeKind.Class,
+            Microsoft.CodeAnalysis.TypeKind.Class when this.NamedTypeSymbol.IsRecord => TypeKind.RecordClass,
             Microsoft.CodeAnalysis.TypeKind.Delegate => TypeKind.Delegate,
             Microsoft.CodeAnalysis.TypeKind.Enum => TypeKind.Enum,
             Microsoft.CodeAnalysis.TypeKind.Interface => TypeKind.Interface,
-            Microsoft.CodeAnalysis.TypeKind.Struct when !this._namedTypeSymbol.IsRecord => TypeKind.Struct,
-            Microsoft.CodeAnalysis.TypeKind.Struct when this._namedTypeSymbol.IsRecord => TypeKind.RecordStruct,
+            Microsoft.CodeAnalysis.TypeKind.Struct when !this.NamedTypeSymbol.IsRecord => TypeKind.Struct,
+            Microsoft.CodeAnalysis.TypeKind.Struct when this.NamedTypeSymbol.IsRecord => TypeKind.RecordStruct,
             Microsoft.CodeAnalysis.TypeKind.Error => TypeKind.Error,
-            _ => throw new InvalidOperationException( $"Unexpected type kind for '{this._namedTypeSymbol}': {this._namedTypeSymbol.TypeKind}." )
+            _ => throw new InvalidOperationException( $"Unexpected type kind for '{this.NamedTypeSymbol}': {this.NamedTypeSymbol.TypeKind}." )
         };
 
     [Memo]
@@ -74,7 +84,7 @@ internal sealed class SourceNamedTypeImpl : SourceMemberOrNamedType, INamedTypeI
 
     private SpecialType GetSpecialTypeCore()
     {
-        var specialType = this._namedTypeSymbol.SpecialType.ToOurSpecialType();
+        var specialType = this.NamedTypeSymbol.SpecialType.ToOurSpecialType();
 
         if ( specialType != SpecialType.None )
         {
@@ -82,22 +92,22 @@ internal sealed class SourceNamedTypeImpl : SourceMemberOrNamedType, INamedTypeI
         }
         else if ( this.IsGeneric )
         {
-            switch ( this._namedTypeSymbol.Name )
+            switch ( this.NamedTypeSymbol.Name )
             {
                 case "IAsyncEnumerable" when this.IsCanonicalGenericInstance
-                                             && this._namedTypeSymbol.ContainingNamespace.ToDisplayString() == "System.Collections.Generic":
+                                             && this.NamedTypeSymbol.ContainingNamespace.ToDisplayString() == "System.Collections.Generic":
                     return SpecialType.IAsyncEnumerable_T;
 
                 case "IAsyncEnumerator" when this.IsCanonicalGenericInstance
-                                             && this._namedTypeSymbol.ContainingNamespace.ToDisplayString() == "System.Collections.Generic":
+                                             && this.NamedTypeSymbol.ContainingNamespace.ToDisplayString() == "System.Collections.Generic":
                     return SpecialType.IAsyncEnumerator_T;
 
                 case nameof(ValueTask)
-                    when this.IsCanonicalGenericInstance && this._namedTypeSymbol.ContainingNamespace.ToDisplayString() == "System.Threading.Tasks":
+                    when this.IsCanonicalGenericInstance && this.NamedTypeSymbol.ContainingNamespace.ToDisplayString() == "System.Threading.Tasks":
                     return SpecialType.ValueTask_T;
 
                 case nameof(Task)
-                    when this.IsCanonicalGenericInstance && this._namedTypeSymbol.ContainingNamespace.ToDisplayString() == "System.Threading.Tasks":
+                    when this.IsCanonicalGenericInstance && this.NamedTypeSymbol.ContainingNamespace.ToDisplayString() == "System.Threading.Tasks":
                     return SpecialType.Task_T;
             }
 
@@ -105,29 +115,29 @@ internal sealed class SourceNamedTypeImpl : SourceMemberOrNamedType, INamedTypeI
         }
         else
         {
-            return this._namedTypeSymbol.Name switch
+            return this.NamedTypeSymbol.Name switch
             {
-                nameof(ValueTask) when this._namedTypeSymbol.ContainingNamespace.ToDisplayString() == "System.Threading.Tasks"
+                nameof(ValueTask) when this.NamedTypeSymbol.ContainingNamespace.ToDisplayString() == "System.Threading.Tasks"
                     => SpecialType.ValueTask,
-                nameof(Task) when this._namedTypeSymbol.ContainingNamespace.ToDisplayString() == "System.Threading.Tasks"
+                nameof(Task) when this.NamedTypeSymbol.ContainingNamespace.ToDisplayString() == "System.Threading.Tasks"
                     => SpecialType.Task,
-                nameof(Type) when this._namedTypeSymbol.ContainingNamespace.ToDisplayString() == "System"
+                nameof(Type) when this.NamedTypeSymbol.ContainingNamespace.ToDisplayString() == "System"
                     => SpecialType.Type,
                 _ => SpecialType.None
             };
         }
     }
 
-    public Type ToType() => this.Compilation.Factory.GetReflectionType( this._namedTypeSymbol );
+    public Type ToType() => this.Compilation.Factory.GetReflectionType( this.NamedTypeSymbol );
 
-    public bool? IsReferenceType => this._namedTypeSymbol.IsReferenceType;
+    public bool? IsReferenceType => this.NamedTypeSymbol.IsReferenceType;
 
-    public bool? IsNullable => this._namedTypeSymbol.IsNullable();
+    public bool? IsNullable => this.NamedTypeSymbol.IsNullable();
 
     public bool Equals( SpecialType specialType ) => this.SpecialType == specialType;
 
     public bool Equals( IType? otherType, TypeComparison typeComparison )
-        => this.Compilation.Comparers.GetTypeComparer( typeComparison ).Equals( this._facade, otherType );
+        => this.Compilation.Comparers.GetTypeComparer( typeComparison ).Equals( this.Facade, otherType );
 
     public bool Equals( Type? otherType, TypeComparison typeComparison = TypeComparison.Default )
         => otherType != null && this.Equals( this.Compilation.Factory.GetTypeByReflectionType( otherType ), typeComparison );
@@ -152,87 +162,86 @@ internal sealed class SourceNamedTypeImpl : SourceMemberOrNamedType, INamedTypeI
 
     public override MemberInfo ToMemberInfo() => this.ToType();
 
-    public bool IsReadOnly => this._namedTypeSymbol.IsReadOnly;
+    public bool IsReadOnly => this.NamedTypeSymbol.IsReadOnly;
 
-    public bool IsRef => this._namedTypeSymbol.IsRefLikeType;
+    public bool IsRef => this.NamedTypeSymbol.IsRefLikeType;
 
     public bool HasDefaultConstructor
-        => this._namedTypeSymbol.TypeKind == Microsoft.CodeAnalysis.TypeKind.Struct ||
-           (this._namedTypeSymbol is { TypeKind: Microsoft.CodeAnalysis.TypeKind.Class, IsAbstract: false } &&
-            this._namedTypeSymbol.InstanceConstructors.Any( ctor => ctor.Parameters.Length == 0 ));
+        => this.NamedTypeSymbol.TypeKind == Microsoft.CodeAnalysis.TypeKind.Struct ||
+           (this.NamedTypeSymbol is { TypeKind: Microsoft.CodeAnalysis.TypeKind.Class, IsAbstract: false } &&
+            this.NamedTypeSymbol.InstanceConstructors.Any( ctor => ctor.Parameters.Length == 0 ));
 
-    public bool IsGeneric => this._namedTypeSymbol.IsGenericType;
+    public bool IsGeneric => this.NamedTypeSymbol.IsGenericType;
 
-    public bool IsCanonicalGenericInstance
-        => this._namedTypeSymbol.IsDefinitionSafe() && this.GenericContextForSymbolMapping.IsEmptyOrIdentity;
+    public bool IsCanonicalGenericInstance => this.NamedTypeSymbol.IsDefinitionSafe() && this.GenericContextForSymbolMapping.IsEmptyOrIdentity;
 
     [Memo]
     public INamedTypeCollection Types
         => new NamedTypeCollection(
-            this._facade,
-            this.Compilation.GetNamedTypeCollectionByParent( this._namedTypeSymbol.OriginalDefinition.ToRef( this.RefFactory ) ) );
+            this.Facade,
+            this.Compilation.GetNamedTypeCollectionByParent( this.NamedTypeSymbol.OriginalDefinition.ToRef( this.RefFactory ) ) );
 
     INamedTypeCollection INamedType.NestedTypes => this.Types;
 
     [Memo]
-    public INamedTypeCollection AllTypes => new AllTypesCollection( this._facade );
+    public INamedTypeCollection AllTypes => new AllTypesCollection( this.Facade );
 
     [Memo]
     public IPropertyCollection Properties
         => new PropertyCollection(
-            this._facade,
-            this.Compilation.GetPropertyCollection( this._namedTypeSymbol.OriginalDefinition.ToRef( this.RefFactory ) ) );
+            this.Facade,
+            this.Compilation.GetPropertyCollection( this.NamedTypeSymbol.OriginalDefinition.ToRef( this.RefFactory ) ) );
 
     [Memo]
-    public IPropertyCollection AllProperties => new AllPropertiesCollection( this._facade );
+    public IPropertyCollection AllProperties => new AllPropertiesCollection( this.Facade );
 
     [Memo]
     public IIndexerCollection Indexers
         => new IndexerCollection(
-            this._facade,
-            this.Compilation.GetIndexerCollection( this._namedTypeSymbol.OriginalDefinition.ToRef( this.RefFactory ) ) );
+            this.Facade,
+            this.Compilation.GetIndexerCollection( this.NamedTypeSymbol.OriginalDefinition.ToRef( this.RefFactory ) ) );
 
     [Memo]
-    public IIndexerCollection AllIndexers => new AllIndexersCollection( this._facade );
+    public IIndexerCollection AllIndexers => new AllIndexersCollection( this.Facade );
 
     [Memo]
     public IFieldCollection Fields
         => new FieldCollection(
-            this._facade,
-            this.Compilation.GetFieldCollection( this._namedTypeSymbol.OriginalDefinition.ToRef( this.RefFactory ) ) );
+            this.Facade,
+            this.Compilation.GetFieldCollection( this.NamedTypeSymbol.OriginalDefinition.ToRef( this.RefFactory ) ) );
 
     [Memo]
-    public IFieldCollection AllFields => new AllFieldsCollection( this._facade );
+    public IFieldCollection AllFields => new AllFieldsCollection( this.Facade );
 
     [Memo]
     public IFieldOrPropertyCollection FieldsAndProperties => new FieldAndPropertiesCollection( this.Fields, this.Properties );
 
     [Memo]
-    public IFieldOrPropertyCollection AllFieldsAndProperties => new AllFieldsAndPropertiesCollection( this._facade );
+    public IFieldOrPropertyCollection AllFieldsAndProperties => new AllFieldsAndPropertiesCollection( this.Facade );
 
     [Memo]
     public IEventCollection Events
         => new EventCollection(
-            this._facade,
-            this.Compilation.GetEventCollection( this._namedTypeSymbol.OriginalDefinition.ToRef( this.RefFactory ) ) );
+            this.Facade,
+            this.Compilation.GetEventCollection( this.NamedTypeSymbol.OriginalDefinition.ToRef( this.RefFactory ) ) );
 
     [Memo]
-    public IEventCollection AllEvents => new AllEventsCollection( this._facade );
+    public IEventCollection AllEvents => new AllEventsCollection( this.Facade );
 
     [Memo]
     public IMethodCollection Methods
         => new MethodCollection(
-            this._facade,
-            this.Compilation.GetMethodCollection( this._namedTypeSymbol.OriginalDefinition.ToRef( this.RefFactory ) ) );
+            this.Facade,
+            this.Compilation.GetMethodCollection( this.NamedTypeSymbol.OriginalDefinition.ToRef( this.RefFactory ) ) );
 
     [Memo]
-    public IMethodCollection AllMethods => new AllMethodsCollection( this._facade );
+    public IMethodCollection AllMethods => new AllMethodsCollection( this.Facade );
 
     [Memo]
     public IConstructorCollection Constructors
         => new ConstructorCollection(
-            this._facade,
-            this.Compilation.GetConstructorCollection( this._namedTypeSymbol.OriginalDefinition.ToRef( this.RefFactory ) ) );
+            this.Facade,
+            this.Compilation.GetConstructorCollection( this.NamedTypeSymbol.OriginalDefinition.ToRef( this.RefFactory ) ) );
 
     [Memo]
     public IConstructor? PrimaryConstructor => this.GetPrimaryConstructorImpl();
@@ -244,7 +253,7 @@ internal sealed class SourceNamedTypeImpl : SourceMemberOrNamedType, INamedTypeI
 
     private IConstructor? GetPrimaryConstructorImpl()
     {
-        var constructors = this.Compilation.GetConstructorCollection( this._namedTypeSymbol.OriginalDefinition.ToRef( this.RefFactory ) );
+        var constructors = this.Compilation.GetConstructorCollection( this.NamedTypeSymbol.OriginalDefinition.ToRef( this.RefFactory ) );
 
         foreach ( var constructor in constructors )
         {
@@ -261,14 +270,14 @@ internal sealed class SourceNamedTypeImpl : SourceMemberOrNamedType, INamedTypeI
 
     private IConstructor? GetStaticConstructorImpl()
     {
-        var builder = this.Compilation.GetStaticConstructor( this._namedTypeSymbol );
+        var builder = this.Compilation.GetStaticConstructor( this.NamedTypeSymbol );
 
         if ( builder != null )
         {
             return this.Compilation.Factory.GetConstructor( builder );
         }
 
-        var symbol = this._namedTypeSymbol.StaticConstructors.SingleOrDefault();
+        var symbol = this.NamedTypeSymbol.StaticConstructors.SingleOrDefault();
 
         if ( symbol != null )
         {
@@ -280,14 +289,14 @@ internal sealed class SourceNamedTypeImpl : SourceMemberOrNamedType, INamedTypeI
 
     private IMethod? GetFinalizerImpl()
     {
-        var builder = this.Compilation.GetFinalizer( this._namedTypeSymbol );
+        var builder = this.Compilation.GetFinalizer( this.NamedTypeSymbol );
 
         if ( builder != null )
         {
             return this.Compilation.Factory.GetMethod( builder );
         }
 
-        var symbol = this._namedTypeSymbol.GetMembers()
+        var symbol = this.NamedTypeSymbol.GetMembers()
             .OfType<IMethodSymbol>()
             .SingleOrDefault( m => m is { Name: "Finalize", TypeParameters.Length: 0, Parameters.Length: 0 } );
 
@@ -299,11 +308,21 @@ internal sealed class SourceNamedTypeImpl : SourceMemberOrNamedType, INamedTypeI
         return null;
     }
 
+    [Memo]
+    public IExtensionBlockCollection ExtensionBlocks
+        => new ExtensionBlockCollection(
+            this.Facade,
+            this.NamedTypeSymbol.OriginalDefinition.GetMembers( "" )
+                .OfType<INamedTypeSymbol>()
+                .Where( m => m.IsExtensionSafe() )
+                .Select( t => t.ToTypeExtensionRef( this.RefFactory ) )
+                .ToReadOnlyList() );
+
     public override bool IsPartial
     {
         get
         {
-            var syntaxReference = this._namedTypeSymbol.GetPrimarySyntaxReference();
+            var syntaxReference = this.NamedTypeSymbol.GetPrimarySyntaxReference();
 
             if ( syntaxReference == null )
             {
@@ -327,8 +346,8 @@ internal sealed class SourceNamedTypeImpl : SourceMemberOrNamedType, INamedTypeI
     [Memo]
     public ITypeParameterList TypeParameters
         => new TypeParameterList(
-            this._facade.Definition,
-            this._namedTypeSymbol.TypeParameters.Select( x => this.RefFactory.FromSymbol<ITypeParameter>( x ) )
+            this.Facade.Definition,
+            this.NamedTypeSymbol.TypeParameters.Select( x => this.RefFactory.FromSymbol<ITypeParameter>( x ) )
                 .ToReadOnlyList() );
 
     INamespace INamedType.Namespace => this.ContainingNamespace;
@@ -339,53 +358,53 @@ internal sealed class SourceNamedTypeImpl : SourceMemberOrNamedType, INamedTypeI
 
             // Empty error type symbols (like unspecified type parameter) have null namespace.
             // Other error types usually have assembly-specific global namespace.
-            this._namedTypeSymbol.ContainingNamespace != null
-                ? this.Compilation.Factory.GetNamespace( this._namedTypeSymbol.ContainingNamespace )
+            this.NamedTypeSymbol.ContainingNamespace != null
+                ? this.Compilation.Factory.GetNamespace( this.NamedTypeSymbol.ContainingNamespace )
                 : this.Compilation.GlobalNamespace;
 
     IRef<INamespaceOrNamedType> INamespaceOrNamedType.ToRef() => this.Ref;
 
     [Memo]
-    public string FullName => this._namedTypeSymbol.GetFullName().AssertNotNull();
+    public string FullName => this.NamedTypeSymbol.GetFullName().AssertNotNull();
 
     [Memo]
     public IReadOnlyList<IType> TypeArguments
         => this.GenericContextForSymbolMapping.IsEmptyOrIdentity
-            ? this._namedTypeSymbol.TypeArguments.SelectAsImmutableArray( a => this.Compilation.Factory.GetIType( a, this.GenericContextForSymbolMapping ) )
+            ? this.NamedTypeSymbol.TypeArguments.SelectAsImmutableArray( a => this.Compilation.Factory.GetIType( a, this.GenericContextForSymbolMapping ) )
             : this.GenericContextForSymbolMapping.TypeArguments.SelectAsImmutableArray( t => t.GetTarget( this.Compilation ) );
 
     [Memo]
     public override IDeclaration ContainingDeclaration
-        => this._namedTypeSymbol.ContainingSymbol switch
+        => this.NamedTypeSymbol.ContainingSymbol switch
         {
-            INamespaceSymbol => this.Compilation.Factory.GetAssembly( this._namedTypeSymbol.ContainingAssembly ),
+            INamespaceSymbol => this.Compilation.Factory.GetAssembly( this.NamedTypeSymbol.ContainingAssembly ),
             INamedTypeSymbol containingType => this.Compilation.Factory.GetNamedType( containingType, this.GenericContextForSymbolMapping ),
             null => this.Compilation, // Empty error type symbol goes here. Other error types return a namespace, which we handle above.
-            _ => throw new AssertionFailedException( $"Unexpected containing symbol kind: {this._namedTypeSymbol.ContainingSymbol.Kind}." )
+            _ => throw new AssertionFailedException( $"Unexpected containing symbol kind: {this.NamedTypeSymbol.ContainingSymbol.Kind}." )
         };
 
     public override DeclarationKind DeclarationKind => DeclarationKind.NamedType;
 
     [Memo]
     public INamedType? BaseType
-        => this._namedTypeSymbol.BaseType == null
+        => this.NamedTypeSymbol.BaseType == null
             ? null
-            : this.Compilation.Factory.GetNamedType( this._namedTypeSymbol.BaseType, this.GenericContextForSymbolMapping );
+            : this.Compilation.Factory.GetNamedType( this.NamedTypeSymbol.BaseType, this.GenericContextForSymbolMapping );
 
     [Memo]
     public IImplementedInterfaceCollection AllImplementedInterfaces
         => new AllImplementedInterfacesCollection(
-            this._facade,
+            this.Facade,
             this.Compilation.GetAllInterfaceImplementationCollection(
-                this._namedTypeSymbol.OriginalDefinition.ToRef( this.RefFactory ),
+                this.NamedTypeSymbol.OriginalDefinition.ToRef( this.RefFactory ),
                 false ) );
 
     [Memo]
     public IImplementedInterfaceCollection ImplementedInterfaces
         => new ImplementedInterfacesCollection(
-            this._facade,
+            this.Facade,
             this.Compilation.GetInterfaceImplementationCollection(
-                this._namedTypeSymbol.OriginalDefinition.ToRef( this.RefFactory ),
+                this.NamedTypeSymbol.OriginalDefinition.ToRef( this.RefFactory ),
                 false ) );
 
     ICompilation ICompilationElement.Compilation => this.Compilation;
@@ -399,20 +418,20 @@ internal sealed class SourceNamedTypeImpl : SourceMemberOrNamedType, INamedTypeI
                 this.ToFullDeclarationRef(),
                 this.GenericContextForSymbolMapping as IntroducedGenericContext );
 
-            return this.Compilation.Factory.GetNamedType( this._namedTypeSymbol.ConstructedFrom, genericContext );
+            return this.Compilation.Factory.GetNamedType( this.NamedTypeSymbol.ConstructedFrom, genericContext );
         }
         else
         {
             var typeArgumentSymbols =
                 typeArguments.SelectAsArray( a => a.GetSymbol().AssertSymbolNotNull() );
 
-            var typeSymbol = this._namedTypeSymbol;
+            var typeSymbol = this.NamedTypeSymbol;
 
             // Normalize canonical generic instance.
             var constructedTypeSymbol =
                 typeArgumentSymbols.SequenceEqual( typeSymbol.ConstructedFrom.TypeParameters )
-                ? typeSymbol.ConstructedFrom
-                : typeSymbol.ConstructedFrom.Construct( typeArgumentSymbols );
+                    ? typeSymbol.ConstructedFrom
+                    : typeSymbol.ConstructedFrom.Construct( typeArgumentSymbols );
 
             return this.Compilation.Factory.GetNamedType( constructedTypeSymbol );
         }
@@ -584,7 +603,7 @@ internal sealed class SourceNamedTypeImpl : SourceMemberOrNamedType, INamedTypeI
         if ( symbolInterfaceMemberSymbol != null )
         {
             var symbolInterfaceMemberImplementationSymbol =
-                this._namedTypeSymbol.FindImplementationForInterfaceMember( symbolInterfaceMemberSymbol );
+                this.NamedTypeSymbol.FindImplementationForInterfaceMember( symbolInterfaceMemberSymbol );
 
             if ( symbolInterfaceMemberImplementationSymbol != null )
             {
@@ -596,7 +615,7 @@ internal sealed class SourceNamedTypeImpl : SourceMemberOrNamedType, INamedTypeI
 
         // Find the member in introduced interfaces, including in subtypes.
         var currentTypeDefinition = this.Definition;
-        var currentTypeSymbol = this._namedTypeSymbol;
+        var currentTypeSymbol = this.NamedTypeSymbol;
 
         while ( true )
         {
@@ -657,9 +676,9 @@ internal sealed class SourceNamedTypeImpl : SourceMemberOrNamedType, INamedTypeI
 
     [Memo]
     public INamedType Definition
-        => this._namedTypeSymbol.Equals( this._namedTypeSymbol.OriginalDefinition )
+        => this.NamedTypeSymbol.Equals( this.NamedTypeSymbol.OriginalDefinition )
             ? this
-            : this.Compilation.Factory.GetNamedType( this._namedTypeSymbol.OriginalDefinition );
+            : this.Compilation.Factory.GetNamedType( this.NamedTypeSymbol.OriginalDefinition );
 
     INamedType INamedType.TypeDefinition => throw new NotSupportedException();
 
@@ -670,7 +689,7 @@ internal sealed class SourceNamedTypeImpl : SourceMemberOrNamedType, INamedTypeI
 
     private INamedType GetUnderlyingTypeCore()
     {
-        var enumUnderlyingType = this._namedTypeSymbol.EnumUnderlyingType;
+        var enumUnderlyingType = this.NamedTypeSymbol.EnumUnderlyingType;
 
         if ( enumUnderlyingType != null )
         {
@@ -684,12 +703,12 @@ internal sealed class SourceNamedTypeImpl : SourceMemberOrNamedType, INamedTypeI
             if ( this.IsReferenceType == true )
             {
                 // We have an annotated reference type, return the non-annotated type.
-                return this.Compilation.Factory.GetNamedType( (INamedTypeSymbol) this._namedTypeSymbol.WithNullableAnnotation( NullableAnnotation.None ) );
+                return this.Compilation.Factory.GetNamedType( (INamedTypeSymbol) this.NamedTypeSymbol.WithNullableAnnotation( NullableAnnotation.None ) );
             }
         }
 
         // Fall back to self.
-        return this._facade;
+        return this.Facade;
     }
 
     private void PopulateAllInterfaces( ImmutableHashSet<INamedTypeSymbol>.Builder builder, in SymbolBasedGenericMap genericMap )
@@ -697,14 +716,14 @@ internal sealed class SourceNamedTypeImpl : SourceMemberOrNamedType, INamedTypeI
         var compilation = this.Compilation.RoslynCompilation;
 
         // Process the Roslyn type system.
-        foreach ( var type in this._namedTypeSymbol.AllInterfaces )
+        foreach ( var type in this.NamedTypeSymbol.AllInterfaces )
         {
             builder.Add( genericMap.SubstituteSymbol( type, compilation ) );
         }
 
-        if ( this._namedTypeSymbol.BaseType != null )
+        if ( this.NamedTypeSymbol.BaseType != null )
         {
-            var newGenericMap = genericMap.SubstituteSymbols( this._namedTypeSymbol.BaseType.TypeArguments, compilation );
+            var newGenericMap = genericMap.SubstituteSymbols( this.NamedTypeSymbol.BaseType.TypeArguments, compilation );
             ((SourceNamedType) this.BaseType!).Implementation.PopulateAllInterfaces( builder, newGenericMap );
         }
 
@@ -725,10 +744,12 @@ internal sealed class SourceNamedTypeImpl : SourceMemberOrNamedType, INamedTypeI
 
     public bool Equals( INamedType? other ) => this.Equals( other, TypeComparison.Default );
 
-    public override int GetHashCode() => this.GetCompilationContext().SymbolComparer.GetHashCode( this._namedTypeSymbol );
+    public override int GetHashCode() => this.GetCompilationContext().SymbolComparer.GetHashCode( this.NamedTypeSymbol );
 
     [Memo]
-    public IFullRef<INamedType> Ref => this.RefFactory.FromSymbolBasedDeclaration<INamedType>( this );
+    public IFullRef<INamedType> Ref => this.CreateFullRef();
+
+    protected virtual IFullRef<INamedType> CreateFullRef() => this.RefFactory.FromSymbolBasedDeclaration<INamedType>( this );
 
     private protected override IFullRef<IDeclaration> ToFullDeclarationRef() => this.Ref;
 

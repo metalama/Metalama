@@ -112,7 +112,7 @@ namespace Metalama.Framework.Engine.CodeModel.References
         {
             Invariant.Assert( pseudoParameter.GetRefFactory() == this );
 
-            var accessor = (IMethod) pseudoParameter.DeclaringMember;
+            var accessor = (IMethod) pseudoParameter.DeclaringMember.AssertNotNull();
 
             Invariant.Assert( accessor.IsImplicitlyDeclared );
 

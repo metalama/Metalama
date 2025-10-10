@@ -292,7 +292,9 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
         /// Gets the kind of operator based represented by the method.
         /// </summary>
         internal static OperatorKind GetOperatorKind( this IMethodSymbol method )
-            => method.MethodKind is MethodKind.UserDefinedOperator or MethodKind.BuiltinOperator or MethodKind.Conversion ? OperatorData.GetOperatorKindFromName( method.Name ) : OperatorKind.None;
+            => method.MethodKind is MethodKind.UserDefinedOperator or MethodKind.BuiltinOperator or MethodKind.Conversion
+                ? OperatorData.GetOperatorKindFromName( method.Name )
+                : OperatorKind.None;
 
         public static INamedTypeSymbol GetTopmostContainingType( this INamedTypeSymbol type ) => type.ContainingType?.GetTopmostContainingType() ?? type;
 
@@ -353,6 +355,15 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
             value = default;
 
             return false;
+        }
+
+        public static bool IsExtensionSafe( this INamedTypeSymbol namedType )
+        {
+#if ROSLYN_5_0_0_OR_GREATER
+            return namedType.IsExtension;
+#else
+            return false;
+#endif
         }
     }
 }

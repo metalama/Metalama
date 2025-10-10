@@ -148,12 +148,16 @@ internal sealed class ParameterBuilder : BaseParameterBuilder
 
                 if ( this.DeclaringMember is not IMethod method )
                 {
-                    throw new NotSupportedException( MetalamaStringFormatter.Format( $"Cannot set the 'this' modifier on a parameter contained in {this.DeclaringMember.DeclarationKind}. Only methods are allowed." ) );
+                    throw new NotSupportedException(
+                        MetalamaStringFormatter.Format(
+                            $"Cannot set the 'this' modifier on a parameter contained in {this.DeclaringMember.DeclarationKind}. Only methods are allowed." ) );
                 }
 
                 if ( method.MethodKind is not MethodKind.Default )
                 {
-                    throw new NotSupportedException( MetalamaStringFormatter.Format( $"Cannot set the 'this' modifier on a parameter contained in {method.MethodKind}. Only regular methods are allowed." ) );
+                    throw new NotSupportedException(
+                        MetalamaStringFormatter.Format(
+                            $"Cannot set the 'this' modifier on a parameter contained in {method.MethodKind}. Only regular methods are allowed." ) );
                 }
 
                 // We don't check that the method is static, because that can be set afterwards, but we can check the type.
