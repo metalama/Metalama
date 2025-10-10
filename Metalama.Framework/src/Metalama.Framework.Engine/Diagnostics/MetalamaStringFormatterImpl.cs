@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Code;
-using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CodeModel.Visitors;
 using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Utilities;

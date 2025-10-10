@@ -321,6 +321,7 @@ class C
             Assert.Equal( new[] { type.Methods.ElementAt( 4 ), type.Methods.ElementAt( 6 ), type.Methods.ElementAt( 8 ) }, matchedMethods11 );
         }
 
+#if ROSLYN_4_12_0_OR_GREATER
         [Fact]
         public void Matches_ParamsCollections()
         {
@@ -337,7 +338,7 @@ class C
                                     public void Foo() { } // 0
                                     public void Foo(int x) { } // 1
                                     public void Foo(int x, int y) { } // 2
-                                
+
                                     public void Foo(params int[] a) { } // 3
                                     public void Foo(params List<int> l) { } // 4
                                     public void Foo(params Span<int> s) { } // 5
@@ -350,7 +351,7 @@ class C
                                 public class CustomNonEnumerableCollection
                                 {
                                     public static CustomNonEnumerableCollection Create(ReadOnlySpan<int> s) => null!;
-                                
+
                                     public IEnumerator<int> GetEnumerator() => null!;
                                 }
 
@@ -371,7 +372,7 @@ class C
                 type.Methods.ElementAt( 5 ),
                 type.Methods.ElementAt( 6 ),
                 type.Methods.ElementAt( 7 ),
-                type.Methods.ElementAt( 8 ),
+                type.Methods.ElementAt( 8 )
             ];
 
             var matchedMethods1 = type.Methods.OfCompatibleSignature( "Foo", Array.Empty<IType>() );
@@ -383,6 +384,7 @@ class C
             var matchedMethods3 = type.Methods.OfCompatibleSignature( "Foo", [intType, intType] );
             Assert.Equal( [type.Methods.ElementAt( 2 ), .. paramsMethods], matchedMethods3 );
         }
+#endif
 
         [Fact]
         public void Matches_InheritanceHierarchy()

@@ -11,6 +11,8 @@ using System.Linq;
 
 namespace Metalama.Framework.Engine.Utilities.Roslyn;
 
+#pragma warning disable SA1111, SA1113
+
 internal record OperatorData( OperatorKind Kind, string MemberName, LanguageVersion? MinimumLangVersion, SyntaxKind? OperatorKeyword, bool IsChecked )
 {
 #pragma warning disable SA1115, SA1114
@@ -140,7 +142,10 @@ internal record OperatorData( OperatorKind Kind, string MemberName, LanguageVers
         new OperatorData( OperatorKind.Concatenate, WellKnownMemberNames.ConcatenateOperatorName, null, null, false ),
         new OperatorData( OperatorKind.Exponent, WellKnownMemberNames.ExponentOperatorName, null, null, false ),
         new OperatorData( OperatorKind.IntegerDivision, WellKnownMemberNames.IntegerDivisionOperatorName, null, null, false ),
-        new OperatorData( OperatorKind.Like, WellKnownMemberNames.LikeOperatorName, null, null, false ),
+        new OperatorData( OperatorKind.Like, WellKnownMemberNames.LikeOperatorName, null, null, false )
+
+#if ROSLYN_5_0_0_OR_GREATER
+       ,
 
         // Compound assignment operators - user-definable since C# 14
         new OperatorData( OperatorKind.AdditionAssignment, WellKnownMemberNames.AdditionAssignmentOperatorName, LanguageVersion.CSharp14, null, false ),
@@ -203,7 +208,9 @@ internal record OperatorData( OperatorKind Kind, string MemberName, LanguageVers
             WellKnownMemberNames.CheckedDecrementAssignmentOperatorName,
             LanguageVersion.CSharp14,
             null,
-            true ) );
+            true )
+#endif
+    );
 
 #pragma warning restore SA1115, SA1114
 

@@ -72,7 +72,7 @@ class C< [MyAttribute(4)]T>
                     "C<T>.f:8",
                     "C<T>.g:8",
                     "C<T>.P:9",
-                    "C<T>.<P>k__BackingField:10",
+                    "C<T>.P.field:10",
                     "C<T>.P.set/value:11",
                     "C<T>.ee:13",
                     "C<T>.ff:13"

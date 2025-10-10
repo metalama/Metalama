@@ -11,7 +11,7 @@
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code.Invokers;
 
-namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.CSharp13.NullConditionalAssignment_Invoker;
+namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.CSharp14.NullConditionalAssignment_Invoker;
 
 internal class TheAspect : OverrideFieldOrPropertyAspect
 {
