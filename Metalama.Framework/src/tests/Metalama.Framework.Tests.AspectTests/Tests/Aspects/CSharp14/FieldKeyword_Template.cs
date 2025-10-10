@@ -10,7 +10,7 @@
 
 using Metalama.Framework.Aspects;
 
-namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.CSharp13.FieldKeyword_Template;
+namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.CSharp14.FieldKeyword_Template;
 
 internal class TheAspect : TypeAspect
 {

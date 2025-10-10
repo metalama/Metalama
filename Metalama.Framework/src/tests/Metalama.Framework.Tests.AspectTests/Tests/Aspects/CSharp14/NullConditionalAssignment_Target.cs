@@ -11,7 +11,7 @@
 using Metalama.Framework.Aspects;
 using System;
 
-namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.CSharp13.NullConditionalAssignment_Target;
+namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.CSharp14.NullConditionalAssignment_Target;
 
 internal class TheAspect : OverrideMethodAspect
 {
