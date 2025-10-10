@@ -4,6 +4,9 @@
 
 #if TEST_OPTIONS
 // @RequiredConstant(NET5_0_OR_GREATER)
+// We don't execute this test in lower versions of Roslyn because the formatter gives a different output with nested types, which
+// fails the test but is irrelevant to address.
+// @RequiredConstant(ROSLYN_4_12_0_OR_GREATER)
 #endif
 
 using Metalama.Framework.Advising;

@@ -4,6 +4,7 @@
 
 #if TEST_OPTIONS
 // @LanguageVersion(preview)
+// @RequiredConstant(ROSLYN_5_0_0)
 #endif
 
 using Metalama.Framework.Advising;

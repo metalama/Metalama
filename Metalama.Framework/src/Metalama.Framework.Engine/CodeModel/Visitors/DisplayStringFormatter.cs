@@ -257,7 +257,20 @@ internal sealed class DisplayStringFormatter : CompilationElementVisitor
             this.Append( "." );
         }
 
-        this.Append( declaration.Name );
+        // Format backing fields as PropertyName.field. Different Roslyn versions use different renderings,
+        // and it's easier for tests if we unify it.
+        const string backingFieldSuffix = ">k__BackingField";
+
+        if ( declaration.IsImplicitlyDeclared && declaration.Name[0] == '<' && declaration.Name.EndsWith( backingFieldSuffix, StringComparison.Ordinal ) )
+        {
+            var propertyName = declaration.Name.Substring( 1, declaration.Name.Length - backingFieldSuffix.Length - 1 );
+            this.Append( propertyName );
+            this.Append( ".field" );
+        }
+        else
+        {
+            this.Append( declaration.Name );
+        }
     }
 
     public override void VisitProperty( IProperty declaration )
@@ -370,9 +383,9 @@ internal sealed class DisplayStringFormatter : CompilationElementVisitor
 
             case { Name: nameof(Nullable), ContainingNamespace.FullName: "System", TypeParameters.Count: 1 }:
                 this.Visit( namedType.TypeArguments[0] );
-            
+
                 // The trailing ? is appended lower in this method.
-                
+
                 break;
 
             default:

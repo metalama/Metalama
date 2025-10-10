@@ -13,12 +13,12 @@ namespace Metalama.Framework.IntegrationTests.Aspects.Introductions.Properties.P
 
 public class IntroductionAttribute : TypeAspect
 {
-    public override void BuildAspect(IAspectBuilder<INamedType> builder)
+    public override void BuildAspect( IAspectBuilder<INamedType> builder )
     {
-        builder.IntroduceProperty(nameof(PartialProperty));
+        builder.IntroduceProperty( nameof(this.PartialProperty) );
     }
 
-    [Template(IsPartial = true)]
+    [Template( IsPartial = true )]
     public extern int PartialProperty { get; set; }
 }
 
