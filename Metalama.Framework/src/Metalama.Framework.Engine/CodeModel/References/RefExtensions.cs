@@ -8,6 +8,7 @@ using Metalama.Framework.Engine.CodeModel.GenericContexts;
 using Metalama.Framework.Engine.CodeModel.Source;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities.Comparers;
+using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Generic;
@@ -95,12 +96,12 @@ public static class RefExtensions
             RefTargetKind.EventRaise => [typeof(IMethod)],
             RefTargetKind.EventRaiseParameter => [typeof(IParameter)],
             RefTargetKind.EventRaiseReturnParameter => [typeof(IParameter)],
-            RefTargetKind.NamedType => [typeof(INamedType), typeof(ITypeExtension)],
+            RefTargetKind.NamedType => [typeof(INamedType), typeof(IExtensionBlock)],
             RefTargetKind.Default => declarationKind switch
             {
                 DeclarationKind.Type => [typeof(IType)],
                 DeclarationKind.Compilation => [typeof(ICompilation)],
-                DeclarationKind.NamedType => [typeof(INamedType), typeof(ITypeExtension)],
+                DeclarationKind.NamedType => [typeof(INamedType), typeof(IExtensionBlock)],
                 DeclarationKind.Method or DeclarationKind.Operator or DeclarationKind.Finalizer => [typeof(IMethod)],
                 DeclarationKind.Property => [typeof(IProperty), typeof(IField)],
                 DeclarationKind.Indexer => [typeof(IIndexer)],
@@ -122,10 +123,10 @@ public static class RefExtensions
 
     internal static ISymbolRef<IDeclaration> ToRef( this ISymbol symbol, RefFactory refFactory ) => refFactory.FromDeclarationSymbol( symbol );
 
-    internal static ISymbolRef<INamedType> ToRef( this INamedTypeSymbol symbol, RefFactory refFactory ) => symbol.IsExtension ? refFactory.FromSymbol<ITypeExtension>( symbol ) : refFactory.FromSymbol<INamedType>( symbol );
+    internal static ISymbolRef<INamedType> ToRef( this INamedTypeSymbol symbol, RefFactory refFactory ) => symbol.IsExtensionSafe() ? refFactory.FromSymbol<IExtensionBlock>( symbol ) : refFactory.FromSymbol<INamedType>( symbol );
 
-    internal static ISymbolRef<ITypeExtension> ToTypeExtensionRef( this INamedTypeSymbol symbol, RefFactory refFactory )
-        => refFactory.FromSymbol<ITypeExtension>( symbol );
+    internal static ISymbolRef<IExtensionBlock> ToTypeExtensionRef( this INamedTypeSymbol symbol, RefFactory refFactory )
+        => refFactory.FromSymbol<IExtensionBlock>( symbol );
 
     internal static ISymbolRef<INamespace> ToRef( this INamespaceSymbol symbol, RefFactory refFactory ) => refFactory.FromSymbol<INamespace>( symbol );
 

@@ -6,6 +6,7 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.Utilities;
+using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Generic;
@@ -286,7 +287,7 @@ internal sealed partial class SymbolRef<T>
             return false;
         }
 
-        if ( symbol.IsExtension )
+        if ( symbol.IsExtensionSafe() )
         {
             return false;
         }

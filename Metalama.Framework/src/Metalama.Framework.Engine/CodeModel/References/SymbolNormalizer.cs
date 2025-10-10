@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Engine.CodeModel.GenericContexts;
+using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
 
 namespace Metalama.Framework.Engine.CodeModel.References;
@@ -38,7 +39,7 @@ internal static class SymbolNormalizer
         GenericContext genericContext,
         RefFactory refFactory )
     {
-        if ( namedTypeSymbol.IsExtension )
+        if ( namedTypeSymbol.IsExtensionSafe() )
         {
             return (namedTypeSymbol, GenericContext.Empty);
         }

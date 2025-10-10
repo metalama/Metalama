@@ -164,7 +164,7 @@ internal sealed class IntroducedNamedType : IntroducedMemberOrNamedType, INamedT
     IMethod? INamedType.Finalizer => null;
 
     [Memo]
-    public ITypeExtensionCollection Extensions => new TypeExtensionCollection( this, [] );
+    public IExtensionBlockCollection ExtensionBlocks => new ExtensionBlockCollection( this, [] );
 
     public INamedType TypeDefinition => this.Definition;
 

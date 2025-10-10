@@ -176,7 +176,7 @@ internal sealed class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBui
 
     public IMethod? Finalizer => null;
 
-    public ITypeExtensionCollection Extensions => throw new NotImplementedException();
+    public IExtensionBlockCollection ExtensionBlocks => throw new NotImplementedException();
 
     public bool IsReadOnly => false;
 

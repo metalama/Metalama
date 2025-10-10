@@ -299,7 +299,7 @@ public static partial class EligibilityExtensions
     /// </summary>
     public static void MustNotBeExtensionParameter( this IEligibilityBuilder<IParameter> eligibilityBuilder )
         => eligibilityBuilder.MustSatisfy(
-            p => p.ContainingDeclaration is not ITypeExtension,
+            p => p.ContainingDeclaration is not IExtensionBlock,
             member => $"{member} must not be an extension parameter" );
 
     /// <summary>

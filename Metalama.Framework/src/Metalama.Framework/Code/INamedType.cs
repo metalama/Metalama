@@ -151,7 +151,10 @@ namespace Metalama.Framework.Code
         /// </summary>
         IMethod? Finalizer { get; }
 
-        ITypeExtensionCollection Extensions { get; }
+        /// <summary>
+        /// Gets the list of extension blocks.
+        /// </summary>
+        IExtensionBlockCollection ExtensionBlocks { get; }
 
         /// <summary>
         /// Gets a value indicating whether the type is <c>readonly</c>.

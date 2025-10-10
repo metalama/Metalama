@@ -45,7 +45,7 @@ internal abstract class CompilationElementVisitor
                         break;
                     
                     case TypeKind.Extension:
-                        this.VisitTypeExtension( (ITypeExtension) type );
+                        this.VisitTypeExtension( (IExtensionBlock) type );
 
                         break;
 
@@ -196,7 +196,7 @@ internal abstract class CompilationElementVisitor
 
     protected virtual void VisitNamedType( INamedType namedType ) => this.DefaultVisit( namedType );
     
-    protected virtual void VisitTypeExtension( ITypeExtension typeExtension ) => this.DefaultVisit( typeExtension );
+    protected virtual void VisitTypeExtension( IExtensionBlock extensionBlock ) => this.DefaultVisit( extensionBlock );
 
     protected virtual void VisitPointerType( IPointerType pointerType ) => this.DefaultVisit( pointerType );
 

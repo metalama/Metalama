@@ -34,7 +34,7 @@ namespace Metalama.Framework.Code
         bool IsThis { get; }
 
         /// <summary>
-        /// Gets the parent <see cref="IMethod"/>, <see cref="IConstructor"/> or <see cref="IIndexer"/>. Returns <c>null</c> if this parameter is the <see cref="ITypeExtension.ExtensionParameter"/>.
+        /// Gets the parent <see cref="IMethod"/>, <see cref="IConstructor"/> or <see cref="IIndexer"/>. Returns <c>null</c> if this parameter is the <see cref="IExtensionBlock.ReceiverParameter"/>.
         /// </summary>
         IHasParameters? DeclaringMember { get; }
 

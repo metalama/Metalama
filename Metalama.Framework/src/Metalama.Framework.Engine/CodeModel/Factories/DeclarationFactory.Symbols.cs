@@ -166,8 +166,17 @@ public partial class DeclarationFactory
         return this.GetTypeFromSymbol<INamedType, INamedTypeSymbol>(
             typeSymbol,
             genericContext.AsGenericContext(),
-            static ( in args ) => args.Symbol.IsExtension ? new TypeExtension( args.Symbol, args.Compilation ) :
-                new SourceNamedType( args.Symbol, args.Compilation, args.GenericContext ) );
+            static ( in args ) =>
+            {
+#if ROSLYN_5_0_0_OR_GREATER
+                if ( args.Symbol.IsExtensionSafe() )
+                {
+                    return new ExtensionBlock( args.Symbol, args.Compilation );
+                }
+#endif
+
+                return new SourceNamedType( args.Symbol, args.Compilation, args.GenericContext );
+            } );
     }
 
     // We must use GetTypeFromSymbol and not GetDeclarationFromSymbol because of nullability.
@@ -196,7 +205,7 @@ public partial class DeclarationFactory
 
         // Standardize on the partial definition part for partial properties.
         propertySymbol = propertySymbol.PartialDefinitionPart ?? propertySymbol;
-        
+
 #endif
 
         return this.GetDeclarationFromSymbol<IProperty, IPropertySymbol>(

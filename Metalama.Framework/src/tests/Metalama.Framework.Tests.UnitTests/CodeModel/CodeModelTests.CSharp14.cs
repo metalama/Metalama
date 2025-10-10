@@ -63,8 +63,11 @@ public sealed partial class CodeModelTests
     public void ExtensionMembers()
     {
         const string code = """
+                            using System;
                             using System.Collections.Generic;
                             using System.Linq;
+                            using System.Numerics;
+                            
                             public static class MyExtensions
                             {
                                 extension(IEnumerable<int> source)
@@ -73,6 +76,7 @@ public sealed partial class CodeModelTests
                                         => source.Where(x => x > threshold);
                                 }
 
+                                // Same signature as above, to check if they are grouped (they are not).
                                 extension(IEnumerable<int> source)
                                 {
                                     public IEnumerable<int> ValuesGreaterThanZero
@@ -87,6 +91,13 @@ public sealed partial class CodeModelTests
                                   public IEnumerable<string> ValuesNonNull
                                       => source.ValuesDifferentTo(null);
                                 }
+                                
+                                // Static members only, type parameters.
+                                extension<TElement>(IEnumerable<TElement>) where TElement : INumber<TElement>
+                               {
+                                   public static IEnumerable<TElement> operator *(IEnumerable<TElement> vector, TElement scalar) => throw new NotImplementedException();
+                                   public static IEnumerable<TElement> operator *(TElement scalar, IEnumerable<TElement> vector) => throw new NotImplementedException();
+                               }
                             }
                             """;
 
@@ -96,11 +107,11 @@ public sealed partial class CodeModelTests
 
         Assert.Empty( type.Types );
         Assert.All( type.Methods, m => Assert.True( m.IsImplicitlyDeclared ) );
-        Assert.Equal( 3, type.Extensions.Count );
+        Assert.Equal( 4, type.ExtensionBlocks.Count );
 
-        var extension1 = type.Extensions.ForType( typeof(IEnumerable<int>) ).OrderBy( x => x.Sources[0].Span.Start ).First();
+        var extension1 = type.ExtensionBlocks.OfReceivingType( typeof(IEnumerable<int>) ).OrderBy( x => x.Sources[0].Span.Start ).First();
         Assert.Equal( TypeKind.Extension, extension1.TypeKind );
-        Assert.Null( extension1.ExtensionParameter.DeclaringMember );
+        Assert.Null( extension1.ReceiverParameter.DeclaringMember );
 
         // Methods.
         var method = Assert.Single( extension1.Methods );
@@ -114,6 +125,13 @@ public sealed partial class CodeModelTests
         var reference = extension1.ToRef();
         var roundloop = reference.GetTarget( compilation );
         Assert.Same( extension1, roundloop );
+        
+        // Nameless parameter.
+        var extension4 = type.ExtensionBlocks.OrderBy( x => x.Sources[0].Span.Start ).ElementAt( 3 );
+        Assert.Empty( extension4.ReceiverParameter.Name );
+        
+        // Type parameters.
+        Assert.Single( extension4.TypeParameters );
     }
 }
 

@@ -212,7 +212,7 @@ namespace Metalama.Framework.Engine.Templating.MetaModel
                     break;
             }
 
-            this._type = parameter.DeclaringMember?.DeclaringType ?? ((ITypeExtension) parameter.ContainingDeclaration.AssertNotNull()).DeclaringType;
+            this._type = parameter.DeclaringMember?.DeclaringType ?? ((IExtensionBlock) parameter.ContainingDeclaration.AssertNotNull()).DeclaringType;
             this._parameter = parameter;
             this._contractDirection = contractDirection;
         }

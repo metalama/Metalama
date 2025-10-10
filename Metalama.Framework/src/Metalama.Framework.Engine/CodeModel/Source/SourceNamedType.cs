@@ -477,13 +477,13 @@ namespace Metalama.Framework.Engine.CodeModel.Source
             }
         }
 
-        public ITypeExtensionCollection Extensions
+        public IExtensionBlockCollection ExtensionBlocks
         {
             get
             {
                 this.OnUsingDeclaration();
 
-                return this.Implementation.Extensions;
+                return this.Implementation.ExtensionBlocks;
             }
         }
 

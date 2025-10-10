@@ -56,7 +56,7 @@ internal class SourceNamedTypeImpl : SourceMemberOrNamedType, INamedTypeImpl
 
     protected virtual void CheckSymbol()
     {
-        Invariant.Assert( !this.NamedTypeSymbol.IsExtension );
+        Invariant.Assert( !this.NamedTypeSymbol.IsExtensionSafe() );
     }
 
     internal SourceNamedType Facade
@@ -309,12 +309,12 @@ internal class SourceNamedTypeImpl : SourceMemberOrNamedType, INamedTypeImpl
     }
 
     [Memo]
-    public ITypeExtensionCollection Extensions
-        => new TypeExtensionCollection(
+    public IExtensionBlockCollection ExtensionBlocks
+        => new ExtensionBlockCollection(
             this.Facade,
             this.NamedTypeSymbol.OriginalDefinition.GetMembers( "" )
                 .OfType<INamedTypeSymbol>()
-                .Where( m => m.IsExtension )
+                .Where( m => m.IsExtensionSafe() )
                 .Select( t => t.ToTypeExtensionRef( this.RefFactory ) )
                 .ToReadOnlyList() );
 

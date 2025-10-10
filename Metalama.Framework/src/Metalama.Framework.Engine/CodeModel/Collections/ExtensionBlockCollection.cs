@@ -11,13 +11,13 @@ using System.Linq;
 
 namespace Metalama.Framework.Engine.CodeModel.Collections;
 
-internal class TypeExtensionCollection : MemberOrNamedTypeCollection<ITypeExtension>, ITypeExtensionCollection
+internal class ExtensionBlockCollection : MemberOrNamedTypeCollection<IExtensionBlock>, IExtensionBlockCollection
 {
-    public TypeExtensionCollection( INamedType declaringType, IReadOnlyList<IFullRef<ITypeExtension>> sourceItems ) : base(
+    public ExtensionBlockCollection( INamedType declaringType, IReadOnlyList<IFullRef<IExtensionBlock>> sourceItems ) : base(
         declaringType,
         sourceItems ) { }
 
-    public IEnumerable<ITypeExtension> ForType( IType type ) => this.GetItems( this.Source ).Where( t => t.ExtendedType.Equals( type ) );
+    public IEnumerable<IExtensionBlock> OfReceivingType( IType type ) => this.GetItems( this.Source ).Where( t => t.ReceiverType.Equals( type ) );
 
-    public IEnumerable<ITypeExtension> ForType( Type type ) => this.ForType( this.Compilation.Factory.GetTypeByReflectionType( type ) );
+    public IEnumerable<IExtensionBlock> OfReceivingType( Type type ) => this.OfReceivingType( this.Compilation.Factory.GetTypeByReflectionType( type ) );
 }

@@ -8,6 +8,7 @@ using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.SerializableIds;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities;
+using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
 using System;
 using System.Linq;
@@ -75,9 +76,9 @@ internal sealed partial class SymbolRef<T> : FullRef<T>, ISymbolRef<T>
              symbol.Kind == SymbolKind.Event),
             $"Invalid RefTargetKind.{targetKind} for {symbol.Kind}." );
         
-        // Verify that we're using ITypeExtension.
+        // Verify that we're using ITypeExtension when necessary.
         Invariant.Assert(
-            symbol is not INamedTypeSymbol namedTypeSymbol || typeof(T) == (namedTypeSymbol.IsExtension ? typeof(ITypeExtension) : typeof(INamedType)) );
+            symbol is not INamedTypeSymbol namedTypeSymbol || typeof(T) == (namedTypeSymbol.IsExtensionSafe() ? typeof(IExtensionBlock) : typeof(INamedType)) );
 
         this.Symbol = symbol;
         this.TargetKind = targetKind;

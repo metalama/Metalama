@@ -410,11 +410,11 @@ internal sealed class DisplayStringFormatter : CompilationElementVisitor
         }
     }
 
-    protected override void VisitTypeExtension( ITypeExtension typeExtension )
+    protected override void VisitTypeExtension( IExtensionBlock extensionBlock )
     {
-        this.VisitNamedType( typeExtension.DeclaringType );
+        this.VisitNamedType( extensionBlock.DeclaringType );
         this.Append( ".extension(" );
-        this.Visit( typeExtension.ExtendedType );
+        this.Visit( extensionBlock.ReceiverType );
         this.Append( ")" );
     }
 
