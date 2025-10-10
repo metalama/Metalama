@@ -129,13 +129,16 @@ internal sealed class IntroduceMethodAdvice : IntroduceMemberAdvice<IMethod, IMe
     {
         // Determine whether we need introduction transformation (something may exist in the original code or could have been introduced by previous steps).
         var targetDeclaration = this.TargetDeclaration.ForCompilation( context.MutableCompilation );
-        var existingMethod = targetDeclaration.FindClosestVisibleMethod( builder );
+
+        var existingMethod = builder.IsExplicitInterfaceImplementation
+            ? (IMethod) targetDeclaration.FindExplicitInterfaceImplementation( builder )
+            : targetDeclaration.FindClosestVisibleMethod( builder );
 
         var hasNoBody = this.Template?.TemplateClassMember.TemplateInfo.HasNoBody == true;
 
-        if ( existingMethod != null 
+        if ( existingMethod != null
              && existingMethod.GetPrimaryDeclarationSyntax() is MethodDeclarationSyntax methodDeclaration
-             && methodDeclaration.Modifiers.Any( x => x.IsKind(SyntaxKind.PartialKeyword ) ) 
+             && methodDeclaration.Modifiers.Any( x => x.IsKind( SyntaxKind.PartialKeyword ) )
              && builder.IsPartial )
         {
             // TODO: This allows introducing partial methods where definition/implementation exists in code.
@@ -146,11 +149,13 @@ internal sealed class IntroduceMethodAdvice : IntroduceMemberAdvice<IMethod, IMe
         // TODO: Introduce attributes that are added not present on the existing member?
         if ( existingMethod == null )
         {
-            // Check that there is no other member named the same, otherwise we cannot add a method.
+            // Check that there is no other member named the same (except methods, which have a signature), otherwise we cannot add a method.
             var existingOtherMember =
                 builder is { Name: "Finalize", Parameters.Count: 0, TypeParameters.Count: 0 }
                     ? targetDeclaration.Finalizer
-                    : targetDeclaration.FindClosestUniquelyNamedMember( builder.Name );
+                    : builder.IsExplicitInterfaceImplementation
+                        ? null
+                        : targetDeclaration.FindClosestUniquelyNamedMember( builder.Name );
 
             if ( existingOtherMember != null )
             {
