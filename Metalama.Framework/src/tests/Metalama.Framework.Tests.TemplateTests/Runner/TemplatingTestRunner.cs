@@ -225,11 +225,27 @@ namespace Metalama.Framework.Tests.TemplateTests.Runner
 
             try
             {
-                var templateMethod = testResult.InputCompilation!.Assembly.GetTypes()
-                    .Single( t => string.Equals( t.Name, "Aspect", StringComparison.Ordinal ) )
+                var aspectType = testResult.InputCompilation!.Assembly.GetTypes()
+                    .SingleOrDefault( t => string.Equals( t.Name, "Aspect", StringComparison.Ordinal ) );
+
+                if ( aspectType == null )
+                {
+                    testResult.SetFailed( "There is no type named 'Aspect'." );
+
+                    return;
+                }
+
+                var templateMember = aspectType
                     .GetMembers( "Template" )
                     .OfType<IMethodSymbol>()
-                    .Single();
+                    .SingleOrDefault();
+
+                if ( templateMember == null )
+                {
+                    testResult.SetFailed( "The 'Aspect' type has no method named 'Template'." );
+
+                    return;
+                }
 
                 var compiledAspectType = assembly.GetTypes().Single( t => t.Name.Equals( "Aspect", StringComparison.Ordinal ) );
 
@@ -238,7 +254,7 @@ namespace Metalama.Framework.Tests.TemplateTests.Runner
                 // In templating tests, test classes do not implement ITemplateProvider so we use FromInstanceUnsafe.
                 var templateProvider = TemplateProvider.FromInstanceUnsafe( aspectInstance );
 
-                var compiledTemplateMethodName = TemplateNameHelper.GetCompiledTemplateName( templateMethod );
+                var compiledTemplateMethodName = TemplateNameHelper.GetCompiledTemplateName( templateMember );
                 var compiledTemplateMethod = compiledAspectType.GetAnyMethod( compiledTemplateMethodName );
 
                 Invariant.Assert( compiledTemplateMethod != null );
@@ -251,7 +267,7 @@ namespace Metalama.Framework.Tests.TemplateTests.Runner
                 var fakeTemplateClass = new TestTemplateClass(
                     serviceProvider,
                     testResult.InputCompilation.GetCompilationContext(),
-                    templateMethod.ContainingType,
+                    templateMember.ContainingType,
                     compiledAspectType );
 
                 var fakeTemplateClassMember = new TemplateClassMember(
@@ -265,7 +281,7 @@ namespace Metalama.Framework.Tests.TemplateTests.Runner
                     ImmutableArray<TemplateClassMemberParameter>.Empty,
                     ImmutableDictionary<MethodKind, TemplateClassMember>.Empty );
 
-                var templateMethodDeclaration = compilationModel.Factory.GetMethod( templateMethod );
+                var templateMethodDeclaration = compilationModel.Factory.GetMethod( templateMember );
                 var template = TemplateMemberFactory.Create( templateMethodDeclaration, fakeTemplateClassMember, templateProvider, ObjectReader.Empty );
 
                 var (expansionContext, targetMethod) = CreateTemplateExpansionContext(

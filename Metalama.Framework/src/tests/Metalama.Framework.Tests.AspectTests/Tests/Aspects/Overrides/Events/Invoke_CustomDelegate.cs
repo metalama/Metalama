@@ -2,6 +2,10 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+#if TEST_OPTIONS
+// @RequiredConstant(ROSLYN_4_12_0_OR_GREATER)
+#endif
+
 using System;
 using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
@@ -17,7 +21,7 @@ public class OverrideAttribute : EventAspect
 {
     public override void BuildAspect( IAspectBuilder<IEvent> builder )
     {
-        builder.OverrideAccessors( invokeTemplate: nameof( InvokeEventTemplate ));
+        builder.OverrideAccessors( invokeTemplate: nameof(this.InvokeEventTemplate) );
     }
 
     [Template]
@@ -29,7 +33,7 @@ public class OverrideAttribute : EventAspect
 }
 
 // <target>
-internal class TargetClass 
+internal class TargetClass
 {
     private MyEventHandler? _handler;
 

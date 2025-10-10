@@ -754,6 +754,44 @@ namespace Metalama.Framework.Engine.Templating
 
         public SyntaxToken EscapeIdentifier( SyntaxToken token ) => SyntaxFactory.Identifier( this.EscapeIdentifier( token.Text ) );
 
+        public ExpressionSyntax RewriteAssignmentExpression( AssignmentExpressionSyntax assignmentExpression )
+        {
+            if ( assignmentExpression.Left.IsKind( SyntaxKind.ConditionalAccessExpression ) )
+            {
+                /*
+
+                 In Roslyn 5, the expression
+
+                  a?.b = c
+
+                 is parsed as:
+
+                      ConditionalAccessExpression(
+                        IdentifierName("a"),
+                        AssignmentExpression(
+                            SyntaxKind.SimpleAssignmentExpression,
+                            MemberBindingExpression(
+                                IdentifierName("b")),
+                            IdentifierName("c")))
+
+                However, when we generate code using invokers, we don't know if the expression is going to be used in an assignment.
+
+                Therefore, we use this method to rewrite null-conditional assignments in the way expected by Roslyn,
+
+                */
+
+                var conditionalAccess = (ConditionalAccessExpressionSyntax) assignmentExpression.Left;
+
+                return SyntaxFactory.ConditionalAccessExpression(
+                    conditionalAccess.Expression,
+                    SyntaxFactory.AssignmentExpression( SyntaxKind.SimpleAssignmentExpression, conditionalAccess.WhenNotNull, assignmentExpression.Right ) );
+            }
+            else
+            {
+                return assignmentExpression;
+            }
+        }
+
         public ExpressionSyntax ConvertToExpressionSyntax( object value )
             => value switch
             {

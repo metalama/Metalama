@@ -92,7 +92,7 @@ internal sealed class IntroduceConstructorAdvice : IntroduceMemberAdvice<IMethod
                 : targetDeclaration.Constructors.OfExactSignature( builder );
 
         // TODO: Introduce attributes that are added not present on the existing member?
-        if ( existingConstructor == null || existingImplicitConstructor != null )
+        if ( existingConstructor == null || existingImplicitConstructor != null || (existingConstructor.IsPartial && builder.IsPartial) )
         {
             if ( existingImplicitConstructor != null && builder.Parameters.Count == 0 )
             {

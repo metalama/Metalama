@@ -14,32 +14,99 @@ public static class OperatorKindExtensions
         => operatorKind switch
         {
             OperatorKind.None => OperatorCategory.None,
+
+            // Conversion operators
             OperatorKind.ImplicitConversion => OperatorCategory.Conversion,
             OperatorKind.ExplicitConversion => OperatorCategory.Conversion,
+            OperatorKind.CheckedExplicitConversion => OperatorCategory.Conversion,
+
+            // Binary arithmetic operators
             OperatorKind.Addition => OperatorCategory.Binary,
-            OperatorKind.BitwiseAnd => OperatorCategory.Binary,
-            OperatorKind.BitwiseOr => OperatorCategory.Binary,
-            OperatorKind.Decrement => OperatorCategory.Unary,
-            OperatorKind.Division => OperatorCategory.Binary,
-            OperatorKind.Equality => OperatorCategory.Binary,
-            OperatorKind.ExclusiveOr => OperatorCategory.Binary,
-            OperatorKind.False => OperatorCategory.Unary,
-            OperatorKind.GreaterThan => OperatorCategory.Binary,
-            OperatorKind.GreaterThanOrEqual => OperatorCategory.Binary,
-            OperatorKind.Increment => OperatorCategory.Unary,
-            OperatorKind.Inequality => OperatorCategory.Binary,
-            OperatorKind.LeftShift => OperatorCategory.Binary,
-            OperatorKind.LessThan => OperatorCategory.Binary,
-            OperatorKind.LessThanOrEqual => OperatorCategory.Binary,
-            OperatorKind.LogicalNot => OperatorCategory.Unary,
-            OperatorKind.Modulus => OperatorCategory.Binary,
-            OperatorKind.Multiply => OperatorCategory.Binary,
-            OperatorKind.OnesComplement => OperatorCategory.Unary,
-            OperatorKind.RightShift => OperatorCategory.Binary,
             OperatorKind.Subtraction => OperatorCategory.Binary,
-            OperatorKind.True => OperatorCategory.Unary,
+            OperatorKind.Multiply => OperatorCategory.Binary,
+            OperatorKind.Division => OperatorCategory.Binary,
+            OperatorKind.Modulus => OperatorCategory.Binary,
+
+            // Checked binary arithmetic operators
+            OperatorKind.CheckedAddition => OperatorCategory.Binary,
+            OperatorKind.CheckedSubtraction => OperatorCategory.Binary,
+            OperatorKind.CheckedMultiply => OperatorCategory.Binary,
+            OperatorKind.CheckedDivision => OperatorCategory.Binary,
+
+            // Unary arithmetic operators
             OperatorKind.UnaryNegation => OperatorCategory.Unary,
             OperatorKind.UnaryPlus => OperatorCategory.Unary,
+            OperatorKind.Increment => OperatorCategory.Unary,
+            OperatorKind.Decrement => OperatorCategory.Unary,
+
+            // Checked unary arithmetic operators
+            OperatorKind.CheckedUnaryNegation => OperatorCategory.Unary,
+            OperatorKind.CheckedIncrement => OperatorCategory.Unary,
+            OperatorKind.CheckedDecrement => OperatorCategory.Unary,
+
+            // Binary bitwise operators
+            OperatorKind.BitwiseAnd => OperatorCategory.Binary,
+            OperatorKind.BitwiseOr => OperatorCategory.Binary,
+            OperatorKind.ExclusiveOr => OperatorCategory.Binary,
+            OperatorKind.LeftShift => OperatorCategory.Binary,
+            OperatorKind.RightShift => OperatorCategory.Binary,
+            OperatorKind.UnsignedRightShift => OperatorCategory.Binary,
+            OperatorKind.UnsignedLeftShift => OperatorCategory.Binary,
+
+            // Unary bitwise operators
+            OperatorKind.OnesComplement => OperatorCategory.Unary,
+
+            // Binary comparison operators
+            OperatorKind.Equality => OperatorCategory.Binary,
+            OperatorKind.Inequality => OperatorCategory.Binary,
+            OperatorKind.LessThan => OperatorCategory.Binary,
+            OperatorKind.LessThanOrEqual => OperatorCategory.Binary,
+            OperatorKind.GreaterThan => OperatorCategory.Binary,
+            OperatorKind.GreaterThanOrEqual => OperatorCategory.Binary,
+
+            // Unary logical operators
+            OperatorKind.LogicalNot => OperatorCategory.Unary,
+            OperatorKind.True => OperatorCategory.Unary,
+            OperatorKind.False => OperatorCategory.Unary,
+
+            // Binary logical operators (not user-definable in C#)
+            OperatorKind.LogicalAnd => OperatorCategory.Binary,
+            OperatorKind.LogicalOr => OperatorCategory.Binary,
+
+            // VB.NET specific binary operators
+            OperatorKind.Concatenate => OperatorCategory.Binary,
+            OperatorKind.Exponent => OperatorCategory.Binary,
+            OperatorKind.IntegerDivision => OperatorCategory.Binary,
+            OperatorKind.Like => OperatorCategory.Binary,
+
+            // Compound assignment operators - binary assignment (operand = operand op value)
+            OperatorKind.AdditionAssignment => OperatorCategory.BinaryAssignment,
+            OperatorKind.SubtractionAssignment => OperatorCategory.BinaryAssignment,
+            OperatorKind.MultiplyAssignment => OperatorCategory.BinaryAssignment,
+            OperatorKind.MultiplicationAssignment => OperatorCategory.BinaryAssignment,
+            OperatorKind.DivisionAssignment => OperatorCategory.BinaryAssignment,
+            OperatorKind.ModulusAssignment => OperatorCategory.BinaryAssignment,
+            OperatorKind.BitwiseAndAssignment => OperatorCategory.BinaryAssignment,
+            OperatorKind.BitwiseOrAssignment => OperatorCategory.BinaryAssignment,
+            OperatorKind.ExclusiveOrAssignment => OperatorCategory.BinaryAssignment,
+            OperatorKind.LeftShiftAssignment => OperatorCategory.BinaryAssignment,
+            OperatorKind.RightShiftAssignment => OperatorCategory.BinaryAssignment,
+            OperatorKind.UnsignedRightShiftAssignment => OperatorCategory.BinaryAssignment,
+
+            // Unary assignment operators - unary assignment (++operand, --operand)
+            OperatorKind.IncrementAssignment => OperatorCategory.UnaryAssignment,
+            OperatorKind.DecrementAssignment => OperatorCategory.UnaryAssignment,
+
+            // Checked compound assignment operators - binary assignment
+            OperatorKind.CheckedAdditionAssignment => OperatorCategory.BinaryAssignment,
+            OperatorKind.CheckedSubtractionAssignment => OperatorCategory.BinaryAssignment,
+            OperatorKind.CheckedMultiplicationAssignment => OperatorCategory.BinaryAssignment,
+            OperatorKind.CheckedDivisionAssignment => OperatorCategory.BinaryAssignment,
+
+            // Checked unary assignment operators - unary assignment
+            OperatorKind.CheckedIncrementAssignment => OperatorCategory.UnaryAssignment,
+            OperatorKind.CheckedDecrementAssignment => OperatorCategory.UnaryAssignment,
+
             _ => throw new ArgumentOutOfRangeException( nameof(operatorKind), operatorKind, null )
         };
 }

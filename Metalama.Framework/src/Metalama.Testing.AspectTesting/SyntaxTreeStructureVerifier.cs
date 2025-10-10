@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using JetBrains.Annotations;
+using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.SyntaxGeneration;
@@ -10,6 +11,7 @@ using Metalama.Framework.Engine.Utilities;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using System.Text;
 
 namespace Metalama.Testing.AspectTesting;
@@ -23,7 +25,7 @@ internal static class SyntaxTreeStructureVerifier
     [UsedImplicitly]
     public static bool VerifyMetaSyntax( Compilation compilation, in ProjectServiceProvider serviceProvider )
     {
-        foreach ( var syntaxTree in compilation.SyntaxTrees )
+        foreach ( var syntaxTree in compilation.SyntaxTrees.Where( t => !CompileTimeConstants.IsPredefinedSyntaxTree( t.FilePath ) ) )
         {
             var actualSyntaxFactory = syntaxTree.GetRoot().ToSyntaxFactoryDebug( compilation );
 

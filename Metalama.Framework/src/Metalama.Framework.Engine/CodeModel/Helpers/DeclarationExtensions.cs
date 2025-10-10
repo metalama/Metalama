@@ -64,30 +64,29 @@ public static class DeclarationExtensions
     /// Select all declarations recursively contained in a given declaration (i.e. all descendants of the tree).
     /// </summary>
     internal static IEnumerable<IDeclaration> GetContainedDeclarations( this IDeclaration declaration )
-        => declaration.SelectManyRecursive(
-            child => child switch
-            {
-                ICompilation compilation => [compilation.GlobalNamespace],
-                INamespace ns => EnumerableExtensions.Concat<IDeclaration>( ns.Namespaces, ns.Types ),
-                INamedType namedType => EnumerableExtensions.Concat<IDeclaration>(
-                        namedType.Types,
-                        namedType.Methods,
-                        namedType.Constructors,
-                        namedType.Fields,
-                        namedType.Properties,
-                        namedType.Indexers,
-                        namedType.Events,
-                        namedType.TypeParameters )
-                    .ConcatNotNull( namedType.StaticConstructor )
-                    .ConcatNotNull( namedType.Finalizer ),
-                IMethod method => Enumerable
-                    .Concat<IDeclaration>( method.Parameters, method.TypeParameters )
-                    .ConcatNotNull( method.ReturnParameter ),
-                IIndexer indexer => indexer.Parameters.Concat<IDeclaration>( indexer.Accessors ),
-                IConstructor constructor => constructor.Parameters,
-                IHasAccessors member => member.Accessors,
-                _ => []
-            } );
+        => declaration.SelectManyRecursive( child => child switch
+        {
+            ICompilation compilation => [compilation.GlobalNamespace],
+            INamespace ns => EnumerableExtensions.Concat<IDeclaration>( ns.Namespaces, ns.Types ),
+            INamedType namedType => EnumerableExtensions.Concat<IDeclaration>(
+                    namedType.Types,
+                    namedType.Methods,
+                    namedType.Constructors,
+                    namedType.Fields,
+                    namedType.Properties,
+                    namedType.Indexers,
+                    namedType.Events,
+                    namedType.TypeParameters )
+                .ConcatNotNull( namedType.StaticConstructor )
+                .ConcatNotNull( namedType.Finalizer ),
+            IMethod method => Enumerable
+                .Concat<IDeclaration>( method.Parameters, method.TypeParameters )
+                .ConcatNotNull( method.ReturnParameter ),
+            IIndexer indexer => indexer.Parameters.Concat<IDeclaration>( indexer.Accessors ),
+            IConstructor constructor => constructor.Parameters,
+            IHasAccessors member => member.Accessors,
+            _ => []
+        } );
 
     public static ISymbol? GetSymbol( this IDeclaration declaration, CompilationContext compilationContext )
         => declaration.GetSymbol() is { } symbol
@@ -282,68 +281,23 @@ public static class DeclarationExtensions
         };
 
     internal static SyntaxKind ToOperatorKeyword( this OperatorKind operatorKind )
-        => operatorKind switch
+    {
+        var operatorData = OperatorData.GetByKind( operatorKind );
+
+        if ( operatorData?.OperatorKeyword is { } syntaxKind )
         {
-            OperatorKind.ImplicitConversion => SyntaxKind.ImplicitKeyword,
-            OperatorKind.ExplicitConversion => SyntaxKind.ExplicitKeyword,
-            OperatorKind.Addition => SyntaxKind.PlusToken,
-            OperatorKind.BitwiseAnd => SyntaxKind.AmpersandToken,
-            OperatorKind.BitwiseOr => SyntaxKind.BarToken,
-            OperatorKind.Decrement => SyntaxKind.MinusMinusToken,
-            OperatorKind.Division => SyntaxKind.SlashToken,
-            OperatorKind.Equality => SyntaxKind.EqualsEqualsToken,
-            OperatorKind.ExclusiveOr => SyntaxKind.CaretToken,
-            OperatorKind.False => SyntaxKind.FalseKeyword,
-            OperatorKind.GreaterThan => SyntaxKind.GreaterThanToken,
-            OperatorKind.GreaterThanOrEqual => SyntaxKind.GreaterThanEqualsToken,
-            OperatorKind.Increment => SyntaxKind.PlusPlusToken,
-            OperatorKind.Inequality => SyntaxKind.ExclamationEqualsToken,
-            OperatorKind.LeftShift => SyntaxKind.LessThanLessThanToken,
-            OperatorKind.LessThan => SyntaxKind.LessThanToken,
-            OperatorKind.LessThanOrEqual => SyntaxKind.LessThanEqualsToken,
-            OperatorKind.LogicalNot => SyntaxKind.ExclamationToken,
-            OperatorKind.Modulus => SyntaxKind.PercentToken,
-            OperatorKind.Multiply => SyntaxKind.AsteriskToken,
-            OperatorKind.OnesComplement => SyntaxKind.TildeToken,
-            OperatorKind.RightShift => SyntaxKind.GreaterThanGreaterThanToken,
-            OperatorKind.Subtraction => SyntaxKind.MinusToken,
-            OperatorKind.True => SyntaxKind.TrueKeyword,
-            OperatorKind.UnaryNegation => SyntaxKind.MinusToken,
-            OperatorKind.UnaryPlus => SyntaxKind.PlusToken,
-            _ => throw new AssertionFailedException( $"Unexpected OperatorKind: {operatorKind}." )
-        };
+            return syntaxKind;
+        }
+
+        throw new AssertionFailedException( $"Unexpected OperatorKind: {operatorKind}." );
+    }
 
     internal static string ToOperatorMethodName( this OperatorKind operatorKind )
-        => operatorKind switch
-        {
-            OperatorKind.ImplicitConversion => WellKnownMemberNames.ImplicitConversionName,
-            OperatorKind.ExplicitConversion => WellKnownMemberNames.ExplicitConversionName,
-            OperatorKind.Addition => WellKnownMemberNames.AdditionOperatorName,
-            OperatorKind.BitwiseAnd => WellKnownMemberNames.BitwiseAndOperatorName,
-            OperatorKind.BitwiseOr => WellKnownMemberNames.BitwiseOrOperatorName,
-            OperatorKind.Decrement => WellKnownMemberNames.DecrementOperatorName,
-            OperatorKind.Division => WellKnownMemberNames.DivisionOperatorName,
-            OperatorKind.Equality => WellKnownMemberNames.EqualityOperatorName,
-            OperatorKind.ExclusiveOr => WellKnownMemberNames.ExclusiveOrOperatorName,
-            OperatorKind.False => WellKnownMemberNames.FalseOperatorName,
-            OperatorKind.GreaterThan => WellKnownMemberNames.GreaterThanOperatorName,
-            OperatorKind.GreaterThanOrEqual => WellKnownMemberNames.GreaterThanOrEqualOperatorName,
-            OperatorKind.Increment => WellKnownMemberNames.IncrementOperatorName,
-            OperatorKind.Inequality => WellKnownMemberNames.InequalityOperatorName,
-            OperatorKind.LeftShift => WellKnownMemberNames.LeftShiftOperatorName,
-            OperatorKind.LessThan => WellKnownMemberNames.LessThanOperatorName,
-            OperatorKind.LessThanOrEqual => WellKnownMemberNames.LessThanOrEqualOperatorName,
-            OperatorKind.LogicalNot => WellKnownMemberNames.LogicalNotOperatorName,
-            OperatorKind.Modulus => WellKnownMemberNames.ModulusOperatorName,
-            OperatorKind.Multiply => WellKnownMemberNames.MultiplyOperatorName,
-            OperatorKind.OnesComplement => WellKnownMemberNames.OnesComplementOperatorName,
-            OperatorKind.RightShift => WellKnownMemberNames.RightShiftOperatorName,
-            OperatorKind.Subtraction => WellKnownMemberNames.SubtractionOperatorName,
-            OperatorKind.True => WellKnownMemberNames.TrueOperatorName,
-            OperatorKind.UnaryNegation => WellKnownMemberNames.UnaryNegationOperatorName,
-            OperatorKind.UnaryPlus => WellKnownMemberNames.UnaryPlusOperatorName,
-            _ => throw new AssertionFailedException( $"Unexpected OperatorKind: {operatorKind}." )
-        };
+    {
+        var operatorData = OperatorData.GetByKind( operatorKind );
+
+        return operatorData?.MemberName ?? throw new AssertionFailedException( $"Unexpected OperatorKind: {operatorKind}." );
+    }
 
     internal static bool? IsAutoProperty( this IPropertySymbol symbol )
         => symbol switch
@@ -354,15 +308,14 @@ public static class DeclarationExtensions
             { IsPartialDefinition: true } => false, // Partial property can't be implemented as an auto-property.
 #endif
             { DeclaringSyntaxReferences: { Length: > 0 } syntaxReferences } =>
-                syntaxReferences.All(
-                    sr =>
-                        sr.GetSyntax() switch
-                        {
-                            BasePropertyDeclarationSyntax { AccessorList.Accessors: { Count: > 0 } accessors } when
-                                accessors.All( a => a.Body == null && a.ExpressionBody == null ) => true,
-                            ParameterSyntax => true,
-                            _ => false
-                        } ),
+                syntaxReferences.All( sr =>
+                                          sr.GetSyntax() switch
+                                          {
+                                              BasePropertyDeclarationSyntax { AccessorList.Accessors: { Count: > 0 } accessors } when
+                                                  accessors.All( a => a.Body == null && a.ExpressionBody == null ) => true,
+                                              ParameterSyntax => true,
+                                              _ => false
+                                          } ),
             { GetMethod: { } getMethod } => getMethod.IsCompilerGenerated(),
             { SetMethod: { } setMethod } => setMethod.IsCompilerGenerated(),
             _ => null
@@ -602,11 +555,13 @@ public static class DeclarationExtensions
         => type switch
         {
             INamedType namedType => namedType.ImplementedInterfaces,
-            IArrayType { Rank: 1 } arrayType => SymbolHelpers.ArrayGenericInterfaces.Select(
-                definitionSpecialType => type.GetCompilationModel()
-                    .Factory
-                    .GetNamedType( type.GetCompilationModel().RoslynCompilation.GetSpecialType( definitionSpecialType ) )
-                    .WithTypeArguments( arrayType.ElementType ) ),
+            IArrayType { Rank: 1 } arrayType => SymbolHelpers.ArrayGenericInterfaces.Select( definitionSpecialType => type.GetCompilationModel()
+                                                                                                 .Factory
+                                                                                                 .GetNamedType(
+                                                                                                     type.GetCompilationModel()
+                                                                                                         .RoslynCompilation.GetSpecialType(
+                                                                                                             definitionSpecialType ) )
+                                                                                                 .WithTypeArguments( arrayType.ElementType ) ),
             _ => []
         };
 }
