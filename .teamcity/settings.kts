@@ -53,7 +53,7 @@ object DebugBuild : BuildType({
                 path = "DockerBuild.ps1"
             }
             noProfile = false
-            scriptArgs = "-BuildImage -ImageName metalama-2025.1"
+            scriptArgs = "-BuildImage -ImageName metalama-2025.1 "
         }
         powerShell {
             name = "Build"
@@ -62,7 +62,7 @@ object DebugBuild : BuildType({
                 path = "DockerBuild.ps1"
             }
             noProfile = false
-            scriptArgs = "-Script Build.ps1 -ImageName metalama-2025.1 -NoBuildImage test --configuration Debug --buildNumber %build.number% --buildType %system.teamcity.buildType.id% %Build.Arguments% --timeout %Build.Timeout%"
+            scriptArgs = "-Script Build.ps1 -ImageName metalama-2025.1 -NoBuildImage test --configuration Debug --buildNumber %build.number% --buildType %system.teamcity.buildType.id% --timeout %Build.Timeout% %Build.Arguments%"
         }
     }
 
@@ -153,7 +153,7 @@ object ReleaseBuild : BuildType({
                 path = "DockerBuild.ps1"
             }
             noProfile = false
-            scriptArgs = "-BuildImage -ImageName metalama-2025.1"
+            scriptArgs = "-BuildImage -ImageName metalama-2025.1 "
         }
         powerShell {
             name = "Build"
@@ -162,7 +162,7 @@ object ReleaseBuild : BuildType({
                 path = "DockerBuild.ps1"
             }
             noProfile = false
-            scriptArgs = "-Script Build.ps1 -ImageName metalama-2025.1 -NoBuildImage test --configuration Release --buildNumber %build.number% --buildType %system.teamcity.buildType.id% %Build.Arguments% --timeout %Build.Timeout%"
+            scriptArgs = "-Script Build.ps1 -ImageName metalama-2025.1 -NoBuildImage test --configuration Release --buildNumber %build.number% --buildType %system.teamcity.buildType.id% --timeout %Build.Timeout% %Build.Arguments%"
         }
     }
 
@@ -242,7 +242,7 @@ object PublicBuild : BuildType({
                 path = "DockerBuild.ps1"
             }
             noProfile = false
-            scriptArgs = "-BuildImage -ImageName metalama-2025.1"
+            scriptArgs = "-BuildImage -ImageName metalama-2025.1 "
         }
         powerShell {
             name = "Build"
@@ -251,7 +251,7 @@ object PublicBuild : BuildType({
                 path = "DockerBuild.ps1"
             }
             noProfile = false
-            scriptArgs = "-Script Build.ps1 -ImageName metalama-2025.1 -NoBuildImage test --configuration Public --buildNumber %build.number% --buildType %system.teamcity.buildType.id% %Build.Arguments% --timeout %Build.Timeout%"
+            scriptArgs = "-Script Build.ps1 -ImageName metalama-2025.1 -NoBuildImage test --configuration Public --buildNumber %build.number% --buildType %system.teamcity.buildType.id% --timeout %Build.Timeout% %Build.Arguments%"
         }
     }
 
@@ -326,7 +326,7 @@ object PublicDeployment : BuildType({
                 path = "DockerBuild.ps1"
             }
             noProfile = false
-            scriptArgs = "-BuildImage -ImageName metalama-2025.1"
+            scriptArgs = "-BuildImage -ImageName metalama-2025.1 "
         }
         powerShell {
             name = "Publish"
@@ -335,7 +335,7 @@ object PublicDeployment : BuildType({
                 path = "DockerBuild.ps1"
             }
             noProfile = false
-            scriptArgs = "-Script Build.ps1 -ImageName metalama-2025.1 -NoBuildImage publish --configuration Public %Publish.Arguments% --timeout %Publish.Timeout%"
+            scriptArgs = "-Script Build.ps1 -ImageName metalama-2025.1 -NoBuildImage publish --configuration Public --timeout %Publish.Timeout% %Publish.Arguments%"
         }
     }
 
@@ -402,7 +402,7 @@ object DownstreamMerge : BuildType({
                 path = "DockerBuild.ps1"
             }
             noProfile = false
-            scriptArgs = "-BuildImage -ImageName metalama-2025.1"
+            scriptArgs = "-BuildImage -ImageName metalama-2025.1 "
         }
         powerShell {
             name = "Merge downstream"
@@ -411,7 +411,7 @@ object DownstreamMerge : BuildType({
                 path = "DockerBuild.ps1"
             }
             noProfile = false
-            scriptArgs = "-Script Build.ps1 -ImageName metalama-2025.1 -NoBuildImage tools git merge-downstream %DownstreamMerge.Arguments% --timeout %DownstreamMerge.Timeout%"
+            scriptArgs = "-Script Build.ps1 -ImageName metalama-2025.1 -NoBuildImage tools git merge-downstream --timeout %DownstreamMerge.Timeout% %DownstreamMerge.Arguments%"
         }
     }
 
