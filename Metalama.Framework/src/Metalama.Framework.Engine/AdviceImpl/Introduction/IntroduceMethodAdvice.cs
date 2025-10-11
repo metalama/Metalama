@@ -131,7 +131,7 @@ internal sealed class IntroduceMethodAdvice : IntroduceMemberAdvice<IMethod, IMe
         var targetDeclaration = this.TargetDeclaration.ForCompilation( context.MutableCompilation );
 
         var existingMethod = builder.IsExplicitInterfaceImplementation
-            ? (IMethod) targetDeclaration.FindExplicitInterfaceImplementation( builder )
+            ? (IMethod?) targetDeclaration.FindExplicitInterfaceImplementation( builder )
             : targetDeclaration.FindClosestVisibleMethod( builder );
 
         var hasNoBody = this.Template?.TemplateClassMember.TemplateInfo.HasNoBody == true;

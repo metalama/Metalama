@@ -153,9 +153,7 @@ namespace Metalama.Framework.Code
         /// <param name="namedType">A named type.</param>
         /// <param name="kind"><see cref="DeclarationKind.Method"/>, <see cref="DeclarationKind.Field"/>,
         /// <see cref="DeclarationKind.Property"/>, <see cref="DeclarationKind.Event"/> or <see cref="DeclarationKind.Constructor"/>.</param>
-        /// <returns></returns>
-        /// <exception cref="ArgumentOutOfRangeException"></exception>
-        public static IReadOnlyCollection<IMember> GetMembers( this INamedType namedType, DeclarationKind kind )
+        public static IMemberCollection<IMember> GetMembers( this INamedType namedType, DeclarationKind kind )
             => kind switch
             {
                 DeclarationKind.Method => namedType.Methods,
