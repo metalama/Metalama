@@ -35,8 +35,9 @@ namespace Metalama.Framework.Code
 
         /// <summary>
         /// Gets the parent <see cref="IMethod"/>, <see cref="IConstructor"/> or <see cref="IIndexer"/>.
+        /// Returns <c>null</c> if this parameter is the <see cref="IExtensionBlock.ReceiverParameter"/> of an <see cref="IExtensionBlock"/>.
         /// </summary>
-        IHasParameters DeclaringMember { get; }
+        IHasParameters? DeclaringMember { get; }
 
         /// <summary>
         /// Gets a <see cref="ParameterInfo"/> that represents the current parameter at run time.

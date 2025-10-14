@@ -180,7 +180,7 @@ internal sealed class IntroduceEventAdvice : IntroduceMemberAdvice<IEvent, IEven
         // this.Tags: Override transformations.
         var targetDeclaration = this.TargetDeclaration.ForCompilation( context.MutableCompilation );
 
-        var existingDeclaration = targetDeclaration.FindClosestUniquelyNamedMember( builder.Name );
+        var existingDeclaration = targetDeclaration.FindMemberCompetingWithIntroduction( builder );
 
         var hasNoBody = this.Template?.TemplateClassMember.TemplateInfo.HasNoBody == true;
         var hasNoOverrideSemantics = hasNoBody || (eventTemplateDeclaration != null && eventTemplateDeclaration.IsEventField() == true);

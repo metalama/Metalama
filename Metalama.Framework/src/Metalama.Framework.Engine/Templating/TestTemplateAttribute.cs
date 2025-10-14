@@ -12,7 +12,7 @@ namespace Metalama.Framework.Engine.Templating
     // The attribute that marks a template method in the templating integration tests.
 
     /// <exclude />
-    [AttributeUsage( AttributeTargets.Method )]
+    [AttributeUsage( AttributeTargets.Method | AttributeTargets.Property )]
     [EditorBrowsable( EditorBrowsableState.Never )]
     [PublicAPI]
     public sealed class TestTemplateAttribute : TemplateAttribute;

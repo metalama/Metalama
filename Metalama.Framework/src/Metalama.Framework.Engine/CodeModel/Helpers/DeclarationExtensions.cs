@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.Collections;
+using Metalama.Framework.Code.DeclarationBuilders;
 using Metalama.Framework.Code.Types;
 using Metalama.Framework.Engine.CodeModel.Abstractions;
 using Metalama.Framework.Engine.CodeModel.Introductions.Builders;
@@ -64,8 +65,7 @@ public static class DeclarationExtensions
     /// Select all declarations recursively contained in a given declaration (i.e. all descendants of the tree).
     /// </summary>
     internal static IEnumerable<IDeclaration> GetContainedDeclarations( this IDeclaration declaration )
-        => declaration.SelectManyRecursive(
-            child => child switch
+        => declaration.SelectManyRecursive( child => child switch
             {
                 ICompilation compilation => [compilation.GlobalNamespace],
                 INamespace ns => EnumerableExtensions.Concat<IDeclaration>( ns.Namespaces, ns.Types ),
@@ -181,7 +181,7 @@ public static class DeclarationExtensions
                             throw new DiagnosticException(
                                 GeneralDiagnosticDescriptors.CannotPassExpressionToByRefParameter.CreateRoslynDiagnostic(
                                     null,
-                                    (arg.Syntax.ToString(), parameter.Name, parameter.DeclaringMember) ) );
+                                    (arg.Syntax.ToString(), parameter.Name, parameter.DeclaringMember.AssertNotNull()) ) );
                         }
 
                         refKindKeyword = parameter.RefKind is RefKind.Ref ? SyntaxKind.RefKeyword : SyntaxKind.OutKeyword;
@@ -282,68 +282,23 @@ public static class DeclarationExtensions
         };
 
     internal static SyntaxKind ToOperatorKeyword( this OperatorKind operatorKind )
-        => operatorKind switch
         {
-            OperatorKind.ImplicitConversion => SyntaxKind.ImplicitKeyword,
-            OperatorKind.ExplicitConversion => SyntaxKind.ExplicitKeyword,
-            OperatorKind.Addition => SyntaxKind.PlusToken,
-            OperatorKind.BitwiseAnd => SyntaxKind.AmpersandToken,
-            OperatorKind.BitwiseOr => SyntaxKind.BarToken,
-            OperatorKind.Decrement => SyntaxKind.MinusMinusToken,
-            OperatorKind.Division => SyntaxKind.SlashToken,
-            OperatorKind.Equality => SyntaxKind.EqualsEqualsToken,
-            OperatorKind.ExclusiveOr => SyntaxKind.CaretToken,
-            OperatorKind.False => SyntaxKind.FalseKeyword,
-            OperatorKind.GreaterThan => SyntaxKind.GreaterThanToken,
-            OperatorKind.GreaterThanOrEqual => SyntaxKind.GreaterThanEqualsToken,
-            OperatorKind.Increment => SyntaxKind.PlusPlusToken,
-            OperatorKind.Inequality => SyntaxKind.ExclamationEqualsToken,
-            OperatorKind.LeftShift => SyntaxKind.LessThanLessThanToken,
-            OperatorKind.LessThan => SyntaxKind.LessThanToken,
-            OperatorKind.LessThanOrEqual => SyntaxKind.LessThanEqualsToken,
-            OperatorKind.LogicalNot => SyntaxKind.ExclamationToken,
-            OperatorKind.Modulus => SyntaxKind.PercentToken,
-            OperatorKind.Multiply => SyntaxKind.AsteriskToken,
-            OperatorKind.OnesComplement => SyntaxKind.TildeToken,
-            OperatorKind.RightShift => SyntaxKind.GreaterThanGreaterThanToken,
-            OperatorKind.Subtraction => SyntaxKind.MinusToken,
-            OperatorKind.True => SyntaxKind.TrueKeyword,
-            OperatorKind.UnaryNegation => SyntaxKind.MinusToken,
-            OperatorKind.UnaryPlus => SyntaxKind.PlusToken,
-            _ => throw new AssertionFailedException( $"Unexpected OperatorKind: {operatorKind}." )
-        };
+        var operatorData = OperatorData.GetByKind( operatorKind );
+
+        if ( operatorData?.OperatorKeyword is { } syntaxKind )
+        {
+            return syntaxKind;
+        }
+
+        throw new AssertionFailedException( $"Unexpected OperatorKind: {operatorKind}." );
+    }
 
     internal static string ToOperatorMethodName( this OperatorKind operatorKind )
-        => operatorKind switch
         {
-            OperatorKind.ImplicitConversion => WellKnownMemberNames.ImplicitConversionName,
-            OperatorKind.ExplicitConversion => WellKnownMemberNames.ExplicitConversionName,
-            OperatorKind.Addition => WellKnownMemberNames.AdditionOperatorName,
-            OperatorKind.BitwiseAnd => WellKnownMemberNames.BitwiseAndOperatorName,
-            OperatorKind.BitwiseOr => WellKnownMemberNames.BitwiseOrOperatorName,
-            OperatorKind.Decrement => WellKnownMemberNames.DecrementOperatorName,
-            OperatorKind.Division => WellKnownMemberNames.DivisionOperatorName,
-            OperatorKind.Equality => WellKnownMemberNames.EqualityOperatorName,
-            OperatorKind.ExclusiveOr => WellKnownMemberNames.ExclusiveOrOperatorName,
-            OperatorKind.False => WellKnownMemberNames.FalseOperatorName,
-            OperatorKind.GreaterThan => WellKnownMemberNames.GreaterThanOperatorName,
-            OperatorKind.GreaterThanOrEqual => WellKnownMemberNames.GreaterThanOrEqualOperatorName,
-            OperatorKind.Increment => WellKnownMemberNames.IncrementOperatorName,
-            OperatorKind.Inequality => WellKnownMemberNames.InequalityOperatorName,
-            OperatorKind.LeftShift => WellKnownMemberNames.LeftShiftOperatorName,
-            OperatorKind.LessThan => WellKnownMemberNames.LessThanOperatorName,
-            OperatorKind.LessThanOrEqual => WellKnownMemberNames.LessThanOrEqualOperatorName,
-            OperatorKind.LogicalNot => WellKnownMemberNames.LogicalNotOperatorName,
-            OperatorKind.Modulus => WellKnownMemberNames.ModulusOperatorName,
-            OperatorKind.Multiply => WellKnownMemberNames.MultiplyOperatorName,
-            OperatorKind.OnesComplement => WellKnownMemberNames.OnesComplementOperatorName,
-            OperatorKind.RightShift => WellKnownMemberNames.RightShiftOperatorName,
-            OperatorKind.Subtraction => WellKnownMemberNames.SubtractionOperatorName,
-            OperatorKind.True => WellKnownMemberNames.TrueOperatorName,
-            OperatorKind.UnaryNegation => WellKnownMemberNames.UnaryNegationOperatorName,
-            OperatorKind.UnaryPlus => WellKnownMemberNames.UnaryPlusOperatorName,
-            _ => throw new AssertionFailedException( $"Unexpected OperatorKind: {operatorKind}." )
-        };
+        var operatorData = OperatorData.GetByKind( operatorKind );
+
+        return operatorData?.MemberName ?? throw new AssertionFailedException( $"Unexpected OperatorKind: {operatorKind}." );
+    }
 
     internal static bool? IsAutoProperty( this IPropertySymbol symbol )
         => symbol switch
@@ -355,8 +310,7 @@ public static class DeclarationExtensions
 #endif
             _ when symbol.GetBackingField() != null => true,
             { DeclaringSyntaxReferences: { Length: > 0 } syntaxReferences } =>
-                syntaxReferences.All(
-                    sr =>
+                syntaxReferences.All( sr =>
                         sr.GetSyntax() switch
                         {
                             BasePropertyDeclarationSyntax { AccessorList.Accessors: { Count: > 0 } accessors } when
@@ -479,6 +433,21 @@ public static class DeclarationExtensions
         => namedType.AllProperties.OfName( name ).FirstOrDefault() ??
            (IMember?) namedType.AllFields.OfName( name ).FirstOrDefault() ??
            namedType.AllEvents.OfName( name ).FirstOrDefault();
+
+    internal static IMember? FindExplicitInterfaceImplementation( this INamedType namedType, IMember member )
+    {
+        Invariant.Assert( member.IsExplicitInterfaceImplementation );
+        var explicitInterfaceImplementation = member.GetExplicitInterfaceImplementation();
+
+        return namedType
+            .GetMembers( member.DeclarationKind )
+            .SingleOrDefault( m => m.IsExplicitInterfaceImplementation && m.GetExplicitInterfaceImplementation().Equals( explicitInterfaceImplementation ) );
+    }
+
+    internal static IMember? FindMemberCompetingWithIntroduction( this INamedType namedType, IMemberBuilder member )
+        => member.IsExplicitInterfaceImplementation
+            ? namedType.FindExplicitInterfaceImplementation( member )
+            : namedType.FindClosestUniquelyNamedMember( member.Name );
 
     internal static bool? IsEventField( this IEvent @event )
     {
@@ -627,10 +596,12 @@ public static class DeclarationExtensions
         => type switch
         {
             INamedType namedType => namedType.ImplementedInterfaces,
-            IArrayType { Rank: 1 } arrayType => SymbolHelpers.ArrayGenericInterfaces.Select(
-                definitionSpecialType => type.GetCompilationModel()
+            IArrayType { Rank: 1 } arrayType => SymbolHelpers.ArrayGenericInterfaces.Select( definitionSpecialType => type.GetCompilationModel()
                     .Factory
-                    .GetNamedType( type.GetCompilationModel().RoslynCompilation.GetSpecialType( definitionSpecialType ) )
+                                                                                                 .GetNamedType(
+                                                                                                     type.GetCompilationModel()
+                                                                                                         .RoslynCompilation.GetSpecialType(
+                                                                                                             definitionSpecialType ) )
                     .WithTypeArguments( arrayType.ElementType ) ),
             _ => []
         };

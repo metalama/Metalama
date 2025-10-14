@@ -53,7 +53,7 @@ internal abstract partial class AspectReferenceRenamingSubstitution : SyntaxNode
             {
                 Expression: IdentifierNameSyntax { Identifier.Text: LinkerInjectionHelperProvider.HelperTypeName },
                 Name.Identifier.Text: var operatorName
-            } when SymbolHelpers.GetOperatorKindFromName( operatorName ) != OperatorKind.None:
+            } when OperatorData.GetOperatorKindFromName( operatorName ) != OperatorKind.None:
                 return this.SubstituteOperatorMemberAccess( substitutionContext );
 
             case ObjectCreationExpressionSyntax:

@@ -2849,4 +2849,13 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
         // Fallback to the default implementation.
         return base.VisitAssignmentExpression( node );
     }
+
+    protected override ExpressionSyntax TransformAssignmentExpression( AssignmentExpressionSyntax node )
+    {
+        var transformedNode = base.TransformAssignmentExpression( node );
+        
+        return InvocationExpression(
+                this._templateMetaSyntaxFactory.TemplateSyntaxFactoryMember( nameof(ITemplateSyntaxFactory.RewriteAssignmentExpression) ) )
+            .AddArgumentListArguments( Argument( transformedNode ) );
+    }
 }

@@ -27,14 +27,14 @@ namespace Metalama.Framework.Engine.CodeModel.Source
         private readonly IParameterSymbol _parameterSymbol;
 
         [Memo]
-        private SourceMember DeclaringMember
-            => (SourceMember) this.Compilation.Factory.GetDeclaration( this._parameterSymbol.ContainingSymbol, this.GenericContextForSymbolMapping );
+        private SourceMemberOrNamedType DeclaringMember
+            => (SourceMemberOrNamedType) this.Compilation.Factory.GetDeclaration( this._parameterSymbol.ContainingSymbol, this.GenericContextForSymbolMapping );
 
         public ParameterInfo ToParameterInfo() => CompileTimeParameterInfo.Create( this );
 
         public bool IsReturnParameter => false;
 
-        IHasParameters IParameter.DeclaringMember => (IHasParameters) this.DeclaringMember;
+        IHasParameters? IParameter.DeclaringMember => this.DeclaringMember as IHasParameters;
 
         public SourceParameter( IParameterSymbol symbol, CompilationModel compilation, GenericContext? genericContextForSymbolMapping )
             : base( compilation, genericContextForSymbolMapping )

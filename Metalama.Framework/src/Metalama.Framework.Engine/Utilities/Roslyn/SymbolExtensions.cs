@@ -169,8 +169,8 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
                 return null;
             }
 
-            return symbol.DeclaringSyntaxReferences.Any(
-                r => r.GetSyntax() is MemberDeclarationSyntax member && member.Modifiers.Any( m => m.IsKind( kind ) ) );
+            return symbol.DeclaringSyntaxReferences.Any( r => r.GetSyntax() is MemberDeclarationSyntax member
+                                                              && member.Modifiers.Any( m => m.IsKind( kind ) ) );
         }
 
         private static ImmutableArray<ISymbol> ExplicitInterfaceImplementations( this ISymbol symbol )
@@ -291,10 +291,12 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
         /// <summary>
         /// Gets the kind of operator based represented by the method.
         /// </summary>
-        internal static OperatorKind GetOperatorKind( this IMethodSymbol method ) => SymbolHelpers.GetOperatorKindFromName( method.Name );
+        internal static OperatorKind GetOperatorKind( this IMethodSymbol method )
+            => method.MethodKind is MethodKind.UserDefinedOperator or MethodKind.BuiltinOperator or MethodKind.Conversion
+                ? OperatorData.GetOperatorKindFromName( method.Name )
+                : OperatorKind.None;
 
-        public static INamedTypeSymbol GetTopmostContainingType( this INamedTypeSymbol type )
-            => type.ContainingType == null ? type : type.ContainingType.GetTopmostContainingType();
+        public static INamedTypeSymbol GetTopmostContainingType( this INamedTypeSymbol type ) => type.ContainingType?.GetTopmostContainingType() ?? type;
 
         public static INamedTypeSymbol? GetClosestContainingType( this ISymbol symbol )
             => symbol switch
@@ -353,6 +355,15 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
             value = default;
 
             return false;
+        }
+
+        public static bool IsExtensionSafe( this INamedTypeSymbol namedType )
+        {
+#if ROSLYN_5_0_0_OR_GREATER
+            return namedType.IsExtension;
+#else
+            return false;
+#endif
         }
     }
 }

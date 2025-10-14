@@ -19,41 +19,45 @@ namespace Metalama.Framework.Eligibility;
 [PublicAPI]
 public static partial class EligibilityRuleFactory
 {
-    private static readonly IEligibilityRule<IDeclaration> _overrideDeclaringTypeRule = CreateRule<IDeclaration, INamedType>(
-        builder =>
-        {
-            builder.MustBeRunTimeOnly();
-            builder.MustNotBeRef();
+    private static readonly IEligibilityRule<IDeclaration> _overrideDeclaringTypeRule = CreateRule<IDeclaration, INamedType>( builder =>
+    {
+        builder.MustBeRunTimeOnly();
+        builder.MustNotBeRef();
+        builder.MustNotBeExtensionBlock();
 
-            builder.ExceptForInheritance()
-                .MustSatisfy(
-                    t => t.TypeKind is TypeKind.Class or TypeKind.RecordClass or TypeKind.Struct or TypeKind.RecordStruct or TypeKind.Interface,
-                    t => $"'{t}' is neither a class, record class, struct, record struct, nor interface" );
-        } );
+        builder.ExceptForInheritance()
+            .MustSatisfy(
+                t => t.TypeKind is TypeKind.Class or TypeKind.RecordClass or TypeKind.Struct or TypeKind.RecordStruct or TypeKind.Interface,
+                t => $"'{t}' is neither a class, record class, struct, record struct, nor interface" );
+    } );
 
-    internal static IEligibilityRule<IDeclaration> OverrideConstructorAdviceRule { get; } = CreateRule<IDeclaration, IConstructor>(
-        builder =>
-        {
-            builder.MustNotBeRecordCopyConstructor();
-            builder.DeclaringType().AddRule( _overrideDeclaringTypeRule );
-        } );
+    internal static IEligibilityRule<IDeclaration> OverrideConstructorAdviceRule { get; } = CreateRule<IDeclaration, IConstructor>( builder =>
+    {
+        builder.MustNotBeRecordCopyConstructor();
+        builder.DeclaringType().AddRule( _overrideDeclaringTypeRule );
+    } );
 
-    internal static IEligibilityRule<IDeclaration> OverrideMethodAdviceRule { get; } = CreateRule<IDeclaration, IMethod>(
-        builder =>
-        {
-            builder.ExceptForInheritance().MustNotBeAbstract();
-            builder.MustSatisfy(
-                m => m is { ContainingDeclaration: { IsImplicitlyDeclared: false }, MethodKind: MethodKind.EventAdd or MethodKind.EventRemove or MethodKind.EventRaise or MethodKind.PropertyGet or MethodKind.PropertySet } 
-                     || !m.IsImplicitlyDeclared,
-                m => $"{m} must be an accessor or an explicitly declared method" );
-            builder.MustNotBeRef();
-            builder.MustSatisfy( m => !m.IsExtern, m => $"'{m}' must not be extern" );
-            builder.MustNotBePartialMemberWithSourceGeneratorAttribute();
-            builder.DeclaringType().AddRule( _overrideDeclaringTypeRule );
-        } );
+    internal static IEligibilityRule<IDeclaration> OverrideMethodAdviceRule { get; } = CreateRule<IDeclaration, IMethod>( builder =>
+    {
+        builder.ExceptForInheritance().MustNotBeAbstract();
 
-    internal static IEligibilityRule<IDeclaration> OverrideFieldOrPropertyOrIndexerAdviceRule { get; } = CreateRule<IDeclaration, IFieldOrPropertyOrIndexer>(
-        builder =>
+        builder.MustSatisfy(
+            m => m is
+                 {
+                     ContainingDeclaration: { IsImplicitlyDeclared: false },
+                     MethodKind: MethodKind.EventAdd or MethodKind.EventRemove or MethodKind.EventRaise or MethodKind.PropertyGet or MethodKind.PropertySet
+                 }
+                 || !m.IsImplicitlyDeclared,
+            m => $"{m} must be an accessor or an explicitly declared method" );
+
+        builder.MustNotBeRef();
+        builder.MustSatisfy( m => !m.IsExtern, m => $"'{m}' must not be extern" );
+        builder.MustNotBePartialMemberWithSourceGeneratorAttribute();
+        builder.DeclaringType().AddRule( _overrideDeclaringTypeRule );
+    } );
+
+    internal static IEligibilityRule<IDeclaration> OverrideFieldOrPropertyOrIndexerAdviceRule { get; } =
+        CreateRule<IDeclaration, IFieldOrPropertyOrIndexer>( builder =>
         {
             builder.ExceptForInheritance().MustNotBeAbstract();
             builder.MustBeExplicitlyDeclared();
@@ -63,93 +67,90 @@ public static partial class EligibilityRuleFactory
             builder.DeclaringType().AddRule( _overrideDeclaringTypeRule );
         } );
 
-    internal static IEligibilityRule<IDeclaration> OverrideEventAdviceRule { get; } = CreateRule<IDeclaration, IEvent>(
-        builder =>
-        {
-            builder.ExceptForInheritance().MustNotBeAbstract();
-            builder.MustBeExplicitlyDeclared();
-            builder.DeclaringType().AddRule( _overrideDeclaringTypeRule );
-        } );
+    internal static IEligibilityRule<IDeclaration> OverrideEventAdviceRule { get; } = CreateRule<IDeclaration, IEvent>( builder =>
+    {
+        builder.ExceptForInheritance().MustNotBeAbstract();
+        builder.MustBeExplicitlyDeclared();
+        builder.DeclaringType().AddRule( _overrideDeclaringTypeRule );
+    } );
 
-    internal static IEligibilityRule<IDeclaration> OverrideEventRaiseAdviceRule { get; } = CreateRule<IDeclaration, IEvent>(
-        builder =>
-        {
-            builder.MustSatisfy(
-                e => e.Type.Methods.OfName( "Invoke" ).Single().ReturnType.SpecialType == SpecialType.Void,
-                e => $"'{e}' must have delegate type with void return value" );
+    internal static IEligibilityRule<IDeclaration> OverrideEventRaiseAdviceRule { get; } = CreateRule<IDeclaration, IEvent>( builder =>
+    {
+        builder.MustSatisfy(
+            e => e.Type.Methods.OfName( "Invoke" ).Single().ReturnType.SpecialType == SpecialType.Void,
+            e => $"'{e}' must have delegate type with void return value" );
 
-            builder.MustSatisfy( 
-                e => e.Type.Methods.OfName( "Invoke" ).Single().Parameters.All( p => p.RefKind == RefKind.None ),
-                e => $"'{e}' must have delegate type without a parameter of out/ref/in/pointer type");
+        builder.MustSatisfy(
+            e => e.Type.Methods.OfName( "Invoke" ).Single().Parameters.All( p => p.RefKind == RefKind.None ),
+            e => $"'{e}' must have delegate type without a parameter of out/ref/in/pointer type" );
 
-            builder.DeclaringType().AddRule( _overrideDeclaringTypeRule );
-        } );
+        builder.DeclaringType().AddRule( _overrideDeclaringTypeRule );
+    } );
 
-    private static readonly IEligibilityRule<IDeclaration> _introduceRule = CreateRule<IDeclaration, INamedType>(
-        builder =>
-        {
-            builder.MustSatisfy(
-                t => t.TypeKind is TypeKind.Class or TypeKind.RecordClass or TypeKind.Struct or TypeKind.RecordStruct or TypeKind.Interface,
-                t => $"'{t}' must be a class, record class, struct, record struct, or interface" );
+    private static readonly IEligibilityRule<IDeclaration> _introduceRule = CreateRule<IDeclaration, INamedType>( builder =>
+    {
+        builder.MustSatisfy(
+            t => t.TypeKind is TypeKind.Class or TypeKind.RecordClass or TypeKind.Struct or TypeKind.RecordStruct or TypeKind.Interface,
+            t => $"'{t}' must be a class, record class, struct, record struct, or interface" );
 
-            builder.MustBeExplicitlyDeclared();
-            builder.MustBeRunTimeOnly();
-        } );
+        builder.MustBeExplicitlyDeclared();
+        builder.MustBeRunTimeOnly();
+        builder.MustNotBeExtensionBlock();
+    } );
 
-    private static readonly IEligibilityRule<IDeclaration> _implementInterfaceRule = CreateRule<IDeclaration, INamedType>(
-        builder =>
-        {
-            builder.MustSatisfy(
-                t => t.TypeKind is TypeKind.Class or TypeKind.RecordClass or TypeKind.Struct or TypeKind.RecordStruct or TypeKind.Interface,
-                t => $"'{t}' must be a class, record class, struct, or record struct" );
+    private static readonly IEligibilityRule<IDeclaration> _implementInterfaceRule = CreateRule<IDeclaration, INamedType>( builder =>
+    {
+        builder.MustSatisfy(
+            t => t.TypeKind is TypeKind.Class or TypeKind.RecordClass or TypeKind.Struct or TypeKind.RecordStruct or TypeKind.Interface,
+            t => $"'{t}' must be a class, record class, struct, or record struct" );
 
-            builder.MustBeExplicitlyDeclared();
-            builder.MustNotBeStatic();
-            builder.MustBeRunTimeOnly();
-        } );
+        builder.MustBeExplicitlyDeclared();
+        builder.MustNotBeStatic();
+        builder.MustBeRunTimeOnly();
+        builder.MustNotBeExtensionBlock();
+    } );
 
-    private static readonly IEligibilityRule<IDeclaration> _introduceParameterRule = CreateRule<IDeclaration, IConstructor>(
-        builder =>
-        {
-            builder.DeclaringType().MustBeRunTimeOnly();
-            builder.MustNotBeStatic();
-            builder.MustNotBeRecordCopyConstructor();
+    private static readonly IEligibilityRule<IDeclaration> _introduceParameterRule = CreateRule<IDeclaration, IConstructor>( builder =>
+    {
+        builder.DeclaringType().MustBeRunTimeOnly();
+        builder.DeclaringType().MustNotBeExtensionBlock();
+        builder.MustNotBeStatic();
+        builder.MustNotBeRecordCopyConstructor();
 
-            builder.MustSatisfy(
-                c => c.Parameters.All( p => !p.IsParams ),
-                c => $"'{c}' must not have params parameter" );
-        } );
+        builder.MustSatisfy(
+            c => c.Parameters.All( p => !p.IsParams ),
+            c => $"'{c}' must not have params parameter" );
+    } );
 
-    private static readonly IEligibilityRule<IDeclaration> _addInitializerRule = CreateRule<IDeclaration, IMemberOrNamedType>(
-        builder =>
-        {
-            builder.MustBeInstanceOfAnyType( typeof(INamedType), typeof(IConstructor) );
+    private static readonly IEligibilityRule<IDeclaration> _addInitializerRule = CreateRule<IDeclaration, IMemberOrNamedType>( builder =>
+    {
+        builder.MustBeInstanceOfAnyType( typeof(INamedType), typeof(IConstructor) );
 
-            builder.Convert()
-                .When<INamedType>()
-                .AddRules(
-                    typeEligibilityBuilder =>
-                    {
-                        typeEligibilityBuilder.MustSatisfy(
-                            t => t.TypeKind is TypeKind.Class or TypeKind.RecordClass or TypeKind.Struct or TypeKind.RecordStruct,
-                            t => $"'{t}' must be a class, record class, struct, or record struct" );
+        builder.Convert()
+            .When<INamedType>()
+            .AddRules( typeEligibilityBuilder =>
+            {
+                typeEligibilityBuilder.MustSatisfy(
+                    t => t.TypeKind is TypeKind.Class or TypeKind.RecordClass or TypeKind.Struct or TypeKind.RecordStruct,
+                    t => $"'{t}' must be a class, record class, struct, or record struct" );
 
-                        typeEligibilityBuilder.MustBeExplicitlyDeclared();
-                        typeEligibilityBuilder.MustBeRunTimeOnly();
-                    } );
+                typeEligibilityBuilder.MustBeExplicitlyDeclared();
+                typeEligibilityBuilder.MustBeRunTimeOnly();
+                typeEligibilityBuilder.MustNotBeExtensionBlock();
+            } );
 
-            builder.Convert()
-                .When<IConstructor>()
-                .AddRules(
-                    constructorEligibilityBuilder =>
-                    {
-                        constructorEligibilityBuilder.MustNotBeRecordCopyConstructor();
-                        constructorEligibilityBuilder.MustNotBeStatic();
+        builder.Convert()
+            .When<IConstructor>()
+            .AddRules( constructorEligibilityBuilder =>
+            {
+                constructorEligibilityBuilder.MustNotBeRecordCopyConstructor();
+                constructorEligibilityBuilder.MustNotBeStatic();
+                constructorEligibilityBuilder.MustNotBeExtensionMember();
 
-                        constructorEligibilityBuilder.DeclaringType().MustBeExplicitlyDeclared();
-                        constructorEligibilityBuilder.DeclaringType().MustBeRunTimeOnly();
-                    } );
-        } );
+                constructorEligibilityBuilder.DeclaringType().MustBeExplicitlyDeclared();
+                constructorEligibilityBuilder.DeclaringType().MustBeRunTimeOnly();
+            } );
+    } );
 
     /// <summary>
     /// Gets the default eligibility rules that apply to a specific advice.

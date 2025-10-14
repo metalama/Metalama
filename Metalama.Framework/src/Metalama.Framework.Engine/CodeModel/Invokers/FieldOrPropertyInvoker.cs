@@ -21,7 +21,7 @@ internal sealed class FieldOrPropertyInvoker : Invoker<IFieldOrProperty>, IField
 {
     public FieldOrPropertyInvoker(
         IFieldOrProperty fieldOrProperty,
-        InvokerOptions? options = default,
+        InvokerOptions? options = null,
         object? target = null ) : base(
         fieldOrProperty,
         options,

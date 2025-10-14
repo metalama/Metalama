@@ -15,8 +15,7 @@
 
         <EnforceExtendedAnalyzerRules>True</EnforceExtendedAnalyzerRules>
 
-        <!-- The latest version supported by Metalama Compiler may be higher that the latest version supported by Metalama Framework. -->
-        <LangMaxVersion>latest</LangMaxVersion>
+    
     </PropertyGroup>
 
     <Import Project="../eng/Versions.props"/>
@@ -37,8 +36,11 @@
     <Import Sdk="PostSharp.Engineering.Sdk" Project="SourceLink.props"/>
 
     <PropertyGroup>
-        <!-- The latest version supported by Metalama Compiler may be higher that the latest version supported by Metalama Framework. -->
+        <!-- The maximal language version supported by this Metalama version.
+             The LangMaxVersion property is exported to other repos. -->
+        <LangMaxVersion>14.0</LangMaxVersion>
         <LangVersion>$(LangMaxVersion)</LangVersion>
+
     </PropertyGroup>
 
     

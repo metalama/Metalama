@@ -178,7 +178,7 @@ internal abstract class Invoker<T>
         {
             INamedType type => type,
             IMember member => member.DeclaringType,
-            IParameter parameter => parameter.DeclaringMember.DeclaringType,
+            IParameter parameter => parameter.DeclaringMember.AssertNotNull().DeclaringType,
             null => null,
             _ => throw new AssertionFailedException( $"Unexpected target declaration: '{TemplateExpansionContext.CurrentTargetDeclaration}'." )
         };

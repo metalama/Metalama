@@ -570,6 +570,11 @@ namespace Metalama.Framework.Engine.CodeModel
                 }
             }
 
+            if ( namedType.DeclaringType != null )
+            {
+                depth = Math.Max( depth, this.GetDepth( namedType.DeclaringType ) );
+            }
+
             depth++;
 
             this._depthsCache = this._depthsCache.SetItem( reference, depth );

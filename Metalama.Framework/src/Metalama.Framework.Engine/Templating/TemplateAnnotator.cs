@@ -1919,6 +1919,14 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
         }
         else
         {
+            if ( node.Parent.IsKind( SyntaxKind.ConditionalAccessExpression ) )
+            {
+                // Null-conditional assignments are not implemented.
+                this.ReportUnsupportedLanguageFeature( node, "null-conditional assignment" );
+                
+                // The rest of the analysis should be ok anyway.
+            }
+            
             // The scope of a classical assignment is determined by the left side.
             var transformedLeft = this.Visit( node.Left );
 
@@ -2431,6 +2439,15 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
 
         return node.WithExpression( transformedExpression ).AddScopeAnnotation( RunTimeOnly );
     }
+
+    #if ROSLYN_5_0_0_OR_GREATER
+    public override SyntaxNode? VisitFieldExpression( FieldExpressionSyntax node )
+    {
+        this.ReportUnsupportedLanguageFeature( node, "field keyword" );
+
+        return node;
+    }
+    #endif
 
     #endregion
 

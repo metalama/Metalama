@@ -214,7 +214,7 @@ internal sealed class IntroducePropertyAdvice : IntroduceMemberAdvice<IProperty,
         // Determine whether we need introduction transformation (something may exist in the original code or could have been introduced by previous steps).
         var targetDeclaration = this.TargetDeclaration.ForCompilation( context.MutableCompilation );
 
-        var existingDeclaration = targetDeclaration.FindClosestUniquelyNamedMember( builder.Name );
+        var existingDeclaration = targetDeclaration.FindMemberCompetingWithIntroduction( builder );
 
         var templateDeclaration = this.Template?.GetDeclaration( this.SourceCompilation );
         var isAutoProperty = templateDeclaration is { IsAutoPropertyOrField: true };

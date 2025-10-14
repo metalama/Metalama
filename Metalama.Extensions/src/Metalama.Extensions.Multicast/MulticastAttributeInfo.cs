@@ -130,7 +130,7 @@ internal class MulticastAttributeInfo : IComparable<MulticastAttributeInfo>
 
     private bool IsParameterMatch( IParameter parameter, bool testContainingDeclarations )
     {
-        if ( testContainingDeclarations && !this.IsMatchCore( parameter.DeclaringMember, true, false ) )
+        if ( testContainingDeclarations && (parameter.DeclaringMember == null || !this.IsMatchCore( parameter.DeclaringMember, true, false )) )
         {
             return false;
         }

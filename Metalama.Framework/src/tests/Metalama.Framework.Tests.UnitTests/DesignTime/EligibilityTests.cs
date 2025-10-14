@@ -28,8 +28,8 @@ namespace Metalama.Framework.Tests.UnitTests.DesignTime
             static string GetName( INamedDeclaration d )
                 => d switch
                 {
-                    IParameter { IsReturnParameter: false } parameter => parameter.DeclaringMember.Name + "." + parameter.Name,
-                    IParameter { IsReturnParameter: true } returnParameter => returnParameter.DeclaringMember.Name + "." + "return",
+                    IParameter { IsReturnParameter: false } parameter => parameter.DeclaringMember!.Name + "." + parameter.Name,
+                    IParameter { IsReturnParameter: true } returnParameter => returnParameter.DeclaringMember!.Name + "." + "return",
                     IConstructor { IsStatic: false } constructor => constructor.DeclaringType.Name + ".new",
                     IConstructor { IsStatic: true } constructor => constructor.DeclaringType.Name + ".static",
                     _ => d.Name

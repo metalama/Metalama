@@ -52,7 +52,7 @@ internal sealed class IntroducedParameter : IntroducedDeclaration, IParameterImp
 
     public IHasParameters DeclaringMember { get; }
 
-    public override IDeclaration ContainingDeclaration => this.DeclaringMember;
+    public override IDeclaration ContainingDeclaration => this.DeclaringMember.AssertNotNull();
 
     public ParameterInfo ToParameterInfo() => throw new NotImplementedException();
 

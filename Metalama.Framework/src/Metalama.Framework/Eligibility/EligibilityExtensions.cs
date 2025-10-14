@@ -64,10 +64,13 @@ public static partial class EligibilityExtensions
     /// Gets an <see cref="IEligibilityBuilder"/> for the declaring method or property of the parameter validated by the given <see cref="IEligibilityBuilder"/>.
     /// </summary>
     public static IEligibilityBuilder<IHasParameters> DeclaringMember( this IEligibilityBuilder<IParameter> eligibilityBuilder )
-        => new ChildEligibilityBuilder<IParameter, IHasParameters>(
+    {
+        eligibilityBuilder.MustNotBeExtensionParameter();
+        return new ChildEligibilityBuilder<IParameter, IHasParameters>(
             eligibilityBuilder,
-            parameter => parameter.DeclaringMember,
+            parameter => parameter.DeclaringMember!,
             description => $"the parent member '{description.Object.DeclaringMember}'" );
+    }
 
     /// <summary>
     /// Gets an object that allows to convert the given <see cref="IEligibilityBuilder"/> into an <see cref="IEligibilityBuilder"/> for a more specific type.
@@ -290,6 +293,14 @@ public static partial class EligibilityExtensions
         => eligibilityBuilder.MustSatisfy(
             p => !p.IsReturnParameter,
             member => $"{member} must not be the return value parameter" );
+    
+    /// <summary>
+    /// Forbids the parameter from being the return parameter.
+    /// </summary>
+    public static void MustNotBeExtensionParameter( this IEligibilityBuilder<IParameter> eligibilityBuilder )
+        => eligibilityBuilder.MustSatisfy(
+            p => p.ContainingDeclaration is not IExtensionBlock,
+            member => $"{member} must not be an extension parameter" );
 
     /// <summary>
     /// Requires the parameter to be <c>ref</c>.
@@ -486,7 +497,23 @@ public static partial class EligibilityExtensions
         => eligibilityBuilder.MustSatisfy(
             member => member.TypeKind != TypeKind.Interface,
             member => $"{member} must not an interface" );
-
+    
+    /// <summary>
+    /// Forbids the target member from being declared in an extension block.
+    /// </summary>
+    public static void MustNotBeExtensionMember( this IEligibilityBuilder<IMember> eligibilityBuilder )
+        => eligibilityBuilder.MustSatisfy(
+            member => member.DeclaringType is not { TypeKind: TypeKind.Extension },
+            member => $"{member} must not be an extension block member" );
+    
+    /// <summary>
+    /// Forbids the target member from being declared in an extension block.
+    /// </summary>
+    public static void MustNotBeExtensionBlock( this IEligibilityBuilder<INamedType> eligibilityBuilder )
+        => eligibilityBuilder.MustSatisfy(
+            member => member is not { TypeKind: TypeKind.Extension },
+            member => $"{member} must not be an extension block" );
+    
     [Obsolete( "This method has been renamed MustBeConvertibleTo or MustEqual." )]
     public static void MustBe( this IEligibilityBuilder<IType> eligibilityBuilder, Type type, ConversionKind conversionKind = ConversionKind.Default )
         => MustBeConvertibleTo( eligibilityBuilder, type, conversionKind );

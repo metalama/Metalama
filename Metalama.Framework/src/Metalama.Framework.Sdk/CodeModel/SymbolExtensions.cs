@@ -38,7 +38,8 @@ namespace Metalama.Framework.Engine.CodeModel
             where T : class, ISymbol
             => (T?) GetSymbolImpl( declaration, returnNullIfMappingRequired );
 
-        public static ITypeSymbol? GetSymbol( this IType type, bool returnNullIfMappingRequired = true ) => type.GetSymbol<ITypeSymbol>( returnNullIfMappingRequired );
+        public static ITypeSymbol? GetSymbol( this IType type, bool returnNullIfMappingRequired = true )
+            => type.GetSymbol<ITypeSymbol>( returnNullIfMappingRequired );
 
         public static INamedTypeSymbol? GetSymbol( this INamedType namedType, bool returnNullIfMappingRequired = true )
             => namedType.GetSymbol<INamedTypeSymbol>( returnNullIfMappingRequired );
@@ -108,14 +109,6 @@ namespace Metalama.Framework.Engine.CodeModel
         // We don't use ISymbol.IsDefinition because it uses identity comparison to give its result, while we want
         // to be tolerance to non-identical but equal instances.
         public static bool IsDefinitionSafe( this ISymbol symbol ) => symbol.Equals( symbol.OriginalDefinition );
-
-        public static string ToDebugString( this ISymbol symbol )
-            => symbol switch
-            {
-                IParameterSymbol parameter => parameter.ContainingSymbol.ToDisplayString( SymbolDisplayFormat.CSharpShortErrorMessageFormat ) + "/"
-                    + parameter.Name,
-                _ => symbol.ToDisplayString( SymbolDisplayFormat.CSharpShortErrorMessageFormat )
-            };
 
         private sealed class ExpressionTypeVisitor : SymbolVisitor<ITypeSymbol>
         {

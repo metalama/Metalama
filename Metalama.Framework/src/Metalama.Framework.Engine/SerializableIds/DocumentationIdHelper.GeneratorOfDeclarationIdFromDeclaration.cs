@@ -161,7 +161,7 @@ internal static partial class DocumentationIdHelper
                         }
 
                         var p = parameters[i];
-                        this.GetReferenceGenerator( p.DeclaringMember ).Visit( p.Type );
+                        this.GetReferenceGenerator( p.ContainingDeclaration.AssertNotNull() ).Visit( p.Type );
 
                         if ( p.RefKind != RefKind.None )
                         {
