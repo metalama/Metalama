@@ -257,10 +257,8 @@ namespace Metalama.Framework.Code
         /// </summary>
         LogicalAnd,
 
-        /// <summary>
-        /// UnsignedLeftShift operator.
-        /// </summary>
-        UnsignedLeftShift,
+        // There is no C# syntax for UnsignedLeftShift
+        // UnsignedLeftShift,
 
         /// <summary>
         /// Concatenate operator.

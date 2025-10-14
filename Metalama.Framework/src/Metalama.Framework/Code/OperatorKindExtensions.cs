@@ -51,7 +51,8 @@ public static class OperatorKindExtensions
             OperatorKind.LeftShift => OperatorCategory.Binary,
             OperatorKind.RightShift => OperatorCategory.Binary,
             OperatorKind.UnsignedRightShift => OperatorCategory.Binary,
-            OperatorKind.UnsignedLeftShift => OperatorCategory.Binary,
+
+            // OperatorKind.UnsignedLeftShift => OperatorCategory.Binary,
 
             // Unary bitwise operators
             OperatorKind.OnesComplement => OperatorCategory.Unary,

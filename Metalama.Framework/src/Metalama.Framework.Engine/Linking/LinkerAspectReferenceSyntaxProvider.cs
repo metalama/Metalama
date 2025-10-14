@@ -9,8 +9,10 @@ using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.Transformations;
 using Metalama.Framework.Engine.Utilities.Roslyn;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System.Collections.Generic;
 using System.Linq;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
@@ -53,12 +55,11 @@ internal sealed class LinkerAspectReferenceSyntaxProvider : AspectReferenceSynta
                             ArgumentList(
                                 SeparatedList(
                                     overriddenConstructor.Parameters
-                                        .SelectAsArray(
-                                            p =>
-                                                Argument(
-                                                    NameColon( IdentifierName( p.Name ) ),
-                                                    p.RefKind.InvocationRefKindToken(),
-                                                    IdentifierName( p.Name ) ) ) ) ),
+                                        .SelectAsArray( p =>
+                                                            Argument(
+                                                                NameColon( IdentifierName( p.Name ) ),
+                                                                p.RefKind.InvocationRefKindToken(),
+                                                                IdentifierName( p.Name ) ) ) ) ),
                             null ) ) ) ) );
 
     public override ExpressionSyntax GetEventRaiseReference(
@@ -78,7 +79,7 @@ internal sealed class LinkerAspectReferenceSyntaxProvider : AspectReferenceSynta
                         InvocationExpression(
                             LinkerInjectionHelperProvider.GetEmptyDelegateMemberExpression( syntaxGenerator.TypeSyntax( @event.Type ) ) ) ) ) );
 
-        return 
+        return
             InvocationExpression(
                 LinkerInjectionHelperProvider.GetEventRaiseMemberExpression()
                     .WithAspectReferenceAnnotation(
@@ -88,11 +89,12 @@ internal sealed class LinkerAspectReferenceSyntaxProvider : AspectReferenceSynta
                 ArgumentList(
                     SeparatedList(
                         arguments.Length == 0
-                        ? new[] { eventReferenceArgument }
-                        : [
-                            eventReferenceArgument,
-                            Argument( null, default, TupleExpression( SeparatedList( arguments ) ) )
-                        ] ) ) );
+                            ? new[] { eventReferenceArgument }
+                            :
+                            [
+                                eventReferenceArgument,
+                                Argument( null, default, TupleExpression( SeparatedList( arguments ) ) )
+                            ] ) ) );
     }
 
     public override ExpressionSyntax GetPropertyReference(
@@ -140,8 +142,10 @@ internal sealed class LinkerAspectReferenceSyntaxProvider : AspectReferenceSynta
                 CreateIndexerAccessExpression( targetIndexer, syntaxGenerator ),
                 BracketedArgumentList(
                     SeparatedList(
-                        targetIndexer.Parameters.SelectAsReadOnlyList(
-                            p => Argument( null, p.RefKind.InvocationRefKindToken(), IdentifierName( p.Name ) ) ) ) ) )
+                        targetIndexer.Parameters.SelectAsReadOnlyList( p => Argument(
+                                                                           null,
+                                                                           p.RefKind.InvocationRefKindToken(),
+                                                                           IdentifierName( p.Name ) ) ) ) ) )
             .WithAspectReferenceAnnotation(
                 aspectLayer,
                 AspectReferenceOrder.Previous,
@@ -149,17 +153,40 @@ internal sealed class LinkerAspectReferenceSyntaxProvider : AspectReferenceSynta
                 AspectReferenceFlags.Inlineable );
 
     public override ExpressionSyntax GetOperatorReference( AspectLayerId aspectLayer, IMethod targetOperator, ContextualSyntaxGenerator syntaxGenerator )
-        => InvocationExpression(
-            LinkerInjectionHelperProvider.GetOperatorMemberExpression(
-                    syntaxGenerator,
-                    targetOperator.OperatorKind,
-                    targetOperator.ReturnType,
-                    targetOperator.Parameters.SelectAsReadOnlyList( p => p.Type ) )
-                .WithAspectReferenceAnnotation(
-                    aspectLayer,
-                    AspectReferenceOrder.Previous,
-                    flags: AspectReferenceFlags.Inlineable ),
-            syntaxGenerator.ArgumentList( targetOperator, p => IdentifierName( p.Name ) ) );
+    {
+        var operatorData = OperatorData.GetByKind( targetOperator.OperatorKind );
+
+        var helperMember = LinkerInjectionHelperProvider.GetOperatorMemberExpression(
+                syntaxGenerator,
+                operatorData,
+                targetOperator.DeclaringType,
+                targetOperator.ReturnType,
+                targetOperator.Parameters.SelectAsReadOnlyList( p => p.Type ) )
+            .WithAspectReferenceAnnotation(
+                aspectLayer,
+                AspectReferenceOrder.Previous,
+                flags: AspectReferenceFlags.Inlineable );
+
+        var arguments = new List<ArgumentSyntax>();
+
+        if ( !operatorData.IsStatic )
+        {
+            arguments.Add( Argument( ThisExpression() ) );
+        }
+
+        arguments.AddRange( targetOperator.Parameters.SelectAsReadOnlyCollection( p => Argument( IdentifierName( p.Name ) ) ) );
+
+        var invocationExpression = InvocationExpression(
+            helperMember,
+            ArgumentList( SeparatedList( arguments ) ) );
+
+        if ( !operatorData.IsStatic )
+        {
+            invocationExpression = invocationExpression.WithAdditionalAnnotations( LinkerInjectionHelperProvider.HasStaticReceiverArgumentAnnotation );
+        }
+
+        return invocationExpression;
+    }
 
     public override ExpressionSyntax GetEventFieldInitializerExpression( TypeSyntax eventFieldType, ExpressionSyntax initializerExpression )
         => InvocationExpression(

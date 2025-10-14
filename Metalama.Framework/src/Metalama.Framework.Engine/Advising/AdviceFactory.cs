@@ -20,6 +20,7 @@ using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Utilities;
+using Metalama.Framework.Engine.Utilities.Roslyn;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -602,6 +603,12 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
                 throw new InvalidOperationException(
                     MetalamaStringFormatter.Format( $"Cannot add an IntroduceUnaryOperator advice with kind {kind} as it is not an unary operator." ) );
             }
+                
+            if ( !OperatorData.IsUserDefinable( kind ) )
+            {
+                throw new InvalidOperationException(
+                    MetalamaStringFormatter.Format( $"Cannot add an IntroduceBinaryOperator advice with {kind} because this kind of operator cannot be user-defined." ) );
+            }
 
             this.Validate( targetType, AdviceKind.IntroduceOperator );
 
@@ -641,7 +648,13 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
             if ( kind.GetCategory() != OperatorCategory.Binary )
             {
                 throw new InvalidOperationException(
-                    MetalamaStringFormatter.Format( $"Cannot add an IntroduceBinaryOperator advice with {kind} as it is not a binary operator." ) );
+                    MetalamaStringFormatter.Format( $"Cannot add an IntroduceBinaryOperator advice with {kind} because it is not a binary operator." ) );
+            }
+            
+            if ( !OperatorData.IsUserDefinable( kind ) )
+            {
+                throw new InvalidOperationException(
+                    MetalamaStringFormatter.Format( $"Cannot add an IntroduceBinaryOperator advice with {kind} because this kind of operator cannot be user-defined." ) );
             }
 
             this.Validate( targetType, AdviceKind.IntroduceOperator );

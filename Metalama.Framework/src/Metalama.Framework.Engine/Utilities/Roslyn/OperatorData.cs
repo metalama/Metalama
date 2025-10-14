@@ -5,6 +5,7 @@
 using Metalama.Framework.Code;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -13,7 +14,7 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn;
 
 #pragma warning disable SA1111, SA1113
 
-internal record OperatorData( OperatorKind Kind, string MemberName, LanguageVersion? MinimumLangVersion, SyntaxKind? OperatorKeyword, bool IsChecked )
+internal record OperatorData( OperatorKind Kind, string MemberName, LanguageVersion? MinimumLangVersion, SyntaxKind OperatorKeyword, bool IsChecked )
 {
 #pragma warning disable SA1115, SA1114
     public static ImmutableArray<OperatorData> All { get; } = ImmutableArray.Create(
@@ -31,7 +32,12 @@ internal record OperatorData( OperatorKind Kind, string MemberName, LanguageVers
             LanguageVersion.CSharp1,
             SyntaxKind.ExplicitKeyword,
             false ),
-        new OperatorData( OperatorKind.CheckedExplicitConversion, WellKnownMemberNames.CheckedExplicitConversionName, LanguageVersion.CSharp11, null, true ),
+        new OperatorData(
+            OperatorKind.CheckedExplicitConversion,
+            WellKnownMemberNames.CheckedExplicitConversionName,
+            LanguageVersion.CSharp11,
+            SyntaxKind.ExplicitKeyword,
+            true ),
 
         // Arithmetic operators - available since C# 1.0
         new OperatorData( OperatorKind.Addition, WellKnownMemberNames.AdditionOperatorName, LanguageVersion.CSharp1, SyntaxKind.PlusToken, false ),
@@ -105,8 +111,12 @@ internal record OperatorData( OperatorKind Kind, string MemberName, LanguageVers
             LanguageVersion.CSharp1,
             SyntaxKind.GreaterThanGreaterThanToken,
             false ),
-        new OperatorData( OperatorKind.UnsignedRightShift, WellKnownMemberNames.UnsignedRightShiftOperatorName, LanguageVersion.CSharp11, null, false ),
-        new OperatorData( OperatorKind.UnsignedLeftShift, WellKnownMemberNames.UnsignedLeftShiftOperatorName, LanguageVersion.CSharp11, null, false ),
+        new OperatorData(
+            OperatorKind.UnsignedRightShift,
+            WellKnownMemberNames.UnsignedRightShiftOperatorName,
+            LanguageVersion.CSharp11,
+            SyntaxKind.GreaterThanGreaterThanGreaterThanEqualsToken,
+            false ),
 
         // Comparison operators - available since C# 1.0
         new OperatorData( OperatorKind.Equality, WellKnownMemberNames.EqualityOperatorName, LanguageVersion.CSharp1, SyntaxKind.EqualsEqualsToken, false ),
@@ -134,82 +144,130 @@ internal record OperatorData( OperatorKind Kind, string MemberName, LanguageVers
         // Logical operators - True/False since C# 1.0, LogicalAnd/LogicalOr not user-definable
         new OperatorData( OperatorKind.LogicalNot, WellKnownMemberNames.LogicalNotOperatorName, LanguageVersion.CSharp1, SyntaxKind.ExclamationToken, false ),
         new OperatorData( OperatorKind.True, WellKnownMemberNames.TrueOperatorName, LanguageVersion.CSharp1, SyntaxKind.TrueKeyword, false ),
-        new OperatorData( OperatorKind.False, WellKnownMemberNames.FalseOperatorName, LanguageVersion.CSharp1, SyntaxKind.FalseKeyword, false ),
-        new OperatorData( OperatorKind.LogicalAnd, WellKnownMemberNames.LogicalAndOperatorName, null, null, false ),
-        new OperatorData( OperatorKind.LogicalOr, WellKnownMemberNames.LogicalOrOperatorName, null, null, false ),
-
-        // VB.NET specific operators - not available in C#
-        new OperatorData( OperatorKind.Concatenate, WellKnownMemberNames.ConcatenateOperatorName, null, null, false ),
-        new OperatorData( OperatorKind.Exponent, WellKnownMemberNames.ExponentOperatorName, null, null, false ),
-        new OperatorData( OperatorKind.IntegerDivision, WellKnownMemberNames.IntegerDivisionOperatorName, null, null, false ),
-        new OperatorData( OperatorKind.Like, WellKnownMemberNames.LikeOperatorName, null, null, false )
+        new OperatorData( OperatorKind.False, WellKnownMemberNames.FalseOperatorName, LanguageVersion.CSharp1, SyntaxKind.FalseKeyword, false )
 
 #if ROSLYN_5_0_0_OR_GREATER
        ,
 
         // Compound assignment operators - user-definable since C# 14
-        new OperatorData( OperatorKind.AdditionAssignment, WellKnownMemberNames.AdditionAssignmentOperatorName, LanguageVersion.CSharp14, null, false ),
-        new OperatorData( OperatorKind.SubtractionAssignment, WellKnownMemberNames.SubtractionAssignmentOperatorName, LanguageVersion.CSharp14, null, false ),
+        new OperatorData(
+            OperatorKind.AdditionAssignment,
+            WellKnownMemberNames.AdditionAssignmentOperatorName,
+            LanguageVersion.CSharp14,
+            SyntaxKind.PlusEqualsToken,
+            false ),
+        new OperatorData(
+            OperatorKind.SubtractionAssignment,
+            WellKnownMemberNames.SubtractionAssignmentOperatorName,
+            LanguageVersion.CSharp14,
+            SyntaxKind.MinusEqualsToken,
+            false ),
         new OperatorData(
             OperatorKind.MultiplicationAssignment,
             WellKnownMemberNames.MultiplicationAssignmentOperatorName,
             LanguageVersion.CSharp14,
-            null,
+            SyntaxKind.AsteriskEqualsToken,
             false ),
-        new OperatorData( OperatorKind.DivisionAssignment, WellKnownMemberNames.DivisionAssignmentOperatorName, LanguageVersion.CSharp14, null, false ),
-        new OperatorData( OperatorKind.ModulusAssignment, WellKnownMemberNames.ModulusAssignmentOperatorName, LanguageVersion.CSharp14, null, false ),
-        new OperatorData( OperatorKind.BitwiseAndAssignment, WellKnownMemberNames.BitwiseAndAssignmentOperatorName, LanguageVersion.CSharp14, null, false ),
-        new OperatorData( OperatorKind.BitwiseOrAssignment, WellKnownMemberNames.BitwiseOrAssignmentOperatorName, LanguageVersion.CSharp14, null, false ),
-        new OperatorData( OperatorKind.ExclusiveOrAssignment, WellKnownMemberNames.ExclusiveOrAssignmentOperatorName, LanguageVersion.CSharp14, null, false ),
-        new OperatorData( OperatorKind.LeftShiftAssignment, WellKnownMemberNames.LeftShiftAssignmentOperatorName, LanguageVersion.CSharp14, null, false ),
-        new OperatorData( OperatorKind.RightShiftAssignment, WellKnownMemberNames.RightShiftAssignmentOperatorName, LanguageVersion.CSharp14, null, false ),
+        new OperatorData(
+            OperatorKind.DivisionAssignment,
+            WellKnownMemberNames.DivisionAssignmentOperatorName,
+            LanguageVersion.CSharp14,
+            SyntaxKind.SlashEqualsToken,
+            false ),
+        new OperatorData(
+            OperatorKind.ModulusAssignment,
+            WellKnownMemberNames.ModulusAssignmentOperatorName,
+            LanguageVersion.CSharp14,
+            SyntaxKind.PercentEqualsToken,
+            false ),
+        new OperatorData(
+            OperatorKind.BitwiseAndAssignment,
+            WellKnownMemberNames.BitwiseAndAssignmentOperatorName,
+            LanguageVersion.CSharp14,
+            SyntaxKind.AmpersandEqualsToken,
+            false ),
+        new OperatorData(
+            OperatorKind.BitwiseOrAssignment,
+            WellKnownMemberNames.BitwiseOrAssignmentOperatorName,
+            LanguageVersion.CSharp14,
+            SyntaxKind.BarEqualsToken,
+            false ),
+        new OperatorData(
+            OperatorKind.ExclusiveOrAssignment,
+            WellKnownMemberNames.ExclusiveOrAssignmentOperatorName,
+            LanguageVersion.CSharp14,
+            SyntaxKind.CaretEqualsToken,
+            false ),
+        new OperatorData(
+            OperatorKind.LeftShiftAssignment,
+            WellKnownMemberNames.LeftShiftAssignmentOperatorName,
+            LanguageVersion.CSharp14,
+            SyntaxKind.LessThanLessThanEqualsToken,
+            false ),
+        new OperatorData(
+            OperatorKind.RightShiftAssignment,
+            WellKnownMemberNames.RightShiftAssignmentOperatorName,
+            LanguageVersion.CSharp14,
+            SyntaxKind.GreaterThanGreaterThanEqualsToken,
+            false ),
         new OperatorData(
             OperatorKind.UnsignedRightShiftAssignment,
             WellKnownMemberNames.UnsignedRightShiftAssignmentOperatorName,
             LanguageVersion.CSharp14,
-            null,
+            SyntaxKind.GreaterThanGreaterThanGreaterThanEqualsToken,
             false ),
-        new OperatorData( OperatorKind.IncrementAssignment, WellKnownMemberNames.IncrementAssignmentOperatorName, LanguageVersion.CSharp14, null, false ),
-        new OperatorData( OperatorKind.DecrementAssignment, WellKnownMemberNames.DecrementAssignmentOperatorName, LanguageVersion.CSharp14, null, false ),
+        new OperatorData(
+            OperatorKind.IncrementAssignment,
+            WellKnownMemberNames.IncrementAssignmentOperatorName,
+            LanguageVersion.CSharp14,
+            SyntaxKind.PlusPlusToken,
+            false ),
+        new OperatorData(
+            OperatorKind.DecrementAssignment,
+            WellKnownMemberNames.DecrementAssignmentOperatorName,
+            LanguageVersion.CSharp14,
+            SyntaxKind.MinusMinusToken,
+            false ),
 
         // Checked compound assignment operators - user-definable since C# 14
         new OperatorData(
             OperatorKind.CheckedAdditionAssignment,
             WellKnownMemberNames.CheckedAdditionAssignmentOperatorName,
             LanguageVersion.CSharp14,
-            null,
+            SyntaxKind.PlusEqualsToken,
             true ),
         new OperatorData(
             OperatorKind.CheckedSubtractionAssignment,
             WellKnownMemberNames.CheckedSubtractionAssignmentOperatorName,
             LanguageVersion.CSharp14,
-            null,
+            SyntaxKind.MinusEqualsToken,
             true ),
         new OperatorData(
             OperatorKind.CheckedMultiplicationAssignment,
             WellKnownMemberNames.CheckedMultiplicationAssignmentOperatorName,
             LanguageVersion.CSharp14,
-            null,
+            SyntaxKind.AsteriskEqualsToken,
             true ),
         new OperatorData(
             OperatorKind.CheckedDivisionAssignment,
             WellKnownMemberNames.CheckedDivisionAssignmentOperatorName,
             LanguageVersion.CSharp14,
-            null,
+            SyntaxKind.SlashEqualsToken,
             true ),
         new OperatorData(
             OperatorKind.CheckedIncrementAssignment,
             WellKnownMemberNames.CheckedIncrementAssignmentOperatorName,
             LanguageVersion.CSharp14,
-            null,
+            SyntaxKind.PlusPlusToken,
             true ),
         new OperatorData(
             OperatorKind.CheckedDecrementAssignment,
             WellKnownMemberNames.CheckedDecrementAssignmentOperatorName,
             LanguageVersion.CSharp14,
-            null,
+            SyntaxKind.MinusMinusToken,
             true )
 #endif
+
     );
 
 #pragma warning restore SA1115, SA1114
@@ -219,8 +277,14 @@ internal record OperatorData( OperatorKind Kind, string MemberName, LanguageVers
     private static readonly Dictionary<string, OperatorData> _byMemberName =
         All.Where( x => x.MinimumLangVersion != null ).ToDictionary( x => x.MemberName, x => x );
 
-    public static OperatorData? GetByKind( OperatorKind kind ) => _byKind.TryGetValue( kind, out var data ) ? data : null;
+    public static OperatorData GetByKind( OperatorKind kind ) => _byKind.TryGetValue( kind, out var data ) ? data : throw new ArgumentOutOfRangeException(nameof(kind));
+
+    public static bool IsUserDefinable( OperatorKind kind ) => _byKind.ContainsKey( kind );
 
     public static OperatorKind GetOperatorKindFromName( string methodName )
         => _byMemberName.TryGetValue( methodName, out var data ) ? data.Kind : OperatorKind.None;
+
+    public OperatorCategory Category { get; } = Kind.GetCategory();
+
+    public bool IsStatic => this.Category is not (OperatorCategory.BinaryAssignment or OperatorCategory.UnaryAssignment);
 }

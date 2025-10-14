@@ -91,11 +91,19 @@ internal abstract partial class AspectReferenceRenamingSubstitution : SyntaxNode
     {
         var targetSymbol = this.AspectReference.ResolvedSemantic.Symbol;
 
-        return
+        var memberAccess =
             MemberAccessExpression(
                 SyntaxKind.SimpleMemberAccessExpression,
                 substitutionContext.SyntaxGenerationContext.SyntaxGenerator.TypeSyntax( targetSymbol.ContainingType ),
                 IdentifierName( this.GetTargetMemberName() ) );
+
+        if ( !targetSymbol.IsStatic )
+        {
+            // TODO - not sure that this is the best data flow but it seems to have the least impact.
+            memberAccess = memberAccess.WithAdditionalAnnotations( LinkerInjectionHelperProvider.HasStaticReceiverArgumentAnnotation );
+        }
+
+        return memberAccess;
     }
 
     protected abstract SyntaxNode? SubstituteMemberAccess( MemberAccessExpressionSyntax currentNode, SubstitutionContext substitutionContext );

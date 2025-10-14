@@ -28,7 +28,6 @@ using Accessibility = Metalama.Framework.Code.Accessibility;
 using DeclarationKind = Metalama.Framework.Code.DeclarationKind;
 using EnumerableExtensions = Metalama.Framework.Engine.Collections.EnumerableExtensions;
 using MethodKind = Microsoft.CodeAnalysis.MethodKind;
-using OperatorKind = Metalama.Framework.Code.OperatorKind;
 using RefKind = Metalama.Framework.Code.RefKind;
 using SyntaxReference = Microsoft.CodeAnalysis.SyntaxReference;
 
@@ -279,25 +278,6 @@ public static class DeclarationExtensions
             DeclarationKind.AssemblyReference => "assembly reference",
             _ => kind.ToString().ToLowerInvariant()
         };
-
-    internal static SyntaxKind ToOperatorKeyword( this OperatorKind operatorKind )
-    {
-        var operatorData = OperatorData.GetByKind( operatorKind );
-
-        if ( operatorData?.OperatorKeyword is { } syntaxKind )
-        {
-            return syntaxKind;
-        }
-
-        throw new AssertionFailedException( $"Unexpected OperatorKind: {operatorKind}." );
-    }
-
-    internal static string ToOperatorMethodName( this OperatorKind operatorKind )
-    {
-        var operatorData = OperatorData.GetByKind( operatorKind );
-
-        return operatorData?.MemberName ?? throw new AssertionFailedException( $"Unexpected OperatorKind: {operatorKind}." );
-    }
 
     internal static bool? IsAutoProperty( this IPropertySymbol symbol )
         => symbol switch

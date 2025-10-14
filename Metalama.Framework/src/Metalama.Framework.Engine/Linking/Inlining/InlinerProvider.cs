@@ -21,6 +21,7 @@ internal sealed class InlinerProvider
         new MethodReturnStatementInliner(),
         new MethodCastReturnStatementInliner(),
         new MethodInvocationInliner(),
+        new StaticReceiverMethodInvocationInliner(),
         new MethodDiscardInliner(),
         new PropertyGetAssignmentInliner(),
         new PropertyGetReturnInliner(),
@@ -40,9 +41,9 @@ internal sealed class InlinerProvider
     {
         // TODO: Optimize.
         inliner = this._inliners
-            .SingleOrDefault(
-                i => i.IsValidForTargetSymbol( aspectReference.ResolvedSemantic.Symbol )
-                     && i.IsValidForContainingSymbol( aspectReference.ResolvedSemantic.Symbol ) && i.CanInline( aspectReference, semanticModel ) );
+            .SingleOrDefault( i => i.IsValidForTargetSymbol( aspectReference.ResolvedSemantic.Symbol )
+                                   && i.IsValidForContainingSymbol( aspectReference.ResolvedSemantic.Symbol )
+                                   && i.CanInline( aspectReference, semanticModel ) );
 
         return inliner != null;
     }

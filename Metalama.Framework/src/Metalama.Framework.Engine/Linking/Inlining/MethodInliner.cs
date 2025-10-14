@@ -14,14 +14,28 @@ namespace Metalama.Framework.Engine.Linking.Inlining;
 /// </summary>
 internal abstract class MethodInliner : Inliner
 {
-    protected static bool IsInlineableInvocation(
+    /// <summary>
+    /// Determines if the invocation is canonical, i.e. arguments match exactly parameters.
+    /// </summary>
+    protected static bool IsCanonicalInvocation(
         SemanticModel semanticModel,
         IMethodSymbol contextMethod,
         InvocationExpressionSyntax invocationExpression )
-        => invocationExpression.ArgumentList.Arguments.Count == contextMethod.Parameters.Length
-           && invocationExpression.ArgumentList.Arguments
-               .Select( ( x, i ) => (Argument: x.Expression, Index: i) )
-               .All( a => SymbolEqualityComparer.Default.Equals( semanticModel.GetSymbolInfo( a.Argument ).Symbol, contextMethod.Parameters[a.Index] ) );
+    {
+        if ( invocationExpression.HasAnnotation( LinkerInjectionHelperProvider.HasStaticReceiverArgumentAnnotation ) )
+        {
+            return false;
+        }
+
+        if ( invocationExpression.ArgumentList.Arguments.Count != contextMethod.Parameters.Length )
+        {
+            return false;
+        }
+
+        return invocationExpression.ArgumentList.Arguments
+            .Select( ( x, i ) => (Argument: x.Expression, Index: i) )
+            .All( a => SymbolEqualityComparer.Default.Equals( semanticModel.GetSymbolInfo( a.Argument ).Symbol, contextMethod.Parameters[a.Index] ) );
+    }
 
     public override bool IsValidForTargetSymbol( ISymbol symbol )
         => symbol is IMethodSymbol { MethodKind: not MethodKind.Constructor, AssociatedSymbol: null, IsAsync: false } methodSymbol

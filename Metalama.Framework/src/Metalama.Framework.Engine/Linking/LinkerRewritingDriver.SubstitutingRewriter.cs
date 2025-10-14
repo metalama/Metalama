@@ -5,6 +5,9 @@
 using Metalama.Framework.Engine.Linking.Substitution;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System.Linq;
 
 namespace Metalama.Framework.Engine.Linking;
 
@@ -40,7 +43,20 @@ internal sealed partial class LinkerRewritingDriver
             }
             else
             {
-                return base.VisitCore( node );
+                var transformedNode = base.VisitCore( node );
+
+                if ( transformedNode is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax memberAccess } invocation
+                     && memberAccess.HasAnnotation( LinkerInjectionHelperProvider.HasStaticReceiverArgumentAnnotation ) )
+                {
+                    transformedNode = SyntaxFactory.InvocationExpression(
+                        SyntaxFactory.MemberAccessExpression(
+                            SyntaxKind.SimpleMemberAccessExpression,
+                            invocation.ArgumentList.Arguments[0].Expression,
+                            memberAccess.Name ),
+                        invocation.ArgumentList.WithArguments( SyntaxFactory.SeparatedList( invocation.ArgumentList.Arguments.Skip( 1 ) ) ) );
+                }
+
+                return transformedNode;
             }
         }
     }
