@@ -22,7 +22,7 @@ namespace Metalama.Framework.IntegrationTests.Aspects.Introductions.Operators.Pr
                 builder.Target,
                 OperatorKind.Addition );
 
-            builder.IntroduceConversionOperator( nameof(ConversionOperatorTemplate), TypeFactory.GetType( typeof(int) ), builder.Target );
+            builder.IntroduceConversionOperator( nameof(this.ConversionOperatorTemplate), TypeFactory.GetType( typeof(int) ), builder.Target );
         }
 
         [Template]

@@ -35,7 +35,7 @@ public class Aspect : TypeAspect
             nameof(ConversionOperator),
             builder.Target,
             TypeFactory.GetType( typeof(int) ),
-            true,
+            isImplicit: true,
             args: new { T = builder.Target, x = 42 } );
     }
 

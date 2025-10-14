@@ -29,7 +29,7 @@ namespace Metalama.Framework.IntegrationTests.Aspects.Introductions.Operators.Ex
                 whenExists: OverrideStrategy.Override );
 
             builder.IntroduceConversionOperator(
-                nameof(ConversionOperatorTemplate),
+                nameof(this.ConversionOperatorTemplate),
                 TypeFactory.GetType( typeof(int) ),
                 builder.Target,
                 whenExists: OverrideStrategy.Override );

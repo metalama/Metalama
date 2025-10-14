@@ -684,6 +684,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         IType fromType,
         IType toType,
         bool isImplicit = false,
+        bool isChecked = false,
         OverrideStrategy whenExists = OverrideStrategy.Default,
         Action<IMethodBuilder>? buildAction = null,
         object? args = null,
@@ -696,7 +697,13 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
             var template = this.ValidateRequiredTemplateName( defaultTemplate, TemplateKind.Default )
                 .GetTemplateMember<IMethod>( this._compilation, this._state.ServiceProvider, this.TemplateProvider, this.GetTagsReader( tags ) );
 
-            var operatorKind = isImplicit ? OperatorKind.ImplicitConversion : OperatorKind.ExplicitConversion;
+            var operatorKind = (isImplicit, isChecked) switch
+            {
+                (true, false) => OperatorKind.ImplicitConversion,
+                (true, true) => throw new ArgumentOutOfRangeException( nameof(isChecked), isChecked, "Cannot introduce a checked implicit operator." ),
+                (false, false) => OperatorKind.ExplicitConversion,
+                (false, true) => OperatorKind.CheckedExplicitConversion
+            };
 
             var advice = new IntroduceOperatorAdvice(
                 this.GetAdviceConstructorParameters( targetType ),

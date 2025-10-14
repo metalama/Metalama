@@ -49,7 +49,7 @@ namespace Metalama.Framework.IntegrationTests.Aspects.Overrides.Operators.Introd
                 OperatorKind.Addition );
 
             builder.IntroduceConversionOperator(
-                nameof(ConversionOperatorTemplate),
+                nameof(this.ConversionOperatorTemplate),
                 TypeFactory.GetType( typeof(int) ),
                 builder.Target );
         }
