@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.Collections;
+using Metalama.Framework.Code.DeclarationBuilders;
 using Metalama.Framework.Code.Types;
 using Metalama.Framework.Engine.CodeModel.Abstractions;
 using Metalama.Framework.Engine.CodeModel.Introductions.Builders;
@@ -407,6 +408,21 @@ public static class DeclarationExtensions
         => namedType.AllProperties.OfName( name ).FirstOrDefault() ??
            (IMember?) namedType.AllFields.OfName( name ).FirstOrDefault() ??
            namedType.AllEvents.OfName( name ).FirstOrDefault();
+
+    internal static IMember? FindExplicitInterfaceImplementation( this INamedType namedType, IMember member )
+    {
+        Invariant.Assert( member.IsExplicitInterfaceImplementation );
+        var explicitInterfaceImplementation = member.GetExplicitInterfaceImplementation();
+
+        return namedType
+            .GetMembers( member.DeclarationKind )
+            .SingleOrDefault( m => m.IsExplicitInterfaceImplementation && m.GetExplicitInterfaceImplementation().Equals( explicitInterfaceImplementation ) );
+    }
+
+    internal static IMember? FindMemberCompetingWithIntroduction( this INamedType namedType, IMemberBuilder member )
+        => member.IsExplicitInterfaceImplementation
+            ? namedType.FindExplicitInterfaceImplementation( member )
+            : namedType.FindClosestUniquelyNamedMember( member.Name );
 
     internal static bool? IsEventField( this IEvent @event )
     {
