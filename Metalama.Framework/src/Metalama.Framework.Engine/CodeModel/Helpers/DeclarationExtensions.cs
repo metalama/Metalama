@@ -353,6 +353,7 @@ public static class DeclarationExtensions
 #if ROSLYN_4_12_0_OR_GREATER
             { IsPartialDefinition: true } => false, // Partial property can't be implemented as an auto-property.
 #endif
+            _ when symbol.GetBackingField() != null => true,
             { DeclaringSyntaxReferences: { Length: > 0 } syntaxReferences } =>
                 syntaxReferences.All(
                     sr =>
@@ -363,8 +364,9 @@ public static class DeclarationExtensions
                             ParameterSyntax => true,
                             _ => false
                         } ),
-            { GetMethod: { } getMethod } => getMethod.IsCompilerGenerated(),
-            { SetMethod: { } setMethod } => setMethod.IsCompilerGenerated(),
+            { GetMethod: { } getMethod, SetMethod: { } setMethod } => getMethod.IsCompilerGenerated() || setMethod.IsCompilerGenerated(),
+            { GetMethod: { } getMethod, SetMethod: null } => getMethod.IsCompilerGenerated(),
+            { GetMethod: null, SetMethod: { } setMethod } => setMethod.IsCompilerGenerated(),
             _ => null
         };
 
@@ -372,9 +374,32 @@ public static class DeclarationExtensions
         => symbol switch
         {
             { IsAbstract: true } => false,
-            { DeclaringSyntaxReferences: { Length: > 0 } syntaxReferences } =>
-                syntaxReferences.All( sr => sr.GetSyntax() is AccessorDeclarationSyntax { Body: null, ExpressionBody: null } ),
+            { AssociatedSymbol: IPropertySymbol propertySymbol } => propertySymbol.IsAutoProperty() == true,
             _ => symbol.IsCompilerGenerated()
+        };
+
+    internal static bool? HasBody( this IPropertySymbol property )
+        => (property.GetMethod?.HasBody(), property.SetMethod?.HasBody()) switch
+        {
+            (null, null ) => null,
+            (true, _ ) or (_, true ) => true,
+            (false, false ) => false,
+            _ => null,
+        };
+
+    internal static bool? HasBody( this IMethodSymbol method )
+        => method switch
+        {
+            { IsAbstract: true } => false,
+            { DeclaringSyntaxReferences.Length: > 0 } =>
+                method.DeclaringSyntaxReferences.Any(
+                    m => m.GetSyntax() is 
+                        BaseMethodDeclarationSyntax { Body: { } }
+                        or BaseMethodDeclarationSyntax { ExpressionBody: { } } 
+                        or PropertyDeclarationSyntax { ExpressionBody: { } } 
+                        or AccessorDeclarationSyntax { Body: { } }
+                        or AccessorDeclarationSyntax { ExpressionBody: { } } ),
+            _ => null
         };
 
     internal static bool? IsEventField( this IEventSymbol symbol )

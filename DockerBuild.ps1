@@ -326,7 +326,7 @@ if (-not $BuildImage)
     $dockerArgsAsString = $dockerArgs -join " "
 
 
-    Write-Host "Executing: ``docker run --rm --memory=12g $dockerArgsAsString $VolumeMappingsAsString -w $SourceDirName $ImageTag pwsh $pwshArgs -Command `"& .\$Script $buildArgsString`; $pwshExitCommand`"" -ForegroundColor Cyan
+    Write-Host "Executing: ``docker run --rm --memory=24g $dockerArgsAsString $VolumeMappingsAsString -w $SourceDirName $ImageTag pwsh $pwshArgs -Command `"& .\$Script $buildArgsString`; $pwshExitCommand`"" -ForegroundColor Cyan
 
     docker run --rm --memory=12g $dockerArgs @VolumeMappings -w $SourceDirName @dockerArgs $ImageTag pwsh $pwshArgs -Command "& .\$Script $buildArgsString`; $pwshExitCommand; "
     if ($LASTEXITCODE -ne 0)

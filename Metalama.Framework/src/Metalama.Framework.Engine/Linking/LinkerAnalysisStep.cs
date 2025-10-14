@@ -21,6 +21,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.DirectoryServices.ActiveDirectory;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -194,10 +195,21 @@ namespace Metalama.Framework.Engine.Linking
 
             var inliningSpecifications = await inliningAlgorithm.RunAsync( cancellationToken );
 
+            var overriddenHybridAutoProperties = input.InjectionRegistry.GetOverriddenMembers()
+                .Where( s => s is IPropertySymbol propertySymbol && propertySymbol.IsAutoProperty() == true && propertySymbol.HasBody() == true )
+                .Cast<IPropertySymbol>()
+                .ToArray();
+
             var redirectedGetOnlyAutoPropertyReferences = await GetRedirectedGetOnlyAutoPropertyReferencesAsync(
                 symbolReferenceFinder,
                 redirectedGetOnlyAutoProperties,
                 cancellationToken );
+
+            var backingFieldReferences = 
+                await GetPropertyBackingFieldReferencesAsync(
+                    symbolReferenceFinder,
+                    overriddenHybridAutoProperties,
+                    cancellationToken );
 
             var callerAttributeReferences =
                 await GetCallerAttributeReferencesAsync(
@@ -214,7 +226,7 @@ namespace Metalama.Framework.Engine.Linking
                 out var typeEventBrokers,
                 out var staticDelegates );
 
-            var eventBrokerSemanticIndex = 
+            var eventBrokerSemanticIndex =
                 BuildEventBrokerSemanticIndex(
                     input.IntermediateCompilation.CompilationContext,
                     input.InjectionRegistry,
@@ -233,6 +245,7 @@ namespace Metalama.Framework.Engine.Linking
                 redirectedGetOnlyAutoPropertyReferences,
                 forcefullyInitializedTypes,
                 eventFieldRaiseReferences,
+                backingFieldReferences,
                 callerAttributeReferences,
                 eventBrokerSemanticIndex );
 
@@ -259,10 +272,10 @@ namespace Metalama.Framework.Engine.Linking
                     input.ProjectOptions );
         }
 
-        private static void CollectEventBrokerInfo( 
+        private static void CollectEventBrokerInfo(
             CompilationModel finalCompilationModel,
             CompilationContext intermediateCompilation,
-            LinkerInjectionRegistry injectionRegistry, 
+            LinkerInjectionRegistry injectionRegistry,
             TypeMemberIdentifierGenerator typeMemberIdentifierGenerator,
             out IReadOnlyDictionary<IEventSymbol, EventBrokerInfo> eventBrokers,
             out IReadOnlyDictionary<INamedTypeSymbol, IReadOnlyList<StaticFieldInfo>> staticfields )
@@ -279,7 +292,7 @@ namespace Metalama.Framework.Engine.Linking
                 {
                     case OverrideEventTransformation overrideEvent:
                         var targetEvent = overrideEvent.TargetDeclaration.As<IEvent>().GetTarget( finalCompilationModel );
-                        var overrideMember = injectionRegistry.GetInjectedMembersForTransformation( overrideEvent ).Single(im => im.Semantic == InjectedMemberSemantic.Override);
+                        var overrideMember = injectionRegistry.GetInjectedMembersForTransformation( overrideEvent ).Single( im => im.Semantic == InjectedMemberSemantic.Override );
                         var overrideEventSymbol = injectionRegistry.GetSymbolForInjectedMember( overrideMember ).AssertNotNull();
                         var overrideName = overrideMember.Syntax switch
                         {
@@ -297,7 +310,7 @@ namespace Metalama.Framework.Engine.Linking
                                 MethodDeclarationSyntax methodDeclaration => methodDeclaration.Identifier.ValueText,
                                 _ => throw new NotSupportedException( $"Unsupported syntax for event raise override: {injectedMember.Syntax}." )
                             };
-                        
+
                         // Generate broker proxy name for non-last overrides
                         string? brokerProxyName = null;
                         if ( !injectionRegistry.IsLastOverride( overrideEventSymbol ) )
@@ -311,7 +324,7 @@ namespace Metalama.Framework.Engine.Linking
                             case { ReturnType: { SpecialType: SpecialType.Void }, Parameters: var parameters } when parameters.All( p => p.RefKind == Code.RefKind.None ):
                                 // Delegate with RefKind.None parameters and void return type.
 
-                                var staticDelegatesForType = (List<StaticFieldInfo>)staticFieldsWritable.GetOrAdd( targetEventSymbol.ContainingType, _ => new List<StaticFieldInfo>() );
+                                var staticDelegatesForType = (List<StaticFieldInfo>) staticFieldsWritable.GetOrAdd( targetEventSymbol.ContainingType, _ => new List<StaticFieldInfo>() );
 
                                 var tupleType = finalCompilationModel.Factory.GetTypeByReflectionName( $"System.ValueTuple`{invokeMethod.Parameters.Count}" );
 
@@ -387,7 +400,7 @@ namespace Metalama.Framework.Engine.Linking
                                         overrideEvent,
                                         new EventBrokerTransformationInfo( eventBrokerInfo, overrideEvent, eventBrokerFieldName, fieldInitializationExpression, brokerProxyName ) );
 
-                                break; 
+                                break;
 
                             default:
                                 throw new NotSupportedException( $"Unsupported delegate signature for event broker: {invokeMethod}." );
@@ -451,7 +464,7 @@ namespace Metalama.Framework.Engine.Linking
                             SyntaxKind.SimpleMemberAccessExpression,
                             ParenthesizedExpression(
                                 CastExpression(
-                                    context.SyntaxGenerator.TypeSyntax(containingType),
+                                    context.SyntaxGenerator.TypeSyntax( containingType ),
                                     IdentifierName( "me" ) ) ),
                             IdentifierName( raiseMethodName ) ),
                         ArgumentList(
@@ -490,7 +503,7 @@ namespace Metalama.Framework.Engine.Linking
                             SyntaxKind.SimpleMemberAccessExpression,
                             ParenthesizedExpression(
                                 CastExpression(
-                                    context.SyntaxGenerator.TypeSyntax(containingType),
+                                    context.SyntaxGenerator.TypeSyntax( containingType ),
                                     IdentifierName( "me" ) ) ),
                             IdentifierName( overrideName ) ),
                         IdentifierName( "handler" ) ) );
@@ -506,20 +519,20 @@ namespace Metalama.Framework.Engine.Linking
         {
             return
                 ObjectCreationExpression(
-                    Token(TriviaList(context.ElasticEndOfLineTriviaList), SyntaxKind.NewKeyword, TriviaList(ElasticSpace)),
+                    Token( TriviaList( context.ElasticEndOfLineTriviaList ), SyntaxKind.NewKeyword, TriviaList( ElasticSpace ) ),
                     context.SyntaxGenerator.TypeSyntax( brokerCallbacksTypeSymbol ),
                     ArgumentList(
-                        Token(TriviaList(), SyntaxKind.OpenParenToken, TriviaList(context.ElasticEndOfLineTriviaList)),
+                        Token( TriviaList(), SyntaxKind.OpenParenToken, TriviaList( context.ElasticEndOfLineTriviaList ) ),
                         SeparatedList<ArgumentSyntax>(
                             NodeOrTokenList(
                                 Argument( GetEventBrokerInvokerDelegateInitializationExpression( context, containingType, raiseMethodName ) ),
-                                Token(TriviaList(), SyntaxKind.CommaToken, context.ElasticEndOfLineTriviaList),
+                                Token( TriviaList(), SyntaxKind.CommaToken, context.ElasticEndOfLineTriviaList ),
                                 Argument( GetEventBrokerCastDelegateInitializationExpression( invokeParameters ) ),
-                                Token(TriviaList(), SyntaxKind.CommaToken, context.ElasticEndOfLineTriviaList),
+                                Token( TriviaList(), SyntaxKind.CommaToken, context.ElasticEndOfLineTriviaList ),
                                 Argument( GetEventBrokerEventAccessDelegateInitializationExpression( context, containingType, SyntaxKind.AddAssignmentExpression, overrideName ) ),
-                                Token(TriviaList(), SyntaxKind.CommaToken, context.ElasticEndOfLineTriviaList),
+                                Token( TriviaList(), SyntaxKind.CommaToken, context.ElasticEndOfLineTriviaList ),
                                 Argument( GetEventBrokerEventAccessDelegateInitializationExpression( context, containingType, SyntaxKind.SubtractAssignmentExpression, overrideName ) ) ) ),
-                        Token(TriviaList(context.ElasticEndOfLineTriviaList), SyntaxKind.CloseParenToken, TriviaList()) ),
+                        Token( TriviaList( context.ElasticEndOfLineTriviaList ), SyntaxKind.CloseParenToken, TriviaList() ) ),
                     null );
         }
 
@@ -528,24 +541,24 @@ namespace Metalama.Framework.Engine.Linking
             LinkerInjectionRegistry injectionRegistry,
             IReadOnlyDictionary<IEventSymbol, EventBrokerInfo> eventBrokers )
         {
-            var index = 
+            var index =
                 new Dictionary<IntermediateSymbolSemantic<IEventSymbol>, EventBrokerTransformationInfo?>(
-                    IntermediateSymbolSemanticEqualityComparer<IEventSymbol>.ForCompilation(intermediateCompilationContext) );
+                    IntermediateSymbolSemanticEqualityComparer<IEventSymbol>.ForCompilation( intermediateCompilationContext ) );
 
             foreach ( var (eventSymbol, eventBrokerInfo) in eventBrokers )
             {
                 var overrides = injectionRegistry.GetOverridesForSymbol( eventSymbol );
-                var semanticToBrokerMap = 
+                var semanticToBrokerMap =
                     new Dictionary<IntermediateSymbolSemantic<IEventSymbol>, EventBrokerTransformationInfo>(
                         IntermediateSymbolSemanticEqualityComparer<IEventSymbol>.ForCompilation( intermediateCompilationContext ) );
 
-                for (var i = 0; i < overrides.Count; i++ )
+                for ( var i = 0; i < overrides.Count; i++ )
                 {
-                    var overrideTransformation = injectionRegistry.GetTransformationForSymbol(overrides[i]).AssertNotNull();
+                    var overrideTransformation = injectionRegistry.GetTransformationForSymbol( overrides[i] ).AssertNotNull();
 
-                    if ( eventBrokerInfo.Transformations.TryGetValue( overrideTransformation, out var eventBrokerTransformationInfo ))
+                    if ( eventBrokerInfo.Transformations.TryGetValue( overrideTransformation, out var eventBrokerTransformationInfo ) )
                     {
-                        var overrideSemantic = ((IEventSymbol)overrides[i]).ToSemantic( IntermediateSymbolSemanticKind.Default );
+                        var overrideSemantic = ((IEventSymbol) overrides[i]).ToSemantic( IntermediateSymbolSemanticKind.Default );
                         semanticToBrokerMap.Add( overrideSemantic, eventBrokerTransformationInfo );
                     }
                 }
@@ -555,14 +568,14 @@ namespace Metalama.Framework.Engine.Linking
 
                 EventBrokerTransformationInfo? currentVisibleEventBroker = null;
 
-                for (var i = overrides.Count - 1; i >= 0; i--)
+                for ( var i = overrides.Count - 1; i >= 0; i-- )
                 {
-                    if (semanticToBrokerMap.TryGetValue( ((IEventSymbol)overrides[i]).ToSemantic( IntermediateSymbolSemanticKind.Default ), out var eventBrokerTransformationInfo ))
+                    if ( semanticToBrokerMap.TryGetValue( ((IEventSymbol) overrides[i]).ToSemantic( IntermediateSymbolSemanticKind.Default ), out var eventBrokerTransformationInfo ) )
                     {
                         currentVisibleEventBroker = eventBrokerTransformationInfo;
                     }
 
-                    index.Add( ((IEventSymbol)overrides[i]).ToSemantic( IntermediateSymbolSemanticKind.Default ), currentVisibleEventBroker );
+                    index.Add( ((IEventSymbol) overrides[i]).ToSemantic( IntermediateSymbolSemanticKind.Default ), currentVisibleEventBroker );
                 }
 
                 index.Add( eventSymbol.ToSemantic( IntermediateSymbolSemanticKind.Final ), currentVisibleEventBroker );
@@ -882,6 +895,81 @@ namespace Metalama.Framework.Engine.Linking
             }
 
             return list;
+        }
+
+        /// <summary>
+        /// Finds all references to auto property backing fields.
+        /// </summary>
+        private static async Task<IReadOnlyList<IntermediateSymbolSemanticReference>> GetPropertyBackingFieldReferencesAsync(
+            SymbolReferenceFinder symbolReferenceFinder,
+            IReadOnlyList<IPropertySymbol> overriddenHybridAutoProperties,
+            CancellationToken cancellationToken )
+        {
+            var list = new List<IntermediateSymbolSemanticReference>();
+            foreach ( var property in overriddenHybridAutoProperties )
+            {
+                var declaration = property.GetPrimaryDeclarationSyntax();
+
+                var (get, set) =
+                    declaration switch
+                    {
+                        PropertyDeclarationSyntax { AccessorList.Accessors: [{ Keyword.RawKind: (int) SyntaxKind.GetKeyword } getAccessor, { Keyword.RawKind: (int) SyntaxKind.SetKeyword or (int) SyntaxKind.InitKeyword } setAccessor] }
+                            => (getAccessor, setAccessor),
+                        PropertyDeclarationSyntax { AccessorList.Accessors: [{ Keyword.RawKind: (int) SyntaxKind.SetKeyword or (int) SyntaxKind.InitKeyword } setAccessor, { Keyword.RawKind: (int) SyntaxKind.GetKeyword } getAccessor] }
+                            => (getAccessor, setAccessor),
+                        PropertyDeclarationSyntax { AccessorList.Accessors: [{ Keyword.RawKind: (int) SyntaxKind.GetKeyword } getAccessor] }
+                            => (getAccessor, null),
+                        _ => throw new InvalidOperationException( "Auto property expected." ),
+                    };
+
+                if ( get.Body != null || get.ExpressionBody != null )
+                {
+                    var visitor = new AutoPropertyBodyWalker();
+                    visitor.Visit( get );
+
+                    foreach ( var fieldExpression in visitor.FieldExpressions )
+                    {
+                        list.Add(
+                            new IntermediateSymbolSemanticReference(
+                                property.GetMethod.AssertNotNull().ToSemantic( IntermediateSymbolSemanticKind.Default ),
+                                property.GetBackingField().AssertNotNull().ToSemantic( IntermediateSymbolSemanticKind.Default ),
+                                fieldExpression ) );
+                    }
+                }
+
+                if ( set?.Body != null || set?.ExpressionBody != null )
+                {
+                    var visitor = new AutoPropertyBodyWalker();
+                    visitor.Visit( set );
+
+                    foreach ( var fieldExpression in visitor.FieldExpressions )
+                    {
+                        list.Add(
+                            new IntermediateSymbolSemanticReference(
+                                property.SetMethod.AssertNotNull().ToSemantic( IntermediateSymbolSemanticKind.Default ),
+                                property.GetBackingField().AssertNotNull().ToSemantic( IntermediateSymbolSemanticKind.Default ),
+                                fieldExpression ) );
+                    }
+                }
+            }
+
+            return list;
+        }
+
+        private class AutoPropertyBodyWalker : CSharpSyntaxWalker
+        {
+            private List<FieldExpressionSyntax>? _fieldExpressions;
+
+            public IReadOnlyList<FieldExpressionSyntax> FieldExpressions => this._fieldExpressions ??= [];
+
+            public AutoPropertyBodyWalker() : base( SyntaxWalkerDepth.Node ) { }
+
+
+            public override void VisitFieldExpression( FieldExpressionSyntax node )
+            {
+                (this._fieldExpressions ??= new List<FieldExpressionSyntax>()).Add( node );
+                base.VisitFieldExpression( node );
+            }
         }
 
         /// <summary>

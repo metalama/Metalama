@@ -44,6 +44,9 @@ internal sealed partial class LinkerAnalysisStep
         private readonly IReadOnlyDictionary<IntermediateSymbolSemantic<IMethodSymbol>, IReadOnlyList<IntermediateSymbolSemanticReference>>
             _eventFieldRaiseReferencesByContainingSemantic;
 
+        private readonly IReadOnlyDictionary<IntermediateSymbolSemantic<IMethodSymbol>, IReadOnlyList<IntermediateSymbolSemanticReference>>
+            _backingFieldReferencesByContainingSemantic;
+
         private readonly IReadOnlyDictionary<
             IntermediateSymbolSemantic<IMethodSymbol>,
             IReadOnlyList<CallerAttributeReference>> _callerMemberReferencesByContainingSemantic;
@@ -65,6 +68,7 @@ internal sealed partial class LinkerAnalysisStep
             IReadOnlyList<IntermediateSymbolSemanticReference> redirectedSymbolReferences,
             IReadOnlyList<ForcefullyInitializedType> forcefullyInitializedTypes,
             IReadOnlyList<IntermediateSymbolSemanticReference> eventFieldRaiseReferences,
+            IReadOnlyList<IntermediateSymbolSemanticReference> backingFieldReferences,
             IReadOnlyList<CallerAttributeReference> callerMemberReferences,
             IReadOnlyDictionary<IntermediateSymbolSemantic<IEventSymbol>, EventBrokerTransformationInfo?> eventBrokerSemanticIndex )
         {
@@ -95,6 +99,11 @@ internal sealed partial class LinkerAnalysisStep
             this._eventFieldRaiseReferencesByContainingSemantic = IndexReferenceByContainingBody(
                 intermediateCompilationContext,
                 eventFieldRaiseReferences,
+                x => x.ContainingSemantic );
+
+            this._backingFieldReferencesByContainingSemantic = IndexReferenceByContainingBody(
+                intermediateCompilationContext,
+                backingFieldReferences,
                 x => x.ContainingSemantic );
 
             this._callerMemberReferencesByContainingSemantic = IndexReferenceByContainingBody(
@@ -332,6 +341,22 @@ internal sealed partial class LinkerAnalysisStep
                                 this._intermediateCompilationContext,
                                 reference.ReferencingNode,
                                 (IEventSymbol) reference.TargetSemantic.Symbol ) );
+                    }
+                }
+
+                // Add substitutions for backing field invocation references.
+                if ( this._backingFieldReferencesByContainingSemantic.TryGetValue(
+                        inliningSpecification.TargetSemantic,
+                        out var backingFieldReferences ) )
+                {
+                    foreach ( var reference in backingFieldReferences )
+                    {
+                        AddSubstitution(
+                            inliningSpecification.ContextIdentifier,
+                            new PropertyBackingFieldReferenceSubstitution(
+                                this._intermediateCompilationContext,
+                                reference.ReferencingNode,
+                                (IPropertySymbol) reference.ContainingSemantic.Symbol.AssociatedSymbol.AssertNotNull() ) );
                     }
                 }
 
@@ -624,6 +649,12 @@ internal sealed partial class LinkerAnalysisStep
                     targetSymbol,
                     usingSimpleInlining,
                     returnVariableIdentifier ),
+
+                AccessorDeclarationSyntax { Body: null, ExpressionBody: null } when targetSymbol is { AssociatedSymbol: IPropertySymbol property } && property.IsAutoProperty() == true =>
+                    new PropertyImplicitAccessorSubstitution(
+                        this._intermediateCompilationContext,
+                        root,
+                        property ),
 
                 MethodDeclarationSyntax { Body: null, ExpressionBody: null } emptyPartialMethod
                     => new EmptyPartialMethodSubstitution( this._intermediateCompilationContext, emptyPartialMethod, usingSimpleInlining, returnVariableIdentifier ),
