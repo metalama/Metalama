@@ -344,6 +344,7 @@ internal sealed partial class LinkerAnalysisStep
                     }
                 }
 
+#if ROSLYN_5_0_0_OR_GREATER
                 // Add substitutions for backing field invocation references.
                 if ( this._backingFieldReferencesByContainingSemantic.TryGetValue(
                         inliningSpecification.TargetSemantic,
@@ -359,6 +360,7 @@ internal sealed partial class LinkerAnalysisStep
                                 (IPropertySymbol) reference.ContainingSemantic.Symbol.AssociatedSymbol.AssertNotNull() ) );
                     }
                 }
+#endif
 
                 // Add substitutions for caller member references.
                 if ( this._callerMemberReferencesByContainingSemantic.TryGetValue( inliningSpecification.TargetSemantic, out var callerAttributeReferences )

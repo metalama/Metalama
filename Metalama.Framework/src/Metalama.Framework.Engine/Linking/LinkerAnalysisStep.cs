@@ -21,7 +21,6 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.DirectoryServices.ActiveDirectory;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -205,11 +204,15 @@ namespace Metalama.Framework.Engine.Linking
                 redirectedGetOnlyAutoProperties,
                 cancellationToken );
 
-            var backingFieldReferences = 
+            var backingFieldReferences =
+#if ROSLYN_5_0_0_OR_GREATER
                 await GetPropertyBackingFieldReferencesAsync(
                     symbolReferenceFinder,
                     overriddenHybridAutoProperties,
                     cancellationToken );
+#else
+                Array.Empty<IntermediateSymbolSemanticReference>();
+#endif
 
             var callerAttributeReferences =
                 await GetCallerAttributeReferencesAsync(
@@ -897,6 +900,7 @@ namespace Metalama.Framework.Engine.Linking
             return list;
         }
 
+#if ROSLYN_5_0_0_OR_GREATER
         /// <summary>
         /// Finds all references to auto property backing fields.
         /// </summary>
@@ -955,22 +959,7 @@ namespace Metalama.Framework.Engine.Linking
 
             return list;
         }
-
-        private class AutoPropertyBodyWalker : CSharpSyntaxWalker
-        {
-            private List<FieldExpressionSyntax>? _fieldExpressions;
-
-            public IReadOnlyList<FieldExpressionSyntax> FieldExpressions => this._fieldExpressions ??= [];
-
-            public AutoPropertyBodyWalker() : base( SyntaxWalkerDepth.Node ) { }
-
-
-            public override void VisitFieldExpression( FieldExpressionSyntax node )
-            {
-                (this._fieldExpressions ??= new List<FieldExpressionSyntax>()).Add( node );
-                base.VisitFieldExpression( node );
-            }
-        }
+#endif
 
         /// <summary>
         /// Finds all references to overridden methods that have caller attributes and need to be fixed.
