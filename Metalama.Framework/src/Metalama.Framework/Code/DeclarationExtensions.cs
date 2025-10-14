@@ -148,6 +148,23 @@ namespace Metalama.Framework.Code
             };
 
         /// <summary>
+        /// Gets the collection of members of a specific <see cref="DeclarationKind"/>.
+        /// </summary>
+        /// <param name="namedType">A named type.</param>
+        /// <param name="kind"><see cref="DeclarationKind.Method"/>, <see cref="DeclarationKind.Field"/>,
+        /// <see cref="DeclarationKind.Property"/>, <see cref="DeclarationKind.Event"/> or <see cref="DeclarationKind.Constructor"/>.</param>
+        public static IMemberCollection<IMember> GetMembers( this INamedType namedType, DeclarationKind kind )
+            => kind switch
+            {
+                DeclarationKind.Method => namedType.Methods,
+                DeclarationKind.Field => namedType.Fields,
+                DeclarationKind.Property => namedType.Properties,
+                DeclarationKind.Event => namedType.Events,
+                DeclarationKind.Constructor => namedType.Constructors,
+                _ => throw new ArgumentOutOfRangeException( nameof(kind) )
+            };
+
+        /// <summary>
         /// Gets the topmost type of a nested type, i.e. a type that is not contained in any other type. If the given type is not a given type,
         /// returns the given type itself. 
         /// </summary>

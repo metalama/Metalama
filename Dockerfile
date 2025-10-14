@@ -26,6 +26,8 @@ RUN Invoke-WebRequest -Uri https://github.com/git-for-windows/git/releases/downl
     $pathsToAdd = @('C:\git\cmd', 'C:\git\bin', 'C:\git\usr\bin'); `
     $newPath = [Environment]::GetEnvironmentVariable('PATH', 'Machine') + ';' + ($pathsToAdd -join ';'); `
     [Environment]::SetEnvironmentVariable('PATH', $newPath, 'Machine');
+    
+RUN "C:\Git\cmd\git.exe" config --system core.longpaths true
 
 
 # Install PowerShell 7
@@ -78,6 +80,7 @@ RUN Invoke-WebRequest -Uri https://aka.ms/vs/17/release/vs_buildtools.exe -OutFi
      exit $process.ExitCode; `
      }; `
     Remove-Item C:\\vs_buildtools.exe;
+ENV VSINSTALLDIR=C:\BuildTools
 RUN New-Item -ItemType Directory -Path 'C:\Program Files (x86)\Microsoft Visual Studio\Shared\NuGetPackages' -Force | Out-Null"; `
     New-Item -ItemType Directory -Path 'C:\Program Files\dotnet\sdk\NuGetFallbackFolder' -Force | Out-Null
 
