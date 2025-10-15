@@ -7,9 +7,18 @@ using System;
 
 namespace Metalama.Framework.Code;
 
+/// <summary>
+/// Defines extension methods for the <see cref="OperatorKind"/> class.
+/// </summary>
 [CompileTime]
 public static class OperatorKindExtensions
 {
+    /// <summary>
+    /// Gets the <see cref="OperatorCategory"/> for a given <see cref="OperatorKind"/>.
+    /// </summary>
+    /// <param name="operatorKind">The <see cref="OperatorKind"/> value for which to get the category.</param>
+    /// <returns>The <see cref="OperatorCategory"/> corresponding to the specified <see cref="OperatorKind"/>.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="operatorKind"/> is not a valid <see cref="OperatorKind"/> value.</exception>
     public static OperatorCategory GetCategory( this OperatorKind operatorKind )
         => operatorKind switch
         {
@@ -52,8 +61,6 @@ public static class OperatorKindExtensions
             OperatorKind.RightShift => OperatorCategory.Binary,
             OperatorKind.UnsignedRightShift => OperatorCategory.Binary,
 
-            // OperatorKind.UnsignedLeftShift => OperatorCategory.Binary,
-
             // Unary bitwise operators
             OperatorKind.OnesComplement => OperatorCategory.Unary,
 
@@ -83,7 +90,6 @@ public static class OperatorKindExtensions
             // Compound assignment operators - binary assignment (operand = operand op value)
             OperatorKind.AdditionAssignment => OperatorCategory.BinaryAssignment,
             OperatorKind.SubtractionAssignment => OperatorCategory.BinaryAssignment,
-            OperatorKind.MultiplyAssignment => OperatorCategory.BinaryAssignment,
             OperatorKind.MultiplicationAssignment => OperatorCategory.BinaryAssignment,
             OperatorKind.DivisionAssignment => OperatorCategory.BinaryAssignment,
             OperatorKind.ModulusAssignment => OperatorCategory.BinaryAssignment,

@@ -18,310 +18,302 @@ namespace Metalama.Framework.Code
         None,
 
         /// <summary>
-        /// Implicit (widening) conversion.
+        /// <c>implicit</c> conversion operator.
         /// </summary>
         ImplicitConversion,
 
         /// <summary>
-        /// Explicit (narrowing) conversion.
+        /// <c>explicit</c> conversion operator.
         /// </summary>
         ExplicitConversion,
 
         /// <summary>
-        /// Addition operator.
+        /// <c>+</c> operator.
         /// </summary>
         Addition,
 
         /// <summary>
-        /// BitwiseAnd operator.
+        /// <c>&amp;</c> operator.
         /// </summary>
         BitwiseAnd,
 
         /// <summary>
-        /// BitwiseOr operator.
+        /// <c>|</c> operator.
         /// </summary>
         BitwiseOr,
 
         /// <summary>
-        /// Decrement operator.
+        /// <c>--</c> operator.
         /// </summary>
         Decrement,
 
         /// <summary>
-        /// Division operator.
+        /// <c>/</c> operator.
         /// </summary>
         Division,
 
         /// <summary>
-        /// Equality operator.
+        /// <c>==</c> operator.
         /// </summary>
         Equality,
 
         /// <summary>
-        /// ExclusiveOr operator.
+        /// <c>^</c> operator.
         /// </summary>
         ExclusiveOr,
 
         /// <summary>
-        /// False operator.
+        /// <c>false</c> operator.
         /// </summary>
         False,
 
         /// <summary>
-        /// GreaterThan operator.
+        /// <c>&gt;</c> operator.
         /// </summary>
         GreaterThan,
 
         /// <summary>
-        /// GreaterThanOrEqual operator.
+        /// <c>&gt;=</c> operator.
         /// </summary>
         GreaterThanOrEqual,
 
         /// <summary>
-        /// Increment operator.
+        /// <c>++</c> operator.
         /// </summary>
         Increment,
 
         /// <summary>
-        /// Inequality operator.
+        /// <c>!=</c> operator.
         /// </summary>
         Inequality,
 
         /// <summary>
-        /// LeftShift operator.
+        /// <c>&lt;&lt;</c> operator.
         /// </summary>
         LeftShift,
 
         /// <summary>
-        /// LessThan operator.
+        /// <c>&lt;</c> operator.
         /// </summary>
         LessThan,
 
         /// <summary>
-        /// LessThanOrEqual operator.
+        /// <c>&lt;=</c> operator.
         /// </summary>
         LessThanOrEqual,
 
         /// <summary>
-        /// LogicalNot operator.
+        /// <c>!</c> operator.
         /// </summary>
         LogicalNot,
 
         /// <summary>
-        /// Modulus operator.
+        /// <c>%</c> operator.
         /// </summary>
         Modulus,
 
         /// <summary>
-        /// Multiply operator.
+        /// <c>*</c> operator.
         /// </summary>
         Multiply,
 
         /// <summary>
-        /// OnesComplement operator.
+        /// <c>~</c> operator.
         /// </summary>
         OnesComplement,
 
         /// <summary>
-        /// RightShift operator.
+        /// <c>&gt;&gt;</c> operator.
         /// </summary>
         RightShift,
 
         /// <summary>
-        /// Subtraction operator.
+        /// <c>-</c> operator.
         /// </summary>
         Subtraction,
 
         /// <summary>
-        /// True operator.
+        /// <c>true</c> operator.
         /// </summary>
         True,
 
         /// <summary>
-        /// UnaryNegation operator.
+        /// <c>-</c> (unary negation) operator.
         /// </summary>
         UnaryNegation,
 
         /// <summary>
-        /// UnaryPlus operator.
+        /// <c>+</c> (unary plus) operator.
         /// </summary>
         UnaryPlus,
 
         /// <summary>
-        /// UnsignedRightShift operator (C# 11+).
+        /// <c>&gt;&gt;&gt;</c> operator (C# 11+).
         /// </summary>
         UnsignedRightShift,
 
         /// <summary>
-        /// AdditionAssignment operator (C# 14+).
+        /// <c>+=</c> operator (C# 14+).
         /// </summary>
         AdditionAssignment,
 
         /// <summary>
-        /// SubtractionAssignment operator (C# 14+).
+        /// <c>-=</c> operator (C# 14+).
         /// </summary>
         SubtractionAssignment,
-
+        
         /// <summary>
-        /// MultiplyAssignment operator (C# 14+).
-        /// </summary>
-        MultiplyAssignment,
-
-        /// <summary>
-        /// DivisionAssignment operator (C# 14+).
+        /// <c>/=</c> operator (C# 14+).
         /// </summary>
         DivisionAssignment,
 
         /// <summary>
-        /// ModulusAssignment operator (C# 14+).
+        /// <c>%=</c> operator (C# 14+).
         /// </summary>
         ModulusAssignment,
 
         /// <summary>
-        /// BitwiseAndAssignment operator (C# 14+).
+        /// <c>&amp;=</c> operator (C# 14+).
         /// </summary>
         BitwiseAndAssignment,
 
         /// <summary>
-        /// BitwiseOrAssignment operator (C# 14+).
+        /// <c>|=</c> operator (C# 14+).
         /// </summary>
         BitwiseOrAssignment,
 
         /// <summary>
-        /// ExclusiveOrAssignment operator (C# 14+).
+        /// <c>^=</c> operator (C# 14+).
         /// </summary>
         ExclusiveOrAssignment,
 
         /// <summary>
-        /// LeftShiftAssignment operator (C# 14+).
+        /// <c>&lt;&lt;=</c> operator (C# 14+).
         /// </summary>
         LeftShiftAssignment,
 
         /// <summary>
-        /// RightShiftAssignment operator (C# 14+).
+        /// <c>&gt;&gt;=</c> operator (C# 14+).
         /// </summary>
         RightShiftAssignment,
 
         /// <summary>
-        /// UnsignedRightShiftAssignment operator (C# 14+).
+        /// <c>&gt;&gt;&gt;=</c> operator (C# 14+).
         /// </summary>
         UnsignedRightShiftAssignment,
 
         /// <summary>
-        /// CheckedExplicitConversion operator.
+        /// <c>explicit checked</c> conversion operator.
         /// </summary>
         CheckedExplicitConversion,
 
         /// <summary>
-        /// CheckedAddition operator.
+        /// <c>checked +</c> operator.
         /// </summary>
         CheckedAddition,
 
         /// <summary>
-        /// CheckedDecrement operator.
+        /// <c>checked --</c> operator.
         /// </summary>
         CheckedDecrement,
 
         /// <summary>
-        /// CheckedDivision operator.
+        /// <c>checked /</c> operator.
         /// </summary>
         CheckedDivision,
 
         /// <summary>
-        /// CheckedIncrement operator.
+        /// <c>checked ++</c> operator.
         /// </summary>
         CheckedIncrement,
 
         /// <summary>
-        /// CheckedMultiply operator.
+        /// <c>checked *</c> operator.
         /// </summary>
         CheckedMultiply,
 
         /// <summary>
-        /// CheckedSubtraction operator.
+        /// <c>checked -</c> operator.
         /// </summary>
         CheckedSubtraction,
 
         /// <summary>
-        /// CheckedUnaryNegation operator.
+        /// <c>checked -</c> (unary negation) operator.
         /// </summary>
         CheckedUnaryNegation,
 
         /// <summary>
-        /// LogicalOr operator.
+        /// <c>||</c> operator.
         /// </summary>
         LogicalOr,
 
         /// <summary>
-        /// LogicalAnd operator.
+        /// <c>&amp;&amp;</c> operator.
         /// </summary>
         LogicalAnd,
 
-        // There is no C# syntax for UnsignedLeftShift
-        // UnsignedLeftShift,
-
         /// <summary>
-        /// Concatenate operator.
+        /// <c>&amp;</c> (concatenate) operator.
         /// </summary>
         Concatenate,
 
         /// <summary>
-        /// Exponent operator.
+        /// <c>^</c> (exponent) operator.
         /// </summary>
         Exponent,
 
         /// <summary>
-        /// IntegerDivision operator.
+        /// <c>/</c> (integer division) operator.
         /// </summary>
         IntegerDivision,
 
         /// <summary>
-        /// Like operator.
+        /// <c>Like</c> operator.
         /// </summary>
         Like,
 
         /// <summary>
-        /// MultiplicationAssignment operator (different from MultiplyAssignment).
+        /// <c>*=</c> operator.
         /// </summary>
         MultiplicationAssignment,
 
         /// <summary>
-        /// IncrementAssignment operator.
+        /// <c>++=</c> operator.
         /// </summary>
         IncrementAssignment,
 
         /// <summary>
-        /// DecrementAssignment operator.
+        /// <c>--=</c> operator.
         /// </summary>
         DecrementAssignment,
 
         /// <summary>
-        /// CheckedAdditionAssignment operator.
+        /// <c>checked +=</c> operator.
         /// </summary>
         CheckedAdditionAssignment,
 
         /// <summary>
-        /// CheckedSubtractionAssignment operator.
+        /// <c>checked -=</c> operator.
         /// </summary>
         CheckedSubtractionAssignment,
 
         /// <summary>
-        /// CheckedMultiplicationAssignment operator.
+        /// <c>checked *=</c> operator.
         /// </summary>
         CheckedMultiplicationAssignment,
 
         /// <summary>
-        /// CheckedDivisionAssignment operator.
+        /// <c>checked /=</c> operator.
         /// </summary>
         CheckedDivisionAssignment,
 
         /// <summary>
-        /// CheckedIncrementAssignment operator.
+        /// <c>checked ++=</c> operator.
         /// </summary>
         CheckedIncrementAssignment,
 
         /// <summary>
-        /// CheckedDecrementAssignment operator.
+        /// <c>checked --=</c> operator.
         /// </summary>
         CheckedDecrementAssignment
     }
