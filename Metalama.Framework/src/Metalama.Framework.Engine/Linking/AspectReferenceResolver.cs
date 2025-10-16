@@ -671,7 +671,7 @@ internal sealed class AspectReferenceResolver
                             throw new AssertionFailedException( $"Unexpected property expression: '{expression.Parent}'." );
                     }
 
-                case not null when OperatorData.GetByName( helperMethod.Name ) is { Kind: not OperatorKind.None } and var operatorData:
+                case not null when OperatorData.GetByName( helperMethod.Name ) is { } operatorData:
                     // Referencing an operator.
 
                     rootNode = expression;

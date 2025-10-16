@@ -70,7 +70,7 @@ internal abstract partial class AspectReferenceRenamingSubstitution : SyntaxNode
             {
                 Expression: IdentifierNameSyntax { Identifier.Text: LinkerInjectionHelperProvider.HelperTypeName },
                 Name.Identifier.Text: var operatorName
-            } when OperatorData.GetByName( operatorName ) is { Kind: not OperatorKind.None, IsStatic: var isStaticOperator }:
+            } when OperatorData.GetByName( operatorName ) is { IsStatic: var isStaticOperator }:
                 // We presume static operators - non-static operators need to change the argument list, not just the name.
                 Invariant.Assert( isStaticOperator );
 
@@ -83,7 +83,7 @@ internal abstract partial class AspectReferenceRenamingSubstitution : SyntaxNode
                     Expression: IdentifierNameSyntax { Identifier.Text: LinkerInjectionHelperProvider.HelperTypeName },
                     Name.Identifier.Text: var operatorName
                 }
-            } invocationExpression when OperatorData.GetByName( operatorName ) is { Kind: not OperatorKind.None, IsStatic: var isStaticOperator }:
+            } invocationExpression when OperatorData.GetByName( operatorName ) is { IsStatic: var isStaticOperator }:
                 // We presume static operators - non-static operators need to change the argument list, not just the name.
                 Invariant.Assert( !isStaticOperator );
 

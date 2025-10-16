@@ -54,7 +54,7 @@ internal abstract class MethodInliner : Inliner
         }
 
         var targetSymbol = ModelExtensions.GetSymbolInfo( semanticModel, invocationExpression.Expression ).Symbol;
-        if ( OperatorData.GetByName( targetSymbol.AssertNotNull().Name ) is not { Kind: not Code.OperatorKind.None, IsStatic: false } )
+        if ( targetSymbol is null || OperatorData.GetByName( targetSymbol.AssertNotNull().Name ) is not { IsStatic: false } )
         {
             // We currently treat only non-static operators this way.
             return false;
