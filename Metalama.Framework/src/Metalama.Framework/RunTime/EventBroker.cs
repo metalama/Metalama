@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System;
+using System.Runtime.CompilerServices;
 using System.Threading;
 
 namespace Metalama.Framework.RunTime;
@@ -14,13 +15,13 @@ namespace Metalama.Framework.RunTime;
 /// <typeparam name="TDelegate">The event delegate type.</typeparam>
 /// <typeparam name="TArgs">The event arguments type  (i.e. the arguments of <typeparamref name="TDelegate"/> packed as a tuple).</typeparam>
 /// <typeparam name="TOwner">The type declaring the event.</typeparam>
-public sealed class ActionEventBroker<TDelegate, TOwner, TArgs>
+public sealed class EventBroker<TDelegate, TOwner, TArgs>
     where TDelegate : Delegate
     where TOwner : class
 {
     private readonly DelegateList<TDelegate, TOwner, TArgs> _handlers;
     private readonly TOwner _owner;
-    private readonly ActionEventBrokerCallbacks<TDelegate, TOwner, TArgs> _delegates;
+    private readonly EventBrokerCallbacks<TDelegate, TOwner, TArgs> _delegates;
     private TDelegate? _invocationDelegate;
 
     /// <summary>
@@ -29,13 +30,13 @@ public sealed class ActionEventBroker<TDelegate, TOwner, TArgs>
     public TDelegate InvocationDelegate => this._invocationDelegate ??= this._delegates.GetBrokerInvocationDelegate( this );
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="ActionEventBroker{TDelegate, TOwner, TArgs}"/> class.
+    /// Initializes a new instance of the <see cref="EventBroker{TDelegate,TOwner,TArgs}"/> class.
     /// </summary>
     /// <param name="owner">The object that owns this event broker.</param>
     /// <param name="delegates">Delegates required for operation of this class.</param>
-    private ActionEventBroker(
+    private EventBroker(
         TOwner owner,
-        ActionEventBrokerCallbacks<TDelegate, TOwner, TArgs> delegates )
+        EventBrokerCallbacks<TDelegate, TOwner, TArgs> delegates )
     {
         this._owner = owner;
         this._delegates = delegates;
@@ -118,18 +119,30 @@ public sealed class ActionEventBroker<TDelegate, TOwner, TArgs>
     }
 
     /// <summary>
-    /// Invokes all registered event handlers.
+    /// Invokes all registered event handlers. This method should be used when the delegate has <c>out</c> or <c>ref</c> parameters
+    /// or has a non-void return type.
+    /// </summary>
+    /// <param name="args">The event arguments.</param>
+    public void InvokeRef( ref TArgs args )
+    {
+        this._handlers.Invoke( this._delegates.InvokeHandler, this._owner, ref args );
+    }
+
+    /// <summary>
+    /// Invokes all registered event handlers. This method should be used when all delegate parameters are read-only
+    /// and the delegate has a void return type.
     /// </summary>
     /// <param name="args">The event arguments.</param>
     public void Invoke( in TArgs args )
     {
-        this._handlers.Invoke( this._delegates.InvokeHandler, this._owner, args );
+        ref var writableRef = ref Unsafe.AsRef( in args );
+        this.InvokeRef( ref writableRef );
     }
 
     /// <summary>
     /// Implicitly converts the broker to its delegate type.
     /// </summary>
-    public static implicit operator TDelegate( ActionEventBroker<TDelegate, TOwner, TArgs> broker )
+    public static implicit operator TDelegate( EventBroker<TDelegate, TOwner, TArgs> broker )
     {
         return broker.InvocationDelegate;
     }
@@ -141,16 +154,16 @@ public sealed class ActionEventBroker<TDelegate, TOwner, TArgs>
     /// <param name="owner">The event owner object.</param>
     /// <param name="delegates">Delegates required for inner working of event brokers.</param>
     public static void EnsureInitialized(
-        ref ActionEventBroker<TDelegate, TOwner, TArgs>? field,
+        ref EventBroker<TDelegate, TOwner, TArgs>? field,
         TOwner owner,
-        ActionEventBrokerCallbacks<TDelegate, TOwner, TArgs> delegates )
+        EventBrokerCallbacks<TDelegate, TOwner, TArgs> delegates )
     {
         if ( field != null )
         {
             return;
         }
 
-        var newBroker = new ActionEventBroker<TDelegate, TOwner, TArgs>( owner, delegates );
+        var newBroker = new EventBroker<TDelegate, TOwner, TArgs>( owner, delegates );
 
         Interlocked.CompareExchange( ref field, newBroker, null );
 

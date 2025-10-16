@@ -315,7 +315,7 @@ namespace Metalama.Framework.Engine.Linking
                                 if ( !eventBrokersWritable.TryGetValue( targetEventSymbol, out var eventBrokerInfo ) )
                                 {
                                     var eventBrokerType =
-                                        ((INamedType) finalCompilationModel.Factory.GetTypeByReflectionType( typeof(ActionEventBroker<,,>) ))
+                                        ((INamedType) finalCompilationModel.Factory.GetTypeByReflectionType( typeof(EventBroker<,,>) ))
                                         .WithTypeArguments( delegateType, targetEvent.DeclaringType, argsType );
 
                                     var eventBrokerTypeSymbol =
@@ -330,7 +330,7 @@ namespace Metalama.Framework.Engine.Linking
                                     (Dictionary<ITransformation, EventBrokerTransformationInfo>) eventBrokerInfo.Transformations;
 
                                 var brokerCallbacksType =
-                                    ((INamedType) finalCompilationModel.Factory.GetTypeByReflectionType( typeof(ActionEventBrokerCallbacks<,,>) ))
+                                    ((INamedType) finalCompilationModel.Factory.GetTypeByReflectionType( typeof(EventBrokerCallbacks<,,>) ))
                                     .WithTypeArguments( delegateType, targetEvent.DeclaringType, argsType );
 
                                 var brokerCallbacksTypeSymbol =
@@ -367,7 +367,7 @@ namespace Metalama.Framework.Engine.Linking
                                             MemberAccessExpression(
                                                 SyntaxKind.SimpleMemberAccessExpression,
                                                 context.SyntaxGenerator.TypeSyntax( eventBrokerInfo.EventBrokerType ),
-                                                IdentifierName( nameof(ActionEventBroker<,,>.EnsureInitialized) ) ),
+                                                IdentifierName( nameof(EventBroker<,,>.EnsureInitialized) ) ),
                                             ArgumentList(
                                                 SeparatedList<ArgumentSyntax>(
                                                 [
@@ -459,7 +459,7 @@ namespace Metalama.Framework.Engine.Linking
                     Parameter( default, default, meTypeSyntax, Identifier( "me" ), null ),
                     Parameter(
                         default,
-                        SyntaxTokenList.Create( Token( SyntaxKind.InKeyword ).WithRequiredTrailingTrivia( SyntaxFactoryEx.ElasticSpaceTriviaList ) ),
+                        SyntaxTokenList.Create( Token( default, SyntaxKind.RefKeyword, SyntaxFactoryEx.ElasticSpaceTriviaList ) ),
                         argsTypeSyntax,
                         Identifier( "args" ),
                         null )
@@ -474,7 +474,7 @@ namespace Metalama.Framework.Engine.Linking
                     SeparatedList<ArgumentSyntax>(
                     [
                         Argument( IdentifierName( "handler" ) ),
-                        Argument( IdentifierName( "args" ) )
+                        Argument( null, Token( default, SyntaxKind.RefKeyword, SyntaxFactoryEx.ElasticSpaceTriviaList ), IdentifierName( "args" ) )
                     ] ) ) );
 
             return

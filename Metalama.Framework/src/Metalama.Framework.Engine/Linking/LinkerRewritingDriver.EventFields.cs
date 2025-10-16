@@ -135,8 +135,8 @@ namespace Metalama.Framework.Engine.Linking
                         new InliningContextIdentifier( methodSymbol.ToSemantic( semanticKind ) ) ) );
 
                 var (openBraceLeadingTrivia, openBraceTrailingTrivia, closeBraceLeadingTrivia, closeBraceTrailingTrivia) =
-                    (TriviaList(), ElasticEndOfLineTriviaList: context.OptionalElasticEndOfLineTriviaList,  context.OptionalElasticEndOfLineTriviaList,
-                      context.OptionalElasticEndOfLineTriviaList);
+                    (TriviaList(), context.OptionalElasticEndOfLineTriviaList, context.OptionalElasticEndOfLineTriviaList,
+                     context.OptionalElasticEndOfLineTriviaList);
 
                 return
                     AccessorDeclaration(

@@ -77,7 +77,7 @@ internal class DelegateList<TDelegate, TOwner, TArgs>
     /// </summary>
     /// <param name="owner">The event owner object.</param>
     /// <param name="args">The event arguments.</param>
-    public void Invoke( InvokeActionEventHandlerCallback<TDelegate, TOwner, TArgs> invoker, TOwner owner, TArgs args )
+    public void Invoke( EventHandlerInvocationCallback<TDelegate, TOwner, TArgs> invoker, TOwner owner, ref TArgs args )
     {
         var currentValue = this._delegates;
 
@@ -89,7 +89,7 @@ internal class DelegateList<TDelegate, TOwner, TArgs>
 
         foreach ( var @delegate in currentValue.GetInvocationList() )
         {
-            invoker.Invoke( (TDelegate) @delegate, owner, args );
+            invoker.Invoke( (TDelegate) @delegate, owner, ref args );
         }
     }
 }

@@ -64,12 +64,12 @@ public sealed class SyntaxGenerationContext
 
     [Memo]
     public SyntaxTriviaList OptionalElasticEndOfLineTriviaList => this.Options.TriviaMatters ? new SyntaxTriviaList( this.ElasticEndOfLineTrivia ) : default;
-    
+
     [Memo]
-    public SyntaxTriviaList ElasticEndOfLineTriviaList => new SyntaxTriviaList( this.ElasticEndOfLineTrivia );
-    
+    public SyntaxTriviaList ElasticEndOfLineTriviaList => new( this.ElasticEndOfLineTrivia );
+
     [Memo]
-    public SyntaxTriviaList EndOfLineTriviaList => new SyntaxTriviaList(  SyntaxFactory.EndOfLine( this.EndOfLine ) );
+    public SyntaxTriviaList EndOfLineTriviaList => new( SyntaxFactory.EndOfLine( this.EndOfLine ) );
 
     [Memo]
     internal SyntaxTriviaList TwoElasticEndOfLinesTriviaList

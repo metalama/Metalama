@@ -179,7 +179,7 @@ internal sealed class OverrideEventTransformation : OverrideMemberTransformation
                                     null ),
                                 Parameter(
                                     List<AttributeListSyntax>(),
-                                    TokenList(),
+                                    TokenList( Token( default, SyntaxKind.RefKeyword, SyntaxFactoryEx.ElasticSpaceTriviaList ) ),
                                     context.SyntaxGenerator.TypeSyntax( argsType ),
                                     Identifier( TriviaList( ElasticSpace ), "args", TriviaList() ),
                                     null )

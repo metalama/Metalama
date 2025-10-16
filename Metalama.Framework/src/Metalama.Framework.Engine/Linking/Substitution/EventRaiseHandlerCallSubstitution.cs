@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Engine.SyntaxGeneration;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -18,11 +19,13 @@ internal sealed class EventRaiseHandlerCallSubstitution : SyntaxNodeSubstitution
 {
     private readonly SyntaxNode _rootNode;
     private readonly IMethodSymbol _containingMethod;
+    private IMethodSymbol _delegateSignature;
 
     public EventRaiseHandlerCallSubstitution( CompilationContext compilationContext, ResolvedAspectReference aspectReference ) : base( compilationContext )
     {
         this._rootNode = aspectReference.RootNode;
         this._containingMethod = aspectReference.ContainingBody;
+        this._delegateSignature = ((IEventSymbol) aspectReference.OriginalSymbol).Type.GetMembers( "Invoke" ).OfType<IMethodSymbol>().Single();
     }
 
     public override SyntaxNode ReplacedNode => this._rootNode;
@@ -37,7 +40,10 @@ internal sealed class EventRaiseHandlerCallSubstitution : SyntaxNodeSubstitution
             {
                 Expression: MemberAccessExpressionSyntax
                 {
-                    Expression: IdentifierNameSyntax { Identifier.ValueText: LinkerInjectionHelperProvider.HelperTypeName, Identifier.LeadingTrivia: var leadingTrivia },
+                    Expression: IdentifierNameSyntax
+                    {
+                        Identifier.ValueText: LinkerInjectionHelperProvider.HelperTypeName, Identifier.LeadingTrivia: var leadingTrivia
+                    },
                     Name: IdentifierNameSyntax { Identifier.ValueText: LinkerInjectionHelperProvider.EventRaiseMemberName }
                 },
                 ArgumentList.Arguments:
@@ -69,12 +75,29 @@ internal sealed class EventRaiseHandlerCallSubstitution : SyntaxNodeSubstitution
                             ArgumentList(
                                 Token( SyntaxKind.OpenParenToken ),
                                 SeparatedList(
-                                    tupleElements.Select( e =>
-                                                              Argument(
-                                                                  MemberAccessExpression(
-                                                                      SyntaxKind.SimpleMemberAccessExpression,
-                                                                      IdentifierName( argsName ),
-                                                                      IdentifierName( e.Name ) ) ) ) ),
+                                    this._delegateSignature.Parameters.Select( ( p, i ) =>
+                                                                                   Argument(
+                                                                                       null,
+                                                                                       p.RefKind switch
+                                                                                       {
+                                                                                           RefKind.In => Token(
+                                                                                               default,
+                                                                                               SyntaxKind.InKeyword,
+                                                                                               SyntaxFactoryEx.ElasticSpaceTriviaList ),
+                                                                                           RefKind.Ref => Token(
+                                                                                               default,
+                                                                                               SyntaxKind.RefKeyword,
+                                                                                               SyntaxFactoryEx.ElasticSpaceTriviaList ),
+                                                                                           RefKind.Out => Token(
+                                                                                               default,
+                                                                                               SyntaxKind.OutKeyword,
+                                                                                               SyntaxFactoryEx.ElasticSpaceTriviaList ),
+                                                                                           _ => default
+                                                                                       },
+                                                                                       MemberAccessExpression(
+                                                                                           SyntaxKind.SimpleMemberAccessExpression,
+                                                                                           IdentifierName( argsName ),
+                                                                                           IdentifierName( tupleElements[i].Name ) ) ) ) ),
                                 Token( TriviaList(), SyntaxKind.CloseParenToken, TriviaList( trailingTrivia ) ) ) );
                 }
                 else

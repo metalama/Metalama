@@ -7,24 +7,24 @@ using System;
 namespace Metalama.Framework.RunTime
 {
     /// <summary>
-    /// Represents a set of instance-independent delegates used by an <see cref="ActionEventBroker{TDelegate, TOwner, TArgs}"/>.
+    /// Represents a set of instance-independent delegates used by an <see cref="EventBroker{TDelegate,TOwner,TArgs}"/>.
     /// </summary>
     /// <typeparam name="TDelegate">The event delegate type.</typeparam>
     /// <typeparam name="TArgs">The event arguments type  (i.e. the arguments of <typeparamref name="TDelegate"/> packed as a tuple).</typeparam>
     /// <typeparam name="TOwner">The type declaring the event.</typeparam>
-    public sealed class ActionEventBrokerCallbacks<TDelegate, TOwner, TArgs>
+    public sealed class EventBrokerCallbacks<TDelegate, TOwner, TArgs>
         where TDelegate : Delegate
         where TOwner : class
     {
         /// <summary>
         /// Gets the delegate that invokes a single handler.
         /// </summary>
-        public InvokeActionEventHandlerCallback<TDelegate, TOwner, TArgs> InvokeHandler { get; }
+        public EventHandlerInvocationCallback<TDelegate, TOwner, TArgs> InvokeHandler { get; }
 
         /// <summary>
-        /// Gets the delegate that returns a delegate which calls the <see cref="ActionEventBroker{TDelegate, TOwner, TArgs}.Invoke" /> method.
+        /// Gets the delegate that returns a delegate which calls the <see cref="EventBroker{TDelegate,TOwner,TArgs}.Invoke" /> method.
         /// </summary>
-        public Func<ActionEventBroker<TDelegate, TOwner, TArgs>, TDelegate> GetBrokerInvocationDelegate { get; }
+        public Func<EventBroker<TDelegate, TOwner, TArgs>, TDelegate> GetBrokerInvocationDelegate { get; }
 
         /// <summary>
         /// Gets the delegate that adds an event handler to the target event.
@@ -37,11 +37,11 @@ namespace Metalama.Framework.RunTime
         public Action<TDelegate, TOwner> RemoveHandler { get; }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ActionEventBrokerCallbacks{TDelegate, TOwner, TArgs}"/> class.
+        /// Initializes a new instance of the <see cref="EventBrokerCallbacks{TDelegate,TOwner,TArgs}"/> class.
         /// </summary>
-        public ActionEventBrokerCallbacks(
-            InvokeActionEventHandlerCallback<TDelegate, TOwner, TArgs> invokeHandler,
-            Func<ActionEventBroker<TDelegate, TOwner, TArgs>, TDelegate> getBrokerInvocationDelegate,
+        public EventBrokerCallbacks(
+            EventHandlerInvocationCallback<TDelegate, TOwner, TArgs> invokeHandler,
+            Func<EventBroker<TDelegate, TOwner, TArgs>, TDelegate> getBrokerInvocationDelegate,
             Action<TDelegate, TOwner> addHandler,
             Action<TDelegate, TOwner> removeHandler )
         {

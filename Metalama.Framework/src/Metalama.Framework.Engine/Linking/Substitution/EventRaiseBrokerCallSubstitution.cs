@@ -5,6 +5,7 @@
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.Services;
+using Metalama.Framework.RunTime;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -23,14 +24,18 @@ internal sealed class EventRaiseBrokerCallSubstitution : SyntaxNodeSubstitution
     public EventRaiseBrokerCallSubstitution( CompilationContext compilationContext, ResolvedAspectReference aspectReference ) : base( compilationContext )
     {
         Invariant.Assert( aspectReference.TargetKind == AspectReferenceTargetKind.EventRaiseAccessor );
-        Invariant.Assert(aspectReference.ResolvedSemantic.Symbol is IEventSymbol);
-        Invariant.Implies( aspectReference.ResolvedSemantic.Kind == IntermediateSymbolSemanticKind.Base, ((IEventSymbol) aspectReference.ResolvedSemantic.Symbol).IsEventField() == true );
+        Invariant.Assert( aspectReference.ResolvedSemantic.Symbol is IEventSymbol );
+
+        Invariant.Implies(
+            aspectReference.ResolvedSemantic.Kind == IntermediateSymbolSemanticKind.Base,
+            ((IEventSymbol) aspectReference.ResolvedSemantic.Symbol).IsEventField() == true );
 
         this._rootNode = aspectReference.RootNode;
         this._targetSemantic = aspectReference.ResolvedSemantic.ToTyped<IEventSymbol>();
     }
 
-    public EventRaiseBrokerCallSubstitution( CompilationContext compilationContext, SyntaxNode rootNode, IntermediateSymbolSemantic targetSemantic ) : base( compilationContext )
+    public EventRaiseBrokerCallSubstitution( CompilationContext compilationContext, SyntaxNode rootNode, IntermediateSymbolSemantic targetSemantic ) : base(
+        compilationContext )
     {
         Invariant.Assert( targetSemantic.Symbol is IEventSymbol );
         Invariant.Implies( targetSemantic.Kind == IntermediateSymbolSemanticKind.Base, ((IEventSymbol) targetSemantic.Symbol).IsEventField() == true );
@@ -43,22 +48,21 @@ internal sealed class EventRaiseBrokerCallSubstitution : SyntaxNodeSubstitution
 
     public override SyntaxNode Substitute( SyntaxNode currentNode, SubstitutionContext substitutionContext )
     {
-        var currentEventBrokerInfo = substitutionContext.RewritingDriver.AnalysisRegistry.GetVisibleEventBrokerForSemantic( this._targetSemantic ).AssertNotNull();
+        var currentEventBrokerInfo = substitutionContext.RewritingDriver.AnalysisRegistry.GetVisibleEventBrokerForSemantic( this._targetSemantic )
+            .AssertNotNull();
 
         var leadingTrivia = currentNode.GetLeadingTrivia();
 
         var eventBrokerExpression =
             this._targetSemantic.Symbol.IsStatic
-            ? (ExpressionSyntax) IdentifierName( 
-                Identifier( TriviaList( leadingTrivia ), currentEventBrokerInfo.EventBrokerFieldName, TriviaList() ) )
-            : MemberAccessExpression(
-                SyntaxKind.SimpleMemberAccessExpression,
-                ThisExpression( Token( TriviaList( leadingTrivia ), SyntaxKind.ThisKeyword, TriviaList() ) ),
-                IdentifierName( currentEventBrokerInfo.EventBrokerFieldName ) );
+                ? (ExpressionSyntax) IdentifierName( Identifier( TriviaList( leadingTrivia ), currentEventBrokerInfo.EventBrokerFieldName, TriviaList() ) )
+                : MemberAccessExpression(
+                    SyntaxKind.SimpleMemberAccessExpression,
+                    ThisExpression( Token( TriviaList( leadingTrivia ), SyntaxKind.ThisKeyword, TriviaList() ) ),
+                    IdentifierName( currentEventBrokerInfo.EventBrokerFieldName ) );
 
         switch ( currentNode )
         {
-
             case InvocationExpressionSyntax
             {
                 Expression: MemberAccessExpressionSyntax
@@ -80,16 +84,15 @@ internal sealed class EventRaiseBrokerCallSubstitution : SyntaxNodeSubstitution
             }:
                 var invokeArguments = EventRaiseArgumentsHelper.ExtractInvokeArguments( arguments );
 
-                return 
+                return
                     InvocationExpression(
                         MemberAccessExpression(
                             SyntaxKind.SimpleMemberAccessExpression,
                             eventBrokerExpression,
-                            IdentifierName( "Invoke" ) ),
+                            IdentifierName( nameof(EventBroker<,,>.Invoke) ) ),
                         ArgumentList(
                             Token( SyntaxKind.OpenParenToken ),
-                            SingletonSeparatedList(
-                                Argument( TupleExpression( invokeArguments ) ) ),
+                            SingletonSeparatedList( Argument( TupleExpression( invokeArguments ) ) ),
                             Token( TriviaList(), SyntaxKind.CloseParenToken, trailingTrivia ) ) );
 
             case InvocationExpressionSyntax
@@ -103,13 +106,10 @@ internal sealed class EventRaiseBrokerCallSubstitution : SyntaxNodeSubstitution
                         MemberAccessExpression(
                             SyntaxKind.SimpleMemberAccessExpression,
                             eventBrokerExpression,
-                            IdentifierName( "Invoke" ) ),
+                            IdentifierName( nameof(EventBroker<,,>.Invoke) ) ),
                         ArgumentList(
                             Token( SyntaxKind.OpenParenToken ),
-                            SingletonSeparatedList(
-                                Argument(
-                                    TupleExpression(
-                                        SeparatedList( arguments ) ) ) ),
+                            SingletonSeparatedList( Argument( TupleExpression( SeparatedList( arguments ) ) ) ),
                             Token( TriviaList(), SyntaxKind.CloseParenToken, trailingTrivia ) ) );
 
             default:

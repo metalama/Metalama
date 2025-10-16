@@ -12,7 +12,7 @@ using Xunit;
 
 namespace Metalama.Framework.Tests.UnitTests.RunTime;
 
-public class ActionEventBrokerTests
+public class EventBrokerTests
 {
     [Fact]
     public void AddDelegate()
@@ -181,7 +181,7 @@ public class ActionEventBrokerTests
         private readonly Action _onBrokerInvoke;
 
 #pragma warning disable IDE0044 // Add readonly modifier
-        private volatile ActionEventBroker<EventHandler, TestClass, (object? Sender, EventArgs Args)>? _broker;
+        private volatile EventBroker<EventHandler, TestClass, (object? Sender, EventArgs Args)>? _broker;
 #pragma warning restore IDE0044 // Add readonly modifier
         private EventHandler? _originalEvent;
 
@@ -192,12 +192,12 @@ public class ActionEventBrokerTests
             this._onBrokerInvoke = onBrokerInvoke;
 
 #pragma warning disable CS0420 // A reference to a volatile field will not be treated as volatile
-            ActionEventBroker<EventHandler,TestClass, (object? Sender, EventArgs Args)>.EnsureInitialized(
+            EventBroker<EventHandler, TestClass, (object? Sender, EventArgs Args)>.EnsureInitialized(
                 ref this._broker,
                 this,
-                new ActionEventBrokerCallbacks<EventHandler,TestClass, (object? Sender, EventArgs Args)>(
-                    ( EventHandler h, TestClass i, in (object? Sender, EventArgs Args) args ) => i.OnEventViaBroker( h, args ),
-                    broker => ( sender, args ) => broker.Invoke( (sender, args) ),
+                new EventBrokerCallbacks<EventHandler, TestClass, (object? Sender, EventArgs Args)>(
+                    ( EventHandler h, TestClass i, ref (object? Sender, EventArgs Args) args ) => i.OnEventViaBroker( h, args ),
+                    broker => ( sender, args ) => { broker.Invoke( (sender, args) ); },
                     ( h, i ) => i._originalEvent += h,
                     ( h, i ) => i._originalEvent -= h ) );
 #pragma warning restore CS0420 // A reference to a volatile field will not be treated as volatile
