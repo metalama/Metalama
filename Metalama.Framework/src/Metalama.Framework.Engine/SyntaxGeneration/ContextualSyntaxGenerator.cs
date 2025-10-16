@@ -1072,7 +1072,6 @@ public sealed partial class ContextualSyntaxGenerator
     }
 
     internal ExpressionSyntax TupleExpression( ITupleType tupleType, IReadOnlyList<ArgumentSyntax> values, bool qualifyElements = true )
-
     {
         switch ( tupleType.TupleLength )
         {

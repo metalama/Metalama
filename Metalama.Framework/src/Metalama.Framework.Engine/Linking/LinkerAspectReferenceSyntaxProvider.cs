@@ -64,9 +64,11 @@ internal sealed class LinkerAspectReferenceSyntaxProvider : AspectReferenceSynta
         AspectLayerId aspectLayer,
         IEvent @event,
         ContextualSyntaxGenerator syntaxGenerator,
-        ITupleType argsTupleType,
+        ITupleType? argsTupleType,
         params ArgumentSyntax[] arguments )
     {
+        Invariant.Assert( arguments.Length == 0 || argsTupleType != null );
+
         var eventReferenceArgument =
             Argument(
                 ParenthesizedLambdaExpression(
@@ -92,7 +94,7 @@ internal sealed class LinkerAspectReferenceSyntaxProvider : AspectReferenceSynta
                             :
                             [
                                 eventReferenceArgument,
-                                Argument( null, default, syntaxGenerator.TupleExpression( argsTupleType, arguments, false ) )
+                                Argument( null, default, syntaxGenerator.TupleExpression( argsTupleType.AssertNotNull(), arguments, false ) )
                             ] ) ) );
     }
 

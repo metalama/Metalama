@@ -6,26 +6,28 @@ using System.Collections.Generic;
 
 namespace Metalama.Framework.Code;
 
+/// <summary>
+/// Represents a tuple type.
+/// </summary>
 public interface ITupleType : INamedType
 {
+    /// <summary>
+    /// Gets the elements of the tuple.
+    /// </summary>
     IReadOnlyList<ITupleElement> TupleElements { get; }
 
+    /// <summary>
+    /// Gets the number of elements in the tuple.
+    /// </summary>
     int TupleLength { get; }
 
+    /// <summary>
+    /// Creates an <see cref="IExpression"/> that creates an instance of the tuple with the specified values, given as <see cref="IExpression"/>.
+    /// </summary>
     IExpression CreateCreateInstanceExpression( params IReadOnlyCollection<IExpression> values );
 
+    /// <summary>
+    /// Creates an <see cref="IExpression"/> that creates an instance of the tuple with the specified values.
+    /// </summary>
     IExpression CreateCreateInstanceExpression( params dynamic?[] values );
-
-    IExpression CreateCreateToArrayExpression( IExpression tuple );
-
-    IExpression CreateCreateToArrayExpression( dynamic tuple );
-}
-
-public interface ITupleElement : IField
-{
-    IField CorrespondingTupleField { get; }
-
-    int Index { get; }
-
-    bool HasFriendlyName { get; }
 }

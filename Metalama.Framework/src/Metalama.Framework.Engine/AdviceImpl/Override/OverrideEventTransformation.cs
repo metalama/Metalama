@@ -13,7 +13,6 @@ using Metalama.Framework.Engine.Templating.Expressions;
 using Metalama.Framework.Engine.Templating.MetaModel;
 using Metalama.Framework.Engine.Transformations;
 using Metalama.Framework.Engine.Utilities.Roslyn;
-using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Generic;
@@ -151,7 +150,7 @@ internal sealed class OverrideEventTransformation : OverrideMemberTransformation
         var eventHandlerInvokeMethod = overriddenDeclaration.Type.Methods.OfName( "Invoke" ).Single();
 
         var argsType = eventHandlerInvokeMethod.Compilation.Factory.CreateTupleType( eventHandlerInvokeMethod.Parameters );
-        
+
         var raiseOverride =
             raiseAccessorBody != null
                 ? new InjectedMember(
@@ -181,7 +180,7 @@ internal sealed class OverrideEventTransformation : OverrideMemberTransformation
                                 Parameter(
                                     List<AttributeListSyntax>(),
                                     TokenList(),
-                                   context.SyntaxGenerator.TypeSyntax( argsType ),
+                                    context.SyntaxGenerator.TypeSyntax( argsType ),
                                     Identifier( TriviaList( ElasticSpace ), "args", TriviaList() ),
                                     null )
                             ] ) ),
@@ -318,11 +317,14 @@ internal sealed class OverrideEventTransformation : OverrideMemberTransformation
             IdentifierName( "value" ) );
 
     private ExpressionSyntax CreateInvokeExpression( MemberInjectionContext context )
-        => context.AspectReferenceSyntaxProvider.AssertNotNull()
+    {
+        var invocation = context.AspectReferenceSyntaxProvider.AssertNotNull()
             .GetEventRaiseReference(
                 this.AspectLayerId,
                 (IEvent) this.OverriddenDeclaration.GetTarget( this.InitialCompilation ),
                 context.SyntaxGenerator,
-                null,
-                [] ); // TODO!
+                null );
+
+        return invocation;
+    }
 }

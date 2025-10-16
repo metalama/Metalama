@@ -54,10 +54,11 @@ internal sealed class TupleType : SourceNamedType, ITupleType
         {
             throw new ArgumentOutOfRangeException( nameof(values), "The number of values must equal the length of the tuple type." );
         }
-        
+
         return new CreateTupleExpression(
             this,
-            context => values.SelectAsReadOnlyCollection( x => (TypedExpressionSyntaxImpl) ((IUserExpression) x).ToTypedExpressionSyntax( context ) ).ToReadOnlyList() );
+            context => values.SelectAsReadOnlyCollection( x => (TypedExpressionSyntaxImpl) ((IUserExpression) x).ToTypedExpressionSyntax( context ) )
+                .ToReadOnlyList() );
     }
 
     public IExpression CreateCreateInstanceExpression( params object?[] values )
@@ -69,10 +70,6 @@ internal sealed class TupleType : SourceNamedType, ITupleType
 
         return new CreateTupleExpression( this, context => TypedExpressionSyntaxImpl.FromValues( values, context ).AssertNotNull() );
     }
-
-    public IExpression CreateCreateToArrayExpression( IExpression tuple ) => throw new NotImplementedException();
-
-    public IExpression CreateCreateToArrayExpression( object tuple ) => throw new NotImplementedException();
 
     // We explicitly don't want to expose the source because we represent all equivalent instances (equivalent
     // by type and element names) as the same object and the same reference. Therefore, the source is non-deterministic.

@@ -40,7 +40,7 @@ namespace Metalama.Framework.Engine.Transformations
             AspectLayerId aspectLayer,
             IEvent @event,
             ContextualSyntaxGenerator syntaxGenerator,
-            ITupleType argsTupleType,
+            ITupleType? argsTupleType,
             params ArgumentSyntax[] arguments );
 
         public abstract ExpressionSyntax GetOperatorReference( AspectLayerId aspectLayer, IMethod targetOperator, ContextualSyntaxGenerator syntaxGenerator );

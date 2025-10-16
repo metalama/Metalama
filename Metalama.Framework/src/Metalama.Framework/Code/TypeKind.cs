@@ -85,6 +85,9 @@ namespace Metalama.Framework.Code
         /// </summary>
         Extension,
 
+        /// <summary>
+        /// A tuple (<see cref="ITupleType"/>).
+        /// </summary>
         Tuple
     }
 }

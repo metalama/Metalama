@@ -12,6 +12,9 @@ namespace Metalama.Framework.Code
     /// </summary>
     public interface IField : IFieldOrProperty
     {
+        /// <summary>
+        /// Converts the current compile-time field to a run-time <see cref="FieldInfo"/> object.
+        /// </summary>
         [CompileTimeReturningRunTime]
         FieldInfo ToFieldInfo();
 
@@ -28,6 +31,9 @@ namespace Metalama.Framework.Code
         /// </summary>
         new IField Definition { get; }
 
+        /// <summary>
+        /// Creates a reference to this field.
+        /// </summary>
         new IRef<IField> ToRef();
 
         /// <summary>
@@ -36,13 +42,9 @@ namespace Metalama.Framework.Code
         /// </summary>
         IProperty? OverridingProperty { get; }
 
+        /// <summary>
+        /// Gets the kind of field.
+        /// </summary>
         FieldKind FieldKind { get; }
-    }
-
-    [CompileTime]
-    public enum FieldKind
-    {
-        Default,
-        TupleElement
     }
 }
