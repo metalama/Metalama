@@ -24,7 +24,6 @@ internal sealed partial class LinkerAnalysisStep
 
         public AutoPropertyBodyWalker() : base( SyntaxWalkerDepth.Node ) { }
 
-
         public override void VisitFieldExpression( FieldExpressionSyntax node )
         {
             (this._fieldExpressions ??= new List<FieldExpressionSyntax>()).Add( node );

@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -48,7 +49,10 @@ internal sealed class PropertyImplicitAccessorSubstitution : SyntaxNodeSubstitut
                 // Replacing a body-less get accessor (auto property).
                 return
                     Block(
-                        ReturnStatement( IdentifierName( targetName ) ) )
+                        ReturnStatement(
+                            SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.ReturnKeyword ),
+                            IdentifierName( targetName ),
+                            Token( SyntaxKind.SemicolonToken ) ) )
                         .WithTriviaFromIfNecessary( accessorDeclaration, substitutionContext.SyntaxGenerationContext.Options );
 
             default:

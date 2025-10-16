@@ -39,7 +39,7 @@ internal class TargetClass
     get
     {
       global::System.Console.WriteLine("This is the overridden getter.");
-      return_property_ImplicitGet;
+      return _property_ImplicitGet;
     }
     set
     {
@@ -87,7 +87,7 @@ internal class TargetClass
     get
     {
       global::System.Console.WriteLine("This is the overridden getter.");
-      return_staticProperty_Set;
+      return _staticProperty_Set;
     }
     set
     {

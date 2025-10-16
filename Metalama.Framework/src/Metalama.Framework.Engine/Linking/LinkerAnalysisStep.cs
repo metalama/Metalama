@@ -206,7 +206,7 @@ namespace Metalama.Framework.Engine.Linking
 
             var backingFieldReferences =
 #if ROSLYN_5_0_0_OR_GREATER
-                await GetPropertyBackingFieldReferencesAsync(
+                await this.GetPropertyBackingFieldReferencesAsync(
                     symbolReferenceFinder,
                     overriddenHybridAutoProperties,
                     cancellationToken );
@@ -904,60 +904,65 @@ namespace Metalama.Framework.Engine.Linking
         /// <summary>
         /// Finds all references to auto property backing fields.
         /// </summary>
-        private static async Task<IReadOnlyList<IntermediateSymbolSemanticReference>> GetPropertyBackingFieldReferencesAsync(
+        private async Task<IReadOnlyList<IntermediateSymbolSemanticReference>> GetPropertyBackingFieldReferencesAsync(
             SymbolReferenceFinder symbolReferenceFinder,
             IReadOnlyList<IPropertySymbol> overriddenHybridAutoProperties,
             CancellationToken cancellationToken )
         {
-            var list = new List<IntermediateSymbolSemanticReference>();
-            foreach ( var property in overriddenHybridAutoProperties )
-            {
-                var declaration = property.GetPrimaryDeclarationSyntax();
+            var concurrentTaskRunner = this._serviceProvider.GetRequiredService<IConcurrentTaskRunner>();
+            var list = new ConcurrentBag<IntermediateSymbolSemanticReference>();
 
-                var (get, set) =
-                    declaration switch
-                    {
-                        PropertyDeclarationSyntax { AccessorList.Accessors: [{ Keyword.RawKind: (int) SyntaxKind.GetKeyword } getAccessor, { Keyword.RawKind: (int) SyntaxKind.SetKeyword or (int) SyntaxKind.InitKeyword } setAccessor] }
-                            => (getAccessor, setAccessor),
-                        PropertyDeclarationSyntax { AccessorList.Accessors: [{ Keyword.RawKind: (int) SyntaxKind.SetKeyword or (int) SyntaxKind.InitKeyword } setAccessor, { Keyword.RawKind: (int) SyntaxKind.GetKeyword } getAccessor] }
-                            => (getAccessor, setAccessor),
-                        PropertyDeclarationSyntax { AccessorList.Accessors: [{ Keyword.RawKind: (int) SyntaxKind.GetKeyword } getAccessor] }
-                            => (getAccessor, null),
-                        _ => throw new InvalidOperationException( "Auto property expected." ),
-                    };
-
-                if ( get.Body != null || get.ExpressionBody != null )
+            await concurrentTaskRunner.RunConcurrentlyAsync(
+                overriddenHybridAutoProperties,
+                property =>
                 {
-                    var visitor = new AutoPropertyBodyWalker();
-                    visitor.Visit( get );
+                    var declaration = property.GetPrimaryDeclarationSyntax();
 
-                    foreach ( var fieldExpression in visitor.FieldExpressions )
+                    var (get, set) =
+                        declaration switch
+                        {
+                            PropertyDeclarationSyntax { AccessorList.Accessors: [{ Keyword.RawKind: (int) SyntaxKind.GetKeyword } getAccessor, { Keyword.RawKind: (int) SyntaxKind.SetKeyword or (int) SyntaxKind.InitKeyword } setAccessor] }
+                                => (getAccessor, setAccessor),
+                            PropertyDeclarationSyntax { AccessorList.Accessors: [{ Keyword.RawKind: (int) SyntaxKind.SetKeyword or (int) SyntaxKind.InitKeyword } setAccessor, { Keyword.RawKind: (int) SyntaxKind.GetKeyword } getAccessor] }
+                                => (getAccessor, setAccessor),
+                            PropertyDeclarationSyntax { AccessorList.Accessors: [{ Keyword.RawKind: (int) SyntaxKind.GetKeyword } getAccessor] }
+                                => (getAccessor, null),
+                            _ => throw new InvalidOperationException( "Auto property expected." ),
+                        };
+
+                    if ( get.Body != null || get.ExpressionBody != null )
                     {
-                        list.Add(
-                            new IntermediateSymbolSemanticReference(
-                                property.GetMethod.AssertNotNull().ToSemantic( IntermediateSymbolSemanticKind.Default ),
-                                property.GetBackingField().AssertNotNull().ToSemantic( IntermediateSymbolSemanticKind.Default ),
-                                fieldExpression ) );
+                        var visitor = new AutoPropertyBodyWalker();
+                        visitor.Visit( get );
+
+                        foreach ( var fieldExpression in visitor.FieldExpressions )
+                        {
+                            list.Add(
+                                new IntermediateSymbolSemanticReference(
+                                    property.GetMethod.AssertNotNull().ToSemantic( IntermediateSymbolSemanticKind.Default ),
+                                    property.GetBackingField().AssertNotNull().ToSemantic( IntermediateSymbolSemanticKind.Default ),
+                                    fieldExpression ) );
+                        }
                     }
-                }
 
-                if ( set?.Body != null || set?.ExpressionBody != null )
-                {
-                    var visitor = new AutoPropertyBodyWalker();
-                    visitor.Visit( set );
-
-                    foreach ( var fieldExpression in visitor.FieldExpressions )
+                    if ( set?.Body != null || set?.ExpressionBody != null )
                     {
-                        list.Add(
-                            new IntermediateSymbolSemanticReference(
-                                property.SetMethod.AssertNotNull().ToSemantic( IntermediateSymbolSemanticKind.Default ),
-                                property.GetBackingField().AssertNotNull().ToSemantic( IntermediateSymbolSemanticKind.Default ),
-                                fieldExpression ) );
-                    }
-                }
-            }
+                        var visitor = new AutoPropertyBodyWalker();
+                        visitor.Visit( set );
 
-            return list;
+                        foreach ( var fieldExpression in visitor.FieldExpressions )
+                        {
+                            list.Add(
+                                new IntermediateSymbolSemanticReference(
+                                    property.SetMethod.AssertNotNull().ToSemantic( IntermediateSymbolSemanticKind.Default ),
+                                    property.GetBackingField().AssertNotNull().ToSemantic( IntermediateSymbolSemanticKind.Default ),
+                                    fieldExpression ) );
+                        }
+                    }
+                },
+                cancellationToken );
+
+            return list.ToList();
         }
 #endif
 
