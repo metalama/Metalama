@@ -49,34 +49,36 @@ public sealed class EventBroker<TDelegate, TOwner, TArgs>
     /// <param name="handler">The handler to add.</param>
     public void AddHandler( TDelegate? handler )
     {
-        if ( handler != null )
+        if ( handler == null )
         {
-            var lockTaken = false;
+            return;
+        }
 
-            try
+        var lockTaken = false;
+
+        try
+        {
+            Monitor.TryEnter( this._handlers, EventBrokerServices.LockTimeout, ref lockTaken );
+
+            if ( !lockTaken )
             {
-                Monitor.TryEnter( this._handlers, EventBrokerServices.LockTimeout, ref lockTaken );
-
-                if ( !lockTaken )
-                {
-                    throw new TimeoutException(
-                        "Timeout waiting to acquire lock in ActionEventBroker. This indicates complex underlying event or a deadlock." );
-                }
-
-                var wasFirst = this._handlers.IsEmpty;
-                this._handlers.Add( handler );
-
-                if ( wasFirst )
-                {
-                    this._delegates.AddHandler( this.InvocationDelegate, this._owner );
-                }
+                throw new TimeoutException(
+                    "Timeout waiting to acquire lock in ActionEventBroker. This indicates complex underlying event or a deadlock." );
             }
-            finally
+
+            var wasFirst = this._handlers.IsEmpty;
+            this._handlers.Add( handler );
+
+            if ( wasFirst )
             {
-                if ( lockTaken )
-                {
-                    Monitor.Exit( this._handlers );
-                }
+                this._delegates.AddHandler( this.InvocationDelegate, this._owner );
+            }
+        }
+        finally
+        {
+            if ( lockTaken )
+            {
+                Monitor.Exit( this._handlers );
             }
         }
     }
@@ -87,43 +89,45 @@ public sealed class EventBroker<TDelegate, TOwner, TArgs>
     /// <param name="handler">The handler to remove.</param>
     public void RemoveHandler( TDelegate? handler )
     {
-        if ( handler != null )
+        if ( handler == null )
         {
-            var lockTaken = false;
+            return;
+        }
 
-            try
+        var lockTaken = false;
+
+        try
+        {
+            Monitor.TryEnter( this._handlers, EventBrokerServices.LockTimeout, ref lockTaken );
+
+            if ( !lockTaken )
             {
-                Monitor.TryEnter( this._handlers, EventBrokerServices.LockTimeout, ref lockTaken );
-
-                if ( !lockTaken )
-                {
-                    throw new TimeoutException(
-                        "Timeout waiting to acquire lock in ActionEventBroker. This indicates complex underlying event or a deadlock." );
-                }
-
-                this._handlers.Remove( handler );
-
-                if ( this._handlers.IsEmpty )
-                {
-                    this._delegates.RemoveHandler( this.InvocationDelegate, this._owner );
-                }
+                throw new TimeoutException(
+                    "Timeout waiting to acquire lock in ActionEventBroker. This indicates complex underlying event or a deadlock." );
             }
-            finally
+
+            this._handlers.Remove( handler );
+
+            if ( this._handlers.IsEmpty )
             {
-                if ( lockTaken )
-                {
-                    Monitor.Exit( this._handlers );
-                }
+                this._delegates.RemoveHandler( this.InvocationDelegate, this._owner );
+            }
+        }
+        finally
+        {
+            if ( lockTaken )
+            {
+                Monitor.Exit( this._handlers );
             }
         }
     }
 
     /// <summary>
     /// Invokes all registered event handlers. This method should be used when the delegate has <c>out</c> or <c>ref</c> parameters
-    /// or has a non-void return type.
+    /// or has a non-void return type. In the latter case, the return value must be mapped as a tuple element.
     /// </summary>
     /// <param name="args">The event arguments.</param>
-    public void InvokeRef( ref TArgs args )
+    public void InvokeByRef( ref TArgs args )
     {
         this._handlers.Invoke( this._delegates.InvokeHandler, this._owner, ref args );
     }
@@ -136,7 +140,7 @@ public sealed class EventBroker<TDelegate, TOwner, TArgs>
     public void Invoke( in TArgs args )
     {
         ref var writableRef = ref Unsafe.AsRef( in args );
-        this.InvokeRef( ref writableRef );
+        this.InvokeByRef( ref writableRef );
     }
 
     /// <summary>
