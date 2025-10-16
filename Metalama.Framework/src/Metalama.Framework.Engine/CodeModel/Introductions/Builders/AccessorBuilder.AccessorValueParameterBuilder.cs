@@ -26,7 +26,7 @@ internal partial class AccessorBuilder
                 => this.Accessor._containingMember switch
                 {
                     PropertyBuilder propertyBuilder => propertyBuilder.RefKind,
-                    FieldBuilder => RefKind.None,
+                    FieldBuilder or EventBuilder => RefKind.None,
                     _ => throw new AssertionFailedException( $"Unexpected containing member: '{this.Accessor._containingMember}'." )
                 };
 
