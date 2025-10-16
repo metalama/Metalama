@@ -41,23 +41,8 @@ internal sealed partial class LinkerRewritingDriver
 
                 return substitutedNode;
             }
-            else
-            {
-                var transformedNode = base.VisitCore( node );
 
-                if ( transformedNode is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax memberAccess } invocation
-                     && memberAccess.HasAnnotation( LinkerInjectionHelperProvider.HasStaticReceiverArgumentAnnotation ) )
-                {
-                    transformedNode = SyntaxFactory.InvocationExpression(
-                        SyntaxFactory.MemberAccessExpression(
-                            SyntaxKind.SimpleMemberAccessExpression,
-                            invocation.ArgumentList.Arguments[0].Expression,
-                            memberAccess.Name ),
-                        invocation.ArgumentList.WithArguments( SyntaxFactory.SeparatedList( invocation.ArgumentList.Arguments.Skip( 1 ) ) ) );
-                }
-
-                return transformedNode;
-            }
+            return base.VisitCore( node );
         }
     }
 }

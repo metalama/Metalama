@@ -671,15 +671,16 @@ internal sealed class AspectReferenceResolver
                             throw new AssertionFailedException( $"Unexpected property expression: '{expression.Parent}'." );
                     }
 
-                case not null when OperatorData.GetOperatorKindFromName( helperMethod.Name ) is not OperatorKind.None and var operatorKind:
+                case not null when OperatorData.GetByName( helperMethod.Name ) is { Kind: not OperatorKind.None } and var operatorData:
                     // Referencing an operator.
+
                     rootNode = expression;
                     targetSymbolSource = expression;
 
                     var operatorsOfName = containingSymbol.ContainingType.GetMembers( referencedSymbol.Name )
                         .OfType<IMethodSymbol>();
 
-                    targetSymbol = operatorKind.GetCategory() switch
+                    targetSymbol = operatorData.Kind.GetCategory() switch
                     {
                         OperatorCategory.Binary => operatorsOfName
                             .Single( m => m.Parameters.Length == 2

@@ -9,6 +9,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
+using System.Linq;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace Metalama.Framework.Engine.Linking.Substitution;
@@ -17,11 +18,27 @@ internal abstract partial class AspectReferenceRenamingSubstitution : SyntaxNode
 {
     protected ResolvedAspectReference AspectReference { get; }
 
-    public override SyntaxNode ReplacedNode => this.AspectReference.RootNode;
+    public override SyntaxNode ReplacedNode { get; }
 
     protected AspectReferenceRenamingSubstitution( CompilationContext compilationContext, ResolvedAspectReference aspectReference ) : base( compilationContext )
     {
         this.AspectReference = aspectReference;
+
+        if ( aspectReference.RootNode is 
+                MemberAccessExpressionSyntax 
+                { 
+                    Expression: IdentifierNameSyntax { Identifier.Text: LinkerInjectionHelperProvider.HelperTypeName }, 
+                    Name.Identifier.Text: var methodName 
+                }
+            && OperatorData.GetByName(methodName) is { IsStatic: false } )
+        {
+            // For operators with static receiver parameter, we replace the parent node.
+            this.ReplacedNode = aspectReference.RootNode.Parent.AssertNotNull();
+        }
+        else
+        {
+            this.ReplacedNode = aspectReference.RootNode;
+        }
     }
 
     public sealed override SyntaxNode? Substitute( SyntaxNode currentNode, SubstitutionContext substitutionContext )
@@ -53,8 +70,24 @@ internal abstract partial class AspectReferenceRenamingSubstitution : SyntaxNode
             {
                 Expression: IdentifierNameSyntax { Identifier.Text: LinkerInjectionHelperProvider.HelperTypeName },
                 Name.Identifier.Text: var operatorName
-            } when OperatorData.GetOperatorKindFromName( operatorName ) != OperatorKind.None:
+            } when OperatorData.GetByName( operatorName ) is { Kind: not OperatorKind.None, IsStatic: var isStaticOperator }:
+                // We presume static operators - non-static operators need to change the argument list, not just the name.
+                Invariant.Assert( isStaticOperator );
+
                 return this.SubstituteOperatorMemberAccess( substitutionContext );
+
+            case InvocationExpressionSyntax
+            {
+                Expression: MemberAccessExpressionSyntax
+                {
+                    Expression: IdentifierNameSyntax { Identifier.Text: LinkerInjectionHelperProvider.HelperTypeName },
+                    Name.Identifier.Text: var operatorName
+                }
+            } invocationExpression when OperatorData.GetByName( operatorName ) is { Kind: not OperatorKind.None, IsStatic: var isStaticOperator }:
+                // We presume static operators - non-static operators need to change the argument list, not just the name.
+                Invariant.Assert( !isStaticOperator );
+
+                return this.SubstituteStaticReceiverOperatorInvocation( invocationExpression, substitutionContext );
 
             case ObjectCreationExpressionSyntax:
                 return this.SubstituteConstructorMemberAccess();
@@ -92,16 +125,25 @@ internal abstract partial class AspectReferenceRenamingSubstitution : SyntaxNode
         var targetSymbol = this.AspectReference.ResolvedSemantic.Symbol;
 
         var memberAccess =
+
             MemberAccessExpression(
                 SyntaxKind.SimpleMemberAccessExpression,
                 substitutionContext.SyntaxGenerationContext.SyntaxGenerator.TypeSyntax( targetSymbol.ContainingType ),
                 IdentifierName( this.GetTargetMemberName() ) );
 
-        if ( !targetSymbol.IsStatic )
-        {
-            // TODO - not sure that this is the best data flow but it seems to have the least impact.
-            memberAccess = memberAccess.WithAdditionalAnnotations( LinkerInjectionHelperProvider.HasStaticReceiverArgumentAnnotation );
-        }
+        return memberAccess;
+    }
+
+    private SyntaxNode SubstituteStaticReceiverOperatorInvocation( InvocationExpressionSyntax invocationExpression, SubstitutionContext substitutionContext )
+    {
+        var memberAccess =
+            InvocationExpression(
+                MemberAccessExpression(
+                    SyntaxKind.SimpleMemberAccessExpression,
+                    invocationExpression.ArgumentList.Arguments[0].Expression,
+                    IdentifierName( this.GetTargetMemberName() ) ),
+                ArgumentList(
+                    SeparatedList( invocationExpression.ArgumentList.Arguments.Skip(1) ) ) );
 
         return memberAccess;
     }

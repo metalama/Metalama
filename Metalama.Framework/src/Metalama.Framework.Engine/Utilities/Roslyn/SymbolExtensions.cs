@@ -293,7 +293,7 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
         /// </summary>
         internal static OperatorKind GetOperatorKind( this IMethodSymbol method )
             => method.MethodKind is MethodKind.UserDefinedOperator or MethodKind.BuiltinOperator or MethodKind.Conversion
-                ? OperatorData.GetOperatorKindFromName( method.Name )
+                ? OperatorData.GetByName( method.Name ).Kind
                 : OperatorKind.None;
 
         public static INamedTypeSymbol GetTopmostContainingType( this INamedTypeSymbol type ) => type.ContainingType?.GetTopmostContainingType() ?? type;

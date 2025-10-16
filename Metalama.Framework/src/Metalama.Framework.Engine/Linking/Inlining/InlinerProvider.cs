@@ -21,7 +21,6 @@ internal sealed class InlinerProvider
         new MethodReturnStatementInliner(),
         new MethodCastReturnStatementInliner(),
         new MethodInvocationInliner(),
-        new StaticReceiverMethodInvocationInliner(),
         new MethodDiscardInliner(),
         new PropertyGetAssignmentInliner(),
         new PropertyGetReturnInliner(),

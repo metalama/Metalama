@@ -277,12 +277,11 @@ internal record OperatorData( OperatorKind Kind, string MemberName, LanguageVers
     private static readonly Dictionary<string, OperatorData> _byMemberName =
         All.Where( x => x.MinimumLangVersion != null ).ToDictionary( x => x.MemberName, x => x );
 
-    public static OperatorData GetByKind( OperatorKind kind ) => _byKind.TryGetValue( kind, out var data ) ? data : throw new ArgumentOutOfRangeException(nameof(kind));
+    public static OperatorData GetByKind( OperatorKind kind ) => _byKind.TryGetValue( kind, out var data ) ? data : throw new ArgumentOutOfRangeException( nameof( kind ) );
+
+    public static OperatorData GetByName( string methodName ) => _byMemberName.TryGetValue( methodName, out var data ) ? data : throw new ArgumentOutOfRangeException( nameof( methodName ) );
 
     public static bool IsUserDefinable( OperatorKind kind ) => _byKind.ContainsKey( kind );
-
-    public static OperatorKind GetOperatorKindFromName( string methodName )
-        => _byMemberName.TryGetValue( methodName, out var data ) ? data.Kind : OperatorKind.None;
 
     public OperatorCategory Category { get; } = Kind.GetCategory();
 

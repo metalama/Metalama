@@ -180,11 +180,6 @@ internal sealed class LinkerAspectReferenceSyntaxProvider : AspectReferenceSynta
             helperMember,
             ArgumentList( SeparatedList( arguments ) ) );
 
-        if ( !operatorData.IsStatic )
-        {
-            invocationExpression = invocationExpression.WithAdditionalAnnotations( LinkerInjectionHelperProvider.HasStaticReceiverArgumentAnnotation );
-        }
-
         return invocationExpression;
     }
 

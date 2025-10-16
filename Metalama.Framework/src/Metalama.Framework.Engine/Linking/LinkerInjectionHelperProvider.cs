@@ -221,8 +221,7 @@ internal sealed class LinkerInjectionHelperProvider
         var binaryOperators =
             OperatorData.All
                 .Where( op => op.Category == OperatorCategory.Binary )
-                .Select( op
-                             => $"public static R{nullabilitySuffix} {op.MemberName}<A,B,R>(A{nullabilitySuffix} a, B{nullabilitySuffix} b) => default(R{nullabilitySuffix});" );
+                .Select( op => $"public static R{nullabilitySuffix} {op.MemberName}<A,B,R>(A{nullabilitySuffix} a, B{nullabilitySuffix} b) => default(R{nullabilitySuffix});" );
 
         var binaryAssignmentOperators =
             OperatorData.All
@@ -237,7 +236,7 @@ internal sealed class LinkerInjectionHelperProvider
         var unaryAssignmentOperators =
             OperatorData.All
                 .Where( op => op.Category == OperatorCategory.UnaryAssignment )
-                .Select( op => $"public static void {op.MemberName}(A{nullabilitySuffix} a) {{}}" );
+                .Select( op => $"public static void {op.MemberName}<A>(A{nullabilitySuffix} a) {{}}" );
 
         var conversionOperators =
             OperatorData.All
@@ -322,6 +321,4 @@ internal class {HelperTypeName}
             encoding: Encoding.UTF8,
             options: options.ToParseOptions() );
     }
-
-    public static readonly SyntaxAnnotation HasStaticReceiverArgumentAnnotation = new();
 }
