@@ -360,24 +360,6 @@ internal sealed class DisplayStringFormatter : CompilationElementVisitor
 
                 break;
 
-            case { Name: nameof(ValueTuple), ContainingNamespace.FullName: "System" }:
-                this.Append( "(" );
-
-                for ( var index = 0; index < namedType.TypeArguments.Count; index++ )
-                {
-                    if ( index > 0 )
-                    {
-                        this.Append( ", " );
-                    }
-
-                    var typeArgument = namedType.TypeArguments[index];
-                    this.Visit( typeArgument );
-                }
-
-                this.Append( ")" );
-
-                break;
-
             case { Name: nameof(Nullable), ContainingNamespace.FullName: "System", TypeParameters.Count: 1 }:
                 this.Visit( namedType.TypeArguments[0] );
 
@@ -410,12 +392,43 @@ internal sealed class DisplayStringFormatter : CompilationElementVisitor
         }
     }
 
-    protected override void VisitTypeExtension( IExtensionBlock extensionBlock )
+    protected override void VisitExtensionBlock( IExtensionBlock extensionBlock )
     {
         this.VisitNamedType( extensionBlock.DeclaringType );
         this.Append( ".extension(" );
         this.Visit( extensionBlock.ReceiverType );
         this.Append( ")" );
+    }
+
+    protected override void VisitTupleType( ITupleType tupleType )
+    {
+        if ( tupleType.TupleElements.Count < 2 )
+        {
+            this.VisitNamedType( tupleType );
+        }
+        else
+        {
+            this.Append( "(" );
+
+            for ( var index = 0; index < tupleType.TupleElements.Count; index++ )
+            {
+                if ( index > 0 )
+                {
+                    this.Append( ", " );
+                }
+
+                var tupleElement = tupleType.TupleElements[index];
+                this.Visit( tupleElement.Type );
+
+                if ( tupleElement.HasFriendlyName )
+                {
+                    this.Append( " " );
+                    this.Append( tupleElement.Name );
+                }
+            }
+
+            this.Append( ")" );
+        }
     }
 
     protected override void VisitTypeParameter( ITypeParameter typeParameter )

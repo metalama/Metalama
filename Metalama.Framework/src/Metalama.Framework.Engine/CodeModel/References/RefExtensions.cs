@@ -96,12 +96,12 @@ public static class RefExtensions
             RefTargetKind.EventRaise => [typeof(IMethod)],
             RefTargetKind.EventRaiseParameter => [typeof(IParameter)],
             RefTargetKind.EventRaiseReturnParameter => [typeof(IParameter)],
-            RefTargetKind.NamedType => [typeof(INamedType), typeof(IExtensionBlock)],
+            RefTargetKind.NamedType => [typeof(INamedType), typeof(IExtensionBlock), typeof(ITupleType)],
             RefTargetKind.Default => declarationKind switch
             {
                 DeclarationKind.Type => [typeof(IType)],
                 DeclarationKind.Compilation => [typeof(ICompilation)],
-                DeclarationKind.NamedType => [typeof(INamedType), typeof(IExtensionBlock)],
+                DeclarationKind.NamedType => [typeof(INamedType), typeof(IExtensionBlock), typeof(ITupleType)],
                 DeclarationKind.Method or DeclarationKind.Operator or DeclarationKind.Finalizer => [typeof(IMethod)],
                 DeclarationKind.Property => [typeof(IProperty), typeof(IField)],
                 DeclarationKind.Indexer => [typeof(IIndexer)],
@@ -123,10 +123,26 @@ public static class RefExtensions
 
     internal static ISymbolRef<IDeclaration> ToRef( this ISymbol symbol, RefFactory refFactory ) => refFactory.FromDeclarationSymbol( symbol );
 
-    internal static ISymbolRef<INamedType> ToRef( this INamedTypeSymbol symbol, RefFactory refFactory ) => symbol.IsExtensionSafe() ? refFactory.FromSymbol<IExtensionBlock>( symbol ) : refFactory.FromSymbol<INamedType>( symbol );
+    internal static ISymbolRef<INamedType> ToRef( this INamedTypeSymbol symbol, RefFactory refFactory )
+    {
+        if ( symbol.IsExtensionSafe() )
+        {
+            return refFactory.FromSymbol<IExtensionBlock>( symbol );
+        }
+        else if ( symbol.IsTupleType )
+        {
+            return refFactory.FromSymbol<ITupleType>( symbol );
+        }
+        else
+        {
+            return refFactory.FromSymbol<INamedType>( symbol );
+        }
+    }
 
-    internal static ISymbolRef<IExtensionBlock> ToTypeExtensionRef( this INamedTypeSymbol symbol, RefFactory refFactory )
+    internal static ISymbolRef<IExtensionBlock> ToExtensionBlockRef( this INamedTypeSymbol symbol, RefFactory refFactory )
         => refFactory.FromSymbol<IExtensionBlock>( symbol );
+
+    internal static ISymbolRef<ITupleType> ToTupleTypeRef( this INamedTypeSymbol symbol, RefFactory refFactory ) => refFactory.FromSymbol<ITupleType>( symbol );
 
     internal static ISymbolRef<INamespace> ToRef( this INamespaceSymbol symbol, RefFactory refFactory ) => refFactory.FromSymbol<INamespace>( symbol );
 

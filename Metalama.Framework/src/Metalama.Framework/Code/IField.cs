@@ -35,5 +35,14 @@ namespace Metalama.Framework.Code
         /// of the <see cref="IProperty"/> interface.
         /// </summary>
         IProperty? OverridingProperty { get; }
+
+        FieldKind FieldKind { get; }
+    }
+
+    [CompileTime]
+    public enum FieldKind
+    {
+        Default,
+        TupleElement
     }
 }

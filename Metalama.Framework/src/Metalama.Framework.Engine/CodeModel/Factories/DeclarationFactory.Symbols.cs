@@ -26,7 +26,7 @@ public partial class DeclarationFactory
     private readonly Cache<ISymbol, IDeclaration> _symbolCache;
 
 // For types, we have a null-sensitive comparer to that 'object' and 'object?' are cached as two distinct items.
-    private readonly Cache<ITypeSymbol, IType> _typeCache;
+    private readonly Cache<SymbolNormalizer.CanonicalSymbolKey, IType> _typeCache;
 
     private readonly record struct CreateFromSymbolArgs<TSymbol>( TSymbol Symbol, DeclarationFactory Factory, GenericContext GenericContext )
     {
@@ -47,7 +47,7 @@ public partial class DeclarationFactory
         {
             symbol.ThrowIfBelongsToDifferentCompilationThan( this.CompilationContext );
 
-            var canonicalKey = SymbolNormalizer.GetCanonicalSymbol( symbol, genericContext ?? GenericContext.Empty, this._compilationModel.RefFactory );
+            var canonicalKey = SymbolNormalizer.GetCanonicalSymbolInfo( symbol, genericContext ?? GenericContext.Empty, this._compilationModel.RefFactory );
 
             return (TDeclaration) this._symbolCache.GetOrAdd(
                 canonicalKey.Symbol,
@@ -82,11 +82,14 @@ public partial class DeclarationFactory
         {
             symbol.ThrowIfBelongsToDifferentCompilationThan( this.CompilationContext );
 
-            var canonicalKey = SymbolNormalizer.GetCanonicalSymbol( symbol, genericContext ?? GenericContext.Empty, this._compilationModel.RefFactory );
+            var canonicalSymbolInfo = SymbolNormalizer.GetCanonicalSymbolInfo(
+                symbol,
+                genericContext ?? GenericContext.Empty,
+                this._compilationModel.RefFactory );
 
             return (TType) this._typeCache.GetOrAdd(
-                (TSymbol) canonicalKey.Symbol,
-                canonicalKey.Context,
+                canonicalSymbolInfo.ToKey(),
+                canonicalSymbolInfo.Context,
                 typeof(IType),
                 static ( _, _, x ) => x.createDeclaration( new CreateFromSymbolArgs<TSymbol>( x.symbol, x.me, x.genericContext ?? GenericContext.Empty ) ),
                 (me: this, symbol, createDeclaration: createType, supportsRedirection, genericContext) );
@@ -174,6 +177,10 @@ public partial class DeclarationFactory
                     return new ExtensionBlock( args.Symbol, args.Compilation );
                 }
 #endif
+                if ( args.Symbol.IsTupleType )
+                {
+                    return new TupleType( args.Symbol, args.Compilation, args.GenericContext );
+                }
 
                 return new SourceNamedType( args.Symbol, args.Compilation, args.GenericContext );
             } );

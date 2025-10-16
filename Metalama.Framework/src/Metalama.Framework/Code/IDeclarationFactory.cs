@@ -53,5 +53,15 @@ namespace Metalama.Framework.Code
             where T : class, ICompilationElement;
 
         IType GetTypeFromId( SerializableTypeId serializableTypeId, IReadOnlyDictionary<string, IType>? genericArguments );
+
+        ITupleType CreateTupleType( IEnumerable<IType> elementTypes );
+
+        ITupleType CreateTupleType( IEnumerable<Type> elementTypes );
+
+        ITupleType CreateTupleType( IEnumerable<(IType Type, string Name)> elementTypes );
+
+        ITupleType CreateTupleType( IEnumerable<(Type Type, string Name)> elementTypes );
+
+        ITupleType CreateTupleType( IEnumerable<IParameter> elementTypes );
     }
 }
