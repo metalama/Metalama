@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.SyntaxSerialization;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
@@ -25,13 +26,38 @@ internal class CreateTupleExpression : UserExpression
     protected override ExpressionSyntax ToSyntax( SyntaxSerializationContext syntaxSerializationContext, IType? targetType = null )
     {
         var values = this._getValues( syntaxSerializationContext )
-            .Select( ( v, i ) => v
-                         .Convert( this._tupleType.TupleElements[i].Type, syntaxSerializationContext.SyntaxGenerationContext, true )
-                         .Syntax )
+            .Select( ( v, i ) =>
+                         SyntaxFactory.Argument(
+                             v
+                                 .Convert( this._tupleType.TupleElements[i].Type, syntaxSerializationContext.SyntaxGenerationContext, true )
+                                 .Syntax ) )
             .ToReadOnlyList();
 
-        return syntaxSerializationContext.SyntaxGenerator.TupleExpression( this._tupleType, values );
+        return syntaxSerializationContext.SyntaxGenerator.TupleExpression( this._tupleType, values, this.RequiresQualifiedArguments( targetType ) );
     }
 
     public override IType Type => this._tupleType;
+
+    private bool RequiresQualifiedArguments( IType? targetType )
+    {
+        if ( targetType is not ITupleType targetTupleType )
+        {
+            return false;
+        }
+
+        if ( this._tupleType.TupleLength != targetTupleType.TupleLength )
+        {
+            return false;
+        }
+
+        for ( var i = 0; i < this._tupleType.TupleElements.Count; i++ )
+        {
+            if ( this._tupleType.TupleElements[i].Name == targetTupleType.TupleElements[i].Name )
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
 }

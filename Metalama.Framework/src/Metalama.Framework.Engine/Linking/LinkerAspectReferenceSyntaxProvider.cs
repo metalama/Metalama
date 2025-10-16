@@ -53,18 +53,18 @@ internal sealed class LinkerAspectReferenceSyntaxProvider : AspectReferenceSynta
                             ArgumentList(
                                 SeparatedList(
                                     overriddenConstructor.Parameters
-                                        .SelectAsArray(
-                                            p =>
-                                                Argument(
-                                                    NameColon( IdentifierName( p.Name ) ),
-                                                    p.RefKind.InvocationRefKindToken(),
-                                                    IdentifierName( p.Name ) ) ) ) ),
+                                        .SelectAsArray( p =>
+                                                            Argument(
+                                                                NameColon( IdentifierName( p.Name ) ),
+                                                                p.RefKind.InvocationRefKindToken(),
+                                                                IdentifierName( p.Name ) ) ) ) ),
                             null ) ) ) ) );
 
     public override ExpressionSyntax GetEventRaiseReference(
         AspectLayerId aspectLayer,
         IEvent @event,
         ContextualSyntaxGenerator syntaxGenerator,
+        ITupleType argsTupleType,
         params ArgumentSyntax[] arguments )
     {
         var eventReferenceArgument =
@@ -78,7 +78,7 @@ internal sealed class LinkerAspectReferenceSyntaxProvider : AspectReferenceSynta
                         InvocationExpression(
                             LinkerInjectionHelperProvider.GetEmptyDelegateMemberExpression( syntaxGenerator.TypeSyntax( @event.Type ) ) ) ) ) );
 
-        return 
+        return
             InvocationExpression(
                 LinkerInjectionHelperProvider.GetEventRaiseMemberExpression()
                     .WithAspectReferenceAnnotation(
@@ -88,11 +88,12 @@ internal sealed class LinkerAspectReferenceSyntaxProvider : AspectReferenceSynta
                 ArgumentList(
                     SeparatedList(
                         arguments.Length == 0
-                        ? new[] { eventReferenceArgument }
-                        : [
-                            eventReferenceArgument,
-                            Argument( null, default, TupleExpression( SeparatedList( arguments ) ) )
-                        ] ) ) );
+                            ? new[] { eventReferenceArgument }
+                            :
+                            [
+                                eventReferenceArgument,
+                                Argument( null, default, syntaxGenerator.TupleExpression( argsTupleType, arguments, false ) )
+                            ] ) ) );
     }
 
     public override ExpressionSyntax GetPropertyReference(
@@ -140,8 +141,10 @@ internal sealed class LinkerAspectReferenceSyntaxProvider : AspectReferenceSynta
                 CreateIndexerAccessExpression( targetIndexer, syntaxGenerator ),
                 BracketedArgumentList(
                     SeparatedList(
-                        targetIndexer.Parameters.SelectAsReadOnlyList(
-                            p => Argument( null, p.RefKind.InvocationRefKindToken(), IdentifierName( p.Name ) ) ) ) ) )
+                        targetIndexer.Parameters.SelectAsReadOnlyList( p => Argument(
+                                                                           null,
+                                                                           p.RefKind.InvocationRefKindToken(),
+                                                                           IdentifierName( p.Name ) ) ) ) ) )
             .WithAspectReferenceAnnotation(
                 aspectLayer,
                 AspectReferenceOrder.Previous,

@@ -128,8 +128,12 @@ public static class SyntaxExtensions
 
     internal static TNode WithSimplifierAnnotationIfNecessary<TNode>( this TNode node, SyntaxGenerationContext context )
         where TNode : SyntaxNode
+        => node.WithSimplifierAnnotationIfNecessary( context.Options );
+
+    internal static TNode WithSimplifierAnnotationIfNecessary<TNode>( this TNode node, SyntaxGenerationOptions options )
+        where TNode : SyntaxNode
     {
-        if ( !context.Options.AddFormattingAnnotations )
+        if ( !options.AddFormattingAnnotations )
         {
             return node;
         }

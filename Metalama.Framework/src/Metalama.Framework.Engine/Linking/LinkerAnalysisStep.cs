@@ -96,7 +96,7 @@ namespace Metalama.Framework.Engine.Linking
                 .Where( s => s is IEventSymbol eventSymbol && eventSymbol.IsEventField() == true )
                 .Cast<IEventSymbol>()
                 .ToArray();
-            
+
             var eventFieldRaiseReferences = await GetEventFieldRaiseReferencesAsync( symbolReferenceFinder, overriddenEventFields, cancellationToken );
 
             var aspectReferenceCollector = new AspectReferenceCollector(
@@ -310,9 +310,7 @@ namespace Metalama.Framework.Engine.Linking
                                     targetEventSymbol.ContainingType,
                                     _ => new List<StaticFieldInfo>() );
 
-                                var tupleType = finalCompilationModel.Factory.GetTypeByReflectionName( $"System.ValueTuple`{invokeMethod.Parameters.Count}" );
-
-                                var argsType = tupleType.WithTypeArguments( invokeMethod.Parameters.SelectAsArray( p => p.Type ) );
+                                var argsType = finalCompilationModel.Factory.CreateTupleType( invokeMethod.Parameters );
 
                                 if ( !eventBrokersWritable.TryGetValue( targetEventSymbol, out var eventBrokerInfo ) )
                                 {
@@ -353,7 +351,7 @@ namespace Metalama.Framework.Engine.Linking
                                             targetEventSymbol.ContainingType.AssertNotNull(),
                                             raiseMethodName,
                                             overrideName,
-                                            invokeMethod.Parameters ) );
+                                            invokeMethod.Compilation.Factory.CreateTupleType( invokeMethod.Parameters ) ) );
 
                                 staticDelegatesForType.Add( brokerCallbacksField );
 
@@ -409,10 +407,10 @@ namespace Metalama.Framework.Engine.Linking
             }
         }
 
-        private static ExpressionSyntax GetEventBrokerCastDelegateInitializationExpression( IReadOnlyList<IParameter> invokeParameters )
+        private static ExpressionSyntax GetEventBrokerCastDelegateInitializationExpression( ITupleType invokeTupleType, SyntaxGenerationContext context )
         {
-            var parameterList = SeparatedList( invokeParameters.SelectAsArray( p => Parameter( Identifier( p.Name ) ) ) );
-            var argumentList = SeparatedList( invokeParameters.SelectAsArray( p => Argument( IdentifierName( p.Name ) ) ) );
+            var parameterList = SeparatedList( invokeTupleType.TupleElements.SelectAsArray( p => Parameter( Identifier( p.Name ) ) ) );
+            var argumentList = SeparatedList( invokeTupleType.TupleElements.SelectAsArray( p => Argument( IdentifierName( p.Name ) ) ) );
 
             return
                 SimpleLambdaExpression(
@@ -427,7 +425,8 @@ namespace Metalama.Framework.Engine.Linking
                                 SyntaxKind.SimpleMemberAccessExpression,
                                 IdentifierName( "b" ),
                                 IdentifierName( "Invoke" ) ),
-                            ArgumentList( SingletonSeparatedList( Argument( TupleExpression( argumentList ) ) ) ) ) ) );
+                            ArgumentList(
+                                SingletonSeparatedList( Argument( context.SyntaxGenerator.TupleExpression( invokeTupleType, argumentList, false ) ) ) ) ) ) );
         }
 
         private static ExpressionSyntax GetEventBrokerInvokerDelegateInitializationExpression(
@@ -504,7 +503,7 @@ namespace Metalama.Framework.Engine.Linking
             INamedTypeSymbol containingType,
             string raiseMethodName,
             string overrideName,
-            IReadOnlyList<IParameter> invokeParameters )
+            ITupleType invokeTupleType )
         {
             return
                 ObjectCreationExpression(
@@ -520,7 +519,7 @@ namespace Metalama.Framework.Engine.Linking
                                         containingType,
                                         raiseMethodName ) ),
                                 Token( TriviaList(), SyntaxKind.CommaToken, context.ElasticEndOfLineTriviaList ),
-                                Argument( GetEventBrokerCastDelegateInitializationExpression( invokeParameters ) ),
+                                Argument( GetEventBrokerCastDelegateInitializationExpression( invokeTupleType, context ) ),
                                 Token( TriviaList(), SyntaxKind.CommaToken, context.ElasticEndOfLineTriviaList ),
                                 Argument(
                                     GetEventBrokerEventAccessDelegateInitializationExpression(

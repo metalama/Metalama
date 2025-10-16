@@ -506,9 +506,10 @@ public sealed partial class ContextualSyntaxGenerator
 
     internal TypeSyntax TypeSyntax( IType type, bool bypassSymbols = false )
     {
-        if ( type is ISymbolBasedCompilationElement { SymbolMustBeMapped: false } symbolRef && !bypassSymbols )
+        // We use Roslyn and ITypeSymbol if we can. If we have a tuple, we can't use Roslyn because our ITupleType might have non-mapped names.
+        if ( type is ISymbolBasedCompilationElement { SymbolMustBeMapped: false, Symbol: ITypeSymbol { IsTupleType: false } typeSymbol } && !bypassSymbols )
         {
-            return this.TypeSyntax( (ITypeSymbol) symbolRef.Symbol );
+            return this.TypeSyntax( typeSymbol );
         }
 
         if ( this.SyntaxGenerationContext.HasCompilationContext && type.BelongsToCompilation( this.SyntaxGenerationContext.CompilationContext ) == true )
@@ -1070,7 +1071,8 @@ public sealed partial class ContextualSyntaxGenerator
             : operand;
     }
 
-    internal ExpressionSyntax TupleExpression( ITupleType tupleType, IReadOnlyList<ExpressionSyntax> values )
+    internal ExpressionSyntax TupleExpression( ITupleType tupleType, IReadOnlyList<ArgumentSyntax> values, bool qualifyElements = true )
+
     {
         switch ( tupleType.TupleLength )
         {
@@ -1080,7 +1082,7 @@ public sealed partial class ContextualSyntaxGenerator
 
             case 1:
                 {
-                    var argumentList = SyntaxFactory.ArgumentList( SeparatedList( [Argument( values[0] )] ) );
+                    var argumentList = SyntaxFactory.ArgumentList( SeparatedList( [values[0]] ) );
 
                     return InvocationExpression( GetCreateMethod() ).WithArgumentList( argumentList );
                 }
@@ -1092,13 +1094,12 @@ public sealed partial class ContextualSyntaxGenerator
                     for ( var i = 0; i < values.Count; i++ )
                     {
                         var tupleElement = tupleType.TupleElements[i];
-                        var argument = Argument( values[i] );
+                        var argument = values[i];
 
-                        if ( tupleElement.HasFriendlyName )
+                        // I could not get the Formatter to simplify the argument name, but it's simple to do it here.
+                        if ( qualifyElements && tupleElement.HasFriendlyName && GetRightMostIdentifier( argument.Expression ) != tupleElement.Name )
                         {
-                            argument = argument.WithNameColon(
-                                NameColon( tupleElement.Name )
-                                    .WithSimplifierAnnotationIfNecessary( this.SyntaxGenerationContext ) );
+                            argument = argument.WithNameColon( NameColon( tupleElement.Name ) );
                         }
 
                         arguments.Add( argument );
@@ -1115,5 +1116,14 @@ public sealed partial class ContextualSyntaxGenerator
                 this.TypeSyntax( tupleType.Compilation.Factory.GetSpecialType( Code.SpecialType.ValueTuple ) ),
                 SyntaxFactory.IdentifierName( "Create" ) );
         }
+
+        static string? GetRightMostIdentifier( ExpressionSyntax expression )
+            => expression switch
+            {
+                IdentifierNameSyntax identifierName => identifierName.Identifier.Text,
+                MemberAccessExpressionSyntax memberAccess => memberAccess.Name.Identifier.Text,
+                ConditionalAccessExpressionSyntax conditionalAccess => GetRightMostIdentifier( conditionalAccess.WhenNotNull ),
+                _ => null
+            };
     }
 }

@@ -24,7 +24,7 @@ internal sealed partial class SyntaxGeneratorForIType
 
         protected override T DefaultVisit( IType type ) => throw new AssertionFailedException();
 
-        protected TArg AddInformationTo<TArg>( TArg syntax, ICompilationElement symbol )
+        protected TArg AddTriviaAndAnnotations<TArg>( TArg syntax, ICompilationElement symbol )
             where TArg : ExpressionSyntax
         {
             var generationOptions = this.SyntaxGenerator._generationOptions;

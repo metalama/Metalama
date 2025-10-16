@@ -29,7 +29,7 @@ internal sealed class EventRaiseHandlerCallSubstitution : SyntaxNodeSubstitution
 
     public override SyntaxNode Substitute( SyntaxNode currentNode, SubstitutionContext substitutionContext )
     {
-        Invariant.Assert( this._containingMethod.Parameters is [{ Type: { TypeKind: TypeKind.Delegate } }, { Type: INamedTypeSymbol { TupleUnderlyingType: not null } }] );
+        Invariant.Assert( this._containingMethod.Parameters is [{ Type.TypeKind: TypeKind.Delegate }, { Type: INamedTypeSymbol { IsTupleType: true } }] );
 
         switch ( currentNode )
         {
@@ -45,7 +45,7 @@ internal sealed class EventRaiseHandlerCallSubstitution : SyntaxNodeSubstitution
                     {
                         Expression: ParenthesizedLambdaExpressionSyntax
                         {
-                            ExpressionBody: AssignmentExpressionSyntax { Left: MemberAccessExpressionSyntax eventMemberAccess }
+                            ExpressionBody: AssignmentExpressionSyntax { Left: MemberAccessExpressionSyntax }
                         }
                     },
                     ..
@@ -70,11 +70,11 @@ internal sealed class EventRaiseHandlerCallSubstitution : SyntaxNodeSubstitution
                                 Token( SyntaxKind.OpenParenToken ),
                                 SeparatedList(
                                     tupleElements.Select( e =>
-                                        Argument(
-                                            MemberAccessExpression(
-                                                SyntaxKind.SimpleMemberAccessExpression,
-                                                IdentifierName( argsName ),
-                                                IdentifierName( e.Name ) ) ) ) ),
+                                                              Argument(
+                                                                  MemberAccessExpression(
+                                                                      SyntaxKind.SimpleMemberAccessExpression,
+                                                                      IdentifierName( argsName ),
+                                                                      IdentifierName( e.Name ) ) ) ) ),
                                 Token( TriviaList(), SyntaxKind.CloseParenToken, TriviaList( trailingTrivia ) ) ) );
                 }
                 else
