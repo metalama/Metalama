@@ -1,16 +1,16 @@
 internal class TargetClass
 {
-  private static readonly global::Metalama.Framework.RunTime.ActionEventBrokerCallbacks<global::System.EventHandler, (global::System.Object? , global::System.EventArgs)> EventBrokerCallbacks_0 = new global::Metalama.Framework.RunTime.ActionEventBrokerCallbacks<global::System.EventHandler, (global::System.Object? , global::System.EventArgs)>(static (handler, me, args) => ((global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Overrides.Events.Invoke_Double.TargetClass)me).Event_Invoke_Override(handler, args), static b => (sender, e) => b.Invoke((sender, e)), static (handler, me) => ((global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Overrides.Events.Invoke_Double.TargetClass)me).Event_Override += handler, static (handler, me) => ((global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Overrides.Events.Invoke_Double.TargetClass)me).Event_Override -= handler);
-  private static readonly global::Metalama.Framework.RunTime.ActionEventBrokerCallbacks<global::System.EventHandler, (global::System.Object? , global::System.EventArgs)> EventBrokerCallbacks_2 = new global::Metalama.Framework.RunTime.ActionEventBrokerCallbacks<global::System.EventHandler, (global::System.Object? , global::System.EventArgs)>(static (handler, me, args) => ((global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Overrides.Events.Invoke_Double.TargetClass)me).Event_Invoke_Override1(handler, args), static b => (sender, e) => b.Invoke((sender, e)), static (handler, me) => ((global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Overrides.Events.Invoke_Double.TargetClass)me).Event_Override1 += handler, static (handler, me) => ((global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Overrides.Events.Invoke_Double.TargetClass)me).Event_Override1 -= handler);
+  private static readonly global::Metalama.Framework.RunTime.ActionEventBrokerCallbacks<global::System.EventHandler, global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Overrides.Events.Invoke_Double.TargetClass, (global::System.Object? , global::System.EventArgs)> EventBrokerCallbacks_0 = new(static (global::System.EventHandler handler, global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Overrides.Events.Invoke_Double.TargetClass me, in (global::System.Object? sender, global::System.EventArgs e) args) => me.Event_Invoke_Override(handler, args), static b => (sender, e) => b.Invoke((sender, e)), static (handler, me) => me.Event_Override += handler, static (handler, me) => me.Event_Override -= handler);
+  private static readonly global::Metalama.Framework.RunTime.ActionEventBrokerCallbacks<global::System.EventHandler, global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Overrides.Events.Invoke_Double.TargetClass, (global::System.Object? , global::System.EventArgs)> EventBrokerCallbacks_2 = new(static (global::System.EventHandler handler, global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Overrides.Events.Invoke_Double.TargetClass me, in (global::System.Object? sender, global::System.EventArgs e) args) => me.Event_Invoke_Override1(handler, args), static b => (sender, e) => b.Invoke((sender, e)), static (handler, me) => me.Event_Override1 += handler, static (handler, me) => me.Event_Override1 -= handler);
   private EventHandler? _handler;
-  private volatile global::Metalama.Framework.RunTime.ActionEventBroker<global::System.EventHandler, (global::System.Object? , global::System.EventArgs)>? _eventBroker;
-  private volatile global::Metalama.Framework.RunTime.ActionEventBroker<global::System.EventHandler, (global::System.Object? , global::System.EventArgs)>? _eventBroker_1;
+  private volatile global::Metalama.Framework.RunTime.ActionEventBroker<global::System.EventHandler, global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Overrides.Events.Invoke_Double.TargetClass, (global::System.Object? , global::System.EventArgs)>? _eventBroker;
+  private volatile global::Metalama.Framework.RunTime.ActionEventBroker<global::System.EventHandler, global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Overrides.Events.Invoke_Double.TargetClass, (global::System.Object? , global::System.EventArgs)>? _eventBroker_1;
   [Override]
   public event EventHandler Event
   {
     add
     {
-      global::Metalama.Framework.RunTime.ActionEventBroker<global::System.EventHandler, (global::System.Object? , global::System.EventArgs)>.EnsureInitialized(ref this._eventBroker_1, this, EventBrokerCallbacks_2);
+      global::Metalama.Framework.RunTime.ActionEventBroker<global::System.EventHandler, global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Overrides.Events.Invoke_Double.TargetClass, (global::System.Object? , global::System.EventArgs)>.EnsureInitialized(ref this._eventBroker_1, this, EventBrokerCallbacks_2);
       this._eventBroker_1.AddHandler(value);
     }
     remove
@@ -35,7 +35,7 @@ internal class TargetClass
   {
     add
     {
-      global::Metalama.Framework.RunTime.ActionEventBroker<global::System.EventHandler, (global::System.Object? , global::System.EventArgs)>.EnsureInitialized(ref this._eventBroker, this, EventBrokerCallbacks_0);
+      global::Metalama.Framework.RunTime.ActionEventBroker<global::System.EventHandler, global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Overrides.Events.Invoke_Double.TargetClass, (global::System.Object? , global::System.EventArgs)>.EnsureInitialized(ref this._eventBroker, this, EventBrokerCallbacks_0);
       this._eventBroker.AddHandler(value);
     }
     remove

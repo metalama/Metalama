@@ -1,7 +1,7 @@
 [Introduction]
 internal class TargetClass
 {
-  private static readonly global::Metalama.Framework.RunTime.ActionEventBrokerCallbacks<global::System.EventHandler, (global::System.Object? , global::System.EventArgs)> EventFromAccessorsBrokerCallbacks_0 = new global::Metalama.Framework.RunTime.ActionEventBrokerCallbacks<global::System.EventHandler, (global::System.Object? , global::System.EventArgs)>(static (handler, me, args) => ((global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Introductions.Events.Invoke.TargetClass)me).EventFromAccessors_Invoke_Introduction(handler, args), static b => (sender, e) => b.Invoke((sender, e)), static (handler, me) => ((global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Introductions.Events.Invoke.TargetClass)me).EventFromAccessors_Introduction += handler, static (handler, me) => ((global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Introductions.Events.Invoke.TargetClass)me).EventFromAccessors_Introduction -= handler);
+  private static readonly global::Metalama.Framework.RunTime.ActionEventBrokerCallbacks<global::System.EventHandler, global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Introductions.Events.Invoke.TargetClass, (global::System.Object? , global::System.EventArgs)> EventFromAccessorsBrokerCallbacks_0 = new(static (global::System.EventHandler handler, global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Introductions.Events.Invoke.TargetClass me, in (global::System.Object? sender, global::System.EventArgs e) args) => me.EventFromAccessors_Invoke_Introduction(handler, args), static b => (sender, e) => b.Invoke((sender, e)), static (handler, me) => me.EventFromAccessors_Introduction += handler, static (handler, me) => me.EventFromAccessors_Introduction -= handler);
   private event global::System.EventHandler EventFromAccessors_Introduction
   {
     add
@@ -18,12 +18,12 @@ internal class TargetClass
     global::System.Console.WriteLine("Invoke");
     handler.Invoke(args.sender, args.e);
   }
-  private volatile global::Metalama.Framework.RunTime.ActionEventBroker<global::System.EventHandler, (global::System.Object? , global::System.EventArgs)>? _eventFromAccessorsBroker;
+  private volatile global::Metalama.Framework.RunTime.ActionEventBroker<global::System.EventHandler, global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Introductions.Events.Invoke.TargetClass, (global::System.Object? , global::System.EventArgs)>? _eventFromAccessorsBroker;
   public event global::System.EventHandler EventFromAccessors
   {
     add
     {
-      global::Metalama.Framework.RunTime.ActionEventBroker<global::System.EventHandler, (global::System.Object? , global::System.EventArgs)>.EnsureInitialized(ref this._eventFromAccessorsBroker, this, EventFromAccessorsBrokerCallbacks_0);
+      global::Metalama.Framework.RunTime.ActionEventBroker<global::System.EventHandler, global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Introductions.Events.Invoke.TargetClass, (global::System.Object? , global::System.EventArgs)>.EnsureInitialized(ref this._eventFromAccessorsBroker, this, EventFromAccessorsBrokerCallbacks_0);
       this._eventFromAccessorsBroker.AddHandler(value);
     }
     remove

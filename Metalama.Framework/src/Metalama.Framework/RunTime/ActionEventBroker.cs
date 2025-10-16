@@ -12,13 +12,15 @@ namespace Metalama.Framework.RunTime;
 /// Provides thread-safe operations for adding/removing handlers and event invocation.
 /// </summary>
 /// <typeparam name="TDelegate">The event delegate type.</typeparam>
-/// <typeparam name="TArgs">The event arguments type.</typeparam>
-public sealed class ActionEventBroker<TDelegate, TArgs>
+/// <typeparam name="TArgs">The event arguments type  (i.e. the arguments of <typeparamref name="TDelegate"/> packed as a tuple).</typeparam>
+/// <typeparam name="TOwner">The type declaring the event.</typeparam>
+public sealed class ActionEventBroker<TDelegate, TOwner, TArgs>
     where TDelegate : Delegate
+    where TOwner : class
 {
-    private readonly DelegateList<TDelegate, TArgs> _handlers;
-    private readonly object _owner;
-    private readonly ActionEventBrokerCallbacks<TDelegate, TArgs> _delegates;
+    private readonly DelegateList<TDelegate, TOwner, TArgs> _handlers;
+    private readonly TOwner _owner;
+    private readonly ActionEventBrokerCallbacks<TDelegate, TOwner, TArgs> _delegates;
     private TDelegate? _invocationDelegate;
 
     /// <summary>
@@ -27,17 +29,17 @@ public sealed class ActionEventBroker<TDelegate, TArgs>
     public TDelegate InvocationDelegate => this._invocationDelegate ??= this._delegates.GetBrokerInvocationDelegate( this );
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="ActionEventBroker{TDelegate, TArgs}"/> class.
+    /// Initializes a new instance of the <see cref="ActionEventBroker{TDelegate, TOwner, TArgs}"/> class.
     /// </summary>
     /// <param name="owner">The object that owns this event broker.</param>
     /// <param name="delegates">Delegates required for operation of this class.</param>
     private ActionEventBroker(
-        object owner,
-        ActionEventBrokerCallbacks<TDelegate, TArgs> delegates)
+        TOwner owner,
+        ActionEventBrokerCallbacks<TDelegate, TOwner, TArgs> delegates )
     {
         this._owner = owner;
         this._delegates = delegates;
-        this._handlers = new();
+        this._handlers = new DelegateList<TDelegate, TOwner, TArgs>();
     }
 
     /// <summary>
@@ -56,7 +58,8 @@ public sealed class ActionEventBroker<TDelegate, TArgs>
 
                 if ( !lockTaken )
                 {
-                    throw new TimeoutException( "Timeout waiting to acquire lock in ActionEventBroker. This indicates complex underlying event or a deadlock." );
+                    throw new TimeoutException(
+                        "Timeout waiting to acquire lock in ActionEventBroker. This indicates complex underlying event or a deadlock." );
                 }
 
                 var wasFirst = this._handlers.IsEmpty;
@@ -93,7 +96,8 @@ public sealed class ActionEventBroker<TDelegate, TArgs>
 
                 if ( !lockTaken )
                 {
-                    throw new TimeoutException( "Timeout waiting to acquire lock in ActionEventBroker. This indicates complex underlying event or a deadlock." );
+                    throw new TimeoutException(
+                        "Timeout waiting to acquire lock in ActionEventBroker. This indicates complex underlying event or a deadlock." );
                 }
 
                 this._handlers.Remove( handler );
@@ -117,7 +121,7 @@ public sealed class ActionEventBroker<TDelegate, TArgs>
     /// Invokes all registered event handlers.
     /// </summary>
     /// <param name="args">The event arguments.</param>
-    public void Invoke( TArgs args )
+    public void Invoke( in TArgs args )
     {
         this._handlers.Invoke( this._delegates.InvokeHandler, this._owner, args );
     }
@@ -125,7 +129,7 @@ public sealed class ActionEventBroker<TDelegate, TArgs>
     /// <summary>
     /// Implicitly converts the broker to its delegate type.
     /// </summary>
-    public static implicit operator TDelegate( ActionEventBroker<TDelegate, TArgs> broker )
+    public static implicit operator TDelegate( ActionEventBroker<TDelegate, TOwner, TArgs> broker )
     {
         return broker.InvocationDelegate;
     }
@@ -136,14 +140,17 @@ public sealed class ActionEventBroker<TDelegate, TArgs>
     /// <param name="field">The field to initialize.</param>
     /// <param name="owner">The event owner object.</param>
     /// <param name="delegates">Delegates required for inner working of event brokers.</param>
-    public static void EnsureInitialized( ref ActionEventBroker<TDelegate, TArgs>? field, object owner, ActionEventBrokerCallbacks<TDelegate, TArgs> delegates )
+    public static void EnsureInitialized(
+        ref ActionEventBroker<TDelegate, TOwner, TArgs>? field,
+        TOwner owner,
+        ActionEventBrokerCallbacks<TDelegate, TOwner, TArgs> delegates )
     {
         if ( field != null )
         {
             return;
         }
 
-        var newBroker = new ActionEventBroker<TDelegate, TArgs>( owner, delegates );
+        var newBroker = new ActionEventBroker<TDelegate, TOwner, TArgs>( owner, delegates );
 
         Interlocked.CompareExchange( ref field, newBroker, null );
 

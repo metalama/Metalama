@@ -83,7 +83,7 @@ internal class IntroducePropertyTransformation : IntroduceMemberTransformation<P
                     ? EqualsValueClause( initializerExpression )
                     : null,
                 initializerExpression != null
-                    ? Token( TriviaList(), SyntaxKind.SemicolonToken, context.SyntaxGenerationContext.ElasticEndOfLineTriviaList )
+                    ? Token( TriviaList(), SyntaxKind.SemicolonToken, context.SyntaxGenerationContext.OptionalElasticEndOfLineTriviaList )
                     : default );
 
         var introducedProperty = new InjectedMember(
@@ -168,7 +168,7 @@ internal class IntroducePropertyTransformation : IntroduceMemberTransformation<P
                                     finalProperty.Type.IsReferenceType == false
                                         ? finalProperty.Type
                                         : finalProperty.Type.ToNullable() ),
-                                Token( TriviaList(), SyntaxKind.SemicolonToken, context.SyntaxGenerationContext.ElasticEndOfLineTriviaList ) ) ),
+                                Token( TriviaList(), SyntaxKind.SemicolonToken, context.SyntaxGenerationContext.OptionalElasticEndOfLineTriviaList ) ) ),
                     null,
                     hasNoBody ? Token( SyntaxKind.SemicolonToken ) : default );
         }

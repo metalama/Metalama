@@ -1023,12 +1023,12 @@ public sealed partial class ContextualSyntaxGenerator
 
     internal BlockSyntax FormattedBlock( IEnumerable<StatementSyntax> statements )
         => Block(
-            Token( default, SyntaxKind.OpenBraceToken, this.SyntaxGenerationContext.ElasticEndOfLineTriviaList ),
+            Token( default, SyntaxKind.OpenBraceToken, this.SyntaxGenerationContext.OptionalElasticEndOfLineTriviaList ),
             List(
                 statements.Select( s => NeedsLineFeed( s )
                                        ? s.WithOptionalTrailingLineFeed( this.SyntaxGenerationContext )
                                        : s ) ),
-            Token( this.SyntaxGenerationContext.ElasticEndOfLineTriviaList, SyntaxKind.CloseBraceToken, default ) );
+            Token( this.SyntaxGenerationContext.OptionalElasticEndOfLineTriviaList, SyntaxKind.CloseBraceToken, default ) );
 
     internal ExpressionSyntax SuppressNullableWarningExpression( ExpressionSyntax operand, IType? operandType )
     {

@@ -315,8 +315,8 @@ namespace Metalama.Framework.Engine.Linking
                                 if ( !eventBrokersWritable.TryGetValue( targetEventSymbol, out var eventBrokerInfo ) )
                                 {
                                     var eventBrokerType =
-                                        ((INamedType) finalCompilationModel.Factory.GetTypeByReflectionType( typeof(ActionEventBroker<,>) ))
-                                        .WithTypeArguments( delegateType, argsType );
+                                        ((INamedType) finalCompilationModel.Factory.GetTypeByReflectionType( typeof(ActionEventBroker<,,>) ))
+                                        .WithTypeArguments( delegateType, targetEvent.DeclaringType, argsType );
 
                                     var eventBrokerTypeSymbol =
                                         injectionRegistry.GetIntermediateCompilationSymbol<INamedTypeSymbol>( eventBrokerType ).AssertNotNull();
@@ -330,8 +330,8 @@ namespace Metalama.Framework.Engine.Linking
                                     (Dictionary<ITransformation, EventBrokerTransformationInfo>) eventBrokerInfo.Transformations;
 
                                 var brokerCallbacksType =
-                                    ((INamedType) finalCompilationModel.Factory.GetTypeByReflectionType( typeof(ActionEventBrokerCallbacks<,>) ))
-                                    .WithTypeArguments( delegateType, argsType );
+                                    ((INamedType) finalCompilationModel.Factory.GetTypeByReflectionType( typeof(ActionEventBrokerCallbacks<,,>) ))
+                                    .WithTypeArguments( delegateType, targetEvent.DeclaringType, argsType );
 
                                 var brokerCallbacksTypeSymbol =
                                     injectionRegistry.GetIntermediateCompilationSymbol<INamedTypeSymbol>( brokerCallbacksType ).AssertNotNull();
@@ -347,11 +347,11 @@ namespace Metalama.Framework.Engine.Linking
                                     context =>
                                         GetEventBrokerCallbacksInitializationExpression(
                                             context,
-                                            brokerCallbacksTypeSymbol,
                                             targetEventSymbol.ContainingType.AssertNotNull(),
                                             raiseMethodName,
                                             overrideName,
-                                            invokeMethod.Compilation.Factory.CreateTupleType( invokeMethod.Parameters ) ) );
+                                            invokeMethod.Compilation.Factory.CreateTupleType( invokeMethod.Parameters ),
+                                            delegateType ) );
 
                                 staticDelegatesForType.Add( brokerCallbacksField );
 
@@ -367,7 +367,7 @@ namespace Metalama.Framework.Engine.Linking
                                             MemberAccessExpression(
                                                 SyntaxKind.SimpleMemberAccessExpression,
                                                 context.SyntaxGenerator.TypeSyntax( eventBrokerInfo.EventBrokerType ),
-                                                IdentifierName( nameof(ActionEventBroker<,>.EnsureInitialized) ) ),
+                                                IdentifierName( nameof(ActionEventBroker<,,>.EnsureInitialized) ) ),
                                             ArgumentList(
                                                 SeparatedList<ArgumentSyntax>(
                                                 [
@@ -432,23 +432,43 @@ namespace Metalama.Framework.Engine.Linking
         private static ExpressionSyntax GetEventBrokerInvokerDelegateInitializationExpression(
             SyntaxGenerationContext context,
             INamedTypeSymbol containingType,
-            string raiseMethodName )
+            string raiseMethodName,
+            IType delegateType,
+            IType argsType )
         {
+            TypeSyntax? handlerTypeSyntax, meTypeSyntax, argsTypeSyntax;
+
+            if ( context.CompilationContext.LanguageVersion <= (LanguageVersion) 1400 )
+            {
+                // Under C# 14, we must specify the type of all lambda parameters because of `in`.
+                handlerTypeSyntax = context.SyntaxGenerator.TypeSyntax( delegateType ).WithRequiredTrailingSpace();
+                meTypeSyntax = context.SyntaxGenerator.TypeSyntax( containingType ).WithRequiredTrailingSpace();
+                argsTypeSyntax = context.SyntaxGenerator.TypeSyntax( argsType ).WithRequiredTrailingSpace();
+            }
+            else
+            {
+                handlerTypeSyntax = null;
+                meTypeSyntax = null;
+                argsTypeSyntax = null;
+            }
+
             var parameters = ParameterList(
                 SeparatedList<ParameterSyntax>(
                 [
-                    Parameter( Identifier( "handler" ) ),
-                    Parameter( Identifier( "me" ) ),
-                    Parameter( Identifier( "args" ) )
+                    Parameter( default, default, handlerTypeSyntax, Identifier( "handler" ), null ),
+                    Parameter( default, default, meTypeSyntax, Identifier( "me" ), null ),
+                    Parameter(
+                        default,
+                        SyntaxTokenList.Create( Token( SyntaxKind.InKeyword ).WithRequiredTrailingTrivia( SyntaxFactoryEx.ElasticSpaceTriviaList ) ),
+                        argsTypeSyntax,
+                        Identifier( "args" ),
+                        null )
                 ] ) );
 
             var expression = InvocationExpression(
                 MemberAccessExpression(
                     SyntaxKind.SimpleMemberAccessExpression,
-                    ParenthesizedExpression(
-                        CastExpression(
-                            context.SyntaxGenerator.TypeSyntax( containingType ),
-                            IdentifierName( "me" ) ) ),
+                    IdentifierName( "me" ),
                     IdentifierName( raiseMethodName ) ),
                 ArgumentList(
                     SeparatedList<ArgumentSyntax>(
@@ -466,8 +486,6 @@ namespace Metalama.Framework.Engine.Linking
         }
 
         private static ExpressionSyntax GetEventBrokerEventAccessDelegateInitializationExpression(
-            SyntaxGenerationContext context,
-            INamedTypeSymbol containingType,
             SyntaxKind operationKind,
             string overrideName )
         {
@@ -482,10 +500,7 @@ namespace Metalama.Framework.Engine.Linking
                 operationKind,
                 MemberAccessExpression(
                     SyntaxKind.SimpleMemberAccessExpression,
-                    ParenthesizedExpression(
-                        CastExpression(
-                            context.SyntaxGenerator.TypeSyntax( containingType ),
-                            IdentifierName( "me" ) ) ),
+                    IdentifierName( "me" ),
                     IdentifierName( overrideName ) ),
                 IdentifierName( "handler" ) );
 
@@ -499,42 +514,39 @@ namespace Metalama.Framework.Engine.Linking
 
         private static ExpressionSyntax GetEventBrokerCallbacksInitializationExpression(
             SyntaxGenerationContext context,
-            INamedTypeSymbol brokerCallbacksTypeSymbol,
             INamedTypeSymbol containingType,
             string raiseMethodName,
             string overrideName,
-            ITupleType invokeTupleType )
+            ITupleType argsType,
+            IType delegateType )
         {
             return
-                ObjectCreationExpression(
-                    Token( TriviaList( context.ElasticEndOfLineTriviaList ), SyntaxKind.NewKeyword, TriviaList( ElasticSpace ) ),
-                    context.SyntaxGenerator.TypeSyntax( brokerCallbacksTypeSymbol ),
+                ImplicitObjectCreationExpression(
+                    Token( TriviaList( context.OptionalElasticEndOfLineTriviaList ), SyntaxKind.NewKeyword, TriviaList( ElasticSpace ) ),
                     ArgumentList(
-                        Token( TriviaList(), SyntaxKind.OpenParenToken, TriviaList( context.ElasticEndOfLineTriviaList ) ),
+                        Token( TriviaList(), SyntaxKind.OpenParenToken, TriviaList( context.OptionalElasticEndOfLineTriviaList ) ),
                         SeparatedList<ArgumentSyntax>(
                             NodeOrTokenList(
                                 Argument(
                                     GetEventBrokerInvokerDelegateInitializationExpression(
                                         context,
                                         containingType,
-                                        raiseMethodName ) ),
-                                Token( TriviaList(), SyntaxKind.CommaToken, context.ElasticEndOfLineTriviaList ),
-                                Argument( GetEventBrokerCastDelegateInitializationExpression( invokeTupleType, context ) ),
-                                Token( TriviaList(), SyntaxKind.CommaToken, context.ElasticEndOfLineTriviaList ),
+                                        raiseMethodName,
+                                        delegateType,
+                                        argsType ) ),
+                                Token( TriviaList(), SyntaxKind.CommaToken, context.OptionalElasticEndOfLineTriviaList ),
+                                Argument( GetEventBrokerCastDelegateInitializationExpression( argsType, context ) ),
+                                Token( TriviaList(), SyntaxKind.CommaToken, context.OptionalElasticEndOfLineTriviaList ),
                                 Argument(
                                     GetEventBrokerEventAccessDelegateInitializationExpression(
-                                        context,
-                                        containingType,
                                         SyntaxKind.AddAssignmentExpression,
                                         overrideName ) ),
-                                Token( TriviaList(), SyntaxKind.CommaToken, context.ElasticEndOfLineTriviaList ),
+                                Token( TriviaList(), SyntaxKind.CommaToken, context.OptionalElasticEndOfLineTriviaList ),
                                 Argument(
                                     GetEventBrokerEventAccessDelegateInitializationExpression(
-                                        context,
-                                        containingType,
                                         SyntaxKind.SubtractAssignmentExpression,
                                         overrideName ) ) ) ),
-                        Token( TriviaList( context.ElasticEndOfLineTriviaList ), SyntaxKind.CloseParenToken, TriviaList() ) ),
+                        Token( TriviaList( context.OptionalElasticEndOfLineTriviaList ), SyntaxKind.CloseParenToken, TriviaList() ) ),
                     null );
         }
 

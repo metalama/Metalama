@@ -242,7 +242,7 @@ namespace Metalama.Framework.Engine.Linking
                                 IdentifierName( GetBackingFieldName( (IEventSymbol) symbol.AssociatedSymbol.AssertNotNull() ) ) )
                             .WithSimplifierAnnotationIfNecessary( context ),
                         IdentifierName( "value" ) ),
-                    Token( default, SyntaxKind.SemicolonToken, context.ElasticEndOfLineTriviaList ) ) );
+                    Token( default, SyntaxKind.SemicolonToken, context.OptionalElasticEndOfLineTriviaList ) ) );
 
         private EventFieldDeclarationSyntax GetEventBackingField(
             EventDeclarationSyntax eventDeclaration,
@@ -320,7 +320,7 @@ namespace Metalama.Framework.Engine.Linking
                                     initializer ) ) ) )
                     .NormalizeWhitespaceIfNecessary( context )
                     .WithOptionalTrivia(
-                        context.ElasticEndOfLineTriviaList,
+                        context.OptionalElasticEndOfLineTriviaList,
                         context.TwoElasticEndOfLinesTriviaList,
                         this.SyntaxGenerationOptions )
                     .WithGeneratedCodeAnnotation( FormattingAnnotations.SystemGeneratedCodeAnnotation );

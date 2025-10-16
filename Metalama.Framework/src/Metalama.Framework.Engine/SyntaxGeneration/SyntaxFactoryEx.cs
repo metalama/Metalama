@@ -31,6 +31,7 @@ public static partial class SyntaxFactoryEx
             SyntaxFactory.Token( SyntaxKind.DefaultKeyword ) );
 
     internal static SyntaxTriviaList ElasticSpaceTriviaList { get; } = new( SyntaxFactory.ElasticSpace );
+    internal static SyntaxTriviaList ElasticLineFeedTriviaList { get; } = new( SyntaxFactory.ElasticLineFeed );
 
     public static SyntaxToken TokenWithTrailingSpace( SyntaxKind kind )
         => _tokensWithTrailingSpace.GetOrAdd( kind, static k => SyntaxFactory.Token( default, k, ElasticSpaceTriviaList ) );
@@ -215,6 +216,6 @@ public static partial class SyntaxFactoryEx
                         SyntaxKind.EqualsToken,
                         SyntaxFactory.TriviaList( SyntaxFactory.ElasticSpace ) ),
                     right ),
-                SyntaxFactory.Token( default, SyntaxKind.SemicolonToken, syntaxGenerationContext.ElasticEndOfLineTriviaList ) )
+                SyntaxFactory.Token( default, SyntaxKind.SemicolonToken, syntaxGenerationContext.OptionalElasticEndOfLineTriviaList ) )
             .WithGeneratedCodeAnnotation( FormattingAnnotations.SystemGeneratedCodeAnnotation );
 }

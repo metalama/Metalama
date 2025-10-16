@@ -194,6 +194,12 @@ public static class SyntaxExtensions
 
         return node.WithLeadingTrivia( node.GetLeadingTrivia().Add( context.ElasticEndOfLineTrivia ) );
     }
+    
+    internal static TNode WithRequiredLeadingLineFeed<TNode>(
+        this TNode node,
+        SyntaxGenerationContext context )
+        where TNode : SyntaxNode
+        => node.WithLeadingTrivia( node.GetLeadingTrivia().Add( context.ElasticEndOfLineTrivia ) );
 
     internal static TNode WithOptionalLeadingAndTrailingLineFeed<TNode>(
         this TNode node,
@@ -293,6 +299,10 @@ public static class SyntaxExtensions
 
         return token.WithTrailingTrivia( trailingTrivia );
     }
+
+    internal static TNode WithRequiredTrailingSpace<TNode>( this TNode node )
+        where TNode : SyntaxNode
+        => node.WithRequiredTrailingTrivia( SyntaxFactoryEx.ElasticSpaceTriviaList );
 
     internal static TNode WithRequiredTrailingTrivia<TNode>( this TNode node, SyntaxTriviaList trailingTrivia )
         where TNode : SyntaxNode

@@ -58,7 +58,7 @@ internal sealed class RecordParameterSubstitution : SyntaxNodeSubstitution
                                     Token(
                                         TriviaList(),
                                         SyntaxKind.SemicolonToken,
-                                        substitutionContext.SyntaxGenerationContext.ElasticEndOfLineTriviaList ) ) )
+                                        substitutionContext.SyntaxGenerationContext.OptionalElasticEndOfLineTriviaList ) ) )
                             .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock );
                 }
 
