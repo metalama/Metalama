@@ -6,7 +6,7 @@ using System;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
-namespace Metalama.Framework.RunTime;
+namespace Metalama.Framework.RunTime.Events;
 
 /// <summary>
 /// Manages event handlers for event override advice when raise templates are specified.
@@ -17,30 +17,30 @@ namespace Metalama.Framework.RunTime;
 /// <typeparam name="TOwner">The type declaring the event.</typeparam>
 public sealed class EventBroker<TDelegate, TOwner, TArgs>
     where TDelegate : Delegate
-    where TOwner : class
+    where TOwner : class?
 {
-    private readonly DelegateList<TDelegate, TOwner, TArgs> _handlers;
     private readonly TOwner _owner;
-    private readonly EventBrokerCallbacks<TDelegate, TOwner, TArgs> _delegates;
+    private readonly IEventAdapter<TDelegate, TOwner, TArgs> _adapter;
+    private DelegateList<TDelegate, TOwner, TArgs> _handlers;
     private TDelegate? _invocationDelegate;
+    private SpinLock _lock;
 
     /// <summary>
     /// Gets a delegate that calls the <see cref="Invoke" /> method.
     /// </summary>
-    public TDelegate InvocationDelegate => this._invocationDelegate ??= this._delegates.GetBrokerInvocationDelegate( this );
+    public TDelegate InvocationDelegate => this._invocationDelegate ??= this._adapter.GetBrokerInvocationDelegate( this );
 
     /// <summary>
     /// Initializes a new instance of the <see cref="EventBroker{TDelegate,TOwner,TArgs}"/> class.
     /// </summary>
     /// <param name="owner">The object that owns this event broker.</param>
-    /// <param name="delegates">Delegates required for operation of this class.</param>
+    /// <param name="adapter">Delegates required for operation of this class.</param>
     private EventBroker(
         TOwner owner,
-        EventBrokerCallbacks<TDelegate, TOwner, TArgs> delegates )
+        IEventAdapter<TDelegate, TOwner, TArgs> adapter )
     {
         this._owner = owner;
-        this._delegates = delegates;
-        this._handlers = new DelegateList<TDelegate, TOwner, TArgs>();
+        this._adapter = adapter;
     }
 
     /// <summary>
@@ -58,12 +58,11 @@ public sealed class EventBroker<TDelegate, TOwner, TArgs>
 
         try
         {
-            Monitor.TryEnter( this._handlers, EventBrokerServices.LockTimeout, ref lockTaken );
+            this._lock.TryEnter( EventBrokerServices.LockTimeout, ref lockTaken );
 
             if ( !lockTaken )
             {
-                throw new TimeoutException(
-                    "Timeout waiting to acquire lock in ActionEventBroker. This indicates complex underlying event or a deadlock." );
+                throw new TimeoutException( "Timeout waiting to acquire lock in ActionEventBroker. This indicates complex underlying event or a deadlock." );
             }
 
             var wasFirst = this._handlers.IsEmpty;
@@ -71,14 +70,14 @@ public sealed class EventBroker<TDelegate, TOwner, TArgs>
 
             if ( wasFirst )
             {
-                this._delegates.AddHandler( this.InvocationDelegate, this._owner );
+                this._adapter.AddHandler( this.InvocationDelegate, this._owner );
             }
         }
         finally
         {
             if ( lockTaken )
             {
-                Monitor.Exit( this._handlers );
+                this._lock.Exit();
             }
         }
     }
@@ -102,15 +101,14 @@ public sealed class EventBroker<TDelegate, TOwner, TArgs>
 
             if ( !lockTaken )
             {
-                throw new TimeoutException(
-                    "Timeout waiting to acquire lock in ActionEventBroker. This indicates complex underlying event or a deadlock." );
+                throw new TimeoutException( "Timeout waiting to acquire lock in ActionEventBroker. This indicates complex underlying event or a deadlock." );
             }
 
             this._handlers.Remove( handler );
 
             if ( this._handlers.IsEmpty )
             {
-                this._delegates.RemoveHandler( this.InvocationDelegate, this._owner );
+                this._adapter.RemoveHandler( this.InvocationDelegate, this._owner );
             }
         }
         finally
@@ -129,7 +127,7 @@ public sealed class EventBroker<TDelegate, TOwner, TArgs>
     /// <param name="args">The event arguments.</param>
     public void InvokeByRef( ref TArgs args )
     {
-        this._handlers.Invoke( this._delegates.InvokeHandler, this._owner, ref args );
+        this._handlers.Invoke( this._adapter.InvokeHandler, this._owner, ref args );
     }
 
     /// <summary>
@@ -146,10 +144,7 @@ public sealed class EventBroker<TDelegate, TOwner, TArgs>
     /// <summary>
     /// Implicitly converts the broker to its delegate type.
     /// </summary>
-    public static implicit operator TDelegate( EventBroker<TDelegate, TOwner, TArgs> broker )
-    {
-        return broker.InvocationDelegate;
-    }
+    public static implicit operator TDelegate( EventBroker<TDelegate, TOwner, TArgs> broker ) => broker.InvocationDelegate;
 
     /// <summary>
     /// Thread-safely initializes an event broker field.
@@ -160,7 +155,7 @@ public sealed class EventBroker<TDelegate, TOwner, TArgs>
     public static void EnsureInitialized(
         ref EventBroker<TDelegate, TOwner, TArgs>? field,
         TOwner owner,
-        EventBrokerCallbacks<TDelegate, TOwner, TArgs> delegates )
+        DelegateEventAdapter<TDelegate, TOwner, TArgs> delegates )
     {
         if ( field != null )
         {

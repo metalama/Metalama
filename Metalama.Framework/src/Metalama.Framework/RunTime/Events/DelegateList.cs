@@ -5,7 +5,7 @@
 using System;
 using System.Threading;
 
-namespace Metalama.Framework.RunTime;
+namespace Metalama.Framework.RunTime.Events;
 
 /// <summary>
 /// Thread-safe collection of delegates used by event brokers to manage event handlers.
@@ -13,16 +13,16 @@ namespace Metalama.Framework.RunTime;
 /// <typeparam name="TDelegate">The delegate type. Must be a reference type delegate.</typeparam>
 /// <typeparam name="TArgs">The event arguments type.</typeparam>
 /// <typeparam name="TOwner">The type declaring the event.</typeparam>
-internal class DelegateList<TDelegate, TOwner, TArgs>
+internal struct DelegateList<TDelegate, TOwner, TArgs>
     where TDelegate : class, Delegate
-    where TOwner : class
+    where TOwner : class?
 {
     private volatile TDelegate? _delegates;
 
     /// <summary>
     /// Gets a value indicating whether no delegates are registered.
     /// </summary>
-    public bool IsEmpty => this._delegates == null;
+    public readonly bool IsEmpty => this._delegates == null;
 
     /// <summary>
     /// Adds a delegate using atomic operations.
@@ -43,7 +43,7 @@ internal class DelegateList<TDelegate, TOwner, TArgs>
             if ( Interlocked.CompareExchange( ref this._delegates, newValue, currentValue ) == currentValue )
             {
                 // Successfully updated the delegates.
-                return currentValue == null && newValue != null;
+                return currentValue == null && newValue != null!;
             }
         }
     }
@@ -77,7 +77,7 @@ internal class DelegateList<TDelegate, TOwner, TArgs>
     /// </summary>
     /// <param name="owner">The event owner object.</param>
     /// <param name="args">The event arguments.</param>
-    public void Invoke( EventHandlerInvocationCallback<TDelegate, TOwner, TArgs> invoker, TOwner owner, ref TArgs args )
+    public readonly void Invoke( EventHandlerInvocationCallback<TDelegate, TOwner, TArgs> invoker, TOwner owner, ref TArgs args )
     {
         var currentValue = this._delegates;
 

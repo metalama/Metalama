@@ -2,7 +2,6 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using Metalama.Framework.RunTime;
 using System;
 using System.Globalization;
 using Xunit;
@@ -15,13 +14,13 @@ using Xunit;
 
 namespace Metalama.Framework.Tests.UnitTests.RunTime;
 
-public class EventBrokerTests
+public partial class EventBrokerTests
 {
     [Fact]
     public void AddDelegate()
     {
         var brokerInvocations = 0;
-        var test = new TestClass_EventHandler( () => brokerInvocations++ );
+        var test = new TestClassEventHandler( () => brokerInvocations++ );
 
         var handlerInvocations = 0;
         EventHandler handler = ( _, _ ) => handlerInvocations++;
@@ -38,7 +37,7 @@ public class EventBrokerTests
     public void AddTwoDelegates()
     {
         var brokerInvocations = 0;
-        var test = new TestClass_EventHandler( () => brokerInvocations++ );
+        var test = new TestClassEventHandler( () => brokerInvocations++ );
 
         var handler1Invocations = 0;
         var handler2Invocations = 0;
@@ -59,7 +58,7 @@ public class EventBrokerTests
     public void AddOneDelegateTwice()
     {
         var brokerInvocations = 0;
-        var test = new TestClass_EventHandler( () => brokerInvocations++ );
+        var test = new TestClassEventHandler( () => brokerInvocations++ );
 
         var handlerInvocations = 0;
         EventHandler handler = ( _, _ ) => handlerInvocations++;
@@ -77,7 +76,7 @@ public class EventBrokerTests
     public void AddAndRemoveSameDelegate()
     {
         var brokerInvocations = 0;
-        var test = new TestClass_EventHandler( () => brokerInvocations++ );
+        var test = new TestClassEventHandler( () => brokerInvocations++ );
 
         var handlerInvocations = 0;
         EventHandler handler = ( _, _ ) => handlerInvocations++;
@@ -95,7 +94,7 @@ public class EventBrokerTests
     public void AddTwoDelegatesAndRemoveOne()
     {
         var brokerInvocations = 0;
-        var test = new TestClass_EventHandler( () => brokerInvocations++ );
+        var test = new TestClassEventHandler( () => brokerInvocations++ );
 
         var handler1Invocations = 0;
         var handler2Invocations = 0;
@@ -117,7 +116,7 @@ public class EventBrokerTests
     public void AddSameDelegateTwiceAndRemoveOnce()
     {
         var brokerInvocations = 0;
-        var test = new TestClass_EventHandler( () => brokerInvocations++ );
+        var test = new TestClassEventHandler( () => brokerInvocations++ );
 
         var handlerInvocations = 0;
         EventHandler handler = ( _, _ ) => handlerInvocations++;
@@ -136,7 +135,7 @@ public class EventBrokerTests
     public void RemoveDifferentDelegate()
     {
         var brokerInvocations = 0;
-        var test = new TestClass_EventHandler( () => brokerInvocations++ );
+        var test = new TestClassEventHandler( () => brokerInvocations++ );
 
         var registeredHandlerInvocations = 0;
         var unregisteredHandlerInvocations = 0;
@@ -157,7 +156,7 @@ public class EventBrokerTests
     public void AddMulticastDelegate()
     {
         var brokerInvocations = 0;
-        var test = new TestClass_EventHandler( () => brokerInvocations++ );
+        var test = new TestClassEventHandler( () => brokerInvocations++ );
 
         var handler1Invocations = 0;
         var handler2Invocations = 0;
@@ -183,96 +182,37 @@ public class EventBrokerTests
     public void Func()
     {
         // This proofs the concept that we can use EventBroker with non-void delegates.
-        // The same can be done with `out` and `ref` parameters.
 
         var brokerInvocations = 0;
-        var test = new TestClass_Func( () => brokerInvocations++ );
-        test.Event += i => i.ToString( CultureInfo.InvariantCulture ) ;
+        var test = new TestClassFunc( () => brokerInvocations++ );
+        test.Event += i => i.ToString( CultureInfo.InvariantCulture );
         var result = test.OnEvent( 5 );
 
         Assert.Equal( "5", result );
         Assert.Equal( 1, brokerInvocations );
     }
 
-    public class TestClass_EventHandler
+    [Fact]
+    public void Refness()
     {
-        private readonly Action _onBrokerInvoke;
+        // This proofs the concept that we can use EventBroker with out and ref parameters.
 
-        private volatile EventBroker<EventHandler, TestClass_EventHandler, (object? Sender, EventArgs Args)>? _broker;
-        private EventHandler? _originalEvent;
+        var brokerInvocations = 0;
+        var test = new TestClassRefness( () => brokerInvocations++ );
 
-        public TestClass_EventHandler( Action onBrokerInvoke )
+        test.Event += ( in int param, out string? outParam, ref DateTime refParam ) =>
         {
-            this._onBrokerInvoke = onBrokerInvoke;
+            outParam = $"Ciao {param}";
+            refParam = DateTime.Now;
 
-            EventBroker<EventHandler, TestClass_EventHandler, (object? Sender, EventArgs Args)>.EnsureInitialized(
-#pragma warning disable CS0420 // A reference to a volatile field will not be treated as volatile
-                ref this._broker,
-#pragma warning restore CS0420 // A reference to a volatile field will not be treated as volatile
-                this,
-                new EventBrokerCallbacks<EventHandler, TestClass_EventHandler, (object? Sender, EventArgs Args)>(
-                    ( EventHandler h, TestClass_EventHandler i, ref (object? Sender, EventArgs Args) args ) => i.OnEventViaBroker( h, args ),
-                    broker => ( sender, args ) => { broker.Invoke( (sender, args) ); },
-                    ( h, i ) => i._originalEvent += h,
-                    ( h, i ) => i._originalEvent -= h ) );
-        }
+            return "Basta";
+        };
 
-        public event EventHandler Event
-        {
-            add => this._broker?.AddHandler( value );
-            remove => this._broker?.RemoveHandler( value );
-        }
+        var dt = DateTime.MinValue;
+        var result = test.OnEvent( 5, out var o, ref dt );
 
-        public void OnEvent( EventArgs args ) => this._originalEvent?.Invoke( this, args );
-
-        private void OnEventViaBroker( EventHandler handler, (object? Sender, EventArgs Args) args )
-        {
-            this._onBrokerInvoke();
-            handler.Invoke( args.Sender, args.Args );
-        }
-    }
-
-    public class TestClass_Func
-    {
-        private readonly Action _onBrokerInvoke;
-
-        private volatile EventBroker<Func<int, string>, TestClass_Func, (int Input, string? ReturnValue)>? _broker;
-        private Func<int, string>? _originalEvent;
-
-        public TestClass_Func( Action onBrokerInvoke )
-        {
-            this._onBrokerInvoke = onBrokerInvoke;
-
-            EventBroker<Func<int, string>, TestClass_Func, (int Input, string? ReturnValue)>.EnsureInitialized(
-#pragma warning disable CS0420 // A reference to a volatile field will not be treated as volatile
-                ref this._broker,
-#pragma warning restore CS0420 // A reference to a volatile field will not be treated as volatile
-                this,
-                new EventBrokerCallbacks<Func<int, string>, TestClass_Func, (int Input, string? ReturnValue)>(
-                    ( Func<int, string> h, TestClass_Func i, ref (int Input, string? ReturnValue) args ) => i.OnEventViaBroker( h, ref args ),
-                    broker => input =>
-                    {
-                        var args = (input, ReturnValue: (string?) null);
-                        broker.InvokeByRef( ref args );
-
-                        return args.ReturnValue;
-                    },
-                    ( h, i ) => i._originalEvent += h,
-                    ( h, i ) => i._originalEvent -= h ) );
-        }
-
-        public event Func<int, string> Event
-        {
-            add => this._broker?.AddHandler( value );
-            remove => this._broker?.RemoveHandler( value );
-        }
-
-        public string OnEvent( int input ) => this._originalEvent?.Invoke( input );
-
-        private void OnEventViaBroker( Func<int, string> handler, ref (int Input, string? ReturnValue) args )
-        {
-            this._onBrokerInvoke();
-            args.ReturnValue = handler.Invoke( args.Input );
-        }
+        Assert.Equal( 1, brokerInvocations );
+        Assert.Equal( "Basta", result );
+        Assert.Equal( "Ciao 5", o );
     }
 }

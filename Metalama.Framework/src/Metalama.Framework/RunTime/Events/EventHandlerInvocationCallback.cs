@@ -4,7 +4,7 @@
 
 using System;
 
-namespace Metalama.Framework.RunTime;
+namespace Metalama.Framework.RunTime.Events;
 
 /// <summary>
 /// Signature of the callback invoked by <see cref="EventBroker{TDelegate,TOwner,TArgs}"/> into an aspect-generated method in the owner type.
@@ -12,6 +12,6 @@ namespace Metalama.Framework.RunTime;
 /// <typeparam name="TDelegate">Type of the delegate.</typeparam>
 /// <typeparam name="TOwner">Type of the class declaring the event.</typeparam>
 /// <typeparam name="TArgs">Type of arguments (i.e. the arguments of <typeparamref name="TDelegate"/> packed as a tuple).</typeparam>
-public delegate void EventHandlerInvocationCallback<in TDelegate, in TOwner, TArgs>( TDelegate @delegate, TOwner owner, ref TArgs args )
+public delegate void EventHandlerInvocationCallback<in TDelegate, in TOwner, TArgs>( TDelegate handler, TOwner owner, ref TArgs args )
     where TDelegate : Delegate
-    where TOwner : class;
+    where TOwner : class?;

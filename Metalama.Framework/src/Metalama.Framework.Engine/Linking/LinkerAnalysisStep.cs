@@ -13,7 +13,7 @@ using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.Transformations;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Metalama.Framework.Engine.Utilities.Threading;
-using Metalama.Framework.RunTime;
+using Metalama.Framework.RunTime.Events;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -330,7 +330,7 @@ namespace Metalama.Framework.Engine.Linking
                                     (Dictionary<ITransformation, EventBrokerTransformationInfo>) eventBrokerInfo.Transformations;
 
                                 var brokerCallbacksType =
-                                    ((INamedType) finalCompilationModel.Factory.GetTypeByReflectionType( typeof(EventBrokerCallbacks<,,>) ))
+                                    ((INamedType) finalCompilationModel.Factory.GetTypeByReflectionType( typeof(DelegateEventAdapter<,,>) ))
                                     .WithTypeArguments( delegateType, targetEvent.DeclaringType, argsType );
 
                                 var brokerCallbacksTypeSymbol =

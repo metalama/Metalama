@@ -4,7 +4,7 @@
 
 using System;
 
-namespace Metalama.Framework.RunTime;
+namespace Metalama.Framework.RunTime.Events;
 
 /// <summary>
 /// Provides services and configuration for event brokers.

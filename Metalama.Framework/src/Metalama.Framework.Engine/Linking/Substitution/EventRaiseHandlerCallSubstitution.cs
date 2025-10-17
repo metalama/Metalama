@@ -19,7 +19,7 @@ internal sealed class EventRaiseHandlerCallSubstitution : SyntaxNodeSubstitution
 {
     private readonly SyntaxNode _rootNode;
     private readonly IMethodSymbol _containingMethod;
-    private IMethodSymbol _delegateSignature;
+    private readonly IMethodSymbol _delegateSignature;
 
     public EventRaiseHandlerCallSubstitution( CompilationContext compilationContext, ResolvedAspectReference aspectReference ) : base( compilationContext )
     {
