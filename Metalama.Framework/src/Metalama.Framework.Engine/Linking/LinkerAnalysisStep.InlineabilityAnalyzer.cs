@@ -186,9 +186,9 @@ internal sealed partial class LinkerAnalysisStep
 
             bool IsInlineableProperty( IntermediateSymbolSemantic<IPropertySymbol> semantic )
             {
-                if ( semantic.Symbol.IsAutoProperty() == true && semantic.Kind == IntermediateSymbolSemanticKind.Default )
+                if ( semantic.Symbol.IsAutoProperty() == true && semantic.Symbol.HasBody() != true && semantic.Kind == IntermediateSymbolSemanticKind.Default )
                 {
-                    // Override target that is auto property is never inlineable.
+                    // Override target that is body-less auto property is never inlineable.
                     return false;
                 }
                 else

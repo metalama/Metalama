@@ -183,10 +183,25 @@ namespace Metalama.Framework.Engine.Linking
 
             var inliningSpecifications = await inliningAlgorithm.RunAsync( cancellationToken );
 
+            var overriddenHybridAutoProperties = input.InjectionRegistry.GetOverriddenMembers()
+                .Where( s => s is IPropertySymbol propertySymbol && propertySymbol.IsAutoProperty() == true && propertySymbol.HasBody() == true )
+                .Cast<IPropertySymbol>()
+                .ToArray();
+
             var redirectedGetOnlyAutoPropertyReferences = await GetRedirectedGetOnlyAutoPropertyReferencesAsync(
                 symbolReferenceFinder,
                 redirectedGetOnlyAutoProperties,
                 cancellationToken );
+
+            var backingFieldReferences =
+#if ROSLYN_5_0_0_OR_GREATER
+                await this.GetPropertyBackingFieldReferencesAsync(
+                    symbolReferenceFinder,
+                    overriddenHybridAutoProperties,
+                    cancellationToken );
+#else
+                Array.Empty<IntermediateSymbolSemanticReference>();
+#endif
 
             var callerAttributeReferences =
                 await GetCallerAttributeReferencesAsync(
@@ -222,6 +237,7 @@ namespace Metalama.Framework.Engine.Linking
                 redirectedGetOnlyAutoPropertyReferences,
                 forcefullyInitializedTypes,
                 eventFieldRaiseReferences,
+                backingFieldReferences,
                 callerAttributeReferences,
                 eventBrokerSemanticIndex );
 
@@ -914,6 +930,72 @@ namespace Metalama.Framework.Engine.Linking
 
             return list;
         }
+
+#if ROSLYN_5_0_0_OR_GREATER
+        /// <summary>
+        /// Finds all references to auto property backing fields.
+        /// </summary>
+        private async Task<IReadOnlyList<IntermediateSymbolSemanticReference>> GetPropertyBackingFieldReferencesAsync(
+            SymbolReferenceFinder symbolReferenceFinder,
+            IReadOnlyList<IPropertySymbol> overriddenHybridAutoProperties,
+            CancellationToken cancellationToken )
+        {
+            var concurrentTaskRunner = this._serviceProvider.GetRequiredService<IConcurrentTaskRunner>();
+            var list = new ConcurrentBag<IntermediateSymbolSemanticReference>();
+
+            await concurrentTaskRunner.RunConcurrentlyAsync(
+                overriddenHybridAutoProperties,
+                property =>
+                {
+                    var declaration = property.GetPrimaryDeclarationSyntax();
+
+                    var (get, set) =
+                        declaration switch
+                        {
+                            PropertyDeclarationSyntax { AccessorList.Accessors: [{ Keyword.RawKind: (int) SyntaxKind.GetKeyword } getAccessor, { Keyword.RawKind: (int) SyntaxKind.SetKeyword or (int) SyntaxKind.InitKeyword } setAccessor] }
+                                => (getAccessor, setAccessor),
+                            PropertyDeclarationSyntax { AccessorList.Accessors: [{ Keyword.RawKind: (int) SyntaxKind.SetKeyword or (int) SyntaxKind.InitKeyword } setAccessor, { Keyword.RawKind: (int) SyntaxKind.GetKeyword } getAccessor] }
+                                => (getAccessor, setAccessor),
+                            PropertyDeclarationSyntax { AccessorList.Accessors: [{ Keyword.RawKind: (int) SyntaxKind.GetKeyword } getAccessor] }
+                                => (getAccessor, null),
+                            _ => throw new InvalidOperationException( "Auto property expected." ),
+                        };
+
+                    if ( get.Body != null || get.ExpressionBody != null )
+                    {
+                        var visitor = new AutoPropertyBodyWalker();
+                        visitor.Visit( get );
+
+                        foreach ( var fieldExpression in visitor.FieldExpressions )
+                        {
+                            list.Add(
+                                new IntermediateSymbolSemanticReference(
+                                    property.GetMethod.AssertNotNull().ToSemantic( IntermediateSymbolSemanticKind.Default ),
+                                    property.GetBackingField().AssertNotNull().ToSemantic( IntermediateSymbolSemanticKind.Default ),
+                                    fieldExpression ) );
+                        }
+                    }
+
+                    if ( set?.Body != null || set?.ExpressionBody != null )
+                    {
+                        var visitor = new AutoPropertyBodyWalker();
+                        visitor.Visit( set );
+
+                        foreach ( var fieldExpression in visitor.FieldExpressions )
+                        {
+                            list.Add(
+                                new IntermediateSymbolSemanticReference(
+                                    property.SetMethod.AssertNotNull().ToSemantic( IntermediateSymbolSemanticKind.Default ),
+                                    property.GetBackingField().AssertNotNull().ToSemantic( IntermediateSymbolSemanticKind.Default ),
+                                    fieldExpression ) );
+                        }
+                    }
+                },
+                cancellationToken );
+
+            return list.ToList();
+        }
+#endif
 
         /// <summary>
         /// Finds all references to overridden methods that have caller attributes and need to be fixed.
