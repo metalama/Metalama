@@ -44,8 +44,10 @@ internal sealed partial class LinkerAnalysisStep
         private readonly IReadOnlyDictionary<IntermediateSymbolSemantic<IMethodSymbol>, IReadOnlyList<IntermediateSymbolSemanticReference>>
             _eventFieldRaiseReferencesByContainingSemantic;
 
+#pragma warning disable IDE0052
         private readonly IReadOnlyDictionary<IntermediateSymbolSemantic<IMethodSymbol>, IReadOnlyList<IntermediateSymbolSemanticReference>>
             _backingFieldReferencesByContainingSemantic;
+#pragma warning restore IDE0052
 
         private readonly IReadOnlyDictionary<
             IntermediateSymbolSemantic<IMethodSymbol>,
