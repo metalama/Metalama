@@ -4,6 +4,7 @@
 
 #if TESTOPTIONS
 // @RequiredConstant(NET6_0_OR_GREATER)
+// @RequiredConstant(ROSLYN_5_0_0_OR_GREATER)
 // @FormatOutput
 #endif
 

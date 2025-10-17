@@ -1,7 +1,7 @@
 internal class TargetCode
 {
-  private static readonly DelegateEventAdapter<EventHandler, (object? , EventArgs), TargetCode> EventFieldBrokerCallbacks_0 = new(static (handler, ref args, me) => me.EventField_Invoke_SafeEvent(handler, ref args), static b => (sender, e) => b.Invoke((sender, e)), static (handler, me) => me.EventField_SafeEvent += handler, static (handler, me) => me.EventField_SafeEvent -= handler);
-  private static readonly DelegateEventAdapter<EventHandler, (object? , EventArgs), TargetCode> EventBrokerCallbacks_0 = new(static (handler, ref args, me) => me.Event_Invoke_SafeEvent(handler, ref args), static b => (sender, e) => b.Invoke((sender, e)), static (handler, me) => me.Event_SafeEvent += handler, static (handler, me) => me.Event_SafeEvent -= handler);
+  private static readonly DelegateEventAdapter<EventHandler, (object? , EventArgs), TargetCode> EventFieldBrokerCallbacks_0 = new(static (EventHandler handler, ref (object? sender, EventArgs e) args, TargetCode me) => me.EventField_Invoke_SafeEvent(handler, ref args), static b => (sender, e) => b.Invoke((sender, e)), static (handler, me) => me.EventField_SafeEvent += handler, static (handler, me) => me.EventField_SafeEvent -= handler);
+  private static readonly DelegateEventAdapter<EventHandler, (object? , EventArgs), TargetCode> EventBrokerCallbacks_0 = new(static (EventHandler handler, ref (object? sender, EventArgs e) args, TargetCode me) => me.Event_Invoke_SafeEvent(handler, ref args), static b => (sender, e) => b.Invoke((sender, e)), static (handler, me) => me.Event_SafeEvent += handler, static (handler, me) => me.Event_SafeEvent -= handler);
   private List<EventHandler> _delegates = new List<EventHandler>();
   private event EventHandler _eventField = default !;
   private volatile EventBroker<EventHandler, (object? , EventArgs), TargetCode>? _eventFieldBroker;
