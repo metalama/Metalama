@@ -23,6 +23,17 @@ public class IntroductionAttribute : TypeAspect
             nameof( RemoveEventTemplate ),
             invokeTemplate: nameof( InvokeEventTemplate ),
             buildEvent: e => e.Accessibility = Accessibility.Public );
+        
+        builder.IntroduceEvent(
+            "StaticEventFromAccessors",
+            nameof( AddEventTemplate ),
+            nameof( RemoveEventTemplate ),
+            invokeTemplate: nameof( InvokeEventTemplate ),
+            buildEvent: e =>
+            {
+                e.Accessibility = Accessibility.Public;
+                e.IsStatic = true;
+            } );
     }
 
     [Template]

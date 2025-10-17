@@ -14,7 +14,7 @@ internal sealed class EventBrokerAdderSubstitution : SyntaxNodeSubstitution
 {
     private readonly ResolvedAspectReference _aspectReference;
 
-    public EventBrokerAdderSubstitution( 
+    public EventBrokerAdderSubstitution(
         CompilationContext compilationContext,
         ResolvedAspectReference aspectReference ) : base( compilationContext )
     {
@@ -27,15 +27,16 @@ internal sealed class EventBrokerAdderSubstitution : SyntaxNodeSubstitution
     {
         var context = substitutionContext.SyntaxGenerationContext;
         var eventOverride = this._aspectReference.ResolvedSemantic.Symbol;
-        var @event = (IEventSymbol) substitutionContext.RewritingDriver.InjectionRegistry.GetOverrideTarget(eventOverride ).AssertNotNull();
+        var @event = (IEventSymbol) substitutionContext.RewritingDriver.InjectionRegistry.GetOverrideTarget( eventOverride ).AssertNotNull();
         var eventOverrideTransformation = substitutionContext.RewritingDriver.InjectionRegistry.GetTransformationForSymbol( eventOverride ).AssertNotNull();
         var eventBrokerTypeInfo = substitutionContext.RewritingDriver.AnalysisRegistry.GetEventBrokerTypeInfo( @event ).AssertNotNull();
         var eventBrokerTransformationInfo = eventBrokerTypeInfo.Transformations[eventOverrideTransformation];
-        
-        return 
+
+        return
             EventBrokerSyntaxHelper.CreateAddHandlerBody(
                 context,
                 eventBrokerTransformationInfo.EventBrokerFieldName,
-                eventBrokerTransformationInfo.FieldInitializationExpression( substitutionContext.SyntaxGenerationContext ) );
+                eventBrokerTransformationInfo.FieldInitializationExpression( substitutionContext.SyntaxGenerationContext ),
+                @event.IsStatic );
     }
 }

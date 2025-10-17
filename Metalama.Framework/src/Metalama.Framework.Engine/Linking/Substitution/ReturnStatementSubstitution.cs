@@ -176,7 +176,7 @@ internal sealed class ReturnStatementSubstitution : SyntaxNodeSubstitution
             }
             else
             {
-                identifier = SyntaxFactoryEx.DiscardIdentifier();
+                identifier = SyntaxFactoryEx.DiscardIdentifierName();
 
                 expression = syntaxGenerator.SafeCastExpression(
                     syntaxGenerator.TypeSyntax( this._originalContainingSymbol.ReturnType ),

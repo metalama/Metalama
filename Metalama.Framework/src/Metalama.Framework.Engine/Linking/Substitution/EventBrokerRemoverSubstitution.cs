@@ -32,9 +32,10 @@ internal sealed class EventBrokerRemoverSubstitution : SyntaxNodeSubstitution
         var eventBrokerTypeInfo = substitutionContext.RewritingDriver.AnalysisRegistry.GetEventBrokerTypeInfo( @event ).AssertNotNull();
         var eventBrokerTransformationInfo = eventBrokerTypeInfo.Transformations[eventOverrideTransformation];
 
-        return 
+        return
             EventBrokerSyntaxHelper.CreateRemoveHandlerBody(
                 context,
-                eventBrokerTransformationInfo.EventBrokerFieldName );
+                eventBrokerTransformationInfo.EventBrokerFieldName,
+                @event.IsStatic );
     }
 }

@@ -31,6 +31,7 @@ public static partial class SyntaxFactoryEx
             SyntaxFactory.Token( SyntaxKind.DefaultKeyword ) );
 
     internal static SyntaxTriviaList ElasticSpaceTriviaList { get; } = new( SyntaxFactory.ElasticSpace );
+
     internal static SyntaxTriviaList ElasticLineFeedTriviaList { get; } = new( SyntaxFactory.ElasticLineFeed );
 
     public static SyntaxToken TokenWithTrailingSpace( SyntaxKind kind )
@@ -48,16 +49,19 @@ public static partial class SyntaxFactoryEx
 
     internal static ExpressionStatementSyntax DiscardStatement( ExpressionSyntax discardedExpression )
         => SyntaxFactory.ExpressionStatement(
-            SyntaxFactory.AssignmentExpression( SyntaxKind.SimpleAssignmentExpression, DiscardIdentifier(), discardedExpression ) );
+            SyntaxFactory.AssignmentExpression( SyntaxKind.SimpleAssignmentExpression, DiscardIdentifierName(), discardedExpression ) );
 
-    internal static IdentifierNameSyntax DiscardIdentifier()
-        => SyntaxFactory.IdentifierName(
-            SyntaxFactory.Identifier(
-                SyntaxFactory.TriviaList(),
-                SyntaxKind.UnderscoreToken,
-                "_",
-                "_",
-                SyntaxFactory.TriviaList() ) );
+    internal static IdentifierNameSyntax DiscardIdentifierName() => SyntaxFactory.IdentifierName( DiscardIdentifier() );
+
+    public static SyntaxToken DiscardIdentifier()
+    {
+        return SyntaxFactory.Identifier(
+            SyntaxFactory.TriviaList(),
+            SyntaxKind.UnderscoreToken,
+            "_",
+            "_",
+            SyntaxFactory.TriviaList() );
+    }
 
     internal static IdentifierNameSyntax VarIdentifier()
         => SyntaxFactory.IdentifierName(
