@@ -209,7 +209,7 @@ internal sealed partial class LinkerInjectionStep
 
         private void AddAutoPropertyWithSynthesizedSetter( PropertyDeclarationSyntax declaration )
         {
-            Invariant.Assert( declaration.IsAutoPropertyDeclaration() && !declaration.HasSetterAccessorDeclaration() );
+            Invariant.Assert( !declaration.HasSetterAccessorDeclaration() );
 
             lock ( this._autoPropertyWithSynthesizedSetterSyntax )
             {
