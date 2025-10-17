@@ -50,7 +50,7 @@ public class TheAspect : TypeAspect
     }
 
     [Template]
-    public dynamic BinaryTemplate( dynamic a, dynamic b )
+    public dynamic? BinaryTemplate( dynamic a, dynamic b )
     {
         Console.WriteLine("This is BinaryTemplate.");
 
@@ -58,7 +58,7 @@ public class TheAspect : TypeAspect
     }
     
     [Template]
-    public dynamic UnaryTemplate( dynamic a )
+    public dynamic? UnaryTemplate( dynamic a )
     {
         Console.WriteLine("This is UnaryTemplate.");
 
