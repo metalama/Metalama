@@ -97,7 +97,7 @@ public sealed class EventBroker<TDelegate, TOwner, TArgs>
 
         try
         {
-            Monitor.TryEnter( this._handlers, EventBrokerServices.LockTimeout, ref lockTaken );
+            this._lock.TryEnter( EventBrokerServices.LockTimeout, ref lockTaken );
 
             if ( !lockTaken )
             {
@@ -115,7 +115,7 @@ public sealed class EventBroker<TDelegate, TOwner, TArgs>
         {
             if ( lockTaken )
             {
-                Monitor.Exit( this._handlers );
+                this._lock.Exit();
             }
         }
     }

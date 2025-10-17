@@ -1,6 +1,6 @@
 internal class TargetClass
 {
-  private static readonly DelegateEventAdapter<EventHandler, TargetClass, (object? , EventArgs)> EventBrokerCallbacks_0 = new(static (EventHandler handler, TargetClass me, ref (object? sender, EventArgs e) args) => me.Event_Invoke_Override(handler, ref args), static b => (sender, e) => b.Invoke((sender, e)), static (handler, me) => me.Event_Override += handler, static (handler, me) => me.Event_Override -= handler);
+  private static readonly DelegateEventAdapter<EventHandler, TargetClass, (object? , EventArgs)> EventBrokerCallbacks_0 = new(static (handler, me, ref args) => me.Event_Invoke_Override(handler, ref args), static b => (sender, e) => b.Invoke((sender, e)), static (handler, me) => me.Event_Override += handler, static (handler, me) => me.Event_Override -= handler);
   private event EventHandler _event = default !;
   private volatile EventBroker<EventHandler, TargetClass, (object? , EventArgs)>? _eventBroker;
   [Override]

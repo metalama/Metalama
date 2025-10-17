@@ -1,7 +1,7 @@
 [Introduction]
 internal class TargetClass
 {
-  private static readonly global::Metalama.Framework.RunTime.Events.DelegateEventAdapter<global::System.EventHandler, global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Introductions.Events.Invoke.TargetClass, (global::System.Object? , global::System.EventArgs)> EventFromAccessorsBrokerCallbacks_0 = new(static (global::System.EventHandler handler, global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Introductions.Events.Invoke.TargetClass me, ref (global::System.Object? sender, global::System.EventArgs e) args) => me.EventFromAccessors_Invoke_Introduction(handler, ref args), static b => (sender, e) => b.Invoke((sender, e)), static (handler, me) => me.EventFromAccessors_Introduction += handler, static (handler, me) => me.EventFromAccessors_Introduction -= handler);
+  private static readonly global::Metalama.Framework.RunTime.Events.DelegateEventAdapter<global::System.EventHandler, global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Introductions.Events.Invoke.TargetClass, (global::System.Object? , global::System.EventArgs)> EventFromAccessorsBrokerCallbacks_0 = new(static (handler, me, ref args) => me.EventFromAccessors_Invoke_Introduction(handler, ref args), static b => (sender, e) => b.Invoke((sender, e)), static (handler, me) => me.EventFromAccessors_Introduction += handler, static (handler, me) => me.EventFromAccessors_Introduction -= handler);
   private event global::System.EventHandler EventFromAccessors_Introduction
   {
     add
