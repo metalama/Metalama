@@ -54,14 +54,16 @@ internal sealed class IntroduceMethodTransformation : IntroduceMemberTransformat
 
             case DeclarationKind.Operator:
                 {
-                    if ( finalMethod.OperatorKind.GetCategory() == OperatorCategory.Conversion )
+                    var operatorData = OperatorData.GetByKind( finalMethod.OperatorKind );
+
+                    if ( operatorData.Category == OperatorCategory.Conversion )
                     {
                         Invariant.Assert( finalMethod.Parameters.Count == 1 );
 
                         var syntax = ConversionOperatorDeclaration(
                             AdviceSyntaxGenerator.GetAttributeLists( finalMethod, context ),
                             finalMethod.GetSyntaxModifierList(),
-                            SyntaxFactoryEx.TokenWithTrailingSpace( finalMethod.OperatorKind.ToOperatorKeyword() ),
+                            SyntaxFactoryEx.TokenWithTrailingSpace( operatorData.OperatorKeyword ),
                             explicitInterfaceSpecifier,
                             SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.OperatorKeyword ),
                             context.SyntaxGenerator.TypeSyntax( finalMethod.ReturnType )
@@ -70,8 +72,13 @@ internal sealed class IntroduceMethodTransformation : IntroduceMemberTransformat
                             null,
                             !hasNoBody
                                 ? ArrowExpressionClause( context.SyntaxGenerator.DefaultExpression( finalMethod.ReturnType ) )
-                                : default,
+                                : null,
                             Token( SyntaxKind.SemicolonToken ) );
+
+                        if ( operatorData.IsChecked )
+                        {
+                            syntax = syntax.WithCheckedKeyword( SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.CheckedKeyword ) );
+                        }
 
                         return [new InjectedMember( this, syntax, this.AspectLayerId, InjectedMemberSemantic.Introduction, this.BuilderData.ToRef() )];
                     }
@@ -86,13 +93,18 @@ internal sealed class IntroduceMethodTransformation : IntroduceMemberTransformat
                                 .WithOptionalTrailingTrivia( ElasticSpace, context.SyntaxGenerationContext.Options ),
                             explicitInterfaceSpecifier,
                             SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.OperatorKeyword ),
-                            SyntaxFactoryEx.TokenWithTrailingSpace( finalMethod.OperatorKind.ToOperatorKeyword() ),
+                            SyntaxFactoryEx.TokenWithTrailingSpace( operatorData.OperatorKeyword ),
                             context.SyntaxGenerator.ParameterList( finalMethod, context.FinalCompilation ),
                             null,
                             !hasNoBody
                                 ? ArrowExpressionClause( context.SyntaxGenerator.DefaultExpression( finalMethod.ReturnType ) )
-                                : default,
+                                : null,
                             Token( SyntaxKind.SemicolonToken ) );
+
+                        if ( operatorData.IsChecked )
+                        {
+                            syntax = syntax.WithCheckedKeyword( SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.CheckedKeyword ) );
+                        }
 
                         return [new InjectedMember( this, syntax, this.AspectLayerId, InjectedMemberSemantic.Introduction, this.BuilderData.ToRef() )];
                     }
@@ -136,7 +148,8 @@ internal sealed class IntroduceMethodTransformation : IntroduceMemberTransformat
                         MethodDeclaration(
                             AdviceSyntaxGenerator.GetAttributeLists( finalMethod, context ),
                             finalMethod.GetSyntaxModifierList(),
-                            context.SyntaxGenerator.ReturnType( finalMethod ).WithOptionalTrailingTrivia( ElasticSpace, context.SyntaxGenerationContext.Options ),
+                            context.SyntaxGenerator.ReturnType( finalMethod )
+                                .WithOptionalTrailingTrivia( ElasticSpace, context.SyntaxGenerationContext.Options ),
                             explicitInterfaceSpecifier,
                             Identifier( finalMethod.GetCleanName() ),
                             context.SyntaxGenerator.TypeParameterList( finalMethod, context.FinalCompilation ),

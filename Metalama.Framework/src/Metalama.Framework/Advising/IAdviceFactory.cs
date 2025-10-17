@@ -122,6 +122,7 @@ namespace Metalama.Framework.Advising
             IType fromType,
             IType toType,
             bool isImplicit = false,
+            bool isChecked = false,
             OverrideStrategy whenExists = OverrideStrategy.Default,
             Action<IMethodBuilder>? buildOperator = null,
             object? args = null,

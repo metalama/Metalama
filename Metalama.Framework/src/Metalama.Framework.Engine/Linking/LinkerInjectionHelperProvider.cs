@@ -5,18 +5,17 @@
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.CodeModel;
-using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.SyntaxGeneration;
+using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
-using OperatorKind = Metalama.Framework.Code.OperatorKind;
+using SpecialType = Metalama.Framework.Code.SpecialType;
 
 namespace Metalama.Framework.Engine.Linking;
 
@@ -109,18 +108,32 @@ internal sealed class LinkerInjectionHelperProvider
 
     public static ExpressionSyntax GetOperatorMemberExpression(
         ContextualSyntaxGenerator syntaxGenerator,
-        OperatorKind operatorKind,
+        OperatorData operatorData,
+        IType? receiverType,
         IType returnType,
         IEnumerable<IType> parameterTypes )
-        => MemberAccessExpression(
+    {
+        List<TypeSyntax> typeParameters = new();
+
+        if ( !operatorData.IsStatic )
+        {
+            typeParameters.Add( syntaxGenerator.TypeSyntax( receiverType.AssertNotNull() ) );
+        }
+
+        typeParameters.AddRange( parameterTypes.Select( p => syntaxGenerator.TypeSyntax( p ) ) );
+
+        if ( !returnType.Equals( SpecialType.Void ) )
+        {
+            typeParameters.Add( syntaxGenerator.TypeSyntax( returnType ) );
+        }
+
+        return MemberAccessExpression(
             SyntaxKind.SimpleMemberAccessExpression,
             IdentifierName( HelperTypeName ),
             GenericName(
-                Identifier( operatorKind.ToOperatorMethodName() ),
-                TypeArgumentList(
-                    SeparatedList(
-                        parameterTypes.Select( p => syntaxGenerator.TypeSyntax( p ) )
-                            .Append( syntaxGenerator.TypeSyntax( returnType ) ) ) ) ) );
+                Identifier( operatorData.MemberName ),
+                TypeArgumentList( SeparatedList( typeParameters ) ) ) );
+    }
 
     public TypeSyntax GetSourceType() => QualifiedName( IdentifierName( HelperTypeName ), IdentifierName( _sourceCodeTypeName ) );
 
@@ -155,8 +168,7 @@ internal sealed class LinkerInjectionHelperProvider
                         IdentifierName( HelperTypeName ),
                         GenericName(
                             Identifier( baseTypeName ),
-                            TypeArgumentList(
-                                SeparatedList( [aspectTypeSyntax, GetOrdinalTypeArgument( aspectType.ShortName, description, ordinal )] ) ) ) );
+                            TypeArgumentList( SeparatedList( [aspectTypeSyntax, GetOrdinalTypeArgument( aspectType.ShortName, description, ordinal )] ) ) ) );
         }
     }
 
@@ -204,25 +216,32 @@ internal sealed class LinkerInjectionHelperProvider
     private SyntaxTree GetLinkerHelperSyntaxTreeCore( LanguageOptions options )
     {
         var useNullability = this._useNullability && options.Version is LanguageVersion.CSharp9 or LanguageVersion.CSharp10;
-        var suffix = useNullability ? "?" : "";
+        var nullabilitySuffix = useNullability ? "?" : "";
 
         var binaryOperators =
-            Enum.GetValues( typeof( OperatorKind ) )
-                .Cast<OperatorKind>()
-                .Where( op => op.GetCategory() == OperatorCategory.Binary )
-                .Select( op => $"public static R{suffix} {op.ToOperatorMethodName()}<A,B,R>(A{suffix} a, B{suffix} b) => default(R{suffix});" );
+            OperatorData.All
+                .Where( op => op.Category == OperatorCategory.Binary )
+                .Select( op => $"public static R{nullabilitySuffix} {op.MemberName}<A,B,R>(A{nullabilitySuffix} a, B{nullabilitySuffix} b) => default(R{nullabilitySuffix});" );
+
+        var binaryAssignmentOperators =
+            OperatorData.All
+                .Where( op => op.Category == OperatorCategory.BinaryAssignment )
+                .Select( op => $"public static void {op.MemberName}<A,B>(A{nullabilitySuffix} a, B{nullabilitySuffix} b) {{}}" );
 
         var unaryOperators =
-            Enum.GetValues( typeof( OperatorKind ) )
-                .Cast<OperatorKind>()
-                .Where( op => op.GetCategory() == OperatorCategory.Unary )
-                .Select( op => $"public static R{suffix} {op.ToOperatorMethodName()}<A,R>(A{suffix} a) => default(R{suffix});" );
+            OperatorData.All
+                .Where( op => op.Category == OperatorCategory.Unary )
+                .Select( op => $"public static R{nullabilitySuffix} {op.MemberName}<A,R>(A{nullabilitySuffix} a) => default(R{nullabilitySuffix});" );
+
+        var unaryAssignmentOperators =
+            OperatorData.All
+                .Where( op => op.Category == OperatorCategory.UnaryAssignment )
+                .Select( op => $"public static void {op.MemberName}<A>(A{nullabilitySuffix} a) {{}}" );
 
         var conversionOperators =
-            Enum.GetValues( typeof( OperatorKind ) )
-                .Cast<OperatorKind>()
-                .Where( op => op.GetCategory() == OperatorCategory.Conversion )
-                .Select( op => $"public static R{suffix} {op.ToOperatorMethodName()}<A,R>(A{suffix} a) => default(R{suffix});" );
+            OperatorData.All
+                .Where( op => op.Category == OperatorCategory.Conversion )
+                .Select( op => $"public static R{nullabilitySuffix} {op.MemberName}<A,R>(A{nullabilitySuffix} a) => default(R{nullabilitySuffix});" );
 
         var code = @$"
 {(useNullability ? "#nullable enable" : "")}
@@ -233,13 +252,15 @@ internal class {HelperTypeName}
     public static T {ConstructorMemberName}<T>(T value) => value;
     public static void {FinalizeMemberName}() {{}}
     public static void {StaticConstructorMemberName}() {{}}
-    public static ref T{suffix} {PropertyMemberName}<T>(T{suffix} value) => ref Dummy<T{suffix}>.Field;    
+    public static ref T{nullabilitySuffix} {PropertyMemberName}<T>(T{nullabilitySuffix} value) => ref Dummy<T{nullabilitySuffix}>.Field;    
     public static void {_eventFieldInitializationExpressionMemberName}<T>(T? value) where T : System.Delegate {{}}
     public static void {EventRaiseMemberName}(System.Action reference) {{}}
     public static void {EventRaiseMemberName}<TArgs>(System.Action reference, TArgs args) {{}}
     {string.Join( "\n    ", binaryOperators )}
     {string.Join( "\n    ", unaryOperators )}
     {string.Join( "\n    ", conversionOperators )}
+    {string.Join( "\n    ", binaryAssignmentOperators )}
+    {string.Join( "\n    ", unaryAssignmentOperators )}
     
     public delegate System.Threading.Tasks.Task WrappedDelegate(params object[] args);
 
