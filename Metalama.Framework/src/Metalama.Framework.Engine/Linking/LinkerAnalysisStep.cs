@@ -492,7 +492,7 @@ namespace Metalama.Framework.Engine.Linking
                         argsTypeSyntax,
                         Identifier( "args" ),
                         null ),
-                    Parameter( default, default, stateTypeSyntax, isStatic ? SyntaxFactoryEx.DiscardIdentifier()  : Identifier( "me" ), null )
+                    Parameter( default, default, stateTypeSyntax, isStatic ? SyntaxFactoryEx.DiscardIdentifier() : Identifier( "me" ), null )
                 ] ) );
 
             ExpressionSyntax raiseMethod = isStatic
