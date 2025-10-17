@@ -1,16 +1,16 @@
 internal class TargetCode
 {
-  private static readonly DelegateEventAdapter<EventHandler<EventArgs>, TargetCode, (object? , EventArgs)> EventFieldBrokerCallbacks_0 = new(static (handler, me, ref args) => me.EventField_Invoke_WeakEvent(handler, ref args), static b => (sender, e) => b.Invoke((sender, e)), static (handler, me) => me.EventField_WeakEvent += handler, static (handler, me) => me.EventField_WeakEvent -= handler);
-  private static readonly DelegateEventAdapter<EventHandler<EventArgs>, TargetCode, (object? , EventArgs)> EventBrokerCallbacks_0 = new(static (handler, me, ref args) => me.Event_Invoke_WeakEvent(handler, ref args), static b => (sender, e) => b.Invoke((sender, e)), static (handler, me) => me.Event_WeakEvent += handler, static (handler, me) => me.Event_WeakEvent -= handler);
+  private static readonly DelegateEventAdapter<EventHandler<EventArgs>, (object? , EventArgs), TargetCode> EventFieldBrokerCallbacks_0 = new(static (handler, ref args, me) => me.EventField_Invoke_WeakEvent(handler, ref args), static b => (sender, e) => b.Invoke((sender, e)), static (handler, me) => me.EventField_WeakEvent += handler, static (handler, me) => me.EventField_WeakEvent -= handler);
+  private static readonly DelegateEventAdapter<EventHandler<EventArgs>, (object? , EventArgs), TargetCode> EventBrokerCallbacks_0 = new(static (handler, ref args, me) => me.Event_Invoke_WeakEvent(handler, ref args), static b => (sender, e) => b.Invoke((sender, e)), static (handler, me) => me.Event_WeakEvent += handler, static (handler, me) => me.Event_WeakEvent -= handler);
   private List<EventHandler<EventArgs>> _delegates = new();
   private event EventHandler<EventArgs> _eventField = default !;
-  private volatile EventBroker<EventHandler<EventArgs>, TargetCode, (object? , EventArgs)>? _eventFieldBroker;
+  private volatile EventBroker<EventHandler<EventArgs>, (object? , EventArgs), TargetCode>? _eventFieldBroker;
   [WeakEvent]
   public event EventHandler<EventArgs> EventField
   {
     add
     {
-      EventBroker<EventHandler<EventArgs>, TargetCode, (object? , EventArgs)>.EnsureInitialized(ref this._eventFieldBroker, this, EventFieldBrokerCallbacks_0);
+      EventBroker.EnsureInitialized(ref this._eventFieldBroker, EventFieldBrokerCallbacks_0, this);
       this._eventFieldBroker.AddHandler(value);
     }
     remove
@@ -33,13 +33,13 @@ internal class TargetCode
   {
     weakEventContainerForEventField.Invoke((args.sender, args.e));
   }
-  private volatile EventBroker<EventHandler<EventArgs>, TargetCode, (object? , EventArgs)>? _eventBroker;
+  private volatile EventBroker<EventHandler<EventArgs>, (object? , EventArgs), TargetCode>? _eventBroker;
   [WeakEvent]
   public event EventHandler<EventArgs> Event
   {
     add
     {
-      EventBroker<EventHandler<EventArgs>, TargetCode, (object? , EventArgs)>.EnsureInitialized(ref this._eventBroker, this, EventBrokerCallbacks_0);
+      EventBroker.EnsureInitialized(ref this._eventBroker, EventBrokerCallbacks_0, this);
       this._eventBroker.AddHandler(value);
     }
     remove

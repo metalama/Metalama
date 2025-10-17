@@ -7,11 +7,10 @@ using System;
 namespace Metalama.Framework.RunTime.Events;
 
 /// <summary>
-/// Signature of the callback invoked by <see cref="EventBroker{TDelegate,TOwner,TArgs}"/> into an aspect-generated method in the owner type.
+/// Delegate for the implementation of the <see cref="IEventAdapter{TDelegate,TArgs,TState}.InvokeHandler"/> method by <see cref="DelegateEventAdapter{TDelegate,TArgs,TState}"/>.
 /// </summary>
 /// <typeparam name="TDelegate">Type of the delegate.</typeparam>
-/// <typeparam name="TOwner">Type of the class declaring the event.</typeparam>
 /// <typeparam name="TArgs">Type of arguments (i.e. the arguments of <typeparamref name="TDelegate"/> packed as a tuple).</typeparam>
-public delegate void EventHandlerInvocationCallback<in TDelegate, in TOwner, TArgs>( TDelegate handler, TOwner owner, ref TArgs args )
-    where TDelegate : Delegate
-    where TOwner : class?;
+/// <typeparam name="TState">An opaque state stored by the <see cref="EventBroker{TDelegate,TArgs,TState}"/> and passed along to delegates.</typeparam>
+public delegate void EventHandlerInvocationCallback<in TDelegate, TArgs, in TState>( TDelegate handler, ref TArgs args, TState state )
+    where TDelegate : Delegate;

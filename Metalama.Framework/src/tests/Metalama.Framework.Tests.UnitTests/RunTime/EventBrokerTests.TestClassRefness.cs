@@ -7,6 +7,8 @@ using System;
 
 namespace Metalama.Framework.Tests.UnitTests.RunTime;
 
+#pragma warning disable CS0420, IDE0044
+
 public partial class EventBrokerTests
 {
     public delegate string? RefnessDelegate( in int inParam, out string? outParam, ref DateTime refParam );
@@ -15,33 +17,31 @@ public partial class EventBrokerTests
     {
         private readonly Action _onBrokerInvoke;
 
-#pragma warning disable IDE0044
-        private volatile EventBroker<RefnessDelegate, TestClassRefness, (int InParam, string? OutParam, DateTime RefParam, string? ReturnValue)>? _broker;
-#pragma warning restore IDE0044
+        private volatile EventBroker<RefnessDelegate, (int InParam, string? OutParam, DateTime RefParam, string? ReturnValue), TestClassRefness>? _broker;
         private RefnessDelegate? _originalEvent;
 
         public TestClassRefness( Action onBrokerInvoke )
         {
             this._onBrokerInvoke = onBrokerInvoke;
 
-            EventBroker<RefnessDelegate, TestClassRefness, (int InParam, string? OutParam, DateTime RefParam, string? ReturnValue)>.EnsureInitialized(
-#pragma warning disable CS0420 // A reference to a volatile field will not be treated as volatile
-                ref this._broker,
-#pragma warning restore CS0420 // A reference to a volatile field will not be treated as volatile
-                this,
-                new DelegateEventAdapter<RefnessDelegate, TestClassRefness, (int InParam, string? OutParam, DateTime RefParam, string? ReturnValue)>(
-                    ( RefnessDelegate h, TestClassRefness i, ref (int InParam, string? OutParam, DateTime RefParam, string? ReturnValue) args )
-                        => i.OnEventViaBroker( h, ref args ),
-                    broker => ( in int inParam, out string? outParam, ref DateTime refParam ) =>
-                    {
-                        var args = (inParam, outParam: default(string?), refParam, ReturnValue: (string?) null);
-                        broker.InvokeByRef( ref args );
-                        outParam = args.outParam;
+            var adapter = new DelegateEventAdapter<RefnessDelegate, (int InParam, string? OutParam, DateTime RefParam, string? ReturnValue), TestClassRefness>(
+                ( RefnessDelegate h, ref (int InParam, string? OutParam, DateTime RefParam, string? ReturnValue) args, TestClassRefness i )
+                    => i.OnEventViaBroker( h, ref args ),
+                broker => ( in int inParam, out string? outParam, ref DateTime refParam ) =>
+                {
+                    var args = (inParam, outParam: default(string?), refParam, ReturnValue: (string?) null);
+                    broker.InvokeByRef( ref args );
+                    outParam = args.outParam;
 
-                        return args.ReturnValue;
-                    },
-                    ( h, i ) => i._originalEvent += h,
-                    ( h, i ) => i._originalEvent -= h ) );
+                    return args.ReturnValue;
+                },
+                ( h, i ) => i._originalEvent += h,
+                ( h, i ) => i._originalEvent -= h );
+
+            EventBroker.EnsureInitialized(
+                ref this._broker,
+                adapter,
+                this );
         }
 
         public event RefnessDelegate Event

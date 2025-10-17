@@ -7,31 +7,31 @@ using System;
 
 namespace Metalama.Framework.Tests.UnitTests.RunTime;
 
+#pragma warning disable CS0420, IDE0044
+
 public partial class EventBrokerTests
 {
     public class TestClassEventHandler
     {
         private readonly Action _onBrokerInvoke;
 
-#pragma warning disable IDE0044
-        private volatile EventBroker<EventHandler, TestClassEventHandler, (object? Sender, EventArgs Args)>? _broker;
-#pragma warning restore IDE0044
+        private volatile EventBroker<EventHandler, (object? Sender, EventArgs Args), TestClassEventHandler>? _broker;
         private EventHandler? _originalEvent;
 
         public TestClassEventHandler( Action onBrokerInvoke )
         {
             this._onBrokerInvoke = onBrokerInvoke;
 
-            EventBroker<EventHandler, TestClassEventHandler, (object? Sender, EventArgs Args)>.EnsureInitialized(
-#pragma warning disable CS0420 // A reference to a volatile field will not be treated as volatile
+            var adapter = new DelegateEventAdapter<EventHandler, (object? Sender, EventArgs Args), TestClassEventHandler>(
+                ( EventHandler h, ref (object? Sender, EventArgs Args) args, TestClassEventHandler i ) => i.OnEventViaBroker( h, args ),
+                broker => ( sender, args ) => broker.Invoke( (sender, args) ),
+                ( h, i ) => i._originalEvent += h,
+                ( h, i ) => i._originalEvent -= h );
+
+            EventBroker.EnsureInitialized(
                 ref this._broker,
-#pragma warning restore CS0420 // A reference to a volatile field will not be treated as volatile
-                this,
-                new DelegateEventAdapter<EventHandler, TestClassEventHandler, (object? Sender, EventArgs Args)>(
-                    ( EventHandler h, TestClassEventHandler i, ref (object? Sender, EventArgs Args) args ) => i.OnEventViaBroker( h, args ),
-                    broker => ( sender, args ) => broker.Invoke( (sender, args) ),
-                    ( h, i ) => i._originalEvent += h,
-                    ( h, i ) => i._originalEvent -= h ) );
+                adapter,
+                this );
         }
 
         public event EventHandler Event

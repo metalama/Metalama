@@ -1,14 +1,14 @@
 internal class TargetClass
 {
-  private static readonly DelegateEventAdapter<EventHandler, TargetClass, (object? , EventArgs)> EventBrokerCallbacks_0 = new(static (handler, me, ref args) => me.Event_Invoke_Override(handler, ref args), static b => (sender, e) => b.Invoke((sender, e)), static (handler, me) => me.Event_Override += handler, static (handler, me) => me.Event_Override -= handler);
+  private static readonly DelegateEventAdapter<EventHandler, (object? , EventArgs), TargetClass> EventBrokerCallbacks_0 = new(static (handler, ref args, me) => me.Event_Invoke_Override(handler, ref args), static b => (sender, e) => b.Invoke((sender, e)), static (handler, me) => me.Event_Override += handler, static (handler, me) => me.Event_Override -= handler);
   private event EventHandler _event = default !;
-  private volatile EventBroker<EventHandler, TargetClass, (object? , EventArgs)>? _eventBroker;
+  private volatile EventBroker<EventHandler, (object? , EventArgs), TargetClass>? _eventBroker;
   [Override]
   public event EventHandler Event
   {
     add
     {
-      EventBroker<EventHandler, TargetClass, (object? , EventArgs)>.EnsureInitialized(ref this._eventBroker, this, EventBrokerCallbacks_0);
+      EventBroker.EnsureInitialized(ref this._eventBroker, EventBrokerCallbacks_0, this);
       this._eventBroker.AddHandler(value);
     }
     remove

@@ -12,10 +12,9 @@ namespace Metalama.Framework.RunTime.Events;
 /// </summary>
 /// <typeparam name="TDelegate">The delegate type. Must be a reference type delegate.</typeparam>
 /// <typeparam name="TArgs">The event arguments type.</typeparam>
-/// <typeparam name="TOwner">The type declaring the event.</typeparam>
-internal struct DelegateList<TDelegate, TOwner, TArgs>
+/// <typeparam name="TState">An opaque state stored in the <see cref="EventBroker{TDelegate,TOwner,TArgs}"/>.</typeparam>
+internal struct DelegateList<TDelegate, TArgs, TState>
     where TDelegate : class, Delegate
-    where TOwner : class?
 {
     private volatile TDelegate? _delegates;
 
@@ -75,9 +74,8 @@ internal struct DelegateList<TDelegate, TOwner, TArgs>
     /// <summary>
     /// Invokes all registered delegates using the configured invoker.
     /// </summary>
-    /// <param name="owner">The event owner object.</param>
     /// <param name="args">The event arguments.</param>
-    public readonly void Invoke( EventHandlerInvocationCallback<TDelegate, TOwner, TArgs> invoker, TOwner owner, ref TArgs args )
+    public readonly void Invoke( EventHandlerInvocationCallback<TDelegate, TArgs, TState> invoker, ref TArgs args, TState state )
     {
         var currentValue = this._delegates;
 
@@ -89,7 +87,7 @@ internal struct DelegateList<TDelegate, TOwner, TArgs>
 
         foreach ( var @delegate in currentValue.GetInvocationList() )
         {
-            invoker.Invoke( (TDelegate) @delegate, owner, ref args );
+            invoker.Invoke( (TDelegate) @delegate, ref args, state );
         }
     }
 }

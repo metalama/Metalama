@@ -7,37 +7,37 @@ using System;
 
 namespace Metalama.Framework.Tests.UnitTests.RunTime;
 
+#pragma warning disable CS0420, IDE0044
+
 public partial class EventBrokerTests
 {
     public class TestClassFunc
     {
         private readonly Action _onBrokerInvoke;
 
-#pragma warning disable IDE0044
-        private volatile EventBroker<Func<int, string?>, TestClassFunc, (int Input, string? ReturnValue)>? _broker;
-#pragma warning restore IDE0044
+        private volatile EventBroker<Func<int, string?>, (int Input, string? ReturnValue), TestClassFunc>? _broker;
         private Func<int, string?>? _originalEvent;
 
         public TestClassFunc( Action onBrokerInvoke )
         {
             this._onBrokerInvoke = onBrokerInvoke;
 
-            EventBroker<Func<int, string?>, TestClassFunc, (int Input, string? ReturnValue)>.EnsureInitialized(
-#pragma warning disable CS0420 // A reference to a volatile field will not be treated as volatile
-                ref this._broker,
-#pragma warning restore CS0420 // A reference to a volatile field will not be treated as volatile
-                this,
-                new DelegateEventAdapter<Func<int, string?>, TestClassFunc, (int Input, string? ReturnValue)>(
-                    ( Func<int, string?> h, TestClassFunc i, ref (int Input, string? ReturnValue) args ) => i.OnEventViaBroker( h, ref args ),
-                    broker => input =>
-                    {
-                        var args = (input, ReturnValue: (string?) null);
-                        broker.InvokeByRef( ref args );
+            var adapter = new DelegateEventAdapter<Func<int, string?>, (int Input, string? ReturnValue), TestClassFunc>(
+                ( h, ref args, i ) => i.OnEventViaBroker( h, ref args ),
+                broker => input =>
+                {
+                    var args = (input, ReturnValue: (string?) null);
+                    broker.InvokeByRef( ref args );
 
-                        return args.ReturnValue;
-                    },
-                    ( h, i ) => i._originalEvent += h,
-                    ( h, i ) => i._originalEvent -= h ) );
+                    return args.ReturnValue;
+                },
+                ( h, i ) => i._originalEvent += h,
+                ( h, i ) => i._originalEvent -= h );
+
+            EventBroker.EnsureInitialized(
+                ref this._broker,
+                adapter,
+                this );
         }
 
         public event Func<int, string?> Event

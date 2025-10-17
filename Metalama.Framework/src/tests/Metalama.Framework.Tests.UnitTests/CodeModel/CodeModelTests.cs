@@ -23,6 +23,7 @@ using Xunit;
 using static Metalama.Framework.Code.MethodKind;
 using static Metalama.Framework.Code.RefKind;
 using static Metalama.Framework.Code.TypeKind;
+using RefKind = Metalama.Framework.Code.RefKind;
 using SpecialType = Metalama.Framework.Code.SpecialType;
 using TypeKind = Metalama.Framework.Code.TypeKind;
 
@@ -477,7 +478,7 @@ class C
 
         var refKinds = type.Properties.SelectAsImmutableArray( p => p.RefKind );
 
-        Assert.Equal( new[] { None, Ref, RefReadOnly }, refKinds );
+        Assert.Equal( new[] { RefKind.None, Ref, RefReadOnly }, refKinds );
     }
 
     [Fact]
@@ -651,8 +652,8 @@ class C
 
         var type = Assert.Single( compilation.Types );
 
-        Assert.Equal( new[] { None, In, Ref, Out }, type.Methods.First().Parameters.SelectAsImmutableArray( p => p.RefKind ) );
-        Assert.Equal( new[] { None, Ref, RefReadOnly }, type.Methods.SelectAsImmutableArray( m => m.ReturnParameter.RefKind ) );
+        Assert.Equal( new[] { RefKind.None, In, Ref, Out }, type.Methods.First().Parameters.SelectAsImmutableArray( p => p.RefKind ) );
+        Assert.Equal( new[] { RefKind.None, Ref, RefReadOnly }, type.Methods.SelectAsImmutableArray( m => m.ReturnParameter.RefKind ) );
     }
 
     [Fact]

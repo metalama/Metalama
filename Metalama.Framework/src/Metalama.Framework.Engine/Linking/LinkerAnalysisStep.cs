@@ -333,7 +333,7 @@ namespace Metalama.Framework.Engine.Linking
                                 {
                                     var eventBrokerType =
                                         ((INamedType) finalCompilationModel.Factory.GetTypeByReflectionType( typeof(EventBroker<,,>) ))
-                                        .WithTypeArguments( delegateType, targetEvent.DeclaringType, argsType );
+                                        .WithTypeArguments( delegateType, argsType, targetEvent.DeclaringType );
 
                                     var eventBrokerTypeSymbol =
                                         injectionRegistry.GetIntermediateCompilationSymbol<INamedTypeSymbol>( eventBrokerType ).AssertNotNull();
@@ -348,7 +348,7 @@ namespace Metalama.Framework.Engine.Linking
 
                                 var brokerCallbacksType =
                                     ((INamedType) finalCompilationModel.Factory.GetTypeByReflectionType( typeof(DelegateEventAdapter<,,>) ))
-                                    .WithTypeArguments( delegateType, targetEvent.DeclaringType, argsType );
+                                    .WithTypeArguments( delegateType, argsType, targetEvent.DeclaringType );
 
                                 var brokerCallbacksTypeSymbol =
                                     injectionRegistry.GetIntermediateCompilationSymbol<INamedTypeSymbol>( brokerCallbacksType ).AssertNotNull();
@@ -383,8 +383,9 @@ namespace Metalama.Framework.Engine.Linking
                                         InvocationExpression(
                                             MemberAccessExpression(
                                                 SyntaxKind.SimpleMemberAccessExpression,
-                                                context.SyntaxGenerator.TypeSyntax( eventBrokerInfo.EventBrokerType ),
-                                                IdentifierName( nameof(EventBroker<,,>.EnsureInitialized) ) ),
+                                                context.SyntaxGenerator.TypeSyntax(
+                                                    context.CompilationContext.ReflectionMapper.GetTypeSymbol( typeof(EventBroker) ) ),
+                                                IdentifierName( nameof(EventBroker.EnsureInitialized) ) ),
                                             ArgumentList(
                                                 SeparatedList<ArgumentSyntax>(
                                                 [
@@ -395,8 +396,8 @@ namespace Metalama.Framework.Engine.Linking
                                                             SyntaxKind.SimpleMemberAccessExpression,
                                                             ThisExpression(),
                                                             IdentifierName( eventBrokerFieldName ) ) ),
-                                                    Argument( ThisExpression() ),
-                                                    Argument( IdentifierName( brokerCallbacksField.FieldName ) )
+                                                    Argument( IdentifierName( brokerCallbacksField.FieldName ) ),
+                                                    Argument( ThisExpression() )
                                                 ] ) ) );
 
                                 // ReSharper restore AccessToModifiedClosure
@@ -473,13 +474,13 @@ namespace Metalama.Framework.Engine.Linking
                 SeparatedList<ParameterSyntax>(
                 [
                     Parameter( default, default, handlerTypeSyntax, Identifier( "handler" ), null ),
-                    Parameter( default, default, meTypeSyntax, Identifier( "me" ), null ),
                     Parameter(
                         default,
                         SyntaxTokenList.Create( Token( default, SyntaxKind.RefKeyword, SyntaxFactoryEx.ElasticSpaceTriviaList ) ),
                         argsTypeSyntax,
                         Identifier( "args" ),
-                        null )
+                        null ),
+                    Parameter( default, default, meTypeSyntax, Identifier( "me" ), null )
                 ] ) );
 
             var expression = InvocationExpression(
@@ -953,13 +954,27 @@ namespace Metalama.Framework.Engine.Linking
                     var (get, set) =
                         declaration switch
                         {
-                            PropertyDeclarationSyntax { AccessorList.Accessors: [{ Keyword.RawKind: (int) SyntaxKind.GetKeyword } getAccessor, { Keyword.RawKind: (int) SyntaxKind.SetKeyword or (int) SyntaxKind.InitKeyword } setAccessor] }
+                            PropertyDeclarationSyntax
+                                {
+                                    AccessorList.Accessors:
+                                    [
+                                        { Keyword.RawKind: (int) SyntaxKind.GetKeyword } getAccessor,
+                                        { Keyword.RawKind: (int) SyntaxKind.SetKeyword or (int) SyntaxKind.InitKeyword } setAccessor
+                                    ]
+                                }
                                 => (getAccessor, setAccessor),
-                            PropertyDeclarationSyntax { AccessorList.Accessors: [{ Keyword.RawKind: (int) SyntaxKind.SetKeyword or (int) SyntaxKind.InitKeyword } setAccessor, { Keyword.RawKind: (int) SyntaxKind.GetKeyword } getAccessor] }
+                            PropertyDeclarationSyntax
+                                {
+                                    AccessorList.Accessors:
+                                    [
+                                        { Keyword.RawKind: (int) SyntaxKind.SetKeyword or (int) SyntaxKind.InitKeyword } setAccessor,
+                                        { Keyword.RawKind: (int) SyntaxKind.GetKeyword } getAccessor
+                                    ]
+                                }
                                 => (getAccessor, setAccessor),
                             PropertyDeclarationSyntax { AccessorList.Accessors: [{ Keyword.RawKind: (int) SyntaxKind.GetKeyword } getAccessor] }
                                 => (getAccessor, null),
-                            _ => throw new InvalidOperationException( "Auto property expected." ),
+                            _ => throw new InvalidOperationException( "Auto property expected." )
                         };
 
                     if ( get.Body != null || get.ExpressionBody != null )

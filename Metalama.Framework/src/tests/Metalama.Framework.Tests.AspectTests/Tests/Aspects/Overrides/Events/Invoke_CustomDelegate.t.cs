@@ -1,14 +1,14 @@
 internal class TargetClass
 {
-  private static readonly global::Metalama.Framework.RunTime.Events.DelegateEventAdapter<global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Overrides.Events.Invoke_CustomDelegate.MyEventHandler, global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Overrides.Events.Invoke_CustomDelegate.TargetClass, (global::System.Object, global::System.Int32, global::System.Int32)> EventBrokerCallbacks_0 = new(static (handler, me, ref args) => me.Event_Invoke_Override(handler, ref args), static b => (sender, args1, arg2) => b.Invoke((sender, args1, arg2)), static (handler, me) => me.Event_Override += handler, static (handler, me) => me.Event_Override -= handler);
+  private static readonly global::Metalama.Framework.RunTime.Events.DelegateEventAdapter<global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Overrides.Events.Invoke_CustomDelegate.MyEventHandler, (global::System.Object, global::System.Int32, global::System.Int32), global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Overrides.Events.Invoke_CustomDelegate.TargetClass> EventBrokerCallbacks_0 = new(static (handler, ref args, me) => me.Event_Invoke_Override(handler, ref args), static b => (sender, args1, arg2) => b.Invoke((sender, args1, arg2)), static (handler, me) => me.Event_Override += handler, static (handler, me) => me.Event_Override -= handler);
   private MyEventHandler? _handler;
-  private volatile global::Metalama.Framework.RunTime.Events.EventBroker<global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Overrides.Events.Invoke_CustomDelegate.MyEventHandler, global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Overrides.Events.Invoke_CustomDelegate.TargetClass, (global::System.Object, global::System.Int32, global::System.Int32)>? _eventBroker;
+  private volatile global::Metalama.Framework.RunTime.Events.EventBroker<global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Overrides.Events.Invoke_CustomDelegate.MyEventHandler, (global::System.Object, global::System.Int32, global::System.Int32), global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Overrides.Events.Invoke_CustomDelegate.TargetClass>? _eventBroker;
   [Override]
   public event MyEventHandler Event
   {
     add
     {
-      global::Metalama.Framework.RunTime.Events.EventBroker<global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Overrides.Events.Invoke_CustomDelegate.MyEventHandler, global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Overrides.Events.Invoke_CustomDelegate.TargetClass, (global::System.Object, global::System.Int32, global::System.Int32)>.EnsureInitialized(ref this._eventBroker, this, EventBrokerCallbacks_0);
+      global::Metalama.Framework.RunTime.Events.EventBroker.EnsureInitialized(ref this._eventBroker, EventBrokerCallbacks_0, this);
       this._eventBroker.AddHandler(value);
     }
     remove

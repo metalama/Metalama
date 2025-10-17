@@ -3,10 +3,13 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
 namespace Metalama.Framework.RunTime.Events;
+
+#pragma warning disable SA1402
 
 /// <summary>
 /// Manages event handlers for event override advice when raise templates are specified.
@@ -14,32 +17,30 @@ namespace Metalama.Framework.RunTime.Events;
 /// </summary>
 /// <typeparam name="TDelegate">The event delegate type.</typeparam>
 /// <typeparam name="TArgs">The event arguments type  (i.e. the arguments of <typeparamref name="TDelegate"/> packed as a tuple).</typeparam>
-/// <typeparam name="TOwner">The type declaring the event.</typeparam>
-public sealed class EventBroker<TDelegate, TOwner, TArgs>
+/// <typeparam name="TState">An opaque state stored by the <see cref="EventBroker{TDelegate,TArgs,TState}"/> and passed along to the <see cref="IEventAdapter{TDelegate,TArgs,TState}"/>.
+/// For instance events, typically set to the declaring type of the event. For static events, it is typically set to <see cref="None"/>.</typeparam> 
+public sealed class EventBroker<TDelegate, TArgs, TState>
     where TDelegate : Delegate
-    where TOwner : class?
 {
-    private readonly TOwner _owner;
-    private readonly IEventAdapter<TDelegate, TOwner, TArgs> _adapter;
-    private DelegateList<TDelegate, TOwner, TArgs> _handlers;
-    private TDelegate? _invocationDelegate;
+    private readonly TState _state;
+    private readonly IEventAdapter<TDelegate, TArgs, TState> _adapter;
+    private DelegateList<TDelegate, TArgs, TState> _handlers;
     private SpinLock _lock;
 
     /// <summary>
     /// Gets a delegate that calls the <see cref="Invoke" /> method.
     /// </summary>
-    public TDelegate InvocationDelegate => this._invocationDelegate ??= this._adapter.GetBrokerInvocationDelegate( this );
+    [field: MaybeNull]
+    public TDelegate InvocationDelegate => field ??= this._adapter.GetBrokerInvocationDelegate( this );
 
     /// <summary>
     /// Initializes a new instance of the <see cref="EventBroker{TDelegate,TOwner,TArgs}"/> class.
     /// </summary>
     /// <param name="owner">The object that owns this event broker.</param>
     /// <param name="adapter">Delegates required for operation of this class.</param>
-    private EventBroker(
-        TOwner owner,
-        IEventAdapter<TDelegate, TOwner, TArgs> adapter )
+    private EventBroker( IEventAdapter<TDelegate, TArgs, TState> adapter, TState state )
     {
-        this._owner = owner;
+        this._state = state;
         this._adapter = adapter;
     }
 
@@ -70,7 +71,7 @@ public sealed class EventBroker<TDelegate, TOwner, TArgs>
 
             if ( wasFirst )
             {
-                this._adapter.AddHandler( this.InvocationDelegate, this._owner );
+                this._adapter.AddHandler( this.InvocationDelegate, this._state );
             }
         }
         finally
@@ -108,7 +109,7 @@ public sealed class EventBroker<TDelegate, TOwner, TArgs>
 
             if ( this._handlers.IsEmpty )
             {
-                this._adapter.RemoveHandler( this.InvocationDelegate, this._owner );
+                this._adapter.RemoveHandler( this.InvocationDelegate, this._state );
             }
         }
         finally
@@ -127,7 +128,7 @@ public sealed class EventBroker<TDelegate, TOwner, TArgs>
     /// <param name="args">The event arguments.</param>
     public void InvokeByRef( ref TArgs args )
     {
-        this._handlers.Invoke( this._adapter.InvokeHandler, this._owner, ref args );
+        this._handlers.Invoke( this._adapter.InvokeHandler, ref args, this._state );
     }
 
     /// <summary>
@@ -144,28 +145,42 @@ public sealed class EventBroker<TDelegate, TOwner, TArgs>
     /// <summary>
     /// Implicitly converts the broker to its delegate type.
     /// </summary>
-    public static implicit operator TDelegate( EventBroker<TDelegate, TOwner, TArgs> broker ) => broker.InvocationDelegate;
+    public static implicit operator TDelegate( EventBroker<TDelegate, TArgs, TState> broker ) => broker.InvocationDelegate;
 
-    /// <summary>
-    /// Thread-safely initializes an event broker field.
-    /// </summary>
-    /// <param name="field">The field to initialize.</param>
-    /// <param name="owner">The event owner object.</param>
-    /// <param name="delegates">Delegates required for inner working of event brokers.</param>
-    public static void EnsureInitialized(
-        ref EventBroker<TDelegate, TOwner, TArgs>? field,
-        TOwner owner,
-        DelegateEventAdapter<TDelegate, TOwner, TArgs> delegates )
+    internal static void EnsureInitializedImpl(
+        ref EventBroker<TDelegate, TArgs, TState>? field,
+        DelegateEventAdapter<TDelegate, TArgs, TState> adapter,
+        TState state = default! )
     {
         if ( field != null )
         {
             return;
         }
 
-        var newBroker = new EventBroker<TDelegate, TOwner, TArgs>( owner, delegates );
+        var newBroker = new EventBroker<TDelegate, TArgs, TState>( adapter, state );
 
         Interlocked.CompareExchange( ref field, newBroker, null );
 
         // Don't care about the result - if it failed, another thread won.
+    }
+}
+
+/// <summary>
+/// Exposes a method that initializes an <see cref="EventBroker{TDelegate,TArgs,TState}"/>.
+/// </summary>
+public static class EventBroker
+{
+    /// <summary>
+    /// Thread-safely initializes an <see cref="EventBroker{TDelegate,TArgs,TState}"/> field.
+    /// </summary>
+    /// <param name="field">The field to initialize.</param>
+    /// <param name="adapter">Delegates required for inner working of event brokers.</param>
+    public static void EnsureInitialized<TDelegate, TArgs, TState>(
+        ref EventBroker<TDelegate, TArgs, TState>? field,
+        DelegateEventAdapter<TDelegate, TArgs, TState> adapter,
+        TState state = default! ) 
+        where TDelegate : Delegate
+    {
+        EventBroker<TDelegate, TArgs, TState>.EnsureInitializedImpl( ref field, adapter, state );
     }
 }

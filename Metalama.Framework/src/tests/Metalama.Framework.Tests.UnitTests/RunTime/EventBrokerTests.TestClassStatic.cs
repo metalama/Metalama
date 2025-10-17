@@ -7,28 +7,24 @@ using System;
 
 namespace Metalama.Framework.Tests.UnitTests.RunTime;
 
+#pragma warning disable CS0420, IDE0044
+
 public partial class EventBrokerTests
 {
-    // TODO: Make compatible with static types.
-    public class TestClassStatic
+    public static class TestClassStatic
     {
-#pragma warning disable IDE0044
-        private static volatile EventBroker<EventHandler, TestClassStatic?, (object? Sender, EventArgs Args)>? _broker;
-#pragma warning restore IDE0044
+        private static volatile EventBroker<EventHandler, (object? Sender, EventArgs Args), None>? _broker;
         private static EventHandler? _originalEvent;
 
         static TestClassStatic()
         {
-            EventBroker<EventHandler, TestClassStatic?, (object? Sender, EventArgs Args)>.EnsureInitialized(
-#pragma warning disable CS0420 // A reference to a volatile field will not be treated as volatile
-                ref _broker,
-#pragma warning restore CS0420 // A reference to a volatile field will not be treated as volatile
-                null,
-                new DelegateEventAdapter<EventHandler, TestClassStatic?, (object? Sender, EventArgs Args)>(
-                    ( EventHandler h, TestClassStatic? i, ref (object? Sender, EventArgs Args) args ) => OnEventViaBroker( h, args ),
-                    broker => ( sender, args ) => broker.Invoke( (sender, args) ),
-                    ( h, _ ) => _originalEvent += h,
-                    ( h, _ ) => _originalEvent -= h ) );
+            var adapter = new DelegateEventAdapter<EventHandler, (object? Sender, EventArgs Args), None>(
+                ( h, ref args, _ ) => OnEventViaBroker( h, args ),
+                broker => ( sender, args ) => broker.Invoke( (sender, args) ),
+                ( h, _ ) => _originalEvent += h,
+                ( h, _ ) => _originalEvent -= h );
+
+            EventBroker.EnsureInitialized( ref _broker, adapter );
         }
 
         public static event EventHandler Event
