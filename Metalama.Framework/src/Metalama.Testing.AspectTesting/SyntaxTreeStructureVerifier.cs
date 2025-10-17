@@ -66,7 +66,9 @@ internal static class SyntaxTreeStructureVerifier
             {
                 if ( diagnostic.Severity == DiagnosticSeverity.Error )
                 {
+                    // It's useful to have a breakpoint and inspect the node.
                     var node = parsedFromText.FindNode( diagnostic.Location.SourceSpan );
+                    _ = node;
                     (diagnostics ??= new DiagnosticBag()).Report( diagnostic );
                 }
             }

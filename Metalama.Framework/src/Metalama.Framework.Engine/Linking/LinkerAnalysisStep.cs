@@ -11,6 +11,7 @@ using Metalama.Framework.Engine.Linking.Inlining;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.Transformations;
+using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Metalama.Framework.Engine.Utilities.Threading;
 using Metalama.Framework.RunTime.Events;
@@ -454,9 +455,9 @@ namespace Metalama.Framework.Engine.Linking
         {
             TypeSyntax? handlerTypeSyntax, meTypeSyntax, argsTypeSyntax;
 
-            if ( context.CompilationContext.LanguageVersion <= (LanguageVersion) 1400 )
+            if ( context.CompilationContext.LanguageVersion < AllLanguageVersions.CSharp14 )
             {
-                // Under C# 14, we must specify the type of all lambda parameters because of `in`.
+                // Before C# 14, we must specify the type of all lambda parameters because of `in`.
                 handlerTypeSyntax = context.SyntaxGenerator.TypeSyntax( delegateType ).WithRequiredTrailingSpace();
                 meTypeSyntax = context.SyntaxGenerator.TypeSyntax( containingType ).WithRequiredTrailingSpace();
                 argsTypeSyntax = context.SyntaxGenerator.TypeSyntax( argsType ).WithRequiredTrailingSpace();

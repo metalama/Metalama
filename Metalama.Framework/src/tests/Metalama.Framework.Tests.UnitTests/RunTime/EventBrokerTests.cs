@@ -7,7 +7,6 @@ using System.Globalization;
 using Xunit;
 
 // ReSharper disable InconsistentNaming
-
 // ReSharper disable ConvertToLocalFunction
 
 #pragma warning disable IDE0039, IDE0044

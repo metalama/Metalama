@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.SyntaxGeneration;
+using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -25,7 +26,7 @@ internal sealed class EventRaiseHandlerCallSubstitution : SyntaxNodeSubstitution
     {
         this._rootNode = aspectReference.RootNode;
         this._containingMethod = aspectReference.ContainingBody;
-        this._delegateSignature = ((IEventSymbol) aspectReference.OriginalSymbol).Type.GetMembers( "Invoke" ).OfType<IMethodSymbol>().Single();
+        this._delegateSignature = ((IEventSymbol) aspectReference.OriginalSymbol).GetDelegateSignature();
     }
 
     public override SyntaxNode ReplacedNode => this._rootNode;

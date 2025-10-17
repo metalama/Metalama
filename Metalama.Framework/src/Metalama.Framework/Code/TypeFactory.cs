@@ -88,7 +88,7 @@ public static class TypeFactory
     public static ITupleType CreateTupleType( params IEnumerable<IType> elementTypes ) => Implementation.CreateTupleType( elementTypes );
 
     /// <summary>
-    /// Creates a tuple type with the specified element types (given as reflection <see cref="Type"/>'s)and default element names.
+    /// Creates a tuple type with the specified element types (given as reflection <see cref="Type"/>'s) and default element names.
     /// </summary>
     public static ITupleType CreateTupleType( params IEnumerable<Type> elementTypes ) => Implementation.CreateTupleType( elementTypes );
 

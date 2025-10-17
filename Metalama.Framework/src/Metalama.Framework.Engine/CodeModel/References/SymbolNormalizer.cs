@@ -2,9 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using K4os.Hash.xxHash;
 using Metalama.Framework.Engine.CodeModel.GenericContexts;
-using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
 using System;
@@ -51,18 +49,18 @@ internal static class SymbolNormalizer
         }
         else
         {
-            ulong tupleElementNames = 0;
+            var tupleElementNames = 0;
 
             if ( namedTypeSymbol.IsTupleType )
             {
-                XXH64 hasher = new();
+                HashCode hasher = default;
 
                 foreach ( var tupleElement in namedTypeSymbol.TupleElements )
                 {
-                    hasher.Update( tupleElement.Name );
+                    hasher.Add( tupleElement.Name );
                 }
 
-                tupleElementNames = hasher.Digest();
+                tupleElementNames = hasher.ToHashCode();
             }
 
             if ( GenericContextHelper.IsCanonicalGenericTypeInstance( namedTypeSymbol ) )
@@ -110,12 +108,12 @@ internal static class SymbolNormalizer
             _ => new CanonicalSymbolInfo( symbol, genericContext )
         };
 
-    public record struct CanonicalSymbolInfo( ISymbol Symbol, GenericContext Context, ulong AdditionalSymbolHash = 0 )
+    public record struct CanonicalSymbolInfo( ISymbol Symbol, GenericContext Context, int AdditionalSymbolHash = 0 )
     {
         public CanonicalSymbolKey ToKey() => new( this.Symbol, this.AdditionalSymbolHash );
     }
 
-    public record struct CanonicalSymbolKey( ISymbol Symbol, ulong AdditionalSymbolHash );
+    public record struct CanonicalSymbolKey( ISymbol Symbol, int AdditionalSymbolHash );
 
     public class CanonicalSymbolKeyComparer : IEqualityComparer<CanonicalSymbolKey>
     {
