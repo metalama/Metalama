@@ -82,9 +82,13 @@ namespace Metalama.Framework.Engine.CompileTime.Manifest
 
         public const int CurrentManifestVersion = 1;
 
+        // We're explicitly serializing as an integer because the manifest might be deserialized by a lower Roslyn
+        // version than the one serializing it.
+        [JsonConverter( typeof(LanguageVersionConverter) )]
         public LanguageVersion? LanguageVersion { get; set; }
 
         // Prior versions of Metalama did not write LanguageVersion, but the maximum version was 13.
+        [JsonIgnore]
         public LanguageVersion ResolvedLanguageVersion
 #if ROSLYN_4_12_0_OR_GREATER
             => this.LanguageVersion ?? Microsoft.CodeAnalysis.CSharp.LanguageVersion.CSharp13;
