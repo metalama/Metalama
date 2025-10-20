@@ -120,6 +120,21 @@ internal sealed partial class LinkerRewritingDriver
 
         if ( this.InjectionRegistry.IsOverrideTarget( symbol ) )
         {
+#if ROSLYN_5_0_0_OR_GREATER
+            if ( symbol is { IsPartialDefinition: true, PartialImplementationPart: { } } )
+            {
+                // This is a partial property declaration that is not to be transformed.
+                return [constructorDeclaration];
+            }
+
+            if ( symbol is { IsPartialDefinition: true, PartialImplementationPart: null } )
+            {
+                // This is a partial property declaration that did not have any body.
+                // Keep it as is and add a new declaration that will contain the override.
+                members.Add( constructorDeclaration );
+            }
+#endif
+
             var lastOverride = this.InjectionRegistry.GetLastOverride( symbol );
 
             if ( this.AnalysisRegistry.IsInlined( lastOverride.ToSemantic( IntermediateSymbolSemanticKind.Default ) ) )
@@ -182,6 +197,10 @@ internal sealed partial class LinkerRewritingDriver
                         (arrowToken.LeadingTrivia.AddOptionalLineFeed( context ),
                          arrowToken.TrailingTrivia.AddOptionalLineFeed( context ),
                          semicolonToken.LeadingTrivia.AddOptionalLineFeed( context ), semicolonToken.TrailingTrivia),
+                    { Body: null, ExpressionBody: null, SemicolonToken: var semicolonToken } =>
+                        (semicolonToken.LeadingTrivia.AddOptionalLineFeed( context ), context.ElasticEndOfLineTriviaList,
+                         context.ElasticEndOfLineTriviaList,
+                         semicolonToken.TrailingTrivia),
                     _ => throw new AssertionFailedException( $"Unsupported form of constructor declaration for {symbol}." )
                 };
 
@@ -303,7 +322,7 @@ internal sealed partial class LinkerRewritingDriver
                 }
             }
 
-            var ret = constructorDeclaration.PartialUpdate(
+            var result = constructorDeclaration.PartialUpdate(
                 isAuxiliaryForPrimaryConstructor
                     ? GetPrimaryConstructorAttributes( constructorDeclaration )
                     : constructorDeclaration.AttributeLists,
@@ -349,7 +368,14 @@ internal sealed partial class LinkerRewritingDriver
                     ? default
                     : constructorDeclaration.SemicolonToken );
 
-            return ret;
+#if ROSLYN_5_0_0_OR_GREATER
+            if ( symbol is { IsPartialDefinition: true, PartialImplementationPart: null } )
+            {
+                result = result.PartialUpdate( attributeLists: List<AttributeListSyntax>() );
+            }
+#endif
+
+            return result;
         }
     }
 

@@ -4,7 +4,6 @@
 
 #if TEST_OPTIONS
 // @RequiredConstant(ROSLYN_5_0_0_OR_GREATER)
-// @Skipped(https://github.com/metalama/Metalama/issues/1110)
 #endif
 
 #if ROSLYN_5_0_0_OR_GREATER
@@ -29,19 +28,21 @@ public class TheAspect : TypeAspect
             } );
     }
 
-    [Template]
-    public void ConstructorTemplate()
-    {
-        Console.WriteLine( "Attenti al cane." );
-    }
+    [Template(IsPartial = true)]
+    public extern void ConstructorTemplate();
 }
 
+// <target>
 [TheAspect]
-internal partial class C
+internal partial class ClassWithImplicit
 {
-#if TESTRUNNER
-    public partial C();
-#endif
+}
+
+// <target>
+[TheAspect]
+internal partial class ClassWithOtherSignature
+{
+    public ClassWithOtherSignature( int x ) { }
 }
 
 #endif

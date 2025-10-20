@@ -293,6 +293,9 @@ internal sealed partial class LinkerRewritingDriver
             case MethodDeclarationSyntax partialMethodDeclaration:
                 return (BlockSyntax) rewriter.Visit( partialMethodDeclaration ).AssertNotNull();
 
+            case ConstructorDeclarationSyntax partialConstructorDeclaration:
+                return (BlockSyntax) rewriter.Visit( partialConstructorDeclaration ).AssertNotNull();
+
             case VariableDeclaratorSyntax { Parent.Parent: EventFieldDeclarationSyntax } eventFieldVariable:
                 return (BlockSyntax) rewriter.Visit( eventFieldVariable ).AssertNotNull();
 

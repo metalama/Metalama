@@ -1699,6 +1699,85 @@ class C {}
     }
 #endif
 
+#if ROSLYN_5_0_0_OR_GREATER
+
+    [Fact]
+    public void PartialConstructors()
+    {
+        using var testContext = this.CreateTestContext();
+
+        const string code = """
+                            public partial class NonPartial
+                            {
+                                public NonPartial() {}
+                            }
+                            
+                            public partial class Partial
+                            {
+                                public partial Partial();
+                                public partial Partial() {}
+                            }
+                            """;
+
+        var compilation = testContext.CreateCompilationModel( code );
+        var nonPartial = compilation.Types.ElementAt( 0 ).Constructors.Single();
+        var partial = compilation.Types.ElementAt( 1 ).Constructors.Single();
+
+        Assert.False( nonPartial.IsPartial );
+        Assert.True( partial.IsPartial );
+
+        var partialDefinition = (IMethodSymbol) compilation.Types.ElementAt( 1 ).GetSymbol().AssertSymbolNotNull().GetMembers( "Partial" ).Single();
+        var partialImplementation = partialDefinition.PartialImplementationPart.AssertNotNull();
+
+        Assert.NotSame( partialDefinition, partialImplementation );
+
+        // Ensure references of both parts are the same.
+        var partialImplementationRef = partialDefinition.ToRef( compilation.RefFactory );
+        var partialDefinitionRef = partialImplementation.ToRef( compilation.RefFactory );
+        Assert.Same( partialImplementationRef, partialDefinitionRef );
+
+        // Ensure declarations of both parts are the same.
+        Assert.Same( compilation.Factory.GetMethod( partialDefinition ), compilation.Factory.GetMethod( partialImplementation ) );
+    }
+
+    [Fact]
+    public void PartialEvents()
+    {
+        using var testContext = this.CreateTestContext();
+
+        const string code = """
+                            partial class C
+                            {
+                                event System.EventHandler E;
+                                partial event System.EventHandler PartialE;
+                                partial event System.EventHandler PartialE { add {} remove {} }
+                            }
+                            """;
+
+        var compilation = testContext.CreateCompilationModel( code );
+        var type = compilation.Types.Single();
+
+        var nonPartialEvent = type.Events.OfName( "E" ).Single();
+        var partialEvent = type.Events.OfName( "PartialE" ).Single();
+
+        Assert.False( nonPartialEvent.IsPartial );
+        Assert.True( partialEvent.IsPartial );
+
+        var partialDefinition = (IEventSymbol) type.GetSymbol().AssertSymbolNotNull().GetMembers( "PartialE" ).Single();
+        var partialImplementation = partialDefinition.PartialImplementationPart.AssertNotNull();
+
+        Assert.NotSame( partialDefinition, partialImplementation );
+
+        // Ensure references of both parts are the same.
+        var partialImplementationRef = partialDefinition.ToRef( compilation.RefFactory );
+        var partialDefinitionRef = partialImplementation.ToRef( compilation.RefFactory );
+        Assert.Same( partialImplementationRef, partialDefinitionRef );
+
+        // Ensure declarations of both parts are the same.
+        Assert.Same( compilation.Factory.GetEvent( partialDefinition ), compilation.Factory.GetEvent( partialImplementation ) );
+    }
+#endif
+
     [Fact]
     public void HasImplementation()
     {
@@ -1863,6 +1942,32 @@ public partial class B
         Assert.Equal( 2, partialProperty.Sources.Length );
         Assert.True( partialProperty.HasImplementation );
         Assert.Single( partialProperty.Sources, s => s.IsImplementationPart );
+    }
+#endif
+
+#if ROSLYN_5_0_0_OR_GREATER
+    [Fact]
+    private void SourceReferencesToEvents()
+    {
+        using var testContext = this.CreateTestContext();
+
+        const string code =
+            """
+            public partial class C
+            {
+                public event System.EventHandler E;
+                partial event System.EventHandler PartialE;
+                partial event System.EventHandler PartialE { add {} remove {} }
+            }
+            """;
+
+        var compilation = testContext.CreateCompilationModel( code );
+        var type = compilation.Types.Single();
+        Assert.Single( type.Sources );
+        var partialEvent = type.Events["PartialE"];
+        Assert.Equal( 2, partialEvent.Sources.Length );
+        Assert.True( partialEvent.HasImplementation );
+        Assert.Single( partialEvent.Sources, s => s.IsImplementationPart );
     }
 #endif
 

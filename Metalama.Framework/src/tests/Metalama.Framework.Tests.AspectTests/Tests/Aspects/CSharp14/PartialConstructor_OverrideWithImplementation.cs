@@ -13,34 +13,32 @@ using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using System;
 
-namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.CSharp14.PartialConstructor_AddInitializer;
+namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.CSharp14.PartialConstructor_OverrideWithImplementation;
 
-public class TheAspect : TypeAspect
+public class TheAspect : ConstructorAspect
 {
-    public override void BuildAspect( IAspectBuilder<INamedType> builder )
+    public override void BuildAspect( IAspectBuilder<IConstructor> builder )
     {
-        builder.AddInitializer( nameof(this.InitializerTemplate), InitializerKind.BeforeInstanceConstructor );
+        builder.Override( nameof(this.ConstructorTemplate) );
     }
 
     [Template]
-    public void InitializerTemplate()
+    public void ConstructorTemplate()
     {
         Console.WriteLine( "Attenti al cane." );
     }
 }
 
 // <target>
-[TheAspect]
 internal partial class C
 {
-#if TESTRUNNER
     public partial C();
 
-    public partial C() 
+    [TheAspect]
+    public partial C()
     {
-        Console.WriteLine("Attention au chien.");
+        Console.WriteLine("Original implementation.");
     }
-#endif
 }
 
 #endif

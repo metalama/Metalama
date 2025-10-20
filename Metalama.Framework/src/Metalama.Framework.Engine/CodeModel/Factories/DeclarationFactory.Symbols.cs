@@ -246,11 +246,21 @@ public partial class DeclarationFactory
                 new SourceParameter( args.Symbol, args.Compilation, args.GenericContext ) );
 
     public IEvent GetEvent( IEventSymbol eventSymbol, GenericContext? genericContext = null )
-        => this.GetDeclarationFromSymbol<IEvent, IEventSymbol>(
-            eventSymbol,
-            genericContext,
-            static ( in args ) =>
-                new SourceEvent( args.Symbol, args.Compilation, args.GenericContext ) );
+    {
+#if ROSLYN_5_0_0_OR_GREATER
+
+        // Standardize on the partial definition part for partial properties.
+        eventSymbol = eventSymbol.PartialDefinitionPart ?? eventSymbol;
+
+#endif
+
+        return
+            this.GetDeclarationFromSymbol<IEvent, IEventSymbol>(
+                eventSymbol,
+                genericContext,
+                static ( in args ) =>
+                    new SourceEvent( args.Symbol, args.Compilation, args.GenericContext ) );
+    }
 
     public bool TryGetDeclaration( ISymbol symbol, [NotNullWhen( true )] out IDeclaration? declaration )
     {

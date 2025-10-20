@@ -91,6 +91,8 @@ internal sealed class IntroduceConstructorAdvice : IntroduceMemberAdvice<IMethod
                 ? targetDeclaration.StaticConstructor
                 : targetDeclaration.Constructors.OfExactSignature( builder );
 
+        var hasNoOverrideSemantics = this.Template?.TemplateClassMember.TemplateInfo.HasNoBody == true;
+
         // TODO: Introduce attributes that are added not present on the existing member?
         if ( existingConstructor == null || existingImplicitConstructor != null || (existingConstructor.IsPartial && builder.IsPartial) )
         {
@@ -110,7 +112,11 @@ internal sealed class IntroduceConstructorAdvice : IntroduceMemberAdvice<IMethod
                 this._template.ForIntroduction( builder ) );
 
             context.AddTransformation( builder.CreateTransformation() );
-            context.AddTransformation( overriddenConstructor );
+
+            if ( !hasNoOverrideSemantics )
+            {
+                context.AddTransformation( overriddenConstructor );
+            }
 
             return this.CreateSuccessResult( AdviceOutcome.Default, builder );
         }
@@ -133,14 +139,22 @@ internal sealed class IntroduceConstructorAdvice : IntroduceMemberAdvice<IMethod
                     return this.CreateIgnoredResult( existingConstructor );
 
                 case OverrideStrategy.Override:
-                    var overriddenMethod = new OverrideConstructorTransformation(
+                    if ( !hasNoOverrideSemantics )
+                    {
+                        var overriddenConstructor = new OverrideConstructorTransformation(
                         this.AspectLayerInstance,
                         existingConstructor.ToFullRef(),
                         this._template.ForIntroduction( existingConstructor ) );
 
-                    context.AddTransformation( overriddenMethod );
+                        context.AddTransformation( overriddenConstructor );
 
-                    return this.CreateSuccessResult( AdviceOutcome.Override, existingConstructor );
+                        return this.CreateSuccessResult( AdviceOutcome.Override, existingConstructor );
+                    }
+                    else
+                    {
+                        // Do nothing.
+                        return this.CreateIgnoredResult( existingConstructor );
+                    }
 
                 default:
                     throw new AssertionFailedException( $"Unexpected OverrideStrategy: {this.OverrideStrategy}." );

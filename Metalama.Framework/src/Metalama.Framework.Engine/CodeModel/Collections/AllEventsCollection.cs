@@ -6,6 +6,7 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Code.Collections;
 using Metalama.Framework.Engine.CodeModel.Abstractions;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Metalama.Framework.Engine.CodeModel.Collections;
 
@@ -16,4 +17,6 @@ internal sealed class AllEventsCollection : AllMembersCollection<IEvent>, IEvent
     protected override IMemberCollection<IEvent> GetMembers( INamedType namedType ) => namedType.Events;
 
     protected override IEqualityComparer<IEvent> Comparer => this.CompilationContext.EventComparer;
+
+    public IEvent this[string name] => this.OfName( name ).Single();
 }

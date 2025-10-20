@@ -23,7 +23,25 @@ namespace Metalama.Framework.Engine.Linking
 
             if ( this.InjectionRegistry.IsOverrideTarget( symbol ) )
             {
+#if ROSLYN_5_0_0_OR_GREATER
+                if ( symbol is { IsPartialDefinition: true, PartialImplementationPart: { } } )
+                {
+                    // This is a partial property declaration that is not to be transformed.
+                    return [eventFieldDeclaration];
+                }
+#endif
+
                 var members = new List<MemberDeclarationSyntax>();
+
+#if ROSLYN_5_0_0_OR_GREATER
+                if ( symbol is { IsPartialDefinition: true, PartialImplementationPart: null } )
+                {
+                    // This is a partial property declaration that did not have any body.
+                    // Keep it as is and add a new declaration that will contain the override.
+                    members.Add( eventFieldDeclaration );
+                }
+#endif
+
                 var lastOverride = (IEventSymbol) this.InjectionRegistry.GetLastOverride( symbol );
 
                 if ( this.AnalysisRegistry.IsReachable( symbol.ToSemantic( IntermediateSymbolSemanticKind.Default ) ) )
@@ -106,7 +124,7 @@ namespace Metalama.Framework.Engine.Linking
                     SyntaxKind.RemoveKeyword,
                     symbol.RemoveMethod.AssertNotNull() );
 
-                return
+                var result =
                     EventDeclaration(
                         FilterAttributeListsForTarget( eventFieldDeclaration.AttributeLists, SyntaxKind.EventKeyword, true, true ),
                         eventFieldDeclaration.Modifiers,
@@ -119,6 +137,15 @@ namespace Metalama.Framework.Engine.Linking
                             List( [transformedAdd, transformedRemove] ),
                             Token( context.ElasticEndOfLineTriviaList, SyntaxKind.CloseBraceToken, context.ElasticEndOfLineTriviaList ) ),
                         default );
+
+#if ROSLYN_5_0_0_OR_GREATER
+                if ( symbol is { IsPartialDefinition: true, PartialImplementationPart: null } )
+                {
+                    result = result.PartialUpdate( attributeLists: List<AttributeListSyntax>() );
+                }
+#endif
+
+                return result;
             }
 
             AccessorDeclarationSyntax GetLinkedAccessor(

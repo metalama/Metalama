@@ -116,7 +116,33 @@ internal sealed partial class SymbolTranslator
             }
         }
 
-        public override ISymbol? VisitEvent( IEventSymbol symbol ) => this.TranslateUniquelyNamedTypeMember( symbol );
+        public override ISymbol? VisitEvent( IEventSymbol symbol )
+        {
+#if ROSLYN_4_12_0_OR_GREATER
+            if ( symbol.PartialImplementationPart != null )
+            {
+                var partialImplementation = this.Translate( symbol.PartialImplementationPart );
+
+                return partialImplementation?.PartialDefinitionPart;
+            }
+#endif
+
+            var translated = this.TranslateNonUniquelyNamedTypeMember( symbol );
+
+#if ROSLYN_4_12_0_OR_GREATER
+            if ( translated == null )
+            {
+                return null;
+            }
+
+            if ( symbol.PartialDefinitionPart != null )
+            {
+                return ((IEventSymbol) translated).PartialImplementationPart;
+            }
+#endif
+
+            return translated;
+        }
 
         public override ISymbol? VisitField( IFieldSymbol symbol ) => this.TranslateUniquelyNamedTypeMember( symbol );
 

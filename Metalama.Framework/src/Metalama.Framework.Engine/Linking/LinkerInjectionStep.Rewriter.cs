@@ -627,6 +627,13 @@ internal sealed partial class LinkerInjectionStep
                             semicolonToken: default(SyntaxToken),
                             body: ReplaceExpression( entryStatements, exitStatements, expressionBody.Expression, true ) );
 
+                case ConstructorDeclarationSyntax { Body: null, ExpressionBody: null } constructor:
+                    Invariant.Assert( constructor.Modifiers.All( m => !m.IsKind( SyntaxKind.ExternKeyword ) ) );
+
+                    return constructor.PartialUpdate(
+                        body: Block( entryStatements.Concat( exitStatements ) ),
+                        semicolonToken: default( SyntaxToken ) );
+
                 // Static constructor overrides also go here.
                 case MethodDeclarationSyntax { Body: { } body } method:
                     return method.WithBody( ReplaceBlock( contextDeclaration, entryStatements, exitStatements, body ) );
