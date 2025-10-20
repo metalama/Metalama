@@ -9,6 +9,7 @@ using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Diagnostics;
+using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities.UserCode;
 using Metalama.Framework.Options;
@@ -107,4 +108,6 @@ internal sealed class CompilationHierarchicalOptionsSource : IHierarchicalOption
         public string DiagnosticSourceDescription
             => $"executing '{this._attribute.Type.Name}.{nameof(IHierarchicalOptionsProvider.GetOptions)}' for '{this._attribute.ContainingDeclaration}'";
     }
+
+    public PipelineContributorKind Kind => PipelineContributorKind.HierarchicalOptionsSource;
 }

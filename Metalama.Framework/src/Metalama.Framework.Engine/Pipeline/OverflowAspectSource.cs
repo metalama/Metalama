@@ -5,6 +5,7 @@
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.Collections;
+using Metalama.Framework.Engine.Extensibility;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Threading.Tasks;
@@ -33,4 +34,6 @@ internal sealed class OverflowAspectSource : IAspectSource
     }
 
     public void Add( IAspectSource aspectSource, IAspectClass aspectClass ) => this._aspectSources.Add( (aspectSource, aspectClass) );
+
+    public PipelineContributorKind Kind => PipelineContributorKind.AspectSource;
 }

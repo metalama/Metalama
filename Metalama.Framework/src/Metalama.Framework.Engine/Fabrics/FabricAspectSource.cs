@@ -5,6 +5,7 @@
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Aspects;
+using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Utilities.Threading;
 using System.Collections.Immutable;
 using System.Linq;
@@ -81,4 +82,6 @@ internal sealed class FabricAspectSource : IAspectSource
             collector.AddAspectInstance( aggregateInstance );
         }
     }
+
+    public PipelineContributorKind Kind => PipelineContributorKind.AspectSource;
 }

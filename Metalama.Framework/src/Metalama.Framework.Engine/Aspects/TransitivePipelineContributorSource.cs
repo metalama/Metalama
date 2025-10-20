@@ -194,4 +194,6 @@ internal sealed class TransitivePipelineContributorSource : IAspectSource, IExte
             return ImmutableArray<IAnnotation>.Empty;
         }
     }
+
+    PipelineContributorKind IPipelineContributor.Kind => PipelineContributorKind.AspectSource;
 }

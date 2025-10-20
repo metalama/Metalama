@@ -91,8 +91,8 @@ internal sealed class PipelineStepsState
 
         // Add the initial sources.
         // TODO: process failure of the next line.
-        this.AddAspectSources( sources.Contributors.OfType<IAspectSource>(), false, cancellationToken );
-        this.AddExtendedContributors( sources.Contributors.OfType<IExtensionPipelineContributor>() );
+        this.AddAspectSources( sources.Contributors.OfKind<IAspectSource>( PipelineContributorKind.AspectSource ), false, cancellationToken );
+        this.AddExtendedContributors( sources.Contributors.Extensions() );
     }
 
     public async Task<PipelineStepsResult> ExecuteAsync( CancellationToken cancellationToken )

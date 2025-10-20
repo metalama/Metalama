@@ -5,6 +5,7 @@
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.Diagnostics;
+using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.HierarchicalOptions;
 using Metalama.Framework.Options;
 using System;
@@ -50,4 +51,6 @@ internal sealed class OptionsQuerySource<TDeclaration, TOptions> : IHierarchical
             },
             cancelationToken );
     }
+
+    public PipelineContributorKind Kind => PipelineContributorKind.HierarchicalOptionsSource;
 }

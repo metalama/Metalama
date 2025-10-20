@@ -3,25 +3,25 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Code;
-using Metalama.Framework.Diagnostics;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.Diagnostics;
+using Metalama.Framework.Engine.Extensibility;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace Metalama.Framework.Engine.Queries.Diagnostics;
 
-internal sealed class DiagnosticQuerySource<TDeclaration> : IDiagnosticQuerySource
+internal sealed class DiagnosticQuerySource<TDeclaration> : IDiagnosticSource
     where TDeclaration : class, IDeclaration
 {
     private readonly IQueryImpl<TDeclaration> _query;
     
-    private readonly Action<UserDiagnosticSink, IDiagnosticSource, IDeclaration, object?> _action;
+    private readonly Action<UserDiagnosticSink, Framework.Diagnostics.IDiagnosticSource, IDeclaration, object?> _action;
 
     public DiagnosticQuerySource(
         IQueryImpl<TDeclaration> query,
-        Action<UserDiagnosticSink, IDiagnosticSource, IDeclaration, object?> action )
+        Action<UserDiagnosticSink, Framework.Diagnostics.IDiagnosticSource, IDeclaration, object?> action )
     {
         this._query = query;
         this._action = action;
@@ -41,4 +41,6 @@ internal sealed class DiagnosticQuerySource<TDeclaration> : IDiagnosticQuerySour
             },
             cancellationToken );
     }
+
+    public PipelineContributorKind Kind => PipelineContributorKind.DiagnosticSource;
 }

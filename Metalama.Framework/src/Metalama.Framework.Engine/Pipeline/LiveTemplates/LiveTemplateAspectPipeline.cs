@@ -108,6 +108,8 @@ public sealed class LiveTemplateAspectPipeline : AspectPipeline
 
             return Task.CompletedTask;
         }
+
+        public PipelineContributorKind Kind => PipelineContributorKind.AspectSource;
     }
 
     private sealed class LiveTemplatePredecessor : IAspectPredecessor

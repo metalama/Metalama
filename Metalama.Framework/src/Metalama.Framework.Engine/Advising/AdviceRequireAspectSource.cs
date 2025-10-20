@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Engine.Aspects;
+using Metalama.Framework.Engine.Extensibility;
 using System.Collections.Immutable;
 using System.Threading.Tasks;
 
@@ -28,4 +29,6 @@ internal sealed class AdviceRequireAspectSource : IAspectSource
 
         return Task.CompletedTask;
     }
+    
+    public PipelineContributorKind Kind => PipelineContributorKind.AspectSource;
 }

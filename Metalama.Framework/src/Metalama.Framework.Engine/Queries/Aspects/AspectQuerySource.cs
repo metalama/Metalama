@@ -8,6 +8,7 @@ using Metalama.Framework.Eligibility;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.Diagnostics;
+using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Fabrics;
 using System;
 using System.Collections.Immutable;
@@ -88,4 +89,6 @@ internal sealed class AspectQuerySource<TDeclaration> : IAspectSource
                 queryExecutionContext.UserCodeExecutionContext );
         }
     }
+
+    public PipelineContributorKind Kind => PipelineContributorKind.AspectSource;
 }

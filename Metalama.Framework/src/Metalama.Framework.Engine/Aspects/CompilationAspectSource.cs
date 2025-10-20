@@ -10,6 +10,7 @@ using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.Collections;
 using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Diagnostics;
+using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities.Threading;
 using System.Collections.Immutable;
@@ -117,4 +118,6 @@ internal sealed class CompilationAspectSource : IAspectSource
             }
         }
     }
+
+    public PipelineContributorKind Kind => PipelineContributorKind.AspectSource;
 }
