@@ -18,7 +18,7 @@ internal class AdviceImplementationContext
     private readonly IAdviceExecutionContext _adviceExecutionContext;
 
     private ImmutableArray<ITransformation>.Builder? _transformations;
-    private ImmutableArray<ITransitiveAspect>.Builder? _transitiveAspects;
+    private ImmutableArray<TransitiveAspectInstance>.Builder? _transitiveAspects;
 
     public AdviceImplementationContext( DiagnosticBag diagnostics, IAdviceExecutionContext adviceExecutionContext )
     {
@@ -49,13 +49,14 @@ internal class AdviceImplementationContext
         this._transformations.Add( transformation );
     }
 
-    public void AddTransitiveAspect( ITransitiveAspect aspect )
+    public void AddTransitiveAspect( TransitiveAspectInstance aspect )
     {
-        this._transitiveAspects ??= ImmutableArray.CreateBuilder<ITransitiveAspect>();
+        this._transitiveAspects ??= ImmutableArray.CreateBuilder<TransitiveAspectInstance>();
         this._transitiveAspects.Add( aspect );
     }
 
-    public ImmutableArray<ITransitiveAspect> TransitiveAspects => this._transitiveAspects?.ToImmutable() ?? ImmutableArray<ITransitiveAspect>.Empty;
+    public ImmutableArray<TransitiveAspectInstance> TransitiveAspects
+        => this._transitiveAspects?.ToImmutable() ?? ImmutableArray<TransitiveAspectInstance>.Empty;
 
     public ImmutableArray<ITransformation> Transformations => this._transformations?.ToImmutable() ?? ImmutableArray<ITransformation>.Empty;
 

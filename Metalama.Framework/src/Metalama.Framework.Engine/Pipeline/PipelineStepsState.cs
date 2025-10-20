@@ -91,7 +91,7 @@ internal sealed class PipelineStepsState
 
         // Add the initial sources.
         // TODO: process failure of the next line.
-        this.AddAspectSources( sources.Contributors.OfKind<IAspectSource>( PipelineContributorKind.AspectSource ), false, cancellationToken );
+        this.AddAspectSources( sources.Contributors.OfKind( ContributorKind.AspectSource ), false, cancellationToken );
         this.AddExtendedContributors( sources.Contributors.Extensions() );
     }
 

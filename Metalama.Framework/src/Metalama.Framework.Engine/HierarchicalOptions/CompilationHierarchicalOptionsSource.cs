@@ -109,5 +109,5 @@ internal sealed class CompilationHierarchicalOptionsSource : IHierarchicalOption
             => $"executing '{this._attribute.Type.Name}.{nameof(IHierarchicalOptionsProvider.GetOptions)}' for '{this._attribute.ContainingDeclaration}'";
     }
 
-    public PipelineContributorKind Kind => PipelineContributorKind.HierarchicalOptionsSource;
+    public ContributorKind ContributorKind => ContributorKind.HierarchicalOptionsSource;
 }

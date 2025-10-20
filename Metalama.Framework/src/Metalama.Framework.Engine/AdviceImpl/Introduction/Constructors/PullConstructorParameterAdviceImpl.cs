@@ -68,8 +68,18 @@ internal class PullConstructorParameterAdviceImpl
 
             if ( accessiblePulledParameters.Count > 0 )
             {
+                var transitiveAspect = new IntroduceConstructorParameterTransitiveAspect(
+                    this._pullStrategy,
+                    accessiblePulledParameters,
+                    this._context.AspectOrder );
+
                 this._context.AddTransitiveAspect(
-                    new IntroduceConstructorParameterTransitiveAspect( this._pullStrategy, accessiblePulledParameters, this._context.AspectOrder ) );
+                    new TransitiveAspectInstance(
+                        transitiveAspect,
+                        baseParameter.DeclaringMember.DeclaringType,
+                        IntroduceConstructorParameterTransitiveAspect.AspectClass.Instance,
+                        this._aspectLayerInstance.AspectInstance.AspectState,
+                        this._aspectLayerInstance.AspectInstance.PredecessorDegree + 1 ) );
             }
         }
 

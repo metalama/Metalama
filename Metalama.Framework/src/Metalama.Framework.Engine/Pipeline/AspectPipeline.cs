@@ -409,8 +409,7 @@ public abstract class AspectPipeline : IDisposable
         var contributors = ImmutableArray.CreateBuilder<IPipelineContributor>();
 
         var transitivePipelineContributorSource = new TransitivePipelineContributorSource( compilationContext, aspectClasses, configuration.ServiceProvider );
-        contributors.Add( transitivePipelineContributorSource );
-        contributors.AddRange( transitivePipelineContributorSource.ExtensionContributors );
+        contributors.AddRange( transitivePipelineContributorSource.Contributors );
         contributors.Add( new CompilationAspectSource( configuration.ServiceProvider, aspectClasses ) );
         contributors.Add( new CompilationHierarchicalOptionsSource( configuration.ServiceProvider ) );
 
@@ -491,7 +490,7 @@ public abstract class AspectPipeline : IDisposable
 
         await hierarchicalOptionsManager.InitializeAsync(
             pipelineConfiguration.CompileTimeProject,
-            contributorSources.Contributors.OfType<IHierarchicalOptionsSource>(),
+            contributorSources.Contributors.OfKind( ContributorKind.HierarchicalOptionsSource ),
             contributorSources.ExternalOptionsProvider,
             compilationModel,
             initializationDiagnosticSink,

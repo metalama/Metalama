@@ -52,15 +52,15 @@ public sealed class TransitiveAspectsManifest : ITransitiveAspectsManifest
     }
 
     public static TransitiveAspectsManifest Create(
-        ImmutableArray<InheritableAspectInstance> inheritedAspect,
+        ImmutableArray<InheritableAspectInstance> inheritedAspects,
         ImmutableArray<ITransitiveAspectsManifestExtension> extensions,
         ImmutableDictionary<HierarchicalOptionsKey, IHierarchicalOptions> options,
         ImmutableDictionaryOfArray<SerializableDeclarationId, IAnnotation> annotations )
         => new(
-            inheritedAspect.GroupBy( a => a.AspectClass )
+            inheritedAspects.GroupBy( a => a.AspectClass )
                 .ToImmutableDictionary(
                     g => g.Key.FullName,
-                    g => g.Select( i => new InheritableAspectInstance( i ) )
+                    g => g.Select( i => i )
                         .ToReadOnlyList(),
                     StringComparer.Ordinal ),
             extensions,

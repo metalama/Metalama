@@ -35,5 +35,5 @@ internal sealed class OverflowAspectSource : IAspectSource
 
     public void Add( IAspectSource aspectSource, IAspectClass aspectClass ) => this._aspectSources.Add( (aspectSource, aspectClass) );
 
-    public PipelineContributorKind Kind => PipelineContributorKind.AspectSource;
+    public ContributorKind ContributorKind => ContributorKind.AspectSource;
 }

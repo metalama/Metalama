@@ -34,7 +34,7 @@ internal sealed class DiagnosticQueryPipelineExtension : PipelineExtension
         var diagnostics = new UserDiagnosticSink( pipelineConfiguration.ServiceProvider );
 
         await Task.WhenAll(
-            contributors.OfKind<IDiagnosticSource>( PipelineContributorKind.DiagnosticSource )
+            contributors.OfKind( ContributorKind.DiagnosticSource )
                 .Select( source => source.CollectDiagnosticsAsync( finalCompilation, diagnostics, cancellationToken ) ) );
 
         return new ExtensionPipelineContributorsResult( ImmutableArray<ITransitivePipelineContributor>.Empty, diagnostics.ToImmutable() );

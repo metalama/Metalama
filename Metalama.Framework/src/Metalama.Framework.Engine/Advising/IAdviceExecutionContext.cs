@@ -26,7 +26,7 @@ internal interface IAdviceExecutionContext
 
     void AddTransformations( ImmutableArray<ITransformation> transformations );
 
-    void AddTransitiveAspects( ImmutableArray<ITransitiveAspect> aspects );
+    void AddTransitiveAspects( ImmutableArray<TransitiveAspectInstance> aspects );
 
     void SetOrders( ITransformation transformation );
 

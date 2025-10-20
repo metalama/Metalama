@@ -43,7 +43,7 @@ internal sealed class LowLevelPipelineStage : PipelineStage
         var collector = new AspectInstanceCollector( this._aspectClass, compilationModel, diagnostics, cancellationToken );
 
         await Task.WhenAll(
-            input.ContributorSources.Contributors.OfKind<IAspectSource>( PipelineContributorKind.AspectSource )
+            input.ContributorSources.Contributors.OfKind( ContributorKind.AspectSource )
                 .Select( s => s.CollectAspectInstancesAsync( collector ) ) );
 
         var aspectInstances = collector.AspectInstances

@@ -56,7 +56,7 @@ internal sealed class AspectQuerySource<TDeclaration> : IAspectSource
             }
 
             var predecessorInstance = (IAspectPredecessorImpl) this._query.Owner.AspectPredecessor.Instance;
-            
+
             // Verify eligibility.
             var aspectClass = (AspectClass) collector.AspectClass;
             var eligibility = aspectClass.GetEligibility( targetDeclaration );
@@ -90,5 +90,5 @@ internal sealed class AspectQuerySource<TDeclaration> : IAspectSource
         }
     }
 
-    public PipelineContributorKind Kind => PipelineContributorKind.AspectSource;
+    public ContributorKind ContributorKind => ContributorKind.AspectSource;
 }

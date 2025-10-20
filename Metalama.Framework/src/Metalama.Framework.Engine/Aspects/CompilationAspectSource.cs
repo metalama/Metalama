@@ -33,7 +33,7 @@ internal sealed class CompilationAspectSource : IAspectSource
     {
         this._attributeDeserializerProvider = serviceProvider.GetRequiredService<UserCodeAttributeDeserializer.Provider>();
         this._concurrentTaskRunner = serviceProvider.GetRequiredService<IConcurrentTaskRunner>();
-        
+
         // This source only supports real aspects, not fabric aspects.
         this.AspectClasses = aspectClasses.OfType<AspectClass>().ToImmutableArray<IAspectClass>();
     }
@@ -119,5 +119,5 @@ internal sealed class CompilationAspectSource : IAspectSource
         }
     }
 
-    public PipelineContributorKind Kind => PipelineContributorKind.AspectSource;
+    public ContributorKind ContributorKind => ContributorKind.AspectSource;
 }

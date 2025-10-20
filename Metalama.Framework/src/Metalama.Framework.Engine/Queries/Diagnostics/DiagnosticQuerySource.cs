@@ -16,7 +16,7 @@ internal sealed class DiagnosticQuerySource<TDeclaration> : IDiagnosticSource
     where TDeclaration : class, IDeclaration
 {
     private readonly IQueryImpl<TDeclaration> _query;
-    
+
     private readonly Action<UserDiagnosticSink, Framework.Diagnostics.IDiagnosticSource, IDeclaration, object?> _action;
 
     public DiagnosticQuerySource(
@@ -42,5 +42,5 @@ internal sealed class DiagnosticQuerySource<TDeclaration> : IDiagnosticSource
             cancellationToken );
     }
 
-    public PipelineContributorKind Kind => PipelineContributorKind.DiagnosticSource;
+    public ContributorKind ContributorKind => ContributorKind.DiagnosticSource;
 }

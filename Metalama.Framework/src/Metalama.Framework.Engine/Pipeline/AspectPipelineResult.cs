@@ -120,7 +120,7 @@ namespace Metalama.Framework.Engine.Pipeline
             PipelineContributorSources? sources = null,
             ImmutableArray<IAspectInstance> inheritableAspectInstances = default,
             ImmutableDictionaryOfArray<IRef<IDeclaration>, AnnotationInstance>? annotations = null,
-            ImmutableArray<ITransitivePipelineContributor> extensions = default,
+            ImmutableArray<ITransitivePipelineContributor> transitiveContributors = default,
             ImmutableArray<IntroducedSyntaxTree> additionalSyntaxTrees = default,
             ImmutableArray<AspectInstanceResult> aspectInstanceResults = default,
             ImmutableArray<AdditionalCompilationOutputFile> additionalCompilationOutputFiles = default,
@@ -145,7 +145,7 @@ namespace Metalama.Framework.Engine.Pipeline
                                ?? ImmutableDictionaryOfArray<IRef<IDeclaration>, AnnotationInstance>.Create( RefEqualityComparer<IDeclaration>.Default );
 
             this.TransitiveContributors =
-                extensions.IsDefault ? ImmutableArray<ITransitivePipelineContributor>.Empty : extensions;
+                transitiveContributors.IsDefault ? ImmutableArray<ITransitivePipelineContributor>.Empty : transitiveContributors;
 
             this.Project = project;
             this.AdditionalSyntaxTrees = additionalSyntaxTrees.IsDefault ? ImmutableArray<IntroducedSyntaxTree>.Empty : additionalSyntaxTrees;

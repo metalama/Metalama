@@ -77,7 +77,7 @@ internal sealed class AdviceFactoryState : IAdviceExecutionContext
         }
     }
 
-    public void AddTransitiveAspects( ImmutableArray<ITransitiveAspect> aspects )
+    public void AddTransitiveAspects( ImmutableArray<TransitiveAspectInstance> aspects )
     {
         foreach ( var aspect in aspects )
         {

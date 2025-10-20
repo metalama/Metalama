@@ -31,5 +31,5 @@ internal sealed class AdviceAddAspectSource : IAspectSource
         return Task.CompletedTask;
     }
 
-    public PipelineContributorKind Kind => PipelineContributorKind.AspectSource;
+    public ContributorKind ContributorKind => ContributorKind.AspectSource;
 }

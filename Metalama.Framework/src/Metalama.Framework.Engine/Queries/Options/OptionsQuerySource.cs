@@ -52,5 +52,5 @@ internal sealed class OptionsQuerySource<TDeclaration, TOptions> : IHierarchical
             cancelationToken );
     }
 
-    public PipelineContributorKind Kind => PipelineContributorKind.HierarchicalOptionsSource;
+    public ContributorKind ContributorKind => ContributorKind.HierarchicalOptionsSource;
 }

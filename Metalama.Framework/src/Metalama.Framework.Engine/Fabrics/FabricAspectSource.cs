@@ -83,5 +83,5 @@ internal sealed class FabricAspectSource : IAspectSource
         }
     }
 
-    public PipelineContributorKind Kind => PipelineContributorKind.AspectSource;
+    public ContributorKind ContributorKind => ContributorKind.AspectSource;
 }
