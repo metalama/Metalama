@@ -1047,12 +1047,13 @@ public static class AdviserExtensions
     ///     A <c>null</c> value is equivalent to <see cref="PullAction.None"/>, i.e. <paramref name="defaultValue"/> of the parameter will be used.
     /// </param>
     /// <param name="attributes"></param>
+    [Obsolete( "This overload does not work across project boundaries. Use an overload that accepts an IIntroduceConstructorParameterPullStrategy." )]
     public static IIntroductionAdviceResult<IParameter> IntroduceParameter(
         this IAdviser<IConstructor> adviser,
         string parameterName,
         IType parameterType,
         TypedConstant defaultValue,
-        Func<IParameter, IConstructor, PullAction>? pullAction = null,
+        Func<IParameter, IConstructor, PullAction>? pullAction,
         ImmutableArray<AttributeConstruction> attributes = default )
         => ((IAdviserInternal) adviser).AdviceFactory.IntroduceParameter(
             adviser.Target,
@@ -1060,6 +1061,47 @@ public static class AdviserExtensions
             parameterType,
             defaultValue,
             pullAction,
+            attributes );
+
+    public static IIntroductionAdviceResult<IParameter> IntroduceParameter(
+        this IAdviser<IConstructor> adviser,
+        string parameterName,
+        IType parameterType,
+        TypedConstant defaultValue,
+        IPullStrategy? pullStrategy,
+        ImmutableArray<AttributeConstruction> attributes = default )
+        => ((IAdviserInternal) adviser).AdviceFactory.IntroduceParameter(
+            adviser.Target,
+            parameterName,
+            parameterType,
+            defaultValue,
+            pullStrategy,
+            attributes );
+
+    public static IIntroductionAdviceResult<IParameter> IntroduceParameter(
+        this IAdviser<IConstructor> adviser,
+        string parameterName,
+        IType parameterType,
+        TypedConstant defaultValue,
+        ImmutableArray<AttributeConstruction> attributes = default )
+        => ((IAdviserInternal) adviser).AdviceFactory.IntroduceParameter(
+            adviser.Target,
+            parameterName,
+            parameterType,
+            defaultValue,
+            attributes );
+
+    public static IIntroductionAdviceResult<IParameter> IntroduceParameter(
+        this IAdviser<IConstructor> adviser,
+        string parameterName,
+        Type parameterType,
+        TypedConstant defaultValue,
+        ImmutableArray<AttributeConstruction> attributes = default )
+        => ((IAdviserInternal) adviser).AdviceFactory.IntroduceParameter(
+            adviser.Target,
+            parameterName,
+            parameterType,
+            defaultValue,
             attributes );
 
     /// <summary>
@@ -1075,12 +1117,13 @@ public static class AdviserExtensions
     ///     A <c>null</c> value is equivalent to <see cref="PullAction.None"/>, i.e. <paramref name="defaultValue"/> of the parameter will be used.
     /// </param>
     /// <param name="attributes"></param>
+    [Obsolete( "This overload does not work across project boundaries. Use an overload that accepts an IIntroduceConstructorParameterPullStrategy." )]
     public static IIntroductionAdviceResult<IParameter> IntroduceParameter(
         this IAdviser<IConstructor> adviser,
         string parameterName,
         Type parameterType,
         TypedConstant defaultValue,
-        Func<IParameter, IConstructor, PullAction>? pullAction = null,
+        Func<IParameter, IConstructor, PullAction>? pullAction,
         ImmutableArray<AttributeConstruction> attributes = default )
         => ((IAdviserInternal) adviser).AdviceFactory.IntroduceParameter(
             adviser.Target,
@@ -1088,6 +1131,21 @@ public static class AdviserExtensions
             parameterType,
             defaultValue,
             pullAction,
+            attributes );
+
+    public static IIntroductionAdviceResult<IParameter> IntroduceParameter(
+        this IAdviser<IConstructor> adviser,
+        string parameterName,
+        Type parameterType,
+        TypedConstant defaultValue,
+        IPullStrategy? pullStrategy,
+        ImmutableArray<AttributeConstruction> attributes = default )
+        => ((IAdviserInternal) adviser).AdviceFactory.IntroduceParameter(
+            adviser.Target,
+            parameterName,
+            parameterType,
+            defaultValue,
+            pullStrategy,
             attributes );
 
     public static IIntroductionAdviceResult<INamedType> IntroduceClass(

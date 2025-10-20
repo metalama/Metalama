@@ -25,7 +25,8 @@ namespace Metalama.Framework.Engine.Aspects
         where T : class, IDeclaration
     {
         private readonly AspectBuilderState _aspectBuilderState;
-        private readonly AdviceFactory<T> _adviceFactory;
+
+        public AdviceFactory<T> AdviceFactory { get; }
 
         public AspectBuilder(
             T target,
@@ -35,7 +36,7 @@ namespace Metalama.Framework.Engine.Aspects
         {
             this.Target = target;
             this._aspectBuilderState = aspectBuilderState;
-            this._adviceFactory = adviceFactory;
+            this.AdviceFactory = adviceFactory;
             this.AspectPredecessor = aspectPredecessor ?? new AspectPredecessor( AspectPredecessorKind.ChildAspect, aspectBuilderState.AspectInstance );
         }
 
@@ -49,9 +50,9 @@ namespace Metalama.Framework.Engine.Aspects
         public ProjectServiceProvider ServiceProvider => this._aspectBuilderState.ServiceProvider;
 
         [Obsolete]
-        IAdviceFactory IAspectBuilder.Advice => this._adviceFactory;
+        IAdviceFactory IAspectBuilder.Advice => this.AdviceFactory;
 
-        IAdviceFactory IAdviserInternal.AdviceFactory => this._adviceFactory;
+        IAdviceFactory IAdviserInternal.AdviceFactory => this.AdviceFactory;
 
         public DisposeAction WithPredecessor( in AspectPredecessor predecessor )
         {
@@ -63,12 +64,12 @@ namespace Metalama.Framework.Engine.Aspects
 
         IDiagnosticAdder IAspectBuilderInternal.DiagnosticAdder => this._aspectBuilderState.Diagnostics;
 
-        public ScopedDiagnosticSink Diagnostics => this._adviceFactory.Diagnostics;
+        public ScopedDiagnosticSink Diagnostics => this.AdviceFactory.Diagnostics;
 
         public T Target { get; }
 
         [Memo]
-        public T AdvisedTarget => this.Target.ForCompilation( this._adviceFactory.MutableCompilation );
+        public T AdvisedTarget => this.Target.ForCompilation( this.AdviceFactory.MutableCompilation );
 
         [Memo]
         public IQuery<T> Outbound
@@ -148,7 +149,7 @@ namespace Metalama.Framework.Engine.Aspects
                 return new AspectBuilder<TNewTarget>(
                     declaration,
                     this._aspectBuilderState,
-                    this._adviceFactory.WithDeclaration( declaration ),
+                    this.AdviceFactory.WithDeclaration( declaration ),
                     this.AspectPredecessor );
             }
         }

@@ -6,9 +6,12 @@ using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.Invokers;
 using Metalama.Framework.Code.SyntaxBuilders;
+using Metalama.Framework.CompileTimeContracts;
 using Metalama.Framework.Engine.CodeModel;
+using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.Invokers;
 using Metalama.Framework.Engine.Formatting;
+using Metalama.Framework.Engine.SerializableIds;
 using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.SyntaxSerialization;
 using Metalama.Framework.Engine.Templating.Statements;
@@ -20,6 +23,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Formatting;
 using System;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using SpecialType = Metalama.Framework.Code.SpecialType;
 using TypedConstant = Metalama.Framework.Code.TypedConstant;
@@ -239,6 +243,60 @@ internal class SyntaxBuilderImpl : ISyntaxBuilderImpl
         else
         {
             return new SyntaxUserExpression( SyntaxFactoryEx.Default, this._targetTypedExpressionType );
+        }
+    }
+
+    public string ToText( IExpression expression )
+        => expression.ToUserExpression().ToTypedExpressionSyntax( this.CreateSyntaxSerializationContext() ).Syntax.NormalizeWhitespace().ToString();
+
+    public bool TryConvertExpressionToTypedConstant( IExpression expression, [NotNullWhen( true )] out TypedConstant? typedConstant )
+    {
+        if ( expression is TypedConstant expressionAsTypedConstant )
+        {
+            typedConstant = expressionAsTypedConstant;
+
+            return true;
+        }
+        else if ( expression is IUserExpression userExpression )
+        {
+            var syntax = userExpression.ToTypedExpressionSyntax( this.CreateSyntaxSerializationContext() ).Syntax;
+
+            return this.TryConvertExpressionToTypedConstant( syntax, out typedConstant );
+        }
+        else
+        {
+            return this.TryConvertExpressionToTypedConstant( this.ToText( expression ), out typedConstant );
+        }
+    }
+
+    public bool TryConvertExpressionToTypedConstant( string expression, [NotNullWhen( true )] out TypedConstant? typedConstant )
+    {
+        var syntax = SyntaxFactory.ParseExpression( expression );
+
+        return this.TryConvertExpressionToTypedConstant( syntax, out typedConstant );
+    }
+
+    private bool TryConvertExpressionToTypedConstant( ExpressionSyntax syntax, [NotNullWhen( true )] out TypedConstant? typedConstant )
+    {
+        if ( syntax is LiteralExpressionSyntax literalExpression )
+        {
+            typedConstant = Code.TypedConstant.Create( literalExpression.Token.Value );
+
+            return true;
+        }
+        else if ( syntax is DefaultExpressionSyntax defaultExpressionSyntax )
+        {
+            var type = this.Compilation.GetCompilationModel().SerializableTypeIdResolver.ResolveId( defaultExpressionSyntax.Type.GetSerializableTypeId() );
+
+            typedConstant = Code.TypedConstant.Default( type );
+
+            return true;
+        }
+        else
+        {
+            typedConstant = null;
+
+            return false;
         }
     }
 

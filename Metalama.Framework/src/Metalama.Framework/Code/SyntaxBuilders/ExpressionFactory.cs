@@ -5,6 +5,7 @@
 using JetBrains.Annotations;
 using Metalama.Framework.Aspects;
 using System;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Metalama.Framework.Code.SyntaxBuilders;
 
@@ -135,8 +136,9 @@ public static class ExpressionFactory
     /// <param name="type">The resulting type of the expression, if known. This value allows to generate simpler code.</param>
     /// <param name="isReferenceable">Indicates whether the expression can be used in <c>ref</c> or <c>out</c> situations.</param>
     /// <seealso href="@templates"/>
-    public static IExpression Parse( string code, IType? type = null, bool? isReferenceable = null )
-        => SyntaxBuilder.CurrentImplementation.ParseExpression( code, type, isReferenceable );
+    [return: NotNullIfNotNull( nameof(code) )]
+    public static IExpression? Parse( string? code, IType? type = null, bool? isReferenceable = null )
+        => code == null ? null : SyntaxBuilder.CurrentImplementation.ParseExpression( code, type, isReferenceable );
 
     /// <summary>
     /// Creates a compile-time object that represents a run-time <i>expression</i>, i.e. the syntax or code, and not the result
@@ -228,15 +230,20 @@ public static class ExpressionFactory
     /// <summary>
     /// Returns the same expression, but assuming it has a different type <see cref="IHasType.Type"/>. This method does not generate
     /// any cast (unlike <see cref="CastTo(Metalama.Framework.Code.IExpression,Metalama.Framework.Code.IType)"/>) and should only
-    /// be used when the of the type given expression is wrongly infered.
+    /// be used when the of the type given expression is wrongly inferred.
     /// </summary>
     public static IExpression WithType( this IExpression expression, IType type ) => SyntaxBuilder.CurrentImplementation.WithType( expression, type );
 
     /// <summary>
     /// Returns the same expression, but assuming it has a different nullability. This method does not generate
     /// any cast (unlike <see cref="CastTo(Metalama.Framework.Code.IExpression,Metalama.Framework.Code.IType)"/>) and should only
-    /// be used when the of the nullability given expression is wrongly infered.
+    /// be used when the of the nullability given expression is wrongly inferred.
     /// </summary>
     public static IExpression WithNullability( this IExpression expression, bool isNullable )
         => expression.WithType( isNullable ? expression.Type.ToNullable() : expression.Type.ToNonNullable() );
+}
+
+public static class ExpressionExtensions
+{
+    public static string ToText( this IExpression expression ) => SyntaxBuilder.CurrentImplementation.ToText( expression );
 }

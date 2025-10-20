@@ -249,8 +249,6 @@ namespace Metalama.Framework.Tests.UnitTests.LamaSerialization
                     constructorArguments.SetValue( "x", obj.X );
                 }
 
-                public override void DeserializeFields( SimpleClass obj, IArgumentsReader initializationArguments ) { }
-
                 public override SimpleClass CreateInstance( IArgumentsReader constructorArguments )
                 {
                     return new SimpleClass( constructorArguments.GetValue<int>( "x" ) );

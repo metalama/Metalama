@@ -12,7 +12,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 
-namespace Metalama.Framework.Engine.AdviceImpl.Introduction;
+namespace Metalama.Framework.Engine.AdviceImpl.Introduction.Constructors;
 
 /// <summary>
 /// A transformation that appends an argument to the initializer call of a constructor.

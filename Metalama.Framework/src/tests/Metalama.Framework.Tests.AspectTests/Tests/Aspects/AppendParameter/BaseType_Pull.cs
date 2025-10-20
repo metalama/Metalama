@@ -12,14 +12,14 @@ public class MyAspect : TypeAspect
 {
     public override void BuildAspect( IAspectBuilder<INamedType> builder )
     {
-        foreach (var constructor in builder.Target.Constructors)
+        foreach ( var constructor in builder.Target.Constructors )
         {
             builder.With( constructor )
                 .IntroduceParameter(
                     "p",
                     typeof(int),
                     TypedConstant.Create( 15 ),
-                    ( p, c ) => PullAction.UseExpression( TypedConstant.Create( 51 ) ) );
+                    PullStrategy.UseExpression( TypedConstant.Create( 51 ) ) );
         }
     }
 }
@@ -30,7 +30,7 @@ public class A
 {
     public A( int x )
     {
-        X = x;
+        this.X = x;
     }
 
     public int X { get; set; }
@@ -41,7 +41,7 @@ public class C : A
 {
     public C( int x ) : base( 42 )
     {
-        Y = x;
+        this.Y = x;
     }
 
     public int Y { get; }

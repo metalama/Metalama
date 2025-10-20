@@ -12,6 +12,4 @@ internal sealed class AttributeSerializationDataSerializer : ReferenceTypeSerial
 
     public override void SerializeObject( AttributeSerializationData obj, IArgumentsWriter constructorArguments, IArgumentsWriter initializationArguments )
         => obj.Serialize( constructorArguments );
-
-    public override void DeserializeFields( AttributeSerializationData obj, IArgumentsReader initializationArguments ) { }
 }

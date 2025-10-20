@@ -19,7 +19,7 @@ internal abstract class IntroduceDeclarationAdvice<TIntroduced, TBuilder> : Advi
 
     protected IAdviceFactoryImpl AdviceFactory { get; }
 
-    protected IntroduceDeclarationAdvice( AdviceConstructorParameters parameters, Action<TBuilder>? buildAction, IAdviceFactoryImpl adviceFactory )
+    protected IntroduceDeclarationAdvice( in AdviceConstructorParameters parameters, Action<TBuilder>? buildAction, IAdviceFactoryImpl adviceFactory )
         : base( parameters )
     {
         this._buildAction = buildAction;
@@ -39,12 +39,12 @@ internal abstract class IntroduceDeclarationAdvice<TIntroduced, TBuilder> : Advi
             existingMember.ToRef(),
             this.AdviceFactory );
 
-    protected sealed override IntroductionAdviceResult<TIntroduced> Implement( in AdviceImplementationContext context )
+    protected sealed override IntroductionAdviceResult<TIntroduced> Implement( AdviceImplementationContext context )
     {
         var builder = this.CreateBuilder();
         context.ThrowIfAnyError();
 
-        this.InitializeBuilder( builder, in context );
+        this.InitializeBuilder( builder, context );
 
         this._buildAction?.Invoke( builder );
 
@@ -52,16 +52,16 @@ internal abstract class IntroduceDeclarationAdvice<TIntroduced, TBuilder> : Advi
 
         this.ValidateBuilder( builder, context.Diagnostics );
 
-        return this.ImplementCore( builder, in context );
+        return this.ImplementCore( builder, context );
     }
 
     protected abstract TBuilder CreateBuilder();
 
-    protected virtual void InitializeBuilder( TBuilder builder, in AdviceImplementationContext context ) { }
+    protected virtual void InitializeBuilder( TBuilder builder, AdviceImplementationContext context ) { }
 
     protected virtual void CompleteBuilder( TBuilder builder ) { }
 
-    protected abstract IntroductionAdviceResult<TIntroduced> ImplementCore( TBuilder builder, in AdviceImplementationContext context );
+    protected abstract IntroductionAdviceResult<TIntroduced> ImplementCore( TBuilder builder, AdviceImplementationContext context );
 
     protected virtual void ValidateBuilder( TBuilder builder, IDiagnosticAdder diagnosticAdder ) { }
 

@@ -20,7 +20,7 @@ internal sealed class AddAttributeAdvice : Advice<AddAttributeAdviceResult>
     private readonly IAttributeData _attribute;
     private readonly OverrideStrategy _overrideStrategy;
 
-    public AddAttributeAdvice( AdviceConstructorParameters parameters, IAttributeData attribute, OverrideStrategy overrideStrategy )
+    public AddAttributeAdvice( in AdviceConstructorParameters parameters, IAttributeData attribute, OverrideStrategy overrideStrategy )
         : base( parameters )
     {
         this._attribute = attribute;
@@ -29,7 +29,7 @@ internal sealed class AddAttributeAdvice : Advice<AddAttributeAdviceResult>
 
     public override AdviceKind AdviceKind => AdviceKind.IntroduceAttribute;
 
-    protected override AddAttributeAdviceResult Implement( in AdviceImplementationContext context )
+    protected override AddAttributeAdviceResult Implement( AdviceImplementationContext context )
     {
         var targetDeclaration = this.TargetDeclaration;
         var contextCopy = context;

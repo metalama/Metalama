@@ -14,6 +14,7 @@ namespace Metalama.Framework.Advising;
 /// <summary>
 /// Represents a way to pull a field or property.
 /// </summary>
+/// <seealso cref="IPullStrategy"/>
 [CompileTime]
 [PublicAPI]
 public readonly struct PullAction
@@ -24,7 +25,7 @@ public readonly struct PullAction
 
     internal ImmutableArray<AttributeConstruction> ParameterAttributes { get; }
 
-    internal TypedConstant? ParameterDefaultValue { get; }
+    internal IExpression? ParameterDefaultValue { get; }
 
     internal string? ParameterName { get; }
 
@@ -35,7 +36,7 @@ public readonly struct PullAction
         IExpression? expression = null,
         string? parameterName = null,
         IType? parameterType = null,
-        TypedConstant? parameterDefaultValue = null,
+        IExpression? parameterDefaultValue = null,
         ImmutableArray<AttributeConstruction> parameterAttributes = default )
     {
         this.Kind = kind;
@@ -64,12 +65,17 @@ public readonly struct PullAction
     public static PullAction IntroduceParameterAndPull(
         string parameterName,
         IType parameterType,
-        TypedConstant parameterDefaultValue,
+        IExpression? parameterDefaultValue,
         ImmutableArray<AttributeConstruction> parameterAttributes = default )
         => new( PullActionKind.AppendParameterAndPull, null, parameterName, parameterType, parameterDefaultValue, parameterAttributes );
 
     /// <summary>
-    /// Creates a <see cref="PullAction"/> that means that the dependency should be assigned to a given expression.
+    /// Creates a <see cref="PullAction"/> that means that the dependency should be assigned to a given <see cref="IExpression"/>.
     /// </summary>
     public static PullAction UseExpression( IExpression expression ) => new( PullActionKind.UseExpression, expression );
+
+    /// <summary>
+    /// Creates a <see cref="PullAction"/> that means that the dependency should be assigned to a given <see cref="TypedConstant"/>.
+    /// </summary>
+    public static PullAction UseConstant( TypedConstant constant ) => new( PullActionKind.UseExpression, constant );
 }

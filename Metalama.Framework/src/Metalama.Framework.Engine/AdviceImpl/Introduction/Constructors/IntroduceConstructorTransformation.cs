@@ -18,7 +18,7 @@ using System.Collections.Generic;
 using System.Linq;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
-namespace Metalama.Framework.Engine.AdviceImpl.Introduction;
+namespace Metalama.Framework.Engine.AdviceImpl.Introduction.Constructors;
 
 internal sealed class IntroduceConstructorTransformation
     : IntroduceMemberTransformation<ConstructorBuilderData>, IReplaceMemberTransformation, IInsertStatementTransformation
@@ -57,14 +57,13 @@ internal sealed class IntroduceConstructorTransformation
         var arguments =
             ArgumentList(
                 SeparatedList(
-                    this.BuilderData.InitializerArguments.SelectAsArray(
-                        a =>
-                            Argument(
-                                a.ParameterName != null
-                                    ? NameColon( IdentifierName( a.ParameterName ) )
-                                    : null,
-                                default,
-                                a.Expression.ToExpressionSyntax( syntaxSerializationContext ) ) ) ) );
+                    this.BuilderData.InitializerArguments.SelectAsArray( a =>
+                                                                             Argument(
+                                                                                 a.ParameterName != null
+                                                                                     ? NameColon( IdentifierName( a.ParameterName ) )
+                                                                                     : null,
+                                                                                 default,
+                                                                                 a.Expression.ToExpressionSyntax( syntaxSerializationContext ) ) ) ) );
 
         var initializer =
             constructorBuilder.InitializerKind switch

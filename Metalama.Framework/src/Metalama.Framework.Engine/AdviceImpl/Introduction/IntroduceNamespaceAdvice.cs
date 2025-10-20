@@ -18,7 +18,7 @@ internal sealed class IntroduceNamespaceAdvice : IntroduceDeclarationAdvice<INam
     public override AdviceKind AdviceKind => AdviceKind.IntroduceNamespace;
 
     public IntroduceNamespaceAdvice(
-        AdviceConstructorParameters<INamespace> parameters,
+        in AdviceConstructorParameters<INamespace> parameters,
         string name,
         IAdviceFactoryImpl adviceFactory ) : base( parameters, null, adviceFactory )
     {
@@ -42,7 +42,7 @@ internal sealed class IntroduceNamespaceAdvice : IntroduceDeclarationAdvice<INam
         return new NamespaceBuilder( this.AspectLayerInstance, parentNamespace, nameParts[^1] );
     }
 
-    protected override IntroductionAdviceResult<INamespace> ImplementCore( NamespaceBuilder builder, in AdviceImplementationContext context )
+    protected override IntroductionAdviceResult<INamespace> ImplementCore( NamespaceBuilder builder, AdviceImplementationContext context )
     {
         var contextCopy = context;
 

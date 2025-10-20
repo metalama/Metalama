@@ -12,13 +12,13 @@ namespace Metalama.Framework.Engine.AdviceImpl.Contracts;
 internal sealed class ParameterContractAdvice : ContractAdvice<IParameter>
 {
     public ParameterContractAdvice(
-        AdviceConstructorParameters<IParameter> parameters,
+        in AdviceConstructorParameters<IParameter> parameters,
         TemplateMember<IMethod> template,
         ContractDirection direction,
         IObjectReader templateArguments )
         : base( parameters, template, direction, templateArguments ) { }
 
-    protected override AddContractAdviceResult<IParameter> Implement( in AdviceImplementationContext context )
+    protected override AddContractAdviceResult<IParameter> Implement( AdviceImplementationContext context )
     {
         var targetDeclaration = this.TargetDeclaration;
 

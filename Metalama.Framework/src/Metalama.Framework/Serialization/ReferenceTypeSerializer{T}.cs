@@ -23,5 +23,5 @@ public abstract class ReferenceTypeSerializer<T> : ReferenceTypeSerializer
 
     public abstract void SerializeObject( T obj, IArgumentsWriter constructorArguments, IArgumentsWriter initializationArguments );
 
-    public abstract void DeserializeFields( T obj, IArgumentsReader initializationArguments );
+    public virtual void DeserializeFields( T obj, IArgumentsReader initializationArguments ) { }
 }

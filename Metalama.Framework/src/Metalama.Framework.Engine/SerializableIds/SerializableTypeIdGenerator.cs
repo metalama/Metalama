@@ -6,6 +6,7 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Metalama.Framework.Engine.SerializableIds;
 
@@ -35,6 +36,11 @@ public static class SerializableTypeIdGenerator
         }
 
         return new SerializableTypeId( id );
+    }
+
+    public static SerializableTypeId GetSerializableTypeId( this TypeSyntax typeSyntax )
+    {
+        return new SerializableTypeId( SerializableTypeId.Prefix + typeSyntax );
     }
 
     // ReSharper disable once MemberCanBeInternal

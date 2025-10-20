@@ -6,6 +6,7 @@ using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.AdviceImpl.Introduction;
+using Metalama.Framework.Engine.AdviceImpl.Introduction.Constructors;
 using Metalama.Framework.Engine.AdviceImpl.Override;
 using Metalama.Framework.Engine.Advising;
 using Metalama.Framework.Engine.CodeModel;
@@ -24,6 +25,7 @@ using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Accessibility = Metalama.Framework.Code.Accessibility;
+using TypeKind = Metalama.Framework.Code.TypeKind;
 
 namespace Metalama.Framework.Engine.AdviceImpl.InterfaceImplementation;
 
@@ -39,7 +41,7 @@ internal sealed partial class ImplementInterfaceAdvice : Advice<ImplementInterfa
     private new INamedType TargetDeclaration => (INamedType) base.TargetDeclaration;
 
     public ImplementInterfaceAdvice(
-        AdviceConstructorParameters<INamedType> parameters,
+        in AdviceConstructorParameters<INamedType> parameters,
         INamedType interfaceType,
         OverrideStrategy overrideStrategy,
         IObjectReader tags,
@@ -57,7 +59,7 @@ internal sealed partial class ImplementInterfaceAdvice : Advice<ImplementInterfa
 
     public override AdviceKind AdviceKind => AdviceKind.ImplementInterface;
 
-    private void Initialize( in AdviceImplementationContext context )
+    private void Initialize( AdviceImplementationContext context )
     {
         var interfaceType = this._interfaceType.ForCompilation( context.MutableCompilation );
         var contextCopy = context;
@@ -103,7 +105,7 @@ internal sealed partial class ImplementInterfaceAdvice : Advice<ImplementInterfa
         var templateClassType = templateReflectionContext.GetCompilationModel( this.SourceCompilation )
             .Factory.GetTypeByReflectionName( this.TemplateInstance.TemplateClass.FullName );
 
-        if ( this.TargetDeclaration is { TypeKind: Code.TypeKind.Interface } )
+        if ( this.TargetDeclaration is { TypeKind: TypeKind.Interface } )
         {
             // For interfaces, do not map members or expand base interfaces.
             this._interfaceSpecifications.Add( new InterfaceSpecification( interfaceType.ToRef(), [] ) );
@@ -261,7 +263,7 @@ internal sealed partial class ImplementInterfaceAdvice : Advice<ImplementInterfa
         }
     }
 
-    protected override ImplementInterfaceAdviceResult Implement( in AdviceImplementationContext context )
+    protected override ImplementInterfaceAdviceResult Implement( AdviceImplementationContext context )
     {
         var contextCopy = context;
         var serviceProvider = context.ServiceProvider;
@@ -359,7 +361,7 @@ internal sealed partial class ImplementInterfaceAdvice : Advice<ImplementInterfa
             var interfaceMemberMap = new Dictionary<IMember, IMember>( context.MutableCompilation.Comparers.Default );
 
             // Map members only for non-interfaces.
-            if ( this.TargetDeclaration is not { TypeKind: Code.TypeKind.Interface } )
+            if ( this.TargetDeclaration is not { TypeKind: TypeKind.Interface } )
             {
                 foreach ( var memberSpec in interfaceSpecification.MemberSpecifications )
                 {
@@ -371,7 +373,9 @@ internal sealed partial class ImplementInterfaceAdvice : Advice<ImplementInterfa
                     switch ( interfaceMember )
                     {
                         case IMethod interfaceMethod:
-                            var existingMethod = targetType.AllMethods.OfName( interfaceMethod.Name ).SingleOrDefault( m => m.SignatureEquals( interfaceMethod ) );
+                            var existingMethod = targetType.AllMethods.OfName( interfaceMethod.Name )
+                                .SingleOrDefault( m => m.SignatureEquals( interfaceMethod ) );
+
                             var templateMethod = memberSpec.Template?.As<IMethod>();
                             var templateMethodDeclaration = templateMethod?.GetDeclaration( context.MutableCompilation );
                             var redirectionTargetMethod = memberSpec.TargetMember?.As<IMethod>().GetTarget( context.MutableCompilation );
@@ -469,7 +473,13 @@ internal sealed partial class ImplementInterfaceAdvice : Advice<ImplementInterfa
                                 var isIteratorMethod = templateMethod?.IsIteratorMethod ?? (redirectionTargetMethod.AssertNotNull().IsIteratorMethod() == true);
                                 var isVirtual = templateAttributeProperties?.IsVirtual ?? templateMethodDeclaration is { IsVirtual: true };
 
-                                var methodBuilder = this.GetImplMethodBuilder( targetType, interfaceMethod, isIteratorMethod, isExplicit, isVirtual, isOverride );
+                                var methodBuilder = this.GetImplMethodBuilder(
+                                    targetType,
+                                    interfaceMethod,
+                                    isIteratorMethod,
+                                    isExplicit,
+                                    isVirtual,
+                                    isOverride );
 
                                 CopyAttributes( interfaceMethod, methodBuilder );
                                 methodBuilder.Freeze();

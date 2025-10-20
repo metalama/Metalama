@@ -8,7 +8,7 @@ using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Introspection;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Transformations;
-using System.Collections.Generic;
+using System.Collections.Immutable;
 
 namespace Metalama.Framework.Engine.Advising;
 
@@ -23,8 +23,12 @@ internal interface IAdviceExecutionContext
     IDiagnosticAdder Diagnostics { get; }
 
     IntrospectionPipelineListener? IntrospectionListener { get; }
-    
-    void AddTransformations( List<ITransformation> transformations );
+
+    void AddTransformations( ImmutableArray<ITransformation> transformations );
+
+    void AddTransitiveAspects( ImmutableArray<ITransitiveAspect> aspects );
 
     void SetOrders( ITransformation transformation );
+
+    int AspectOrder { get; }
 }

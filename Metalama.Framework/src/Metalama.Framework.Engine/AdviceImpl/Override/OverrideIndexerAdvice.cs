@@ -15,7 +15,7 @@ internal sealed class OverrideIndexerAdvice : OverrideMemberAdvice<IIndexer, IIn
     private readonly BoundTemplateMethod? _setTemplate;
 
     public OverrideIndexerAdvice(
-        AdviceConstructorParameters<IIndexer> parameters,
+        in AdviceConstructorParameters<IIndexer> parameters,
         BoundTemplateMethod? getTemplate,
         BoundTemplateMethod? setTemplate )
         : base( parameters )
@@ -26,7 +26,7 @@ internal sealed class OverrideIndexerAdvice : OverrideMemberAdvice<IIndexer, IIn
 
     public override AdviceKind AdviceKind => AdviceKind.OverrideFieldOrPropertyOrIndexer;
 
-    protected override OverrideMemberAdviceResult<IIndexer> Implement( in AdviceImplementationContext context )
+    protected override OverrideMemberAdviceResult<IIndexer> Implement( AdviceImplementationContext context )
     {
         var targetDeclaration = this.TargetDeclaration;
 

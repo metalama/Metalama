@@ -25,7 +25,7 @@ internal sealed class IntroduceIndexerAdvice : IntroduceMemberAdvice<IIndexer, I
     private readonly PartiallyBoundTemplateMethod? _setTemplate;
 
     public IntroduceIndexerAdvice(
-        AdviceConstructorParameters<INamedType> parameters,
+        in AdviceConstructorParameters<INamedType> parameters,
         IReadOnlyList<(IType Type, string Name)> indices,
         PartiallyBoundTemplateMethod? getTemplate,
         PartiallyBoundTemplateMethod? setTemplate,
@@ -61,9 +61,9 @@ internal sealed class IntroduceIndexerAdvice : IntroduceMemberAdvice<IIndexer, I
     protected override void InitializeBuilderCore(
         IndexerBuilder builder,
         TemplateAttributeProperties? templateAttributeProperties,
-        in AdviceImplementationContext context )
+        AdviceImplementationContext context )
     {
-        base.InitializeBuilderCore( builder, templateAttributeProperties, in context );
+        base.InitializeBuilderCore( builder, templateAttributeProperties, context );
 
         var setTemplateDeclaration = this._setTemplate?.TemplateMember.GetDeclaration( this.SourceCompilation );
         var getTemplateDeclaration = this._getTemplate?.TemplateMember.GetDeclaration( this.SourceCompilation );
@@ -186,7 +186,7 @@ internal sealed class IntroduceIndexerAdvice : IntroduceMemberAdvice<IIndexer, I
         }
     }
 
-    protected override IntroductionAdviceResult<IIndexer> ImplementCore( IndexerBuilder builder, in AdviceImplementationContext context )
+    protected override IntroductionAdviceResult<IIndexer> ImplementCore( IndexerBuilder builder, AdviceImplementationContext context )
     {
         // Determine whether we need introduction transformation (something may exist in the original code or could have been introduced by previous steps).
         var targetDeclaration = this.TargetDeclaration.ForCompilation( context.MutableCompilation );

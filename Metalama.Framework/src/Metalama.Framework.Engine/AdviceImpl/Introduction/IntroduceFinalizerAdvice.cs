@@ -19,7 +19,7 @@ internal sealed class IntroduceFinalizerAdvice : IntroduceMemberAdvice<IMethod, 
     private readonly PartiallyBoundTemplateMethod _template;
 
     public IntroduceFinalizerAdvice(
-        AdviceConstructorParameters<INamedType> parameters,
+        in AdviceConstructorParameters<INamedType> parameters,
         PartiallyBoundTemplateMethod template,
         OverrideStrategy overrideStrategy,
         IAdviceFactoryImpl adviceFactory )
@@ -44,7 +44,7 @@ internal sealed class IntroduceFinalizerAdvice : IntroduceMemberAdvice<IMethod, 
     protected override void InitializeBuilderCore(
         MethodBuilder builder,
         TemplateAttributeProperties? templateAttributeProperties,
-        in AdviceImplementationContext context )
+        AdviceImplementationContext context )
     {
         switch ( this.OverrideStrategy )
         {
@@ -60,12 +60,12 @@ internal sealed class IntroduceFinalizerAdvice : IntroduceMemberAdvice<IMethod, 
 
         // TODO: The base implementation may take more than needed from the template. Most would be ignored by the transformation, but
         //       the user may see it in the code model.
-        base.InitializeBuilderCore( builder, templateAttributeProperties, in context );
+        base.InitializeBuilderCore( builder, templateAttributeProperties, context );
     }
 
     public override AdviceKind AdviceKind => AdviceKind.IntroduceFinalizer;
 
-    protected override IntroductionAdviceResult<IMethod> ImplementCore( MethodBuilder builder, in AdviceImplementationContext context )
+    protected override IntroductionAdviceResult<IMethod> ImplementCore( MethodBuilder builder, AdviceImplementationContext context )
     {
         // Determine whether we need introduction transformation (something may exist in the original code or could have been introduced by previous steps).
         var targetDeclaration = this.TargetDeclaration;

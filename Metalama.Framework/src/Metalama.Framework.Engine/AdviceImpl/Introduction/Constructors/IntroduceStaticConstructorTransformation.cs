@@ -14,7 +14,7 @@ using System;
 using System.Collections.Generic;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
-namespace Metalama.Framework.Engine.AdviceImpl.Introduction;
+namespace Metalama.Framework.Engine.AdviceImpl.Introduction.Constructors;
 
 internal sealed class IntroduceStaticConstructorTransformation : IntroduceMemberTransformation<ConstructorBuilderData>, IReplaceMemberTransformation
 {

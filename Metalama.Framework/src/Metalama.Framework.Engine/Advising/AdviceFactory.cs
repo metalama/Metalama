@@ -14,6 +14,7 @@ using Metalama.Framework.Engine.AdviceImpl.Contracts;
 using Metalama.Framework.Engine.AdviceImpl.Initialization;
 using Metalama.Framework.Engine.AdviceImpl.InterfaceImplementation;
 using Metalama.Framework.Engine.AdviceImpl.Introduction;
+using Metalama.Framework.Engine.AdviceImpl.Introduction.Constructors;
 using Metalama.Framework.Engine.AdviceImpl.Override;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel;
@@ -362,15 +363,13 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
                     MetalamaStringFormatter.Format(
                         $"The advised target '{target}' is not contained in the target of the aspect '{this._aspectTargetType ?? this._aspectTarget}'." ) );
             }
-            
+
             // Check that we are not advising extension blocks.
             var namedType = target.GetClosestNamedType();
 
             if ( namedType is { TypeKind: TypeKind.Extension } )
             {
-                throw new InvalidOperationException(
-                    MetalamaStringFormatter.Format(
-                        $"The advised target '{target}' is contained in an extension block." ) ); 
+                throw new InvalidOperationException( MetalamaStringFormatter.Format( $"The advised target '{target}' is contained in an extension block." ) );
             }
         }
     }
@@ -603,11 +602,12 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
                 throw new InvalidOperationException(
                     MetalamaStringFormatter.Format( $"Cannot add an IntroduceUnaryOperator advice with kind {kind} as it is not an unary operator." ) );
             }
-                
+
             if ( !OperatorData.IsUserDefinable( kind ) )
             {
                 throw new InvalidOperationException(
-                    MetalamaStringFormatter.Format( $"Cannot add an IntroduceBinaryOperator advice with {kind} because this kind of operator cannot be user-defined." ) );
+                    MetalamaStringFormatter.Format(
+                        $"Cannot add an IntroduceBinaryOperator advice with {kind} because this kind of operator cannot be user-defined." ) );
             }
 
             this.Validate( targetType, AdviceKind.IntroduceOperator );
@@ -650,11 +650,12 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
                 throw new InvalidOperationException(
                     MetalamaStringFormatter.Format( $"Cannot add an IntroduceBinaryOperator advice with {kind} because it is not a binary operator." ) );
             }
-            
+
             if ( !OperatorData.IsUserDefinable( kind ) )
             {
                 throw new InvalidOperationException(
-                    MetalamaStringFormatter.Format( $"Cannot add an IntroduceBinaryOperator advice with {kind} because this kind of operator cannot be user-defined." ) );
+                    MetalamaStringFormatter.Format(
+                        $"Cannot add an IntroduceBinaryOperator advice with {kind} because this kind of operator cannot be user-defined." ) );
             }
 
             this.Validate( targetType, AdviceKind.IntroduceOperator );
@@ -927,7 +928,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
             var advice = new IntroduceFieldAdvice(
                 this.GetAdviceConstructorParameters( targetType ),
                 fieldName,
-                default,
+                null,
                 scope,
                 whenExists,
                 builder =>
@@ -975,9 +976,9 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
                 this.GetAdviceConstructorParameters( targetType ),
                 propertyName,
                 propertyType,
-                default,
-                default,
-                default,
+                null,
+                null,
+                null,
                 scope,
                 whenExists,
                 buildProperty,
@@ -1206,7 +1207,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
     {
         using ( this.WithNonUserCode() )
         {
-            if (raiseTemplate != null)
+            if ( raiseTemplate != null )
             {
                 throw new NotImplementedException( "Using raiseTemplate is not currently supported." );
             }
@@ -1221,17 +1222,17 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
             var boundAddTemplate =
                 this.ValidateTemplateName( addTemplate, TemplateKind.Default )
                     ?.GetTemplateMember<IMethod>( this._compilation, this._state.ServiceProvider, this.TemplateProvider, this.GetTagsReader( tags ) )
-                    ?.ForOverride( targetEvent.AddMethod, this.GetArgsReader( args ) );
+                    .ForOverride( targetEvent.AddMethod, this.GetArgsReader( args ) );
 
             var boundRemoveTemplate =
                 this.ValidateTemplateName( removeTemplate, TemplateKind.Default )
                     ?.GetTemplateMember<IMethod>( this._compilation, this._state.ServiceProvider, this.TemplateProvider, this.GetTagsReader( tags ) )
-                    ?.ForOverride( targetEvent.RemoveMethod, this.GetArgsReader( args ) );
+                    .ForOverride( targetEvent.RemoveMethod, this.GetArgsReader( args ) );
 
             var boundInvokeTemplate =
                 this.ValidateTemplateName( invokeTemplate, TemplateKind.Default )
                     ?.GetTemplateMember<IMethod>( this._compilation, this._state.ServiceProvider, this.TemplateProvider, this.GetTagsReader( tags ) )
-                    ?.ForOverride( targetEvent.RaiseMethod, this.GetArgsReader( args ) );
+                    .ForOverride( targetEvent.RaiseMethod, this.GetArgsReader( args ) );
 
             var advice = new OverrideEventAdvice(
                 this.GetAdviceConstructorParameters( targetEvent ),
@@ -1299,17 +1300,17 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
 
             this.Validate( targetType, AdviceKind.IntroduceEvent );
 
-            var boundAddTemplate = 
+            var boundAddTemplate =
                 this.ValidateRequiredTemplateName( addTemplate, TemplateKind.Default )
-                .GetTemplateMember<IMethod>( this._compilation, this._state.ServiceProvider, this.TemplateProvider, this.GetTagsReader( tags ) );
+                    .GetTemplateMember<IMethod>( this._compilation, this._state.ServiceProvider, this.TemplateProvider, this.GetTagsReader( tags ) );
 
-            var boundRemoveTemplate = 
+            var boundRemoveTemplate =
                 this.ValidateRequiredTemplateName( removeTemplate, TemplateKind.Default )
-                .GetTemplateMember<IMethod>( this._compilation, this._state.ServiceProvider, this.TemplateProvider, this.GetTagsReader( tags ) );
+                    .GetTemplateMember<IMethod>( this._compilation, this._state.ServiceProvider, this.TemplateProvider, this.GetTagsReader( tags ) );
 
-            var boundInvokeTemplate = 
+            var boundInvokeTemplate =
                 this.ValidateTemplateName( invokeTemplate, TemplateKind.Default )
-                ?.GetTemplateMember<IMethod>( this._compilation, this._state.ServiceProvider, this.TemplateProvider, this.GetTagsReader( tags ) );
+                    ?.GetTemplateMember<IMethod>( this._compilation, this._state.ServiceProvider, this.TemplateProvider, this.GetTagsReader( tags ) );
 
             var parameterReaders = this.GetArgsReader( args );
 
@@ -1562,12 +1563,36 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
     public IRemoveAttributesAdviceResult RemoveAttributes( IDeclaration targetDeclaration, Type attributeType )
         => this.RemoveAttributes( targetDeclaration, (INamedType) this._compilation.Factory.GetTypeByReflectionType( attributeType ) );
 
+    [Obsolete]
     public IIntroductionAdviceResult<IParameter> IntroduceParameter(
         IConstructor constructor,
         string parameterName,
         IType parameterType,
         TypedConstant defaultValue,
-        Func<IParameter, IConstructor, PullAction>? pullAction = null,
+        Func<IParameter, IConstructor, PullAction>? pullAction,
+        ImmutableArray<AttributeConstruction> attributes = default )
+        => this.IntroduceParameter(
+            constructor,
+            parameterName,
+            parameterType,
+            defaultValue,
+            LegacyPullStrategy.Create( pullAction ),
+            attributes );
+
+    public IIntroductionAdviceResult<IParameter> IntroduceParameter(
+        IConstructor constructor,
+        string parameterName,
+        IType parameterType,
+        TypedConstant defaultValue,
+        ImmutableArray<AttributeConstruction> attributes )
+        => this.IntroduceParameter( constructor, parameterName, parameterType, defaultValue, (IPullStrategy?) null, attributes );
+
+    public IIntroductionAdviceResult<IParameter> IntroduceParameter(
+        IConstructor constructor,
+        string parameterName,
+        IType parameterType,
+        TypedConstant defaultValue,
+        IPullStrategy? pullStrategy,
         ImmutableArray<AttributeConstruction> attributes = default )
     {
         using ( this.WithNonUserCode() )
@@ -1579,7 +1604,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
                 parameterName,
                 parameterType,
                 attributes.IsDefaultOrEmpty ? null : builder => builder.AddAttributes( attributes ),
-                pullAction,
+                pullStrategy,
                 defaultValue,
                 this );
 
@@ -1587,12 +1612,13 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         }
     }
 
+    [Obsolete]
     public IIntroductionAdviceResult<IParameter> IntroduceParameter(
         IConstructor constructor,
         string parameterName,
         Type parameterType,
         TypedConstant defaultValue,
-        Func<IParameter, IConstructor, PullAction>? pullAction = null,
+        Func<IParameter, IConstructor, PullAction>? pullAction,
         ImmutableArray<AttributeConstruction> attributes = default )
         => this.IntroduceParameter(
             constructor,
@@ -1601,6 +1627,42 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
             defaultValue,
             pullAction,
             attributes );
+
+    public IIntroductionAdviceResult<IParameter> IntroduceParameter(
+        IConstructor constructor,
+        string parameterName,
+        Type parameterType,
+        TypedConstant defaultValue,
+        IPullStrategy? pullStrategy,
+        ImmutableArray<AttributeConstruction> attributes = default )
+        => this.IntroduceParameter(
+            constructor,
+            parameterName,
+            this._compilation.Factory.GetTypeByReflectionType( parameterType ),
+            defaultValue,
+            pullStrategy,
+            attributes );
+
+    public IIntroductionAdviceResult<IParameter> IntroduceParameter(
+        IConstructor constructor,
+        string parameterName,
+        Type parameterType,
+        TypedConstant defaultValue,
+        ImmutableArray<AttributeConstruction> attributes )
+        => this.IntroduceParameter( constructor, parameterName, parameterType, defaultValue, (IPullStrategy?) null, attributes );
+
+    public void PullParameter( IParameter parameter, IPullStrategy? pullStrategy )
+    {
+        using ( this.WithNonUserCode() )
+        {
+            var advice = new PullConstructorParameterAdvice(
+                this.GetAdviceConstructorParameters( (IConstructor) parameter.DeclaringMember.AssertNotNull() ),
+                pullStrategy,
+                parameter );
+
+            advice.Execute( this._state );
+        }
+    }
 
     public IIntroductionAdviceResult<INamedType> IntroduceClass(
         INamespaceOrNamedType targetNamespaceOrType,
@@ -1668,14 +1730,14 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
                         EligibleScenarios.Default | EligibleScenarios.Inheritance,
                         new DescribedObject<IDeclaration>( declaration ) );
 
-                this.ReportChildAspectInegibility( aspectClass, declaration, justification );
+                this.ReportChildAspectIneligibility( aspectClass, declaration, justification );
             }
 
             aspectBuilderState.AssertNotNull().AddContributor( new AdviceAddAspectSource( aspectInstance ) );
         }
     }
 
-    private void ReportChildAspectInegibility( IAspectClass aspectClass, IDeclaration declaration, FormattableString? reason )
+    private void ReportChildAspectIneligibility( IAspectClass aspectClass, IDeclaration declaration, FormattableString? reason )
     {
         var diagnostic = GeneralDiagnosticDescriptors.IneligibleChildAspect.CreateRoslynDiagnostic(
             this._state.AspectInstance.GetDiagnosticLocation( this._compilation.RoslynCompilation ),

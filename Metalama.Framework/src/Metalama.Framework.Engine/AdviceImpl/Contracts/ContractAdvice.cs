@@ -19,7 +19,7 @@ internal abstract class ContractAdvice<T> : Advice<AddContractAdviceResult<T>>
     protected IObjectReader TemplateArguments { get; }
 
     protected ContractAdvice(
-        AdviceConstructorParameters<T> parameters,
+        in AdviceConstructorParameters<T> parameters,
         TemplateMember<IMethod> template,
         ContractDirection direction,
         IObjectReader templateArguments )

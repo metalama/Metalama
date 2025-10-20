@@ -35,7 +35,7 @@ internal abstract class IntroduceMemberAdvice<TTemplate, TIntroduced, TBuilder> 
     protected OverrideStrategy OverrideStrategy { get; }
 
     protected IntroduceMemberAdvice(
-        AdviceConstructorParameters<INamedType> parameters,
+        in AdviceConstructorParameters<INamedType> parameters,
         string? explicitName,
         TemplateMember<TTemplate>? template,
         IntroductionScope scope,
@@ -78,9 +78,9 @@ internal abstract class IntroduceMemberAdvice<TTemplate, TIntroduced, TBuilder> 
     protected virtual void InitializeBuilderCore(
         TBuilder builder,
         TemplateAttributeProperties? templateAttributeProperties,
-        in AdviceImplementationContext context ) { }
+        AdviceImplementationContext context ) { }
 
-    protected override void InitializeBuilder( TBuilder builder, in AdviceImplementationContext context )
+    protected override void InitializeBuilder( TBuilder builder, AdviceImplementationContext context )
     {
         var templateAttribute = (ITemplateAttribute?) this.Template?.AdviceAttribute;
         var templateAttributeProperties = templateAttribute?.Properties;
@@ -149,7 +149,7 @@ internal abstract class IntroduceMemberAdvice<TTemplate, TIntroduced, TBuilder> 
             CopyTemplateAttributes( templateDeclaration!, builder, context.ServiceProvider );
         }
 
-        this.InitializeBuilderCore( builder, templateAttributeProperties, in context );
+        this.InitializeBuilderCore( builder, templateAttributeProperties, context );
     }
 
     protected override void CompleteBuilder( TBuilder builder )

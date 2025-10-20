@@ -24,7 +24,7 @@ public class MyAspect : TypeAspect
                 "p",
                 typeof(int),
                 TypedConstant.Create( 15 ),
-                ( p, c ) => PullAction.UseExpression( TypedConstant.Create( 51 ) ) );
+                PullStrategy.UseExpression( TypedConstant.Create( 51 ) ) );
     }
 }
 
@@ -32,7 +32,7 @@ public class MyAspect : TypeAspect
 [MyAspect]
 public class A( int x )
 {
-    public A( short x ) : this( (int)x ) { }
+    public A( short x ) : this( (int) x ) { }
 
     public int X { get; set; } = x;
 }

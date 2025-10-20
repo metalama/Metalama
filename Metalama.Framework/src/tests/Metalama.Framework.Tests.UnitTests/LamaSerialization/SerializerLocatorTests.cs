@@ -106,8 +106,6 @@ namespace Metalama.Framework.Tests.UnitTests.LamaSerialization
                     SerializedClass obj,
                     IArgumentsWriter constructorArguments,
                     IArgumentsWriter initializationArguments ) { }
-
-                public override void DeserializeFields( SerializedClass obj, IArgumentsReader initializationArguments ) { }
             }
         }
 
@@ -124,8 +122,6 @@ namespace Metalama.Framework.Tests.UnitTests.LamaSerialization
                     GenericSerializedClass<T> obj,
                     IArgumentsWriter constructorArguments,
                     IArgumentsWriter initializationArguments ) { }
-
-                public override void DeserializeFields( GenericSerializedClass<T> obj, IArgumentsReader initializationArguments ) { }
             }
         }
 
@@ -145,8 +141,6 @@ namespace Metalama.Framework.Tests.UnitTests.LamaSerialization
                     TypeWithManySerializers obj,
                     IArgumentsWriter constructorArguments,
                     IArgumentsWriter initializationArguments ) { }
-
-                public override void DeserializeFields( TypeWithManySerializers obj, IArgumentsReader initializationArguments ) { }
             }
 
             public sealed class SecondSerializer : ReferenceTypeSerializer<TypeWithManySerializers>
@@ -160,8 +154,6 @@ namespace Metalama.Framework.Tests.UnitTests.LamaSerialization
                     TypeWithManySerializers obj,
                     IArgumentsWriter constructorArguments,
                     IArgumentsWriter initializationArguments ) { }
-
-                public override void DeserializeFields( TypeWithManySerializers obj, IArgumentsReader initializationArguments ) { }
             }
         }
     }

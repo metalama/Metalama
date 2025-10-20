@@ -5,6 +5,7 @@
 using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
+using Metalama.Framework.Code.SyntaxBuilders;
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.AppendParameter.Pull;
 
@@ -16,7 +17,7 @@ public class MyAspect : ConstructorAspect
             "p",
             typeof(int),
             TypedConstant.Create( 15 ),
-            ( parameter, constructor ) => PullAction.IntroduceParameterAndPull( parameter.Name, parameter.Type, TypedConstant.Create( 20 ) ) );
+            PullStrategy.IntroduceParameterAndPull( defaultValue: TypedConstant.Create( 20 ) ) );
     }
 }
 

@@ -16,7 +16,7 @@ internal sealed class TemplateBasedInitializeAdvice : InitializeAdvice
     private readonly BoundTemplateMethod _boundTemplate;
 
     public TemplateBasedInitializeAdvice(
-        AdviceConstructorParameters<IMemberOrNamedType> parameters,
+        in AdviceConstructorParameters<IMemberOrNamedType> parameters,
         BoundTemplateMethod boundTemplate,
         InitializerKind kind )
         : base( parameters, kind )

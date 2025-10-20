@@ -14,14 +14,14 @@ internal sealed class RemoveAttributesAdvice : Advice<RemoveAttributesAdviceResu
 {
     private readonly INamedType _attributeType;
 
-    public RemoveAttributesAdvice( AdviceConstructorParameters parameters, INamedType attributeType ) : base( parameters )
+    public RemoveAttributesAdvice( in AdviceConstructorParameters parameters, INamedType attributeType ) : base( parameters )
     {
         this._attributeType = attributeType;
     }
 
     public override AdviceKind AdviceKind => AdviceKind.RemoveAttributes;
 
-    protected override RemoveAttributesAdviceResult Implement( in AdviceImplementationContext context )
+    protected override RemoveAttributesAdviceResult Implement( AdviceImplementationContext context )
     {
         var targetDeclaration = this.TargetDeclaration;
 

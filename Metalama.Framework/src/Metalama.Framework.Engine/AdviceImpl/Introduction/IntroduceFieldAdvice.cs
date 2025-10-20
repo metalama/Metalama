@@ -18,7 +18,7 @@ namespace Metalama.Framework.Engine.AdviceImpl.Introduction;
 internal sealed class IntroduceFieldAdvice : IntroduceMemberAdvice<IField, IField, FieldBuilder>
 {
     public IntroduceFieldAdvice(
-        AdviceConstructorParameters<INamedType> parameters,
+        in AdviceConstructorParameters<INamedType> parameters,
         string? explicitName,
         TemplateMember<IField>? fieldTemplate,
         IntroductionScope scope,
@@ -32,9 +32,9 @@ internal sealed class IntroduceFieldAdvice : IntroduceMemberAdvice<IField, IFiel
     protected override void InitializeBuilderCore(
         FieldBuilder builder,
         TemplateAttributeProperties? templateAttributeProperties,
-        in AdviceImplementationContext context )
+        AdviceImplementationContext context )
     {
-        base.InitializeBuilderCore( builder, templateAttributeProperties, in context );
+        base.InitializeBuilderCore( builder, templateAttributeProperties, context );
 
         var templateDeclaration = this.Template?.GetDeclaration( this.SourceCompilation );
         builder.IsRequired = templateAttributeProperties?.IsRequired ?? templateDeclaration?.IsRequired ?? false;
@@ -78,7 +78,7 @@ internal sealed class IntroduceFieldAdvice : IntroduceMemberAdvice<IField, IFiel
 
     public override AdviceKind AdviceKind => AdviceKind.IntroduceField;
 
-    protected override IntroductionAdviceResult<IField> ImplementCore( FieldBuilder builder, in AdviceImplementationContext context )
+    protected override IntroductionAdviceResult<IField> ImplementCore( FieldBuilder builder, AdviceImplementationContext context )
     {
         var targetDeclaration = this.TargetDeclaration.ForCompilation( context.MutableCompilation );
         var existingDeclaration = targetDeclaration.FindClosestUniquelyNamedMember( builder.Name );

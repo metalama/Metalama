@@ -16,7 +16,7 @@ internal sealed class OverrideConstructorAdvice : OverrideMemberAdvice<IConstruc
 {
     private readonly BoundTemplateMethod _boundTemplate;
 
-    public OverrideConstructorAdvice( AdviceConstructorParameters<IConstructor> parameters, BoundTemplateMethod boundTemplate )
+    public OverrideConstructorAdvice( in AdviceConstructorParameters<IConstructor> parameters, BoundTemplateMethod boundTemplate )
         : base( parameters )
     {
         this._boundTemplate = boundTemplate;
@@ -24,7 +24,7 @@ internal sealed class OverrideConstructorAdvice : OverrideMemberAdvice<IConstruc
 
     public override AdviceKind AdviceKind => AdviceKind.OverrideConstructor;
 
-    protected override OverrideMemberAdviceResult<IConstructor> Implement( in AdviceImplementationContext context )
+    protected override OverrideMemberAdviceResult<IConstructor> Implement( AdviceImplementationContext context )
     {
         var constructor = this.TargetDeclaration;
 

@@ -17,7 +17,7 @@ internal class OverrideFinalizerAdvice : OverrideMemberAdvice<IMethod, IMethod>
 {
     private readonly BoundTemplateMethod _boundTemplate;
 
-    public OverrideFinalizerAdvice( AdviceConstructorParameters<IMethod> parameters, BoundTemplateMethod boundTemplate )
+    public OverrideFinalizerAdvice( in AdviceConstructorParameters<IMethod> parameters, BoundTemplateMethod boundTemplate )
         : base( parameters )
     {
         this._boundTemplate = boundTemplate;
@@ -25,7 +25,7 @@ internal class OverrideFinalizerAdvice : OverrideMemberAdvice<IMethod, IMethod>
 
     public override AdviceKind AdviceKind => AdviceKind.OverrideFinalizer;
 
-    protected override OverrideMemberAdviceResult<IMethod> Implement( in AdviceImplementationContext context )
+    protected override OverrideMemberAdviceResult<IMethod> Implement( AdviceImplementationContext context )
     {
         // TODO: order should be self if the target is introduced on the same layer.
         context.AddTransformation( new OverrideFinalizerTransformation( this.AspectLayerInstance, this.TargetDeclaration.ToFullRef(), this._boundTemplate ) );

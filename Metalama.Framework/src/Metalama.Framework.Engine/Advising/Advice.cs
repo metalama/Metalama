@@ -29,7 +29,7 @@ internal abstract class Advice : IDiagnosticSource
 
     public abstract AdviceKind AdviceKind { get; }
 
-    protected Advice( AdviceConstructorParameters parameters )
+    protected Advice( in AdviceConstructorParameters parameters )
     {
 #if DEBUG
         if ( parameters.TargetDeclaration.DeclaringAssembly.IsExternal )
@@ -61,7 +61,7 @@ internal abstract class Advice : IDiagnosticSource
         T TargetDeclaration )
         where T : IDeclaration
     {
-        public static implicit operator AdviceConstructorParameters( AdviceConstructorParameters<T> parameters )
+        public static implicit operator AdviceConstructorParameters( in AdviceConstructorParameters<T> parameters )
             => new(
                 parameters.AspectLayerInstance,
                 parameters.TemplateClassInstance,

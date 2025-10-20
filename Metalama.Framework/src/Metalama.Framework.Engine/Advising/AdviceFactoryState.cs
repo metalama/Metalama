@@ -9,7 +9,7 @@ using Metalama.Framework.Engine.Introspection;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Transformations;
 using Metalama.Framework.Engine.Utilities.UserCode;
-using System.Collections.Generic;
+using System.Collections.Immutable;
 
 namespace Metalama.Framework.Engine.Advising;
 
@@ -34,7 +34,7 @@ internal sealed class AdviceFactoryState : IAdviceExecutionContext
 
     public IntrospectionPipelineListener? IntrospectionListener { get; }
 
-    public List<ITransformation> Transformations { get; } = new();
+    public ImmutableArray<ITransformation> Transformations { get; private set; } = ImmutableArray<ITransformation>.Empty;
 
     public AspectBuilderState? AspectBuilderState { get; set; }
 
@@ -59,9 +59,9 @@ internal sealed class AdviceFactoryState : IAdviceExecutionContext
         this.ExecutionContext = executionContext;
     }
 
-    public void AddTransformations( List<ITransformation> transformations )
+    public void AddTransformations( ImmutableArray<ITransformation> transformations )
     {
-        this.Transformations.AddRange( transformations );
+        this.Transformations = this.Transformations.AddRange( transformations );
 
         foreach ( var transformation in transformations )
         {
@@ -77,10 +77,20 @@ internal sealed class AdviceFactoryState : IAdviceExecutionContext
         }
     }
 
+    public void AddTransitiveAspects( ImmutableArray<ITransitiveAspect> aspects )
+    {
+        foreach ( var aspect in aspects )
+        {
+            this.AspectBuilderState.AssertNotNull().AddContributor( aspect );
+        }
+    }
+
     public void SetOrders( ITransformation transformation )
     {
         transformation.OrderWithinPipelineStepAndTypeAndAspectInstance = this._nextTransformationOrder++;
         transformation.OrderWithinPipelineStepAndType = this._orderWithinType;
         transformation.OrderWithinPipeline = this._pipelineStepIndex;
     }
+
+    public int AspectOrder => this._pipelineStepIndex;
 }

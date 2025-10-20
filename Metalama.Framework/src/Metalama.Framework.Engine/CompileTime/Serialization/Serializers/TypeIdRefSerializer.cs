@@ -24,6 +24,4 @@ internal sealed class TypeIdRefSerializer<T> : ReferenceTypeSerializer<TypeIdRef
     {
         constructorArguments.SetValue( "id", obj.Id );
     }
-
-    public override void DeserializeFields( TypeIdRef<T> obj, IArgumentsReader initializationArguments ) { }
 }

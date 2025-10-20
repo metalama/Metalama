@@ -13,7 +13,7 @@ internal sealed class AddAnnotationAdvice : Advice<AddAnnotationAdviceResult>
 {
     private readonly AnnotationInstance _annotationInstance;
 
-    public AddAnnotationAdvice( AdviceConstructorParameters parameters, AnnotationInstance annotationInstance )
+    public AddAnnotationAdvice( in AdviceConstructorParameters parameters, AnnotationInstance annotationInstance )
         : base( parameters )
     {
         this._annotationInstance = annotationInstance;
@@ -21,7 +21,7 @@ internal sealed class AddAnnotationAdvice : Advice<AddAnnotationAdviceResult>
 
     public override AdviceKind AdviceKind => AdviceKind.AddAnnotation;
 
-    protected override AddAnnotationAdviceResult Implement( in AdviceImplementationContext context )
+    protected override AddAnnotationAdviceResult Implement( AdviceImplementationContext context )
     {
         context.AddTransformation( new AddAnnotationTransformation( this.AspectLayerInstance, this.TargetDeclaration.ToFullRef(), this._annotationInstance ) );
 

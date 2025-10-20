@@ -18,7 +18,7 @@ public class AddParameter : ConstructorAspect
             "arg",
             typeof(int),
             TypedConstant.Default( typeof(int) ),
-            ( param, ctor ) => PullAction.UseExpression( TypedConstant.Create( 42 ) ) );
+            PullStrategy.UseExpression( TypedConstant.Create( 42 ) ) );
     }
 }
 

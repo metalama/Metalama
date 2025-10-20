@@ -16,4 +16,7 @@ public static class MemberExtensions
 
     public static bool IsAccessibleFrom( this IMemberOrNamedType accessedMember, INamedType accessingType )
         => ((ICompilationInternal) accessedMember.Compilation).Helpers.IsAccessibleFrom( accessedMember, accessingType );
+
+    public static bool IsAccessibleFromOutsideAssembly( this IMemberOrNamedType memberOrType, bool honorInternalVisibleToAttributes = true )
+        => ((ICompilationInternal) memberOrType.Compilation).Helpers.IsAccessibleFromOutsideAssembly( memberOrType, honorInternalVisibleToAttributes );
 }

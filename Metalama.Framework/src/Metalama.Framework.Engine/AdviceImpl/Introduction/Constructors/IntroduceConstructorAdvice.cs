@@ -15,14 +15,14 @@ using Metalama.Framework.Engine.Diagnostics;
 using System;
 using System.Linq;
 
-namespace Metalama.Framework.Engine.AdviceImpl.Introduction;
+namespace Metalama.Framework.Engine.AdviceImpl.Introduction.Constructors;
 
 internal sealed class IntroduceConstructorAdvice : IntroduceMemberAdvice<IMethod, IConstructor, ConstructorBuilder>
 {
     private readonly PartiallyBoundTemplateMethod _template;
 
     public IntroduceConstructorAdvice(
-        AdviceConstructorParameters<INamedType> parameters,
+        in AdviceConstructorParameters<INamedType> parameters,
         PartiallyBoundTemplateMethod template,
         OverrideStrategy overrideStrategy,
         Action<IConstructorBuilder>? buildAction,
@@ -48,9 +48,9 @@ internal sealed class IntroduceConstructorAdvice : IntroduceMemberAdvice<IMethod
     protected override void InitializeBuilderCore(
         ConstructorBuilder builder,
         TemplateAttributeProperties? templateAttributeProperties,
-        in AdviceImplementationContext context )
+        AdviceImplementationContext context )
     {
-        base.InitializeBuilderCore( builder, templateAttributeProperties, in context );
+        base.InitializeBuilderCore( builder, templateAttributeProperties, context );
 
         var templateDeclaration = this.Template.AssertNotNull().GetDeclaration( this.SourceCompilation );
 
@@ -74,7 +74,7 @@ internal sealed class IntroduceConstructorAdvice : IntroduceMemberAdvice<IMethod
 
     public override AdviceKind AdviceKind => AdviceKind.IntroduceConstructor;
 
-    protected override IntroductionAdviceResult<IConstructor> ImplementCore( ConstructorBuilder builder, in AdviceImplementationContext context )
+    protected override IntroductionAdviceResult<IConstructor> ImplementCore( ConstructorBuilder builder, AdviceImplementationContext context )
     {
         // Determine whether we need introduction transformation (something may exist in the original code or could have been introduced by previous steps).
         var targetDeclaration = this.TargetDeclaration.ForCompilation( context.MutableCompilation );
