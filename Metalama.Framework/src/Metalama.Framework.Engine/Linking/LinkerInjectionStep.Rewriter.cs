@@ -1121,7 +1121,11 @@ internal sealed partial class LinkerInjectionStep
             var semanticModel = this._semanticModelProvider.GetSemanticModel( originalNode.SyntaxTree );
             var symbol = semanticModel.GetDeclaredSymbol( originalNode );
 
-            if ( symbol != null )
+#if ROSLYN_5_0_0_OR_GREATER
+            if ( symbol is { PartialImplementationPart: null } )
+#else
+            if ( symbol is { } )
+#endif
             {
                 var constructor = this._compilation.RefFactory.FromSymbol<IConstructor>( symbol );
                 var entryStatements = this._transformationCollection.GetInjectedEntryStatements( constructor );

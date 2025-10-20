@@ -26,6 +26,7 @@ public class TheAspect : ConstructorAspect
     public void ConstructorTemplate()
     {
         Console.WriteLine( "Attenti al cane." );
+        meta.Proceed();
     }
 }
 

@@ -31,12 +31,14 @@ public class TheAspect : EventAspect
     public void Add( dynamic handler )
     {
         Console.WriteLine( "Add" );
+        meta.Proceed();
     }
 
     [Template]
     public void Remove( dynamic handler )
     {
         Console.WriteLine( "Remove" );
+        meta.Proceed();
     }
 
     [Template]
@@ -54,13 +56,35 @@ internal partial class C
     public partial event EventHandler E1;
 
     [TheAspect]
-    public partial event EventHandler E1 { add { } remove { } }
+    public partial event EventHandler E1 
+    {
+        add
+        {
+            Console.WriteLine( "Original Add" );
+        }
+
+        remove
+        {
+            Console.WriteLine( "Original Remove" );
+        }
+    }
 
 
     public partial event EventHandler E2;
 
     [TheAspect(OverrideInvoke = true)]
-    public partial event EventHandler E2 { add { } remove { } }
+    public partial event EventHandler E2 
+    {
+        add
+        {
+            Console.WriteLine( "Original Add" );
+        }
+
+        remove
+        {
+            Console.WriteLine( "Original Remove" );
+        }
+    }
 }
 
 #endif

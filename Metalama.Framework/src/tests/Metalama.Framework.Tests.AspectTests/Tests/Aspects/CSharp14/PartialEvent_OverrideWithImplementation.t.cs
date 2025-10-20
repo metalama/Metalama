@@ -8,10 +8,12 @@ internal partial class C
     add
     {
       global::System.Console.WriteLine("Add");
+      Console.WriteLine("Original Add");
     }
     remove
     {
       global::System.Console.WriteLine("Remove");
+      Console.WriteLine("Original Remove");
     }
   }
   public partial event EventHandler E2;
@@ -29,24 +31,17 @@ internal partial class C
       this._e2Broker?.RemoveHandler(value);
     }
   }
-  private event EventHandler E2_Source
-  {
-    add
-    {
-    }
-    remove
-    {
-    }
-  }
   private event global::System.EventHandler E2_TheAspect
   {
     add
     {
       global::System.Console.WriteLine("Add");
+      Console.WriteLine("Original Add");
     }
     remove
     {
       global::System.Console.WriteLine("Remove");
+      Console.WriteLine("Original Remove");
     }
   }
   private void E2_Invoke_TheAspect(global::System.EventHandler handler, (global::System.Object? sender, global::System.EventArgs e) args)
