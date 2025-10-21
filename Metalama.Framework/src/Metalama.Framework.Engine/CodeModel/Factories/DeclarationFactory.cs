@@ -9,6 +9,7 @@ using Metalama.Framework.Code.Collections;
 using Metalama.Framework.Engine.CodeModel.Abstractions;
 using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 using Metalama.Framework.Engine.CodeModel.References;
+using Metalama.Framework.Engine.CodeModel.Source.ConstructedTypes;
 using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.CompileTime.Serialization.Serializers;
 using Metalama.Framework.Engine.SerializableIds;
@@ -19,6 +20,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using System.Threading.Tasks;
 using SpecialType = Metalama.Framework.Code.SpecialType;
 
@@ -43,7 +45,9 @@ public sealed partial class DeclarationFactory : IDeclarationFactory, ISdkDeclar
         this._compilationModel = compilation;
         this._builderCache = new Cache<DeclarationBuilderData, IDeclaration>( ReferenceEqualityComparer<DeclarationBuilderData>.Instance );
         this._symbolCache = new Cache<ISymbol, IDeclaration>( compilation.CompilationContext.SymbolComparer );
-        this._typeCache = new Cache<ITypeSymbol, IType>( compilation.CompilationContext.SymbolComparerIncludingNullability );
+
+        this._typeCache = new Cache<SymbolNormalizer.CanonicalSymbolKey, IType>(
+            new SymbolNormalizer.CanonicalSymbolKeyComparer( compilation.CompilationContext.SymbolComparerIncludingNullability ) );
 
         this._systemTypeResolver = compilation.Project.ServiceProvider.GetRequiredService<SystemTypeResolver.Provider>()
             .Get( compilation.CompilationContext );
@@ -101,6 +105,7 @@ public sealed partial class DeclarationFactory : IDeclarationFactory, ISdkDeclar
                     SpecialType.List_T => (INamedType) this.GetTypeByReflectionType( typeof(List<>) ),
                     SpecialType.ValueTask => (INamedType) this.GetTypeByReflectionType( typeof(ValueTask) ),
                     SpecialType.ValueTask_T => (INamedType) this.GetTypeByReflectionType( typeof(ValueTask<>) ),
+                    SpecialType.ValueTuple => (INamedType) this.GetTypeByReflectionType( typeof(ValueTuple) ),
                     SpecialType.Task => (INamedType) this.GetTypeByReflectionType( typeof(Task) ),
                     SpecialType.Task_T => (INamedType) this.GetTypeByReflectionType( typeof(Task<>) ),
                     SpecialType.Type => (INamedType) this.GetTypeByReflectionType( typeof(Type) ),
@@ -136,6 +141,58 @@ public sealed partial class DeclarationFactory : IDeclarationFactory, ISdkDeclar
 
     public IType GetTypeFromId( SerializableTypeId serializableTypeId, IReadOnlyDictionary<string, IType>? genericArguments )
         => this._compilationModel.SerializableTypeIdResolver.ResolveId( serializableTypeId, genericArguments );
+
+    public ITupleType CreateTupleType( IEnumerable<IType> elementTypes )
+    {
+        return (ITupleType) BuildValueTupleType( elementTypes.ToArray() );
+
+        // Recursively build the ValueTuple type, handling TRest for > 7 elements
+        INamedType BuildValueTupleType( in ReadOnlySpan<IType> types )
+        {
+            switch ( types.Length )
+            {
+                case 0:
+                    return this.GetTypeByReflectionName( "System.ValueTuple" );
+
+                case <= 7:
+                    {
+                        // For 7 or fewer elements, use ValueTuple`n directly
+                        var valueTupleType = this.GetTypeByReflectionName( $"System.ValueTuple`{types.Length}" );
+
+                        return valueTupleType.WithTypeArguments( types.ToArray() );
+                    }
+
+                default:
+                    {
+                        var valueTypeTypeArgs = new IType[8];
+
+                        // For more than 7 elements, use ValueTuple`8 with TRest
+                        types[..7].CopyTo( valueTypeTypeArgs );
+                        valueTypeTypeArgs[7] = BuildValueTupleType( types[7..] );
+
+                        var valueTupleType = this.GetTypeByReflectionName( "System.ValueTuple`8" );
+
+                        return valueTupleType.WithTypeArguments( valueTypeTypeArgs );
+                    }
+            }
+        }
+    }
+
+    public ITupleType CreateTupleType( IEnumerable<Type> elementTypes ) => this.CreateTupleType( elementTypes.Select( this.GetTypeByReflectionType ) );
+
+    public ITupleType CreateTupleType( IEnumerable<(IType Type, string Name)> elementTypes )
+    {
+        var elementTypesList = elementTypes.ToReadOnlyList();
+        var valueTupleType = (TupleType) this.CreateTupleType( elementTypesList.SelectAsReadOnlyList( x => x.Type ) );
+        var elementNames = elementTypesList.SelectAsReadOnlyList( x => x.Name );
+
+        return new TupleType( valueTupleType.NamedTypeSymbol, this._compilationModel, valueTupleType.GenericContextForSymbolMapping, elementNames );
+    }
+
+    public ITupleType CreateTupleType( IEnumerable<(Type Type, string Name)> elementTypes )
+        => this.CreateTupleType( elementTypes.Select( x => (this.GetTypeByReflectionType( x.Type ), x.Name) ) );
+
+    public ITupleType CreateTupleType( IEnumerable<IParameter> elementTypes ) => this.CreateTupleType( elementTypes.Select( e => (e.Type, e.Name) ) );
 
     private Compilation Compilation => this._compilationModel.RoslynCompilation;
 

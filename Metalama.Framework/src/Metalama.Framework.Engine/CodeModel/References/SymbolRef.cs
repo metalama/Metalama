@@ -75,10 +75,11 @@ internal sealed partial class SymbolRef<T> : FullRef<T>, ISymbolRef<T>
             (targetKind is RefTargetKind.EventRaise or RefTargetKind.EventRaiseParameter or RefTargetKind.EventRaiseReturnParameter &&
              symbol.Kind == SymbolKind.Event),
             $"Invalid RefTargetKind.{targetKind} for {symbol.Kind}." );
-        
-        // Verify that we're using ITypeExtension when necessary.
+
+        // Verify that we're using ITypeExtension or ITupleType when necessary.
         Invariant.Assert(
-            symbol is not INamedTypeSymbol namedTypeSymbol || typeof(T) == (namedTypeSymbol.IsExtensionSafe() ? typeof(IExtensionBlock) : typeof(INamedType)) );
+            symbol is not INamedTypeSymbol namedTypeSymbol || typeof(T) == (namedTypeSymbol.IsExtensionSafe() ? typeof(IExtensionBlock) :
+                namedTypeSymbol.IsTupleType ? typeof(ITupleType) : typeof(INamedType)) );
 
         this.Symbol = symbol;
         this.TargetKind = targetKind;

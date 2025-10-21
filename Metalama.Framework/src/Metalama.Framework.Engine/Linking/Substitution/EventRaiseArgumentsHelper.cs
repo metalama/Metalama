@@ -23,6 +23,8 @@ internal static class EventRaiseArgumentsHelper
         return arguments switch
         {
             [_] => SeparatedList<ArgumentSyntax>(),
+            [_, { Expression: InvocationExpressionSyntax invocation }] =>
+                invocation.ArgumentList.Arguments, // Call to ValueTuple.Create() or ValueTuple.Create(x).
             [_, { Expression: TupleExpressionSyntax argsTuple }] =>
                 argsTuple.Arguments,
             _ => throw new AssertionFailedException( $"Unexpected arguments: {arguments}" )

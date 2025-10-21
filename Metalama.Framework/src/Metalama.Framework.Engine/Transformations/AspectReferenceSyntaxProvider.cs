@@ -36,10 +36,11 @@ namespace Metalama.Framework.Engine.Transformations
             IConstructor overriddenConstructor,
             ContextualSyntaxGenerator syntaxGenerator );
 
-        public abstract ExpressionSyntax GetEventRaiseReference( 
-            AspectLayerId aspectLayer, 
+        public abstract ExpressionSyntax GetEventRaiseReference(
+            AspectLayerId aspectLayer,
             IEvent @event,
             ContextualSyntaxGenerator syntaxGenerator,
+            ITupleType? argsTupleType,
             params ArgumentSyntax[] arguments );
 
         public abstract ExpressionSyntax GetOperatorReference( AspectLayerId aspectLayer, IMethod targetOperator, ContextualSyntaxGenerator syntaxGenerator );

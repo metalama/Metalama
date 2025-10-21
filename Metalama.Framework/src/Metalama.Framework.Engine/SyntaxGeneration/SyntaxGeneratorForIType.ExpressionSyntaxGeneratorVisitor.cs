@@ -36,7 +36,7 @@ internal sealed partial class SyntaxGeneratorForIType
                 {
                     if ( namedType.TypeKind != TypeKind.Error )
                     {
-                        return this.AddInformationTo(
+                        return this.AddTriviaAndAnnotations(
                             SyntaxFactory.AliasQualifiedName(
                                 SyntaxFactory.IdentifierName( SyntaxFactory.Token( SyntaxKind.GlobalKeyword ) ),
                                 simpleNameSyntax ),
@@ -56,7 +56,7 @@ internal sealed partial class SyntaxGeneratorForIType
 
         private ExpressionSyntax VisitNamespace( INamespace ns )
         {
-            var syntax = this.AddInformationTo( ToIdentifierName( ns.Name ), ns );
+            var syntax = this.AddTriviaAndAnnotations( ToIdentifierName( ns.Name ), ns );
 
             if ( ns.ContainingNamespace == null )
             {
@@ -65,7 +65,7 @@ internal sealed partial class SyntaxGeneratorForIType
 
             if ( ns.ContainingNamespace.IsGlobalNamespace )
             {
-                return this.AddInformationTo(
+                return this.AddTriviaAndAnnotations(
                     SyntaxFactory.AliasQualifiedName(
                         SyntaxFactory.IdentifierName( SyntaxFactory.Token( SyntaxKind.GlobalKeyword ) ),
                         syntax ),
@@ -81,7 +81,7 @@ internal sealed partial class SyntaxGeneratorForIType
 
         private MemberAccessExpressionSyntax CreateMemberAccessExpression( INamespaceOrNamedType symbol, ExpressionSyntax container, SimpleNameSyntax syntax )
         {
-            return this.AddInformationTo(
+            return this.AddTriviaAndAnnotations(
                 SyntaxFactory.MemberAccessExpression(
                     SyntaxKind.SimpleMemberAccessExpression,
                     container,

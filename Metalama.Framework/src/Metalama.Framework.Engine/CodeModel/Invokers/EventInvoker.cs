@@ -62,8 +62,9 @@ internal sealed class EventInvoker : Invoker<IEvent>, IEventInvoker
                 if ( context.AspectReferenceSyntaxProvider != null )
                 {
                     var receiverInfo = this.GetReceiverInfo( context );
+                    var argsTupleType = this.Member.Compilation.Factory.CreateTupleType( this.Member.RaiseMethod.Parameters );
 
-                    return context.AspectReferenceSyntaxProvider.GetEventRaiseReference( receiverInfo.AspectReferenceSpecification.AspectLayerId, this.Member, context.SyntaxGenerator, arguments );
+                    return context.AspectReferenceSyntaxProvider.GetEventRaiseReference( receiverInfo.AspectReferenceSpecification.AspectLayerId, this.Member, context.SyntaxGenerator, argsTupleType, arguments );
                 }
                 else
                 {

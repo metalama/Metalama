@@ -39,13 +39,19 @@ internal abstract class CompilationElementVisitor
 
                         break;
 
-                    case TypeKind.Class or TypeKind.RecordClass or TypeKind.Struct or TypeKind.RecordStruct or TypeKind.Delegate or TypeKind.Enum or TypeKind.Interface:
+                    case TypeKind.Class or TypeKind.RecordClass or TypeKind.Struct or TypeKind.RecordStruct or TypeKind.Delegate or TypeKind.Enum
+                        or TypeKind.Interface:
                         this.VisitNamedType( (INamedType) type );
 
                         break;
-                    
+
                     case TypeKind.Extension:
-                        this.VisitTypeExtension( (IExtensionBlock) type );
+                        this.VisitExtensionBlock( (IExtensionBlock) type );
+
+                        break;
+
+                    case TypeKind.Tuple:
+                        this.VisitTupleType( (ITupleType) type );
 
                         break;
 
@@ -195,8 +201,10 @@ internal abstract class CompilationElementVisitor
     protected virtual void VisitDynamicType( IDynamicType dynamicType ) => this.DefaultVisit( dynamicType );
 
     protected virtual void VisitNamedType( INamedType namedType ) => this.DefaultVisit( namedType );
-    
-    protected virtual void VisitTypeExtension( IExtensionBlock extensionBlock ) => this.DefaultVisit( extensionBlock );
+
+    protected virtual void VisitExtensionBlock( IExtensionBlock extensionBlock ) => this.VisitNamedType( extensionBlock );
+
+    protected virtual void VisitTupleType( ITupleType tupleType ) => this.VisitNamedType( tupleType );
 
     protected virtual void VisitPointerType( IPointerType pointerType ) => this.DefaultVisit( pointerType );
 

@@ -30,8 +30,12 @@ public static partial class SyntaxFactoryEx
             SyntaxKind.DefaultLiteralExpression,
             SyntaxFactory.Token( SyntaxKind.DefaultKeyword ) );
 
+    internal static SyntaxTriviaList ElasticSpaceTriviaList { get; } = new( SyntaxFactory.ElasticSpace );
+
+    internal static SyntaxTriviaList ElasticLineFeedTriviaList { get; } = new( SyntaxFactory.ElasticLineFeed );
+
     public static SyntaxToken TokenWithTrailingSpace( SyntaxKind kind )
-        => _tokensWithTrailingSpace.GetOrAdd( kind, static k => SyntaxFactory.Token( default, k, new SyntaxTriviaList( SyntaxFactory.ElasticSpace ) ) );
+        => _tokensWithTrailingSpace.GetOrAdd( kind, static k => SyntaxFactory.Token( default, k, ElasticSpaceTriviaList ) );
 
     internal static SyntaxToken InvocationRefKindToken( this RefKind refKind )
         => refKind switch
@@ -45,16 +49,19 @@ public static partial class SyntaxFactoryEx
 
     internal static ExpressionStatementSyntax DiscardStatement( ExpressionSyntax discardedExpression )
         => SyntaxFactory.ExpressionStatement(
-            SyntaxFactory.AssignmentExpression( SyntaxKind.SimpleAssignmentExpression, DiscardIdentifier(), discardedExpression ) );
+            SyntaxFactory.AssignmentExpression( SyntaxKind.SimpleAssignmentExpression, DiscardIdentifierName(), discardedExpression ) );
 
-    internal static IdentifierNameSyntax DiscardIdentifier()
-        => SyntaxFactory.IdentifierName(
-            SyntaxFactory.Identifier(
-                SyntaxFactory.TriviaList(),
-                SyntaxKind.UnderscoreToken,
-                "_",
-                "_",
-                SyntaxFactory.TriviaList() ) );
+    internal static IdentifierNameSyntax DiscardIdentifierName() => SyntaxFactory.IdentifierName( DiscardIdentifier() );
+
+    public static SyntaxToken DiscardIdentifier()
+    {
+        return SyntaxFactory.Identifier(
+            SyntaxFactory.TriviaList(),
+            SyntaxKind.UnderscoreToken,
+            "_",
+            "_",
+            SyntaxFactory.TriviaList() );
+    }
 
     internal static IdentifierNameSyntax VarIdentifier()
         => SyntaxFactory.IdentifierName(
@@ -213,6 +220,6 @@ public static partial class SyntaxFactoryEx
                         SyntaxKind.EqualsToken,
                         SyntaxFactory.TriviaList( SyntaxFactory.ElasticSpace ) ),
                     right ),
-                SyntaxFactory.Token( default, SyntaxKind.SemicolonToken, syntaxGenerationContext.ElasticEndOfLineTriviaList ) )
+                SyntaxFactory.Token( default, SyntaxKind.SemicolonToken, syntaxGenerationContext.OptionalElasticEndOfLineTriviaList ) )
             .WithGeneratedCodeAnnotation( FormattingAnnotations.SystemGeneratedCodeAnnotation );
 }
