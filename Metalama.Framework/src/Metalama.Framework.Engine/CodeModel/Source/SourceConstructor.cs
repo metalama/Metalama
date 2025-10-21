@@ -40,7 +40,6 @@ namespace Metalama.Framework.Engine.CodeModel.Source
             }
         }
 
-#if ROSLYN_4_12_0_OR_GREATER
         [Memo]
         public override ImmutableArray<SourceReference> Sources => this.GetSourcesImpl();
 
@@ -59,7 +58,6 @@ namespace Metalama.Framework.Engine.CodeModel.Source
                 return base.Sources;
             }
         }
-#endif
 
         [Memo]
         private IFullRef<IConstructor> Ref => this.RefFactory.FromSymbolBasedDeclaration<IConstructor>( this );
