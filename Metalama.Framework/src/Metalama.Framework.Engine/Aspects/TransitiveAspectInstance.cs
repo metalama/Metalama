@@ -7,23 +7,23 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Extensibility;
 using Microsoft.CodeAnalysis;
 using System;
-using System.Collections.Immutable;
 
 namespace Metalama.Framework.Engine.Aspects;
 
-public class TransitiveAspectInstance : IAspectInstance, IAspectPredecessorImpl, ITransitivePipelineContributor, ITransitiveAspectsManifestExtension, IExtensionPipelineContributor
+internal class TransitiveAspectInstance : ITransitivePipelineContributor, IExtensionPipelineContributor
 {
     internal TransitiveAspectInstance(
         IAspect aspect,
-        IDeclaration targetDeclaration,
-        IAspectClass aspectClass,
+        IRef<IDeclaration> targetDeclaration,
+        int targetDeclarationDepth,
+        IAspectClassImpl aspectClass,
         IAspectState? aspectState,
         int predecessorDegree )
     {
         this.Aspect = aspect;
-        this.TargetDeclaration = targetDeclaration.ToRef();
+        this.TargetDeclaration = targetDeclaration;
         this.AspectClass = aspectClass;
-        this.TargetDeclarationDepth = targetDeclaration.Depth;
+        this.TargetDeclarationDepth = targetDeclarationDepth;
         this.PredecessorDegree = predecessorDegree;
         this.AspectState = aspectState;
     }
@@ -32,27 +32,13 @@ public class TransitiveAspectInstance : IAspectInstance, IAspectPredecessorImpl,
 
     public IRef<IDeclaration> TargetDeclaration { get; }
 
-    public ImmutableArray<AspectPredecessor> Predecessors => [];
-
     public IAspect Aspect { get; }
 
-    public IAspectClass AspectClass { get; }
+    public IAspectClassImpl AspectClass { get; }
 
-    public bool IsSkipped => false;
-
-    public bool IsInheritable => false;
-
-    public ImmutableArray<IAspectInstance> SecondaryInstances => [];
-
-    public IAspectState? AspectState { get; }
-
-    public FormattableString FormatPredecessor( ICompilation compilation ) => $"{this.AspectClass.Description}";
-
-    public Location? GetDiagnosticLocation( Compilation compilation ) => null;
+    public IAspectState? AspectState { get; set; }
 
     public int TargetDeclarationDepth { get; }
-
-    public ImmutableArray<SyntaxTree> PredecessorTreeClosure => [];
 
     public SyntaxTree? SyntaxTree => throw new NotImplementedException();
 

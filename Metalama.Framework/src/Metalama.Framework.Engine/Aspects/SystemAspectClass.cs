@@ -6,34 +6,28 @@ using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Eligibility;
 using Metalama.Framework.Engine.AspectOrdering;
-using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.AspectWeavers;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.Services;
-using Metalama.Framework.Fabrics;
 using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 
-namespace Metalama.Framework.Engine.Fabrics;
+namespace Metalama.Framework.Engine.Aspects;
 
 /// <summary>
-/// The top-level aspect class integrating the fabrics feature in the aspect pipeline. It is used as an 'identity'
-/// class. The real class is <see cref="FabricAggregateAspectClass"/>, which is instantiated in the middle of the pipeline,
-/// while <see cref="FabricTopLevelAspectClass"/> must exist while the pipeline is being instantiated.
+/// This class can represent aspect types that are implemented in the current project, as opposed to user aspects.
 /// </summary>
-internal sealed class FabricTopLevelAspectClass : IBoundAspectClass
+internal sealed class SystemAspectClass : IBoundAspectClass
 {
-    public const string FabricAspectName = "<Fabric>";
-
     public AspectLayer Layer { get; }
 
-    string IAspectClass.FullName => FabricAspectName;
+    public string FullName => this.Type.FullName.AssertNotNull();
 
-    public string ShortName => FabricAspectName;
+    public string ShortName { get; }
 
-    string IAspectClass.DisplayName => FabricAspectName;
+    string IAspectClass.DisplayName => this.ShortName;
 
     string? IAspectClass.Description => null;
 
@@ -43,13 +37,16 @@ internal sealed class FabricTopLevelAspectClass : IBoundAspectClass
 
     public bool IsAttribute => false;
 
-    public Type Type => typeof(Fabric);
+    public Type Type { get; }
 
     public EditorExperienceOptions EditorExperienceOptions => EditorExperienceOptions.Default;
 
-    public FabricTopLevelAspectClass( in ProjectServiceProvider serviceProvider, CompilationModel compilation )
+    public SystemAspectClass( in ProjectServiceProvider serviceProvider, CompilationModel compilation, string shortName, Type type )
     {
-        this.Layer = new AspectLayer( this, null );
+        this.ShortName = shortName;
+        this.Type = type;
+        this.Layer = new AspectLayer( this, null, shortName );
+        this.Layers = [this.Layer];
         this.AspectDriver = new AspectDriver( serviceProvider, this, compilation );
     }
 
@@ -61,7 +58,7 @@ internal sealed class FabricTopLevelAspectClass : IBoundAspectClass
 
     SyntaxAnnotation IAspectClassImpl.GeneratedCodeAnnotation => throw new NotSupportedException();
 
-    public ImmutableArray<AspectLayer> Layers { get; } = ImmutableArray.Create( new AspectLayer( "<Fabric>", null ) );
+    public ImmutableArray<AspectLayer> Layers { get; }
 
     EligibleScenarios IAspectClassImpl.GetEligibility( IDeclaration obj, bool isInheritable ) => EligibleScenarios.Default;
 
@@ -72,7 +69,7 @@ internal sealed class FabricTopLevelAspectClass : IBoundAspectClass
         IDescribedObject<IDeclaration> describedObject )
         => throw new AssertionFailedException( "This aspect is always eligible." );
 
-    public string DiagnosticSourceDescription => "top-level fabric";
+    public string DiagnosticSourceDescription => this.ShortName;
 
     IReadOnlyCollection<IAspectClassImpl> IAspectClassImpl.DescendantClassesAndSelf => Array.Empty<IAspectClassImpl>();
 }

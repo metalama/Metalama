@@ -34,7 +34,7 @@ internal sealed partial class TransitivePipelineContributorSource : IExternalHie
 
     public TransitivePipelineContributorSource(
         CompilationContext compilationContext,
-        ImmutableArray<IAspectClass> aspectClasses,
+        AspectClassCollection aspectClasses,
         ProjectServiceProvider serviceProvider )
     {
         var pipelineExtensions = serviceProvider.GetRequiredService<PipelineExtensionProvider>().Extensions;
@@ -42,11 +42,10 @@ internal sealed partial class TransitivePipelineContributorSource : IExternalHie
         var inheritableAspectProvider = serviceProvider.GetService<ITransitiveAspectManifestProvider>();
 
         var inheritedAspectsBuilder = ImmutableDictionaryOfArray<IAspectClass, InheritableAspectInstance>.CreateBuilder();
-        var transitiveAspectsBuilder = ImmutableDictionaryOfArray<IAspectClass, TransitiveAspectInstance>.CreateBuilder();
         var contributorsBuilder = ImmutableArray.CreateBuilder<IPipelineContributor>();
         var manifestDictionaryBuilder = ImmutableDictionary.CreateBuilder<AssemblyIdentity, ITransitiveAspectsManifest>();
 
-        var aspectClassesByName = aspectClasses.ToDictionary( t => t.FullName, t => t );
+        var aspectClassesByName = aspectClasses.Dictionary;
 
         foreach ( var reference in compilationContext.Compilation.References )
         {
@@ -109,14 +108,10 @@ internal sealed partial class TransitivePipelineContributorSource : IExternalHie
                     inheritedAspectsBuilder.AddRange( aspectClass, targets );
                 }
 
-                // Process transitive aspects.
-                var transitiveAspects = manifest.Extensions.OfKind( ContributorKind.TransitiveAspect );
-                transitiveAspectsBuilder.AddRange( transitiveAspects, a => a.AspectClass, a => a );
-
                 // Process manifest extensions.
                 foreach ( var extension in pipelineExtensions )
                 {
-                    foreach ( var contributor in extension.GetPipelineContributorsFromTransitiveManifest( manifest.Extensions ) )
+                    foreach ( var contributor in extension.GetPipelineContributorsFromTransitiveManifest( manifest.Extensions, aspectClasses ) )
                     {
                         contributorsBuilder.Add( contributor );
                     }
@@ -125,7 +120,6 @@ internal sealed partial class TransitivePipelineContributorSource : IExternalHie
         }
 
         contributorsBuilder.Add( new InheritedAspectSourceImpl( serviceProvider, inheritedAspectsBuilder.ToImmutable() ) );
-        contributorsBuilder.Add( new TransitiveAspectSourceImpl( transitiveAspectsBuilder.ToImmutable() ) );
         this.Contributors = contributorsBuilder.ToImmutable();
         this._manifests = manifestDictionaryBuilder.ToImmutable();
     }

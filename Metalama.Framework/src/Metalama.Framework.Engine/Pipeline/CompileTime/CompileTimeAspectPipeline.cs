@@ -228,8 +228,6 @@ public class CompileTimeAspectPipeline : AspectPipeline
                     .ToImmutableDictionary();
 
             var annotations = result.Value.LastCompilationModel.GetExportedAnnotations();
-
-            // Execute validators.
             var transitiveContributors = result.Value.TransitiveContributors;
 
             if ( result.Value.ExternallyInheritableAspects.Length > 0 || transitiveContributors.Length > 0 || inheritableOptions.Count > 0

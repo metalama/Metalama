@@ -36,8 +36,11 @@ namespace Metalama.Framework.Engine.Aspects
         public ulong HashCode { get; }
 
         public bool TryGetAspectClass( Type aspectType, [NotNullWhen( true )] out IAspectClass? aspectClass )
+            => this.TryGetAspectClass( aspectType.FullName.AssertNotNull(), out aspectClass );
+
+        public bool TryGetAspectClass( string fullName, [NotNullWhen( true )] out IAspectClass? aspectClass )
         {
-            if ( this.Dictionary.TryGetValue( aspectType.FullName.AssertNotNull(), out var boundAspectClass ) )
+            if ( this.Dictionary.TryGetValue( fullName, out var boundAspectClass ) )
             {
                 aspectClass = boundAspectClass;
 

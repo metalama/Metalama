@@ -4,7 +4,6 @@
 
 using Metalama.Framework.Engine.CompileTime.Manifest;
 using Microsoft.CodeAnalysis.CSharp;
-using System.Runtime.Versioning;
 using Xunit;
 
 namespace Metalama.Framework.Tests.UnitTests.CompileTime;

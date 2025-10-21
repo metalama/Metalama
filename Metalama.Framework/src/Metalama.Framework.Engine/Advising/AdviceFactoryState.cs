@@ -47,7 +47,8 @@ internal sealed class AdviceFactoryState : IAdviceExecutionContext
         IDiagnosticAdder diagnostics,
         UserCodeExecutionContext executionContext,
         int pipelineStepIndex,
-        int orderWithinType )
+        int orderWithinType,
+        IAspectClassResolver aspectClassResolver )
     {
         this._pipelineStepIndex = pipelineStepIndex;
         this._orderWithinType = orderWithinType;
@@ -57,6 +58,7 @@ internal sealed class AdviceFactoryState : IAdviceExecutionContext
         this.Diagnostics = diagnostics;
         this.IntrospectionListener = serviceProvider.GetService<IntrospectionPipelineListener>();
         this.ExecutionContext = executionContext;
+        this.AspectClassResolver = aspectClassResolver;
     }
 
     public void AddTransformations( ImmutableArray<ITransformation> transformations )
@@ -93,4 +95,6 @@ internal sealed class AdviceFactoryState : IAdviceExecutionContext
     }
 
     public int AspectOrder => this._pipelineStepIndex;
+
+    public IAspectClassResolver AspectClassResolver { get; }
 }

@@ -9,26 +9,31 @@ using Metalama.Framework.Engine.Collections;
 using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities.Threading;
-using System.Collections.Immutable;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Metalama.Framework.Engine.Aspects;
 
 internal sealed partial class TransitivePipelineContributorSource
 {
-    private class InheritedAspectSourceImpl : IAspectSource
+    private sealed class InheritedAspectSourceImpl : IAspectSource
     {
         private readonly IConcurrentTaskRunner _concurrentTaskRunner;
         private readonly ImmutableDictionaryOfArray<IAspectClass, InheritableAspectInstance> _inheritedAspects;
 
-        public InheritedAspectSourceImpl( ProjectServiceProvider serviceProvider, ImmutableDictionaryOfArray<IAspectClass, InheritableAspectInstance> inheritedAspects )
+        public InheritedAspectSourceImpl(
+            ProjectServiceProvider serviceProvider,
+            ImmutableDictionaryOfArray<IAspectClass, InheritableAspectInstance> inheritedAspects )
         {
             this._inheritedAspects = inheritedAspects;
             this._concurrentTaskRunner = serviceProvider.GetRequiredService<IConcurrentTaskRunner>();
         }
+
         public ContributorKind ContributorKind => ContributorKind.AspectSource;
 
-        public ImmutableArray<IAspectClass> AspectClasses => this._inheritedAspects.Keys.ToImmutableArray();
+        public IEnumerable<IAspectClass> AspectClasses => this._inheritedAspects.Keys;
+
+        public bool ContainsAspectClass( IAspectClass aspectClass ) => this._inheritedAspects.ContainsKey( aspectClass );
 
         public Task CollectAspectInstancesAsync( AspectInstanceCollector collector )
         {

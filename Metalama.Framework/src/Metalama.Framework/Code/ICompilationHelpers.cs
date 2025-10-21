@@ -32,6 +32,6 @@ namespace Metalama.Framework.Code
 
         bool IsAccessibleFrom( IMemberOrNamedType accessedMember, INamedType accessingType );
 
-        bool IsAccessibleFromOutsideAssembly( IMemberOrNamedType memberOrType, bool honorInternalVisibleToAttributes );
+        bool IsAccessibleFromOutsideAssembly( IDeclaration declaration, bool honorInternalVisibleToAttributes );
     }
 }

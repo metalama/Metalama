@@ -24,7 +24,7 @@ using System.Linq;
 
 namespace Metalama.Framework.Engine.AdviceImpl.Introduction.Constructors;
 
-internal class PullConstructorParameterAdviceImpl
+internal sealed class PullConstructorParameterAdviceImpl
 {
     private readonly IPullStrategy? _pullStrategy;
     private readonly AspectLayerInstance _aspectLayerInstance;
@@ -52,35 +52,26 @@ internal class PullConstructorParameterAdviceImpl
         var syntaxGenerationOptions = this.ServiceProvider.GetRequiredService<SyntaxGenerationOptions>();
 
         // Process the current type.
-        var pulledParametersInCurrentType = new List<IParameter> { baseParameter };
-
         ProcessType(
             baseConstructor.DeclaringType.Constructors
-                .Where( c => c.InitializerKind == ConstructorInitializerKind.This ),
-            pulledParametersInCurrentType );
+                .Where( c => c.InitializerKind == ConstructorInitializerKind.This ) );
 
         // Register a transitive aspect for the current type.
-        if ( pulledParametersInCurrentType.Count > 0 && this._pullStrategy is not null && this._pullStrategy is not LegacyPullStrategy )
+        if ( this._pullStrategy is not null && this._pullStrategy is not LegacyPullStrategy && baseParameter.IsAccessibleFromOutsideAssembly() )
         {
-            var accessiblePulledParameters = pulledParametersInCurrentType.Where( c => c.DeclaringMember!.IsAccessibleFromOutsideAssembly() )
-                .Select( p => p.ToRef() )
-                .ToReadOnlyList();
+            var transitiveAspect = new IntroduceConstructorParameterTransitiveAspect(
+                this._pullStrategy,
+                baseParameter.ToRef(),
+                this._context.AspectOrder );
 
-            if ( accessiblePulledParameters.Count > 0 )
-            {
-                var transitiveAspect = new IntroduceConstructorParameterTransitiveAspect(
-                    this._pullStrategy,
-                    accessiblePulledParameters,
-                    this._context.AspectOrder );
-
-                this._context.AddTransitiveAspect(
-                    new TransitiveAspectInstance(
-                        transitiveAspect,
-                        baseParameter.DeclaringMember.DeclaringType,
-                        IntroduceConstructorParameterTransitiveAspect.AspectClass.Instance,
-                        this._aspectLayerInstance.AspectInstance.AspectState,
-                        this._aspectLayerInstance.AspectInstance.PredecessorDegree + 1 ) );
-            }
+            this._context.AddTransitiveAspect(
+                new TransitiveAspectInstance(
+                    transitiveAspect,
+                    baseParameter.DeclaringMember.DeclaringType.ToRef(),
+                    baseParameter.DeclaringMember.DeclaringType.Depth,
+                    (IAspectClassImpl) this._context.AspectClassResolver.GetAspectClass( typeof(IntroduceConstructorParameterTransitiveAspect) ),
+                    this._aspectLayerInstance.AspectInstance.AspectState,
+                    this._aspectLayerInstance.AspectInstance.PredecessorDegree + 1 ) );
         }
 
         // Process derived types.
@@ -91,7 +82,7 @@ internal class PullConstructorParameterAdviceImpl
 
         return;
 
-        void ProcessType( IEnumerable<IConstructor> potentialConstructors, List<IParameter>? pulledParameters = null )
+        void ProcessType( IEnumerable<IConstructor> potentialConstructors )
         {
             var chainedConstructors =
                 potentialConstructors.Where( c => ((IConstructorImpl) c).GetBaseConstructor()?.Definition.Equals( baseConstructor ) == true );
@@ -184,8 +175,6 @@ internal class PullConstructorParameterAdviceImpl
 
                         // Process all constructors calling this constructor.
                         this.PullConstructorParameterRecursive( recursiveParameter );
-
-                        pulledParameters?.Add( recursiveParameterBuilder );
 
                         break;
 

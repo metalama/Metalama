@@ -31,4 +31,6 @@ internal interface IAdviceExecutionContext
     void SetOrders( ITransformation transformation );
 
     int AspectOrder { get; }
+    
+    IAspectClassResolver AspectClassResolver { get; }
 }

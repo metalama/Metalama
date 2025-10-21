@@ -203,44 +203,51 @@ internal sealed class CompilationHelpers : ICompilationHelpers
     private static bool IsDerivedFromOrContainedIn( INamedType baseType, INamedType derivedType )
         => derivedType.IsConvertibleTo( baseType, ConversionKind.Reference ) || derivedType.IsContainedIn( baseType );
 
-    public bool IsAccessibleFromOutsideAssembly( IMemberOrNamedType memberOrType, bool honorInternalVisibleToAttributes )
+    public bool IsAccessibleFromOutsideAssembly( IDeclaration declaration, bool honorInternalVisibleToAttributes )
     {
-        if ( memberOrType.GetCompilationContext() != this._compilationContext )
+        if ( declaration.GetCompilationContext() != this._compilationContext )
         {
-            throw new ArgumentOutOfRangeException( nameof(memberOrType), "The declaration does not belong to the current compilation." );
+            throw new ArgumentOutOfRangeException( nameof(declaration), "The declaration does not belong to the current compilation." );
         }
 
-        return this.IsAccessibleFromOutsideAssemblyCore( memberOrType, honorInternalVisibleToAttributes );
+        return this.IsAccessibleFromOutsideAssemblyCore( declaration, honorInternalVisibleToAttributes );
     }
 
-    private bool IsAccessibleFromOutsideAssemblyCore( IMemberOrNamedType memberOrType, bool honorInternalVisibleToAttributes )
+    private bool IsAccessibleFromOutsideAssemblyCore( IDeclaration declaration, bool honorInternalVisibleToAttributes )
     {
-        if ( memberOrType is { Accessibility: Accessibility.Public or Accessibility.Protected or Accessibility.ProtectedInternal } )
+        if ( declaration is IMemberOrNamedType memberOrType )
         {
-            if ( memberOrType.DeclaringType != null )
+            if ( memberOrType is { Accessibility: Accessibility.Public or Accessibility.Protected or Accessibility.ProtectedInternal } )
             {
-                return this.IsAccessibleFromOutsideAssemblyCore(
-                    memberOrType.DeclaringType,
-                    honorInternalVisibleToAttributes );
+                if ( memberOrType.DeclaringType != null )
+                {
+                    return this.IsAccessibleFromOutsideAssemblyCore(
+                        memberOrType.DeclaringType,
+                        honorInternalVisibleToAttributes );
+                }
+                else
+                {
+                    return true;
+                }
             }
-            else
+            else if ( memberOrType is { Accessibility: Accessibility.Internal or Accessibility.PrivateProtected }
+                      && this.HasAnyInternalsVisibleTo( honorInternalVisibleToAttributes ) )
             {
-                return true;
+                if ( memberOrType.DeclaringType != null )
+                {
+                    return this.IsAccessibleFromOutsideAssemblyCore(
+                        memberOrType.DeclaringType,
+                        honorInternalVisibleToAttributes );
+                }
+                else
+                {
+                    return this.HasAnyInternalsVisibleTo( honorInternalVisibleToAttributes );
+                }
             }
         }
-        else if ( memberOrType is { Accessibility: Accessibility.Internal or Accessibility.PrivateProtected }
-                  && this.HasAnyInternalsVisibleTo( honorInternalVisibleToAttributes ) )
+        else if ( declaration.ContainingDeclaration != null )
         {
-            if ( memberOrType.DeclaringType != null )
-            {
-                return this.IsAccessibleFromOutsideAssemblyCore(
-                    memberOrType.DeclaringType,
-                    honorInternalVisibleToAttributes );
-            }
-            else
-            {
-                return this.HasAnyInternalsVisibleTo( honorInternalVisibleToAttributes );
-            }
+            return this.IsAccessibleFromOutsideAssemblyCore( declaration.ContainingDeclaration, honorInternalVisibleToAttributes );
         }
 
         return false;

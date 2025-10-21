@@ -107,6 +107,24 @@ namespace Metalama.Framework.Engine.Aspects
             this.IsInheritable = aspectClass.IsInheritable
                                  ?? ((IConditionallyInheritableAspect) aspect).IsInheritable( targetDeclaration, this );
         }
+        
+        internal AspectInstance(
+            IAspect aspect,
+            IRef<IDeclaration> targetDeclaration,
+            int targetDeclarationDepth,
+            IAspectClassImpl aspectClass,
+            IEnumerable<TemplateClassInstance> templateInstances,
+            ImmutableArray<AspectPredecessor> predecessors,
+            bool isInheritable )
+        {
+            this.Aspect = aspect;
+            this.TargetDeclaration = targetDeclaration;
+            this.TargetDeclarationDepth = targetDeclarationDepth;
+            this.AspectClass = aspectClass;
+            this.Predecessors = predecessors;
+            this.TemplateInstances = templateInstances.ToImmutableDictionary( t => t.TemplateClass, t => t );
+            this.IsInheritable = isInheritable;
+        }
 
         internal EligibleScenarios ComputeEligibility( IDeclaration declaration )
         {

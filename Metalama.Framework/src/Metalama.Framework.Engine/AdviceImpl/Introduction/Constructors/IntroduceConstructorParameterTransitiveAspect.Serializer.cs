@@ -5,7 +5,6 @@
 using Metalama.Framework.Advising;
 using Metalama.Framework.Code;
 using Metalama.Framework.Serialization;
-using System.Collections.Generic;
 
 namespace Metalama.Framework.Engine.AdviceImpl.Introduction.Constructors;
 
@@ -18,10 +17,10 @@ internal sealed partial class IntroduceConstructorParameterTransitiveAspect
         public override IntroduceConstructorParameterTransitiveAspect CreateInstance( IArgumentsReader constructorArguments )
         {
             var pullStrategy = constructorArguments.GetValue<IPullStrategy>( nameof(_pullStrategy) );
-            var parameters = constructorArguments.GetValue<IReadOnlyList<IRef<IParameter>>>( nameof(_parameters) ).AssertNotNull();
+            var parameter = constructorArguments.GetValue<IRef<IParameter>>( nameof(_parameter) ).AssertNotNull();
             var order = constructorArguments.GetValue<int>( nameof(_order) );
 
-            return new IntroduceConstructorParameterTransitiveAspect( pullStrategy, parameters, order );
+            return new IntroduceConstructorParameterTransitiveAspect( pullStrategy, parameter, order );
         }
 
         public override void SerializeObject(
@@ -30,7 +29,7 @@ internal sealed partial class IntroduceConstructorParameterTransitiveAspect
             IArgumentsWriter initializationArguments )
         {
             constructorArguments.SetValue( nameof(_pullStrategy), obj._pullStrategy );
-            constructorArguments.SetValue( nameof(_parameters), obj._parameters );
+            constructorArguments.SetValue( nameof(_parameter), obj._parameter );
             constructorArguments.SetValue( nameof(_order), obj._order );
         }
 #pragma warning restore SA1101

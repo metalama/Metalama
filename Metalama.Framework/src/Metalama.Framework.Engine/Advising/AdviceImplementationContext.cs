@@ -61,4 +61,6 @@ internal class AdviceImplementationContext
     public ImmutableArray<ITransformation> Transformations => this._transformations?.ToImmutable() ?? ImmutableArray<ITransformation>.Empty;
 
     public int AspectOrder => this._adviceExecutionContext.AspectOrder;
+
+    public IAspectClassResolver AspectClassResolver => this._adviceExecutionContext.AspectClassResolver;
 }

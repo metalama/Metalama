@@ -29,7 +29,9 @@ public abstract class ContributorKind
 
     internal static ContributorKind<IDiagnosticSource> DiagnosticSource { get; } = new( true, false );
 
-    internal static ContributorKind<TransitiveAspectInstance> TransitiveAspect { get; } = new( false, true );
+    internal static ContributorKind<TransitiveAspectInstance> TransitiveAspect { get; } = new( true, true );
+
+    internal static ContributorKind<SerializableTransitiveAspectInstance> SerializableTransitiveAspect { get; } = new( true, true );
 }
 
 #pragma warning disable SA1402

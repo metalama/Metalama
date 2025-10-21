@@ -52,7 +52,7 @@ internal sealed class PipelineStepsState
     private CompilationModel LastCompilation { get; set; }
 
     public CompilationModel FirstCompilation { get; }
-    
+
     private UserDiagnosticSink Diagnostics { get; }
 
     public AspectPipelineConfiguration PipelineConfiguration { get; }
@@ -225,7 +225,7 @@ internal sealed class PipelineStepsState
         var collector = new AspectInstanceCollector( aspectClass, compilation, diagnosticSink, cancellationToken );
 
         await this._concurrentTaskRunner.RunConcurrentlyAsync(
-            aspectSources.Where( a => a.AspectClasses.Contains( aspectClass ) ),
+            aspectSources.Where( a => a.ContainsAspectClass( aspectClass ) ),
             source => source.CollectAspectInstancesAsync( collector ),
             cancellationToken );
 
@@ -356,7 +356,10 @@ internal sealed class PipelineStepsState
 
         // Index the inheritable aspects for the aspect manifest. It must also include indirectly inheritable aspect instances.
         this.AddInheritableAspectInstances(
-            inheritableAspectInstances.Concat( inheritedAspectInstancesInProject.Where( a => a.AspectInstance.IsInheritable ) )
+            inheritableAspectInstances.Concat(
+                    inheritedAspectInstancesInProject.Where(
+                        a => a.AspectInstance.IsInheritable &&
+                             a.AspectInstance.TargetDeclaration.GetTarget( compilation ).IsAccessibleFromOutsideAssembly() ) )
                 .Select( x => x.AspectInstance ) );
 
         return concreteAspectInstances.Concat( concreteInheritedAspectInstancesInProject ).SelectAsImmutableArray( x => x.AspectInstance );

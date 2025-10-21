@@ -8,6 +8,8 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Eligibility;
 using Metalama.Framework.Engine.AspectOrdering;
 using Metalama.Framework.Engine.Aspects;
+using Metalama.Framework.Engine.CodeModel;
+using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Fabrics;
 using Microsoft.CodeAnalysis;
 using System;
@@ -22,6 +24,11 @@ namespace Metalama.Framework.Engine.Fabrics
     /// </summary>
     internal sealed class FabricAggregateAspectClass : IAspectClassImpl
     {
+        public const string AspectClassName = "<Fabric>";
+        
+        public static IBoundAspectClass CreateTopLevelAspectClass( in ProjectServiceProvider serviceProvider, CompilationModel compilation )
+            => new SystemAspectClass( serviceProvider, compilation, AspectClassName, typeof(Fabric) );
+        
         public FabricAggregateAspectClass( ImmutableArray<TemplateClass> templateClasses )
         {
             this.TemplateClasses = templateClasses;
@@ -34,11 +41,11 @@ namespace Metalama.Framework.Engine.Fabrics
             this.DiagnosticSourceDescription = description;
         }
 
-        public string FullName => FabricTopLevelAspectClass.FabricAspectName;
+        public string FullName => typeof(Fabric).FullName.AssertNotNull();
 
-        public string ShortName => FabricTopLevelAspectClass.FabricAspectName;
+        public string ShortName => AspectClassName;
 
-        public string DisplayName => FabricTopLevelAspectClass.FabricAspectName;
+        public string DisplayName => AspectClassName;
 
         public string? Description => null;
 
@@ -56,7 +63,7 @@ namespace Metalama.Framework.Engine.Fabrics
 
         public SyntaxAnnotation GeneratedCodeAnnotation { get; }
 
-        public ImmutableArray<AspectLayer> Layers { get; } = ImmutableArray.Create( new AspectLayer( "<Fabric>", null ) );
+        public ImmutableArray<AspectLayer> Layers { get; } = ImmutableArray.Create( new AspectLayer( AspectClassName, null ) );
 
         EligibleScenarios IAspectClassImpl.GetEligibility( IDeclaration obj, bool isInheritable ) => EligibleScenarios.Default;
 
