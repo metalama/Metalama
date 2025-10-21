@@ -231,12 +231,17 @@ public partial class DeclarationFactory
                 new SourceField( args.Symbol, args.Compilation, args.GenericContext ) );
 
     public IConstructor GetConstructor( IMethodSymbol methodSymbol, GenericContext? genericContext = null )
-        => this.GetDeclarationFromSymbol<IConstructor, IMethodSymbol>(
+    {
+        // Standardize on the partial definition part for partial constructors.
+        methodSymbol = methodSymbol.PartialDefinitionPart ?? methodSymbol;
+
+        return this.GetDeclarationFromSymbol<IConstructor, IMethodSymbol>(
             methodSymbol,
             genericContext,
             static ( in args ) =>
                 new SourceConstructor( args.Symbol, args.Compilation, args.GenericContext ),
             true );
+    }
 
     public IParameter GetParameter( IParameterSymbol parameterSymbol, GenericContext? genericContext = null )
         => this.GetDeclarationFromSymbol<IParameter, IParameterSymbol>(
@@ -249,7 +254,7 @@ public partial class DeclarationFactory
     {
 #if ROSLYN_5_0_0_OR_GREATER
 
-        // Standardize on the partial definition part for partial properties.
+        // Standardize on the partial definition part for partial events.
         eventSymbol = eventSymbol.PartialDefinitionPart ?? eventSymbol;
 
 #endif

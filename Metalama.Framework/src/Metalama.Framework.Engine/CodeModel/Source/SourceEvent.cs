@@ -40,7 +40,7 @@ namespace Metalama.Framework.Engine.CodeModel.Source
 #if ROSLYN_5_0_0_OR_GREATER
             Invariant.Assert(
                 symbol.PartialDefinitionPart == null,
-                "Cannot use partial implementation to instantiate the SourceProperty class." );
+                "Cannot use partial implementation to instantiate the SourceEvent class." );
 #endif
 
             this._symbol = symbol;
@@ -143,13 +143,11 @@ namespace Metalama.Framework.Engine.CodeModel.Source
 #if ROSLYN_5_0_0_OR_GREATER
             if ( this._symbol.PartialImplementationPart != null )
             {
-                var sources = ImmutableArray.CreateBuilder<SourceReference>( 2 );
-                sources.Add( new SourceReference( this._symbol.DeclaringSyntaxReferences[0].GetSyntax(), SourceReferenceImpl.Instance ) );
-
-                sources.Add(
-                    new SourceReference( this._symbol.PartialImplementationPart.DeclaringSyntaxReferences[0].GetSyntax(), SourceReferenceImpl.Instance ) );
-
-                return sources.MoveToImmutable();
+                return
+                [
+                    new SourceReference( this._symbol.DeclaringSyntaxReferences[0].GetSyntax(), SourceReferenceImpl.Instance ), 
+                    new SourceReference( this._symbol.PartialImplementationPart.DeclaringSyntaxReferences[0].GetSyntax(), SourceReferenceImpl.Instance ),
+                ];
             }
             else
             {

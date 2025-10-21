@@ -1707,7 +1707,7 @@ class C {}
         using var testContext = this.CreateTestContext();
 
         const string code = """
-                            public partial class NonPartial
+                            public class NonPartial
                             {
                                 public NonPartial() {}
                             }
@@ -1720,13 +1720,13 @@ class C {}
                             """;
 
         var compilation = testContext.CreateCompilationModel( code );
-        var nonPartial = compilation.Types.ElementAt( 0 ).Constructors.Single();
-        var partial = compilation.Types.ElementAt( 1 ).Constructors.Single();
+        var nonPartial = compilation.Types.OfName("NonPartial").Single().Constructors.Single();
+        var partial = compilation.Types.OfName( "Partial" ).Single().Constructors.Single();
 
         Assert.False( nonPartial.IsPartial );
         Assert.True( partial.IsPartial );
 
-        var partialDefinition = (IMethodSymbol) compilation.Types.ElementAt( 1 ).GetSymbol().AssertSymbolNotNull().GetMembers( "Partial" ).Single();
+        var partialDefinition = (IMethodSymbol) compilation.Types.OfName( "Partial" ).Single().GetSymbol().AssertSymbolNotNull().Constructors.Single();
         var partialImplementation = partialDefinition.PartialImplementationPart.AssertNotNull();
 
         Assert.NotSame( partialDefinition, partialImplementation );
@@ -1737,7 +1737,7 @@ class C {}
         Assert.Same( partialImplementationRef, partialDefinitionRef );
 
         // Ensure declarations of both parts are the same.
-        Assert.Same( compilation.Factory.GetMethod( partialDefinition ), compilation.Factory.GetMethod( partialImplementation ) );
+        Assert.Same( compilation.Factory.GetConstructor( partialDefinition ), compilation.Factory.GetConstructor( partialImplementation ) );
     }
 
     [Fact]
@@ -1968,6 +1968,30 @@ public partial class B
         Assert.Equal( 2, partialEvent.Sources.Length );
         Assert.True( partialEvent.HasImplementation );
         Assert.Single( partialEvent.Sources, s => s.IsImplementationPart );
+    }
+
+    [Fact]
+    private void SourceReferencesToConstructors()
+    {
+        using var testContext = this.CreateTestContext();
+
+        const string code =
+            """
+            public partial class C
+            {
+                public C() {}
+                public partial C(int x);
+                public partial C(int x) {}
+            }
+            """;
+
+        var compilation = testContext.CreateCompilationModel( code );
+        var type = compilation.Types.Single();
+        Assert.Single( type.Sources );
+        var partialConstructor = type.Constructors.Single( c => c.Parameters.Count == 1);
+        Assert.Equal( 2, partialConstructor.Sources.Length );
+        Assert.True( partialConstructor.HasImplementation );
+        Assert.Single( partialConstructor.Sources, s => s.IsImplementationPart );
     }
 #endif
 

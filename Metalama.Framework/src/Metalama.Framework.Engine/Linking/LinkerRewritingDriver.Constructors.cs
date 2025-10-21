@@ -120,7 +120,6 @@ internal sealed partial class LinkerRewritingDriver
 
         if ( this.InjectionRegistry.IsOverrideTarget( symbol ) )
         {
-#if ROSLYN_5_0_0_OR_GREATER
             if ( symbol is { IsPartialDefinition: true, PartialImplementationPart: { } } )
             {
                 // This is a partial property declaration that is not to be transformed.
@@ -133,7 +132,6 @@ internal sealed partial class LinkerRewritingDriver
                 // Keep it as is and add a new declaration that will contain the override.
                 members.Add( constructorDeclaration );
             }
-#endif
 
             var lastOverride = this.InjectionRegistry.GetLastOverride( symbol );
 
@@ -368,12 +366,10 @@ internal sealed partial class LinkerRewritingDriver
                     ? default
                     : constructorDeclaration.SemicolonToken );
 
-#if ROSLYN_5_0_0_OR_GREATER
             if ( symbol is { IsPartialDefinition: true, PartialImplementationPart: null } )
             {
                 result = result.PartialUpdate( attributeLists: List<AttributeListSyntax>() );
             }
-#endif
 
             return result;
         }
