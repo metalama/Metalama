@@ -21,7 +21,7 @@ using System.Reflection;
 using MethodKind = Metalama.Framework.Code.MethodKind;
 using RefKind = Metalama.Framework.Code.RefKind;
 
-#if ROSLYN_5_0_0_OR_GREATER
+#if ROSLYN_4_12_0_OR_GREATER
 using System.Collections.Immutable;
 #endif
 

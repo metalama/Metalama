@@ -17,7 +17,6 @@ internal sealed class ImplicitLastOverrideReferenceInliner : Inliner
     public override bool CanInline( ResolvedAspectReference aspectReference, SemanticModel semanticModel ) => true;
 
     public override InliningAnalysisInfo GetInliningAnalysisInfo( ResolvedAspectReference aspectReference )
-    
     {
         SyntaxNode body =
             aspectReference.ContainingSemantic.Symbol.GetPrimaryDeclarationSyntax() switch
