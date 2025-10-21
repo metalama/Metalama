@@ -1726,7 +1726,7 @@ class C {}
         Assert.False( nonPartial.IsPartial );
         Assert.True( partial.IsPartial );
 
-        var partialDefinition = (IMethodSymbol) compilation.Types.OfName( "Partial" ).Single().GetSymbol().AssertSymbolNotNull().Constructors.Single();
+        var partialDefinition = compilation.Types.OfName( "Partial" ).Single().GetSymbol().AssertSymbolNotNull().Constructors.Single();
         var partialImplementation = partialDefinition.PartialImplementationPart.AssertNotNull();
 
         Assert.NotSame( partialDefinition, partialImplementation );
