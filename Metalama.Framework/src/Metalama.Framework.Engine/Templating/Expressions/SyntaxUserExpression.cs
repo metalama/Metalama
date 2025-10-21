@@ -11,7 +11,7 @@ namespace Metalama.Framework.Engine.Templating.Expressions
     /// <summary>
     /// An implementation of <see cref="UserExpression"/> where the syntax is known upfront.
     /// </summary>
-    internal class SyntaxUserExpression : UserExpression
+    internal class SyntaxUserExpression : UserExpression, IContextlessExpression
     {
         public SyntaxUserExpression(
             ExpressionSyntax expression,
@@ -32,6 +32,8 @@ namespace Metalama.Framework.Engine.Templating.Expressions
         public override IType Type { get; }
 
         protected override bool? IsAssignable { get; }
+
+        ExpressionSyntax IContextlessExpression.ToSyntax() => this.Expression;
 
         private protected override bool? IsReferenceable { get; }
 

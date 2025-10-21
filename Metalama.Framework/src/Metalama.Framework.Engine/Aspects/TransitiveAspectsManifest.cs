@@ -9,6 +9,7 @@ using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.CompileTime.Serialization;
 using Metalama.Framework.Engine.HierarchicalOptions;
 using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Engine.Utilities.UserCode;
 using Metalama.Framework.Options;
 using Metalama.Framework.Serialization;
 using System;
@@ -69,11 +70,15 @@ public sealed class TransitiveAspectsManifest : ITransitiveAspectsManifest
 
     private void Serialize( Stream stream, in ProjectServiceProvider serviceProvider, CompilationContext compilationContext )
     {
-        using var deflate = new DeflateStream( stream, CompressionLevel.Optimal, true );
-        var formatter = CompileTimeSerializer.CreateInstance( serviceProvider, compilationContext );
-        formatter.Serialize( this, deflate );
-        deflate.Flush();
-        stream.Flush();
+        using ( UserCodeExecutionContext.WithContext(
+                   UserCodeExecutionContext.CreateInstance( serviceProvider, UserCodeDescription.Create( "Serializing" ), compilationContext ) ) )
+        {
+            using var deflate = new DeflateStream( stream, CompressionLevel.Optimal, true );
+            var formatter = CompileTimeSerializer.CreateInstance( serviceProvider, compilationContext );
+            formatter.Serialize( this, deflate );
+            deflate.Flush();
+            stream.Flush();
+        }
     }
 
     public byte[] ToBytes( in ProjectServiceProvider serviceProvider, CompilationContext compilationContext )

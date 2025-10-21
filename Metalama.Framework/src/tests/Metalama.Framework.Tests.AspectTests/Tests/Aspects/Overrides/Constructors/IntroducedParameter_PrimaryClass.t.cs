@@ -2,7 +2,7 @@
 public class TargetClass
 {
   public int Z;
-  public TargetClass(int x, global::System.Int32 introduced = 42)
+  public TargetClass(int x, [global::Metalama.Framework.RunTime.AspectGeneratedAttribute] global::System.Int32 introduced = 42)
   {
     this.Z = x;
     global::System.Console.WriteLine("This is the override 2.");

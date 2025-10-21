@@ -12,6 +12,7 @@ using Metalama.Framework.Engine.Pipeline.DesignTime;
 using Metalama.Framework.Engine.ReflectionMocks;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.SyntaxGeneration;
+using Metalama.Framework.Engine.SyntaxSerialization;
 using Metalama.Framework.Engine.Templating.Expressions;
 using Metalama.Framework.Engine.Templating.MetaModel;
 using Metalama.Framework.Fabrics;
@@ -38,7 +39,7 @@ public class UserCodeExecutionContext : IExecutionContextInternal
     private readonly INamedType? _targetType;
     private readonly ImmutableArray<SyntaxTree>? _sourceTrees;
     private readonly ISyntaxBuilderImpl? _syntaxBuilder;
-    private readonly CompilationContext? _compilationContext;
+
     private bool _collectDependencyDisabled;
 
     internal static UserCodeExecutionContext Current => (UserCodeExecutionContext) MetalamaExecutionContext.Current ?? throw new InvalidOperationException();
@@ -47,18 +48,18 @@ public class UserCodeExecutionContext : IExecutionContextInternal
 
     internal static Type ResolveCompileTimeTypeOf( string typeId, IReadOnlyDictionary<string, IType>? substitutions = null )
     {
-        if ( Current._compilationContext == null )
+        if ( Current.CompilationContext == null )
         {
             throw new InvalidOperationException( "Cannot use typeof for run-time types in the current execution context." );
         }
 
-        return Current._compilationContext.CompileTimeTypeFactory
+        return Current.CompilationContext.CompileTimeTypeFactory
             .Get( new SerializableTypeId( typeId ), substitutions );
     }
 
     internal static Type ResolveCompileTimeTypeOf( string typeId, string? ns, string name, string fullName, string toString )
     {
-        return Current._compilationContext.AssertNotNull()
+        return Current.CompilationContext.AssertNotNull()
             .CompileTimeTypeFactory
             .Get( new SerializableTypeId( typeId ), new CompileTimeTypeMetadata( ns, name, fullName, toString ) );
     }
@@ -167,19 +168,20 @@ public class UserCodeExecutionContext : IExecutionContextInternal
         ImmutableArray<SyntaxTree> sourceTrees = default,
         bool throwOnUnsupportedDependencies = false )
     {
+        var current = CurrentOrNull;
         this.Description = description;
         this.ServiceProvider = serviceProvider;
         this.AspectLayerId = aspectAspectLayerId;
-        this.Compilation = compilationModel;
-        this._compilationContext = compilationContext;
-        this.TargetDeclaration = targetDeclaration;
+        this.Compilation = compilationModel ?? current?.Compilation;
+        this.CompilationContext = compilationContext ?? current?.CompilationContext;
+        this.TargetDeclaration = targetDeclaration ?? current?.TargetDeclaration;
         this._dependencyCollector = serviceProvider.GetService<IDependencyCollector>();
         this._targetType = targetDeclaration?.GetTopmostNamedType();
-        this._syntaxBuilder = GetSyntaxBuilder( compilationModel, syntaxBuilder, serviceProvider, targetDeclaration );
         this.MetaApi = metaApi;
-        this._diagnosticAdder = diagnostics;
+        this._diagnosticAdder = diagnostics ?? current?._diagnosticAdder;
         this._throwOnUnsupportedDependencies = throwOnUnsupportedDependencies;
         this._sourceTrees = sourceTrees;
+        this._syntaxBuilder = this.GetSyntaxBuilder( syntaxBuilder );
     }
 
     private protected UserCodeExecutionContext( UserCodeExecutionContext prototype )
@@ -187,7 +189,7 @@ public class UserCodeExecutionContext : IExecutionContextInternal
         this.ServiceProvider = prototype.ServiceProvider;
         this.AspectLayerId = prototype.AspectLayerId;
         this.Compilation = prototype.Compilation;
-        this._compilationContext = prototype._compilationContext;
+        this.CompilationContext = prototype.CompilationContext;
         this._diagnosticAdder = prototype._diagnosticAdder;
         this._throwOnUnsupportedDependencies = prototype._throwOnUnsupportedDependencies;
         this.Description = prototype.Description;
@@ -195,7 +197,7 @@ public class UserCodeExecutionContext : IExecutionContextInternal
         this._sourceTrees = prototype._sourceTrees;
         this._dependencyCollector = prototype._dependencyCollector;
         this._targetType = prototype._targetType;
-        this._compilationContext = prototype._compilationContext;
+        this.CompilationContext = prototype.CompilationContext;
         this._syntaxBuilder = prototype._syntaxBuilder;
         this.MetaApi = prototype.MetaApi;
     }
@@ -208,28 +210,24 @@ public class UserCodeExecutionContext : IExecutionContextInternal
     private UserCodeExecutionContext( UserCodeExecutionContext prototype, CompilationModel compilation, IDiagnosticAdder diagnostics ) : this( prototype )
     {
         this.Compilation = compilation;
-        this._compilationContext = compilation.CompilationContext;
+        this.CompilationContext = compilation.CompilationContext;
         this._diagnosticAdder = diagnostics;
-        this._syntaxBuilder = GetSyntaxBuilder( compilation, null, this.ServiceProvider, null );
+        this._syntaxBuilder = this.GetSyntaxBuilder();
     }
 
-    private static ISyntaxBuilderImpl? GetSyntaxBuilder(
-        CompilationModel? compilationModel,
-        ISyntaxBuilderImpl? syntaxBuilderImpl,
-        ProjectServiceProvider serviceProvider,
-        IDeclaration? targetDeclaration )
+    private ISyntaxBuilderImpl? GetSyntaxBuilder( ISyntaxBuilderImpl? syntaxBuilder = null )
     {
-        if ( syntaxBuilderImpl != null )
+        if ( syntaxBuilder != null )
         {
-            return syntaxBuilderImpl;
+            return syntaxBuilder;
         }
 
-        if ( compilationModel == null )
+        if ( this.Compilation == null )
         {
             return null;
         }
 
-        var syntaxGenerationOptions = serviceProvider.GetService<SyntaxGenerationOptions>();
+        var syntaxGenerationOptions = this.ServiceProvider.GetService<SyntaxGenerationOptions>();
 
         if ( syntaxGenerationOptions == null )
         {
@@ -237,9 +235,9 @@ public class UserCodeExecutionContext : IExecutionContextInternal
         }
 
         return new SyntaxBuilderImpl(
-            compilationModel,
+            this.Compilation,
             syntaxGenerationOptions,
-            targetDeclaration?.GetClosestNamedType() );
+            this.TargetDeclaration?.GetClosestNamedType() );
     }
 
     internal IDiagnosticAdder Diagnostics
@@ -259,11 +257,15 @@ public class UserCodeExecutionContext : IExecutionContextInternal
 
     internal AspectLayerId? AspectLayerId { get; }
 
+    public CompilationContext? CompilationContext { get; }
+
     internal CompilationModel? Compilation { get; }
 
     ISyntaxBuilderImpl? IExecutionContextInternal.SyntaxBuilder => this._syntaxBuilder;
 
     IMetaApi? IExecutionContextInternal.MetaApi => this.MetaApi;
+
+    IExpressionHelper IExecutionContextInternal.ExpressionHelper => field ??= new ExpressionHelper( SyntaxGenerationContext.Contextless );
 
     private protected MetaApi? MetaApi { get; }
 

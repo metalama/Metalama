@@ -2,7 +2,7 @@
 [Serialize]
 internal class C
 {
-  private C(global::System.Int32 x = 42)
+  private C([global::Metalama.Framework.RunTime.AspectGeneratedAttribute] global::System.Int32 x = 42)
   {
   }
   private C(string id) : this()

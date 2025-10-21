@@ -50,5 +50,12 @@ namespace Metalama.Framework.Project
         ISyntaxBuilderImpl? SyntaxBuilder { get; }
 
         IMetaApi? MetaApi { get; }
+
+        IExpressionHelper ExpressionHelper { get; }
+    }
+
+    internal interface IExpressionHelper
+    {
+        string ConvertExpressionToText( IExpression expression );
     }
 }

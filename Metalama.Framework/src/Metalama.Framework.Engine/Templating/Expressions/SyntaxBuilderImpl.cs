@@ -246,9 +246,6 @@ internal class SyntaxBuilderImpl : ISyntaxBuilderImpl
         }
     }
 
-    public string ToText( IExpression expression )
-        => expression.ToUserExpression().ToTypedExpressionSyntax( this.CreateSyntaxSerializationContext() ).Syntax.NormalizeWhitespace().ToString();
-
     public bool TryConvertExpressionToTypedConstant( IExpression expression, [NotNullWhen( true )] out TypedConstant? typedConstant )
     {
         if ( expression is TypedConstant expressionAsTypedConstant )
@@ -265,7 +262,9 @@ internal class SyntaxBuilderImpl : ISyntaxBuilderImpl
         }
         else
         {
-            return this.TryConvertExpressionToTypedConstant( this.ToText( expression ), out typedConstant );
+            typedConstant = null;
+
+            return false;
         }
     }
 

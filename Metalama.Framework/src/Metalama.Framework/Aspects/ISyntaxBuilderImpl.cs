@@ -66,8 +66,6 @@ internal interface ISyntaxBuilderImpl
 
     IExpression DefaultExpression( IType? type );
 
-    string ToText( IExpression expression );
-
     bool TryConvertExpressionToTypedConstant( IExpression expression, [NotNullWhen( true )] out TypedConstant? typedConstant );
 
     bool TryConvertExpressionToTypedConstant( string expression, [NotNullWhen( true )] out TypedConstant? typedConstant );
