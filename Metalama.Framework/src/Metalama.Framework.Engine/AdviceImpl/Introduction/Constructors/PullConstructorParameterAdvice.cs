@@ -22,6 +22,8 @@ internal sealed class PullConstructorParameterAdvice : Advice<EmptyAdviceResult>
         this._parameter = parameter;
     }
 
+    protected override bool AcceptsExternalTargets => true;
+
     public override AdviceKind AdviceKind => AdviceKind.PullConstructorParameter;
 
     protected override EmptyAdviceResult Implement( AdviceImplementationContext context )

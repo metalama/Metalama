@@ -1,1 +1,6 @@
-// TODO: Replace this file with the correct transformed code. See the test output for the actual transformed code.
+public class D : C
+{
+  public D([global::Metalama.Framework.RunTime.AspectGeneratedAttribute] global::System.Int32 p = 20) : base(p)
+  {
+  }
+}

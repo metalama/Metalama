@@ -384,10 +384,10 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         }
     }
 
-    private Advice.AdviceConstructorParameters<TDeclaration> GetAdviceConstructorParameters<TDeclaration>( TDeclaration target )
+    private Advice.AdviceConstructorParameters<TDeclaration> GetAdviceConstructorParameters<TDeclaration>( TDeclaration target, bool requireTemplate = true )
         where TDeclaration : class, IDeclaration
     {
-        if ( this._templateClassInstance == null )
+        if ( requireTemplate && this._templateClassInstance == null )
         {
             throw new InvalidOperationException( "The template class instance cannot be null." );
         }
@@ -1656,7 +1656,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         using ( this.WithNonUserCode() )
         {
             var advice = new PullConstructorParameterAdvice(
-                this.GetAdviceConstructorParameters( (IConstructor) parameter.DeclaringMember.AssertNotNull() ),
+                this.GetAdviceConstructorParameters( (IConstructor) parameter.DeclaringMember.AssertNotNull(), false ),
                 pullStrategy,
                 parameter );
 

@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Compiler;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Eligibility;
@@ -48,6 +49,7 @@ internal sealed class SystemAspectClass : IBoundAspectClass
         this.Layer = new AspectLayer( this, null, shortName );
         this.Layers = [this.Layer];
         this.AspectDriver = new AspectDriver( serviceProvider, this, compilation );
+        this.GeneratedCodeAnnotation = MetalamaCompilerAnnotations.CreateGeneratedCodeAnnotation( shortName );
     }
 
     public IAspectDriver AspectDriver { get; }
@@ -56,7 +58,7 @@ internal sealed class SystemAspectClass : IBoundAspectClass
 
     ImmutableArray<TemplateClass> IAspectClassImpl.TemplateClasses => ImmutableArray<TemplateClass>.Empty;
 
-    SyntaxAnnotation IAspectClassImpl.GeneratedCodeAnnotation => throw new NotSupportedException();
+    public SyntaxAnnotation GeneratedCodeAnnotation { get; }
 
     public ImmutableArray<AspectLayer> Layers { get; }
 

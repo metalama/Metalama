@@ -1,10 +1,10 @@
 public class C
 {
   [MyAspect]
-  public C(global::System.Int32 p = 15)
+  public C([global::Metalama.Framework.RunTime.AspectGeneratedAttribute] global::System.Int32 p = 15)
   {
   }
-  public C(string s, global::System.Int32 p = 20) : this(p)
+  public C(string s, [global::Metalama.Framework.RunTime.AspectGeneratedAttribute] global::System.Int32 p = 20) : this(p)
   {
   }
 }
