@@ -32,8 +32,10 @@ internal abstract class BaseRef<T> : IRefImpl, IRef<T>
 
     public virtual RefTargetKind TargetKind => RefTargetKind.Default;
 
+    [Obsolete( "This method is not well-defined for introduced parameters or their parent constructors." )]
     public abstract SerializableDeclarationId ToSerializableId();
     
+    [Obsolete( "This method is not well-defined for introduced parameters or their parent constructors." )]
     public virtual SerializableDeclarationId ToSerializableId( CompilationContext compilationContext ) => this.ToSerializableId();
 
     protected abstract IDurableRef<T> ToDurable();

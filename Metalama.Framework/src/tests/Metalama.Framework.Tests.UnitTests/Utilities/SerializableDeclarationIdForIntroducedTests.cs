@@ -2,8 +2,13 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Code;
+using Metalama.Framework.Engine.AdviceImpl.Introduction;
+using Metalama.Framework.Engine.AdviceImpl.Introduction.Constructors;
 using Metalama.Framework.Engine.CodeModel.Helpers;
+using Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 using Metalama.Testing.UnitTesting;
+using System.Linq;
 using Xunit;
 using Xunit.Abstractions;
 using static Metalama.Framework.Tests.UnitTests.Utilities.SerializableDeclarationIdTests;
@@ -48,5 +53,28 @@ public sealed class SerializableDeclarationIdForIntroducedTests : UnitTestClass
         }
 
         Roundtrip( compilation, compilation, this.TestOutput );
+    }
+
+    [Fact]
+    public void AppendConstructorParameter()
+    {
+        const string code = """
+                               class C
+                               {
+                                  public C() {}
+                               }
+                            """;
+
+        using var testContext = this.CreateTestContext();
+        var compilation = testContext.CreateCompilationModel( code );
+        var constructor = compilation.Types.Single().Constructors.Single();
+
+        var parameterBuilder = new ParameterBuilder( constructor, 0, "t", compilation.Factory.GetTypeByReflectionType( typeof(int) ), RefKind.None, null! );
+        parameterBuilder.Freeze();
+
+        var modifiedCompilation = compilation.WithTransformations( [new IntroduceParameterTransformation( null!, parameterBuilder.BuilderData )] );
+        var modifiedConstructor = modifiedCompilation.Types.Single().Constructors.Single();
+        var introducedParameter = modifiedConstructor.Parameters.Single();
+        Roundtrip( introducedParameter, modifiedCompilation, this.TestOutput );
     }
 }
