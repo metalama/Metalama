@@ -140,6 +140,7 @@ namespace Metalama.Framework.Engine.CodeModel.Source
 
         private ImmutableArray<SourceReference> GetSourcesImpl()
         {
+#if ROSLYN_5_0_0_OR_GREATER
             if ( this._symbol.PartialImplementationPart != null )
             {
                 var sources = ImmutableArray.CreateBuilder<SourceReference>( 2 );
@@ -152,8 +153,11 @@ namespace Metalama.Framework.Engine.CodeModel.Source
             }
             else
             {
+#endif
                 return base.Sources;
+#if ROSLYN_5_0_0_OR_GREATER
             }
+#endif
         }
 #endif
 

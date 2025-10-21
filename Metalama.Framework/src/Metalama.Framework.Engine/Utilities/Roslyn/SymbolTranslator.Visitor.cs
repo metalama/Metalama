@@ -118,7 +118,7 @@ internal sealed partial class SymbolTranslator
 
         public override ISymbol? VisitEvent( IEventSymbol symbol )
         {
-#if ROSLYN_4_12_0_OR_GREATER
+#if ROSLYN_5_0_0_OR_GREATER
             if ( symbol.PartialImplementationPart != null )
             {
                 var partialImplementation = this.Translate( symbol.PartialImplementationPart );
@@ -129,7 +129,7 @@ internal sealed partial class SymbolTranslator
 
             var translated = this.TranslateNonUniquelyNamedTypeMember( symbol );
 
-#if ROSLYN_4_12_0_OR_GREATER
+#if ROSLYN_5_0_0_OR_GREATER
             if ( translated == null )
             {
                 return null;
