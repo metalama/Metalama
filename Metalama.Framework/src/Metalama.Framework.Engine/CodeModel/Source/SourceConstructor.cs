@@ -36,7 +36,7 @@ namespace Metalama.Framework.Engine.CodeModel.Source
 
             if ( symbol.MethodKind != RoslynMethodKind.Constructor && symbol.MethodKind != RoslynMethodKind.StaticConstructor )
             {
-                throw new ArgumentOutOfRangeException( nameof(symbol), "The Constructor class must be used only with constructors." );
+                throw new ArgumentOutOfRangeException( nameof( symbol ), "The Constructor class must be used only with constructors." );
             }
         }
 
@@ -48,10 +48,9 @@ namespace Metalama.Framework.Engine.CodeModel.Source
             if ( this.MethodSymbol.PartialImplementationPart != null )
             {
                 return
-                [
-                    new SourceReference( this.MethodSymbol.DeclaringSyntaxReferences[0].GetSyntax(), SourceReferenceImpl.Instance ), 
-                    new SourceReference( this.MethodSymbol.PartialImplementationPart.DeclaringSyntaxReferences[0].GetSyntax(), SourceReferenceImpl.Instance ),
-                ];
+                    ImmutableArray.Create(
+                        new SourceReference( this.MethodSymbol.DeclaringSyntaxReferences[0].GetSyntax(), SourceReferenceImpl.Instance ),
+                        new SourceReference( this.MethodSymbol.PartialImplementationPart.DeclaringSyntaxReferences[0].GetSyntax(), SourceReferenceImpl.Instance ) );
             }
             else
             {
