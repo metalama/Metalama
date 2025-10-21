@@ -12,6 +12,7 @@ using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.Diagnostics;
+using Metalama.Framework.Engine.Utilities.Roslyn;
 using System;
 
 namespace Metalama.Framework.Engine.AdviceImpl.Introduction;
@@ -54,12 +55,14 @@ internal sealed class IntroduceOperatorAdvice : IntroduceMemberAdvice<IMethod, I
 
     protected override MethodBuilder CreateBuilder()
     {
+        var operatorData = OperatorData.GetByKind( this._operatorKind );
+
         var builder = new MethodBuilder(
             this.AspectLayerInstance,
             this.TargetDeclaration,
-            this._operatorKind.ToOperatorMethodName(),
+            operatorData.MemberName,
             DeclarationKind.Operator,
-            this._operatorKind ) { IsStatic = true };
+            this._operatorKind ) { IsStatic = operatorData.IsStatic };
 
         var runtimeParameters = this.Template.AssertNotNull().TemplateClassMember.RunTimeParameters;
 
@@ -69,7 +72,7 @@ internal sealed class IntroduceOperatorAdvice : IntroduceMemberAdvice<IMethod, I
 
         if ( this._rightOperandType != null )
         {
-            var secondParameterName = !runtimeParameters.IsEmpty ? runtimeParameters[1].Name : "a";
+            var secondParameterName = !runtimeParameters.IsEmpty ? runtimeParameters[1].Name : "b";
             builder.AddParameter( secondParameterName, this._rightOperandType );
         }
 

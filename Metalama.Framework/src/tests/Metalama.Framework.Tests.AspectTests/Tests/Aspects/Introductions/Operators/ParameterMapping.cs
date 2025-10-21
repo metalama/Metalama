@@ -36,10 +36,10 @@ namespace Metalama.Framework.IntegrationTests.Aspects.Introductions.Operators.Pa
                 buildOperator: b => { b.Parameters[0].Name = "y"; } );
 
             builder.IntroduceConversionOperator(
-                nameof(ParameterName),
+                nameof(this.ParameterName),
                 builder.Target,
                 TypeFactory.GetType( typeof(int) ),
-                true,
+                isImplicit: true,
                 buildOperator: b => { b.Parameters[0].Name = "y"; } );
         }
 

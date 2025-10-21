@@ -29,7 +29,6 @@ using Accessibility = Metalama.Framework.Code.Accessibility;
 using DeclarationKind = Metalama.Framework.Code.DeclarationKind;
 using EnumerableExtensions = Metalama.Framework.Engine.Collections.EnumerableExtensions;
 using MethodKind = Microsoft.CodeAnalysis.MethodKind;
-using OperatorKind = Metalama.Framework.Code.OperatorKind;
 using RefKind = Metalama.Framework.Code.RefKind;
 using SyntaxReference = Microsoft.CodeAnalysis.SyntaxReference;
 

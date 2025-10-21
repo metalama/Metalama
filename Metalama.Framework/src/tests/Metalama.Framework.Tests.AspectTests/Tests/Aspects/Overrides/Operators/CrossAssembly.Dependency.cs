@@ -30,7 +30,7 @@ namespace Metalama.Framework.IntegrationTests.Aspects.Overrides.Operators.CrossA
                 OperatorKind.Addition );
 
             builder.IntroduceConversionOperator(
-                nameof(ConversionOperatorTemplate),
+                nameof(this.ConversionOperatorTemplate),
                 builder.Target,
                 TypeFactory.GetType( typeof(int) ) );
         }
