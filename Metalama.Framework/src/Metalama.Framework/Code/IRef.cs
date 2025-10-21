@@ -27,7 +27,6 @@ namespace Metalama.Framework.Code
         /// a different process or with a different version of Metalama than the one that created the id.
         /// </summary>
         /// <returns>A string, or <c>null</c> if the current reference cannot be serialized to a public id.</returns>
-        [Obsolete( "This method is not well-defined for introduced parameters or their parent constructors." )]
         SerializableDeclarationId ToSerializableId();
 
         /// <summary>
