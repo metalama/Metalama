@@ -122,13 +122,13 @@ internal sealed partial class LinkerRewritingDriver
         {
             if ( symbol is { IsPartialDefinition: true, PartialImplementationPart: { } } )
             {
-                // This is a partial property declaration that is not to be transformed.
+                // This is a partial constructor declaration that is not to be transformed.
                 return [constructorDeclaration];
             }
 
             if ( symbol is { IsPartialDefinition: true, PartialImplementationPart: null } )
             {
-                // This is a partial property declaration that did not have any body.
+                // This is a partial constructor declaration that did not have any body.
                 // Keep it as is and add a new declaration that will contain the override.
                 members.Add( constructorDeclaration );
             }

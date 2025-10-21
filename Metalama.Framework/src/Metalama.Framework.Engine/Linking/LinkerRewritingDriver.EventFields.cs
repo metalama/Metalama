@@ -26,7 +26,7 @@ namespace Metalama.Framework.Engine.Linking
 #if ROSLYN_5_0_0_OR_GREATER
                 if ( symbol is { IsPartialDefinition: true, PartialImplementationPart: { } } )
                 {
-                    // This is a partial property declaration that is not to be transformed.
+                    // This is a partial event declaration that is not to be transformed.
                     return [eventFieldDeclaration];
                 }
 #endif
@@ -36,7 +36,7 @@ namespace Metalama.Framework.Engine.Linking
 #if ROSLYN_5_0_0_OR_GREATER
                 if ( symbol is { IsPartialDefinition: true, PartialImplementationPart: null } )
                 {
-                    // This is a partial property declaration that did not have any body.
+                    // This is a partial event declaration that did not have any body.
                     // Keep it as is and add a new declaration that will contain the override.
                     members.Add( eventFieldDeclaration );
                 }
