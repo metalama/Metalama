@@ -5,12 +5,14 @@
 using Metalama.Framework.Engine.CodeModel.GenericContexts;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
+using System;
+using System.Collections.Generic;
 
 namespace Metalama.Framework.Engine.CodeModel.References;
 
 internal static class SymbolNormalizer
 {
-    private static (ISymbol Symbol, GenericContext Context) GetCanonicalSymbol(
+    private static CanonicalSymbolInfo GetCanonicalSymbolInfo(
         IMethodSymbol methodSymbol,
         GenericContext genericContext,
         RefFactory refFactory )
@@ -22,45 +24,68 @@ internal static class SymbolNormalizer
 
         if ( GenericContextHelper.IsCanonicalGenericMethodInstance( methodSymbol ) )
         {
-            return (methodSymbol.OriginalDefinition, genericContext);
+            return new CanonicalSymbolInfo( methodSymbol.OriginalDefinition, genericContext );
         }
         else if ( genericContext.IsEmptyOrIdentity )
         {
-            return (methodSymbol, genericContext);
+            return new CanonicalSymbolInfo( methodSymbol, genericContext );
         }
         else
         {
-            return (methodSymbol.OriginalDefinition, SymbolGenericContext.Get( methodSymbol, refFactory.CompilationContext ).Map( genericContext, refFactory ));
+            return new CanonicalSymbolInfo(
+                methodSymbol.OriginalDefinition,
+                SymbolGenericContext.Get( methodSymbol, refFactory.CompilationContext ).Map( genericContext, refFactory ) );
         }
     }
 
-    private static (ISymbol Symbol, GenericContext Context) GetCanonicalSymbol(
+    private static CanonicalSymbolInfo GetCanonicalSymbolInfo(
         INamedTypeSymbol namedTypeSymbol,
         GenericContext genericContext,
         RefFactory refFactory )
     {
         if ( namedTypeSymbol.IsExtensionSafe() )
         {
-            return (namedTypeSymbol, GenericContext.Empty);
-        }
-        else if ( GenericContextHelper.IsCanonicalGenericTypeInstance( namedTypeSymbol ) )
-        {
-            var definition = namedTypeSymbol.OriginalDefinition.WithNullableAnnotation( namedTypeSymbol.NullableAnnotation );
-
-            return (definition, genericContext);
-        }
-        else if ( genericContext.IsEmptyOrIdentity )
-        {
-            return (namedTypeSymbol, genericContext);
+            return new CanonicalSymbolInfo( namedTypeSymbol, GenericContext.Empty );
         }
         else
         {
-            return (namedTypeSymbol.OriginalDefinition,
-                    SymbolGenericContext.Get( namedTypeSymbol, refFactory.CompilationContext ).Map( genericContext, refFactory ));
+            var tupleElementNames = 0;
+
+            if ( namedTypeSymbol.IsTupleType )
+            {
+                HashCode hasher = default;
+
+                foreach ( var tupleElement in namedTypeSymbol.TupleElements )
+                {
+                    hasher.Add( tupleElement.Name );
+        }
+
+                tupleElementNames = hasher.ToHashCode();
+            }
+
+            if ( GenericContextHelper.IsCanonicalGenericTypeInstance( namedTypeSymbol ) )
+            {
+                var definition = namedTypeSymbol.IsTupleType
+                    ? namedTypeSymbol
+                    : namedTypeSymbol.OriginalDefinition.WithNullableAnnotation( namedTypeSymbol.NullableAnnotation );
+
+                return new CanonicalSymbolInfo( definition, genericContext, tupleElementNames );
+            }
+        else if ( genericContext.IsEmptyOrIdentity )
+        {
+                return new CanonicalSymbolInfo( namedTypeSymbol, genericContext, tupleElementNames );
+        }
+        else
+        {
+                return new CanonicalSymbolInfo(
+                    namedTypeSymbol.OriginalDefinition,
+                    SymbolGenericContext.Get( namedTypeSymbol, refFactory.CompilationContext ).Map( genericContext, refFactory ),
+                    tupleElementNames );
         }
     }
+    }
 
-    private static (ISymbol Symbol, GenericContext Context) GetCanonicalSymbol(
+    private static CanonicalSymbolInfo GetCanonicalSymbolInfo(
         IPropertySymbol propertySymbol,
         GenericContext genericContext )
     {
@@ -71,10 +96,10 @@ internal static class SymbolNormalizer
         }
 #endif
 
-        return (propertySymbol, genericContext);
+        return new CanonicalSymbolInfo( propertySymbol, genericContext );
     }
 
-    private static (ISymbol Symbol, GenericContext Context) GetCanonicalSymbol(
+    private static CanonicalSymbolInfo GetCanonicalSymbolInfo(
         IEventSymbol eventSymbol,
         GenericContext genericContext )
     {
@@ -85,16 +110,43 @@ internal static class SymbolNormalizer
         }
 #endif
 
-        return (eventSymbol, genericContext);
+        return new CanonicalSymbolInfo(eventSymbol, genericContext);
     }
 
-    public static (ISymbol Symbol, GenericContext Context) GetCanonicalSymbol( ISymbol symbol, GenericContext genericContext, RefFactory refFactory )
+    public static CanonicalSymbolInfo GetCanonicalSymbolInfo( ISymbol symbol, GenericContext genericContext, RefFactory refFactory )
         => symbol.Kind switch
         {
-            SymbolKind.Method => GetCanonicalSymbol( (IMethodSymbol) symbol, genericContext, refFactory ),
-            SymbolKind.Property => GetCanonicalSymbol( (IPropertySymbol) symbol, genericContext ),
-            SymbolKind.Event => GetCanonicalSymbol( (IEventSymbol) symbol, genericContext ),
-            SymbolKind.NamedType => GetCanonicalSymbol( (INamedTypeSymbol) symbol, genericContext, refFactory ),
-            _ => (symbol, genericContext)
+            SymbolKind.Method => GetCanonicalSymbolInfo( (IMethodSymbol) symbol, genericContext, refFactory ),
+            SymbolKind.Property => GetCanonicalSymbolInfo( (IPropertySymbol) symbol, genericContext ),
+            SymbolKind.Event => GetCanonicalSymbolInfo( (IEventSymbol) symbol, genericContext ),
+            SymbolKind.NamedType => GetCanonicalSymbolInfo( (INamedTypeSymbol) symbol, genericContext, refFactory ),
+            _ => new CanonicalSymbolInfo( symbol, genericContext )
         };
+
+    public record struct CanonicalSymbolInfo( ISymbol Symbol, GenericContext Context, int AdditionalSymbolHash = 0 )
+    {
+        public CanonicalSymbolKey ToKey() => new( this.Symbol, this.AdditionalSymbolHash );
+    }
+
+    public record struct CanonicalSymbolKey( ISymbol Symbol, int AdditionalSymbolHash );
+
+    public class CanonicalSymbolKeyComparer : IEqualityComparer<CanonicalSymbolKey>
+    {
+        private readonly IEqualityComparer<ISymbol> _underlyingSymbolComparer;
+
+        public CanonicalSymbolKeyComparer( IEqualityComparer<ISymbol> underlyingSymbolComparer )
+        {
+            this._underlyingSymbolComparer = underlyingSymbolComparer;
+        }
+
+        public bool Equals( CanonicalSymbolKey x, CanonicalSymbolKey y )
+        {
+            return x.AdditionalSymbolHash == y.AdditionalSymbolHash && this._underlyingSymbolComparer.Equals( x.Symbol, y.Symbol );
+        }
+
+        public int GetHashCode( CanonicalSymbolKey obj )
+        {
+            return HashCode.Combine( this._underlyingSymbolComparer.GetHashCode( obj.Symbol ), obj.AdditionalSymbolHash );
+        }
+    }
 }

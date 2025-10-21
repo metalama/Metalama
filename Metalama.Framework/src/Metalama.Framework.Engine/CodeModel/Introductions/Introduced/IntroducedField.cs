@@ -62,6 +62,8 @@ internal sealed class IntroducedField : IntroducedMember, IFieldImpl
     [Memo]
     public IProperty? OverridingProperty => FieldHelper.GetOverridingProperty( this );
 
+    FieldKind IField.FieldKind => FieldKind.Default;
+
     [Memo]
     private IFullRef<IField> Ref => this.RefFactory.FromIntroducedDeclaration<IField>( this );
 

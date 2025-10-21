@@ -159,6 +159,11 @@ namespace Metalama.Framework.Code
         /// </summary>
         Type,
 
+        /// <summary>
+        /// <see cref="System.ValueTuple"/> (empty value tuple).
+        /// </summary>
+        ValueTuple,
+
         // Must be last.
 
         /// <summary>

@@ -3,12 +3,15 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Aspects;
+using Metalama.Framework.Diagnostics;
+using Metalama.Framework.RunTime.Events;
 
-namespace Metalama.Framework.Diagnostics
+namespace Metalama.Framework
 {
     /// <summary>
-    /// A type to be used as generic argument of <see cref="DiagnosticDefinition{T}"/> when there is no parameter in the message.
+    /// A type to be used as generic argument of <see cref="DiagnosticDefinition{T}"/> or <see cref="EventBroker{TDelegate,TArgs,TState}"/>
+    /// to mean there is no value.
     /// </summary>
-    [CompileTime]
+    [RunTimeOrCompileTime]
     public readonly struct None;
 }

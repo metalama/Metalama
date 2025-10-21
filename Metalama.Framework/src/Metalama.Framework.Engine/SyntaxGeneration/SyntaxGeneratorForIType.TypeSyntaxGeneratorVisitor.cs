@@ -6,6 +6,7 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Code.Types;
 using Metalama.Framework.Engine.CodeModel.GenericContexts;
 using Metalama.Framework.Engine.CodeModel.Helpers;
+using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
@@ -72,10 +73,10 @@ internal sealed partial class SyntaxGeneratorForIType
                 arrayTypeSyntax = SyntaxFactory.NullableType( arrayTypeSyntax );
             }
 
-            return this.AddInformationTo( arrayTypeSyntax, type );
+            return this.AddTriviaAndAnnotations( arrayTypeSyntax, type );
         }
 
-        protected override TypeSyntax VisitDynamicType( IDynamicType type ) => this.AddInformationTo( SyntaxFactory.IdentifierName( "dynamic" ), type );
+        protected override TypeSyntax VisitDynamicType( IDynamicType type ) => this.AddTriviaAndAnnotations( SyntaxFactory.IdentifierName( "dynamic" ), type );
 
         protected override TypeSyntax VisitFunctionPointerType( IFunctionPointerType functionPointerType ) => throw new NotImplementedException();
 
@@ -135,7 +136,7 @@ internal sealed partial class SyntaxGeneratorForIType
 
                 if ( innerType.TypeKind != TypeKind.Pointer )
                 {
-                    return this.AddInformationTo( SyntaxFactory.NullableType( this.SyntaxGenerator.TypeSyntax( innerType ) ), type );
+                    return this.AddTriviaAndAnnotations( SyntaxFactory.NullableType( this.SyntaxGenerator.TypeSyntax( innerType ) ), type );
                 }
             }
 
@@ -157,11 +158,11 @@ internal sealed partial class SyntaxGeneratorForIType
 
                 if ( containingTypeSyntax is NameSyntax name )
                 {
-                    typeSyntax = this.AddInformationTo( SyntaxFactory.QualifiedName( name, simpleNameSyntax ), type );
+                    typeSyntax = this.AddTriviaAndAnnotations( SyntaxFactory.QualifiedName( name, simpleNameSyntax ), type );
                 }
                 else
                 {
-                    typeSyntax = this.AddInformationTo( simpleNameSyntax, type );
+                    typeSyntax = this.AddTriviaAndAnnotations( simpleNameSyntax, type );
                 }
             }
             else
@@ -176,7 +177,7 @@ internal sealed partial class SyntaxGeneratorForIType
                 else
                 {
                     var container = this.VisitNamespace( type.ContainingNamespace );
-                    typeSyntax = this.AddInformationTo( SyntaxFactory.QualifiedName( (NameSyntax) container, simpleNameSyntax ), type );
+                    typeSyntax = this.AddTriviaAndAnnotations( SyntaxFactory.QualifiedName( (NameSyntax) container, simpleNameSyntax ), type );
                 }
             }
 
@@ -184,15 +185,50 @@ internal sealed partial class SyntaxGeneratorForIType
             {
                 // value type with nullable annotation may be composed from unconstrained nullable generic
                 // doesn't mean nullable value type in this case
-                typeSyntax = this.AddInformationTo( SyntaxFactory.NullableType( typeSyntax ), type );
+                typeSyntax = this.AddTriviaAndAnnotations( SyntaxFactory.NullableType( typeSyntax ), type );
             }
 
             return typeSyntax;
         }
 
+        protected override TypeSyntax VisitTupleType( ITupleType tupleType )
+        {
+            switch ( tupleType.TupleLength )
+            {
+                case 0 or 1:
+                    return this.VisitNamedType( tupleType );
+
+                default:
+                    {
+                        var elements = new List<TupleElementSyntax>( tupleType.TupleLength );
+
+                        foreach ( var modelElement in tupleType.TupleElements )
+                        {
+                            var type = this.Visit( modelElement.Type ).WithRequiredTrailingTrivia( SyntaxFactoryEx.ElasticSpaceTriviaList );
+
+                            TupleElementSyntax elementSyntax;
+
+                            if ( modelElement.HasFriendlyName )
+                            {
+                                elementSyntax = SyntaxFactory.TupleElement( type, SyntaxFactory.Identifier( modelElement.Name ) )
+                                    .WithSimplifierAnnotationIfNecessary( this.SyntaxGenerator._generationOptions );
+                            }
+                            else
+                            {
+                                elementSyntax = SyntaxFactory.TupleElement( type );
+                            }
+
+                            elements.Add( elementSyntax );
+                        }
+
+                        return this.AddTriviaAndAnnotations( SyntaxFactory.TupleType( SyntaxFactory.SeparatedList( elements ) ), tupleType );
+                    }
+            }
+        }
+
         private TypeSyntax VisitNamespace( INamespace ns )
         {
-            var syntax = this.AddInformationTo( ToIdentifierName( ns.Name ), ns );
+            var syntax = this.AddTriviaAndAnnotations( ToIdentifierName( ns.Name ), ns );
 
             if ( ns.ContainingNamespace == null )
             {
@@ -207,7 +243,7 @@ internal sealed partial class SyntaxGeneratorForIType
             {
                 var container = this.VisitNamespace( ns.ContainingNamespace );
 
-                return this.AddInformationTo( SyntaxFactory.QualifiedName( (NameSyntax) container, syntax ), ns );
+                return this.AddTriviaAndAnnotations( SyntaxFactory.QualifiedName( (NameSyntax) container, syntax ), ns );
             }
         }
 
@@ -217,7 +253,7 @@ internal sealed partial class SyntaxGeneratorForIType
         /// </summary>
         private TypeSyntax AddGlobalAlias( IType type, SimpleNameSyntax syntax )
         {
-            return this.AddInformationTo( SyntaxFactory.AliasQualifiedName( CreateGlobalIdentifier(), syntax ), type );
+            return this.AddTriviaAndAnnotations( SyntaxFactory.AliasQualifiedName( CreateGlobalIdentifier(), syntax ), type );
         }
 
         /// <summary>
@@ -226,12 +262,12 @@ internal sealed partial class SyntaxGeneratorForIType
         /// </summary>
         private TypeSyntax AddGlobalAlias( INamespace ns, SimpleNameSyntax syntax )
         {
-            return this.AddInformationTo( SyntaxFactory.AliasQualifiedName( CreateGlobalIdentifier(), syntax ), ns );
+            return this.AddTriviaAndAnnotations( SyntaxFactory.AliasQualifiedName( CreateGlobalIdentifier(), syntax ), ns );
         }
 
         protected override TypeSyntax VisitPointerType( IPointerType type )
         {
-            return this.AddInformationTo( SyntaxFactory.PointerType( this.SyntaxGenerator.TypeSyntax( type.PointedAtType ) ), type );
+            return this.AddTriviaAndAnnotations( SyntaxFactory.PointerType( this.SyntaxGenerator.TypeSyntax( type.PointedAtType ) ), type );
         }
 
         protected override TypeSyntax VisitTypeParameter( ITypeParameter type )
@@ -241,13 +277,13 @@ internal sealed partial class SyntaxGeneratorForIType
                 return this.Visit( ((GenericContext) type.GenericContext).Map( type ) );
             }
 
-            TypeSyntax typeSyntax = this.AddInformationTo( ToIdentifierName( type.Name ), type );
+            TypeSyntax typeSyntax = this.AddTriviaAndAnnotations( ToIdentifierName( type.Name ), type );
 
             if ( type.IsNullableReferenceType() )
             {
                 // value type with nullable annotation may be composed from unconstrained nullable generic
                 // doesn't mean nullable value type in this case
-                typeSyntax = this.AddInformationTo( SyntaxFactory.NullableType( typeSyntax ), type );
+                typeSyntax = this.AddTriviaAndAnnotations( SyntaxFactory.NullableType( typeSyntax ), type );
             }
 
             return typeSyntax;

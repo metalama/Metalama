@@ -140,11 +140,11 @@ namespace Metalama.Framework.Engine.Linking
                                 Token( TriviaList( ElasticMarker ), SyntaxKind.GetKeyword, TriviaList( ElasticMarker ) ),
                                 Block(
                                     Token(
-                                        context.ElasticEndOfLineTriviaList,
+                                        context.OptionalElasticEndOfLineTriviaList,
                                         SyntaxKind.OpenBraceToken,
-                                        context.ElasticEndOfLineTriviaList ),
+                                        context.OptionalElasticEndOfLineTriviaList ),
                                     SingletonList<StatementSyntax>( linkedBody ),
-                                    Token( context.ElasticEndOfLineTriviaList, SyntaxKind.CloseBraceToken, TriviaList( ElasticMarker ) ) ),
+                                    Token( context.OptionalElasticEndOfLineTriviaList, SyntaxKind.CloseBraceToken, TriviaList( ElasticMarker ) ) ),
                                 null,
                                 default ) );
                     }
@@ -152,8 +152,9 @@ namespace Metalama.Framework.Engine.Linking
 
                 if ( symbol.SetMethod != null )
                 {
-                    var setAccessorDeclaration = indexerDeclaration.AccessorList!.Accessors.Single(
-                        a => a.IsKind( SyntaxKind.SetAccessorDeclaration ) || a.IsKind( SyntaxKind.InitAccessorDeclaration ) );
+                    var setAccessorDeclaration =
+                        indexerDeclaration.AccessorList!.Accessors.Single( a => a.IsKind( SyntaxKind.SetAccessorDeclaration )
+                                                                                || a.IsKind( SyntaxKind.InitAccessorDeclaration ) );
 
                     transformedAccessors.Add( GetLinkedAccessor( semanticKind, setAccessorDeclaration, symbol.SetMethod ) );
                 }
@@ -183,7 +184,7 @@ namespace Metalama.Framework.Engine.Linking
                     indexerDeclaration.ThisKeyword switch
                     {
                         var thisKeyword when thisKeyword.TrailingTrivia.HasAnyNewLine() => accessorListLeadingTrivia,
-                        _ => context.ElasticEndOfLineTriviaList.AddRange( accessorListLeadingTrivia )
+                        _ => context.OptionalElasticEndOfLineTriviaList.AddRange( accessorListLeadingTrivia )
                     };
 
                 var result = indexerDeclaration.PartialUpdate(
@@ -235,7 +236,7 @@ namespace Metalama.Framework.Engine.Linking
                         { SemicolonToken: var semicolonToken } => (
                             semicolonToken.LeadingTrivia.AddOptionalLineFeed( context ),
                             semicolonToken.TrailingTrivia.AddOptionalLineFeed( context ),
-                            context.ElasticEndOfLineTriviaList, context.ElasticEndOfLineTriviaList),
+                            context.OptionalElasticEndOfLineTriviaList, context.OptionalElasticEndOfLineTriviaList),
                         _ => throw new AssertionFailedException( $"Unexpected accessor declaration: {accessorDeclaration}" )
                     };
 
@@ -309,16 +310,16 @@ namespace Metalama.Framework.Engine.Linking
                 existingAccessorList
                     .WithAccessors(
                         List(
-                            existingAccessorList.Accessors.SelectAsArray(
-                                a =>
-                                    TransformAccessor(
-                                        a,
-                                        a.Kind() switch
-                                        {
-                                            SyntaxKind.GetAccessorDeclaration => symbol.GetMethod.AssertNotNull(),
-                                            SyntaxKind.SetAccessorDeclaration or SyntaxKind.InitAccessorDeclaration => symbol.SetMethod.AssertNotNull(),
-                                            _ => throw new AssertionFailedException( $"Unexpected kind: {a}" )
-                                        } ) ) ) )
+                            existingAccessorList.Accessors.SelectAsArray( a =>
+                                                                              TransformAccessor(
+                                                                                  a,
+                                                                                  a.Kind() switch
+                                                                                  {
+                                                                                      SyntaxKind.GetAccessorDeclaration => symbol.GetMethod.AssertNotNull(),
+                                                                                      SyntaxKind.SetAccessorDeclaration or SyntaxKind.InitAccessorDeclaration =>
+                                                                                          symbol.SetMethod.AssertNotNull(),
+                                                                                      _ => throw new AssertionFailedException( $"Unexpected kind: {a}" )
+                                                                                  } ) ) ) )
                     .WithSourceCodeAnnotation();
 
             return this.GetSpecialImplIndexer(

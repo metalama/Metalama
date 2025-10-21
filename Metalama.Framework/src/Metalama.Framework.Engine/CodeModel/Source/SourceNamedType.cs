@@ -29,7 +29,7 @@ namespace Metalama.Framework.Engine.CodeModel.Source
     /// </summary>
     internal class SourceNamedType : SourceMemberOrNamedType, INamedTypeImpl
     {
-        private readonly INamedTypeSymbol _typeSymbol;
+        public INamedTypeSymbol NamedTypeSymbol { get; }
 
         public SourceNamedTypeImpl Implementation { get; }
 
@@ -50,7 +50,7 @@ namespace Metalama.Framework.Engine.CodeModel.Source
             compilation,
             genericContextForSymbolMapping )
         {
-            this._typeSymbol = typeSymbol;
+            this.NamedTypeSymbol = typeSymbol;
             this.Implementation = implementation;
             implementation.Facade = this;
         }
@@ -84,7 +84,7 @@ namespace Metalama.Framework.Engine.CodeModel.Source
             }
         }
 
-        public override ISymbol Symbol => this._typeSymbol;
+        public override ISymbol Symbol => this.NamedTypeSymbol;
 
         public override MemberInfo ToMemberInfo()
         {
@@ -160,9 +160,9 @@ namespace Metalama.Framework.Engine.CodeModel.Source
                 _ => false
             };
 
-        public IArrayType MakeArrayType( int rank = 1 ) => this.Compilation.Factory.MakeArrayType( this._typeSymbol, rank );
+        public IArrayType MakeArrayType( int rank = 1 ) => this.Compilation.Factory.MakeArrayType( this.NamedTypeSymbol, rank );
 
-        public IPointerType MakePointerType() => this.Compilation.Factory.MakePointerType( this._typeSymbol );
+        public IPointerType MakePointerType() => this.Compilation.Factory.MakePointerType( this.NamedTypeSymbol );
 
         public INamedType ToNullable() => (INamedType) this.Compilation.Factory.MakeNullableType( this, true );
 
@@ -527,9 +527,9 @@ namespace Metalama.Framework.Engine.CodeModel.Source
 
         [Memo]
         public INamedType Definition
-            => this._typeSymbol.Equals( this._typeSymbol.OriginalDefinition )
+            => this.NamedTypeSymbol.Equals( this.NamedTypeSymbol.OriginalDefinition )
                 ? this
-                : this.Compilation.Factory.GetNamedType( this._typeSymbol.OriginalDefinition );
+                : this.Compilation.Factory.GetNamedType( this.NamedTypeSymbol.OriginalDefinition );
 
         protected override IRef<IMemberOrNamedType> ToMemberOrNamedTypeRef() => this.UnderlyingType.ToRef();
 
@@ -582,7 +582,7 @@ namespace Metalama.Framework.Engine.CodeModel.Source
                 typeArgumentSymbols[index] = t.GetSymbol().AssertSymbolNotNull();
             }
 
-            var symbol = this._typeSymbol.ConstructedFrom.Construct( typeArgumentSymbols );
+            var symbol = this.NamedTypeSymbol.ConstructedFrom.Construct( typeArgumentSymbols );
 
             return (ITypeImpl) this.Compilation.Factory.GetIType( symbol );
         }

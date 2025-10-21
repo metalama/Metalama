@@ -183,11 +183,11 @@ namespace Metalama.Framework.Engine.Linking
                                 Token( TriviaList( ElasticMarker ), SyntaxKind.GetKeyword, TriviaList( ElasticMarker ) ),
                                 Block(
                                     Token(
-                                        generationContext.ElasticEndOfLineTriviaList,
+                                        generationContext.OptionalElasticEndOfLineTriviaList,
                                         SyntaxKind.OpenBraceToken,
-                                        generationContext.ElasticEndOfLineTriviaList ),
+                                        generationContext.OptionalElasticEndOfLineTriviaList ),
                                     SingletonList<StatementSyntax>( linkedBody ),
-                                    Token( generationContext.ElasticEndOfLineTriviaList, SyntaxKind.CloseBraceToken, TriviaList( ElasticMarker ) ) ),
+                                    Token( generationContext.OptionalElasticEndOfLineTriviaList, SyntaxKind.CloseBraceToken, TriviaList( ElasticMarker ) ) ),
                                 null,
                                 default ) );
                     }
@@ -226,7 +226,7 @@ namespace Metalama.Framework.Engine.Linking
                     propertyDeclaration.Identifier switch
                     {
                         var identifier when identifier.TrailingTrivia.HasAnyNewLine() => accessorListLeadingTrivia,
-                        _ => generationContext.ElasticEndOfLineTriviaList.AddRange( accessorListLeadingTrivia )
+                        _ => generationContext.OptionalElasticEndOfLineTriviaList.AddRange( accessorListLeadingTrivia )
                     };
 
                 var result = propertyDeclaration.PartialUpdate(
@@ -288,7 +288,7 @@ namespace Metalama.Framework.Engine.Linking
                         { SemicolonToken: var semicolonToken } => (
                             semicolonToken.LeadingTrivia.AddOptionalLineFeed( generationContext ),
                             semicolonToken.TrailingTrivia.AddOptionalLineFeed( generationContext ),
-                            generationContext.ElasticEndOfLineTriviaList, generationContext.ElasticEndOfLineTriviaList),
+                            generationContext.OptionalElasticEndOfLineTriviaList, generationContext.OptionalElasticEndOfLineTriviaList),
                         _ => throw new AssertionFailedException( $"Unexpected accessor declaration: {accessorDeclaration}" )
                     };
 
@@ -358,7 +358,7 @@ namespace Metalama.Framework.Engine.Linking
                                 initializer ) ) ) )
                 .WithOptionalTrivia(
                     context.TwoElasticEndOfLinesTriviaList,
-                    context.ElasticEndOfLineTriviaList,
+                    context.OptionalElasticEndOfLineTriviaList,
                     this.SyntaxGenerationOptions )
                 .WithGeneratedCodeAnnotation( FormattingAnnotations.SystemGeneratedCodeAnnotation );
         }
@@ -557,7 +557,7 @@ namespace Metalama.Framework.Engine.Linking
                         expressionBody,
                         initializer.WithSourceCodeAnnotation(),
                         semicolonToken: expressionBody != null || initializer != null
-                            ? Token( default, SyntaxKind.SemicolonToken, context.ElasticEndOfLineTriviaList )
+                            ? Token( default, SyntaxKind.SemicolonToken, context.OptionalElasticEndOfLineTriviaList )
                             : default )
                     .WithOptionalLeadingLineFeed( context )
                     .WithGeneratedCodeAnnotation( FormattingAnnotations.SystemGeneratedCodeAnnotation );

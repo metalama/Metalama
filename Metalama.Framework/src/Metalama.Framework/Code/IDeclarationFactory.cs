@@ -53,5 +53,30 @@ namespace Metalama.Framework.Code
             where T : class, ICompilationElement;
 
         IType GetTypeFromId( SerializableTypeId serializableTypeId, IReadOnlyDictionary<string, IType>? genericArguments );
+
+        /// <summary>
+        /// Creates a tuple type with the specified element types (given as <see cref="IType"/>) and default element names.
+        /// </summary>
+        ITupleType CreateTupleType( IEnumerable<IType> elementTypes );
+
+        /// <summary>
+        /// Creates a tuple type with the specified element types (given as reflection <see cref="Type"/>'s) and default element names.
+        /// </summary>
+        ITupleType CreateTupleType( IEnumerable<Type> elementTypes );
+
+        /// <summary>
+        /// Creates a tuple type with the specified element types (given as <see cref="IType"/>'s) and names.
+        /// </summary>
+        ITupleType CreateTupleType( IEnumerable<(IType Type, string Name)> elementTypes );
+
+        /// <summary>
+        /// Creates a tuple type with the specified element types (given as reflection <see cref="Type"/>'s) and names.
+        /// </summary>
+        ITupleType CreateTupleType( IEnumerable<(Type Type, string Name)> elementTypes );
+
+        /// <summary>
+        /// Creates a tuple type with the specified parameters as elements.
+        /// </summary>
+        ITupleType CreateTupleType( IEnumerable<IParameter> elementTypes );
     }
 }

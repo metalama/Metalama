@@ -10,9 +10,9 @@ namespace Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 
 internal partial class AccessorBuilder
 {
-    private sealed class PropertySetValueParameterBuilder : ParameterBuilderBase
+    private sealed class AccessorValueParameterBuilder : ParameterBuilderBase
     {
-        public PropertySetValueParameterBuilder( AccessorBuilder accessor, int index ) : base( accessor, index ) { }
+        public AccessorValueParameterBuilder( AccessorBuilder accessor, int index = 0 ) : base( accessor, index ) { }
 
         public override IType Type
         {
@@ -26,7 +26,7 @@ internal partial class AccessorBuilder
                 => this.Accessor._containingMember switch
                 {
                     PropertyBuilder propertyBuilder => propertyBuilder.RefKind,
-                    FieldBuilder => RefKind.None,
+                    FieldBuilder or EventBuilder => RefKind.None,
                     _ => throw new AssertionFailedException( $"Unexpected containing member: '{this.Accessor._containingMember}'." )
                 };
 

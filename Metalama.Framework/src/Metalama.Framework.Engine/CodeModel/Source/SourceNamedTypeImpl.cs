@@ -57,6 +57,7 @@ internal class SourceNamedTypeImpl : SourceMemberOrNamedType, INamedTypeImpl
     protected virtual void CheckSymbol()
     {
         Invariant.Assert( !this.NamedTypeSymbol.IsExtensionSafe() );
+        Invariant.Assert( !this.NamedTypeSymbol.IsTupleType );
     }
 
     internal SourceNamedType Facade
@@ -92,26 +93,20 @@ internal class SourceNamedTypeImpl : SourceMemberOrNamedType, INamedTypeImpl
         }
         else if ( this.IsGeneric )
         {
-            switch ( this.NamedTypeSymbol.Name )
+            return this.NamedTypeSymbol.Name switch
             {
-                case "IAsyncEnumerable" when this.IsCanonicalGenericInstance
-                                             && this.NamedTypeSymbol.ContainingNamespace.ToDisplayString() == "System.Collections.Generic":
-                    return SpecialType.IAsyncEnumerable_T;
-
-                case "IAsyncEnumerator" when this.IsCanonicalGenericInstance
-                                             && this.NamedTypeSymbol.ContainingNamespace.ToDisplayString() == "System.Collections.Generic":
-                    return SpecialType.IAsyncEnumerator_T;
-
-                case nameof(ValueTask)
-                    when this.IsCanonicalGenericInstance && this.NamedTypeSymbol.ContainingNamespace.ToDisplayString() == "System.Threading.Tasks":
-                    return SpecialType.ValueTask_T;
-
-                case nameof(Task)
-                    when this.IsCanonicalGenericInstance && this.NamedTypeSymbol.ContainingNamespace.ToDisplayString() == "System.Threading.Tasks":
-                    return SpecialType.Task_T;
-            }
-
-            return SpecialType.None;
+                "IAsyncEnumerable" when this.IsCanonicalGenericInstance
+                                        && this.NamedTypeSymbol.ContainingNamespace.ToDisplayString() == "System.Collections.Generic" => SpecialType
+                    .IAsyncEnumerable_T,
+                "IAsyncEnumerator" when this.IsCanonicalGenericInstance
+                                        && this.NamedTypeSymbol.ContainingNamespace.ToDisplayString() == "System.Collections.Generic" => SpecialType
+                    .IAsyncEnumerator_T,
+                nameof(ValueTask) when this.IsCanonicalGenericInstance && this.NamedTypeSymbol.ContainingNamespace.ToDisplayString() == "System.Threading.Tasks"
+                    => SpecialType.ValueTask_T,
+                nameof(Task) when this.IsCanonicalGenericInstance && this.NamedTypeSymbol.ContainingNamespace.ToDisplayString() == "System.Threading.Tasks" =>
+                    SpecialType.Task_T,
+                _ => SpecialType.None
+            };
         }
         else
         {
@@ -123,6 +118,7 @@ internal class SourceNamedTypeImpl : SourceMemberOrNamedType, INamedTypeImpl
                     => SpecialType.Task,
                 nameof(Type) when this.NamedTypeSymbol.ContainingNamespace.ToDisplayString() == "System"
                     => SpecialType.Type,
+                nameof(ValueTuple) when this.NamedTypeSymbol.ContainingNamespace.ToDisplayString() == "System" => SpecialType.ValueTuple,
                 _ => SpecialType.None
             };
         }
@@ -173,7 +169,7 @@ internal class SourceNamedTypeImpl : SourceMemberOrNamedType, INamedTypeImpl
 
     public bool IsGeneric => this.NamedTypeSymbol.IsGenericType;
 
-    public bool IsCanonicalGenericInstance => this.NamedTypeSymbol.IsDefinitionSafe() && this.GenericContextForSymbolMapping.IsEmptyOrIdentity;
+    public virtual bool IsCanonicalGenericInstance => this.NamedTypeSymbol.IsDefinitionSafe() && this.GenericContextForSymbolMapping.IsEmptyOrIdentity;
 
     [Memo]
     public INamedTypeCollection Types
@@ -205,7 +201,7 @@ internal class SourceNamedTypeImpl : SourceMemberOrNamedType, INamedTypeImpl
     public IIndexerCollection AllIndexers => new AllIndexersCollection( this.Facade );
 
     [Memo]
-    public IFieldCollection Fields
+    public virtual IFieldCollection Fields
         => new FieldCollection(
             this.Facade,
             this.Compilation.GetFieldCollection( this.NamedTypeSymbol.OriginalDefinition.ToRef( this.RefFactory ) ) );
@@ -315,7 +311,7 @@ internal class SourceNamedTypeImpl : SourceMemberOrNamedType, INamedTypeImpl
             this.NamedTypeSymbol.OriginalDefinition.GetMembers( "" )
                 .OfType<INamedTypeSymbol>()
                 .Where( m => m.IsExtensionSafe() )
-                .Select( t => t.ToTypeExtensionRef( this.RefFactory ) )
+                .Select( t => t.ToExtensionBlockRef( this.RefFactory ) )
                 .ToReadOnlyList() );
 
     public override bool IsPartial

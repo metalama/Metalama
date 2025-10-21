@@ -133,9 +133,9 @@ namespace Metalama.Framework.Engine.Linking
                         null,
                         Identifier( symbol.Name ),
                         AccessorList(
-                            Token( context.ElasticEndOfLineTriviaList, SyntaxKind.OpenBraceToken, context.ElasticEndOfLineTriviaList ),
+                            Token( context.OptionalElasticEndOfLineTriviaList, SyntaxKind.OpenBraceToken, context.OptionalElasticEndOfLineTriviaList ),
                             List( [transformedAdd, transformedRemove] ),
-                            Token( context.ElasticEndOfLineTriviaList, SyntaxKind.CloseBraceToken, context.ElasticEndOfLineTriviaList ) ),
+                            Token( context.OptionalElasticEndOfLineTriviaList, SyntaxKind.CloseBraceToken, context.OptionalElasticEndOfLineTriviaList ) ),
                         default );
 
 #if ROSLYN_5_0_0_OR_GREATER
@@ -162,8 +162,8 @@ namespace Metalama.Framework.Engine.Linking
                         new InliningContextIdentifier( methodSymbol.ToSemantic( semanticKind ) ) ) );
 
                 var (openBraceLeadingTrivia, openBraceTrailingTrivia, closeBraceLeadingTrivia, closeBraceTrailingTrivia) =
-                    (TriviaList(), context.ElasticEndOfLineTriviaList, context.ElasticEndOfLineTriviaList,
-                     context.ElasticEndOfLineTriviaList);
+                    (TriviaList(), context.OptionalElasticEndOfLineTriviaList, context.OptionalElasticEndOfLineTriviaList,
+                     context.OptionalElasticEndOfLineTriviaList);
 
                 return
                     AccessorDeclaration(
@@ -171,7 +171,7 @@ namespace Metalama.Framework.Engine.Linking
                         FilterAttributeListsForTarget( eventFieldDeclaration.AttributeLists, SyntaxKind.MethodKeyword, false, false )
                             .AddRange( FilterAttributeListsForTarget( eventFieldDeclaration.AttributeLists, SyntaxKind.Parameter, false, true ) ),
                         TokenList(),
-                        Token( TriviaList(), accessorKeyword, context.ElasticEndOfLineTriviaList ),
+                        Token( TriviaList(), accessorKeyword, context.OptionalElasticEndOfLineTriviaList ),
                         Block(
                                 Token( openBraceLeadingTrivia, SyntaxKind.OpenBraceToken, openBraceTrailingTrivia ),
                                 SingletonList<StatementSyntax>( linkedBody ),
