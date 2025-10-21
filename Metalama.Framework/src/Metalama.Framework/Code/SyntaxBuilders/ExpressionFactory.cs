@@ -242,8 +242,3 @@ public static class ExpressionFactory
     public static IExpression WithNullability( this IExpression expression, bool isNullable )
         => expression.WithType( isNullable ? expression.Type.ToNullable() : expression.Type.ToNonNullable() );
 }
-
-public static class ExpressionExtensions
-{
-    public static string ToText( this IExpression expression ) => SyntaxBuilder.CurrentImplementation.ToText( expression );
-}

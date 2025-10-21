@@ -4,10 +4,12 @@
 
 using Metalama.Framework.Advising;
 using Metalama.Framework.Code;
+using Metalama.Framework.Code.DeclarationBuilders;
 using Metalama.Framework.Engine.Advising;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 using Metalama.Framework.Engine.Diagnostics;
+using Metalama.Framework.RunTime;
 using System;
 using System.Linq;
 
@@ -94,6 +96,7 @@ internal sealed class IntroduceConstructorParameterAdvice : Advice<IntroductionA
 
         this._buildAction?.Invoke( parameterBuilder );
 
+        parameterBuilder.AddAttribute( AttributeConstruction.Create( typeof(AspectGeneratedAttribute) ) );
         parameterBuilder.Freeze();
         var parameterBuilderData = parameterBuilder.BuilderData;
 

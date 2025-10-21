@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Advising;
 using Metalama.Framework.Code;
+using Metalama.Framework.Code.DeclarationBuilders;
 using Metalama.Framework.Engine.Advising;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel;
@@ -17,6 +18,7 @@ using Metalama.Framework.Engine.SyntaxSerialization;
 using Metalama.Framework.Engine.Templating.Expressions;
 using Metalama.Framework.Engine.Transformations;
 using Metalama.Framework.Engine.Utilities.UserCode;
+using Metalama.Framework.RunTime;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Generic;
@@ -167,6 +169,7 @@ internal sealed class PullConstructorParameterAdviceImpl
                             this._aspectLayerInstance ) { DefaultValue = constant };
 
                         recursiveParameterBuilder.AddAttributes( pullParameterAction.ParameterAttributes );
+                        recursiveParameterBuilder.AddAttribute( AttributeConstruction.Create( typeof(AspectGeneratedAttribute) ) );
                         recursiveParameterBuilder.Freeze();
 
                         this.AddTransformation( new IntroduceParameterTransformation( this._aspectLayerInstance, recursiveParameterBuilder.BuilderData ) );
