@@ -38,10 +38,8 @@ internal sealed partial class LinkerRewritingDriver
 
                 return substitutedNode;
             }
-            else
-            {
-                return base.VisitCore( node );
-            }
+
+            return base.VisitCore( node );
         }
     }
 }

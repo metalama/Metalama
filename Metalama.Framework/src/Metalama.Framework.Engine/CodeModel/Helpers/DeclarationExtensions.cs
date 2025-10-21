@@ -29,7 +29,6 @@ using Accessibility = Metalama.Framework.Code.Accessibility;
 using DeclarationKind = Metalama.Framework.Code.DeclarationKind;
 using EnumerableExtensions = Metalama.Framework.Engine.Collections.EnumerableExtensions;
 using MethodKind = Microsoft.CodeAnalysis.MethodKind;
-using OperatorKind = Metalama.Framework.Code.OperatorKind;
 using RefKind = Metalama.Framework.Code.RefKind;
 using SyntaxReference = Microsoft.CodeAnalysis.SyntaxReference;
 
@@ -66,28 +65,28 @@ public static class DeclarationExtensions
     /// </summary>
     internal static IEnumerable<IDeclaration> GetContainedDeclarations( this IDeclaration declaration )
         => declaration.SelectManyRecursive( child => child switch
-        {
-            ICompilation compilation => [compilation.GlobalNamespace],
-            INamespace ns => EnumerableExtensions.Concat<IDeclaration>( ns.Namespaces, ns.Types ),
-            INamedType namedType => EnumerableExtensions.Concat<IDeclaration>(
-                    namedType.Types,
-                    namedType.Methods,
-                    namedType.Constructors,
-                    namedType.Fields,
-                    namedType.Properties,
-                    namedType.Indexers,
-                    namedType.Events,
-                    namedType.TypeParameters )
-                .ConcatNotNull( namedType.StaticConstructor )
-                .ConcatNotNull( namedType.Finalizer ),
-            IMethod method => Enumerable
-                .Concat<IDeclaration>( method.Parameters, method.TypeParameters )
-                .ConcatNotNull( method.ReturnParameter ),
-            IIndexer indexer => indexer.Parameters.Concat<IDeclaration>( indexer.Accessors ),
-            IConstructor constructor => constructor.Parameters,
-            IHasAccessors member => member.Accessors,
-            _ => []
-        } );
+            {
+                ICompilation compilation => [compilation.GlobalNamespace],
+                INamespace ns => EnumerableExtensions.Concat<IDeclaration>( ns.Namespaces, ns.Types ),
+                INamedType namedType => EnumerableExtensions.Concat<IDeclaration>(
+                        namedType.Types,
+                        namedType.Methods,
+                        namedType.Constructors,
+                        namedType.Fields,
+                        namedType.Properties,
+                        namedType.Indexers,
+                        namedType.Events,
+                        namedType.TypeParameters )
+                    .ConcatNotNull( namedType.StaticConstructor )
+                    .ConcatNotNull( namedType.Finalizer ),
+                IMethod method => Enumerable
+                    .Concat<IDeclaration>( method.Parameters, method.TypeParameters )
+                    .ConcatNotNull( method.ReturnParameter ),
+                IIndexer indexer => indexer.Parameters.Concat<IDeclaration>( indexer.Accessors ),
+                IConstructor constructor => constructor.Parameters,
+                IHasAccessors member => member.Accessors,
+                _ => []
+            } );
 
     public static ISymbol? GetSymbol( this IDeclaration declaration, CompilationContext compilationContext )
         => declaration.GetSymbol() is { } symbol
@@ -282,7 +281,7 @@ public static class DeclarationExtensions
         };
 
     internal static SyntaxKind ToOperatorKeyword( this OperatorKind operatorKind )
-    {
+        {
         var operatorData = OperatorData.GetByKind( operatorKind );
 
         if ( operatorData?.OperatorKeyword is { } syntaxKind )
@@ -294,7 +293,7 @@ public static class DeclarationExtensions
     }
 
     internal static string ToOperatorMethodName( this OperatorKind operatorKind )
-    {
+        {
         var operatorData = OperatorData.GetByKind( operatorKind );
 
         return operatorData?.MemberName ?? throw new AssertionFailedException( $"Unexpected OperatorKind: {operatorKind}." );
@@ -308,17 +307,19 @@ public static class DeclarationExtensions
 #if ROSLYN_4_12_0_OR_GREATER
             { IsPartialDefinition: true } => false, // Partial property can't be implemented as an auto-property.
 #endif
+            _ when symbol.GetBackingField() != null => true,
             { DeclaringSyntaxReferences: { Length: > 0 } syntaxReferences } =>
                 syntaxReferences.All( sr =>
-                                          sr.GetSyntax() switch
-                                          {
-                                              BasePropertyDeclarationSyntax { AccessorList.Accessors: { Count: > 0 } accessors } when
-                                                  accessors.All( a => a.Body == null && a.ExpressionBody == null ) => true,
-                                              ParameterSyntax => true,
-                                              _ => false
-                                          } ),
-            { GetMethod: { } getMethod } => getMethod.IsCompilerGenerated(),
-            { SetMethod: { } setMethod } => setMethod.IsCompilerGenerated(),
+                        sr.GetSyntax() switch
+                        {
+                            BasePropertyDeclarationSyntax { AccessorList.Accessors: { Count: > 0 } accessors } when
+                                accessors.All( a => a.Body == null && a.ExpressionBody == null ) => true,
+                            ParameterSyntax => true,
+                            _ => false
+                        } ),
+            { GetMethod: { } getMethod, SetMethod: { } setMethod } => getMethod.IsCompilerGenerated() || setMethod.IsCompilerGenerated(),
+            { GetMethod: { } getMethod, SetMethod: null } => getMethod.IsCompilerGenerated(),
+            { GetMethod: null, SetMethod: { } setMethod } => setMethod.IsCompilerGenerated(),
             _ => null
         };
 
@@ -326,9 +327,32 @@ public static class DeclarationExtensions
         => symbol switch
         {
             { IsAbstract: true } => false,
-            { DeclaringSyntaxReferences: { Length: > 0 } syntaxReferences } =>
-                syntaxReferences.All( sr => sr.GetSyntax() is AccessorDeclarationSyntax { Body: null, ExpressionBody: null } ),
+            { AssociatedSymbol: IPropertySymbol propertySymbol } => propertySymbol.IsAutoProperty() == true,
             _ => symbol.IsCompilerGenerated()
+        };
+
+    internal static bool? HasBody( this IPropertySymbol property )
+        => (property.GetMethod?.HasBody(), property.SetMethod?.HasBody()) switch
+        {
+            (null, null ) => null,
+            (true, _ ) or (_, true ) => true,
+            (false, false ) => false,
+            _ => null,
+        };
+
+    internal static bool? HasBody( this IMethodSymbol method )
+        => method switch
+        {
+            { IsAbstract: true } => false,
+            { DeclaringSyntaxReferences.Length: > 0 } =>
+                method.DeclaringSyntaxReferences.Any(
+                    m => m.GetSyntax() is 
+                        BaseMethodDeclarationSyntax { Body: { } }
+                        or BaseMethodDeclarationSyntax { ExpressionBody: { } } 
+                        or PropertyDeclarationSyntax { ExpressionBody: { } } 
+                        or AccessorDeclarationSyntax { Body: { } }
+                        or AccessorDeclarationSyntax { ExpressionBody: { } } ),
+            _ => null
         };
 
     internal static bool? IsEventField( this IEventSymbol symbol )
@@ -575,12 +599,12 @@ public static class DeclarationExtensions
         {
             INamedType namedType => namedType.ImplementedInterfaces,
             IArrayType { Rank: 1 } arrayType => SymbolHelpers.ArrayGenericInterfaces.Select( definitionSpecialType => type.GetCompilationModel()
-                                                                                                 .Factory
+                    .Factory
                                                                                                  .GetNamedType(
                                                                                                      type.GetCompilationModel()
                                                                                                          .RoslynCompilation.GetSpecialType(
                                                                                                              definitionSpecialType ) )
-                                                                                                 .WithTypeArguments( arrayType.ElementType ) ),
+                    .WithTypeArguments( arrayType.ElementType ) ),
             _ => []
         };
 }

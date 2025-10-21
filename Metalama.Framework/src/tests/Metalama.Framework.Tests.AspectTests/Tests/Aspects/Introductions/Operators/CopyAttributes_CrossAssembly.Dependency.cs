@@ -29,10 +29,10 @@ namespace Metalama.Framework.IntegrationTests.Aspects.Introductions.Operators.Co
                 args: new { c = 42 } );
 
             builder.IntroduceConversionOperator(
-                nameof(ConversionOperatorTemplate),
+                nameof(this.ConversionOperatorTemplate),
                 builder.Target,
                 TypeFactory.GetType( typeof(int) ),
-                true,
+                isImplicit: true,
                 args: new { c = 42 } );
         }
 
