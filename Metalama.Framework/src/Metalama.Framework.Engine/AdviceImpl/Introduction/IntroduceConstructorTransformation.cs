@@ -42,9 +42,11 @@ internal sealed class IntroduceConstructorTransformation
         // TODO: We must generate the code based on our _initial_ compilation because the last compilation may already contain introduced
         // parameters, but these parameters will be added by the linker. We would have duplicates by adding them here.
         // However, if we resolve to the initial compilation, we may get the replaced (implicit) constructor instead of the new one.
-        var constructorBuilder = this.BuilderData.ToRef().GetTarget( context.FinalCompilation );
+        var finalConstructor = this.BuilderData.ToRef().GetTarget( context.FinalCompilation );
 
-        Invariant.Assert( !constructorBuilder.IsRecordCopyConstructor() );
+        var hasNoBody = finalConstructor.IsPartial || finalConstructor.IsExtern;
+
+        Invariant.Assert( !finalConstructor.IsRecordCopyConstructor() );
 
         var statements = Array.Empty<StatementSyntax>();
 
@@ -52,7 +54,7 @@ internal sealed class IntroduceConstructorTransformation
             context.FinalCompilation,
             context.SyntaxGenerationContext,
             context.AspectReferenceSyntaxProvider,
-            constructorBuilder.DeclaringType );
+            finalConstructor.DeclaringType );
 
         var arguments =
             ArgumentList(
@@ -67,7 +69,7 @@ internal sealed class IntroduceConstructorTransformation
                                 a.Expression.ToExpressionSyntax( syntaxSerializationContext ) ) ) ) );
 
         var initializer =
-            constructorBuilder.InitializerKind switch
+            finalConstructor.InitializerKind switch
             {
                 ConstructorInitializerKind.None => null,
                 ConstructorInitializerKind.Base =>
@@ -83,14 +85,18 @@ internal sealed class IntroduceConstructorTransformation
 
         var syntax =
             ConstructorDeclaration(
-                AdviceSyntaxGenerator.GetAttributeLists( constructorBuilder, context ),
-                constructorBuilder.GetSyntaxModifierList(),
-                Identifier( constructorBuilder.DeclaringType.Name ),
-                context.SyntaxGenerator.ParameterList( constructorBuilder, context.FinalCompilation ),
+                AdviceSyntaxGenerator.GetAttributeLists( finalConstructor, context ),
+                finalConstructor.GetSyntaxModifierList(),
+                Identifier( finalConstructor.DeclaringType.Name ),
+                context.SyntaxGenerator.ParameterList( finalConstructor, context.FinalCompilation ),
                 initializer,
-                context.SyntaxGenerationContext.SyntaxGenerator.FormattedBlock( statements )
+                hasNoBody
+                ? null
+                : context.SyntaxGenerationContext.SyntaxGenerator.FormattedBlock( statements )
                     .WithGeneratedCodeAnnotation( this.AspectInstance.AspectClass.GeneratedCodeAnnotation ),
-                null );
+                hasNoBody
+                ? Token(SyntaxKind.SemicolonToken)
+                : default );
 
         return
         [

@@ -15,6 +15,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Reflection;
 using ConstructorInvoker = Metalama.Framework.Engine.CodeModel.Invokers.ConstructorInvoker;
@@ -29,9 +30,31 @@ namespace Metalama.Framework.Engine.CodeModel.Source
             compilation,
             genericContextForSymbolMapping )
         {
+            Invariant.Assert(
+                symbol.PartialDefinitionPart == null,
+                "Cannot use partial implementation to instantiate the SourceConstructor class." );
+
             if ( symbol.MethodKind != RoslynMethodKind.Constructor && symbol.MethodKind != RoslynMethodKind.StaticConstructor )
             {
-                throw new ArgumentOutOfRangeException( nameof(symbol), "The Constructor class must be used only with constructors." );
+                throw new ArgumentOutOfRangeException( nameof( symbol ), "The Constructor class must be used only with constructors." );
+            }
+        }
+
+        [Memo]
+        public override ImmutableArray<SourceReference> Sources => this.GetSourcesImpl();
+
+        private ImmutableArray<SourceReference> GetSourcesImpl()
+        {
+            if ( this.MethodSymbol.PartialImplementationPart != null )
+            {
+                return
+                    ImmutableArray.Create(
+                        new SourceReference( this.MethodSymbol.DeclaringSyntaxReferences[0].GetSyntax(), SourceReferenceImpl.Instance ),
+                        new SourceReference( this.MethodSymbol.PartialImplementationPart.DeclaringSyntaxReferences[0].GetSyntax(), SourceReferenceImpl.Instance ) );
+            }
+            else
+            {
+                return base.Sources;
             }
         }
 

@@ -78,6 +78,16 @@ public sealed class SourceReferenceImpl : ISourceReferenceImpl
                 return false;
 #endif
 
+#if ROSLYN_5_0_0_OR_GREATER
+            case ConstructorDeclarationSyntax { Body: null, ExpressionBody: null } constructor when
+                constructor.Modifiers.Any( SyntaxKind.PartialKeyword ):
+                return false;
+
+            case VariableDeclaratorSyntax {Parent: VariableDeclarationSyntax { Parent: EventFieldDeclarationSyntax eventField } } variable when
+                eventField.Modifiers.Any( SyntaxKind.PartialKeyword ):
+                return false;
+#endif
+
             default:
                 return true;
         }

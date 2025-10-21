@@ -238,12 +238,17 @@ public partial class DeclarationFactory
                 new SourceField( args.Symbol, args.Compilation, args.GenericContext ) );
 
     public IConstructor GetConstructor( IMethodSymbol methodSymbol, GenericContext? genericContext = null )
-        => this.GetDeclarationFromSymbol<IConstructor, IMethodSymbol>(
+    {
+        // Standardize on the partial definition part for partial constructors.
+        methodSymbol = methodSymbol.PartialDefinitionPart ?? methodSymbol;
+
+        return this.GetDeclarationFromSymbol<IConstructor, IMethodSymbol>(
             methodSymbol,
             genericContext,
             static ( in args ) =>
                 new SourceConstructor( args.Symbol, args.Compilation, args.GenericContext ),
             true );
+    }
 
     public IParameter GetParameter( IParameterSymbol parameterSymbol, GenericContext? genericContext = null )
         => this.GetDeclarationFromSymbol<IParameter, IParameterSymbol>(
@@ -253,11 +258,21 @@ public partial class DeclarationFactory
                 new SourceParameter( args.Symbol, args.Compilation, args.GenericContext ) );
 
     public IEvent GetEvent( IEventSymbol eventSymbol, GenericContext? genericContext = null )
-        => this.GetDeclarationFromSymbol<IEvent, IEventSymbol>(
-            eventSymbol,
-            genericContext,
-            static ( in args ) =>
-                new SourceEvent( args.Symbol, args.Compilation, args.GenericContext ) );
+    {
+#if ROSLYN_5_0_0_OR_GREATER
+
+        // Standardize on the partial definition part for partial events.
+        eventSymbol = eventSymbol.PartialDefinitionPart ?? eventSymbol;
+
+#endif
+
+        return
+            this.GetDeclarationFromSymbol<IEvent, IEventSymbol>(
+                eventSymbol,
+                genericContext,
+                static ( in args ) =>
+                    new SourceEvent( args.Symbol, args.Compilation, args.GenericContext ) );
+    }
 
     public bool TryGetDeclaration( ISymbol symbol, [NotNullWhen( true )] out IDeclaration? declaration )
     {

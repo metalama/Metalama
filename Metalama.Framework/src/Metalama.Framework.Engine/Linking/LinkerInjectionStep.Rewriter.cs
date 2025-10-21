@@ -627,6 +627,13 @@ internal sealed partial class LinkerInjectionStep
                             semicolonToken: default(SyntaxToken),
                             body: ReplaceExpression( entryStatements, exitStatements, expressionBody.Expression, true ) );
 
+                case ConstructorDeclarationSyntax { Body: null, ExpressionBody: null } constructor:
+                    Invariant.Assert( constructor.Modifiers.All( m => !m.IsKind( SyntaxKind.ExternKeyword ) ) );
+
+                    return constructor.PartialUpdate(
+                        body: Block( entryStatements.Concat( exitStatements ) ),
+                        semicolonToken: default( SyntaxToken ) );
+
                 // Static constructor overrides also go here.
                 case MethodDeclarationSyntax { Body: { } body } method:
                     return method.WithBody( ReplaceBlock( contextDeclaration, entryStatements, exitStatements, body ) );
@@ -1114,7 +1121,11 @@ internal sealed partial class LinkerInjectionStep
             var semanticModel = this._semanticModelProvider.GetSemanticModel( originalNode.SyntaxTree );
             var symbol = semanticModel.GetDeclaredSymbol( originalNode );
 
-            if ( symbol != null )
+#if ROSLYN_5_0_0_OR_GREATER
+            if ( symbol is { PartialImplementationPart: null } )
+#else
+            if ( symbol is { } )
+#endif
             {
                 var constructor = this._compilation.RefFactory.FromSymbol<IConstructor>( symbol );
                 var entryStatements = this._transformationCollection.GetInjectedEntryStatements( constructor );

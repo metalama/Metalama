@@ -4,7 +4,6 @@
 
 #if TEST_OPTIONS
 // @RequiredConstant(ROSLYN_5_0_0_OR_GREATER)
-// @Skipped(https://github.com/metalama/Metalama/issues/1110)
 #endif
 
 #if ROSLYN_5_0_0_OR_GREATER
@@ -12,7 +11,6 @@
 using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
-using System;
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.CSharp14.PartialConstructor_Introduce;
 
@@ -29,19 +27,21 @@ public class TheAspect : TypeAspect
             } );
     }
 
-    [Template]
-    public void ConstructorTemplate()
-    {
-        Console.WriteLine( "Attenti al cane." );
-    }
+    [Template(IsPartial = true)]
+    public extern void ConstructorTemplate();
 }
 
+// <target>
 [TheAspect]
-internal partial class C
+internal partial class ClassWithImplicit
 {
-#if TESTRUNNER
-    public partial C();
-#endif
+}
+
+// <target>
+[TheAspect]
+internal partial class ClassWithOtherSignature
+{
+    public ClassWithOtherSignature( int x ) { }
 }
 
 #endif

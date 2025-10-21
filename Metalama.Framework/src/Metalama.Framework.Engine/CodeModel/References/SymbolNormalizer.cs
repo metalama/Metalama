@@ -58,7 +58,7 @@ internal static class SymbolNormalizer
                 foreach ( var tupleElement in namedTypeSymbol.TupleElements )
                 {
                     hasher.Add( tupleElement.Name );
-                }
+        }
 
                 tupleElementNames = hasher.ToHashCode();
             }
@@ -71,18 +71,18 @@ internal static class SymbolNormalizer
 
                 return new CanonicalSymbolInfo( definition, genericContext, tupleElementNames );
             }
-            else if ( genericContext.IsEmptyOrIdentity )
-            {
+        else if ( genericContext.IsEmptyOrIdentity )
+        {
                 return new CanonicalSymbolInfo( namedTypeSymbol, genericContext, tupleElementNames );
-            }
-            else
-            {
+        }
+        else
+        {
                 return new CanonicalSymbolInfo(
                     namedTypeSymbol.OriginalDefinition,
                     SymbolGenericContext.Get( namedTypeSymbol, refFactory.CompilationContext ).Map( genericContext, refFactory ),
                     tupleElementNames );
-            }
         }
+    }
     }
 
     private static CanonicalSymbolInfo GetCanonicalSymbolInfo(
@@ -99,11 +99,26 @@ internal static class SymbolNormalizer
         return new CanonicalSymbolInfo( propertySymbol, genericContext );
     }
 
+    private static CanonicalSymbolInfo GetCanonicalSymbolInfo(
+        IEventSymbol eventSymbol,
+        GenericContext genericContext )
+    {
+#if ROSLYN_5_0_0_OR_GREATER
+        if ( eventSymbol.PartialImplementationPart != null )
+        {
+            eventSymbol = eventSymbol.PartialImplementationPart;
+        }
+#endif
+
+        return new CanonicalSymbolInfo(eventSymbol, genericContext);
+    }
+
     public static CanonicalSymbolInfo GetCanonicalSymbolInfo( ISymbol symbol, GenericContext genericContext, RefFactory refFactory )
         => symbol.Kind switch
         {
             SymbolKind.Method => GetCanonicalSymbolInfo( (IMethodSymbol) symbol, genericContext, refFactory ),
             SymbolKind.Property => GetCanonicalSymbolInfo( (IPropertySymbol) symbol, genericContext ),
+            SymbolKind.Event => GetCanonicalSymbolInfo( (IEventSymbol) symbol, genericContext ),
             SymbolKind.NamedType => GetCanonicalSymbolInfo( (INamedTypeSymbol) symbol, genericContext, refFactory ),
             _ => new CanonicalSymbolInfo( symbol, genericContext )
         };

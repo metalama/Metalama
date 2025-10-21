@@ -298,7 +298,10 @@ namespace Metalama.Framework.Engine.Linking
                             _ => throw new NotSupportedException( $"Unsupported syntax for event override: {overrideMember.Syntax}." )
                         };
 
-                        var targetEventSymbol = injectionRegistry.GetIntermediateCompilationSymbol<IEventSymbol>( targetEvent ).AssertNotNull();
+                        var targetEventSymbol = 
+                            (IEventSymbol) LinkerSymbolHelper.GetCanonicalDefinition(
+                                injectionRegistry.GetIntermediateCompilationSymbol<IEventSymbol>( targetEvent ).AssertNotNull() );
+
                         var delegateType = targetEvent.Type.AssertNotNull();
                         var invokeMethod = delegateType.Methods.OfName( "Invoke" ).Single();
 

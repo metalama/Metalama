@@ -44,6 +44,9 @@ namespace Metalama.Framework.Engine.CodeModel.Source
 #if ROSLYN_4_12_0_OR_GREATER
                 IPropertySymbol { IsPartialDefinition: true, PartialImplementationPart: null } => false,
 #endif
+#if ROSLYN_5_0_0_OR_GREATER
+                IEventSymbol { IsPartialDefinition: true, PartialImplementationPart: null } => false,
+#endif
                 IFieldSymbol { IsConst: true } => false,
                 { IsAbstract: true } => false,
                 { IsExtern: true } => false,

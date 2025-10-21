@@ -359,6 +359,9 @@ public static class DeclarationExtensions
         => symbol switch
         {
             { IsAbstract: true } => false,
+#if ROSLYN_5_0_0_OR_GREATER
+            { IsPartialDefinition: true } => false, // Partial event is not event field (and cannot be when implemented).
+#endif
             { DeclaringSyntaxReferences.Length: > 0 } =>
                 symbol.DeclaringSyntaxReferences.All( sr => sr.GetSyntax() is VariableDeclaratorSyntax ),
             { AddMethod: { } addMethod, RemoveMethod: { } removeMethod } => addMethod.IsCompilerGenerated() && removeMethod.IsCompilerGenerated(),
