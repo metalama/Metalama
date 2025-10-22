@@ -417,29 +417,6 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                         (ISymbol) p.Type.GetSymbol()
                             .AssertSymbolNullNotImplemented( UnsupportedFeatures.DesignTimeIntroducedTypeConstructorParameters ), p.RefKind) );
 
-                // Find potential conflicts with optional values defined by the introduced parameters.
-                var firstIntroducedParameterWithDefaultValue = finalParameters.Skip( initialParameters.Length ).FirstOrDefault( p => p.DefaultValue != null );
-
-                int firstNonAmbiguousParameter;
-
-                if ( firstIntroducedParameterWithDefaultValue != null )
-                {
-                    firstNonAmbiguousParameter = Enumerable.Range(
-                            firstIntroducedParameterWithDefaultValue.Index,
-                            finalParameters.Length - firstIntroducedParameterWithDefaultValue.Index )
-                        .First(
-                            index => !existingSignatures.Any(
-                                existingSignature => existingSignature.Length > index
-                                                     && ConstructorSignatureEqualityComparer.Instance.Equals(
-                                                         existingSignature,
-                                                         finalSignature,
-                                                         index + 1 ) ) );
-                }
-                else
-                {
-                    firstNonAmbiguousParameter = 0;
-                }
-
                 if ( !existingSignatures.Add( finalSignature ) )
                 {
                     continue;
@@ -450,7 +427,7 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                         List<AttributeListSyntax>(),
                         finalConstructor.GetSyntaxModifierList(),
                         Identifier( finalConstructor.DeclaringType.Name ),
-                        syntaxGenerationContext.SyntaxGenerator.ParameterList( finalParameters, initialCompilationModel, firstNonAmbiguousParameter + 1 ),
+                        syntaxGenerationContext.SyntaxGenerator.ParameterList( finalParameters, initialCompilationModel ),
                         initialConstructor.IsImplicitlyDeclared
                             ? null
                             : ConstructorInitializer(
