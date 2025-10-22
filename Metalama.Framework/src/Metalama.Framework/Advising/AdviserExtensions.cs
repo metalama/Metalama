@@ -14,8 +14,6 @@ using System.Collections.Immutable;
 
 namespace Metalama.Framework.Advising;
 
-// IMPORTANT: Keep XML doc in this file in sync with IAdviceFactory.
-
 [PublicAPI]
 [CompileTime]
 public static class AdviserExtensions
@@ -42,7 +40,7 @@ public static class AdviserExtensions
         => ((IAdviserInternal) adviser).AdviceFactory.Override( adviser.Target, template, args, tags );
 
     /// <summary>
-    /// Introduces a new method or overrides the implementation of the existing one.
+    /// Introduces a new method or overrides the implementation of an existing one.
     /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to apply the advice to a different type than the current one.
     /// </summary>
     /// <param name="adviser">An adviser for a named type.</param>
@@ -50,13 +48,12 @@ public static class AdviserExtensions
     ///     annotated with <see cref="TemplateAttribute"/>. This method can have parameters and a return type. The actual parameters and return type
     ///     of the introduced method can be modified using the <see cref="IMethodBuilder"/> returned by this method.</param>
     /// <param name="scope">Determines the scope (e.g. <see cref="IntroductionScope.Instance"/> or <see cref="IntroductionScope.Static"/>) of the introduced
-    ///     method. The default scope depends on the scope of the template method.
-    ///     If the method is static, the introduced method is static. However, if the template method is non-static, then the introduced method
+    ///     method. The default scope depends on the scope of the template method. If the template method is static, the introduced method is static. However, if the template method is non-static, then the introduced method
     ///     copies the scope of the target declaration of the aspect.</param>
     /// <param name="whenExists">Determines the implementation strategy when a method of the same name and signature is already declared in the target type.
     ///     The default strategy is to fail with a compile-time error.</param>
     /// <param name="buildMethod">An optional delegate that modifies the <see cref="IMethodBuilder"/> representing the introduced or overriding method.</param>
-    /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods.</param>
+    /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template method.</param>
     /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property
     ///     of the <see cref="meta"/> API.</param>
     /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> exposing the introduced or overriding <see cref="IMethod"/>.</returns>
@@ -87,7 +84,7 @@ public static class AdviserExtensions
     ///     annotated with <see cref="TemplateAttribute"/>. This method can have parameters and a return type.</param>
     /// <param name="whenExists">Determines the implementation strategy when a finalizer is already declared in the target type.
     ///     The default strategy is to fail with a compile-time error.</param>
-    /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods.</param>
+    /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template method.</param>
     /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property
     ///     of the <see cref="meta"/> API.</param>
     /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> exposing the introduced or overriding <see cref="IMethod"/> (finalizer).</returns>
@@ -263,7 +260,7 @@ public static class AdviserExtensions
     /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template method.</param>
     /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property
     ///     of the <see cref="meta"/> API.</param>
-    /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> that exposes the outcome of the operation and the introduced or overridden <see cref="IConstructor"/>.</returns>
+    /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> exposing the introduced or overriding <see cref="IConstructor"/>.</returns>
     /// <seealso href="@introducing-members"/>
     public static IIntroductionAdviceResult<IConstructor> IntroduceConstructor(
         this IAdviser<INamedType> adviser,
@@ -339,16 +336,15 @@ public static class AdviserExtensions
     /// <param name="getTemplate">The name of the method of the aspect class whose implementation will be used as a template for the getter, or <c>null</c>
     ///     if the getter should not be overridden. This method must be annotated with <see cref="TemplateAttribute"/>. The signature of this method must
     ///     be <c>T Get()</c> where <c>T</c> is either <c>dynamic</c> or a type compatible with the type of the field or property.
-    ///     To select a different templates for iterator getters, use the constructor of the <see cref="GetterTemplateSelector"/> type. To specify a single
-    ///     template for all properties, pass a string.
-    /// </param>
+    ///     To select different templates for iterator getters, use the constructor of the <see cref="GetterTemplateSelector"/> type. To specify a single
+    ///     template for all properties, pass a string.</param>
     /// <param name="setTemplate">The name of the method of the aspect class whose implementation will be used as a template for the setter, or <c>null</c>
     ///     if the setter should not be overridden. This method must be annotated with <see cref="TemplateAttribute"/>. The signature of this method must
     ///     be <c>void Set(T value)</c> where <c>T</c> is either <c>dynamic</c> or a type compatible with the type of the field or property.</param>
     /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods.</param>
     /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property of the
     ///     <see cref="meta"/> API.</param>
-    /// <returns>An <see cref="IOverrideAdviceResult{T}"/> that exposes the outcome of the operation and the overridden <see cref="IProperty"/>.</returns>
+    /// <returns>An <see cref="IOverrideAdviceResult{T}"/> exposing the overridden <see cref="IProperty"/>.</returns>
     /// <seealso href="@overriding-fields-or-properties"/>
     public static IOverrideAdviceResult<IProperty> OverrideAccessors(
         this IAdviser<IFieldOrProperty> adviser,
@@ -380,7 +376,7 @@ public static class AdviserExtensions
     /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods.</param>
     /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property of the
     ///     <see cref="meta"/> API.</param>
-    /// <returns>An <see cref="IOverrideAdviceResult{T}"/> that exposes the outcome of the operation and the overridden <see cref="IIndexer"/>.</returns>
+    /// <returns>An <see cref="IOverrideAdviceResult{T}"/> exposing the overridden <see cref="IIndexer"/>.</returns>
     /// <seealso href="@overriding-fields-or-properties"/>
     public static IOverrideAdviceResult<IIndexer> OverrideAccessors(
         this IAdviser<IIndexer> adviser,
@@ -562,7 +558,7 @@ public static class AdviserExtensions
     ///     type. It is possible to dynamically change the type of the introduced property thanks to the <see cref="IPropertyBuilder"/> returned by
     ///     this method.</param>
     /// <param name="scope">Determines the scope (e.g. <see cref="IntroductionScope.Instance"/> or <see cref="IntroductionScope.Static"/>) of the introduced
-    ///     property. The default scope depends on the scope of the template property. If the property is static, the introduced property is static. However, if the
+    ///     property. The default scope depends on the scope of the template property. If the template property is static, the introduced property is static. However, if the
     ///     template property is non-static, then the introduced property copies the scope of the target declaration of the aspect.</param>
     /// <param name="whenExists">Determines the implementation strategy when a property of the same name is already declared in the target type.
     ///     The default strategy is to fail with a compile-time error.</param>
@@ -807,24 +803,25 @@ public static class AdviserExtensions
             tags );
 
     /// <summary>
-    /// Overrides an event by specifying a template for the adder, the remover, and/or the raiser.
+    /// Overrides an event by specifying a template for the adder, the remover, and/or the invocation interception.
     /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to override a different event than the current one.
     /// </summary>
     /// <param name="adviser">An adviser for an event.</param>
     /// <param name="addTemplate">The name of the method of the aspect class whose type and implementation will be used as a template for the adder, or <c>null</c>
-    ///     the adder should not be overridden. This method must be annotated with <see cref="TemplateAttribute"/>. The signature of this method must
+    ///     if the adder should not be overridden. This method must be annotated with <see cref="TemplateAttribute"/>. The signature of this method must
     ///     be <c>void Add(T value)</c> where <c>T</c> is either <c>dynamic</c> or a type compatible with the type of the event.</param>
     /// <param name="removeTemplate">The name of the method of the aspect class whose type and implementation will be used as a template for the remover, or <c>null</c>
-    ///     the adder should not be overridden. This method must be annotated with <see cref="TemplateAttribute"/>. The signature of this method must
+    ///     if the remover should not be overridden. This method must be annotated with <see cref="TemplateAttribute"/>. The signature of this method must
     ///     be <c>void Remove(T value)</c> where <c>T</c> is either <c>dynamic</c> or a type compatible with the type of the event.</param>
-    /// <param name="raiseTemplate">Not yet implemented.</param>
+    /// <param name="raiseTemplate">Reserved for future use (not implemented).</param>
     /// <param name="invokeTemplate">The name of the method of the aspect class whose type and implementation will be used as a template for intercepting invocation of 
-    ///     event's handlers. The signature of this method must be <c>T Invoke()</c>, <c>T Invoke(U handler)</c>, or <c>T Invoke(U handler, V1 param1, V2 param2, ...)</c>  
-    ///     where <c>T</c> is either <c>dynamic</c> or a type compatible with the return value of the event's delegate type, <c>U</c> is either dynamic or the event's 
+    ///     the event's handlers. The signature of this method must be <c>T Invoke()</c>, <c>T Invoke(U handler)</c>, or <c>T Invoke(U handler, V1 param1, V2 param2, ...)</c>  
+    ///     where <c>T</c> is either <c>dynamic</c> or a type compatible with the return value of the event's delegate type, <c>U</c> is either <c>dynamic</c> or the event's 
     ///     delegate type, <c>Vn</c> are types matching the delegate's parameters.</param>
     /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods.</param>
     /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property of the
     ///     <see cref="meta"/> API.</param>
+    /// <returns>An <see cref="IOverrideAdviceResult{T}"/> exposing the overridden <see cref="IEvent"/>.</returns>
     /// <seealso href="@overriding-events"/>
     public static IOverrideAdviceResult<IEvent> OverrideAccessors(
         this IAdviser<IEvent> adviser,
@@ -850,10 +847,9 @@ public static class AdviserExtensions
     /// <param name="adviser">An adviser for a named type.</param>
     /// <param name="eventTemplate">The name of the event in the aspect class that must be used as a template for the introduced event. This event
     ///     must be annotated with <see cref="TemplateAttribute"/>. The type of the template event can be any delegate type. The type of the introduced event
-    ///     can be changed dynamically thanks to the <see cref="IEventBuilder"/> returned by this method. 
-    /// </param>
+    ///     can be changed dynamically thanks to the <see cref="IEventBuilder"/> returned by this method.</param>
     /// <param name="scope">Determines the scope (e.g. <see cref="IntroductionScope.Instance"/> or <see cref="IntroductionScope.Static"/>) of the introduced
-    ///     event. The default scope depends on the scope of the template event. If the event is static, the introduced event is static. However, if the
+    ///     event. The default scope depends on the scope of the template event. If the template event is static, the introduced event is static. However, if the
     ///     template event is non-static, then the introduced event copies the scope of the target declaration of the aspect.</param>
     /// <param name="whenExists">Determines the implementation strategy when an event of the same name is already declared in the target type.
     ///     The default strategy is to fail with a compile-time error.</param>
@@ -879,7 +875,7 @@ public static class AdviserExtensions
 
     /// <summary>
     /// Introduces a new event to the target type, or overrides the implementation of an existing one, by specifying individual template methods
-    /// for the adder, the remover, and the raiser.
+    /// for the adder and the remover, and optionally an invocation interception template.
     /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to introduce the event to a different type than the current one.
     /// </summary>
     /// <param name="adviser">An adviser for a named type.</param>
@@ -891,12 +887,12 @@ public static class AdviserExtensions
     ///     This method must be annotated with <see cref="TemplateAttribute"/>. The signature of this method must
     ///     be <c>void Remove(T value)</c> where <c>T</c> is either <c>dynamic</c> or a type compatible with the type of the event.</param>
     /// <param name="invokeTemplate">The name of the method of the aspect class whose type and implementation will be used as a template for intercepting invocation of 
-    ///     event's handlers. The signature of this method must be <c>T Invoke()</c>, <c>T Invoke(U handler)</c>, or <c>T Invoke(U handler, V1 param1, V2 param2, ...)</c>  
-    ///     where <c>T</c> is either <c>dynamic</c> or a type compatible with the return value of the event's delegate type, <c>U</c> is either dynamic or the event's 
+    ///     the event's handlers. The signature of this method must be <c>T Invoke()</c>, <c>T Invoke(U handler)</c>, or <c>T Invoke(U handler, V1 param1, V2 param2, ...)</c>  
+    ///     where <c>T</c> is either <c>dynamic</c> or a type compatible with the return value of the event's delegate type, <c>U</c> is either <c>dynamic</c> or the event's 
     ///     delegate type, <c>Vn</c> are types matching the delegate's parameters.</param>
     /// <param name="raiseTemplate">Reserved for future use (not implemented).</param>
     /// <param name="scope">Determines the scope (e.g. <see cref="IntroductionScope.Instance"/> or <see cref="IntroductionScope.Static"/>) of the introduced
-    ///     event. The default scope depends on the scope of the template event. If the event is static, the introduced event is static. However, if the
+    ///     event. The default scope depends on the scope of the template event. If the template event is static, the introduced event is static. However, if the
     ///     template event is non-static, then the introduced event copies the scope of the target declaration of the aspect.</param>
     /// <param name="whenExists">Determines the implementation strategy when an event of the same name is already declared in the target type.
     ///     The default strategy is to fail with a compile-time error.</param>
@@ -904,7 +900,7 @@ public static class AdviserExtensions
     /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods.</param>
     /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property of the
     ///     <see cref="meta"/> API.</param>
-    /// <returns>An <see cref="IEventBuilder"/> that allows to change the name and the type of the event.</returns>
+    /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> exposing the introduced or overriding <see cref="IEvent"/>.</returns>
     /// <seealso href="@introducing-members"/>
     public static IIntroductionAdviceResult<IEvent> IntroduceEvent(
         this IAdviser<INamedType> adviser,
@@ -1162,10 +1158,9 @@ public static class AdviserExtensions
     /// <param name="defaultValue">The default value of the parameter (required). It must be type-compatible with <paramref name="parameterType"/>.
     ///     To specify <c>default</c> as the default value, use <see cref="TypedConstant.Default(Metalama.Framework.Code.IType)"/>.</param>
     /// <param name="pullAction">An optional delegate that returns a <see cref="PullAction"/> specifying how to pull the new parameter from other child constructors.
-    ///     A <c>null</c> value is equivalent to <see cref="PullAction.None"/>, i.e. <paramref name="defaultValue"/> of the parameter will be used.
-    /// </param>
+    ///     A <c>null</c> value is equivalent to <see cref="PullAction.None"/>, i.e. <paramref name="defaultValue"/> of the parameter will be used.</param>
     /// <param name="attributes">An optional list of custom attributes to add to the introduced parameter.</param>
-    /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> that exposes the outcome of the operation and the introduced <see cref="IParameter"/>.</returns>
+    /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> exposing the introduced <see cref="IParameter"/>.</returns>
     [Obsolete( "This overload does not work across project boundaries. Use an overload that accepts an IIntroduceConstructorParameterPullStrategy." )]
     public static IIntroductionAdviceResult<IParameter> IntroduceParameter(
         this IAdviser<IConstructor> adviser,
@@ -1220,10 +1215,9 @@ public static class AdviserExtensions
     /// <param name="defaultValue">The default value of the parameter (required). It must be type-compatible with <paramref name="parameterType"/>.
     ///     To specify <c>default</c> as the default value, use <see cref="TypedConstant.Default(Metalama.Framework.Code.IType)"/>.</param>
     /// <param name="pullAction">An optional delegate that returns a <see cref="PullAction"/> specifying how to pull the new parameter from other child constructors.
-    ///     A <c>null</c> value is equivalent to <see cref="PullAction.None"/>, i.e. <paramref name="defaultValue"/> of the parameter will be used.
-    /// </param>
+    ///     A <c>null</c> value is equivalent to <see cref="PullAction.None"/>, i.e. <paramref name="defaultValue"/> of the parameter will be used.</param>
     /// <param name="attributes">An optional list of custom attributes to add to the introduced parameter.</param>
-    /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> that exposes the outcome of the operation and the introduced <see cref="IParameter"/>.</returns>
+    /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> exposing the introduced <see cref="IParameter"/>.</returns>
     [Obsolete( "This overload does not work across project boundaries. Use an overload that accepts an IIntroduceConstructorParameterPullStrategy." )]
     public static IIntroductionAdviceResult<IParameter> IntroduceParameter(
         this IAdviser<IConstructor> adviser,
@@ -1252,7 +1246,7 @@ public static class AdviserExtensions
     /// <param name="pullStrategy">An optional <see cref="IPullStrategy"/> that returns a <see cref="PullAction"/> specifying how to pull the new parameter from other child constructors.
     ///     A <c>null</c> value is equivalent to <see cref="PullAction.None"/>, i.e. <paramref name="defaultValue"/> of the parameter will be used.</param>
     /// <param name="attributes">An optional list of custom attributes to add to the introduced parameter.</param>
-    /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> that exposes the outcome of the operation and the introduced <see cref="IParameter"/>.</returns>
+    /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> exposing the introduced <see cref="IParameter"/>.</returns>
     public static IIntroductionAdviceResult<IParameter> IntroduceParameter(
         this IAdviser<IConstructor> adviser,
         string parameterName,
@@ -1459,3 +1453,4 @@ public static class AdviserExtensions
         }
     }
 }
+
