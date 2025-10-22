@@ -2,7 +2,7 @@ public class TargetClass
 {
   [Dependency]
   private readonly IFormatProvider _formatProvider;
-  public TargetClass(IFormatProvider? formatProvider = default)
+  public TargetClass([AspectGenerated] IFormatProvider? formatProvider = default)
   {
     this._formatProvider = formatProvider ?? throw new System.ArgumentNullException(nameof(formatProvider));
   }

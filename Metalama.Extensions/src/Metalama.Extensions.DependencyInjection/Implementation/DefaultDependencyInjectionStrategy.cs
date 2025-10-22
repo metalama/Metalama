@@ -80,7 +80,7 @@ public class DefaultDependencyInjectionStrategy
 
     /// <summary>
     /// The entry point of the <see cref="DefaultDependencyInjectionStrategy"/>. Orchestrates all steps: first calls <see cref="TryIntroduceFieldOrProperty"/>,
-    /// then <see cref="GetPullStrategy"/>, then <see cref="TryPullDependency(Metalama.Framework.Advising.IAdviser{Metalama.Framework.Code.INamedType},Metalama.Framework.Code.IFieldOrProperty,Metalama.Extensions.DependencyInjection.Implementation.IPullStrategy)"/>.
+    /// then <see cref="GetDependencyPullStrategy"/>, then <see cref="TryPullDependency(Metalama.Framework.Advising.IAdviser{Metalama.Framework.Code.INamedType},Metalama.Framework.Code.IFieldOrProperty,IDependencyPullStrategy)"/>.
     /// </summary>
     public virtual IntroduceDependencyResult IntroduceDependency( IAdviser<INamedType> adviser )
     {
@@ -95,7 +95,7 @@ public class DefaultDependencyInjectionStrategy
 
         SuppressionHelper.SuppressUnusedWarnings( adviser, fieldOrProperty );
 
-        var pullStrategy = this.GetPullStrategy( fieldOrProperty );
+        var pullStrategy = this.GetDependencyPullStrategy( fieldOrProperty );
 
         if ( !this.TryPullDependency( adviser, fieldOrProperty, pullStrategy ) )
         {
@@ -109,7 +109,7 @@ public class DefaultDependencyInjectionStrategy
 
     public virtual bool TryImplementDependency( IAdviser<IFieldOrProperty> adviser )
     {
-        var pullStrategy = this.GetPullStrategy( adviser.Target );
+        var pullStrategy = this.GetDependencyPullStrategy( adviser.Target );
 
         this.TryPullDependency( adviser.With( adviser.Target.DeclaringType ), adviser.Target, pullStrategy );
 
@@ -117,7 +117,7 @@ public class DefaultDependencyInjectionStrategy
     }
 
     /// <summary>
-    /// Gets the constructors that are modified by <see cref="TryPullDependency(Metalama.Framework.Advising.IAdviser{Metalama.Framework.Code.INamedType},Metalama.Framework.Code.IFieldOrProperty,Metalama.Extensions.DependencyInjection.Implementation.IPullStrategy)"/>.
+    /// Gets the constructors that are modified by <see cref="TryPullDependency(Metalama.Framework.Advising.IAdviser{Metalama.Framework.Code.INamedType},Metalama.Framework.Code.IFieldOrProperty,IDependencyPullStrategy)"/>.
     /// </summary>
     /// <param name="type">The type in which the dependency is being injected.</param>
     private static IEnumerable<IConstructor> GetConstructors( INamedType type )
@@ -133,13 +133,13 @@ public class DefaultDependencyInjectionStrategy
     }
 
     /// <summary>
-    /// Pulls the dependency from all constructors, i.e. introduce a parameter to these constructors (according to an <see cref="IPullStrategy"/>), and
+    /// Pulls the dependency from all constructors, i.e. introduce a parameter to these constructors (according to an <see cref="IDependencyPullStrategy"/>), and
     /// assigns its value to the dependency property.
     /// </summary>
     /// <param name="adviser">An <see cref="IAspectBuilder{TAspectTarget}"/> for the target type.</param>
     /// <param name="dependencyFieldOrProperty">The field or property that exposed the dependency.</param>
-    /// <param name="pullStrategy">A pull strategy (typically the one returned by <see cref="GetPullStrategy"/>).</param>
-    protected bool TryPullDependency( IAdviser<INamedType> adviser, IFieldOrProperty dependencyFieldOrProperty, IPullStrategy pullStrategy )
+    /// <param name="dependencyPullStrategy">A pull strategy (typically the one returned by <see cref="GetDependencyPullStrategy"/>).</param>
+    protected bool TryPullDependency( IAdviser<INamedType> adviser, IFieldOrProperty dependencyFieldOrProperty, IDependencyPullStrategy dependencyPullStrategy )
     {
         SuppressNonNullableFieldMustContainValue( adviser, dependencyFieldOrProperty );
 
@@ -147,7 +147,7 @@ public class DefaultDependencyInjectionStrategy
 
         foreach ( var constructor in GetConstructors( adviser.Target ) )
         {
-            if ( !this.TryPullDependency( adviser.With( constructor ), dependencyFieldOrProperty, pullStrategy ) )
+            if ( !this.TryPullDependency( adviser.With( constructor ), dependencyFieldOrProperty, dependencyPullStrategy ) )
             {
                 success = false;
             }
@@ -162,9 +162,10 @@ public class DefaultDependencyInjectionStrategy
     protected virtual bool TryPullDependency(
         IAdviser<IConstructor> adviser,
         IFieldOrProperty dependencyFieldOrProperty,
-        IPullStrategy pullStrategy )
+        IDependencyPullStrategy dependencyPullStrategy )
     {
         var constructor = adviser.Target;
+        var pullStrategy = dependencyPullStrategy.CreateParameterPullStrategy();
 
         // Find a compatible type in the constructor.
         var existingParameter = pullStrategy.GetExistingParameter( constructor );
@@ -178,22 +179,22 @@ public class DefaultDependencyInjectionStrategy
                     newParameter.Name,
                     newParameter.Type,
                     TypedConstant.Default( newParameter.Type ),
-                    pullStrategy.PullParameter,
+                    pullStrategy,
                     newParameter.Attributes )
                 .Declaration;
         }
 
-        var assignment = pullStrategy.GetAssignmentStatement( existingParameter );
+        var assignment = dependencyPullStrategy.GetAssignmentStatement( existingParameter );
         adviser.AddInitializer( assignment );
 
         return true;
     }
 
     /// <summary>
-    /// Gets an <see cref="IPullStrategy"/>, i.e. a strategy to pull a dependency field or property from constructors.
+    /// Gets an <see cref="IDependencyPullStrategy"/>, i.e. a strategy to pull a dependency field or property from constructors.
     /// </summary>
     /// <param name="introducedFieldOrProperty">The value returned by <see cref="TryIntroduceFieldOrProperty"/>.</param>
-    /// <returns>The <see cref="IPullStrategy"/>.</returns>
-    protected virtual IPullStrategy GetPullStrategy( IFieldOrProperty introducedFieldOrProperty )
-        => new DefaultPullStrategy( this.Properties, introducedFieldOrProperty );
+    /// <returns>The <see cref="IDependencyPullStrategy"/>.</returns>
+    protected virtual IDependencyPullStrategy GetDependencyPullStrategy( IFieldOrProperty introducedFieldOrProperty )
+        => new DefaultDependencyPullStrategy( this.Properties, introducedFieldOrProperty );
 }

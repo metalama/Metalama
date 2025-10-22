@@ -12,7 +12,7 @@ namespace Metalama.Extensions.DependencyInjection.Implementation;
 
 /// <summary>
 /// Interface that dependency injection framework adapters must implement to handle the <see cref="IntroduceDependencyAttribute"/> advice.
-/// An implementation typically also implements <see cref="IPullStrategy"/>.
+/// An implementation typically also implements <see cref="IDependencyPullStrategy"/>.
 /// </summary>
 [CompileTime]
 [PublicAPI]

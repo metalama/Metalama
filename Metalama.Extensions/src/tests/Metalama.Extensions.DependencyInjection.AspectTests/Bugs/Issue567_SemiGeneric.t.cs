@@ -14,7 +14,7 @@ public abstract class ModelBase<T>
     }
   }
   private ILastChanceExceptionHandler? _exceptionHandler;
-  protected ModelBase(ILastChanceExceptionHandler? exceptionHandler = null)
+  protected ModelBase([AspectGenerated] ILastChanceExceptionHandler? exceptionHandler = null)
   {
     this._exceptionHandler = exceptionHandler ?? throw new System.ArgumentNullException(nameof(exceptionHandler));
   }
@@ -22,10 +22,10 @@ public abstract class ModelBase<T>
 public abstract class UpdateModelBase : ModelBase<string>
 {
   private readonly IMutable<string> _last;
-  protected UpdateModelBase(ILastChanceExceptionHandler? exceptionHandler = default) : this(new Copied<string>(), exceptionHandler)
+  protected UpdateModelBase() : this(new Copied<string>())
   {
   }
-  protected UpdateModelBase(IMutable<string> last, ILastChanceExceptionHandler? exceptionHandler = default) : base(exceptionHandler)
+  protected UpdateModelBase(IMutable<string> last)
   {
     this._last = last;
   }

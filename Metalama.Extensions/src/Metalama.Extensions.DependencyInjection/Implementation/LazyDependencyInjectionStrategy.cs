@@ -86,7 +86,7 @@ public partial class LazyDependencyInjectionStrategy : DefaultDependencyInjectio
 
         propertyArgs.CacheField = introduceCacheFieldResult.Declaration;
 
-        var pullStrategy = new PullStrategy( this.Properties, property, introduceFuncFieldResult.Declaration );
+        var pullStrategy = new InjectionStrategy( this.Properties, property, introduceFuncFieldResult.Declaration );
 
         return this.TryPullDependency( adviser, propertyArgs.DependencyField, pullStrategy );
     }
