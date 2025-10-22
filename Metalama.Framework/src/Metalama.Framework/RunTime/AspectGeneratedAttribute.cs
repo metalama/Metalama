@@ -11,6 +11,6 @@ namespace Metalama.Framework.RunTime;
 /// A custom attribute added to introduced parameters.
 /// </summary>
 /// <remarks>This attribute allows to construct the pre-transformation <see cref="SerializableDeclarationId"/> of the member,
-/// before any parameter was added.</remarks>
-[AttributeUsage(AttributeTargets.Parameter )]
+/// before any parameter was added. It is added when the constructor can be called from an external assembly.</remarks>
+[AttributeUsage( AttributeTargets.Parameter )]
 public sealed class AspectGeneratedAttribute : Attribute;

@@ -359,7 +359,7 @@ internal sealed class PipelineStepsState
             inheritableAspectInstances.Concat(
                     inheritedAspectInstancesInProject.Where(
                         a => a.AspectInstance.IsInheritable &&
-                             a.AspectInstance.TargetDeclaration.GetTarget( compilation ).IsAccessibleFromOutsideAssembly() ) )
+                             a.AspectInstance.TargetDeclaration.GetTarget( compilation ).CanBeImplementedFromOutsideAssembly() ) )
                 .Select( x => x.AspectInstance ) );
 
         return concreteAspectInstances.Concat( concreteInheritedAspectInstancesInProject ).SelectAsImmutableArray( x => x.AspectInstance );

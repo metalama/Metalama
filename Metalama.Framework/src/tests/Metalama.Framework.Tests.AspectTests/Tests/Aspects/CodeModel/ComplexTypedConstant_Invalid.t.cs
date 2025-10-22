@@ -3,7 +3,7 @@
 [Aspect]
 internal class TargetCode
 {
-  public TargetCode([global::Metalama.Framework.RunTime.AspectGeneratedAttribute] global::System.Int32[] p = new global::System.Int32[]
+  public TargetCode(global::System.Int32[] p = new global::System.Int32[]
   {
     42
   }

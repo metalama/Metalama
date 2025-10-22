@@ -100,7 +100,7 @@ internal sealed partial class ImplementInterfaceAdvice : Advice<ImplementInterfa
         // should be reported.
 
         var templateReflectionContext =
-            this.TemplateInstance.TemplateClass.GetTemplateReflectionContext( this.SourceCompilation.CompilationContext );
+            this.TemplateInstance.AssertNotNull().TemplateClass.GetTemplateReflectionContext( this.SourceCompilation.CompilationContext );
 
         var templateClassType = templateReflectionContext.GetCompilationModel( this.SourceCompilation )
             .Factory.GetTypeByReflectionName( this.TemplateInstance.TemplateClass.FullName );

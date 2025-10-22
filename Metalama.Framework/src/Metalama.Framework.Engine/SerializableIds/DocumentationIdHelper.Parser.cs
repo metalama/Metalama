@@ -19,7 +19,7 @@ namespace Metalama.Framework.Engine.SerializableIds;
 
 internal static partial class DocumentationIdHelper
 {
-    private class Parser
+    private sealed class Parser
     {
         private readonly CompilationModel _compilation;
         private IType? _aspectGeneratedType;

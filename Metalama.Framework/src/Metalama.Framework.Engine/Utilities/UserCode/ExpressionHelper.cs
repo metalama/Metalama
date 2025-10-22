@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Code;
-using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.Templating.Expressions;
 using Metalama.Framework.Project;
@@ -13,7 +12,7 @@ namespace Metalama.Framework.Engine.Utilities.UserCode;
 
 internal class ExpressionHelper : IExpressionHelper
 {
-    private SyntaxGenerationContext _syntaxGenerationContext;
+    private readonly SyntaxGenerationContext _syntaxGenerationContext;
 
     public ExpressionHelper( SyntaxGenerationContext syntaxGenerationContext )
     {

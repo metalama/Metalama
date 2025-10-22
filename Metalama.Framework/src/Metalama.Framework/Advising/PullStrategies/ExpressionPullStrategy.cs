@@ -5,7 +5,6 @@
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.SyntaxBuilders;
 using Metalama.Framework.Serialization;
-using System;
 
 namespace Metalama.Framework.Advising.PullStrategies;
 

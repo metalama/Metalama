@@ -39,7 +39,7 @@ internal sealed class IntroduceParameterTransformation : BaseSyntaxTreeTransform
         Invariant.Assert( this.TargetMember is not IIntroducedRef );
 
         var syntax = SyntaxFactory.Parameter(
-            syntaxGenerationContext.SyntaxGenerator.AttributesForDeclaration(  this.Parameter.ToRef(), compilation ),
+            syntaxGenerationContext.SyntaxGenerator.AttributesForDeclaration( this.Parameter.ToRef(), compilation ),
             default,
             syntaxGenerationContext.SyntaxGenerator.TypeSyntax( this.Parameter.Type )
                 .WithOptionalTrailingTrivia( SyntaxFactory.ElasticSpace, syntaxGenerationContext.Options ),

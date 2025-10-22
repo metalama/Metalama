@@ -7,7 +7,8 @@ using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using System;
 
-namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.AppendParameter.Pull_CrossProject;
+namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.AppendParameter.Pull_Two;
+
 
 public class Aspect1 : ConstructorAspect
 {
@@ -34,6 +35,7 @@ public class Aspect2 : ConstructorAspect
     }
 }
 
+
 // <target>
 public class C
 {
@@ -42,3 +44,6 @@ public class C
 
     public C( string s ) : this() { }
 }
+
+// <target>
+public class D : C { }

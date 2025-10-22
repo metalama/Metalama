@@ -247,7 +247,7 @@ public abstract class AspectPipeline : IDisposable
         IBoundAspectClass[] systemAspectClasses =
         [
             FabricAggregateAspectClass.CreateTopLevelAspectClass( projectServiceProviderWithProject, compilationModel ),
-            IntroduceConstructorParameterTransitiveAspect.CreateAspectClass( projectServiceProviderWithProject, compilationModel )
+            PullConstructorParameterTransitiveAspect.CreateAspectClass( projectServiceProviderWithProject, compilationModel )
         ];
 
         var systemAspectLayers = systemAspectClasses.Select( ( c, i ) => new OrderedAspectLayer( -100 + i, -100 + i, c.Layers[0] ) );

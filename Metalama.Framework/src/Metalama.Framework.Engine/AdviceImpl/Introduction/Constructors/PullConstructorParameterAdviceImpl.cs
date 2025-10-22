@@ -59,9 +59,9 @@ internal sealed class PullConstructorParameterAdviceImpl
                 .Where( c => c.InitializerKind == ConstructorInitializerKind.This ) );
 
         // Register a transitive aspect for the current type.
-        if ( this._pullStrategy is not null && this._pullStrategy is not LegacyPullStrategy && baseParameter.IsAccessibleFromOutsideAssembly() )
+        if ( this._pullStrategy is not null && this._pullStrategy is not LegacyPullStrategy && baseConstructor.CanBeChainedFromOutsideAssembly() )
         {
-            var transitiveAspect = new IntroduceConstructorParameterTransitiveAspect(
+            var transitiveAspect = new PullConstructorParameterTransitiveAspect(
                 this._pullStrategy,
                 baseParameter.ToRef(),
                 this._context.AspectOrder );
@@ -71,7 +71,7 @@ internal sealed class PullConstructorParameterAdviceImpl
                     transitiveAspect,
                     baseParameter.DeclaringMember.DeclaringType.ToRef(),
                     baseParameter.DeclaringMember.DeclaringType.Depth,
-                    (IAspectClassImpl) this._context.AspectClassResolver.GetAspectClass( typeof(IntroduceConstructorParameterTransitiveAspect) ),
+                    (IAspectClassImpl) this._context.AspectClassResolver.GetAspectClass( typeof(PullConstructorParameterTransitiveAspect) ),
                     this._aspectLayerInstance.AspectInstance.AspectState,
                     this._aspectLayerInstance.AspectInstance.PredecessorDegree + 1 ) );
         }
@@ -169,7 +169,12 @@ internal sealed class PullConstructorParameterAdviceImpl
                             this._aspectLayerInstance ) { DefaultValue = constant };
 
                         recursiveParameterBuilder.AddAttributes( pullParameterAction.ParameterAttributes );
-                        recursiveParameterBuilder.AddAttribute( AttributeConstruction.Create( typeof(AspectGeneratedAttribute) ) );
+
+                        if ( initializedChainedConstructor.CanBeChainedFromOutsideAssembly() )
+                        {
+                            recursiveParameterBuilder.AddAttribute( AttributeConstruction.Create( typeof(AspectGeneratedAttribute) ) );
+                        }
+
                         recursiveParameterBuilder.Freeze();
 
                         this.AddTransformation( new IntroduceParameterTransformation( this._aspectLayerInstance, recursiveParameterBuilder.BuilderData ) );

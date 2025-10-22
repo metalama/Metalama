@@ -13,13 +13,13 @@ using System.Linq;
 
 namespace Metalama.Framework.Engine.AdviceImpl.Introduction.Constructors;
 
-internal sealed partial class IntroduceConstructorParameterTransitiveAspect : IAspect<INamedType>
+internal sealed partial class PullConstructorParameterTransitiveAspect : IAspect<INamedType>
 {
     private readonly IPullStrategy? _pullStrategy;
     private readonly IRef<IParameter> _parameter;
     private readonly int _order;
 
-    public IntroduceConstructorParameterTransitiveAspect(
+    public PullConstructorParameterTransitiveAspect(
         IPullStrategy? pullStrategy,
         IRef<IParameter> parameter,
         int order )
@@ -33,7 +33,7 @@ internal sealed partial class IntroduceConstructorParameterTransitiveAspect : IA
 
     public void BuildAspect( IAspectBuilder<INamedType> builder )
     {
-        var allInstances = builder.AspectInstance.SecondaryInstances.Select( x => (IntroduceConstructorParameterTransitiveAspect) x.Aspect )
+        var allInstances = builder.AspectInstance.SecondaryInstances.Select( x => (PullConstructorParameterTransitiveAspect) x.Aspect )
             .Concat( this )
             .OrderBy( a => a._order );
 
@@ -42,7 +42,7 @@ internal sealed partial class IntroduceConstructorParameterTransitiveAspect : IA
         foreach ( var instance in allInstances )
         {
             var parameter = instance._parameter.GetTarget( internalBuilder.AdviceFactory.MutableCompilation );
-            internalBuilder.AdviceFactory.PullParameter( parameter, this._pullStrategy );
+            internalBuilder.AdviceFactory.PullParameter( parameter, instance._pullStrategy );
         }
     }
 
@@ -50,6 +50,6 @@ internal sealed partial class IntroduceConstructorParameterTransitiveAspect : IA
         => new SystemAspectClass(
             serviceProvider,
             compilation,
-            $"<{nameof(IntroduceConstructorParameterTransitiveAspect)}>",
-            typeof(IntroduceConstructorParameterTransitiveAspect) );
+            $"<{nameof(PullConstructorParameterTransitiveAspect)}>",
+            typeof(PullConstructorParameterTransitiveAspect) );
 }

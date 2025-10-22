@@ -8,23 +8,23 @@ using Metalama.Framework.Serialization;
 
 namespace Metalama.Framework.Engine.AdviceImpl.Introduction.Constructors;
 
-internal sealed partial class IntroduceConstructorParameterTransitiveAspect
+internal sealed partial class PullConstructorParameterTransitiveAspect
 {
-    private sealed class Serializer : ReferenceTypeSerializer<IntroduceConstructorParameterTransitiveAspect>
+    private sealed class Serializer : ReferenceTypeSerializer<PullConstructorParameterTransitiveAspect>
     {
 #pragma warning disable SA1101
 
-        public override IntroduceConstructorParameterTransitiveAspect CreateInstance( IArgumentsReader constructorArguments )
+        public override PullConstructorParameterTransitiveAspect CreateInstance( IArgumentsReader constructorArguments )
         {
             var pullStrategy = constructorArguments.GetValue<IPullStrategy>( nameof(_pullStrategy) );
             var parameter = constructorArguments.GetValue<IRef<IParameter>>( nameof(_parameter) ).AssertNotNull();
             var order = constructorArguments.GetValue<int>( nameof(_order) );
 
-            return new IntroduceConstructorParameterTransitiveAspect( pullStrategy, parameter, order );
+            return new PullConstructorParameterTransitiveAspect( pullStrategy, parameter, order );
         }
 
         public override void SerializeObject(
-            IntroduceConstructorParameterTransitiveAspect obj,
+            PullConstructorParameterTransitiveAspect obj,
             IArgumentsWriter constructorArguments,
             IArgumentsWriter initializationArguments )
         {

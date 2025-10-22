@@ -96,7 +96,11 @@ internal sealed class IntroduceConstructorParameterAdvice : Advice<IntroductionA
 
         this._buildAction?.Invoke( parameterBuilder );
 
-        parameterBuilder.AddAttribute( AttributeConstruction.Create( typeof(AspectGeneratedAttribute) ) );
+        if ( constructor.CanBeChainedFromOutsideAssembly() )
+        {
+            parameterBuilder.AddAttribute( AttributeConstruction.Create( typeof(AspectGeneratedAttribute) ) );
+        }
+
         parameterBuilder.Freeze();
         var parameterBuilderData = parameterBuilder.BuilderData;
 
