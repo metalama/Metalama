@@ -96,7 +96,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
     IAdviceFactoryImpl IAdviceFactoryImpl.WithTemplateClassInstance( TemplateClassInstance templateClassInstance )
         => this.WithTemplateClassInstance( templateClassInstance );
 
-    public IAdviceFactory WithTemplateProvider( TemplateProvider templateProvider )
+    public IAdviceFactory WithTemplateProvider( in TemplateProvider templateProvider )
     {
         return this.WithTemplateClassInstance(
             new TemplateClassInstance(

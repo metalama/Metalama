@@ -866,7 +866,7 @@ namespace Metalama.Framework.Advising
         /// </summary>
         /// <param name="templateProvider">A <see cref="TemplateProvider"/>.</param>
         /// <returns>An <see cref="IAdviceFactory"/>.</returns>
-        IAdviceFactory WithTemplateProvider( TemplateProvider templateProvider );
+        IAdviceFactory WithTemplateProvider( in TemplateProvider templateProvider );
 
         /// <summary>
         /// Returns a copy of the current <see cref="IAdviceFactory"/> that will use the specified object to find template methods.
