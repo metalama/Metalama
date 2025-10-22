@@ -19,13 +19,13 @@ namespace Metalama.Framework.Engine.Aspects;
 internal partial class TransitiveAspectPipelineExtension : PipelineExtension
 {
     public override IEnumerable<ITransitiveAspectsManifestExtension> GetTransitiveManifestExtensions( IEnumerable<ITransitivePipelineContributor> contributors )
-        => contributors.OfKind( ContributorKind.TransitiveAspect ).Select( x => new SerializableTransitiveAspectInstance( x ) );
+        => contributors.OfKind( ContributorKind.TransitiveAspectInstance ).Select( x => new SerializableTransitiveAspectInstance( x ) );
 
     public override IEnumerable<IPipelineContributor> GetPipelineContributorsFromTransitiveManifest(
         ImmutableArray<ITransitiveAspectsManifestExtension> extensions,
         IAspectClassResolver aspectClassResolver )
     {
-        var transitiveAspectInstances = extensions.OfKind( ContributorKind.SerializableTransitiveAspect )
+        var transitiveAspectInstances = extensions.OfKind( ContributorKind.SerializableTransitiveAspectInstance )
             .Select( i => i.ToAspectInstance( aspectClassResolver ) )
             .ToMultiValueDictionary( x => (IAspectClass) x.AspectClass, x => x );
 
@@ -39,7 +39,7 @@ internal partial class TransitiveAspectPipelineExtension : PipelineExtension
         CompilationModel finalCompilation,
         CancellationToken cancellationToken )
         => Task.FromResult(
-            new ExtensionPipelineContributorsResult( contributors.OfKind( ContributorKind.TransitiveAspect ).ToImmutableArray<ITransitivePipelineContributor>(), ImmutableUserDiagnosticList.Empty ) );
+            new ExtensionPipelineContributorsResult( contributors.OfKind( ContributorKind.TransitiveAspectInstance ).ToImmutableArray<ITransitivePipelineContributor>(), ImmutableUserDiagnosticList.Empty ) );
 
     public override Task<ExtensionPipelineContributorsResult> ExecuteDesignTimePipelineContributorsAsync(
         AspectPipelineConfiguration pipelineConfiguration,
@@ -49,6 +49,6 @@ internal partial class TransitiveAspectPipelineExtension : PipelineExtension
         CancellationToken cancellationToken )
         => Task.FromResult(
             new ExtensionPipelineContributorsResult(
-                contributors.OfKind( ContributorKind.TransitiveAspect ).ToImmutableArray<ITransitivePipelineContributor>(),
+                contributors.OfKind( ContributorKind.TransitiveAspectInstance ).ToImmutableArray<ITransitivePipelineContributor>(),
                 ImmutableUserDiagnosticList.Empty ) );
 }

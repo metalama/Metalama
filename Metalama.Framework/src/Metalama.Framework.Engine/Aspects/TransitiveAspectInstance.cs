@@ -45,7 +45,7 @@ internal class TransitiveAspectInstance : ITransitivePipelineContributor, IExten
 
     public IDesignTimePipelineResultExtension? ToDesignTime() => this;
 
-    public ContributorKind ContributorKind => ContributorKind.TransitiveAspect;
+    public ContributorKind ContributorKind => ContributorKind.TransitiveAspectInstance;
 
     ITransitiveAspectsManifestExtension IDesignTimePipelineResultExtension.ToTransitiveAspectManifestExtension()
         => new SerializableTransitiveAspectInstance( this );

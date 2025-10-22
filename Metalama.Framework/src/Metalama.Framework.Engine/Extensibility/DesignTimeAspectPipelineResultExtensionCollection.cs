@@ -80,7 +80,7 @@ public sealed class DesignTimeAspectPipelineResultExtensionCollection
     public ImmutableArray<ITransitiveAspectsManifestExtension> ToTransitiveValidatorInstances( bool includeValidators )
         => includeValidators
             ? this.Extensions.SelectAsImmutableArray( x => x.ToTransitiveAspectManifestExtension() )
-            : this.Extensions.Where( e => !e.ContributorKind.IsValidator ).Select( x => x.ToTransitiveAspectManifestExtension() ).ToImmutableArray();
+            : this.Extensions.Where( e => !e.ContributorKind.IsDesignTimeValidator ).Select( x => x.ToTransitiveAspectManifestExtension() ).ToImmutableArray();
 
     public sealed class Builder
     {
@@ -97,7 +97,7 @@ public sealed class DesignTimeAspectPipelineResultExtensionCollection
 
         public void Remove( IDesignTimePipelineResultExtension extension )
         {
-            if ( extension.ContributorKind.IsValidator && extension is IDesignTimeValidatorExtension validator )
+            if ( extension.ContributorKind.IsDesignTimeValidator && extension is IDesignTimeValidatorExtension validator )
             {
                 if ( !this._validatorsBuilder.Remove( validator.ValidatedDeclaration, validator ) )
                 {
@@ -117,7 +117,7 @@ public sealed class DesignTimeAspectPipelineResultExtensionCollection
 
         public void Add( IDesignTimePipelineResultExtension extension )
         {
-            if ( extension.ContributorKind.IsValidator && extension is IDesignTimeValidatorExtension validator )
+            if ( extension.ContributorKind.IsDesignTimeValidator && extension is IDesignTimeValidatorExtension validator )
             {
                 this._validatorsBuilder.Add( validator.ValidatedDeclaration, validator );
             }

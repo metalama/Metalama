@@ -11,30 +11,33 @@ namespace Metalama.Framework.Engine.Extensibility;
 
 public abstract class ContributorKind
 {
-    public bool IsExtension { get; }
+    protected ContributorKind( string name ) 
+    {
+        this.Name = name;
+    }
 
-    public bool IsTransitive { get; }
-
-    public bool IsValidator { get; }
+    public string Name { get; }
+    
+    internal bool IsExtension { get; init; } = true;
+    
+    public bool IsDesignTimeValidator { get; init; }
 
     public abstract Type Type { get; }
 
-    protected ContributorKind( bool isExtension = false, bool isTransitive = false, bool isValidator = false )
-    {
-        this.IsExtension = isExtension;
-        this.IsTransitive = isTransitive;
-        this.IsValidator = isValidator;
-    }
+    internal static ContributorKind<IAspectSource> AspectSource { get; } = new( nameof(AspectSource) ) { IsExtension = false };
 
-    internal static ContributorKind<IAspectSource> AspectSource { get; } = new( false, false );
+    internal static ContributorKind<IHierarchicalOptionsSource> HierarchicalOptionsSource { get; } =
+        new( nameof(HierarchicalOptionsSource) ) { IsExtension = false };
 
-    internal static ContributorKind<IHierarchicalOptionsSource> HierarchicalOptionsSource { get; } = new( false, false );
+    internal static ContributorKind<IDiagnosticSource> DiagnosticSource { get; } = new( nameof(DiagnosticSource) );
 
-    internal static ContributorKind<IDiagnosticSource> DiagnosticSource { get; } = new( true, false );
+    internal static ContributorKind<TransitiveAspectInstance> TransitiveAspectInstance { get; } =
+        new( nameof(TransitiveAspectInstance) );
 
-    internal static ContributorKind<TransitiveAspectInstance> TransitiveAspect { get; } = new( true, true );
+    internal static ContributorKind<SerializableTransitiveAspectInstance> SerializableTransitiveAspectInstance { get; } =
+        new( nameof(SerializableTransitiveAspectInstance) );
 
-    internal static ContributorKind<SerializableTransitiveAspectInstance> SerializableTransitiveAspect { get; } = new( true, true );
+    public override string ToString() => this.Name;
 }
 
 #pragma warning disable SA1402
@@ -42,7 +45,7 @@ public class ContributorKind<T> : ContributorKind
 #pragma warning restore SA1402
     where T : IContributor
 {
-    public ContributorKind( bool isExtension, bool isTransitive ) : base( isExtension, isTransitive ) { }
+    public ContributorKind( string name ) : base( name ) { }
 
     public override Type Type => typeof(T);
 }

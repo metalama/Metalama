@@ -93,5 +93,5 @@ internal class SerializableTransitiveAspectInstance : ICompileTimeSerializable, 
         }
     }
 
-    public ContributorKind ContributorKind => ContributorKind.SerializableTransitiveAspect;
+    public ContributorKind ContributorKind => ContributorKind.SerializableTransitiveAspectInstance;
 }
