@@ -31,7 +31,7 @@ internal class AdviceImplementationContext
         if ( this.Diagnostics.HasError() )
         {
             throw new DiagnosticException(
-                "Errors have occured while creating advice.",
+                "Errors have occurred while creating advice.",
                 this.Diagnostics.Where( d => d.Severity == DiagnosticSeverity.Error ).ToImmutableArray() );
         }
     }

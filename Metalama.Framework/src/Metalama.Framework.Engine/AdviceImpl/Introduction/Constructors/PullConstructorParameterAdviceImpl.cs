@@ -140,7 +140,7 @@ internal sealed class PullConstructorParameterAdviceImpl
                 switch ( pullParameterAction.Kind )
                 {
                     case PullActionKind.DoNotPull:
-                        // We do not add a new argument and reply on the optional value.
+                        // We do not add a new argument and rely on the optional value.
                         continue;
 
                     case PullActionKind.UseExpression:

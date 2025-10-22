@@ -819,7 +819,8 @@ namespace Metalama.Framework.Advising
         ///     To specify <c>default</c> as the default value, use <see cref="TypedConstant.Default(Metalama.Framework.Code.IType)"/>.</param>
         /// <param name="pullStrategy">An optional <see cref="IPullStrategy"/> that returns a <see cref="PullAction"/> specifying how to pull the new parameter from other child constructors.
         ///     A <c>null</c> value is equivalent to <see cref="PullAction.None"/>, i.e. <paramref name="defaultValue"/> of the parameter will be used.
-        /// </param>  /// <param name="attributes"></param>
+        /// </param>
+        /// <param name="attributes"></param>
         IIntroductionAdviceResult<IParameter> IntroduceParameter(
             IConstructor constructor,
             string parameterName,

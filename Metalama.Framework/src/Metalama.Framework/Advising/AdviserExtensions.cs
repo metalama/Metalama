@@ -22,16 +22,17 @@ public static class AdviserExtensions
 {
     /// <summary>
     /// Overrides the implementation of a method.
-    /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to apply the advice to another method than the current one.
+    /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to apply the advice to a different method than the current one.
     /// </summary>
     /// <param name="adviser">An adviser for a method.</param>
     /// <param name="template">Name of a method in the aspect class whose implementation will be used as a template.
-    ///     This method must be annotated with <see cref="TemplateAttribute"/>. To select a different templates according to the kind of target method
+    ///     This method must be annotated with <see cref="TemplateAttribute"/>. To select different templates according to the kind of target method
     ///     (such as async or iterator methods), use the constructor of the <see cref="MethodTemplateSelector"/> type. To specify a single
     ///     template for all methods, pass a string.</param>
     /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template method.</param>
     /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property
     ///     of the <see cref="meta"/> API.</param>
+    /// <returns>An <see cref="IOverrideAdviceResult{T}"/> exposing the overridden <see cref="IMethod"/>.</returns>
     /// <seealso href="@overriding-methods"/>
     public static IOverrideAdviceResult<IMethod> Override(
         this IAdviser<IMethod> adviser,
@@ -42,7 +43,7 @@ public static class AdviserExtensions
 
     /// <summary>
     /// Introduces a new method or overrides the implementation of the existing one.
-    /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to apply the advice to another type than the current one.
+    /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to apply the advice to a different type than the current one.
     /// </summary>
     /// <param name="adviser">An adviser for a named type.</param>
     /// <param name="template">Name of the method of the aspect class that will be used as a template for the introduced method. This method must be
@@ -51,14 +52,14 @@ public static class AdviserExtensions
     /// <param name="scope">Determines the scope (e.g. <see cref="IntroductionScope.Instance"/> or <see cref="IntroductionScope.Static"/>) of the introduced
     ///     method. The default scope depends on the scope of the template method.
     ///     If the method is static, the introduced method is static. However, if the template method is non-static, then the introduced method
-    ///     copies of the scope of the target declaration of the aspect.</param>
+    ///     copies the scope of the target declaration of the aspect.</param>
     /// <param name="whenExists">Determines the implementation strategy when a method of the same name and signature is already declared in the target type.
     ///     The default strategy is to fail with a compile-time error.</param>
-    /// <param name="buildMethod"></param>
+    /// <param name="buildMethod">An optional delegate that modifies the <see cref="IMethodBuilder"/> representing the introduced or overriding method.</param>
     /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods.</param>
     /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property
     ///     of the <see cref="meta"/> API.</param>
-    /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> that exposes the outcome of the operation and the introduced or overridden <see cref="IMethod"/>.</returns>
+    /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> exposing the introduced or overriding <see cref="IMethod"/>.</returns>
     /// <seealso href="@introducing-members"/>
     public static IIntroductionAdviceResult<IMethod> IntroduceMethod(
         this IAdviser<INamedType> adviser,
@@ -79,17 +80,17 @@ public static class AdviserExtensions
 
     /// <summary>
     /// Introduces a finalizer or overrides the implementation of the existing one.
-    /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to apply the advice to another type than the current one.
+    /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to apply the advice to a different type than the current one.
     /// </summary>
     /// <param name="adviser">An adviser for a named type.</param>
     /// <param name="template">Name of the method of the aspect class that will be used as a template for the introduced finalizer. This method must be
-    ///     annotated with <see cref="TemplateAttribute"/>. This method can parameters and a return type.</param>
+    ///     annotated with <see cref="TemplateAttribute"/>. This method can have parameters and a return type.</param>
     /// <param name="whenExists">Determines the implementation strategy when a finalizer is already declared in the target type.
     ///     The default strategy is to fail with a compile-time error.</param>
     /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods.</param>
     /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property
     ///     of the <see cref="meta"/> API.</param>
-    /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> that exposes the outcome of the operation and the introduced or overridden <see cref="IMethod"/>.</returns> 
+    /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> exposing the introduced or overriding <see cref="IMethod"/> (finalizer).</returns>
     /// <seealso href="@introducing-members"/>
     public static IIntroductionAdviceResult<IMethod> IntroduceFinalizer(
         this IAdviser<INamedType> adviser,
@@ -106,7 +107,7 @@ public static class AdviserExtensions
 
     /// <summary>
     /// Introduces a unary operator to the target type, or overrides the implementation of an existing one.
-    /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to apply the advice to another type than the current one.
+    /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to apply the advice to a different type than the current one.
     /// </summary>
     /// <param name="adviser">An adviser for a named type.</param>
     /// <param name="template">Name of the method of the aspect class that will be used as a template for the introduced operator. This method must be
@@ -116,11 +117,11 @@ public static class AdviserExtensions
     /// <param name="kind">The kind of operator to introduce.</param>
     /// <param name="whenExists">Determines the implementation strategy when an operator of the same kind and signature is already declared in the target type.
     ///     The default strategy is to fail with a compile-time error.</param>
-    /// <param name="buildOperator">An optional delegate that modifies the <see cref="IMethodBuilder"/> that represents the introduced operator.</param>
+    /// <param name="buildOperator">An optional delegate that modifies the <see cref="IMethodBuilder"/> representing the introduced or overriding operator.</param>
     /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template method.</param>
     /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property
     ///     of the <see cref="meta"/> API.</param>
-    /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> that exposes the outcome of the operation and the introduced or overridden <see cref="IMethod"/>.</returns>
+    /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> exposing the introduced or overriding <see cref="IMethod"/>.</returns>
     /// <seealso href="@introducing-members"/>
     public static IIntroductionAdviceResult<IMethod> IntroduceUnaryOperator(
         this IAdviser<INamedType> adviser,
@@ -145,7 +146,7 @@ public static class AdviserExtensions
 
     /// <summary>
     /// Introduces a binary operator to the target type, or overrides the implementation of an existing one.
-    /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to apply the advice to another type than the current one.
+    /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to apply the advice to a different type than the current one.
     /// </summary>
     /// <param name="adviser">An adviser for a named type.</param>
     /// <param name="template">Name of the method of the aspect class that will be used as a template for the introduced operator. This method must be
@@ -156,11 +157,11 @@ public static class AdviserExtensions
     /// <param name="kind">The kind of operator to introduce.</param>
     /// <param name="whenExists">Determines the implementation strategy when an operator of the same kind and signature is already declared in the target type.
     ///     The default strategy is to fail with a compile-time error.</param>
-    /// <param name="buildOperator">An optional delegate that modifies the <see cref="IMethodBuilder"/> that represents the introduced operator.</param>
+    /// <param name="buildOperator">An optional delegate that modifies the <see cref="IMethodBuilder"/> representing the introduced or overriding operator.</param>
     /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template method.</param>
     /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property
     ///     of the <see cref="meta"/> API.</param>
-    /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> that exposes the outcome of the operation and the introduced or overridden <see cref="IMethod"/>.</returns>
+    /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> exposing the introduced or overriding <see cref="IMethod"/>.</returns>
     /// <seealso href="@introducing-members"/>
     public static IIntroductionAdviceResult<IMethod> IntroduceBinaryOperator(
         this IAdviser<INamedType> adviser,
@@ -187,7 +188,7 @@ public static class AdviserExtensions
 
     /// <summary>
     /// Introduces a conversion operator to the target type, or overrides the implementation of an existing one.
-    /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to apply the advice to another type than the current one.
+    /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to apply the advice to a different type than the current one.
     /// </summary>
     /// <param name="adviser">An adviser for a named type.</param>
     /// <param name="template">Name of the method of the aspect class that will be used as a template for the introduced operator. This method must be
@@ -198,11 +199,11 @@ public static class AdviserExtensions
     /// <param name="isChecked">Determines whether the conversion is checked. The default value is <c>false</c>.</param>
     /// <param name="whenExists">Determines the implementation strategy when an operator of the same signature is already declared in the target type.
     ///     The default strategy is to fail with a compile-time error.</param>
-    /// <param name="buildOperator">An optional delegate that modifies the <see cref="IMethodBuilder"/> that represents the introduced operator.</param>
+    /// <param name="buildOperator">An optional delegate that modifies the <see cref="IMethodBuilder"/> representing the introduced or overriding operator.</param>
     /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template method.</param>
     /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property
     ///     of the <see cref="meta"/> API.</param>
-    /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> that exposes the outcome of the operation and the introduced or overridden <see cref="IMethod"/>.</returns>
+    /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> exposing the introduced or overriding <see cref="IMethod"/>.</returns>
     /// <seealso href="@introducing-members"/>
     public static IIntroductionAdviceResult<IMethod> IntroduceConversionOperator(
         this IAdviser<INamedType> adviser,
@@ -229,7 +230,7 @@ public static class AdviserExtensions
 
     /// <summary>
     /// Overrides the implementation of a constructor.
-    /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to apply the advice to another constructor than the current one.
+    /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to apply the advice to a different constructor than the current one.
     /// </summary>
     /// <param name="adviser">An adviser for a constructor.</param>
     /// <param name="template">Name of a method in the aspect class whose implementation will be used as a template.
@@ -237,6 +238,7 @@ public static class AdviserExtensions
     /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template method.</param>
     /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property
     ///     of the <see cref="meta"/> API.</param>
+    /// <returns>An <see cref="IOverrideAdviceResult{T}"/> exposing the overridden <see cref="IConstructor"/>.</returns>
     public static IOverrideAdviceResult<IConstructor> Override(
         this IAdviser<IConstructor> adviser,
         string template,
@@ -280,13 +282,14 @@ public static class AdviserExtensions
 
     /// <summary>
     /// Overrides a field or property by specifying a property template.
-    /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to apply the advice to another field or property than the current one.
+    /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to apply the advice to a different field or property than the current one.
     /// </summary>
-    /// <param name="adviser">An adviser for a property.</param>
+    /// <param name="adviser">An adviser for a field or property.</param>
     /// <param name="template">The name of a property of the aspect class, with a getter, a setter, or both, whose implementation will be used as a template.
     ///     This property must be annotated with <see cref="TemplateAttribute"/>.</param>
     /// <param name="tags">An optional opaque object of anonymous type passed to the template property and exposed under the <see cref="meta.Tags"/> property of the
     ///     <see cref="meta"/> API.</param>
+    /// <returns>An <see cref="IOverrideAdviceResult{T}"/> exposing the overridden <see cref="IProperty"/>.</returns>
     /// <seealso href="@overriding-fields-or-properties"/>
     public static IOverrideAdviceResult<IProperty> Override(
         this IAdviser<IFieldOrProperty> adviser,
@@ -298,22 +301,22 @@ public static class AdviserExtensions
             tags );
 
     /// <summary>
-    /// Overrides a field or property by specifying a method template for the getter, the setter, or both.
-    /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to apply the advice to another field, property or indexer than the current one.
+    /// Overrides a field, property, or indexer by specifying templates for the getter and/or setter.
+    /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to apply the advice to a different field, property or indexer than the current one.
     /// </summary>
-    /// <param name="adviser">An adviser for a field, or a property or an indexer.</param>
+    /// <param name="adviser">An adviser for a field, property or indexer.</param>
     /// <param name="getTemplate">The name of the method of the aspect class whose implementation will be used as a template for the getter, or <c>null</c>
     ///     if the getter should not be overridden. This method must be annotated with <see cref="TemplateAttribute"/>. The signature of this method must
-    ///     be <c>T Get()</c> where <c>T</c> is either <c>dynamic</c> or a type compatible with the type of the field or property.
-    ///     To select a different templates for iterator getters, use the constructor of the <see cref="GetterTemplateSelector"/> type. To specify a single
-    ///     template for all properties, pass a string.
-    /// </param>
+    ///     be <c>T Get()</c> where <c>T</c> is either <c>dynamic</c> or compatible with the field, property or indexer type.
+    ///     To select different templates for iterator getters, use the constructor of the <see cref="GetterTemplateSelector"/> type. To specify a single
+    ///     template for all cases, pass a string.</param>
     /// <param name="setTemplate">The name of the method of the aspect class whose implementation will be used as a template for the setter, or <c>null</c>
     ///     if the setter should not be overridden. This method must be annotated with <see cref="TemplateAttribute"/>. The signature of this method must
-    ///     be <c>void Set(T value)</c> where <c>T</c> is either <c>dynamic</c> or a type compatible with the type of the field or property.</param>
+    ///     be <c>void Set(T value)</c> where <c>T</c> is either <c>dynamic</c> or compatible with the field, property or indexer type.</param>
     /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods.</param>
     /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property of the
     ///     <see cref="meta"/> API.</param>
+    /// <returns>An <see cref="IOverrideAdviceResult{T}"/> exposing the overridden <see cref="IPropertyOrIndexer"/>.</returns>
     /// <seealso href="@overriding-fields-or-properties"/>
     public static IOverrideAdviceResult<IPropertyOrIndexer> OverrideAccessors(
         this IAdviser<IFieldOrPropertyOrIndexer> adviser,
@@ -394,17 +397,17 @@ public static class AdviserExtensions
 
     /// <summary>
     /// Introduces a field to the target type by specifying a template.
-    /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to apply the advice to another type than the current one.
+    /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to apply the advice to a different type than the current one.
     /// </summary>
     /// <param name="adviser">An adviser for a named type.</param>
     /// <param name="template">Name of the introduced field.</param>
     /// <param name="scope">Determines the scope (e.g. <see cref="IntroductionScope.Instance"/> or <see cref="IntroductionScope.Static"/>) of the introduced
     ///     field. The default scope is <see cref="IntroductionScope.Instance"/>.</param>
-    /// <param name="whenExists">Determines the implementation strategy when a property of the same name is already declared in the target type.
+    /// <param name="whenExists">Determines the implementation strategy when a field of the same name is already declared in the target type.
     ///     The default strategy is to fail with a compile-time error.</param>
-    /// <param name="buildField"></param>
-    /// <param name="tags"></param>
-    /// <returns>An <see cref="IPropertyBuilder"/> that allows to dynamically change the name or type of the introduced property.</returns>
+    /// <param name="buildField">An optional delegate that modifies the <see cref="IFieldBuilder"/> representing the introduced field.</param>
+    /// <param name="tags">An optional opaque object of anonymous type passed to the template and exposed under the <see cref="meta.Tags"/> property.</param>
+    /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> exposing the introduced <see cref="IField"/>.</returns>
     /// <seealso href="@introducing-members"/>
     public static IIntroductionAdviceResult<IField> IntroduceField(
         this IAdviser<INamedType> adviser,
@@ -423,18 +426,18 @@ public static class AdviserExtensions
 
     /// <summary>
     /// Introduces a field to the target type by specifying a field name and <see cref="IType"/>.
-    /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to apply the advice to another type than the current one.
+    /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to apply the advice to a different type than the current one.
     /// </summary>
     /// <param name="adviser">An adviser for a named type.</param>
     /// <param name="fieldName">Name of the introduced field.</param>
     /// <param name="fieldType">Type of the introduced field.</param>
     /// <param name="scope">Determines the scope (e.g. <see cref="IntroductionScope.Instance"/> or <see cref="IntroductionScope.Static"/>) of the introduced
     ///     field. The default scope is <see cref="IntroductionScope.Instance"/>.</param>
-    /// <param name="whenExists">Determines the implementation strategy when a property of the same name is already declared in the target type.
+    /// <param name="whenExists">Determines the implementation strategy when a field of the same name is already declared in the target type.
     ///     The default strategy is to fail with a compile-time error.</param>
-    /// <param name="buildField"></param>
-    /// <param name="tags"></param>
-    /// <returns>An <see cref="IPropertyBuilder"/> that allows to dynamically change the name or type of the introduced property.</returns>
+    /// <param name="buildField">An optional delegate that modifies the <see cref="IFieldBuilder"/> representing the introduced field.</param>
+    /// <param name="tags">An optional opaque object of anonymous type passed to the template and exposed under the <see cref="meta.Tags"/> property.</param>
+    /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> exposing the introduced <see cref="IField"/>.</returns>
     /// <seealso href="@introducing-members"/>
     public static IIntroductionAdviceResult<IField> IntroduceField(
         this IAdviser<INamedType> adviser,
@@ -455,18 +458,18 @@ public static class AdviserExtensions
 
     /// <summary>
     /// Introduces a field to the target type by specifying a field name and <see cref="Type"/>.
-    /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to apply the advice to another type than the current one.
+    /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to apply the advice to a different type than the current one.
     /// </summary>
     /// <param name="adviser">An adviser for a named type.</param>
     /// <param name="fieldName">Name of the introduced field.</param>
     /// <param name="fieldType">Type of the introduced field.</param>
     /// <param name="scope">Determines the scope (e.g. <see cref="IntroductionScope.Instance"/> or <see cref="IntroductionScope.Static"/>) of the introduced
     ///     field. The default scope is <see cref="IntroductionScope.Instance"/>.</param>
-    /// <param name="whenExists">Determines the implementation strategy when a property of the same name is already declared in the target type.
+    /// <param name="whenExists">Determines the implementation strategy when a field of the same name is already declared in the target type.
     ///     The default strategy is to fail with a compile-time error.</param>
-    /// <param name="buildField"></param>
-    /// <param name="tags"></param>
-    /// <returns>An <see cref="IPropertyBuilder"/> that allows to dynamically change the name or type of the introduced property.</returns>
+    /// <param name="buildField">An optional delegate that modifies the <see cref="IFieldBuilder"/> representing the introduced field.</param>
+    /// <param name="tags">An optional opaque object of anonymous type passed to the template and exposed under the <see cref="meta.Tags"/> property.</param>
+    /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> exposing the introduced <see cref="IField"/>.</returns>
     /// <seealso href="@introducing-members"/>
     public static IIntroductionAdviceResult<IField> IntroduceField(
         this IAdviser<INamedType> adviser,
@@ -487,18 +490,18 @@ public static class AdviserExtensions
 
     /// <summary>
     /// Introduces an auto-implemented property to the target type by specifying a property name and <see cref="Type"/>.
-    /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to apply the advice to another type than the current one.
+    /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to apply the advice to a different type than the current one.
     /// </summary>
     /// <param name="adviser">An adviser for a named type.</param>
-    /// <param name="propertyName">Name of the introduced field.</param>
-    /// <param name="propertyType">Type of the introduced field.</param>
+    /// <param name="propertyName">Name of the introduced property.</param>
+    /// <param name="propertyType">Type of the introduced property.</param>
     /// <param name="scope">Determines the scope (e.g. <see cref="IntroductionScope.Instance"/> or <see cref="IntroductionScope.Static"/>) of the introduced
-    ///     field. The default scope is <see cref="IntroductionScope.Instance"/>.</param>
+    ///     property. The default scope is <see cref="IntroductionScope.Instance"/>.</param>
     /// <param name="whenExists">Determines the implementation strategy when a property of the same name is already declared in the target type.
     ///     The default strategy is to fail with a compile-time error.</param>
-    /// <param name="buildProperty"></param>
-    /// <param name="tags"></param>
-    /// <returns>An <see cref="IPropertyBuilder"/> that allows to dynamically change the name or type of the introduced property.</returns>
+    /// <param name="buildProperty">An optional delegate that modifies the <see cref="IPropertyBuilder"/> representing the introduced property.</param>
+    /// <param name="tags">An optional opaque object of anonymous type passed to the template and exposed under the <see cref="meta.Tags"/> property.</param>
+    /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> exposing the introduced <see cref="IProperty"/>.</returns>
     /// <seealso href="@introducing-members"/>
     public static IIntroductionAdviceResult<IProperty> IntroduceAutomaticProperty(
         this IAdviser<INamedType> adviser,
@@ -519,18 +522,18 @@ public static class AdviserExtensions
 
     /// <summary>
     /// Introduces an auto-implemented property to the target type by specifying a property name and <see cref="IType"/>.
-    /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to apply the advice to another type than the current one.
+    /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to apply the advice to a different type than the current one.
     /// </summary>
     /// <param name="adviser">An adviser for a named type.</param>
-    /// <param name="propertyName">Name of the introduced field.</param>
-    /// <param name="propertyType">Type of the introduced field.</param>
+    /// <param name="propertyName">Name of the introduced property.</param>
+    /// <param name="propertyType">Type of the introduced property.</param>
     /// <param name="scope">Determines the scope (e.g. <see cref="IntroductionScope.Instance"/> or <see cref="IntroductionScope.Static"/>) of the introduced
-    ///     field. The default scope is <see cref="IntroductionScope.Instance"/>.</param>
+    ///     property. The default scope is <see cref="IntroductionScope.Instance"/>.</param>
     /// <param name="whenExists">Determines the implementation strategy when a property of the same name is already declared in the target type.
     ///     The default strategy is to fail with a compile-time error.</param>
-    /// <param name="buildProperty"></param>
-    /// <param name="tags"></param>
-    /// <returns>An <see cref="IPropertyBuilder"/> that allows to dynamically change the name or type of the introduced property.</returns>
+    /// <param name="buildProperty">An optional delegate that modifies the <see cref="IPropertyBuilder"/> representing the introduced property.</param>
+    /// <param name="tags">An optional opaque object of anonymous type passed to the template and exposed under the <see cref="meta.Tags"/> property.</param>
+    /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> exposing the introduced <see cref="IProperty"/>.</returns>
     /// <seealso href="@introducing-members"/>
     public static IIntroductionAdviceResult<IProperty> IntroduceAutomaticProperty(
         this IAdviser<INamedType> adviser,
@@ -551,23 +554,22 @@ public static class AdviserExtensions
 
     /// <summary>
     /// Introduces a property to the target type, or overrides the implementation of an existing one, by specifying a property template.
-    /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to apply the advice to another type than the current one.
+    /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to apply the advice to a different type than the current one.
     /// </summary>
     /// <param name="adviser">An adviser for a named type.</param>
     /// <param name="template">The name of the property in the aspect class that will be used as a template for the new property.
     ///     This property must be annotated with <see cref="TemplateAttribute"/>. The type of this property can be either <c>dynamic</c> or any specific
     ///     type. It is possible to dynamically change the type of the introduced property thanks to the <see cref="IPropertyBuilder"/> returned by
-    ///     this method.
-    /// </param>
+    ///     this method.</param>
     /// <param name="scope">Determines the scope (e.g. <see cref="IntroductionScope.Instance"/> or <see cref="IntroductionScope.Static"/>) of the introduced
     ///     property. The default scope depends on the scope of the template property. If the property is static, the introduced property is static. However, if the
-    ///     template property is non-static, then the introduced property copies of the scope of the target declaration of the aspect.</param>
+    ///     template property is non-static, then the introduced property copies the scope of the target declaration of the aspect.</param>
     /// <param name="whenExists">Determines the implementation strategy when a property of the same name is already declared in the target type.
     ///     The default strategy is to fail with a compile-time error.</param>
-    /// <param name="buildProperty"></param>
+    /// <param name="buildProperty">An optional delegate that modifies the <see cref="IPropertyBuilder"/> representing the introduced property.</param>
     /// <param name="tags">An optional opaque object of anonymous type passed to the template property and exposed under the <see cref="meta.Tags"/> property of the
     ///     <see cref="meta"/> API.</param>
-    /// <returns>An <see cref="IPropertyBuilder"/> that allows to dynamically change the name or type of the introduced property.</returns>
+    /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> exposing the introduced or overriding <see cref="IProperty"/>.</returns>
     /// <seealso href="@introducing-members"/>
     public static IIntroductionAdviceResult<IProperty> IntroduceProperty(
         this IAdviser<INamedType> adviser,
@@ -585,27 +587,27 @@ public static class AdviserExtensions
             tags );
 
     /// <summary>
-    /// Introduces a property to the target type, or overrides the implementation of an existing one, by specifying individual template methods for each accessor. 
-    /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to apply the advice to another type than the current one.
+    /// Introduces a property to the target type, or overrides the implementation of an existing one, by specifying individual template methods for each accessor.
+    /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to apply the advice to a different type than the current one.
     /// </summary>
     /// <param name="adviser">An adviser for a named type.</param>
     /// <param name="name">Name of the introduced property.</param>
     /// <param name="getTemplate">The name of the method of the aspect class whose type and implementation will be used as a template for the getter, or <c>null</c>
-    ///     the introduced property should not have a getter. This method must be annotated with <see cref="TemplateAttribute"/>. The signature of this method must
-    ///     be <c>T Get()</c> where <c>T</c> is either <c>dynamic</c> or a type compatible with the type of the field or property.</param>
-    /// <param name="setTemplate">The name of the method of the aspect class whose type and implementation will be used as a template for the getter, or <c>null</c>
+    ///     if the introduced property should not have a getter. This method must be annotated with <see cref="TemplateAttribute"/>. The signature of this method must
+    ///     be <c>T Get()</c> where <c>T</c> is either <c>dynamic</c> or a type compatible with the type of the property.</param>
+    /// <param name="setTemplate">The name of the method of the aspect class whose type and implementation will be used as a template for the setter, or <c>null</c>
     ///     if the introduced property should not have a setter. This method must be annotated with <see cref="TemplateAttribute"/>. The signature of this method must
-    ///     be <c>void Set(T value</c>  where <c>T</c> is either <c>dynamic</c> or a type compatible with the type of the field or property.</param>
+    ///     be <c>void Set(T value)</c> where <c>T</c> is either <c>dynamic</c> or a type compatible with the type of the property.</param>
     /// <param name="scope">Determines the scope (e.g. <see cref="IntroductionScope.Instance"/> or <see cref="IntroductionScope.Static"/>) of the introduced
     ///     property. The default scope depends on the scope of the template accessors. If the accessors are static, the introduced property is static. However, if the
-    ///     template accessors are non-static, then the introduced property copies of the scope of the target declaration of the aspect.</param>
+    ///     template accessors are non-static, then the introduced property copies the scope of the target declaration of the aspect.</param>
     /// <param name="whenExists">Determines the implementation strategy when a property of the same name is already declared in the target type.
     ///     The default strategy is to fail with a compile-time error.</param>
-    /// <param name="buildProperty"></param>
+    /// <param name="buildProperty">An optional delegate that modifies the <see cref="IPropertyBuilder"/> representing the introduced property.</param>
     /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods.</param>
     /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property of the
     ///     <see cref="meta"/> API.</param>
-    /// <returns>An <see cref="IPropertyBuilder"/> that allows to dynamically change the name or type of the introduced property.</returns>
+    /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> exposing the introduced or overriding <see cref="IProperty"/>.</returns>
     /// <seealso href="@introducing-members"/>
     public static IIntroductionAdviceResult<IProperty> IntroduceProperty(
         this IAdviser<INamedType> adviser,
@@ -630,26 +632,26 @@ public static class AdviserExtensions
 
     /// <summary>
     /// Introduces an indexer to the target type, or overrides the implementation of an existing one, by specifying individual template methods for each accessor. 
-    /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to apply the advice to another type than the current one.
+    /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to apply the advice to a different type than the current one.
     /// </summary>
     /// <param name="adviser">An adviser for a named type.</param>
     /// <param name="indexType">The type of the initial index parameter.</param>
     /// <param name="getTemplate">The name of the method of the aspect class whose type and implementation will be used as a template for the getter, or <c>null</c>
-    ///     the introduced indexer should not have a getter. This method must be annotated with <see cref="TemplateAttribute"/>. The signature of this method must
+    ///     if the introduced indexer should not have a getter. This method must be annotated with <see cref="TemplateAttribute"/>. The signature of this method must
     ///     be <c>T Get()</c> where <c>T</c> is either <c>dynamic</c> or a type compatible with the type of the indexer.</param>
     /// <param name="setTemplate">The name of the method of the aspect class whose type and implementation will be used as a template for the setter, or <c>null</c>
     ///     if the introduced indexer should not have a setter. This method must be annotated with <see cref="TemplateAttribute"/>. The signature of this method must
     ///     be <c>void Set(T value)</c> where <c>T</c> is either <c>dynamic</c> or a type compatible with the type of the indexer.</param>
     /// <param name="scope">Determines the scope (e.g. <see cref="IntroductionScope.Instance"/> or <see cref="IntroductionScope.Static"/>) of the introduced
     ///     indexer. The default scope depends on the scope of the template accessors. If the accessors are static, the introduced indexer is static. However, if the
-    ///     template accessors are non-static, then the introduced indexer copies of the scope of the target declaration of the aspect.</param>
+    ///     template accessors are non-static, then the introduced indexer copies the scope of the target declaration of the aspect.</param>
     /// <param name="whenExists">Determines the implementation strategy when an indexer of the same signature is already declared in the target type.
     ///     The default strategy is to fail with a compile-time error.</param>
-    /// <param name="buildIndexer">An optional delegate that modifies the <see cref="IIndexerBuilder"/> that represents the introduced indexer.</param>
+    /// <param name="buildIndexer">An optional delegate that modifies the <see cref="IIndexerBuilder"/> representing the introduced indexer.</param>
     /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods.</param>
     /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property of the
     ///     <see cref="meta"/> API.</param>
-    /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> that exposes the outcome of the operation and the introduced or overridden <see cref="IIndexer"/>.</returns>
+    /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> exposing the introduced or overriding <see cref="IIndexer"/>.</returns>
     /// <seealso href="@introducing-members"/>
     public static IIntroductionAdviceResult<IIndexer> IntroduceIndexer(
         this IAdviser<INamedType> adviser,
@@ -674,26 +676,26 @@ public static class AdviserExtensions
 
     /// <summary>
     /// Introduces an indexer to the target type, or overrides the implementation of an existing one, by specifying individual template methods for each accessor. 
-    /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to apply the advice to another type than the current one.
+    /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to apply the advice to a different type than the current one.
     /// </summary>
     /// <param name="adviser">An adviser for a named type.</param>
     /// <param name="indexType">The type of the initial index parameter.</param>
     /// <param name="getTemplate">The name of the method of the aspect class whose type and implementation will be used as a template for the getter, or <c>null</c>
-    ///     the introduced indexer should not have a getter. This method must be annotated with <see cref="TemplateAttribute"/>. The signature of this method must
+    ///     if the introduced indexer should not have a getter. This method must be annotated with <see cref="TemplateAttribute"/>. The signature of this method must
     ///     be <c>T Get()</c> where <c>T</c> is either <c>dynamic</c> or a type compatible with the type of the indexer.</param>
     /// <param name="setTemplate">The name of the method of the aspect class whose type and implementation will be used as a template for the setter, or <c>null</c>
     ///     if the introduced indexer should not have a setter. This method must be annotated with <see cref="TemplateAttribute"/>. The signature of this method must
     ///     be <c>void Set(T value)</c> where <c>T</c> is either <c>dynamic</c> or a type compatible with the type of the indexer.</param>
     /// <param name="scope">Determines the scope (e.g. <see cref="IntroductionScope.Instance"/> or <see cref="IntroductionScope.Static"/>) of the introduced
     ///     indexer. The default scope depends on the scope of the template accessors. If the accessors are static, the introduced indexer is static. However, if the
-    ///     template accessors are non-static, then the introduced indexer copies of the scope of the target declaration of the aspect.</param>
+    ///     template accessors are non-static, then the introduced indexer copies the scope of the target declaration of the aspect.</param>
     /// <param name="whenExists">Determines the implementation strategy when an indexer of the same signature is already declared in the target type.
     ///     The default strategy is to fail with a compile-time error.</param>
-    /// <param name="buildIndexer">An optional delegate that modifies the <see cref="IIndexerBuilder"/> that represents the introduced indexer.</param>
+    /// <param name="buildIndexer">An optional delegate that modifies the <see cref="IIndexerBuilder"/> representing the introduced indexer.</param>
     /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods.</param>
     /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property of the
     ///     <see cref="meta"/> API.</param>
-    /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> that exposes the outcome of the operation and the introduced or overridden <see cref="IIndexer"/>.</returns>
+    /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> exposing the introduced or overriding <see cref="IIndexer"/>.</returns>
     /// <seealso href="@introducing-members"/>
     public static IIntroductionAdviceResult<IIndexer> IntroduceIndexer(
         this IAdviser<INamedType> adviser,
@@ -718,26 +720,26 @@ public static class AdviserExtensions
 
     /// <summary>
     /// Introduces an indexer to the target type, or overrides the implementation of an existing one, by specifying individual template methods for each accessor. 
-    /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to apply the advice to another indexer than the current one.
+    /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to introduce the indexer to a different type than the current one.
     /// </summary>
     /// <param name="adviser">An adviser for a named type.</param>
     /// <param name="indices">The types and names of the index parameters.</param>
     /// <param name="getTemplate">The name of the method of the aspect class whose type and implementation will be used as a template for the getter, or <c>null</c>
-    ///     the introduced indexer should not have a getter. This method must be annotated with <see cref="TemplateAttribute"/>. The signature of this method must
+    ///     if the introduced indexer should not have a getter. This method must be annotated with <see cref="TemplateAttribute"/>. The signature of this method must
     ///     be <c>T Get()</c> where <c>T</c> is either <c>dynamic</c> or a type compatible with the type of the indexer.</param>
-    /// <param name="setTemplate">The name of the method of the aspect class whose type and implementation will be used as a template for the getter, or <c>null</c>
+    /// <param name="setTemplate">The name of the method of the aspect class whose type and implementation will be used as a template for the setter, or <c>null</c>
     ///     if the introduced indexer should not have a setter. This method must be annotated with <see cref="TemplateAttribute"/>. The signature of this method must
-    ///     be <c>void Set(T value</c>  where <c>T</c> is either <c>dynamic</c> or a type compatible with the type of the indexer.</param>
+    ///     be <c>void Set(T value)</c> where <c>T</c> is either <c>dynamic</c> or a type compatible with the type of the indexer.</param>
     /// <param name="scope">Determines the scope (e.g. <see cref="IntroductionScope.Instance"/> or <see cref="IntroductionScope.Static"/>) of the introduced
     ///     indexer. The default scope depends on the scope of the template accessors. If the accessors are static, the introduced indexer is static. However, if the
-    ///     template accessors are non-static, then the introduced indexer copies of the scope of the target declaration of the aspect.</param>
-    /// <param name="whenExists">Determines the implementation strategy when a indexer of the same name is already declared in the target type.
+    ///     template accessors are non-static, then the introduced indexer copies the scope of the target declaration of the aspect.</param>
+    /// <param name="whenExists">Determines the implementation strategy when an indexer of the same signature is already declared in the target type.
     ///     The default strategy is to fail with a compile-time error.</param>
-    /// <param name="buildIndexer"></param>
+    /// <param name="buildIndexer">An optional delegate that modifies the <see cref="IIndexerBuilder"/> representing the introduced indexer.</param>
     /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods.</param>
     /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property of the
     ///     <see cref="meta"/> API.</param>
-    /// <returns>An <see cref="IIndexerBuilder"/> that allows to dynamically change the name or type of the introduced indexer.</returns>
+    /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> exposing the introduced or overriding <see cref="IIndexer"/>.</returns>
     /// <seealso href="@introducing-members"/>
     public static IIntroductionAdviceResult<IIndexer> IntroduceIndexer(
         this IAdviser<INamedType> adviser,
@@ -767,21 +769,21 @@ public static class AdviserExtensions
     /// <param name="adviser">An adviser for a named type.</param>
     /// <param name="indices">The types and names of the index parameters.</param>
     /// <param name="getTemplate">The name of the method of the aspect class whose type and implementation will be used as a template for the getter, or <c>null</c>
-    ///     the introduced indexer should not have a getter. This method must be annotated with <see cref="TemplateAttribute"/>. The signature of this method must
+    ///     if the introduced indexer should not have a getter. This method must be annotated with <see cref="TemplateAttribute"/>. The signature of this method must
     ///     be <c>T Get()</c> where <c>T</c> is either <c>dynamic</c> or a type compatible with the type of the indexer.</param>
-    /// <param name="setTemplate">The name of the method of the aspect class whose type and implementation will be used as a template for the getter, or <c>null</c>
+    /// <param name="setTemplate">The name of the method of the aspect class whose type and implementation will be used as a template for the setter, or <c>null</c>
     ///     if the introduced indexer should not have a setter. This method must be annotated with <see cref="TemplateAttribute"/>. The signature of this method must
-    ///     be <c>void Set(T value</c>  where <c>T</c> is either <c>dynamic</c> or a type compatible with the type of the indexer.</param>
+    ///     be <c>void Set(T value)</c> where <c>T</c> is either <c>dynamic</c> or a type compatible with the type of the indexer.</param>
     /// <param name="scope">Determines the scope (e.g. <see cref="IntroductionScope.Instance"/> or <see cref="IntroductionScope.Static"/>) of the introduced
     ///     indexer. The default scope depends on the scope of the template accessors. If the accessors are static, the introduced indexer is static. However, if the
-    ///     template accessors are non-static, then the introduced indexer copies of the scope of the target declaration of the aspect.</param>
-    /// <param name="whenExists">Determines the implementation strategy when a indexer of the same name is already declared in the target type.
+    ///     template accessors are non-static, then the introduced indexer copies the scope of the target declaration of the aspect.</param>
+    /// <param name="whenExists">Determines the implementation strategy when an indexer of the same signature is already declared in the target type.
     ///     The default strategy is to fail with a compile-time error.</param>
-    /// <param name="buildIndexer"></param>
+    /// <param name="buildIndexer">An optional delegate that modifies the <see cref="IIndexerBuilder"/> representing the introduced indexer.</param>
     /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods.</param>
     /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property of the
     ///     <see cref="meta"/> API.</param>
-    /// <returns>An <see cref="IIndexerBuilder"/> that allows to dynamically change the name or type of the introduced indexer.</returns>
+    /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> exposing the introduced or overriding <see cref="IIndexer"/>.</returns>
     /// <seealso href="@introducing-members"/>
     public static IIntroductionAdviceResult<IIndexer> IntroduceIndexer(
         this IAdviser<INamedType> adviser,
@@ -852,13 +854,13 @@ public static class AdviserExtensions
     /// </param>
     /// <param name="scope">Determines the scope (e.g. <see cref="IntroductionScope.Instance"/> or <see cref="IntroductionScope.Static"/>) of the introduced
     ///     event. The default scope depends on the scope of the template event. If the event is static, the introduced event is static. However, if the
-    ///     template event is non-static, then the introduced event copies of the scope of the target declaration of the aspect.</param>
+    ///     template event is non-static, then the introduced event copies the scope of the target declaration of the aspect.</param>
     /// <param name="whenExists">Determines the implementation strategy when an event of the same name is already declared in the target type.
     ///     The default strategy is to fail with a compile-time error.</param>
-    /// <param name="buildEvent">An optional delegate that modifies the <see cref="IEventBuilder"/> that represents the introduced event.</param>
+    /// <param name="buildEvent">An optional delegate that modifies the <see cref="IEventBuilder"/> representing the introduced event.</param>
     /// <param name="tags">An optional opaque object of anonymous type passed to the template event and exposed under the <see cref="meta.Tags"/> property of the
     ///     <see cref="meta"/> API.</param>
-    /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> that exposes the outcome of the operation and the introduced <see cref="IEvent"/>.</returns>
+    /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> exposing the introduced <see cref="IEvent"/>.</returns>
     /// <seealso href="@introducing-members"/>
     public static IIntroductionAdviceResult<IEvent> IntroduceEvent(
         this IAdviser<INamedType> adviser,
@@ -892,13 +894,13 @@ public static class AdviserExtensions
     ///     event's handlers. The signature of this method must be <c>T Invoke()</c>, <c>T Invoke(U handler)</c>, or <c>T Invoke(U handler, V1 param1, V2 param2, ...)</c>  
     ///     where <c>T</c> is either <c>dynamic</c> or a type compatible with the return value of the event's delegate type, <c>U</c> is either dynamic or the event's 
     ///     delegate type, <c>Vn</c> are types matching the delegate's parameters.</param>
-    /// <param name="raiseTemplate">Not implemented.</param>
+    /// <param name="raiseTemplate">Reserved for future use (not implemented).</param>
     /// <param name="scope">Determines the scope (e.g. <see cref="IntroductionScope.Instance"/> or <see cref="IntroductionScope.Static"/>) of the introduced
     ///     event. The default scope depends on the scope of the template event. If the event is static, the introduced event is static. However, if the
-    ///     template event is non-static, then the introduced event copies of the scope of the target declaration of the aspect.</param>
+    ///     template event is non-static, then the introduced event copies the scope of the target declaration of the aspect.</param>
     /// <param name="whenExists">Determines the implementation strategy when an event of the same name is already declared in the target type.
     ///     The default strategy is to fail with a compile-time error.</param>
-    /// <param name="buildEvent">An optional delegate that modifies the <see cref="IEventBuilder"/> that represents the introduced event.</param>
+    /// <param name="buildEvent">An optional delegate that modifies the <see cref="IEventBuilder"/> representing the introduced event.</param>
     /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods.</param>
     /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property of the
     ///     <see cref="meta"/> API.</param>
@@ -931,8 +933,8 @@ public static class AdviserExtensions
 
     /// <summary>
     /// Makes a type implement a new interface specified as an <see cref="INamedType"/>.
-    /// Interface members can be introduced declaratively by marking an aspect member by <see cref="InterfaceMemberAttribute"/> or 
-    /// <see cref="Aspects.IntroduceAttribute"/>, or programmatically using <c>Introduce</c> methods for public implementations of <c>result.ExplicitImplementations.Introduce</c> for private implementations.
+    /// Interface members can be introduced declaratively by marking an aspect member with <see cref="InterfaceMemberAttribute"/> or
+    /// <see cref="Aspects.IntroduceAttribute"/>, or programmatically using introduction methods.
     /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to implement the interface on a different type than the current one.
     /// </summary>
     /// <param name="adviser">An adviser for a named type.</param>
@@ -941,6 +943,7 @@ public static class AdviserExtensions
     ///     The default strategy is to fail with a compile-time error.</param>
     /// <param name="tags">An optional opaque object of anonymous type passed to <see cref="InterfaceMemberAttribute"/> templates and exposed under the <see cref="meta.Tags"/> property of the
     ///     <see cref="meta"/> API. This parameter does not affect members introduced using <see cref="Aspects.IntroduceAttribute"/> or programmatically.</param>
+    /// <returns>An <see cref="IImplementInterfaceAdviceResult"/> exposing the implementation operation.</returns>
     /// <seealso href="@implementing-interfaces"/>
     public static IImplementInterfaceAdviceResult ImplementInterface(
         this IAdviser<INamedType> adviser,
@@ -955,8 +958,8 @@ public static class AdviserExtensions
 
     /// <summary>
     /// Makes a type implement a new interface specified as a reflection <see cref="Type"/>.
-    /// Interface members can be introduced by marking an aspect member by <see cref="InterfaceMemberAttribute"/>, 
-    /// <see cref="Aspects.IntroduceAttribute"/> or programmatically using <c>Introduce</c> methods.
+    /// Interface members can be introduced declaratively by marking an aspect member with <see cref="InterfaceMemberAttribute"/>,
+    /// <see cref="Aspects.IntroduceAttribute"/> or programmatically using introduction methods.
     /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to implement the interface on a different type than the current one.
     /// </summary>
     /// <param name="adviser">An adviser for a named type.</param>
@@ -965,6 +968,7 @@ public static class AdviserExtensions
     ///     The default strategy is to fail with a compile-time error.</param>
     /// <param name="tags">An optional opaque object of anonymous type passed to <see cref="InterfaceMemberAttribute"/> templates and exposed under the <see cref="meta.Tags"/> property of the
     ///     <see cref="meta"/> API. This parameter does not affect members introduced using <see cref="Aspects.IntroduceAttribute"/> or programmatically.</param>
+    /// <returns>An <see cref="IImplementInterfaceAdviceResult"/> exposing the implementation operation.</returns>
     /// <seealso href="@implementing-interfaces"/>
     public static IImplementInterfaceAdviceResult ImplementInterface(
         this IAdviser<INamedType> adviser,
@@ -978,15 +982,15 @@ public static class AdviserExtensions
             tags );
 
     /// <summary>
-    /// Adds a type or instance initializer by using a template. 
+    /// Adds a type or instance initializer by using a template.
     /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to add the initializer to a different type than the current one.
     /// </summary>
     /// <param name="adviser">An adviser for a named type.</param>
-    /// <param name="template">The name of the template. This method must have no run-time parameter, be of <c>void</c> return type, and be annotated with the <see cref="TemplateAttribute"/> custom attribute.</param>
+    /// <param name="template">The name of the template. This method must have no run-time parameter, be of <c>void</c> return type, and be annotated with <see cref="TemplateAttribute"/>.</param>
     /// <param name="kind">The type of initializer to add.</param>
     /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template.</param>
-    /// <param name="tags">An optional opaque object of anonymous type passed to templates and exposed under the <see cref="meta.Tags"/> property of the
-    ///     <see cref="meta"/> API.</param>
+    /// <param name="tags">An optional opaque object of anonymous type passed to templates and exposed under the <see cref="meta.Tags"/> property.</param>
+    /// <returns>An <see cref="IAddInitializerAdviceResult"/> exposing the added initializer.</returns>
     public static IAddInitializerAdviceResult AddInitializer(
         this IAdviser<INamedType> adviser,
         string template,
@@ -1001,12 +1005,13 @@ public static class AdviserExtensions
             args );
 
     /// <summary>
-    /// Adds a type or instance initializer by specifying an <see cref="IStatement"/>. 
+    /// Adds a type or instance initializer by specifying an <see cref="IStatement"/>.
     /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to add the initializer to a different type than the current one.
     /// </summary>
     /// <param name="adviser">An adviser for a named type.</param>
     /// <param name="statement">The statement to be inserted at the top of constructors.</param>
     /// <param name="kind">The type of initializer to add.</param>
+    /// <returns>An <see cref="IAddInitializerAdviceResult"/> exposing the added initializer.</returns>
     public static IAddInitializerAdviceResult AddInitializer(
         this IAdviser<INamedType> adviser,
         IStatement statement,
@@ -1021,10 +1026,10 @@ public static class AdviserExtensions
     /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to add the initializer to a different constructor than the current one.
     /// </summary>
     /// <param name="adviser">An adviser for a constructor.</param>
-    /// <param name="template">The name of the template. This method must have no run-time parameter, be of <c>void</c> return type, and be annotated with the <see cref="TemplateAttribute"/> custom attribute.</param>
+    /// <param name="template">The name of the template. This method must have no run-time parameter, be of <c>void</c> return type, and be annotated with <see cref="TemplateAttribute"/>.</param>
     /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template.</param>
-    /// <param name="tags">An optional opaque object of anonymous type  passed to templates and exposed under the <see cref="meta.Tags"/> property of the
-    ///     <see cref="meta"/> API.</param>
+    /// <param name="tags">An optional opaque object of anonymous type passed to templates and exposed under the <see cref="meta.Tags"/> property.</param>
+    /// <returns>An <see cref="IAddInitializerAdviceResult"/> exposing the added initializer.</returns>
     public static IAddInitializerAdviceResult AddInitializer(
         this IAdviser<IConstructor> adviser,
         string template,
@@ -1042,6 +1047,7 @@ public static class AdviserExtensions
     /// </summary>
     /// <param name="adviser">An adviser for a constructor.</param>
     /// <param name="statement">The statement to be inserted at the top of the constructor.</param>
+    /// <returns>An <see cref="IAddInitializerAdviceResult"/> exposing the added initializer.</returns>
     public static IAddInitializerAdviceResult AddInitializer(
         this IAdviser<IConstructor> adviser,
         IStatement statement )
@@ -1050,15 +1056,15 @@ public static class AdviserExtensions
             statement );
 
     /// <summary>
-    /// Adds a contract to a parameter. Contracts are usually used to validate parameters (pre- or post-conditions) or to normalize their value (null-to-empty, trimming, normalizing case, ...).
+    /// Adds a contract to a parameter. Contracts are usually used to validate parameters (pre- or post-conditions) or to normalize their value.
     /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to add the contract to a different parameter than the current one.
     /// </summary>
     /// <param name="adviser">An adviser for a parameter.</param>
-    /// <param name="template">The name of the template method. This method must have a single run-time parameter named <c>value</c>, and be annotated with the <see cref="TemplateAttribute"/> custom attribute.</param>
+    /// <param name="template">The name of the template method. This method must have a single run-time parameter named <c>value</c> and be annotated with <see cref="TemplateAttribute"/>.</param>
     /// <param name="direction">Direction of the data flow to which the contract should apply. See <see cref="ContractDirection"/> for details.</param>
     /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template.</param>
-    /// <param name="tags">An optional opaque object of anonymous type passed to templates and exposed under the <see cref="meta.Tags"/> property of the
-    ///     <see cref="meta"/> API.</param>
+    /// <param name="tags">An optional opaque object of anonymous type passed to templates and exposed under the <see cref="meta.Tags"/> property.</param>
+    /// <returns>An <see cref="IAddContractAdviceResult{T}"/> exposing the added contract.</returns>
     public static IAddContractAdviceResult<IParameter> AddContract(
         this IAdviser<IParameter> adviser,
         string template,
@@ -1073,16 +1079,15 @@ public static class AdviserExtensions
             args );
 
     /// <summary>
-    /// Adds a contract to a field, property or indexer. Contracts are usually used to validate the value assigned to fields properties or indexers or to normalize their value (null-to-empty, trimming, normalizing case, ...)
-    /// before assignment. Alternatively, a contract can be used to validate the value <i>returned</i> by a property or indexer, in which case the <paramref name="direction"/> parameter should be set to <see cref="ContractDirection.Output"/>.
+    /// Adds a contract to a field, property or indexer.
     /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to add the contract to a different field, property or indexer than the current one.
     /// </summary>
-    /// <param name="adviser">An adviser for a field, or an property or an indexer.</param>
-    /// <param name="template">The name of the template method. This method must have a single run-time parameter named <c>value</c>, and be annotated with the <see cref="TemplateAttribute"/> custom attribute.</param>
+    /// <param name="adviser">An adviser for a field, property or indexer.</param>
+    /// <param name="template">The name of the template method. This method must have a single run-time parameter named <c>value</c> and be annotated with <see cref="TemplateAttribute"/>.</param>
     /// <param name="direction">Direction of the data flow to which the contract should apply. See <see cref="ContractDirection"/> for details.</param>
     /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template.</param>
-    /// <param name="tags">An optional opaque object of anonymous type passed to templates and exposed under the <see cref="meta.Tags"/> property of the
-    ///     <see cref="meta"/> API.</param>
+    /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property.</param>
+    /// <returns>An <see cref="IAddContractAdviceResult{T}"/> exposing the added contract.</returns>
     public static IAddContractAdviceResult<IFieldOrPropertyOrIndexer> AddContract(
         this IAdviser<IFieldOrPropertyOrIndexer> adviser,
         string template,
@@ -1101,11 +1106,12 @@ public static class AdviserExtensions
     /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to add the attribute to a different declaration than the current one.
     /// </summary>
     /// <param name="adviser">An adviser for a declaration.</param>
-    /// <param name="attribute">The custom attribute to be added. It can be an existing <see cref="IAttribute"/>, or you can use <see cref="AttributeConstruction"/>
+    /// <param name="attribute">The custom attribute to be added. It can be an existing <see cref="IAttributeData"/>, or you can use <see cref="AttributeConstruction"/>
     ///     to specify a new attribute.</param>
-    /// <param name="whenExists">Specifies the strategy to follow when an attribute of the same type already exists on the target declaration. <see cref="OverrideStrategy.Fail"/> will fail the
-    ///     compilation with an error and is the default strategy. <see cref="OverrideStrategy.Ignore"/> will silently ignore the introduction. <see cref="OverrideStrategy.Override"/> will remove
-    ///     all previous instances and replace them by the new one. <see cref="OverrideStrategy.New"/> will add the new instance regardless.</param>
+    /// <param name="whenExists">Specifies the strategy to follow when an attribute of the same type already exists on the target declaration. <see cref="OverrideStrategy.Fail"/> fails the
+    ///     compilation with an error (default). <see cref="OverrideStrategy.Ignore"/> silently ignores the introduction. <see cref="OverrideStrategy.Override"/> removes
+    ///     all previous instances and replaces them with the new one. <see cref="OverrideStrategy.New"/> adds the new instance regardless.</param>
+    /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> exposing the introduced <see cref="IAttribute"/>.</returns>
     public static IIntroductionAdviceResult<IAttribute> IntroduceAttribute(
         this IAdviser<IDeclaration> adviser,
         IAttributeData attribute,
@@ -1121,6 +1127,7 @@ public static class AdviserExtensions
     /// </summary>
     /// <param name="adviser">An adviser for a declaration.</param>
     /// <param name="attributeType">The type of custom attributes to be removed.</param>
+    /// <returns>An <see cref="IRemoveAttributesAdviceResult"/> exposing the removal operation.</returns>
     public static IRemoveAttributesAdviceResult RemoveAttributes(
         this IAdviser<IDeclaration> adviser,
         INamedType attributeType )
@@ -1134,6 +1141,7 @@ public static class AdviserExtensions
     /// </summary>
     /// <param name="adviser">An adviser for a declaration.</param>
     /// <param name="attributeType">The type of custom attributes to be removed.</param>
+    /// <returns>An <see cref="IRemoveAttributesAdviceResult"/> exposing the removal operation.</returns>
     public static IRemoveAttributesAdviceResult RemoveAttributes(
         this IAdviser<IDeclaration> adviser,
         Type attributeType )
@@ -1176,7 +1184,7 @@ public static class AdviserExtensions
 
     /// <summary>
     /// Appends a parameter to a constructor by specifying its name and <see cref="IType"/>.
-    /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to apply the advice to another constructor than the current one.
+    /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to apply the advice to a different constructor than the current one.
     /// </summary>
     /// <param name="adviser">An adviser for a constructor.</param>
     /// <param name="parameterName">The name of the parameter.</param>
@@ -1184,9 +1192,9 @@ public static class AdviserExtensions
     /// <param name="defaultValue">The default value of the parameter (required). It must be type-compatible with <paramref name="parameterType"/>.
     ///     To specify <c>default</c> as the default value, use <see cref="TypedConstant.Default(Metalama.Framework.Code.IType)"/>.</param>
     /// <param name="pullStrategy">An optional <see cref="IPullStrategy"/> that returns a <see cref="PullAction"/> specifying how to pull the new parameter from other child constructors.
-    ///     A <c>null</c> value is equivalent to <see cref="PullAction.None"/>, i.e. <paramref name="defaultValue"/> of the parameter will be used.
-    /// </param>
-    /// <param name="attributes"></param>
+    ///     A <c>null</c> value is equivalent to <see cref="PullAction.None"/>, i.e. <paramref name="defaultValue"/> of the parameter will be used.</param>
+    /// <param name="attributes">An optional list of custom attributes to add to the introduced parameter.</param>
+    /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> exposing the introduced <see cref="IParameter"/>.</returns>
     public static IIntroductionAdviceResult<IParameter> IntroduceParameter(
         this IAdviser<IConstructor> adviser,
         string parameterName,
@@ -1201,7 +1209,7 @@ public static class AdviserExtensions
             defaultValue,
             pullStrategy,
             attributes );
-    
+
     /// <summary>
     /// Appends a parameter to a constructor by specifying its name and <see cref="Type"/>.
     /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to apply the advice to another constructor than the current one.
@@ -1242,8 +1250,7 @@ public static class AdviserExtensions
     /// <param name="defaultValue">The default value of the parameter (required). It must be type-compatible with <paramref name="parameterType"/>.
     ///     To specify <c>default</c> as the default value, use <see cref="TypedConstant.Default(Metalama.Framework.Code.IType)"/>.</param>
     /// <param name="pullStrategy">An optional <see cref="IPullStrategy"/> that returns a <see cref="PullAction"/> specifying how to pull the new parameter from other child constructors.
-    ///     A <c>null</c> value is equivalent to <see cref="PullAction.None"/>, i.e. <paramref name="defaultValue"/> of the parameter will be used.
-    /// </param>
+    ///     A <c>null</c> value is equivalent to <see cref="PullAction.None"/>, i.e. <paramref name="defaultValue"/> of the parameter will be used.</param>
     /// <param name="attributes">An optional list of custom attributes to add to the introduced parameter.</param>
     /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> that exposes the outcome of the operation and the introduced <see cref="IParameter"/>.</returns>
     public static IIntroductionAdviceResult<IParameter> IntroduceParameter(
@@ -1405,7 +1412,7 @@ public static class AdviserExtensions
             adviser.Target,
             ((IAdviserInternal) adviser).AdviceFactory.WithTemplateProvider( templateProvider ),
             adviser.Diagnostics );
-    
+
     /// <summary>
     /// Gets an <see cref="IAdviser{T}"/> with a different template provider, specified as a <see cref="TemplateProvider"/>.
     /// </summary>
