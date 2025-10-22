@@ -22,5 +22,8 @@ public interface IDependencyPullStrategy
     /// <param name="existingParameter">The value returned by <see cref="IParameterPullStrategy.GetExistingParameter"/> or <see cref="IParameterPullStrategy.GetNewParameter"/>.</param>
     IStatement GetAssignmentStatement( IParameter existingParameter );
 
+    /// <summary>
+    /// Creates an <see cref="IParameterPullStrategy"/>, used to introduce and pull the parameter.
+    /// </summary>
     IParameterPullStrategy CreateParameterPullStrategy();
 }
