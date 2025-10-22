@@ -94,7 +94,7 @@ internal sealed class OverrideOperatorTransformation : OverrideMemberTransformat
                         this.AspectLayerId,
                         overriddenDeclaration ) ),
                 null,
-                context.SyntaxGenerator.ParameterList( overriddenDeclaration, context.FinalCompilation, removeDefaultValues: true ),
+                context.SyntaxGenerator.ParameterList( overriddenDeclaration, context.FinalCompilation, removeDefaultValue: true ),
                 List<TypeParameterConstraintClauseSyntax>(),
                 newMethodBody,
                 null );
@@ -105,10 +105,11 @@ internal sealed class OverrideOperatorTransformation : OverrideMemberTransformat
     private SyntaxUserExpression CreateProceedExpression( MemberInjectionContext context, IMethod overriddenDeclaration )
     {
         return new SyntaxUserExpression(
-            context.AspectReferenceSyntaxProvider.AssertNotNull().GetOperatorReference(
-                this.AspectLayerId,
-                overriddenDeclaration,
-                context.SyntaxGenerator ),
+            context.AspectReferenceSyntaxProvider.AssertNotNull()
+                .GetOperatorReference(
+                    this.AspectLayerId,
+                    overriddenDeclaration,
+                    context.SyntaxGenerator ),
             overriddenDeclaration.ReturnType );
     }
 }

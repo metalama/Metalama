@@ -40,4 +40,15 @@ internal partial class TransitiveAspectPipelineExtension : PipelineExtension
         CancellationToken cancellationToken )
         => Task.FromResult(
             new ExtensionPipelineContributorsResult( [..contributors.OfKind( ContributorKind.TransitiveAspect )], ImmutableUserDiagnosticList.Empty ) );
+
+    public override Task<ExtensionPipelineContributorsResult> ExecuteDesignTimePipelineContributorsAsync(
+        AspectPipelineConfiguration pipelineConfiguration,
+        IEnumerable<IPipelineContributor> contributors,
+        CompilationModel initialCompilation,
+        CompilationModel finalCompilation,
+        CancellationToken cancellationToken )
+        => Task.FromResult(
+            new ExtensionPipelineContributorsResult(
+                [..contributors.OfKind( ContributorKind.TransitiveAspect )],
+                ImmutableUserDiagnosticList.Empty ) );
 }

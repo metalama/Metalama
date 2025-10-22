@@ -5,12 +5,14 @@
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Extensibility;
+using Metalama.Framework.Engine.ReferenceGraph;
+using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
 using System;
 
 namespace Metalama.Framework.Engine.Aspects;
 
-internal class TransitiveAspectInstance : ITransitivePipelineContributor, IExtensionPipelineContributor
+internal class TransitiveAspectInstance : ITransitivePipelineContributor, IExtensionPipelineContributor, IDesignTimePipelineResultExtension
 {
     internal TransitiveAspectInstance(
         IAspect aspect,
@@ -18,7 +20,8 @@ internal class TransitiveAspectInstance : ITransitivePipelineContributor, IExten
         int targetDeclarationDepth,
         IAspectClassImpl aspectClass,
         IAspectState? aspectState,
-        int predecessorDegree )
+        int predecessorDegree,
+        SyntaxTree? syntaxTree )
     {
         this.Aspect = aspect;
         this.TargetDeclaration = targetDeclaration;
@@ -26,6 +29,7 @@ internal class TransitiveAspectInstance : ITransitivePipelineContributor, IExten
         this.TargetDeclarationDepth = targetDeclarationDepth;
         this.PredecessorDegree = predecessorDegree;
         this.AspectState = aspectState;
+        this.SyntaxTree = syntaxTree;
     }
 
     public int PredecessorDegree { get; }
@@ -40,9 +44,12 @@ internal class TransitiveAspectInstance : ITransitivePipelineContributor, IExten
 
     public int TargetDeclarationDepth { get; }
 
-    public SyntaxTree? SyntaxTree => throw new NotImplementedException();
+    public SyntaxTree? SyntaxTree { get; }
 
-    public IDesignTimeAspectPipelineResultExtension? ToDesignTime() => throw new NotImplementedException();
+    public IDesignTimePipelineResultExtension? ToDesignTime() => this;
 
     public ContributorKind ContributorKind => ContributorKind.TransitiveAspect;
+
+    ITransitiveAspectsManifestExtension IDesignTimePipelineResultExtension.ToTransitiveAspectManifestExtension()
+        => new SerializableTransitiveAspectInstance( this );
 }

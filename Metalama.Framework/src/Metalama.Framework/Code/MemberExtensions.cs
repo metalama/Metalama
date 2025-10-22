@@ -35,7 +35,7 @@ public static class MemberExtensions
             IMember member => member.IsOverridable() && member.DeclaringType.CanBeImplementedFromOutsideAssembly( honorInternalVisibleToAttributes ),
             INamedType namedType => namedType is { TypeKind: TypeKind.Class or TypeKind.RecordClass, IsSealed: false }
                                     && namedType.Constructors.Any( c => c.IsAccessibleFromOutsideAssembly( honorInternalVisibleToAttributes ) ),
-            IParameter { DeclaringMember: {} declaringMember } => declaringMember.CanBeImplementedFromOutsideAssembly( honorInternalVisibleToAttributes ),
+            IParameter { DeclaringMember: { } declaringMember } => declaringMember.CanBeImplementedFromOutsideAssembly( honorInternalVisibleToAttributes ),
             _ => false
         };
 }

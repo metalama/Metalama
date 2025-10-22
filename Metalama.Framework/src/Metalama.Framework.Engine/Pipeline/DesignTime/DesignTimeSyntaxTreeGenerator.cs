@@ -302,7 +302,7 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
         }
 
         // The following code has become redundant because introduced constructors are generated based on their final model. Consider removing.
-        
+
         /*
         private static IEnumerable<MemberDeclarationSyntax> AddIntroducedConstructorParameters(
             IEnumerable<MemberDeclarationSyntax> injectedMembers,
@@ -364,7 +364,7 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
             var finalType = type.Translate( finalCompilationModel );
 
             var constructors = new List<ConstructorDeclarationSyntax>();
-            var existingSignatures = new HashSet<(ISymbol Type, RefKind RefKind)[]>( new ConstructorSignatureEqualityComparer() );
+            var existingSignatures = new HashSet<(ISymbol Type, RefKind RefKind)[]>( ConstructorSignatureEqualityComparer.Instance );
 
             // Go through all types that will get generated constructors and index existing constructors.
             foreach ( var constructor in initialType.Constructors )
@@ -412,11 +412,35 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                 var finalParameters = finalConstructor.Parameters.ToImmutableArray();
                 var initialParameters = initialConstructor.Parameters.ToImmutableArray();
 
-                if ( !existingSignatures.Add(
-                        finalParameters.SelectAsArray(
-                            p => (
-                                (ISymbol) p.Type.GetSymbol()
-                                    .AssertSymbolNullNotImplemented( UnsupportedFeatures.DesignTimeIntroducedTypeConstructorParameters ), p.RefKind) ) ) )
+                var finalSignature = finalParameters.SelectAsArray(
+                    p => (
+                        (ISymbol) p.Type.GetSymbol()
+                            .AssertSymbolNullNotImplemented( UnsupportedFeatures.DesignTimeIntroducedTypeConstructorParameters ), p.RefKind) );
+
+                // Find potential conflicts with optional values defined by the introduced parameters.
+                var firstIntroducedParameterWithDefaultValue = finalParameters.Skip( initialParameters.Length ).FirstOrDefault( p => p.DefaultValue != null );
+
+                int firstNonAmbiguousParameter;
+
+                if ( firstIntroducedParameterWithDefaultValue != null )
+                {
+                    firstNonAmbiguousParameter = Enumerable.Range(
+                            firstIntroducedParameterWithDefaultValue.Index,
+                            finalParameters.Length - firstIntroducedParameterWithDefaultValue.Index )
+                        .First(
+                            index => !existingSignatures.Any(
+                                existingSignature => existingSignature.Length > index
+                                                     && ConstructorSignatureEqualityComparer.Instance.Equals(
+                                                         existingSignature,
+                                                         finalSignature,
+                                                         index + 1 ) ) );
+                }
+                else
+                {
+                    firstNonAmbiguousParameter = 0;
+                }
+
+                if ( !existingSignatures.Add( finalSignature ) )
                 {
                     continue;
                 }
@@ -426,9 +450,9 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                         List<AttributeListSyntax>(),
                         finalConstructor.GetSyntaxModifierList(),
                         Identifier( finalConstructor.DeclaringType.Name ),
-                        syntaxGenerationContext.SyntaxGenerator.ParameterList( finalParameters, initialCompilationModel ),
+                        syntaxGenerationContext.SyntaxGenerator.ParameterList( finalParameters, initialCompilationModel, firstNonAmbiguousParameter + 1 ),
                         initialConstructor.IsImplicitlyDeclared
-                            ? default
+                            ? null
                             : ConstructorInitializer(
                                 SyntaxKind.ThisConstructorInitializer,
                                 ArgumentList(
@@ -650,7 +674,11 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
 
         private sealed class ConstructorSignatureEqualityComparer : IEqualityComparer<(ISymbol Type, RefKind RefKind)[]>
         {
+            public static ConstructorSignatureEqualityComparer Instance { get; } = new();
+
             private readonly StructuralSymbolComparer _symbolComparer = StructuralSymbolComparer.Default;
+
+            private ConstructorSignatureEqualityComparer() { }
 
             public bool Equals( (ISymbol Type, RefKind RefKind)[]? x, (ISymbol Type, RefKind RefKind)[]? y )
             {
@@ -664,7 +692,12 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                     return false;
                 }
 
-                for ( var i = 0; i < x.Length; i++ )
+                return this.Equals( x, y, x.Length );
+            }
+
+            public bool Equals( (ISymbol Type, RefKind RefKind)[] x, (ISymbol Type, RefKind RefKind)[] y, int count )
+            {
+                for ( var i = 0; i < count; i++ )
                 {
                     if ( x[i].RefKind != y[i].RefKind )
                     {

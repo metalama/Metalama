@@ -15,12 +15,15 @@ public abstract class ContributorKind
 
     public bool IsTransitive { get; }
 
+    public bool IsValidator { get; }
+
     public abstract Type Type { get; }
 
-    protected ContributorKind( bool isExtension, bool isTransitive )
+    protected ContributorKind( bool isExtension = false, bool isTransitive = false, bool isValidator = false )
     {
         this.IsExtension = isExtension;
         this.IsTransitive = isTransitive;
+        this.IsValidator = isValidator;
     }
 
     internal static ContributorKind<IAspectSource> AspectSource { get; } = new( false, false );

@@ -17,27 +17,32 @@ namespace Metalama.Framework.Engine.Extensibility;
 public sealed class DesignTimeAspectPipelineResultExtensionCollection
 {
     private readonly ReferenceIndexerOptions _ownOptions;
-    private readonly ImmutableDictionaryOfArray<SymbolDictionaryKey, IDesignTimeAspectPipelineResultExtension> _ownExtensions;
-    private readonly ImmutableDictionaryOfArray<SymbolDictionaryKey, IDesignTimeAspectPipelineResultExtension> _allExtensions;
+    private readonly ImmutableDictionaryOfArray<SymbolDictionaryKey, IDesignTimeValidatorExtension> _ownValidators;
+    private readonly ImmutableDictionaryOfArray<SymbolDictionaryKey, IDesignTimeValidatorExtension> _allValidators;
     private readonly HashSet<DesignTimeAspectPipelineResultExtensionCollection> _extensionsFromProjectReferences;
 
-    public bool IsEmpty => this._allExtensions.IsEmpty;
+    public bool IsEmpty => this._allValidators.IsEmpty && this.Extensions.IsEmpty;
 
     public static DesignTimeAspectPipelineResultExtensionCollection Empty { get; } =
         new(
             ReferenceIndexerOptions.Empty,
-            ImmutableDictionaryOfArray<SymbolDictionaryKey, IDesignTimeAspectPipelineResultExtension>.Empty,
+            ImmutableDictionaryOfArray<SymbolDictionaryKey, IDesignTimeValidatorExtension>.Empty,
+            ImmutableArray<IDesignTimePipelineResultExtension>.Empty,
             ImmutableArray<DesignTimeAspectPipelineResultExtensionCollection>.Empty );
 
     public ReferenceIndexerOptions Options { get; }
 
+    public ImmutableArray<IDesignTimePipelineResultExtension> Extensions { get; }
+
     private DesignTimeAspectPipelineResultExtensionCollection(
         ReferenceIndexerOptions ownOptions,
-        ImmutableDictionaryOfArray<SymbolDictionaryKey, IDesignTimeAspectPipelineResultExtension> ownExtensions,
+        ImmutableDictionaryOfArray<SymbolDictionaryKey, IDesignTimeValidatorExtension> ownValidators,
+        ImmutableArray<IDesignTimePipelineResultExtension> extensions,
         IEnumerable<DesignTimeAspectPipelineResultExtensionCollection> validatorsFromProjectReferences )
     {
         this._ownOptions = ownOptions;
-        this._ownExtensions = ownExtensions;
+        this._ownValidators = ownValidators;
+        this.Extensions = extensions;
 
         // The reason of the structure of this class is to cope with project graphs, especially diamond-shared projects graphs, where we need to avoid duplicates
         // of projects or validators inside projects. The opinion taken here is that it is cheaper by orders of magnitude to deduplicate projects than validators,
@@ -46,7 +51,7 @@ public sealed class DesignTimeAspectPipelineResultExtensionCollection
         this._extensionsFromProjectReferences =
             validatorsFromProjectReferences.SelectManyRecursiveDistinct( x => x._extensionsFromProjectReferences, includeRoots: true );
 
-        this._allExtensions = this._ownExtensions.Merge( this._extensionsFromProjectReferences.SelectAsReadOnlyCollection( x => x._ownExtensions ) );
+        this._allValidators = this._ownValidators.Merge( this._extensionsFromProjectReferences.SelectAsReadOnlyCollection( x => x._ownValidators ) );
 
         this.Options = new ReferenceIndexerOptions(
             this._extensionsFromProjectReferences.SelectAsReadOnlyCollection( x => x.Options ).Concat( this._ownOptions ) );
@@ -54,13 +59,13 @@ public sealed class DesignTimeAspectPipelineResultExtensionCollection
 
     public DesignTimeAspectPipelineResultExtensionCollection WithChildCollections(
         IEnumerable<DesignTimeAspectPipelineResultExtensionCollection> childCollections )
-        => new( this._ownOptions, this._ownExtensions, childCollections );
+        => new( this._ownOptions, this._ownValidators, this.Extensions, childCollections );
 
-    public IReadOnlyCollection<IDesignTimeAspectPipelineResultExtension> GetExtensionsForSymbol( ISymbol symbol )
+    public IReadOnlyCollection<IDesignTimeValidatorExtension> GetValidatorsForSymbol( ISymbol symbol )
     {
         var symbolKey = SymbolDictionaryKey.CreateLookupKey( symbol );
 
-        var validators = this._allExtensions[symbolKey];
+        var validators = this._allValidators[symbolKey];
 
         if ( validators.IsDefault )
         {
@@ -70,28 +75,39 @@ public sealed class DesignTimeAspectPipelineResultExtensionCollection
         return validators;
     }
 
-    public Builder ToBuilder() => new( this._ownExtensions.ToBuilder() );
+    public Builder ToBuilder() => new( this._ownValidators.ToBuilder(), this.Extensions.ToBuilder() );
 
-    public ImmutableArray<ITransitiveAspectsManifestExtension> ToTransitiveValidatorInstances()
+    public ImmutableArray<ITransitiveAspectsManifestExtension> ToTransitiveValidatorInstances( bool includeValidators )
+        => includeValidators
+            ? this.Extensions.SelectAsImmutableArray( x => x.ToTransitiveAspectManifestExtension() )
+            : [..this.Extensions.Where( e => !e.ContributorKind.IsValidator ).Select( x => x.ToTransitiveAspectManifestExtension() )];
+
+    public sealed class Builder
     {
-        var builder = ImmutableArray.CreateBuilder<ITransitiveAspectsManifestExtension>();
+        private readonly ImmutableDictionaryOfArray<SymbolDictionaryKey, IDesignTimeValidatorExtension>.Builder _validatorsBuilder;
+        private readonly ImmutableArray<IDesignTimePipelineResultExtension>.Builder _extensionsBuilder;
 
-        foreach ( var key in this._ownExtensions.Keys )
+        public Builder(
+            ImmutableDictionaryOfArray<SymbolDictionaryKey, IDesignTimeValidatorExtension>.Builder validatorsBuilder,
+            ImmutableArray<IDesignTimePipelineResultExtension>.Builder extensionsBuilder )
         {
-            foreach ( var validator in this._ownExtensions[key] )
-            {
-                builder.Add( validator.ToTransitiveAspectManifestExtension() );
-            }
+            this._validatorsBuilder = validatorsBuilder;
+            this._extensionsBuilder = extensionsBuilder;
         }
 
-        return builder.ToImmutable();
-    }
-
-    public sealed class Builder( ImmutableDictionaryOfArray<SymbolDictionaryKey, IDesignTimeAspectPipelineResultExtension>.Builder builder )
-    {
-        public void Remove( IDesignTimeAspectPipelineResultExtension validator )
+        public void Remove( IDesignTimePipelineResultExtension extension )
         {
-            if ( !builder.Remove( validator.ValidatedDeclaration, validator ) )
+            if ( extension.ContributorKind.IsValidator && extension is IDesignTimeValidatorExtension validator )
+            {
+                if ( !this._validatorsBuilder.Remove( validator.ValidatedDeclaration, validator ) )
+                {
+#if DEBUG
+                    throw new AssertionFailedException( "Cannot remove validator." );
+#endif
+                }
+            }
+
+            if ( !this._extensionsBuilder.Remove( extension ) )
             {
 #if DEBUG
                 throw new AssertionFailedException( "Cannot remove validator." );
@@ -99,15 +115,25 @@ public sealed class DesignTimeAspectPipelineResultExtensionCollection
             }
         }
 
-        public void Add( IDesignTimeAspectPipelineResultExtension validator ) => builder.Add( validator.ValidatedDeclaration, validator );
+        public void Add( IDesignTimePipelineResultExtension extension )
+        {
+            if ( extension.ContributorKind.IsValidator && extension is IDesignTimeValidatorExtension validator )
+            {
+                this._validatorsBuilder.Add( validator.ValidatedDeclaration, validator );
+            }
+
+            this._extensionsBuilder.Add( extension );
+        }
 
         public DesignTimeAspectPipelineResultExtensionCollection ToImmutable( IEnumerable<DesignTimeAspectPipelineResultExtensionCollection> childCollections )
         {
-            var extensions = builder.ToImmutable();
+            var validators = this._validatorsBuilder.ToImmutable();
+            var transitiveExtensions = this._extensionsBuilder.ToImmutable();
 
             return new DesignTimeAspectPipelineResultExtensionCollection(
-                new ReferenceIndexerOptions( extensions.SelectMany( x => x ).Select( x => x.ReferenceIndexerRequirements ) ),
-                extensions,
+                new ReferenceIndexerOptions( validators.SelectMany( x => x ).Select( x => x.ReferenceIndexerRequirements ).WhereNotNull() ),
+                validators,
+                transitiveExtensions,
                 childCollections );
         }
     }

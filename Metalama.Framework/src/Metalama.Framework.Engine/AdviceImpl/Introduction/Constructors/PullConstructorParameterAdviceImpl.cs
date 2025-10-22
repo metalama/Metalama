@@ -30,16 +30,19 @@ internal sealed class PullConstructorParameterAdviceImpl
 {
     private readonly IPullStrategy? _pullStrategy;
     private readonly AspectLayerInstance _aspectLayerInstance;
+    private readonly bool _onlyProcessDerivedTypes;
     private readonly AdviceImplementationContext _context;
 
     public PullConstructorParameterAdviceImpl(
         AdviceImplementationContext context,
         IPullStrategy? pullStrategy,
-        AspectLayerInstance aspectLayerInstance )
+        AspectLayerInstance aspectLayerInstance,
+        bool onlyProcessDerivedTypes )
     {
         this._context = context;
         this._pullStrategy = pullStrategy;
         this._aspectLayerInstance = aspectLayerInstance;
+        this._onlyProcessDerivedTypes = onlyProcessDerivedTypes;
     }
 
     private ProjectServiceProvider ServiceProvider => this._context.ServiceProvider;
@@ -53,27 +56,31 @@ internal sealed class PullConstructorParameterAdviceImpl
         var baseConstructor = (IConstructor) baseParameter.DeclaringMember.AssertNotNull();
         var syntaxGenerationOptions = this.ServiceProvider.GetRequiredService<SyntaxGenerationOptions>();
 
-        // Process the current type.
-        ProcessType(
-            baseConstructor.DeclaringType.Constructors
-                .Where( c => c.InitializerKind == ConstructorInitializerKind.This ) );
-
-        // Register a transitive aspect for the current type.
-        if ( this._pullStrategy is not null && this._pullStrategy is not LegacyPullStrategy && baseConstructor.CanBeChainedFromOutsideAssembly() )
+        if ( !this._onlyProcessDerivedTypes )
         {
-            var transitiveAspect = new PullConstructorParameterTransitiveAspect(
-                this._pullStrategy,
-                baseParameter.ToRef(),
-                this._context.AspectOrder );
+            // Process the current type.
+            ProcessType(
+                baseConstructor.DeclaringType.Constructors
+                    .Where( c => c.InitializerKind == ConstructorInitializerKind.This ) );
 
-            this._context.AddTransitiveAspect(
-                new TransitiveAspectInstance(
-                    transitiveAspect,
-                    baseParameter.DeclaringMember.DeclaringType.ToRef(),
-                    baseParameter.DeclaringMember.DeclaringType.Depth,
-                    (IAspectClassImpl) this._context.AspectClassResolver.GetAspectClass( typeof(PullConstructorParameterTransitiveAspect) ),
-                    this._aspectLayerInstance.AspectInstance.AspectState,
-                    this._aspectLayerInstance.AspectInstance.PredecessorDegree + 1 ) );
+            // Register a transitive aspect for the current type.
+            if ( this._pullStrategy is not null && this._pullStrategy is not LegacyPullStrategy && baseConstructor.CanBeChainedFromOutsideAssembly() )
+            {
+                var transitiveAspect = new PullConstructorParameterTransitiveAspect(
+                    this._pullStrategy,
+                    baseParameter.ToRef(),
+                    this._context.AspectOrder );
+
+                this._context.AddTransitiveAspect(
+                    new TransitiveAspectInstance(
+                        transitiveAspect,
+                        baseParameter.DeclaringMember.DeclaringType.ToRef(),
+                        baseParameter.DeclaringMember.DeclaringType.Depth,
+                        (IAspectClassImpl) this._context.AspectClassResolver.GetAspectClass( typeof(PullConstructorParameterTransitiveAspect) ),
+                        this._aspectLayerInstance.AspectInstance.AspectState,
+                        this._aspectLayerInstance.AspectInstance.PredecessorDegree + 1,
+                        baseParameter.GetPrimarySyntaxTree() ) );
+            }
         }
 
         // Process derived types.

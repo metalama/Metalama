@@ -28,7 +28,7 @@ internal sealed class PullConstructorParameterAdvice : Advice<EmptyAdviceResult>
 
     protected override EmptyAdviceResult Implement( AdviceImplementationContext context )
     {
-        var impl = new PullConstructorParameterAdviceImpl( context, this._pullStrategy, this.AspectLayerInstance );
+        var impl = new PullConstructorParameterAdviceImpl( context, this._pullStrategy, this.AspectLayerInstance, true );
         impl.PullConstructorParameterRecursive( this._parameter );
 
         return EmptyAdviceResult.Instance;

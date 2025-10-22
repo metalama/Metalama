@@ -13,5 +13,5 @@ public interface ITransitivePipelineContributor : IPipelineContributor
 {
     SyntaxTree? SyntaxTree { get; }
 
-    IDesignTimeAspectPipelineResultExtension? ToDesignTime();
+    IDesignTimePipelineResultExtension? ToDesignTime();
 }

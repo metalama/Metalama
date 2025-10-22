@@ -107,7 +107,7 @@ internal sealed class IntroduceConstructorParameterAdvice : Advice<IntroductionA
         context.AddTransformation( new IntroduceParameterTransformation( this.AspectLayerInstance, parameterBuilderData ) );
 
         // Pull from constructors that call the current constructor, and recursively.
-        var impl = new PullConstructorParameterAdviceImpl( context, this._pullStrategy, this.AspectLayerInstance );
+        var impl = new PullConstructorParameterAdviceImpl( context, this._pullStrategy, this.AspectLayerInstance, false );
         impl.PullConstructorParameterRecursive( parameter );
 
         return new IntroductionAdviceResult<IParameter>(
