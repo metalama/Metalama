@@ -11,7 +11,7 @@ namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline;
 public class PullParameterTests : UnitTestClass
 {
 #if NET5_0_OR_GREATER
-        [Fact( Skip = "CLR internal error when unloading the domain" )]
+    [Fact( Skip = "CLR internal error when unloading the domain" )]
 #else
     [Fact]
 #endif

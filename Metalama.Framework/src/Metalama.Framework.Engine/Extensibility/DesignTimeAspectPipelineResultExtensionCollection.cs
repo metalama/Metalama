@@ -80,7 +80,7 @@ public sealed class DesignTimeAspectPipelineResultExtensionCollection
     public ImmutableArray<ITransitiveAspectsManifestExtension> ToTransitiveValidatorInstances( bool includeValidators )
         => includeValidators
             ? this.Extensions.SelectAsImmutableArray( x => x.ToTransitiveAspectManifestExtension() )
-            : [..this.Extensions.Where( e => !e.ContributorKind.IsValidator ).Select( x => x.ToTransitiveAspectManifestExtension() )];
+            : this.Extensions.Where( e => !e.ContributorKind.IsValidator ).Select( x => x.ToTransitiveAspectManifestExtension() ).ToImmutableArray();
 
     public sealed class Builder
     {

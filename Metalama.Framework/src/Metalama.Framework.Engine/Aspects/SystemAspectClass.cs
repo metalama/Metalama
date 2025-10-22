@@ -47,7 +47,7 @@ internal sealed class SystemAspectClass : IBoundAspectClass
         this.ShortName = shortName;
         this.Type = type;
         this.Layer = new AspectLayer( this, null, shortName );
-        this.Layers = [this.Layer];
+        this.Layers = ImmutableArray.Create( this.Layer );
         this.AspectDriver = new AspectDriver( serviceProvider, this, compilation );
         this.GeneratedCodeAnnotation = MetalamaCompilerAnnotations.CreateGeneratedCodeAnnotation( shortName );
     }

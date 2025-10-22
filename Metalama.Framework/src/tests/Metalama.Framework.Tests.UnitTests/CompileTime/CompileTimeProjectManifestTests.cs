@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Engine.CompileTime.Manifest;
 using Microsoft.CodeAnalysis.CSharp;
+using System;
 using Xunit;
 
 namespace Metalama.Framework.Tests.UnitTests.CompileTime;
@@ -36,7 +37,7 @@ public sealed class CompileTimeProjectManifestTests
 
         var json = manifest.ToJson();
 
-        Assert.DoesNotContain( languageVersion.ToString(), json );
+        Assert.DoesNotContain( languageVersion.ToString(), json, StringComparison.Ordinal );
     }
 
     [Fact]
