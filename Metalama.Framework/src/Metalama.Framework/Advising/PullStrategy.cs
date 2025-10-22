@@ -7,12 +7,28 @@ using Metalama.Framework.Code;
 
 namespace Metalama.Framework.Advising;
 
+/// <summary>
+/// Defines some standard implementations of the <see cref="IPullStrategy"/> interface.
+/// </summary>
 public static class PullStrategy
 {
+    /// <summary>
+    /// Assigns an expression to the introduced parameter.
+    /// </summary>
+    /// <param name="expression">An expression. Only a limit set of expressions, including <see cref="TypedConstant"/> and <see cref="IParameter"/>, are supported.</param>
+    /// <returns></returns>
     public static IPullStrategy UseExpression( IExpression expression ) => new ExpressionPullStrategy( expression );
 
+    /// <summary>
+    /// Assigns a constant to the introduced parameter.
+    /// </summary>
+    /// <param name="constant"></param>
+    /// <returns></returns>
     public static IPullStrategy UseConstant( TypedConstant constant ) => new ExpressionPullStrategy( constant );
 
+    /// <summary>
+    /// Introduce a new parameter to the constructor.
+    /// </summary>
     public static IPullStrategy IntroduceParameterAndPull(
         string? name = null,
         IType? type = null,

@@ -1068,7 +1068,7 @@ public static class AdviserExtensions
         string parameterName,
         IType parameterType,
         TypedConstant defaultValue,
-        IPullStrategy? pullStrategy,
+        IPullStrategy? pullStrategy = null,
         ImmutableArray<AttributeConstruction> attributes = default )
         => ((IAdviserInternal) adviser).AdviceFactory.IntroduceParameter(
             adviser.Target,
@@ -1077,33 +1077,7 @@ public static class AdviserExtensions
             defaultValue,
             pullStrategy,
             attributes );
-
-    public static IIntroductionAdviceResult<IParameter> IntroduceParameter(
-        this IAdviser<IConstructor> adviser,
-        string parameterName,
-        IType parameterType,
-        TypedConstant defaultValue,
-        ImmutableArray<AttributeConstruction> attributes = default )
-        => ((IAdviserInternal) adviser).AdviceFactory.IntroduceParameter(
-            adviser.Target,
-            parameterName,
-            parameterType,
-            defaultValue,
-            attributes );
-
-    public static IIntroductionAdviceResult<IParameter> IntroduceParameter(
-        this IAdviser<IConstructor> adviser,
-        string parameterName,
-        Type parameterType,
-        TypedConstant defaultValue,
-        ImmutableArray<AttributeConstruction> attributes = default )
-        => ((IAdviserInternal) adviser).AdviceFactory.IntroduceParameter(
-            adviser.Target,
-            parameterName,
-            parameterType,
-            defaultValue,
-            attributes );
-
+    
     /// <summary>
     /// Appends a parameter to a constructor by specifying its name and <see cref="Type"/>.
     /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to apply the advice to another declaration than the current one.
@@ -1138,7 +1112,7 @@ public static class AdviserExtensions
         string parameterName,
         Type parameterType,
         TypedConstant defaultValue,
-        IPullStrategy? pullStrategy,
+        IPullStrategy? pullStrategy = null,
         ImmutableArray<AttributeConstruction> attributes = default )
         => ((IAdviserInternal) adviser).AdviceFactory.IntroduceParameter(
             adviser.Target,

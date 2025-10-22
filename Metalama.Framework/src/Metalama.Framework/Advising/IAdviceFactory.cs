@@ -767,15 +767,7 @@ namespace Metalama.Framework.Advising
             TypedConstant defaultValue,
             Func<IParameter, IConstructor, PullAction>? pullAction,
             ImmutableArray<AttributeConstruction> attributes = default );
-
-        // This is to resolve ambiguities in overload resolution.
-        IIntroductionAdviceResult<IParameter> IntroduceParameter(
-            IConstructor constructor,
-            string parameterName,
-            IType parameterType,
-            TypedConstant defaultValue,
-            ImmutableArray<AttributeConstruction> attributes = default );
-
+        
         /// <summary>
         /// Appends a parameter to a constructor by specifying its name and <see cref="IType"/>.
         /// </summary>
@@ -793,7 +785,7 @@ namespace Metalama.Framework.Advising
             string parameterName,
             IType parameterType,
             TypedConstant defaultValue,
-            IPullStrategy? pullStrategy,
+            IPullStrategy? pullStrategy = null,
             ImmutableArray<AttributeConstruction> attributes = default );
 
         /// <summary>
@@ -833,14 +825,7 @@ namespace Metalama.Framework.Advising
             string parameterName,
             Type parameterType,
             TypedConstant defaultValue,
-            IPullStrategy? pullStrategy,
-            ImmutableArray<AttributeConstruction> attributes = default );
-
-        IIntroductionAdviceResult<IParameter> IntroduceParameter(
-            IConstructor constructor,
-            string parameterName,
-            Type parameterType,
-            TypedConstant defaultValue,
+            IPullStrategy? pullStrategy = null,
             ImmutableArray<AttributeConstruction> attributes = default );
 
         IIntroductionAdviceResult<INamedType> IntroduceClass(

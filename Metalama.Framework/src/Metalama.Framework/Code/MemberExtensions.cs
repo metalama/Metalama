@@ -18,9 +18,15 @@ public static class MemberExtensions
         => (member.IsVirtual || member.IsAbstract || member.IsOverride)
            && member is { IsSealed: false, DeclaringType: { IsReferenceType: true, IsSealed: false } };
 
+    /// <summary>
+    /// Determines whether a member or type can be accessed from a given type.
+    /// </summary>
     public static bool IsAccessibleFrom( this IMemberOrNamedType accessedMember, INamedType accessingType )
         => ((ICompilationInternal) accessedMember.Compilation).Helpers.IsAccessibleFrom( accessedMember, accessingType );
 
+    /// <summary>
+    /// Determines whether a member or type can be accessed from an external assembly.
+    /// </summary>
     public static bool IsAccessibleFromOutsideAssembly( this IDeclaration declaration, bool honorInternalVisibleToAttributes = true )
         => ((ICompilationInternal) declaration.Compilation).Helpers.IsAccessibleFromOutsideAssembly( declaration, honorInternalVisibleToAttributes );
 

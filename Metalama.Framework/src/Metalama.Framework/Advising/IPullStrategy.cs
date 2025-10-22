@@ -7,6 +7,12 @@ using Metalama.Framework.Serialization;
 
 namespace Metalama.Framework.Advising;
 
+/// <summary>
+/// A strategy to pull an introduced parameter. For standard implementation, see <see cref="PullStrategy"/>. 
+/// </summary>
+/// <remarks>
+/// Custom implementations must be serializable because pulling operates across projects.
+/// </remarks>
 public interface IPullStrategy : ICompileTimeSerializable
 {
     /// <summary>

@@ -1584,14 +1584,6 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         string parameterName,
         IType parameterType,
         TypedConstant defaultValue,
-        ImmutableArray<AttributeConstruction> attributes )
-        => this.IntroduceParameter( constructor, parameterName, parameterType, defaultValue, (IPullStrategy?) null, attributes );
-
-    public IIntroductionAdviceResult<IParameter> IntroduceParameter(
-        IConstructor constructor,
-        string parameterName,
-        IType parameterType,
-        TypedConstant defaultValue,
         IPullStrategy? pullStrategy,
         ImmutableArray<AttributeConstruction> attributes = default )
     {
@@ -1642,14 +1634,6 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
             defaultValue,
             pullStrategy,
             attributes );
-
-    public IIntroductionAdviceResult<IParameter> IntroduceParameter(
-        IConstructor constructor,
-        string parameterName,
-        Type parameterType,
-        TypedConstant defaultValue,
-        ImmutableArray<AttributeConstruction> attributes )
-        => this.IntroduceParameter( constructor, parameterName, parameterType, defaultValue, (IPullStrategy?) null, attributes );
 
     public void PullParameter( IParameter parameter, IPullStrategy? pullStrategy )
     {
