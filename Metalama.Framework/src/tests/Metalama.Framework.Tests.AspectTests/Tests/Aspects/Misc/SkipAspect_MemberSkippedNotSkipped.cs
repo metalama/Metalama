@@ -4,7 +4,6 @@
 
 using System;
 using System.Linq;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 
@@ -41,20 +40,21 @@ public class TestAttribute : MethodAspect
         }
 
         this._testDependency.Foo();
-
         return meta.Proceed();
     }
-}
+    }
 
-[AttributeUsage( AttributeTargets.Class | AttributeTargets.Method | AttributeTargets.Property )]
-public sealed class DisableAspectAttribute : Attribute { }
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Method | AttributeTargets.Property)]
+public sealed class DisableAspectAttribute : Attribute
+{
+}
 
 // <target>
 public class TargetClass
 {
     [Test]
     [DisableAspect]
-    public DateTime Method1()
+    public DateTime Method1() 
     {
         return default;
     }

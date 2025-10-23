@@ -1,9 +1,8 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Tests.AspectTests.Tests.Aspects.Formatting.PropertyAccessorOverride;
@@ -61,37 +60,29 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Formatting.Property
         [Aspect1]
         [Aspect2]
         public int Foo // After Foo name.
-        {
-            // After Foo opening brace.
+        { // After Foo opening brace.
             // Before Foo.get.
             get // After Foo.get keyword.
             // Before Foo.get opening brace.
-            {
-                // After Foo.get opening brace.
-                Console.WriteLine( "Foo.get" );
-
+            { // After Foo.get opening brace.
+                Console.WriteLine("Foo.get");
                 return 42;
-
                 // Before Foo.get closing brace.
             } // After Foo.get closing brace.
             // After Foo.get and before Foo.set.
             set // After Foo.set keyword.
             // Before Foo.set opening brace.
-            {
-                // After Foo.set opening brace.
-                Console.WriteLine( "Foo.set" );
-
+            { // After Foo.set opening brace.
+                Console.WriteLine("Foo.set");
                 // Before Foo.set closing brace.
             } // After Foo.set closing brace.
             // Before Foo closing brace.
         } // After Foo closing brace.
-
         // After Foo/before Bar.
         [Aspect1]
         [Aspect2]
         public int Bar // After Bar name.
-        {
-            // After Bar opening brace.
+        { // After Bar opening brace.
             // Before Bar.get.
             get // After Bar.get keyword.
             // Before Bar.get semicolon
@@ -101,19 +92,17 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Formatting.Property
             // Before Bar.set semicolon
             ; // After Bar.set semicolon.
             // Before Bar closing brace.
-        } // After Bar closing brace.
-
+        }// After Bar closing brace.
         // After Bar/before Baz.
         [Aspect1]
         [Aspect2]
         public int Baz // After Baz name.
-        {
-            // After Baz opening brace.
+        { // After Baz opening brace.
             // Before Baz.get.
             get // After Baz.get keyword.
             // Before Baz.get arrow.
                 => // After Baz.get arrow.
-                    // Before Baz.get expression.
+                   // Before Baz.get expression.
                     42 // After Baz.get expression.
             // Before Baz.get semicolon.
             ; // After Baz.get semicolon.
@@ -121,24 +110,22 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Formatting.Property
             set // After Baz.set keyword.
             // Before Baz.set arrow.
                 => // After Baz.set arrow.
-                    // Before Baz.set expression.
-                    Console.WriteLine( "Foo.set" ) // After Baz.set expression.
+                   // Before Baz.set expression.
+                Console.WriteLine("Foo.set") // After Baz.set expression.
             // Before Baz.set semicolon.
             ; // After Baz.set semicolon.
             // Before Baz closing brace.
-        } // After Baz closing brace.
-
+        }// After Baz closing brace.
         // After Baz/before Qux.
         [Aspect1]
         [Aspect2]
         public int Qux // After Qux name
-            // Before Qux.get arrow.
+                       // Before Qux.get arrow.
             => // After Qux.get arrow.
-                // Before Qux.get expression.
+               // Before Qux.get expression.
                 42 // After Qux.get expression.
         // Before Qux.get semicolon.
         ; // After Qux.get semicolon.
-
         // After Qux.
     }
 }
