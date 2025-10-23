@@ -31,10 +31,12 @@ internal abstract class Advice : IDiagnosticSource
 
     protected virtual bool AcceptsExternalTargets => false;
 
+    protected IAdviceFactoryImpl AdviceFactory { get; }
+
     protected Advice( in AdviceConstructorParameters parameters )
     {
 #if DEBUG
-        
+
         // ReSharper disable once VirtualMemberCallInConstructor
         if ( !this.AcceptsExternalTargets && parameters.TargetDeclaration.DeclaringAssembly.IsExternal )
         {
@@ -44,6 +46,7 @@ internal abstract class Advice : IDiagnosticSource
         this.AspectLayerInstance = parameters.AspectLayerInstance;
         this.TemplateInstance = parameters.TemplateInstance;
         this.TargetDeclaration = parameters.TargetDeclaration;
+        this.AdviceFactory = parameters.AdviceFactory;
     }
 
     string IDiagnosticSource.DiagnosticSourceDescription => $"{this.GetType().Name} supplied by {this.AspectInstance.DiagnosticSourceDescription}'";
@@ -54,7 +57,8 @@ internal abstract class Advice : IDiagnosticSource
     public record struct AdviceConstructorParameters(
         AspectLayerInstance AspectLayerInstance,
         TemplateClassInstance? TemplateInstance,
-        IDeclaration TargetDeclaration );
+        IDeclaration TargetDeclaration,
+        IAdviceFactoryImpl AdviceFactory );
 
     /// <summary>
     /// Generic version of parameter object containing parameters shared by constructors of all advice types.
@@ -62,13 +66,15 @@ internal abstract class Advice : IDiagnosticSource
     public record struct AdviceConstructorParameters<T>(
         AspectLayerInstance AspectLayerInstance,
         TemplateClassInstance? TemplateClassInstance,
-        T TargetDeclaration )
+        T TargetDeclaration,
+        IAdviceFactoryImpl AdviceFactory )
         where T : IDeclaration
     {
         public static implicit operator AdviceConstructorParameters( in AdviceConstructorParameters<T> parameters )
             => new(
                 parameters.AspectLayerInstance,
                 parameters.TemplateClassInstance,
-                parameters.TargetDeclaration );
+                parameters.TargetDeclaration,
+                parameters.AdviceFactory );
     }
 }

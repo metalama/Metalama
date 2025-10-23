@@ -16,27 +16,26 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Invokers.Methods.In
 
 public class InvokerAspect : TypeAspect
 {
-    [Introduce(WhenExists = OverrideStrategy.Override)]
-    public void Method()
-    {
-    }
+    [Introduce( WhenExists = OverrideStrategy.Override )]
+    public void Method() { }
 
-    public override void BuildAspect(IAspectBuilder<INamedType> builder)
+    public override void BuildAspect( IAspectBuilder<INamedType> builder )
     {
-        builder.With(builder.Target.Methods.OfName("Invoker").Single()).Override(
-            nameof(Template),
-            new { target = builder.Target.ForCompilation(builder.Advice.MutableCompilation).Methods.OfName("Method").Single() });
+        builder.With( builder.Target.Methods.OfName( "Invoker" ).Single() )
+            .Override(
+                nameof(this.Template),
+                new { target = builder.Target.ForCompilation( builder.MutableCompilation ).Methods.OfName( "Method" ).Single() } );
     }
 
     [Template]
-    public dynamic? Template([CompileTime] IMethod target)
+    public dynamic? Template( [CompileTime] IMethod target )
     {
-        meta.InsertComment("Invoke base.Method");
-        target.With(InvokerOptions.Base).Invoke();
-        meta.InsertComment("Invoke this.Method");
-        target.With(InvokerOptions.Current).Invoke();
-        meta.InsertComment("Invoke this.Method");
-        target.With(InvokerOptions.Final).Invoke();
+        meta.InsertComment( "Invoke base.Method" );
+        target.With( InvokerOptions.Base ).Invoke();
+        meta.InsertComment( "Invoke this.Method" );
+        target.With( InvokerOptions.Current ).Invoke();
+        meta.InsertComment( "Invoke this.Method" );
+        target.With( InvokerOptions.Final ).Invoke();
 
         return meta.Proceed();
     }
@@ -44,7 +43,7 @@ public class InvokerAspect : TypeAspect
 
 public class BaseClass
 {
-    public virtual void Method() {}
+    public virtual void Method() { }
 }
 
 // <target>

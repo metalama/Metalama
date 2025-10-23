@@ -11,6 +11,8 @@ using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.Diagnostics;
+using Microsoft.CodeAnalysis;
+using System.Collections.Immutable;
 using System.Linq;
 
 namespace Metalama.Framework.Engine.AdviceImpl.Attributes;
@@ -54,7 +56,7 @@ internal sealed class AddAttributeAdvice : Advice<AddAttributeAdviceResult>
                                 this ) );
 
                     case OverrideStrategy.Ignore:
-                        return new AddAttributeAdviceResult( AdviceOutcome.Ignore, existingAttribute.ToRef() );
+                        return new AddAttributeAdviceResult( AdviceOutcome.Ignore, this.AdviceFactory, existingAttribute.ToRef() );
 
                     case OverrideStrategy.Override:
                         var removeTransformation = new RemoveAttributesTransformation(
@@ -90,7 +92,10 @@ internal sealed class AddAttributeAdvice : Advice<AddAttributeAdviceResult>
             attributeBuilder.Freeze();
             contextCopy.AddTransformation( attributeBuilder.CreateTransformation() );
 
-            return new AddAttributeAdviceResult( outcome, attributeBuilder.ToRef() );
+            return new AddAttributeAdviceResult( outcome, this.AdviceFactory, attributeBuilder.ToRef() );
         }
     }
+
+    protected override AddAttributeAdviceResult CreateFailedResult( ImmutableArray<Diagnostic> diagnostics )
+        => new( AdviceOutcome.Error, this.AdviceFactory, diagnostics: diagnostics );
 }

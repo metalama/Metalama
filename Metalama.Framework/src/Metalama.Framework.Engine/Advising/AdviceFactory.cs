@@ -43,17 +43,11 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
     private readonly string? _layerName;
     private readonly INamedType? _explicitlyImplementedInterfaceType;
     private readonly UserDiagnosticSink _diagnostics;
-
     private readonly TemplateClassProvider _templateClassProvider;
-
     private readonly CompilationModel _compilation;
     private readonly IDeclaration _aspectTarget;
     private readonly INamedType? _aspectTargetType;
     private readonly ObjectReaderFactory _objectReaderFactory;
-
-    public ScopedDiagnosticSink Diagnostics => new( this._diagnostics, this, this.Target, this.Target );
-
-    IDeclaration IAdviser.Target => this.Target;
 
     public T Target { get; }
 
@@ -81,6 +75,18 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         this._aspectTargetType = this._aspectTarget.GetClosestNamedType();
         this._objectReaderFactory = state.ServiceProvider.Global.GetRequiredService<ObjectReaderFactory>();
     }
+
+    public ScopedDiagnosticSink Diagnostics => new( this._diagnostics, this, this.Target, this.Target );
+
+    IDeclaration IAdviser.Target => this.Target;
+
+    ICompilation IAdviceFactory.Compilation => this._compilation;
+
+    ICompilation IAdviser.Compilation => this._compilation;
+
+    CompilationModel IAdviceFactoryImpl.Compilation => this._compilation;
+
+    CompilationModel IAdviceFactoryImpl.MutableCompilation => this._state.MutableCompilation;
 
     // We use return lazy object readers because these methods can be called before the BuildAspect method is called,
     // for declarative advice.
@@ -395,7 +401,8 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         return new Advice.AdviceConstructorParameters<TDeclaration>(
             this._state.AspectLayerInstance,
             this._templateClassInstance,
-            target );
+            target,
+            this );
     }
 
     public IOverrideAdviceResult<IMethod> Override(
@@ -1346,7 +1353,6 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
                 interfaceType,
                 whenExists,
                 this.GetTagsReader( tags ),
-                this,
                 this.TemplateProvider );
 
             return advice.Execute( this._state );
@@ -1468,7 +1474,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
 
             if ( !this.TryPrepareContract( targetParameter, template, ref kind, tags, out var boundTemplate ) )
             {
-                return AddContractAdviceResult<IParameter>.Ignored;
+                return AddContractAdviceResult<IParameter>.Ignored( this );
             }
 
             var advice = new ParameterContractAdvice(
@@ -1492,7 +1498,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         {
             if ( !this.TryPrepareContract( targetMember, template, ref direction, tags, out var boundTemplate ) )
             {
-                return AddContractAdviceResult<IFieldOrPropertyOrIndexer>.Ignored;
+                return AddContractAdviceResult<IFieldOrPropertyOrIndexer>.Ignored( this );
             }
 
             var advice = new FieldOrPropertyOrIndexerContractAdvice(
@@ -1597,8 +1603,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
                 parameterType,
                 attributes.IsDefaultOrEmpty ? null : builder => builder.AddAttributes( attributes ),
                 pullStrategy,
-                defaultValue,
-                this );
+                defaultValue );
 
             return advice.Execute( this._state );
         }
@@ -1793,7 +1798,8 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
                 new Advice.AdviceConstructorParameters(
                     this._state.AspectLayerInstance,
                     this._templateClassInstance,
-                    declaration ),
+                    declaration,
+                    this ),
                 new AnnotationInstance( annotation, export, declaration.ToRef() ) );
 
             advice.Execute( this._state );

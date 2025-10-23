@@ -6,6 +6,8 @@ using Metalama.Framework.Advising;
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Advising;
 using Metalama.Framework.Engine.Utilities;
+using Microsoft.CodeAnalysis;
+using System.Collections.Immutable;
 
 namespace Metalama.Framework.Engine.AdviceImpl.Contracts;
 
@@ -14,16 +16,17 @@ internal sealed class AddContractAdviceResult<T> : AdviceResult, IAddContractAdv
 {
     private readonly IRef<T>? _declaration;
 
-    public AddContractAdviceResult() { }
-
-    public AddContractAdviceResult( IRef<T>? declaration )
+    public AddContractAdviceResult(
+        AdviceOutcome outcome,
+        IAdviceFactoryImpl adviceFactory,
+        IRef<T>? declaration = null,
+        ImmutableArray<Diagnostic> diagnostics = default ) : base( AdviceKind.AddContract, outcome, adviceFactory, diagnostics )
     {
         this._declaration = declaration;
-        this.AdviceKind = AdviceKind.AddContract;
     }
 
     [Memo]
     public T Declaration => this.Resolve( this._declaration );
 
-    public static AddContractAdviceResult<T> Ignored { get; } = new() { Outcome = AdviceOutcome.Ignore, AdviceKind = AdviceKind.AddContract };
+    public static AddContractAdviceResult<T> Ignored( IAdviceFactoryImpl adviceFactory ) => new( AdviceOutcome.Ignore, adviceFactory );
 }

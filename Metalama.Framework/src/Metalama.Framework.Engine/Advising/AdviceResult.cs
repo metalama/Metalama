@@ -19,16 +19,30 @@ namespace Metalama.Framework.Engine.Advising;
 /// </summary>
 internal abstract class AdviceResult : IAdviceResult
 {
-    public AdviceKind AdviceKind { get; init; }
+    public AdviceKind AdviceKind { get; }
 
-    public AdviceOutcome Outcome { get; init; }
+    public AdviceOutcome Outcome { get; }
 
-    public ImmutableArray<Diagnostic> ReportedDiagnostics { get; init; } = ImmutableArray<Diagnostic>.Empty;
+    public IAdviceFactoryImpl AdviceFactory { get; }
+
+    protected AdviceResult(
+        AdviceKind adviceKind,
+        AdviceOutcome outcome,
+        IAdviceFactoryImpl adviceFactory,
+        ImmutableArray<Diagnostic> reportedDiagnostics = default )
+    {
+        this.AdviceKind = adviceKind;
+        this.Outcome = outcome;
+        this.AdviceFactory = adviceFactory;
+        this.ReportedDiagnostics = reportedDiagnostics.IsDefault ? ImmutableArray<Diagnostic>.Empty : reportedDiagnostics;
+    }
+
+    public ImmutableArray<Diagnostic> ReportedDiagnostics { get; }
 
     // This property is used only by the introspection API.
     public ImmutableArray<ITransformation> Transformations { get; internal set; } = ImmutableArray<ITransformation>.Empty;
 
-    public CompilationModel? Compilation { get; set; }
+    public CompilationModel? Compilation => this.AdviceFactory.MutableCompilation;
 
     protected T Resolve<T>( IRef<T>? reference, [CallerMemberName] string? caller = null )
         where T : class, ICompilationElement

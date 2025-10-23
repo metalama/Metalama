@@ -27,19 +27,19 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Introductions.Inter
         {
             var result = aspectBuilder.ImplementInterface( typeof(IInterface), OverrideStrategy.Override );
 
-            if (result.Outcome != AdviceOutcome.Default)
+            if ( result.Outcome != AdviceOutcome.Default )
             {
                 throw new InvalidOperationException( $"Outcome was {result.Outcome} instead of Default." );
             }
 
-            if (result.AdviceKind != AdviceKind.ImplementInterface)
+            if ( result.AdviceKind != AdviceKind.ImplementInterface )
             {
                 throw new InvalidOperationException( $"AdviceKind was {result.AdviceKind} instead of ImplementInterface." );
             }
 
-            aspectBuilder.Advice.WithTemplateProvider( new AdviceResultTemplates() )
+            aspectBuilder.WithTemplateProvider( new AdviceResultTemplates() )
+                .With( aspectBuilder.Target.Methods.OfName( "Witness" ).Single() )
                 .Override(
-                    aspectBuilder.Target.Methods.OfName( "Witness" ).Single(),
                     nameof(AdviceResultTemplates.WitnessTemplate),
                     args: new { types = result.Interfaces, members = result.GetObsoleteInterfaceMembers() } );
         }

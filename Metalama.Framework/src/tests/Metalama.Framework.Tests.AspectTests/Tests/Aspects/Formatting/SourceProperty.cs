@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System.Linq;
+using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 
@@ -12,16 +13,16 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Formatting.SourcePr
     {
         public override void BuildAspect( IAspectBuilder<INamedType> builder )
         {
-            foreach (var property in builder.Target.Properties.Where( p => !p.IsAbstract && p.Writeability == Writeability.All ))
+            foreach ( var property in builder.Target.Properties.Where( p => !p.IsAbstract && p.Writeability == Writeability.All ) )
             {
-                builder.Advice.OverrideAccessors( property, null, nameof(OverridePropertySetter) );
+                builder.With( property ).OverrideAccessors( null, nameof(this.OverridePropertySetter) );
             }
         }
 
         [Template]
         private dynamic OverridePropertySetter( dynamic value )
         {
-            if (value != meta.Target.Property.Value)
+            if ( value != meta.Target.Property.Value )
             {
                 meta.Proceed();
             }
@@ -44,8 +45,8 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Formatting.SourcePr
 
         public int Property
         {
-            get => _field;
-            set => _field = value;
+            get => this._field;
+            set => this._field = value;
         }
     }
 }

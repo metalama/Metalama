@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System;
+using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 
@@ -14,11 +15,11 @@ public class MyAspect : TypeAspect
     {
         var templateProvider = TemplateProvider.FromInstance( new TemplateProviderImpl() );
 
-        builder.Advice.WithTemplateProvider( templateProvider ).IntroduceProperty( builder.Target, nameof(TemplateProviderImpl.IntroducedProperty) );
+        builder.WithTemplateProvider( templateProvider ).With( builder.Target ).IntroduceProperty( nameof(TemplateProviderImpl.IntroducedProperty) );
 
-        foreach (var property in builder.Target.Properties)
+        foreach ( var property in builder.Target.Properties )
         {
-            builder.Advice.WithTemplateProvider( templateProvider ).Override( property, nameof(TemplateProviderImpl.OverrideTemplate) );
+            builder.WithTemplateProvider( templateProvider ).With( property ).Override( nameof(TemplateProviderImpl.OverrideTemplate) );
         }
     }
 }

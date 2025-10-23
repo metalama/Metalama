@@ -5,6 +5,8 @@
 using Metalama.Framework.Advising;
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Advising;
+using Microsoft.CodeAnalysis;
+using System.Collections.Immutable;
 
 namespace Metalama.Framework.Engine.AdviceImpl.Introduction.Constructors;
 
@@ -31,6 +33,9 @@ internal sealed class PullConstructorParameterAdvice : Advice<EmptyAdviceResult>
         var impl = new PullConstructorParameterAdviceImpl( context, this._pullStrategy, this.AspectLayerInstance, true );
         impl.PullConstructorParameterRecursive( this._parameter );
 
-        return EmptyAdviceResult.Instance;
+        return new EmptyAdviceResult( AdviceKind.PullConstructorParameter, AdviceOutcome.Success, this.AdviceFactory );
     }
+
+    protected override EmptyAdviceResult CreateFailedResult( ImmutableArray<Diagnostic> diagnostics )
+        => new( AdviceKind.PullConstructorParameter, AdviceOutcome.Error, this.AdviceFactory, diagnostics );
 }

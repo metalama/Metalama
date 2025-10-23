@@ -301,11 +301,11 @@ namespace Metalama.Framework.Aspects
             if ( parameter.DeclaringMember is IConstructor { DeclaringType.TypeKind: TypeKind.RecordClass or TypeKind.RecordStruct } constructor &&
                  (property = constructor.DeclaringType.Properties.OfName( builder.Target.Name ).SingleOrDefault()) != null )
             {
-                builder.Advice.AddContract( property, nameof(this.Validate), direction );
+                builder.With( property ).AddContract( nameof(this.Validate), direction );
             }
             else
             {
-                builder.Advice.AddContract( parameter, nameof(this.Validate), direction );
+                builder.With( parameter ).AddContract( nameof(this.Validate), direction );
             }
         }
 
@@ -360,7 +360,7 @@ namespace Metalama.Framework.Aspects
         /// </remarks>
         public static void RedirectContracts( IAspectBuilder aspectBuilder, IFieldOrPropertyOrIndexer sourceTarget, IParameter targetParameter )
         {
-            aspectBuilder.Advice.AddAnnotation( sourceTarget, new RedirectToProxyParameterAnnotation( targetParameter ) );
+            aspectBuilder.With( sourceTarget ).AddAnnotation( new RedirectToProxyParameterAnnotation( targetParameter ) );
         }
     }
 }

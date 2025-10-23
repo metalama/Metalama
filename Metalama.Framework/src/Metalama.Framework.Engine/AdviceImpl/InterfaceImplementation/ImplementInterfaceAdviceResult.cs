@@ -14,24 +14,20 @@ namespace Metalama.Framework.Engine.AdviceImpl.InterfaceImplementation;
 
 internal sealed class ImplementInterfaceAdviceResult : AdviceResult, IImplementInterfaceAdviceResult
 {
-    public ImplementInterfaceAdviceResult() { }
-
     public ImplementInterfaceAdviceResult(
         AdviceOutcome outcome,
-        ImmutableArray<Diagnostic> reportedDiagnostics,
-        IReadOnlyCollection<IInterfaceImplementationResult>? interfaces,
-        IReadOnlyCollection<IInterfaceMemberImplementationResult>? interfaceMembers )
+        IAdviceFactoryImpl adviceFactory,
+        IReadOnlyCollection<IInterfaceImplementationResult>? interfaces = null,
+        IReadOnlyCollection<IInterfaceMemberImplementationResult>? interfaceMembers = null,
+        ImmutableArray<Diagnostic> reportedDiagnostics = default ) : base( AdviceKind.ImplementInterface, outcome, adviceFactory, reportedDiagnostics )
     {
-        this.AdviceKind = AdviceKind.ImplementInterface;
-        this.Outcome = outcome;
-        this.InterfaceMembers = interfaceMembers ?? Array.Empty<IInterfaceMemberImplementationResult>();
-        this.Interfaces = interfaces ?? Array.Empty<IInterfaceImplementationResult>();
-        this.ReportedDiagnostics = reportedDiagnostics;
+        this.Interfaces = interfaces ?? [];
+        this.InterfaceMembers = interfaceMembers ?? [];
     }
 
-    public IReadOnlyCollection<IInterfaceImplementationResult> Interfaces { get; } = Array.Empty<IInterfaceImplementationResult>();
+    public IReadOnlyCollection<IInterfaceImplementationResult> Interfaces { get; }
 
-    public IReadOnlyCollection<IInterfaceMemberImplementationResult> InterfaceMembers { get; } = Array.Empty<IInterfaceMemberImplementationResult>();
+    public IReadOnlyCollection<IInterfaceMemberImplementationResult> InterfaceMembers { get; }
 
     public IInterfaceImplementationAdviser ExplicitMembers
         => this.Interfaces.FirstOrDefault()?.ExplicitMembers

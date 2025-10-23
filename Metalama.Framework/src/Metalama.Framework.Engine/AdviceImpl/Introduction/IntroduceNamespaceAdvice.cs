@@ -20,7 +20,7 @@ internal sealed class IntroduceNamespaceAdvice : IntroduceDeclarationAdvice<INam
     public IntroduceNamespaceAdvice(
         in AdviceConstructorParameters<INamespace> parameters,
         string name,
-        IAdviceFactoryImpl adviceFactory ) : base( parameters, null, adviceFactory )
+        IAdviceFactoryImpl adviceFactory ) : base( parameters, null )
     {
         this._name = name;
     }

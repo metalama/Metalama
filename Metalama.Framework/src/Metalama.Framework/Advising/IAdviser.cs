@@ -29,6 +29,14 @@ public interface IAdviser
     /// </summary>
     IDeclaration Target { get; }
 
+    ICompilation Compilation { get; }
+
+    /// <summary>
+    /// Gets the mutable compilation that the current <see cref="IAspectBuilder"/> is working on. It includes all modifications done by
+    /// the current aspect in the current type using declarative advices and the <see cref="IAspectBuilder"/>.
+    /// </summary>
+    ICompilation MutableCompilation { get; }
+
     /// <summary>
     /// Gets a new <see cref="IAdviser"/> for a different <see cref="Target"/> declaration.
     /// </summary>

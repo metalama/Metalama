@@ -10,8 +10,12 @@ using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.RunTime;
+using Microsoft.CodeAnalysis;
 using System;
+using System.Collections.Immutable;
 using System.Linq;
+using RefKind = Metalama.Framework.Code.RefKind;
+using TypedConstant = Metalama.Framework.Code.TypedConstant;
 
 namespace Metalama.Framework.Engine.AdviceImpl.Introduction.Constructors;
 
@@ -22,7 +26,6 @@ internal sealed class IntroduceConstructorParameterAdvice : Advice<IntroductionA
     private readonly Action<ParameterBuilder>? _buildAction;
     private readonly IPullStrategy? _pullStrategy;
     private readonly TypedConstant _defaultValue;
-    private readonly IAdviceFactoryImpl _adviceFactory;
 
     public IntroduceConstructorParameterAdvice(
         in AdviceConstructorParameters<IConstructor> parameters,
@@ -30,8 +33,7 @@ internal sealed class IntroduceConstructorParameterAdvice : Advice<IntroductionA
         IType parameterType,
         Action<ParameterBuilder>? buildAction,
         IPullStrategy? pullStrategy,
-        TypedConstant defaultValue,
-        IAdviceFactoryImpl adviceFactory )
+        TypedConstant defaultValue )
         : base( parameters )
     {
         this._parameterName = parameterName;
@@ -39,7 +41,6 @@ internal sealed class IntroduceConstructorParameterAdvice : Advice<IntroductionA
         this._buildAction = buildAction;
         this._pullStrategy = pullStrategy;
         this._defaultValue = defaultValue;
-        this._adviceFactory = adviceFactory;
     }
 
     public override AdviceKind AdviceKind => AdviceKind.IntroduceParameter;
@@ -113,8 +114,11 @@ internal sealed class IntroduceConstructorParameterAdvice : Advice<IntroductionA
         return new IntroductionAdviceResult<IParameter>(
             AdviceKind.IntroduceParameter,
             AdviceOutcome.Default,
+            this.AdviceFactory,
             parameterBuilderData.ToRef(),
-            null,
-            this._adviceFactory );
+            null );
     }
+
+    protected override IntroductionAdviceResult<IParameter> CreateFailedResult( ImmutableArray<Diagnostic> diagnostics )
+        => new IntroductionAdviceResult<IParameter>( AdviceKind.IntroduceParameter, AdviceOutcome.Error, this.AdviceFactory, reportedDiagnostics: diagnostics );
 }

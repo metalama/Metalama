@@ -35,7 +35,6 @@ internal sealed partial class ImplementInterfaceAdvice : Advice<ImplementInterfa
     private readonly INamedType _interfaceType;
     private readonly OverrideStrategy _overrideStrategy;
     private readonly IObjectReader _tags;
-    private readonly IAdviceFactoryImpl _adviceFactory;
     private readonly TemplateProvider _templateProvider;
 
     private new INamedType TargetDeclaration => (INamedType) base.TargetDeclaration;
@@ -45,7 +44,6 @@ internal sealed partial class ImplementInterfaceAdvice : Advice<ImplementInterfa
         INamedType interfaceType,
         OverrideStrategy overrideStrategy,
         IObjectReader tags,
-        IAdviceFactoryImpl adviceFactory,
         TemplateProvider templateProvider )
         : base( parameters )
     {
@@ -53,7 +51,6 @@ internal sealed partial class ImplementInterfaceAdvice : Advice<ImplementInterfa
         this._overrideStrategy = overrideStrategy;
         this._interfaceSpecifications = [];
         this._tags = tags;
-        this._adviceFactory = adviceFactory;
         this._templateProvider = templateProvider;
     }
 
@@ -317,7 +314,7 @@ internal sealed partial class ImplementInterfaceAdvice : Advice<ImplementInterfa
                                 interfaceType,
                                 InterfaceImplementationOutcome.Implement,
                                 this.TargetDeclaration,
-                                this._adviceFactory ) );
+                                this.AdviceFactory ) );
 
                         skipInterfaceBaseList = true;
 
@@ -334,7 +331,7 @@ internal sealed partial class ImplementInterfaceAdvice : Advice<ImplementInterfa
                         interfaceType,
                         InterfaceImplementationOutcome.Implement,
                         this.TargetDeclaration,
-                        this._adviceFactory ) );
+                        this.AdviceFactory ) );
 
                 skipInterfaceBaseList = false;
             }
@@ -977,9 +974,10 @@ internal sealed partial class ImplementInterfaceAdvice : Advice<ImplementInterfa
 
         return new ImplementInterfaceAdviceResult(
             implementedInterfaces.All( i => i.Outcome == InterfaceImplementationOutcome.Ignore ) ? AdviceOutcome.Ignore : AdviceOutcome.Default,
-            diagnostics.Count > 0 ? diagnostics.ToImmutableArray() : ImmutableArray<Diagnostic>.Empty,
+            this.AdviceFactory,
             implementedInterfaces,
-            implementedInterfaceMembers );
+            implementedInterfaceMembers,
+            diagnostics.ToImmutableArray() );
     }
 
     private MethodBuilder GetImplMethodBuilder(
@@ -1097,6 +1095,9 @@ internal sealed partial class ImplementInterfaceAdvice : Advice<ImplementInterfa
     }
 
     private Location? GetDiagnosticLocation() => this.TargetDeclaration.GetDiagnosticLocation();
+
+    protected override ImplementInterfaceAdviceResult CreateFailedResult( ImmutableArray<Diagnostic> diagnostics )
+        => new( AdviceOutcome.Error, this.AdviceFactory, reportedDiagnostics: diagnostics );
 
     private EventBuilder GetImplEventBuilder(
         INamedType declaringType,

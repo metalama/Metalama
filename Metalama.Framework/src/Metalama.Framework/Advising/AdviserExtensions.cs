@@ -1430,6 +1430,10 @@ public static class AdviserExtensions
 
         IDeclaration IAdviser.Target => this.Target;
 
+        public ICompilation Compilation => this.AdviceFactory.Compilation;
+
+        public ICompilation MutableCompilation => this.AdviceFactory.MutableCompilation;
+
         public T Target { get; }
 
         public IAdviceFactory AdviceFactory { get; }
@@ -1453,4 +1457,3 @@ public static class AdviserExtensions
         }
     }
 }
-

@@ -51,7 +51,7 @@ internal sealed class FieldOrPropertyOrIndexerContractAdvice : ContractAdvice<IF
                         this.Template,
                         this.TemplateArguments ) );
 
-                return CreateSuccessResult( indexer );
+                return this.CreateSuccessResult( indexer );
 
             default:
                 throw new AssertionFailedException();
@@ -67,7 +67,7 @@ internal sealed class FieldOrPropertyOrIndexerContractAdvice : ContractAdvice<IF
                     this.Template,
                     this.TemplateArguments ) );
 
-            return CreateSuccessResult( property );
+            return this.CreateSuccessResult( property );
         }
     }
 }

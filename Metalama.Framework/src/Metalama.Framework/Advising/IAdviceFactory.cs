@@ -26,6 +26,8 @@ namespace Metalama.Framework.Advising
     [PublicAPI]
     public interface IAdviceFactory
     {
+        ICompilation Compilation { get; }
+
         /// <summary>
         /// Gets the mutable compilation that the current aspect builder is working on. It includes all modifications done by
         /// the current aspect in the current type using declarative advices and the <see cref="IAdviceFactory"/>.
@@ -767,7 +769,7 @@ namespace Metalama.Framework.Advising
             TypedConstant defaultValue,
             Func<IParameter, IConstructor, PullAction>? pullAction,
             ImmutableArray<AttributeConstruction> attributes = default );
-        
+
         /// <summary>
         /// Appends a parameter to a constructor by specifying its name and <see cref="IType"/>.
         /// </summary>

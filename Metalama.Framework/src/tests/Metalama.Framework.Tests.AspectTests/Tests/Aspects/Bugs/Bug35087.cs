@@ -10,17 +10,15 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Bugs.Bug35087;
 
 public class TestAspect : TypeAspect
 {
-    public override void BuildAspect(IAspectBuilder<INamedType> builder)
+    public override void BuildAspect( IAspectBuilder<INamedType> builder )
     {
-        var @namespace = builder.Advice.WithNamespace(builder.Target.ContainingNamespace, "TestNamespace");
-        var type = @namespace.IntroduceClass("TestType");
-        type.ImplementInterface(typeof(ITestType));
+        var @namespace = builder.With( builder.Target.ContainingNamespace ).WithChildNamespace( "TestNamespace" );
+        var type = @namespace.IntroduceClass( "TestType" );
+        type.ImplementInterface( typeof(ITestType) );
     }
 
     [InterfaceMember]
-    public void Foo()
-    {
-    }
+    public void Foo() { }
 }
 
 public interface ITestType
@@ -30,6 +28,4 @@ public interface ITestType
 
 // <target>
 [TestAspect]
-public class Target
-{
-}
+public class Target { }

@@ -4,7 +4,16 @@
 
 using Metalama.Framework.Advising;
 using Metalama.Framework.Engine.Advising;
+using Microsoft.CodeAnalysis;
+using System.Collections.Immutable;
 
 namespace Metalama.Framework.Engine.AdviceImpl.Initialization;
 
-internal sealed class AddInitializerAdviceResult : AdviceResult, IAddInitializerAdviceResult;
+internal sealed class AddInitializerAdviceResult : AdviceResult, IAddInitializerAdviceResult
+{
+    public AddInitializerAdviceResult( AdviceOutcome outcome, IAdviceFactoryImpl adviceFactory, ImmutableArray<Diagnostic> diagnostics = default ) : base(
+        AdviceKind.AddInitializer,
+        outcome,
+        adviceFactory,
+        diagnostics ) { }
+}

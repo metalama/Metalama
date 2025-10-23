@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System;
+using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 
@@ -14,11 +15,13 @@ internal class MyAspect : TypeAspect
     {
         var provider = new MyTemplateProvider( new MyContext( 42 ) );
 
-        builder.Advice.WithTemplateProvider( provider )
-            .IntroduceMethod( builder.Target, nameof(MyTemplateProvider.NewMethod) );
+        builder.WithTemplateProvider( provider )
+            .With( builder.Target )
+            .IntroduceMethod( nameof(MyTemplateProvider.NewMethod) );
 
-        builder.Advice.WithTemplateProvider( provider )
-            .IntroduceMethod( builder.Target, nameof(MyTemplateProvider.NewMethod2) );
+        builder.WithTemplateProvider( provider )
+            .With( builder.Target )
+            .IntroduceMethod( nameof(MyTemplateProvider.NewMethod2) );
     }
 }
 
@@ -28,19 +31,19 @@ internal class MyTemplateProvider : ITemplateProvider
 
     public MyTemplateProvider( MyContext context )
     {
-        _context = context;
+        this._context = context;
     }
 
     [Template]
     public void NewMethod()
     {
-        Console.WriteLine( $"Hello, world {_context.I++}." );
+        Console.WriteLine( $"Hello, world {this._context.I++}." );
     }
 
     [Template]
     public void NewMethod2()
     {
-        Console.WriteLine( $"Hello, world {_context.I++}." );
+        Console.WriteLine( $"Hello, world {this._context.I++}." );
     }
 }
 
@@ -51,7 +54,7 @@ public class MyContext
 
     public MyContext( int i )
     {
-        I = i;
+        this.I = i;
     }
 }
 

@@ -18,36 +18,39 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Introductions.Inter
 
 public class IntroductionAttribute : TypeAspect
 {
-    public override void BuildAspect(IAspectBuilder<INamedType> builder)
+    public override void BuildAspect( IAspectBuilder<INamedType> builder )
     {
-        var @interface = builder.IntroduceInterface( "ITest");
-        @interface.IntroduceProperty( nameof(TestProperty), buildProperty: b => { b.IsVirtual = true; });
+        var @interface = builder.IntroduceInterface( "ITest" );
+        @interface.IntroduceProperty( nameof(TestProperty), buildProperty: b => { b.IsVirtual = true; } );
 
         // Implementation type.
-        var implementation = builder.IntroduceClass("TestImplementation");
-        implementation.ImplementInterface( @interface.Declaration);
-        var implementationProperty = implementation.IntroduceProperty( nameof(TestPropertyImplementation), buildProperty: b => { b.Name = nameof(TestProperty); });
+        var implementation = builder.IntroduceClass( "TestImplementation" );
+        implementation.ImplementInterface( @interface.Declaration );
+
+        var implementationProperty = implementation.IntroduceProperty(
+            nameof(TestPropertyImplementation),
+            buildProperty: b => { b.Name = nameof(TestProperty); } );
 
         // Usage type.
-        var usage = builder.Advice.IntroduceClass(
-            builder.Target,
-            "TestUsage",
-            buildType: b =>
-            {
-                var typeParam = b.AddTypeParameter("T");
-                typeParam.AddTypeConstraint(@interface.Declaration);
-            });
+        var usage = builder
+            .IntroduceClass(
+                "TestUsage",
+                buildType: b =>
+                {
+                    var typeParam = b.AddTypeParameter( "T" );
+                    typeParam.AddTypeConstraint( @interface.Declaration );
+                } );
 
         // Method that uses the interface.
-        builder.Advice.IntroduceMethod(
-            usage.Declaration,
-            nameof(TestUsageMethod),
-            args: new
-            {
-                genericParameter = usage.Declaration.TypeParameters.Single(),
-                interfaceProperty = @interface.Declaration.Properties.Single(),
-                implementationProperty = implementationProperty.Declaration,
-            });
+        builder.With( usage.Declaration )
+            .IntroduceMethod(
+                nameof(TestUsageMethod),
+                args: new
+                {
+                    genericParameter = usage.Declaration.TypeParameters.Single(),
+                    interfaceProperty = @interface.Declaration.Properties.Single(),
+                    implementationProperty = implementationProperty.Declaration
+                } );
     }
 
     [Template]
@@ -55,12 +58,13 @@ public class IntroductionAttribute : TypeAspect
     {
         get
         {
-            Console.WriteLine("Default");
+            Console.WriteLine( "Default" );
+
             return 0;
         }
         set
         {
-            Console.WriteLine("Default");
+            Console.WriteLine( "Default" );
         }
     }
 
@@ -69,28 +73,32 @@ public class IntroductionAttribute : TypeAspect
     {
         get
         {
-            Console.WriteLine("Implementation");
+            Console.WriteLine( "Implementation" );
+
             return 0;
         }
 
         set
         {
-            Console.WriteLine("Implementation");
+            Console.WriteLine( "Implementation" );
         }
     }
 
     [Template]
-    public static void TestUsageMethod([CompileTime] ITypeParameter genericParameter, [CompileTime] IProperty interfaceProperty, [CompileTime] IProperty implementationProperty)
+    public static void TestUsageMethod(
+        [CompileTime] ITypeParameter genericParameter,
+        [CompileTime] IProperty interfaceProperty,
+        [CompileTime] IProperty implementationProperty )
     {
         // Calling static members of type parameters is not currently supported (generic parameter does not "gain" members from constraints).
         var builder = new ExpressionBuilder();
-        builder.AppendTypeName(genericParameter);
-        builder.AppendVerbatim($".{interfaceProperty.Name}");
-        builder.AppendVerbatim($" = ");
-        builder.AppendTypeName(genericParameter);
-        builder.AppendVerbatim($".{interfaceProperty.Name}");
-        builder.AppendVerbatim($" + 1");
-        meta.InsertStatement(builder.ToExpression());
+        builder.AppendTypeName( genericParameter );
+        builder.AppendVerbatim( $".{interfaceProperty.Name}" );
+        builder.AppendVerbatim( $" = " );
+        builder.AppendTypeName( genericParameter );
+        builder.AppendVerbatim( $".{interfaceProperty.Name}" );
+        builder.AppendVerbatim( $" + 1" );
+        meta.InsertStatement( builder.ToExpression() );
 
         implementationProperty.Value = implementationProperty.Value + 1;
     }

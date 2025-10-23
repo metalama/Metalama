@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Aspects;
+using Metalama.Framework.Advising;
 using Metalama.Framework.Code;
 using System;
 
@@ -12,13 +13,13 @@ namespace Metalama.Framework.Tests.Integration.Tests.Aspects.Bugs.Bug35558;
 
 public class TestAspect : TypeAspect
 {
-    public override void BuildAspect(IAspectBuilder<INamedType> builder)
+    public override void BuildAspect( IAspectBuilder<INamedType> builder )
     {
-        foreach(var field in builder.Target.Fields)
+        foreach ( var field in builder.Target.Fields )
         {
             // First override promoted
-            var result = builder.Advice.Override(field, nameof(PropertyTemplate));
-            builder.Advice.Override(result.Declaration, nameof(PropertyTemplate));
+            var result = builder.With( field ).Override( nameof(this.PropertyTemplate) );
+            builder.With( result.Declaration ).Override( nameof(this.PropertyTemplate) );
         }
     }
 
@@ -27,13 +28,14 @@ public class TestAspect : TypeAspect
     {
         get
         {
-            Console.WriteLine("Aspect");
+            Console.WriteLine( "Aspect" );
+
             return meta.Proceed();
         }
 
         set
         {
-            Console.WriteLine("Aspect");
+            Console.WriteLine( "Aspect" );
             meta.Proceed();
         }
     }

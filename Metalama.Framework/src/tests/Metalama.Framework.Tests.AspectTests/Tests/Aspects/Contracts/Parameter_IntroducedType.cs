@@ -25,13 +25,13 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Contracts.Parameter
             // TODO: It's now necessary to translate the introduced type.
 
             var introducedMethod =
-                builder.With( builder.Target.ForCompilation( builder.Advice.MutableCompilation ) )
+                builder.With( builder.Target.ForCompilation( builder.MutableCompilation ) )
                     .IntroduceMethod(
-                        nameof(IntroducedMethodTemplate),
+                        nameof(this.IntroducedMethodTemplate),
                         buildMethod: b => { b.AddParameter( "p", introducedType ); } )
                     .Declaration;
 
-            builder.With( introducedMethod.Parameters.Single() ).AddContract( nameof(ValidateTemplate) );
+            builder.With( introducedMethod.Parameters.Single() ).AddContract( nameof(this.ValidateTemplate) );
         }
 
         [Template]
@@ -40,7 +40,7 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Contracts.Parameter
         [Template]
         public void ValidateTemplate( dynamic? value )
         {
-            if (value == null)
+            if ( value == null )
             {
                 throw new ArgumentNullException( meta.Target.Parameter.Name );
             }

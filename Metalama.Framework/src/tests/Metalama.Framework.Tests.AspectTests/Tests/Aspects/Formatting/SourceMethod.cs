@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 
@@ -11,16 +12,16 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Formatting.SourceMe
     {
         public override void BuildAspect( IAspectBuilder<INamedType> builder )
         {
-            foreach (var method in builder.Target.Methods)
+            foreach ( var method in builder.Target.Methods )
             {
-                builder.Advice.Override( method, nameof(OverrideMethod) );
+                builder.With( method ).Override( nameof(this.OverrideMethod) );
             }
         }
 
         [Template]
         private dynamic OverrideMethod()
         {
-            if (meta.Target.Method.Invoke( ) > 0)
+            if ( meta.Target.Method.Invoke() > 0 )
             {
                 var z = meta.Proceed();
 

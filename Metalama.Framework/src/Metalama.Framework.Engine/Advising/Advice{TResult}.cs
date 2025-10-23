@@ -10,7 +10,7 @@ using System.Collections.Immutable;
 namespace Metalama.Framework.Engine.Advising;
 
 internal abstract class Advice<TResult> : Advice
-    where TResult : AdviceResult, new()
+    where TResult : AdviceResult
 {
     protected Advice( in AdviceConstructorParameters parameters ) : base( parameters ) { }
 
@@ -25,9 +25,6 @@ internal abstract class Advice<TResult> : Advice
 
         context.Diagnostics.Report( initializationDiagnostics );
         context.Diagnostics.Report( adviceResult.ReportedDiagnostics );
-
-        // Set the compilation in which references must be resolved.
-        adviceResult.Compilation = context.MutableCompilation;
 
         context.IntrospectionListener?.AddAdviceResult( this.AspectInstance, this, adviceResult, context.MutableCompilation );
 
@@ -68,9 +65,7 @@ internal abstract class Advice<TResult> : Advice
     /// </remarks>
     protected abstract TResult Implement( AdviceImplementationContext context );
 
-    protected TResult CreateFailedResult( Diagnostic diagnostic )
-        => new() { ReportedDiagnostics = ImmutableArray.Create( diagnostic ), Outcome = AdviceOutcome.Error, AdviceKind = this.AdviceKind };
+    protected TResult CreateFailedResult( Diagnostic diagnostic ) => this.CreateFailedResult( ImmutableArray.Create( diagnostic ) );
 
-    protected TResult CreateFailedResult( ImmutableArray<Diagnostic> diagnostics )
-        => new() { ReportedDiagnostics = diagnostics, Outcome = AdviceOutcome.Error, AdviceKind = this.AdviceKind };
+    protected abstract TResult CreateFailedResult( ImmutableArray<Diagnostic> diagnostics );
 }

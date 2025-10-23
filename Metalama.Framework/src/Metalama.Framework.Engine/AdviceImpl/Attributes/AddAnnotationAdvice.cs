@@ -6,6 +6,8 @@ using Metalama.Framework.Advising;
 using Metalama.Framework.Engine.Advising;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CodeModel.References;
+using Microsoft.CodeAnalysis;
+using System.Collections.Immutable;
 
 namespace Metalama.Framework.Engine.AdviceImpl.Attributes;
 
@@ -25,6 +27,9 @@ internal sealed class AddAnnotationAdvice : Advice<AddAnnotationAdviceResult>
     {
         context.AddTransformation( new AddAnnotationTransformation( this.AspectLayerInstance, this.TargetDeclaration.ToFullRef(), this._annotationInstance ) );
 
-        return new AddAnnotationAdviceResult();
+        return new AddAnnotationAdviceResult( AdviceOutcome.Default, this.AdviceFactory );
     }
+
+    protected override AddAnnotationAdviceResult CreateFailedResult( ImmutableArray<Diagnostic> diagnostics )
+        => new( AdviceOutcome.Error, this.AdviceFactory, diagnostics );
 }

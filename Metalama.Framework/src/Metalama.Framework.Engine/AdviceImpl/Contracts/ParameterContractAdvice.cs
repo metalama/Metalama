@@ -34,7 +34,7 @@ internal sealed class ParameterContractAdvice : ContractAdvice<IParameter>
                         this.Template,
                         this.TemplateArguments ) );
 
-                return CreateSuccessResult( parameter );
+                return this.CreateSuccessResult( parameter );
 
             case IParameter { ContainingDeclaration: IMethod method } parameter:
                 context.AddTransformation(
@@ -46,7 +46,7 @@ internal sealed class ParameterContractAdvice : ContractAdvice<IParameter>
                         this.Template,
                         this.TemplateArguments ) );
 
-                return CreateSuccessResult( parameter );
+                return this.CreateSuccessResult( parameter );
 
             case IParameter { ContainingDeclaration: IConstructor constructor } parameter:
                 context.AddTransformation(
@@ -58,7 +58,7 @@ internal sealed class ParameterContractAdvice : ContractAdvice<IParameter>
                         this.Template,
                         this.TemplateArguments ) );
 
-                return CreateSuccessResult( parameter );
+                return this.CreateSuccessResult( parameter );
 
             default:
                 throw new AssertionFailedException();

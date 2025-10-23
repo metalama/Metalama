@@ -29,7 +29,7 @@ internal sealed class IntroduceNamedTypeAdvice : IntroduceDeclarationAdvice<INam
         Action<NamedTypeBuilder>? buildAction,
         TypeKind typeKind,
         IAdviceFactoryImpl adviceFactory )
-        : base( parameters, buildAction, adviceFactory )
+        : base( parameters, buildAction )
     {
         this._explicitName = explicitName;
         this.OverrideStrategy = overrideStrategy;

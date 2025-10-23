@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System;
+using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 
@@ -12,8 +13,9 @@ internal class MyAspect : TypeAspect
 {
     public override void BuildAspect( IAspectBuilder<INamedType> builder )
     {
-        builder.Advice.WithTemplateProvider( new MyTemplateProvider() )
-            .IntroduceMethod( builder.Target, nameof(MyTemplateProvider.NewMethod) );
+        builder.WithTemplateProvider( new MyTemplateProvider() )
+            .With( builder.Target )
+            .IntroduceMethod( nameof(MyTemplateProvider.NewMethod) );
     }
 }
 

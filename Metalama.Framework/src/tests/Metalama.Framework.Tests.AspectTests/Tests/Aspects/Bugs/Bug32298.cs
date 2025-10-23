@@ -13,9 +13,9 @@ public class OverrideAttribute : TypeAspect
 {
     public override void BuildAspect( IAspectBuilder<INamedType> builder )
     {
-        foreach (var field in builder.Target.ForCompilation( builder.Advice.MutableCompilation ).Fields)
+        foreach ( var field in builder.Target.ForCompilation( builder.MutableCompilation ).Fields )
         {
-            builder.With( field ).Override( nameof(Template) );
+            builder.With( field ).Override( nameof(this.Template) );
         }
     }
 

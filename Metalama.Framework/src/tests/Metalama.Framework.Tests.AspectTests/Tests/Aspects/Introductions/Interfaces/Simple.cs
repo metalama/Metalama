@@ -10,10 +10,10 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Introductions.Inter
 
 public class IntroductionAttribute : TypeAspect
 {
-    public override void BuildAspect(IAspectBuilder<INamedType> builder)
+    public override void BuildAspect( IAspectBuilder<INamedType> builder )
     {
-        builder.IntroduceInterface( "ITest");
-        builder.Advice.IntroduceInterface(builder.Target.ContainingNamespace, "ITest2");
+        builder.IntroduceInterface( "ITest" );
+        builder.With( builder.Target.ContainingNamespace ).IntroduceInterface( "ITest2" );
     }
 }
 

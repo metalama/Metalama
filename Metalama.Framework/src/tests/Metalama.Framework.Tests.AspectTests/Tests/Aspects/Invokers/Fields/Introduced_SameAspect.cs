@@ -21,12 +21,13 @@ public class InvokerAspect : TypeAspect
     [Introduce]
     public int Field;
 
-    public override void BuildAspect(IAspectBuilder<INamedType> builder)
+    public override void BuildAspect( IAspectBuilder<INamedType> builder )
     {
-        builder.With(builder.Target.Properties.OfName("Invoker").Single()).OverrideAccessors(
-            nameof(GetTemplate),
-            nameof(SetTemplate),
-            new { target = builder.Target.ForCompilation(builder.Advice.MutableCompilation).Fields.OfName("Field").Single() });
+        builder.With( builder.Target.Properties.OfName( "Invoker" ).Single() )
+            .OverrideAccessors(
+                nameof(this.GetTemplate),
+                nameof(this.SetTemplate),
+                new { target = builder.Target.ForCompilation( builder.MutableCompilation ).Fields.OfName( "Field" ).Single() } );
     }
 
     [Template]

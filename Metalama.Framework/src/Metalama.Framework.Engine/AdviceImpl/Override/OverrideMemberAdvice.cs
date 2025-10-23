@@ -5,6 +5,8 @@
 using Metalama.Framework.Advising;
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Advising;
+using Microsoft.CodeAnalysis;
+using System.Collections.Immutable;
 
 namespace Metalama.Framework.Engine.AdviceImpl.Override;
 
@@ -19,5 +21,8 @@ internal abstract class OverrideMemberAdvice<TInput, TOutput> : Advice<OverrideM
     public override string ToString() => $"Override {this.TargetDeclaration}";
 
     protected OverrideMemberAdviceResult<TOutput> CreateSuccessResult( TOutput? member = null )
-        => new( member?.ToRef().As<TOutput>() ) { AdviceKind = this.AdviceKind, Outcome = AdviceOutcome.Default };
+        => new( this.AdviceKind, AdviceOutcome.Success, this.AdviceFactory, member?.ToRef().As<TOutput>() );
+
+    protected override OverrideMemberAdviceResult<TOutput> CreateFailedResult( ImmutableArray<Diagnostic> diagnostics )
+        => new( this.AdviceKind, AdviceOutcome.Error, this.AdviceFactory, reportedDiagnostics: diagnostics );
 }

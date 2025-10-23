@@ -6,6 +6,8 @@ using Metalama.Framework.Advising;
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Advising;
 using Metalama.Framework.Engine.CodeModel.References;
+using Microsoft.CodeAnalysis;
+using System.Collections.Immutable;
 using System.Linq;
 
 namespace Metalama.Framework.Engine.AdviceImpl.Attributes;
@@ -34,6 +36,9 @@ internal sealed class RemoveAttributesAdvice : Advice<RemoveAttributesAdviceResu
                     this._attributeType.ToFullRef() ) );
         }
 
-        return new RemoveAttributesAdviceResult();
+        return new RemoveAttributesAdviceResult( AdviceOutcome.Default, this.AdviceFactory );
     }
+
+    protected override RemoveAttributesAdviceResult CreateFailedResult( ImmutableArray<Diagnostic> diagnostics )
+        => new( AdviceOutcome.Error, this.AdviceFactory, diagnostics );
 }

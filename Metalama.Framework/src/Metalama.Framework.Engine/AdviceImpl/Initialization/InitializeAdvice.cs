@@ -10,8 +10,11 @@ using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Transformations;
+using Microsoft.CodeAnalysis;
 using System;
+using System.Collections.Immutable;
 using System.Linq;
+using TypeKind = Metalama.Framework.Code.TypeKind;
 
 namespace Metalama.Framework.Engine.AdviceImpl.Initialization;
 
@@ -100,10 +103,13 @@ internal abstract class InitializeAdvice : Advice<AddInitializerAdviceResult>
             this.AddTransformation( targetDeclaration, targetCtor, context.AddTransformation );
         }
 
-        return new AddInitializerAdviceResult { AdviceKind = this.AdviceKind };
+        return new AddInitializerAdviceResult( AdviceOutcome.Success, this.AdviceFactory );
     }
 
     protected abstract void AddTransformation( IMemberOrNamedType targetDeclaration, IConstructor targetCtor, Action<ITransformation> addTransformation );
 
     public override AdviceKind AdviceKind => AdviceKind.AddInitializer;
+
+    protected override AddInitializerAdviceResult CreateFailedResult( ImmutableArray<Diagnostic> diagnostics )
+        => new( AdviceOutcome.Error, this.AdviceFactory, diagnostics );
 }

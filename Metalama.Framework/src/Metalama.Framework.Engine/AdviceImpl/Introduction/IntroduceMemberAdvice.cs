@@ -43,7 +43,7 @@ internal abstract class IntroduceMemberAdvice<TTemplate, TIntroduced, TBuilder> 
         Action<TBuilder>? buildAction,
         INamedType? explicitlyImplementedInterfaceType,
         IAdviceFactoryImpl adviceFactory )
-        : base( parameters, buildAction, adviceFactory )
+        : base( parameters, buildAction )
     {
         var templateAttribute = (ITemplateAttribute?) template?.AdviceAttribute;
         var templateAttributeProperties = templateAttribute?.Properties;
@@ -307,7 +307,7 @@ internal abstract class IntroduceMemberAdvice<TTemplate, TIntroduced, TBuilder> 
     }
 
     protected IntroductionAdviceResult<TIntroduced> CreateSuccessResult( AdviceOutcome outcome, TBuilder introducedMember )
-        => new( this.AdviceKind, outcome, introducedMember.ToRef().As<TIntroduced>(), null, this.AdviceFactory );
+        => new( this.AdviceKind, outcome, this.AdviceFactory, introducedMember.ToRef().As<TIntroduced>() );
 
     public override string ToString() => $"Introduce {typeof(TIntroduced)} '{this.MemberName}' into '{this.TargetDeclaration}'";
 }
