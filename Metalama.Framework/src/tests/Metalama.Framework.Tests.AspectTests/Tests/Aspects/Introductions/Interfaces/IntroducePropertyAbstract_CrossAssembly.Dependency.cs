@@ -13,48 +13,51 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Introductions.Inter
 
 public class IntroductionAttribute : TypeAspect
 {
-    public override void BuildAspect(IAspectBuilder<INamedType> builder)
+    public override void BuildAspect( IAspectBuilder<INamedType> builder )
     {
-        var @interface = builder.IntroduceInterface( "ITest");
-        var interfaceProperty = @interface.IntroduceProperty( nameof(TestProperty) );
+        var @interface = builder.IntroduceInterface( "ITest" );
+        var interfaceProperty = @interface.IntroduceProperty( nameof(this.TestProperty) );
 
         // Implementation type
-        var implementation = builder.IntroduceClass("TestImplementation");
-        implementation.ImplementInterface( @interface.Declaration);
-        var constructor = implementation.IntroduceConstructor( nameof(Constructor));
-        implementation.IntroduceProperty( nameof(TestPropertyImplementation), buildProperty: b => { b.Name = "TestProperty"; });
+        var implementation = builder.IntroduceClass( "TestImplementation" );
+        implementation.ImplementInterface( @interface.Declaration );
+        var constructor = implementation.IntroduceConstructor( nameof(this.Constructor) );
+        implementation.IntroduceProperty( nameof(this.TestPropertyImplementation), buildProperty: b => { b.Name = "TestProperty"; } );
 
-        var usage = builder.IntroduceClass("TestUsage");
-        usage.IntroduceMethod( nameof(TestUsageMethod), args: new { T = @interface.Declaration, property = interfaceProperty.Declaration, implementationConstructor = constructor.Declaration });
+        var usage = builder.IntroduceClass( "TestUsage" );
+
+        usage.IntroduceMethod(
+            nameof(this.TestUsageMethod),
+            args: new { T = @interface.Declaration, property = interfaceProperty.Declaration, implementationConstructor = constructor.Declaration } );
     }
 
     [Template]
-    public void Constructor()
-    {
-    }
+    public void Constructor() { }
 
     [Template]
     public extern int TestProperty { get; set; }
 
     [Template]
-    public int TestPropertyImplementation 
+    public int TestPropertyImplementation
     {
         get
         {
-            Console.WriteLine("Implementation");
+            Console.WriteLine( "Implementation" );
+
             return 0;
         }
 
         set
         {
-            Console.WriteLine("Implementation");
+            Console.WriteLine( "Implementation" );
         }
     }
 
     [Template]
-    public T TestUsageMethod<[CompileTime] T>(T instance, [CompileTime] IProperty property, [CompileTime] IConstructor implementationConstructor)
+    public T TestUsageMethod<[CompileTime] T>( T instance, [CompileTime] IProperty property, [CompileTime] IConstructor implementationConstructor )
     {
-        property.With(instance).Value = property.With(instance).Value + 1;
+        property.WithObject( instance ).Value = property.WithObject( instance ).Value + 1;
+
         return implementationConstructor.Invoke()!;
     }
 }

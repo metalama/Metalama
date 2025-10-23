@@ -12,28 +12,28 @@ namespace Metalama.Framework.Tests.AspectTests.Aspects.Misc.RecursionInIntroduct
         [Introduce]
         public int Ackermann1( int m, int n )
         {
-            if (m == 0)
+            if ( m == 0 )
             {
                 return n + 1;
             }
-            else if (n == 0)
+            else if ( n == 0 )
             {
-                return Ackermann1( m - 1, 1 );
+                return this.Ackermann1( m - 1, 1 );
             }
             else
             {
-                return Ackermann1( m - 1, Ackermann1( m, n - 1 ) );
+                return this.Ackermann1( m - 1, this.Ackermann1( m, n - 1 ) );
             }
         }
 
         [Introduce]
         public int Ackermann2( int m, int n )
         {
-            if (m == 0)
+            if ( m == 0 )
             {
                 return n + 1;
             }
-            else if (n == 0)
+            else if ( n == 0 )
             {
                 return meta.This.Ackermann2( m - 1, 1 );
             }
@@ -46,17 +46,18 @@ namespace Metalama.Framework.Tests.AspectTests.Aspects.Misc.RecursionInIntroduct
         [Introduce]
         public int Ackermann3( int m, int n )
         {
-            if (m == 0)
+            if ( m == 0 )
             {
                 return n + 1;
             }
-            else if (n == 0)
+            else if ( n == 0 )
             {
-                return meta.Target.Method.With( InvokerOptions.Final ).Invoke( m - 1, 1 );
+                return meta.Target.Method.WithOptions( InvokerOptions.Final ).Invoke( m - 1, 1 );
             }
             else
             {
-                return meta.Target.Method.With( InvokerOptions.Final ).Invoke( m - 1, meta.Target.Method.With( InvokerOptions.Final ).Invoke( m, n - 1 ) );
+                return meta.Target.Method.WithOptions( InvokerOptions.Final )
+                    .Invoke( m - 1, meta.Target.Method.WithOptions( InvokerOptions.Final ).Invoke( m, n - 1 ) );
             }
         }
     }

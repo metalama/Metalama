@@ -18,7 +18,7 @@ public class InvokerAspect : MethodAspect
     public override void BuildAspect( IAspectBuilder<IMethod> builder )
     {
         builder.Override(
-            nameof(Template),
+            nameof(this.Template),
             new { target = builder.Target.DeclaringType!.BaseType!.Methods.OfName( "Method" ).Single() } );
     }
 
@@ -28,11 +28,11 @@ public class InvokerAspect : MethodAspect
         meta.InsertComment( "Invoke this.Method" );
         target.Invoke();
         meta.InsertComment( "Invoke base.Method" );
-        target.With( InvokerOptions.Base ).Invoke();
+        target.WithOptions( InvokerOptions.Base ).Invoke();
         meta.InsertComment( "Invoke base.Method" );
-        target.With( InvokerOptions.Current ).Invoke();
+        target.WithOptions( InvokerOptions.Current ).Invoke();
         meta.InsertComment( "Invoke this.Method" );
-        target.With( InvokerOptions.Final ).Invoke();
+        target.WithOptions( InvokerOptions.Final ).Invoke();
 
         return meta.Proceed();
     }

@@ -12,6 +12,7 @@ using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.CodeModel.Source.Pseudo;
 using Metalama.Framework.Engine.ReflectionMocks;
+using Metalama.Framework.Engine.Templating.Expressions;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
@@ -72,11 +73,15 @@ internal sealed class SourceMethod : SourceMethodBase, IMethodImpl
 
     public override bool IsPartial => this.MethodSymbol.IsPartialDefinition || this.MethodSymbol.PartialDefinitionPart != null;
 
-    public IMethodInvoker With( InvokerOptions options ) => new MethodInvoker( this, options );
+    public IMethodInvoker WithOptions( InvokerOptions options ) => options == InvokerOptions.Default ? this : new MethodInvoker( this, options );
 
-    public IMethodInvoker With( object? target, InvokerOptions options = default ) => new MethodInvoker( this, options, target );
+    public IMethodInvoker WithObject( IExpression? target ) => new MethodInvoker( this, InvokerOptions.Default, target );
 
-    public IMethodInvoker With( IExpression target, InvokerOptions options = default ) => new MethodInvoker( this, options, target );
+    IMethodInvoker IMethodInvoker.With( InvokerOptions options ) => this.WithOptions( options );
+
+    IMethodInvoker IMethodInvoker.With( object? target, InvokerOptions options ) => this.WithOptions( options ).WithObject( target );
+
+    public IMethodInvoker WithObject( object? target ) => this.WithObject( new CapturedUserExpression( this.Compilation, target ) );
 
     public IExpression CreateInvokeExpression( IEnumerable<IExpression> args ) => new MethodInvoker( this ).CreateInvokeExpression( args );
 
@@ -99,8 +104,7 @@ internal sealed class SourceMethod : SourceMethodBase, IMethodImpl
         }
         else
         {
-            var mappedMethod = this.MethodSymbol.Construct(
-                typeArguments.SelectAsArray( a => a.GetSymbol().AssertSymbolNotNull() ) );
+            var mappedMethod = this.MethodSymbol.Construct( typeArguments.SelectAsArray( a => a.GetSymbol().AssertSymbolNotNull() ) );
 
             return this.Compilation.Factory.GetMethod( mappedMethod );
         }

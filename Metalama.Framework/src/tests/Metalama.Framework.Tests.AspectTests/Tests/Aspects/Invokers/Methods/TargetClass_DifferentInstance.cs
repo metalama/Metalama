@@ -18,7 +18,7 @@ public class InvokerAspect : MethodAspect
     public override void BuildAspect( IAspectBuilder<IMethod> builder )
     {
         builder.Override(
-            nameof(Template),
+            nameof(this.Template),
             new { target = builder.Target.DeclaringType!.Methods.OfName( "Method" ).Single() } );
     }
 
@@ -26,13 +26,13 @@ public class InvokerAspect : MethodAspect
     public dynamic? Template( [CompileTime] IMethod target )
     {
         meta.InsertComment( "Invoke instance.Method" );
-        target.With( (IExpression)meta.Target.Method.Parameters[0].Value! ).Invoke();
+        target.WithObject( meta.Target.Method.Parameters[0] ).Invoke();
         meta.InsertComment( "Invoke instance?.Method" );
-        target.With( (IExpression)meta.Target.Method.Parameters[0].Value!, InvokerOptions.NullConditional ).Invoke();
+        target.WithObject( meta.Target.Method.Parameters[0] ).WithOptions( InvokerOptions.NullConditional ).Invoke();
         meta.InsertComment( "Invoke instance.Method" );
-        target.With( (IExpression)meta.Target.Method.Parameters[0].Value!, InvokerOptions.Final ).Invoke();
+        target.WithObject( meta.Target.Method.Parameters[0] ).WithOptions( InvokerOptions.Final ).Invoke();
         meta.InsertComment( "Invoke instance?.Method" );
-        target.With( (IExpression)meta.Target.Method.Parameters[0].Value!, InvokerOptions.Final | InvokerOptions.NullConditional ).Invoke();
+        target.WithObject( meta.Target.Method.Parameters[0] ).WithOptions( InvokerOptions.Final | InvokerOptions.NullConditional ).Invoke();
 
         return meta.Proceed();
     }

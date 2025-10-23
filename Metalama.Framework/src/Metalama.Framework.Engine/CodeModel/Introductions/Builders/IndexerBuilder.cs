@@ -12,6 +12,7 @@ using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 using Metalama.Framework.Engine.CodeModel.Introductions.Collections;
 using Metalama.Framework.Engine.CodeModel.Invokers;
 using Metalama.Framework.Engine.CodeModel.References;
+using Metalama.Framework.Engine.Templating.Expressions;
 using System;
 using System.Collections.Generic;
 using RefKind = Metalama.Framework.Code.RefKind;
@@ -86,13 +87,25 @@ internal sealed class IndexerBuilder : PropertyOrIndexerBuilder, IIndexerBuilder
 
     IIndexer IIndexer.Definition => this;
 
-    public IIndexerInvoker With( InvokerOptions options ) => new IndexerInvoker( this, options );
+    public IExpression this[ params object?[] args ] => new IndexerInvoker( this ).GetExpression( args );
 
-    public IIndexerInvoker With( object? target, InvokerOptions options = default ) => new IndexerInvoker( this, options, target );
+    public IExpression this[ params IExpression[] args ] => new IndexerInvoker( this ).GetExpression( args );
 
-    public object GetValue( params object?[] args ) => new IndexerInvoker( this ).GetValue( args );
+    public IIndexerInvoker WithOptions( InvokerOptions options ) => options == InvokerOptions.Default ? this : new IndexerInvoker( this, options );
 
-    public object SetValue( object? value, params object?[] args ) => new IndexerInvoker( this ).SetValue( value, args );
+    public IIndexerInvoker WithObject( IExpression? target ) => new IndexerInvoker( this, InvokerOptions.Default, target );
+
+    public IIndexerInvoker WithObject( object? target ) => this.WithObject( new CapturedUserExpression( this.Compilation, target ) );
+
+    IIndexerInvoker IIndexerInvoker.With( InvokerOptions options ) => this.WithOptions( options );
+
+    IIndexerInvoker IIndexerInvoker.With( object? target, InvokerOptions options ) => this.WithOptions( options ).WithObject( target );
+
+    [Obsolete]
+    object IIndexerInvoker.GetValue( params object?[] args ) => new IndexerInvoker( this ).GetValue( args );
+
+    [Obsolete]
+    object IIndexerInvoker.SetValue( object? value, params object?[] args ) => new IndexerInvoker( this ).SetValue( value, args );
 
     public override DeclarationKind DeclarationKind => DeclarationKind.Indexer;
 

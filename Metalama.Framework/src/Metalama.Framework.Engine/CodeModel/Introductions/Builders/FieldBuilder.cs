@@ -14,6 +14,7 @@ using Metalama.Framework.Engine.CodeModel.Invokers;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.CodeModel.Source;
 using Metalama.Framework.Engine.ReflectionMocks;
+using Metalama.Framework.Engine.Templating.Expressions;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.RunTime;
 using System;
@@ -105,9 +106,16 @@ internal sealed class FieldBuilder : MemberBuilder, IFieldBuilder, IFieldImpl
     // Anomaly: we need the InitializerTemplate here because we need it when overriding the property.
     public TemplateMember<IField>? InitializerTemplate { get; set; }
 
-    public IFieldOrPropertyInvoker With( InvokerOptions options ) => new FieldOrPropertyInvoker( this, options );
+    public IFieldOrPropertyInvoker WithOptions( InvokerOptions options )
+        => options == InvokerOptions.Default ? this : new FieldOrPropertyInvoker( this, options );
 
-    public IFieldOrPropertyInvoker With( object? target, InvokerOptions options = default ) => new FieldOrPropertyInvoker( this, options, target );
+    public IFieldOrPropertyInvoker WithObject( IExpression? target ) => new FieldOrPropertyInvoker( this, InvokerOptions.Default, target );
+
+    public IFieldOrPropertyInvoker WithObject( object? target ) => this.WithObject( new CapturedUserExpression( this.Compilation, target ) );
+
+    IFieldOrPropertyInvoker IFieldOrPropertyInvoker.With( InvokerOptions options ) => this.WithOptions( options );
+
+    IFieldOrPropertyInvoker IFieldOrPropertyInvoker.With( object? target, InvokerOptions options ) => this.WithOptions( options ).WithObject( target );
 
     public ref object? Value => ref new FieldOrPropertyInvoker( this ).Value;
 

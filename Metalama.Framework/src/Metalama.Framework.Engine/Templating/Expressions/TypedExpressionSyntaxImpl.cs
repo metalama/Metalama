@@ -39,11 +39,11 @@ namespace Metalama.Framework.Engine.Templating.Expressions
 
         public ExpressionStatementSyntax ToStatement() => SyntaxFactory.ExpressionStatement( this.Syntax.RemoveParenthesis() );
 
-        public TypedExpressionSyntaxImpl( ExpressionSyntax syntax, TypedExpressionSyntaxImpl prototype )
+        public TypedExpressionSyntaxImpl( ExpressionSyntax syntax, TypedExpressionSyntaxImpl prototype, bool? canBeNull = null )
         {
             this.ExpressionType = prototype.ExpressionType;
             this.IsReferenceable = prototype.IsReferenceable;
-            this.CanBeNull = prototype.CanBeNull;
+            this.CanBeNull = canBeNull ?? prototype.CanBeNull;
             this.Syntax = syntax;
         }
 
@@ -193,7 +193,7 @@ namespace Metalama.Framework.Engine.Templating.Expressions
                         this.Syntax is { RawKind: (int) SyntaxKind.NullLiteralExpression } ||
                         !compilationModel.Comparers.Default.IsConvertibleTo( this.ExpressionType, targetType, ConversionKind.Implicit );
                 }
-                
+
                 if ( !requiresCast )
                 {
                     return new TypedExpressionSyntaxImpl( this.Syntax, targetType, compilationModel, this.IsReferenceable, this.CanBeNull );

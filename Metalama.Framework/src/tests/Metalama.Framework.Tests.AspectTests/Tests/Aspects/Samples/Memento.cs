@@ -22,15 +22,15 @@ namespace Metalama.Framework.Tests.AspectTests.Aspects.Samples.Memento
 
             var mementoFields = new List<IField>();
 
-            foreach (var fieldOrProperty in builder.Target.FieldsAndProperties)
+            foreach ( var fieldOrProperty in builder.Target.FieldsAndProperties )
             {
-                if (fieldOrProperty is not { IsAutoPropertyOrField: true, IsImplicitlyDeclared: false })
+                if ( fieldOrProperty is not { IsAutoPropertyOrField: true, IsImplicitlyDeclared: false } )
                 {
                     continue;
                 }
 
                 var field = mementoType.IntroduceField(
-                    nameof(MementoField),
+                    nameof(this.MementoField),
                     buildField: b =>
                     {
                         b.Name = fieldOrProperty.Name;
@@ -45,10 +45,10 @@ namespace Metalama.Framework.Tests.AspectTests.Aspects.Samples.Memento
             mementoType.ImplementInterface( typeof(IMemento) );
 
             mementoType.IntroduceConstructor(
-                nameof(MementoConstructorTemplate),
+                nameof(this.MementoConstructorTemplate),
                 buildConstructor: b =>
                 {
-                    foreach (var mementoField in mementoFields)
+                    foreach ( var mementoField in mementoFields )
                     {
                         b.AddParameter( mementoField.Name, mementoField.Type );
                     }
@@ -64,7 +64,7 @@ namespace Metalama.Framework.Tests.AspectTests.Aspects.Samples.Memento
         [InterfaceMember]
         public IMemento Save()
         {
-            var mementoType = (INamedType)meta.Tags["mementoType"]!;
+            var mementoType = (INamedType) meta.Tags["mementoType"]!;
             var fieldExpressions = meta.Target.Type.FieldsAndProperties.Where( f => f.IsAutoPropertyOrField == true && !f.IsImplicitlyDeclared );
 
             return mementoType.Constructors.Single().Invoke( fieldExpressions )!;
@@ -73,13 +73,13 @@ namespace Metalama.Framework.Tests.AspectTests.Aspects.Samples.Memento
         [InterfaceMember]
         public void Restore( IMemento memento )
         {
-            var mementoType = (INamedType)meta.Tags["mementoType"]!;
+            var mementoType = (INamedType) meta.Tags["mementoType"]!;
 
-            foreach (var fieldOrProperty in meta.Target.Type.FieldsAndProperties.Where( f => f.IsAutoPropertyOrField == true && !f.IsImplicitlyDeclared ))
+            foreach ( var fieldOrProperty in meta.Target.Type.FieldsAndProperties.Where( f => f.IsAutoPropertyOrField == true && !f.IsImplicitlyDeclared ) )
             {
                 var mementoField = mementoType.FieldsAndProperties.OfName( fieldOrProperty.Name ).Single();
 
-                fieldOrProperty.Value = mementoField.With( (IExpression)meta.Cast( mementoType, memento ) ).Value;
+                fieldOrProperty.Value = mementoField.WithObject( (IExpression) meta.Cast( mementoType, memento ) ).Value;
             }
         }
 
@@ -88,7 +88,7 @@ namespace Metalama.Framework.Tests.AspectTests.Aspects.Samples.Memento
         {
             var i = meta.CompileTime( 0 );
 
-            foreach (var parameter in meta.Target.Constructor.Parameters)
+            foreach ( var parameter in meta.Target.Constructor.Parameters )
             {
                 fields[i].Value = parameter;
                 i++;

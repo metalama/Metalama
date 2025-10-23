@@ -33,11 +33,11 @@ public class InvokerAspect : TypeAspect
     public dynamic? GetTemplate( [CompileTime] IFieldOrProperty target )
     {
         meta.InsertComment( "Invoke instance.Empty_Field" );
-        _ = target.With( InvokerOptions.Base ).Value;
+        _ = target.WithOptions( InvokerOptions.Base ).Value;
         meta.InsertComment( "Invoke instance.Field" );
-        _ = target.With( InvokerOptions.Current ).Value;
+        _ = target.WithOptions( InvokerOptions.Current ).Value;
         meta.InsertComment( "Invoke instance.Field" );
-        _ = target.With( InvokerOptions.Final ).Value;
+        _ = target.WithOptions( InvokerOptions.Final ).Value;
 
         return meta.Proceed();
     }
@@ -46,11 +46,11 @@ public class InvokerAspect : TypeAspect
     public void SetTemplate( [CompileTime] IFieldOrProperty target )
     {
         meta.InsertComment( "Invoke instance.Empty_Field" );
-        target.With( InvokerOptions.Base ).Value = 42;
+        target.WithOptions( InvokerOptions.Base ).Value = 42;
         meta.InsertComment( "Invoke instance.Field" );
-        target.With( InvokerOptions.Current ).Value = 42;
+        target.WithOptions( InvokerOptions.Current ).Value = 42;
         meta.InsertComment( "Invoke instance.Field" );
-        target.With( InvokerOptions.Final ).Value = 42;
+        target.WithOptions( InvokerOptions.Final ).Value = 42;
 
         meta.Proceed();
     }

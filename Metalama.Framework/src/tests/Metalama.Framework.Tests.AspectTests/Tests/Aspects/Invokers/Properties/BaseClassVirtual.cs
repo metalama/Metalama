@@ -18,8 +18,8 @@ public class InvokerAspect : PropertyAspect
     public override void BuildAspect( IAspectBuilder<IProperty> builder )
     {
         builder.OverrideAccessors(
-            nameof(GetTemplate),
-            nameof(SetTemplate),
+            nameof(this.GetTemplate),
+            nameof(this.SetTemplate),
             new { target = builder.Target.DeclaringType!.BaseType!.Properties.OfName( "Property" ).Single() } );
     }
 
@@ -29,11 +29,11 @@ public class InvokerAspect : PropertyAspect
         meta.InsertComment( "Invoke this.Property" );
         _ = target.Value;
         meta.InsertComment( "Invoke base.Property" );
-        _ = target.With( InvokerOptions.Base ).Value;
+        _ = target.WithOptions( InvokerOptions.Base ).Value;
         meta.InsertComment( "Invoke base.Property" );
-        _ = target.With( InvokerOptions.Current ).Value;
+        _ = target.WithOptions( InvokerOptions.Current ).Value;
         meta.InsertComment( "Invoke this.Property" );
-        _ = target.With( InvokerOptions.Final ).Value;
+        _ = target.WithOptions( InvokerOptions.Final ).Value;
 
         return meta.Proceed();
     }
@@ -44,11 +44,11 @@ public class InvokerAspect : PropertyAspect
         meta.InsertComment( "Invoke this.Property" );
         target.Value = 42;
         meta.InsertComment( "Invoke base.Property" );
-        target.With( InvokerOptions.Base ).Value = 42;
+        target.WithOptions( InvokerOptions.Base ).Value = 42;
         meta.InsertComment( "Invoke base.Property" );
-        target.With( InvokerOptions.Current ).Value = 42;
+        target.WithOptions( InvokerOptions.Current ).Value = 42;
         meta.InsertComment( "Invoke this.Property" );
-        target.With( InvokerOptions.Final ).Value = 42;
+        target.WithOptions( InvokerOptions.Final ).Value = 42;
 
         meta.Proceed();
     }

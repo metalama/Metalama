@@ -12,17 +12,17 @@ public class TestAttribute : OverrideMethodAspect
 {
     public override dynamic? OverrideMethod()
     {
-        var mappingType = (INamedType)meta.Target.Method.Parameters[0].Type;
+        var mappingType = (INamedType) meta.Target.Method.Parameters[0].Type;
 
         var from = meta.Target.Method.Parameters[0];
         var to = meta.Target.Method.Parameters[1];
 
-        foreach (var fieldOrProperty in mappingType.FieldsAndProperties)
+        foreach ( var fieldOrProperty in mappingType.FieldsAndProperties )
         {
             var eb = new ExpressionBuilder();
-            eb.AppendExpression( fieldOrProperty.With( to ).Value! );
+            eb.AppendExpression( fieldOrProperty.WithObject( to ) );
             eb.AppendVerbatim( " = " );
-            eb.AppendExpression( fieldOrProperty.With( (IExpression)from.Value! ) );
+            eb.AppendExpression( fieldOrProperty.WithObject( from ) );
             meta.InsertStatement( eb.ToExpression() );
         }
 

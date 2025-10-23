@@ -20,15 +20,15 @@ public class InvokerAspect : PropertyAspect
     public override void BuildAspect( IAspectBuilder<IProperty> builder )
     {
         builder.OverrideAccessors(
-            nameof(GetTemplate),
-            nameof(SetTemplate),
-            new { target = ( (INamedType)builder.Target.DeclaringType.Fields.Single().Type ).Properties.OfName( "Property" ).Single() } );
+            nameof(this.GetTemplate),
+            nameof(this.SetTemplate),
+            new { target = ((INamedType) builder.Target.DeclaringType.Fields.Single().Type).Properties.OfName( "Property" ).Single() } );
     }
 
     [Template]
     public dynamic? GetTemplate( [CompileTime] IProperty target )
     {
-        _ = target.With( (IExpression)meta.Target.Property.DeclaringType.Fields.Single().Value!, InvokerOptions.Base ).Value;
+        _ = target.WithObject( meta.Target.Property.DeclaringType.Fields.Single()).WithOptions( InvokerOptions.Base ).Value;
 
         return meta.Proceed();
     }
@@ -36,7 +36,7 @@ public class InvokerAspect : PropertyAspect
     [Template]
     public void SetTemplate( [CompileTime] IProperty target )
     {
-        target.With( (IExpression)meta.Target.Property.DeclaringType.Fields.Single().Value!, InvokerOptions.Base ).Value = 42;
+        target.WithObject( meta.Target.Property.DeclaringType.Fields.Single()).WithOptions( InvokerOptions.Base ).Value = 42;
 
         meta.Proceed();
     }

@@ -20,17 +20,17 @@ public class InvokerAspect : MethodAspect
     {
         var anotherMethod = builder.Target.DeclaringType!.Methods.OfName( "Method" ).Single();
 
-        builder.With( anotherMethod ).Override( nameof(AnotherMethodTemplate) );
+        builder.With( anotherMethod ).Override( nameof(this.AnotherMethodTemplate) );
 
         builder.Override(
-            nameof(Template),
+            nameof(this.Template),
             new { target = anotherMethod } );
     }
 
     [Template]
     public dynamic? Template( [CompileTime] IMethod target )
     {
-        target.With( (IExpression)meta.Target.Method.Parameters[0].Value!, InvokerOptions.Current ).Invoke();
+        target.WithObject( meta.Target.Method.Parameters[0]).WithOptions( InvokerOptions.Current ).Invoke();
 
         return meta.Proceed();
     }

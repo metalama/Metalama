@@ -187,11 +187,11 @@ class MyAspect : TypeAspect
                                 public override void BuildAspect(IAspectBuilder<INamedType> builder)
                                 {
                                     var ns = builder.With(builder.Target.Compilation).WithNamespace("NS");
-                            
+
                                     var introducedClass = ns.IntroduceClass("Introduced");
-                            
+
                                     introducedClass.IntroduceField("f", typeof(int));
-                            
+
                                     introducedClass.IntroduceAttribute(AttributeConstruction.Create(typeof(MyAttribute)));
                                 }
                             }
@@ -257,9 +257,9 @@ class MyAspect : TypeAspect
                                         // Throw exception at compile-time.
                                         meta.CompileTime(((object)null).ToString());
                                     }
-                            
+
                                     Console.WriteLine("from aspect");
-                            
+
                                     return meta.Proceed();
                                 }
                             }
@@ -303,15 +303,15 @@ class MyAspect : TypeAspect
                                 public override void BuildAspect(IAspectBuilder<INamedType> builder)
                                 {
                                     var ns = builder.With(builder.Target.Compilation).WithNamespace("NS");
-                            
+
                                     for (int i = 1; i <= 2; i++)
                                     {
                                         var introducedClass = ns.IntroduceClass($"Introduced{i}");
-                            
+
                                         introducedClass.IntroduceMethod(nameof(M));
                                     }
                                 }
-                            
+
                                 [Template]
                                 void M()
                                 {
@@ -353,7 +353,7 @@ class MyAspect : TypeAspect
                                     var c = ns.IntroduceClass("MyClass").Declaration;
                                     builder.Advice.IntroduceMethod(c, nameof(SayHello));
                                 }
-                            
+
                                 [Template]
                                 public void SayHello()
                                 {
@@ -394,7 +394,7 @@ class MyAspect : TypeAspect
                                 {
                                     var executionScenario = MetalamaExecutionContext.Current.ExecutionScenario;
                                     string scenarioDetails = $"scenario: {executionScenario.Name}, captures non-observable: {executionScenario.CapturesNonObservableTransformations}";
-                            
+
                                     builder.IntroduceField("scenario", typeof(string), buildField: fieldBuilder => fieldBuilder.InitializerExpression = TypedConstant.Create(scenarioDetails));
                                 }
                             }
@@ -583,11 +583,11 @@ class C {}"
                                 public override void BuildAspect(IAspectBuilder<ICompilation> builder)
                                 {
                                     var ns = builder.With(builder.Target.GlobalNamespace).WithChildNamespace("NS");
-                            
+
                                     var introducedClass = ns.IntroduceClass("Introduced");
-                            
+
                                     introducedClass.IntroduceField("f", typeof(int));
-                            
+
                                     introducedClass.IntroduceAttribute(AttributeConstruction.Create(typeof(MyAttribute)));
                                 }
                             }

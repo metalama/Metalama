@@ -27,8 +27,8 @@ public class IntroduceFieldAttribute : TypeAspect
 {
     public override void BuildAspect( IAspectBuilder<INamedType> builder )
     {
-        builder.IntroduceField( nameof(FieldTemplate), buildField: f => f.Name = "IntroducedField" );
-        var f = builder.IntroduceField( nameof(FieldTemplate), buildField: f => f.Name = "OverriddenIntroducedField" );
+        builder.IntroduceField( nameof(this.FieldTemplate), buildField: f => f.Name = "IntroducedField" );
+        var f = builder.IntroduceField( nameof(this.FieldTemplate), buildField: f => f.Name = "OverriddenIntroducedField" );
 
         f.AddAspect<OverrideFieldAttribute>();
     }
@@ -60,7 +60,7 @@ public class InvokeBeforeAttribute : ConstructorAspect
 {
     public override void BuildAspect( IAspectBuilder<IConstructor> builder )
     {
-        builder.Override( nameof(Template) );
+        builder.Override( nameof(this.Template) );
     }
 
     [Template]
@@ -70,23 +70,23 @@ public class InvokeBeforeAttribute : ConstructorAspect
 
         meta.InsertComment( "Base" );
 
-        foreach (var fieldOrProperty in meta.Target.Constructor.DeclaringType.FieldsAndProperties.OrderBy( f => f.Name ))
+        foreach ( var fieldOrProperty in meta.Target.Constructor.DeclaringType.FieldsAndProperties.OrderBy( f => f.Name ) )
         {
-            fieldOrProperty.With( InvokerOptions.Base ).Value = 42;
+            fieldOrProperty.WithOptions( InvokerOptions.Base ).Value = 42;
         }
 
         meta.InsertComment( "Current" );
 
-        foreach (var fieldOrProperty in meta.Target.Constructor.DeclaringType.FieldsAndProperties.OrderBy( f => f.Name ))
+        foreach ( var fieldOrProperty in meta.Target.Constructor.DeclaringType.FieldsAndProperties.OrderBy( f => f.Name ) )
         {
-            fieldOrProperty.With( InvokerOptions.Current ).Value = 42;
+            fieldOrProperty.WithOptions( InvokerOptions.Current ).Value = 42;
         }
 
         meta.InsertComment( "Final" );
 
-        foreach (var fieldOrProperty in meta.Target.Constructor.DeclaringType.FieldsAndProperties.OrderBy( f => f.Name ))
+        foreach ( var fieldOrProperty in meta.Target.Constructor.DeclaringType.FieldsAndProperties.OrderBy( f => f.Name ) )
         {
-            fieldOrProperty.With( InvokerOptions.Final ).Value = 42;
+            fieldOrProperty.WithOptions( InvokerOptions.Final ).Value = 42;
         }
 
         meta.Proceed();
@@ -97,7 +97,7 @@ public class InvokeAfterAttribute : ConstructorAspect
 {
     public override void BuildAspect( IAspectBuilder<IConstructor> builder )
     {
-        builder.Override( nameof(Template) );
+        builder.Override( nameof(this.Template) );
     }
 
     [Template]
@@ -109,23 +109,23 @@ public class InvokeAfterAttribute : ConstructorAspect
 
         meta.InsertComment( "Base" );
 
-        foreach (var fieldOrProperty in meta.Target.Constructor.DeclaringType.FieldsAndProperties.OrderBy( f => f.Name ))
+        foreach ( var fieldOrProperty in meta.Target.Constructor.DeclaringType.FieldsAndProperties.OrderBy( f => f.Name ) )
         {
-            fieldOrProperty.With( InvokerOptions.Base ).Value = 42;
+            fieldOrProperty.WithOptions( InvokerOptions.Base ).Value = 42;
         }
 
         meta.InsertComment( "Current" );
 
-        foreach (var fieldOrProperty in meta.Target.Constructor.DeclaringType.FieldsAndProperties.OrderBy( f => f.Name ))
+        foreach ( var fieldOrProperty in meta.Target.Constructor.DeclaringType.FieldsAndProperties.OrderBy( f => f.Name ) )
         {
-            fieldOrProperty.With( InvokerOptions.Current ).Value = 42;
+            fieldOrProperty.WithOptions( InvokerOptions.Current ).Value = 42;
         }
 
         meta.InsertComment( "Final" );
 
-        foreach (var fieldOrProperty in meta.Target.Constructor.DeclaringType.FieldsAndProperties.OrderBy( f => f.Name ))
+        foreach ( var fieldOrProperty in meta.Target.Constructor.DeclaringType.FieldsAndProperties.OrderBy( f => f.Name ) )
         {
-            fieldOrProperty.With( InvokerOptions.Final ).Value = 42;
+            fieldOrProperty.WithOptions( InvokerOptions.Final ).Value = 42;
         }
     }
 }

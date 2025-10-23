@@ -15,11 +15,11 @@ public class TargetClass
   {
     add
     {
-      this._instance!.Event += global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Invokers.Events.TargetClass_DifferentInstance_Base.TargetClass.StaticTarget;
+      this._instance.Event += global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Invokers.Events.TargetClass_DifferentInstance_Base.TargetClass.StaticTarget;
     }
     remove
     {
-      this._instance!.Event -= global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Invokers.Events.TargetClass_DifferentInstance_Base.TargetClass.StaticTarget;
+      this._instance.Event -= global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Invokers.Events.TargetClass_DifferentInstance_Base.TargetClass.StaticTarget;
     }
   }
   public static void StaticTarget(object? sender, EventArgs args)

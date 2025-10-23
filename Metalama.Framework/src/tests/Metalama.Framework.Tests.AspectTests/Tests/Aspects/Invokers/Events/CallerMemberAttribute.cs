@@ -8,7 +8,7 @@ using System.Runtime.CompilerServices;
 using Metalama.Framework.Tests.AspectTests.Tests.Aspects.Invokers.Events.CallerMemberAttribute;
 using System;
 
-[assembly: AspectOrder( AspectOrderDirection.CompileTime, typeof( OverrideAspect ), typeof( InvokerAspect ) )]
+[assembly: AspectOrder( AspectOrderDirection.CompileTime, typeof(OverrideAspect), typeof(InvokerAspect) )]
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Invokers.Events.CallerMemberAttribute;
 
@@ -21,12 +21,12 @@ public class InvokerAspect : TypeAspect
     [Introduce]
     public void CallFoo()
     {
-        foreach (var @event in meta.Target.Type.Events)
+        foreach ( var @event in meta.Target.Type.Events )
         {
-            @event.Add(null);
-            @event.With(InvokerOptions.Base).Add(null);
-            @event.With(InvokerOptions.Current).Add(null);
-            @event.With(InvokerOptions.Final).Add(null);
+            @event.Add( null );
+            @event.WithOptions( InvokerOptions.Base ).Add( null );
+            @event.WithOptions( InvokerOptions.Current ).Add( null );
+            @event.WithOptions( InvokerOptions.Final ).Add( null );
         }
 
         meta.Proceed();
@@ -35,9 +35,9 @@ public class InvokerAspect : TypeAspect
 
 public class OverrideAspect : OverrideEventAspect
 {
-    public override void OverrideAdd(dynamic value)
+    public override void OverrideAdd( dynamic value )
     {
-        if (meta.Target.Event.Name == nameof(TargetClass.TestOverriddenEvent))
+        if ( meta.Target.Event.Name == nameof(TargetClass.TestOverriddenEvent) )
         {
             meta.Proceed();
         }
@@ -48,7 +48,7 @@ public class OverrideAspect : OverrideEventAspect
         }
     }
 
-    public override void OverrideRemove(dynamic value)
+    public override void OverrideRemove( dynamic value )
     {
         meta.Proceed();
     }
@@ -56,9 +56,7 @@ public class OverrideAspect : OverrideEventAspect
 
 public class OtherClass
 {
-    public static void Foo([CallerMemberName] string? callerMemberName = null )
-    {
-    }
+    public static void Foo( [CallerMemberName] string? callerMemberName = null ) { }
 }
 
 // <target>

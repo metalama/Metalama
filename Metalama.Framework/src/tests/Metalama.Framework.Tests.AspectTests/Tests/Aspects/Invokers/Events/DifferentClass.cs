@@ -21,19 +21,20 @@ public class InvokerAspect : EventAspect
     public override void BuildAspect( IAspectBuilder<IEvent> builder )
     {
         builder.OverrideAccessors(
-            nameof(AddTemplate),
-            nameof(RemoveTemplate),
-            args: new { target = ( (INamedType)builder.Target.DeclaringType.Fields.Single().Type ).Events.OfName( "Event" ).Single() } );
+            nameof(this.AddTemplate),
+            nameof(this.RemoveTemplate),
+            args: new { target = ((INamedType) builder.Target.DeclaringType.Fields.Single().Type).Events.OfName( "Event" ).Single() } );
     }
 
     [Template]
     public void AddTemplate( [CompileTime] IEvent target )
     {
         meta.InsertComment( "Invoke instance.Event" );
-        target.With( (IExpression?)meta.Target.Event.DeclaringType.Fields.Single().Value ).Add( meta.RunTime( TargetClass.StaticTarget ) );
+        target.WithObject( meta.Target.Event.DeclaringType.Fields.Single() ).Add( meta.RunTime( TargetClass.StaticTarget ) );
         meta.InsertComment( "Invoke instance.Event" );
 
-        target.With( (IExpression?)meta.Target.Event.DeclaringType.Fields.Single().Value, InvokerOptions.Final )
+        target.WithObject( meta.Target.Event.DeclaringType.Fields.Single() )
+            .WithOptions( InvokerOptions.Final )
             .Add( meta.RunTime( TargetClass.StaticTarget ) );
 
         meta.Proceed();
@@ -43,10 +44,11 @@ public class InvokerAspect : EventAspect
     public void RemoveTemplate( [CompileTime] IEvent target )
     {
         meta.InsertComment( "Invoke instance.Event" );
-        target.With( (IExpression?)meta.Target.Event.DeclaringType.Fields.Single().Value ).Remove( meta.RunTime( TargetClass.StaticTarget ) );
+        target.WithObject( meta.Target.Event.DeclaringType.Fields.Single() ).Remove( meta.RunTime( TargetClass.StaticTarget ) );
         meta.InsertComment( "Invoke instance.Event" );
 
-        target.With( (IExpression?)meta.Target.Event.DeclaringType.Fields.Single().Value, InvokerOptions.Final )
+        target.WithObject( meta.Target.Event.DeclaringType.Fields.Single() )
+            .WithOptions( InvokerOptions.Final )
             .Remove( meta.RunTime( TargetClass.StaticTarget ) );
 
         meta.Proceed();

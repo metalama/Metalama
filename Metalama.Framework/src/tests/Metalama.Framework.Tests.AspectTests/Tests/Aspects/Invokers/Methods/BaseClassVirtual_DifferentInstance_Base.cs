@@ -20,14 +20,14 @@ public class InvokerAspect : MethodAspect
         var anotherMethodBase = builder.Target.DeclaringType!.BaseType!.Methods.OfName( "Method" ).Single();
 
         builder.Override(
-            nameof(Template),
+            nameof(this.Template),
             new { target = anotherMethodBase } );
     }
 
     [Template]
     public dynamic? Template( IMethod target )
     {
-        target.With( (IExpression)meta.Target.Method.Parameters[0].Value!, InvokerOptions.Base ).Invoke();
+        target.WithObject( meta.Target.Method.Parameters[0]).WithOptions( InvokerOptions.Base ).Invoke();
 
         return meta.Proceed();
     }

@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Aspects;
+using System;
 
 namespace Metalama.Framework.Code.Invokers
 {
@@ -16,7 +17,7 @@ namespace Metalama.Framework.Code.Invokers
         /// Generates run-time code that adds a given handler to the event. By default, the target instance
         /// of the event is <c>this</c> unless the event is static, and the <c>base</c> implementation of the event is invoked,
         /// i.e. the implementation before the current aspect layer. To change the default values, or to use the <c>?.</c> null-conditional operator,
-        /// use the <see cref="With(Metalama.Framework.Code.Invokers.InvokerOptions)"/> method.
+        /// use the <see cref="WithOptions"/> method.
         /// </summary>
         dynamic Add( dynamic? handler );
 
@@ -24,7 +25,7 @@ namespace Metalama.Framework.Code.Invokers
         /// Generates run-time code that removes a given handler from the event. By default, the target instance
         /// of the event is <c>this</c> unless the event is static, and the <c>base</c> implementation of the event is invoked,
         /// i.e. the implementation before the current aspect layer. To change the default values, or to use the <c>?.</c> null-conditional operator,
-        /// use the <see cref="With(Metalama.Framework.Code.Invokers.InvokerOptions)"/> method.
+        /// use the <see cref="WithOptions"/> method.
         /// </summary>
         dynamic Remove( dynamic? handler );
 
@@ -32,22 +33,28 @@ namespace Metalama.Framework.Code.Invokers
         /// Generates run-time code that raises the current event with specified arguments. By default, the target instance
         /// of the event is <c>this</c> unless the event is static, and the <c>base</c> implementation of the event is invoked,
         /// i.e. the implementation before the current aspect layer. To change the default values, or to use the <c>?.</c> null-conditional operator,
-        /// use the <see cref="With(Metalama.Framework.Code.Invokers.InvokerOptions)"/> method.
+        /// use the <see cref="WithOptions"/> method.
         /// </summary>
         dynamic? Raise( params dynamic?[] args );
 
         /// <summary>
         /// Gets an <see cref="IEventInvoker"/> for the same event and target but with different options.
         /// </summary>
-        IEventInvoker With( InvokerOptions options );
+        IEventInvoker WithOptions( InvokerOptions options );
 
         /// <summary>
-        /// Gets an <see cref="IEventInvoker"/> for the same event but with a different target instance and optionally different options.
+        /// Gets an <see cref="IEventInvoker"/> for the same event but with a different object, specified as an <see cref="IExpression"/>.
         /// </summary>
-        /// <param name="target">The run-time expression that represents the target instance of the method. This expression cannot be <c>dynamic</c>.
-        /// If you need to pass a <c>dynamic</c> expression, you have to explicitly cast it to <see cref="IExpression"/>.
+        /// <param name="target">The run-time expression that represents the target instance of the method.
         /// </param>
-        /// <param name="options"></param>
+        IEventInvoker WithObject( IExpression? target );
+
+        IEventInvoker WithObject( dynamic? target );
+
+        [Obsolete( "Use the WithOptions method." )]
+        IEventInvoker With( InvokerOptions options );
+
+        [Obsolete( "Use the WithObject and WithOptions methods." )]
         IEventInvoker With( dynamic? target, InvokerOptions options = default );
     }
 }

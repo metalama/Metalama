@@ -20,7 +20,7 @@ public class ProxyAspect : TypeAspect
 
     public ProxyAspect( Type interfaceType )
     {
-        _interfaceType = interfaceType;
+        this._interfaceType = interfaceType;
     }
 
     public override void BuildAspect( IAspectBuilder<INamedType> builder )
@@ -30,29 +30,29 @@ public class ProxyAspect : TypeAspect
         // Add a field with the intercepted object.
         var interceptedField = builder.IntroduceField(
                 "_intercepted",
-                _interfaceType,
+                this._interfaceType,
                 IntroductionScope.Instance )
             .Declaration;
 
         // Implement the interface.
-        var implementInterfaceResult = builder.ImplementInterface( _interfaceType );
+        var implementInterfaceResult = builder.ImplementInterface( this._interfaceType );
 
         // Implement interface members.
-        var namedType = (INamedType)TypeFactory.GetType( _interfaceType );
+        var namedType = (INamedType) TypeFactory.GetType( this._interfaceType );
 
-        foreach (var method in namedType.Methods)
+        foreach ( var method in namedType.Methods )
         {
             implementInterfaceResult.ExplicitMembers.IntroduceMethod(
                 method.ReturnType.IsConvertibleTo( SpecialType.Void )
-                    ? nameof(VoidTemplate)
-                    : nameof(NonVoidTemplate),
+                    ? nameof(this.VoidTemplate)
+                    : nameof(this.NonVoidTemplate),
                 IntroductionScope.Instance,
                 buildMethod: methodBuilder =>
                 {
                     methodBuilder.Name = method.Name;
                     methodBuilder.ReturnType = method.ReturnType;
 
-                    foreach (var parameter in method.Parameters)
+                    foreach ( var parameter in method.Parameters )
                     {
                         methodBuilder.AddParameter(
                             parameter.Name,
@@ -67,28 +67,28 @@ public class ProxyAspect : TypeAspect
 
         // Add the constructor.
         builder.IntroduceConstructor(
-            nameof(Constructor),
+            nameof(this.Constructor),
             buildConstructor: constructorBuilder
-                => constructorBuilder.AddParameter( "intercepted", _interfaceType ),
+                => constructorBuilder.AddParameter( "intercepted", this._interfaceType ),
             args: new { interceptedField } );
     }
 
     [Template]
     private T NonVoidTemplate<[CompileTime] T>( IMethod method, IField interceptedField )
     {
-        return _interceptor.Invoke( () => (T)method.With( interceptedField ).Invoke( method.Parameters )! );
+        return this._interceptor.Invoke( () => (T) method.WithObject( interceptedField ).Invoke( method.Parameters )! );
     }
 
     [Template]
     private void VoidTemplate( IMethod method, IField interceptedField )
     {
-        _interceptor.Invoke( () => { method.With( interceptedField ).Invoke( method.Parameters ); } );
+        this._interceptor.Invoke( () => { method.WithObject( interceptedField ).Invoke( method.Parameters ); } );
     }
 
     [Template]
     public void Constructor( IInterceptor interceptor, IField interceptedField )
     {
-        _interceptor = interceptor;
+        this._interceptor = interceptor;
         interceptedField.Value = meta.Target.Parameters["intercepted"].Value;
     }
 }

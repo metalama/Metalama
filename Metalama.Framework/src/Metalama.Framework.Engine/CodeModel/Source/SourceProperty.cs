@@ -32,7 +32,7 @@ namespace Metalama.Framework.Engine.CodeModel.Source
         public SourceProperty( IPropertySymbol symbol, CompilationModel compilation, GenericContext? genericContextForSymbolMapping ) : base(
             symbol,
             compilation,
-            genericContextForSymbolMapping ) 
+            genericContextForSymbolMapping )
         {
 #if ROSLYN_4_12_0_OR_GREATER
             Invariant.Assert(
@@ -96,9 +96,16 @@ namespace Metalama.Framework.Engine.CodeModel.Source
         [Memo]
         public IExpression? InitializerExpression => this.GetInitializerExpressionCore();
 
-        public IFieldOrPropertyInvoker With( InvokerOptions options ) => new FieldOrPropertyInvoker( this, options );
+        public IFieldOrPropertyInvoker WithOptions( InvokerOptions options )
+            => options == InvokerOptions.Default ? this : new FieldOrPropertyInvoker( this, options );
 
-        public IFieldOrPropertyInvoker With( object? target, InvokerOptions options = default ) => new FieldOrPropertyInvoker( this, options, target );
+        public IFieldOrPropertyInvoker WithObject( IExpression? target ) => new FieldOrPropertyInvoker( this, InvokerOptions.Default, target );
+
+        public IFieldOrPropertyInvoker WithObject( object? target ) => this.WithObject( new CapturedUserExpression( this.Compilation, target ) );
+
+        IFieldOrPropertyInvoker IFieldOrPropertyInvoker.With( InvokerOptions options ) => this.WithOptions( options );
+
+        IFieldOrPropertyInvoker IFieldOrPropertyInvoker.With( object? target, InvokerOptions options ) => this.WithOptions( options ).WithObject( target );
 
         public ref object? Value => ref new FieldOrPropertyInvoker( this ).Value;
 
@@ -136,7 +143,9 @@ namespace Metalama.Framework.Engine.CodeModel.Source
                 sources.Add( new SourceReference( this.PropertySymbol.DeclaringSyntaxReferences[0].GetSyntax(), SourceReferenceImpl.Instance ) );
 
                 sources.Add(
-                    new SourceReference( this.PropertySymbol.PartialImplementationPart.DeclaringSyntaxReferences[0].GetSyntax(), SourceReferenceImpl.Instance ) );
+                    new SourceReference(
+                        this.PropertySymbol.PartialImplementationPart.DeclaringSyntaxReferences[0].GetSyntax(),
+                        SourceReferenceImpl.Instance ) );
 
                 return sources.MoveToImmutable();
             }

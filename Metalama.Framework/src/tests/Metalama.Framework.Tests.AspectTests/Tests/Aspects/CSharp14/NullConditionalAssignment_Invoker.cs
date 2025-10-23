@@ -15,23 +15,22 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.CSharp14.NullCondit
 
 internal class TheAspect : OverrideFieldOrPropertyAspect
 {
-    public override dynamic? OverrideProperty {
+    public override dynamic? OverrideProperty
+    {
         get
         {
             return meta.Proceed();
         }
         set
         {
-            meta.Target.Property.With( meta.Target.Property, InvokerOptions.NullConditional ).Value = null;
-        } 
+            meta.Target.Property.WithObject( meta.Target.Property ).WithOptions( InvokerOptions.NullConditional ).Value = null;
+        }
     }
 }
-
 
 // <target>
 internal class C
 {
-    
     [TheAspect]
     public C? P { get; set; }
 }

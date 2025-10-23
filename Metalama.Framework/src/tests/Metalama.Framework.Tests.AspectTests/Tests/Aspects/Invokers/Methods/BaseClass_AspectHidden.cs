@@ -21,7 +21,7 @@ public class InvokerBeforeAspect : MethodAspect
     public override void BuildAspect( IAspectBuilder<IMethod> builder )
     {
         builder.Override(
-            nameof(Template),
+            nameof(this.Template),
             new { target = builder.Target.DeclaringType!.BaseType!.Methods.OfName( "Method" ).Single() } );
     }
 
@@ -31,11 +31,11 @@ public class InvokerBeforeAspect : MethodAspect
         meta.InsertComment( "Invoke this.Method" );
         target.Invoke();
         meta.InsertComment( "Invoke base.Method" );
-        target.With( InvokerOptions.Base ).Invoke();
+        target.WithOptions( InvokerOptions.Base ).Invoke();
         meta.InsertComment( "Invoke base.Method" );
-        target.With( InvokerOptions.Current ).Invoke();
+        target.WithOptions( InvokerOptions.Current ).Invoke();
         meta.InsertComment( "Invoke this.Method" );
-        target.With( InvokerOptions.Final ).Invoke();
+        target.WithOptions( InvokerOptions.Final ).Invoke();
 
         return meta.Proceed();
     }
@@ -49,11 +49,11 @@ public class IntroductionAspect : TypeAspect
         meta.InsertComment( "Invoke base.Method" );
         meta.Target.Method.Invoke();
         meta.InsertComment( "Invoke base.Method" );
-        meta.Target.Method.With( InvokerOptions.Base ).Invoke();
+        meta.Target.Method.WithOptions( InvokerOptions.Base ).Invoke();
         meta.InsertComment( "Invoke this.Method" );
-        meta.Target.Method.With( InvokerOptions.Current ).Invoke();
+        meta.Target.Method.WithOptions( InvokerOptions.Current ).Invoke();
         meta.InsertComment( "Invoke this.Method" );
-        meta.Target.Method.With( InvokerOptions.Final ).Invoke();
+        meta.Target.Method.WithOptions( InvokerOptions.Final ).Invoke();
 
         meta.InsertComment( "Invoke base.Method" );
         meta.Proceed();
@@ -65,7 +65,7 @@ public class InvokerAfterAspect : MethodAspect
     public override void BuildAspect( IAspectBuilder<IMethod> builder )
     {
         builder.Override(
-            nameof(Template),
+            nameof(this.Template),
             new { target = builder.Target.DeclaringType!.AllMethods.OfName( "Method" ).Single() } );
     }
 
@@ -75,11 +75,11 @@ public class InvokerAfterAspect : MethodAspect
         meta.InsertComment( "Invoke this.Method" );
         target.Invoke();
         meta.InsertComment( "Invoke this.Method" );
-        target.With( InvokerOptions.Base ).Invoke();
+        target.WithOptions( InvokerOptions.Base ).Invoke();
         meta.InsertComment( "Invoke this.Method" );
-        target.With( InvokerOptions.Current ).Invoke();
+        target.WithOptions( InvokerOptions.Current ).Invoke();
         meta.InsertComment( "Invoke this.Method" );
-        target.With( InvokerOptions.Final ).Invoke();
+        target.WithOptions( InvokerOptions.Final ).Invoke();
 
         return meta.Proceed();
     }

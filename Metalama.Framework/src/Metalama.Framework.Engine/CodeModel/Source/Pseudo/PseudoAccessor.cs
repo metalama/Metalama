@@ -11,6 +11,7 @@ using Metalama.Framework.Engine.CodeModel.GenericContexts;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.SerializableIds;
+using Metalama.Framework.Engine.Templating.Expressions;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Metrics;
 using Microsoft.CodeAnalysis;
@@ -132,11 +133,15 @@ internal abstract class PseudoAccessor : IMethodImpl
 
     bool IMember.IsExtern => false;
 
-    public IMethodInvoker With( InvokerOptions options ) => new MethodInvoker( this, options );
+    public IMethodInvoker WithOptions( InvokerOptions options ) => options == InvokerOptions.Default ? this : new MethodInvoker( this, options );
 
-    public IMethodInvoker With( object? target, InvokerOptions options = default ) => new MethodInvoker( this, options, target );
+    public IMethodInvoker WithObject( object? target ) => this.WithObject( new CapturedUserExpression( this.Compilation, target ) );
 
-    public IMethodInvoker With( IExpression target, InvokerOptions options = default ) => new MethodInvoker( this, options, target );
+    public IMethodInvoker WithObject( IExpression? target ) => new MethodInvoker( this, InvokerOptions.Default, target );
+
+    IMethodInvoker IMethodInvoker.With( InvokerOptions options ) => this.WithOptions( options );
+
+    IMethodInvoker IMethodInvoker.With( object? target, InvokerOptions options ) => this.WithOptions( options ).WithObject( target );
 
     public IExpression CreateInvokeExpression( IEnumerable<IExpression> args ) => new MethodInvoker( this ).CreateInvokeExpression( args );
 

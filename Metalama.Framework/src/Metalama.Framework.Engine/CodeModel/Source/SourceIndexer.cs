@@ -10,8 +10,10 @@ using Metalama.Framework.Engine.CodeModel.Collections;
 using Metalama.Framework.Engine.CodeModel.GenericContexts;
 using Metalama.Framework.Engine.CodeModel.Invokers;
 using Metalama.Framework.Engine.CodeModel.References;
+using Metalama.Framework.Engine.Templating.Expressions;
 using Metalama.Framework.Engine.Utilities;
 using Microsoft.CodeAnalysis;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -53,13 +55,24 @@ internal sealed class SourceIndexer : SourcePropertyOrIndexer, IIndexerImpl
 
     protected override IMemberOrNamedType GetDefinitionMemberOrNamedType() => this.Definition;
 
-    public IIndexerInvoker With( InvokerOptions options ) => new IndexerInvoker( this, options );
+    public IIndexerInvoker WithOptions( InvokerOptions options ) => options == InvokerOptions.Default ? this : new IndexerInvoker( this, options );
 
-    public IIndexerInvoker With( object? target, InvokerOptions options = default ) => new IndexerInvoker( this, options, target );
+    public IIndexerInvoker WithObject( IExpression? target ) => new IndexerInvoker( this, InvokerOptions.Default, target );
 
-    public object GetValue( params object?[] args ) => new IndexerInvoker( this ).GetValue( args );
+    public IIndexerInvoker WithObject( object? target ) => this.WithObject( new CapturedUserExpression( this.Compilation, target ) );
 
-    public object SetValue( object? value, params object?[] args ) => new IndexerInvoker( this ).SetValue( value, args );
+    IIndexerInvoker IIndexerInvoker.With( InvokerOptions options ) => this.WithOptions( options );
+
+    IIndexerInvoker IIndexerInvoker.With( object? target, InvokerOptions options ) => this.WithOptions( options ).WithObject( target );
+
+    public IExpression this[ params object?[] args ] => new IndexerInvoker( this ).GetExpression( args );
+    public IExpression this[ params IExpression[] args ] => new IndexerInvoker( this ).GetExpression( args );
+
+    [Obsolete]
+    object IIndexerInvoker.GetValue( params object?[] args ) => new IndexerInvoker( this ).GetValue( args );
+
+    [Obsolete]
+    object IIndexerInvoker.SetValue( object? value, params object?[] args ) => new IndexerInvoker( this ).SetValue( value, args );
 
     public override IMember? OverriddenMember => this.OverriddenIndexer;
 

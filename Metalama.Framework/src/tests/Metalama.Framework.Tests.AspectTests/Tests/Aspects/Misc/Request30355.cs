@@ -36,10 +36,10 @@ internal class NotifyPropertyChangedAttribute : TypeAspect
     [Template]
     private dynamic OverridePropertySetter( dynamic value )
     {
-        if (value != meta.Target.Property.Value)
+        if ( value != meta.Target.Property.Value )
         {
             meta.Proceed();
-            OnPropertyChanged( meta.Target.Property.Name );
+            this.OnPropertyChanged( meta.Target.Property.Name );
         }
 
         return value;
@@ -52,7 +52,7 @@ internal class NotifyPropertyChangedAttribute : TypeAspect
     [Introduce( WhenExists = OverrideStrategy.Ignore )]
     protected void OnPropertyChanged( string name )
     {
-        PropertyChanged?.Invoke( meta.This, new PropertyChangedEventArgs( name ) );
+        this.PropertyChanged?.Invoke( meta.This, new PropertyChangedEventArgs( name ) );
     }
 
     #endregion
@@ -63,9 +63,9 @@ internal class NotifyPropertyChangedAttribute : TypeAspect
     {
         builder.ImplementInterface( typeof(INotifyPropertyChanged) );
 
-        foreach (var property in builder.Target.Properties.Where( p => !p.IsAbstract && p.Writeability == Writeability.All ))
+        foreach ( var property in builder.Target.Properties.Where( p => !p.IsAbstract && p.Writeability == Writeability.All ) )
         {
-            builder.With( property ).OverrideAccessors( null, nameof(OverridePropertySetter) );
+            builder.With( property ).OverrideAccessors( null, nameof(this.OverridePropertySetter) );
         }
     }
 
@@ -90,7 +90,7 @@ internal class OptionalValueTypeAttribute : TypeAspect
         // Find the nested type.
         var nestedType = builder.Target.Types.OfName( "Optional" ).FirstOrDefault();
 
-        if (nestedType == null)
+        if ( nestedType == null )
         {
             builder.Diagnostics.Report( _missingNestedTypeError.WithArguments( builder.Target ), builder.Target );
 
@@ -100,22 +100,22 @@ internal class OptionalValueTypeAttribute : TypeAspect
         // Introduce a property in the main type to store the Optional object.
         var optionalValuesProperty =
             builder.IntroduceProperty(
-                nameof(OptionalValues),
+                nameof(this.OptionalValues),
                 buildProperty: p =>
                 {
                     p.Type = nestedType;
                     p.InitializerExpression = ExpressionFactory.Parse( $"new {nestedType.Name}()" );
                 } );
 
-        var optionalValueType = (INamedType)TypeFactory.GetType( typeof(OptionalValue<>) );
+        var optionalValueType = (INamedType) TypeFactory.GetType( typeof(OptionalValue<>) );
 
         // For all automatic properties of the target type.
-        foreach (var property in builder.Target.Properties.Where( p => p.IsAutoPropertyOrField ?? false ))
+        foreach ( var property in builder.Target.Properties.Where( p => p.IsAutoPropertyOrField ?? false ) )
         {
             // Add a property of the same name, but of type OptionalValue<T>, in the nested type.
             var builtProperty = builder.With( nestedType )
                 .IntroduceProperty(
-                    nameof(OptionalPropertyTemplate),
+                    nameof(this.OptionalPropertyTemplate),
                     buildProperty: p =>
                     {
                         p.Name = property.Name;
@@ -126,7 +126,7 @@ internal class OptionalValueTypeAttribute : TypeAspect
             // Override the property in the target type so that it is forwarded to the nested type.
             builder.With( property )
                 .Override(
-                    nameof(OverridePropertyTemplate),
+                    nameof(this.OverridePropertyTemplate),
                     tags: new { optionalProperty = builtProperty } );
         }
     }
@@ -146,19 +146,19 @@ internal class OptionalValueTypeAttribute : TypeAspect
     {
         get
         {
-            var optionalProperty = (IProperty)meta.Tags["optionalProperty"]!;
+            var optionalProperty = (IProperty) meta.Tags["optionalProperty"]!;
 
-            return optionalProperty.With( (IExpression)meta.This.OptionalValues ).Value!.Value;
+            return optionalProperty.WithObject( (IExpression) meta.This.OptionalValues ).Value!.Value;
         }
 
         set
         {
-            var optionalProperty = (IProperty)meta.Tags["optionalProperty"]!;
+            var optionalProperty = (IProperty) meta.Tags["optionalProperty"]!;
             var optionalValueBuilder = new ExpressionBuilder();
             optionalValueBuilder.AppendVerbatim( "new " );
             optionalValueBuilder.AppendTypeName( optionalProperty.Type );
             optionalValueBuilder.AppendVerbatim( "( value )" );
-            optionalProperty.With( (IExpression)meta.This.OptionalValues ).Value = optionalValueBuilder.ToValue();
+            optionalProperty.WithObject( (IExpression) meta.This.OptionalValues ).Value = optionalValueBuilder.ToValue();
         }
     }
 
@@ -171,8 +171,8 @@ public struct OptionalValue<T>
 
     public OptionalValue( T value )
     {
-        Value = value;
-        IsSpecified = true;
+        this.Value = value;
+        this.IsSpecified = true;
     }
 
     #endregion
@@ -194,8 +194,8 @@ internal partial class Person
 
     public Person( string firstName, string lastName )
     {
-        FirstName = firstName;
-        LastName = lastName;
+        this.FirstName = firstName;
+        this.LastName = lastName;
     }
 
     #endregion
@@ -208,7 +208,7 @@ internal partial class Person
     {
         get
         {
-            return $"{FirstName} {LastName}";
+            return $"{this.FirstName} {this.LastName}";
         }
     }
 

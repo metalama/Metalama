@@ -22,8 +22,8 @@ public class InvokerBeforeAspect : EventAspect
     public override void BuildAspect( IAspectBuilder<IEvent> builder )
     {
         builder.OverrideAccessors(
-            nameof(AddTemplate),
-            nameof(RemoveTemplate),
+            nameof(this.AddTemplate),
+            nameof(this.RemoveTemplate),
             args: new { target = builder.Target.DeclaringType!.Events.OfName( "Event" ).Single() } );
     }
 
@@ -33,11 +33,11 @@ public class InvokerBeforeAspect : EventAspect
         meta.InsertComment( "Invoke this.Event" );
         target.Add( meta.RunTime( TargetClass.StaticTarget ) );
         meta.InsertComment( "Invoke this.Event_Source" );
-        target.With( InvokerOptions.Base ).Add( meta.RunTime( TargetClass.StaticTarget ) );
+        target.WithOptions( InvokerOptions.Base ).Add( meta.RunTime( TargetClass.StaticTarget ) );
         meta.InsertComment( "Invoke this.Event_Source" );
-        target.With( InvokerOptions.Current ).Add( meta.RunTime( TargetClass.StaticTarget ) );
+        target.WithOptions( InvokerOptions.Current ).Add( meta.RunTime( TargetClass.StaticTarget ) );
         meta.InsertComment( "Invoke this.Event" );
-        target.With( InvokerOptions.Final ).Add( meta.RunTime( TargetClass.StaticTarget ) );
+        target.WithOptions( InvokerOptions.Final ).Add( meta.RunTime( TargetClass.StaticTarget ) );
         meta.InsertComment( "Invoke this.Event_Source" );
         meta.Proceed();
     }
@@ -48,11 +48,11 @@ public class InvokerBeforeAspect : EventAspect
         meta.InsertComment( "Invoke this.Event" );
         target.Remove( meta.RunTime( TargetClass.StaticTarget ) );
         meta.InsertComment( "Invoke this.Event_Source" );
-        target.With( InvokerOptions.Base ).Remove( meta.RunTime( TargetClass.StaticTarget ) );
+        target.WithOptions( InvokerOptions.Base ).Remove( meta.RunTime( TargetClass.StaticTarget ) );
         meta.InsertComment( "Invoke this.Event_Source" );
-        target.With( InvokerOptions.Current ).Remove( meta.RunTime( TargetClass.StaticTarget ) );
+        target.WithOptions( InvokerOptions.Current ).Remove( meta.RunTime( TargetClass.StaticTarget ) );
         meta.InsertComment( "Invoke this.Event" );
-        target.With( InvokerOptions.Final ).Remove( meta.RunTime( TargetClass.StaticTarget ) );
+        target.WithOptions( InvokerOptions.Final ).Remove( meta.RunTime( TargetClass.StaticTarget ) );
         meta.InsertComment( "Invoke this.Event_Source" );
         meta.Proceed();
     }
@@ -62,7 +62,7 @@ public class OverrideAspect : EventAspect
 {
     public override void BuildAspect( IAspectBuilder<IEvent> builder )
     {
-        builder.OverrideAccessors( nameof(AddTemplate), nameof(RemoveTemplate) );
+        builder.OverrideAccessors( nameof(this.AddTemplate), nameof(this.RemoveTemplate) );
     }
 
     [Template]
@@ -71,11 +71,11 @@ public class OverrideAspect : EventAspect
         meta.InsertComment( "Invoke this.Event_Source" );
         meta.Target.Event.Add( meta.RunTime( TargetClass.StaticTarget ) );
         meta.InsertComment( "Invoke this.Event_Source" );
-        meta.Target.Event.With( InvokerOptions.Base ).Add( meta.RunTime( TargetClass.StaticTarget ) );
+        meta.Target.Event.WithOptions( InvokerOptions.Base ).Add( meta.RunTime( TargetClass.StaticTarget ) );
         meta.InsertComment( "Invoke this.Event" );
-        meta.Target.Event.With( InvokerOptions.Current ).Add( meta.RunTime( TargetClass.StaticTarget ) );
+        meta.Target.Event.WithOptions( InvokerOptions.Current ).Add( meta.RunTime( TargetClass.StaticTarget ) );
         meta.InsertComment( "Invoke this.Event" );
-        meta.Target.Event.With( InvokerOptions.Final ).Add( meta.RunTime( TargetClass.StaticTarget ) );
+        meta.Target.Event.WithOptions( InvokerOptions.Final ).Add( meta.RunTime( TargetClass.StaticTarget ) );
         meta.InsertComment( "Invoke this.Event_Source" );
         meta.Proceed();
     }
@@ -86,11 +86,11 @@ public class OverrideAspect : EventAspect
         meta.InsertComment( "Invoke this.Event_Source" );
         meta.Target.Event.Remove( meta.RunTime( TargetClass.StaticTarget ) );
         meta.InsertComment( "Invoke this.Event_Source" );
-        meta.Target.Event.With( InvokerOptions.Base ).Remove( meta.RunTime( TargetClass.StaticTarget ) );
+        meta.Target.Event.WithOptions( InvokerOptions.Base ).Remove( meta.RunTime( TargetClass.StaticTarget ) );
         meta.InsertComment( "Invoke this.Event" );
-        meta.Target.Event.With( InvokerOptions.Current ).Remove( meta.RunTime( TargetClass.StaticTarget ) );
+        meta.Target.Event.WithOptions( InvokerOptions.Current ).Remove( meta.RunTime( TargetClass.StaticTarget ) );
         meta.InsertComment( "Invoke this.Event" );
-        meta.Target.Event.With( InvokerOptions.Final ).Remove( meta.RunTime( TargetClass.StaticTarget ) );
+        meta.Target.Event.WithOptions( InvokerOptions.Final ).Remove( meta.RunTime( TargetClass.StaticTarget ) );
         meta.InsertComment( "Invoke this.Event_Source" );
         meta.Proceed();
     }
@@ -101,8 +101,8 @@ public class InvokerAfterAspect : EventAspect
     public override void BuildAspect( IAspectBuilder<IEvent> builder )
     {
         builder.OverrideAccessors(
-            nameof(AddTemplate),
-            nameof(RemoveTemplate),
+            nameof(this.AddTemplate),
+            nameof(this.RemoveTemplate),
             args: new { target = builder.Target.DeclaringType!.Events.OfName( "Event" ).Single() } );
     }
 
@@ -112,11 +112,11 @@ public class InvokerAfterAspect : EventAspect
         meta.InsertComment( "Invoke this.Event" );
         target.Add( meta.RunTime( TargetClass.StaticTarget ) );
         meta.InsertComment( "Invoke this.Event" );
-        target.With( InvokerOptions.Base ).Add( meta.RunTime( TargetClass.StaticTarget ) );
+        target.WithOptions( InvokerOptions.Base ).Add( meta.RunTime( TargetClass.StaticTarget ) );
         meta.InsertComment( "Invoke this.Event" );
-        target.With( InvokerOptions.Current ).Add( meta.RunTime( TargetClass.StaticTarget ) );
+        target.WithOptions( InvokerOptions.Current ).Add( meta.RunTime( TargetClass.StaticTarget ) );
         meta.InsertComment( "Invoke this.Event" );
-        target.With( InvokerOptions.Final ).Add( meta.RunTime( TargetClass.StaticTarget ) );
+        target.WithOptions( InvokerOptions.Final ).Add( meta.RunTime( TargetClass.StaticTarget ) );
         meta.InsertComment( "Invoke this.Event" );
         meta.Proceed();
     }
@@ -127,11 +127,11 @@ public class InvokerAfterAspect : EventAspect
         meta.InsertComment( "Invoke this.Event" );
         target.Remove( meta.RunTime( TargetClass.StaticTarget ) );
         meta.InsertComment( "Invoke this.Event" );
-        target.With( InvokerOptions.Base ).Remove( meta.RunTime( TargetClass.StaticTarget ) );
+        target.WithOptions( InvokerOptions.Base ).Remove( meta.RunTime( TargetClass.StaticTarget ) );
         meta.InsertComment( "Invoke this.Event" );
-        target.With( InvokerOptions.Current ).Remove( meta.RunTime( TargetClass.StaticTarget ) );
+        target.WithOptions( InvokerOptions.Current ).Remove( meta.RunTime( TargetClass.StaticTarget ) );
         meta.InsertComment( "Invoke this.Event" );
-        target.With( InvokerOptions.Final ).Remove( meta.RunTime( TargetClass.StaticTarget ) );
+        target.WithOptions( InvokerOptions.Final ).Remove( meta.RunTime( TargetClass.StaticTarget ) );
 
         meta.Proceed();
     }

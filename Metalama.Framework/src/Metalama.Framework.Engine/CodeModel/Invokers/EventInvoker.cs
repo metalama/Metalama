@@ -17,7 +17,7 @@ namespace Metalama.Framework.Engine.CodeModel.Invokers;
 
 internal sealed class EventInvoker : Invoker<IEvent>, IEventInvoker
 {
-    public EventInvoker( IEvent @event, InvokerOptions? options = default, object? target = null ) : base( @event, options, target ) { }
+    public EventInvoker( IEvent @event, InvokerOptions? options = null, IExpression? target = null ) : base( @event, options, target ) { }
 
     public object Add( object? value )
     {
@@ -63,7 +63,11 @@ internal sealed class EventInvoker : Invoker<IEvent>, IEventInvoker
                 {
                     var receiverInfo = this.GetReceiverInfo( context );
 
-                    return context.AspectReferenceSyntaxProvider.GetEventRaiseReference( receiverInfo.AspectReferenceSpecification.AspectLayerId, this.Member, context.SyntaxGenerator, arguments );
+                    return context.AspectReferenceSyntaxProvider.GetEventRaiseReference(
+                        receiverInfo.AspectReferenceSpecification.AspectLayerId,
+                        this.Member,
+                        context.SyntaxGenerator,
+                        arguments );
                 }
                 else
                 {
@@ -77,10 +81,15 @@ internal sealed class EventInvoker : Invoker<IEvent>, IEventInvoker
             this.Member.Signature.ReturnType );
     }
 
-    public IEventInvoker With( InvokerOptions options ) => this.Options == options ? this : new EventInvoker( this.Member, options );
+    public IEventInvoker WithOptions( InvokerOptions options ) => this.Options == options ? this : new EventInvoker( this.Member, options, this.Target );
 
-    public IEventInvoker With( object? target, InvokerOptions options = default )
-        => this.Target == target && this.Options == options ? this : new EventInvoker( this.Member, options, target );
+    public IEventInvoker WithObject( IExpression? target ) => this.Target == target ? this : new EventInvoker( this.Member, this.Options, target );
+
+    public IEventInvoker WithObject( object? target ) => this.WithObject( new CapturedUserExpression( this.Compilation, target ) );
+
+    IEventInvoker IEventInvoker.With( InvokerOptions options ) => this.WithOptions( options );
+
+    IEventInvoker IEventInvoker.With( object? target, InvokerOptions options ) => this.WithOptions( options ).WithObject( target );
 
     private ExpressionSyntax CreateEventExpression( AspectReferenceTargetKind targetKind, SyntaxSerializationContext syntaxSerializationContext )
     {
@@ -89,7 +98,7 @@ internal sealed class EventInvoker : Invoker<IEvent>, IEventInvoker
         var receiverInfo = this.GetReceiverInfo( syntaxSerializationContext );
         var name = IdentifierName( this.GetCleanTargetMemberName() );
 
-        var receiverSyntax = this.Member.GetReceiverSyntax( receiverInfo.TypedExpressionSyntax, syntaxSerializationContext );
+        var receiverSyntax = receiverInfo.GetReceiverSyntax( this.Member, syntaxSerializationContext );
 
         var expression =
             receiverInfo.RequiresConditionalAccess

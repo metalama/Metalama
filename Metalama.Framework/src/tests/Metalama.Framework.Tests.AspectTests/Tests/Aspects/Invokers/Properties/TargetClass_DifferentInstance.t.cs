@@ -17,20 +17,20 @@ public class TargetClass
     get
     {
       // Invoke instance.Property
-      _ = this.instance!.Property;
+      _ = this.instance.Property;
       // Invoke instance?.Property
       _ = this.instance?.Property;
       // Invoke instance.Property
-      _ = this.instance!.Property;
+      _ = this.instance.Property;
       // Invoke instance?.Property
       _ = this.instance?.Property;
       return 0;
     }
     set
     { // Invoke instance.Property
-      this.instance!.Property = 42;
+      this.instance.Property = 42;
       // Invoke instance.Property
-      this.instance!.Property = 42;
+      this.instance.Property = 42;
     }
   }
 }

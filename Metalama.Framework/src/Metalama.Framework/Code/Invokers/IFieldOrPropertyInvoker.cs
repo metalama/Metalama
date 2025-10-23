@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Aspects;
+using System;
 
 namespace Metalama.Framework.Code.Invokers
 {
@@ -11,7 +12,7 @@ namespace Metalama.Framework.Code.Invokers
     /// the <see cref="IExpression"/> interface. By default, the target instance
     /// of the field or property is <c>this</c> unless the property is static, and the <c>base</c> implementation of the property is invoked,
     /// i.e. the implementation before the current aspect layer. To change the default values, or to use the <c>?.</c> null-conditional operator,
-    /// use the <see cref="With(Metalama.Framework.Code.Invokers.InvokerOptions)"/> method.
+    /// use the <see cref="WithOptions"/> method.
     /// </summary>
     [CompileTime]
     public interface IFieldOrPropertyInvoker : IExpression
@@ -19,11 +20,19 @@ namespace Metalama.Framework.Code.Invokers
         /// <summary>
         /// Gets an <see cref="IFieldOrPropertyInvoker"/> for the same field or property and target but with different options.
         /// </summary>
-        IFieldOrPropertyInvoker With( InvokerOptions options );
+        IFieldOrPropertyInvoker WithOptions( InvokerOptions options );
 
         /// <summary>
-        /// Gets an <see cref="IFieldOrPropertyInvoker"/> for the same field or property but with a different field or property and with different options.
+        /// Gets an <see cref="IFieldOrPropertyInvoker"/> for the same field or property but with a different object.
         /// </summary>
+        IFieldOrPropertyInvoker WithObject( IExpression? target );
+
+        IFieldOrPropertyInvoker WithObject( dynamic? target );
+
+        [Obsolete( "Use the WithOptions method." )]
+        IFieldOrPropertyInvoker With( InvokerOptions options );
+
+        [Obsolete( "Use the WithObject and WithOptions methods." )]
         IFieldOrPropertyInvoker With( dynamic? target, InvokerOptions options = default );
     }
 }

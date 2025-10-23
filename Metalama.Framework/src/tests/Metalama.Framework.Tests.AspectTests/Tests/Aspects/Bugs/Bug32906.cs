@@ -14,10 +14,10 @@ public sealed class TestAspect : OverrideMethodAspect
 {
     public override dynamic? OverrideMethod()
     {
-        meta.Target.Method.DeclaringType.Methods.OfName( "Foo" ).Single().With( InvokerOptions.Base ).Invoke();
-        meta.Target.Method.DeclaringType.Methods.OfName( "Bar" ).Single().With( InvokerOptions.Base ).Invoke();
-        meta.Target.Method.DeclaringType.Methods.OfName( "Baz" ).Single().With( InvokerOptions.Base ).Invoke();
-        meta.Target.Method.DeclaringType.Methods.OfName( "Qux" ).Single().With( InvokerOptions.Base ).Invoke();
+        meta.Target.Method.DeclaringType.Methods.OfName( "Foo" ).Single().WithOptions( InvokerOptions.Base ).Invoke();
+        meta.Target.Method.DeclaringType.Methods.OfName( "Bar" ).Single().WithOptions( InvokerOptions.Base ).Invoke();
+        meta.Target.Method.DeclaringType.Methods.OfName( "Baz" ).Single().WithOptions( InvokerOptions.Base ).Invoke();
+        meta.Target.Method.DeclaringType.Methods.OfName( "Qux" ).Single().WithOptions( InvokerOptions.Base ).Invoke();
 
         return meta.Proceed();
     }

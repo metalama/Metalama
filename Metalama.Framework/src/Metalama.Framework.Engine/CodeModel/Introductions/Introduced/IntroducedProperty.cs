@@ -10,6 +10,7 @@ using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 using Metalama.Framework.Engine.CodeModel.Invokers;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.ReflectionMocks;
+using Metalama.Framework.Engine.Templating.Expressions;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.RunTime;
 using System.Collections.Generic;
@@ -69,9 +70,16 @@ internal sealed class IntroducedProperty : IntroducedPropertyOrIndexer, IPropert
 
     public IExpression? InitializerExpression => this._propertyBuilderData.InitializerExpression;
 
-    public IFieldOrPropertyInvoker With( InvokerOptions options ) => new FieldOrPropertyInvoker( this, options );
+    public IFieldOrPropertyInvoker WithOptions( InvokerOptions options )
+        => options == InvokerOptions.Default ? this : new FieldOrPropertyInvoker( this, options );
 
-    public IFieldOrPropertyInvoker With( object? target, InvokerOptions options = default ) => new FieldOrPropertyInvoker( this, options, target );
+    public IFieldOrPropertyInvoker WithObject( object? target ) => this.WithObject( new CapturedUserExpression( this.Compilation, target ) );
+
+    IFieldOrPropertyInvoker IFieldOrPropertyInvoker.With( InvokerOptions options ) => this.WithOptions( options );
+
+    IFieldOrPropertyInvoker IFieldOrPropertyInvoker.With( object? target, InvokerOptions options ) => this.WithOptions( options ).WithObject( target );
+
+    public IFieldOrPropertyInvoker WithObject( IExpression? target ) => new FieldOrPropertyInvoker( this, InvokerOptions.Default, target );
 
     public ref object? Value => ref new FieldOrPropertyInvoker( this ).Value;
 

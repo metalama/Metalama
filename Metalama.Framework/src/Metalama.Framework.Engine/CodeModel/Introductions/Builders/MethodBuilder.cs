@@ -12,6 +12,7 @@ using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 using Metalama.Framework.Engine.CodeModel.Introductions.Collections;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.ReflectionMocks;
+using Metalama.Framework.Engine.Templating.Expressions;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
@@ -159,11 +160,15 @@ internal sealed class MethodBuilder : MethodBaseBuilder, IMethodBuilderImpl
 
     IMethod IMethod.Definition => this;
 
-    public IMethodInvoker With( InvokerOptions options ) => new MethodInvoker( this, options );
+    public IMethodInvoker WithOptions( InvokerOptions options ) => options == InvokerOptions.Default ? this : new MethodInvoker( this, options );
 
-    public IMethodInvoker With( object? target, InvokerOptions options = default ) => new MethodInvoker( this, options, target );
+    public IMethodInvoker WithObject( object? target ) => this.WithObject( new CapturedUserExpression( this.Compilation, target ) );
 
-    public IMethodInvoker With( IExpression target, InvokerOptions options = default ) => new MethodInvoker( this, options, target );
+    public IMethodInvoker WithObject( IExpression? target ) => new MethodInvoker( this, InvokerOptions.Default, target );
+
+    IMethodInvoker IMethodInvoker.With( InvokerOptions options ) => this.WithOptions( options );
+
+    IMethodInvoker IMethodInvoker.With( object? target, InvokerOptions options ) => this.WithOptions( options ).WithObject( target );
 
     public IExpression CreateInvokeExpression( IEnumerable<IExpression> args ) => new MethodInvoker( this ).CreateInvokeExpression( args );
 
@@ -182,7 +187,7 @@ internal sealed class MethodBuilder : MethodBaseBuilder, IMethodBuilderImpl
     public override bool IsExplicitInterfaceImplementation => this.ExplicitInterfaceImplementations.Count > 0;
 
     public override IMember? OverriddenMember => (IMemberImpl?) this.OverriddenMethod;
-        
+
     public override bool IsDesignTimeObservable => base.IsDesignTimeObservable || this.HasCovariantReturnType();
 
     public new IRef<IMethod> ToRef() => this.Ref;

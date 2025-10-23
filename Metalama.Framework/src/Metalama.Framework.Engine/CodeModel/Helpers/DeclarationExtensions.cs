@@ -64,7 +64,8 @@ public static class DeclarationExtensions
     /// Select all declarations recursively contained in a given declaration (i.e. all descendants of the tree).
     /// </summary>
     internal static IEnumerable<IDeclaration> GetContainedDeclarations( this IDeclaration declaration )
-        => declaration.SelectManyRecursive( child => child switch
+        => declaration.SelectManyRecursive(
+            child => child switch
             {
                 ICompilation compilation => [compilation.GlobalNamespace],
                 INamespace ns => EnumerableExtensions.Concat<IDeclaration>( ns.Namespaces, ns.Types ),
@@ -200,32 +201,6 @@ public static class DeclarationExtensions
         return arguments.ToArray();
     }
 
-    internal static ExpressionSyntax GetReceiverSyntax<T>(
-        this T declaration,
-        TypedExpressionSyntaxImpl instance,
-        SyntaxSerializationContext context )
-        where T : IMember
-    {
-        if ( declaration.IsStatic )
-        {
-            return context.SyntaxGenerator.TypeExpression( declaration.DeclaringType ).WithSimplifierAnnotationIfNecessary( context.SyntaxGenerationContext );
-        }
-
-        var definition = declaration.Definition;
-
-        if ( definition.IsExplicitInterfaceImplementation )
-        {
-            return
-                SyntaxFactory.ParenthesizedExpression(
-                        SyntaxFactory.CastExpression(
-                            context.SyntaxGenerator.TypeSyntax( definition.GetExplicitInterfaceImplementation().DeclaringType ),
-                            instance.Syntax ) )
-                    .WithSimplifierAnnotationIfNecessary( context.SyntaxGenerationContext );
-        }
-
-        return instance.Convert( declaration.DeclaringType, context.SyntaxGenerationContext ).Syntax;
-    }
-
     /// <summary>
     /// Converts Roslyn <see cref="Microsoft.CodeAnalysis.RefKind"/> to Metalama <see cref="RefKind"/> for members and return parameters.
     /// Note that the conversion for parameters is different.
@@ -281,7 +256,7 @@ public static class DeclarationExtensions
         };
 
     internal static SyntaxKind ToOperatorKeyword( this OperatorKind operatorKind )
-        {
+    {
         var operatorData = OperatorData.GetByKind( operatorKind );
 
         if ( operatorData?.OperatorKeyword is { } syntaxKind )
@@ -293,7 +268,7 @@ public static class DeclarationExtensions
     }
 
     internal static string ToOperatorMethodName( this OperatorKind operatorKind )
-        {
+    {
         var operatorData = OperatorData.GetByKind( operatorKind );
 
         return operatorData?.MemberName ?? throw new AssertionFailedException( $"Unexpected OperatorKind: {operatorKind}." );
@@ -309,7 +284,8 @@ public static class DeclarationExtensions
 #endif
             _ when symbol.GetBackingField() != null => true,
             { DeclaringSyntaxReferences: { Length: > 0 } syntaxReferences } =>
-                syntaxReferences.All( sr =>
+                syntaxReferences.All(
+                    sr =>
                         sr.GetSyntax() switch
                         {
                             BasePropertyDeclarationSyntax { AccessorList.Accessors: { Count: > 0 } accessors } when
@@ -334,10 +310,10 @@ public static class DeclarationExtensions
     internal static bool? HasBody( this IPropertySymbol property )
         => (property.GetMethod?.HasBody(), property.SetMethod?.HasBody()) switch
         {
-            (null, null ) => null,
-            (true, _ ) or (_, true ) => true,
-            (false, false ) => false,
-            _ => null,
+            (null, null) => null,
+            (true, _) or (_, true) => true,
+            (false, false) => false,
+            _ => null
         };
 
     internal static bool? HasBody( this IMethodSymbol method )
@@ -346,10 +322,10 @@ public static class DeclarationExtensions
             { IsAbstract: true } => false,
             { DeclaringSyntaxReferences.Length: > 0 } =>
                 method.DeclaringSyntaxReferences.Any(
-                    m => m.GetSyntax() is 
+                    m => m.GetSyntax() is
                         BaseMethodDeclarationSyntax { Body: { } }
-                        or BaseMethodDeclarationSyntax { ExpressionBody: { } } 
-                        or PropertyDeclarationSyntax { ExpressionBody: { } } 
+                        or BaseMethodDeclarationSyntax { ExpressionBody: { } }
+                        or PropertyDeclarationSyntax { ExpressionBody: { } }
                         or AccessorDeclarationSyntax { Body: { } }
                         or AccessorDeclarationSyntax { ExpressionBody: { } } ),
             _ => null
@@ -595,12 +571,12 @@ public static class DeclarationExtensions
         => type switch
         {
             INamedType namedType => namedType.ImplementedInterfaces,
-            IArrayType { Rank: 1 } arrayType => SymbolHelpers.ArrayGenericInterfaces.Select( definitionSpecialType => type.GetCompilationModel()
+            IArrayType { Rank: 1 } arrayType => SymbolHelpers.ArrayGenericInterfaces.Select(
+                definitionSpecialType => type.GetCompilationModel()
                     .Factory
-                                                                                                 .GetNamedType(
-                                                                                                     type.GetCompilationModel()
-                                                                                                         .RoslynCompilation.GetSpecialType(
-                                                                                                             definitionSpecialType ) )
+                    .GetNamedType(
+                        type.GetCompilationModel()
+                            .RoslynCompilation.GetSpecialType( definitionSpecialType ) )
                     .WithTypeArguments( arrayType.ElementType ) ),
             _ => []
         };

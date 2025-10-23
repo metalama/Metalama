@@ -18,7 +18,7 @@ internal class Aspect : MethodAspect
 
         object? Invoke( object? instance, object?[] args )
         {
-            return method.With( instance ).Invoke( args[0]! );
+            return method.WithObject( instance ).Invoke( args[0]! );
         }
     }
 
@@ -26,7 +26,7 @@ internal class Aspect : MethodAspect
     {
         builder.With( builder.Target.DeclaringType )
             .IntroduceMethod(
-                nameof(GetMethodInvoker),
+                nameof(this.GetMethodInvoker),
                 args: new { method = builder.Target } );
     }
 }

@@ -43,6 +43,8 @@
     </ItemGroup>
     
     <ItemGroup>
+        <PackageReference Include="Microsoft.CSharp"/>
+
         <PackageReference Include="Microsoft.Bcl.HashCode" Condition="'$(TargetFramework)'=='netstandard2.0'" />
 
         <!-- We are stuck with a low version of System.Collections.Immutable because our code needs to run with Roslyn 4.0. -->

@@ -10,22 +10,20 @@ using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.SyntaxSerialization;
 using Metalama.Framework.Engine.Templating;
 using Metalama.Framework.Engine.Templating.Expressions;
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Metalama.Framework.Engine.CodeModel.Invokers;
 
-internal abstract class Invoker<T>
+internal abstract partial class Invoker<T>
     where T : IMember
 {
     private readonly AspectReferenceOrder _order;
 
     protected InvokerOptions Options { get; }
 
-    protected object? Target { get; }
+    protected IExpression? Target { get; }
 
-    protected Invoker( T member, InvokerOptions? options, object? target )
+    protected Invoker( T member, InvokerOptions? options, IExpression? target )
     {
         options ??= InvokerOptions.Default;
 
@@ -72,40 +70,7 @@ internal abstract class Invoker<T>
 
     protected T Member { get; }
 
-    protected readonly record struct ReceiverTypedExpressionSyntax
-    {
-        public ReceiverTypedExpressionSyntax(
-            TypedExpressionSyntaxImpl typedExpressionSyntax,
-            bool requiresConditionalAccess,
-            AspectReferenceSpecification aspectReferenceSpecification )
-        {
-            if ( requiresConditionalAccess && typedExpressionSyntax.Syntax is PostfixUnaryExpressionSyntax postfix
-                                           && postfix.IsKind( SyntaxKind.SuppressNullableWarningExpression ) )
-            {
-                this.TypedExpressionSyntax = new TypedExpressionSyntaxImpl( postfix.Operand, typedExpressionSyntax );
-            }
-            else
-            {
-                this.TypedExpressionSyntax = typedExpressionSyntax;
-            }
-
-            this.RequiresConditionalAccess = requiresConditionalAccess;
-            this.AspectReferenceSpecification = aspectReferenceSpecification;
-        }
-
-        public ExpressionSyntax Syntax => this.TypedExpressionSyntax.Syntax;
-
-        public TypedExpressionSyntaxImpl TypedExpressionSyntax { get; }
-
-        public bool RequiresConditionalAccess { get; }
-
-        public AspectReferenceSpecification AspectReferenceSpecification { get; }
-
-        public ReceiverExpressionSyntax WithSyntax( ExpressionSyntax syntax )
-            => new( syntax, this.RequiresConditionalAccess, this.AspectReferenceSpecification );
-
-        public ReceiverExpressionSyntax ToReceiverExpressionSyntax() => new( this.Syntax, this.RequiresConditionalAccess, this.AspectReferenceSpecification );
-    }
+    protected ICompilation Compilation => this.Member.Compilation;
 
     protected readonly record struct ReceiverExpressionSyntax(
         ExpressionSyntax Syntax,
@@ -138,7 +103,7 @@ internal abstract class Invoker<T>
 
             return new ReceiverTypedExpressionSyntax(
                 receiver.ToTypedExpressionSyntax( syntaxSerializationContext ),
-                false,
+                this.Options,
                 receiver.AspectReferenceSpecification );
         }
         else
@@ -151,7 +116,7 @@ internal abstract class Invoker<T>
 
                 return new ReceiverTypedExpressionSyntax(
                     typedExpressionSyntax,
-                    (this.Options & InvokerOptions.NullConditional) != 0 && typedExpressionSyntax.CanBeNull,
+                    this.Options,
                     aspectReferenceSpecification );
             }
             else if ( this.Member.IsStatic )
@@ -159,7 +124,7 @@ internal abstract class Invoker<T>
                 return new ReceiverTypedExpressionSyntax(
                     new ThisTypeUserReceiver( this.Member.DeclaringType, aspectReferenceSpecification )
                         .ToTypedExpressionSyntax( syntaxSerializationContext ),
-                    false,
+                    InvokerOptions.Default,
                     aspectReferenceSpecification );
             }
             else
@@ -167,7 +132,7 @@ internal abstract class Invoker<T>
                 return new ReceiverTypedExpressionSyntax(
                     new ThisInstanceUserReceiver( this.Member.DeclaringType, aspectReferenceSpecification ).ToTypedExpressionSyntax(
                         syntaxSerializationContext ),
-                    false,
+                    InvokerOptions.Default,
                     aspectReferenceSpecification );
             }
         }

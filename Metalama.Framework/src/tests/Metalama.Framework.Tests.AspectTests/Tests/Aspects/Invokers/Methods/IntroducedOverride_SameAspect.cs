@@ -30,11 +30,11 @@ public class InvokerAspect : TypeAspect
     public dynamic? Template( [CompileTime] IMethod target )
     {
         meta.InsertComment( "Invoke base.Method" );
-        target.With( InvokerOptions.Base ).Invoke();
+        target.WithOptions( InvokerOptions.Base ).Invoke();
         meta.InsertComment( "Invoke this.Method" );
-        target.With( InvokerOptions.Current ).Invoke();
+        target.WithOptions( InvokerOptions.Current ).Invoke();
         meta.InsertComment( "Invoke this.Method" );
-        target.With( InvokerOptions.Final ).Invoke();
+        target.WithOptions( InvokerOptions.Final ).Invoke();
 
         return meta.Proceed();
     }

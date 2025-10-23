@@ -46,5 +46,13 @@ public enum InvokerOptions
     /// <summary>
     /// Specifies that the null-conditional access operator (<c>?.</c> aka Elvis) has to be used instead of the dot operator. 
     /// </summary>
-    NullConditional = 1024
+    NullConditional = 0x10,
+
+    NullConditionalIfNullable = 0x20,
+
+    SuppressNullableWarning = 0x30,
+
+    SuppressNullableWarningIfNullable = 0x40,
+
+    NullabilityMask = 0xf0
 }

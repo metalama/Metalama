@@ -20,23 +20,27 @@ public class InvokerAspect : FieldOrPropertyAspect
     public override void BuildAspect( IAspectBuilder<IFieldOrProperty> builder )
     {
         builder.OverrideAccessors(
-            nameof(GetTemplate),
-            nameof(SetTemplate),
-            new { target = ( (INamedType)builder.Target.DeclaringType.Fields.Single().Type ).FieldsAndProperties.OfName( "Field" ).Single() } );
+            nameof(this.GetTemplate),
+            nameof(this.SetTemplate),
+            new { target = ((INamedType) builder.Target.DeclaringType.Fields.Single().Type).FieldsAndProperties.OfName( "Field" ).Single() } );
     }
 
     [Template]
     public dynamic? GetTemplate( [CompileTime] IFieldOrProperty target )
     {
         meta.InsertComment( "Invoke instance.Field" );
-        _ = target.With( (IExpression?)meta.Target.FieldOrProperty.DeclaringType.Fields.Single().Value ).Value;
-        meta.InsertComment( "Invoke instance?.Field" );
-        _ = target.With( (IExpression?)meta.Target.FieldOrProperty.DeclaringType.Fields.Single().Value, InvokerOptions.NullConditional ).Value;
-        meta.InsertComment( "Invoke instance.Field" );
-        _ = target.With( (IExpression?)meta.Target.FieldOrProperty.DeclaringType.Fields.Single().Value, InvokerOptions.Final ).Value;
+        _ = target.WithObject( meta.Target.FieldOrProperty.DeclaringType.Fields.Single()).Value;
         meta.InsertComment( "Invoke instance?.Field" );
 
-        _ = target.With( (IExpression?)meta.Target.FieldOrProperty.DeclaringType.Fields.Single().Value, InvokerOptions.Final | InvokerOptions.NullConditional )
+        _ = target.WithObject( meta.Target.FieldOrProperty.DeclaringType.Fields.Single())
+            .WithOptions( InvokerOptions.NullConditional )
+            .Value;
+
+        meta.InsertComment( "Invoke instance.Field" );
+        _ = target.WithObject( meta.Target.FieldOrProperty.DeclaringType.Fields.Single()).WithOptions( InvokerOptions.Final ).Value;
+        meta.InsertComment( "Invoke instance?.Field" );
+
+        _ = target.WithObject( meta.Target.FieldOrProperty.DeclaringType.Fields.Single()).WithOptions( InvokerOptions.Final | InvokerOptions.NullConditional )
             .Value;
 
         return meta.Proceed();
@@ -46,9 +50,9 @@ public class InvokerAspect : FieldOrPropertyAspect
     public void SetTemplate( [CompileTime] IFieldOrProperty target )
     {
         meta.InsertComment( "Invoke instance.Field" );
-        target.With( (IExpression?)meta.Target.FieldOrProperty.DeclaringType.Fields.Single().Value ).Value = 42;
+        target.WithObject( meta.Target.FieldOrProperty.DeclaringType.Fields.Single()).Value = 42;
         meta.InsertComment( "Invoke instance.Field" );
-        target.With( (IExpression?)meta.Target.FieldOrProperty.DeclaringType.Fields.Single().Value, InvokerOptions.Final ).Value = 42;
+        target.WithObject( meta.Target.FieldOrProperty.DeclaringType.Fields.Single()).WithOptions( InvokerOptions.Final ).Value = 42;
 
         meta.Proceed();
     }

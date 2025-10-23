@@ -22,7 +22,7 @@ namespace Metalama.Framework.Engine.CodeModel.Invokers;
 
 internal sealed class MethodInvoker : Invoker<IMethod>, IMethodInvoker
 {
-    public MethodInvoker( IMethod method, InvokerOptions? options = default, object? target = null ) : base( method, options, target ) { }
+    public MethodInvoker( IMethod method, InvokerOptions? options = default, IExpression? target = null ) : base( method, options, target ) { }
 
     public object? Invoke( params object?[]? args )
     {
@@ -60,22 +60,22 @@ internal sealed class MethodInvoker : Invoker<IMethod>, IMethodInvoker
                 return this.InvokeDefaultMethod( args );
 
             case MethodKind.EventAdd:
-                return ((IEvent) this.Member.DeclaringMember!).With( this.Target, this.Options ).Add( args[0] );
+                return ((IEvent) this.Member.DeclaringMember!).WithObject( this.Target ).WithOptions( this.Options ).Add( args[0] );
 
             case MethodKind.EventRaise:
-                return ((IEvent) this.Member.DeclaringMember!).With( this.Target, this.Options ).Raise( args );
+                return ((IEvent) this.Member.DeclaringMember!).WithObject( this.Target ).WithOptions( this.Options ).Raise( args );
 
             case MethodKind.EventRemove:
-                return ((IEvent) this.Member.DeclaringMember!).With( this.Target, this.Options ).Remove( args[0] );
+                return ((IEvent) this.Member.DeclaringMember!).WithObject( this.Target ).WithOptions( this.Options ).Remove( args[0] );
 
             case MethodKind.PropertyGet:
                 switch ( this.Member.DeclaringMember )
                 {
                     case IProperty property:
-                        return property.With( this.Target, this.Options ).Value;
+                        return property.WithObject( this.Target ).WithOptions( this.Options ).Value;
 
                     case IIndexer indexer:
-                        return indexer.With( this.Target, this.Options ).GetValue( args );
+                        return indexer.WithObject( this.Target ).WithOptions( this.Options )[args];
 
                     default:
                         throw new AssertionFailedException( $"Unexpected declaration for a PropertyGet: '{this.Member.DeclaringMember}'." );
@@ -85,12 +85,12 @@ internal sealed class MethodInvoker : Invoker<IMethod>, IMethodInvoker
                 switch ( this.Member.DeclaringMember )
                 {
                     case IProperty property:
-                        ((FieldOrPropertyInvoker) property.With( this.Target, this.Options )).SetValue( args[0] );
+                        ((FieldOrPropertyInvoker) property.WithObject( this.Target ).WithOptions( this.Options )).SetValue( args[0] );
 
                         return null;
 
                     case IIndexer indexer:
-                        indexer.With( this.Options ).SetValue( this.Target, args );
+                        ((IndexerInvoker) indexer.WithObject( this.Target ).WithOptions( this.Options )).SetValue( this.Target, args );
 
                         return null;
 
@@ -147,7 +147,8 @@ internal sealed class MethodInvoker : Invoker<IMethod>, IMethodInvoker
                 }
                 else
                 {
-                    var receiver = receiverInfo.WithSyntax( this.Member.GetReceiverSyntax( receiverInfo.TypedExpressionSyntax, context ) );
+                    var receiverSyntax = receiverInfo.GetReceiverSyntax( this.Member, context );
+                    var receiver = receiverInfo.WithSyntax( receiverSyntax );
 
                     return this.CreateInvocationExpression( receiver, name, arguments, AspectReferenceTargetKind.Self, context );
                 }
@@ -207,12 +208,15 @@ internal sealed class MethodInvoker : Invoker<IMethod>, IMethodInvoker
         }
     }
 
-    public IMethodInvoker With( InvokerOptions options ) => this.Options == options ? this : new MethodInvoker( this.Member, options );
+    public IMethodInvoker WithOptions( InvokerOptions options ) => this.Options == options ? this : new MethodInvoker( this.Member, options, this.Target );
 
-    public IMethodInvoker With( object? target, InvokerOptions options = default )
-        => this.Target == target && this.Options == options ? this : new MethodInvoker( this.Member, options, target );
+    public IMethodInvoker WithObject( object? target ) => this.WithObject( new CapturedUserExpression( this.Compilation, target ) );
 
-    public IMethodInvoker With( IExpression target, InvokerOptions options = default ) => new MethodInvoker( this.Member, options, target );
+    public IMethodInvoker WithObject( IExpression? target ) => this.Target == target ? this : new MethodInvoker( this.Member, this.Options, target );
+
+    IMethodInvoker IMethodInvoker.With( InvokerOptions options ) => this.WithOptions( options );
+
+    IMethodInvoker IMethodInvoker.With( object? target, InvokerOptions options ) => this.WithOptions( options ).WithObject( target );
 
     public IExpression CreateInvokeExpression( IEnumerable<IExpression> args ) => this.InvokeDefaultMethod( args.ToArray<object>() );
 }

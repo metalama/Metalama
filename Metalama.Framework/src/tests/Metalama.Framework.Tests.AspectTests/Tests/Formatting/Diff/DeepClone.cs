@@ -63,7 +63,7 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Formatting.Diff
 
             foreach ( var field in clonableFields )
             {
-                field.With( (IExpression) clone ).Value = meta.Cast( field.Type, ((ICloneable) field.Value!).Clone() );
+                field.WithObject( clone ).Value = meta.Cast( field.Type, ((ICloneable) field.Value!).Clone() );
             }
 
             return clone;

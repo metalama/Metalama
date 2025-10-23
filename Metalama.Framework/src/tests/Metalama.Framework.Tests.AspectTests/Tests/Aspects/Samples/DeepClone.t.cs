@@ -24,7 +24,7 @@ internal class ManuallyCloneable : ICloneable
   {
     return new ManuallyCloneable()
     {
-      E = E
+      E = this.E
     };
   }
 }

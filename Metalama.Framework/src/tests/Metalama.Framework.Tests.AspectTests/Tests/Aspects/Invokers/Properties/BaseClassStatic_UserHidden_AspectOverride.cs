@@ -21,8 +21,8 @@ public class InvokerBeforeAspect : PropertyAspect
     public override void BuildAspect( IAspectBuilder<IProperty> builder )
     {
         builder.OverrideAccessors(
-            nameof(GetTemplate),
-            nameof(SetTemplate),
+            nameof(this.GetTemplate),
+            nameof(this.SetTemplate),
             new { target = builder.Target.DeclaringType!.BaseType!.Properties.OfName( "Property" ).Single() } );
     }
 
@@ -32,11 +32,11 @@ public class InvokerBeforeAspect : PropertyAspect
         meta.InsertComment( "Invoke TargetClass.Property" );
         _ = target.Value;
         meta.InsertComment( "Invoke TargetClass.Property_Source" );
-        _ = target.With( InvokerOptions.Base ).Value;
+        _ = target.WithOptions( InvokerOptions.Base ).Value;
         meta.InsertComment( "Invoke TargetClass.Property_Source" );
-        _ = target.With( InvokerOptions.Current ).Value;
+        _ = target.WithOptions( InvokerOptions.Current ).Value;
         meta.InsertComment( "Invoke TargetClass.Property" );
-        _ = target.With( InvokerOptions.Final ).Value;
+        _ = target.WithOptions( InvokerOptions.Final ).Value;
 
         return meta.Proceed();
     }
@@ -47,11 +47,11 @@ public class InvokerBeforeAspect : PropertyAspect
         meta.InsertComment( "Invoke TargetClass.Property" );
         target.Value = 42;
         meta.InsertComment( "Invoke TargetClass.Property_Source" );
-        target.With( InvokerOptions.Base ).Value = 42;
+        target.WithOptions( InvokerOptions.Base ).Value = 42;
         meta.InsertComment( "Invoke TargetClass.Property_Source" );
-        target.With( InvokerOptions.Current ).Value = 42;
+        target.WithOptions( InvokerOptions.Current ).Value = 42;
         meta.InsertComment( "Invoke TargetClass.Property" );
-        target.With( InvokerOptions.Final ).Value = 42;
+        target.WithOptions( InvokerOptions.Final ).Value = 42;
 
         meta.Proceed();
     }
@@ -61,7 +61,7 @@ public class OverrideAspect : PropertyAspect
 {
     public override void BuildAspect( IAspectBuilder<IProperty> builder )
     {
-        builder.OverrideAccessors( nameof(GetTemplate), nameof(SetTemplate) );
+        builder.OverrideAccessors( nameof(this.GetTemplate), nameof(this.SetTemplate) );
     }
 
     [Template]
@@ -70,11 +70,11 @@ public class OverrideAspect : PropertyAspect
         meta.InsertComment( "Invoke TargetClass.Property_Source" );
         _ = meta.Target.Property.Value;
         meta.InsertComment( "Invoke TargetClass.Property_Source" );
-        _ = meta.Target.Property.With( InvokerOptions.Base ).Value;
+        _ = meta.Target.Property.WithOptions( InvokerOptions.Base ).Value;
         meta.InsertComment( "Invoke TargetClass.Property" );
-        _ = meta.Target.Property.With( InvokerOptions.Current ).Value;
+        _ = meta.Target.Property.WithOptions( InvokerOptions.Current ).Value;
         meta.InsertComment( "Invoke TargetClass.Property" );
-        _ = meta.Target.Property.With( InvokerOptions.Final ).Value;
+        _ = meta.Target.Property.WithOptions( InvokerOptions.Final ).Value;
         meta.InsertComment( "Invoke TargetClass.Property_Source" );
 
         return meta.Proceed();
@@ -86,11 +86,11 @@ public class OverrideAspect : PropertyAspect
         meta.InsertComment( "Invoke TargetClass.Property_Source" );
         meta.Target.Property.Value = 42;
         meta.InsertComment( "Invoke TargetClass.Property_Source" );
-        meta.Target.Property.With( InvokerOptions.Base ).Value = 42;
+        meta.Target.Property.WithOptions( InvokerOptions.Base ).Value = 42;
         meta.InsertComment( "Invoke TargetClass.Property" );
-        meta.Target.Property.With( InvokerOptions.Current ).Value = 42;
+        meta.Target.Property.WithOptions( InvokerOptions.Current ).Value = 42;
         meta.InsertComment( "Invoke TargetClass.Property" );
-        meta.Target.Property.With( InvokerOptions.Final ).Value = 42;
+        meta.Target.Property.WithOptions( InvokerOptions.Final ).Value = 42;
         meta.InsertComment( "Invoke TargetClass.Property_Source" );
         meta.Proceed();
     }
@@ -101,8 +101,8 @@ public class InvokerAfterAspect : PropertyAspect
     public override void BuildAspect( IAspectBuilder<IProperty> builder )
     {
         builder.OverrideAccessors(
-            nameof(GetTemplate),
-            nameof(SetTemplate),
+            nameof(this.GetTemplate),
+            nameof(this.SetTemplate),
             new { target = builder.Target.DeclaringType!.BaseType!.Properties.OfName( "Property" ).Single() } );
     }
 
@@ -112,11 +112,11 @@ public class InvokerAfterAspect : PropertyAspect
         meta.InsertComment( "Invoke TargetClass.Property" );
         _ = target.Value;
         meta.InsertComment( "Invoke TargetClass.Property" );
-        _ = target.With( InvokerOptions.Base ).Value;
+        _ = target.WithOptions( InvokerOptions.Base ).Value;
         meta.InsertComment( "Invoke TargetClass.Property" );
-        _ = target.With( InvokerOptions.Current ).Value;
+        _ = target.WithOptions( InvokerOptions.Current ).Value;
         meta.InsertComment( "Invoke TargetClass.Property" );
-        _ = target.With( InvokerOptions.Final ).Value;
+        _ = target.WithOptions( InvokerOptions.Final ).Value;
         meta.InsertComment( "Invoke TargetClass.Property" );
 
         return meta.Proceed();
@@ -128,11 +128,11 @@ public class InvokerAfterAspect : PropertyAspect
         meta.InsertComment( "Invoke TargetClass.Property" );
         target.Value = 42;
         meta.InsertComment( "Invoke TargetClass.Property" );
-        target.With( InvokerOptions.Base ).Value = 42;
+        target.WithOptions( InvokerOptions.Base ).Value = 42;
         meta.InsertComment( "Invoke TargetClass.Property" );
-        target.With( InvokerOptions.Current ).Value = 42;
+        target.WithOptions( InvokerOptions.Current ).Value = 42;
         meta.InsertComment( "Invoke TargetClass.Property" );
-        target.With( InvokerOptions.Final ).Value = 42;
+        target.WithOptions( InvokerOptions.Final ).Value = 42;
 
         meta.Proceed();
     }

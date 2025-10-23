@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Aspects;
+using System;
 using System.Collections.Generic;
 
 namespace Metalama.Framework.Code.Invokers
@@ -17,7 +18,7 @@ namespace Metalama.Framework.Code.Invokers
         /// Generates run-time code that invokes the current method with a given list of arguments. By default, the target instance
         /// of the method is <c>this</c> unless the method is static, and the <c>base</c> implementation of the method is invoked,
         /// i.e. the implementation before the current aspect layer. To change the default values, or to use the <c>?.</c> null-conditional operator,
-        /// use the <see cref="With(InvokerOptions)"/> method.
+        /// use the <see cref="WithOptions"/> method.
         /// </summary>
         dynamic? Invoke( params dynamic?[] args );
 
@@ -25,25 +26,28 @@ namespace Metalama.Framework.Code.Invokers
         /// Generates run-time code that invokes the current method with a given list of argument expressions. By default, the target instance
         /// of the method is <c>this</c> unless the method is static, and the <c>base</c> implementation of the method is invoked,
         /// i.e. the implementation before the current aspect layer. To change the default values, or to use the <c>?.</c> null-conditional operator,
-        /// use the <see cref="With(InvokerOptions)"/> method.
+        /// use the <see cref="WithOptions"/> method.
         /// </summary>
         dynamic? Invoke( IEnumerable<IExpression> args );
 
         /// <summary>
         /// Gets an <see cref="IMethodInvoker"/> for the same method and target with different options.
         /// </summary>
-        IMethodInvoker With( InvokerOptions options );
+        IMethodInvoker WithOptions( InvokerOptions options );
 
         /// <summary>
-        /// Gets an <see cref="IMethodInvoker"/> for the same method but with a different target instance and optionally different options.
+        /// Gets an <see cref="IMethodInvoker"/> for the same method but with a different target object.
         /// </summary>
-        /// <param name="target">The run-time expression that represents the target instance of the method. This expression cannot be <c>dynamic</c>.
-        /// If you need to pass a <c>dynamic</c> expression, you have to explicitly cast it to <see cref="IExpression"/>.
-        /// </param>
-        /// <param name="options"></param>
-        IMethodInvoker With( dynamic? target, InvokerOptions options = default );
+        /// <param name="target">The run-time expression that represents the target instance of the method. </param>
+        IMethodInvoker WithObject( IExpression? target );
 
-        IMethodInvoker With( IExpression target, InvokerOptions options = default );
+        IMethodInvoker WithObject( dynamic? target );
+
+        [Obsolete( "Use the WithOptions method." )]
+        IMethodInvoker With( InvokerOptions options );
+
+        [Obsolete( "Use the WithObject and WithOptions methods." )]
+        IMethodInvoker With( dynamic? target, InvokerOptions options = default );
 
         IExpression CreateInvokeExpression( IEnumerable<IExpression> args );
     }

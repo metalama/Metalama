@@ -11,6 +11,7 @@ using Metalama.Framework.Engine.CodeModel.Collections;
 using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 using Metalama.Framework.Engine.CodeModel.Introductions.Collections;
 using Metalama.Framework.Engine.CodeModel.References;
+using Metalama.Framework.Engine.Templating.Expressions;
 using Metalama.Framework.Engine.Utilities;
 using System;
 using System.Collections.Generic;
@@ -32,7 +33,7 @@ internal sealed partial class AccessorBuilder : DeclarationBuilder, IMethodBuild
     private readonly MemberBuilder _containingMember;
 
     private Accessibility? _accessibility;
-    
+
     private bool _isIteratorMethod;
 
     public bool? IsIteratorMethod => this._isIteratorMethod;
@@ -143,11 +144,15 @@ internal sealed partial class AccessorBuilder : DeclarationBuilder, IMethodBuild
         set => throw new InvalidOperationException( "Accessor's IsExtern cannot be directly set." );
     }
 
-    public IMethodInvoker With( InvokerOptions options ) => new MethodInvoker( this, options );
+    public IMethodInvoker WithOptions( InvokerOptions options ) => options == InvokerOptions.Default ? this : new MethodInvoker( this, options );
 
-    public IMethodInvoker With( object? target, InvokerOptions options ) => new MethodInvoker( this, options, target );
+    public IMethodInvoker WithObject( object? target ) => this.WithObject( new CapturedUserExpression( this.Compilation, target ) );
 
-    public IMethodInvoker With( IExpression target, InvokerOptions options = default ) => new MethodInvoker( this, options, target );
+    public IMethodInvoker WithObject( IExpression? target ) => new MethodInvoker( this, InvokerOptions.Default, target );
+
+    IMethodInvoker IMethodInvoker.With( InvokerOptions options ) => this.WithOptions( options );
+
+    IMethodInvoker IMethodInvoker.With( object? target, InvokerOptions options ) => this.WithOptions( options ).WithObject( target );
 
     public IExpression CreateInvokeExpression( IEnumerable<IExpression> args ) => new MethodInvoker( this ).CreateInvokeExpression( args );
 

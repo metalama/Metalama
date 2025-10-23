@@ -17,9 +17,9 @@ internal class Aspect : OverrideMethodAspect
     {
         var clone = meta.Cast( meta.Target.Type, meta.Base.MemberwiseClone() );
 
-        foreach (var field in meta.Target.Type.Fields)
+        foreach ( var field in meta.Target.Type.Fields )
         {
-            field.With( (IExpression)clone ).Value = meta.Cast( field.Type, ( (ICloneable)field.Value! ).Clone() );
+            field.WithObject( (IExpression?) clone ).Value = meta.Cast( field.Type, ((ICloneable) field.Value!).Clone() );
         }
 
         return clone;

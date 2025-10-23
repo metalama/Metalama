@@ -18,14 +18,14 @@ public class InvokerAspect : MethodAspect
     public override void BuildAspect( IAspectBuilder<IMethod> builder )
     {
         builder.Override(
-            nameof(Template),
-            new { target = ( (INamedType)builder.Target.Parameters[0].Type ).Methods.OfName( "Method" ).Single() } );
+            nameof(this.Template),
+            new { target = ((INamedType) builder.Target.Parameters[0].Type).Methods.OfName( "Method" ).Single() } );
     }
 
     [Template]
     public dynamic? Template( [CompileTime] IMethod target )
     {
-        target.With( (IExpression)meta.Target.Method.Parameters[0].Value!, InvokerOptions.Base ).Invoke();
+        target.WithObject( meta.Target.Method.Parameters[0]).WithOptions( InvokerOptions.Base ).Invoke();
 
         return meta.Proceed();
     }

@@ -21,15 +21,17 @@ public class InvokerAspect : EventAspect
     public override void BuildAspect( IAspectBuilder<IEvent> builder )
     {
         builder.OverrideAccessors(
-            nameof(AddTemplate),
-            nameof(RemoveTemplate),
-            args: new { target = ( (INamedType)builder.Target.DeclaringType.Fields.Single().Type ).Events.OfName( "Event" ).Single() } );
+            nameof(this.AddTemplate),
+            nameof(this.RemoveTemplate),
+            args: new { target = ((INamedType) builder.Target.DeclaringType.Fields.Single().Type).Events.OfName( "Event" ).Single() } );
     }
 
     [Template]
     public void AddTemplate( [CompileTime] IEvent target )
     {
-        target.With( (IExpression)meta.Target.Event.DeclaringType.Fields.Single().Value!, InvokerOptions.Base ).Add( meta.RunTime( TargetClass.StaticTarget ) );
+        target.WithObject( meta.Target.Event.DeclaringType.Fields.Single())
+            .WithOptions( InvokerOptions.Base )
+            .Add( meta.RunTime( TargetClass.StaticTarget ) );
 
         meta.Proceed();
     }
@@ -37,7 +39,8 @@ public class InvokerAspect : EventAspect
     [Template]
     public void RemoveTemplate( [CompileTime] IEvent target )
     {
-        target.With( (IExpression)meta.Target.Event.DeclaringType.Fields.Single().Value!, InvokerOptions.Base )
+        target.WithObject( meta.Target.Event.DeclaringType.Fields.Single())
+            .WithOptions( InvokerOptions.Base )
             .Remove( meta.RunTime( TargetClass.StaticTarget ) );
 
         meta.Proceed();

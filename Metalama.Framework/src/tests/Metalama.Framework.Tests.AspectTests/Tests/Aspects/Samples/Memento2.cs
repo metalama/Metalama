@@ -14,8 +14,8 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Samples.Memento2;
 public class MementoAttribute : TypeAspect
 {
     [CompileTime]
-    private sealed record Tags( 
-        INamedType SnapshopType, 
+    private sealed record Tags(
+        INamedType SnapshopType,
         IReadOnlyList<(IFieldOrProperty Source, IField Snapshot)> Fields );
 
     public override void BuildAspect( IAspectBuilder<INamedType> builder )
@@ -29,7 +29,7 @@ public class MementoAttribute : TypeAspect
 
         var sourceFields = builder.Target.FieldsAndProperties
             .Where( f => f is { IsAutoPropertyOrField: true, IsImplicitlyDeclared: false, Writeability: Writeability.All } );
-        
+
         foreach ( var sourceField in sourceFields )
         {
             var fieldIntroduction = snapshotType.IntroduceField(
@@ -63,7 +63,7 @@ public class MementoAttribute : TypeAspect
         var tags = (Tags) meta.Tags.Source!;
 
 #pragma warning disable CS0618 // Type or member is obsolete
-        return tags.SnapshopType.Constructors.Single().Invoke( tags.Fields.Select( f=>f.Source ) )!;
+        return tags.SnapshopType.Constructors.Single().Invoke( tags.Fields.Select( f => f.Source ) )!;
 #pragma warning restore CS0618 // Type or member is obsolete
     }
 
@@ -75,7 +75,7 @@ public class MementoAttribute : TypeAspect
 
         foreach ( var field in tags.Fields )
         {
-            field.Source.Value = field.Snapshot.With( typedSnapshot ).Value;
+            field.Source.Value = field.Snapshot.WithObject( typedSnapshot ).Value;
         }
     }
 
@@ -99,13 +99,15 @@ public class MementoAttribute : TypeAspect
 public class Vehicle
 {
     public string Name { get; }
+
     public decimal Payload { get; set; }
+
     public string Fuel { get; set; }
 
     public Vehicle( string name, decimal payload, string fuel )
     {
-        Name = name;
-        Payload = payload;
-        Fuel = fuel;
+        this.Name = name;
+        this.Payload = payload;
+        this.Fuel = fuel;
     }
 }

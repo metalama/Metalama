@@ -96,19 +96,25 @@ namespace Metalama.Framework.Engine.CodeModel.Source
             }
         }
 
-        public IFieldOrPropertyInvoker With( InvokerOptions options )
+        public IFieldOrPropertyInvoker WithOptions( InvokerOptions options )
         {
             this.CheckNotPropertyBackingField();
 
             return new FieldOrPropertyInvoker( this, options );
         }
 
-        public IFieldOrPropertyInvoker With( object? target, InvokerOptions options = default )
+        public IFieldOrPropertyInvoker WithObject( IExpression? target )
         {
             this.CheckNotPropertyBackingField();
 
-            return new FieldOrPropertyInvoker( this, options, target );
+            return new FieldOrPropertyInvoker( this, InvokerOptions.Default, target );
         }
+
+        public IFieldOrPropertyInvoker WithObject( object? target ) => this.WithObject( new CapturedUserExpression( this.Compilation, target ) );
+
+        IFieldOrPropertyInvoker IFieldOrPropertyInvoker.With( InvokerOptions options ) => this.WithOptions( options );
+
+        IFieldOrPropertyInvoker IFieldOrPropertyInvoker.With( object? target, InvokerOptions options ) => this.WithOptions( options ).WithObject( target );
 
         public ref object? Value
         {

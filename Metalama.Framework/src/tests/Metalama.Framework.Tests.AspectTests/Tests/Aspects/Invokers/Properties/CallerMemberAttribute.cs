@@ -7,7 +7,7 @@ using Metalama.Framework.Code.Invokers;
 using System.Runtime.CompilerServices;
 using Metalama.Framework.Tests.AspectTests.Tests.Aspects.Invokers.Properties.CallerMemberAttribute;
 
-[assembly: AspectOrder( AspectOrderDirection.CompileTime, typeof( OverrideAspect ), typeof( InvokerAspect ) )]
+[assembly: AspectOrder( AspectOrderDirection.CompileTime, typeof(OverrideAspect), typeof(InvokerAspect) )]
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Invokers.Properties.CallerMemberAttribute;
 
@@ -20,12 +20,12 @@ public class InvokerAspect : TypeAspect
     [Introduce]
     public void CallFoo()
     {
-        foreach (var property in meta.Target.Type.Properties)
+        foreach ( var property in meta.Target.Type.Properties )
         {
             property.Value = 42;
-            property.With(InvokerOptions.Base).Value = 42;
-            property.With(InvokerOptions.Current).Value = 42;
-            property.With(InvokerOptions.Final).Value = 42;
+            property.WithOptions( InvokerOptions.Base ).Value = 42;
+            property.WithOptions( InvokerOptions.Current ).Value = 42;
+            property.WithOptions( InvokerOptions.Final ).Value = 42;
         }
 
         meta.Proceed();
@@ -39,7 +39,7 @@ public class OverrideAspect : OverrideFieldOrPropertyAspect
         get => meta.Proceed();
         set
         {
-            if (meta.Target.Property.Name == nameof(TargetClass.TestOverriddenProperty))
+            if ( meta.Target.Property.Name == nameof(TargetClass.TestOverriddenProperty) )
             {
                 meta.Proceed();
             }
@@ -54,9 +54,7 @@ public class OverrideAspect : OverrideFieldOrPropertyAspect
 
 public class OtherClass
 {
-    public static void Foo([CallerMemberName] string? callerMemberName = null )
-    {
-    }
+    public static void Foo( [CallerMemberName] string? callerMemberName = null ) { }
 }
 
 // <target>

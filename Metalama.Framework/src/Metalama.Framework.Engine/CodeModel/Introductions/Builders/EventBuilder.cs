@@ -13,6 +13,7 @@ using Metalama.Framework.Engine.CodeModel.Invokers;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.CodeModel.Source;
 using Metalama.Framework.Engine.ReflectionMocks;
+using Metalama.Framework.Engine.Templating.Expressions;
 using Metalama.Framework.Engine.Utilities;
 using System;
 using System.Collections.Generic;
@@ -127,9 +128,15 @@ internal sealed class EventBuilder : MemberBuilder, IEventBuilder, IEventImpl
 
     protected override IFullRef<IDeclaration> ToFullDeclarationRef() => this.Ref;
 
-    public IEventInvoker With( InvokerOptions options ) => new EventInvoker( this, options );
+    public IEventInvoker WithOptions( InvokerOptions options ) => options == InvokerOptions.Default ? this : new EventInvoker( this, options );
 
-    public IEventInvoker With( object? target, InvokerOptions options = default ) => new EventInvoker( this, options, target );
+    public IEventInvoker WithObject( IExpression? target ) => new EventInvoker( this, InvokerOptions.Default, target );
+
+    public IEventInvoker WithObject( object? target ) => this.WithObject( new CapturedUserExpression( this.Compilation, target ) );
+
+    IEventInvoker IEventInvoker.With( InvokerOptions options ) => this.WithOptions( options );
+
+    IEventInvoker IEventInvoker.With( object? target, InvokerOptions options ) => this.WithOptions( options ).WithObject( target );
 
     public object Add( object? handler ) => new EventInvoker( this ).Add( handler );
 

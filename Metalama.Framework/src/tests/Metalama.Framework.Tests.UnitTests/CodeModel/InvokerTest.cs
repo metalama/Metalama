@@ -60,17 +60,18 @@ class TargetCode
 
                 // Test normal case.
                 AssertEx.DynamicEquals(
-                    toString.With( new TypedExpressionSyntaxImpl( generator.ThisExpression(), compilation ) )
+                    toString.WithObject( new TypedExpressionSyntaxImpl( generator.ThisExpression(), compilation ) )
                         .Invoke( new TypedExpressionSyntaxImpl( SyntaxFactoryEx.LiteralExpression( "x" ), compilation ) ),
                     @"((global::TargetCode)this).ToString((global::System.String)""x"")" );
 
                 AssertEx.DynamicEquals(
-                    toString.With( new TypedExpressionSyntaxImpl( generator.IdentifierName( "a" ), compilation ), InvokerOptions.NullConditional )
+                    toString.WithObject( new TypedExpressionSyntaxImpl( generator.IdentifierName( "a" ), compilation ) )
+                        .WithOptions( InvokerOptions.NullConditional )
                         .Invoke( new TypedExpressionSyntaxImpl( SyntaxFactoryEx.LiteralExpression( "x" ), compilation ) ),
                     @"((global::TargetCode)a)?.ToString((global::System.String)""x"")" );
 
                 AssertEx.DynamicEquals(
-                    toString.With( new TypedExpressionSyntaxImpl( SyntaxFactoryEx.LiteralExpression( 42 ), compilation ) )
+                    toString.WithObject( new TypedExpressionSyntaxImpl( SyntaxFactoryEx.LiteralExpression( 42 ), compilation ) )
                         .Invoke( new TypedExpressionSyntaxImpl( SyntaxFactoryEx.LiteralExpression( 43 ), compilation ) ),
                     @"((global::TargetCode)42).ToString((global::System.String)43)" );
 
@@ -163,16 +164,16 @@ class TargetCode
                 var instanceEvent = nestedType.Events.OfName( "InstanceEvent" ).Single();
 
                 AssertEx.DynamicEquals(
-                    instanceGenericMethod.With( instance ).Invoke(),
+                    instanceGenericMethod.WithObject( instance ).Invoke(),
                     "((global::TargetCode.Nested<T1>)abc).InstanceGenericMethod<T2>()" );
 
                 AssertEx.DynamicEquals(
-                    instanceNonGenericMethod.With( instance ).Invoke(),
+                    instanceNonGenericMethod.WithObject( instance ).Invoke(),
                     "((global::TargetCode.Nested<T1>)abc).InstanceNonGenericMethod()" );
 
-                AssertEx.DynamicEquals( instanceField.With( instance ).Value, "((global::TargetCode.Nested<T1>)abc).InstanceField" );
-                AssertEx.DynamicEquals( instanceProperty.With( instance ).Value, "((global::TargetCode.Nested<T1>)abc).InstanceProperty" );
-                AssertEx.DynamicEquals( instanceEvent.With( instance ).Add( null ), "((global::TargetCode.Nested<T1>)abc).InstanceEvent += null" );
+                AssertEx.DynamicEquals( instanceField.WithObject( instance ).Value, "((global::TargetCode.Nested<T1>)abc).InstanceField" );
+                AssertEx.DynamicEquals( instanceProperty.WithObject( instance ).Value, "((global::TargetCode.Nested<T1>)abc).InstanceProperty" );
+                AssertEx.DynamicEquals( instanceEvent.WithObject( instance ).Add( null ), "((global::TargetCode.Nested<T1>)abc).InstanceEvent += null" );
             }
         }
 
@@ -249,23 +250,23 @@ class TargetCode
                 var instanceEvent = nestedType.Events.OfName( "InstanceEvent" ).Single();
 
                 AssertEx.DynamicEquals(
-                    instanceGenericMethod.With( instance ).Invoke(),
+                    instanceGenericMethod.WithObject( instance ).Invoke(),
                     @"((global::TargetCode.Nested<global::System.String>)abc).InstanceGenericMethod<global::System.Int32>()" );
 
                 AssertEx.DynamicEquals(
-                    instanceNonGenericMethod.With( instance ).Invoke(),
+                    instanceNonGenericMethod.WithObject( instance ).Invoke(),
                     @"((global::TargetCode.Nested<global::System.String>)abc).InstanceNonGenericMethod()" );
 
                 AssertEx.DynamicEquals(
-                    instanceField.With( instance ).Value,
+                    instanceField.WithObject( instance ).Value,
                     "((global::TargetCode.Nested<global::System.String>)abc).InstanceField" );
 
                 AssertEx.DynamicEquals(
-                    instanceProperty.With( instance ).Value,
+                    instanceProperty.WithObject( instance ).Value,
                     "((global::TargetCode.Nested<global::System.String>)abc).InstanceProperty" );
 
                 AssertEx.DynamicEquals(
-                    instanceEvent.With( instance ).Add( null ),
+                    instanceEvent.WithObject( instance ).Add( null ),
                     "((global::TargetCode.Nested<global::System.String>)abc).InstanceEvent += null" );
             }
         }
@@ -332,11 +333,11 @@ class TargetCode
                 AssertEx.DynamicEquals( property.Value, @"this.P" );
 
                 AssertEx.DynamicEquals(
-                    property.With( SyntaxFactory.IdentifierName( "a" ), InvokerOptions.NullConditional ).Value,
+                    property.WithObject( SyntaxFactory.IdentifierName( "a" ) ).WithOptions( InvokerOptions.NullConditional ).Value,
                     @"((global::TargetCode)a)?.P" );
 
                 AssertEx.DynamicEquals(
-                    ((FieldOrPropertyInvoker) property.With( SyntaxFactory.IdentifierName( "a" ) )).SetValue( SyntaxFactory.IdentifierName( "b" ) ),
+                    ((FieldOrPropertyInvoker) property.WithObject( SyntaxFactory.IdentifierName( "a" ) )).SetValue( SyntaxFactory.IdentifierName( "b" ) ),
                     @"((global::TargetCode)a).P = b" );
             }
         }
@@ -366,7 +367,7 @@ class TargetCode
                 AssertEx.DynamicEquals( property.Value, @"this.P" );
 
                 AssertEx.DynamicEquals(
-                    property.GetMethod!.With( SyntaxFactory.IdentifierName( "a" ), InvokerOptions.NullConditional ).Invoke(),
+                    property.GetMethod!.WithObject( SyntaxFactory.IdentifierName( "a" ) ).WithOptions( InvokerOptions.NullConditional ).Invoke(),
                     @"((global::TargetCode)a)?.P" );
             }
         }

@@ -9,11 +9,11 @@ internal class MyClass
     }
     else if (n == 0)
     {
-      return (global::System.Int32)Ackermann1(m - 1, 1);
+      return (global::System.Int32)this.Ackermann1(m - 1, 1);
     }
     else
     {
-      return (global::System.Int32)Ackermann1(m - 1, Ackermann1(m, n - 1));
+      return (global::System.Int32)this.Ackermann1(m - 1, this.Ackermann1(m, n - 1));
     }
   }
   public global::System.Int32 Ackermann2(global::System.Int32 m, global::System.Int32 n)
