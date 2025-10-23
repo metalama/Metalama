@@ -3,12 +3,11 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using JetBrains.Annotations;
-using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Diagnostics;
 using Metalama.Framework.Utilities;
 
-namespace Metalama.Framework.Advising;
+namespace Metalama.Framework.Aspects;
 
 /// <summary>
 /// An object that allows declarations to be advised using one of the extension methods of the <see cref="AdviserExtensions"/> class.
