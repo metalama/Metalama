@@ -89,6 +89,7 @@ internal sealed class EventInvoker : Invoker<IEvent>, IEventInvoker
                         receiverInfo.AspectReferenceSpecification.AspectLayerId,
                         this.Member,
                         context.SyntaxGenerator,
+                        argsTupleType,
                         arguments );
                 }
                 else
