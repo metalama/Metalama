@@ -44,7 +44,7 @@ public abstract class OverrideFieldOrPropertyMulticastAspect : MulticastAspect, 
                     "get_" + nameof(this.OverrideEnumerableProperty),
                     "get_" + nameof(this.OverrideEnumeratorProperty) );
 
-                b.Advice.OverrideAccessors( b.Target, getterTemplateSelector, "set_" + nameof(this.OverrideProperty) );
+                b.OverrideAccessors( getterTemplateSelector, "set_" + nameof(this.OverrideProperty) );
             } );
     }
 

@@ -38,7 +38,7 @@ internal class WeakEventAttribute : EventAspect
                 argsTupleType,
                 invokerType );
 
-        var containerField = builder.With( builder.Target.DeclaringType )
+        var containerField = builder.WithDeclaringType()
             .IntroduceField(
                 $"weakEventContainerFor{builder.Target.Name}",
                 containerType,

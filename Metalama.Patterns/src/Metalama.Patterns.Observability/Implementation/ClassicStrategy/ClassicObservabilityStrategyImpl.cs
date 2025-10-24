@@ -165,9 +165,10 @@ internal sealed class ClassicObservabilityStrategyImpl : IObservabilityStrategy
 
         var relevantProperties =
             this.CurrentType.Properties
-                .Where( p =>
-                            p is { IsStatic: false, IsAutoPropertyOrField: true }
-                            && !p.Attributes.Any( this.Assets.NotObservableAttribute ) );
+                .Where(
+                    p =>
+                        p is { IsStatic: false, IsAutoPropertyOrField: true }
+                        && !p.Attributes.Any( this.Assets.NotObservableAttribute ) );
 
         var allValid = true;
 
@@ -185,13 +186,14 @@ internal sealed class ClassicObservabilityStrategyImpl : IObservabilityStrategy
 
         this._propertyPathsForOnChildPropertyChangedMethod.AddRange(
             this.ObservableTypeInfo.AllExpressions
-                .Where( n => n.InpcBaseHandling switch
-                {
-                    InpcBaseHandling.OnObservablePropertyChanged when this._onObservablePropertyChangedMethod != null =>
-                        true,
-                    InpcBaseHandling.OnPropertyChanged when n.HasChildren => true,
-                    _ => false
-                } )
+                .Where(
+                    n => n.InpcBaseHandling switch
+                    {
+                        InpcBaseHandling.OnObservablePropertyChanged when this._onObservablePropertyChangedMethod != null =>
+                            true,
+                        InpcBaseHandling.OnPropertyChanged when n.HasChildren => true,
+                        _ => false
+                    } )
                 .Select( n => n.DottedPropertyPath ) );
     }
 
@@ -204,9 +206,10 @@ internal sealed class ClassicObservabilityStrategyImpl : IObservabilityStrategy
             ? nameof(Templates.OnPropertyChangedString)
             : nameof(Templates.OnPropertyChangedObject);
 
-        var result = this.AspectBuilder.Advice.WithTemplateProvider( Templates.Provider )
+        var result = this.AspectBuilder
+            .With( this.CurrentType )
+            .WithTemplateProvider( Templates.Provider )
             .IntroduceMethod(
-                this.CurrentType,
                 template,
                 IntroductionScope.Instance,
                 isOverride ? OverrideStrategy.Override : OverrideStrategy.Fail,
@@ -270,34 +273,35 @@ internal sealed class ClassicObservabilityStrategyImpl : IObservabilityStrategy
             this.ObservableTypeInfo
                 .AllExpressions
                 .Where( n => n.Depth > 0 )
-                .Where( node =>
-                {
-                    var rootPropertyNode = node.Root;
-
-                    if ( rootPropertyNode.ReferencedFieldOrProperty.DeclaringType.Equals( this.CurrentType ) )
+                .Where(
+                    node =>
                     {
-                        return false;
-                    }
+                        var rootPropertyNode = node.Root;
 
-                    var firstAncestorWithNotNoneHandling = node.Ancestors().FirstOrDefault( n => n.InpcBaseHandling != InpcBaseHandling.None );
-
-                    if ( firstAncestorWithNotNoneHandling != null )
-                    {
-                        switch ( firstAncestorWithNotNoneHandling.InpcBaseHandling )
+                        if ( rootPropertyNode.ReferencedFieldOrProperty.DeclaringType.Equals( this.CurrentType ) )
                         {
-                            case InpcBaseHandling.OnObservablePropertyChanged when this._onObservablePropertyChangedMethod != null:
-                                return false;
-
-                            case InpcBaseHandling.OnChildPropertyChanged when node.Depth - firstAncestorWithNotNoneHandling.Depth > 1:
-                                return false;
-
-                            case InpcBaseHandling.OnPropertyChanged:
-                                return false;
+                            return false;
                         }
-                    }
 
-                    return true;
-                } )
+                        var firstAncestorWithNotNoneHandling = node.Ancestors().FirstOrDefault( n => n.InpcBaseHandling != InpcBaseHandling.None );
+
+                        if ( firstAncestorWithNotNoneHandling != null )
+                        {
+                            switch ( firstAncestorWithNotNoneHandling.InpcBaseHandling )
+                            {
+                                case InpcBaseHandling.OnObservablePropertyChanged when this._onObservablePropertyChangedMethod != null:
+                                    return false;
+
+                                case InpcBaseHandling.OnChildPropertyChanged when node.Depth - firstAncestorWithNotNoneHandling.Depth > 1:
+                                    return false;
+
+                                case InpcBaseHandling.OnPropertyChanged:
+                                    return false;
+                            }
+                        }
+
+                        return true;
+                    } )
                 .ToList();
 
         if ( this._propertyPathsForOnChildPropertyChangedMethod.Count == 0 && nodesForOnChildPropertyChanged.Count == 0 )
@@ -310,9 +314,10 @@ internal sealed class ClassicObservabilityStrategyImpl : IObservabilityStrategy
 
         var isOverride = this._baseOnChildPropertyChangedMethod != null;
 
-        var result = this.AspectBuilder.Advice.WithTemplateProvider( Templates.Provider )
+        var result = this.AspectBuilder
+            .With( this.CurrentType )
+            .WithTemplateProvider( Templates.Provider )
             .IntroduceMethod(
-                this.CurrentType,
                 nameof(Templates.OnChildPropertyChanged),
                 IntroductionScope.Instance,
                 isOverride ? OverrideStrategy.Override : OverrideStrategy.Fail,
@@ -377,9 +382,10 @@ internal sealed class ClassicObservabilityStrategyImpl : IObservabilityStrategy
 
         var isOverride = this._baseOnObservablePropertyChangedMethod != null;
 
-        var result = this.AspectBuilder.Advice.WithTemplateProvider( Templates.Provider )
+        var result = this.AspectBuilder
+            .With( this.CurrentType )
+            .WithTemplateProvider( Templates.Provider )
             .IntroduceMethod(
-                this.CurrentType,
                 nameof(Templates.OnObservablePropertyChanged),
                 IntroductionScope.Instance,
                 isOverride ? OverrideStrategy.Override : OverrideStrategy.Fail,
@@ -452,14 +458,18 @@ internal sealed class ClassicObservabilityStrategyImpl : IObservabilityStrategy
     {
         if ( !this._targetImplementsInterface )
         {
-            this.AspectBuilder.Advice.WithTemplateProvider( Templates.Provider )
-                .ImplementInterface( this.CurrentType, this.Assets.INotifyPropertyChanged );
+            this.AspectBuilder
+                .With( this.CurrentType )
+                .WithTemplateProvider( Templates.Provider )
+                .ImplementInterface( this.Assets.INotifyPropertyChanged );
         }
         else if ( !this._targetImplementsEvent )
         {
             // The interface is inherited but not implemented. We must add the PropertyChanged event.
-            this.AspectBuilder.Advice.WithTemplateProvider( Templates.Provider )
-                .IntroduceEvent( this.CurrentType, nameof(Templates.ExplicitPropertyChanged) );
+            this.AspectBuilder
+                .With( this.CurrentType )
+                .WithTemplateProvider( Templates.Provider )
+                .IntroduceEvent( nameof(Templates.ExplicitPropertyChanged) );
         }
     }
 
@@ -507,9 +517,10 @@ internal sealed class ClassicObservabilityStrategyImpl : IObservabilityStrategy
 
                 var accessChildExpression = accessChildExprBuilder.ToExpression();
 
-                var introduceUpdateChildPropertyMethodResult = this.AspectBuilder.Advice.WithTemplateProvider( Templates.Provider )
+                var introduceUpdateChildPropertyMethodResult = this.AspectBuilder
+                    .With( this.CurrentType )
+                    .WithTemplateProvider( Templates.Provider )
                     .IntroduceMethod(
-                        this.CurrentType,
                         nameof(Templates.UpdateChildInpcProperty),
                         IntroductionScope.Instance,
                         OverrideStrategy.Fail,
@@ -592,9 +603,10 @@ internal sealed class ClassicObservabilityStrategyImpl : IObservabilityStrategy
 
                             if ( fieldOrProperty.InitializerExpression != null )
                             {
-                                this.AspectBuilder.Advice.WithTemplateProvider( Templates.Provider )
+                                this.AspectBuilder
+                                    .With( this.CurrentType )
+                                    .WithTemplateProvider( Templates.Provider )
                                     .AddInitializer(
-                                        this.CurrentType,
                                         nameof(Templates.SubscribeInitializer),
                                         InitializerKind.BeforeInstanceConstructor,
                                         args: new { fieldOrProperty, subscribeMethod } );
@@ -608,9 +620,10 @@ internal sealed class ClassicObservabilityStrategyImpl : IObservabilityStrategy
                             }
                         }
 
-                        this.AspectBuilder.Advice.WithTemplateProvider( Templates.Provider )
+                        this.AspectBuilder
+                            .With( fieldOrProperty )
+                            .WithTemplateProvider( Templates.Provider )
                             .OverrideAccessors(
-                                fieldOrProperty,
                                 setTemplate: nameof(Templates.OverrideInpcRefTypePropertySetter),
                                 args: new { templateArgs = this._templateArgs, handlerField, propertyInfo, subscribeMethod } );
                     }
@@ -622,9 +635,10 @@ internal sealed class ClassicObservabilityStrategyImpl : IObservabilityStrategy
                                 ? EqualityComparisonKind.DefaultEqualityComparer
                                 : EqualityComparisonKind.ReferenceEquals;
 
-                            this.AspectBuilder.Advice.WithTemplateProvider( Templates.Provider )
+                            this.AspectBuilder
+                                .With( fieldOrProperty )
+                                .WithTemplateProvider( Templates.Provider )
                                 .OverrideAccessors(
-                                    fieldOrProperty,
                                     setTemplate: nameof(Templates.OverrideUninstrumentedTypePropertySetter),
                                     args: new { templateArgs = this._templateArgs, propertyInfo, compareUsing = comparer, propertyTypeInstrumentationKind } );
                         }
@@ -640,9 +654,10 @@ internal sealed class ClassicObservabilityStrategyImpl : IObservabilityStrategy
                             ? EqualityComparisonKind.EqualityOperator
                             : EqualityComparisonKind.DefaultEqualityComparer;
 
-                        this.AspectBuilder.Advice.WithTemplateProvider( Templates.Provider )
+                        this.AspectBuilder
+                            .With( fieldOrProperty )
+                            .WithTemplateProvider( Templates.Provider )
                             .OverrideAccessors(
-                                fieldOrProperty,
                                 setTemplate: nameof(Templates.OverrideUninstrumentedTypePropertySetter),
                                 args: new { templateArgs = this._templateArgs, propertyInfo, compareUsing = comparisonKind, propertyTypeInstrumentationKind } );
                     }
@@ -709,13 +724,14 @@ internal sealed class ClassicObservabilityStrategyImpl : IObservabilityStrategy
         {
             var lastValueFieldName = this.GetAndReserveUnusedMemberName( $"_last{node.ContiguousPropertyPath}" );
 
-            var introduceLastValueFieldResult = this.AspectBuilder.Advice.IntroduceField(
-                this.CurrentType,
-                lastValueFieldName,
-                node.ReferencedFieldOrProperty.Type.ToNullable(),
-                IntroductionScope.Instance,
-                OverrideStrategy.Fail,
-                b => b.Accessibility = Accessibility.Private );
+            var introduceLastValueFieldResult = this.AspectBuilder
+                .With( this.CurrentType )
+                .IntroduceField(
+                    lastValueFieldName,
+                    node.ReferencedFieldOrProperty.Type.ToNullable(),
+                    IntroductionScope.Instance,
+                    OverrideStrategy.Fail,
+                    b => b.Accessibility = Accessibility.Private );
 
             node.LastValueField.Value = introduceLastValueFieldResult.Declaration;
         }
@@ -729,9 +745,10 @@ internal sealed class ClassicObservabilityStrategyImpl : IObservabilityStrategy
         {
             var handlerFieldName = this.GetAndReserveUnusedMemberName( $"_handle{node.ContiguousPropertyPath}PropertyChanged" );
 
-            var introduceHandlerFieldResult = this.AspectBuilder.Advice.WithTemplateProvider( Templates.Provider )
+            var introduceHandlerFieldResult = this.AspectBuilder
+                .With( this.CurrentType )
+                .WithTemplateProvider( Templates.Provider )
                 .IntroduceField(
-                    this.CurrentType,
                     handlerFieldName,
                     this.Assets.NullablePropertyChangedEventHandler,
                     IntroductionScope.Instance,
@@ -754,9 +771,10 @@ internal sealed class ClassicObservabilityStrategyImpl : IObservabilityStrategy
 
             var subscribeMethodName = this.GetAndReserveUnusedMemberName( $"SubscribeTo{referenceNode.ContiguousPropertyPath}" );
 
-            var result = this.AspectBuilder.Advice.WithTemplateProvider( Templates.Provider )
+            var result = this.AspectBuilder
+                .With( this.CurrentType )
+                .WithTemplateProvider( Templates.Provider )
                 .IntroduceMethod(
-                    this.CurrentType,
                     nameof(Templates.SubscribeTo),
                     IntroductionScope.Instance,
                     OverrideStrategy.Fail,
@@ -842,12 +860,13 @@ internal sealed class ClassicObservabilityStrategyImpl : IObservabilityStrategy
     {
         // Select methods of correct name, accessibility, and return type.
         var methodsOfCorrectName = type.AllMethods
-            .Where( m => m is
-            {
-                IsStatic: false,
-                Accessibility: Accessibility.Public or Accessibility.Protected,
-                ReturnType.SpecialType: SpecialType.Void
-            } )
+            .Where(
+                m => m is
+                {
+                    IsStatic: false,
+                    Accessibility: Accessibility.Public or Accessibility.Protected,
+                    ReturnType.SpecialType: SpecialType.Void
+                } )
             .Select( m => (MethodNameIndex: Array.IndexOf( _onPropertyChangedMethodNames, m.Name ), Method: m) )
             .Where( x => x.MethodNameIndex >= 0 )
             .ToList();
@@ -861,13 +880,14 @@ internal sealed class ClassicObservabilityStrategyImpl : IObservabilityStrategy
 
         // We must also have a method that we are able to override, and here we support either string or PropertyChangedEventArgs. 
         // We give priority to PropertyChangedEventArgs.
-        var overridableMethod = methodsOfCorrectName.Where( m =>
-                                                                (m.Method.IsVirtual || m.Method.IsOverride)
-                                                                && !m.Method.IsSealed
-                                                                && m.Method.Parameters[0].Type is { SpecialType: SpecialType.String } or INamedType
-                                                                {
-                                                                    Name: nameof(PropertyChangedEventArgs)
-                                                                } )
+        var overridableMethod = methodsOfCorrectName.Where(
+                m =>
+                    (m.Method.IsVirtual || m.Method.IsOverride)
+                    && !m.Method.IsSealed
+                    && m.Method.Parameters[0].Type is { SpecialType: SpecialType.String } or INamedType
+                    {
+                        Name: nameof(PropertyChangedEventArgs)
+                    } )
             .OrderBy( m => m.Method.Parameters[0].Type is { SpecialType: SpecialType.String } ? 0 : 1 )
             .ThenBy( m => m.MethodNameIndex )
             .FirstOrDefault()
@@ -877,28 +897,30 @@ internal sealed class ClassicObservabilityStrategyImpl : IObservabilityStrategy
     }
 
     internal static IMethod? GetOnChildPropertyChangedMethod( INamedType type )
-        => type.AllMethods.SingleOrDefault( m =>
-                                                !m.IsStatic
-                                                && m is
-                                                {
-                                                    Name: "OnChildPropertyChanged",
-                                                    Accessibility: Accessibility.Public or Accessibility.Protected,
-                                                    ReturnType.SpecialType: SpecialType.Void,
-                                                    Parameters: [{ Type.SpecialType: SpecialType.String }, { Type.SpecialType: SpecialType.String }]
-                                                } );
+        => type.AllMethods.SingleOrDefault(
+            m =>
+                !m.IsStatic
+                && m is
+                {
+                    Name: "OnChildPropertyChanged",
+                    Accessibility: Accessibility.Public or Accessibility.Protected,
+                    ReturnType.SpecialType: SpecialType.Void,
+                    Parameters: [{ Type.SpecialType: SpecialType.String }, { Type.SpecialType: SpecialType.String }]
+                } );
 
     internal static IMethod? GetOnObservablePropertyChangedMethod( INamedType type, Assets assets )
-        => type.AllMethods.SingleOrDefault( m =>
-                                                !m.IsStatic
-                                                && m is
-                                                {
-                                                    Name: "OnObservablePropertyChanged",
-                                                    Accessibility: Accessibility.Public or Accessibility.Protected,
-                                                    ReturnType.SpecialType: SpecialType.Void,
-                                                    Parameters: [{ Type.SpecialType: SpecialType.String }, { } p1, { } p2]
-                                                }
-                                                && p1.Type.Equals( assets.NullableINotifyPropertyChanged )
-                                                && p2.Type.Equals( assets.NullableINotifyPropertyChanged ) );
+        => type.AllMethods.SingleOrDefault(
+            m =>
+                !m.IsStatic
+                && m is
+                {
+                    Name: "OnObservablePropertyChanged",
+                    Accessibility: Accessibility.Public or Accessibility.Protected,
+                    ReturnType.SpecialType: SpecialType.Void,
+                    Parameters: [{ Type.SpecialType: SpecialType.String }, { } p1, { } p2]
+                }
+                && p1.Type.Equals( assets.NullableINotifyPropertyChanged )
+                && p2.Type.Equals( assets.NullableINotifyPropertyChanged ) );
 
     /// <summary>
     /// Validates the intrinsic characteristics of the given <see cref="IFieldOrProperty"/>, reporting diagnostics if applicable. 

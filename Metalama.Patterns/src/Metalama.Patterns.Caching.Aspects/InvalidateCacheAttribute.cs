@@ -101,19 +101,19 @@ public sealed class InvalidateCacheAttribute : MethodAspect
         var methodsInvalidatedByFieldName = builder.Target.ToSerializableId()
             .MakeAssociatedIdentifier( $"_methodsInvalidatedBy_{builder.Target.Name}" );
 
-        var methodsInvalidatedByField = builder.Advice.IntroduceField(
-            builder.Target.DeclaringType,
-            methodsInvalidatedByFieldName,
-            typeof(MethodInfo[]),
-            IntroductionScope.Static,
-            OverrideStrategy.Fail,
-            b => b.Name = methodsInvalidatedByFieldName );
+        var methodsInvalidatedByField = builder.WithDeclaringType()
+            .IntroduceField(
+                methodsInvalidatedByFieldName,
+                typeof(MethodInfo[]),
+                IntroductionScope.Static,
+                OverrideStrategy.Fail,
+                b => b.Name = methodsInvalidatedByFieldName );
 
-        builder.Advice.AddInitializer(
-            builder.Target.DeclaringType,
-            nameof(InitializeMethodInfoArray),
-            InitializerKind.BeforeTypeConstructor,
-            args: new { methods = invalidatedMethods.Keys.ToList(), field = methodsInvalidatedByField.Declaration } );
+        builder.WithDeclaringType()
+            .AddInitializer(
+                nameof(InitializeMethodInfoArray),
+                InitializerKind.BeforeTypeConstructor,
+                args: new { methods = invalidatedMethods.Keys.ToList(), field = methodsInvalidatedByField.Declaration } );
 
         // If any invalidated method uses dependency injection, also use dependency injection.
         IFieldOrProperty? cachingServiceField;
@@ -128,13 +128,13 @@ public sealed class InvalidateCacheAttribute : MethodAspect
                 return;
             }
 
-            var introduceDependencyResult = builder.With( builder.Target.DeclaringType ).IntroduceDependency( typeof(ICachingService) );
+            var introduceDependencyResult = builder.WithDeclaringType().IntroduceDependency( typeof(ICachingService) );
 
             if ( introduceDependencyResult.Outcome == AdviceOutcome.Error )
             {
                 return;
             }
-            
+
             cachingServiceField = introduceDependencyResult.Declaration;
         }
         else
@@ -150,15 +150,14 @@ public sealed class InvalidateCacheAttribute : MethodAspect
             builder.Target.ReturnType.IsTask( withResult: false ) ? nameof(OverrideMethodAsyncTask) : nameof(OverrideMethodAsyncTaskOfT),
             useAsyncTemplateForAnyAwaitable: true );
 
-        builder.Advice.Override(
-            builder.Target,
+        builder.Override(
             templates,
             args: new
             {
                 returnType = asyncInfo.IsAwaitable ? asyncInfo.ResultType : builder.Target.ReturnType,
                 methodsInvalidatedByField = methodsInvalidatedByField.Declaration,
                 invalidatedMethods = invalidatedMethods.Values.OrderBy( x => x.Method.ToString() ),
-                cachingServiceField 
+                cachingServiceField
             } );
     }
 

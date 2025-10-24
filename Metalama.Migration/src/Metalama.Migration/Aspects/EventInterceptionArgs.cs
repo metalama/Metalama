@@ -19,7 +19,7 @@ namespace PostSharp.Aspects
     public abstract class EventInterceptionArgs : AdviceArgs
     {
         /// <summary>
-        /// Use <see cref="IEvent"/>.<see cref="IEventInvoker.Add"/>, <see cref="IEvent"/>.<see cref="IEventInvoker.Remove"/> or <see cref="IEvent"/>.<see cref="IEventInvoker.Raise"/> to generate run-time code that accesses the event.
+        /// Use <see cref="IEvent"/>.<see cref="IEventInvoker.Add(IExpression)"/>, <see cref="IEvent"/>.<see cref="IEventInvoker.Remove(IExpression)"/> or <see cref="IEvent"/>.<see cref="IEventInvoker.Raise(IExpression[])"/> to generate run-time code that accesses the event.
         /// </summary>
         public abstract IEventBinding Binding { get; }
 
@@ -48,25 +48,25 @@ namespace PostSharp.Aspects
 
         /// <summary>
         /// Use <see cref="meta"/>.<see cref="meta.Proceed"/> from the advice that overrides the event adder, or use
-        /// <see cref="IEvent"/>.<see cref="IEventInvoker.Add"/>.
+        /// <see cref="IEvent"/>.<see cref="IEventInvoker.Add(IExpression)"/>.
         /// </summary>
         public abstract void ProceedAddHandler();
 
         /// <summary>
         /// Use <see cref="meta"/>.<see cref="meta.Proceed"/> from the advice that overrides the event adder, or use
-        /// <see cref="IEvent"/>.<see cref="IEventInvoker.Add"/>.
+        /// <see cref="IEvent"/>.<see cref="IEventInvoker.Add(IExpression)"/>.
         /// </summary>
         public abstract void AddHandler( Delegate handler );
 
         /// <summary>
         /// Use <see cref="meta"/>.<see cref="meta.Proceed"/> from the advice that overrides the event remover, or use
-        /// <see cref="IEvent"/>.<see cref="IEventInvoker.Remove"/>.
+        /// <see cref="IEvent"/>.<see cref="IEventInvoker.Remove(IExpression)"/>.
         /// </summary>
         public abstract void ProceedRemoveHandler();
 
         /// <summary>
         /// Use <see cref="meta"/>.<see cref="meta.Proceed"/> from the advice that overrides the event remover, or use
-        /// <see cref="IEvent"/>.<see cref="IEventInvoker.Remove"/>.
+        /// <see cref="IEvent"/>.<see cref="IEventInvoker.Remove(IExpression)"/>.
         /// </summary>
         public abstract void RemoveHandler( Delegate handler );
 

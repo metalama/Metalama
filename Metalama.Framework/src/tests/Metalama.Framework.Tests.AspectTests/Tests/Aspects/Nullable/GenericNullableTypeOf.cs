@@ -15,7 +15,7 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Nullable.GenericNul
     {
         public override void BuildAspect( IAspectBuilder<IFieldOrProperty> builder )
         {
-            builder.With( builder.Target.DeclaringType ).IntroduceMethod( nameof(Template), args: new { T = builder.Target.Type } );
+            builder.WithDeclaringType().IntroduceMethod( nameof(Template), args: new { T = builder.Target.Type } );
         }
 
         [Template]

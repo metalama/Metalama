@@ -20,7 +20,7 @@ internal class Aspect : PropertyAspect
     {
         base.BuildAspect( builder );
 
-        builder.With( builder.Target.DeclaringType ).IntroduceMethod( nameof(PropertyBody), args: new { property = builder.Target } );
+        builder.WithDeclaringType().IntroduceMethod( nameof(PropertyBody), args: new { property = builder.Target } );
     }
 
     [Template]

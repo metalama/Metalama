@@ -19,7 +19,7 @@ public class TestAttribute : MethodAspect
     {
         base.BuildAspect( builder );
 
-        builder.With( builder.Target.DeclaringType ).IntroduceMethod( nameof(GetMethodInvokerDelegate), args: new { method = builder.Target } );
+        builder.WithDeclaringType().IntroduceMethod( nameof(GetMethodInvokerDelegate), args: new { method = builder.Target } );
     }
 
     [Template]

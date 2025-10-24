@@ -48,7 +48,8 @@ internal sealed partial class DependencyPropertyAspectBuilder
                                 || this._attribute.ValidateMethod != null;
 
         var namingConventions = hasExplicitNaming
-            ? [
+            ?
+            [
                 new ExplicitDependencyPropertyNamingConvention(
                     this._attribute.RegistrationField,
                     this._attribute.PropertyChangedMethod,
@@ -71,33 +72,35 @@ internal sealed partial class DependencyPropertyAspectBuilder
 
         if ( match.RegistrationFieldConflictMatch.Outcome == MemberMatchOutcome.Success )
         {
-            introduceRegistrationFieldResult = this._builder.Advice.IntroduceField(
-                declaringType,
-                match.RegistrationFieldName!,
-                typeof(DependencyProperty),
-                IntroductionScope.Static,
-                OverrideStrategy.Fail,
-                b =>
-                {
-                    // ReSharper disable once RedundantNameQualifier
-                    b.Accessibility = MetalamaAccessibility.Public;
-                    b.Writeability = Writeability.ConstructorOnly;
-                } );
-
-            if ( isReadOnly )
-            {
-                introduceRegistrationKeyFieldResult = this._builder.Advice.IntroduceField(
-                    declaringType,
-                    match.RegistrationFieldName! + "Key",
-                    typeof(DependencyPropertyKey),
+            introduceRegistrationFieldResult = this._builder
+                .WithDeclaringType()
+                .IntroduceField(
+                    match.RegistrationFieldName!,
+                    typeof(DependencyProperty),
                     IntroductionScope.Static,
                     OverrideStrategy.Fail,
                     b =>
                     {
                         // ReSharper disable once RedundantNameQualifier
-                        b.Accessibility = MetalamaAccessibility.Private;
+                        b.Accessibility = MetalamaAccessibility.Public;
                         b.Writeability = Writeability.ConstructorOnly;
                     } );
+
+            if ( isReadOnly )
+            {
+                introduceRegistrationKeyFieldResult = this._builder
+                    .WithDeclaringType()
+                    .IntroduceField(
+                        match.RegistrationFieldName! + "Key",
+                        typeof(DependencyPropertyKey),
+                        IntroductionScope.Static,
+                        OverrideStrategy.Fail,
+                        b =>
+                        {
+                            // ReSharper disable once RedundantNameQualifier
+                            b.Accessibility = MetalamaAccessibility.Private;
+                            b.Writeability = Writeability.ConstructorOnly;
+                        } );
             }
         }
 
@@ -138,9 +141,10 @@ internal sealed partial class DependencyPropertyAspectBuilder
         {
             var name = this.GetAndReserveUnusedMemberName( $"Apply{builder.Target.Name}Contracts" );
 
-            var result = builder.Advice.WithTemplateProvider( Templates.Provider )
+            var result = builder
+                .WithDeclaringType()
+                .WithTemplateProvider( Templates.Provider )
                 .IntroduceMethod(
-                    declaringType,
                     nameof(Templates.ApplyContracts),
                     IntroductionScope.Static,
                     OverrideStrategy.Fail,
@@ -161,9 +165,10 @@ internal sealed partial class DependencyPropertyAspectBuilder
             ContractAspect.RedirectContracts( this._builder, target, applyContractsMethod.Parameters[0] );
         }
 
-        this._builder.Advice.WithTemplateProvider( Templates.Provider )
+        this._builder
+            .WithDeclaringType()
+            .WithTemplateProvider( Templates.Provider )
             .AddInitializer(
-                declaringType,
                 nameof(Templates.InitializeDependencyProperty),
                 InitializerKind.BeforeTypeConstructor,
                 args: new
@@ -183,17 +188,17 @@ internal sealed partial class DependencyPropertyAspectBuilder
                     applyContractsMethod
                 } );
 
-        this._builder.Advice.WithTemplateProvider( Templates.Provider )
+        this._builder
+            .WithTemplateProvider( Templates.Provider )
             .OverrideAccessors(
-                this._builder.Target,
                 new GetterTemplateSelector( nameof(Templates.OverrideGetter) ),
                 args: new { propertyType, dependencyPropertyField = introduceRegistrationFieldResult.Declaration } );
 
         if ( this._builder.Target.Writeability != Writeability.None )
         {
-            this._builder.Advice.WithTemplateProvider( Templates.Provider )
+            this._builder
+                .WithTemplateProvider( Templates.Provider )
                 .OverrideAccessors(
-                    this._builder.Target,
                     setTemplate: nameof(Templates.OverrideSetter),
                     args: new { dependencyPropertyField = introduceRegistrationKeyFieldResult?.Declaration ?? introduceRegistrationFieldResult.Declaration } );
         }
@@ -206,9 +211,10 @@ internal sealed partial class DependencyPropertyAspectBuilder
 
         if ( this._builder.Target.InitializerExpression != null )
         {
-            this._builder.Advice.WithTemplateProvider( Templates.Provider )
+            this._builder
+                .WithDeclaringType()
+                .WithTemplateProvider( Templates.Provider )
                 .AddInitializer(
-                    declaringType,
                     nameof(Templates.Assign),
                     InitializerKind.BeforeInstanceConstructor,
                     args: new { left = this._builder.Target, right = this._builder.Target.InitializerExpression } );

@@ -24,7 +24,7 @@ internal class Aspect : MethodAspect
 
     public override void BuildAspect( IAspectBuilder<IMethod> builder )
     {
-        builder.With( builder.Target.DeclaringType )
+        builder.WithDeclaringType()
             .IntroduceMethod(
                 nameof(this.GetMethodInvoker),
                 args: new { method = builder.Target } );

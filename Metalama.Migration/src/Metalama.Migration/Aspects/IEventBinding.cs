@@ -12,19 +12,19 @@ namespace PostSharp.Aspects
     /// <summary>
     /// In PostSharp, a binding was a run-time object that allowed the run-time code of the aspect to call the target code. In Metalama, aspects no longer
     /// have run-time code. Instead, they have templates that are expanded at compile time and generate run-time code. Templates can generate run-time code
-    /// that accesses target code using dynamic code or invokers. For events, use <see cref="meta"/>.<see cref="meta.Target"/>.<see cref="IMetaTarget.Event"/>.<see cref="IEventInvoker.Add"/>,
-    /// <see cref="IEventInvoker.Remove"/> or <see cref="IEventInvoker.Raise"/>
+    /// that accesses target code using dynamic code or invokers. For events, use <see cref="meta"/>.<see cref="meta.Target"/>.<see cref="IMetaTarget.Event"/>.<see cref="IEventInvoker.Add(Metalama.Framework.Code.IExpression)"/>,
+    /// <see cref="IEventInvoker.Remove(Metalama.Framework.Code.IExpression)"/> or <see cref="IEventInvoker.Raise(Metalama.Framework.Code.IExpression[])"/>
     /// </summary>
     [InternalImplement]
     public interface IEventBinding
     {
         /// <summary>
-        /// In Metalama, use <see cref="meta"/>.<see cref="meta.Target"/>.<see cref="IMetaTarget.Event"/>.<see cref="IEventInvoker.Add"/>.
+        /// In Metalama, use <see cref="meta"/>.<see cref="meta.Target"/>.<see cref="IMetaTarget.Event"/>.<see cref="IEventInvoker.Add(Metalama.Framework.Code.IExpression)"/>.
         /// </summary>
         void AddHandler( ref object instance, Delegate handler );
 
         /// <summary>
-        /// In Metalama, use <see cref="meta"/>.<see cref="meta.Target"/>.<see cref="IMetaTarget.Event"/>.<see cref="IEventInvoker.Remove"/>.
+        /// In Metalama, use <see cref="meta"/>.<see cref="meta.Target"/>.<see cref="IMetaTarget.Event"/>.<see cref="IEventInvoker.Remove(Metalama.Framework.Code.IExpression)"/>.
         /// </summary>
         void RemoveHandler( ref object instance, Delegate handler );
 

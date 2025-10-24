@@ -245,13 +245,13 @@ internal sealed partial class DependencyPropertyAspectBuilder
             switch ( signatureKind )
             {
                 case ValidationHandlerSignatureKind.InstanceValue:
-                    method.WithObject(  meta.Cast( declaringType, instanceExpr ) )
+                    method.WithObject( instanceExpr.CastTo( declaringType ) )
                         .Invoke( method.Parameters[0].Type.SpecialType == SpecialType.Object ? valueExpr.Value : meta.Cast( propertyType, valueExpr.Value ) );
 
                     break;
 
                 case ValidationHandlerSignatureKind.InstanceDependencyPropertyAndValue:
-                    method.WithObject(  meta.Cast( declaringType, instanceExpr ) )
+                    method.WithObject( instanceExpr.CastTo( declaringType ) )
                         .Invoke(
                             dependencyPropertyField.Value,
                             method.Parameters[1].Type.SpecialType == SpecialType.Object ? valueExpr.Value : meta.Cast( propertyType, valueExpr.Value ) );
@@ -310,7 +310,7 @@ internal sealed partial class DependencyPropertyAspectBuilder
             switch ( signatureKind )
             {
                 case ChangeHandlerSignatureKind.InstanceNoParameters:
-                    method.WithObject(  meta.Cast( declaringType, instanceExpr ) ).Invoke();
+                    method.WithObject( instanceExpr.CastTo( declaringType ) ).Invoke();
 
                     break;
 
@@ -320,14 +320,14 @@ internal sealed partial class DependencyPropertyAspectBuilder
                     break;
 
                 case ChangeHandlerSignatureKind.InstanceValue:
-                    method.WithObject(  meta.Cast( declaringType, instanceExpr ) )
+                    method.WithObject( instanceExpr.CastTo( declaringType ) )
                         .Invoke(
                             method.Parameters[0].Type.SpecialType == SpecialType.Object ? newValueExpr.Value : meta.Cast( propertyType, newValueExpr.Value ) );
 
                     break;
 
                 case ChangeHandlerSignatureKind.InstanceOldValueAndNewValue:
-                    method.WithObject(  meta.Cast( declaringType, instanceExpr ) )
+                    method.WithObject( instanceExpr.CastTo( declaringType ) )
                         .Invoke(
                             method.Parameters[0].Type.SpecialType == SpecialType.Object ? oldValueExpr!.Value : meta.Cast( propertyType, oldValueExpr!.Value ),
                             method.Parameters[1].Type.SpecialType == SpecialType.Object ? newValueExpr.Value : meta.Cast( propertyType, newValueExpr.Value ) );
@@ -335,7 +335,7 @@ internal sealed partial class DependencyPropertyAspectBuilder
                     break;
 
                 case ChangeHandlerSignatureKind.InstanceDependencyProperty:
-                    method.WithObject(  meta.Cast( declaringType, instanceExpr.Value ) ).Invoke( dependencyPropertyField );
+                    method.WithObject( instanceExpr.CastTo( declaringType ) ).Invoke( dependencyPropertyField );
 
                     break;
 
@@ -348,16 +348,16 @@ internal sealed partial class DependencyPropertyAspectBuilder
                     method.Invoke(
                         dependencyPropertyField.Value,
                         instanceExpr.Type.IsConvertibleTo( method.Parameters[1].Type, ConversionKind.Reference )
-                            ? instanceExpr.Value
-                            : meta.Cast( declaringType, instanceExpr.Value ) );
+                            ? instanceExpr
+                            : instanceExpr.CastTo( declaringType ) );
 
                     break;
 
                 case ChangeHandlerSignatureKind.StaticInstance:
                     method.Invoke(
                         instanceExpr.Type.IsConvertibleTo( method.Parameters[0].Type, ConversionKind.Reference )
-                            ? instanceExpr.Value
-                            : meta.Cast( declaringType, instanceExpr.Value ) );
+                            ? instanceExpr
+                            : instanceExpr.CastTo( declaringType ) );
 
                     break;
             }

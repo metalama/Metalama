@@ -1423,6 +1423,11 @@ public static class AdviserExtensions
             ((IAdviserInternal) adviser).AdviceFactory.WithTemplateProvider( templateProvider ),
             adviser.Diagnostics );
 
+    /// <summary>
+    /// Gets an <see cref="IAdviser{T}"/> for the declaring type of the current member.
+    /// </summary>
+    public static IAdviser<INamedType> WithDeclaringType( this IAdviser<IMember> memberAdviser ) => memberAdviser.With( memberAdviser.Target.DeclaringType );
+
     private class Adviser<T> : IAdviser<T>, IAdviserInternal
         where T : class, IDeclaration
     {

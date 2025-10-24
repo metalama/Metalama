@@ -111,7 +111,7 @@ public class DefaultDependencyInjectionStrategy
     {
         var pullStrategy = this.GetDependencyPullStrategy( adviser.Target );
 
-        this.TryPullDependency( adviser.With( adviser.Target.DeclaringType ), adviser.Target, pullStrategy );
+        this.TryPullDependency( adviser.WithDeclaringType(), adviser.Target, pullStrategy );
 
         return true;
     }

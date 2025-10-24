@@ -57,7 +57,7 @@ public abstract class OverrideMethodMulticastAspect : MulticastAspect, IAspect<I
                     this.UseEnumerableTemplateForAnyEnumerable );
 #endif
 
-                b.Advice.Override( b.Target, templates );
+                b.Override( templates );
             } );
     }
 

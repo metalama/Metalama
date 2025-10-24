@@ -41,8 +41,6 @@ internal sealed class Templates : ITemplateProvider
     {
         var rootReference = propertyInfo.RootReferenceNode;
 
-        meta.DebugBreak();
-
         var eventRequiresCast = templateArgs.InpcInstrumentationKindLookup.Get( propertyInfo.FieldOrProperty.Type ).RequiresCast();
 
         if ( templateArgs.CommonOptions.DiagnosticCommentVerbosity > 0 )
@@ -84,7 +82,7 @@ internal sealed class Templates : ITemplateProvider
 
                 if ( !isReadOnly && templateArgs.OnObservablePropertyChangedMethod != null )
                 {
-                    templateArgs.OnObservablePropertyChangedMethod.With( InvokerOptions.Final )
+                    templateArgs.OnObservablePropertyChangedMethod.WithOptions( InvokerOptions.Final )
                         .Invoke( meta.Target.FieldOrProperty.Name, oldValue, value );
                 }
             }
@@ -98,19 +96,19 @@ internal sealed class Templates : ITemplateProvider
                 // Update methods will deal with notifications - * for those children which have update methods *
                 foreach ( var method in rootReference.ChildUpdateMethods )
                 {
-                    method.With( InvokerOptions.Final ).Invoke();
+                    method.WithOptions( InvokerOptions.Final ).Invoke();
                 }
 
                 // Notify refs to the current node and any children without an update method.
                 foreach ( var r in GetReferencingProperties( templateArgs, rootReference, excludeChildrenWithUpdateMethod: true ) )
                 {
-                    templateArgs.OnPropertyChangedInvocableMethod.With( InvokerOptions.Final ).Invoke( r.Name );
+                    templateArgs.OnPropertyChangedInvocableMethod.WithOptions( InvokerOptions.Final ).Invoke( r.Name );
                 }
 
                 if ( propertyInfo.FieldOrProperty.DeclarationKind != DeclarationKind.Field
                      && meta.Target.FieldOrProperty.Accessibility != Accessibility.Private )
                 {
-                    templateArgs.OnPropertyChangedInvocableMethod.With( InvokerOptions.Final ).Invoke( meta.Target.FieldOrProperty.Name );
+                    templateArgs.OnPropertyChangedInvocableMethod.WithOptions( InvokerOptions.Final ).Invoke( meta.Target.FieldOrProperty.Name );
                 }
             }
 
@@ -225,13 +223,13 @@ internal sealed class Templates : ITemplateProvider
             // Update methods will deal with notifications - * for those children which have update methods *
             foreach ( var method in node.ChildUpdateMethods )
             {
-                method.With( InvokerOptions.Final ).Invoke();
+                method.WithOptions( InvokerOptions.Final ).Invoke();
             }
 
             // Notify refs to the current node and any children without an update method.
             foreach ( var r in GetReferencingProperties( templateArgs, node, excludeChildrenWithUpdateMethod: true ) )
             {
-                templateArgs.OnPropertyChangedInvocableMethod.With( InvokerOptions.Final ).Invoke( r.Name );
+                templateArgs.OnPropertyChangedInvocableMethod.WithOptions( InvokerOptions.Final ).Invoke( r.Name );
             }
 
             var parentNode = (ClassicObservableExpression) node.Parent!;
@@ -241,7 +239,7 @@ internal sealed class Templates : ITemplateProvider
                 // Don't notify if we're joining on to existing NotifyChildPropertyChanged support from a base type, or we'll be stuck in a loop.
                 if ( parentNode.InpcBaseHandling != InpcBaseHandling.OnChildPropertyChanged )
                 {
-                    templateArgs.OnChildPropertyChangedMethod!.With( InvokerOptions.Final ).Invoke( parentNode.DottedPropertyPath, node.Name );
+                    templateArgs.OnChildPropertyChangedMethod!.WithOptions( InvokerOptions.Final ).Invoke( parentNode.DottedPropertyPath, node.Name );
                 }
                 else if ( templateArgs.CommonOptions.DiagnosticCommentVerbosity! > 0 )
                 {
@@ -305,13 +303,13 @@ internal sealed class Templates : ITemplateProvider
             {
                 foreach ( var r in GetReferencingProperties( templateArgs, propertyInfo.RootReferenceNode ) )
                 {
-                    templateArgs.OnPropertyChangedInvocableMethod.With( InvokerOptions.Final ).Invoke( r.Name );
+                    templateArgs.OnPropertyChangedInvocableMethod.WithOptions( InvokerOptions.Final ).Invoke( r.Name );
                 }
             }
 
             if ( !isField && meta.Target.FieldOrProperty.Accessibility != Accessibility.Private )
             {
-                templateArgs.OnPropertyChangedInvocableMethod.With( InvokerOptions.Final ).Invoke( meta.Target.FieldOrProperty.Name );
+                templateArgs.OnPropertyChangedInvocableMethod.WithOptions( InvokerOptions.Final ).Invoke( meta.Target.FieldOrProperty.Name );
             }
         }
         else
@@ -324,13 +322,13 @@ internal sealed class Templates : ITemplateProvider
                 {
                     foreach ( var r in GetReferencingProperties( templateArgs, propertyInfo.RootReferenceNode ) )
                     {
-                        templateArgs.OnPropertyChangedInvocableMethod.With( InvokerOptions.Final ).Invoke( r.Name );
+                        templateArgs.OnPropertyChangedInvocableMethod.WithOptions( InvokerOptions.Final ).Invoke( r.Name );
                     }
                 }
 
                 if ( !isField && meta.Target.FieldOrProperty.Accessibility != Accessibility.Private )
                 {
-                    templateArgs.OnPropertyChangedInvocableMethod.With( InvokerOptions.Final ).Invoke( meta.Target.FieldOrProperty.Name );
+                    templateArgs.OnPropertyChangedInvocableMethod.WithOptions( InvokerOptions.Final ).Invoke( meta.Target.FieldOrProperty.Name );
                 }
             }
         }
@@ -550,14 +548,14 @@ internal sealed class Templates : ITemplateProvider
                             // Update methods will deal with notifications - * for those children which have update methods *
                             foreach ( var method in childUpdateMethods )
                             {
-                                method.With( InvokerOptions.Final ).Invoke();
+                                method.WithOptions( InvokerOptions.Final ).Invoke();
                             }
 
                             // rootPropertyNamesToNotify excludes children with update methods
                             // ReSharper disable once PossibleMultipleEnumeration
                             foreach ( var name in rootPropertyNamesToNotify )
                             {
-                                templateArgsValue.OnPropertyChangedInvocableMethod.With( InvokerOptions.Final ).Invoke( name );
+                                templateArgsValue.OnPropertyChangedInvocableMethod.WithOptions( InvokerOptions.Final ).Invoke( name );
                             }
 
                             if ( newValue != null )
@@ -590,7 +588,7 @@ internal sealed class Templates : ITemplateProvider
                 {
                     foreach ( var name in rootPropertyNamesToNotify )
                     {
-                        templateArgsValue.OnPropertyChangedInvocableMethod.With( InvokerOptions.Final ).Invoke( name );
+                        templateArgsValue.OnPropertyChangedInvocableMethod.WithOptions( InvokerOptions.Final ).Invoke( name );
                     }
                 }
 
@@ -608,13 +606,13 @@ internal sealed class Templates : ITemplateProvider
         {
             foreach ( var method in childUpdateMethods )
             {
-                method.With( InvokerOptions.Final ).Invoke();
+                method.WithOptions( InvokerOptions.Final ).Invoke();
             }
 
             // ReSharper disable once PossibleMultipleEnumeration
             foreach ( var name in rootPropertyNamesToNotify )
             {
-                templateArgsValue.OnPropertyChangedInvocableMethod.With( InvokerOptions.Final ).Invoke( name );
+                templateArgsValue.OnPropertyChangedInvocableMethod.WithOptions( InvokerOptions.Final ).Invoke( name );
             }
         }
     }
@@ -675,14 +673,14 @@ internal sealed class Templates : ITemplateProvider
         if ( hasUpdateMethod )
         {
             // Update method will deal with notifications
-            node.UpdateMethod.Value!.With( InvokerOptions.Final ).Invoke();
+            node.UpdateMethod.Value!.WithOptions( InvokerOptions.Final ).Invoke();
         }
         else
         {
             // No update method, notify here.
             foreach ( var r in GetReferencingProperties( templateArgs, node ) )
             {
-                templateArgs.OnPropertyChangedInvocableMethod.With( InvokerOptions.Final ).Invoke( r.Name );
+                templateArgs.OnPropertyChangedInvocableMethod.WithOptions( InvokerOptions.Final ).Invoke( r.Name );
             }
         }
 
@@ -772,13 +770,13 @@ internal sealed class Templates : ITemplateProvider
                 // Update methods will deal with notifications - *for those children which have update methods*
                 foreach ( var method in node.ChildUpdateMethods )
                 {
-                    method.With( InvokerOptions.Final ).Invoke();
+                    method.WithOptions( InvokerOptions.Final ).Invoke();
                 }
 
                 // Notify refs to the current node and any children without an update method.
                 foreach ( var r in GetReferencingProperties( templateArgs, node, excludeChildrenWithUpdateMethod: true ) )
                 {
-                    templateArgs.OnPropertyChangedInvocableMethod.With( InvokerOptions.Final ).Invoke( r.Name );
+                    templateArgs.OnPropertyChangedInvocableMethod.WithOptions( InvokerOptions.Final ).Invoke( r.Name );
                 }
             }
         }
@@ -856,7 +854,7 @@ internal sealed class Templates : ITemplateProvider
         ObservabilityTemplateArgs templateArgs,
         ClassicObservableExpression node,
         IExpression propertyName )
-        => templateArgs.OnChildPropertyChangedMethod!.With( InvokerOptions.Final ).Invoke( node.DottedPropertyPath, propertyName );
+        => templateArgs.OnChildPropertyChangedMethod!.WithOptions( InvokerOptions.Final ).Invoke( node.DottedPropertyPath, propertyName );
 
     [Template]
     private static void HandleChildPropertyChangedCase(
@@ -869,19 +867,19 @@ internal sealed class Templates : ITemplateProvider
         if ( hasUpdateMethod )
         {
             // Update method will deal with notifications
-            childNode.UpdateMethod.Value!.With( InvokerOptions.Final ).Invoke();
+            childNode.UpdateMethod.Value!.WithOptions( InvokerOptions.Final ).Invoke();
         }
         else
         {
             // No update method, notify here.
             foreach ( var r in GetReferencingProperties( templateArgs, childNode ) )
             {
-                templateArgs.OnPropertyChangedInvocableMethod.With( InvokerOptions.Final ).Invoke( r.Name );
+                templateArgs.OnPropertyChangedInvocableMethod.WithOptions( InvokerOptions.Final ).Invoke( r.Name );
             }
 
             if ( nodeIsAccessible )
             {
-                templateArgs.OnChildPropertyChangedMethod!.With( InvokerOptions.Final ).Invoke( node.DottedPropertyPath, childNode.Name );
+                templateArgs.OnChildPropertyChangedMethod!.WithOptions( InvokerOptions.Final ).Invoke( node.DottedPropertyPath, childNode.Name );
             }
         }
     }
