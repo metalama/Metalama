@@ -13,7 +13,7 @@ namespace Metalama.Framework.Code.Invokers
     [CompileTime]
     public interface IEventInvoker
     {
-        // TODO: Create methods to work with IExpression.
+        // TODO: Create methods CreateAddExpression, CreateRemoveExpression, CreateRaiseExpression.
         
         /// <summary>
         /// Generates run-time code that adds a handler, given as run-time C# expression, to the event.

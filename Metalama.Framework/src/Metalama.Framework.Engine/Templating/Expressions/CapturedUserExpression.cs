@@ -24,9 +24,6 @@ internal sealed class CapturedUserExpression : UserExpression
         this._expression = expression;
     }
 
-   
-    
-
     public static IExpression Create( ICompilation compilation, object? expression )
         => expression switch
         {
@@ -39,7 +36,7 @@ internal sealed class CapturedUserExpression : UserExpression
         {
             null => [],
             [IReadOnlyList<IExpression> expressionList] => expressionList.ToArray(),
-            _ => expressions.SelectAsArray( e => Create( compilation, e ) ) 
+            _ => expressions.SelectAsArray( e => Create( compilation, e ) )
         };
 
     private protected override bool? IsReferenceable
@@ -51,7 +48,7 @@ internal sealed class CapturedUserExpression : UserExpression
             _ => null
         };
 
-    protected override bool CanBeNull 
+    protected override bool CanBeNull
         => this._expression switch
         {
             null => false,

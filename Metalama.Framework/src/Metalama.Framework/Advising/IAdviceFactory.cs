@@ -26,12 +26,17 @@ namespace Metalama.Framework.Advising
     [PublicAPI]
     public interface IAdviceFactory
     {
+        /// <summary>
+        /// Gets the immutable <see cref="ICompilation"/> representing the code <i>before</i> any change done by the current aspect. 
+        /// </summary>
+        /// <seealso cref="MutableCompilation"/>
         ICompilation Compilation { get; }
 
         /// <summary>
-        /// Gets the mutable compilation that the current aspect builder is working on. It includes all modifications done by
+        /// Gets the mutable <see cref="ICompilation"/> that the current aspect builder is working on. It includes all modifications done by
         /// the current aspect in the current type using declarative advices and the <see cref="IAdviceFactory"/>.
         /// </summary>
+        /// <seealso cref="Compilation"/>
         ICompilation MutableCompilation { get; }
 
         /// <summary>
