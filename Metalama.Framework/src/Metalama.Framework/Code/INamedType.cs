@@ -167,6 +167,11 @@ namespace Metalama.Framework.Code
         bool IsRef { get; }
 
         /// <summary>
+        /// Gets a value indicating whether type is a record. Also returns <c>false</c> when the type neither a class nor a record.
+        /// </summary>
+        bool IsRecord { get; }
+
+        /// <summary>
         /// Determines whether the type if subclass of the given class or interface.
         /// </summary>
         bool IsSubclassOf( INamedType type );

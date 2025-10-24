@@ -252,7 +252,7 @@ namespace Metalama.Framework.Code
                     => namedType.TypeArguments[0],
                 INamedType namedType when namedType.Attributes.Any( a => a.Type.FullName == "System.Runtime.CompilerServices.CollectionBuilderAttribute" )
                     => GetIterationType( namedType ),
-                INamedType { TypeKind: TypeKind.Struct or TypeKind.Class or TypeKind.RecordStruct or TypeKind.RecordClass } namedType when
+                INamedType { TypeKind: TypeKind.Struct or TypeKind.Class } namedType when
                     namedType.AllImplementedInterfaces.Any( i => i.FullName == "System.Collections.Generic.IEnumerable" )
                     => GetIterationType( namedType ),
                 INamedType

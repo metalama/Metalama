@@ -17,13 +17,13 @@ internal abstract class TypeVisitor<T>
         {
             TypeKind.Array => this.VisitArrayType( (IArrayType) type ),
             TypeKind.Dynamic => this.VisitDynamicType( (IDynamicType) type ),
-            TypeKind.Class or TypeKind.RecordClass or TypeKind.Delegate or TypeKind.Enum or TypeKind.Interface or TypeKind.Struct or TypeKind.RecordStruct => this.VisitNamedType( (INamedType) type ),
+            TypeKind.Class or TypeKind.Delegate or TypeKind.Enum or TypeKind.Interface or TypeKind.Struct => this.VisitNamedType( (INamedType) type ),
             TypeKind.Pointer => this.VisitPointerType( (IPointerType) type ),
             TypeKind.FunctionPointer => this.VisitFunctionPointerType( (IFunctionPointerType) type ),
             TypeKind.TypeParameter => this.VisitTypeParameter( (ITypeParameter) type ),
             TypeKind.Extension => this.VisitExtensionBlock( (IExtensionBlock) type ),
             TypeKind.Tuple => this.VisitTupleType( (ITupleType) type ),
-            _ => throw new AssertionFailedException( $"Unexpected type: {type.GetType()}" ),
+            _ => throw new AssertionFailedException( $"Unexpected type: {type.GetType()}" )
         };
 
     // ReSharper disable once UnusedParameter.Global
@@ -35,9 +35,9 @@ internal abstract class TypeVisitor<T>
     protected virtual T VisitDynamicType( IDynamicType dynamicType ) => this.DefaultVisit( dynamicType );
 
     protected virtual T VisitNamedType( INamedType namedType ) => this.DefaultVisit( namedType );
-    
+
     protected virtual T VisitExtensionBlock( IExtensionBlock extensionBlock ) => this.VisitNamedType( extensionBlock );
-    
+
     protected virtual T VisitTupleType( ITupleType tupleType ) => this.VisitNamedType( tupleType );
 
     protected virtual T VisitPointerType( IPointerType pointerType ) => this.DefaultVisit( pointerType );

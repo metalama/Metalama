@@ -69,13 +69,11 @@ internal class SourceNamedTypeImpl : SourceMemberOrNamedType, INamedTypeImpl
     public virtual TypeKind TypeKind
         => this.NamedTypeSymbol.TypeKind switch
         {
-            Microsoft.CodeAnalysis.TypeKind.Class when !this.NamedTypeSymbol.IsRecord => TypeKind.Class,
-            Microsoft.CodeAnalysis.TypeKind.Class when this.NamedTypeSymbol.IsRecord => TypeKind.RecordClass,
+            Microsoft.CodeAnalysis.TypeKind.Class => TypeKind.Class,
             Microsoft.CodeAnalysis.TypeKind.Delegate => TypeKind.Delegate,
             Microsoft.CodeAnalysis.TypeKind.Enum => TypeKind.Enum,
             Microsoft.CodeAnalysis.TypeKind.Interface => TypeKind.Interface,
-            Microsoft.CodeAnalysis.TypeKind.Struct when !this.NamedTypeSymbol.IsRecord => TypeKind.Struct,
-            Microsoft.CodeAnalysis.TypeKind.Struct when this.NamedTypeSymbol.IsRecord => TypeKind.RecordStruct,
+            Microsoft.CodeAnalysis.TypeKind.Struct => TypeKind.Struct,
             Microsoft.CodeAnalysis.TypeKind.Error => TypeKind.Error,
             _ => throw new InvalidOperationException( $"Unexpected type kind for '{this.NamedTypeSymbol}': {this.NamedTypeSymbol.TypeKind}." )
         };
@@ -161,6 +159,8 @@ internal class SourceNamedTypeImpl : SourceMemberOrNamedType, INamedTypeImpl
     public bool IsReadOnly => this.NamedTypeSymbol.IsReadOnly;
 
     public bool IsRef => this.NamedTypeSymbol.IsRefLikeType;
+
+    public bool IsRecord => this.NamedTypeSymbol.IsRecord;
 
     public bool HasDefaultConstructor
         => this.NamedTypeSymbol.TypeKind == Microsoft.CodeAnalysis.TypeKind.Struct ||
@@ -535,7 +535,7 @@ internal class SourceNamedTypeImpl : SourceMemberOrNamedType, INamedTypeImpl
         // TODO: Generic context
 
         // TODO: enum.IsSubclassOf(int) == true etc.
-        if ( type.TypeKind is TypeKind.Class or TypeKind.RecordClass )
+        if ( type.TypeKind is TypeKind.Class )
         {
             INamedType? currentType = this;
 

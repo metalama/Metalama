@@ -18,7 +18,7 @@ internal abstract class CompilationElementVisitor<T>
             IType type => type.TypeKind switch
             {
                 TypeKind.Array => this.VisitArrayType( (IArrayType) type ),
-                TypeKind.Class or TypeKind.RecordClass or TypeKind.Struct or TypeKind.RecordStruct or TypeKind.Delegate or TypeKind.Enum or TypeKind.Interface
+                TypeKind.Class or TypeKind.Struct or TypeKind.Delegate or TypeKind.Enum or TypeKind.Interface
                     => this.VisitNamedType( (INamedType) type ),
                 TypeKind.Dynamic => this.VisitDynamicType( (IDynamicType) type ),
                 TypeKind.TypeParameter => this.VisitTypeParameter( (ITypeParameter) type ),

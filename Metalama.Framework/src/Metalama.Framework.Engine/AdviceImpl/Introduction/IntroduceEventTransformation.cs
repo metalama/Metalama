@@ -57,13 +57,14 @@ internal sealed class IntroduceEventTransformation : IntroduceMemberTransformati
         // If we are introducing a field into a struct in C# 10, it must have an explicit default value.
         if ( initializerExpression == null
              && isEventField
-             && finalEvent is { DeclaringType.TypeKind: TypeKind.Struct or TypeKind.RecordStruct }
+             && finalEvent is { DeclaringType.TypeKind: TypeKind.Struct }
              && context.SyntaxGenerationContext.RequiresStructFieldInitialization )
         {
             initializerExpression = SyntaxFactoryEx.Default;
         }
 
-        var hasNoBody = isEventField || finalEvent.IsAbstract || finalEvent.IsPartial || finalEvent.IsExtern || this._template?.TemplateClassMember.TemplateInfo.HasNoBody == true;
+        var hasNoBody = isEventField || finalEvent.IsAbstract || finalEvent.IsPartial || finalEvent.IsExtern
+                        || this._template?.TemplateClassMember.TemplateInfo.HasNoBody == true;
 
         // TODO: If the user adds (different) attributes to event field's accessors, we cannot use event fields.
 
@@ -97,7 +98,7 @@ internal sealed class IntroduceEventTransformation : IntroduceMemberTransformati
                                 (NameSyntax) syntaxGenerator.TypeSyntax( finalEvent.ExplicitInterfaceImplementations.Single().DeclaringType ) )
                             .WithOptionalTrailingTrivia( ElasticSpace, context.SyntaxGenerationContext.Options )
                         : null,
-                    Identifier(finalEvent.GetCleanName() ),
+                    Identifier( finalEvent.GetCleanName() ),
                     GenerateAccessorList(),
                     default );
 
@@ -169,9 +170,10 @@ internal sealed class IntroduceEventTransformation : IntroduceMemberTransformati
                                                                           && initializerExpression != null
                         => context.SyntaxGenerator.FormattedBlock(
                             ExpressionStatement(
-                                context.AspectReferenceSyntaxProvider.AssertNotNull().GetEventFieldInitializerExpression(
-                                    syntaxGenerator.TypeSyntax( finalEvent.Type ),
-                                    initializerExpression ) ) ),
+                                context.AspectReferenceSyntaxProvider.AssertNotNull()
+                                    .GetEventFieldInitializerExpression(
+                                        syntaxGenerator.TypeSyntax( finalEvent.Type ),
+                                        initializerExpression ) ) ),
                     _ => context.SyntaxGenerator.FormattedBlock()
                 };
 

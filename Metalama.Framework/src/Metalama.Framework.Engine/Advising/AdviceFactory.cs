@@ -1669,8 +1669,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
                         name,
                         whenExists,
                         buildType,
-                        TypeKind.Class,
-                        this )
+                        TypeKind.Class )
                     .Execute( this._state );
         }
     }
@@ -1690,8 +1689,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
                     name,
                     whenExists,
                     buildType,
-                    TypeKind.Interface,
-                    this )
+                    TypeKind.Interface )
                 .Execute( this._state );
         }
     }

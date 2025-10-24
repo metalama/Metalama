@@ -297,7 +297,7 @@ namespace Metalama.Framework.Aspects
 
             IProperty? property;
 
-            if ( parameter.DeclaringMember is IConstructor { DeclaringType.TypeKind: TypeKind.RecordClass or TypeKind.RecordStruct } constructor &&
+            if ( parameter.DeclaringMember is IConstructor { DeclaringType.IsRecord: true } constructor &&
                  (property = constructor.DeclaringType.Properties.OfName( builder.Target.Name ).SingleOrDefault()) != null )
             {
                 builder.With( property ).AddContract( nameof(this.Validate), direction );

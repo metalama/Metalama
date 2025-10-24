@@ -39,7 +39,7 @@ internal abstract class CompilationElementVisitor
 
                         break;
 
-                    case TypeKind.Class or TypeKind.RecordClass or TypeKind.Struct or TypeKind.RecordStruct or TypeKind.Delegate or TypeKind.Enum
+                    case TypeKind.Class or TypeKind.Struct or TypeKind.Delegate or TypeKind.Enum
                         or TypeKind.Interface:
                         this.VisitNamedType( (INamedType) type );
 

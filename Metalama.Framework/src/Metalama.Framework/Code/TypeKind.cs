@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code.Types;
+using System;
 
 namespace Metalama.Framework.Code
 {
@@ -21,12 +22,9 @@ namespace Metalama.Framework.Code
         /// <summary>
         /// <c>class</c> (<see cref="INamedType"/>).
         /// </summary>
-        /// <see cref="RecordClass"/>
         Class,
 
-        /// <summary>
-        /// <c>record class</c> (i.e. <c>record</c>) (<see cref="INamedType"/>).
-        /// </summary>
+        [Obsolete( "TypeKind.Class and INamedType.IsRecord", true )]
         RecordClass,
 
         /// <summary>
@@ -62,12 +60,9 @@ namespace Metalama.Framework.Code
         /// <summary>
         /// <c>struct</c>.
         /// </summary>
-        /// <seealso cref="RecordStruct"/> (<see cref="INamedType"/>).
         Struct,
 
-        /// <summary>
-        /// <c>record struct</c> (<see cref="INamedType"/>).
-        /// </summary>
+        [Obsolete( "TypeKind.Struct and INamedType.IsRecord", true )]
         RecordStruct,
 
         /// <summary>

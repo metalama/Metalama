@@ -116,7 +116,7 @@ namespace Metalama.Framework.Aspects
                         {
                             var t = x.GetClosestNamedType();
 
-                            return t is { TypeKind: not (TypeKind.Struct or TypeKind.RecordStruct) } and { IsStatic: false, IsSealed: false };
+                            return t is { TypeKind: not TypeKind.Struct } and { IsStatic: false, IsSealed: false };
                         },
                         _ => $"the aspect contains an virtual declarative introduction and therefore cannot be applied to sealed types, static types and structs" ) );
             }
@@ -155,7 +155,7 @@ namespace Metalama.Framework.Aspects
 
             switch ( targetType )
             {
-                case { TypeKind: not (TypeKind.Class or TypeKind.Struct or TypeKind.RecordClass or TypeKind.RecordStruct or TypeKind.Interface) }:
+                case { TypeKind: not (TypeKind.Class or TypeKind.Struct or TypeKind.Interface) }:
                     builder.Diagnostics.Report(
                         FrameworkDiagnosticDescriptors.CannotApplyAdviceOnTypeOrItsMembers.WithArguments(
                             (builder.AspectInstance.AspectClass.ShortName, templateMember.DeclarationKind, targetType.TypeKind) ) );

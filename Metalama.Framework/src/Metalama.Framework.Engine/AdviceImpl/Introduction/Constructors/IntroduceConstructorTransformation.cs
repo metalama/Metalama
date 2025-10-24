@@ -59,13 +59,14 @@ internal sealed class IntroduceConstructorTransformation
         var arguments =
             ArgumentList(
                 SeparatedList(
-                    this.BuilderData.InitializerArguments.SelectAsArray( a =>
-                                                                             Argument(
-                                                                                 a.ParameterName != null
-                                                                                     ? NameColon( IdentifierName( a.ParameterName ) )
-                                                                                     : null,
-                                                                                 default,
-                                                                                 a.Expression.ToExpressionSyntax( syntaxSerializationContext ) ) ) ) );
+                    this.BuilderData.InitializerArguments.SelectAsArray(
+                        a =>
+                            Argument(
+                                a.ParameterName != null
+                                    ? NameColon( IdentifierName( a.ParameterName ) )
+                                    : null,
+                                default,
+                                a.Expression.ToExpressionSyntax( syntaxSerializationContext ) ) ) ) );
 
         var initializer =
             finalConstructor.InitializerKind switch
@@ -90,12 +91,12 @@ internal sealed class IntroduceConstructorTransformation
                 context.SyntaxGenerator.ParameterList( finalConstructor, context.FinalCompilation ),
                 initializer,
                 hasNoBody
-                ? null
-                : context.SyntaxGenerationContext.SyntaxGenerator.FormattedBlock( statements )
-                    .WithGeneratedCodeAnnotation( this.AspectInstance.AspectClass.GeneratedCodeAnnotation ),
+                    ? null
+                    : context.SyntaxGenerationContext.SyntaxGenerator.FormattedBlock( statements )
+                        .WithGeneratedCodeAnnotation( this.AspectInstance.AspectClass.GeneratedCodeAnnotation ),
                 hasNoBody
-                ? Token(SyntaxKind.SemicolonToken)
-                : default );
+                    ? Token( SyntaxKind.SemicolonToken )
+                    : default );
 
         return
         [
@@ -122,7 +123,7 @@ internal sealed class IntroduceConstructorTransformation
         var constructorBuilder = this.BuilderData.ToRef().GetTarget( context.FinalCompilation );
 
         // See https://learn.microsoft.com/en-us/dotnet/csharp/whats-new/csharp-11#auto-default-struct.
-        if ( constructorBuilder.DeclaringType.TypeKind is TypeKind.Struct or TypeKind.RecordStruct &&
+        if ( constructorBuilder.DeclaringType.TypeKind is TypeKind.Struct &&
              context.SyntaxGenerationContext.RequiresStructFieldInitialization )
         {
             return

@@ -43,6 +43,7 @@ internal sealed class NamedTypeBuilderData : MemberOrNamedTypeBuilderData
         this.ImplementedInterfaces = builder.ImplementedInterfaces.SelectAsImmutableArray( i => i.ToFullRef() );
         this.Attributes = builder.Attributes.ToImmutable( this._ref );
         this.TypeKind = builder.TypeKind;
+        this.IsRecord = builder.IsRecord;
     }
 
     protected override IFullRef<IDeclaration> ToDeclarationFullRef() => this._ref;
@@ -50,6 +51,8 @@ internal sealed class NamedTypeBuilderData : MemberOrNamedTypeBuilderData
     public new IFullRef<INamedType> ToRef() => this._ref;
 
     public override DeclarationKind DeclarationKind => DeclarationKind.NamedType;
+
+    public bool IsRecord { get; }
 
     public override IEnumerable<DeclarationBuilderData> GetOwnedDeclarations() => base.GetOwnedDeclarations().Concat( this.TypeParameters );
 }

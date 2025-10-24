@@ -227,7 +227,7 @@ internal abstract class IntroduceMemberAdvice<TTemplate, TIntroduced, TBuilder> 
         }
 
         // Check that virtual member is not introduced to a sealed type or a struct.
-        if ( targetDeclaration is { IsSealed: true } or { DeclaringType.TypeKind: TypeKind.Struct or TypeKind.RecordStruct }
+        if ( targetDeclaration is { IsSealed: true } or { DeclaringType.TypeKind: TypeKind.Struct }
              && builder.IsVirtual )
         {
             diagnosticAdder.Report(
