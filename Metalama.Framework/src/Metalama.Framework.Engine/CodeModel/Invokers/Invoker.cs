@@ -17,26 +17,25 @@ namespace Metalama.Framework.Engine.CodeModel.Invokers;
 internal abstract partial class Invoker<T>
     where T : IMember
 {
-    private readonly AspectReferenceOrder _order;
-
     protected InvokerOptions Options { get; }
 
     protected IExpression? Target { get; }
 
     protected Invoker( T member, InvokerOptions options, IExpression? target )
     {
-        var isSelfTarget = target is null or ThisInstanceUserReceiver or ThisTypeUserReceiver;
-
-        var orderOptions = GetOrderOptions( member, options, isSelfTarget );
-
-        var otherFlags = options & ~InvokerOptions.OrderMask;
-
-        this.Options = orderOptions | otherFlags;
-
+        this.Options = options;
         this.Target = target;
         this.Member = member;
+    }
 
-        this._order = orderOptions switch
+    // Note that the result of this method indirectly depends on the execution context, so it cannot be cached.
+    private AspectReferenceOrder GetAspectReferenceOrder()
+    {
+        var isSelfTarget = this.Target is null or ThisInstanceUserReceiver or ThisTypeUserReceiver;
+
+        var orderOptions = GetOrderOptions( this.Member, this.Options, isSelfTarget );
+
+        return orderOptions switch
         {
             InvokerOptions.Current => AspectReferenceOrder.Current,
             InvokerOptions.Base => AspectReferenceOrder.Base,
@@ -75,14 +74,6 @@ internal abstract partial class Invoker<T>
         bool RequiresNullConditionalAccessMember,
         AspectReferenceSpecification AspectReferenceSpecification );
 
-    private AspectReferenceSpecification GetDefaultAspectReferenceSpecification()
-
-        // CurrentAspectLayerId may be null when we are not executing in a template execution context.
-        => new(
-            TemplateExpansionContext.CurrentAspectLayerId ?? default,
-            this._order,
-            flags: this.Target == null ? AspectReferenceFlags.None : AspectReferenceFlags.CustomReceiver );
-
     protected string GetCleanTargetMemberName()
     {
         var definition = this.Member.Definition;
@@ -95,9 +86,11 @@ internal abstract partial class Invoker<T>
 
     protected ReceiverTypedExpressionSyntax GetReceiverInfo( SyntaxSerializationContext syntaxSerializationContext )
     {
+        var order = this.GetAspectReferenceOrder();
+
         if ( this.Target is UserReceiver receiver )
         {
-            receiver = receiver.WithAspectReferenceOrder( this._order );
+            receiver = receiver.WithAspectReferenceOrder( order );
 
             return new ReceiverTypedExpressionSyntax(
                 receiver.ToTypedExpressionSyntax( syntaxSerializationContext ),
@@ -106,7 +99,12 @@ internal abstract partial class Invoker<T>
         }
         else
         {
-            var aspectReferenceSpecification = this.GetDefaultAspectReferenceSpecification();
+            // CurrentAspectLayerId may be null when we are not executing in a template execution context.
+            var aspectReferenceSpecification =
+                new AspectReferenceSpecification(
+                    TemplateExpansionContext.CurrentAspectLayerId ?? default,
+                    order,
+                    flags: this.Target == null ? AspectReferenceFlags.None : AspectReferenceFlags.CustomReceiver );
 
             if ( this.Target != null )
             {
