@@ -13,28 +13,46 @@ namespace Metalama.Framework.Code.Invokers
     [CompileTime]
     public interface IEventInvoker
     {
+        // TODO: Create methods to work with IExpression.
+
         /// <summary>
-        /// Generates run-time code that adds a given handler to the event. By default, the target instance
-        /// of the event is <c>this</c> unless the event is static, and the <c>base</c> implementation of the event is invoked,
-        /// i.e. the implementation before the current aspect layer. To change the default values, or to use the <c>?.</c> null-conditional operator,
-        /// use the <see cref="WithOptions"/> method.
+        /// Generates run-time code that adds a given handler to the event.
         /// </summary>
+        /// <param name="handler">A C# expression representing the event handler. If the compile-time type
+        /// of the expression is <c>dynamic</c>, it must be explicitly cast to <see cref="IExpression"/>.</param>
+        /// <returns>An internal Metalama statement object representing the event handler addition. It should be ignored in user code.</returns>
+        /// <remarks>
+        /// By default, the event is accessed on the current object (<c>this</c>), unless the event is static. The <c>base</c> implementation 
+        /// of the event is invoked, i.e. the implementation <i>before</i> the current aspect layer. To change the default values,
+        /// use the <see cref="WithOptions"/> method.
+        /// </remarks>
         dynamic Add( dynamic? handler );
 
         /// <summary>
-        /// Generates run-time code that removes a given handler from the event. By default, the target instance
-        /// of the event is <c>this</c> unless the event is static, and the <c>base</c> implementation of the event is invoked,
-        /// i.e. the implementation before the current aspect layer. To change the default values, or to use the <c>?.</c> null-conditional operator,
-        /// use the <see cref="WithOptions"/> method.
+        /// Generates run-time code that removes a given handler from the event. 
         /// </summary>
+        /// <param name="handler">A C# expression representing the event handler. If the compile-time type
+        /// of the expression is <c>dynamic</c>, it must be explicitly cast to <see cref="IExpression"/>.</param>
+        /// <returns>An internal Metalama statement object representing the event handler addition. It should be ignored in user code.</returns> 
+        /// <remarks>
+        /// By default, the event is accessed on the current object (<c>this</c>), unless the event is static. The <c>base</c> implementation 
+        /// of the event is invoked, i.e. the implementation <i>before</i> the current aspect layer. To change the default values,
+        /// use the <see cref="WithOptions"/> method.
+        /// </remarks>
         dynamic Remove( dynamic? handler );
 
         /// <summary>
-        /// Generates run-time code that raises the current event with specified arguments. By default, the target instance
-        /// of the event is <c>this</c> unless the event is static, and the <c>base</c> implementation of the event is invoked,
-        /// i.e. the implementation before the current aspect layer. To change the default values, or to use the <c>?.</c> null-conditional operator,
-        /// use the <see cref="WithOptions"/> method.
+        /// Generates run-time code that raises the current event with specified arguments.
         /// </summary>
+        /// <param name="args">A list of C# expressions to be passed to the event. If the compile-time type
+        /// of any expression is <c>dynamic</c>, it must be explicitly cast to <see cref="IExpression"/>.</param>
+        /// <returns>A dynamic object representing the return value of the event, if any.  If the compile-time type
+        /// of any expression is <c>dynamic</c>, it must be explicitly cast to <see cref="IExpression"/>.</returns>
+        /// <remarks>
+        /// By default, the event is accessed on the current object (<c>this</c>), unless the event is static. The <c>base</c> implementation 
+        /// of the event is invoked, i.e. the implementation <i>before</i> the current aspect layer. To change the default values,
+        /// use the <see cref="WithOptions"/> method.
+        /// </remarks>
         dynamic? Raise( params dynamic?[] args );
 
         /// <summary>
@@ -43,13 +61,19 @@ namespace Metalama.Framework.Code.Invokers
         IEventInvoker WithOptions( InvokerOptions options );
 
         /// <summary>
-        /// Gets an <see cref="IEventInvoker"/> for the same event but with a different object, specified as an <see cref="IExpression"/>.
+        /// Gets an <see cref="IEventInvoker"/> for the same event but with a different object, specified as a compile-time <see cref="IExpression"/> object.
         /// </summary>
-        /// <param name="target">The run-time expression that represents the target instance of the method.
+        /// <param name="obj">The run-time expression that represents the object on which the field or property is accessed, or <c>null</c> it is static.
         /// </param>
-        IEventInvoker WithObject( IExpression? target );
+        IEventInvoker WithObject( IExpression? obj );
 
-        IEventInvoker WithObject( dynamic? target );
+        /// <summary>
+        /// Gets an <see cref="IEventInvoker"/> for the same event but with a different object, specified as a run-tune C# expression.
+        /// </summary>
+        /// <param name="obj">The run-time expression that represents the object on which the field or property is accessed, or <c>null</c> it is static.
+        /// If the compile-time type of the expression is <c>dynamic</c>, it must be explicitly cast to <see cref="IExpression"/>.
+        /// </param>
+        IEventInvoker WithObject( dynamic? obj );
 
         [Obsolete( "Use the WithOptions method." )]
         IEventInvoker With( InvokerOptions options );

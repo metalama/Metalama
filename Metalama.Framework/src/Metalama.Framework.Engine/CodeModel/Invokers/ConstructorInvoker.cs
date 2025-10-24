@@ -80,11 +80,6 @@ internal sealed class ConstructorInvoker : Invoker<IConstructor>, IConstructorIn
             this.Member,
             context => TypedExpressionSyntaxImpl.FromValues( args, context ).SelectAsArray( tes => tes.Syntax ) );
 
-    public IObjectCreationExpression CreateInvokeExpression( params IExpression[] args )
-        => new ObjectCreationExpression(
-            this.Member,
-            context => args.SelectAsArray( arg => arg.ToExpressionSyntax( context ) ) );
-
     public IObjectCreationExpression CreateInvokeExpression( IEnumerable<IExpression> args )
         => new ObjectCreationExpression(
             this.Member,

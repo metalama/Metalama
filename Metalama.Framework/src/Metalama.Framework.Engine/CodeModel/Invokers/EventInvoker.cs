@@ -17,7 +17,7 @@ namespace Metalama.Framework.Engine.CodeModel.Invokers;
 
 internal sealed class EventInvoker : Invoker<IEvent>, IEventInvoker
 {
-    public EventInvoker( IEvent @event, InvokerOptions? options = null, IExpression? target = null ) : base( @event, options, target ) { }
+    public EventInvoker( IEvent @event, InvokerOptions options = default, IExpression? target = null ) : base( @event, options, target ) { }
 
     public object Add( object? value )
     {
@@ -83,9 +83,9 @@ internal sealed class EventInvoker : Invoker<IEvent>, IEventInvoker
 
     public IEventInvoker WithOptions( InvokerOptions options ) => this.Options == options ? this : new EventInvoker( this.Member, options, this.Target );
 
-    public IEventInvoker WithObject( IExpression? target ) => this.Target == target ? this : new EventInvoker( this.Member, this.Options, target );
+    public IEventInvoker WithObject( IExpression? obj ) => this.IsSameTarget( obj ) ? this : new EventInvoker( this.Member, this.Options, obj );
 
-    public IEventInvoker WithObject( object? target ) => this.WithObject( new CapturedUserExpression( this.Compilation, target ) );
+    public IEventInvoker WithObject( object? obj ) => this.IsSameTarget( obj ) ? this : this.WithObject( new CapturedUserExpression( this.Compilation, obj ) );
 
     IEventInvoker IEventInvoker.With( InvokerOptions options ) => this.WithOptions( options );
 

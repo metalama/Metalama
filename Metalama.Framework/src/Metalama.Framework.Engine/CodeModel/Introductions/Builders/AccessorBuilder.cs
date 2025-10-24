@@ -144,21 +144,26 @@ internal sealed partial class AccessorBuilder : DeclarationBuilder, IMethodBuild
         set => throw new InvalidOperationException( "Accessor's IsExtern cannot be directly set." );
     }
 
-    public IMethodInvoker WithOptions( InvokerOptions options ) => options == InvokerOptions.Default ? this : new MethodInvoker( this, options );
+    [Memo]
+    private IMethodInvoker Invoker => new MethodInvoker( this );
 
-    public IMethodInvoker WithObject( object? target ) => this.WithObject( new CapturedUserExpression( this.Compilation, target ) );
+    IMethodInvoker IMethodInvoker.WithOptions( InvokerOptions options ) => this.Invoker.WithOptions( options );
 
-    public IMethodInvoker WithObject( IExpression? target ) => new MethodInvoker( this, InvokerOptions.Default, target );
+    IMethodInvoker IMethodInvoker.WithObject( object? obj ) => this.Invoker.WithObject( obj );
 
-    IMethodInvoker IMethodInvoker.With( InvokerOptions options ) => this.WithOptions( options );
+    IMethodInvoker IMethodInvoker.WithObject( IExpression? obj ) => this.Invoker.WithObject( obj );
 
-    IMethodInvoker IMethodInvoker.With( object? target, InvokerOptions options ) => this.WithOptions( options ).WithObject( target );
+    IMethodInvoker IMethodInvoker.With( InvokerOptions options ) => this.Invoker.WithOptions( options );
 
-    public IExpression CreateInvokeExpression( IEnumerable<IExpression> args ) => new MethodInvoker( this ).CreateInvokeExpression( args );
+    IMethodInvoker IMethodInvoker.With( object? obj, InvokerOptions options ) => this.Invoker.WithOptions( options ).WithObject( obj );
 
-    public object? Invoke( params object?[] args ) => new MethodInvoker( this ).Invoke( args );
+    IExpression IMethodInvoker.CreateInvokeExpression( IEnumerable<IExpression> args ) => this.Invoker.CreateInvokeExpression( args );
 
-    public object? Invoke( IEnumerable<IExpression> args ) => new MethodInvoker( this ).Invoke( args );
+    IExpression IMethodInvoker.CreateInvokeExpression( IEnumerable<object?> args ) => this.Invoker.CreateInvokeExpression( args );
+
+    object? IMethodInvoker.Invoke( params object?[] args ) => this.Invoker.Invoke( args );
+
+    object? IMethodInvoker.Invoke( IEnumerable<IExpression> args ) => this.Invoker.Invoke( args );
 
     public Accessibility Accessibility
     {

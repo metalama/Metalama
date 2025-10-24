@@ -14,7 +14,6 @@ using Metalama.Framework.Engine.Collections;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.SyntaxGeneration;
-using Metalama.Framework.Engine.SyntaxSerialization;
 using Metalama.Framework.Engine.Templating.Expressions;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
@@ -259,7 +258,7 @@ public static class DeclarationExtensions
     {
         var operatorData = OperatorData.GetByKind( operatorKind );
 
-        if ( operatorData?.OperatorKeyword is { } syntaxKind )
+        if ( operatorData.OperatorKeyword is { } syntaxKind )
         {
             return syntaxKind;
         }

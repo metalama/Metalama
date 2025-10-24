@@ -23,15 +23,13 @@ internal abstract partial class Invoker<T>
 
     protected IExpression? Target { get; }
 
-    protected Invoker( T member, InvokerOptions? options, IExpression? target )
+    protected Invoker( T member, InvokerOptions options, IExpression? target )
     {
-        options ??= InvokerOptions.Default;
-
         var isSelfTarget = target is null or ThisInstanceUserReceiver or ThisTypeUserReceiver;
 
-        var orderOptions = GetOrderOptions( member, options.Value, isSelfTarget );
+        var orderOptions = GetOrderOptions( member, options, isSelfTarget );
 
-        var otherFlags = options.Value & ~InvokerOptions.OrderMask;
+        var otherFlags = options & ~InvokerOptions.OrderMask;
 
         this.Options = orderOptions | otherFlags;
 
@@ -158,6 +156,8 @@ internal abstract partial class Invoker<T>
                 (this.Member, GetTargetType()!, this.Options & InvokerOptions.OrderMask) );
         }
     }
+
+    protected bool IsSameTarget( object? target ) => ReferenceEquals( target, this.Target ) || (target != null && target.Equals( this.Target ));
 
     public override string ToString() => $"{this.GetType().Name} Member={{{this.Member}}}, Options={{{this.Options}}}";
 }

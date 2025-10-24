@@ -4,7 +4,6 @@
 
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.Invokers;
-using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.SyntaxSerialization;
 using Metalama.Framework.Engine.Templating.Expressions;
 using Microsoft.CodeAnalysis.CSharp;
@@ -17,7 +16,7 @@ namespace Metalama.Framework.Engine.CodeModel.Invokers;
 
 internal sealed class IndexerInvoker : Invoker<IIndexer>, IIndexerInvoker
 {
-    public IndexerInvoker( IIndexer indexer, InvokerOptions? options = default, IExpression? target = null ) : base( indexer, options, target ) { }
+    public IndexerInvoker( IIndexer indexer, InvokerOptions options = default, IExpression? target = null ) : base( indexer, options, target ) { }
 
     [Obsolete]
     public object GetValue( params object?[] args ) => this.GetExpression( args );
@@ -71,9 +70,9 @@ internal sealed class IndexerInvoker : Invoker<IIndexer>, IIndexerInvoker
 
     public IIndexerInvoker WithOptions( InvokerOptions options ) => this.Options == options ? this : new IndexerInvoker( this.Member, options, this.Target );
 
-    public IIndexerInvoker WithObject( object? target ) => this.WithObject( new CapturedUserExpression( this.Compilation, target ) );
+    public IIndexerInvoker WithObject( dynamic obj ) => this.WithObject( new CapturedUserExpression( this.Compilation, obj ) );
 
-    public IIndexerInvoker WithObject( IExpression target ) => this.Target == target ? this : new IndexerInvoker( this.Member, this.Options, target );
+    public IIndexerInvoker WithObject( IExpression obj ) => this.IsSameTarget( obj ) ? this : new IndexerInvoker( this.Member, this.Options, obj );
 
     IIndexerInvoker IIndexerInvoker.With( InvokerOptions options ) => this.WithOptions( options );
 

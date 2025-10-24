@@ -13,6 +13,7 @@ using Metalama.Framework.Engine.CodeModel.Introductions.Collections;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.ReflectionMocks;
 using Metalama.Framework.Engine.Templating.Expressions;
+using Metalama.Framework.Engine.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
@@ -160,21 +161,26 @@ internal sealed class MethodBuilder : MethodBaseBuilder, IMethodBuilderImpl
 
     IMethod IMethod.Definition => this;
 
-    public IMethodInvoker WithOptions( InvokerOptions options ) => options == InvokerOptions.Default ? this : new MethodInvoker( this, options );
+    [Memo]
+    private IMethodInvoker Invoker => new MethodInvoker( this );
 
-    public IMethodInvoker WithObject( object? target ) => this.WithObject( new CapturedUserExpression( this.Compilation, target ) );
+    IMethodInvoker IMethodInvoker.WithOptions( InvokerOptions options ) => this.Invoker.WithOptions( options );
 
-    public IMethodInvoker WithObject( IExpression? target ) => new MethodInvoker( this, InvokerOptions.Default, target );
+    IMethodInvoker IMethodInvoker.WithObject( object? obj ) => this.Invoker.WithObject( obj );
 
-    IMethodInvoker IMethodInvoker.With( InvokerOptions options ) => this.WithOptions( options );
+    IMethodInvoker IMethodInvoker.WithObject( IExpression? obj ) => this.Invoker.WithObject( obj );
 
-    IMethodInvoker IMethodInvoker.With( object? target, InvokerOptions options ) => this.WithOptions( options ).WithObject( target );
+    IMethodInvoker IMethodInvoker.With( InvokerOptions options ) => this.Invoker.WithOptions( options );
 
-    public IExpression CreateInvokeExpression( IEnumerable<IExpression> args ) => new MethodInvoker( this ).CreateInvokeExpression( args );
+    IMethodInvoker IMethodInvoker.With( object? obj, InvokerOptions options ) => this.Invoker.WithOptions( options ).WithObject( obj );
 
-    public object? Invoke( params object?[] args ) => new MethodInvoker( this ).Invoke( args );
+    IExpression IMethodInvoker.CreateInvokeExpression( IEnumerable<IExpression> args ) => this.Invoker.CreateInvokeExpression( args );
 
-    public object? Invoke( IEnumerable<IExpression> args ) => new MethodInvoker( this ).Invoke( args );
+    IExpression IMethodInvoker.CreateInvokeExpression( IEnumerable<object?> args ) => this.Invoker.CreateInvokeExpression( args );
+
+    object? IMethodInvoker.Invoke( params object?[] args ) => this.Invoker.Invoke( args );
+
+    object? IMethodInvoker.Invoke( IEnumerable<IExpression> args ) => this.Invoker.Invoke( args );
 
     public IReadOnlyList<IMethod> ExplicitInterfaceImplementations { get; private set; } = Array.Empty<IMethod>();
 

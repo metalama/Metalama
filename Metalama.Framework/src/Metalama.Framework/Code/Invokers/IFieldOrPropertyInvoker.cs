@@ -8,12 +8,15 @@ using System;
 namespace Metalama.Framework.Code.Invokers
 {
     /// <summary>
-    /// Allows accessing the the value of fields or properties through the <see cref="IExpression.Value"/> property of
-    /// the <see cref="IExpression"/> interface. By default, the target instance
-    /// of the field or property is <c>this</c> unless the property is static, and the <c>base</c> implementation of the property is invoked,
-    /// i.e. the implementation before the current aspect layer. To change the default values, or to use the <c>?.</c> null-conditional operator,
-    /// use the <see cref="WithOptions"/> method.
+    /// Allows accessing the value of fields or properties through the <see cref="IExpression.Value"/> property of
+    /// the <see cref="IExpression"/> interface. This interface augments <see cref="IExpression"/> with methods that allow to control
+    /// the object on which the field or property is accessed, as well as nullability options (see remarks).
     /// </summary>
+    /// <remarks>
+    /// By default, the property is accessed on the current object (<c>this</c>), unless the property is static. The <c>base</c> implementation 
+    /// of the property is invoked, i.e. the implementation <i>before</i> the current aspect layer. To change the default values,
+    /// use the <see cref="WithOptions"/> method.
+    /// </remarks>
     [CompileTime]
     public interface IFieldOrPropertyInvoker : IExpression
     {

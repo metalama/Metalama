@@ -6,7 +6,6 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Code.Invokers;
 using Metalama.Framework.CompileTimeContracts;
 using Metalama.Framework.Engine.Aspects;
-using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.SyntaxSerialization;
 using Metalama.Framework.Engine.Templating.Expressions;
 using Metalama.Framework.Engine.Utilities.Roslyn;
@@ -21,7 +20,7 @@ internal sealed class FieldOrPropertyInvoker : Invoker<IFieldOrProperty>, IField
 {
     public FieldOrPropertyInvoker(
         IFieldOrProperty fieldOrProperty,
-        InvokerOptions? options = null,
+        InvokerOptions options = default,
         IExpression? target = null ) : base(
         fieldOrProperty,
         options,
@@ -91,9 +90,10 @@ internal sealed class FieldOrPropertyInvoker : Invoker<IFieldOrProperty>, IField
         => this.Options == options ? this : new FieldOrPropertyInvoker( this.Member, options, this.Target );
 
     public IFieldOrPropertyInvoker WithObject( IExpression? target )
-        => this.Target == target ? this : new FieldOrPropertyInvoker( this.Member, this.Options, target );
+        => this.IsSameTarget( target ) ? this : new FieldOrPropertyInvoker( this.Member, this.Options, target );
 
-    public IFieldOrPropertyInvoker WithObject( object? target ) => this.WithObject( new CapturedUserExpression( this.Compilation, target ) );
+    public IFieldOrPropertyInvoker WithObject( object? target )
+        => this.IsSameTarget( target ) ? this : this.WithObject( new CapturedUserExpression( this.Compilation, target ) );
 
     IFieldOrPropertyInvoker IFieldOrPropertyInvoker.With( InvokerOptions options ) => this.WithOptions( options );
 

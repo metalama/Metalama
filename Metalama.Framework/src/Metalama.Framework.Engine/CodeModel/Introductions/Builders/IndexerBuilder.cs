@@ -13,6 +13,7 @@ using Metalama.Framework.Engine.CodeModel.Introductions.Collections;
 using Metalama.Framework.Engine.CodeModel.Invokers;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.Templating.Expressions;
+using Metalama.Framework.Engine.Utilities;
 using System;
 using System.Collections.Generic;
 using RefKind = Metalama.Framework.Code.RefKind;
@@ -87,25 +88,28 @@ internal sealed class IndexerBuilder : PropertyOrIndexerBuilder, IIndexerBuilder
 
     IIndexer IIndexer.Definition => this;
 
-    public IExpression this[ params object?[] args ] => new IndexerInvoker( this ).GetExpression( args );
+    [Memo]
+    private IIndexerInvoker Invoker => new IndexerInvoker( this );
 
-    public IExpression this[ params IExpression[] args ] => new IndexerInvoker( this ).GetExpression( args );
+    IIndexerInvoker IIndexerInvoker.WithOptions( InvokerOptions options ) => this.Invoker.WithOptions( options );
 
-    public IIndexerInvoker WithOptions( InvokerOptions options ) => options == InvokerOptions.Default ? this : new IndexerInvoker( this, options );
+    IIndexerInvoker IIndexerInvoker.WithObject( dynamic obj ) => this.Invoker.WithObject( obj );
 
-    public IIndexerInvoker WithObject( IExpression? target ) => new IndexerInvoker( this, InvokerOptions.Default, target );
+    IIndexerInvoker IIndexerInvoker.WithObject( IExpression obj ) => this.Invoker.WithObject( obj );
 
-    public IIndexerInvoker WithObject( object? target ) => this.WithObject( new CapturedUserExpression( this.Compilation, target ) );
+    IIndexerInvoker IIndexerInvoker.With( InvokerOptions options ) => this.Invoker.WithOptions( options );
 
-    IIndexerInvoker IIndexerInvoker.With( InvokerOptions options ) => this.WithOptions( options );
+    IIndexerInvoker IIndexerInvoker.With( object? target, InvokerOptions options ) => this.Invoker.WithOptions( options ).WithObject( target );
 
-    IIndexerInvoker IIndexerInvoker.With( object? target, InvokerOptions options ) => this.WithOptions( options ).WithObject( target );
+    IExpression IIndexerInvoker.this[ params IExpression[] args ] => this.Invoker[args];
+
+    IExpression IIndexerInvoker.this[ params object?[] args ] => this.Invoker[args];
 
     [Obsolete]
-    object IIndexerInvoker.GetValue( params object?[] args ) => new IndexerInvoker( this ).GetValue( args );
+    object? IIndexerInvoker.GetValue( params object?[] args ) => this.Invoker.GetValue( args );
 
     [Obsolete]
-    object IIndexerInvoker.SetValue( object? value, params object?[] args ) => new IndexerInvoker( this ).SetValue( value, args );
+    object? IIndexerInvoker.SetValue( object? value, params object?[] args ) => this.Invoker.SetValue( value, args );
 
     public override DeclarationKind DeclarationKind => DeclarationKind.Indexer;
 

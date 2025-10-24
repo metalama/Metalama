@@ -96,22 +96,24 @@ namespace Metalama.Framework.Engine.CodeModel.Source
         [Memo]
         public IExpression? InitializerExpression => this.GetInitializerExpressionCore();
 
-        public IFieldOrPropertyInvoker WithOptions( InvokerOptions options )
-            => options == InvokerOptions.Default ? this : new FieldOrPropertyInvoker( this, options );
+        [Memo]
+        private IFieldOrPropertyInvoker Invoker => new FieldOrPropertyInvoker( this );
 
-        public IFieldOrPropertyInvoker WithObject( IExpression? target ) => new FieldOrPropertyInvoker( this, InvokerOptions.Default, target );
+        IFieldOrPropertyInvoker IFieldOrPropertyInvoker.WithOptions( InvokerOptions options ) => this.Invoker.WithOptions( options );
 
-        public IFieldOrPropertyInvoker WithObject( object? target ) => this.WithObject( new CapturedUserExpression( this.Compilation, target ) );
+        IFieldOrPropertyInvoker IFieldOrPropertyInvoker.WithObject( object? target ) => this.Invoker.WithObject( target );
 
-        IFieldOrPropertyInvoker IFieldOrPropertyInvoker.With( InvokerOptions options ) => this.WithOptions( options );
+        IFieldOrPropertyInvoker IFieldOrPropertyInvoker.WithObject( IExpression? target ) => this.Invoker.WithObject( target );
 
-        IFieldOrPropertyInvoker IFieldOrPropertyInvoker.With( object? target, InvokerOptions options ) => this.WithOptions( options ).WithObject( target );
+        IFieldOrPropertyInvoker IFieldOrPropertyInvoker.With( InvokerOptions options ) => this.Invoker.WithOptions( options );
 
-        public ref object? Value => ref new FieldOrPropertyInvoker( this ).Value;
+        IFieldOrPropertyInvoker IFieldOrPropertyInvoker.With( object? target, InvokerOptions options )
+            => this.Invoker.WithOptions( options ).WithObject( target );
+
+        ref object? IExpression.Value => ref this.Invoker.Value;
 
         public TypedExpressionSyntax ToTypedExpressionSyntax( ISyntaxGenerationContext syntaxGenerationContext, IType? targetType = null )
-            => new FieldOrPropertyInvoker( this )
-                .ToTypedExpressionSyntax( syntaxGenerationContext, targetType );
+            => this.Invoker.ToTypedExpressionSyntax( syntaxGenerationContext, targetType );
 
         private IExpression? GetInitializerExpressionCore()
         {

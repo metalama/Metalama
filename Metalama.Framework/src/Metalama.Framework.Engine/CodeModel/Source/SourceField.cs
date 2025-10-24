@@ -96,41 +96,27 @@ namespace Metalama.Framework.Engine.CodeModel.Source
             }
         }
 
-        public IFieldOrPropertyInvoker WithOptions( InvokerOptions options )
-        {
-            this.CheckNotPropertyBackingField();
+        [Memo]
+        private IFieldOrPropertyInvoker Invoker => new FieldOrPropertyInvoker( this );
 
-            return new FieldOrPropertyInvoker( this, options );
-        }
+        IFieldOrPropertyInvoker IFieldOrPropertyInvoker.WithOptions( InvokerOptions options ) => this.Invoker.WithOptions( options );
 
-        public IFieldOrPropertyInvoker WithObject( IExpression? target )
-        {
-            this.CheckNotPropertyBackingField();
+        IFieldOrPropertyInvoker IFieldOrPropertyInvoker.WithObject( object? target ) => this.Invoker.WithObject( target );
 
-            return new FieldOrPropertyInvoker( this, InvokerOptions.Default, target );
-        }
+        IFieldOrPropertyInvoker IFieldOrPropertyInvoker.WithObject( IExpression? target ) => this.Invoker.WithObject( target );
 
-        public IFieldOrPropertyInvoker WithObject( object? target ) => this.WithObject( new CapturedUserExpression( this.Compilation, target ) );
+        IFieldOrPropertyInvoker IFieldOrPropertyInvoker.With( InvokerOptions options ) => this.Invoker.WithOptions( options );
 
-        IFieldOrPropertyInvoker IFieldOrPropertyInvoker.With( InvokerOptions options ) => this.WithOptions( options );
+        IFieldOrPropertyInvoker IFieldOrPropertyInvoker.With( object? target, InvokerOptions options )
+            => this.Invoker.WithOptions( options ).WithObject( target );
 
-        IFieldOrPropertyInvoker IFieldOrPropertyInvoker.With( object? target, InvokerOptions options ) => this.WithOptions( options ).WithObject( target );
-
-        public ref object? Value
-        {
-            get
-            {
-                this.CheckNotPropertyBackingField();
-
-                return ref new FieldOrPropertyInvoker( this ).Value;
-            }
-        }
+        ref object? IExpression.Value => ref this.Invoker.Value;
 
         public TypedExpressionSyntax ToTypedExpressionSyntax( ISyntaxGenerationContext syntaxGenerationContext, IType? targetType = null )
         {
             this.CheckNotPropertyBackingField();
 
-            return new FieldOrPropertyInvoker( this ).ToTypedExpressionSyntax( syntaxGenerationContext, targetType );
+            return this.Invoker.ToTypedExpressionSyntax( syntaxGenerationContext, targetType );
         }
 
         private IExpression? GetInitializerExpressionCore()

@@ -64,25 +64,28 @@ internal sealed class IntroducedIndexer : IntroducedPropertyOrIndexer, IIndexerI
 
     private protected override IFullRef<IDeclaration> ToFullDeclarationRef() => this.Ref;
 
-    public IIndexerInvoker WithOptions( InvokerOptions options ) => options == InvokerOptions.Default ? this : new IndexerInvoker( this, options );
+    [Memo]
+    private IIndexerInvoker Invoker => new IndexerInvoker( this );
 
-    public IIndexerInvoker WithObject( object? target ) => this.WithObject( new CapturedUserExpression( this.Compilation, target ) );
+    IIndexerInvoker IIndexerInvoker.WithOptions( InvokerOptions options ) => this.Invoker.WithOptions( options );
 
-    public IIndexerInvoker WithObject( IExpression? target ) => new IndexerInvoker( this, InvokerOptions.Default, target );
+    IIndexerInvoker IIndexerInvoker.WithObject( dynamic obj ) => this.Invoker.WithObject( obj );
 
-    IIndexerInvoker IIndexerInvoker.With( InvokerOptions options ) => this.WithOptions( options );
+    IIndexerInvoker IIndexerInvoker.WithObject( IExpression obj ) => this.Invoker.WithObject( obj );
 
-    IIndexerInvoker IIndexerInvoker.With( object? target, InvokerOptions options ) => this.WithOptions( options ).WithObject( target );
+    IIndexerInvoker IIndexerInvoker.With( InvokerOptions options ) => this.Invoker.WithOptions( options );
+
+    IIndexerInvoker IIndexerInvoker.With( object? target, InvokerOptions options ) => this.Invoker.WithOptions( options ).WithObject( target );
+
+    IExpression IIndexerInvoker.this[ params IExpression[] args ] => this.Invoker[args];
+
+    IExpression IIndexerInvoker.this[ params object?[] args ] => this.Invoker[args];
 
     [Obsolete]
-    object IIndexerInvoker.GetValue( params object?[] args ) => new IndexerInvoker( this ).GetValue( args );
+    object? IIndexerInvoker.GetValue( params object?[] args ) => this.Invoker.GetValue( args );
 
     [Obsolete]
-    object IIndexerInvoker.SetValue( object? value, params object?[] args ) => new IndexerInvoker( this ).SetValue( value, args );
-
-    public IExpression this[ params object?[] args ] => new IndexerInvoker( this ).GetExpression( args );
-
-    public IExpression this[ params IExpression[] args ] => new IndexerInvoker( this ).GetExpression( args );
+    object? IIndexerInvoker.SetValue( object? value, params object?[] args ) => this.Invoker.SetValue( value, args );
 
     // TODO: When an interface is introduced, explicit implementation should appear here.
     [Memo]

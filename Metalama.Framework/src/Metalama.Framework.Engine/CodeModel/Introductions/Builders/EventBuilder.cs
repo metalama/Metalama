@@ -128,21 +128,24 @@ internal sealed class EventBuilder : MemberBuilder, IEventBuilder, IEventImpl
 
     protected override IFullRef<IDeclaration> ToFullDeclarationRef() => this.Ref;
 
-    public IEventInvoker WithOptions( InvokerOptions options ) => options == InvokerOptions.Default ? this : new EventInvoker( this, options );
+    [Memo]
+    private IEventInvoker Invoker => new EventInvoker( this );
 
-    public IEventInvoker WithObject( IExpression? target ) => new EventInvoker( this, InvokerOptions.Default, target );
+    IEventInvoker IEventInvoker.WithOptions( InvokerOptions options ) => this.Invoker.WithOptions( options );
 
-    public IEventInvoker WithObject( object? target ) => this.WithObject( new CapturedUserExpression( this.Compilation, target ) );
+    IEventInvoker IEventInvoker.WithObject( object? obj ) => this.Invoker.WithObject( obj );
 
-    IEventInvoker IEventInvoker.With( InvokerOptions options ) => this.WithOptions( options );
+    IEventInvoker IEventInvoker.WithObject( IExpression? obj ) => this.Invoker.WithObject( obj );
 
-    IEventInvoker IEventInvoker.With( object? target, InvokerOptions options ) => this.WithOptions( options ).WithObject( target );
+    IEventInvoker IEventInvoker.With( InvokerOptions options ) => this.Invoker.WithOptions( options );
 
-    public object Add( object? handler ) => new EventInvoker( this ).Add( handler );
+    IEventInvoker IEventInvoker.With( object? target, InvokerOptions options ) => this.Invoker.WithOptions( options ).WithObject( target );
 
-    public object Remove( object? handler ) => new EventInvoker( this ).Remove( handler );
+    object IEventInvoker.Add( object? handler ) => this.Invoker.Add( handler );
 
-    public object Raise( params object?[] args ) => new EventInvoker( this ).Raise( args );
+    object IEventInvoker.Remove( object? handler ) => this.Invoker.Remove( handler );
+
+    object? IEventInvoker.Raise( params object?[] args ) => this.Invoker.Raise( args );
 
     public void SetExplicitInterfaceImplementation( IEvent interfaceEvent ) => this.ExplicitInterfaceImplementations = [interfaceEvent];
 

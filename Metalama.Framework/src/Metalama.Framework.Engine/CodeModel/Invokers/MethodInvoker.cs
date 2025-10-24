@@ -22,7 +22,7 @@ namespace Metalama.Framework.Engine.CodeModel.Invokers;
 
 internal sealed class MethodInvoker : Invoker<IMethod>, IMethodInvoker
 {
-    public MethodInvoker( IMethod method, InvokerOptions? options = default, IExpression? target = null ) : base( method, options, target ) { }
+    public MethodInvoker( IMethod method, InvokerOptions options = default, IExpression? target = null ) : base( method, options, target ) { }
 
     public object? Invoke( params object?[]? args )
     {
@@ -210,13 +210,16 @@ internal sealed class MethodInvoker : Invoker<IMethod>, IMethodInvoker
 
     public IMethodInvoker WithOptions( InvokerOptions options ) => this.Options == options ? this : new MethodInvoker( this.Member, options, this.Target );
 
-    public IMethodInvoker WithObject( object? target ) => this.WithObject( new CapturedUserExpression( this.Compilation, target ) );
+    public IMethodInvoker WithObject( object? obj ) => this.IsSameTarget( obj ) ? this : this.WithObject( new CapturedUserExpression( this.Compilation, obj ) );
 
-    public IMethodInvoker WithObject( IExpression? target ) => this.Target == target ? this : new MethodInvoker( this.Member, this.Options, target );
+    public IMethodInvoker WithObject( IExpression? obj ) => this.IsSameTarget( obj ) ? this : new MethodInvoker( this.Member, this.Options, obj );
 
     IMethodInvoker IMethodInvoker.With( InvokerOptions options ) => this.WithOptions( options );
 
-    IMethodInvoker IMethodInvoker.With( object? target, InvokerOptions options ) => this.WithOptions( options ).WithObject( target );
+    IMethodInvoker IMethodInvoker.With( object? obj, InvokerOptions options ) => this.WithOptions( options ).WithObject( obj );
 
     public IExpression CreateInvokeExpression( IEnumerable<IExpression> args ) => this.InvokeDefaultMethod( args.ToArray<object>() );
+
+    public IExpression CreateInvokeExpression( params IEnumerable<dynamic?> args )
+        => this.CreateInvokeExpression( args.Select( a => new CapturedUserExpression( this.Compilation, a ) ) );
 }

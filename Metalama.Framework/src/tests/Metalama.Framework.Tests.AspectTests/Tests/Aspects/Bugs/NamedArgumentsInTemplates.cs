@@ -12,8 +12,8 @@ internal class Aspect : OverrideMethodAspect
 {
     public override dynamic? OverrideMethod()
     {
-        meta.Target.Method.WithObject( target: (IExpression) meta.This ).Invoke();
-        
+        meta.Target.Method.WithObject( obj: (IExpression) meta.This ).Invoke();
+
         return null;
     }
 }
