@@ -10,7 +10,6 @@ using Metalama.Framework.Engine.CodeModel.Collections;
 using Metalama.Framework.Engine.CodeModel.GenericContexts;
 using Metalama.Framework.Engine.CodeModel.Invokers;
 using Metalama.Framework.Engine.CodeModel.References;
-using Metalama.Framework.Engine.Templating.Expressions;
 using Metalama.Framework.Engine.Utilities;
 using Microsoft.CodeAnalysis;
 using System;
@@ -60,13 +59,13 @@ internal sealed class SourceIndexer : SourcePropertyOrIndexer, IIndexerImpl
 
     IIndexerInvoker IIndexerInvoker.WithOptions( InvokerOptions options ) => this.Invoker.WithOptions( options );
 
-    IIndexerInvoker IIndexerInvoker.WithObject( dynamic obj ) => this.Invoker.WithObject( obj );
+    IIndexerInvoker IIndexerInvoker.WithObject( object obj ) => this.Invoker.WithObject( obj );
 
     IIndexerInvoker IIndexerInvoker.WithObject( IExpression obj ) => this.Invoker.WithObject( obj );
 
     IIndexerInvoker IIndexerInvoker.With( InvokerOptions options ) => this.Invoker.WithOptions( options );
 
-    IIndexerInvoker IIndexerInvoker.With( object? target, InvokerOptions options ) => this.Invoker.WithOptions( options ).WithObject( target );
+    IIndexerInvoker IIndexerInvoker.With( object? target, InvokerOptions options ) => this.Invoker.WithOptions( options ).WithObject( target! );
 
     IExpression IIndexerInvoker.this[ params IExpression[] args ] => this.Invoker[args];
 

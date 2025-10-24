@@ -17,6 +17,7 @@ namespace Metalama.Framework.Code.Invokers
         /// Gets an <see cref="IExpression"/> representing an item, with arguments represented as a list of <see cref="IExpression"/>.
         /// </summary>
         /// <param name="args">A list of <see cref="IExpression"/> to be passed to the indexer.</param>
+        /// <returns>An <see cref="IExpression"/> representing the specified item.</returns> 
         /// <remarks>
         /// By default, the indexer is accessed on the current object (<c>this</c>), unless it is static. The <c>base</c> implementation 
         /// of the indexer is invoked, i.e. the implementation <i>before</i> the current aspect layer. To change the default values,
@@ -25,10 +26,11 @@ namespace Metalama.Framework.Code.Invokers
         IExpression this[ params IExpression[] args ] { get; }
 
         /// <summary>
-        /// Gets an <see cref="IExpression"/> representing an item, with arguments represented as C# expressions. 
+        /// Gets an <see cref="IExpression"/> representing an item, with arguments represented as run-time C# expressions. 
         /// </summary>
-        /// <param name="args">A list of C# expressions to be passed to the indexer. If the compile-time type
+        /// <param name="args">A list of run-time C# expressions to be passed to the indexer. If the compile-time type
         /// of any expression is <c>dynamic</c>, it must be explicitly cast to <see cref="IExpression"/>.</param>
+        /// <returns>An <see cref="IExpression"/> representing the specified item.</returns>
         /// <remarks>
         /// By default, the indexer is accessed on the current object (<c>this</c>), unless it is static. The <c>base</c> implementation 
         /// of the indexer is invoked, i.e. the implementation <i>before</i> the current aspect layer. To change the default values,
@@ -44,7 +46,7 @@ namespace Metalama.Framework.Code.Invokers
         /// <summary>
         /// Gets an <see cref="IIndexerInvoker"/> for the same method but with a different object, provided as a C# expression.
         /// </summary>
-        /// <param name="obj">The run-time expression that represents the object on which the indexer should be accessed. If the compile-time type
+        /// <param name="obj">The run-time C# expression that represents the object on which the indexer should be accessed. If the compile-time type
         ///     of the expression is <c>dynamic</c>, it must be explicitly cast to <see cref="IExpression"/>.</param>
         IIndexerInvoker WithObject( dynamic obj );
 

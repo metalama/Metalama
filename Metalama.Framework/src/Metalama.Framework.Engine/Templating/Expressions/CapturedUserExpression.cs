@@ -4,9 +4,12 @@
 
 using Metalama.Framework.Code;
 using Metalama.Framework.CompileTimeContracts;
+using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.SyntaxSerialization;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Metalama.Framework.Engine.Templating.Expressions;
 
@@ -15,11 +18,46 @@ internal sealed class CapturedUserExpression : UserExpression
     private readonly ICompilation _compilation;
     private readonly object? _expression;
 
-    public CapturedUserExpression( ICompilation compilation, object? expression )
+    private CapturedUserExpression( ICompilation compilation, object? expression )
     {
         this._compilation = compilation;
         this._expression = expression;
     }
+
+   
+    
+
+    public static IExpression Create( ICompilation compilation, object? expression )
+        => expression switch
+        {
+            IExpression typedExpression => typedExpression,
+            _ => new CapturedUserExpression( compilation, expression )
+        };
+
+    public static IExpression[] Create( ICompilation compilation, IReadOnlyList<object?>? expressions )
+        => expressions switch
+        {
+            null => [],
+            [IReadOnlyList<IExpression> expressionList] => expressionList.ToArray(),
+            _ => expressions.SelectAsArray( e => Create( compilation, e ) ) 
+        };
+
+    private protected override bool? IsReferenceable
+        => this._expression switch
+        {
+            null => false,
+            TypedExpressionSyntaxImpl typedExpressionSyntaxImpl => typedExpressionSyntaxImpl.IsReferenceable,
+            TypedExpressionSyntax typedExpressionSyntax => typedExpressionSyntax.IsReferenceable,
+            _ => null
+        };
+
+    protected override bool CanBeNull 
+        => this._expression switch
+        {
+            null => false,
+            TypedExpressionSyntaxImpl typedExpressionSyntaxImpl => typedExpressionSyntaxImpl.CanBeNull,
+            _ => this.Type.IsNullable != false
+        };
 
     public override IType Type
         => this._expression switch
@@ -28,7 +66,6 @@ internal sealed class CapturedUserExpression : UserExpression
                    this._compilation.GetCompilationModel().Factory.Translate( expressionType ),
                TypedExpressionSyntax { ExpressionType: { } expressionType }
                    => this._compilation.GetCompilationModel().Factory.Translate( expressionType ),
-               IExpression expression => expression.Type,
                ExpressionSyntax expressionSyntax => TypeAnnotationMapper.TryFindExpressionTypeFromAnnotation(
                    expressionSyntax,
                    this._compilation.GetCompilationModel(),

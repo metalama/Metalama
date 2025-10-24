@@ -53,7 +53,7 @@ namespace Metalama.Framework.Code.Invokers
         /// <summary>
         /// Gets an <see cref="IMethodInvoker"/> for the same method but with a different object, provided as a C# expression.
         /// </summary>
-        /// <param name="obj">The run-time expression that represents the object for which the method should be called, or <c>null</c> if this is a static method.
+        /// <param name="obj">The run-time C# expression that represents the object for which the method should be called, or <c>null</c> if this is a static method.
         /// If the compile-time type of the expression is <c>dynamic</c>, it must be explicitly cast to <see cref="IExpression"/>.</param>
         IMethodInvoker WithObject( dynamic? obj );
 

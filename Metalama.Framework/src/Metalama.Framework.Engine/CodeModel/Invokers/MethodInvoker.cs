@@ -24,30 +24,23 @@ internal sealed class MethodInvoker : Invoker<IMethod>, IMethodInvoker
 {
     public MethodInvoker( IMethod method, InvokerOptions options = default, IExpression? target = null ) : base( method, options, target ) { }
 
-    public object? Invoke( params object?[]? args )
+    public object? Invoke( IEnumerable<IExpression> args ) => this.InvokeCore( args.ToReadOnlyList() );
+
+    private object? InvokeCore( IReadOnlyList<IExpression> args )
     {
-        // For some reason, overload resolution chooses the wrong overload in the template,
-        // so redirect to the correct one.
-        if ( args is [IEnumerable<IExpression> expressionArgs] )
-        {
-            return this.Invoke( expressionArgs );
-        }
-
-        args ??= [];
-
         var parametersCount = this.Member.Parameters.Count;
 
         if ( parametersCount > 0 && this.Member.Parameters[parametersCount - 1].IsParams )
         {
             // The this.Declaration has a 'params' param.
-            if ( args.Length < parametersCount - 1 )
+            if ( args.Count < parametersCount - 1 )
             {
-                throw GeneralDiagnosticDescriptors.MemberRequiresAtLeastNArguments.CreateException( (this.Member, parametersCount - 1, args.Length) );
+                throw GeneralDiagnosticDescriptors.MemberRequiresAtLeastNArguments.CreateException( (this.Member, parametersCount - 1, args.Count) );
             }
         }
-        else if ( args.Length != parametersCount )
+        else if ( args.Count != parametersCount )
         {
-            throw GeneralDiagnosticDescriptors.MemberRequiresNArguments.CreateException( (this.Member, parametersCount, args.Length) );
+            throw GeneralDiagnosticDescriptors.MemberRequiresNArguments.CreateException( (this.Member, parametersCount, args.Count) );
         }
 
         this.CheckInvocationOptionsAndTarget();
@@ -75,7 +68,7 @@ internal sealed class MethodInvoker : Invoker<IMethod>, IMethodInvoker
                         return property.WithObject( this.Target ).WithOptions( this.Options ).Value;
 
                     case IIndexer indexer:
-                        return indexer.WithObject( this.Target ).WithOptions( this.Options )[args];
+                        return indexer.WithObject( this.Target! ).WithOptions( this.Options )[args];
 
                     default:
                         throw new AssertionFailedException( $"Unexpected declaration for a PropertyGet: '{this.Member.DeclaringMember}'." );
@@ -90,7 +83,7 @@ internal sealed class MethodInvoker : Invoker<IMethod>, IMethodInvoker
                         return null;
 
                     case IIndexer indexer:
-                        ((IndexerInvoker) indexer.WithObject( this.Target ).WithOptions( this.Options )).SetValue( this.Target, args );
+                        ((IndexerInvoker) indexer.WithObject( this.Target! ).WithOptions( this.Options )).SetValue( this.Target, args );
 
                         return null;
 
@@ -104,9 +97,21 @@ internal sealed class MethodInvoker : Invoker<IMethod>, IMethodInvoker
         }
     }
 
-    public object? Invoke( IEnumerable<IExpression> args ) => this.Invoke( args.ToArray<object>() );
+    public object? Invoke( IEnumerable<object?> args ) => this.Invoke( args.ToArray() );
 
-    private DelegateUserExpression InvokeDefaultMethod( object?[] args )
+    public object? Invoke( object?[]? args )
+    {
+        // For some reason, overload resolution chooses the wrong overload in the template,
+        // so redirect to the correct one.
+        if ( args is [IEnumerable<IExpression> expressionArgs] )
+        {
+            return this.InvokeCore( expressionArgs.ToReadOnlyList() );
+        }
+
+        return this.InvokeCore( CapturedUserExpression.Create( this.Compilation, args ) );
+    }
+
+    private DelegateUserExpression InvokeDefaultMethod( IReadOnlyList<IExpression> args )
     {
         return new DelegateUserExpression(
             context =>
@@ -126,10 +131,7 @@ internal sealed class MethodInvoker : Invoker<IMethod>, IMethodInvoker
                     name = IdentifierName( this.GetCleanTargetMemberName() );
                 }
 
-                var arguments = this.Member.GetArguments(
-                    this.Member.Parameters,
-                    TypedExpressionSyntaxImpl.FromValues( args, context ),
-                    context.SyntaxGenerationContext );
+                var arguments = this.Member.GetArguments( this.Member.Parameters, args, context );
 
                 if ( this.Member.MethodKind == MethodKind.LocalFunction )
                 {
@@ -210,7 +212,8 @@ internal sealed class MethodInvoker : Invoker<IMethod>, IMethodInvoker
 
     public IMethodInvoker WithOptions( InvokerOptions options ) => this.Options == options ? this : new MethodInvoker( this.Member, options, this.Target );
 
-    public IMethodInvoker WithObject( object? obj ) => this.IsSameTarget( obj ) ? this : this.WithObject( new CapturedUserExpression( this.Compilation, obj ) );
+    public IMethodInvoker WithObject( object? obj )
+        => this.IsSameTarget( obj ) ? this : this.WithObject( CapturedUserExpression.Create( this.Compilation, obj ) );
 
     public IMethodInvoker WithObject( IExpression? obj ) => this.IsSameTarget( obj ) ? this : new MethodInvoker( this.Member, this.Options, obj );
 
@@ -218,8 +221,8 @@ internal sealed class MethodInvoker : Invoker<IMethod>, IMethodInvoker
 
     IMethodInvoker IMethodInvoker.With( object? obj, InvokerOptions options ) => this.WithOptions( options ).WithObject( obj );
 
-    public IExpression CreateInvokeExpression( IEnumerable<IExpression> args ) => this.InvokeDefaultMethod( args.ToArray<object>() );
+    public IExpression CreateInvokeExpression( IEnumerable<IExpression> args ) => this.InvokeDefaultMethod( args.ToArray() );
 
-    public IExpression CreateInvokeExpression( params IEnumerable<dynamic?> args )
-        => this.CreateInvokeExpression( args.Select( a => new CapturedUserExpression( this.Compilation, a ) ) );
+    public IExpression CreateInvokeExpression( params IEnumerable<object?> args )
+        => this.CreateInvokeExpression( args.Select( a => CapturedUserExpression.Create( this.Compilation, a ) ) );
 }

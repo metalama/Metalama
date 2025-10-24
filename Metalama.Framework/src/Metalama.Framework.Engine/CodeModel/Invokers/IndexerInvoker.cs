@@ -19,7 +19,7 @@ internal sealed class IndexerInvoker : Invoker<IIndexer>, IIndexerInvoker
     public IndexerInvoker( IIndexer indexer, InvokerOptions options = default, IExpression? target = null ) : base( indexer, options, target ) { }
 
     [Obsolete]
-    public object GetValue( params object?[] args ) => this.GetExpression( args );
+    public object GetValue( params object?[] args ) => this.GetItemExpression( args );
 
     public object SetValue( object? value, params object?[] args )
     {
@@ -37,9 +37,9 @@ internal sealed class IndexerInvoker : Invoker<IIndexer>, IIndexerInvoker
             isAssignable: true );
     }
 
-    public IExpression this[ params IExpression[] args ] => this.GetExpression( args );
+    public IExpression this[ params IExpression[] args ] => this.GetItemExpression( args );
 
-    public IExpression GetExpression( IExpression[] args )
+    public IExpression GetItemExpression( IExpression[] args )
     {
         return new DelegateUserExpression(
             context => this.CreateIndexerAccess( args, context ),
@@ -47,11 +47,11 @@ internal sealed class IndexerInvoker : Invoker<IIndexer>, IIndexerInvoker
             isAssignable: this.Member.Writeability != Writeability.None );
     }
 
-    public IExpression this[ params object?[] args ] => this.GetExpression( args );
+    public IExpression this[ params object?[] args ] => this.GetItemExpression( args );
 
-    public IExpression GetExpression( object?[] args ) => this.GetExpression( this.CaptureExpressions( args ) );
+    public IExpression GetItemExpression( object?[] args ) => this.GetItemExpression( this.CaptureExpressions( args ) );
 
-    private IExpression[] CaptureExpressions( object?[] args ) => args.SelectAsArray( x => (IExpression) new CapturedUserExpression( this.Compilation, x ) );
+    private IExpression[] CaptureExpressions( object?[] args ) => CapturedUserExpression.Create( this.Compilation, args );
 
     private ExpressionSyntax CreateIndexerAccess( IExpression[]? args, SyntaxSerializationContext context )
     {
@@ -70,11 +70,11 @@ internal sealed class IndexerInvoker : Invoker<IIndexer>, IIndexerInvoker
 
     public IIndexerInvoker WithOptions( InvokerOptions options ) => this.Options == options ? this : new IndexerInvoker( this.Member, options, this.Target );
 
-    public IIndexerInvoker WithObject( dynamic obj ) => this.WithObject( new CapturedUserExpression( this.Compilation, obj ) );
+    public IIndexerInvoker WithObject( object obj ) => this.WithObject( CapturedUserExpression.Create( this.Compilation, obj ) );
 
     public IIndexerInvoker WithObject( IExpression obj ) => this.IsSameTarget( obj ) ? this : new IndexerInvoker( this.Member, this.Options, obj );
 
     IIndexerInvoker IIndexerInvoker.With( InvokerOptions options ) => this.WithOptions( options );
 
-    IIndexerInvoker IIndexerInvoker.With( object? target, InvokerOptions options ) => this.WithOptions( options ).WithObject( target );
+    IIndexerInvoker IIndexerInvoker.With( object? target, InvokerOptions options ) => this.WithOptions( options ).WithObject( target! );
 }

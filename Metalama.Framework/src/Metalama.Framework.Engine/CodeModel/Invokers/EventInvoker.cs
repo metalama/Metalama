@@ -6,6 +6,7 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Code.Invokers;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel.Helpers;
+using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.SyntaxSerialization;
 using Metalama.Framework.Engine.Templating.Expressions;
 using Metalama.Framework.Engine.Utilities.Roslyn;
@@ -19,8 +20,13 @@ internal sealed class EventInvoker : Invoker<IEvent>, IEventInvoker
 {
     public EventInvoker( IEvent @event, InvokerOptions options = default, IExpression? target = null ) : base( @event, options, target ) { }
 
-    public object Add( object? value )
+    public object Add( object? handler ) => this.Add( CapturedUserExpression.Create( this.Compilation, handler ) );
+    
+    public object Add( IExpression handler )
     {
+        // We might receive a null value as a result of incorrect selection of the overload when null is passed.
+        this.EnsureHandlerNotNull( ref handler );
+        
         return new DelegateUserExpression(
             context =>
             {
@@ -29,13 +35,18 @@ internal sealed class EventInvoker : Invoker<IEvent>, IEventInvoker
                 return AssignmentExpression(
                     SyntaxKind.AddAssignmentExpression,
                     eventAccess,
-                    TypedExpressionSyntaxImpl.GetSyntaxFromValue( value, context ) );
+                    handler.ToExpressionSyntax( context, this.Member.Type ) );
             },
             this.Member.AddMethod.ReturnType );
     }
 
-    public object Remove( object? value )
+    public object Remove( object? handler ) => this.Remove( CapturedUserExpression.Create( this.Compilation, handler ) );
+    
+    public object Remove( IExpression handler )
     {
+        // We might receive a null value as a result of incorrect selection of the overload when null is passed.
+        this.EnsureHandlerNotNull( ref handler );
+
         return new DelegateUserExpression(
             context =>
             {
@@ -44,20 +55,30 @@ internal sealed class EventInvoker : Invoker<IEvent>, IEventInvoker
                 return AssignmentExpression(
                     SyntaxKind.SubtractAssignmentExpression,
                     eventAccess,
-                    TypedExpressionSyntaxImpl.GetSyntaxFromValue( value, context ) );
+                    handler.ToExpressionSyntax( context, this.Member.Type ) );
             },
             this.Member.RemoveMethod.ReturnType );
     }
 
-    public object Raise( params object?[] args )
+    public object Raise( object?[]? args ) => this.Raise( CapturedUserExpression.Create( this.Compilation, args ) );
+    
+    private void EnsureHandlerNotNull( ref IExpression handler )
+    {
+        if ( handler == null! )
+        {
+            handler = new SyntaxUserExpression( SyntaxFactoryEx.Null, this.Member.Type );
+        }
+    }
+
+    public object Raise( IExpression[] args )
     {
         return new DelegateUserExpression(
             context =>
             {
                 var arguments = this.Member.GetArguments(
                     this.Member.Signature.Parameters,
-                    TypedExpressionSyntaxImpl.FromValues( args, context ),
-                    context.SyntaxGenerationContext );
+                    args,
+                    context );
 
                 if ( context.AspectReferenceSyntaxProvider != null )
                 {
@@ -85,7 +106,7 @@ internal sealed class EventInvoker : Invoker<IEvent>, IEventInvoker
 
     public IEventInvoker WithObject( IExpression? obj ) => this.IsSameTarget( obj ) ? this : new EventInvoker( this.Member, this.Options, obj );
 
-    public IEventInvoker WithObject( object? obj ) => this.IsSameTarget( obj ) ? this : this.WithObject( new CapturedUserExpression( this.Compilation, obj ) );
+    public IEventInvoker WithObject( object? obj ) => this.IsSameTarget( obj ) ? this : this.WithObject( CapturedUserExpression.Create(this.Compilation, obj) );
 
     IEventInvoker IEventInvoker.With( InvokerOptions options ) => this.WithOptions( options );
 

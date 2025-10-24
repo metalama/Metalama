@@ -13,7 +13,6 @@ using Metalama.Framework.Engine.CodeModel.Invokers;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.CodeModel.Source;
 using Metalama.Framework.Engine.ReflectionMocks;
-using Metalama.Framework.Engine.Templating.Expressions;
 using Metalama.Framework.Engine.Utilities;
 using System;
 using System.Collections.Generic;
@@ -143,9 +142,15 @@ internal sealed class EventBuilder : MemberBuilder, IEventBuilder, IEventImpl
 
     object IEventInvoker.Add( object? handler ) => this.Invoker.Add( handler );
 
+    object IEventInvoker.Add( IExpression handler ) => this.Invoker.Add( handler );
+
     object IEventInvoker.Remove( object? handler ) => this.Invoker.Remove( handler );
 
+    object IEventInvoker.Remove( IExpression handler ) => this.Invoker.Remove( handler );
+
     object? IEventInvoker.Raise( params object?[] args ) => this.Invoker.Raise( args );
+
+    object? IEventInvoker.Raise( params IExpression[] args ) => this.Invoker.Raise( args );
 
     public void SetExplicitInterfaceImplementation( IEvent interfaceEvent ) => this.ExplicitInterfaceImplementations = [interfaceEvent];
 

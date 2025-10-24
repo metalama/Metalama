@@ -97,7 +97,14 @@ namespace Metalama.Framework.Engine.CodeModel.Source
         }
 
         [Memo]
-        private IFieldOrPropertyInvoker Invoker => new FieldOrPropertyInvoker( this );
+        private IFieldOrPropertyInvoker Invoker => this.CreateInvoker();
+
+        private FieldOrPropertyInvoker CreateInvoker()
+        {
+            this.CheckNotPropertyBackingField();
+            
+            return new FieldOrPropertyInvoker( this );
+        }
 
         IFieldOrPropertyInvoker IFieldOrPropertyInvoker.WithOptions( InvokerOptions options ) => this.Invoker.WithOptions( options );
 

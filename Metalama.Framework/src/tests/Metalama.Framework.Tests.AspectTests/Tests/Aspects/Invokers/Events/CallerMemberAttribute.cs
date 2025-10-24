@@ -23,10 +23,10 @@ public class InvokerAspect : TypeAspect
     {
         foreach ( var @event in meta.Target.Type.Events )
         {
-            @event.Add( null );
-            @event.WithOptions( InvokerOptions.Base ).Add( null );
-            @event.WithOptions( InvokerOptions.Current ).Add( null );
-            @event.WithOptions( InvokerOptions.Final ).Add( null );
+            @event.Add( null! );
+            @event.WithOptions( InvokerOptions.Base ).Add( null! );
+            @event.WithOptions( InvokerOptions.Current ).Add( null! );
+            @event.WithOptions( InvokerOptions.Final ).Add( null! );
         }
 
         meta.Proceed();

@@ -93,7 +93,7 @@ internal sealed class FieldOrPropertyInvoker : Invoker<IFieldOrProperty>, IField
         => this.IsSameTarget( target ) ? this : new FieldOrPropertyInvoker( this.Member, this.Options, target );
 
     public IFieldOrPropertyInvoker WithObject( object? target )
-        => this.IsSameTarget( target ) ? this : this.WithObject( new CapturedUserExpression( this.Compilation, target ) );
+        => this.IsSameTarget( target ) ? this : this.WithObject( CapturedUserExpression.Create(this.Compilation, target) );
 
     IFieldOrPropertyInvoker IFieldOrPropertyInvoker.With( InvokerOptions options ) => this.WithOptions( options );
 

@@ -86,7 +86,7 @@ namespace Metalama.Framework.Engine.CodeModel.Source
 
         [Memo]
         private IEventInvoker Invoker => new EventInvoker( this );
-
+        
         IEventInvoker IEventInvoker.WithOptions( InvokerOptions options ) => this.Invoker.WithOptions( options );
 
         IEventInvoker IEventInvoker.WithObject( object? obj ) => this.Invoker.WithObject( obj );
@@ -99,9 +99,15 @@ namespace Metalama.Framework.Engine.CodeModel.Source
 
         object IEventInvoker.Add( object? handler ) => this.Invoker.Add( handler );
 
+        object IEventInvoker.Add( IExpression handler ) => this.Invoker.Add( handler );
+
         object IEventInvoker.Remove( object? handler ) => this.Invoker.Remove( handler );
 
+        object IEventInvoker.Remove( IExpression handler ) => this.Invoker.Remove( handler );
+
         object? IEventInvoker.Raise( params object?[] args ) => this.Invoker.Raise( args );
+
+        object? IEventInvoker.Raise( params IExpression[] args ) => this.Invoker.Raise( args );
 
         public override DeclarationKind DeclarationKind => DeclarationKind.Event;
 

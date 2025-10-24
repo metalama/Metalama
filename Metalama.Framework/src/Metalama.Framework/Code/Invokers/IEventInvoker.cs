@@ -14,9 +14,9 @@ namespace Metalama.Framework.Code.Invokers
     public interface IEventInvoker
     {
         // TODO: Create methods to work with IExpression.
-
+        
         /// <summary>
-        /// Generates run-time code that adds a given handler to the event.
+        /// Generates run-time code that adds a handler, given as run-time C# expression, to the event.
         /// </summary>
         /// <param name="handler">A C# expression representing the event handler. If the compile-time type
         /// of the expression is <c>dynamic</c>, it must be explicitly cast to <see cref="IExpression"/>.</param>
@@ -27,11 +27,23 @@ namespace Metalama.Framework.Code.Invokers
         /// use the <see cref="WithOptions"/> method.
         /// </remarks>
         dynamic Add( dynamic? handler );
+      
+        /// <summary>
+        /// Generates run-time code that adds a handler, given as an <see cref="IExpression"/>, to the event.
+        /// </summary>
+        /// <param name="handler">A compile-time <see cref="IExpression"/> representing the event handler.</param>
+        /// <returns>An internal Metalama statement object representing the event handler addition. It should be ignored in user code.</returns> 
+        /// <remarks>
+        /// By default, the event is accessed on the current object (<c>this</c>), unless the event is static. The <c>base</c> implementation 
+        /// of the event is invoked, i.e. the implementation <i>before</i> the current aspect layer. To change the default values,
+        /// use the <see cref="WithOptions"/> method.
+        /// </remarks>
+        dynamic Add( IExpression handler );
 
         /// <summary>
-        /// Generates run-time code that removes a given handler from the event. 
+        /// Generates run-time code that removes a handler, given a run-time C# expression, from the event. 
         /// </summary>
-        /// <param name="handler">A C# expression representing the event handler. If the compile-time type
+        /// <param name="handler">A run-time C# expression representing the event handler. If the compile-time type
         /// of the expression is <c>dynamic</c>, it must be explicitly cast to <see cref="IExpression"/>.</param>
         /// <returns>An internal Metalama statement object representing the event handler addition. It should be ignored in user code.</returns> 
         /// <remarks>
@@ -40,11 +52,23 @@ namespace Metalama.Framework.Code.Invokers
         /// use the <see cref="WithOptions"/> method.
         /// </remarks>
         dynamic Remove( dynamic? handler );
+        
+        /// <summary>
+        /// Generates run-time code that adds a handler, given as an <see cref="IExpression"/>, from the event.
+        /// </summary>
+        /// <param name="handler">A compile-time <see cref="IExpression"/> representing the event handler.</param>
+        /// <returns>An internal Metalama statement object representing the event handler addition. It should be ignored in user code.</returns> 
+        /// <remarks>
+        /// By default, the event is accessed on the current object (<c>this</c>), unless the event is static. The <c>base</c> implementation 
+        /// of the event is invoked, i.e. the implementation <i>before</i> the current aspect layer. To change the default values,
+        /// use the <see cref="WithOptions"/> method.
+        /// </remarks>
+        dynamic Remove( IExpression handler );
 
         /// <summary>
-        /// Generates run-time code that raises the current event with specified arguments.
+        /// Generates run-time code that raises the current event with arguments specified as run-time C# expressions.
         /// </summary>
-        /// <param name="args">A list of C# expressions to be passed to the event. If the compile-time type
+        /// <param name="args">A list of run-time C# expressions to be passed to the event as arguments. If the compile-time type
         /// of any expression is <c>dynamic</c>, it must be explicitly cast to <see cref="IExpression"/>.</param>
         /// <returns>A dynamic object representing the return value of the event, if any.  If the compile-time type
         /// of any expression is <c>dynamic</c>, it must be explicitly cast to <see cref="IExpression"/>.</returns>
@@ -54,6 +78,20 @@ namespace Metalama.Framework.Code.Invokers
         /// use the <see cref="WithOptions"/> method.
         /// </remarks>
         dynamic? Raise( params dynamic?[] args );
+        
+        /// <summary>
+        /// Generates run-time code that raises the current event with arguments specified as compile-time <see cref="IExpression"/> objects.
+        /// </summary>
+        /// <param name="args">A list of run-time C# expressions to be passed to the event as arguments. If the compile-time type
+        /// of any expression is <c>dynamic</c>, it must be explicitly cast to <see cref="IExpression"/>.</param>
+        /// <returns>A dynamic object representing the return value of the event, if any.  If the compile-time type
+        /// of any expression is <c>dynamic</c>, it must be explicitly cast to <see cref="IExpression"/>.</returns>
+        /// <remarks>
+        /// By default, the event is accessed on the current object (<c>this</c>), unless the event is static. The <c>base</c> implementation 
+        /// of the event is invoked, i.e. the implementation <i>before</i> the current aspect layer. To change the default values,
+        /// use the <see cref="WithOptions"/> method.
+        /// </remarks>
+        dynamic? Raise( params IExpression[] args );
 
         /// <summary>
         /// Gets an <see cref="IEventInvoker"/> for the same event and target but with different options.

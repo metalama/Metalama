@@ -13,8 +13,8 @@ public sealed class TestAspect : OverrideMethodAspect
 {
     public override dynamic? OverrideMethod()
     {
-        meta.Target.Type.Events.Single().Add( null );
-        meta.Target.Type.Events.Single().Remove( null );
+        meta.Target.Type.Events.Single().Add( null! );
+        meta.Target.Type.Events.Single().Remove( null! );
 
         return meta.Proceed();
     }
