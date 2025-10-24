@@ -16,7 +16,7 @@ public sealed class ObservableAttribute : Attribute, IAspect<INamedType>
     void IEligible<INamedType>.BuildEligibility( IEligibilityBuilder<INamedType> builder )
     {
         builder.MustNotBeStatic();
-        builder.ExceptForInheritance().MustSatisfy( x => x.TypeKind is TypeKind.Class or TypeKind.RecordClass, x => $"{x} must be a class or a record class" );
+        builder.ExceptForInheritance().MustSatisfy( x => x.TypeKind is TypeKind.Class, x => $"{x} must be a class or a record class" );
     }
 
     void IAspect<INamedType>.BuildAspect( IAspectBuilder<INamedType> builder )
