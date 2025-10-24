@@ -53,7 +53,7 @@ namespace Metalama.Framework.DesignTime.Refactoring
                         newRoot =
                             newUnit.AddUsings(
                                 SyntaxFactory.UsingDirective( SyntaxFactory.IdentifierName( ns ).WithLeadingTrivia( SyntaxFactory.ElasticSpace ) )
-                                    .WithTrailingTrivia( context.ElasticEndOfLineTriviaList )
+                                    .WithTrailingTrivia( context.OptionalElasticEndOfLineTriviaList )
                                     .WithAdditionalAnnotations( Formatter.Annotation ) );
                     }
                 }
@@ -176,7 +176,7 @@ namespace Metalama.Framework.DesignTime.Refactoring
                         // Add a new line if the file is not empty and we don't already have one.
                         if ( oldNode.FullSpan.Length != 0 && !trivia.LastOrDefault().IsKind( SyntaxKind.EndOfLineTrivia ) )
                         {
-                            trivia = trivia.AddRange( context.ElasticEndOfLineTriviaList );
+                            trivia = trivia.AddRange( context.OptionalElasticEndOfLineTriviaList );
                         }
 
                         attributeList = attributeList.WithLeadingTrivia( trivia );

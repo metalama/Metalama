@@ -12,6 +12,7 @@ using Metalama.Framework.Engine.CodeModel.Introductions.Introduced;
 using Metalama.Framework.Engine.CodeModel.Source;
 using Metalama.Framework.Engine.CodeModel.Source.Pseudo;
 using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Concurrent;
@@ -72,6 +73,14 @@ namespace Metalama.Framework.Engine.CodeModel.References
                 static ( key, me ) => key.Symbol.GetDeclarationKind( me.CompilationContext ) switch
                 {
                     DeclarationKind.Compilation => new SymbolRef<ICompilation>( key.Symbol, key.GenericContext, me ),
+                    DeclarationKind.NamedType when key.Symbol is INamedTypeSymbol { IsTupleType: true } => new SymbolRef<ITupleType>(
+                        key.Symbol,
+                        key.GenericContext,
+                        me ),
+                    DeclarationKind.NamedType when key.Symbol is INamedTypeSymbol namedType && namedType.IsExtensionSafe() => new SymbolRef<IExtensionBlock>(
+                        key.Symbol,
+                        key.GenericContext,
+                        me ),
                     DeclarationKind.NamedType => new SymbolRef<INamedType>( key.Symbol, key.GenericContext, me ),
                     DeclarationKind.Method => new SymbolRef<IMethod>( key.Symbol, key.GenericContext, me ),
                     DeclarationKind.Property => new SymbolRef<IProperty>( key.Symbol, key.GenericContext, me ),

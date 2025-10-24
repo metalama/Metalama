@@ -51,7 +51,12 @@ namespace Metalama.Framework.Engine.Linking
                     }
                     else
                     {
-                        members.Add( this.GetTrampolineForEvent( eventDeclaration, symbol, lastOverride.ToSemantic( IntermediateSymbolSemanticKind.Default ), context ) );
+                        members.Add(
+                            this.GetTrampolineForEvent(
+                                eventDeclaration,
+                                symbol,
+                                lastOverride.ToSemantic( IntermediateSymbolSemanticKind.Default ),
+                                context ) );
                     }
                 }
 
@@ -74,13 +79,15 @@ namespace Metalama.Framework.Engine.Linking
             }
             else if ( this.InjectionRegistry.IsOverride( symbol ) )
             {
-
                 if ( this.InjectionRegistry.HasEventRaiseOverride( symbol ) )
                 {
-                    if (!this.InjectionRegistry.IsLastOverride(symbol))
+                    if ( !this.InjectionRegistry.IsLastOverride( symbol ) )
                     {
                         var overrideTarget = (IEventSymbol) this.InjectionRegistry.GetLastOverride( symbol );
-                        var eventBrokerInfo = this.AnalysisRegistry.GetVisibleEventBrokerForSemantic( overrideTarget.ToSemantic( IntermediateSymbolSemanticKind.Default ) ).AssertNotNull();
+
+                        var eventBrokerInfo = this.AnalysisRegistry
+                            .GetVisibleEventBrokerForSemantic( overrideTarget.ToSemantic( IntermediateSymbolSemanticKind.Default ) )
+                            .AssertNotNull();
 
                         return [GetLinkedDeclaration( IntermediateSymbolSemanticKind.Default, true ), GetEventBrokerProxy( eventBrokerInfo, context )];
                     }
@@ -90,7 +97,7 @@ namespace Metalama.Framework.Engine.Linking
                     }
                 }
                 else if ( this.AnalysisRegistry.IsReachable( symbol.ToSemantic( IntermediateSymbolSemanticKind.Default ) )
-                     && !this.AnalysisRegistry.IsInlined( symbol.ToSemantic( IntermediateSymbolSemanticKind.Default ) ) )
+                          && !this.AnalysisRegistry.IsInlined( symbol.ToSemantic( IntermediateSymbolSemanticKind.Default ) ) )
                 {
                     return [GetLinkedDeclaration( IntermediateSymbolSemanticKind.Default, true )];
                 }
@@ -210,7 +217,7 @@ namespace Metalama.Framework.Engine.Linking
                             Token( closeBraceLeadingTrivia, SyntaxKind.CloseBraceToken, closeBraceTrailingTrivia ) )
                         .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock )
                         .WithGeneratedCodeAnnotation( FormattingAnnotations.SystemGeneratedCodeAnnotation ),
-                    semicolonToken: default( SyntaxToken ) );
+                    semicolonToken: default(SyntaxToken) );
             }
         }
 
@@ -242,7 +249,7 @@ namespace Metalama.Framework.Engine.Linking
                                 IdentifierName( GetBackingFieldName( (IEventSymbol) symbol.AssociatedSymbol.AssertNotNull() ) ) )
                             .WithSimplifierAnnotationIfNecessary( context ),
                         IdentifierName( "value" ) ),
-                    Token( default, SyntaxKind.SemicolonToken, context.ElasticEndOfLineTriviaList ) ) );
+                    Token( default, SyntaxKind.SemicolonToken, context.OptionalElasticEndOfLineTriviaList ) ) );
 
         private EventFieldDeclarationSyntax GetEventBackingField(
             EventDeclarationSyntax eventDeclaration,
@@ -320,7 +327,7 @@ namespace Metalama.Framework.Engine.Linking
                                     initializer ) ) ) )
                     .NormalizeWhitespaceIfNecessary( context )
                     .WithOptionalTrivia(
-                        context.ElasticEndOfLineTriviaList,
+                        context.OptionalElasticEndOfLineTriviaList,
                         context.TwoElasticEndOfLinesTriviaList,
                         this.SyntaxGenerationOptions )
                     .WithGeneratedCodeAnnotation( FormattingAnnotations.SystemGeneratedCodeAnnotation );
@@ -337,16 +344,16 @@ namespace Metalama.Framework.Engine.Linking
                 existingAccessorList
                     .WithAccessors(
                         List(
-                            existingAccessorList.Accessors.SelectAsArray(
-                                a =>
-                                    TransformAccessor(
-                                        a,
-                                        a.Kind() switch
-                                        {
-                                            SyntaxKind.AddAccessorDeclaration => symbol.AddMethod.AssertNotNull(),
-                                            SyntaxKind.RemoveAccessorDeclaration => symbol.RemoveMethod.AssertNotNull(),
-                                            _ => throw new AssertionFailedException( $"Unexpected kind: {a}" )
-                                        } ) ) ) )
+                            existingAccessorList.Accessors.SelectAsArray( a =>
+                                                                              TransformAccessor(
+                                                                                  a,
+                                                                                  a.Kind() switch
+                                                                                  {
+                                                                                      SyntaxKind.AddAccessorDeclaration => symbol.AddMethod.AssertNotNull(),
+                                                                                      SyntaxKind.RemoveAccessorDeclaration =>
+                                                                                          symbol.RemoveMethod.AssertNotNull(),
+                                                                                      _ => throw new AssertionFailedException( $"Unexpected kind: {a}" )
+                                                                                  } ) ) ) )
                     .WithSourceCodeAnnotation();
 
             return this.GetSpecialImplEvent(
@@ -393,14 +400,17 @@ namespace Metalama.Framework.Engine.Linking
             var cleanAccessorList =
                 accessorList.WithAccessors(
                     List(
-                        accessorList.Accessors.SelectAsReadOnlyList(
-                            a =>
-                                a.Kind() switch
-                                {
-                                    SyntaxKind.AddAccessorDeclaration => this.FilterAttributesOnSpecialImpl( symbol.AddMethod.AssertNotNull(), a ),
-                                    SyntaxKind.RemoveAccessorDeclaration => this.FilterAttributesOnSpecialImpl( symbol.RemoveMethod.AssertNotNull(), a ),
-                                    _ => throw new AssertionFailedException( $"Unexpected kind: {a}" )
-                                } ) ) );
+                        accessorList.Accessors.SelectAsReadOnlyList( a =>
+                                                                         a.Kind() switch
+                                                                         {
+                                                                             SyntaxKind.AddAccessorDeclaration => this.FilterAttributesOnSpecialImpl(
+                                                                                 symbol.AddMethod.AssertNotNull(),
+                                                                                 a ),
+                                                                             SyntaxKind.RemoveAccessorDeclaration => this.FilterAttributesOnSpecialImpl(
+                                                                                 symbol.RemoveMethod.AssertNotNull(),
+                                                                                 a ),
+                                                                             _ => throw new AssertionFailedException( $"Unexpected kind: {a}" )
+                                                                         } ) ) );
 
             return
                 EventDeclaration(
@@ -498,22 +508,31 @@ namespace Metalama.Framework.Engine.Linking
 
             foreach ( var eventBrokerTransformationInfo in eventBrokerTypeInfo.Transformations.Values )
             {
+                var modifiers = new List<SyntaxToken>( 4 );
+                modifiers.Add( Token( TriviaList(), SyntaxKind.PrivateKeyword, TriviaList( ElasticSpace ) ) );
+
+                if ( symbol.IsStatic )
+                {
+                    modifiers.Add( Token( TriviaList(), SyntaxKind.StaticKeyword, TriviaList( ElasticSpace ) ) );
+                }
+
+                modifiers.Add( Token( TriviaList(), SyntaxKind.VolatileKeyword, TriviaList( ElasticSpace ) ) );
+
                 yield return
                     FieldDeclaration(
-                        List<AttributeListSyntax>(),
-                        TokenList(
-                            Token( TriviaList(), SyntaxKind.PrivateKeyword, TriviaList( ElasticSpace ) ),
-                            Token( TriviaList(), SyntaxKind.VolatileKeyword, TriviaList( ElasticSpace ) ) ),
-                        VariableDeclaration(
-                            context.SyntaxGenerator.TypeSyntax( eventBrokerTypeInfo.EventBrokerType.WithNullableAnnotation( NullableAnnotation.Annotated ) ),
-                            SingletonSeparatedList(
-                                VariableDeclarator(
-                                    Identifier( eventBrokerTransformationInfo.EventBrokerFieldName ),
-                                    null,
-                                    null ) ) ) )
-                    .NormalizeWhitespaceIfNecessary( context )
-                    .WithOptionalLeadingAndTrailingLineFeed( context )
-                    .WithGeneratedCodeAnnotation( FormattingAnnotations.SystemGeneratedCodeAnnotation );
+                            List<AttributeListSyntax>(),
+                            TokenList( modifiers ),
+                            VariableDeclaration(
+                                context.SyntaxGenerator.TypeSyntax(
+                                    eventBrokerTypeInfo.EventBrokerType.WithNullableAnnotation( NullableAnnotation.Annotated ) ),
+                                SingletonSeparatedList(
+                                    VariableDeclarator(
+                                        Identifier( eventBrokerTransformationInfo.EventBrokerFieldName ),
+                                        null,
+                                        null ) ) ) )
+                        .NormalizeWhitespaceIfNecessary( context )
+                        .WithOptionalLeadingAndTrailingLineFeed( context )
+                        .WithGeneratedCodeAnnotation( FormattingAnnotations.SystemGeneratedCodeAnnotation );
             }
         }
 
@@ -533,29 +552,31 @@ namespace Metalama.Framework.Engine.Linking
                     EventBrokerSyntaxHelper.CreateAddHandlerBody(
                         context,
                         eventBrokerInfo.EventBrokerFieldName,
-                        fieldInitializationExpression ) );
+                        fieldInitializationExpression,
+                        eventSymbol.IsStatic ) );
 
             var removeAccessor = AccessorDeclaration( SyntaxKind.RemoveAccessorDeclaration )
                 .WithBody(
                     EventBrokerSyntaxHelper.CreateRemoveHandlerBody(
                         context,
-                        eventBrokerInfo.EventBrokerFieldName ) );
+                        eventBrokerInfo.EventBrokerFieldName,
+                        eventSymbol.IsStatic ) );
 
-            return 
+            return
                 EventDeclaration(
-                    List<AttributeListSyntax>(),
-                    eventSymbol.IsStatic
-                        ? TokenList(
-                            SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.PublicKeyword ),
-                            SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.StaticKeyword ) )
-                        : TokenList( SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.PublicKeyword ) ),
-                    context.SyntaxGenerator.TypeSyntax( eventSymbol.Type ),
-                    null,
-                    Identifier( eventBrokerInfo.BrokerProxyName ),
-                    AccessorList( List( [addAccessor, removeAccessor] ) ) )
-                .NormalizeWhitespaceIfNecessary( context )
-                .WithOptionalLeadingAndTrailingLineFeed( context )
-                .WithGeneratedCodeAnnotation( FormattingAnnotations.SystemGeneratedCodeAnnotation );
+                        List<AttributeListSyntax>(),
+                        eventSymbol.IsStatic
+                            ? TokenList(
+                                SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.PublicKeyword ),
+                                SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.StaticKeyword ) )
+                            : TokenList( SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.PublicKeyword ) ),
+                        context.SyntaxGenerator.TypeSyntax( eventSymbol.Type ),
+                        null,
+                        Identifier( eventBrokerInfo.BrokerProxyName ),
+                        AccessorList( List( [addAccessor, removeAccessor] ) ) )
+                    .NormalizeWhitespaceIfNecessary( context )
+                    .WithOptionalLeadingAndTrailingLineFeed( context )
+                    .WithGeneratedCodeAnnotation( FormattingAnnotations.SystemGeneratedCodeAnnotation );
         }
     }
 }

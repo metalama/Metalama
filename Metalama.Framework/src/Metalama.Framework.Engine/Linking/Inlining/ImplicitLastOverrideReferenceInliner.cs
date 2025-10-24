@@ -28,6 +28,7 @@ internal sealed class ImplicitLastOverrideReferenceInliner : Inliner
                 DestructorDeclarationSyntax { ExpressionBody: { } destructorBody } => destructorBody,
                 ConstructorDeclarationSyntax { Body: { } constructorBody } => constructorBody,
                 ConstructorDeclarationSyntax { ExpressionBody: { } constructorBody } => constructorBody,
+                ConstructorDeclarationSyntax { Body: null, ExpressionBody: null } constructor => constructor,
                 OperatorDeclarationSyntax { Body: { } operatorBody } => operatorBody,
                 OperatorDeclarationSyntax { ExpressionBody: { } operatorBody } => operatorBody,
                 ConversionOperatorDeclarationSyntax { Body: { } conversionOperatorBody } => conversionOperatorBody,

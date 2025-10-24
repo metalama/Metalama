@@ -13,7 +13,6 @@ using Metalama.Framework.Engine.Templating.Expressions;
 using Metalama.Framework.Engine.Templating.MetaModel;
 using Metalama.Framework.Engine.Transformations;
 using Metalama.Framework.Engine.Utilities.Roslyn;
-using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Generic;
@@ -150,52 +149,49 @@ internal sealed class OverrideEventTransformation : OverrideMemberTransformation
 
         var eventHandlerInvokeMethod = overriddenDeclaration.Type.Methods.OfName( "Invoke" ).Single();
 
+        var argsType = eventHandlerInvokeMethod.Compilation.Factory.CreateTupleType( eventHandlerInvokeMethod.Parameters );
+
         var raiseOverride =
             raiseAccessorBody != null
-            ? new InjectedMember(
-                this,
-                MethodDeclaration(
-                    List<AttributeListSyntax>(),
-                    modifiers,
-                    context.SyntaxGenerator.TypeSyntax( eventHandlerInvokeMethod.ReturnType ),
-                    null,
-                    Identifier(
-                        TriviaList(ElasticSpace),
-                        context.InjectionNameProvider.GetRaiseOverrideName(
-                            overriddenDeclaration.DeclaringType,
-                            this.AspectLayerId,
-                            overriddenDeclaration ),
-                        TriviaList() ),
-                    null,
-                    ParameterList(
-                        SeparatedList(
+                ? new InjectedMember(
+                    this,
+                    MethodDeclaration(
+                        List<AttributeListSyntax>(),
+                        modifiers,
+                        context.SyntaxGenerator.TypeSyntax( eventHandlerInvokeMethod.ReturnType ),
+                        null,
+                        Identifier(
+                            TriviaList( ElasticSpace ),
+                            context.InjectionNameProvider.GetRaiseOverrideName(
+                                overriddenDeclaration.DeclaringType,
+                                this.AspectLayerId,
+                                overriddenDeclaration ),
+                            TriviaList() ),
+                        null,
+                        ParameterList(
+                            SeparatedList(
                             [
                                 Parameter(
                                     List<AttributeListSyntax>(),
                                     TokenList(),
-                                    context.SyntaxGenerator.TypeSyntax(overriddenDeclaration.Type),
-                                    Identifier( TriviaList(ElasticSpace), "handler", TriviaList() ),
-                                    null),
+                                    context.SyntaxGenerator.TypeSyntax( overriddenDeclaration.Type ),
+                                    Identifier( TriviaList( ElasticSpace ), "handler", TriviaList() ),
+                                    null ),
                                 Parameter(
                                     List<AttributeListSyntax>(),
-                                    TokenList(),
-                                    TupleType(
-                                        SeparatedList(
-                                            eventHandlerInvokeMethod.Parameters.SelectAsArray(
-                                                p => TupleElement(
-                                                    context.SyntaxGenerator.TypeSyntax( p.Type ),
-                                                    Identifier( TriviaList(ElasticSpace), p.Name, TriviaList() ) ) ) ) ),
-                                    Identifier( "args" ),
-                                    null),
+                                    TokenList( Token( default, SyntaxKind.RefKeyword, SyntaxFactoryEx.ElasticSpaceTriviaList ) ),
+                                    context.SyntaxGenerator.TypeSyntax( argsType ),
+                                    Identifier( TriviaList( ElasticSpace ), "args", TriviaList() ),
+                                    null )
                             ] ) ),
-                    List<TypeParameterConstraintClauseSyntax>(),
-                    raiseAccessorBody,
-                    null,
-                    default ),
-                this.AspectLayerId,
-                InjectedMemberSemantic.OverrideEventRaise,
-                overriddenDeclaration.ToFullRef() )
-            : null;
+                        List<TypeParameterConstraintClauseSyntax>(),
+                        raiseAccessorBody,
+                        null,
+                        default ),
+                    this.AspectLayerId,
+                    InjectedMemberSemantic.OverrideEventRaise,
+                    overriddenDeclaration.ToFullRef() )
+                : null;
 
         if ( raiseOverride != null )
         {
@@ -321,8 +317,14 @@ internal sealed class OverrideEventTransformation : OverrideMemberTransformation
             IdentifierName( "value" ) );
 
     private ExpressionSyntax CreateInvokeExpression( MemberInjectionContext context )
-        => context.AspectReferenceSyntaxProvider.AssertNotNull().GetEventRaiseReference(
-            this.AspectLayerId,
-            (IEvent)this.OverriddenDeclaration.GetTarget( this.InitialCompilation ),
-            context.SyntaxGenerator );
+    {
+        var invocation = context.AspectReferenceSyntaxProvider.AssertNotNull()
+            .GetEventRaiseReference(
+                this.AspectLayerId,
+                (IEvent) this.OverriddenDeclaration.GetTarget( this.InitialCompilation ),
+                context.SyntaxGenerator,
+                null );
+
+        return invocation;
+    }
 }

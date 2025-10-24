@@ -30,7 +30,7 @@ It's main use cases are:
 
 - **Design Patterns**: [Singleton](https://metalama.net/applications/classic-singleton), [Memento](https://metalama.net/applications/memento), [Factory](https://metalama.net/applications/factory), [Builder](https://metalama.net/applications/builder), [Decorator](https://metalama.net/applications/decorator), [Proxy](https://metalama.net/applications/proxy), ...
 - **UI Patterns**: [INotifyPropertyChanged](https://metalama.net/applications/inotifypropertychanged), [Change Tracking](https://metalama.net/applications/command), [Memoization](https://metalama.net/applications/memoization), [Undo/Redo](https://metalama.net/applications/undo-redo), [Command](https://metalama.net/applications/command), [Dependency Properties](https://metalama.net/applications/dependency-property), ...
-- **Object Services**: Cloning, ToString, Comparison, ...
+- **Object Services**: [Cloning](https://metalama.net/applications/cloning), [ToString](https://metalama.net/applications/tostring), [Comparison](https://metalama.net/applications/equatable), ...
 - **Defensive Programming**: [Code Contracts](https://metalama.net/applications/contracts) (preconditions, post-conditions, invariants)
 - **DevOps**: [Logging & Tracing](https://metalama.net/applications/logging), [Metrics](https://metalama.net/applications/metrics), [Caching](https://metalama.net/applications/caching), [Exception Handling](https://metalama.net/applications/exception-handling)
 - [Architecture Validation](https://metalama.net/applications/architecture-verification) 💎
@@ -42,7 +42,7 @@ It's main use cases are:
 
 Metalama is released under the [MIT license](LICENSE.md).
 
-Some optional extensions and IDE tooling are released under a proprietary license. 💎
+Some optional extensions and IDE tooling are released under a proprietary license and are marked with a diamond 💎 symbol.
 
 ## Features
 
@@ -62,8 +62,8 @@ Some optional extensions and IDE tooling are released under a proprietary licens
 - 🌐 [Metalama Website](https://metalama.net)
 - 📖 [Documentation](https://doc.metalama.net)
 - 📝 [Annotated Examples](https://doc.metalama.net/examples)
-- 📜 [Changelogs](https://github.com/orgs/metalama/discussions/categories/changelog)
 - 📢 [Release Notes](https://doc.metalama.net/conceptual/release-notes)
+- 📜 [Builds](https://github.com/metalama/Metalama/releases)
 - ✨ [Metalama Tools for Visual Studio Extension](https://marketplace.visualstudio.com/items?itemName=PostSharpTechnologies.PostSharp)
 
 ## Quick Start
@@ -125,7 +125,7 @@ Below is a list of packages originating from this repository:
 | [Metalama.Patterns.Caching.Backend](https://www.nuget.org/packages/Metalama.Patterns.Caching.Backend/) | Provides an abstraction over caching backends, including an in-memory caching implementation.         |
 | [Metalama.Patterns.Contracts](https://www.nuget.org/packages/Metalama.Patterns.Contracts/)           | Code contract aspects like `[NotNull]`, `[Url]` for contract-based programming.                       |
 | [Metalama.Patterns.Immutability](https://www.nuget.org/packages/Metalama.Patterns.Immutability/)     | Represents the concept of Immutable Type so that it can be used by other packages like Metalama.Patterns.Observability. |
-| [Metalama.Patterns.Memoization](https://www.nuget.org/packages/Metalama.Patterns.Memoization)         | Implements a memoization aspect, i.e. simple and super-fast caching.                                  |
+| [Metalama.Patterns.Memoization](https://www.nuget.org/packages/Metalama.Patterns.Memoization)         | Implements a memoization aspect, i.e., simple and super-fast caching.                                  |
 | [Metalama.Patterns.Observability](https://www.nuget.org/packages/Metalama.Patterns.Observability)     | A Metalama aspect implementing `INotifyPropertyChanged`.                                              |
 | [Metalama.Patterns.Wpf](https://www.nuget.org/packages/Metalama.Patterns.Wpf)                         | Aspects that implement WPF dependency properties and commands.                                        |
 | [Metalama.LinqPad](https://www.nuget.org/packages/Metalama.LinqPad/)                                 | Provides integration with LINQPad for inspecting projects and solutions.                              |

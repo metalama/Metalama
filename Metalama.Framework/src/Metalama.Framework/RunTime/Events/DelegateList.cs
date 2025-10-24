@@ -3,15 +3,17 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System;
+using System.Threading;
 
-namespace Metalama.Framework.RunTime;
+namespace Metalama.Framework.RunTime.Events;
 
 /// <summary>
 /// Thread-safe collection of delegates used by event brokers to manage event handlers.
 /// </summary>
 /// <typeparam name="TDelegate">The delegate type. Must be a reference type delegate.</typeparam>
 /// <typeparam name="TArgs">The event arguments type.</typeparam>
-internal class DelegateList<TDelegate, TArgs>
+/// <typeparam name="TState">An opaque state stored in the <see cref="EventBroker{TDelegate,TOwner,TArgs}"/>.</typeparam>
+internal struct DelegateList<TDelegate, TArgs, TState>
     where TDelegate : class, Delegate
 {
     private volatile TDelegate? _delegates;
@@ -19,7 +21,7 @@ internal class DelegateList<TDelegate, TArgs>
     /// <summary>
     /// Gets a value indicating whether no delegates are registered.
     /// </summary>
-    public bool IsEmpty => this._delegates == null;
+    public readonly bool IsEmpty => this._delegates == null;
 
     /// <summary>
     /// Adds a delegate using atomic operations.
@@ -29,18 +31,18 @@ internal class DelegateList<TDelegate, TArgs>
     {
         if ( del == null )
         {
-            throw new ArgumentNullException( nameof( del ) );
+            throw new ArgumentNullException( nameof(del) );
         }
 
-        while (true)
+        while ( true )
         {
             var currentValue = this._delegates;
             var newValue = (TDelegate) Delegate.Combine( currentValue, del );
 
-            if ( System.Threading.Interlocked.CompareExchange( ref this._delegates, newValue, currentValue ) == currentValue )
+            if ( Interlocked.CompareExchange( ref this._delegates, newValue, currentValue ) == currentValue )
             {
                 // Successfully updated the delegates.
-                return currentValue == null && newValue != null;
+                return currentValue == null && newValue != null!;
             }
         }
     }
@@ -53,7 +55,7 @@ internal class DelegateList<TDelegate, TArgs>
     {
         if ( del == null )
         {
-            throw new ArgumentNullException( nameof( del ) );
+            throw new ArgumentNullException( nameof(del) );
         }
 
         while ( true )
@@ -61,32 +63,31 @@ internal class DelegateList<TDelegate, TArgs>
             var currentValue = this._delegates;
             var newValue = (TDelegate?) Delegate.Remove( currentValue, del );
 
-            if ( System.Threading.Interlocked.CompareExchange( ref this._delegates, newValue, currentValue ) == currentValue )
+            if ( Interlocked.CompareExchange( ref this._delegates, newValue, currentValue ) == currentValue )
             {
                 // Successfully updated the delegates.
                 return currentValue != null && newValue == null;
             }
         }
     }
-    
+
     /// <summary>
     /// Invokes all registered delegates using the configured invoker.
     /// </summary>
-    /// <param name="me">The event owner object.</param>
     /// <param name="args">The event arguments.</param>
-    public void Invoke( Action<TDelegate, object, TArgs> invoker, object me, TArgs args )
+    public readonly void Invoke( EventHandlerInvocationCallback<TDelegate, TArgs, TState> invoker, ref TArgs args, TState state )
     {
         var currentValue = this._delegates;
 
-        if (currentValue == null)
+        if ( currentValue == null )
         {
             // No delegates to invoke.
             return;
         }
 
-        foreach (var @delegate in currentValue.GetInvocationList())
+        foreach ( var @delegate in currentValue.GetInvocationList() )
         {
-            invoker.Invoke( (TDelegate)@delegate, me, args );
+            invoker.Invoke( (TDelegate) @delegate, ref args, state );
         }
     }
 }

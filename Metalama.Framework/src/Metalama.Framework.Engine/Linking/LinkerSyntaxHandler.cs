@@ -25,6 +25,9 @@ internal static class LinkerSyntaxHandler
                     // Partial methods without declared body have the whole declaration as body.
                     return methodDecl.Body ?? (SyntaxNode?) methodDecl.ExpressionBody ?? methodDecl;
 
+                case ConstructorDeclarationSyntax constructorDecl:
+                    return constructorDecl.Body ?? (SyntaxNode?) constructorDecl.ExpressionBody ?? constructorDecl;
+
                 case BaseMethodDeclarationSyntax otherMethodDecl:
                     return (SyntaxNode?) otherMethodDecl.Body
                            ?? otherMethodDecl.ExpressionBody ?? throw new AssertionFailedException( $"'{symbol}' has no implementation." );

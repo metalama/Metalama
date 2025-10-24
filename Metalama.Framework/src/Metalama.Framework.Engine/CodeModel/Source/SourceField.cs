@@ -28,25 +28,25 @@ using TypedConstant = Metalama.Framework.Code.TypedConstant;
 
 namespace Metalama.Framework.Engine.CodeModel.Source
 {
-    internal sealed class SourceField : SourceMember, IFieldImpl
+    internal class SourceField : SourceMember, IFieldImpl
     {
-        private readonly IFieldSymbol _symbol;
+        public IFieldSymbol FieldSymbol { get; }
 
         public override DeclarationKind DeclarationKind => DeclarationKind.Field;
 
-        public override ISymbol Symbol => this._symbol;
+        public override ISymbol Symbol => this.FieldSymbol;
 
         public SourceField( IFieldSymbol symbol, CompilationModel compilation, GenericContext? genericContextForSymbolMapping ) : base(
             compilation,
             genericContextForSymbolMapping )
         {
-            this._symbol = symbol;
+            this.FieldSymbol = symbol;
         }
 
         [Memo]
-        public IType Type => this.Compilation.Factory.GetIType( this._symbol.Type, this.GenericContextForSymbolMapping );
+        public IType Type => this.Compilation.Factory.GetIType( this.FieldSymbol.Type, this.GenericContextForSymbolMapping );
 
-        public RefKind RefKind => this._symbol.RefKind.ToOurRefKind();
+        public RefKind RefKind => this.FieldSymbol.RefKind.ToOurRefKind();
 
         [Memo]
         public IMethod GetMethod => new PseudoGetter( this );
@@ -66,12 +66,14 @@ namespace Metalama.Framework.Engine.CodeModel.Source
         // Intentionally no cached with [Memo] because it can be changed by promoting the field.
         public IProperty? OverridingProperty => FieldHelper.GetOverridingProperty( this );
 
+        public virtual FieldKind FieldKind => FieldKind.Default;
+
         IRef<IFieldOrProperty> IFieldOrProperty.ToRef() => this.Ref;
 
         IRef<IFieldOrPropertyOrIndexer> IFieldOrPropertyOrIndexer.ToRef() => this.Ref;
 
         public Writeability Writeability
-            => this._symbol switch
+            => this.FieldSymbol switch
             {
                 { IsConst: true } => Writeability.None,
                 { IsReadOnly: true } => Writeability.ConstructorOnly,
@@ -82,7 +84,7 @@ namespace Metalama.Framework.Engine.CodeModel.Source
 
         public FieldOrPropertyInfo ToFieldOrPropertyInfo() => CompileTimeFieldOrPropertyInfo.Create( this );
 
-        public bool IsRequired => this._symbol.IsRequired;
+        public bool IsRequired => this.FieldSymbol.IsRequired;
 
         [Memo]
         public IExpression? InitializerExpression => this.GetInitializerExpressionCore();
@@ -129,7 +131,7 @@ namespace Metalama.Framework.Engine.CodeModel.Source
 
         private IExpression? GetInitializerExpressionCore()
         {
-            var expression = this._symbol.GetPrimaryDeclarationSyntax() switch
+            var expression = this.FieldSymbol.GetPrimaryDeclarationSyntax() switch
             {
                 VariableDeclaratorSyntax variable => variable.Initializer?.Value,
                 EnumMemberDeclarationSyntax enumMember => enumMember.EqualsValue?.Value,
@@ -149,7 +151,8 @@ namespace Metalama.Framework.Engine.CodeModel.Source
         public FieldInfo ToFieldInfo() => CompileTimeFieldInfo.Create( this );
 
         [Memo]
-        public TypedConstant? ConstantValue => this._symbol.ConstantValue != null ? TypedConstant.Create( this._symbol.ConstantValue, this.Type ) : null;
+        public TypedConstant? ConstantValue
+            => this.FieldSymbol.ConstantValue != null ? TypedConstant.Create( this.FieldSymbol.ConstantValue, this.Type ) : null;
 
         public override bool IsExplicitInterfaceImplementation => false;
 
@@ -186,12 +189,12 @@ namespace Metalama.Framework.Engine.CodeModel.Source
 
         [Memo]
         public IField Definition
-            => this._symbol == this._symbol.OriginalDefinition ? this : this.Compilation.Factory.GetField( this._symbol.OriginalDefinition );
+            => this.FieldSymbol == this.FieldSymbol.OriginalDefinition ? this : this.Compilation.Factory.GetField( this.FieldSymbol.OriginalDefinition );
 
         protected override IMemberOrNamedType GetDefinitionMemberOrNamedType() => this.Definition;
 
         [Memo]
-        private IFullRef<IField> Ref => this.RefFactory.FromSymbolBasedDeclaration<IField>( this );
+        protected virtual IFullRef<IField> Ref => this.RefFactory.FromSymbolBasedDeclaration<IField>( this );
 
         private protected override IFullRef<IDeclaration> ToFullDeclarationRef() => this.Ref;
 

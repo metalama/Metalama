@@ -164,5 +164,9 @@ public sealed class CompilationContext : ICompilationServices, ITemplateReflecti
     [Memo]
     internal SymbolTranslator SymbolTranslator => new( this );
 
+    [Memo]
+    public LanguageVersion LanguageVersion
+        => ((CSharpParseOptions?) this.Compilation.SyntaxTrees.FirstOrDefault()?.Options)?.LanguageVersion ?? SupportedCSharpVersions.Latest;
+
     public override string ToString() => $"{this.GetType().Name} #{this._id}, Assembly={this.Compilation.AssemblyName}";
 }

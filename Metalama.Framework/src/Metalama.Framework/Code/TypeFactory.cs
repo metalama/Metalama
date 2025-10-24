@@ -6,6 +6,7 @@ using Metalama.Framework.Aspects;
 using Metalama.Framework.Code.Types;
 using Metalama.Framework.Project;
 using System;
+using System.Collections.Generic;
 
 namespace Metalama.Framework.Code;
 
@@ -80,4 +81,29 @@ public static class TypeFactory
 
     [Obsolete( "Use INamedType.ToNonNullable instead." )]
     public static IType ToNonNullableType( this INamedType type ) => type.ToNonNullable();
+
+    /// <summary>
+    /// Creates a tuple type with the specified element types (given as <see cref="IType"/>) and default element names.
+    /// </summary>
+    public static ITupleType CreateTupleType( params IEnumerable<IType> elementTypes ) => Implementation.CreateTupleType( elementTypes );
+
+    /// <summary>
+    /// Creates a tuple type with the specified element types (given as reflection <see cref="Type"/>'s) and default element names.
+    /// </summary>
+    public static ITupleType CreateTupleType( params IEnumerable<Type> elementTypes ) => Implementation.CreateTupleType( elementTypes );
+
+    /// <summary>
+    /// Creates a tuple type with the specified element types (given as <see cref="IType"/>'s) and names.
+    /// </summary>
+    public static ITupleType CreateTupleType( params IEnumerable<(IType Type, string Name)> elements ) => Implementation.CreateTupleType( elements );
+
+    /// <summary>
+    /// Creates a tuple type with the specified element types (given as reflection <see cref="Type"/>'s) and names.
+    /// </summary>
+    public static ITupleType CreateTupleType( params IEnumerable<(Type Type, string Name)> elements ) => Implementation.CreateTupleType( elements );
+
+    /// <summary>
+    /// Creates a tuple type with the specified parameters as elements.
+    /// </summary>
+    public static ITupleType CreateTupleType( params IEnumerable<IParameter> elements ) => Implementation.CreateTupleType( elements );
 }

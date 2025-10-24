@@ -14,13 +14,29 @@ namespace Metalama.Framework.Engine.Linking.Substitution;
 /// </summary>
 internal static class EventBrokerSyntaxHelper
 {
+    public static ExpressionSyntax GetEventBrokerField( string eventBrokerFieldName, bool isStatic )
+    {
+        if ( isStatic )
+        {
+            return IdentifierName( eventBrokerFieldName );
+        }
+        else
+        {
+            return MemberAccessExpression(
+                SyntaxKind.SimpleMemberAccessExpression,
+                ThisExpression(),
+                IdentifierName( eventBrokerFieldName ) );
+        }
+    }
+
     /// <summary>
     /// Creates the syntax for event broker adder method body.
     /// </summary>
     public static BlockSyntax CreateAddHandlerBody(
         SyntaxGenerationContext context,
         string eventBrokerFieldName,
-        ExpressionSyntax fieldInitializationExpression )
+        ExpressionSyntax fieldInitializationExpression,
+        bool isStatic )
     {
         return
             context.SyntaxGenerator.FormattedBlock(
@@ -29,15 +45,9 @@ internal static class EventBrokerSyntaxHelper
                     InvocationExpression(
                         MemberAccessExpression(
                             SyntaxKind.SimpleMemberAccessExpression,
-                            MemberAccessExpression(
-                                SyntaxKind.SimpleMemberAccessExpression,
-                                ThisExpression(),
-                                IdentifierName( eventBrokerFieldName ) ),
+                            GetEventBrokerField( eventBrokerFieldName, isStatic ),
                             IdentifierName( "AddHandler" ) ),
-                        ArgumentList(
-                            SingletonSeparatedList(
-                                Argument(
-                                    IdentifierName( "value" ) ) ) ) ) ) );
+                        ArgumentList( SingletonSeparatedList( Argument( IdentifierName( "value" ) ) ) ) ) ) );
     }
 
     /// <summary>
@@ -45,22 +55,16 @@ internal static class EventBrokerSyntaxHelper
     /// </summary>
     public static BlockSyntax CreateRemoveHandlerBody(
         SyntaxGenerationContext context,
-        string eventBrokerFieldName )
+        string eventBrokerFieldName,
+        bool isStatic )
     {
         return
             context.SyntaxGenerator.FormattedBlock(
                 ExpressionStatement(
                     ConditionalAccessExpression(
-                        MemberAccessExpression(
-                            SyntaxKind.SimpleMemberAccessExpression,
-                            ThisExpression(),
-                            IdentifierName( eventBrokerFieldName ) ),
+                        GetEventBrokerField( eventBrokerFieldName, isStatic ),
                         InvocationExpression(
-                            MemberBindingExpression(
-                                IdentifierName( "RemoveHandler" ) ),
-                            ArgumentList(
-                                SingletonSeparatedList(
-                                    Argument(
-                                        IdentifierName( "value" ) ) ) ) ) ) ) );
+                            MemberBindingExpression( IdentifierName( "RemoveHandler" ) ),
+                            ArgumentList( SingletonSeparatedList( Argument( IdentifierName( "value" ) ) ) ) ) ) ) );
     }
 }

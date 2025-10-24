@@ -97,7 +97,7 @@ internal sealed class IntroduceIndexerTransformation : IntroduceMemberTransforma
                             ReturnStatement(
                                 Token( TriviaList(), SyntaxKind.ReturnKeyword, TriviaList( ElasticSpace ) ),
                                 DefaultExpression( syntaxGenerator.TypeSyntax( finalIndexer.Type ) ),
-                                Token( TriviaList(), SyntaxKind.SemicolonToken, context.SyntaxGenerationContext.ElasticEndOfLineTriviaList ) ) ),
+                                Token( TriviaList(), SyntaxKind.SemicolonToken, context.SyntaxGenerationContext.OptionalElasticEndOfLineTriviaList ) ) ),
                     null,
                     hasNoBody ? Token( SyntaxKind.SemicolonToken ) : default );
         }

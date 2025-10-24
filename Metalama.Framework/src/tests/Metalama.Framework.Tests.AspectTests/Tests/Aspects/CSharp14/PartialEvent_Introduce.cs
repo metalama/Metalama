@@ -4,32 +4,35 @@
 
 #if TEST_OPTIONS
 // @RequiredConstant(ROSLYN_5_0_0_OR_GREATER)
-// @Skipped(https://github.com/metalama/Metalama/issues/1112)
 #endif
 
 #if ROSLYN_5_0_0_OR_GREATER
 
+using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
+using Metalama.Framework.Code;
 using System;
+
+#pragma warning disable CS0626 // Method, operator, or accessor is marked external and has no attributes on it
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.CSharp14.PartialEvent_Introduce;
 
 public class TheAspect : TypeAspect
 {
-    [Introduce]
-    public event Action E
+    public override void BuildAspect( IAspectBuilder<INamedType> builder )
     {
-        add { Console.WriteLine( "Add" ); }
-        remove { Console.WriteLine( "Remove" ); }
+        builder.IntroduceEvent( nameof( this.PartialEvent) );
     }
+
+    [Template( IsPartial = true )]
+    public extern event Action PartialEvent;
+#pragma warning restore CS0626 // Method, operator, or accessor is marked external and has no attributes on it
 }
 
+// <target>
 [TheAspect]
 internal partial class C
 {
-#if TESTRUNNER
-    public partial event Action E;
-#endif
 }
 
-#endif
+#endif 

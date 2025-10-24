@@ -4,7 +4,6 @@
 
 #if TEST_OPTIONS
 // @RequiredConstant(ROSLYN_5_0_0_OR_GREATER)
-// @Skipped(https://github.com/metalama/Metalama/issues/1111)
 #endif
 
 #if ROSLYN_5_0_0_OR_GREATER
@@ -30,6 +29,7 @@ public class TheAspect : TypeAspect
     }
 }
 
+// <target>
 [TheAspect]
 internal partial class C
 {

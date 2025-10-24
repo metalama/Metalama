@@ -3,18 +3,19 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Code;
-using Metalama.Framework.Code.Collections;
 using Metalama.Framework.Engine.AdviceImpl.Override;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Linking.Inlining;
+using Metalama.Framework.Engine.Linking.Substitution;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.Transformations;
+using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Metalama.Framework.Engine.Utilities.Threading;
-using Metalama.Framework.RunTime;
+using Metalama.Framework.RunTime.Events;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -26,6 +27,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 using MethodKind = Microsoft.CodeAnalysis.MethodKind;
+using RefKind = Metalama.Framework.Code.RefKind;
 using SpecialType = Metalama.Framework.Code.SpecialType;
 using TypeKind = Microsoft.CodeAnalysis.TypeKind;
 
@@ -96,17 +98,6 @@ namespace Metalama.Framework.Engine.Linking
                 .Where( s => s is IEventSymbol eventSymbol && eventSymbol.IsEventField() == true )
                 .Cast<IEventSymbol>()
                 .ToArray();
-
-            var eventsWithRaiseOverrides =
-                new HashSet<IEventSymbol>(
-                    input.InjectionRegistry.GetInjectedMembers()
-                    .Where( im => im.Semantic == Transformations.InjectedMemberSemantic.OverrideEventRaise )
-                    .Select( im =>
-                    {
-                        var raiseOverrideSymbol = input.InjectionRegistry.GetSymbolForInjectedMember( im );
-                        var eventOverrideSymbol = input.InjectionRegistry.GetMainOverrideForSatelliteOverride( raiseOverrideSymbol ).AssertNotNull();
-                        return (IEventSymbol) input.InjectionRegistry.GetOverrideTarget( eventOverrideSymbol ).AssertNotNull();
-                    } ) );
 
             var eventFieldRaiseReferences = await GetEventFieldRaiseReferencesAsync( symbolReferenceFinder, overriddenEventFields, cancellationToken );
 
@@ -289,21 +280,28 @@ namespace Metalama.Framework.Engine.Linking
             var staticFieldsWritable = new Dictionary<INamedTypeSymbol, IReadOnlyList<StaticFieldInfo>>( intermediateCompilation.SymbolComparer );
             staticfields = staticFieldsWritable;
 
-            foreach ( var injectedMember in injectionRegistry.GetInjectedMembers().Where( im => im.Semantic == Transformations.InjectedMemberSemantic.OverrideEventRaise ) )
+            foreach ( var injectedMember in injectionRegistry.GetInjectedMembers().Where( im => im.Semantic == InjectedMemberSemantic.OverrideEventRaise ) )
             {
                 switch ( injectedMember.Transformation )
                 {
                     case OverrideEventTransformation overrideEvent:
                         var targetEvent = overrideEvent.TargetDeclaration.As<IEvent>().GetTarget( finalCompilationModel );
-                        var overrideMember = injectionRegistry.GetInjectedMembersForTransformation( overrideEvent ).Single( im => im.Semantic == InjectedMemberSemantic.Override );
+
+                        var overrideMember = injectionRegistry.GetInjectedMembersForTransformation( overrideEvent )
+                            .Single( im => im.Semantic == InjectedMemberSemantic.Override );
+
                         var overrideEventSymbol = injectionRegistry.GetSymbolForInjectedMember( overrideMember ).AssertNotNull();
+
                         var overrideName = overrideMember.Syntax switch
                         {
                             EventDeclarationSyntax eventDeclaration => eventDeclaration.Identifier.ValueText,
                             _ => throw new NotSupportedException( $"Unsupported syntax for event override: {overrideMember.Syntax}." )
                         };
 
-                        var targetEventSymbol = injectionRegistry.GetIntermediateCompilationSymbol<IEventSymbol>( targetEvent ).AssertNotNull();
+                        var targetEventSymbol = 
+                            (IEventSymbol) LinkerSymbolHelper.GetCanonicalDefinition(
+                                injectionRegistry.GetIntermediateCompilationSymbol<IEventSymbol>( targetEvent ).AssertNotNull() );
+
                         var delegateType = targetEvent.Type.AssertNotNull();
                         var invokeMethod = delegateType.Methods.OfName( "Invoke" ).Single();
 
@@ -316,30 +314,36 @@ namespace Metalama.Framework.Engine.Linking
 
                         // Generate broker proxy name for non-last overrides
                         string? brokerProxyName = null;
+
                         if ( !injectionRegistry.IsLastOverride( overrideEventSymbol ) )
                         {
                             brokerProxyName =
-                                    typeMemberIdentifierGenerator.AllocateName( targetEventSymbol.ContainingType, $"{overrideName}Brokered", IdentifierFlags.None );
+                                typeMemberIdentifierGenerator.AllocateName( targetEventSymbol.ContainingType, $"{overrideName}Brokered", IdentifierFlags.None );
                         }
 
                         switch ( invokeMethod )
                         {
-                            case { ReturnType: { SpecialType: SpecialType.Void }, Parameters: var parameters } when parameters.All( p => p.RefKind == Code.RefKind.None ):
+                            case { ReturnType.SpecialType: SpecialType.Void, Parameters: var parameters }
+                                when parameters.All( p => p.RefKind == RefKind.None ):
                                 // Delegate with RefKind.None parameters and void return type.
 
-                                var staticDelegatesForType = (List<StaticFieldInfo>) staticFieldsWritable.GetOrAdd( targetEventSymbol.ContainingType, _ => new List<StaticFieldInfo>() );
+                                var staticDelegatesForType = (List<StaticFieldInfo>) staticFieldsWritable.GetOrAdd(
+                                    targetEventSymbol.ContainingType,
+                                    _ => new List<StaticFieldInfo>() );
 
-                                var tupleType = finalCompilationModel.Factory.GetTypeByReflectionName( $"System.ValueTuple`{invokeMethod.Parameters.Count}" );
+                                var argsType = finalCompilationModel.Factory.CreateTupleType( invokeMethod.Parameters );
 
-                                var argsType = tupleType.WithTypeArguments( invokeMethod.Parameters.SelectAsArray( p => p.Type ) );
+                                var stateType = targetEventSymbol.IsStatic
+                                    ? finalCompilationModel.Factory.GetTypeByReflectionType( typeof(None) )
+                                    : targetEvent.DeclaringType;
 
-                                var eventBrokerInfo = default( EventBrokerInfo? );
+                                var stateTypeSymbol = (INamedTypeSymbol) stateType.GetSymbol().AssertSymbolNotNull();
 
-                                if ( !eventBrokersWritable.TryGetValue( targetEventSymbol, out eventBrokerInfo ) )
+                                if ( !eventBrokersWritable.TryGetValue( targetEventSymbol, out var eventBrokerInfo ) )
                                 {
                                     var eventBrokerType =
-                                        ((INamedType) finalCompilationModel.Factory.GetTypeByReflectionType( typeof( ActionEventBroker<,> ) ))
-                                        .WithTypeArguments( [delegateType, argsType] );
+                                        ((INamedType) finalCompilationModel.Factory.GetTypeByReflectionType( typeof(EventBroker<,,>) ))
+                                        .WithTypeArguments( delegateType, argsType, stateType );
 
                                     var eventBrokerTypeSymbol =
                                         injectionRegistry.GetIntermediateCompilationSymbol<INamedTypeSymbol>( eventBrokerType ).AssertNotNull();
@@ -349,59 +353,77 @@ namespace Metalama.Framework.Engine.Linking
                                     eventBrokersWritable.Add( targetEventSymbol, eventBrokerInfo );
                                 }
 
-                                var eventBrokerTransformationsWritable = (Dictionary<ITransformation, EventBrokerTransformationInfo>) eventBrokerInfo.Transformations;
+                                var eventBrokerTransformationsWritable =
+                                    (Dictionary<ITransformation, EventBrokerTransformationInfo>) eventBrokerInfo.Transformations;
 
                                 var brokerCallbacksType =
-                                    ((INamedType) finalCompilationModel.Factory.GetTypeByReflectionType( typeof( ActionEventBrokerCallbacks<,> ) ))
-                                    .WithTypeArguments( [delegateType, argsType] );
+                                    ((INamedType) finalCompilationModel.Factory.GetTypeByReflectionType( typeof(DelegateEventAdapter<,,>) ))
+                                    .WithTypeArguments( delegateType, argsType, stateType );
 
                                 var brokerCallbacksTypeSymbol =
                                     injectionRegistry.GetIntermediateCompilationSymbol<INamedTypeSymbol>( brokerCallbacksType ).AssertNotNull();
 
+                                // ReSharper disable AccessToModifiedClosure
                                 var brokerCallbacksField = new StaticFieldInfo(
                                     targetEventSymbol.ContainingType,
                                     brokerCallbacksTypeSymbol,
-                                    typeMemberIdentifierGenerator.AllocateName( targetEventSymbol.ContainingType, $"{targetEvent.Name}BrokerCallbacks", IdentifierFlags.AlwaysUseSuffix ),
+                                    typeMemberIdentifierGenerator.AllocateName(
+                                        targetEventSymbol.ContainingType,
+                                        $"{targetEvent.Name}BrokerCallbacks",
+                                        IdentifierFlags.AlwaysUseSuffix ),
                                     context =>
                                         GetEventBrokerCallbacksInitializationExpression(
                                             context,
-                                            brokerCallbacksTypeSymbol,
-                                            targetEventSymbol.ContainingType.AssertNotNull(),
+                                            stateTypeSymbol,
                                             raiseMethodName,
                                             overrideName,
-                                            invokeMethod.Parameters ) );
+                                            invokeMethod.Compilation.Factory.CreateTupleType( invokeMethod.Parameters ),
+                                            delegateType,
+                                            targetEventSymbol.IsStatic ) );
 
                                 staticDelegatesForType.Add( brokerCallbacksField );
 
                                 var eventBrokerFieldName =
-                                    typeMemberIdentifierGenerator.AllocateName( targetEventSymbol.ContainingType, $"{targetEvent.Name}Broker", IdentifierFlags.MakePrivateFieldName );
+                                    typeMemberIdentifierGenerator.AllocateName(
+                                        targetEventSymbol.ContainingType,
+                                        $"{targetEvent.Name}Broker",
+                                        IdentifierFlags.MakePrivateFieldName );
+
+                                var fieldInitializationArguments = new List<ArgumentSyntax>( 4 );
+
+                                fieldInitializationArguments.Add(
+                                    Argument(
+                                        null,
+                                        Token( TriviaList(), SyntaxKind.RefKeyword, TriviaList( ElasticSpace ) ),
+                                        EventBrokerSyntaxHelper.GetEventBrokerField( eventBrokerFieldName, targetEvent.IsStatic ) ) );
+
+                                fieldInitializationArguments.Add( Argument( IdentifierName( brokerCallbacksField.FieldName ) ) );
+
+                                if ( !targetEvent.IsStatic )
+                                {
+                                    fieldInitializationArguments.Add( Argument( ThisExpression() ) );
+                                }
 
                                 var fieldInitializationExpression =
                                     ( SyntaxGenerationContext context ) =>
-                                    InvocationExpression(
-                                        MemberAccessExpression(
-                                            SyntaxKind.SimpleMemberAccessExpression,
-                                            context.SyntaxGenerator.TypeSyntax( eventBrokerInfo.EventBrokerType ),
-                                            IdentifierName( "EnsureInitialized" ) ),
-                                        ArgumentList(
-                                            SeparatedList<ArgumentSyntax>(
-                                                [
-                                                    Argument(
-                                                        null,
-                                                        Token(TriviaList(), SyntaxKind.RefKeyword, TriviaList(ElasticSpace)),
-                                                        MemberAccessExpression(
-                                                            SyntaxKind.SimpleMemberAccessExpression,
-                                                            ThisExpression(),
-                                                            IdentifierName(eventBrokerFieldName) ) ),
-                                                    Token( SyntaxKind.CommaToken ),
-                                                    Argument( ThisExpression() ),
-                                                    Token( SyntaxKind.CommaToken ),
-                                                    Argument( IdentifierName( brokerCallbacksField.FieldName ) )
-                                                ] ) ) );
+                                        InvocationExpression(
+                                            MemberAccessExpression(
+                                                SyntaxKind.SimpleMemberAccessExpression,
+                                                context.SyntaxGenerator.TypeSyntax(
+                                                    context.CompilationContext.ReflectionMapper.GetTypeSymbol( typeof(EventBroker) ) ),
+                                                IdentifierName( nameof(EventBroker.EnsureInitialized) ) ),
+                                            ArgumentList( SeparatedList<ArgumentSyntax>( fieldInitializationArguments ) ) );
+
+                                // ReSharper restore AccessToModifiedClosure
 
                                 eventBrokerTransformationsWritable.Add(
+                                    overrideEvent,
+                                    new EventBrokerTransformationInfo(
+                                        eventBrokerInfo,
                                         overrideEvent,
-                                        new EventBrokerTransformationInfo( eventBrokerInfo, overrideEvent, eventBrokerFieldName, fieldInitializationExpression, brokerProxyName ) );
+                                        eventBrokerFieldName,
+                                        fieldInitializationExpression,
+                                        brokerProxyName ) );
 
                                 break;
 
@@ -417,10 +439,10 @@ namespace Metalama.Framework.Engine.Linking
             }
         }
 
-        private static ExpressionSyntax GetEventBrokerCastDelegateInitializationExpression( IReadOnlyList<IParameter> invokeParameters )
+        private static ExpressionSyntax GetEventBrokerCastDelegateInitializationExpression( ITupleType invokeTupleType, SyntaxGenerationContext context )
         {
-            var parameterList = SeparatedList( invokeParameters.SelectAsArray( p => Parameter( Identifier( p.Name ) ) ) );
-            var argumentList = SeparatedList( invokeParameters.SelectAsArray( p => Argument( IdentifierName( p.Name ) ) ) );
+            var parameterList = SeparatedList( invokeTupleType.TupleElements.SelectAsArray( p => Parameter( Identifier( p.Name ) ) ) );
+            var argumentList = SeparatedList( invokeTupleType.TupleElements.SelectAsArray( p => Argument( IdentifierName( p.Name ) ) ) );
 
             return
                 SimpleLambdaExpression(
@@ -436,106 +458,141 @@ namespace Metalama.Framework.Engine.Linking
                                 IdentifierName( "b" ),
                                 IdentifierName( "Invoke" ) ),
                             ArgumentList(
-                                SingletonSeparatedList(
-                                    Argument(
-                                        TupleExpression( argumentList ) ) ) ) ) ) );
+                                SingletonSeparatedList( Argument( context.SyntaxGenerator.TupleExpression( invokeTupleType, argumentList, false ) ) ) ) ) ) );
         }
 
         private static ExpressionSyntax GetEventBrokerInvokerDelegateInitializationExpression(
             SyntaxGenerationContext context,
-            INamedTypeSymbol containingType,
-            string raiseMethodName )
+            INamedTypeSymbol stateType,
+            string raiseMethodName,
+            IType delegateType,
+            IType argsType,
+            bool isStatic )
         {
+            TypeSyntax? handlerTypeSyntax, stateTypeSyntax, argsTypeSyntax;
+
+            if ( context.CompilationContext.LanguageVersion < AllLanguageVersions.CSharp14 )
+            {
+                // Before C# 14, we must specify the type of all lambda parameters because of `in`.
+                handlerTypeSyntax = context.SyntaxGenerator.TypeSyntax( delegateType ).WithRequiredTrailingSpace();
+                stateTypeSyntax = context.SyntaxGenerator.TypeSyntax( stateType ).WithRequiredTrailingSpace();
+                argsTypeSyntax = context.SyntaxGenerator.TypeSyntax( argsType ).WithRequiredTrailingSpace();
+            }
+            else
+            {
+                handlerTypeSyntax = null;
+                stateTypeSyntax = null;
+                argsTypeSyntax = null;
+            }
+
+            var parameters = ParameterList(
+                SeparatedList<ParameterSyntax>(
+                [
+                    Parameter( default, default, handlerTypeSyntax, Identifier( "handler" ), null ),
+                    Parameter(
+                        default,
+                        SyntaxTokenList.Create( Token( default, SyntaxKind.RefKeyword, SyntaxFactoryEx.ElasticSpaceTriviaList ) ),
+                        argsTypeSyntax,
+                        Identifier( "args" ),
+                        null ),
+                    Parameter( default, default, stateTypeSyntax, isStatic ? SyntaxFactoryEx.DiscardIdentifier() : Identifier( "me" ), null )
+                ] ) );
+
+            ExpressionSyntax raiseMethod = isStatic
+                ? IdentifierName( raiseMethodName )
+                : MemberAccessExpression(
+                    SyntaxKind.SimpleMemberAccessExpression,
+                    IdentifierName( "me" ),
+                    IdentifierName( raiseMethodName ) );
+
+            var expression = InvocationExpression(
+                raiseMethod,
+                ArgumentList(
+                    SeparatedList<ArgumentSyntax>(
+                    [
+                        Argument( IdentifierName( "handler" ) ),
+                        Argument( null, Token( default, SyntaxKind.RefKeyword, SyntaxFactoryEx.ElasticSpaceTriviaList ), IdentifierName( "args" ) )
+                    ] ) ) );
+
             return
                 ParenthesizedLambdaExpression(
                     TokenList( Token( SyntaxKind.StaticKeyword ) ),
-                    ParameterList(
-                        SeparatedList<ParameterSyntax>(
-                            [
-                                Parameter(
-                                    Identifier("handler")),
-                                Token(SyntaxKind.CommaToken),
-                                Parameter(
-                                    Identifier("me")),
-                                Token(SyntaxKind.CommaToken),
-                                Parameter(
-                                    Identifier("args"))
-                            ] ) ),
+                    parameters,
                     null,
-                    InvocationExpression(
-                        MemberAccessExpression(
-                            SyntaxKind.SimpleMemberAccessExpression,
-                            ParenthesizedExpression(
-                                CastExpression(
-                                    context.SyntaxGenerator.TypeSyntax( containingType ),
-                                    IdentifierName( "me" ) ) ),
-                            IdentifierName( raiseMethodName ) ),
-                        ArgumentList(
-                            SeparatedList<ArgumentSyntax>(
-                                [
-                                    Argument(
-                                        IdentifierName("handler")),
-                                    Token(SyntaxKind.CommaToken),
-                                    Argument(
-                                        IdentifierName("args"))
-                                ] ) ) ) );
+                    expression );
         }
 
         private static ExpressionSyntax GetEventBrokerEventAccessDelegateInitializationExpression(
-            SyntaxGenerationContext context,
-            INamedTypeSymbol containingType,
             SyntaxKind operationKind,
-            string overrideName )
+            string overrideMethodName,
+            bool isStatic )
         {
+            var parameters = ParameterList(
+                SeparatedList<ParameterSyntax>(
+                [
+                    Parameter( Identifier( "handler" ) ),
+                    Parameter( isStatic ? SyntaxFactoryEx.DiscardIdentifier() : Identifier( "me" ) )
+                ] ) );
+
+            ExpressionSyntax overrideMethod = isStatic
+                ? IdentifierName( overrideMethodName )
+                : MemberAccessExpression(
+                    SyntaxKind.SimpleMemberAccessExpression,
+                    IdentifierName( "me" ),
+                    IdentifierName( overrideMethodName ) );
+
+            var expression = AssignmentExpression(
+                operationKind,
+                overrideMethod,
+                IdentifierName( "handler" ) );
+
             return
                 ParenthesizedLambdaExpression(
                     TokenList( Token( SyntaxKind.StaticKeyword ) ),
-                    ParameterList(
-                        SeparatedList<ParameterSyntax>(
-                            [
-                                Parameter(
-                                    Identifier("handler")),
-                                Token(SyntaxKind.CommaToken),
-                                Parameter(
-                                    Identifier("me"))
-                            ] ) ),
+                    parameters,
                     null,
-                    AssignmentExpression(
-                        operationKind,
-                        MemberAccessExpression(
-                            SyntaxKind.SimpleMemberAccessExpression,
-                            ParenthesizedExpression(
-                                CastExpression(
-                                    context.SyntaxGenerator.TypeSyntax( containingType ),
-                                    IdentifierName( "me" ) ) ),
-                            IdentifierName( overrideName ) ),
-                        IdentifierName( "handler" ) ) );
+                    expression );
         }
 
         private static ExpressionSyntax GetEventBrokerCallbacksInitializationExpression(
             SyntaxGenerationContext context,
-            INamedTypeSymbol brokerCallbacksTypeSymbol,
-            INamedTypeSymbol containingType,
+            INamedTypeSymbol stateType,
             string raiseMethodName,
             string overrideName,
-            IReadOnlyList<IParameter> invokeParameters )
+            ITupleType argsType,
+            IType delegateType,
+            bool isStatic )
         {
             return
-                ObjectCreationExpression(
-                    Token( TriviaList( context.ElasticEndOfLineTriviaList ), SyntaxKind.NewKeyword, TriviaList( ElasticSpace ) ),
-                    context.SyntaxGenerator.TypeSyntax( brokerCallbacksTypeSymbol ),
+                ImplicitObjectCreationExpression(
+                    Token( TriviaList( context.OptionalElasticEndOfLineTriviaList ), SyntaxKind.NewKeyword, TriviaList( ElasticSpace ) ),
                     ArgumentList(
-                        Token( TriviaList(), SyntaxKind.OpenParenToken, TriviaList( context.ElasticEndOfLineTriviaList ) ),
+                        Token( TriviaList(), SyntaxKind.OpenParenToken, TriviaList( context.OptionalElasticEndOfLineTriviaList ) ),
                         SeparatedList<ArgumentSyntax>(
                             NodeOrTokenList(
-                                Argument( GetEventBrokerInvokerDelegateInitializationExpression( context, containingType, raiseMethodName ) ),
-                                Token( TriviaList(), SyntaxKind.CommaToken, context.ElasticEndOfLineTriviaList ),
-                                Argument( GetEventBrokerCastDelegateInitializationExpression( invokeParameters ) ),
-                                Token( TriviaList(), SyntaxKind.CommaToken, context.ElasticEndOfLineTriviaList ),
-                                Argument( GetEventBrokerEventAccessDelegateInitializationExpression( context, containingType, SyntaxKind.AddAssignmentExpression, overrideName ) ),
-                                Token( TriviaList(), SyntaxKind.CommaToken, context.ElasticEndOfLineTriviaList ),
-                                Argument( GetEventBrokerEventAccessDelegateInitializationExpression( context, containingType, SyntaxKind.SubtractAssignmentExpression, overrideName ) ) ) ),
-                        Token( TriviaList( context.ElasticEndOfLineTriviaList ), SyntaxKind.CloseParenToken, TriviaList() ) ),
+                                Argument(
+                                    GetEventBrokerInvokerDelegateInitializationExpression(
+                                        context,
+                                        stateType,
+                                        raiseMethodName,
+                                        delegateType,
+                                        argsType,
+                                        isStatic ) ),
+                                Token( TriviaList(), SyntaxKind.CommaToken, context.OptionalElasticEndOfLineTriviaList ),
+                                Argument( GetEventBrokerCastDelegateInitializationExpression( argsType, context ) ),
+                                Token( TriviaList(), SyntaxKind.CommaToken, context.OptionalElasticEndOfLineTriviaList ),
+                                Argument(
+                                    GetEventBrokerEventAccessDelegateInitializationExpression(
+                                        SyntaxKind.AddAssignmentExpression,
+                                        overrideName,
+                                        isStatic ) ),
+                                Token( TriviaList(), SyntaxKind.CommaToken, context.OptionalElasticEndOfLineTriviaList ),
+                                Argument(
+                                    GetEventBrokerEventAccessDelegateInitializationExpression(
+                                        SyntaxKind.SubtractAssignmentExpression,
+                                        overrideName,
+                                        isStatic ) ) ) ),
+                        Token( TriviaList( context.OptionalElasticEndOfLineTriviaList ), SyntaxKind.CloseParenToken, TriviaList() ) ),
                     null );
         }
 
@@ -551,17 +608,18 @@ namespace Metalama.Framework.Engine.Linking
             foreach ( var (eventSymbol, eventBrokerInfo) in eventBrokers )
             {
                 var overrides = injectionRegistry.GetOverridesForSymbol( eventSymbol );
+
                 var semanticToBrokerMap =
                     new Dictionary<IntermediateSymbolSemantic<IEventSymbol>, EventBrokerTransformationInfo>(
                         IntermediateSymbolSemanticEqualityComparer<IEventSymbol>.ForCompilation( intermediateCompilationContext ) );
 
-                for ( var i = 0; i < overrides.Count; i++ )
+                foreach ( var @override in overrides )
                 {
-                    var overrideTransformation = injectionRegistry.GetTransformationForSymbol( overrides[i] ).AssertNotNull();
+                    var overrideTransformation = injectionRegistry.GetTransformationForSymbol( @override ).AssertNotNull();
 
                     if ( eventBrokerInfo.Transformations.TryGetValue( overrideTransformation, out var eventBrokerTransformationInfo ) )
                     {
-                        var overrideSemantic = ((IEventSymbol) overrides[i]).ToSemantic( IntermediateSymbolSemanticKind.Default );
+                        var overrideSemantic = ((IEventSymbol) @override).ToSemantic( IntermediateSymbolSemanticKind.Default );
                         semanticToBrokerMap.Add( overrideSemantic, eventBrokerTransformationInfo );
                     }
                 }
@@ -573,7 +631,9 @@ namespace Metalama.Framework.Engine.Linking
 
                 for ( var i = overrides.Count - 1; i >= 0; i-- )
                 {
-                    if ( semanticToBrokerMap.TryGetValue( ((IEventSymbol) overrides[i]).ToSemantic( IntermediateSymbolSemanticKind.Default ), out var eventBrokerTransformationInfo ) )
+                    if ( semanticToBrokerMap.TryGetValue(
+                            ((IEventSymbol) overrides[i]).ToSemantic( IntermediateSymbolSemanticKind.Default ),
+                            out var eventBrokerTransformationInfo ) )
                     {
                         currentVisibleEventBroker = eventBrokerTransformationInfo;
                     }
@@ -634,7 +694,8 @@ namespace Metalama.Framework.Engine.Linking
         private async Task GetReachableReferencesAsync(
             IReadOnlyDictionary<IntermediateSymbolSemantic<IMethodSymbol>, IReadOnlyCollection<ResolvedAspectReference>> resolvedReferencesBySource,
             HashSet<IntermediateSymbolSemantic> reachableSemantics,
-            ConcurrentDictionary<IntermediateSymbolSemantic<IMethodSymbol>, IReadOnlyCollection<ResolvedAspectReference>> reachableReferencesByContainingSemantic,
+            ConcurrentDictionary<IntermediateSymbolSemantic<IMethodSymbol>, IReadOnlyCollection<ResolvedAspectReference>>
+                reachableReferencesByContainingSemantic,
             ConcurrentDictionary<AspectReferenceTarget, IReadOnlyCollection<ResolvedAspectReference>> reachableReferencesByTarget,
             CancellationToken cancellationToken )
         {
@@ -921,13 +982,27 @@ namespace Metalama.Framework.Engine.Linking
                     var (get, set) =
                         declaration switch
                         {
-                            PropertyDeclarationSyntax { AccessorList.Accessors: [{ Keyword.RawKind: (int) SyntaxKind.GetKeyword } getAccessor, { Keyword.RawKind: (int) SyntaxKind.SetKeyword or (int) SyntaxKind.InitKeyword } setAccessor] }
+                            PropertyDeclarationSyntax
+                                {
+                                    AccessorList.Accessors:
+                                    [
+                                        { Keyword.RawKind: (int) SyntaxKind.GetKeyword } getAccessor,
+                                        { Keyword.RawKind: (int) SyntaxKind.SetKeyword or (int) SyntaxKind.InitKeyword } setAccessor
+                                    ]
+                                }
                                 => (getAccessor, setAccessor),
-                            PropertyDeclarationSyntax { AccessorList.Accessors: [{ Keyword.RawKind: (int) SyntaxKind.SetKeyword or (int) SyntaxKind.InitKeyword } setAccessor, { Keyword.RawKind: (int) SyntaxKind.GetKeyword } getAccessor] }
+                            PropertyDeclarationSyntax
+                                {
+                                    AccessorList.Accessors:
+                                    [
+                                        { Keyword.RawKind: (int) SyntaxKind.SetKeyword or (int) SyntaxKind.InitKeyword } setAccessor,
+                                        { Keyword.RawKind: (int) SyntaxKind.GetKeyword } getAccessor
+                                    ]
+                                }
                                 => (getAccessor, setAccessor),
                             PropertyDeclarationSyntax { AccessorList.Accessors: [{ Keyword.RawKind: (int) SyntaxKind.GetKeyword } getAccessor] }
                                 => (getAccessor, null),
-                            _ => throw new InvalidOperationException( "Auto property expected." ),
+                            _ => throw new InvalidOperationException( "Auto property expected." )
                         };
 
                     if ( get.Body != null || get.ExpressionBody != null )
@@ -986,21 +1061,19 @@ namespace Metalama.Framework.Engine.Linking
                     .AssertEach( x => x.BelongsToCompilation( intermediateCompilation.CompilationContext ) != false )
                     .Select( x => x.ContainingType )
                     .Distinct<INamedTypeSymbol>( intermediateCompilation.CompilationContext.SymbolComparer )
-                    .SelectMany(
-                        x =>
-                            x.GetMembers()
-                                .Select(
-                                    member =>
-                                        member switch
-                                        {
-                                            IMethodSymbol method => method,
-                                            IPropertySymbol => null,
-                                            IEventSymbol => null,
-                                            IFieldSymbol => null,
-                                            INamedTypeSymbol => null,
-                                            _ => throw new AssertionFailedException( $"Symbol not supported: {member}." )
-                                        } )
-                                .OfType<IMethodSymbol>() )
+                    .SelectMany( x =>
+                                     x.GetMembers()
+                                         .Select( member =>
+                                                      member switch
+                                                      {
+                                                          IMethodSymbol method => method,
+                                                          IPropertySymbol => null,
+                                                          IEventSymbol => null,
+                                                          IFieldSymbol => null,
+                                                          INamedTypeSymbol => null,
+                                                          _ => throw new AssertionFailedException( $"Symbol not supported: {member}." )
+                                                      } )
+                                         .OfType<IMethodSymbol>() )
                     .Where( m => !injectionRegistry.IsOverride( m ) );
 
             var allContainedReferences = await symbolReferenceFinder.FindMethodInvocationsAsync( methodsToAnalyze, cancellationToken );
