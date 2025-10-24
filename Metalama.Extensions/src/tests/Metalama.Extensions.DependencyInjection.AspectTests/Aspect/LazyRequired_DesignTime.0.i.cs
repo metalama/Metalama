@@ -8,10 +8,10 @@ namespace Metalama.Extensions.DependencyInjection.AspectTests.Aspect.LazyRequire
   {
     private Func<IFormatProvider> _formatProviderFunc;
     private IFormatProvider? _formatProviderCache;
-    public TargetClass([AspectGenerated] Func<IFormatProvider>? formatProvider) : this()
+    public TargetClass([AspectGenerated] Func<IFormatProvider>? formatProvider = null) : this()
     {
     }
-    public TargetClass(int x, IFormatProvider existingParameter, [AspectGenerated] Func<IFormatProvider>? formatProvider) : this(x, existingParameter)
+    public TargetClass(int x, IFormatProvider existingParameter, [AspectGenerated] Func<IFormatProvider>? formatProvider = null) : this(x, existingParameter)
     {
     }
   }
