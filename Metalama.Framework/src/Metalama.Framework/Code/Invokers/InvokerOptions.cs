@@ -44,7 +44,7 @@ public enum InvokerOptions
     OrderMask = 0x0f,
 
     /// <summary>
-    /// Specifies that the null-conditional access operator (<c>?</c>) has to be used. 
+    /// Specifies that the null-conditional member access operator (<c>?</c>) has to be used. 
     /// </summary>
     NullConditional = 0x10,
 
@@ -65,7 +65,7 @@ public enum InvokerOptions
 
     /// <summary>
     /// Mask for bits that encode nullability access, i.e. <see cref="NullConditional"/>, <see cref="NullConditionalIfNullable"/>,
-    /// <see cref="SuppressNullableWarning"/> and <see cref="NullConditionalIfNullable"/>.
+    /// <see cref="SuppressNullableWarning"/> and <see cref="SuppressNullableWarningIfNullable"/>.
     /// </summary>
     NullabilityMask = 0xf0
 }

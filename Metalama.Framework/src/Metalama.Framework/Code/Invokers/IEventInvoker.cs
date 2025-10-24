@@ -54,7 +54,7 @@ namespace Metalama.Framework.Code.Invokers
         dynamic Remove( dynamic? handler );
         
         /// <summary>
-        /// Generates run-time code that adds a handler, given as an <see cref="IExpression"/>, from the event.
+        /// Generates run-time code that removes a handler, given as an <see cref="IExpression"/>, from the event.
         /// </summary>
         /// <param name="handler">A compile-time <see cref="IExpression"/> representing the event handler.</param>
         /// <returns>An internal Metalama statement object representing the event handler addition. It should be ignored in user code.</returns> 
@@ -106,7 +106,7 @@ namespace Metalama.Framework.Code.Invokers
         IEventInvoker WithObject( IExpression? obj );
 
         /// <summary>
-        /// Gets an <see cref="IEventInvoker"/> for the same event but with a different object, specified as a run-tune C# expression.
+        /// Gets an <see cref="IEventInvoker"/> for the same event but with a different object, specified as a run-time C# expression.
         /// </summary>
         /// <param name="obj">The run-time expression that represents the object on which the field or property is accessed, or <c>null</c> it is static.
         /// If the compile-time type of the expression is <c>dynamic</c>, it must be explicitly cast to <see cref="IExpression"/>.
