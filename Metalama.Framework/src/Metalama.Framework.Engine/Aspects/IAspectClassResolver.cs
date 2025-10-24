@@ -11,4 +11,29 @@ namespace Metalama.Framework.Engine.Aspects;
 public interface IAspectClassResolver
 {
     bool TryGetAspectClass( Type aspectType, [NotNullWhen( true )] out IAspectClass? aspectClass );
+
+    bool TryGetAspectClass( string fullName, [NotNullWhen( true )] out IAspectClass? aspectClass );
+}
+
+internal static class AspectClassResolverExtensions
+{
+    public static IAspectClass GetAspectClass( this IAspectClassResolver resolver, Type aspectType )
+    {
+        if ( !resolver.TryGetAspectClass( aspectType, out var aspectClass ) )
+        {
+            throw new AssertionFailedException( $"Cannot find an IAspectClass for type '{aspectType}'." );
+        }
+
+        return aspectClass;
+    }
+
+    public static IAspectClass GetAspectClass( this IAspectClassResolver resolver, string fullName )
+    {
+        if ( !resolver.TryGetAspectClass( fullName, out var aspectClass ) )
+        {
+            throw new AssertionFailedException( $"Cannot find an IAspectClass for type '{fullName}'." );
+        }
+
+        return aspectClass;
+    }
 }

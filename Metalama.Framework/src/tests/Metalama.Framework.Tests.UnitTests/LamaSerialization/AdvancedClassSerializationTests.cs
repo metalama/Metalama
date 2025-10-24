@@ -225,11 +225,6 @@ namespace Metalama.Framework.Tests.UnitTests.LamaSerialization
                 {
                     throw new NotImplementedException();
                 }
-
-                public override void DeserializeFields( IgnoringType obj, IArgumentsReader initializationArguments )
-                {
-                    throw new NotImplementedException();
-                }
             }
         }
     }

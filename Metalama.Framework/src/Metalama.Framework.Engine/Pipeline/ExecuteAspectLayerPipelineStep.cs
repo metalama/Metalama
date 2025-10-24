@@ -13,7 +13,6 @@ using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.Collections;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Extensibility;
-using Metalama.Framework.Engine.HierarchicalOptions;
 using Metalama.Framework.Engine.Transformations;
 using Metalama.Framework.Engine.Utilities.Comparers;
 using Metalama.Framework.Engine.Utilities.Threading;
@@ -144,9 +143,9 @@ internal sealed class ExecuteAspectLayerPipelineStep : PipelineStep
                     // Apply the changes done by the aspects.
                     currentCompilation = newCompilation;
 
-                    this.Parent.AddAspectSources( aspectResult.Contributors.OfType<IAspectSource>(), true, cancellationToken );
-                    this.Parent.AddExtendedContributors( aspectResult.Contributors.OfType<IExtensionPipelineContributor>() );
-                    await this.Parent.AddOptionsSourcesAsync( aspectResult.Contributors.OfType<IHierarchicalOptionsSource>(), cancellationToken );
+                    this.Parent.AddAspectSources( aspectResult.Contributors.OfKind( ContributorKind.AspectSource ), true, cancellationToken );
+                    this.Parent.AddExtendedContributors( aspectResult.Contributors.Extensions() );
+                    await this.Parent.AddOptionsSourcesAsync( aspectResult.Contributors.OfKind( ContributorKind.HierarchicalOptionsSource ), cancellationToken );
 
                     var transformations = aspectResult.Transformations;
                     var partialCompilation = this.Parent.FirstCompilation.PartialCompilation;
@@ -177,7 +176,7 @@ internal sealed class ExecuteAspectLayerPipelineStep : PipelineStep
                     var newAspectInstances = await this.Parent.ExecuteAspectSourceAsync(
                         compilation,
                         this.AspectLayer.AspectClass,
-                        aspectResult.Contributors.OfType<IAspectSource>(),
+                        aspectResult.Contributors.OfKind( ContributorKind.AspectSource ),
                         diagnostics,
                         cancellationToken );
 

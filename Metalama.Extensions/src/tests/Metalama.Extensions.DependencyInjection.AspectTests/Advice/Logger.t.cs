@@ -11,7 +11,7 @@ public class Foo
     _logger.LogTrace("Starting Foo.Bar2()");
   }
   private ILogger _logger;
-  public Foo(ILogger<Foo> logger = null)
+  public Foo([AspectGenerated] ILogger<Foo> logger = null)
   {
     this._logger = logger ?? throw new System.ArgumentNullException(nameof(logger));
   }

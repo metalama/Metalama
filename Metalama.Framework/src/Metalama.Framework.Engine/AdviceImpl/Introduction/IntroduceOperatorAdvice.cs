@@ -84,9 +84,9 @@ internal sealed class IntroduceOperatorAdvice : IntroduceMemberAdvice<IMethod, I
     protected override void InitializeBuilderCore(
         MethodBuilder builder,
         TemplateAttributeProperties? templateAttributeProperties,
-        in AdviceImplementationContext context )
+        AdviceImplementationContext context )
     {
-        base.InitializeBuilderCore( builder, templateAttributeProperties, in context );
+        base.InitializeBuilderCore( builder, templateAttributeProperties, context );
 
         var serviceProvider = context.ServiceProvider;
         var runtimeParameters = this.Template.AssertNotNull().TemplateClassMember.RunTimeParameters;
@@ -112,7 +112,7 @@ internal sealed class IntroduceOperatorAdvice : IntroduceMemberAdvice<IMethod, I
 
     public override AdviceKind AdviceKind => AdviceKind.IntroduceOperator;
 
-    protected override IntroductionAdviceResult<IMethod> ImplementCore( MethodBuilder builder, in AdviceImplementationContext context )
+    protected override IntroductionAdviceResult<IMethod> ImplementCore( MethodBuilder builder, AdviceImplementationContext context )
     {
         var targetDeclaration = this.TargetDeclaration.ForCompilation( context.MutableCompilation );
 

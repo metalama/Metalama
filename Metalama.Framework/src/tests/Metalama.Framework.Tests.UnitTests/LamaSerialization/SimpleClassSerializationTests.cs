@@ -383,8 +383,6 @@ namespace Metalama.Framework.Tests.UnitTests.LamaSerialization
                 {
                     constructorArguments.SetValue( "_", obj.Value );
                 }
-
-                public override void DeserializeFields( SimpleExplicitlySerializedClass<T> obj, IArgumentsReader initializationArguments ) { }
             }
         }
 

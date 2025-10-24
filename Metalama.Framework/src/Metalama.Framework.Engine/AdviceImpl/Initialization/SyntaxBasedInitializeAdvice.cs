@@ -16,7 +16,7 @@ internal sealed class SyntaxBasedInitializeAdvice : InitializeAdvice
 {
     private readonly IStatement _statement;
 
-    public SyntaxBasedInitializeAdvice( AdviceConstructorParameters<IMemberOrNamedType> parameters, IStatement statement, InitializerKind kind )
+    public SyntaxBasedInitializeAdvice( in AdviceConstructorParameters<IMemberOrNamedType> parameters, IStatement statement, InitializerKind kind )
         : base( parameters, kind )
     {
         this._statement = statement;

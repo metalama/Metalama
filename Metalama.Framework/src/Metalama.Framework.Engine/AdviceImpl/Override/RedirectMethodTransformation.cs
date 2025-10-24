@@ -65,7 +65,7 @@ internal sealed class RedirectMethodTransformation : OverrideMemberTransformatio
                             this.AspectLayerId,
                             overriddenDeclaration ) ),
                     context.SyntaxGenerator.TypeParameterList( overriddenDeclaration, context.FinalCompilation ),
-                    context.SyntaxGenerator.ParameterList( overriddenDeclaration, context.FinalCompilation, removeDefaultValues: true ),
+                    context.SyntaxGenerator.ParameterList( overriddenDeclaration, context.FinalCompilation, removeDefaultValue: true ),
                     context.SyntaxGenerator.ConstraintClauses( overriddenDeclaration ),
                     body,
                     null ),

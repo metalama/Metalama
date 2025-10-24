@@ -14,7 +14,7 @@ public class TargetClass
   }
   private ILogger? _loggerCache;
   private Func<ILogger> _loggerFunc;
-  public TargetClass(Func<ILogger>? logger = default)
+  public TargetClass([AspectGenerated] Func<ILogger>? logger = default)
   {
     this._loggerFunc = logger ?? throw new System.ArgumentNullException(nameof(logger));
   }

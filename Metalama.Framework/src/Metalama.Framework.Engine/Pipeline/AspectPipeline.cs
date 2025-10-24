@@ -3,9 +3,9 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Backstage.Diagnostics;
-using Metalama.Framework.Aspects;
 using Metalama.Framework.Code.Collections;
 using Metalama.Framework.Engine.AdditionalOutputs;
+using Metalama.Framework.Engine.AdviceImpl.Introduction.Constructors;
 using Metalama.Framework.Engine.AspectOrdering;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.AspectWeavers;
@@ -243,13 +243,16 @@ public abstract class AspectPipeline : IDisposable
         projectServiceProviderWithProject = projectServiceProviderWithProject.WithService(
             new TemplateClassProvider( otherTemplateClasses.Concat<TemplateClass>( aspectClasses ).ToImmutableDictionary( x => x.FullName, x => x ) ) );
 
-        // Add fabrics.
+        // Add system aspects.
+        IBoundAspectClass[] systemAspectClasses =
+        [
+            FabricAggregateAspectClass.CreateTopLevelAspectClass( projectServiceProviderWithProject, compilationModel ),
+            PullConstructorParameterTransitiveAspect.CreateAspectClass( projectServiceProviderWithProject, compilationModel )
+        ];
 
-        var fabricTopLevelAspectClass = new FabricTopLevelAspectClass( projectServiceProviderWithProject, compilationModel );
-        var fabricAspectLayer = new OrderedAspectLayer( -1, -1, fabricTopLevelAspectClass.Layer );
-
-        var allOrderedAspectLayers = orderedAspectLayers.Insert( 0, fabricAspectLayer );
-        var allAspectClasses = new AspectClassCollection( aspectClasses.As<IBoundAspectClass>().Add( fabricTopLevelAspectClass ) );
+        var systemAspectLayers = systemAspectClasses.Select( ( c, i ) => new OrderedAspectLayer( -100 + i, -100 + i, c.Layers[0] ) );
+        var allOrderedAspectLayers = orderedAspectLayers.InsertRange( 0, systemAspectLayers );
+        var allAspectClasses = new AspectClassCollection( aspectClasses.As<IBoundAspectClass>().AddRange( systemAspectClasses ) );
 
         // Execute fabrics.
         var fabricManager = new FabricManager( allAspectClasses, projectServiceProviderWithProject );
@@ -268,7 +271,7 @@ public abstract class AspectPipeline : IDisposable
             .ToImmutableArray();
 
         var eligibilityService = new EligibilityService( allAspectClasses );
-        var diagnosticManigest = compileTimeProject.ClosureDiagnosticManifest.Union( extensionInitializationContext.DiagnosticManifest );
+        var diagnosticManifest = compileTimeProject.ClosureDiagnosticManifest.Union( extensionInitializationContext.DiagnosticManifest );
 
         // Create the configuration.
         configuration = new AspectPipelineConfiguration(
@@ -283,7 +286,7 @@ public abstract class AspectPipeline : IDisposable
             projectModel,
             projectServiceProviderWithProject.WithService( eligibilityService ),
             extensions,
-            diagnosticManigest );
+            diagnosticManifest );
 
         return true;
 
@@ -331,7 +334,7 @@ public abstract class AspectPipeline : IDisposable
         }
 
         // Add built-in extensions.
-        extensions = extensions.Add( new DiagnosticQueryPipelineExtension() );
+        extensions = extensions.AddRange( new DiagnosticQueryPipelineExtension(), new TransitiveAspectPipelineExtension() );
 
         return extensions;
     }
@@ -404,13 +407,12 @@ public abstract class AspectPipeline : IDisposable
         CompilationContext compilationContext,
         CancellationToken cancellationToken )
     {
-        var aspectClasses = configuration.BoundAspectClasses.ToImmutableArray<IAspectClass>();
+        var aspectClasses = configuration.BoundAspectClasses;
 
         var contributors = ImmutableArray.CreateBuilder<IPipelineContributor>();
 
         var transitivePipelineContributorSource = new TransitivePipelineContributorSource( compilationContext, aspectClasses, configuration.ServiceProvider );
-        contributors.Add( transitivePipelineContributorSource );
-        contributors.AddRange( transitivePipelineContributorSource.ExtensionContributors );
+        contributors.AddRange( transitivePipelineContributorSource.Contributors );
         contributors.Add( new CompilationAspectSource( configuration.ServiceProvider, aspectClasses ) );
         contributors.Add( new CompilationHierarchicalOptionsSource( configuration.ServiceProvider ) );
 
@@ -491,7 +493,7 @@ public abstract class AspectPipeline : IDisposable
 
         await hierarchicalOptionsManager.InitializeAsync(
             pipelineConfiguration.CompileTimeProject,
-            contributorSources.Contributors.OfType<IHierarchicalOptionsSource>(),
+            contributorSources.Contributors.OfKind( ContributorKind.HierarchicalOptionsSource ),
             contributorSources.ExternalOptionsProvider,
             compilationModel,
             initializationDiagnosticSink,

@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.AdviceImpl.Introduction;
+using Metalama.Framework.Engine.AdviceImpl.Introduction.Constructors;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
@@ -905,8 +906,7 @@ internal sealed partial class LinkerInjectionStep
             MemberLevelTransformations memberLevelTransformations,
             SyntaxGenerationContext syntaxGenerationContext )
         {
-            constructorDeclaration = constructorDeclaration.WithParameterList(
-                AppendParameters( constructorDeclaration.ParameterList, memberLevelTransformations.Parameters, syntaxGenerationContext ) );
+            constructorDeclaration = constructorDeclaration.WithParameterList( this.AppendParameters( constructorDeclaration.ParameterList, memberLevelTransformations.Parameters, syntaxGenerationContext ) );
 
             constructorDeclaration = constructorDeclaration.WithInitializer(
                 this.AppendInitializerArguments( constructorDeclaration.Initializer, memberLevelTransformations.Arguments ) );
@@ -928,7 +928,7 @@ internal sealed partial class LinkerInjectionStep
             Invariant.AssertNot( typeDeclaration.BaseList == null && memberLevelTransformations.Arguments.Length > 0 );
             Invariant.AssertNot( typeDeclaration.GetParameterList() == null );
 
-            parameterList = AppendParameters( typeDeclaration.GetParameterList()!, memberLevelTransformations.Parameters, syntaxGenerationContext );
+            parameterList = this.AppendParameters( typeDeclaration.GetParameterList()!, memberLevelTransformations.Parameters, syntaxGenerationContext );
             baseList = typeDeclaration.BaseList;
 
             if ( memberLevelTransformations.Arguments.Length > 0 )
@@ -965,7 +965,7 @@ internal sealed partial class LinkerInjectionStep
             }
         }
 
-        private static ParameterListSyntax AppendParameters(
+        private ParameterListSyntax AppendParameters(
             ParameterListSyntax existingParameters,
             ImmutableArray<IntroduceParameterTransformation> newParameters,
             SyntaxGenerationContext syntaxGenerationContext )
@@ -981,14 +981,14 @@ internal sealed partial class LinkerInjectionStep
                     return existingParameters.WithParameters(
                         existingParameters.Parameters.InsertRange(
                             existingParameters.Parameters.Count - 1,
-                            newParameters.Select( x => x.ToSyntax( syntaxGenerationContext )
+                            newParameters.Select( x => x.ToSyntax( syntaxGenerationContext, this._compilation )
                                                       .WithOptionalTrailingTrivia( ElasticSpace, syntaxGenerationContext.Options ) ) ) );
                 }
                 else
                 {
                     return existingParameters.WithParameters(
                         existingParameters.Parameters.AddRange(
-                            newParameters.Select( x => x.ToSyntax( syntaxGenerationContext )
+                            newParameters.Select( x => x.ToSyntax( syntaxGenerationContext, this._compilation )
                                                       .WithOptionalTrailingTrivia( ElasticSpace, syntaxGenerationContext.Options ) ) ) );
                 }
             }

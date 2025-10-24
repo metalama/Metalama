@@ -9,14 +9,14 @@ namespace Metalama.Extensions.DependencyInjection.Implementation;
 
 public partial class LazyDependencyInjectionStrategy
 {
-    private class PullStrategy : DefaultPullStrategy
+    private class InjectionStrategy : DefaultDependencyPullStrategy
     {
         private readonly IField _funcField;
         private readonly INamedType _funcType;
 
         protected override IType ParameterType => this._funcType;
 
-        public PullStrategy( DependencyProperties properties, IProperty mainProperty, IField funcField ) : base( properties, mainProperty )
+        public InjectionStrategy( DependencyProperties properties, IProperty mainProperty, IField funcField ) : base( properties, mainProperty )
         {
             this._funcField = funcField;
             this._funcType = ((INamedType) TypeFactory.GetType( typeof(Func<>) )).WithTypeArguments( mainProperty.Type ).ToNullable();

@@ -19,7 +19,7 @@ public record TargetRecord
   {
     logger = this.logger;
   }
-  public TargetRecord(Func<ILogger>? logger = default)
+  public TargetRecord([AspectGenerated] Func<ILogger>? logger = default)
   {
     this.logger = logger;
     this._loggerFunc = logger ?? throw new System.ArgumentNullException(nameof(logger));

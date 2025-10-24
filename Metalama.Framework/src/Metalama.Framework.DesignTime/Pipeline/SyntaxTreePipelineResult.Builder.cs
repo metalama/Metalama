@@ -28,7 +28,7 @@ namespace Metalama.Framework.DesignTime.Pipeline
             public ImmutableArray<CacheableScopedSuppression>.Builder? Suppressions;
             public ImmutableArray<IntroducedSyntaxTree>.Builder? Introductions;
             public ImmutableArray<InheritableAspectInstance>.Builder? InheritableAspects;
-            public ImmutableArray<IDesignTimeAspectPipelineResultExtension>.Builder? Extensions;
+            public ImmutableArray<IDesignTimePipelineResultExtension>.Builder? Extensions;
             public ImmutableArray<DesignTimeAspectInstance>.Builder? AspectInstances;
             public ImmutableArray<DesignTimeTransformation>.Builder? Transformations;
             public ImmutableArray<InheritableOptionsInstance>.Builder? InheritableOptions;

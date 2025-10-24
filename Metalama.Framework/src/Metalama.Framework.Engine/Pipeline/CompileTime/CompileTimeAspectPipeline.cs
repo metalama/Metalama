@@ -8,7 +8,6 @@ using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Diagnostics;
-using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Formatting;
 using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Pipeline.DesignTime;
@@ -22,7 +21,6 @@ using Metalama.Framework.Engine.Utilities.Threading;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using System;
-using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Threading.Tasks;
@@ -230,11 +228,9 @@ public class CompileTimeAspectPipeline : AspectPipeline
                     .ToImmutableDictionary();
 
             var annotations = result.Value.LastCompilationModel.GetExportedAnnotations();
+            var transitiveContributors = result.Value.TransitiveContributors;
 
-            // Execute validators.
-            IReadOnlyList<ITransitivePipelineContributor> transitiveContributors = result.Value.TransitiveContributors;
-
-            if ( result.Value.ExternallyInheritableAspects.Length > 0 || transitiveContributors.Count > 0 || inheritableOptions.Count > 0
+            if ( result.Value.ExternallyInheritableAspects.Length > 0 || transitiveContributors.Length > 0 || inheritableOptions.Count > 0
                  || !annotations.IsEmpty )
             {
                 var pipelineExtensions = configuration.Extensions;

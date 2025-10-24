@@ -12,6 +12,8 @@ using Metalama.Framework.Engine.Templating.Expressions;
 using Metalama.Framework.Engine.Utilities;
 using System;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
+using System.Runtime.CompilerServices;
 
 namespace Metalama.Framework.Engine.CodeModel.Helpers;
 
@@ -20,6 +22,7 @@ internal sealed class CompilationHelpers : ICompilationHelpers
     private readonly ProjectServiceProvider _serviceProvider;
     private readonly CompilationContext _compilationContext;
     private AttributeDeserializer? _attributeDeserializer;
+    private bool? _hasAnyInternalsVisibleToAttribute;
 
     public CompilationHelpers( in ProjectServiceProvider serviceProvider, CompilationContext compilationContext )
     {
@@ -199,4 +202,60 @@ internal sealed class CompilationHelpers : ICompilationHelpers
 
     private static bool IsDerivedFromOrContainedIn( INamedType baseType, INamedType derivedType )
         => derivedType.IsConvertibleTo( baseType, ConversionKind.Reference ) || derivedType.IsContainedIn( baseType );
+
+    public bool IsAccessibleFromOutsideAssembly( IDeclaration declaration, bool honorInternalVisibleToAttributes )
+    {
+        if ( declaration.GetCompilationContext() != this._compilationContext )
+        {
+            throw new ArgumentOutOfRangeException( nameof(declaration), "The declaration does not belong to the current compilation." );
+        }
+
+        return this.IsAccessibleFromOutsideAssemblyCore( declaration, honorInternalVisibleToAttributes );
+    }
+
+    private bool IsAccessibleFromOutsideAssemblyCore( IDeclaration declaration, bool honorInternalVisibleToAttributes )
+    {
+        if ( declaration is IMemberOrNamedType memberOrType )
+        {
+            if ( memberOrType is { Accessibility: Accessibility.Public or Accessibility.Protected or Accessibility.ProtectedInternal } )
+            {
+                if ( memberOrType.DeclaringType != null )
+                {
+                    return this.IsAccessibleFromOutsideAssemblyCore(
+                        memberOrType.DeclaringType,
+                        honorInternalVisibleToAttributes );
+                }
+                else
+                {
+                    return true;
+                }
+            }
+            else if ( memberOrType is { Accessibility: Accessibility.Internal or Accessibility.PrivateProtected }
+                      && this.HasAnyInternalsVisibleTo( honorInternalVisibleToAttributes ) )
+            {
+                if ( memberOrType.DeclaringType != null )
+                {
+                    return this.IsAccessibleFromOutsideAssemblyCore(
+                        memberOrType.DeclaringType,
+                        honorInternalVisibleToAttributes );
+                }
+                else
+                {
+                    return this.HasAnyInternalsVisibleTo( honorInternalVisibleToAttributes );
+                }
+            }
+        }
+        else if ( declaration.ContainingDeclaration != null )
+        {
+            return this.IsAccessibleFromOutsideAssemblyCore( declaration.ContainingDeclaration, honorInternalVisibleToAttributes );
+        }
+
+        return false;
+    }
+
+    private bool HasAnyInternalsVisibleTo( bool honorInternalVisibleToAttributes ) => !honorInternalVisibleToAttributes || this.HasAnyInternalsVisibleToCore();
+
+    private bool HasAnyInternalsVisibleToCore()
+        => this._hasAnyInternalsVisibleToAttribute ??= this._compilationContext.Compilation.Assembly.GetAttributes()
+            .Any( a => a.AttributeClass is { Name: nameof(InternalsVisibleToAttribute) } );
 }

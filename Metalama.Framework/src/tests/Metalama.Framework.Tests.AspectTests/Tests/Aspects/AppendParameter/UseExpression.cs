@@ -18,7 +18,7 @@ public class MyAspect : ConstructorAspect
             "p",
             typeof(DateTime),
             TypedConstant.Default( typeof(DateTime) ),
-            ( parameter, constructor ) => PullAction.UseExpression( ExpressionFactory.Parse( "System.DateTime.Now" ) ) );
+            PullStrategy.UseExpression( ExpressionFactory.Parse( "System.DateTime.Now" ) ) );
     }
 }
 

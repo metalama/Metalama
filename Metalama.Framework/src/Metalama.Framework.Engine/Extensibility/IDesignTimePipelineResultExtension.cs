@@ -8,11 +8,14 @@ using Metalama.Framework.Engine.Utilities.Roslyn;
 
 namespace Metalama.Framework.Engine.Extensibility;
 
-public interface IDesignTimeAspectPipelineResultExtension
+public interface IDesignTimePipelineResultExtension : IContributor
 {
-    ReferenceIndexerRequirements ReferenceIndexerRequirements { get; }
+    ITransitiveAspectsManifestExtension ToTransitiveAspectManifestExtension();
+}
+
+public interface IDesignTimeValidatorExtension : IDesignTimePipelineResultExtension
+{
+    ReferenceIndexerRequirements? ReferenceIndexerRequirements { get; }
 
     SymbolDictionaryKey ValidatedDeclaration { get; }
-
-    ITransitiveAspectsManifestExtension ToTransitiveAspectManifestExtension();
 }

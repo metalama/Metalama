@@ -18,14 +18,14 @@ public class MyAspect : TypeAspect
 {
     public override void BuildAspect( IAspectBuilder<INamedType> builder )
     {
-        foreach (var constructor in builder.Target.Constructors)
+        foreach ( var constructor in builder.Target.Constructors )
         {
             builder.With( constructor )
                 .IntroduceParameter(
                     "p",
                     typeof(int),
                     TypedConstant.Create( 15 ),
-                    ( p, c ) => PullAction.UseExpression( TypedConstant.Create( 51 ) ) );
+                    PullStrategy.UseExpression( TypedConstant.Create( 51 ) ) );
         }
     }
 }

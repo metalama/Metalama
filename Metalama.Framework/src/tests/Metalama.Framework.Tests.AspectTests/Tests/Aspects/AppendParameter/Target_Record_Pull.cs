@@ -12,7 +12,7 @@ public class MyAspect : ConstructorAspect
 {
     public override void BuildAspect( IAspectBuilder<IConstructor> builder )
     {
-        builder.IntroduceParameter( "p", typeof(int), TypedConstant.Create( 15 ), ( p, c ) => PullAction.UseExpression( TypedConstant.Create( 51 ) ) );
+        builder.IntroduceParameter( "p", typeof(int), TypedConstant.Create( 15 ), PullStrategy.UseExpression( TypedConstant.Create( 51 ) ) );
     }
 }
 

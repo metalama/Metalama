@@ -7,6 +7,7 @@ using Metalama.Framework.Code.Comparers;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.Collections;
 using Metalama.Framework.Engine.Utilities;
+using Metalama.Framework.RunTime;
 using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Generic;
@@ -18,9 +19,17 @@ namespace Metalama.Framework.Engine.SerializableIds;
 
 internal static partial class DocumentationIdHelper
 {
-    private static class Parser
+    private sealed class Parser
     {
-        public static void ParseDeclaredSymbolId( string? id, CompilationModel compilation, List<IDeclaration> results )
+        private readonly CompilationModel _compilation;
+        private IType? _aspectGeneratedType;
+        
+        public Parser( CompilationModel compilation )
+        {
+            this._compilation = compilation;
+        }
+
+        public void ParseDeclaredSymbolId( string? id, List<IDeclaration> results )
         {
             if ( id == null )
             {
@@ -34,10 +43,10 @@ internal static partial class DocumentationIdHelper
 
             var index = 0;
             results.Clear();
-            ParseDeclaredId( id, ref index, compilation, results );
+            this.ParseDeclaredId( id, ref index, results );
         }
 
-        private static void ParseDeclaredId( string id, ref int index, CompilationModel compilation, List<IDeclaration> results )
+        private void ParseDeclaredId( string id, ref int index, List<IDeclaration> results )
         {
             var kindChar = PeekNextChar( id, index );
             SymbolKind kind;
@@ -86,7 +95,7 @@ internal static partial class DocumentationIdHelper
                 index++;
             }
 
-            var containers = new List<IDeclaration> { compilation.GetMergedGlobalNamespace() };
+            var containers = new List<IDeclaration> { this._compilation.GetMergedGlobalNamespace() };
 
             string name;
             int arity;
@@ -155,7 +164,7 @@ internal static partial class DocumentationIdHelper
             switch ( kind )
             {
                 case SymbolKind.Method:
-                    GetMatchingMethods( id, ref index, containers, name, arity, compilation, results );
+                    this.GetMatchingMethods( id, ref index, containers, name, arity, results );
 
                     break;
 
@@ -167,7 +176,7 @@ internal static partial class DocumentationIdHelper
                     break;
 
                 case SymbolKind.Property:
-                    GetMatchingProperties( id, ref index, containers, name, compilation, results );
+                    this.GetMatchingProperties( id, ref index, containers, name, results );
 
                     break;
 
@@ -188,11 +197,11 @@ internal static partial class DocumentationIdHelper
             }
         }
 
-        private static IType? ParseTypeSymbol( string id, ref int index, CompilationModel compilation, IDeclaration? typeParameterContext )
+        private IType? ParseTypeSymbol( string id, ref int index, IDeclaration? typeParameterContext )
         {
             var results = new List<IType>();
 
-            ParseTypeSymbol( id, ref index, compilation, typeParameterContext, results );
+            this.ParseTypeSymbol( id, ref index, typeParameterContext, results );
 
             if ( results.Count == 0 )
             {
@@ -204,10 +213,9 @@ internal static partial class DocumentationIdHelper
             }
         }
 
-        private static void ParseTypeSymbol(
+        private void ParseTypeSymbol(
             string id,
             ref int index,
-            CompilationModel compilation,
             IDeclaration? typeParameterContext,
             List<IType> results )
         {
@@ -219,7 +227,7 @@ internal static partial class DocumentationIdHelper
             {
                 var contexts = new List<IDeclaration>();
 
-                ParseDeclaredId( id, ref index, compilation, contexts );
+                this.ParseDeclaredId( id, ref index, contexts );
 
                 if ( contexts.Count == 0 )
                 {
@@ -237,7 +245,7 @@ internal static partial class DocumentationIdHelper
                     foreach ( var context in contexts )
                     {
                         index = startIndex;
-                        ParseTypeSymbol( id, ref index, compilation, context, results );
+                        this.ParseTypeSymbol( id, ref index, context, results );
                     }
                 }
                 else
@@ -255,7 +263,7 @@ internal static partial class DocumentationIdHelper
                 else
                 {
                     var namedTypes = new List<INamedType>();
-                    ParseNamedTypeSymbol( id, ref index, compilation, typeParameterContext, namedTypes );
+                    this.ParseNamedTypeSymbol( id, ref index, typeParameterContext, namedTypes );
                     results.AddRange( namedTypes );
                 }
 
@@ -333,14 +341,13 @@ internal static partial class DocumentationIdHelper
             }
         }
 
-        private static void ParseNamedTypeSymbol(
+        private void ParseNamedTypeSymbol(
             string id,
             ref int index,
-            CompilationModel compilation,
             IDeclaration? typeParameterContext,
             List<INamedType> results )
         {
-            var containers = new List<IDeclaration> { compilation.GetMergedGlobalNamespace() };
+            var containers = new List<IDeclaration> { this._compilation.GetMergedGlobalNamespace() };
 
             // loop for dotted names
             while ( true )
@@ -355,7 +362,7 @@ internal static partial class DocumentationIdHelper
                 {
                     typeArguments = [];
 
-                    if ( !ParseTypeArguments( id, ref index, compilation, typeParameterContext, typeArguments ) )
+                    if ( !this.ParseTypeArguments( id, ref index, typeParameterContext, typeArguments ) )
                     {
                         // if no type arguments are found then the type cannot be identified
                         continue;
@@ -452,10 +459,9 @@ internal static partial class DocumentationIdHelper
             return bounds;
         }
 
-        private static bool ParseTypeArguments(
+        private bool ParseTypeArguments(
             string id,
             ref int index,
-            CompilationModel compilation,
             IDeclaration? typeParameterContext,
             List<IType> typeArguments )
         {
@@ -463,7 +469,7 @@ internal static partial class DocumentationIdHelper
 
             while ( true )
             {
-                var type = ParseTypeSymbol( id, ref index, compilation, typeParameterContext );
+                var type = this.ParseTypeSymbol( id, ref index, typeParameterContext );
 
                 if ( type == null )
                 {
@@ -577,13 +583,12 @@ internal static partial class DocumentationIdHelper
             }
         }
 
-        private static void GetMatchingMethods(
+        private void GetMatchingMethods(
             string id,
             ref int index,
             List<IDeclaration> containers,
             string memberName,
             int arity,
-            CompilationModel compilation,
             List<IDeclaration> results )
         {
             var parameters = new List<ParameterInfo>();
@@ -599,14 +604,17 @@ internal static partial class DocumentationIdHelper
                 }
 
                 IEnumerable<IMethodBase> members;
+                bool signatureCanBeModified;
 
                 if ( memberName == ".ctor" )
                 {
                     members = type.Constructors;
+                    signatureCanBeModified = true;
                 }
                 else if ( memberName == ".cctor" )
                 {
                     members = type.StaticConstructor == null ? [] : [type.StaticConstructor];
+                    signatureCanBeModified = false;
                 }
                 else
                 {
@@ -622,6 +630,8 @@ internal static partial class DocumentationIdHelper
                     {
                         members = members.ConcatNotNull( type.Finalizer );
                     }
+
+                    signatureCanBeModified = false;
                 }
 
                 foreach ( var member in members )
@@ -636,14 +646,14 @@ internal static partial class DocumentationIdHelper
 
                         if ( PeekNextChar( id, index ) == '(' )
                         {
-                            if ( !ParseParameterList( id, ref index, compilation, member, parameters ) )
+                            if ( !this.ParseParameterList( id, ref index, member, parameters ) )
                             {
                                 // if the parameters cannot be identified (some error), then the symbol cannot match, try next method symbol
                                 continue;
                             }
                         }
 
-                        if ( !AllParametersMatch( member.Parameters, parameters ) )
+                        if ( !this.AllParametersMatch( member.Parameters, parameters, signatureCanBeModified ) )
                         {
                             // parameters don't match, try next method symbol
                             continue;
@@ -652,7 +662,7 @@ internal static partial class DocumentationIdHelper
                         if ( PeekNextChar( id, index ) == '~' )
                         {
                             index++;
-                            var returnType = ParseTypeSymbol( id, ref index, compilation, member );
+                            var returnType = this.ParseTypeSymbol( id, ref index, member );
 
                             var memberReturnType = member is IMethod method2 ? method2.ReturnType : null;
 
@@ -677,12 +687,11 @@ internal static partial class DocumentationIdHelper
             index = endIndex;
         }
 
-        private static void GetMatchingProperties(
+        private void GetMatchingProperties(
             string id,
             ref int index,
             List<IDeclaration> containers,
             string memberName,
-            CompilationModel compilation,
             List<IDeclaration> results )
         {
             var startIndex = index;
@@ -717,8 +726,8 @@ internal static partial class DocumentationIdHelper
                             parameters.Clear();
                         }
 
-                        if ( ParseParameterList( id, ref index, compilation, member.DeclaringType, parameters )
-                             && AllParametersMatch( memberParameters, parameters ) )
+                        if ( this.ParseParameterList( id, ref index, member.DeclaringType, parameters )
+                             && this.AllParametersMatch( memberParameters, parameters ) )
                         {
                             results.Add( member );
                             endIndex = index;
@@ -765,9 +774,40 @@ internal static partial class DocumentationIdHelper
             }
         }
 
-        private static bool AllParametersMatch( IReadOnlyList<IParameter> declarationParameters, List<ParameterInfo> expectedParameters )
+        private bool AllParametersMatch(
+            IReadOnlyList<IParameter> declarationParameters,
+            List<ParameterInfo> expectedParameters,
+            bool signatureCanBeModified = false )
         {
-            if ( declarationParameters.Count != expectedParameters.Count )
+            if ( declarationParameters.Count == 0 )
+            {
+                return expectedParameters.Count == 0;
+            }
+
+            int declarationParameterCount;
+
+            if ( signatureCanBeModified )
+            {
+                // This block is executed with constructors, when some parameters may have been introduced, changing the signature.
+                // In this case, we must not take the introduced parameters into account when matching the constructor.
+
+                declarationParameterCount = 0;
+                this._aspectGeneratedType ??= this._compilation.Factory.GetTypeByReflectionType( typeof(AspectGeneratedAttribute) );
+
+                foreach ( var declarationParameter in declarationParameters )
+                {
+                    if ( declarationParameter.Attributes.Count == 0 || !declarationParameter.Attributes.OfAttributeType( this._aspectGeneratedType ).Any() )
+                    {
+                        declarationParameterCount++;
+                    }
+                }
+            }
+            else
+            {
+                declarationParameterCount = declarationParameters.Count;
+            }
+
+            if ( declarationParameterCount != expectedParameters.Count )
             {
                 return false;
             }
@@ -839,10 +879,9 @@ internal static partial class DocumentationIdHelper
             }
         }
 
-        private static bool ParseParameterList(
+        private bool ParseParameterList(
             string id,
             ref int index,
-            CompilationModel compilation,
             IDeclaration typeParameterContext,
             List<ParameterInfo> parameters )
         {
@@ -855,7 +894,7 @@ internal static partial class DocumentationIdHelper
                 return true;
             }
 
-            var parameter = ParseParameter( id, ref index, compilation, typeParameterContext );
+            var parameter = this.ParseParameter( id, ref index, typeParameterContext );
 
             if ( parameter == null )
             {
@@ -868,7 +907,7 @@ internal static partial class DocumentationIdHelper
             {
                 index++;
 
-                parameter = ParseParameter( id, ref index, compilation, typeParameterContext );
+                parameter = this.ParseParameter( id, ref index, typeParameterContext );
 
                 if ( parameter == null )
                 {
@@ -886,11 +925,11 @@ internal static partial class DocumentationIdHelper
             return true;
         }
 
-        private static ParameterInfo? ParseParameter( string id, ref int index, CompilationModel compilation, IDeclaration? typeParameterContext )
+        private ParameterInfo? ParseParameter( string id, ref int index, IDeclaration? typeParameterContext )
         {
             var isRefOrOut = false;
 
-            var type = ParseTypeSymbol( id, ref index, compilation, typeParameterContext );
+            var type = this.ParseTypeSymbol( id, ref index, typeParameterContext );
 
             if ( type == null )
             {

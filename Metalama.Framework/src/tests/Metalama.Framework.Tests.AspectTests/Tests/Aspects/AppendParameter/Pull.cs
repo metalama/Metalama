@@ -16,7 +16,7 @@ public class MyAspect : ConstructorAspect
             "p",
             typeof(int),
             TypedConstant.Create( 15 ),
-            ( parameter, constructor ) => PullAction.IntroduceParameterAndPull( parameter.Name, parameter.Type, TypedConstant.Create( 20 ) ) );
+            PullStrategy.IntroduceParameterAndPull( defaultValue: TypedConstant.Create( 20 ) ) );
     }
 }
 

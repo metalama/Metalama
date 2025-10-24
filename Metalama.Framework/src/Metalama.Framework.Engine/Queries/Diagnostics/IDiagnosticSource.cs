@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace Metalama.Framework.Engine.Queries.Diagnostics;
 
-internal interface IDiagnosticQuerySource : IExtensionPipelineContributor
+internal interface IDiagnosticSource : IExtensionPipelineContributor
 {
     Task CollectDiagnosticsAsync( CompilationModel compilation, UserDiagnosticSink diagnosticSink, CancellationToken cancellationToken );
 }

@@ -23,7 +23,7 @@ namespace Metalama.Framework.Engine.Aspects
 
         public static bool operator !=( AspectLayerId left, AspectLayerId right ) => !left.Equals( right );
 
-        public AspectLayerId( IAspectClass aspectClass, string? layerName = null ) : this( aspectClass.FullName, layerName ) { }
+        public AspectLayerId( IAspectClass aspectClass, string? layerName = null, string? aspectName = null ) : this( aspectName ?? aspectClass.FullName, layerName ) { }
 
         public AspectLayerId( string aspectName, string? layerName = null )
         {

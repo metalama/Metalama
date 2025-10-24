@@ -11,7 +11,7 @@ public class BaseClass
     _logger.LogTrace("Starting BaseClass.Bar2()");
   }
   private ILogger _logger;
-  public BaseClass(ILogger<BaseClass> logger = null)
+  public BaseClass([AspectGenerated] ILogger<BaseClass> logger = null)
   {
     this._logger = logger ?? throw new System.ArgumentNullException(nameof(logger));
   }
@@ -24,8 +24,8 @@ public class DerivedClass : BaseClass
     _logger.LogTrace("Starting DerivedClass.Foo()");
   }
   private ILogger _logger;
-  public DerivedClass(ILogger<BaseClass> logger = null, ILogger<DerivedClass> logger1 = null) : base(logger)
+  public DerivedClass([AspectGenerated] ILogger<DerivedClass> logger = null)
   {
-    this._logger = logger1 ?? throw new System.ArgumentNullException(nameof(logger1));
+    this._logger = logger ?? throw new System.ArgumentNullException(nameof(logger));
   }
 }

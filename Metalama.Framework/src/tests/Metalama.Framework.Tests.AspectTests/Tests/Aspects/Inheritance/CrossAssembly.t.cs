@@ -8,8 +8,5 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Inheritance.CrossAs
   }
   public class D : J
   {
-    public void Introduced()
-    {
-    }
   }
 }

@@ -91,8 +91,6 @@ public sealed class DeserializationSurrogateTests : SerializationTestsBase
 
             public override void SerializeObject( DeserializationClass obj, IArgumentsWriter constructorArguments, IArgumentsWriter initializationArguments )
                 => constructorArguments.SetValue( "id", obj.Id );
-
-            public override void DeserializeFields( DeserializationClass obj, IArgumentsReader initializationArguments ) { }
         }
     }
 }

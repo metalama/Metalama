@@ -4,6 +4,8 @@
 
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Engine.Aspects;
+using Metalama.Framework.Engine.Extensibility;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Threading.Tasks;
 
@@ -20,7 +22,9 @@ internal sealed class AdviceRequireAspectSource : IAspectSource
         this._aspectClass = aspectClass;
     }
 
-    public ImmutableArray<IAspectClass> AspectClasses => ImmutableArray.Create( this._aspectClass );
+    public IEnumerable<IAspectClass> AspectClasses => ImmutableArray.Create( this._aspectClass );
+
+    public bool ContainsAspectClass( IAspectClass aspectClass ) => this._aspectClass == aspectClass;
 
     public Task CollectAspectInstancesAsync( AspectInstanceCollector collector )
     {
@@ -28,4 +32,6 @@ internal sealed class AdviceRequireAspectSource : IAspectSource
 
         return Task.CompletedTask;
     }
+
+    public ContributorKind ContributorKind => ContributorKind.AspectSource;
 }

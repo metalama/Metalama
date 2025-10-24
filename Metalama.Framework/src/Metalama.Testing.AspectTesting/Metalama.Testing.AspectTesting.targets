@@ -20,7 +20,7 @@
         </None>
         <Compile Remove="$(MSBuildProjectDirectory)/**/*.i.cs" />
         <None Include="$(MSBuildProjectDirectory)/**/*.t.cs">
-            <DependentUpon>$([System.String]::Copy('%(Filename)').Replace('.i','')).cs</DependentUpon>
+            <DependentUpon>$([System.String]::Copy('%(Filename)').Replace('0.i','').Replace('1.i','').Replace('2.i','')).cs</DependentUpon>
             <SubType>Code</SubType>
         </None>
 

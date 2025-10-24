@@ -73,7 +73,8 @@ namespace Metalama.Framework.Engine.SerializableIds
 
             var results = new List<IDeclaration>();
 
-            Parser.ParseDeclaredSymbolId( id, compilation, results );
+            var parser = new Parser( compilation );
+            parser.ParseDeclaredSymbolId( id, results );
 
             return results.Count == 0 ? null : results[0];
         }

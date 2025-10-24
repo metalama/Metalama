@@ -8,6 +8,7 @@ using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.AspectWeavers;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.Diagnostics;
+using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Utilities.Threading;
 using Metalama.Framework.Engine.Utilities.UserCode;
 using System.Collections.Immutable;
@@ -42,7 +43,7 @@ internal sealed class LowLevelPipelineStage : PipelineStage
         var collector = new AspectInstanceCollector( this._aspectClass, compilationModel, diagnostics, cancellationToken );
 
         await Task.WhenAll(
-            input.ContributorSources.Contributors.OfType<IAspectSource>()
+            input.ContributorSources.Contributors.OfKind( ContributorKind.AspectSource )
                 .Select( s => s.CollectAspectInstancesAsync( collector ) ) );
 
         var aspectInstances = collector.AspectInstances

@@ -25,7 +25,7 @@ public class MyAspect : TypeAspect
                     "p",
                     typeof(int),
                     TypedConstant.Create( 15 ),
-                    ( p, c ) => PullAction.UseExpression( TypedConstant.Create( 51 ) ) );
+                    PullStrategy.UseExpression( TypedConstant.Create( 51 ) ) );
         }
     }
 }

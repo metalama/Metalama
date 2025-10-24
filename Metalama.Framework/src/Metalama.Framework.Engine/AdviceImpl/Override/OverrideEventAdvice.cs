@@ -16,9 +16,9 @@ internal sealed class OverrideEventAdvice : OverrideMemberAdvice<IEvent, IEvent>
     private readonly BoundTemplateMethod? _invokeTemplate;
 
     public OverrideEventAdvice(
-        AdviceConstructorParameters<IEvent> parameters,
+        in AdviceConstructorParameters<IEvent> parameters,
         BoundTemplateMethod? addTemplate,
-        BoundTemplateMethod? removeTemplate, 
+        BoundTemplateMethod? removeTemplate,
         BoundTemplateMethod? invokeTemplate )
         : base( parameters )
     {
@@ -31,7 +31,7 @@ internal sealed class OverrideEventAdvice : OverrideMemberAdvice<IEvent, IEvent>
 
     public override AdviceKind AdviceKind => AdviceKind.OverrideEvent;
 
-    protected override OverrideMemberAdviceResult<IEvent> Implement( in AdviceImplementationContext context )
+    protected override OverrideMemberAdviceResult<IEvent> Implement( AdviceImplementationContext context )
     {
         // TODO: order should be self if the target is introduced on the same layer.
         context.AddTransformation(

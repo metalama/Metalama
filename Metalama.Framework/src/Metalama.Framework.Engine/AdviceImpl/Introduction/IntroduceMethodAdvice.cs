@@ -28,7 +28,7 @@ internal sealed class IntroduceMethodAdvice : IntroduceMemberAdvice<IMethod, IMe
     private readonly PartiallyBoundTemplateMethod _template;
 
     public IntroduceMethodAdvice(
-        AdviceConstructorParameters<INamedType> parameters,
+        in AdviceConstructorParameters<INamedType> parameters,
         string? explicitName,
         PartiallyBoundTemplateMethod template,
         IntroductionScope scope,
@@ -46,9 +46,9 @@ internal sealed class IntroduceMethodAdvice : IntroduceMemberAdvice<IMethod, IMe
     protected override void InitializeBuilderCore(
         MethodBuilder builder,
         TemplateAttributeProperties? templateAttributeProperties,
-        in AdviceImplementationContext context )
+        AdviceImplementationContext context )
     {
-        base.InitializeBuilderCore( builder, templateAttributeProperties, in context );
+        base.InitializeBuilderCore( builder, templateAttributeProperties, context );
 
         var templateDeclaration = this.Template.AssertNotNull().GetDeclaration( this.SourceCompilation );
 
@@ -125,7 +125,7 @@ internal sealed class IntroduceMethodAdvice : IntroduceMemberAdvice<IMethod, IMe
 
     public override AdviceKind AdviceKind => AdviceKind.IntroduceMethod;
 
-    protected override IntroductionAdviceResult<IMethod> ImplementCore( MethodBuilder builder, in AdviceImplementationContext context )
+    protected override IntroductionAdviceResult<IMethod> ImplementCore( MethodBuilder builder, AdviceImplementationContext context )
     {
         // Determine whether we need introduction transformation (something may exist in the original code or could have been introduced by previous steps).
         var targetDeclaration = this.TargetDeclaration.ForCompilation( context.MutableCompilation );

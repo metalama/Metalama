@@ -13,7 +13,7 @@ internal sealed class OverrideMethodAdvice : OverrideMemberAdvice<IMethod, IMeth
 {
     private readonly BoundTemplateMethod _boundTemplate;
 
-    public OverrideMethodAdvice( AdviceConstructorParameters<IMethod> parameters, BoundTemplateMethod boundTemplate )
+    public OverrideMethodAdvice( in AdviceConstructorParameters<IMethod> parameters, BoundTemplateMethod boundTemplate )
         : base( parameters )
     {
         this._boundTemplate = boundTemplate;
@@ -21,7 +21,7 @@ internal sealed class OverrideMethodAdvice : OverrideMemberAdvice<IMethod, IMeth
 
     public override AdviceKind AdviceKind => AdviceKind.OverrideMethod;
 
-    protected override OverrideMemberAdviceResult<IMethod> Implement( in AdviceImplementationContext context )
+    protected override OverrideMemberAdviceResult<IMethod> Implement( AdviceImplementationContext context )
     {
         // TODO: order should be self if the target is introduced on the same layer.
         var targetMethod = this.TargetDeclaration;

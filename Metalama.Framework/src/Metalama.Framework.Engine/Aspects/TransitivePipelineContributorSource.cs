@@ -13,7 +13,6 @@ using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.HierarchicalOptions;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities;
-using Metalama.Framework.Engine.Utilities.Threading;
 using Metalama.Framework.Options;
 using Microsoft.CodeAnalysis;
 using System.Collections.Generic;
@@ -21,37 +20,32 @@ using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
 
 namespace Metalama.Framework.Engine.Aspects;
 
 /// <summary>
 /// An aspect source that applies aspects that are inherited from referenced assemblies or projects.
 /// </summary>
-internal sealed class TransitivePipelineContributorSource : IAspectSource, IExternalHierarchicalOptionsProvider, IExternalAnnotationProvider
+internal sealed partial class TransitivePipelineContributorSource : IExternalHierarchicalOptionsProvider, IExternalAnnotationProvider
 {
-    private readonly ImmutableDictionaryOfArray<IAspectClass, InheritableAspectInstance> _inheritedAspects;
-
-    public ImmutableArray<IExtensionPipelineContributor> ExtensionContributors { get; }
+    public ImmutableArray<IPipelineContributor> Contributors { get; }
 
     private readonly ImmutableDictionary<AssemblyIdentity, ITransitiveAspectsManifest> _manifests;
-    private readonly IConcurrentTaskRunner _concurrentTaskRunner;
 
     public TransitivePipelineContributorSource(
         CompilationContext compilationContext,
-        ImmutableArray<IAspectClass> aspectClasses,
+        AspectClassCollection aspectClasses,
         ProjectServiceProvider serviceProvider )
     {
         var pipelineExtensions = serviceProvider.GetRequiredService<PipelineExtensionProvider>().Extensions;
 
         var inheritableAspectProvider = serviceProvider.GetService<ITransitiveAspectManifestProvider>();
-        this._concurrentTaskRunner = serviceProvider.GetRequiredService<IConcurrentTaskRunner>();
 
         var inheritedAspectsBuilder = ImmutableDictionaryOfArray<IAspectClass, InheritableAspectInstance>.CreateBuilder();
-        var extendedContributorsBuilder = ImmutableArray.CreateBuilder<IExtensionPipelineContributor>();
+        var contributorsBuilder = ImmutableArray.CreateBuilder<IPipelineContributor>();
         var manifestDictionaryBuilder = ImmutableDictionary.CreateBuilder<AssemblyIdentity, ITransitiveAspectsManifest>();
 
-        var aspectClassesByName = aspectClasses.ToDictionary( t => t.FullName, t => t );
+        var aspectClassesByName = aspectClasses.Dictionary;
 
         foreach ( var reference in compilationContext.Compilation.References )
         {
@@ -117,51 +111,17 @@ internal sealed class TransitivePipelineContributorSource : IAspectSource, IExte
                 // Process manifest extensions.
                 foreach ( var extension in pipelineExtensions )
                 {
-                    foreach ( var contributor in extension.GetPipelineContributorsFromTransitiveManifest( manifest.Extensions ) )
+                    foreach ( var contributor in extension.GetPipelineContributorsFromTransitiveManifest( manifest.Extensions, aspectClasses ) )
                     {
-                        extendedContributorsBuilder.Add( contributor );
+                        contributorsBuilder.Add( contributor );
                     }
                 }
             }
         }
 
-        this._inheritedAspects = inheritedAspectsBuilder.ToImmutable();
-        this.ExtensionContributors = extendedContributorsBuilder.ToImmutable();
+        contributorsBuilder.Add( new InheritedAspectSourceImpl( serviceProvider, inheritedAspectsBuilder.ToImmutable() ) );
+        this.Contributors = contributorsBuilder.ToImmutable();
         this._manifests = manifestDictionaryBuilder.ToImmutable();
-    }
-
-    public ImmutableArray<IAspectClass> AspectClasses => this._inheritedAspects.Keys.ToImmutableArray();
-
-    public Task CollectAspectInstancesAsync( AspectInstanceCollector collector )
-    {
-        var aspectClass = (AspectClass) collector.AspectClass;
-
-        return this._concurrentTaskRunner.RunConcurrentlyAsync(
-            this._inheritedAspects[aspectClass],
-            ProcessAspectInstance,
-            collector.CancellationToken );
-
-        void ProcessAspectInstance( InheritableAspectInstance inheritedAspectInstance )
-        {
-            var baseDeclaration = inheritedAspectInstance.TargetDeclaration.GetTargetOrNull( collector.Compilation );
-
-            if ( baseDeclaration == null )
-            {
-                return;
-            }
-
-            // We need to provide instances on the first level of derivation only because the caller will add to the next levels.
-
-            foreach ( var derived in ((IDeclarationImpl) baseDeclaration).GetDerivedDeclarations( DerivedTypesOptions.DirectOnly ) )
-            {
-                collector.AddAspectInstance(
-                    new AspectInstance(
-                        inheritedAspectInstance.Aspect,
-                        derived,
-                        aspectClass,
-                        new AspectPredecessor( AspectPredecessorKind.Inherited, inheritedAspectInstance ) ) );
-            }
-        }
     }
 
     public IEnumerable<string> GetOptionTypes()

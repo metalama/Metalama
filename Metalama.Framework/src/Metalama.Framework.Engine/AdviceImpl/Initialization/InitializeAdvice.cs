@@ -21,12 +21,12 @@ internal abstract class InitializeAdvice : Advice<AddInitializerAdviceResult>
 
     private new IMemberOrNamedType TargetDeclaration => (IMemberOrNamedType) base.TargetDeclaration;
 
-    protected InitializeAdvice( AdviceConstructorParameters<IMemberOrNamedType> parameters, InitializerKind kind ) : base( parameters )
+    protected InitializeAdvice( in AdviceConstructorParameters<IMemberOrNamedType> parameters, InitializerKind kind ) : base( parameters )
     {
         this._kind = kind;
     }
 
-    protected override AddInitializerAdviceResult Implement( in AdviceImplementationContext context )
+    protected override AddInitializerAdviceResult Implement( AdviceImplementationContext context )
     {
         var targetDeclaration = this.TargetDeclaration.ForCompilation( context.MutableCompilation );
 

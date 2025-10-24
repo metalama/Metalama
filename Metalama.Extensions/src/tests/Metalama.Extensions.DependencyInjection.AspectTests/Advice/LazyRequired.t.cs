@@ -1,11 +1,11 @@
 [MyAspect]
 public class TargetClass
 {
-  public TargetClass(Func<IFormatProvider>? formatProvider = default)
+  public TargetClass([AspectGenerated] Func<IFormatProvider>? formatProvider = default)
   {
     this._formatProviderFunc = formatProvider ?? throw new System.ArgumentNullException(nameof(formatProvider));
   }
-  public TargetClass(int x, IFormatProvider existingParameter, Func<IFormatProvider>? formatProvider = default)
+  public TargetClass(int x, IFormatProvider existingParameter, [AspectGenerated] Func<IFormatProvider>? formatProvider = default)
   {
     this._formatProviderFunc = formatProvider ?? throw new System.ArgumentNullException(nameof(formatProvider));
   }

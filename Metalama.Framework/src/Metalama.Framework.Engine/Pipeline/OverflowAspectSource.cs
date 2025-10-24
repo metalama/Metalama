@@ -5,7 +5,8 @@
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.Collections;
-using System.Collections.Immutable;
+using Metalama.Framework.Engine.Extensibility;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -18,7 +19,9 @@ internal sealed class OverflowAspectSource : IAspectSource
 {
     private readonly ConcurrentLinkedList<(IAspectSource Source, IAspectClass AspectClass)> _aspectSources = new();
 
-    public ImmutableArray<IAspectClass> AspectClasses => this._aspectSources.SelectAsReadOnlyCollection( a => a.AspectClass ).Distinct().ToImmutableArray();
+    public IEnumerable<IAspectClass> AspectClasses => this._aspectSources.SelectAsReadOnlyCollection( a => a.AspectClass ).Distinct();
+
+    public bool ContainsAspectClass( IAspectClass aspectClass ) => this._aspectSources.Any( s => s.AspectClass == aspectClass );
 
     public Task CollectAspectInstancesAsync( AspectInstanceCollector collector )
     {
@@ -33,4 +36,6 @@ internal sealed class OverflowAspectSource : IAspectSource
     }
 
     public void Add( IAspectSource aspectSource, IAspectClass aspectClass ) => this._aspectSources.Add( (aspectSource, aspectClass) );
+
+    public ContributorKind ContributorKind => ContributorKind.AspectSource;
 }

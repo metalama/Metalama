@@ -10,9 +10,10 @@ using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.Collections;
 using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Diagnostics;
+using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities.Threading;
-using System.Collections.Immutable;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -26,18 +27,19 @@ internal sealed class CompilationAspectSource : IAspectSource
 {
     private readonly UserCodeAttributeDeserializer.Provider _attributeDeserializerProvider;
     private readonly IConcurrentTaskRunner _concurrentTaskRunner;
+    private readonly HashSet<AspectClass> _aspectClasses;
     private ImmutableDictionaryOfArray<IType, IRef<IDeclaration>>? _exclusions;
 
-    public CompilationAspectSource( in ProjectServiceProvider serviceProvider, ImmutableArray<IAspectClass> aspectClasses )
+    public CompilationAspectSource( in ProjectServiceProvider serviceProvider, AspectClassCollection aspectClasses )
     {
         this._attributeDeserializerProvider = serviceProvider.GetRequiredService<UserCodeAttributeDeserializer.Provider>();
         this._concurrentTaskRunner = serviceProvider.GetRequiredService<IConcurrentTaskRunner>();
-        
+
         // This source only supports real aspects, not fabric aspects.
-        this.AspectClasses = aspectClasses.OfType<AspectClass>().ToImmutableArray<IAspectClass>();
+        this._aspectClasses = aspectClasses.OfType<AspectClass>().ToHashSet();
     }
 
-    public ImmutableArray<IAspectClass> AspectClasses { get; }
+    public IEnumerable<IAspectClass> AspectClasses => this._aspectClasses;
 
     private ImmutableDictionaryOfArray<IType, IRef<IDeclaration>> DiscoverExclusions( CompilationModel compilation )
     {
@@ -55,6 +57,8 @@ internal sealed class CompilationAspectSource : IAspectSource
 
         return this._exclusions;
     }
+
+    public bool ContainsAspectClass( IAspectClass aspectClass ) => aspectClass is AspectClass typed && this._aspectClasses.Contains( typed );
 
     public Task CollectAspectInstancesAsync( AspectInstanceCollector collector )
     {
@@ -117,4 +121,6 @@ internal sealed class CompilationAspectSource : IAspectSource
             }
         }
     }
+
+    public ContributorKind ContributorKind => ContributorKind.AspectSource;
 }

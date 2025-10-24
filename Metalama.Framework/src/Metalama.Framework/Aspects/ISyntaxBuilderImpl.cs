@@ -6,6 +6,7 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Code.SyntaxBuilders;
 using System;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 
 namespace Metalama.Framework.Aspects;
@@ -64,4 +65,8 @@ internal interface ISyntaxBuilderImpl
     IExpression NullExpression( IType? type );
 
     IExpression DefaultExpression( IType? type );
+
+    bool TryConvertExpressionToTypedConstant( IExpression expression, [NotNullWhen( true )] out TypedConstant? typedConstant );
+
+    bool TryConvertExpressionToTypedConstant( string expression, [NotNullWhen( true )] out TypedConstant? typedConstant );
 }

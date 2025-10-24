@@ -187,12 +187,12 @@ public sealed partial class DesignTimeAspectPipelineResult : ITransitiveAspectsM
             {
                 extensionsBuilder ??= this.Extensions.ToBuilder();
 
-                foreach ( var validator in oldSyntaxTreeResult.Extensions )
+                foreach ( var extension in oldSyntaxTreeResult.Extensions )
                 {
                     Logger.DesignTime.Trace?.Log(
-                        $"CompilationPipelineResult.Update( id = {this._id} ): removing validator `{validator}` from syntax tree '{filePath}'." );
+                        $"CompilationPipelineResult.Update( id = {this._id} ): removing extension `{extension}` from syntax tree '{filePath}'." );
 
-                    extensionsBuilder.Remove( validator );
+                    extensionsBuilder.Remove( extension );
                 }
             }
 
@@ -261,7 +261,7 @@ public sealed partial class DesignTimeAspectPipelineResult : ITransitiveAspectsM
 
                 foreach ( var extension in newSyntaxTreeResult.Extensions )
                 {
-                    Logger.DesignTime.Trace?.Log( $"CompilationPipelineResult.Update( id = {this._id} ): adding validator `{extension}` to '{filePath}'." );
+                    Logger.DesignTime.Trace?.Log( $"CompilationPipelineResult.Update( id = {this._id} ): adding extension `{extension}` to '{filePath}'." );
                     extensionsBuilder.Add( extension );
                 }
             }
@@ -334,7 +334,7 @@ public sealed partial class DesignTimeAspectPipelineResult : ITransitiveAspectsM
     /// Splits a <see cref="DesignTimePipelineExecutionResult"/>, which includes data for several syntax trees, into
     /// a list of <see cref="SyntaxTreePipelineResult"/> which each have information related to a single syntax tree.
     /// </summary>
-    private static (IEnumerable<SyntaxTreePipelineResult> Results, IReadOnlyList<IDesignTimeAspectPipelineResultExtension>? ExternalValidators)
+    private static (IEnumerable<SyntaxTreePipelineResult> Results, IReadOnlyList<IDesignTimePipelineResultExtension>? ExternalValidators)
         SplitResultsByTree(
             PartialCompilation compilation,
             DesignTimePipelineExecutionResult pipelineResults )
@@ -345,7 +345,7 @@ public sealed partial class DesignTimeAspectPipelineResult : ITransitiveAspectsM
             .InputSyntaxTrees
             .ToDictionary( r => r.Key, syntaxTree => new SyntaxTreePipelineResult.Builder( syntaxTree.Value ) );
 
-        List<IDesignTimeAspectPipelineResultExtension>? externalValidators = null;
+        List<IDesignTimePipelineResultExtension>? externalValidators = null;
 
         // Split diagnostic by syntax tree.
         foreach ( var diagnostic in pipelineResults.Diagnostics.ReportedDiagnostics )
@@ -484,13 +484,13 @@ public sealed partial class DesignTimeAspectPipelineResult : ITransitiveAspectsM
 
                 if ( resultBuilders.TryGetValue( filePath, out var builder ) )
                 {
-                    builder.Extensions ??= ImmutableArray.CreateBuilder<IDesignTimeAspectPipelineResultExtension>();
+                    builder.Extensions ??= ImmutableArray.CreateBuilder<IDesignTimePipelineResultExtension>();
                     builder.Extensions.Add( designTimeExtension );
                 }
                 else
                 {
                     // This happens with cross-project validators
-                    externalValidators ??= new List<IDesignTimeAspectPipelineResultExtension>();
+                    externalValidators ??= new List<IDesignTimePipelineResultExtension>();
                     externalValidators.Add( designTimeExtension );
                 }
             }
@@ -533,15 +533,23 @@ public sealed partial class DesignTimeAspectPipelineResult : ITransitiveAspectsM
             }
 
             var filePath = syntaxTree?.FilePath ?? string.Empty;
-            var builder = resultBuilders[filePath];
-            builder.AspectInstances ??= ImmutableArray.CreateBuilder<DesignTimeAspectInstance>();
 
-            builder.AspectInstances.Add(
-                new DesignTimeAspectInstance(
-                    targetDeclarationId,
-                    predecessorDeclarationId,
-                    aspectInstance.AspectClass.FullName,
-                    aspectInstance.IsSkipped ) );
+            if ( resultBuilders.TryGetValue( filePath, out var builder ) )
+            {
+                builder.AspectInstances ??= ImmutableArray.CreateBuilder<DesignTimeAspectInstance>();
+
+                builder.AspectInstances.Add(
+                    new DesignTimeAspectInstance(
+                        targetDeclarationId,
+                        predecessorDeclarationId,
+                        aspectInstance.AspectClass.FullName,
+                        aspectInstance.IsSkipped ) );
+            }
+            else
+            {
+                // This is a transitive aspect. 
+                // TODO: integrate transitive aspects with the aspect explorer.
+            }
         }
 
         // Split transformations by syntax tree.
@@ -649,8 +657,8 @@ public sealed partial class DesignTimeAspectPipelineResult : ITransitiveAspectsM
     public IEnumerable<InheritableAspectInstance> GetInheritableAspects( string aspectType ) => this._inheritableAspects[aspectType];
 
     // At design time, cross-project reference validators are not added to the main pipeline. Instead, the validator provider recursively includes
-    // the providers of referenced projects. However cross-project references are still used for PE references.
-    ImmutableArray<ITransitiveAspectsManifestExtension> ITransitiveAspectsManifest.Extensions => ImmutableArray<ITransitiveAspectsManifestExtension>.Empty;
+    // the providers of referenced projects. However, cross-project references are still used for PE references.
+    ImmutableArray<ITransitiveAspectsManifestExtension> ITransitiveAspectsManifest.Extensions => this.Extensions.ToTransitiveValidatorInstances( false );
 
     internal byte[] GetSerializedTransitiveAspectManifest( in ProjectServiceProvider serviceProvider, CompilationContext compilationContext )
     {
@@ -658,7 +666,7 @@ public sealed partial class DesignTimeAspectPipelineResult : ITransitiveAspectsM
         {
             var manifest = TransitiveAspectsManifest.Create(
                 this._inheritableAspects.SelectMany( g => g ).ToImmutableArray(),
-                this.Extensions.ToTransitiveValidatorInstances(),
+                this.Extensions.ToTransitiveValidatorInstances( true ),
                 this.InheritableOptions,
                 this.Annotations );
 

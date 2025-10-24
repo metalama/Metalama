@@ -12,11 +12,11 @@ public class TargetClass
       throw new NotSupportedException("Cannot set '_formatProvider' because of the dependency aspect.");
     }
   }
-  public TargetClass(Func<IFormatProvider>? formatProvider = default)
+  public TargetClass([AspectGenerated] Func<IFormatProvider>? formatProvider = default)
   {
     this._formatProviderFunc = formatProvider;
   }
-  public TargetClass(int x, IFormatProvider existingParameter, Func<IFormatProvider>? formatProvider = default)
+  public TargetClass(int x, IFormatProvider existingParameter, [AspectGenerated] Func<IFormatProvider>? formatProvider = default)
   {
     this._formatProviderFunc = formatProvider;
   }

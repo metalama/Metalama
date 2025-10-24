@@ -173,7 +173,7 @@ namespace Metalama.Framework.Advising
         /// </param>
         /// <param name="setTemplate">The name of the method of the aspect class whose implementation will be used as a template for the getter, or <c>null</c>
         ///     if the getter should not be overridden. This method must be annotated with <see cref="TemplateAttribute"/>. The signature of this method must
-        ///     be <c>void Set(T value</c>  where <c>T</c> is either <c>dynamic</c> or a type compatible with the type of the field or property.</param>
+        ///     be <c>void Set(T value)</c>  where <c>T</c> is either <c>dynamic</c> or a type compatible with the type of the field or property.</param>
         /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods.</param>
         /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property of the
         ///     <see cref="meta"/> API.</param>
@@ -349,7 +349,7 @@ namespace Metalama.Framework.Advising
         ///     be <c>T Get()</c> where <c>T</c> is either <c>dynamic</c> or a type compatible with the type of the field or property.</param>
         /// <param name="setTemplate">The name of the method of the aspect class whose type and implementation will be used as a template for the getter, or <c>null</c>
         ///     if the introduced property should not have a setter. This method must be annotated with <see cref="TemplateAttribute"/>. The signature of this method must
-        ///     be <c>void Set(T value</c>  where <c>T</c> is either <c>dynamic</c> or a type compatible with the type of the field or property.</param>
+        ///     be <c>void Set(T value)</c>  where <c>T</c> is either <c>dynamic</c> or a type compatible with the type of the field or property.</param>
         /// <param name="scope">Determines the scope (e.g. <see cref="IntroductionScope.Instance"/> or <see cref="IntroductionScope.Static"/>) of the introduced
         ///     property. The default scope depends on the scope of the template accessors. If the accessors are static, the introduced property is static. However, if the
         ///     template accessors are non-static, then the introduced property copies of the scope of the target declaration of the aspect.</param>
@@ -382,11 +382,11 @@ namespace Metalama.Framework.Advising
         ///     be <c>T Get()</c> where <c>T</c> is either <c>dynamic</c> or a type compatible with the type of the indexer.</param>
         /// <param name="setTemplate">The name of the method of the aspect class whose type and implementation will be used as a template for the getter, or <c>null</c>
         ///     if the introduced indexer should not have a setter. This method must be annotated with <see cref="TemplateAttribute"/>. The signature of this method must
-        ///     be <c>void Set(T value</c>  where <c>T</c> is either <c>dynamic</c> or a type compatible with the type of the indexer.</param>
+        ///     be <c>void Set(T value)</c>  where <c>T</c> is either <c>dynamic</c> or a type compatible with the type of the indexer.</param>
         /// <param name="scope">Determines the scope (e.g. <see cref="IntroductionScope.Instance"/> or <see cref="IntroductionScope.Static"/>) of the introduced
         ///     indexer. The default scope depends on the scope of the template accessors. If the accessors are static, the introduced indexer is static. However, if the
         ///     template accessors are non-static, then the introduced indexer copies of the scope of the target declaration of the aspect.</param>
-        /// <param name="whenExists">Determines the implementation strategy when a indexer of the same name is already declared in the target type.
+        /// <param name="whenExists">Determines the implementation strategy when an indexer of the same name is already declared in the target type.
         ///     The default strategy is to fail with a compile-time error.</param>
         /// <param name="buildIndexer"></param>
         /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods.</param>
@@ -415,11 +415,11 @@ namespace Metalama.Framework.Advising
         ///     be <c>T Get()</c> where <c>T</c> is either <c>dynamic</c> or a type compatible with the type of the indexer.</param>
         /// <param name="setTemplate">The name of the method of the aspect class whose type and implementation will be used as a template for the getter, or <c>null</c>
         ///     if the introduced indexer should not have a setter. This method must be annotated with <see cref="TemplateAttribute"/>. The signature of this method must
-        ///     be <c>void Set(T value</c>  where <c>T</c> is either <c>dynamic</c> or a type compatible with the type of the indexer.</param>
+        ///     be <c>void Set(T value)</c>  where <c>T</c> is either <c>dynamic</c> or a type compatible with the type of the indexer.</param>
         /// <param name="scope">Determines the scope (e.g. <see cref="IntroductionScope.Instance"/> or <see cref="IntroductionScope.Static"/>) of the introduced
         ///     indexer. The default scope depends on the scope of the template accessors. If the accessors are static, the introduced indexer is static. However, if the
         ///     template accessors are non-static, then the introduced indexer copies of the scope of the target declaration of the aspect.</param>
-        /// <param name="whenExists">Determines the implementation strategy when a indexer of the same name is already declared in the target type.
+        /// <param name="whenExists">Determines the implementation strategy when an indexer of the same name is already declared in the target type.
         ///     The default strategy is to fail with a compile-time error.</param>
         /// <param name="buildIndexer"></param>
         /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods.</param>
@@ -448,11 +448,11 @@ namespace Metalama.Framework.Advising
         ///     be <c>T Get()</c> where <c>T</c> is either <c>dynamic</c> or a type compatible with the type of the indexer.</param>
         /// <param name="setTemplate">The name of the method of the aspect class whose type and implementation will be used as a template for the getter, or <c>null</c>
         ///     if the introduced indexer should not have a setter. This method must be annotated with <see cref="TemplateAttribute"/>. The signature of this method must
-        ///     be <c>void Set(T value</c>  where <c>T</c> is either <c>dynamic</c> or a type compatible with the type of the indexer.</param>
+        ///     be <c>void Set(T value)</c>  where <c>T</c> is either <c>dynamic</c> or a type compatible with the type of the indexer.</param>
         /// <param name="scope">Determines the scope (e.g. <see cref="IntroductionScope.Instance"/> or <see cref="IntroductionScope.Static"/>) of the introduced
         ///     indexer. The default scope depends on the scope of the template accessors. If the accessors are static, the introduced indexer is static. However, if the
         ///     template accessors are non-static, then the introduced indexer copies of the scope of the target declaration of the aspect.</param>
-        /// <param name="whenExists">Determines the implementation strategy when a indexer of the same name is already declared in the target type.
+        /// <param name="whenExists">Determines the implementation strategy when an indexer of the same name is already declared in the target type.
         ///     The default strategy is to fail with a compile-time error.</param>
         /// <param name="buildIndexer"></param>
         /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods.</param>
@@ -481,11 +481,11 @@ namespace Metalama.Framework.Advising
         ///     be <c>T Get()</c> where <c>T</c> is either <c>dynamic</c> or a type compatible with the type of the indexer.</param>
         /// <param name="setTemplate">The name of the method of the aspect class whose type and implementation will be used as a template for the getter, or <c>null</c>
         ///     if the introduced indexer should not have a setter. This method must be annotated with <see cref="TemplateAttribute"/>. The signature of this method must
-        ///     be <c>void Set(T value</c>  where <c>T</c> is either <c>dynamic</c> or a type compatible with the type of the indexer.</param>
+        ///     be <c>void Set(T value)</c>  where <c>T</c> is either <c>dynamic</c> or a type compatible with the type of the indexer.</param>
         /// <param name="scope">Determines the scope (e.g. <see cref="IntroductionScope.Instance"/> or <see cref="IntroductionScope.Static"/>) of the introduced
         ///     indexer. The default scope depends on the scope of the template accessors. If the accessors are static, the introduced indexer is static. However, if the
         ///     template accessors are non-static, then the introduced indexer copies of the scope of the target declaration of the aspect.</param>
-        /// <param name="whenExists">Determines the implementation strategy when a indexer of the same name is already declared in the target type.
+        /// <param name="whenExists">Determines the implementation strategy when an indexer of the same name is already declared in the target type.
         ///     The default strategy is to fail with a compile-time error.</param>
         /// <param name="buildIndexer"></param>
         /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods.</param>
@@ -759,12 +759,33 @@ namespace Metalama.Framework.Advising
         ///     A <c>null</c> value is equivalent to <see cref="PullAction.None"/>, i.e. <paramref name="defaultValue"/> of the parameter will be used.
         /// </param>
         /// <param name="attributes"></param>
+        [Obsolete( "This overload does not work across project boundaries. Use an overload that accepts an IIntroduceConstructorParameterPullStrategy." )]
         IIntroductionAdviceResult<IParameter> IntroduceParameter(
             IConstructor constructor,
             string parameterName,
             IType parameterType,
             TypedConstant defaultValue,
-            Func<IParameter, IConstructor, PullAction>? pullAction = null,
+            Func<IParameter, IConstructor, PullAction>? pullAction,
+            ImmutableArray<AttributeConstruction> attributes = default );
+        
+        /// <summary>
+        /// Appends a parameter to a constructor by specifying its name and <see cref="IType"/>.
+        /// </summary>
+        /// <param name="constructor">The constructor into which the new parameter will be appended.</param>
+        /// <param name="parameterName">The name of the parameter.</param>
+        /// <param name="parameterType">The type of the parameter.</param>
+        /// <param name="defaultValue">The default value of the parameter (required). It must be type-compatible with <paramref name="parameterType"/>.
+        ///     To specify <c>default</c> as the default value, use <see cref="TypedConstant.Default(Metalama.Framework.Code.IType)"/>.</param>
+        /// <param name="pullStrategy">An optional <see cref="IPullStrategy"/> that returns a <see cref="PullAction"/> specifying how to pull the new parameter from other child constructors.
+        ///     A <c>null</c> value is equivalent to <see cref="PullAction.None"/>, i.e. <paramref name="defaultValue"/> of the parameter will be used.
+        /// </param>
+        /// <param name="attributes"></param>
+        IIntroductionAdviceResult<IParameter> IntroduceParameter(
+            IConstructor constructor,
+            string parameterName,
+            IType parameterType,
+            TypedConstant defaultValue,
+            IPullStrategy? pullStrategy = null,
             ImmutableArray<AttributeConstruction> attributes = default );
 
         /// <summary>
@@ -779,12 +800,33 @@ namespace Metalama.Framework.Advising
         ///     A <c>null</c> value is equivalent to <see cref="PullAction.None"/>, i.e. <paramref name="defaultValue"/> of the parameter will be used.
         /// </param>
         /// <param name="attributes"></param>
+        [Obsolete( "This overload does not work across project boundaries. Use an overload that accepts an IIntroduceConstructorParameterPullStrategy." )]
         IIntroductionAdviceResult<IParameter> IntroduceParameter(
             IConstructor constructor,
             string parameterName,
             Type parameterType,
             TypedConstant defaultValue,
-            Func<IParameter, IConstructor, PullAction>? pullAction = null,
+            Func<IParameter, IConstructor, PullAction>? pullAction,
+            ImmutableArray<AttributeConstruction> attributes = default );
+
+        /// <summary>
+        /// Appends a parameter to a constructor by specifying its name and <see cref="Type"/>.
+        /// </summary>
+        /// <param name="constructor">The constructor into which the new parameter will be appended.</param>
+        /// <param name="parameterName">The name of the parameter.</param>
+        /// <param name="parameterType">The type of the parameter.</param>
+        /// <param name="defaultValue">The default value of the parameter (required). It must be type-compatible with <paramref name="parameterType"/>.
+        ///     To specify <c>default</c> as the default value, use <see cref="TypedConstant.Default(Metalama.Framework.Code.IType)"/>.</param>
+        /// <param name="pullStrategy">An optional <see cref="IPullStrategy"/> that returns a <see cref="PullAction"/> specifying how to pull the new parameter from other child constructors.
+        ///     A <c>null</c> value is equivalent to <see cref="PullAction.None"/>, i.e. <paramref name="defaultValue"/> of the parameter will be used.
+        /// </param>
+        /// <param name="attributes"></param>
+        IIntroductionAdviceResult<IParameter> IntroduceParameter(
+            IConstructor constructor,
+            string parameterName,
+            Type parameterType,
+            TypedConstant defaultValue,
+            IPullStrategy? pullStrategy = null,
             ImmutableArray<AttributeConstruction> attributes = default );
 
         IIntroductionAdviceResult<INamedType> IntroduceClass(
@@ -825,7 +867,7 @@ namespace Metalama.Framework.Advising
         /// </summary>
         /// <param name="templateProvider">A <see cref="TemplateProvider"/>.</param>
         /// <returns>An <see cref="IAdviceFactory"/>.</returns>
-        IAdviceFactory WithTemplateProvider( TemplateProvider templateProvider );
+        IAdviceFactory WithTemplateProvider( in TemplateProvider templateProvider );
 
         /// <summary>
         /// Returns a copy of the current <see cref="IAdviceFactory"/> that will use the specified object to find template methods.

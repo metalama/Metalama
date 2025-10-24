@@ -4,7 +4,7 @@
 
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Engine.Extensibility;
-using System.Collections.Immutable;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Metalama.Framework.Engine.Aspects;
@@ -15,7 +15,9 @@ namespace Metalama.Framework.Engine.Aspects;
 /// </summary>
 internal interface IAspectSource : IPipelineContributor
 {
-    ImmutableArray<IAspectClass> AspectClasses { get; }
+    IEnumerable<IAspectClass> AspectClasses { get; }
+
+    bool ContainsAspectClass( IAspectClass aspectClass );
 
     /// <summary>
     /// Returns a set of <see cref="AspectInstance"/> of a given type. This method is called when the given aspect

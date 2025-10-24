@@ -200,7 +200,8 @@ internal sealed class AspectDriver : IAspectDriver
                 diagnosticSink,
                 buildAspectExecutionContext,
                 pipelineStepIndex,
-                indexWithinType );
+                indexWithinType,
+                pipelineConfiguration.BoundAspectClasses );
 
             var adviceFactory = new AdviceFactory<T>(
                 targetDeclaration,

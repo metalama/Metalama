@@ -19,7 +19,7 @@ public class TargetClass
     }
   }
   private IMyInterface _testDependency;
-  public TargetClass(IMyInterface? testDependency = null)
+  public TargetClass([AspectGenerated] IMyInterface? testDependency = null)
   {
     this._testDependency = testDependency ?? throw new System.ArgumentNullException(nameof(testDependency));
   }

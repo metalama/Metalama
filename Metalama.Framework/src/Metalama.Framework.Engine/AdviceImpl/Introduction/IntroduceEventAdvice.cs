@@ -28,7 +28,7 @@ internal sealed class IntroduceEventAdvice : IntroduceMemberAdvice<IEvent, IEven
     private readonly PartiallyBoundTemplateMethod? _invokeTemplate;
 
     public IntroduceEventAdvice(
-        AdviceConstructorParameters<INamedType> parameters,
+        in AdviceConstructorParameters<INamedType> parameters,
         string? explicitName,
         TemplateMember<IEvent>? eventTemplate,
         PartiallyBoundTemplateMethod? addTemplate,
@@ -60,9 +60,9 @@ internal sealed class IntroduceEventAdvice : IntroduceMemberAdvice<IEvent, IEven
     protected override void InitializeBuilderCore(
         EventBuilder builder,
         TemplateAttributeProperties? templateAttributeProperties,
-        in AdviceImplementationContext context )
+        AdviceImplementationContext context )
     {
-        base.InitializeBuilderCore( builder, templateAttributeProperties, in context );
+        base.InitializeBuilderCore( builder, templateAttributeProperties, context );
 
         var serviceProvider = context.ServiceProvider;
 
@@ -173,7 +173,7 @@ internal sealed class IntroduceEventAdvice : IntroduceMemberAdvice<IEvent, IEven
 
     public override AdviceKind AdviceKind => AdviceKind.IntroduceEvent;
 
-    protected override IntroductionAdviceResult<IEvent> ImplementCore( EventBuilder builder, in AdviceImplementationContext context )
+    protected override IntroductionAdviceResult<IEvent> ImplementCore( EventBuilder builder, AdviceImplementationContext context )
     {
         var eventTemplateDeclaration = this.Template?.GetDeclaration( this.SourceCompilation );
 

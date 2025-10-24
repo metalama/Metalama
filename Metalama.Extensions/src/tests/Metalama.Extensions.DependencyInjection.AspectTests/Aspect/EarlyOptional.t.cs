@@ -2,7 +2,7 @@ public class TargetClass
 {
   [Dependency(IsRequired = false)]
   private readonly IFormatProvider? _formatProvider;
-  public TargetClass(IFormatProvider? formatProvider = default)
+  public TargetClass([AspectGenerated] IFormatProvider? formatProvider = default)
   {
     this._formatProvider = formatProvider;
   }

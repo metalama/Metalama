@@ -23,7 +23,7 @@ internal sealed class IntroduceNamedTypeAdvice : IntroduceDeclarationAdvice<INam
     private OverrideStrategy OverrideStrategy { get; }
 
     public IntroduceNamedTypeAdvice(
-        AdviceConstructorParameters<INamespaceOrNamedType> parameters,
+        in AdviceConstructorParameters<INamespaceOrNamedType> parameters,
         string explicitName,
         OverrideStrategy overrideStrategy,
         Action<NamedTypeBuilder>? buildAction,
@@ -45,7 +45,7 @@ internal sealed class IntroduceNamedTypeAdvice : IntroduceDeclarationAdvice<INam
             this._typeKind );
     }
 
-    protected override IntroductionAdviceResult<INamedType> ImplementCore( NamedTypeBuilder builder, in AdviceImplementationContext context )
+    protected override IntroductionAdviceResult<INamedType> ImplementCore( NamedTypeBuilder builder, AdviceImplementationContext context )
     {
         var targetDeclaration = (INamespaceOrNamedType) this.TargetDeclaration.ForCompilation( context.MutableCompilation );
 

@@ -9,9 +9,9 @@ namespace Metalama.Framework.Engine.Extensibility;
 /// <summary>
 /// Represents a transitive (cross-project) pipeline contributor. Typically a reference validator.
 /// </summary>
-public interface ITransitivePipelineContributor
+public interface ITransitivePipelineContributor : IPipelineContributor
 {
     SyntaxTree? SyntaxTree { get; }
 
-    IDesignTimeAspectPipelineResultExtension? ToDesignTime();
+    IDesignTimePipelineResultExtension? ToDesignTime();
 }

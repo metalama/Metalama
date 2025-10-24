@@ -1,9 +1,9 @@
 [MyAspect]
 public class A<T>
 {
-  public A(int x, global::System.Int32 p = 15)
+  public A(int x, [global::Metalama.Framework.RunTime.AspectGeneratedAttribute] global::System.Int32 p = 15)
   {
-    X = x;
+    this.X = x;
   }
   public int X { get; set; }
 }
@@ -11,7 +11,7 @@ public class C : A<string>
 {
   public C(int x) : base(42, 51)
   {
-    Y = x;
+    this.Y = x;
   }
   public int Y { get; }
 }

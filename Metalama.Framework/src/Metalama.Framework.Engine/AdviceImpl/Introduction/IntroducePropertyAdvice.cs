@@ -81,9 +81,9 @@ internal sealed class IntroducePropertyAdvice : IntroduceMemberAdvice<IProperty,
     protected override void InitializeBuilderCore(
         PropertyBuilder builder,
         TemplateAttributeProperties? templateAttributeProperties,
-        in AdviceImplementationContext context )
+        AdviceImplementationContext context )
     {
-        base.InitializeBuilderCore( builder, templateAttributeProperties, in context );
+        base.InitializeBuilderCore( builder, templateAttributeProperties, context );
 
         var templateDeclaration = this.Template?.GetDeclaration( this.SourceCompilation );
         var getTemplateDeclaration = this._getTemplate?.GetDeclaration( this.SourceCompilation );
@@ -207,7 +207,7 @@ internal sealed class IntroducePropertyAdvice : IntroduceMemberAdvice<IProperty,
 
     public override AdviceKind AdviceKind => AdviceKind.IntroduceProperty;
 
-    protected override IntroductionAdviceResult<IProperty> ImplementCore( PropertyBuilder builder, in AdviceImplementationContext context )
+    protected override IntroductionAdviceResult<IProperty> ImplementCore( PropertyBuilder builder, AdviceImplementationContext context )
     {
         var serviceProvider = context.ServiceProvider;
 

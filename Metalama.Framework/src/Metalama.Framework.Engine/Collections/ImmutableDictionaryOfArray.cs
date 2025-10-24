@@ -79,8 +79,7 @@ namespace Metalama.Framework.Engine.Collections
             }
             else
             {
-                return new ImmutableDictionaryOfArray<TKey, TValue>(
-                    this._dictionary.Add( key, new Group( key, ImmutableArray.Create( value ) ) ) );
+                return new ImmutableDictionaryOfArray<TKey, TValue>( this._dictionary.Add( key, new Group( key, ImmutableArray.Create( value ) ) ) );
             }
         }
 
@@ -100,6 +99,8 @@ namespace Metalama.Framework.Engine.Collections
         }
 
         public IEnumerable<TKey> Keys => this._dictionary.Keys;
+
+        public bool ContainsKey( TKey key ) => this._dictionary.TryGetValue( key, out var group ) && !group.Items.IsEmpty;
 
         public bool IsEmpty => this._dictionary.IsEmpty;
 

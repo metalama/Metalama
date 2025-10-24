@@ -5,7 +5,10 @@
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Aspects;
+using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Utilities.Threading;
+using Metalama.Framework.Fabrics;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Threading.Tasks;
@@ -28,10 +31,12 @@ internal sealed class FabricAspectSource : IAspectSource
         this._concurrentTaskRunner = fabricManager.ServiceProvider.GetRequiredService<IConcurrentTaskRunner>();
         this._fabricManager = fabricManager;
         this._drivers = drivers;
-        this._aspectClasses = ImmutableArray.Create<IAspectClass>( fabricManager.AspectClasses[FabricTopLevelAspectClass.FabricAspectName] );
+        this._aspectClasses = ImmutableArray.Create( fabricManager.AspectClasses.GetAspectClass( typeof(Fabric) ) );
     }
 
-    ImmutableArray<IAspectClass> IAspectSource.AspectClasses => this._aspectClasses;
+    IEnumerable<IAspectClass> IAspectSource.AspectClasses => this._aspectClasses;
+
+    public bool ContainsAspectClass( IAspectClass aspectClass ) => this._aspectClasses.Contains( aspectClass );
 
     public Task CollectAspectInstancesAsync( AspectInstanceCollector collector )
     {
@@ -81,4 +86,6 @@ internal sealed class FabricAspectSource : IAspectSource
             collector.AddAspectInstance( aggregateInstance );
         }
     }
+
+    public ContributorKind ContributorKind => ContributorKind.AspectSource;
 }

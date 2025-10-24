@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Aspects;
+using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 using Metalama.Framework.Engine.CodeModel.References;
@@ -31,14 +32,14 @@ internal sealed class IntroduceParameterTransformation : BaseSyntaxTreeTransform
         this.Parameter = parameter;
     }
 
-    public ParameterSyntax ToSyntax( SyntaxGenerationContext syntaxGenerationContext )
+    public ParameterSyntax ToSyntax( SyntaxGenerationContext syntaxGenerationContext, CompilationModel compilation )
     {
         // We only add parameters to source declarations. For introduced declarations, the IntroductionTransformation already adds
         // the parameters.
         Invariant.Assert( this.TargetMember is not IIntroducedRef );
 
         var syntax = SyntaxFactory.Parameter(
-            default,
+            syntaxGenerationContext.SyntaxGenerator.AttributesForDeclaration( this.Parameter.ToRef(), compilation ),
             default,
             syntaxGenerationContext.SyntaxGenerator.TypeSyntax( this.Parameter.Type )
                 .WithOptionalTrailingTrivia( SyntaxFactory.ElasticSpace, syntaxGenerationContext.Options ),

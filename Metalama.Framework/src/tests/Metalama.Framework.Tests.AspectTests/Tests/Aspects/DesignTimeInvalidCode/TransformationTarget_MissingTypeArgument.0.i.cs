@@ -4,7 +4,7 @@ namespace Metalama.Framework.Tests.PublicPipeline.Aspects.DesignTimeInvalidCode.
 {
   partial class TargetCode
   {
-    public TargetCode(global::System.Collections.Generic.List<global::System.Collections.Generic.List<T>> x, global::System.Int32 z, global::System.Int32 z2, global::System.Int32 TestParameter = 1) : this(x, z, z2)
+    public TargetCode(global::System.Collections.Generic.List<global::System.Collections.Generic.List<T>> x, global::System.Int32 z, global::System.Int32 z2, [global::Metalama.Framework.RunTime.AspectGeneratedAttribute] global::System.Int32 TestParameter = 1) : this(x, z, z2)
     {
     }
   }

@@ -14,7 +14,7 @@ internal sealed class OverrideFieldOrPropertyAdvice : OverrideMemberAdvice<IFiel
     private readonly BoundTemplateMethod? _setTemplate;
 
     public OverrideFieldOrPropertyAdvice(
-        AdviceConstructorParameters<IFieldOrProperty> parameters,
+        in AdviceConstructorParameters<IFieldOrProperty> parameters,
         BoundTemplateMethod? getTemplate,
         BoundTemplateMethod? setTemplate )
         : base( parameters )
@@ -25,7 +25,7 @@ internal sealed class OverrideFieldOrPropertyAdvice : OverrideMemberAdvice<IFiel
 
     public override AdviceKind AdviceKind => AdviceKind.OverrideFieldOrPropertyOrIndexer;
 
-    protected override OverrideMemberAdviceResult<IProperty> Implement( in AdviceImplementationContext context )
+    protected override OverrideMemberAdviceResult<IProperty> Implement( AdviceImplementationContext context )
     {
         // TODO: Translate templates to this compilation.
         // TODO: order should be self if the target is introduced on the same layer.

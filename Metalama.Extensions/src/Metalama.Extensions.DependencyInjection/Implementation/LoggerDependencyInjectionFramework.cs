@@ -21,16 +21,18 @@ public sealed class LoggerDependencyInjectionFramework : DefaultDependencyInject
     {
         public InjectionStrategy( DependencyProperties properties ) : base( properties ) { }
 
-        protected override IPullStrategy GetPullStrategy( IFieldOrProperty introducedFieldOrProperty )
+        protected override IDependencyPullStrategy GetDependencyPullStrategy( IFieldOrProperty introducedFieldOrProperty )
         {
-            return new LoggerPullStrategy( this.Properties, introducedFieldOrProperty );
+            return new LoggerInjectionStrategy( this.Properties, introducedFieldOrProperty );
         }
     }
 
     // Our customized pull strategy. Decides how to assign the field or property from the constructor.
-    private sealed class LoggerPullStrategy : DefaultPullStrategy
+    private sealed class LoggerInjectionStrategy : DefaultDependencyPullStrategy
     {
-        public LoggerPullStrategy( DependencyProperties properties, IFieldOrProperty introducedFieldOrProperty ) : base( properties, introducedFieldOrProperty )
+        public LoggerInjectionStrategy( DependencyProperties properties, IFieldOrProperty introducedFieldOrProperty ) : base(
+            properties,
+            introducedFieldOrProperty )
         {
             var loggerType = (INamedType) introducedFieldOrProperty.Type;
             var genericLoggerType = loggerType.ContainingNamespace.Types.OfName( "ILogger" ).Single( l => l.TypeParameters.Count == 1 );

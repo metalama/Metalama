@@ -14,7 +14,7 @@ internal abstract class OverrideMemberAdvice<TInput, TOutput> : Advice<OverrideM
 {
     protected new TInput TargetDeclaration => (TInput) base.TargetDeclaration;
 
-    protected OverrideMemberAdvice( AdviceConstructorParameters<TInput> parameters ) : base( parameters ) { }
+    protected OverrideMemberAdvice( in AdviceConstructorParameters<TInput> parameters ) : base( parameters ) { }
 
     public override string ToString() => $"Override {this.TargetDeclaration}";
 

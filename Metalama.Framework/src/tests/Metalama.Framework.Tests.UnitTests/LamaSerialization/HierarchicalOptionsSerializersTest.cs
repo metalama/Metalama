@@ -50,8 +50,6 @@ public sealed class HierarchicalOptionsSerializersTest : SerializationTestsBase
             {
                 constructorArguments.SetValue( "Key", obj.Key );
             }
-
-            public override void DeserializeFields( MyItem obj, IArgumentsReader initializationArguments ) { }
         }
     }
 }

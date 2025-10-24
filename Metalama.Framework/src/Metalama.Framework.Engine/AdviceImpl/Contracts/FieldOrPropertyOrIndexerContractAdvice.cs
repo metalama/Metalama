@@ -14,13 +14,13 @@ namespace Metalama.Framework.Engine.AdviceImpl.Contracts;
 internal sealed class FieldOrPropertyOrIndexerContractAdvice : ContractAdvice<IFieldOrPropertyOrIndexer>
 {
     public FieldOrPropertyOrIndexerContractAdvice(
-        AdviceConstructorParameters<IFieldOrPropertyOrIndexer> parameters,
+        in AdviceConstructorParameters<IFieldOrPropertyOrIndexer> parameters,
         TemplateMember<IMethod> template,
         ContractDirection direction,
         IObjectReader templateArguments )
         : base( parameters, template, direction, templateArguments ) { }
 
-    protected override AddContractAdviceResult<IFieldOrPropertyOrIndexer> Implement( in AdviceImplementationContext context )
+    protected override AddContractAdviceResult<IFieldOrPropertyOrIndexer> Implement( AdviceImplementationContext context )
     {
         var serviceProvider = context.ServiceProvider;
         var contextCopy = context;

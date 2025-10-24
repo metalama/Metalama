@@ -7,4 +7,4 @@ namespace Metalama.Framework.Engine.Extensibility;
 /// <summary>
 /// Represents a contribution of an aspect or fabric to the fabric. Typically a source of child aspects, options, or validators.
 /// </summary>
-public interface IPipelineContributor;
+public interface IPipelineContributor : IContributor;

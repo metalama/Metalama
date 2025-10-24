@@ -6,13 +6,18 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Code.SyntaxBuilders;
 using Metalama.Framework.CompileTimeContracts;
 using Metalama.Framework.Engine.SyntaxSerialization;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
+using TypedConstant = Metalama.Framework.Code.TypedConstant;
 
 namespace Metalama.Framework.Engine.Templating.Expressions;
 
 internal static class ExpressionExtensions
 {
+    public static string ToText( this IUserExpression userExpression, SyntaxSerializationContext context, IType? targetType = null )
+        => userExpression.ToTypedExpressionSyntax( context, targetType ).Syntax.NormalizeWhitespace().ToString();
+
     public static ExpressionSyntax ToExpressionSyntax( this IUserExpression userExpression, SyntaxSerializationContext context, IType? targetType = null )
         => userExpression.ToTypedExpressionSyntax( context, targetType ).Syntax;
 

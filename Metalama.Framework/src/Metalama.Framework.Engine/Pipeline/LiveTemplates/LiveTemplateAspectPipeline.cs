@@ -16,6 +16,7 @@ using Metalama.Framework.Engine.Utilities.Threading;
 using Metalama.Framework.Services;
 using Microsoft.CodeAnalysis;
 using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Threading;
 using System.Threading.Tasks;
@@ -82,15 +83,17 @@ public sealed class LiveTemplateAspectPipeline : AspectPipeline
     private sealed class AspectSource : IAspectSource
     {
         private readonly LiveTemplateAspectPipeline _parent;
+        private readonly IAspectClass _aspectClass;
 
         public AspectSource( LiveTemplateAspectPipeline parent, IAspectClass aspectClass )
         {
             this._parent = parent;
-
-            this.AspectClasses = ImmutableArray.Create( aspectClass );
+            this._aspectClass = aspectClass;
         }
 
-        public ImmutableArray<IAspectClass> AspectClasses { get; }
+        public IEnumerable<IAspectClass> AspectClasses => [this._aspectClass];
+
+        public bool ContainsAspectClass( IAspectClass aspectClass ) => this._aspectClass == aspectClass;
 
         public Task CollectAspectInstancesAsync( AspectInstanceCollector collector )
         {
@@ -101,13 +104,15 @@ public sealed class LiveTemplateAspectPipeline : AspectPipeline
             collector.AddAspectInstance(
                 aspectClass.CreateAspectInstance(
                     targetDeclaration,
-                    (IAspect) Activator.CreateInstance( this.AspectClasses[0].Type ).AssertNotNull(),
+                    (IAspect) Activator.CreateInstance( this._aspectClass.Type ).AssertNotNull(),
                     new AspectPredecessor(
                         AspectPredecessorKind.Interactive,
                         new LiveTemplatePredecessor( targetDeclaration.ToRef() ) ) ) );
 
             return Task.CompletedTask;
         }
+
+        public ContributorKind ContributorKind => ContributorKind.AspectSource;
     }
 
     private sealed class LiveTemplatePredecessor : IAspectPredecessor

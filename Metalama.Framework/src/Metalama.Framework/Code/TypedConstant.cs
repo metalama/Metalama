@@ -7,6 +7,7 @@ using Metalama.Framework.Code.SyntaxBuilders;
 using Metalama.Framework.Code.Types;
 using System;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
 
@@ -518,5 +519,11 @@ namespace Metalama.Framework.Code
         public static bool operator ==( TypedConstant left, TypedConstant right ) => left.Equals( right );
 
         public static bool operator !=( TypedConstant left, TypedConstant right ) => !left.Equals( right );
+
+        public static bool TryConvertFromExpression( IExpression expression, [NotNullWhen( true )] out TypedConstant? typedConstant )
+            => SyntaxBuilder.CurrentImplementation.TryConvertExpressionToTypedConstant( expression, out typedConstant );
+
+        public static bool TryConvertFromExpression( string expression, [NotNullWhen( true )] out TypedConstant? typedConstant )
+            => SyntaxBuilder.CurrentImplementation.TryConvertExpressionToTypedConstant( expression, out typedConstant );
     }
 }

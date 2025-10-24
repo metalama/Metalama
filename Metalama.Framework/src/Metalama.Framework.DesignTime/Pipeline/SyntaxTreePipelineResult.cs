@@ -45,7 +45,7 @@ namespace Metalama.Framework.DesignTime.Pipeline
 
         public ImmutableArray<InheritableOptionsInstance> InheritableOptions { get; }
 
-        public ImmutableArray<IDesignTimeAspectPipelineResultExtension> Extensions { get; }
+        public ImmutableArray<IDesignTimePipelineResultExtension> Extensions { get; }
 
         public ImmutableArray<DesignTimeAspectInstance> AspectInstances { get; }
 
@@ -62,7 +62,7 @@ namespace Metalama.Framework.DesignTime.Pipeline
             ImmutableArray<IntroducedSyntaxTree>? introductions,
             ImmutableArray<string>? dependencies,
             ImmutableArray<InheritableAspectInstance>? inheritableAspects,
-            ImmutableArray<IDesignTimeAspectPipelineResultExtension>? extensions,
+            ImmutableArray<IDesignTimePipelineResultExtension>? extensions,
             ImmutableArray<DesignTimeAspectInstance>? aspectInstances,
             ImmutableArray<DesignTimeTransformation>? transformations,
             ImmutableArray<InheritableOptionsInstance>? inheritableOptions,
@@ -71,7 +71,7 @@ namespace Metalama.Framework.DesignTime.Pipeline
             this.SyntaxTreePath = syntaxTreePath;
             this.Annotations = annotations ?? ImmutableDictionaryOfArray<SerializableDeclarationId, IAnnotation>.Empty;
             this.InheritableOptions = inheritableOptions ?? ImmutableArray<InheritableOptionsInstance>.Empty;
-            this.Extensions = extensions ?? ImmutableArray<IDesignTimeAspectPipelineResultExtension>.Empty;
+            this.Extensions = extensions ?? ImmutableArray<IDesignTimePipelineResultExtension>.Empty;
             this.InheritableAspects = inheritableAspects ?? ImmutableArray<InheritableAspectInstance>.Empty;
             this.Diagnostics = diagnostics ?? ImmutableArray<Diagnostic>.Empty;
             this.Suppressions = suppressions ?? ImmutableArray<CacheableScopedSuppression>.Empty;

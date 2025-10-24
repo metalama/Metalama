@@ -8,9 +8,10 @@ using Metalama.Framework.Eligibility;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.Diagnostics;
+using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Fabrics;
 using System;
-using System.Collections.Immutable;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Metalama.Framework.Engine.Queries.Aspects;
@@ -18,11 +19,12 @@ namespace Metalama.Framework.Engine.Queries.Aspects;
 internal sealed class AspectQuerySource<TDeclaration> : IAspectSource
     where TDeclaration : class, IDeclaration
 {
+    private readonly IAspectClass _aspectClass;
     private readonly IQueryImpl<TDeclaration> _query;
     private readonly Func<TDeclaration, object?, QueryExecutionContext, AspectInstanceCollector, Task> _addResult;
     private readonly EligibleScenarios? _eligibleScenarios;
 
-    public ImmutableArray<IAspectClass> AspectClasses { get; }
+    public IEnumerable<IAspectClass> AspectClasses => [this._aspectClass];
 
     public AspectQuerySource(
         IAspectClass aspectClass,
@@ -30,11 +32,13 @@ internal sealed class AspectQuerySource<TDeclaration> : IAspectSource
         Func<TDeclaration, object?, QueryExecutionContext, AspectInstanceCollector, Task> addResult,
         EligibleScenarios? eligibleScenarios )
     {
+        this._aspectClass = aspectClass;
         this._query = query;
         this._addResult = addResult;
         this._eligibleScenarios = eligibleScenarios;
-        this.AspectClasses = ImmutableArray.Create( aspectClass );
     }
+
+    public bool ContainsAspectClass( IAspectClass aspectClass ) => this._aspectClass == aspectClass;
 
     public Task CollectAspectInstancesAsync( AspectInstanceCollector collector )
     {
@@ -55,7 +59,7 @@ internal sealed class AspectQuerySource<TDeclaration> : IAspectSource
             }
 
             var predecessorInstance = (IAspectPredecessorImpl) this._query.Owner.AspectPredecessor.Instance;
-            
+
             // Verify eligibility.
             var aspectClass = (AspectClass) collector.AspectClass;
             var eligibility = aspectClass.GetEligibility( targetDeclaration );
@@ -88,4 +92,6 @@ internal sealed class AspectQuerySource<TDeclaration> : IAspectSource
                 queryExecutionContext.UserCodeExecutionContext );
         }
     }
+
+    public ContributorKind ContributorKind => ContributorKind.AspectSource;
 }

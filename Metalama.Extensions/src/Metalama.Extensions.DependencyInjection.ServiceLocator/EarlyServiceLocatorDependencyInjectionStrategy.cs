@@ -17,7 +17,7 @@ internal class EarlyServiceLocatorDependencyInjectionStrategy : DefaultDependenc
     protected override bool TryPullDependency(
         IAdviser<IConstructor> adviser,
         IFieldOrProperty dependencyFieldOrProperty,
-        IPullStrategy pullStrategy )
+        IDependencyPullStrategy dependencyPullStrategy )
     {
         adviser.WithTemplateProvider( this )
             .AddInitializer(

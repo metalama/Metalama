@@ -9,7 +9,7 @@ public record class TargetClass
     x = this.x;
     introduced = this.introduced;
   }
-  public TargetClass(int x, global::System.Int32 introduced = 42)
+  public TargetClass(int x, [global::Metalama.Framework.RunTime.AspectGeneratedAttribute] global::System.Int32 introduced = 42)
   {
     this.x = x;
     this.introduced = introduced;

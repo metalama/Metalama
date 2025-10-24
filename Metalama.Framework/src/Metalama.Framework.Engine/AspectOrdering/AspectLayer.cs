@@ -11,13 +11,12 @@ namespace Metalama.Framework.Engine.AspectOrdering
     {
         private readonly IBoundAspectClass? _aspectClass;
 
-        public AspectLayer( IBoundAspectClass aspectClass, string? layerName )
+        public AspectLayer( IBoundAspectClass aspectClass, string? layerName, string? aspectName = null )
         {
             this._aspectClass = aspectClass;
-            this.AspectLayerId = new AspectLayerId( aspectClass, layerName );
+            this.AspectLayerId = new AspectLayerId( aspectClass, layerName, aspectName );
         }
 
-        // Constructor for testing only.
         public AspectLayer( string aspectTypeName, string? layerName )
         {
             this.AspectLayerId = new AspectLayerId( aspectTypeName, layerName );

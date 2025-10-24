@@ -7,6 +7,7 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Code.Comparers;
 using Metalama.Framework.Engine.AdviceImpl.Attributes;
 using Metalama.Framework.Engine.AdviceImpl.Introduction;
+using Metalama.Framework.Engine.AdviceImpl.Introduction.Constructors;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 using Metalama.Framework.Engine.CodeModel.References;
@@ -637,11 +638,10 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
                         transformationCollection.AddInsertedStatements(
                             propertyOrIndexer.GetMethod.ToRef(),
                             insertedStatements
-                                .Where(
-                                    s =>
-                                        s.ContextDeclaration.IsContainedIn( propertyOrIndexer.GetMethod )
-                                        || (propertyOrIndexer is IIndexer indexer && s.ContextDeclaration is IParameter parameter
-                                                                                  && parameter.ContainingDeclaration!.Equals( indexer )) )
+                                .Where( s =>
+                                            s.ContextDeclaration.IsContainedIn( propertyOrIndexer.GetMethod )
+                                            || (propertyOrIndexer is IIndexer indexer && s.ContextDeclaration is IParameter parameter
+                                                                                      && parameter.ContainingDeclaration!.Equals( indexer )) )
                                 .ToReadOnlyList() );
                     }
 
@@ -650,11 +650,10 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
                         transformationCollection.AddInsertedStatements(
                             propertyOrIndexer.SetMethod.ToRef(),
                             insertedStatements
-                                .Where(
-                                    s =>
-                                        s.ContextDeclaration.IsContainedIn( propertyOrIndexer.SetMethod )
-                                        || (propertyOrIndexer is IIndexer indexer && s.ContextDeclaration is IParameter parameter
-                                                                                  && parameter.ContainingDeclaration!.Equals( indexer )) )
+                                .Where( s =>
+                                            s.ContextDeclaration.IsContainedIn( propertyOrIndexer.SetMethod )
+                                            || (propertyOrIndexer is IIndexer indexer && s.ContextDeclaration is IParameter parameter
+                                                                                      && parameter.ContainingDeclaration!.Equals( indexer )) )
                                 .ToReadOnlyList() );
                     }
 

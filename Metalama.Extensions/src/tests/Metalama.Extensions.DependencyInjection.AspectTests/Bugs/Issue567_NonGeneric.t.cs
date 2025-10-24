@@ -22,7 +22,7 @@ public abstract class ModelBase
     }
   }
   private ILastChanceExceptionHandler? _exceptionHandler;
-  protected ModelBase(ILastChanceExceptionHandler? exceptionHandler = null)
+  protected ModelBase([AspectGenerated] ILastChanceExceptionHandler? exceptionHandler = null)
   {
     this._exceptionHandler = exceptionHandler ?? throw new System.ArgumentNullException(nameof(exceptionHandler));
   }

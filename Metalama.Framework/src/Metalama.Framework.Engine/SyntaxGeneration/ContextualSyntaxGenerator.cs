@@ -861,23 +861,32 @@ public sealed partial class ContextualSyntaxGenerator
         return syntax;
     }
 
-    internal ParameterListSyntax ParameterList( IMethodBase method, CompilationModel compilation, bool removeDefaultValues = false )
-        => SyntaxFactory.ParameterList( this.ParameterListParameters( method, compilation, removeDefaultValues ) );
+    internal ParameterListSyntax ParameterList( IMethodBase method, CompilationModel compilation, bool removeDefaultValue )
+        => this.ParameterList( method, compilation, removeDefaultValue ? int.MaxValue : 0 );
 
-    internal ParameterListSyntax ParameterList( IReadOnlyList<IParameter> parameters, CompilationModel compilation, bool removeDefaultValues = false )
-        => SyntaxFactory.ParameterList( this.ParameterListParameters( parameters, compilation, removeDefaultValues ) );
+    internal ParameterListSyntax ParameterList( IMethodBase method, CompilationModel compilation, int removeDefaultValueBeforeIndex = 0 )
+        => SyntaxFactory.ParameterList( this.ParameterListParameters( method, compilation, removeDefaultValueBeforeIndex ) );
 
-    internal BracketedParameterListSyntax ParameterList( IIndexer indexer, CompilationModel compilation, bool removeDefaultValues = false )
-        => BracketedParameterList( this.ParameterListParameters( indexer, compilation, removeDefaultValues ) );
+    internal ParameterListSyntax ParameterList( IReadOnlyList<IParameter> parameters, CompilationModel compilation, bool removeDefaultValue )
+        => this.ParameterList( parameters, compilation, removeDefaultValue ? int.MaxValue : 0 );
 
-    private SeparatedSyntaxList<ParameterSyntax> ParameterListParameters( IHasParameters method, CompilationModel compilation, bool removeDefaultValues )
-        => this.ParameterListParameters( method.Parameters, compilation, removeDefaultValues );
+    internal ParameterListSyntax ParameterList( IReadOnlyList<IParameter> parameters, CompilationModel compilation, int removeDefaultValueBeforeIndex = 0 )
+        => SyntaxFactory.ParameterList( this.ParameterListParameters( parameters, compilation, removeDefaultValueBeforeIndex ) );
+
+    internal BracketedParameterListSyntax ParameterList( IIndexer indexer, CompilationModel compilation, bool removeDefaultValue = false )
+        => BracketedParameterList( this.ParameterListParameters( indexer, compilation, removeDefaultValue ? int.MaxValue : 0 ) );
+
+    private SeparatedSyntaxList<ParameterSyntax> ParameterListParameters(
+        IHasParameters method,
+        CompilationModel compilation,
+        int removeDefaultValueBeforeIndex )
+        => this.ParameterListParameters( method.Parameters, compilation, removeDefaultValueBeforeIndex );
 
     private SeparatedSyntaxList<ParameterSyntax> ParameterListParameters(
         IReadOnlyList<IParameter> parameters,
         CompilationModel compilation,
-        bool removeDefaultValues )
-        => SeparatedList( parameters.SelectAsReadOnlyList( p => this.Parameter( p, compilation, removeDefaultValues ) ) );
+        int removeDefaultValueBeforeIndex )
+        => SeparatedList( parameters.SelectAsReadOnlyList( p => this.Parameter( p, compilation, p.Index < removeDefaultValueBeforeIndex ) ) );
 
     private ParameterSyntax Parameter( IParameter parameter, CompilationModel compilation, bool removeDefaultValue )
     {

@@ -31,5 +31,7 @@ namespace Metalama.Framework.Code
         Attribute ConstructAttribute( IAttribute attribute );
 
         bool IsAccessibleFrom( IMemberOrNamedType accessedMember, INamedType accessingType );
+
+        bool IsAccessibleFromOutsideAssembly( IDeclaration declaration, bool honorInternalVisibleToAttributes );
     }
 }

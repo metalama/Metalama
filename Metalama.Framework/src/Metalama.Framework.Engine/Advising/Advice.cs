@@ -18,7 +18,7 @@ internal abstract class Advice : IDiagnosticSource
 
     public AspectLayerId AspectLayerId => this.AspectLayerInstance.AspectLayerId;
 
-    protected TemplateClassInstance TemplateInstance { get; }
+    protected TemplateClassInstance? TemplateInstance { get; }
 
     public IDeclaration TargetDeclaration { get; }
 
@@ -29,10 +29,14 @@ internal abstract class Advice : IDiagnosticSource
 
     public abstract AdviceKind AdviceKind { get; }
 
-    protected Advice( AdviceConstructorParameters parameters )
+    protected virtual bool AcceptsExternalTargets => false;
+
+    protected Advice( in AdviceConstructorParameters parameters )
     {
 #if DEBUG
-        if ( parameters.TargetDeclaration.DeclaringAssembly.IsExternal )
+        
+        // ReSharper disable once VirtualMemberCallInConstructor
+        if ( !this.AcceptsExternalTargets && parameters.TargetDeclaration.DeclaringAssembly.IsExternal )
         {
             throw new AssertionFailedException( $"Cannot override '{parameters.TargetDeclaration}' because it is external." );
         }
@@ -49,7 +53,7 @@ internal abstract class Advice : IDiagnosticSource
     /// </summary>
     public record struct AdviceConstructorParameters(
         AspectLayerInstance AspectLayerInstance,
-        TemplateClassInstance TemplateInstance,
+        TemplateClassInstance? TemplateInstance,
         IDeclaration TargetDeclaration );
 
     /// <summary>
@@ -57,11 +61,11 @@ internal abstract class Advice : IDiagnosticSource
     /// </summary>
     public record struct AdviceConstructorParameters<T>(
         AspectLayerInstance AspectLayerInstance,
-        TemplateClassInstance TemplateClassInstance,
+        TemplateClassInstance? TemplateClassInstance,
         T TargetDeclaration )
         where T : IDeclaration
     {
-        public static implicit operator AdviceConstructorParameters( AdviceConstructorParameters<T> parameters )
+        public static implicit operator AdviceConstructorParameters( in AdviceConstructorParameters<T> parameters )
             => new(
                 parameters.AspectLayerInstance,
                 parameters.TemplateClassInstance,
