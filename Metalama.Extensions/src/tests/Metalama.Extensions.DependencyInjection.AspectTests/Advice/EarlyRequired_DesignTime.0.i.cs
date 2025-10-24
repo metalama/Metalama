@@ -7,7 +7,7 @@ namespace Metalama.Extensions.DependencyInjection.AspectTests.Advice.EarlyRequir
   partial class TargetClass
   {
     private IFormatProvider _formatProvider;
-    public TargetClass([AspectGenerated] IFormatProvider? formatProvider) : this()
+    public TargetClass([AspectGenerated] IFormatProvider? formatProvider = null) : this()
     {
     }
   }

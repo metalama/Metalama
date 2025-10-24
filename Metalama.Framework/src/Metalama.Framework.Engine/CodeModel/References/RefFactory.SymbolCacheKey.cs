@@ -21,7 +21,7 @@ internal sealed partial class RefFactory
 
         public static SymbolCacheKey Create( ISymbol symbol, RefTargetKind targetKind, GenericContext genericContext, RefFactory refFactory )
         {
-            var canonical = SymbolNormalizer.GetCanonicalSymbol( symbol, genericContext, refFactory );
+            var canonical = SymbolNormalizer.GetCanonicalSymbolInfo( symbol, genericContext, refFactory );
 
             return new SymbolCacheKey( canonical.Symbol, targetKind, canonical.Context );
         }
@@ -33,8 +33,46 @@ internal sealed partial class RefFactory
         public GenericContext GenericContext { get; }
 
         public bool Equals( SymbolCacheKey other )
-            => this.Symbol.Equals( other.Symbol, SymbolEqualityComparer.IncludeNullability ) && this.TargetKind == other.TargetKind
-                                                                                             && this.GenericContext.Equals( other.GenericContext );
+        {
+            if ( !this.Symbol.Equals( other.Symbol, SymbolEqualityComparer.IncludeNullability ) )
+            {
+                return false;
+            }
+
+            if ( this.TargetKind != other.TargetKind )
+            {
+                return false;
+            }
+
+            if ( !this.GenericContext.Equals( other.GenericContext ) )
+            {
+                return false;
+            }
+
+            // For tuples, we also compare the element names when we compare two references.
+            // We deliberately ignore the source reference because SourceType does not expose it, so we can aggregate
+            // all equivalent tuple types as one.
+            if ( this.Symbol is INamedTypeSymbol thisNamedTypeSymbol && other.Symbol is INamedTypeSymbol otherNamedTypeSymbol )
+            {
+                if ( thisNamedTypeSymbol.IsTupleType != otherNamedTypeSymbol.IsTupleType )
+                {
+                    return false;
+                }
+
+                if ( thisNamedTypeSymbol.IsTupleType )
+                {
+                    for ( var i = 0; i < thisNamedTypeSymbol.TupleElements.Length; i++ )
+                    {
+                        if ( thisNamedTypeSymbol.TupleElements[i].Name != otherNamedTypeSymbol.TupleElements[i].Name )
+                        {
+                            return false;
+                        }
+                    }
+                }
+            }
+
+            return true;
+        }
 
         public override bool Equals( object? obj ) => obj is SymbolCacheKey other && this.Equals( other );
 

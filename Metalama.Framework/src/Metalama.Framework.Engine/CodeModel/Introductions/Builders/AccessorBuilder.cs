@@ -62,7 +62,8 @@ internal sealed partial class AccessorBuilder : DeclarationBuilder, IMethodBuild
             (PropertyBuilder or IndexerBuilder, MethodKind.PropertySet) => new VoidReturnParameterBuilder( this ),
             (FieldBuilder, MethodKind.PropertyGet) => new PropertyGetReturnParameterBuilder( this ),
             (FieldBuilder, MethodKind.PropertySet) => new VoidReturnParameterBuilder( this ),
-            (EventBuilder, _) => new EventReturnParameterBuilder( this ),
+            (EventBuilder, MethodKind.EventAdd or MethodKind.EventRemove) => new VoidReturnParameterBuilder( this ),
+            (EventBuilder, MethodKind.EventRaise) => new EventRaiserParameterBuilder( this, this.EventDelegateInvokeMethod.ReturnParameter ),
             _ => throw new AssertionFailedException( $"Unexpected combination ('{this.ContainingDeclaration}', {this.MethodKind})." )
         };
 
@@ -109,13 +110,18 @@ internal sealed partial class AccessorBuilder : DeclarationBuilder, IMethodBuild
             (IIndexer, MethodKind.PropertySet) => new IndexerAccessorParameterBuilderList( this ),
             (IProperty, MethodKind.PropertyGet) => new ParameterBuilderList(),
             (IProperty, MethodKind.PropertySet) =>
-                new ParameterBuilderList( [new PropertySetValueParameterBuilder( this, 0 )] ),
+                new ParameterBuilderList( [new AccessorValueParameterBuilder( this )] ),
             (FieldBuilder _, MethodKind.PropertyGet) => new ParameterBuilderList(),
-            (FieldBuilder _, MethodKind.PropertySet) => new ParameterBuilderList( [new PropertySetValueParameterBuilder( this, 0 )] ),
-            (IEvent _, _) =>
-                new ParameterBuilderList( [new EventValueParameterBuilder( this )] ),
+            (FieldBuilder _, MethodKind.PropertySet) => new ParameterBuilderList( [new AccessorValueParameterBuilder( this )] ),
+            (IEvent _, MethodKind.EventAdd or MethodKind.EventRemove) =>
+                new ParameterBuilderList( [new AccessorValueParameterBuilder( this )] ),
+            (IEvent _, MethodKind.EventRaise) => new ParameterBuilderList(
+                this.EventDelegateInvokeMethod.Parameters.SelectAsReadOnlyList( p => new EventRaiserParameterBuilder( this, p ) ) ),
             _ => throw new AssertionFailedException( $"Unexpected combination ('{this.ContainingDeclaration}', {this.MethodKind})." )
         };
+
+    [Memo]
+    private IMethod EventDelegateInvokeMethod => ( (IEvent)this._containingMember ).Type.Methods.OfName( "Invoke" ).Single();
 
     public MethodKind MethodKind { get; }
 

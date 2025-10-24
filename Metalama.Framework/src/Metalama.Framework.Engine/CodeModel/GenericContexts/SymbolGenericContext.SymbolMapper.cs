@@ -24,8 +24,9 @@ internal partial class SymbolGenericContext
         {
             var containingType = this._typeSymbolMapper.Visit( symbol.ContainingType );
             var members = containingType.GetMembers( symbol.Name );
+            var symbolDefinition = symbol.OriginalDefinition;
 
-            var memberInTypeInstance = members.Single( s => symbol.OriginalDefinition.Equals( s.OriginalDefinition ) );
+            var memberInTypeInstance = members.Single( s => symbolDefinition.Equals( s.OriginalDefinition ) );
 
             if ( memberInTypeInstance.Kind == SymbolKind.Method )
             {

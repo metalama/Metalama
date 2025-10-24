@@ -21,6 +21,10 @@ using System.Reflection;
 using MethodKind = Metalama.Framework.Code.MethodKind;
 using RefKind = Metalama.Framework.Code.RefKind;
 
+#if ROSLYN_4_12_0_OR_GREATER
+using System.Collections.Immutable;
+#endif
+
 namespace Metalama.Framework.Engine.CodeModel.Source
 {
     internal sealed class SourceEvent : SourceMember, IEventImpl
@@ -33,6 +37,12 @@ namespace Metalama.Framework.Engine.CodeModel.Source
             compilation,
             genericContextForSymbolMapping )
         {
+#if ROSLYN_5_0_0_OR_GREATER
+            Invariant.Assert(
+                symbol.PartialDefinitionPart == null,
+                "Cannot use partial implementation to instantiate the SourceEvent class." );
+#endif
+
             this._symbol = symbol;
         }
 
@@ -79,6 +89,10 @@ namespace Metalama.Framework.Engine.CodeModel.Source
         [Memo]
         public IEvent Definition
             => ReferenceEquals( this._symbol, this._symbol.OriginalDefinition ) ? this : this.Compilation.Factory.GetEvent( this._symbol.OriginalDefinition );
+
+#if ROSLYN_5_0_0_OR_GREATER
+        public override bool IsPartial => this._symbol.IsPartialDefinition || this._symbol.PartialDefinitionPart != null;
+#endif
 
         protected override IMemberOrNamedType GetDefinitionMemberOrNamedType() => this.Definition;
 
@@ -134,6 +148,31 @@ namespace Metalama.Framework.Engine.CodeModel.Source
         IType IHasType.Type => this.Type;
 
         public override IMember? OverriddenMember => this.OverriddenEvent;
+
+#if ROSLYN_4_12_0_OR_GREATER
+        [Memo]
+        public override ImmutableArray<SourceReference> Sources => this.GetSourcesImpl();
+
+        private ImmutableArray<SourceReference> GetSourcesImpl()
+        {
+#if ROSLYN_5_0_0_OR_GREATER
+            if ( this._symbol.PartialImplementationPart != null )
+            {
+                return
+                [
+                    new SourceReference( this._symbol.DeclaringSyntaxReferences[0].GetSyntax(), SourceReferenceImpl.Instance ), 
+                    new SourceReference( this._symbol.PartialImplementationPart.DeclaringSyntaxReferences[0].GetSyntax(), SourceReferenceImpl.Instance ),
+                ];
+            }
+            else
+            {
+#endif
+                return base.Sources;
+#if ROSLYN_5_0_0_OR_GREATER
+            }
+#endif
+        }
+#endif
 
         [Memo]
         private IFullRef<IEvent> Ref => this.RefFactory.FromSymbolBasedDeclaration<IEvent>( this );

@@ -4,6 +4,7 @@
 
 #if TESTOPTIONS
 // @RequiredConstant(NET6_0_OR_GREATER)
+// @LanguageVersion(12.0)
 #endif
 
 using System;
@@ -23,6 +24,17 @@ public class IntroductionAttribute : TypeAspect
             nameof( RemoveEventTemplate ),
             invokeTemplate: nameof( InvokeEventTemplate ),
             buildEvent: e => e.Accessibility = Accessibility.Public );
+        
+        builder.IntroduceEvent(
+            "StaticEventFromAccessors",
+            nameof( AddEventTemplate ),
+            nameof( RemoveEventTemplate ),
+            invokeTemplate: nameof( InvokeEventTemplate ),
+            buildEvent: e =>
+            {
+                e.Accessibility = Accessibility.Public;
+                e.IsStatic = true;
+            } );
     }
 
     [Template]

@@ -79,10 +79,15 @@ namespace Metalama.Framework.Code
         /// At design time, a type that does not exist.
         /// </summary>
         Error,
-        
+
         /// <summary>
         /// An extension block (<see cref="IExtensionBlock"/>).
         /// </summary>
-        Extension
+        Extension,
+
+        /// <summary>
+        /// A tuple (<see cref="ITupleType"/>).
+        /// </summary>
+        Tuple
     }
 }

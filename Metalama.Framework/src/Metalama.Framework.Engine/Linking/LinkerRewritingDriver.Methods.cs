@@ -143,8 +143,8 @@ namespace Metalama.Framework.Engine.Linking
                              arrowToken.TrailingTrivia.AddOptionalLineFeed( generationContext ),
                              semicolonToken.LeadingTrivia.AddOptionalLineFeed( generationContext ), semicolonToken.TrailingTrivia),
                         { Body: null, ExpressionBody: null, SemicolonToken: var semicolonToken } =>
-                            (semicolonToken.LeadingTrivia.AddOptionalLineFeed( generationContext ), generationContext.ElasticEndOfLineTriviaList,
-                             generationContext.ElasticEndOfLineTriviaList,
+                            (semicolonToken.LeadingTrivia.AddOptionalLineFeed( generationContext ), generationContext.OptionalElasticEndOfLineTriviaList,
+                             generationContext.OptionalElasticEndOfLineTriviaList,
                              semicolonToken.TrailingTrivia),
                         _ => throw new AssertionFailedException( $"Unexpected method declaration: {methodDeclaration}" )
                     };

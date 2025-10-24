@@ -4,6 +4,7 @@
 
 #if TESTOPTIONS
 // @RequiredConstant(NET6_0_OR_GREATER)
+// @LanguageVersion(13.0)
 #endif
 
 using Metalama.Framework.Aspects;

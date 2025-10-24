@@ -65,11 +65,11 @@ public static class SupportedCSharpVersions
     internal static LanguageVersion ToLanguageVersion( this RoslynApiVersion apiVersion )
         => apiVersion switch
         {
-            RoslynApiVersion.V4_0_1 => (LanguageVersion) 1000,
-            RoslynApiVersion.V4_4_0 => (LanguageVersion) 1100,
-            RoslynApiVersion.V4_8_0 => (LanguageVersion) 1200,
-            RoslynApiVersion.V4_12_0 => (LanguageVersion) 1300,
-            RoslynApiVersion.V5_0_0 => (LanguageVersion) 1400,
+            RoslynApiVersion.V4_0_1 => AllLanguageVersions.CSharp10,
+            RoslynApiVersion.V4_4_0 => AllLanguageVersions.CSharp11,
+            RoslynApiVersion.V4_8_0 => AllLanguageVersions.CSharp12,
+            RoslynApiVersion.V4_12_0 => AllLanguageVersions.CSharp13,
+            RoslynApiVersion.V5_0_0 => AllLanguageVersions.CSharp14,
             _ => throw new AssertionFailedException( $"Unexpected Roslyn API version {apiVersion}." )
         };
 

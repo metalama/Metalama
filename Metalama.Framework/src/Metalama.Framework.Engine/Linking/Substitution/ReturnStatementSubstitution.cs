@@ -87,7 +87,7 @@ internal sealed class ReturnStatementSubstitution : SyntaxNodeSubstitution
                                             Token(
                                                 TriviaList(),
                                                 SyntaxKind.SemicolonToken,
-                                                substitutionContext.SyntaxGenerationContext.ElasticEndOfLineTriviaList ) ) )
+                                                substitutionContext.SyntaxGenerationContext.OptionalElasticEndOfLineTriviaList ) ) )
                                     .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock );
                         }
                         else
@@ -105,7 +105,7 @@ internal sealed class ReturnStatementSubstitution : SyntaxNodeSubstitution
                                         Token(
                                             TriviaList(),
                                             SyntaxKind.SemicolonToken,
-                                            substitutionContext.SyntaxGenerationContext.ElasticEndOfLineTriviaList ) )
+                                            substitutionContext.SyntaxGenerationContext.OptionalElasticEndOfLineTriviaList ) )
                                     .WithOriginalLocationAnnotationFrom( returnStatement );
                         }
                         else
@@ -153,7 +153,7 @@ internal sealed class ReturnStatementSubstitution : SyntaxNodeSubstitution
                                         Token(
                                             TriviaList(),
                                             SyntaxKind.SemicolonToken,
-                                            substitutionContext.SyntaxGenerationContext.ElasticEndOfLineTriviaList ) ) )
+                                            substitutionContext.SyntaxGenerationContext.OptionalElasticEndOfLineTriviaList ) ) )
                                 .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock );
                     }
                     else
@@ -176,7 +176,7 @@ internal sealed class ReturnStatementSubstitution : SyntaxNodeSubstitution
             }
             else
             {
-                identifier = SyntaxFactoryEx.DiscardIdentifier();
+                identifier = SyntaxFactoryEx.DiscardIdentifierName();
 
                 expression = syntaxGenerator.SafeCastExpression(
                     syntaxGenerator.TypeSyntax( this._originalContainingSymbol.ReturnType ),
@@ -194,7 +194,7 @@ internal sealed class ReturnStatementSubstitution : SyntaxNodeSubstitution
                         SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.GotoKeyword ),
                         default,
                         IdentifierName( this._returnLabelIdentifier.AssertNotNull() ),
-                        Token( default, SyntaxKind.SemicolonToken, substitutionContext.SyntaxGenerationContext.ElasticEndOfLineTriviaList ) )
+                        Token( default, SyntaxKind.SemicolonToken, substitutionContext.SyntaxGenerationContext.OptionalElasticEndOfLineTriviaList ) )
                     .WithGeneratedCodeAnnotation( FormattingAnnotations.SystemGeneratedCodeAnnotation );
         }
     }

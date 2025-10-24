@@ -4,6 +4,7 @@
 
 #if TEST_OPTIONS
 // @RequiredConstant(ROSLYN_4_12_0_OR_GREATER)
+// @LanguageVersion(12.0)
 #endif
 
 using System;

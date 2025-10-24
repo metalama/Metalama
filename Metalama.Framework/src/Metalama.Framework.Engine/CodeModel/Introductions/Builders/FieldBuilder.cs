@@ -73,6 +73,8 @@ internal sealed class FieldBuilder : MemberBuilder, IFieldBuilder, IFieldImpl
 
     public IProperty? OverridingProperty => null;
 
+    FieldKind IField.FieldKind => FieldKind.Default;
+
     IRef<IFieldOrProperty> IFieldOrProperty.ToRef() => this.Ref;
 
     protected override IFullRef<IMember> ToMemberFullRef() => this.Ref;

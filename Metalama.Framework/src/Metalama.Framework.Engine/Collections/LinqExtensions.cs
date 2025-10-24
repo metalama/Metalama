@@ -162,6 +162,19 @@ public static partial class LinqExtensions
         return result.MoveToImmutable();
     }
 
+    public static ImmutableArray<TOut> SelectAsImmutableArray<TIn, TOut>( this ImmutableArray<TIn> list, Func<TIn, int, TOut> func )
+    {
+        var result = ImmutableArray.CreateBuilder<TOut>( list.Length );
+
+        for ( var index = 0; index < list.Length; index++ )
+        {
+            var item = list[index];
+            result.Add( func( item, index ) );
+        }
+
+        return result.MoveToImmutable();
+    }
+
     public static ImmutableArray<TOut> SelectAsImmutableArray<TIn, TOut>( this IReadOnlyList<TIn> list, Func<TIn, TOut> func )
     {
         var result = ImmutableArray.CreateBuilder<TOut>( list.Count );
@@ -362,7 +375,7 @@ public static partial class LinqExtensions
 
         yield return item;
     }
-    
+
     public static IReadOnlyCollection<T> Concat<T>( this IReadOnlyCollection<T>? a, IReadOnlyCollection<T>? b )
     {
         if ( a == null || a.Count == 0 )

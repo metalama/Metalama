@@ -106,9 +106,22 @@ namespace Metalama.Framework.Engine.CodeModel
             return declaration;
         }
 
+        public static ISymbol GetRootDefinition( this ISymbol symbol )
+            => symbol.Kind switch
+            {
+                SymbolKind.Field => ((IFieldSymbol) symbol).GetRootDefinition(),
+                _ => symbol.OriginalDefinition
+            };
+
+        public static IFieldSymbol GetRootDefinition( this IFieldSymbol symbol )
+            => symbol.CorrespondingTupleField == symbol
+                ? symbol.OriginalDefinition
+                : symbol.CorrespondingTupleField?.OriginalDefinition ?? symbol.OriginalDefinition;
+
         // We don't use ISymbol.IsDefinition because it uses identity comparison to give its result, while we want
         // to be tolerance to non-identical but equal instances.
-        public static bool IsDefinitionSafe( this ISymbol symbol ) => symbol.Equals( symbol.OriginalDefinition );
+        public static bool IsDefinitionSafe( this ISymbol symbol )
+            => symbol.Equals( symbol.OriginalDefinition ) || symbol is INamedTypeSymbol { IsTupleType: true };
 
         private sealed class ExpressionTypeVisitor : SymbolVisitor<ITypeSymbol>
         {
