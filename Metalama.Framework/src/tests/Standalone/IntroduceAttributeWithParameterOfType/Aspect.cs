@@ -21,8 +21,7 @@ public class MyAspect : TypeAspect
 {
     public override void BuildAspect( IAspectBuilder<INamedType> builder )
     {
-        builder.Advice.IntroduceAttribute(
-            builder.Target,
+        builder.IntroduceAttribute(
             AttributeConstruction.Create(
                 typeof( MyAttribute ),
                 constructorArguments: [typeof( Target )] ) );

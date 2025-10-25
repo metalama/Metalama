@@ -14,7 +14,7 @@ namespace Metalama.Open.Virtuosity
         public override void BuildEligibility( IEligibilityBuilder<INamedType> builder )
         {
             base.BuildEligibility( builder );
-            builder.MustSatisfy( t => t.TypeKind is TypeKind.Class or TypeKind.RecordClass, t => $"{t} must be class or a record class" );
+            builder.MustSatisfy( t => t.TypeKind is TypeKind.Class, t => $"{t} must be a class" );
         }
     }
 }

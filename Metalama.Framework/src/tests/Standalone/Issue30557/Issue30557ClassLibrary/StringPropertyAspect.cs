@@ -13,9 +13,9 @@ namespace Issue30557ClassLibrary
 
         public override void BuildAspect( IAspectBuilder<INamedType> builder )
         {
-            foreach ( var property in builder.Target.Properties.Where( p => p.Type.Is( typeof( string ) ) ) )
+            foreach ( var property in builder.Target.Properties.Where( p => p.Type.IsConvertibleTo( typeof( string ) ) ) )
             {
-                builder.Advice.Override( property, nameof( OverrideStringProperty ) );
+                builder.With( property   ).Override( nameof(this.OverrideStringProperty ) );
             }
         }
 

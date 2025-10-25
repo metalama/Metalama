@@ -10,7 +10,7 @@ namespace CodeCoverage
 {
     public class InlineablePropertyAspect : OverrideFieldOrPropertyAspect
     {
-        public override dynamic OverrideProperty
+        public override dynamic? OverrideProperty
         {
             get
             {

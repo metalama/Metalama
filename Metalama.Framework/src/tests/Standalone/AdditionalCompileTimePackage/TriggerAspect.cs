@@ -32,7 +32,7 @@ namespace AzureFunctionTriggerAspect
                 { "Route", "AspectBasedFunction/HelloWorld" }
             }.ToList();
 
-            builder.Advice.IntroduceAttribute(builder.Target, AttributeConstruction.Create(typeof(HttpTriggerAttribute), parms, namedParms));
+            builder.IntroduceAttribute( AttributeConstruction.Create(typeof(HttpTriggerAttribute), parms, namedParms));
         }
 
     }
