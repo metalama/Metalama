@@ -57,7 +57,7 @@ internal class IntroducePropertyTransformation : IntroduceMemberTransformation<P
         // TODO: This should be handled by the linker.
         // If we are introducing a field into a struct in C# 10, it must have an explicit default value.
         if ( initializerExpression == null
-             && finalProperty is { IsAutoPropertyOrField: true, DeclaringType.TypeKind: TypeKind.Struct or TypeKind.RecordStruct }
+             && finalProperty is { IsAutoPropertyOrField: true, DeclaringType.TypeKind: TypeKind.Struct }
              && context.SyntaxGenerationContext.RequiresStructFieldInitialization )
         {
             initializerExpression = SyntaxFactoryEx.Default;
@@ -74,7 +74,8 @@ internal class IntroducePropertyTransformation : IntroduceMemberTransformation<P
                 finalProperty.GetSyntaxModifierList(),
                 syntaxGenerator.TypeSyntax( finalProperty.Type ).WithOptionalTrailingTrivia( ElasticSpace, context.SyntaxGenerationContext.Options ),
                 finalProperty.ExplicitInterfaceImplementations.Count > 0
-                    ? ExplicitInterfaceSpecifier( (NameSyntax) syntaxGenerator.TypeSyntax( finalProperty.ExplicitInterfaceImplementations.Single().DeclaringType ) )
+                    ? ExplicitInterfaceSpecifier(
+                        (NameSyntax) syntaxGenerator.TypeSyntax( finalProperty.ExplicitInterfaceImplementations.Single().DeclaringType ) )
                     : null,
                 Identifier( finalProperty.GetCleanName() ),
                 GenerateAccessorList(),

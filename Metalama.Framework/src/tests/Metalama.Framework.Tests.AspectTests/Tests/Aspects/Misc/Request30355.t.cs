@@ -3,8 +3,8 @@ internal partial class Person : global::System.ComponentModel.INotifyPropertyCha
 {
   public Person(string firstName, string lastName)
   {
-    FirstName = firstName;
-    LastName = lastName;
+    this.FirstName = firstName;
+    this.LastName = lastName;
   }
   private string _firstName = default !;
   public string FirstName
@@ -18,7 +18,7 @@ internal partial class Person : global::System.ComponentModel.INotifyPropertyCha
       if (value != this._firstName)
       {
         this._firstName = value;
-        OnPropertyChanged("FirstName");
+        this.OnPropertyChanged("FirstName");
       }
       return;
     }
@@ -27,7 +27,7 @@ internal partial class Person : global::System.ComponentModel.INotifyPropertyCha
   {
     get
     {
-      return $"{FirstName} {LastName}";
+      return $"{this.FirstName} {this.LastName}";
     }
   }
   private string _lastName = default !;
@@ -42,14 +42,14 @@ internal partial class Person : global::System.ComponentModel.INotifyPropertyCha
       if (value != this._lastName)
       {
         this._lastName = value;
-        OnPropertyChanged("LastName");
+        this.OnPropertyChanged("LastName");
       }
       return;
     }
   }
   protected void OnPropertyChanged(global::System.String name)
   {
-    PropertyChanged?.Invoke(this, new global::System.ComponentModel.PropertyChangedEventArgs(name));
+    this.PropertyChanged?.Invoke(this, new global::System.ComponentModel.PropertyChangedEventArgs(name));
   }
   public event global::System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;
 }

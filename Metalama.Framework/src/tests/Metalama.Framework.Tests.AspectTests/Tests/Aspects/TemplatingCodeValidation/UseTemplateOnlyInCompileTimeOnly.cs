@@ -21,7 +21,7 @@ internal class C
 
         meta.InsertStatement( ExpressionFactory.Capture( 42 ) );
 
-        invoker.With( "" );
+        invoker.WithObject( "" );
     }
 
     private IExpression GetLoggingExpression( IParameter parameter )

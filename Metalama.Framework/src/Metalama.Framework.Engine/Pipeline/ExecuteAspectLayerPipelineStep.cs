@@ -145,7 +145,10 @@ internal sealed class ExecuteAspectLayerPipelineStep : PipelineStep
 
                     this.Parent.AddAspectSources( aspectResult.Contributors.OfKind( ContributorKind.AspectSource ), true, cancellationToken );
                     this.Parent.AddExtendedContributors( aspectResult.Contributors.Extensions() );
-                    await this.Parent.AddOptionsSourcesAsync( aspectResult.Contributors.OfKind( ContributorKind.HierarchicalOptionsSource ), cancellationToken );
+
+                    await this.Parent.AddOptionsSourcesAsync(
+                        aspectResult.Contributors.OfKind( ContributorKind.HierarchicalOptionsSource ),
+                        cancellationToken );
 
                     var transformations = aspectResult.Transformations;
                     var partialCompilation = this.Parent.FirstCompilation.PartialCompilation;
@@ -248,7 +251,7 @@ internal sealed class ExecuteAspectLayerPipelineStep : PipelineStep
                 {
                     Invariant.Assert(
                         ReferenceEquals( xMethod.DeclaringType, yMethod.DeclaringType )
-                        && xMethod.DeclaringType.TypeKind is TypeKind.RecordClass or TypeKind.RecordStruct
+                        && xMethod.DeclaringType.IsRecord
                         && xMethod.IsImplicitlyDeclared && yMethod.IsImplicitlyDeclared );
 
                     var signatureComparison = StructuralSymbolComparer.Signature.Compare( xMethod.GetSymbol(), yMethod.GetSymbol() );

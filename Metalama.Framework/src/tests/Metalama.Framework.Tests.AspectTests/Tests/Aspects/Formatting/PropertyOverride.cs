@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -9,7 +9,7 @@ using Metalama.Framework.Tests.AspectTests.Tests.Aspects.Formatting.PropertyOver
 
 #pragma warning disable CS0162
 
-[assembly: AspectOrder(AspectOrderDirection.RunTime, typeof(Aspect1), typeof(Aspect2) )]
+[assembly: AspectOrder( AspectOrderDirection.RunTime, typeof(Aspect1), typeof(Aspect2) )]
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Formatting.PropertyOverride
 {
@@ -17,7 +17,7 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Formatting.Property
     {
         public override void BuildAspect( IAspectBuilder<IProperty> builder )
         {
-            builder.Advice.Override( builder.Target, nameof(Override) );
+            builder.Override( nameof(this.Override) );
         }
 
         [Template]
@@ -49,7 +49,7 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Formatting.Property
     {
         public override void BuildAspect( IAspectBuilder<IProperty> builder )
         {
-            builder.Advice.Override( builder.Target, nameof(Override) );
+            builder.Override( nameof(this.Override) );
         }
 
         [Template]

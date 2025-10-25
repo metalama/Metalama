@@ -1,8 +1,7 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.Invokers;
@@ -21,14 +20,14 @@ public class InvokerAspect : MethodAspect
         var anotherMethodBase = builder.Target.DeclaringType!.BaseType!.Methods.OfName( "Method" ).Single();
 
         builder.Override(
-            nameof(Template),
+            nameof(this.Template),
             new { target = anotherMethodBase } );
     }
 
     [Template]
     public dynamic? Template( IMethod target )
     {
-        target.With( (IExpression)meta.Target.Method.Parameters[0].Value!, InvokerOptions.Base ).Invoke();
+        target.WithObject( meta.Target.Method.Parameters[0]).WithOptions( InvokerOptions.Base ).Invoke();
 
         return meta.Proceed();
     }

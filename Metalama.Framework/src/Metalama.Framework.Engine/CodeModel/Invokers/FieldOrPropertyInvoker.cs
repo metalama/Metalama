@@ -6,7 +6,6 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Code.Invokers;
 using Metalama.Framework.CompileTimeContracts;
 using Metalama.Framework.Engine.Aspects;
-using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.SyntaxSerialization;
 using Metalama.Framework.Engine.Templating.Expressions;
 using Metalama.Framework.Engine.Utilities.Roslyn;
@@ -21,8 +20,8 @@ internal sealed class FieldOrPropertyInvoker : Invoker<IFieldOrProperty>, IField
 {
     public FieldOrPropertyInvoker(
         IFieldOrProperty fieldOrProperty,
-        InvokerOptions? options = null,
-        object? target = null ) : base(
+        InvokerOptions options = default,
+        IExpression? target = null ) : base(
         fieldOrProperty,
         options,
         target ) { }
@@ -35,7 +34,7 @@ internal sealed class FieldOrPropertyInvoker : Invoker<IFieldOrProperty>, IField
 
         var name = IdentifierName( this.GetCleanTargetMemberName() );
 
-        var receiverSyntax = this.Member.GetReceiverSyntax( receiverInfo.TypedExpressionSyntax, context );
+        var receiverSyntax = receiverInfo.GetReceiverSyntax( this.Member, context );
 
         ExpressionSyntax expression;
 
@@ -83,14 +82,22 @@ internal sealed class FieldOrPropertyInvoker : Invoker<IFieldOrProperty>, IField
         => ref RefHelper.Wrap(
             new DelegateUserExpression(
                 context => this.CreatePropertyExpression( AspectReferenceTargetKind.Self, context ),
-                (this.Options & InvokerOptions.NullConditional) != 0 ? this.Member.Type.ToNullable() : this.Member.Type,
+                (this.Options & InvokerOptions.NullabilityMask) == InvokerOptions.NullConditional ? this.Member.Type.ToNullable() : this.Member.Type,
                 this.IsRef(),
                 this.Member.Writeability != Writeability.None ) );
 
-    public IFieldOrPropertyInvoker With( InvokerOptions options ) => this.Options == options ? this : new FieldOrPropertyInvoker( this.Member, options );
+    public IFieldOrPropertyInvoker WithOptions( InvokerOptions options )
+        => this.Options == options ? this : new FieldOrPropertyInvoker( this.Member, options, this.Target );
 
-    public IFieldOrPropertyInvoker With( object? target, InvokerOptions options = default )
-        => this.Target == target && this.Options == options ? this : new FieldOrPropertyInvoker( this.Member, options, target );
+    public IFieldOrPropertyInvoker WithObject( IExpression? target )
+        => this.IsSameTarget( target ) ? this : new FieldOrPropertyInvoker( this.Member, this.Options, target );
+
+    public IFieldOrPropertyInvoker WithObject( object? target )
+        => this.IsSameTarget( target ) ? this : this.WithObject( CapturedUserExpression.Create(this.Compilation, target) );
+
+    IFieldOrPropertyInvoker IFieldOrPropertyInvoker.With( InvokerOptions options ) => this.WithOptions( options );
+
+    IFieldOrPropertyInvoker IFieldOrPropertyInvoker.With( object? target, InvokerOptions options ) => this.WithOptions( options ).WithObject( target );
 
     private DelegateUserExpression GetUserExpression()
         => new(

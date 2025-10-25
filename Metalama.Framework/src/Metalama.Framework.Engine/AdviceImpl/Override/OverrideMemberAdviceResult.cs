@@ -5,7 +5,9 @@
 using Metalama.Framework.Advising;
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Advising;
+using Microsoft.CodeAnalysis;
 using System;
+using System.Collections.Immutable;
 
 namespace Metalama.Framework.Engine.AdviceImpl.Override;
 
@@ -17,11 +19,12 @@ internal sealed class OverrideMemberAdviceResult<TMember> : AdviceResult, IOverr
 {
     private readonly IRef<TMember>? _declaration;
 
-    // Errpr constructor.
-    public OverrideMemberAdviceResult() { }
-
-    // Success constructor.
-    public OverrideMemberAdviceResult( IRef<TMember>? declaration )
+    public OverrideMemberAdviceResult(
+        AdviceKind adviceKind,
+        AdviceOutcome outcome,
+        IAdviceFactoryImpl adviceFactory,
+        IRef<TMember>? declaration = null,
+        ImmutableArray<Diagnostic> reportedDiagnostics = default ) : base( adviceKind, outcome, adviceFactory, reportedDiagnostics )
     {
         this._declaration = declaration;
     }

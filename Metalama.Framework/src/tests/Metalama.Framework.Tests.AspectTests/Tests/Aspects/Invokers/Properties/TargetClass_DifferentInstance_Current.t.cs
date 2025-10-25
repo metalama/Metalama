@@ -16,12 +16,12 @@ public class TargetClass
   {
     get
     {
-      _ = this.instance!.Property;
+      _ = this.instance.Property;
       return 0;
     }
     set
     {
-      this.instance!.Property = 42;
+      this.instance.Property = 42;
     }
   }
 }

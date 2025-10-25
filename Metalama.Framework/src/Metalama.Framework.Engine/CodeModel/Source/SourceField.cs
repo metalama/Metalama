@@ -98,35 +98,34 @@ namespace Metalama.Framework.Engine.CodeModel.Source
             }
         }
 
-        public IFieldOrPropertyInvoker With( InvokerOptions options )
+        [Memo]
+        private IFieldOrPropertyInvoker Invoker => this.CreateInvoker();
+
+        private FieldOrPropertyInvoker CreateInvoker()
         {
             this.CheckNotPropertyBackingField();
-
-            return new FieldOrPropertyInvoker( this, options );
+            
+            return new FieldOrPropertyInvoker( this );
         }
 
-        public IFieldOrPropertyInvoker With( object? target, InvokerOptions options = default )
-        {
-            this.CheckNotPropertyBackingField();
+        IFieldOrPropertyInvoker IFieldOrPropertyInvoker.WithOptions( InvokerOptions options ) => this.Invoker.WithOptions( options );
 
-            return new FieldOrPropertyInvoker( this, options, target );
-        }
+        IFieldOrPropertyInvoker IFieldOrPropertyInvoker.WithObject( object? target ) => this.Invoker.WithObject( target );
 
-        public ref object? Value
-        {
-            get
-            {
-                this.CheckNotPropertyBackingField();
+        IFieldOrPropertyInvoker IFieldOrPropertyInvoker.WithObject( IExpression? target ) => this.Invoker.WithObject( target );
 
-                return ref new FieldOrPropertyInvoker( this ).Value;
-            }
-        }
+        IFieldOrPropertyInvoker IFieldOrPropertyInvoker.With( InvokerOptions options ) => this.Invoker.WithOptions( options );
+
+        IFieldOrPropertyInvoker IFieldOrPropertyInvoker.With( object? target, InvokerOptions options )
+            => this.Invoker.WithOptions( options ).WithObject( target );
+
+        ref object? IExpression.Value => ref this.Invoker.Value;
 
         public TypedExpressionSyntax ToTypedExpressionSyntax( ISyntaxGenerationContext syntaxGenerationContext, IType? targetType = null )
         {
             this.CheckNotPropertyBackingField();
 
-            return new FieldOrPropertyInvoker( this ).ToTypedExpressionSyntax( syntaxGenerationContext, targetType );
+            return this.Invoker.ToTypedExpressionSyntax( syntaxGenerationContext, targetType );
         }
 
         private IExpression? GetInitializerExpressionCore()

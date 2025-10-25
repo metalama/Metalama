@@ -7,7 +7,9 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Advising;
 using Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 using Metalama.Framework.Engine.Diagnostics;
+using Microsoft.CodeAnalysis;
 using System;
+using System.Collections.Immutable;
 
 namespace Metalama.Framework.Engine.AdviceImpl.Introduction;
 
@@ -17,27 +19,27 @@ internal abstract class IntroduceDeclarationAdvice<TIntroduced, TBuilder> : Advi
 {
     private readonly Action<TBuilder>? _buildAction;
 
-    protected IAdviceFactoryImpl AdviceFactory { get; }
-
-    protected IntroduceDeclarationAdvice( in AdviceConstructorParameters parameters, Action<TBuilder>? buildAction, IAdviceFactoryImpl adviceFactory )
+    protected IntroduceDeclarationAdvice( in AdviceConstructorParameters parameters, Action<TBuilder>? buildAction )
         : base( parameters )
     {
         this._buildAction = buildAction;
-        this.AdviceFactory = adviceFactory;
     }
 
     protected IntroductionAdviceResult<TIntroduced> CreateSuccessResult( AdviceOutcome outcome, TIntroduced introducedMember )
     {
-        return new IntroductionAdviceResult<TIntroduced>( this.AdviceKind, outcome, introducedMember.ToRef().As<TIntroduced>(), null, this.AdviceFactory );
+        return new IntroductionAdviceResult<TIntroduced>( this.AdviceKind, outcome, this.AdviceFactory, introducedMember.ToRef().As<TIntroduced>() );
     }
 
     protected IntroductionAdviceResult<TIntroduced> CreateIgnoredResult( IMemberOrNamedType existingMember )
         => new(
             this.AdviceKind,
             AdviceOutcome.Ignore,
+            this.AdviceFactory,
             existingMember is TIntroduced typedMember ? typedMember.ToRef().As<TIntroduced>() : null,
-            existingMember.ToRef(),
-            this.AdviceFactory );
+            existingMember.ToRef() );
+
+    protected override IntroductionAdviceResult<TIntroduced> CreateFailedResult( ImmutableArray<Diagnostic> diagnostics )
+        => new( this.AdviceKind, AdviceOutcome.Error, this.AdviceFactory, reportedDiagnostics: diagnostics );
 
     protected sealed override IntroductionAdviceResult<TIntroduced> Implement( AdviceImplementationContext context )
     {

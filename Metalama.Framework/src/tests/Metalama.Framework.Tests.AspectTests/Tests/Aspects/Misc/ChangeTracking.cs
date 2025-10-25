@@ -15,12 +15,12 @@ namespace Metalama.Framework.Tests.AspectTests.Aspects.Misc.ChangeTracking
         {
             base.BuildAspect( builder );
 
-            foreach (var property in builder.Target.Properties)
+            foreach ( var property in builder.Target.Properties )
             {
                 // TODO: IAdviceResult.Declaration should not expose the Builder but the Built thing of the mutable model?
 
                 var isSpecifiedProperty = builder.IntroduceProperty(
-                        nameof(IsSpecifiedTemplate),
+                        nameof(this.IsSpecifiedTemplate),
                         buildProperty: p =>
                         {
                             p.Name = $"_is{property.Name}Specified";
@@ -30,7 +30,7 @@ namespace Metalama.Framework.Tests.AspectTests.Aspects.Misc.ChangeTracking
 
                 builder.With( property )
                     .Override(
-                        nameof(OverrideProperty),
+                        nameof(this.OverrideProperty),
                         tags: new { isSpecifiedProperty = isSpecifiedProperty } );
             }
         }
@@ -42,8 +42,8 @@ namespace Metalama.Framework.Tests.AspectTests.Aspects.Misc.ChangeTracking
 
             set
             {
-                var isSpecifiedProperty = (IProperty)meta.Tags["isSpecifiedProperty"]!;
-                isSpecifiedProperty.With( InvokerOptions.Final ).Value = true;
+                var isSpecifiedProperty = (IProperty) meta.Tags["isSpecifiedProperty"]!;
+                isSpecifiedProperty.WithOptions( InvokerOptions.Final ).Value = true;
                 meta.Proceed();
             }
         }

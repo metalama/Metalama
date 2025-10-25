@@ -16,18 +16,35 @@ public interface IConstructorInvoker
     /// <summary>
     /// Generates run-time code that invokes the current constructor with a given list of arguments.
     /// </summary>
+    /// <param name="args">A list of run-time C# expressions to be passed to the constructor. If the compile-time type
+    /// of any expression is <c>dynamic</c>, it must be explicitly cast to <see cref="IExpression"/>.</param>
     dynamic? Invoke( params dynamic?[] args );
 
     /// <summary>
     /// Generates run-time code that invokes the current constructor with a given list of argument expressions.
     /// </summary>
+    /// <param name="args">The list of compile-time <see cref="IExpression"/> objects passed to the method as arguments.</param>
+    /// <remarks>A compile-time dynamic object that represents the method invocation expression.</remarks> 
     dynamic? Invoke( IEnumerable<IExpression> args );
 
+    /// <summary>
+    /// Creates an <see cref="IExpression"/> that represents the invocation of constructor without arguments.
+    /// </summary>
+    /// <returns>An <see cref="IExpression"/>.</returns>
     IObjectCreationExpression CreateInvokeExpression();
 
+    /// <summary>
+    /// Creates an <see cref="IExpression"/> that represents the invocation of constructor, where arguments are represented by <see cref="IExpression"/>.
+    /// </summary>
+    /// <param name="args">The list of compile-time <see cref="IExpression"/> objects passed to the method as arguments.</param>
+    /// <returns>An <see cref="IExpression"/> that represents the method invocation.</returns>
+    IObjectCreationExpression CreateInvokeExpression( params IEnumerable<IExpression> args );
+
+    /// <summary>
+    /// Creates an <see cref="IExpression"/> that represents the invocation of constructor, where arguments are passed as C# expressions.
+    /// </summary>
+    /// <param name="args">The list of run-time C# expressions passed to the method.  If the compile-time type
+    /// of any expression is <c>dynamic</c>, it must be explicitly cast to <see cref="IExpression"/>.</param>
+    /// <returns>An <see cref="IExpression"/> that represents the method invocation.</returns>
     IObjectCreationExpression CreateInvokeExpression( params dynamic?[] args );
-
-    IObjectCreationExpression CreateInvokeExpression( params IExpression[] args );
-
-    IObjectCreationExpression CreateInvokeExpression( IEnumerable<IExpression> args );
 }

@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.Collections;
+using Metalama.Framework.Code.Invokers;
 using Metalama.Framework.Engine.CodeModel.Abstractions;
 using Metalama.Framework.Engine.CodeModel.Collections;
 using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
@@ -79,15 +80,16 @@ internal sealed class IntroducedConstructor : IntroducedMember, IConstructorImpl
             // the default constructor of the base class.
             this.DeclaringType.BaseType?.Constructors.SingleOrDefault( c => c.Parameters.Count == 0 );
 
-    public object Invoke( params object?[] args ) => new ConstructorInvoker( this ).Invoke( args );
+    [Memo]
+    private IConstructorInvoker Invoker => new ConstructorInvoker( this );
 
-    public object Invoke( IEnumerable<IExpression> args ) => new ConstructorInvoker( this ).Invoke( args );
+    object? IConstructorInvoker.Invoke( params object?[] args ) => this.Invoker.Invoke( args );
 
-    public IObjectCreationExpression CreateInvokeExpression() => new ConstructorInvoker( this ).CreateInvokeExpression();
+    object? IConstructorInvoker.Invoke( IEnumerable<IExpression> args ) => this.Invoker.Invoke( args );
 
-    public IObjectCreationExpression CreateInvokeExpression( params object?[] args ) => new ConstructorInvoker( this ).CreateInvokeExpression( args );
+    IObjectCreationExpression IConstructorInvoker.CreateInvokeExpression() => this.Invoker.CreateInvokeExpression();
 
-    public IObjectCreationExpression CreateInvokeExpression( params IExpression[] args ) => new ConstructorInvoker( this ).CreateInvokeExpression( args );
+    IObjectCreationExpression IConstructorInvoker.CreateInvokeExpression( params object?[] args ) => this.Invoker.CreateInvokeExpression( args );
 
-    public IObjectCreationExpression CreateInvokeExpression( IEnumerable<IExpression> args ) => new ConstructorInvoker( this ).CreateInvokeExpression( args );
+    IObjectCreationExpression IConstructorInvoker.CreateInvokeExpression( IEnumerable<IExpression> args ) => this.Invoker.CreateInvokeExpression( args );
 }

@@ -17,42 +17,44 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Introductions.Inter
 
 public class IntroductionAttribute : TypeAspect
 {
-    public override void BuildAspect(IAspectBuilder<INamedType> builder)
+    public override void BuildAspect( IAspectBuilder<INamedType> builder )
     {
-        var @interface = builder.IntroduceInterface( "ITest");
-        var interfaceMethod = @interface.IntroduceMethod( nameof(TestMethod) );
+        var @interface = builder.IntroduceInterface( "ITest" );
+        var interfaceMethod = @interface.IntroduceMethod( nameof(this.TestMethod) );
 
         // Implementation type
-        var implementation = builder.IntroduceClass("TestImplementation");
-        implementation.ImplementInterface( @interface.Declaration);
-        var constructor = implementation.IntroduceConstructor( nameof(Constructor));
-        implementation.IntroduceMethod( nameof(TestMethodImplementation), buildMethod: b => { b.Name = "TestMethod"; });
+        var implementation = builder.IntroduceClass( "TestImplementation" );
+        implementation.ImplementInterface( @interface.Declaration );
+        var constructor = implementation.IntroduceConstructor( nameof(this.Constructor) );
+        implementation.IntroduceMethod( nameof(this.TestMethodImplementation), buildMethod: b => { b.Name = "TestMethod"; } );
 
-        var usage = builder.IntroduceClass("TestUsage");
-        usage.IntroduceMethod( nameof(TestUsageMethod), args: new { T = @interface.Declaration, method = interfaceMethod.Declaration, implementationConstructor = constructor.Declaration });
+        var usage = builder.IntroduceClass( "TestUsage" );
+
+        usage.IntroduceMethod(
+            nameof(this.TestUsageMethod),
+            args: new { T = @interface.Declaration, method = interfaceMethod.Declaration, implementationConstructor = constructor.Declaration } );
     }
 
     [Template]
-    public void Constructor()
-    {
-    }
+    public void Constructor() { }
 
     [Template]
     public void TestMethod()
     {
-        Console.WriteLine("Default");
+        Console.WriteLine( "Default" );
     }
 
     [Template]
     public void TestMethodImplementation()
     {
-        Console.WriteLine("Implementation");
+        Console.WriteLine( "Implementation" );
     }
 
     [Template]
-    public T TestUsageMethod<[CompileTime] T>(T instance, [CompileTime] IMethod method, [CompileTime] IConstructor implementationConstructor)
+    public T TestUsageMethod<[CompileTime] T>( T instance, [CompileTime] IMethod method, [CompileTime] IConstructor implementationConstructor )
     {
-        method.With(instance).Invoke();
+        method.WithObject( instance ).Invoke();
+
         return implementationConstructor.Invoke()!;
     }
 }

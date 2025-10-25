@@ -16,12 +16,12 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Bugs.Bug28883
         {
             get
             {
-                return meta.Target.FieldOrProperty.With( InvokerOptions.Final ).Value;
+                return meta.Target.FieldOrProperty.WithOptions( InvokerOptions.Final ).Value;
             }
 
             set
             {
-                meta.Target.FieldOrProperty.With( InvokerOptions.Final ).Value = value;
+                meta.Target.FieldOrProperty.WithOptions( InvokerOptions.Final ).Value = value;
             }
         }
     }

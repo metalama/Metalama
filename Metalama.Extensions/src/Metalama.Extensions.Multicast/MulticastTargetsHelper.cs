@@ -21,14 +21,12 @@ internal static class MulticastTargetsHelper
                 switch ( ((INamedType) declaration).TypeKind )
                 {
                     case TypeKind.Class:
-                    case TypeKind.RecordClass:
                         return MulticastTargets.Class;
 
                     case TypeKind.Interface:
                         return MulticastTargets.Interface;
 
                     case TypeKind.Struct:
-                    case TypeKind.RecordStruct:
                         return MulticastTargets.Struct;
 
                     case TypeKind.Delegate:

@@ -1,8 +1,7 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.Invokers;
@@ -22,8 +21,8 @@ public class InvokerBeforeAspect : FieldOrPropertyAspect
     public override void BuildAspect( IAspectBuilder<IFieldOrProperty> builder )
     {
         builder.OverrideAccessors(
-            nameof(GetTemplate),
-            nameof(SetTemplate),
+            nameof(this.GetTemplate),
+            nameof(this.SetTemplate),
             new { target = builder.Target.DeclaringType!.FieldsAndProperties.OfName( "Field" ).Single() } );
     }
 
@@ -33,11 +32,11 @@ public class InvokerBeforeAspect : FieldOrPropertyAspect
         meta.InsertComment( "Invoke this.Field" );
         _ = target.Value;
         meta.InsertComment( "Invoke this._field" );
-        _ = target.With( InvokerOptions.Base ).Value;
+        _ = target.WithOptions( InvokerOptions.Base ).Value;
         meta.InsertComment( "Invoke this._field" );
-        _ = target.With( InvokerOptions.Current ).Value;
+        _ = target.WithOptions( InvokerOptions.Current ).Value;
         meta.InsertComment( "Invoke this.Field" );
-        _ = target.With( InvokerOptions.Final ).Value;
+        _ = target.WithOptions( InvokerOptions.Final ).Value;
         meta.InsertComment( "Invoke this._field" );
 
         return meta.Proceed();
@@ -49,11 +48,11 @@ public class InvokerBeforeAspect : FieldOrPropertyAspect
         meta.InsertComment( "Invoke this.Field" );
         target.Value = 42;
         meta.InsertComment( "Invoke this._field" );
-        target.With( InvokerOptions.Base ).Value = 42;
+        target.WithOptions( InvokerOptions.Base ).Value = 42;
         meta.InsertComment( "Invoke this._field" );
-        target.With( InvokerOptions.Current ).Value = 42;
+        target.WithOptions( InvokerOptions.Current ).Value = 42;
         meta.InsertComment( "Invoke this.Field" );
-        target.With( InvokerOptions.Final ).Value = 42;
+        target.WithOptions( InvokerOptions.Final ).Value = 42;
         meta.InsertComment( "Invoke this._field" );
         meta.Proceed();
     }
@@ -63,7 +62,7 @@ public class OverrideAspect : FieldOrPropertyAspect
 {
     public override void BuildAspect( IAspectBuilder<IFieldOrProperty> builder )
     {
-        builder.OverrideAccessors( nameof(GetTemplate), nameof(SetTemplate) );
+        builder.OverrideAccessors( nameof(this.GetTemplate), nameof(this.SetTemplate) );
     }
 
     [Template]
@@ -72,11 +71,11 @@ public class OverrideAspect : FieldOrPropertyAspect
         meta.InsertComment( "Invoke this._field" );
         _ = meta.Target.FieldOrProperty.Value;
         meta.InsertComment( "Invoke this._field" );
-        _ = meta.Target.FieldOrProperty.With( InvokerOptions.Base ).Value;
+        _ = meta.Target.FieldOrProperty.WithOptions( InvokerOptions.Base ).Value;
         meta.InsertComment( "Invoke this.Field" );
-        _ = meta.Target.FieldOrProperty.With( InvokerOptions.Current ).Value;
+        _ = meta.Target.FieldOrProperty.WithOptions( InvokerOptions.Current ).Value;
         meta.InsertComment( "Invoke this.Field" );
-        _ = meta.Target.FieldOrProperty.With( InvokerOptions.Final ).Value;
+        _ = meta.Target.FieldOrProperty.WithOptions( InvokerOptions.Final ).Value;
         meta.InsertComment( "Invoke this._field" );
 
         return meta.Proceed();
@@ -88,11 +87,11 @@ public class OverrideAspect : FieldOrPropertyAspect
         meta.InsertComment( "Invoke this._field" );
         meta.Target.FieldOrProperty.Value = 42;
         meta.InsertComment( "Invoke this._field" );
-        meta.Target.FieldOrProperty.With( InvokerOptions.Base ).Value = 42;
+        meta.Target.FieldOrProperty.WithOptions( InvokerOptions.Base ).Value = 42;
         meta.InsertComment( "Invoke this.Field" );
-        meta.Target.FieldOrProperty.With( InvokerOptions.Current ).Value = 42;
+        meta.Target.FieldOrProperty.WithOptions( InvokerOptions.Current ).Value = 42;
         meta.InsertComment( "Invoke this.Field" );
-        meta.Target.FieldOrProperty.With( InvokerOptions.Final ).Value = 42;
+        meta.Target.FieldOrProperty.WithOptions( InvokerOptions.Final ).Value = 42;
         meta.InsertComment( "Invoke this._field" );
         meta.Proceed();
     }
@@ -103,8 +102,8 @@ public class InvokerAfterAspect : FieldOrPropertyAspect
     public override void BuildAspect( IAspectBuilder<IFieldOrProperty> builder )
     {
         builder.OverrideAccessors(
-            nameof(GetTemplate),
-            nameof(SetTemplate),
+            nameof(this.GetTemplate),
+            nameof(this.SetTemplate),
             new { target = builder.Target.DeclaringType!.FieldsAndProperties.OfName( "Field" ).Single() } );
     }
 
@@ -114,11 +113,11 @@ public class InvokerAfterAspect : FieldOrPropertyAspect
         meta.InsertComment( "Invoke this.Field" );
         _ = target.Value;
         meta.InsertComment( "Invoke this.Field" );
-        _ = target.With( InvokerOptions.Base ).Value;
+        _ = target.WithOptions( InvokerOptions.Base ).Value;
         meta.InsertComment( "Invoke this.Field" );
-        _ = target.With( InvokerOptions.Current ).Value;
+        _ = target.WithOptions( InvokerOptions.Current ).Value;
         meta.InsertComment( "Invoke this.Field" );
-        _ = target.With( InvokerOptions.Final ).Value;
+        _ = target.WithOptions( InvokerOptions.Final ).Value;
         meta.InsertComment( "Invoke this.Field" );
 
         return meta.Proceed();
@@ -130,11 +129,11 @@ public class InvokerAfterAspect : FieldOrPropertyAspect
         meta.InsertComment( "Invoke this.Field" );
         target.Value = 42;
         meta.InsertComment( "Invoke this.Field" );
-        target.With( InvokerOptions.Base ).Value = 42;
+        target.WithOptions( InvokerOptions.Base ).Value = 42;
         meta.InsertComment( "Invoke this.Field" );
-        target.With( InvokerOptions.Current ).Value = 42;
+        target.WithOptions( InvokerOptions.Current ).Value = 42;
         meta.InsertComment( "Invoke this.Field" );
-        target.With( InvokerOptions.Final ).Value = 42;
+        target.WithOptions( InvokerOptions.Final ).Value = 42;
 
         meta.Proceed();
     }

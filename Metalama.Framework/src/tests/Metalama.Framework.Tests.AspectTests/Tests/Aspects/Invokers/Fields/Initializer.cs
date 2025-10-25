@@ -25,14 +25,14 @@ public class ResetInitializerAttribute : TypeAspect
         var f = builder.Target.Fields.OfName( "TestField" ).Single();
         var p = builder.Target.Properties.OfName( "TestProperty" ).Single();
 
-        builder.AddInitializer( nameof(Template), InitializerKind.BeforeInstanceConstructor, args: new { fieldOrProperty = f } );
-        builder.AddInitializer( nameof(Template), InitializerKind.BeforeInstanceConstructor, args: new { fieldOrProperty = p } );
+        builder.AddInitializer( nameof(this.Template), InitializerKind.BeforeInstanceConstructor, args: new { fieldOrProperty = f } );
+        builder.AddInitializer( nameof(this.Template), InitializerKind.BeforeInstanceConstructor, args: new { fieldOrProperty = p } );
     }
 
     [Template]
     public void Template( [CompileTime] IFieldOrProperty fieldOrProperty )
     {
-        fieldOrProperty.With( InvokerOptions.Base ).Value = default;
+        fieldOrProperty.WithOptions( InvokerOptions.Base ).Value = default;
     }
 }
 
@@ -43,8 +43,8 @@ public class OverrideAndInitializeAttribute : TypeAspect
         var f = builder.Target.Fields.OfName( "TestField" ).Single();
         var p = builder.Target.Properties.OfName( "TestProperty" ).Single();
 
-        builder.With( f ).Override( nameof(Template) );
-        builder.With( p ).Override( nameof(Template) );
+        builder.With( f ).Override( nameof(this.Template) );
+        builder.With( p ).Override( nameof(this.Template) );
     }
 
     [Template]

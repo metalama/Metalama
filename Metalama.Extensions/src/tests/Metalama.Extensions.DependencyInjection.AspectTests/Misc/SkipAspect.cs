@@ -24,7 +24,7 @@ public class TestAttribute : FieldOrPropertyAspect
     {
         if ( !builder.Target.Attributes.OfAttributeType( typeof( DisableAspectAttribute ) ).Any() )
         {
-            builder.Advice.Override( builder.Target, nameof( this.OverrideProperty ) );
+            builder.Override( nameof( this.OverrideProperty ) );
         }
         else
         {

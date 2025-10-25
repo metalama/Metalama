@@ -4,7 +4,13 @@
 
 using Metalama.Framework.Advising;
 using Metalama.Framework.Engine.Advising;
+using Microsoft.CodeAnalysis;
+using System.Collections.Immutable;
 
 namespace Metalama.Framework.Engine.AdviceImpl.Attributes;
 
-internal sealed class RemoveAttributesAdviceResult : AdviceResult, IRemoveAttributesAdviceResult;
+internal sealed class RemoveAttributesAdviceResult : AdviceResult, IRemoveAttributesAdviceResult
+{
+    public RemoveAttributesAdviceResult( AdviceOutcome outcome, IAdviceFactoryImpl adviceFactory, ImmutableArray<Diagnostic> reportedDiagnostics = default ) :
+        base( AdviceKind.RemoveAttributes, outcome, adviceFactory, reportedDiagnostics ) { }
+}

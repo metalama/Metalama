@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -7,7 +7,6 @@
 #endif
 
 using System;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.Invokers;
@@ -24,7 +23,7 @@ public class InvokerAspect : MethodAspect
     public override void BuildAspect( IAspectBuilder<IMethod> builder )
     {
         builder.Override(
-            nameof( Template ),
+            nameof(this.Template),
             new { target = builder.Target.DeclaringType!.Events.OfName( "Event" ).Single() } );
     }
 
@@ -34,11 +33,11 @@ public class InvokerAspect : MethodAspect
         meta.InsertComment( "Raise this.Event" );
         target.Raise( null, EventArgs.Empty );
         meta.InsertComment( "Raise this.Event" );
-        target.With( InvokerOptions.Base ).Raise( null, EventArgs.Empty );
+        target.WithOptions( InvokerOptions.Base ).Raise( null, EventArgs.Empty );
         meta.InsertComment( "Raise this.Event" );
-        target.With( InvokerOptions.Current ).Raise( null, EventArgs.Empty );
+        target.WithOptions( InvokerOptions.Current ).Raise( null, EventArgs.Empty );
         meta.InsertComment( "Raise this.Event" );
-        target.With( InvokerOptions.Final ).Raise( null, EventArgs.Empty );
+        target.WithOptions( InvokerOptions.Final ).Raise( null, EventArgs.Empty );
 
         meta.Proceed();
     }
@@ -50,8 +49,5 @@ public class TargetClass
     public event EventHandler Event;
 
     [InvokerAspect]
-    public void Foo()
-    {
-
-    }
+    public void Foo() { }
 }

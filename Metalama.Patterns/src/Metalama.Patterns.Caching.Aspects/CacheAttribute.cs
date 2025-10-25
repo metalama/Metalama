@@ -91,7 +91,7 @@ public sealed class CacheAttribute : CachingBaseAttribute, IAspect<IMethod>
             // Excluded.
             if ( excluded && !parameter.Attributes.OfAttributeType( typeof(NotCacheKeyAttribute) ).Any() )
             {
-                builder.Advice.IntroduceAttribute( parameter, AttributeConstruction.Create( typeof(NotCacheKeyAttribute) ) );
+                builder.With( parameter ).IntroduceAttribute( AttributeConstruction.Create( typeof(NotCacheKeyAttribute) ) );
             }
         }
 
@@ -121,17 +121,18 @@ public sealed class CacheAttribute : CachingBaseAttribute, IAspect<IMethod>
             }
         }
 
-        var registrationField = builder.Advice.IntroduceField(
-            builder.Target.DeclaringType,
-            registrationFieldName,
-            typeof(CachedMethodMetadata),
-            IntroductionScope.Static,
-            OverrideStrategy.Fail,
-            b =>
-            {
-                b.Accessibility = Accessibility.Private;
-                b.Writeability = Writeability.ConstructorOnly;
-            } );
+        var registrationField = builder
+            .WithDeclaringType()
+            .IntroduceField(
+                registrationFieldName,
+                typeof(CachedMethodMetadata),
+                IntroductionScope.Static,
+                OverrideStrategy.Fail,
+                b =>
+                {
+                    b.Accessibility = Accessibility.Private;
+                    b.Writeability = Writeability.ConstructorOnly;
+                } );
 
         // Introduce the dependency
         IFieldOrProperty? cachingServiceField;
@@ -146,8 +147,8 @@ public sealed class CacheAttribute : CachingBaseAttribute, IAspect<IMethod>
                 return;
             }
 
-            var introduceDependencyResult = builder.With( builder.Target.DeclaringType ).IntroduceDependency( typeof(ICachingService) );
-            
+            var introduceDependencyResult = builder.WithDeclaringType().IntroduceDependency( typeof(ICachingService) );
+
             if ( introduceDependencyResult.Outcome == AdviceOutcome.Error )
             {
                 return;
@@ -176,8 +177,7 @@ public sealed class CacheAttribute : CachingBaseAttribute, IAspect<IMethod>
                 ? ((INamedType) builder.Target.ReturnType).TypeArguments[0]
                 : null;
 
-        builder.Advice.Override(
-            builder.Target,
+        builder.Override(
             overrideTemplates,
             new
             {
@@ -192,14 +192,13 @@ public sealed class CacheAttribute : CachingBaseAttribute, IAspect<IMethod>
             _ => null
         };
 
-        builder.Advice.AddInitializer(
-            builder.Target.DeclaringType,
-            nameof(CachedMethodRegistrationInitializer),
-            InitializerKind.BeforeTypeConstructor,
-            args: new { method = builder.Target, field = registrationField.Declaration, awaitableResultType, options } );
+        builder.WithDeclaringType()
+            .AddInitializer(
+                nameof(CachedMethodRegistrationInitializer),
+                InitializerKind.BeforeTypeConstructor,
+                args: new { method = builder.Target, field = registrationField.Declaration, awaitableResultType, options } );
 
-        builder.Advice.AddAnnotation(
-            builder.Target,
+        builder.AddAnnotation(
             new CachedMethodAnnotation(
                 new CachingOptions
                 {
@@ -268,7 +267,9 @@ public sealed class CacheAttribute : CachingBaseAttribute, IAspect<IMethod>
     {
         static object? Invoke( object? instance, object?[] args )
         {
-            return meta.Target.Method.With( instance, InvokerOptions.Base )
+            return meta.Target.Method
+                .WithObject( instance )
+                .WithOptions( InvokerOptions.Base )
                 .Invoke( GetArgumentExpressions( meta.Target.Method, ExpressionFactory.Capture( args ), null ) );
         }
 
@@ -290,7 +291,9 @@ public sealed class CacheAttribute : CachingBaseAttribute, IAspect<IMethod>
 
         static async Task<object?> InvokeAsync( object? instance, object?[] args, CancellationToken cancellationToken )
         {
-            return await meta.Target.Method.With( instance, InvokerOptions.Base )
+            return await meta.Target.Method
+                .WithObject( instance )
+                .WithOptions( InvokerOptions.Base )
                 .Invoke( GetArgumentExpressions( meta.Target.Method, ExpressionFactory.Capture( args ), ExpressionFactory.Capture( cancellationToken ) ) )!;
         }
 
@@ -314,7 +317,9 @@ public sealed class CacheAttribute : CachingBaseAttribute, IAspect<IMethod>
 
         static async ValueTask<object?> InvokeAsync( object? instance, object?[] args, CancellationToken cancellationToken )
         {
-            return await meta.Target.Method.With( instance, InvokerOptions.Base )
+            return await meta.Target.Method
+                .WithObject( instance )
+                .WithOptions( InvokerOptions.Base )
                 .Invoke( GetArgumentExpressions( meta.Target.Method, ExpressionFactory.Capture( args ), ExpressionFactory.Capture( cancellationToken ) ) )!;
         }
 
@@ -340,7 +345,9 @@ public sealed class CacheAttribute : CachingBaseAttribute, IAspect<IMethod>
         static async ValueTask<object?> InvokeAsync( object? instance, object?[] args, CancellationToken cancellationToken )
         {
             var enumerable = (IAsyncEnumerable<TValue>?)
-                meta.Target.Method.With( instance, InvokerOptions.Base )
+                meta.Target.Method
+                    .WithObject( instance )
+                    .WithOptions( InvokerOptions.Base )
                     .Invoke( GetArgumentExpressions( meta.Target.Method, ExpressionFactory.Capture( args ), ExpressionFactory.Capture( cancellationToken ) ) );
 
             if ( enumerable != null )
@@ -378,7 +385,9 @@ public sealed class CacheAttribute : CachingBaseAttribute, IAspect<IMethod>
         static async ValueTask<object?> InvokeAsync( object? instance, object?[] args, CancellationToken cancellationToken )
         {
             var enumerator = (IAsyncEnumerator<TValue>?)
-                meta.Target.Method.With( instance, InvokerOptions.Base )
+                meta.Target.Method
+                    .WithObject( instance )
+                    .WithOptions( InvokerOptions.Base )
                     .Invoke( GetArgumentExpressions( meta.Target.Method, ExpressionFactory.Capture( args ), ExpressionFactory.Capture( cancellationToken ) ) );
 
             if ( enumerator == null )

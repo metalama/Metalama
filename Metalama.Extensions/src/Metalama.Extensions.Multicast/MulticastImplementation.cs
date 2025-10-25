@@ -125,8 +125,8 @@ public sealed class MulticastImplementation
 
         return namedType.TypeKind switch
         {
-            TypeKind.Class or TypeKind.RecordClass => resultingTargets.HasFlagFast( MulticastTargets.Class ),
-            TypeKind.Struct or TypeKind.RecordStruct => resultingTargets.HasFlagFast( MulticastTargets.Struct ),
+            TypeKind.Class => resultingTargets.HasFlagFast( MulticastTargets.Class ),
+            TypeKind.Struct => resultingTargets.HasFlagFast( MulticastTargets.Struct ),
             TypeKind.Interface => resultingTargets.HasFlagFast( MulticastTargets.Interface ),
             TypeKind.Delegate => resultingTargets.HasFlagFast( MulticastTargets.Delegate ),
             TypeKind.Enum => resultingTargets.HasFlagFast( MulticastTargets.Enum ),
@@ -149,7 +149,7 @@ public sealed class MulticastImplementation
                 builder => builder.Convert()
                     .To<INamedType>()
                     .MustSatisfy(
-                        t => t.TypeKind is TypeKind.RecordClass or TypeKind.Class or TypeKind.Struct or TypeKind.RecordStruct,
+                        t => t.TypeKind is TypeKind.Class or TypeKind.Struct,
                         t => $"{t} is neither a class, struct or record" ) );
         }
 
@@ -178,7 +178,7 @@ public sealed class MulticastImplementation
             rules.Add(
                 builder => builder.Convert()
                     .To<INamedType>()
-                    .MustSatisfy( t => t.TypeKind is TypeKind.RecordClass or TypeKind.Class, t => $"{t} is not a class or record class" ) );
+                    .MustSatisfy( t => t.TypeKind is TypeKind.Class, t => $"{t} is not a class or record class" ) );
         }
 
         if ( this.ConcreteTargets.HasFlagFast( MulticastTargets.Struct ) )
@@ -188,7 +188,7 @@ public sealed class MulticastImplementation
             rules.Add(
                 builder => builder.Convert()
                     .To<INamedType>()
-                    .MustSatisfy( t => t.TypeKind is TypeKind.RecordStruct or TypeKind.Struct, t => $"{t} is not a struct or record struct" ) );
+                    .MustSatisfy( t => t.TypeKind is TypeKind.Struct, t => $"{t} is not a struct or record struct" ) );
         }
 
         if ( this.ConcreteTargets.HasFlagFast( MulticastTargets.Method ) )

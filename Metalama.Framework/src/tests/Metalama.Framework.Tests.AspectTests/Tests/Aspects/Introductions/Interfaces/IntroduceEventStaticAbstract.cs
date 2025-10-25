@@ -22,34 +22,34 @@ public class IntroductionAttribute : TypeAspect
 {
     public override void BuildAspect( IAspectBuilder<INamedType> builder )
     {
-        var @interface = builder.IntroduceInterface( "ITest");
+        var @interface = builder.IntroduceInterface( "ITest" );
         @interface.IntroduceEvent( nameof(TestEvent) );
 
         // Implementation type.
-        var implementation = builder.IntroduceClass("TestImplementation");
-        implementation.ImplementInterface( @interface.Declaration);
-        var implementationEvent = implementation.IntroduceEvent( nameof(TestEventImplementation), buildEvent: b => { b.Name = nameof(TestEvent); });
+        var implementation = builder.IntroduceClass( "TestImplementation" );
+        implementation.ImplementInterface( @interface.Declaration );
+        var implementationEvent = implementation.IntroduceEvent( nameof(TestEventImplementation), buildEvent: b => { b.Name = nameof(TestEvent); } );
 
         // Usage type.
-        var usage = builder.Advice.IntroduceClass(
-            builder.Target,
-            "TestUsage",
-            buildType: b =>
-            {
-                var typeParam = b.AddTypeParameter("T");
-                typeParam.AddTypeConstraint(@interface.Declaration);
-            });
+        var usage = builder
+            .IntroduceClass(
+                "TestUsage",
+                buildType: b =>
+                {
+                    var typeParam = b.AddTypeParameter( "T" );
+                    typeParam.AddTypeConstraint( @interface.Declaration );
+                } );
 
         // Method that uses the interface.
-        builder.Advice.IntroduceMethod(
-            usage.Declaration, 
-            nameof(TestUsageMethod), 
-            args: new 
-            { 
-                genericParameter = usage.Declaration.TypeParameters.Single(),
-                interfaceEvent = @interface.Declaration.Events.Single(),
-                implementationEvent = implementationEvent.Declaration,
-            });
+        builder.With( usage.Declaration )
+            .IntroduceMethod(
+                nameof(TestUsageMethod),
+                args: new
+                {
+                    genericParameter = usage.Declaration.TypeParameters.Single(),
+                    interfaceEvent = @interface.Declaration.Events.Single(),
+                    implementationEvent = implementationEvent.Declaration
+                } );
     }
 
     [Template]
@@ -60,27 +60,30 @@ public class IntroductionAttribute : TypeAspect
     {
         add
         {
-            Console.WriteLine("Implementation");
+            Console.WriteLine( "Implementation" );
         }
 
         remove
         {
-            Console.WriteLine("Implementation");
+            Console.WriteLine( "Implementation" );
         }
     }
 
     [Template]
-    public static void TestUsageMethod([CompileTime] ITypeParameter genericParameter, [CompileTime] IEvent interfaceEvent, [CompileTime] IEvent implementationEvent)
+    public static void TestUsageMethod(
+        [CompileTime] ITypeParameter genericParameter,
+        [CompileTime] IEvent interfaceEvent,
+        [CompileTime] IEvent implementationEvent )
     {
         // Calling static members of type parameters is not currently supported (generic parameter does not "gain" members from constraints).
         var builder = new ExpressionBuilder();
-        builder.AppendTypeName(genericParameter);
-        builder.AppendVerbatim($".{interfaceEvent.Name}");
-        builder.AppendVerbatim($" += ");
-        builder.AppendExpression((EventHandler)((s, ea) => { Console.WriteLine("Handler"); }));
-        meta.InsertStatement(builder.ToExpression());
+        builder.AppendTypeName( genericParameter );
+        builder.AppendVerbatim( $".{interfaceEvent.Name}" );
+        builder.AppendVerbatim( $" += " );
+        builder.AppendExpression( (EventHandler) (( s, ea ) => { Console.WriteLine( "Handler" ); }) );
+        meta.InsertStatement( builder.ToExpression() );
 
-        implementationEvent.Add((EventHandler)((s, ea) => { Console.WriteLine("Handler"); }));
+        implementationEvent.Add( (EventHandler) (( s, ea ) => { Console.WriteLine( "Handler" ); }) );
     }
 }
 

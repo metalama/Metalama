@@ -33,16 +33,27 @@ internal sealed class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBui
 
     public TypeKind TypeKind { get; }
 
+    public bool IsRecord { get; }
+
     public IntroducedRef<INamedType> Ref { get; }
 
     public TypeParameterBuilderList TypeParameters { get; } = [];
 
-    public NamedTypeBuilder( AspectLayerInstance aspectLayerInstance, INamespaceOrNamedType declaringNamespaceOrType, string name, TypeKind typeKind ) : base(
+    public NamedTypeBuilder(
+        AspectLayerInstance aspectLayerInstance,
+        INamespaceOrNamedType declaringNamespaceOrType,
+        string name,
+        TypeKind typeKind,
+        bool isRecord = false ) : base(
         aspectLayerInstance,
         declaringNamespaceOrType as INamedType,
         name )
     {
+        Invariant.Assert( typeKind is TypeKind.Class or TypeKind.Struct or TypeKind.Interface );
+        Invariant.Assert( !isRecord ); // Introducing records is not yet supported.
+
         this.TypeKind = typeKind;
+        this.IsRecord = isRecord;
 
         this.ContainingNamespace = declaringNamespaceOrType switch
         {

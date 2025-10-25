@@ -12,6 +12,7 @@ using Metalama.Framework.Engine.CodeModel.Invokers;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.Utilities;
 using Microsoft.CodeAnalysis;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -53,13 +54,28 @@ internal sealed class SourceIndexer : SourcePropertyOrIndexer, IIndexerImpl
 
     protected override IMemberOrNamedType GetDefinitionMemberOrNamedType() => this.Definition;
 
-    public IIndexerInvoker With( InvokerOptions options ) => new IndexerInvoker( this, options );
+    [Memo]
+    private IIndexerInvoker Invoker => new IndexerInvoker( this );
 
-    public IIndexerInvoker With( object? target, InvokerOptions options = default ) => new IndexerInvoker( this, options, target );
+    IIndexerInvoker IIndexerInvoker.WithOptions( InvokerOptions options ) => this.Invoker.WithOptions( options );
 
-    public object GetValue( params object?[] args ) => new IndexerInvoker( this ).GetValue( args );
+    IIndexerInvoker IIndexerInvoker.WithObject( object obj ) => this.Invoker.WithObject( obj );
 
-    public object SetValue( object? value, params object?[] args ) => new IndexerInvoker( this ).SetValue( value, args );
+    IIndexerInvoker IIndexerInvoker.WithObject( IExpression obj ) => this.Invoker.WithObject( obj );
+
+    IIndexerInvoker IIndexerInvoker.With( InvokerOptions options ) => this.Invoker.WithOptions( options );
+
+    IIndexerInvoker IIndexerInvoker.With( object? target, InvokerOptions options ) => this.Invoker.WithOptions( options ).WithObject( target! );
+
+    IExpression IIndexerInvoker.this[ params IExpression[] args ] => this.Invoker[args];
+
+    IExpression IIndexerInvoker.this[ params object?[] args ] => this.Invoker[args];
+
+    [Obsolete]
+    object? IIndexerInvoker.GetValue( params object?[] args ) => this.Invoker.GetValue( args );
+
+    [Obsolete]
+    object? IIndexerInvoker.SetValue( object? value, params object?[] args ) => this.Invoker.SetValue( value, args );
 
     public override IMember? OverriddenMember => this.OverriddenIndexer;
 

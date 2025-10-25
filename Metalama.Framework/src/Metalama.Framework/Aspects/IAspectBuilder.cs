@@ -34,6 +34,7 @@ namespace Metalama.Framework.Aspects
         /// <summary>
         /// Gets an object that allows to create advice, e.g. overriding members, introducing members, or implementing new interfaces.
         /// </summary>
+        [Obsolete( "Use the extension methods provided by the AdviserExtensions class. " )]
         IAdviceFactory Advice { get; }
 
         /// <summary>

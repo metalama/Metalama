@@ -1,8 +1,7 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.Invokers;
@@ -21,15 +20,15 @@ public class InvokerAspect : PropertyAspect
     public override void BuildAspect( IAspectBuilder<IProperty> builder )
     {
         builder.OverrideAccessors(
-            nameof(GetTemplate),
-            nameof(SetTemplate),
-            new { target = ( (INamedType)builder.Target.DeclaringType.Fields.Single().Type ).Properties.OfName( "Property" ).Single() } );
+            nameof(this.GetTemplate),
+            nameof(this.SetTemplate),
+            new { target = ((INamedType) builder.Target.DeclaringType.Fields.Single().Type).Properties.OfName( "Property" ).Single() } );
     }
 
     [Template]
     public dynamic? GetTemplate( [CompileTime] IProperty target )
     {
-        _ = target.With( (IExpression)meta.Target.Property.DeclaringType.Fields.Single().Value!, InvokerOptions.Base ).Value;
+        _ = target.WithObject( meta.Target.Property.DeclaringType.Fields.Single()).WithOptions( InvokerOptions.Base ).Value;
 
         return meta.Proceed();
     }
@@ -37,7 +36,7 @@ public class InvokerAspect : PropertyAspect
     [Template]
     public void SetTemplate( [CompileTime] IProperty target )
     {
-        target.With( (IExpression)meta.Target.Property.DeclaringType.Fields.Single().Value!, InvokerOptions.Base ).Value = 42;
+        target.WithObject( meta.Target.Property.DeclaringType.Fields.Single()).WithOptions( InvokerOptions.Base ).Value = 42;
 
         meta.Proceed();
     }

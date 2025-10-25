@@ -6,9 +6,9 @@ public class Vehicle
   public string Fuel { get; set; }
   public Vehicle(string name, decimal payload, string fuel)
   {
-    Name = name;
-    Payload = payload;
-    Fuel = fuel;
+    this.Name = name;
+    this.Payload = payload;
+    this.Fuel = fuel;
   }
   public void Restore(object snapshot)
   {

@@ -13,25 +13,26 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Introductions.Inter
 
 public class IntroductionAttribute : TypeAspect
 {
-    public override void BuildAspect(IAspectBuilder<INamedType> builder)
+    public override void BuildAspect( IAspectBuilder<INamedType> builder )
     {
-        var @interface = builder.IntroduceInterface( "ITest");
-        var interfaceEvent = @interface.IntroduceEvent( nameof(TestEvent) );
+        var @interface = builder.IntroduceInterface( "ITest" );
+        var interfaceEvent = @interface.IntroduceEvent( nameof(this.TestEvent) );
 
         // Implementation type
-        var implementation = builder.IntroduceClass("TestImplementation");
-        implementation.ImplementInterface( @interface.Declaration);
-        var constructor = implementation.IntroduceConstructor( nameof(Constructor));
-        implementation.IntroduceEvent( nameof(TestEventImplementation), buildEvent: b => { b.Name = "TestEvent"; });
+        var implementation = builder.IntroduceClass( "TestImplementation" );
+        implementation.ImplementInterface( @interface.Declaration );
+        var constructor = implementation.IntroduceConstructor( nameof(this.Constructor) );
+        implementation.IntroduceEvent( nameof(this.TestEventImplementation), buildEvent: b => { b.Name = "TestEvent"; } );
 
-        var usage = builder.IntroduceClass("TestUsage");
-        usage.IntroduceMethod( nameof(TestUsageMethod), args: new { T = @interface.Declaration, @event = interfaceEvent.Declaration, implementationConstructor = constructor.Declaration });
+        var usage = builder.IntroduceClass( "TestUsage" );
+
+        usage.IntroduceMethod(
+            nameof(this.TestUsageMethod),
+            args: new { T = @interface.Declaration, @event = interfaceEvent.Declaration, implementationConstructor = constructor.Declaration } );
     }
 
     [Template]
-    public void Constructor()
-    {
-    }
+    public void Constructor() { }
 
     [Template]
     public extern event EventHandler TestEvent;
@@ -41,19 +42,20 @@ public class IntroductionAttribute : TypeAspect
     {
         add
         {
-            Console.WriteLine("Implementation");
+            Console.WriteLine( "Implementation" );
         }
 
         remove
         {
-            Console.WriteLine("Implementation");
+            Console.WriteLine( "Implementation" );
         }
     }
 
     [Template]
-    public T TestUsageMethod<[CompileTime] T>(T instance, [CompileTime] IEvent @event, [CompileTime] IConstructor implementationConstructor)
+    public T TestUsageMethod<[CompileTime] T>( T instance, [CompileTime] IEvent @event, [CompileTime] IConstructor implementationConstructor )
     {
-        @event.With(instance).Add((EventHandler)((s, ea) => { Console.WriteLine("Handler"); }));
+        @event.WithObject( instance ).Add( (EventHandler) (( s, ea ) => { Console.WriteLine( "Handler" ); }) );
+
         return implementationConstructor.Invoke()!;
     }
 }

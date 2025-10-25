@@ -32,7 +32,7 @@ namespace Metalama.Framework.Engine.CodeModel.Source
         public SourceProperty( IPropertySymbol symbol, CompilationModel compilation, GenericContext? genericContextForSymbolMapping ) : base(
             symbol,
             compilation,
-            genericContextForSymbolMapping ) 
+            genericContextForSymbolMapping )
         {
 #if ROSLYN_4_12_0_OR_GREATER
             Invariant.Assert(
@@ -96,15 +96,24 @@ namespace Metalama.Framework.Engine.CodeModel.Source
         [Memo]
         public IExpression? InitializerExpression => this.GetInitializerExpressionCore();
 
-        public IFieldOrPropertyInvoker With( InvokerOptions options ) => new FieldOrPropertyInvoker( this, options );
+        [Memo]
+        private IFieldOrPropertyInvoker Invoker => new FieldOrPropertyInvoker( this );
 
-        public IFieldOrPropertyInvoker With( object? target, InvokerOptions options = default ) => new FieldOrPropertyInvoker( this, options, target );
+        IFieldOrPropertyInvoker IFieldOrPropertyInvoker.WithOptions( InvokerOptions options ) => this.Invoker.WithOptions( options );
 
-        public ref object? Value => ref new FieldOrPropertyInvoker( this ).Value;
+        IFieldOrPropertyInvoker IFieldOrPropertyInvoker.WithObject( object? target ) => this.Invoker.WithObject( target );
+
+        IFieldOrPropertyInvoker IFieldOrPropertyInvoker.WithObject( IExpression? target ) => this.Invoker.WithObject( target );
+
+        IFieldOrPropertyInvoker IFieldOrPropertyInvoker.With( InvokerOptions options ) => this.Invoker.WithOptions( options );
+
+        IFieldOrPropertyInvoker IFieldOrPropertyInvoker.With( object? target, InvokerOptions options )
+            => this.Invoker.WithOptions( options ).WithObject( target );
+
+        ref object? IExpression.Value => ref this.Invoker.Value;
 
         public TypedExpressionSyntax ToTypedExpressionSyntax( ISyntaxGenerationContext syntaxGenerationContext, IType? targetType = null )
-            => new FieldOrPropertyInvoker( this )
-                .ToTypedExpressionSyntax( syntaxGenerationContext, targetType );
+            => this.Invoker.ToTypedExpressionSyntax( syntaxGenerationContext, targetType );
 
         private IExpression? GetInitializerExpressionCore()
         {
@@ -136,7 +145,9 @@ namespace Metalama.Framework.Engine.CodeModel.Source
                 sources.Add( new SourceReference( this.PropertySymbol.DeclaringSyntaxReferences[0].GetSyntax(), SourceReferenceImpl.Instance ) );
 
                 sources.Add(
-                    new SourceReference( this.PropertySymbol.PartialImplementationPart.DeclaringSyntaxReferences[0].GetSyntax(), SourceReferenceImpl.Instance ) );
+                    new SourceReference(
+                        this.PropertySymbol.PartialImplementationPart.DeclaringSyntaxReferences[0].GetSyntax(),
+                        SourceReferenceImpl.Instance ) );
 
                 return sources.MoveToImmutable();
             }

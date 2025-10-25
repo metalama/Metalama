@@ -1,8 +1,7 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.Invokers;
@@ -22,8 +21,8 @@ public class InvokerBeforeAspect : PropertyAspect
     public override void BuildAspect( IAspectBuilder<IProperty> builder )
     {
         builder.OverrideAccessors(
-            nameof(GetTemplate),
-            nameof(SetTemplate),
+            nameof(this.GetTemplate),
+            nameof(this.SetTemplate),
             new { target = builder.Target.DeclaringType!.Properties.OfName( "Property" ).Single() } );
     }
 
@@ -33,11 +32,11 @@ public class InvokerBeforeAspect : PropertyAspect
         meta.InsertComment( "Invoke this.Property" );
         _ = target.Value;
         meta.InsertComment( "Invoke this.Property_Source" );
-        _ = target.With( InvokerOptions.Base ).Value;
+        _ = target.WithOptions( InvokerOptions.Base ).Value;
         meta.InsertComment( "Invoke this.Property_Source" );
-        _ = target.With( InvokerOptions.Current ).Value;
+        _ = target.WithOptions( InvokerOptions.Current ).Value;
         meta.InsertComment( "Invoke this.Property" );
-        _ = target.With( InvokerOptions.Final ).Value;
+        _ = target.WithOptions( InvokerOptions.Final ).Value;
         meta.InsertComment( "Invoke this.Property_Source" );
 
         return meta.Proceed();
@@ -49,11 +48,11 @@ public class InvokerBeforeAspect : PropertyAspect
         meta.InsertComment( "Invoke this.Property" );
         target.Value = 42;
         meta.InsertComment( "Invoke this.Property_Source" );
-        target.With( InvokerOptions.Base ).Value = 42;
+        target.WithOptions( InvokerOptions.Base ).Value = 42;
         meta.InsertComment( "Invoke this.Property_Source" );
-        target.With( InvokerOptions.Current ).Value = 42;
+        target.WithOptions( InvokerOptions.Current ).Value = 42;
         meta.InsertComment( "Invoke this.Property" );
-        target.With( InvokerOptions.Final ).Value = 42;
+        target.WithOptions( InvokerOptions.Final ).Value = 42;
         meta.InsertComment( "Invoke this.Property_Source" );
         meta.Proceed();
     }
@@ -63,7 +62,7 @@ public class OverrideAspect : PropertyAspect
 {
     public override void BuildAspect( IAspectBuilder<IProperty> builder )
     {
-        builder.OverrideAccessors( nameof(GetTemplate), nameof(SetTemplate) );
+        builder.OverrideAccessors( nameof(this.GetTemplate), nameof(this.SetTemplate) );
     }
 
     [Template]
@@ -72,11 +71,11 @@ public class OverrideAspect : PropertyAspect
         meta.InsertComment( "Invoke this.Property_Source" );
         _ = meta.Target.Property.Value;
         meta.InsertComment( "Invoke this.Property_Source" );
-        _ = meta.Target.Property.With( InvokerOptions.Base ).Value;
+        _ = meta.Target.Property.WithOptions( InvokerOptions.Base ).Value;
         meta.InsertComment( "Invoke this.Property" );
-        _ = meta.Target.Property.With( InvokerOptions.Current ).Value;
+        _ = meta.Target.Property.WithOptions( InvokerOptions.Current ).Value;
         meta.InsertComment( "Invoke this.Property" );
-        _ = meta.Target.Property.With( InvokerOptions.Final ).Value;
+        _ = meta.Target.Property.WithOptions( InvokerOptions.Final ).Value;
         meta.InsertComment( "Invoke this.Property_Source" );
 
         return meta.Proceed();
@@ -88,11 +87,11 @@ public class OverrideAspect : PropertyAspect
         meta.InsertComment( "Invoke this.Property_Source" );
         meta.Target.Property.Value = 42;
         meta.InsertComment( "Invoke this.Property_Source" );
-        meta.Target.Property.With( InvokerOptions.Base ).Value = 42;
+        meta.Target.Property.WithOptions( InvokerOptions.Base ).Value = 42;
         meta.InsertComment( "Invoke this.Property" );
-        meta.Target.Property.With( InvokerOptions.Current ).Value = 42;
+        meta.Target.Property.WithOptions( InvokerOptions.Current ).Value = 42;
         meta.InsertComment( "Invoke this.Property" );
-        meta.Target.Property.With( InvokerOptions.Final ).Value = 42;
+        meta.Target.Property.WithOptions( InvokerOptions.Final ).Value = 42;
         meta.InsertComment( "Invoke this.Property_Source" );
         meta.Proceed();
     }
@@ -103,8 +102,8 @@ public class InvokerAfterAspect : PropertyAspect
     public override void BuildAspect( IAspectBuilder<IProperty> builder )
     {
         builder.OverrideAccessors(
-            nameof(GetTemplate),
-            nameof(SetTemplate),
+            nameof(this.GetTemplate),
+            nameof(this.SetTemplate),
             new { target = builder.Target.DeclaringType!.Properties.OfName( "Property" ).Single() } );
     }
 
@@ -114,11 +113,11 @@ public class InvokerAfterAspect : PropertyAspect
         meta.InsertComment( "Invoke this.Property" );
         _ = target.Value;
         meta.InsertComment( "Invoke this.Property" );
-        _ = target.With( InvokerOptions.Base ).Value;
+        _ = target.WithOptions( InvokerOptions.Base ).Value;
         meta.InsertComment( "Invoke this.Property" );
-        _ = target.With( InvokerOptions.Current ).Value;
+        _ = target.WithOptions( InvokerOptions.Current ).Value;
         meta.InsertComment( "Invoke this.Property" );
-        _ = target.With( InvokerOptions.Final ).Value;
+        _ = target.WithOptions( InvokerOptions.Final ).Value;
         meta.InsertComment( "Invoke this.Property" );
 
         return meta.Proceed();
@@ -130,11 +129,11 @@ public class InvokerAfterAspect : PropertyAspect
         meta.InsertComment( "Invoke this.Property" );
         target.Value = 42;
         meta.InsertComment( "Invoke this.Property" );
-        target.With( InvokerOptions.Base ).Value = 42;
+        target.WithOptions( InvokerOptions.Base ).Value = 42;
         meta.InsertComment( "Invoke this.Property" );
-        target.With( InvokerOptions.Current ).Value = 42;
+        target.WithOptions( InvokerOptions.Current ).Value = 42;
         meta.InsertComment( "Invoke this.Property" );
-        target.With( InvokerOptions.Final ).Value = 42;
+        target.WithOptions( InvokerOptions.Final ).Value = 42;
 
         meta.Proceed();
     }

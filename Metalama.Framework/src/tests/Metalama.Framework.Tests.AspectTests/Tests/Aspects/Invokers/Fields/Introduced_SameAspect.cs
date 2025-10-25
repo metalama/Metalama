@@ -1,8 +1,7 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.Invokers;
@@ -21,23 +20,24 @@ public class InvokerAspect : TypeAspect
     [Introduce]
     public int Field;
 
-    public override void BuildAspect(IAspectBuilder<INamedType> builder)
+    public override void BuildAspect( IAspectBuilder<INamedType> builder )
     {
-        builder.With(builder.Target.Properties.OfName("Invoker").Single()).OverrideAccessors(
-            nameof(GetTemplate),
-            nameof(SetTemplate),
-            new { target = builder.Target.ForCompilation(builder.Advice.MutableCompilation).Fields.OfName("Field").Single() });
+        builder.With( builder.Target.Properties.OfName( "Invoker" ).Single() )
+            .OverrideAccessors(
+                nameof(this.GetTemplate),
+                nameof(this.SetTemplate),
+                new { target = builder.Target.ForCompilation( builder.MutableCompilation ).Fields.OfName( "Field" ).Single() } );
     }
 
     [Template]
     public dynamic? GetTemplate( [CompileTime] IFieldOrProperty target )
     {
         meta.InsertComment( "Invoke instance.Empty_Field" );
-        _ = target.With( InvokerOptions.Base ).Value;
+        _ = target.WithOptions( InvokerOptions.Base ).Value;
         meta.InsertComment( "Invoke instance.Field" );
-        _ = target.With( InvokerOptions.Current ).Value;
+        _ = target.WithOptions( InvokerOptions.Current ).Value;
         meta.InsertComment( "Invoke instance.Field" );
-        _ = target.With( InvokerOptions.Final ).Value;
+        _ = target.WithOptions( InvokerOptions.Final ).Value;
 
         return meta.Proceed();
     }
@@ -46,11 +46,11 @@ public class InvokerAspect : TypeAspect
     public void SetTemplate( [CompileTime] IFieldOrProperty target )
     {
         meta.InsertComment( "Invoke instance.Empty_Field" );
-        target.With( InvokerOptions.Base ).Value = 42;
+        target.WithOptions( InvokerOptions.Base ).Value = 42;
         meta.InsertComment( "Invoke instance.Field" );
-        target.With( InvokerOptions.Current ).Value = 42;
+        target.WithOptions( InvokerOptions.Current ).Value = 42;
         meta.InsertComment( "Invoke instance.Field" );
-        target.With( InvokerOptions.Final ).Value = 42;
+        target.WithOptions( InvokerOptions.Final ).Value = 42;
 
         meta.Proceed();
     }

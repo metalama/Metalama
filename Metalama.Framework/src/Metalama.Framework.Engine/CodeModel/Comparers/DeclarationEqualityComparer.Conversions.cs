@@ -67,7 +67,7 @@ internal partial class DeclarationEqualityComparer
             return false;
         }
 
-        private static bool IsClass( IType type ) => type.TypeKind is TypeKind.Class or TypeKind.RecordClass;
+        private static bool IsClass( IType type ) => type.TypeKind is TypeKind.Class;
 
         private bool HasIdentityOrImplicitReferenceConversion( IType left, IType right )
         {
@@ -86,7 +86,7 @@ internal partial class DeclarationEqualityComparer
 
                 switch ( left.TypeKind )
                 {
-                    case TypeKind.Class or TypeKind.RecordClass:
+                    case TypeKind.Class:
                         if ( IsBaseClass( left, right ) )
                         {
                             return true;
@@ -388,7 +388,7 @@ internal partial class DeclarationEqualityComparer
             // ReSharper disable once VariableHidesOuterVariable
             IEnumerable<INamedType> GetFromClassOrStruct( IType type )
             {
-                if ( type.TypeKind is TypeKind.Class or TypeKind.RecordClass or TypeKind.Struct or TypeKind.RecordStruct )
+                if ( type.TypeKind is TypeKind.Class or TypeKind.Struct )
                 {
                     var namedType = (INamedType) type;
 

@@ -2,10 +2,9 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using System;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
+using System;
 
 #pragma warning disable CS0067
 
@@ -47,8 +46,8 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Introductions.Inter
             Console.WriteLine( $"This is introduced interface member by {meta.Tags["Source"]} (should be Derived)." );
 
             return meta.Proceed();
-        }
     }
+}
 
     // <target>
     [Introduction]

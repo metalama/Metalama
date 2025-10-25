@@ -3,12 +3,11 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using JetBrains.Annotations;
-using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Diagnostics;
 using Metalama.Framework.Utilities;
 
-namespace Metalama.Framework.Advising;
+namespace Metalama.Framework.Aspects;
 
 /// <summary>
 /// An object that allows declarations to be advised using one of the extension methods of the <see cref="AdviserExtensions"/> class.
@@ -28,6 +27,14 @@ public interface IAdviser
     /// Gets the declaration that will be advised.
     /// </summary>
     IDeclaration Target { get; }
+
+    ICompilation Compilation { get; }
+
+    /// <summary>
+    /// Gets the mutable compilation that the current <see cref="IAspectBuilder"/> is working on. It includes all modifications done by
+    /// the current aspect in the current type using declarative advices and the <see cref="IAspectBuilder"/>.
+    /// </summary>
+    ICompilation MutableCompilation { get; }
 
     /// <summary>
     /// Gets a new <see cref="IAdviser"/> for a different <see cref="Target"/> declaration.

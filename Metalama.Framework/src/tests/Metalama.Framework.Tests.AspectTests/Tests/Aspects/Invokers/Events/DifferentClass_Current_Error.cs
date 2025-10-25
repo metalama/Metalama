@@ -1,9 +1,8 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.Invokers;
@@ -22,15 +21,16 @@ public class InvokerAspect : EventAspect
     public override void BuildAspect( IAspectBuilder<IEvent> builder )
     {
         builder.OverrideAccessors(
-            nameof(AddTemplate),
-            nameof(RemoveTemplate),
-            args: new { target = ( (INamedType)builder.Target.DeclaringType.Fields.Single().Type ).Events.OfName( "Event" ).Single() } );
+            nameof(this.AddTemplate),
+            nameof(this.RemoveTemplate),
+            args: new { target = ((INamedType) builder.Target.DeclaringType.Fields.Single().Type).Events.OfName( "Event" ).Single() } );
     }
 
     [Template]
     public void AddTemplate( [CompileTime] IEvent target )
     {
-        target.With( (IExpression)meta.Target.Event.DeclaringType.Fields.Single().Value!, InvokerOptions.Current )
+        target.WithObject( meta.Target.Event.DeclaringType.Fields.Single())
+            .WithOptions( InvokerOptions.Current )
             .Add( meta.RunTime( TargetClass.StaticTarget ) );
 
         meta.Proceed();
@@ -39,7 +39,8 @@ public class InvokerAspect : EventAspect
     [Template]
     public void RemoveTemplate( [CompileTime] IEvent target )
     {
-        target.With( (IExpression)meta.Target.Event.DeclaringType.Fields.Single().Value!, InvokerOptions.Current )
+        target.WithObject( meta.Target.Event.DeclaringType.Fields.Single())
+            .WithOptions( InvokerOptions.Current )
             .Remove( meta.RunTime( TargetClass.StaticTarget ) );
 
         meta.Proceed();

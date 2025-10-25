@@ -181,11 +181,13 @@ internal sealed class IntroducedNamedType : IntroducedMemberOrNamedType, INamedT
 
     public Type ToType() => throw new NotImplementedException();
 
-    public bool? IsReferenceType => this._namedTypeBuilderData.TypeKind is TypeKind.Class or TypeKind.RecordClass;
+    public bool? IsReferenceType => this._namedTypeBuilderData.TypeKind is TypeKind.Class;
 
     public bool IsReadOnly => this._namedTypeBuilderData.IsReadOnly;
 
     public bool IsRef => this._namedTypeBuilderData.IsRef;
+
+    public bool IsRecord => this._namedTypeBuilderData.IsRecord;
 
     public bool? IsNullable { get; }
 

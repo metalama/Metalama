@@ -26,7 +26,7 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Samples.DeepClone
         public override void BuildAspect( IAspectBuilder<INamedType> builder )
         {
             builder.IntroduceMethod(
-                nameof(CloneImpl),
+                nameof(this.CloneImpl),
                 whenExists: OverrideStrategy.Override,
                 args: new { T = builder.Target },
                 buildMethod: m =>
@@ -48,7 +48,7 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Samples.DeepClone
             // we will call MemberwiseClone (this is the initialization of the pattern).
             IExpression baseCall;
 
-            if (meta.Target.Method.IsOverride)
+            if ( meta.Target.Method.IsOverride )
             {
                 baseCall = meta.Base.Clone();
             }
@@ -58,33 +58,33 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Samples.DeepClone
             }
 
             // Define a local variable of the same type as the target type.
-            var clone = (T)baseCall.Value!;
+            var clone = (T) baseCall.Value!;
 
             // Select clonable fields.
             var clonableFields =
                 meta.Target.Type.FieldsAndProperties.Where(
                     f => f.IsAutoPropertyOrField.GetValueOrDefault() &&
                          !f.IsImplicitlyDeclared &&
-                         ( ( f.Type.IsConvertibleTo( typeof(ICloneable) ) && f.Type.SpecialType != SpecialType.String ) ||
-                           ( f.Type is INamedType { BelongsToCurrentProject: true } fieldNamedType
-                             && fieldNamedType.Enhancements().HasAspect<DeepCloneAttribute>() ) ) );
+                         ((f.Type.IsConvertibleTo( typeof(ICloneable) ) && f.Type.SpecialType != SpecialType.String) ||
+                          (f.Type is INamedType { BelongsToCurrentProject: true } fieldNamedType
+                           && fieldNamedType.Enhancements().HasAspect<DeepCloneAttribute>())) );
 
-            foreach (var field in clonableFields)
+            foreach ( var field in clonableFields )
             {
                 // Check if we have a public method 'Clone()' for the type of the field.
-                var fieldType = (INamedType)field.Type;
+                var fieldType = (INamedType) field.Type;
                 var cloneMethod = fieldType.Methods.OfExactSignature( "Clone", Array.Empty<IType>() );
 
-                if (cloneMethod is { Accessibility: Accessibility.Public } ||
-                    fieldType.Enhancements().HasAspect<DeepCloneAttribute>())
+                if ( cloneMethod is { Accessibility: Accessibility.Public } ||
+                     fieldType.Enhancements().HasAspect<DeepCloneAttribute>() )
                 {
                     // If yes, call the method without a cast.
-                    field.With( clone ).Value = meta.Cast( fieldType, field.Value?.Clone() );
+                    field.WithObject( clone ).Value = meta.Cast( fieldType, field.Value?.Clone() );
                 }
                 else
                 {
                     // If no, use the interface.
-                    field.With( clone ).Value = meta.Cast( fieldType, ( (ICloneable?)field.Value )?.Clone() );
+                    field.WithObject( clone ).Value = meta.Cast( fieldType, ((ICloneable?) field.Value)?.Clone() );
                 }
             }
 
@@ -115,7 +115,7 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Samples.DeepClone
 
         public object Clone()
         {
-            return new ManuallyCloneable() { E = E };
+            return new ManuallyCloneable() { E = this.E };
         }
     }
 

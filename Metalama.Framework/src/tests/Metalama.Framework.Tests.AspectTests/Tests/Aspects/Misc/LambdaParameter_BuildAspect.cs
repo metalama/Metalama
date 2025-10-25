@@ -41,7 +41,7 @@ internal class Aspect : PropertyAspect
             .FirstOrDefault()
             ?.ToString();
 
-        builder.With( builder.Target.DeclaringType ).IntroduceMethod( nameof(PropertyBody), args: new { propertyBody } );
+        builder.WithDeclaringType().IntroduceMethod( nameof(PropertyBody), args: new { propertyBody } );
     }
 
     [Template]

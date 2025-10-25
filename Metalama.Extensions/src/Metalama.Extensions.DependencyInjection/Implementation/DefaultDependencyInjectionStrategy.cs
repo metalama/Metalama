@@ -80,7 +80,7 @@ public class DefaultDependencyInjectionStrategy
 
     /// <summary>
     /// The entry point of the <see cref="DefaultDependencyInjectionStrategy"/>. Orchestrates all steps: first calls <see cref="TryIntroduceFieldOrProperty"/>,
-    /// then <see cref="GetDependencyPullStrategy"/>, then <see cref="TryPullDependency(Metalama.Framework.Advising.IAdviser{Metalama.Framework.Code.INamedType},Metalama.Framework.Code.IFieldOrProperty,IDependencyPullStrategy)"/>.
+    /// then <see cref="GetDependencyPullStrategy"/>, then <see cref="TryPullDependency(Metalama.Framework.Aspects.IAdviser{Metalama.Framework.Code.INamedType},Metalama.Framework.Code.IFieldOrProperty,IDependencyPullStrategy)"/>.
     /// </summary>
     public virtual IntroduceDependencyResult IntroduceDependency( IAdviser<INamedType> adviser )
     {
@@ -111,13 +111,13 @@ public class DefaultDependencyInjectionStrategy
     {
         var pullStrategy = this.GetDependencyPullStrategy( adviser.Target );
 
-        this.TryPullDependency( adviser.With( adviser.Target.DeclaringType ), adviser.Target, pullStrategy );
+        this.TryPullDependency( adviser.WithDeclaringType(), adviser.Target, pullStrategy );
 
         return true;
     }
 
     /// <summary>
-    /// Gets the constructors that are modified by <see cref="TryPullDependency(Metalama.Framework.Advising.IAdviser{Metalama.Framework.Code.INamedType},Metalama.Framework.Code.IFieldOrProperty,IDependencyPullStrategy)"/>.
+    /// Gets the constructors that are modified by <see cref="TryPullDependency(Metalama.Framework.Aspects.IAdviser{Metalama.Framework.Code.INamedType},Metalama.Framework.Code.IFieldOrProperty,IDependencyPullStrategy)"/>.
     /// </summary>
     /// <param name="type">The type in which the dependency is being injected.</param>
     private static IEnumerable<IConstructor> GetConstructors( INamedType type )

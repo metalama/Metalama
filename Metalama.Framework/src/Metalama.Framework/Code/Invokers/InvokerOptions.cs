@@ -39,12 +39,33 @@ public enum InvokerOptions
     Final = 3,
 
     /// <summary>
-    /// Mask for bits that encode order values.
+    /// Mask for bits that encode order values, i.e. <see cref="Current"/>, <see cref="Base"/> or <see cref="Final"/>.
     /// </summary>
     OrderMask = 0x0f,
 
     /// <summary>
-    /// Specifies that the null-conditional access operator (<c>?.</c> aka Elvis) has to be used instead of the dot operator. 
+    /// Specifies that the null-conditional member access operator (<c>?</c>) has to be used. 
     /// </summary>
-    NullConditional = 1024
+    NullConditional = 0x10,
+
+    /// <summary>
+    /// Specifies that the null-conditional access operator (<c>?</c>) should be used, but only if the type is known to be nullable.
+    /// </summary>
+    NullConditionalIfNullable = 0x20,
+
+    /// <summary>
+    /// Specifies that the nullable-warning-suppression operator (<c>!</c>) should be used.
+    /// </summary>
+    SuppressNullableWarning = 0x30,
+
+    /// <summary>
+    /// Specifies that the nullable-warning-suppression operator (<c>!</c>) should be used, but only if the type is known to be nullable.
+    /// </summary>
+    SuppressNullableWarningIfNullable = 0x40,
+
+    /// <summary>
+    /// Mask for bits that encode nullability access, i.e. <see cref="NullConditional"/>, <see cref="NullConditionalIfNullable"/>,
+    /// <see cref="SuppressNullableWarning"/> and <see cref="SuppressNullableWarningIfNullable"/>.
+    /// </summary>
+    NullabilityMask = 0xf0
 }

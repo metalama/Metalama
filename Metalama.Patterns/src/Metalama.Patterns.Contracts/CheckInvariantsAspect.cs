@@ -42,7 +42,7 @@ internal sealed class CheckInvariantsAspect : IAspect<INamedType>
 
         foreach ( var method in methodsToOverride )
         {
-            builder.Advice.Override( method, nameof(OverrideMethod), args: new { enableInvariantSuspensionSupport } );
+            builder.With( method ).Override( nameof(OverrideMethod), args: new { enableInvariantSuspensionSupport } );
         }
 
         // Add support for dynamic suspension of invariants.
@@ -51,9 +51,9 @@ internal sealed class CheckInvariantsAspect : IAspect<INamedType>
         {
             if ( !builder.Target.AllMethods.OfName( nameof(this.SuspendInvariants) ).Any() )
             {
-                var counterField = builder.Advice.IntroduceField( builder.Target, nameof(this._invariantSuspensionCounter) ).Declaration;
-                builder.Advice.IntroduceMethod( builder.Target, nameof(this.SuspendInvariants), args: new { counterField } );
-                builder.Advice.IntroduceMethod( builder.Target, nameof(this.AreInvariantsSuspended), args: new { counterField } );
+                var counterField = builder.IntroduceField( nameof(this._invariantSuspensionCounter) ).Declaration;
+                builder.IntroduceMethod( nameof(this.SuspendInvariants), args: new { counterField } );
+                builder.IntroduceMethod( nameof(this.AreInvariantsSuspended), args: new { counterField } );
             }
         }
     }

@@ -77,15 +77,30 @@ internal sealed class IntroducedEvent : IntroducedMember, IEventImpl
 
     private protected override IFullRef<IDeclaration> ToFullDeclarationRef() => this.Ref;
 
-    public IEventInvoker With( InvokerOptions options ) => new EventInvoker( this, options );
+    [Memo]
+    private IEventInvoker Invoker => new EventInvoker( this );
 
-    public IEventInvoker With( object? target, InvokerOptions options = default ) => new EventInvoker( this, options, target );
+    IEventInvoker IEventInvoker.WithOptions( InvokerOptions options ) => this.Invoker.WithOptions( options );
 
-    public object Add( object? handler ) => new EventInvoker( this ).Add( handler );
+    IEventInvoker IEventInvoker.WithObject( object? obj ) => this.Invoker.WithObject( obj );
 
-    public object Remove( object? handler ) => new EventInvoker( this ).Remove( handler );
+    IEventInvoker IEventInvoker.WithObject( IExpression? obj ) => this.Invoker.WithObject( obj );
 
-    public object Raise( params object?[] args ) => new EventInvoker( this ).Raise( args );
+    IEventInvoker IEventInvoker.With( InvokerOptions options ) => this.Invoker.WithOptions( options );
+
+    IEventInvoker IEventInvoker.With( object? target, InvokerOptions options ) => this.Invoker.WithOptions( options ).WithObject( target );
+
+    object IEventInvoker.Add( object? handler ) => this.Invoker.Add( handler );
+
+    object IEventInvoker.Add( IExpression handler ) => this.Invoker.Add( handler );
+
+    object IEventInvoker.Remove( object? handler ) => this.Invoker.Remove( handler );
+
+    object IEventInvoker.Remove( IExpression handler ) => this.Invoker.Remove( handler );
+
+    object? IEventInvoker.Raise( params object?[] args ) => this.Invoker.Raise( args );
+
+    object? IEventInvoker.Raise( params IExpression[] args ) => this.Invoker.Raise( args );
 
     public IMethod? GetAccessor( MethodKind methodKind ) => this.GetAccessorImpl( methodKind );
 

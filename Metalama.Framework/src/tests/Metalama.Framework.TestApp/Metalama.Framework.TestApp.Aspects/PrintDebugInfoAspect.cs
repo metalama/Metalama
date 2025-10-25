@@ -16,7 +16,7 @@ namespace Metalama.Framework.TestApp
 
         public override void BuildAspect(IAspectBuilder<IMethod> aspectBuilder)
         {
-            aspectBuilder.Advice.Override(aspectBuilder.Target, nameof(OverrideMethod));
+            aspectBuilder.With( aspectBuilder.Target ).Override( nameof(OverrideMethod) );
             aspectBuilder.Diagnostics.Report(myWarning.WithArguments(aspectBuilder.Target));
         }
 

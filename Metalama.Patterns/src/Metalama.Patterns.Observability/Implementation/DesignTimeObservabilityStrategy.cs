@@ -17,7 +17,7 @@ internal class DesignTimeObservabilityStrategy : IObservabilityStrategy, ITempla
     public virtual void BuildAspect( IAspectBuilder<INamedType> builder )
     {
         // Introduce the INotifyPropertyChanged if it's not already implemented.
-        builder.Advice.WithTemplateProvider( this ).ImplementInterface( builder.Target, typeof(INotifyPropertyChanged), OverrideStrategy.Ignore );
+        builder.WithTemplateProvider( this ).ImplementInterface( typeof(INotifyPropertyChanged), OverrideStrategy.Ignore );
     }
 
     // ReSharper disable once EventNeverSubscribedTo.Global

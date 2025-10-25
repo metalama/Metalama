@@ -56,7 +56,7 @@ internal sealed class IntroduceFieldAdvice : IntroduceMemberAdvice<IField, IFiel
 
         var targetType = this.TargetDeclaration;
 
-        if ( targetType.TypeKind is TypeKind.Struct or TypeKind.RecordStruct && targetType.IsReadOnly )
+        if ( targetType.TypeKind is TypeKind.Struct && targetType.IsReadOnly )
         {
             builder.Writeability = Writeability.ConstructorOnly;
         }

@@ -18,15 +18,15 @@ internal class Aspect : MethodAspect
 
         object? Invoke( object? instance, object?[] args )
         {
-            return method.With( instance ).Invoke( args[0]! );
+            return method.WithObject( instance ).Invoke( args[0]! );
         }
     }
 
     public override void BuildAspect( IAspectBuilder<IMethod> builder )
     {
-        builder.With( builder.Target.DeclaringType )
+        builder.WithDeclaringType()
             .IntroduceMethod(
-                nameof(GetMethodInvoker),
+                nameof(this.GetMethodInvoker),
                 args: new { method = builder.Target } );
     }
 }

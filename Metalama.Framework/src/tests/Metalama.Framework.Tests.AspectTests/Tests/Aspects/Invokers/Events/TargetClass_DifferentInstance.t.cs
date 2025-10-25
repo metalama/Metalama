@@ -15,15 +15,15 @@ public class TargetClass
   {
     add
     { // Invoke _instance.Event
-      this._instance!.Event += global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Invokers.Events.TargetClass_DifferentInstance.TargetClass.StaticTarget;
+      this._instance.Event += global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Invokers.Events.TargetClass_DifferentInstance.TargetClass.StaticTarget;
       // Invoke _instance.Event
-      this._instance!.Event += global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Invokers.Events.TargetClass_DifferentInstance.TargetClass.StaticTarget;
+      this._instance.Event += global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Invokers.Events.TargetClass_DifferentInstance.TargetClass.StaticTarget;
     }
     remove
     { // Invoke _instance.Event
-      this._instance!.Event -= global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Invokers.Events.TargetClass_DifferentInstance.TargetClass.StaticTarget;
+      this._instance.Event -= global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Invokers.Events.TargetClass_DifferentInstance.TargetClass.StaticTarget;
       // Invoke _instance.Event
-      this._instance!.Event -= global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Invokers.Events.TargetClass_DifferentInstance.TargetClass.StaticTarget;
+      this._instance.Event -= global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.Invokers.Events.TargetClass_DifferentInstance.TargetClass.StaticTarget;
     }
   }
   public static void StaticTarget(object? sender, EventArgs args)

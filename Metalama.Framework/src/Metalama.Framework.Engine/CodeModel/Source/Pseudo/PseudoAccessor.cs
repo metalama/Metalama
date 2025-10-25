@@ -132,17 +132,26 @@ internal abstract class PseudoAccessor : IMethodImpl
 
     bool IMember.IsExtern => false;
 
-    public IMethodInvoker With( InvokerOptions options ) => new MethodInvoker( this, options );
+    [Memo]
+    private IMethodInvoker Invoker => new MethodInvoker( this );
 
-    public IMethodInvoker With( object? target, InvokerOptions options = default ) => new MethodInvoker( this, options, target );
+    IMethodInvoker IMethodInvoker.WithOptions( InvokerOptions options ) => this.Invoker.WithOptions( options );
 
-    public IMethodInvoker With( IExpression target, InvokerOptions options = default ) => new MethodInvoker( this, options, target );
+    IMethodInvoker IMethodInvoker.WithObject( object? obj ) => this.Invoker.WithObject( obj );
 
-    public IExpression CreateInvokeExpression( IEnumerable<IExpression> args ) => new MethodInvoker( this ).CreateInvokeExpression( args );
+    IMethodInvoker IMethodInvoker.WithObject( IExpression? obj ) => this.Invoker.WithObject( obj );
 
-    public object? Invoke( params object?[] args ) => new MethodInvoker( this ).Invoke( args );
+    IMethodInvoker IMethodInvoker.With( InvokerOptions options ) => this.Invoker.WithOptions( options );
 
-    public object? Invoke( IEnumerable<IExpression> args ) => new MethodInvoker( this ).Invoke( args );
+    IMethodInvoker IMethodInvoker.With( object? obj, InvokerOptions options ) => this.Invoker.WithOptions( options ).WithObject( obj );
+
+    IExpression IMethodInvoker.CreateInvokeExpression( IEnumerable<IExpression> args ) => this.Invoker.CreateInvokeExpression( args );
+
+    IExpression IMethodInvoker.CreateInvokeExpression( IEnumerable<object?> args ) => this.Invoker.CreateInvokeExpression( args );
+
+    object? IMethodInvoker.Invoke( params object?[] args ) => this.Invoker.Invoke( args );
+
+    object? IMethodInvoker.Invoke( IEnumerable<IExpression> args ) => this.Invoker.Invoke( args );
 
     ICompilation ICompilationElement.Compilation => this.DeclaringMember.Compilation;
 

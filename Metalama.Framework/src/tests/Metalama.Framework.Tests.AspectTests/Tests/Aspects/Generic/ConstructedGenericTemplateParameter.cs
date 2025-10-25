@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -10,17 +10,17 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Generic.Constructed
 
 public class Aspect : MethodAspect
 {
-    public override void BuildAspect(IAspectBuilder<IMethod> builder)
+    public override void BuildAspect( IAspectBuilder<IMethod> builder )
     {
-        base.BuildAspect(builder);
+        base.BuildAspect( builder );
 
-        builder.Advice.Override(builder.Target, nameof(Template), new { T = typeof(int) });
+        builder.Override( nameof(this.Template), new { T = typeof(int) } );
     }
 
     [Template]
-    private dynamic? Template<[CompileTime] T>(T[] arg)
+    private dynamic? Template<[CompileTime] T>( T[] arg )
     {
-        Console.WriteLine(arg[0]);
+        Console.WriteLine( arg[0] );
 
         return meta.Proceed();
     }
@@ -30,7 +30,7 @@ public class Aspect : MethodAspect
 internal class TargetCode
 {
     [Aspect]
-    public int M(int[] arg)
+    public int M( int[] arg )
     {
         return 0;
     }

@@ -69,7 +69,7 @@ internal class LazyServiceLocatorDependencyInjectionStrategy : DefaultDependency
 
         SuppressNonNullableFieldMustContainValue( builder, builder.Target );
 
-        var typeBuilder = builder.With( builder.Target.DeclaringType );
+        var typeBuilder = builder.WithDeclaringType();
 
         if ( !this.TryAddFields( typeBuilder, overrideResult.Declaration, propertyArgs ) )
         {

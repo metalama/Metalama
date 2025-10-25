@@ -4,11 +4,11 @@
 
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.Invokers;
-using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.SyntaxSerialization;
 using Metalama.Framework.Engine.Templating.Expressions;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System;
 using System.Linq;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
@@ -16,20 +16,17 @@ namespace Metalama.Framework.Engine.CodeModel.Invokers;
 
 internal sealed class IndexerInvoker : Invoker<IIndexer>, IIndexerInvoker
 {
-    public IndexerInvoker( IIndexer indexer, InvokerOptions? options = default, object? target = null ) : base( indexer, options, target ) { }
+    public IndexerInvoker( IIndexer indexer, InvokerOptions options = default, IExpression? target = null ) : base( indexer, options, target ) { }
 
-    public object GetValue( params object?[] args )
-        => new DelegateUserExpression(
-            context => this.CreateIndexerAccess( args, context ),
-            this.Member.Type,
-            isAssignable: this.Member.Writeability != Writeability.None );
+    [Obsolete]
+    public object GetValue( params object?[] args ) => this.GetItemExpression( args );
 
     public object SetValue( object? value, params object?[] args )
     {
         return new DelegateUserExpression(
             context =>
             {
-                var propertyAccess = this.CreateIndexerAccess( args, context );
+                var propertyAccess = this.CreateIndexerAccess( this.CaptureExpressions( args ), context );
 
                 return AssignmentExpression(
                     SyntaxKind.SimpleAssignmentExpression,
@@ -40,13 +37,29 @@ internal sealed class IndexerInvoker : Invoker<IIndexer>, IIndexerInvoker
             isAssignable: true );
     }
 
-    private ExpressionSyntax CreateIndexerAccess( object?[]? args, SyntaxSerializationContext context )
+    public IExpression this[ params IExpression[] args ] => this.GetItemExpression( args );
+
+    public IExpression GetItemExpression( IExpression[] args )
+    {
+        return new DelegateUserExpression(
+            context => this.CreateIndexerAccess( args, context ),
+            this.Member.Type,
+            isAssignable: this.Member.Writeability != Writeability.None );
+    }
+
+    public IExpression this[ params object?[] args ] => this.GetItemExpression( args );
+
+    public IExpression GetItemExpression( object?[] args ) => this.GetItemExpression( this.CaptureExpressions( args ) );
+
+    private IExpression[] CaptureExpressions( object?[] args ) => CapturedUserExpression.Create( this.Compilation, args );
+
+    private ExpressionSyntax CreateIndexerAccess( IExpression[]? args, SyntaxSerializationContext context )
     {
         args ??= [];
 
         var receiverInfo = this.GetReceiverInfo( context );
-        var receiverSyntax = this.Member.GetReceiverSyntax( receiverInfo.TypedExpressionSyntax, context );
-        var argExpressions = TypedExpressionSyntaxImpl.FromValues( args, context ).AssertNotNull();
+        var receiverSyntax = receiverInfo.GetReceiverSyntax( this.Member, context );
+        var argExpressions = args.SelectAsReadOnlyList( x => x.ToTypedExpressionSyntax( context ) );
 
         // TODO: Aspect references.
 
@@ -55,8 +68,13 @@ internal sealed class IndexerInvoker : Invoker<IIndexer>, IIndexerInvoker
         return expression;
     }
 
-    public IIndexerInvoker With( InvokerOptions options ) => this.Options == options ? this : new IndexerInvoker( this.Member, options );
+    public IIndexerInvoker WithOptions( InvokerOptions options ) => this.Options == options ? this : new IndexerInvoker( this.Member, options, this.Target );
 
-    public IIndexerInvoker With( object? target, InvokerOptions options = default )
-        => this.Target == target && this.Options == options ? this : new IndexerInvoker( this.Member, options, target );
+    public IIndexerInvoker WithObject( object obj ) => this.WithObject( CapturedUserExpression.Create( this.Compilation, obj ) );
+
+    public IIndexerInvoker WithObject( IExpression obj ) => this.IsSameTarget( obj ) ? this : new IndexerInvoker( this.Member, this.Options, obj );
+
+    IIndexerInvoker IIndexerInvoker.With( InvokerOptions options ) => this.WithOptions( options );
+
+    IIndexerInvoker IIndexerInvoker.With( object? target, InvokerOptions options ) => this.WithOptions( options ).WithObject( target! );
 }

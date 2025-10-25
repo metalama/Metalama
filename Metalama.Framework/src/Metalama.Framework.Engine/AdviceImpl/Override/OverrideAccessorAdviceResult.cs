@@ -6,7 +6,9 @@ using Metalama.Framework.Advising;
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Advising;
 using Metalama.Framework.Engine.Utilities;
+using Microsoft.CodeAnalysis;
 using System;
+using System.Collections.Immutable;
 
 namespace Metalama.Framework.Engine.AdviceImpl.Override;
 
@@ -16,7 +18,10 @@ internal sealed class OverrideAccessorAdviceResult<TOwner> : AdviceResult, IOver
     private readonly OverrideMemberAdviceResult<TOwner> _owner;
     private readonly Func<TOwner, IMethod?> _getMethod;
 
-    public OverrideAccessorAdviceResult( OverrideMemberAdviceResult<TOwner> owner, Func<TOwner, IMethod?> getMethod )
+    public OverrideAccessorAdviceResult(
+        OverrideMemberAdviceResult<TOwner> owner,
+        Func<TOwner, IMethod?> getMethod,
+        ImmutableArray<Diagnostic> reportedDiagnostics = default ) : base( owner.AdviceKind, owner.Outcome, owner.AdviceFactory, reportedDiagnostics )
     {
         this._owner = owner;
         this._getMethod = getMethod;

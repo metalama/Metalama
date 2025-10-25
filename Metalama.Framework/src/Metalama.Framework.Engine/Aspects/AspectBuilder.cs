@@ -68,6 +68,10 @@ namespace Metalama.Framework.Engine.Aspects
 
         public T Target { get; }
 
+        ICompilation IAdviser.Compilation => ((IAdviser) this.AdviceFactory).Compilation;
+
+        ICompilation IAdviser.MutableCompilation => this.AdviceFactory.MutableCompilation;
+
         [Memo]
         public T AdvisedTarget => this.Target.ForCompilation( this.AdviceFactory.MutableCompilation );
 

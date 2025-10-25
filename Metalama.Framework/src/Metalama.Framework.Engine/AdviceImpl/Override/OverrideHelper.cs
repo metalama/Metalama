@@ -64,7 +64,7 @@ internal static class OverrideHelper
 
     public static void AddTransformationsForStructField( INamedType type, AspectLayerInstance aspectLayerInstance, Action<ITransformation> addTransformation )
     {
-        if ( type.TypeKind is TypeKind.Struct or TypeKind.RecordStruct )
+        if ( type.TypeKind is TypeKind.Struct )
         {
             // If there is no 'this()' constructor, add one.
             if ( type.Constructors.FirstOrDefault() is { IsImplicitlyDeclared: true } implicitConstructor )

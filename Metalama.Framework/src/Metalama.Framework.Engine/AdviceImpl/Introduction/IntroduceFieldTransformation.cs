@@ -48,7 +48,7 @@ internal sealed class IntroduceFieldTransformation : IntroduceMemberTransformati
 
         // If we are introducing a field into a struct in C# 10, it must have an explicit default value.
         if ( initializerExpression == null
-             && fieldBuilder.DeclaringType.TypeKind is TypeKind.Struct or TypeKind.RecordStruct
+             && fieldBuilder.DeclaringType.TypeKind is TypeKind.Struct
              && context.SyntaxGenerationContext.RequiresStructFieldInitialization )
         {
             initializerExpression = SyntaxFactoryEx.Default;

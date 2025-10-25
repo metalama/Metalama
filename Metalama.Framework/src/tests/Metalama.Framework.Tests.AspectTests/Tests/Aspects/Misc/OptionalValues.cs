@@ -23,7 +23,7 @@ namespace Metalama.Framework.Tests.AspectTests.Aspects.Misc.OptionalValues
             // Find the nested type.
             var nestedType = builder.Target.Types.OfName( "Optional" ).FirstOrDefault();
 
-            if (nestedType == null)
+            if ( nestedType == null )
             {
                 builder.Diagnostics.Report( _missingNestedTypeError.WithArguments( builder.Target ), builder.Target );
 
@@ -32,7 +32,7 @@ namespace Metalama.Framework.Tests.AspectTests.Aspects.Misc.OptionalValues
 
             // Introduce a property in the main type to store the Optional object.
             var optionalValuesProperty = builder.IntroduceProperty(
-                    nameof(OptionalValues),
+                    nameof(this.OptionalValues),
                     buildProperty: p =>
                     {
                         p.Type = nestedType;
@@ -40,15 +40,15 @@ namespace Metalama.Framework.Tests.AspectTests.Aspects.Misc.OptionalValues
                     } )
                 .Declaration;
 
-            var optionalValueType = (INamedType)TypeFactory.GetType( typeof(OptionalValue<>) );
+            var optionalValueType = (INamedType) TypeFactory.GetType( typeof(OptionalValue<>) );
 
             // For all automatic properties of the target type.
-            foreach (var property in builder.Target.Properties.Where( p => p.IsAutoPropertyOrField ?? false ))
+            foreach ( var property in builder.Target.Properties.Where( p => p.IsAutoPropertyOrField ?? false ) )
             {
                 // Add a property of the same name, but of type OptionalValue<T>, in the nested type.
                 var optionalProperty = builder.With( nestedType )
                     .IntroduceProperty(
-                        nameof(OptionalPropertyTemplate),
+                        nameof(this.OptionalPropertyTemplate),
                         buildProperty: p =>
                         {
                             p.Name = property.Name;
@@ -59,7 +59,7 @@ namespace Metalama.Framework.Tests.AspectTests.Aspects.Misc.OptionalValues
                 // Override the property in the target type so that it is forwarded to the nested type.
                 builder.With( property )
                     .Override(
-                        nameof(OverridePropertyTemplate),
+                        nameof(this.OverridePropertyTemplate),
                         tags: new { optionalProperty = optionalProperty } );
             }
         }
@@ -75,19 +75,19 @@ namespace Metalama.Framework.Tests.AspectTests.Aspects.Misc.OptionalValues
         {
             get
             {
-                var optionalProperty = (IProperty)meta.Tags["optionalProperty"]!;
+                var optionalProperty = (IProperty) meta.Tags["optionalProperty"]!;
 
-                return optionalProperty.With( (IExpression)meta.This.OptionalValues ).Value!.Value;
+                return optionalProperty.WithObject( (IExpression) meta.This.OptionalValues ).Value!.Value;
             }
 
             set
             {
-                var optionalProperty = (IProperty)meta.Tags["optionalProperty"]!;
+                var optionalProperty = (IProperty) meta.Tags["optionalProperty"]!;
                 var optionalValueBuilder = new ExpressionBuilder();
                 optionalValueBuilder.AppendVerbatim( "new " );
                 optionalValueBuilder.AppendTypeName( optionalProperty.Type );
                 optionalValueBuilder.AppendVerbatim( "( value )" );
-                optionalProperty.With( (IExpression)meta.This.OptionalValues ).Value = optionalValueBuilder.ToValue();
+                optionalProperty.WithObject( (IExpression) meta.This.OptionalValues ).Value = optionalValueBuilder.ToValue();
             }
         }
     }
@@ -100,8 +100,8 @@ namespace Metalama.Framework.Tests.AspectTests.Aspects.Misc.OptionalValues
 
         public OptionalValue( T value )
         {
-            Value = value;
-            IsSpecified = true;
+            this.Value = value;
+            this.IsSpecified = true;
         }
     }
 

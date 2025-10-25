@@ -54,9 +54,9 @@ internal sealed class ClassicDesignTimeObservabilityStrategyImpl : DesignTimeObs
             ? nameof(OnPropertyChangedString)
             : nameof(OnPropertyChangedObject);
 
-        this.Builder.Advice.WithTemplateProvider( this )
+        this.Builder
+            .WithTemplateProvider( this )
             .IntroduceMethod(
-                this.Builder.Target,
                 template,
                 IntroductionScope.Instance,
                 isOverride ? OverrideStrategy.Override : OverrideStrategy.Ignore,
@@ -83,9 +83,9 @@ internal sealed class ClassicDesignTimeObservabilityStrategyImpl : DesignTimeObs
     {
         var isOverride = this._baseOnChildPropertyChangedMethod != null;
 
-        this.Builder.Advice.WithTemplateProvider( this )
+        this.Builder
+            .WithTemplateProvider( this )
             .IntroduceMethod(
-                this.Builder.Target,
                 nameof(OnChildPropertyChanged),
                 IntroductionScope.Instance,
                 isOverride ? OverrideStrategy.Override : OverrideStrategy.Ignore,
@@ -118,9 +118,9 @@ internal sealed class ClassicDesignTimeObservabilityStrategyImpl : DesignTimeObs
 
         var isOverride = this._baseOnObservablePropertyChangedMethod != null;
 
-        this.Builder.Advice.WithTemplateProvider( this )
+        this.Builder
+            .WithTemplateProvider( this )
             .IntroduceMethod(
-                this.Builder.Target,
                 nameof(OnObservablePropertyChanged),
                 IntroductionScope.Instance,
                 isOverride ? OverrideStrategy.Override : OverrideStrategy.Ignore,

@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using JetBrains.Annotations;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Code;
 using Metalama.Framework.Eligibility;
 using System;
@@ -298,14 +297,14 @@ namespace Metalama.Framework.Aspects
 
             IProperty? property;
 
-            if ( parameter.DeclaringMember is IConstructor { DeclaringType.TypeKind: TypeKind.RecordClass or TypeKind.RecordStruct } constructor &&
+            if ( parameter.DeclaringMember is IConstructor { DeclaringType.IsRecord: true } constructor &&
                  (property = constructor.DeclaringType.Properties.OfName( builder.Target.Name ).SingleOrDefault()) != null )
             {
-                builder.Advice.AddContract( property, nameof(this.Validate), direction );
+                builder.With( property ).AddContract( nameof(this.Validate), direction );
             }
             else
             {
-                builder.Advice.AddContract( parameter, nameof(this.Validate), direction );
+                builder.With( parameter ).AddContract( nameof(this.Validate), direction );
             }
         }
 
@@ -360,7 +359,7 @@ namespace Metalama.Framework.Aspects
         /// </remarks>
         public static void RedirectContracts( IAspectBuilder aspectBuilder, IFieldOrPropertyOrIndexer sourceTarget, IParameter targetParameter )
         {
-            aspectBuilder.Advice.AddAnnotation( sourceTarget, new RedirectToProxyParameterAnnotation( targetParameter ) );
+            aspectBuilder.With( sourceTarget ).AddAnnotation( new RedirectToProxyParameterAnnotation( targetParameter ) );
         }
     }
 }

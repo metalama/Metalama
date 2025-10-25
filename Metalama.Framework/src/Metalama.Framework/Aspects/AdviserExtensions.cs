@@ -3,7 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using JetBrains.Annotations;
-using Metalama.Framework.Aspects;
+using Metalama.Framework.Advising;
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.DeclarationBuilders;
 using Metalama.Framework.Code.SyntaxBuilders;
@@ -12,7 +12,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 
-namespace Metalama.Framework.Advising;
+namespace Metalama.Framework.Aspects;
 
 [PublicAPI]
 [CompileTime]
@@ -1423,12 +1423,21 @@ public static class AdviserExtensions
             ((IAdviserInternal) adviser).AdviceFactory.WithTemplateProvider( templateProvider ),
             adviser.Diagnostics );
 
+    /// <summary>
+    /// Gets an <see cref="IAdviser{T}"/> for the declaring type of the current member.
+    /// </summary>
+    public static IAdviser<INamedType> WithDeclaringType( this IAdviser<IMember> memberAdviser ) => memberAdviser.With( memberAdviser.Target.DeclaringType );
+
     private class Adviser<T> : IAdviser<T>, IAdviserInternal
         where T : class, IDeclaration
     {
         public ScopedDiagnosticSink Diagnostics { get; }
 
         IDeclaration IAdviser.Target => this.Target;
+
+        public ICompilation Compilation => this.AdviceFactory.Compilation;
+
+        public ICompilation MutableCompilation => this.AdviceFactory.MutableCompilation;
 
         public T Target { get; }
 

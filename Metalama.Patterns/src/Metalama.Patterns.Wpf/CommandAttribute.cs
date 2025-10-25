@@ -196,22 +196,23 @@ public sealed partial class CommandAttribute : Attribute, IAspect<IMethod>
         };
 
         // Introduce the Command property.
-        var introducePropertyResult = builder.Advice.IntroduceProperty(
-            declaringType,
-            propertyTemplate,
-            IntroductionScope.Instance,
-            OverrideStrategy.Fail,
-            b =>
-            {
-                b.Type = commandType;
-                b.Name = match.CommandPropertyName!;
+        var introducePropertyResult = builder
+            .WithDeclaringType()
+            .IntroduceProperty(
+                propertyTemplate,
+                IntroductionScope.Instance,
+                OverrideStrategy.Fail,
+                b =>
+                {
+                    b.Type = commandType;
+                    b.Name = match.CommandPropertyName!;
 
-                // ReSharper disable once RedundantNameQualifier
-                b.Accessibility = MetalamaAccessibility.Public;
+                    // ReSharper disable once RedundantNameQualifier
+                    b.Accessibility = MetalamaAccessibility.Public;
 
-                // ReSharper disable once RedundantNameQualifier
-                b.GetMethod!.Accessibility = MetalamaAccessibility.Public;
-            } );
+                    // ReSharper disable once RedundantNameQualifier
+                    b.GetMethod!.Accessibility = MetalamaAccessibility.Public;
+                } );
 
         if ( introducePropertyResult.Outcome == AdviceOutcome.Default )
         {
@@ -259,21 +260,22 @@ public sealed partial class CommandAttribute : Attribute, IAspect<IMethod>
             return;
         }
 
-        builder.Advice.AddInitializer(
-            declaringType,
-            parameterType != null ? nameof(this.InitializeCommandWithParameter) : nameof(this.InitializeCommandWithoutParameter),
-            InitializerKind.BeforeInstanceConstructor,
-            args: new
-            {
-                commandProperty,
-                executeMethod,
-                canExecuteMethod,
-                canExecuteProperty,
-                useInpcIntegration,
-                isAsyncCommand,
-                T = parameterType,
-                supportsCancellation
-            } );
+        builder
+            .With( declaringType )
+            .AddInitializer(
+                parameterType != null ? nameof(this.InitializeCommandWithParameter) : nameof(this.InitializeCommandWithoutParameter),
+                InitializerKind.BeforeInstanceConstructor,
+                args: new
+                {
+                    commandProperty,
+                    executeMethod,
+                    canExecuteMethod,
+                    canExecuteProperty,
+                    useInpcIntegration,
+                    isAsyncCommand,
+                    T = parameterType,
+                    supportsCancellation
+                } );
     }
 
     // ReSharper disable once UnassignedGetOnlyAutoProperty
@@ -384,8 +386,6 @@ public sealed partial class CommandAttribute : Attribute, IAspect<IMethod>
         [CompileTime] bool supportsCancellation )
     {
         IExpression? canExecuteExpression = null;
-
-        meta.DebugBreak();
 
         if ( canExecuteMethod != null || canExecuteProperty != null )
         {

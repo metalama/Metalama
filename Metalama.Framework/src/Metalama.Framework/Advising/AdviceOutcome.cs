@@ -16,9 +16,14 @@ namespace Metalama.Framework.Advising;
 public enum AdviceOutcome
 {
     /// <summary>
-    /// The advice was successfully applied and there was no conflict.
+    /// Synonym to <see cref="Success"/>.
     /// </summary>
     Default,
+
+    /// <summary>
+    /// The advice was successfully applied and there was no conflict.
+    /// </summary>
+    Success = Default,
 
     /// <summary>
     /// There was a conflict and the advice was successfully applied and the new advice overrides the previous declaration.

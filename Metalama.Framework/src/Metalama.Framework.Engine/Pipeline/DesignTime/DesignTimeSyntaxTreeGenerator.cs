@@ -500,7 +500,7 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
         private static TypeDeclarationSyntax CreatePartialType( INamedType type, BaseListSyntax? baseList, SyntaxList<MemberDeclarationSyntax> members )
             => type.TypeKind switch
             {
-                TypeKind.Class => ClassDeclaration(
+                TypeKind.Class when !type.IsRecord => ClassDeclaration(
                     attributeLists: default,
                     SyntaxTokenList.Create( Token( SyntaxKind.PartialKeyword ) ),
                     Identifier( type.Name ),
@@ -508,7 +508,7 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                     baseList,
                     constraintClauses: default,
                     members ),
-                TypeKind.RecordClass => RecordDeclaration(
+                TypeKind.Class when type.IsRecord => RecordDeclaration(
                     SyntaxKind.RecordDeclaration,
                     attributeLists: default,
                     SyntaxTokenList.Create( Token( SyntaxKind.PartialKeyword ) ),
@@ -523,7 +523,7 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                     members,
                     closeBraceToken: Token( SyntaxKind.CloseBraceToken ),
                     semicolonToken: default ),
-                TypeKind.Struct => StructDeclaration(
+                TypeKind.Struct when !type.IsRecord => StructDeclaration(
                     attributeLists: default,
                     SyntaxTokenList.Create( Token( SyntaxKind.PartialKeyword ) ),
                     Identifier( type.Name ),
@@ -531,7 +531,7 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                     baseList,
                     constraintClauses: default,
                     members ),
-                TypeKind.RecordStruct => RecordDeclaration(
+                TypeKind.Struct when type.IsRecord => RecordDeclaration(
                     SyntaxKind.RecordStructDeclaration,
                     attributeLists: default,
                     SyntaxTokenList.Create( Token( SyntaxKind.PartialKeyword ) ),

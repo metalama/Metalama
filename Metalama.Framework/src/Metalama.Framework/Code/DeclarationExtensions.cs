@@ -240,7 +240,7 @@ namespace Metalama.Framework.Code
                 IsImplicitlyDeclared: true,
                 IsPrimary: false,
                 Parameters: [_],
-                DeclaringType.TypeKind: TypeKind.RecordClass or TypeKind.RecordStruct
+                DeclaringType.IsRecord: true
             };
 
         /// <summary>

@@ -6,11 +6,16 @@ using Metalama.Framework.Advising;
 using Metalama.Framework.Code;
 using Metalama.Framework.Diagnostics;
 using Metalama.Framework.Engine.Aspects;
+using Metalama.Framework.Engine.CodeModel;
 
 namespace Metalama.Framework.Engine.Advising;
 
 internal interface IAdviceFactoryImpl : IAdviceFactory
 {
+    new CompilationModel Compilation { get; }
+
+    new CompilationModel MutableCompilation { get; }
+
     ScopedDiagnosticSink Diagnostics { get; }
 
     AdviceFactory<TNewDeclaration> WithDeclaration<TNewDeclaration>( TNewDeclaration declaration )

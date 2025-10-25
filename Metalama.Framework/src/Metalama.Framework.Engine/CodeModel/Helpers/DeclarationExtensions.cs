@@ -13,7 +13,6 @@ using Metalama.Framework.Engine.CodeModel.Source;
 using Metalama.Framework.Engine.Collections;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Services;
-using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.SyntaxSerialization;
 using Metalama.Framework.Engine.Templating.Expressions;
 using Metalama.Framework.Engine.Utilities.Roslyn;
@@ -64,7 +63,8 @@ public static class DeclarationExtensions
     /// Select all declarations recursively contained in a given declaration (i.e. all descendants of the tree).
     /// </summary>
     internal static IEnumerable<IDeclaration> GetContainedDeclarations( this IDeclaration declaration )
-        => declaration.SelectManyRecursive( child => child switch
+        => declaration.SelectManyRecursive(
+            child => child switch
             {
                 ICompilation compilation => [compilation.GlobalNamespace],
                 INamespace ns => EnumerableExtensions.Concat<IDeclaration>( ns.Namespaces, ns.Types ),
@@ -100,10 +100,10 @@ public static class DeclarationExtensions
             _ => null
         };
 
-    private static void CheckArguments( this IDeclaration declaration, IReadOnlyList<IParameter> parameters, TypedExpressionSyntaxImpl[]? arguments )
+    private static void CheckArguments( this IDeclaration declaration, IReadOnlyList<IParameter> parameters, IReadOnlyList<IExpression> arguments )
     {
         // TODO: somehow provide locations for the diagnostics?
-        var argumentsLength = arguments?.Length ?? 0;
+        var argumentsLength = arguments.Count;
 
         if ( parameters.LastOrDefault()?.IsParams == true )
         {
@@ -127,33 +127,36 @@ public static class DeclarationExtensions
     internal static ArgumentSyntax[] GetArguments(
         this IDeclaration declaration,
         IReadOnlyList<IParameter> parameters,
-        TypedExpressionSyntaxImpl[]? args,
-        SyntaxGenerationContext syntaxGenerationContext )
+        IReadOnlyList<IExpression> args,
+        SyntaxSerializationContext context )
     {
         CheckArguments( declaration, parameters, args );
 
-        if ( args == null || args.Length == 0 )
+        if ( args.Count == 0 )
         {
             return [];
         }
 
-        var arguments = new List<ArgumentSyntax>( args.Length );
-
-        for ( var i = 0; i < args.Length; i++ )
+        var arguments = new List<ArgumentSyntax>( args.Count );
+        
+        for ( var i = 0; i < args.Count; i++ )
         {
             var arg = args[i];
-
+            
             ArgumentSyntax argument;
 
             if ( i >= parameters.Count || parameters[i].IsParams )
             {
                 // params methods can be called as params or directly with an array
                 // so it's probably best to not do any type-checking for them
+                var typedSyntax = arg.ToTypedExpressionSyntax( context );
 
-                argument = SyntaxFactory.Argument( arg.Syntax );
+                argument = SyntaxFactory.Argument( typedSyntax.Syntax );
             }
             else
             {
+                var typedSyntax = arg.ToTypedExpressionSyntax( context, parameters[i].Type );
+
                 var parameter = parameters[i];
 
                 if ( parameter.RefKind is RefKind.Out or RefKind.Ref or RefKind.RefReadOnly )
@@ -166,31 +169,33 @@ public static class DeclarationExtensions
                         // but only with `in` if it's a read-only variable/`readonly ref`.
                         // If the argument is not a `ref` or variable, no modifier is possible and the code produces a warning.
 
-                        refKindKeyword = arg.IsReferenceable == true ? SyntaxKind.InKeyword : SyntaxKind.None;
+                        refKindKeyword = typedSyntax.IsReferenceable == true ? SyntaxKind.InKeyword : SyntaxKind.None;
                     }
                     else
                     {
-                        // With out and ref parameters, we unconditionally add the out or ref modifier, and "hope" the code will later compile.
+                        // With `out` and `ref` parameters, we unconditionally add the out or ref modifier, and "hope" the code will later compile.
                         // We also intentionally omit to cast the value since it would be illegal.
 
-                        if ( arg.IsReferenceable == false )
+                        if ( typedSyntax.IsReferenceable == false )
                         {
                             // If we know that the expression is not referenceable, throw. If have a doubt, assume it is.
 
                             throw new DiagnosticException(
                                 GeneralDiagnosticDescriptors.CannotPassExpressionToByRefParameter.CreateRoslynDiagnostic(
                                     null,
-                                    (arg.Syntax.ToString(), parameter.Name, parameter.DeclaringMember.AssertNotNull()) ) );
+                                    (typedSyntax.Syntax.ToString(), parameter.Name, parameter.DeclaringMember.AssertNotNull()) ) );
                         }
 
                         refKindKeyword = parameter.RefKind is RefKind.Ref ? SyntaxKind.RefKeyword : SyntaxKind.OutKeyword;
                     }
 
-                    argument = SyntaxFactory.Argument( null, SyntaxFactory.Token( refKindKeyword ), arg.Syntax );
+                    argument = SyntaxFactory.Argument( null, SyntaxFactory.Token( refKindKeyword ), typedSyntax.Syntax );
                 }
                 else
                 {
-                    argument = SyntaxFactory.Argument( arg.Convert( parameter.Type, syntaxGenerationContext, true ).Syntax.RemoveParenthesis() );
+                    argument = SyntaxFactory.Argument(
+                        ((TypedExpressionSyntaxImpl) typedSyntax.Implementation).Convert( parameter.Type, context.SyntaxGenerationContext, true )
+                        .Syntax.RemoveParenthesis() );
                 }
             }
 
@@ -198,32 +203,6 @@ public static class DeclarationExtensions
         }
 
         return arguments.ToArray();
-    }
-
-    internal static ExpressionSyntax GetReceiverSyntax<T>(
-        this T declaration,
-        TypedExpressionSyntaxImpl instance,
-        SyntaxSerializationContext context )
-        where T : IMember
-    {
-        if ( declaration.IsStatic )
-        {
-            return context.SyntaxGenerator.TypeExpression( declaration.DeclaringType ).WithSimplifierAnnotationIfNecessary( context.SyntaxGenerationContext );
-        }
-
-        var definition = declaration.Definition;
-
-        if ( definition.IsExplicitInterfaceImplementation )
-        {
-            return
-                SyntaxFactory.ParenthesizedExpression(
-                        SyntaxFactory.CastExpression(
-                            context.SyntaxGenerator.TypeSyntax( definition.GetExplicitInterfaceImplementation().DeclaringType ),
-                            instance.Syntax ) )
-                    .WithSimplifierAnnotationIfNecessary( context.SyntaxGenerationContext );
-        }
-
-        return instance.Convert( declaration.DeclaringType, context.SyntaxGenerationContext ).Syntax;
     }
 
     /// <summary>
@@ -280,23 +259,13 @@ public static class DeclarationExtensions
             _ => kind.ToString().ToLowerInvariant()
         };
 
-    internal static SyntaxKind ToOperatorKeyword( this OperatorKind operatorKind )
-        {
-        var operatorData = OperatorData.GetByKind( operatorKind );
-
-        if ( operatorData?.OperatorKeyword is { } syntaxKind )
-        {
-            return syntaxKind;
-        }
-
-        throw new AssertionFailedException( $"Unexpected OperatorKind: {operatorKind}." );
-    }
+    internal static SyntaxKind ToOperatorKeyword( this OperatorKind operatorKind ) => OperatorData.GetByKind( operatorKind ).OperatorKeyword;
 
     internal static string ToOperatorMethodName( this OperatorKind operatorKind )
-        {
+    {
         var operatorData = OperatorData.GetByKind( operatorKind );
 
-        return operatorData?.MemberName ?? throw new AssertionFailedException( $"Unexpected OperatorKind: {operatorKind}." );
+        return operatorData.MemberName ?? throw new AssertionFailedException( $"Unexpected OperatorKind: {operatorKind}." );
     }
 
     internal static bool? IsAutoProperty( this IPropertySymbol symbol )
@@ -309,7 +278,8 @@ public static class DeclarationExtensions
 #endif
             _ when symbol.GetBackingField() != null => true,
             { DeclaringSyntaxReferences: { Length: > 0 } syntaxReferences } =>
-                syntaxReferences.All( sr =>
+                syntaxReferences.All(
+                    sr =>
                         sr.GetSyntax() switch
                         {
                             BasePropertyDeclarationSyntax { AccessorList.Accessors: { Count: > 0 } accessors } when
@@ -334,10 +304,10 @@ public static class DeclarationExtensions
     internal static bool? HasBody( this IPropertySymbol property )
         => (property.GetMethod?.HasBody(), property.SetMethod?.HasBody()) switch
         {
-            (null, null ) => null,
-            (true, _ ) or (_, true ) => true,
-            (false, false ) => false,
-            _ => null,
+            (null, null) => null,
+            (true, _) or (_, true) => true,
+            (false, false) => false,
+            _ => null
         };
 
     internal static bool? HasBody( this IMethodSymbol method )
@@ -346,10 +316,10 @@ public static class DeclarationExtensions
             { IsAbstract: true } => false,
             { DeclaringSyntaxReferences.Length: > 0 } =>
                 method.DeclaringSyntaxReferences.Any(
-                    m => m.GetSyntax() is 
+                    m => m.GetSyntax() is
                         BaseMethodDeclarationSyntax { Body: { } }
-                        or BaseMethodDeclarationSyntax { ExpressionBody: { } } 
-                        or PropertyDeclarationSyntax { ExpressionBody: { } } 
+                        or BaseMethodDeclarationSyntax { ExpressionBody: { } }
+                        or PropertyDeclarationSyntax { ExpressionBody: { } }
                         or AccessorDeclarationSyntax { Body: { } }
                         or AccessorDeclarationSyntax { ExpressionBody: { } } ),
             _ => null
@@ -598,12 +568,12 @@ public static class DeclarationExtensions
         => type switch
         {
             INamedType namedType => namedType.ImplementedInterfaces,
-            IArrayType { Rank: 1 } arrayType => SymbolHelpers.ArrayGenericInterfaces.Select( definitionSpecialType => type.GetCompilationModel()
+            IArrayType { Rank: 1 } arrayType => SymbolHelpers.ArrayGenericInterfaces.Select(
+                definitionSpecialType => type.GetCompilationModel()
                     .Factory
-                                                                                                 .GetNamedType(
-                                                                                                     type.GetCompilationModel()
-                                                                                                         .RoslynCompilation.GetSpecialType(
-                                                                                                             definitionSpecialType ) )
+                    .GetNamedType(
+                        type.GetCompilationModel()
+                            .RoslynCompilation.GetSpecialType( definitionSpecialType ) )
                     .WithTypeArguments( arrayType.ElementType ) ),
             _ => []
         };

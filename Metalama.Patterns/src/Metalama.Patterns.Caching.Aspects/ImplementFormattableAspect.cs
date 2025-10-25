@@ -67,10 +67,9 @@ internal sealed class ImplementFormattableAspect : TypeAspect
 
     public override void BuildAspect( IAspectBuilder<INamedType> builder )
     {
-        builder.Advice.ImplementInterface( builder.Target, typeof(IFormattable<CacheKeyFormatting>), whenExists: OverrideStrategy.Ignore );
+        builder.ImplementInterface( typeof(IFormattable<CacheKeyFormatting>), whenExists: OverrideStrategy.Ignore );
 
-        builder.Advice.IntroduceMethod(
-            builder.Target,
+        builder.IntroduceMethod(
             nameof(this.FormatCacheKey),
             whenExists: OverrideStrategy.Override,
             buildMethod:

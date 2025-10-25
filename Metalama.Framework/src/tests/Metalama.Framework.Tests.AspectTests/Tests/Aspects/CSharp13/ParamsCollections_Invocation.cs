@@ -22,13 +22,13 @@ public class TheAspect : TypeAspect
     {
         var constructor = meta.Target.Type.Constructors.Single();
 
-        var value = constructor.Invoke(1, 2, 3)!;
+        var value = constructor.Invoke( 1, 2, 3 )!;
 
         var method = meta.Target.Type.Methods.Single();
 
-        method.With( (IExpression) value).Invoke(1, 2, 3);
+        method.WithObject( (IExpression?) value ).Invoke( 1, 2, 3 );
 
-        value.Foo(1, 2, 3);
+        value.Foo( 1, 2, 3 );
     }
 }
 
@@ -36,9 +36,9 @@ public class TheAspect : TypeAspect
 [TheAspect]
 public class Target
 {
-    public Target(params List<int> ints) { }
+    public Target( params List<int> ints ) { }
 
-    private void Foo(params List<int> ints) { }
+    private void Foo( params List<int> ints ) { }
 }
 
 #endif

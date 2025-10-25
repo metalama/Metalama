@@ -507,6 +507,16 @@ namespace Metalama.Framework.Engine.CodeModel.Source
             }
         }
 
+        public bool IsRecord
+        {
+            get
+            {
+                this.OnUsingDeclaration();
+
+                return this.Implementation.IsRecord;
+            }
+        }
+
         ICompilation ICompilationElement.Compilation => this.Compilation;
 
         private protected override IFullRef<IDeclaration> ToFullDeclarationRef() => this.Implementation.Ref;

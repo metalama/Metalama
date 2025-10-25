@@ -40,7 +40,7 @@ public class IntroductionAttribute : TypeAspect
     [Template]
     public virtual void TestUsageMethod( [CompileTime] IIndexer privateIndexer)
     {
-        privateIndexer.SetValue(privateIndexer.GetValue(42) + 1, 42);
+        privateIndexer[42].Value = privateIndexer[42].Value + 1;
     }
 }
 

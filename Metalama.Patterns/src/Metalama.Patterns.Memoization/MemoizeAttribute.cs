@@ -49,17 +49,18 @@ public sealed class MemoizeAttribute : Attribute, IAspect<IMethod>, IAspect<IPro
 
         if ( builder.Target.ReturnType is { IsReferenceType: true, IsNullable: false } )
         {
-            var field = builder.Advice.IntroduceField( builder.Target.DeclaringType, fieldName, builder.Target.ReturnType, IntroductionScope.Target )
+            var field = builder.WithDeclaringType()
+                .IntroduceField( fieldName, builder.Target.ReturnType, IntroductionScope.Target )
                 .Declaration;
 
-            builder.Advice.Override( builder.Target, nameof(this.NonNullableReferenceTypeTemplate), args: new { field } );
+            builder.Override( nameof(this.NonNullableReferenceTypeTemplate), args: new { field } );
         }
         else
         {
             var fieldType = ((INamedType) TypeFactory.GetType( typeof(StrongBox<>) )).WithTypeArguments( builder.Target.ReturnType );
 
-            var field = builder.Advice.IntroduceField( builder.Target.DeclaringType, fieldName, fieldType, IntroductionScope.Target ).Declaration;
-            builder.Advice.Override( builder.Target, nameof(this.BoxingTemplate), args: new { field, T = builder.Target.ReturnType } );
+            var field = builder.WithDeclaringType().IntroduceField( fieldName, fieldType, IntroductionScope.Target ).Declaration;
+            builder.Override( nameof(this.BoxingTemplate), args: new { field, T = builder.Target.ReturnType } );
         }
     }
 
@@ -69,15 +70,15 @@ public sealed class MemoizeAttribute : Attribute, IAspect<IMethod>, IAspect<IPro
 
         if ( builder.Target.Type is { IsReferenceType: true, IsNullable: false } )
         {
-            var field = builder.Advice.IntroduceField( builder.Target.DeclaringType, fieldName, builder.Target.Type, IntroductionScope.Target ).Declaration;
-            builder.Advice.OverrideAccessors( builder.Target, getTemplate: nameof(this.NonNullableReferenceTypeTemplate), args: new { field } );
+            var field = builder.WithDeclaringType().IntroduceField( fieldName, builder.Target.Type, IntroductionScope.Target ).Declaration;
+            builder.OverrideAccessors( getTemplate: nameof(this.NonNullableReferenceTypeTemplate), args: new { field } );
         }
         else
         {
             var fieldType = ((INamedType) TypeFactory.GetType( typeof(StrongBox<>) )).WithTypeArguments( builder.Target.Type );
 
-            var field = builder.Advice.IntroduceField( builder.Target.DeclaringType, fieldName, fieldType, IntroductionScope.Target ).Declaration;
-            builder.Advice.OverrideAccessors( builder.Target, getTemplate: nameof(this.BoxingTemplate), args: new { field, T = builder.Target.Type } );
+            var field = builder.WithDeclaringType().IntroduceField( fieldName, fieldType, IntroductionScope.Target ).Declaration;
+            builder.OverrideAccessors( getTemplate: nameof(this.BoxingTemplate), args: new { field, T = builder.Target.Type } );
         }
     }
 

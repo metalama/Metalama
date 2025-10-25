@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -9,47 +9,47 @@ using Metalama.Framework.Tests.AspectTests.Tests.Aspects.Formatting.PropertyAcce
 
 #pragma warning disable CS0162
 
-[assembly: AspectOrder(AspectOrderDirection.RunTime, typeof(Aspect1), typeof(Aspect2))]
+[assembly: AspectOrder( AspectOrderDirection.RunTime, typeof(Aspect1), typeof(Aspect2) )]
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Formatting.PropertyAccessorOverride
 {
     public class Aspect1 : PropertyAspect
     {
-        public override void BuildAspect(IAspectBuilder<IProperty> builder)
+        public override void BuildAspect( IAspectBuilder<IProperty> builder )
         {
-            builder.Advice.OverrideAccessors(builder.Target, nameof(Override), nameof(Override));
+            builder.OverrideAccessors( nameof(this.Override), nameof(this.Override) );
         }
 
         [Template]
         public dynamic? Override()
         {
-            meta.InsertComment("Comment before Aspect1.");
-            Console.WriteLine(nameof(Aspect1));
-            meta.InsertComment("Comment mid Aspect1.");
+            meta.InsertComment( "Comment before Aspect1." );
+            Console.WriteLine( nameof(Aspect1) );
+            meta.InsertComment( "Comment mid Aspect1." );
 
             return meta.Proceed();
 
-            meta.InsertComment("Comment after Aspect1.");
+            meta.InsertComment( "Comment after Aspect1." );
         }
     }
 
     public class Aspect2 : PropertyAspect
     {
-        public override void BuildAspect(IAspectBuilder<IProperty> builder)
+        public override void BuildAspect( IAspectBuilder<IProperty> builder )
         {
-            builder.Advice.OverrideAccessors(builder.Target, nameof(Override), nameof(Override));
+            builder.OverrideAccessors( nameof(this.Override), nameof(this.Override) );
         }
 
         [Template]
         public dynamic? Override()
         {
-            meta.InsertComment("Comment before Aspect2.");
-            Console.WriteLine(nameof(Aspect2));
-            meta.InsertComment("Comment mid Aspect2.");
+            meta.InsertComment( "Comment before Aspect2." );
+            Console.WriteLine( nameof(Aspect2) );
+            meta.InsertComment( "Comment mid Aspect2." );
 
             return meta.Proceed();
 
-            meta.InsertComment("Comment after Aspect2.");
+            meta.InsertComment( "Comment after Aspect2." );
         }
     }
 

@@ -60,7 +60,7 @@ internal class SyntaxBuilderImpl : ISyntaxBuilderImpl
 
     public IProject Project => this.Compilation.Project;
 
-    public IExpression Capture( object? expression ) => new CapturedUserExpression( this.Compilation, expression );
+    public IExpression Capture( object? expression ) => CapturedUserExpression.Create(this.Compilation, expression);
 
     public IExpression BuildArray( ArrayBuilder arrayBuilder ) => new ArrayUserExpression( arrayBuilder );
 

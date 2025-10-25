@@ -48,12 +48,12 @@ internal sealed class ConstructorInvoker : Invoker<IConstructor>, IConstructorIn
 
         this.CheckInvocationOptionsAndTarget();
 
-        return this.InvokeConstructor( args );
+        return this.InvokeConstructor( CapturedUserExpression.Create( this.Compilation, args ) );
     }
 
     public object Invoke( IEnumerable<IExpression> args ) => this.Invoke( args.ToArray<object>() );
 
-    private IExpression InvokeConstructor( object?[] args )
+    private IExpression InvokeConstructor( IReadOnlyList<IExpression> args )
     {
         return new DelegateUserExpression(
             context =>
@@ -62,8 +62,8 @@ internal sealed class ConstructorInvoker : Invoker<IConstructor>, IConstructorIn
 
                 var arguments = this.Member.GetArguments(
                     this.Member.Parameters,
-                    TypedExpressionSyntaxImpl.FromValues( args, context ),
-                    context.SyntaxGenerationContext );
+                    args,
+                    context );
 
                 return CreateObjectCreationExpression( type, arguments, null );
             },
@@ -79,11 +79,6 @@ internal sealed class ConstructorInvoker : Invoker<IConstructor>, IConstructorIn
         => new ObjectCreationExpression(
             this.Member,
             context => TypedExpressionSyntaxImpl.FromValues( args, context ).SelectAsArray( tes => tes.Syntax ) );
-
-    public IObjectCreationExpression CreateInvokeExpression( params IExpression[] args )
-        => new ObjectCreationExpression(
-            this.Member,
-            context => args.SelectAsArray( arg => arg.ToExpressionSyntax( context ) ) );
 
     public IObjectCreationExpression CreateInvokeExpression( IEnumerable<IExpression> args )
         => new ObjectCreationExpression(

@@ -10,37 +10,32 @@ using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.SyntaxSerialization;
 using Metalama.Framework.Engine.Templating;
 using Metalama.Framework.Engine.Templating.Expressions;
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Metalama.Framework.Engine.CodeModel.Invokers;
 
-internal abstract class Invoker<T>
+internal abstract partial class Invoker<T>
     where T : IMember
 {
-    private readonly AspectReferenceOrder _order;
-
     protected InvokerOptions Options { get; }
 
-    protected object? Target { get; }
+    protected IExpression? Target { get; }
 
-    protected Invoker( T member, InvokerOptions? options, object? target )
+    protected Invoker( T member, InvokerOptions options, IExpression? target )
     {
-        options ??= InvokerOptions.Default;
-
-        var isSelfTarget = target is null or ThisInstanceUserReceiver or ThisTypeUserReceiver;
-
-        var orderOptions = GetOrderOptions( member, options.Value, isSelfTarget );
-
-        var otherFlags = options.Value & ~InvokerOptions.OrderMask;
-
-        this.Options = orderOptions | otherFlags;
-
+        this.Options = options;
         this.Target = target;
         this.Member = member;
+    }
 
-        this._order = orderOptions switch
+    // Note that the result of this method indirectly depends on the execution context, so it cannot be cached.
+    private AspectReferenceOrder GetAspectReferenceOrder()
+    {
+        var isSelfTarget = this.Target is null or ThisInstanceUserReceiver or ThisTypeUserReceiver;
+
+        var orderOptions = GetOrderOptions( this.Member, this.Options, isSelfTarget );
+
+        return orderOptions switch
         {
             InvokerOptions.Current => AspectReferenceOrder.Current,
             InvokerOptions.Base => AspectReferenceOrder.Base,
@@ -72,53 +67,12 @@ internal abstract class Invoker<T>
 
     protected T Member { get; }
 
-    protected readonly record struct ReceiverTypedExpressionSyntax
-    {
-        public ReceiverTypedExpressionSyntax(
-            TypedExpressionSyntaxImpl typedExpressionSyntax,
-            bool requiresConditionalAccess,
-            AspectReferenceSpecification aspectReferenceSpecification )
-        {
-            if ( requiresConditionalAccess && typedExpressionSyntax.Syntax is PostfixUnaryExpressionSyntax postfix
-                                           && postfix.IsKind( SyntaxKind.SuppressNullableWarningExpression ) )
-            {
-                this.TypedExpressionSyntax = new TypedExpressionSyntaxImpl( postfix.Operand, typedExpressionSyntax );
-            }
-            else
-            {
-                this.TypedExpressionSyntax = typedExpressionSyntax;
-            }
-
-            this.RequiresConditionalAccess = requiresConditionalAccess;
-            this.AspectReferenceSpecification = aspectReferenceSpecification;
-        }
-
-        public ExpressionSyntax Syntax => this.TypedExpressionSyntax.Syntax;
-
-        public TypedExpressionSyntaxImpl TypedExpressionSyntax { get; }
-
-        public bool RequiresConditionalAccess { get; }
-
-        public AspectReferenceSpecification AspectReferenceSpecification { get; }
-
-        public ReceiverExpressionSyntax WithSyntax( ExpressionSyntax syntax )
-            => new( syntax, this.RequiresConditionalAccess, this.AspectReferenceSpecification );
-
-        public ReceiverExpressionSyntax ToReceiverExpressionSyntax() => new( this.Syntax, this.RequiresConditionalAccess, this.AspectReferenceSpecification );
-    }
+    protected ICompilation Compilation => this.Member.Compilation;
 
     protected readonly record struct ReceiverExpressionSyntax(
         ExpressionSyntax Syntax,
         bool RequiresNullConditionalAccessMember,
         AspectReferenceSpecification AspectReferenceSpecification );
-
-    private AspectReferenceSpecification GetDefaultAspectReferenceSpecification()
-
-        // CurrentAspectLayerId may be null when we are not executing in a template execution context.
-        => new(
-            TemplateExpansionContext.CurrentAspectLayerId ?? default,
-            this._order,
-            flags: this.Target == null ? AspectReferenceFlags.None : AspectReferenceFlags.CustomReceiver );
 
     protected string GetCleanTargetMemberName()
     {
@@ -132,18 +86,25 @@ internal abstract class Invoker<T>
 
     protected ReceiverTypedExpressionSyntax GetReceiverInfo( SyntaxSerializationContext syntaxSerializationContext )
     {
+        var order = this.GetAspectReferenceOrder();
+
         if ( this.Target is UserReceiver receiver )
         {
-            receiver = receiver.WithAspectReferenceOrder( this._order );
+            receiver = receiver.WithAspectReferenceOrder( order );
 
             return new ReceiverTypedExpressionSyntax(
                 receiver.ToTypedExpressionSyntax( syntaxSerializationContext ),
-                false,
+                this.Options,
                 receiver.AspectReferenceSpecification );
         }
         else
         {
-            var aspectReferenceSpecification = this.GetDefaultAspectReferenceSpecification();
+            // CurrentAspectLayerId may be null when we are not executing in a template execution context.
+            var aspectReferenceSpecification =
+                new AspectReferenceSpecification(
+                    TemplateExpansionContext.CurrentAspectLayerId ?? default,
+                    order,
+                    flags: this.Target == null ? AspectReferenceFlags.None : AspectReferenceFlags.CustomReceiver );
 
             if ( this.Target != null )
             {
@@ -151,7 +112,7 @@ internal abstract class Invoker<T>
 
                 return new ReceiverTypedExpressionSyntax(
                     typedExpressionSyntax,
-                    (this.Options & InvokerOptions.NullConditional) != 0 && typedExpressionSyntax.CanBeNull,
+                    this.Options,
                     aspectReferenceSpecification );
             }
             else if ( this.Member.IsStatic )
@@ -159,7 +120,7 @@ internal abstract class Invoker<T>
                 return new ReceiverTypedExpressionSyntax(
                     new ThisTypeUserReceiver( this.Member.DeclaringType, aspectReferenceSpecification )
                         .ToTypedExpressionSyntax( syntaxSerializationContext ),
-                    false,
+                    InvokerOptions.Default,
                     aspectReferenceSpecification );
             }
             else
@@ -167,7 +128,7 @@ internal abstract class Invoker<T>
                 return new ReceiverTypedExpressionSyntax(
                     new ThisInstanceUserReceiver( this.Member.DeclaringType, aspectReferenceSpecification ).ToTypedExpressionSyntax(
                         syntaxSerializationContext ),
-                    false,
+                    InvokerOptions.Default,
                     aspectReferenceSpecification );
             }
         }
@@ -193,6 +154,8 @@ internal abstract class Invoker<T>
                 (this.Member, GetTargetType()!, this.Options & InvokerOptions.OrderMask) );
         }
     }
+
+    protected bool IsSameTarget( object? target ) => ReferenceEquals( target, this.Target ) || (target != null && target.Equals( this.Target ));
 
     public override string ToString() => $"{this.GetType().Name} Member={{{this.Member}}}, Options={{{this.Options}}}";
 }

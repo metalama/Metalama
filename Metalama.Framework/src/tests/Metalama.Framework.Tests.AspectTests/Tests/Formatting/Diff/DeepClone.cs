@@ -9,6 +9,7 @@
 #endif
 using System;
 using System.Linq;
+using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 
@@ -20,20 +21,20 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Formatting.Diff
     {
         public override void BuildAspect( IAspectBuilder<INamedType> builder )
         {
-            var typedMethod = builder.Advice.IntroduceMethod(
-                builder.Target,
-                nameof(CloneImpl),
-                whenExists: OverrideStrategy.Override,
-                buildMethod: m =>
-                {
-                    m.Name = "Clone";
-                    m.ReturnType = builder.Target;
-                } );
+            var typedMethod = builder
+                .IntroduceMethod(
+                    nameof(this.CloneImpl),
+                    whenExists: OverrideStrategy.Override,
+                    buildMethod: m =>
+                    {
+                        m.Name = "Clone";
+                        m.ReturnType = builder.Target;
+                    } );
 
-            builder.Advice.ImplementInterface(
-                builder.Target,
-                typeof(ICloneable),
-                whenExists: OverrideStrategy.Ignore );
+            builder
+                .ImplementInterface(
+                    typeof(ICloneable),
+                    whenExists: OverrideStrategy.Ignore );
         }
 
         [Template( IsVirtual = true )]
@@ -41,13 +42,13 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Formatting.Diff
         {
             IExpression baseCall;
 
-            if (!meta.Target.Method.IsOverride)
+            if ( !meta.Target.Method.IsOverride )
             {
-                baseCall = (IExpression)meta.Base.MemberwiseClone();
+                baseCall = (IExpression) meta.Base.MemberwiseClone();
             }
             else
             {
-                baseCall = (IExpression)meta.Target.Method.Invoke()!;
+                baseCall = (IExpression) meta.Target.Method.Invoke()!;
             }
 
             var clone = meta.Cast( meta.Target.Type.ToNonNullable(), baseCall )!;
@@ -56,13 +57,13 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Formatting.Diff
             var clonableFields =
                 meta.Target.Type.FieldsAndProperties.Where(
                     f => f.IsAutoPropertyOrField.GetValueOrDefault() &&
-                         ( f.Type.IsConvertibleTo( typeof(ICloneable) ) ||
-                           ( f.Type is INamedType { BelongsToCurrentProject: true } fieldNamedType
-                             && fieldNamedType.Enhancements().GetAspects<DeepCloneAttribute>().Any() ) ) );
+                         (f.Type.IsConvertibleTo( typeof(ICloneable) ) ||
+                          (f.Type is INamedType { BelongsToCurrentProject: true } fieldNamedType
+                           && fieldNamedType.Enhancements().GetAspects<DeepCloneAttribute>().Any())) );
 
-            foreach (var field in clonableFields)
+            foreach ( var field in clonableFields )
             {
-                field.With( (IExpression)clone ).Value = meta.Cast( field.Type, ( (ICloneable)field.Value! ).Clone() );
+                field.WithObject( clone ).Value = meta.Cast( field.Type, ((ICloneable) field.Value!).Clone() );
             }
 
             return clone;

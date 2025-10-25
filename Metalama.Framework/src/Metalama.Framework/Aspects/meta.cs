@@ -156,7 +156,7 @@ namespace Metalama.Framework.Aspects
         /// <seealso href="@templates"/>
         [TemplateKeyword]
         public static dynamic This => CurrentContext.This;
-
+        
         /// <summary>
         /// Gets a <c>dynamic</c> object that must be used to get access to <i>instance</i> members of the instance (e.g. <c>meta.Base.MyMethod()</c>).
         /// The <see cref="Base"/> property exposes the state of the target type as it is <i>before</i> the application
