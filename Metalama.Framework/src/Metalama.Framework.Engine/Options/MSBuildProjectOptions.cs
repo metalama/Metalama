@@ -175,7 +175,7 @@ public partial class MSBuildProjectOptions : DefaultProjectOptions
 
     private string? GetSdkVersionCore()
     {
-        var propsFilePath = this.GetStringOption( "NETCoreSdkBundledVersionsProps" );
+        var propsFilePath = this.GetStringOption(  MSBuildPropertyNames.NETCoreSdkBundledVersionsProps );
 
         if ( propsFilePath == null )
         {
