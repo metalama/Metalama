@@ -39,6 +39,7 @@ namespace Metalama.Framework.Engine.CompileTime
                 TypeOfRunTimeType => RunTimeOrCompileTime,
                 TypeOfTemplateTypeParameter => RunTimeOnly,
                 RunTimeOrCompileTime when preferCompileTime => CompileTimeOnly,
+                NotCompileTimeOnly => NotCompileTimeOnly,
                 _ => scope
             };
 
@@ -56,6 +57,7 @@ namespace Metalama.Framework.Engine.CompileTime
                 RunTimeTemplateParameter => RunTimeOnly,
                 TypeOfRunTimeType => RunTimeOrCompileTime,
                 TypeOfTemplateTypeParameter => RunTimeOnly,
+                NotCompileTimeOnly => NotCompileTimeOnly,
                 _ => scope
             };
 

@@ -51,6 +51,7 @@ namespace Metalama.Framework.Engine.Templating
             private TemplatingScope? _currentScope;
             private TemplatingScope? _currentTypeScope;
             private TemplateInfo? _currentTemplateInfo;
+            private SymbolClassificationContext _symbolClassificationContext;
 
             public bool HasError { get; private set; }
 
@@ -77,6 +78,9 @@ namespace Metalama.Framework.Engine.Templating
                 this._typeFabricType = compilationContext.ReflectionMapper.GetTypeSymbol( typeof(TypeFabric) );
                 this._iAdviceAttributeType = compilationContext.ReflectionMapper.GetTypeSymbol( typeof(IAdviceAttribute) );
                 this._iCompileTimeSerializableType = compilationContext.ReflectionMapper.GetTypeSymbol( typeof(ICompileTimeSerializable) );
+
+                this._symbolClassificationContext =
+                    this._hasCompileTimeCodeFast ? SymbolClassificationContext.Default : SymbolClassificationContext.RunTimeOnly;
             }
 
             private bool IsInTemplate => this._currentTemplateInfo is { AttributeType: not TemplateAttributeType.None };
@@ -122,7 +126,7 @@ namespace Metalama.Framework.Engine.Templating
 
                 if ( referencedSymbol is not null and not ITypeParameterSymbol )
                 {
-                    var referencedScope = this._classifier.GetTemplatingScope( referencedSymbol );
+                    var referencedScope = this._classifier.GetTemplatingScope( referencedSymbol, this._symbolClassificationContext );
 
                     if ( referencedScope.GetExpressionExecutionScope() == TemplatingScope.CompileTimeOnly )
                     {
@@ -329,9 +333,11 @@ namespace Metalama.Framework.Engine.Templating
                             {
                                 (TemplatingScope.CompileTimeOnly, TemplatingScope.CompileTimeOnly) => true,
                                 (TemplatingScope.CompileTimeOnly, TemplatingScope.RunTimeOrCompileTime) => true,
-                                (TemplatingScope.RunTimeOnly, TemplatingScope.RunTimeOnly) => true,
-                                (TemplatingScope.RunTimeOnly, TemplatingScope.DynamicTypeConstruction) => true,
-                                (TemplatingScope.RunTimeOnly, TemplatingScope.RunTimeOrCompileTime) => true,
+                                (TemplatingScope.RunTimeOnly or TemplatingScope.NotCompileTimeOnly, TemplatingScope.RunTimeOnly) => true,
+                                (TemplatingScope.RunTimeOnly or TemplatingScope.NotCompileTimeOnly, TemplatingScope.DynamicTypeConstruction) => true,
+                                (TemplatingScope.RunTimeOnly or TemplatingScope.NotCompileTimeOnly, TemplatingScope.RunTimeOrCompileTime) => true,
+                                (TemplatingScope.RunTimeOnly or TemplatingScope.NotCompileTimeOnly, TemplatingScope.NotCompileTimeOnly) => true,
+
                                 (TemplatingScope.RunTimeOrCompileTime, _) => true,
                                 _ => false
                             };
@@ -608,7 +614,7 @@ namespace Metalama.Framework.Engine.Templating
                     return default;
                 }
 
-                var (scope, rule) = this._classifier.GetTemplatingScopeAndRule( declaredSymbol );
+                var (scope, rule) = this._classifier.GetTemplatingScopeAndRule( declaredSymbol, this._symbolClassificationContext );
 
                 // Report an error for TypeFabric nested in a compile-time type.
                 if ( scope == TemplatingScope.CompileTimeOnly

@@ -106,6 +106,13 @@ namespace Metalama.Framework.Engine.CompileTime
         /// A type, like System.Object, that is RunTimeOrCompileTime, but that does not cause derived types to be RunTimeOrCompileTime.
         /// An internal concept of <see cref="SymbolClassifier"/>, not exposed to external code.
         /// </summary>
-        ImplicitlyRunTimeOrCompileTime
+        ImplicitlyRunTimeOrCompileTime,
+
+        /// <summary>
+        /// In "quick" mode, means that the symbol is guaranteed NOT to be <see cref="CompileTimeOnly"/>,
+        /// <see cref="CompileTimeOnlyReturningBoth"/> or <see cref="CompileTimeOnlyReturningRuntimeOnly"/>, and is safe to reference
+        /// from run-time code.
+        /// </summary>
+        NotCompileTimeOnly
     }
 }
