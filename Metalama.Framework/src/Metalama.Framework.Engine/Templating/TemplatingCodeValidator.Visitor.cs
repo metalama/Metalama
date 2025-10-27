@@ -45,13 +45,13 @@ namespace Metalama.Framework.Engine.Templating
             private readonly ITypeSymbol _typeFabricType;
             private readonly ITypeSymbol _iAdviceAttributeType;
             private readonly ITypeSymbol _iCompileTimeSerializableType;
-            private TemplateCompiler? _templateCompiler;
+            private readonly SymbolClassificationContext _symbolClassificationContext;
 
+            private TemplateCompiler? _templateCompiler;
             private ISymbol? _currentDeclaration;
             private TemplatingScope? _currentScope;
             private TemplatingScope? _currentTypeScope;
             private TemplateInfo? _currentTemplateInfo;
-            private SymbolClassificationContext _symbolClassificationContext;
 
             public bool HasError { get; private set; }
 
