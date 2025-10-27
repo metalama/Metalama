@@ -62,8 +62,8 @@ RUN powershell -ExecutionPolicy Bypass -File dotnet-install.ps1 -Version 8.0.414
 RUN powershell -ExecutionPolicy Bypass -File dotnet-install.ps1 -Version 9.0.9 -Runtime dotnet -InstallDir 'C:\Program Files\dotnet'; 
 
 
-# Install .NET Sdk 10.0.100-rc.1.25451.107
-RUN powershell -ExecutionPolicy Bypass -File dotnet-install.ps1 -Version 10.0.100-rc.1.25451.107 -InstallDir 'C:\Program Files\dotnet'; 
+# Install .NET Sdk 10.0.100-rc.2.25502.107
+RUN powershell -ExecutionPolicy Bypass -File dotnet-install.ps1 -Version 10.0.100-rc.2.25502.107 -InstallDir 'C:\Program Files\dotnet'; 
 
 
 # Install VS Build Tools

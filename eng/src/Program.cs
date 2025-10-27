@@ -14,7 +14,7 @@ using System;
 using System.IO;
 using MetalamaDependencies = PostSharp.Engineering.BuildTools.Dependencies.Definitions.MetalamaDependencies.V2026_0;
 
-const string dotNetSdkVersion = "10.0.100-rc.1.25451.107";
+const string dotNetSdkVersion = "10.0.100-rc.2.25502.107";
 
 var product = new Product( MetalamaDependencies.Metalama )
 {
