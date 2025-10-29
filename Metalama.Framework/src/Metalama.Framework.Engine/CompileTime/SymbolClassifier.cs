@@ -101,7 +101,7 @@ internal sealed class SymbolClassifier : ISymbolClassifier
     private readonly INamedTypeSymbol? _templateAttribute;
     private readonly INamedTypeSymbol? _declarativeAdviceAttribute;
 
-    private readonly ConcurrentDictionary<ISymbol, TemplatingScopeAndRule?>[] _caches;
+    private readonly ConcurrentDictionary<CacheKey, TemplatingScopeAndRule?> _cache = new();
 
     private readonly ConcurrentDictionary<ISymbol, TemplateInfo> _cacheInheritedTemplateInfo;
     private readonly ConcurrentDictionary<ISymbol, TemplateInfo> _cacheNonInheritedTemplateInfo;
@@ -142,11 +142,6 @@ internal sealed class SymbolClassifier : ISymbolClassifier
         this._cacheNonInheritedTemplateInfo = new ConcurrentDictionary<ISymbol, TemplateInfo>( this._symbolEqualityComparer );
         this._cacheInheritedTemplateInfo = new ConcurrentDictionary<ISymbol, TemplateInfo>( this._symbolEqualityComparer );
         this._cacheIsTemplateOnly = new ConcurrentDictionary<ISymbol, bool>( this._symbolEqualityComparer );
-
-        this._caches = Enumerable.Range( 0, (int) GetTemplatingScopeOptions.Count )
-            .Select( _ => new ConcurrentDictionary<ISymbol, TemplatingScopeAndRule?>( this._symbolEqualityComparer ) )
-            .ToArray();
-
         this._attributeDeserializer = attributeDeserializer;
         this._logger = serviceProvider.GetLoggerFactory().GetLogger( "SymbolClassifier" );
 
@@ -298,13 +293,16 @@ internal sealed class SymbolClassifier : ISymbolClassifier
         return null;
     }
 
-    public TemplatingScope GetTemplatingScope( ISymbol symbol ) => this.GetTemplatingScopeAndRule( symbol ).Scope;
+    public TemplatingScope GetTemplatingScope( ISymbol symbol, SymbolClassificationContext context = SymbolClassificationContext.Default )
+        => this.GetTemplatingScopeAndRule( symbol, context ).Scope;
 
-    public TemplatingScopeAndRule GetTemplatingScopeAndRule( ISymbol symbol )
+    public TemplatingScopeAndRule GetTemplatingScopeAndRule( ISymbol symbol, SymbolClassificationContext context = SymbolClassificationContext.Default )
     {
         symbol.ThrowIfBelongsToDifferentCompilationThan( this._compilationContext );
 
-        var scope = this.GetTemplatingScopeCore( symbol, GetTemplatingScopeOptions.Default, ImmutableLinkedList<ISymbol>.Empty, null )
+        var options = context == SymbolClassificationContext.Default ? GetTemplatingScopeOptions.Default : GetTemplatingScopeOptions.Quick;
+
+        var scope = this.GetTemplatingScopeCore( symbol, options, ImmutableLinkedList<ISymbol>.Empty, null )
             .GetValueOrDefault( (TemplatingScope.RunTimeOnly, TemplatingRule.Default) );
 
         // These statuses are internal concepts, so hide them from other parts of the code.
@@ -426,13 +424,13 @@ internal sealed class SymbolClassifier : ISymbolClassifier
         }
 
         // Cache lookup.
-        var cache = this._caches[(int) options];
+        var cacheKey = new CacheKey( symbol, options );
 
         TemplatingScopeAndRule? scope;
 
         if ( parentTracer == null )
         {
-            if ( cache.TryGetValue( symbol, out scope ) )
+            if ( this._cache.TryGetValue( cacheKey, out scope ) )
             {
                 return scope;
             }
@@ -491,7 +489,7 @@ internal sealed class SymbolClassifier : ISymbolClassifier
 
         // Add to cache.
 
-        cache.TryAdd( symbol, scope );
+        this._cache.TryAdd( cacheKey, scope );
 
         return scope;
 
@@ -499,7 +497,7 @@ internal sealed class SymbolClassifier : ISymbolClassifier
         {
             // From well-known types.
 
-            if ( this.TryGetWellKnownScope( symbol, out var scopeFromWellKnown ) )
+            if ( this.TryGetWellKnownScope( symbol, options, out var scopeFromWellKnown ) )
             {
                 return scopeFromWellKnown;
             }
@@ -591,11 +589,12 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                         scopes.Add( declarationScope );
 
                         scopes.AddRange(
-                            namedType.TypeArguments.Select( arg => this.GetTemplatingScopeCore(
-                                                                arg,
-                                                                options | GetTemplatingScopeOptions.TypeParametersAreNeutral,
-                                                                symbolsBeingProcessedIncludingCurrent,
-                                                                tracer ) ) );
+                            namedType.TypeArguments.Select(
+                                arg => this.GetTemplatingScopeCore(
+                                    arg,
+                                    options | GetTemplatingScopeOptions.TypeParametersAreNeutral,
+                                    symbolsBeingProcessedIncludingCurrent,
+                                    tracer ) ) );
 
                         var compileTimeOnlyCount = 0;
                         var runTimeCount = 0;
@@ -613,14 +612,14 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                                     // Only a few well-known types can have dynamic generic arguments, others are unsupported.
                                     switch ( namedType.Name )
                                     {
-                                        case nameof(Task<object>):
-                                        case nameof(ConfiguredTaskAwaitable<object>):
-                                        case nameof(ValueTask<object>):
-                                        case nameof(IEnumerable<object>):
-                                        case nameof(IEnumerator<object>):
-                                        case nameof(IAsyncEnumerable<object>):
-                                        case nameof(ConfiguredCancelableAsyncEnumerable<object>):
-                                        case nameof(IAsyncEnumerator<object>):
+                                        case nameof(Task<>):
+                                        case nameof(ConfiguredTaskAwaitable<>):
+                                        case nameof(ValueTask<>):
+                                        case nameof(IEnumerable<>):
+                                        case nameof(IEnumerator<>):
+                                        case nameof(IAsyncEnumerable<>):
+                                        case nameof(ConfiguredCancelableAsyncEnumerable<>):
+                                        case nameof(IAsyncEnumerator<>):
                                             return (TemplatingScope.Dynamic, TemplatingRule.Other);
 
                                         default:
@@ -640,6 +639,7 @@ internal sealed class SymbolClassifier : ISymbolClassifier
 
                                 case TemplatingScope.RunTimeOrCompileTime:
                                 case TemplatingScope.ForcedRunTimeOrCompileTime:
+                                case TemplatingScope.NotCompileTimeOnly:
                                     runTimeOrCompileTimeCount++;
 
                                     break;
@@ -651,7 +651,7 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                                     return (TemplatingScope.DynamicTypeConstruction, TemplatingRule.Other);
 
                                 default:
-                                    throw new AssertionFailedException( $"Unexpected scope: {typeArgumentScope}." );
+                                    throw new AssertionFailedException( $"Unexpected scope: {typeArgumentScope?.Scope}." );
                             }
                         }
 
@@ -1065,9 +1065,9 @@ internal sealed class SymbolClassifier : ISymbolClassifier
             typeScope = (TemplatingScope.RunTimeOnly, TemplatingRule.Other);
         }
 
-        if ( typeScope?.Scope != combinedScope )
+        if ( typeScope.Value.Scope != combinedScope )
         {
-            combinedScope = (typeScope?.Scope, combinedScope) switch
+            combinedScope = (typeScope.Value.Scope, combinedScope) switch
             {
                 (_, null) => typeScope?.Scope,
                 (TemplatingScope.Conflict, _) => TemplatingScope.Conflict,
@@ -1075,6 +1075,7 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                 (TemplatingScope.CompileTimeOnlyReturningRuntimeOnly, TemplatingScope.RunTimeOnly) => TemplatingScope.RunTimeOnly,
                 (TemplatingScope.CompileTimeOnlyReturningRuntimeOnly, TemplatingScope.RunTimeOrCompileTime or TemplatingScope.ForcedRunTimeOrCompileTime) =>
                     TemplatingScope.RunTimeOnly,
+                (TemplatingScope.RunTimeOnly, TemplatingScope.NotCompileTimeOnly) => TemplatingScope.RunTimeOnly,
                 (TemplatingScope.ImplicitlyRunTimeOrCompileTime, TemplatingScope.RunTimeOrCompileTime) => TemplatingScope.RunTimeOrCompileTime,
                 (_, TemplatingScope.RunTimeOrCompileTime or TemplatingScope.ForcedRunTimeOrCompileTime
                     or TemplatingScope.ImplicitlyRunTimeOrCompileTime) => typeScope?.Scope,
@@ -1082,7 +1083,8 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                     combinedScope,
                 (TemplatingScope.RunTimeOnly, TemplatingScope.CompileTimeOnly) => OnConflict().Scope,
                 (TemplatingScope.CompileTimeOnly, TemplatingScope.RunTimeOnly) => OnConflict().Scope,
-                _ => throw new AssertionFailedException( $"Invalid combination: ({typeScope}, {combinedScope})" )
+                (TemplatingScope.CompileTimeOnly, TemplatingScope.NotCompileTimeOnly) => OnConflict().Scope,
+                _ => throw new AssertionFailedException( $"Invalid combination: ({typeScope.Value.Scope}, {combinedScope})" )
             };
         }
     }
@@ -1177,7 +1179,7 @@ internal sealed class SymbolClassifier : ISymbolClassifier
         CombineBaseTypeScope( typeArgumentScope?.Scope, ref combinedScope, false, false );
     }
 
-    private bool TryGetWellKnownScope( ISymbol symbol, out TemplatingScopeAndRule? scope )
+    private bool TryGetWellKnownScope( ISymbol symbol, GetTemplatingScopeOptions options, out TemplatingScopeAndRule? scope )
     {
         scope = null;
 
@@ -1203,12 +1205,21 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                 }
 
                 // For types in the system namespace that are available on .NET Standard 2.0, we take a shortcut and don't analyze them recursively.
-                if ( namedType.ContainingNamespace.GetFirstLevel()?.Name == "System"
-                     && this._compileTimeAssemblyLocator.IsSymbolAvailable( namedType, this._compilationContext ) == true )
+                if ( namedType.ContainingNamespace.GetFirstLevel()?.Name == "System" )
                 {
-                    scope = (TemplatingScope.ImplicitlyRunTimeOrCompileTime, TemplatingRule.WellKnown);
+                    if ( (options & GetTemplatingScopeOptions.Quick) != 0 )
+                    {
+                        scope = (TemplatingScope.NotCompileTimeOnly, TemplatingRule.WellKnown);
 
-                    return true;
+                        return true;
+                    }
+
+                    if ( this._compileTimeAssemblyLocator.IsSymbolAvailable( namedType, this._compilationContext ) == true )
+                    {
+                        scope = (TemplatingScope.ImplicitlyRunTimeOrCompileTime, TemplatingRule.WellKnown);
+
+                        return true;
+                    }
                 }
 
                 // Check Roslyn types.
@@ -1240,10 +1251,13 @@ internal sealed class SymbolClassifier : ISymbolClassifier
         }
     }
 
+    public bool IsTemplate( ISymbol symbol ) => !this.GetTemplateInfo( symbol ).IsNone;
+
     [Flags]
     private enum GetTemplatingScopeOptions
     {
         Default,
+
         TypeParametersAreNeutral = 1,
 
         /// <summary>
@@ -1251,8 +1265,28 @@ internal sealed class SymbolClassifier : ISymbolClassifier
         /// except when there is an explicit use of <see cref="RunTimeOrCompileTimeAttribute"/>.
         /// </summary>
         ImplicitRuntimeOrCompileTimeAsNull = 2,
-        Count = 1 + (TypeParametersAreNeutral | ImplicitRuntimeOrCompileTimeAsNull)
+
+        /// <summary>
+        /// Means that <see cref="TemplatingScope.NotCompileTimeOnly"/> can be returned to avoid costly operations.
+        /// </summary>
+        Quick = 4
     }
 
-    public bool IsTemplate( ISymbol symbol ) => !this.GetTemplateInfo( symbol ).IsNone;
+    private readonly struct CacheKey : IEquatable<CacheKey>
+    {
+        private readonly ISymbol _symbol;
+        private readonly GetTemplatingScopeOptions _options;
+
+        public CacheKey( ISymbol symbol, GetTemplatingScopeOptions options )
+        {
+            this._symbol = symbol;
+            this._options = options;
+        }
+
+        public bool Equals( CacheKey other ) => SymbolEqualityComparer.Default.Equals( this._symbol, other._symbol ) && this._options == other._options;
+
+        public override bool Equals( object? obj ) => obj is CacheKey other && this.Equals( other );
+
+        public override int GetHashCode() => HashCode.Combine( SymbolEqualityComparer.Default.GetHashCode( this._symbol ), (int) this._options );
+    }
 }

@@ -18,12 +18,28 @@ namespace Metalama.Framework.Engine.CompileTime
         /// <summary>
         /// Gets the scope of a symbol in the context of a template.
         /// </summary>
-        TemplatingScope GetTemplatingScope( ISymbol symbol );
+        TemplatingScope GetTemplatingScope( ISymbol symbol, SymbolClassificationContext context = SymbolClassificationContext.Default );
 
-        TemplatingScopeAndRule GetTemplatingScopeAndRule( ISymbol symbol );
+        TemplatingScopeAndRule GetTemplatingScopeAndRule( ISymbol symbol, SymbolClassificationContext context = SymbolClassificationContext.Default );
 
         bool IsTemplateOnly( ISymbol symbol );
 
         void ReportScopeError( SyntaxNode node, ISymbol symbol, IDiagnosticAdder diagnosticAdder );
+    }
+
+    /// <summary>
+    /// An enumeration of contexts in which <see cref="ISymbolClassifier"/> is invoked.
+    /// </summary>
+    internal enum SymbolClassificationContext
+    {
+        /// <summary>
+        /// Any other context than run-time-only code.
+        /// </summary>
+        Default,
+
+        /// <summary>
+        /// Run-time-only code.
+        /// </summary>
+        RunTimeOnly
     }
 }

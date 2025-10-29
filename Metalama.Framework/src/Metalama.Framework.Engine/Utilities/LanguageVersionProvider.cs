@@ -30,7 +30,7 @@ internal class LanguageVersionProvider : ILanguageVersionProvider
     {
         if ( this._projectOptions.SdkVersion == null )
         {
-            throw new InvalidOperationException( "Unknown version of the .NET SDK." );
+            throw new InvalidOperationException( $"Cannot get the .NET SDK version: the {nameof(MSBuildPropertyNames.NETCoreSdkBundledVersionsProps)} MSBuild property is not defined for project '{this._projectOptions.ProjectName}'." );
         }
 
         var mainVersion = this._projectOptions.SdkVersion.Split( '-' )[0];

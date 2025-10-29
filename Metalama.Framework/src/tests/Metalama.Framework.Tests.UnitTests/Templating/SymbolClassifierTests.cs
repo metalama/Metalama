@@ -24,25 +24,43 @@ namespace Metalama.Framework.Tests.UnitTests.Templating
 {
     public sealed class SymbolClassifierTests : UnitTestClass
     {
-        private void AssertScope( IDeclaration declaration, TemplatingScope expectedScope, IDiagnosticAdder? diagnosticAdder = null )
+        private void AssertScope(
+            IDeclaration declaration,
+            TemplatingScope expectedScope,
+            SymbolClassificationContext context = SymbolClassificationContext.Default,
+            IDiagnosticAdder? diagnosticAdder = null )
         {
-            this.AssertScope( declaration.GetCompilationModel().RoslynCompilation, declaration.GetSymbol()!, expectedScope, diagnosticAdder );
+            this.AssertScope( declaration.GetCompilationModel().RoslynCompilation, declaration.GetSymbol()!, expectedScope, context, diagnosticAdder );
         }
 
-        private void AssertScope( INamedType declaration, TemplatingScope expectedScope, IDiagnosticAdder? diagnosticAdder = null )
+        private void AssertScope(
+            INamedType declaration,
+            TemplatingScope expectedScope,
+            SymbolClassificationContext context = SymbolClassificationContext.Default,
+            IDiagnosticAdder? diagnosticAdder = null )
         {
-            this.AssertScope( declaration.GetCompilationModel().RoslynCompilation, declaration.GetSymbol().AssertSymbolNotNull(), expectedScope, diagnosticAdder );
+            this.AssertScope(
+                declaration.GetCompilationModel().RoslynCompilation,
+                declaration.GetSymbol().AssertSymbolNotNull(),
+                expectedScope,
+                context,
+                diagnosticAdder );
         }
 
-        private void AssertScope( IType type, TemplatingScope expectedScope, IDiagnosticAdder? diagnosticAdder = null )
+        private void AssertScope(
+            IType type,
+            TemplatingScope expectedScope,
+            SymbolClassificationContext context = SymbolClassificationContext.Default,
+            IDiagnosticAdder? diagnosticAdder = null )
         {
-            this.AssertScope( type.GetCompilationModel().RoslynCompilation, type.GetSymbol().AssertSymbolNotNull(), expectedScope, diagnosticAdder );
+            this.AssertScope( type.GetCompilationModel().RoslynCompilation, type.GetSymbol().AssertSymbolNotNull(), expectedScope, context, diagnosticAdder );
         }
 
         private void AssertScope(
             Compilation compilation,
             ISymbol symbol,
             TemplatingScope expectedScope,
+            SymbolClassificationContext context = SymbolClassificationContext.Default,
             IDiagnosticAdder? diagnosticAdder = null,
             TestContextOptions? contextOptions = null )
         {
@@ -50,7 +68,7 @@ namespace Metalama.Framework.Tests.UnitTests.Templating
 
             var classifier = testContext.ServiceProvider.GetRequiredService<ClassifyingCompilationContextFactory>().GetInstance( compilation ).SymbolClassifier;
 
-            var actualScope = classifier.GetTemplatingScope( symbol );
+            var actualScope = classifier.GetTemplatingScope( symbol, context );
             Assert.Equal( expectedScope, actualScope );
 
             if ( diagnosticAdder != null )
@@ -74,8 +92,8 @@ namespace Metalama.Framework.Tests.UnitTests.Templating
                                   void M() { }
                                   int F; // System type.
                                   DiagnosticDefinition F2; // Metalama type.
-                                
-                                
+
+
                                   [TemplateAttribute]
                                   void Template() { }
                                 }
@@ -103,7 +121,7 @@ namespace Metalama.Framework.Tests.UnitTests.Templating
                                 class C : IAspect<INamedType>
                                 {
                                     public void BuildAspect( IAspectBuilder<INamedType> builder ) { }
-                                
+
                                     public void BuildEligibility( IEligibilityBuilder<INamedType> builder ) { }
                                 }
                                 """;
@@ -129,8 +147,8 @@ class E { ErrorType X; }
 ";
 
             var compilation = testContext.CreateCompilationModel( code, ignoreErrors: true );
-            this.AssertScope( compilation.Types.OfName( "C" ).Single(), TemplatingScope.RunTimeOnly );
-            this.AssertScope( compilation.Types.OfName( "D" ).Single(), TemplatingScope.RunTimeOnly );
+            this.AssertScope( compilation.Types.OfName( "C" ).Single(), TemplatingScope.RunTimeOnly, SymbolClassificationContext.RunTimeOnly );
+            this.AssertScope( compilation.Types.OfName( "D" ).Single(), TemplatingScope.RunTimeOnly, SymbolClassificationContext.RunTimeOnly );
         }
 
         [Fact]
@@ -156,11 +174,11 @@ class D : System.IDisposable
 
             var compilation = testContext.CreateCompilationModel( code );
             var type = compilation.Types.OfName( "C" ).Single();
-            this.AssertScope( type, TemplatingScope.RunTimeOnly );
-            this.AssertScope( type.Fields.OfName( "F" ).Single(), TemplatingScope.RunTimeOnly );
-            this.AssertScope( type.Methods.OfName( "M" ).Single(), TemplatingScope.RunTimeOnly );
+            this.AssertScope( type, TemplatingScope.RunTimeOnly, SymbolClassificationContext.RunTimeOnly );
+            this.AssertScope( type.Fields.OfName( "F" ).Single(), TemplatingScope.RunTimeOnly, SymbolClassificationContext.RunTimeOnly );
+            this.AssertScope( type.Methods.OfName( "M" ).Single(), TemplatingScope.RunTimeOnly, SymbolClassificationContext.RunTimeOnly );
 
-            this.AssertScope( compilation.Types.OfName( "D" ).Single(), TemplatingScope.RunTimeOnly );
+            this.AssertScope( compilation.Types.OfName( "D" ).Single(), TemplatingScope.RunTimeOnly, SymbolClassificationContext.RunTimeOnly );
         }
 
         [Fact]
@@ -370,7 +388,7 @@ class C
 
                 if ( symbol != null )
                 {
-                    classifier.GetTemplatingScope( symbol );
+                    classifier.GetTemplatingScope( symbol, SymbolClassificationContext.RunTimeOnly );
                 }
             }
         }
@@ -385,7 +403,7 @@ class C
             var compilation = testContext.CreateCompilationModel( code );
             var type = compilation.Types.Single();
 
-            this.AssertScope( type, TemplatingScope.RunTimeOnly );
+            this.AssertScope( type, TemplatingScope.RunTimeOnly, SymbolClassificationContext.RunTimeOnly );
         }
 
         [Fact]
@@ -432,7 +450,7 @@ class C  {
             var type = compilation.Types.OfName( "C" ).Single();
             var method = type.Methods.Single();
 
-            this.AssertScope( method, TemplatingScope.Conflict, diagnosticBag );
+            this.AssertScope( method, TemplatingScope.Conflict, diagnosticAdder: diagnosticBag );
 
             var diagnostic = Assert.Single( diagnosticBag );
 
@@ -450,9 +468,9 @@ class C  {
                                     void M()
                                     {
                                         Console.WriteLine();
-                                
+
                                         _ = DateTime.Now;
-                                
+
                                         Math.Abs(0);
                                     }
                                 }
@@ -467,10 +485,10 @@ class C  {
 
             AssertScope( "Console", TemplatingScope.RunTimeOnly );
             AssertScope( "WriteLine", TemplatingScope.RunTimeOnly );
-            AssertScope( "DateTime", TemplatingScope.RunTimeOrCompileTime );
+            AssertScope( "DateTime", TemplatingScope.NotCompileTimeOnly );
             AssertScope( "Now", TemplatingScope.RunTimeOnly );
-            AssertScope( "Math", TemplatingScope.RunTimeOrCompileTime );
-            AssertScope( "Abs", TemplatingScope.RunTimeOrCompileTime );
+            AssertScope( "Math", TemplatingScope.NotCompileTimeOnly );
+            AssertScope( "Abs", TemplatingScope.NotCompileTimeOnly );
 
             // Resharper disable once LocalFunctionHidesMethod
             void AssertScope( string text, TemplatingScope scope )
@@ -478,7 +496,7 @@ class C  {
                 var node = nodes.Single( n => n.ToString() == text );
                 var symbol = semanticModel.GetSymbolInfo( node ).Symbol!;
 
-                this.AssertScope( compilation.RoslynCompilation, symbol, scope );
+                this.AssertScope( compilation.RoslynCompilation, symbol, scope, SymbolClassificationContext.RunTimeOnly );
             }
         }
 
@@ -524,7 +542,7 @@ class C  {
                 var node = nodes.Single( n => n.ToString() == text );
                 var symbol = semanticModel.GetSymbolInfo( node ).Symbol!;
 
-                this.AssertScope( compilation.RoslynCompilation, symbol, scope, contextOptions: options );
+                this.AssertScope( compilation.RoslynCompilation, symbol, scope, SymbolClassificationContext.RunTimeOnly, contextOptions: options );
             }
         }
 

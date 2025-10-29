@@ -50,6 +50,7 @@ public static class MSBuildPropertyNames
     public const string MetalamaExtensionAssemblies = nameof(MetalamaExtensionAssemblies);
     public const string MetalamaDesignTimeExtensionAssemblies = nameof(MetalamaDesignTimeExtensionAssemblies);
     public const string MetalamaAvoidLockingExtensionAssemblies = nameof(MetalamaAvoidLockingExtensionAssemblies);
+    public const string NETCoreSdkBundledVersionsProps = nameof(NETCoreSdkBundledVersionsProps);
 
     public static ImmutableArray<string> All { get; } = ImmutableArray.Create(
         MetalamaBuildTouchFile,
@@ -86,5 +87,6 @@ public static class MSBuildPropertyNames
         MetalamaAssemblyLocatorHooksDirectory,
         MetalamaExtensionAssemblies,
         MetalamaDesignTimeExtensionAssemblies,
-        MetalamaAvoidLockingExtensionAssemblies );
+        MetalamaAvoidLockingExtensionAssemblies,
+        NETCoreSdkBundledVersionsProps );
 }
