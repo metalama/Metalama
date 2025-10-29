@@ -12,13 +12,10 @@ using Metalama.Framework.Engine.Templating;
 using Metalama.Testing.UnitTesting;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Linq;
 using Xunit;
-
-#if NET7_0_OR_GREATER
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-#endif
 
 namespace Metalama.Framework.Tests.UnitTests.Templating
 {
@@ -483,10 +480,11 @@ class C  {
             var semanticModel = compilation.RoslynCompilation.GetSemanticModel( syntaxTree );
             var nodes = syntaxTree.GetRoot().DescendantNodes().ToArray();
 
-            AssertScope( "Console", TemplatingScope.RunTimeOnly );
-            AssertScope( "WriteLine", TemplatingScope.RunTimeOnly );
+            AssertScope( "Console", TemplatingScope.RunTimeOnly );   // Hardcoded.
+            AssertScope( "WriteLine", TemplatingScope.RunTimeOnly ); // Hardcoded.
+            AssertScope( "Now", TemplatingScope.RunTimeOnly ); // Hardcoded.
+
             AssertScope( "DateTime", TemplatingScope.NotCompileTimeOnly );
-            AssertScope( "Now", TemplatingScope.RunTimeOnly );
             AssertScope( "Math", TemplatingScope.NotCompileTimeOnly );
             AssertScope( "Abs", TemplatingScope.NotCompileTimeOnly );
 
@@ -498,6 +496,38 @@ class C  {
 
                 this.AssertScope( compilation.RoslynCompilation, symbol, scope, SymbolClassificationContext.RunTimeOnly );
             }
+        }
+
+        [Fact]
+        public void GenericTypeWithNonCompileTimeOnlyArgument()
+        {
+            const string code = """
+                                using System;
+                                using System.Threading.Tasks;
+                                using System.Linq;
+                                using System.Linq.Expressions;
+                                
+                                namespace System;
+
+                                class C
+                                {
+                                    public static Task<float?> AverageAsync<TSource>( IQueryable<TSource> source,
+                                       Expression<Func<TSource, float?>> predicate)
+                                        => null!;
+                                }
+                                """;
+
+            using var testContext = this.CreateTestContext();
+            var compilation = testContext.CreateCompilationModel( code );
+
+            var syntaxTree = compilation.RoslynCompilation.SyntaxTrees.First();
+            var semanticModel = compilation.RoslynCompilation.GetSemanticModel( syntaxTree );
+            var nodes = syntaxTree.GetRoot().DescendantNodes().ToArray();
+
+            var node = nodes.OfType<MethodDeclarationSyntax>().Single();
+            var symbol = semanticModel.GetDeclaredSymbol( node ).AssertNotNull();
+
+            this.AssertScope( compilation.RoslynCompilation, symbol, TemplatingScope.RunTimeOnly, SymbolClassificationContext.RunTimeOnly );
         }
 
         [Theory]
