@@ -229,6 +229,13 @@ internal static class ProceedHelper
                             ThisExpression() ) ),
                     memberName );
             }
+            else if ( targetMember.DeclaringType is IExtensionBlock extensionBlock )
+            {
+                expression = MemberAccessExpression(
+                    SyntaxKind.SimpleMemberAccessExpression,
+                    IdentifierName( extensionBlock.ReceiverParameter.Name ),
+                    memberName );
+            }
             else
             {
                 expression = MemberAccessExpression(
@@ -239,11 +246,22 @@ internal static class ProceedHelper
         }
         else
         {
-            expression =
-                MemberAccessExpression(
-                    SyntaxKind.SimpleMemberAccessExpression,
-                    generationContext.SyntaxGenerator.TypeExpression( targetMember.DeclaringType ),
-                    memberName );
+            if ( targetMember.DeclaringType is IExtensionBlock extensionBlock )
+            {
+                expression =
+                    MemberAccessExpression(
+                        SyntaxKind.SimpleMemberAccessExpression,
+                        generationContext.SyntaxGenerator.TypeExpression( extensionBlock.ReceiverParameter.Type ),
+                        memberName );
+            }
+            else
+            {
+                expression =
+                    MemberAccessExpression(
+                        SyntaxKind.SimpleMemberAccessExpression,
+                        generationContext.SyntaxGenerator.TypeExpression( targetMember.DeclaringType ),
+                        memberName );
+            }
         }
 
         return expression

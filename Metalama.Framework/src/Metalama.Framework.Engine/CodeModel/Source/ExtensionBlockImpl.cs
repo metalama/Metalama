@@ -35,6 +35,6 @@ internal sealed class ExtensionBlockImpl : SourceNamedTypeImpl, IExtensionBlock
         Invariant.Assert( this.NamedTypeSymbol.IsExtension );
     }
 
-    protected override IFullRef<INamedType> CreateFullRef() => this.RefFactory.FromSymbolBasedDeclaration<IExtensionBlock>( this );
+    protected override IFullRef<INamedType> CreateFullRef() => this.RefFactory.FromSymbolBasedDeclaration<IExtensionBlock>( this ).As<INamedType>();
 }
 #endif

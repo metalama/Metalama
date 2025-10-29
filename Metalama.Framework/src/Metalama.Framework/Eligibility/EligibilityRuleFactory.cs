@@ -24,12 +24,11 @@ public static partial class EligibilityRuleFactory
         {
             builder.MustBeRunTimeOnly();
             builder.MustNotBeRef();
-            builder.MustNotBeExtensionBlock();
 
             builder.ExceptForInheritance()
                 .MustSatisfy(
-                    t => t.TypeKind is TypeKind.Class or TypeKind.Struct or TypeKind.Interface,
-                    t => $"'{t}' is neither a class, record class, struct, record struct, nor interface" );
+                    t => t.TypeKind is TypeKind.Class or TypeKind.Struct or TypeKind.Interface or TypeKind.Extension,
+                    t => $"'{t}' is neither a class, record class, struct, record struct, interface, nor extensions block" );
         } );
 
     internal static IEligibilityRule<IDeclaration> OverrideConstructorAdviceRule { get; } = CreateRule<IDeclaration, IConstructor>(
@@ -97,12 +96,11 @@ public static partial class EligibilityRuleFactory
         builder =>
         {
             builder.MustSatisfy(
-                t => t.TypeKind is TypeKind.Class or TypeKind.Struct or TypeKind.Interface,
-                t => $"'{t}' must be a class, record class, struct, record struct, or interface" );
+                t => t.TypeKind is TypeKind.Class or TypeKind.Struct or TypeKind.Interface or TypeKind.Extension,
+                t => $"'{t}' must be a class, record class, struct, record struct, interface, or extension block" );
 
             builder.MustBeExplicitlyDeclared();
             builder.MustBeRunTimeOnly();
-            builder.MustNotBeExtensionBlock();
         } );
 
     private static readonly IEligibilityRule<IDeclaration> _implementInterfaceRule = CreateRule<IDeclaration, INamedType>(
@@ -122,7 +120,6 @@ public static partial class EligibilityRuleFactory
         builder =>
         {
             builder.DeclaringType().MustBeRunTimeOnly();
-            builder.DeclaringType().MustNotBeExtensionBlock();
             builder.MustNotBeStatic();
             builder.MustNotBeRecordCopyConstructor();
 

@@ -298,6 +298,10 @@ internal sealed partial class LinkerInjectionStep
 
         public override SyntaxNode VisitRecordDeclaration( RecordDeclarationSyntax node ) => this.VisitTypeDeclaration( node );
 
+#if ROSLYN_5_0_0_OR_GREATER
+        public override SyntaxNode? VisitExtensionBlockDeclaration( ExtensionBlockDeclarationSyntax node ) => this.VisitTypeDeclaration( node );
+#endif
+
         public override SyntaxNode VisitEnumDeclaration( EnumDeclarationSyntax node )
         {
             var originalNode = node;

@@ -518,6 +518,12 @@ public partial class DeclarationFactory
             return type;
         }
 
+        if ( typeSymbol is INamedTypeSymbol { IsExtension: true } )
+        {
+            // TODO: Check this (it should probably throw when trying to create a nullable type for extension.
+            return type;
+        }
+
         ITypeSymbol newTypeSymbol;
 
         if ( type.IsReferenceType ?? true )

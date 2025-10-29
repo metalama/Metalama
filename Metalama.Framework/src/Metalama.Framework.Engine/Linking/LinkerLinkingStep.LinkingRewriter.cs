@@ -76,6 +76,15 @@ internal sealed partial class LinkerLinkingStep
             return node;
         }
 
+        public override SyntaxNode? VisitExtensionBlockDeclaration( ExtensionBlockDeclarationSyntax node )
+        {
+            var transformedMembers = this.GetMembersForTypeDeclaration( node ).AssertNotNull();
+
+            node = node.WithMembers( List( transformedMembers ) );
+
+            return node;
+        }
+
         private IReadOnlyList<MemberDeclarationSyntax> GetMembersForTypeDeclaration( TypeDeclarationSyntax node )
         {
             var newMembers = new List<MemberDeclarationSyntax>();
