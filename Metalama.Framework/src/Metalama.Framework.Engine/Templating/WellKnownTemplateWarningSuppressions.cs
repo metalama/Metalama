@@ -67,7 +67,10 @@ public static class WellKnownTemplateWarningSuppressions
             new WellKnownTemplateWarningSuppression( "IDE0044", "A template field may be set by target code.", [SymbolKind.Field] ),
 
             // CS9113: Parameter is unread.
-            new WellKnownTemplateWarningSuppression( "CS9113", "A template parameter may be read by target code.", [SymbolKind.Method] )
+            new WellKnownTemplateWarningSuppression( "CS9113", "A template parameter may be read by target code.", [SymbolKind.Method] ),
+            
+            // IDE0062 : Local function can be made static.
+            new WellKnownTemplateWarningSuppression( "IDE0062", "A local function can reference state using meta.Proceed or any other meta member.", [SymbolKind.Method] )
         }.ToDictionary( d => d.DiagnosticId, d => d );
     
     // NOTE: Also add suppressions to Metalama.Testing.AspectTesting.props when updating this file.
