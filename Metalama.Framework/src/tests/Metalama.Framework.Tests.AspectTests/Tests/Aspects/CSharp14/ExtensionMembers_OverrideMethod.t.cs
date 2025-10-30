@@ -1,5 +1,13 @@
 internal static class C
 {
+  [TheAspect]
+  public static void ClassicStaticExtensionMethod(this TestClass c)
+  {
+    global::System.Console.WriteLine("Override 'C.ClassicStaticExtensionMethod(this TestClass)'.");
+    global::System.Console.WriteLine(c);
+    Console.WriteLine("Original");
+    return;
+  }
   extension(TestClass test)
   {
     [TheAspect]
@@ -26,5 +34,6 @@ internal class Test
     var test = new TestClass();
     test.Method();
     TestClass.StaticMethod();
+    test.ClassicStaticExtensionMethod();
   }
 }
