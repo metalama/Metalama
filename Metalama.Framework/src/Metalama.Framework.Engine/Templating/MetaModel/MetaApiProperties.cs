@@ -31,8 +31,6 @@ namespace Metalama.Framework.Engine.Templating.MetaModel
 
         public ProjectServiceProvider ServiceProvider { get; }
 
-        public MetaApiStaticity Staticity { get; }
-
         private ICompilation SourceCompilation { get; }
 
         public MetaApiProperties(
@@ -42,8 +40,7 @@ namespace Metalama.Framework.Engine.Templating.MetaModel
             AspectLayerId aspectLayerId,
             SyntaxGenerationContext syntaxGenerationContext,
             IAspectInstanceInternal? aspectInstance, // Can be null in tests.
-            ProjectServiceProvider serviceProvider,
-            MetaApiStaticity staticity )
+            ProjectServiceProvider serviceProvider )
         {
             this.SourceCompilation = sourceCompilation;
             this.DiagnosticSink = diagnosticSink;
@@ -52,7 +49,6 @@ namespace Metalama.Framework.Engine.Templating.MetaModel
             this.SyntaxGenerationContext = syntaxGenerationContext;
             this.AspectInstance = aspectInstance;
             this.ServiceProvider = serviceProvider;
-            this.Staticity = staticity;
         }
 
         internal T Translate<T>( T declaration )

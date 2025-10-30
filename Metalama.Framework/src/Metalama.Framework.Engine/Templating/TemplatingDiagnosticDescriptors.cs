@@ -83,13 +83,13 @@ namespace Metalama.Framework.Engine.Templating
                     _category,
                     Error );
 
-        internal static readonly DiagnosticDefinition<(IDeclaration Advice, string Expression, IDeclaration TargetDeclaration, DeclarationKind TargetKind,
+        internal static readonly DiagnosticDefinition<(string Expression, IDeclaration TargetDeclaration, DeclarationKind TargetKind,
                 FormattableString Explanation)>
             CannotUseThisInStaticContext
                 = new(
                     "LAMA0114",
                     "Cannot use 'meta.This' from a static context",
-                    "The advice '{0}' cannot use '{1}' in an advice applied to {3} '{2}' because {4}.",
+                    "Cannot use '{0}' in an advice applied to {2} '{1}' because {3}.",
                     _category,
                     Error );
 

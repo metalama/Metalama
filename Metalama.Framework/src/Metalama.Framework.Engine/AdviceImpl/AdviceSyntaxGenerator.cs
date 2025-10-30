@@ -81,8 +81,7 @@ internal static class AdviceSyntaxGenerator
                 aspectLayerInstance.AspectLayerId,
                 context.SyntaxGenerationContext,
                 aspectLayerInstance.AspectInstance,
-                context.ServiceProvider,
-                MetaApiStaticity.Default ) );
+                context.ServiceProvider ) );
 
         var expansionContext = new TemplateExpansionContext(
             context,
@@ -138,7 +137,11 @@ internal static class AdviceSyntaxGenerator
             {
                 initializerExpressionSyntax =
                     initializerExpression.ToExpressionSyntax(
-                        new SyntaxSerializationContext( context.FinalCompilation, context.SyntaxGenerationContext, context.AspectReferenceSyntaxProvider, member.DeclaringType ),
+                        new SyntaxSerializationContext(
+                            context.FinalCompilation,
+                            context.SyntaxGenerationContext,
+                            context.AspectReferenceSyntaxProvider,
+                            member.DeclaringType ),
                         targetType );
             }
             catch ( Exception ex )

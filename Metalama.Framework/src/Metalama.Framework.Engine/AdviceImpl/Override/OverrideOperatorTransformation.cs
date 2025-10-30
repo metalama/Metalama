@@ -55,8 +55,7 @@ internal sealed class OverrideOperatorTransformation : OverrideMemberTransformat
                 this.AspectLayerId,
                 context.SyntaxGenerationContext,
                 this.AspectInstance,
-                context.ServiceProvider,
-                MetaApiStaticity.AlwaysStatic ) );
+                context.ServiceProvider ) );
 
         var expansionContext = new TemplateExpansionContext(
             context,

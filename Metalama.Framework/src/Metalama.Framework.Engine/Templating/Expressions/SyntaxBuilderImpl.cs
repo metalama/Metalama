@@ -7,6 +7,7 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Code.Invokers;
 using Metalama.Framework.Code.SyntaxBuilders;
 using Metalama.Framework.CompileTimeContracts;
+using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.Invokers;
@@ -36,7 +37,7 @@ internal class SyntaxBuilderImpl : ISyntaxBuilderImpl
     // For instance, in the BuildAspect method, there is none.
 
     private readonly SyntaxGenerationContext _syntaxGenerationContext;
-    private readonly INamedType? _currentType;
+    private readonly IDeclaration? _currentDeclaration;
     private readonly IType _targetTypedExpressionType;
 
     ICompilation ISyntaxBuilderImpl.Compilation => this.Compilation;
@@ -45,22 +46,23 @@ internal class SyntaxBuilderImpl : ISyntaxBuilderImpl
 
     private ContextualSyntaxGenerator SyntaxGenerator => this._syntaxGenerationContext.SyntaxGenerator;
 
-    protected SyntaxBuilderImpl( CompilationModel compilation, SyntaxGenerationContext syntaxGenerationContext, INamedType? currentType )
+    protected SyntaxBuilderImpl( CompilationModel compilation, SyntaxGenerationContext syntaxGenerationContext, IDeclaration? currentDeclaration )
     {
         this.Compilation = compilation;
         this._syntaxGenerationContext = syntaxGenerationContext;
-        this._currentType = currentType;
+        this._currentDeclaration = currentDeclaration;
+        currentDeclaration?.GetClosestNamedType();
 
         // The IExpression interface does not allow to represent target-typed expressions (such as `null` or `default`), so we use `object` instead.
         this._targetTypedExpressionType = compilation.Factory.GetSpecialType( SpecialType.Object );
     }
 
-    public SyntaxBuilderImpl( CompilationModel compilation, SyntaxGenerationOptions syntaxGenerationOptions, INamedType? currentType )
-        : this( compilation, compilation.CompilationContext.GetSyntaxGenerationContext( syntaxGenerationOptions ), currentType ) { }
+    public SyntaxBuilderImpl( CompilationModel compilation, SyntaxGenerationOptions syntaxGenerationOptions, IDeclaration? currentDeclaration )
+        : this( compilation, compilation.CompilationContext.GetSyntaxGenerationContext( syntaxGenerationOptions ), currentDeclaration ) { }
 
     public IProject Project => this.Compilation.Project;
 
-    public IExpression Capture( object? expression ) => CapturedUserExpression.Create(this.Compilation, expression);
+    public IExpression Capture( object? expression ) => CapturedUserExpression.Create( this.Compilation, expression );
 
     public IExpression BuildArray( ArrayBuilder arrayBuilder ) => new ArrayUserExpression( arrayBuilder );
 
@@ -87,7 +89,8 @@ internal class SyntaxBuilderImpl : ISyntaxBuilderImpl
         => new UserStatement(
             SyntaxFactory.ExpressionStatement( ((UserExpression) expression).ToExpressionSyntax( this.CreateSyntaxSerializationContext() ) ) );
 
-    private SyntaxSerializationContext CreateSyntaxSerializationContext() => new( this.Compilation, this._syntaxGenerationContext, null, this._currentType );
+    private SyntaxSerializationContext CreateSyntaxSerializationContext()
+        => new( this.Compilation, this._syntaxGenerationContext, null, this._currentDeclaration );
 
     public void AppendLiteral( object? value, StringBuilder stringBuilder, SpecialType specialType, bool stronglyTyped )
     {
@@ -208,7 +211,23 @@ internal class SyntaxBuilderImpl : ISyntaxBuilderImpl
     public object TypedConstant( in TypedConstant typedConstant )
         => new SyntaxUserExpression( this.SyntaxGenerator.TypedConstant( typedConstant ), typedConstant.Type );
 
-    public IExpression ThisExpression( INamedType type ) => new SyntaxUserExpression( SyntaxFactory.ThisExpression(), type );
+    protected virtual AspectReferenceSpecification? GetAspectReferenceSpecification( AspectReferenceOrder order ) => null;
+
+    public IExpression ThisExpression( INamedType type ) => this.GetThisExpression( type, "TypeFactory.This()" );
+
+    protected virtual IExpression GetThisExpression( INamedType type, string expressionName )
+    {
+        var aspectReferenceSpecification = this.GetAspectReferenceSpecification( AspectReferenceOrder.Final );
+
+        if ( aspectReferenceSpecification != null )
+        {
+            return InstanceUserReceiver.Create( this._currentDeclaration, aspectReferenceSpecification.Value, expressionName );
+        }
+        else
+        {
+            throw new AssertionFailedException();
+        }
+    }
 
     public IExpression ToExpression( IFieldOrProperty fieldOrProperty, IExpression? instance )
     {

@@ -54,8 +54,7 @@ internal sealed class OverrideConstructorTransformation : OverrideMemberTransfor
                 this.AspectLayerId,
                 context.SyntaxGenerationContext,
                 this.AspectInstance,
-                context.ServiceProvider,
-                MetaApiStaticity.Default ) );
+                context.ServiceProvider ) );
 
         var expansionContext = new TemplateExpansionContext(
             context,
@@ -125,10 +124,11 @@ internal sealed class OverrideConstructorTransformation : OverrideMemberTransfor
         => new(
             overriddenDeclaration.IsStatic
                 ? context.AspectReferenceSyntaxProvider.AssertNotNull().GetStaticConstructorReference( this.AspectLayerId )
-                : context.AspectReferenceSyntaxProvider.AssertNotNull().GetConstructorReference(
-                    this.AspectLayerId,
-                    overriddenDeclaration,
-                    context.SyntaxGenerator ),
+                : context.AspectReferenceSyntaxProvider.AssertNotNull()
+                    .GetConstructorReference(
+                        this.AspectLayerId,
+                        overriddenDeclaration,
+                        context.SyntaxGenerator ),
             context.FinalCompilation.Cache.SystemVoidType );
 
     public override TransformationObservability Observability => TransformationObservability.None;

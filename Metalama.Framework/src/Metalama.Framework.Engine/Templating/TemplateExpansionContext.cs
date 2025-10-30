@@ -190,7 +190,13 @@ internal sealed partial class TemplateExpansionContext : UserCodeExecutionContex
         this._methodTemplate = methodTemplate?.TemplateMember;
         this.TemplateProvider = templateProvider;
         this.SyntaxSerializationService = serviceProvider.GetRequiredService<SyntaxSerializationService>();
-        this.SyntaxSerializationContext = new SyntaxSerializationContext( metaApi.Compilation, syntaxGenerationContext, aspectReferenceSyntaxProvider, metaApi.Type );
+
+        this.SyntaxSerializationContext = new SyntaxSerializationContext(
+            metaApi.Compilation,
+            syntaxGenerationContext,
+            aspectReferenceSyntaxProvider,
+            metaApi.Declaration );
+
         this.SyntaxGenerationContext = syntaxGenerationContext;
         this.LexicalScope = lexicalScope;
         this._proceedExpressionProvider = proceedExpressionProvider;

@@ -176,11 +176,11 @@ public class UserCodeExecutionContext : IExecutionContextInternal
         this.TargetDeclaration = targetDeclaration ?? current?.TargetDeclaration;
         this._dependencyCollector = serviceProvider.GetService<IDependencyCollector>();
         this._targetType = targetDeclaration?.GetTopmostNamedType();
-        this.MetaApi = metaApi;
+        this.MetaApi = metaApi ?? current?.MetaApi;
         this._diagnosticAdder = diagnostics ?? current?._diagnosticAdder;
         this._throwOnUnsupportedDependencies = throwOnUnsupportedDependencies;
         this._sourceTrees = sourceTrees;
-        this._syntaxBuilder = this.GetSyntaxBuilder( syntaxBuilder );
+        this._syntaxBuilder = this.GetSyntaxBuilder( syntaxBuilder ?? metaApi ?? current?._syntaxBuilder );
     }
 
     private protected UserCodeExecutionContext( UserCodeExecutionContext prototype )
@@ -221,6 +221,12 @@ public class UserCodeExecutionContext : IExecutionContextInternal
             return syntaxBuilder;
         }
 
+        // It might have been set from the copy constructor.
+        if ( this._syntaxBuilder != null )
+        {
+            return this._syntaxBuilder;
+        }
+
         if ( this.Compilation == null )
         {
             return null;
@@ -236,7 +242,7 @@ public class UserCodeExecutionContext : IExecutionContextInternal
         return new SyntaxBuilderImpl(
             this.Compilation,
             syntaxGenerationOptions,
-            this.TargetDeclaration?.GetClosestNamedType() );
+            this.TargetDeclaration );
     }
 
     internal IDiagnosticAdder Diagnostics

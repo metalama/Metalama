@@ -116,8 +116,7 @@ internal sealed class OverrideIndexerTransformation : OverrideIndexerBaseTransfo
                 this.AspectLayerId,
                 context.SyntaxGenerationContext,
                 this.AspectInstance,
-                context.ServiceProvider,
-                MetaApiStaticity.Default ) );
+                context.ServiceProvider ) );
 
         var expansionContext = new TemplateExpansionContext(
             context,

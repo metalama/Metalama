@@ -229,8 +229,7 @@ internal sealed class OverrideEventTransformation : OverrideMemberTransformation
                 this.AspectLayerId,
                 context.SyntaxGenerationContext,
                 this.AspectInstance,
-                context.ServiceProvider,
-                MetaApiStaticity.Default ) );
+                context.ServiceProvider ) );
 
         var expansionContext = new TemplateExpansionContext(
             context,
@@ -270,8 +269,7 @@ internal sealed class OverrideEventTransformation : OverrideMemberTransformation
                 this.AspectLayerId,
                 context.SyntaxGenerationContext,
                 this.AspectInstance,
-                context.ServiceProvider,
-                MetaApiStaticity.Default ) );
+                context.ServiceProvider ) );
 
         var expansionContext = new TemplateExpansionContext(
             context,

@@ -338,7 +338,8 @@ namespace Metalama.Framework.Tests.TemplateTests.Runner
                 .Single();
 
             var semanticModel = compilation.RoslynCompilation.GetSemanticModel( compilation.RoslynCompilation.SyntaxTrees.First() );
-            var roslynTargetMethodSymbol = 
+
+            var roslynTargetMethodSymbol =
                 semanticModel.GetDeclaredSymbol( roslynTargetMethod )
                 ?? throw new InvalidOperationException( "The symbol of the target method was not found." );
 
@@ -365,8 +366,7 @@ namespace Metalama.Framework.Tests.TemplateTests.Runner
                     default,
                     syntaxGenerationContext,
                     null!,
-                    serviceProvider,
-                    MetaApiStaticity.Default ) );
+                    serviceProvider ) );
 
             return (new TemplateExpansionContext(
                         serviceProvider,

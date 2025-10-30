@@ -170,11 +170,13 @@ public static class ExpressionFactory
     /// Gets a <c>this</c> expression for the given type.
     /// </summary>
     /// <param name="type">A type.</param>
+    /// <seealso cref="meta.This"/>
     public static IExpression This( INamedType type ) => SyntaxBuilder.CurrentImplementation.ThisExpression( type );
 
     /// <summary>
     /// Gets a <c>this</c> expression for the current type when inside a template.
     /// </summary>
+    /// <seealso cref="meta.This"/>
     public static IExpression This() => This( meta.Target.Type );
 
     /// <summary>

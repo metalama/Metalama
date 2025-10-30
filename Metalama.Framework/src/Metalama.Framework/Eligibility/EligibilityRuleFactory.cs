@@ -28,7 +28,7 @@ public static partial class EligibilityRuleFactory
             builder.ExceptForInheritance()
                 .MustSatisfy(
                     t => t.TypeKind is TypeKind.Class or TypeKind.Struct or TypeKind.Interface or TypeKind.Extension,
-                    t => $"'{t}' is neither a class, record class, struct, record struct, interface, nor extensions block" );
+                    t => $"'{t}' is neither a class, struct, interface, nor extensions block" );
         } );
 
     internal static IEligibilityRule<IDeclaration> OverrideConstructorAdviceRule { get; } = CreateRule<IDeclaration, IConstructor>(
@@ -97,7 +97,7 @@ public static partial class EligibilityRuleFactory
         {
             builder.MustSatisfy(
                 t => t.TypeKind is TypeKind.Class or TypeKind.Struct or TypeKind.Interface or TypeKind.Extension,
-                t => $"'{t}' must be a class, record class, struct, record struct, interface, or extension block" );
+                t => $"'{t}' must be a class, struct, interface, or extension block" );
 
             builder.MustBeExplicitlyDeclared();
             builder.MustBeRunTimeOnly();
@@ -108,7 +108,7 @@ public static partial class EligibilityRuleFactory
         {
             builder.MustSatisfy(
                 t => t.TypeKind is TypeKind.Class or TypeKind.Struct or TypeKind.Interface,
-                t => $"'{t}' must be a class, record class, struct, or record struct" );
+                t => $"'{t}' must be a class, struct, or interface" );
 
             builder.MustBeExplicitlyDeclared();
             builder.MustNotBeStatic();
@@ -140,7 +140,7 @@ public static partial class EligibilityRuleFactory
                     {
                         typeEligibilityBuilder.MustSatisfy(
                             t => t.TypeKind is TypeKind.Class or TypeKind.Struct,
-                            t => $"'{t}' must be a class, record class, struct, or record struct" );
+                            t => $"'{t}' must be a class or struct" );
 
                         typeEligibilityBuilder.MustBeExplicitlyDeclared();
                         typeEligibilityBuilder.MustBeRunTimeOnly();

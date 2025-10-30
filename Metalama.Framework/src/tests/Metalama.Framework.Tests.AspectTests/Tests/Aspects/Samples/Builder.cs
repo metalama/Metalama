@@ -458,7 +458,7 @@ public class GenerateBuilderAttribute : TypeAspect
 
         foreach ( var property in tags.Properties.Where( p => !p.IsInherited ) )
         {
-            property.BuilderProperty!.Value =
+            property.SourceProperty!.Value =
                 meta.Target.Parameters[property.SourceConstructorParameterIndex!.Value].Value;
         }
     }

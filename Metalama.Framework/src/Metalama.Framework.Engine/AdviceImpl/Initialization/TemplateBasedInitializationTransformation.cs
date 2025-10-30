@@ -51,8 +51,7 @@ internal sealed class TemplateBasedInitializationTransformation : BaseSyntaxTree
                 this.AspectLayerId,
                 context.SyntaxGenerationContext,
                 this.AspectInstance,
-                context.ServiceProvider,
-                targetConstructor.IsStatic ? MetaApiStaticity.AlwaysStatic : MetaApiStaticity.AlwaysInstance ) );
+                context.ServiceProvider ) );
 
         var expansionContext = new TemplateExpansionContext(
             context,

@@ -22,7 +22,7 @@ internal abstract class ContractBaseTransformation : BaseSyntaxTreeTransformatio
 {
     private readonly TemplateMember<IMethod> _template;
     private readonly IObjectReader _templateArguments;
-    
+
     /// <summary>
     /// Gets the target member of the contract into which contract statements will be inserted.
     /// </summary>
@@ -73,8 +73,7 @@ internal abstract class ContractBaseTransformation : BaseSyntaxTreeTransformatio
             this.AspectLayerId,
             context.SyntaxGenerationContext,
             this.AspectInstance,
-            context.ServiceProvider,
-            MetaApiStaticity.Default );
+            context.ServiceProvider );
 
         var metaApi = MetaApi.ForDeclaration(
             this.ContractTarget.GetTarget( context.FinalCompilation ),

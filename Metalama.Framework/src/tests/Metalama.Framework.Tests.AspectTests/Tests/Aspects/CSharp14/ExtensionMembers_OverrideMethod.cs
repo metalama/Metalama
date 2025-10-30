@@ -17,7 +17,13 @@ internal class TheAspect : OverrideMethodAspect
 {
     public override dynamic? OverrideMethod()
     {
-        Console.WriteLine( "Override." );
+        Console.WriteLine( $"Override '{meta.Target.Method}'." );
+
+        if ( !meta.Target.Method.IsStatic || meta.Target.Method.Parameters.Count > 0 && meta.Target.Parameters[0].IsThis )
+        {
+            Console.WriteLine( meta.This );
+        }
+
         return meta.Proceed();
     }
 }
@@ -25,7 +31,13 @@ internal class TheAspect : OverrideMethodAspect
 // <target>
 internal static class C
 {
-    extension (TestClass test)
+    [TheAspect]
+    public static void ClassicStaticExtensionMethod( this TestClass c )
+    {
+        Console.WriteLine("Original");
+    }
+    
+    extension( TestClass test )
     {
         [TheAspect]
         public void Method()
@@ -49,11 +61,10 @@ internal class Test
         var test = new TestClass();
         test.Method();
         TestClass.StaticMethod();
+        test.ClassicStaticExtensionMethod();
     }
 }
 
-internal class TestClass
-{
-}
+internal class TestClass { }
 
 #endif

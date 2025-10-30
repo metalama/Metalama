@@ -92,9 +92,16 @@ namespace Metalama.Framework.Aspects
         IIndexer Indexer { get; }
 
         /// <summary>
-        /// Gets the code model of current type including the introductions of the current aspect type.
+        /// Gets the current type including the introductions of the current aspect type.
+        /// If the current context is within an extension block, this property evaluates to the declaring type of the extension block.
         /// </summary>
+        /// <seealso cref="ExtensionBlock"/>
         INamedType Type { get; }
+
+        /// <summary>
+        /// Gets the current extension block.
+        /// </summary>
+        IExtensionBlock? ExtensionBlock { get; }
 
         /// <summary>
         /// Gets the code model of the whole compilation.

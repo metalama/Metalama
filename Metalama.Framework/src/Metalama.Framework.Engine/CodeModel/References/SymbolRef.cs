@@ -59,8 +59,8 @@ internal sealed partial class SymbolRef<T> : FullRef<T>, ISymbolRef<T>
     {
 #if DEBUG
         Invariant.Assert(
-            symbol.GetDeclarationKind( refFactory.CompilationContext ).GetPossibleDeclarationInterfaceTypes( targetKind ).Contains( typeof( T ) ),
-            $"The interface type was expected to be of type {string.Join( " or ", symbol.GetDeclarationKind( refFactory.CompilationContext ).GetPossibleDeclarationInterfaceTypes( targetKind ).SelectAsReadOnlyCollection( t => t.Name ) )} but was {typeof( T )}." );
+            symbol.GetDeclarationKind( refFactory.CompilationContext ).GetPossibleDeclarationInterfaceTypes( targetKind ).Contains( typeof(T) ),
+            $"The interface type was expected to be of type {string.Join( " or ", symbol.GetDeclarationKind( refFactory.CompilationContext ).GetPossibleDeclarationInterfaceTypes( targetKind ).SelectAsReadOnlyCollection( t => t.Name ) )} but was {typeof(T)}." );
 #endif
 
         // Verify that RefTargetKind is used only in reference to declarations that don't have a symbol, i.e. the reference must be normalized
@@ -78,8 +78,8 @@ internal sealed partial class SymbolRef<T> : FullRef<T>, ISymbolRef<T>
 
         // Verify that we're using ITypeExtension or ITupleType when necessary.
         Invariant.Assert(
-            symbol is not INamedTypeSymbol namedTypeSymbol || typeof( T ) == (namedTypeSymbol.IsExtensionSafe() ? typeof( IExtensionBlock ) :
-                namedTypeSymbol.IsTupleType ? typeof( ITupleType ) : typeof( INamedType )) );
+            symbol is not INamedTypeSymbol namedTypeSymbol || typeof(T) == (namedTypeSymbol.IsExtensionSafe() ? typeof(IExtensionBlock) :
+                namedTypeSymbol.IsTupleType ? typeof(ITupleType) : typeof(INamedType)) );
 
         this.Symbol = symbol;
         this.TargetKind = targetKind;
@@ -94,7 +94,7 @@ internal sealed partial class SymbolRef<T> : FullRef<T>, ISymbolRef<T>
         if ( !this.IsDefinition )
         {
             throw new InvalidOperationException(
-                $"{nameof( this.WithGenericContext )} must be called on a generic definition, but the current object is a generic instance." );
+                $"{nameof(this.WithGenericContext)} must be called on a generic definition, but the current object is a generic instance." );
         }
 
         switch ( genericContext.Kind )
@@ -221,7 +221,5 @@ internal sealed partial class SymbolRef<T> : FullRef<T>, ISymbolRef<T>
 
     public new ISymbolRef<TOut> As<TOut>()
         where TOut : class, ICompilationElement
-    {
-        return (ISymbolRef<TOut>) (object) this;
-    }
+        => (ISymbolRef<TOut>) (object) this;
 }

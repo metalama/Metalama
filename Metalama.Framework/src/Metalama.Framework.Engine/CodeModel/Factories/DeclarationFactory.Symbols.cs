@@ -520,7 +520,12 @@ public partial class DeclarationFactory
 
         if ( typeSymbol is INamedTypeSymbol { IsExtension: true } )
         {
-            // TODO: Check this (it should probably throw when trying to create a nullable type for extension.
+            if ( isNullable )
+            {
+                throw new ArgumentOutOfRangeException(
+                    MetalamaStringFormatter.Format( $"The type '{type}' cannot be made nullable because it is an extension block." ) );
+            }
+
             return type;
         }
 
