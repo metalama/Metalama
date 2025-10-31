@@ -106,8 +106,12 @@ namespace Metalama.Framework.Engine.Templating.MetaModel
                 nameof(this.ContractDirection),
                 nameof(Framework.Aspects.ContractDirection) );
 
-        private InstanceUserReceiver GetThisOrBase( string expressionName, AspectReferenceSpecification aspectReferenceSpecification )
-            => InstanceUserReceiver.Create( this.Declaration, aspectReferenceSpecification, expressionName );
+        private InstanceUserReceiver GetThisOrBase( AspectReferenceSpecification aspectReferenceSpecification )
+        {
+            ThisInstanceUserReceiver.TryCreate( this.Declaration, aspectReferenceSpecification, true, out var thisReceiver );
+
+            return thisReceiver.AssertNotNull();
+        }
 
         protected override AspectReferenceSpecification? GetAspectReferenceSpecification( AspectReferenceOrder order )
             => new AspectReferenceSpecification( this._common.AspectLayerId, order );
@@ -119,9 +123,9 @@ namespace Metalama.Framework.Engine.Templating.MetaModel
 
         public IAspectInstanceInternal? AspectInstance => this._common.AspectInstance;
 
-        public object This => this.GetThisOrBase( "meta.This", new AspectReferenceSpecification( this._common.AspectLayerId, AspectReferenceOrder.Final ) );
+        public object This => this.GetThisOrBase( new AspectReferenceSpecification( this._common.AspectLayerId, AspectReferenceOrder.Final ) );
 
-        public object Base => this.GetThisOrBase( "meta.Base", new AspectReferenceSpecification( this._common.AspectLayerId, AspectReferenceOrder.Base ) );
+        public object Base => this.GetThisOrBase( new AspectReferenceSpecification( this._common.AspectLayerId, AspectReferenceOrder.Base ) );
 
         public object ThisType
             => new ThisTypeUserReceiver( this.Type, new AspectReferenceSpecification( this._common.AspectLayerId, AspectReferenceOrder.Final ) );

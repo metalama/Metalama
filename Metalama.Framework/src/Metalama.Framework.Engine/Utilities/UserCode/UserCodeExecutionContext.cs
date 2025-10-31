@@ -180,7 +180,7 @@ public class UserCodeExecutionContext : IExecutionContextInternal
         this._diagnosticAdder = diagnostics ?? current?._diagnosticAdder;
         this._throwOnUnsupportedDependencies = throwOnUnsupportedDependencies;
         this._sourceTrees = sourceTrees;
-        this._syntaxBuilder = this.GetSyntaxBuilder( syntaxBuilder ?? metaApi ?? current?._syntaxBuilder );
+        this._syntaxBuilder = GetSyntaxBuilder( compilationModel, targetDeclaration, serviceProvider, syntaxBuilder, metaApi, current?._syntaxBuilder );
     }
 
     private protected UserCodeExecutionContext( UserCodeExecutionContext prototype )
@@ -208,31 +208,56 @@ public class UserCodeExecutionContext : IExecutionContextInternal
 
     private UserCodeExecutionContext( UserCodeExecutionContext prototype, CompilationModel compilation, IDiagnosticAdder diagnostics ) : this( prototype )
     {
-        this.Compilation = compilation;
-        this.CompilationContext = compilation.CompilationContext;
         this._diagnosticAdder = diagnostics;
-        this._syntaxBuilder = this.GetSyntaxBuilder();
+
+        if ( !ReferenceEquals( prototype.Compilation, compilation ) )
+        {
+            if ( this.MetaApi != null )
+            {
+                // TODO: Translate the MetaApi.
+                throw new AssertionFailedException();
+            }
+            
+            this.Compilation = compilation;
+            this.CompilationContext = compilation.CompilationContext;
+            this.TargetDeclaration = prototype.TargetDeclaration?.ForCompilation( compilation );
+            this._syntaxBuilder = GetSyntaxBuilder( compilation, this.TargetDeclaration, this.ServiceProvider, this._syntaxBuilder );
+        }
     }
 
-    private ISyntaxBuilderImpl? GetSyntaxBuilder( ISyntaxBuilderImpl? syntaxBuilder = null )
+    private static ISyntaxBuilderImpl? GetSyntaxBuilder(
+        CompilationModel? compilation,
+        IDeclaration? currentDeclaration,
+        ProjectServiceProvider serviceProvider,
+        ISyntaxBuilderImpl? syntaxBuilder1 = null,
+        ISyntaxBuilderImpl? syntaxBuilder2 = null,
+        ISyntaxBuilderImpl? syntaxBuilder3 = null )
     {
-        if ( syntaxBuilder != null )
-        {
-            return syntaxBuilder;
-        }
-
-        // It might have been set from the copy constructor.
-        if ( this._syntaxBuilder != null )
-        {
-            return this._syntaxBuilder;
-        }
-
-        if ( this.Compilation == null )
+        if ( compilation == null )
         {
             return null;
         }
 
-        var syntaxGenerationOptions = this.ServiceProvider.GetService<SyntaxGenerationOptions>();
+        bool CanReuse( ISyntaxBuilderImpl? syntaxBuilder )
+            => syntaxBuilder != null && ReferenceEquals( syntaxBuilder.Compilation, compilation )
+                                     && (currentDeclaration == null || ReferenceEquals( syntaxBuilder.CurrentDeclaration, currentDeclaration ));
+
+        if ( CanReuse( syntaxBuilder1 ) )
+        {
+            return syntaxBuilder1;
+        }
+
+        if ( CanReuse( syntaxBuilder2 ) )
+        {
+            return syntaxBuilder2;
+        }
+
+        if ( CanReuse( syntaxBuilder3 ) )
+        {
+            return syntaxBuilder3;
+        }
+
+        var syntaxGenerationOptions = serviceProvider.GetService<SyntaxGenerationOptions>();
 
         if ( syntaxGenerationOptions == null )
         {
@@ -240,9 +265,9 @@ public class UserCodeExecutionContext : IExecutionContextInternal
         }
 
         return new SyntaxBuilderImpl(
-            this.Compilation,
+            compilation,
             syntaxGenerationOptions,
-            this.TargetDeclaration );
+            currentDeclaration );
     }
 
     internal IDiagnosticAdder Diagnostics

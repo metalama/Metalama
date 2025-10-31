@@ -33,41 +33,83 @@ namespace Metalama.Framework.Engine.Templating.Expressions
                 TemplateExpansionContext.CurrentSyntaxSerializationContext.CompilationModel,
                 canBeNull: false );
 
-        public static InstanceUserReceiver Create(
+        public static bool TryCreate(
             IDeclaration? currentDeclaration,
             in AspectReferenceSpecification aspectReferenceSpecification,
-            string expressionName )
+            bool throwOnError,
+            out InstanceUserReceiver? receiver )
         {
             switch ( currentDeclaration )
             {
                 // Parameters
                 case IParameter { DeclaringMember: { } m }:
-                    return Create( m, aspectReferenceSpecification, expressionName );
+                    return TryCreate( m, aspectReferenceSpecification, throwOnError, out receiver );
 
                 // Extension member in extension block.
-                case IMember { IsStatic: false, DeclaringType: { TypeKind: TypeKind.Extension } and IExtensionBlock e }:
-                    return new ReceiverParameterUserReceiver( e.ReceiverParameter, aspectReferenceSpecification );
+                case IMember { IsStatic: false, DeclaringType: { TypeKind: TypeKind.Extension } and IExtensionBlock e } m:
+                    {
+                        if ( !m.IsStatic )
+                        {
+                            receiver = new ReceiverParameterUserReceiver( e.ReceiverParameter, aspectReferenceSpecification );
+
+                            return true;
+                        }
+                        else if ( throwOnError )
+                        {
+                            throw TemplatingDiagnosticDescriptors.NoReceiverInCurrentContext.CreateException(
+                                (currentDeclaration,
+                                 currentDeclaration.DeclarationKind, (FormattableString) $"the target {m.DeclarationKind} is static") );
+                        }
+                        else
+                        {
+                            receiver = null;
+
+                            return false;
+                        }
+                    }
 
                 // Instance member.
                 case IMember { IsStatic: false, DeclaringType: { } type }:
-                    return new ThisInstanceUserReceiver( type, aspectReferenceSpecification );
+                    receiver = new ThisInstanceUserReceiver( type, aspectReferenceSpecification );
+
+                    return true;
 
                 // Extension method.
                 case IMethod { IsStatic: true, Parameters.Count: > 0 } m when m.Parameters[0].IsThis:
-                    return new ReceiverParameterUserReceiver( m.Parameters[0], aspectReferenceSpecification );
+                    receiver = new ReceiverParameterUserReceiver( m.Parameters[0], aspectReferenceSpecification );
+
+                    return true;
 
                 // No current declaration. This should happen only in unit tests.
                 case null:
-                    throw new AssertionFailedException( $"Cannot create use '{expressionName}' expression because there is no advising context." );
+                    throw new AssertionFailedException( $"Cannot get a receiver reference because there is no advising context." );
 
                 default:
-                    var explanation = currentDeclaration is IParameter { DeclaringMember: not null } parameter
-                        ? (FormattableString) $"the target parameter is contained in a static {parameter.DeclaringMember.DeclarationKind}"
-                        : $"the target {currentDeclaration.DeclarationKind} is static";
+                    if ( throwOnError )
+                    {
+                        var member = currentDeclaration.GetClosestMemberOrNamedType();
 
-                    throw TemplatingDiagnosticDescriptors.CannotUseThisInStaticContext.CreateException(
-                        (expressionName, currentDeclaration,
-                         currentDeclaration.DeclarationKind, explanation) );
+                        if ( member != null )
+                        {
+                            throw TemplatingDiagnosticDescriptors.NoReceiverInCurrentContext.CreateException(
+                                (currentDeclaration,
+                                 currentDeclaration.DeclarationKind,
+                                 (FormattableString) $"the target {member.DeclarationKind} is static and is not an extension method") );
+                        }
+                        else
+                        {
+                            throw TemplatingDiagnosticDescriptors.NoReceiverInCurrentContext.CreateException(
+                                (currentDeclaration,
+                                 currentDeclaration.DeclarationKind,
+                                 (FormattableString) $"the target {currentDeclaration.DeclarationKind} is neither a member nor a parameter") );
+                        }
+                    }
+                    else
+                    {
+                        receiver = null;
+
+                        return false;
+                    }
             }
         }
     }

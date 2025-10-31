@@ -144,9 +144,8 @@ namespace Metalama.Framework.Aspects
         }
 
         /// <summary>
-        /// Gets a <c>dynamic</c> object that represents an instance of the target type. It can be used as a value (e.g. as a method argument)
-        /// or can be used to get access to <i>instance</i> members of the instance (e.g. <c>meta.This.MyMethod()</c>). If the current declaration
-        /// is an extension member, this property returns the receiver parameter.
+        /// Gets a <c>dynamic</c> object that represents the current instance (<c>this</c>) of the object being advised. It can be used as a value (e.g. as a method argument)
+        /// or can be used to get access to <i>instance</i> members of the instance (e.g. <c>meta.This.MyMethod()</c>).
         /// </summary>
         /// <remarks>
         /// <para>
@@ -158,17 +157,25 @@ namespace Metalama.Framework.Aspects
         /// To access the prior layer (or the base type, if there is no prior layer), use <see cref="Base"/>.
         /// To access static members, use <see cref="ThisType"/>.
         /// </para>
-        /// 
         /// </remarks>
         /// <seealso cref="Base"/>
         /// <seealso cref="ThisType"/>
         /// <seealso href="@templates"/>
+        /// <seealso cref="Receiver"/>
         [TemplateKeyword]
         public static dynamic This => CurrentContext.This;
+        
+        /// <summary>
+        /// Gets a <c>dynamic</c> object that represents the receiver object, i.e. <c>this</c> in non-extension instance members, or the receiver parameter
+        /// in extension members or classic extension methods.
+        /// </summary>
+        /// <seealso cref="This"/>
+        [TemplateKeyword]
+        public static dynamic Receiver => CurrentContext.ReceiverExpression( Target.Declaration );
 
         /// <summary>
-        /// Gets a <c>dynamic</c> object that must be used to get access to <i>instance</i> members of the instance (e.g. <c>meta.Base.MyMethod()</c>).
-        /// If the current declaration is an extension member, this property throws an exception.
+        /// Gets a <c>dynamic</c> object that gives access to the members of the base class for the current instance, equivalent to <c>base</c> in C#.
+        /// The syntax to access these members is e.g. <c>meta.Base.MyMethod()</c>.
         /// </summary>
         /// <remarks>
         /// The <see cref="Base"/> property exposes the state of the target type as it is <i>before</i> the application

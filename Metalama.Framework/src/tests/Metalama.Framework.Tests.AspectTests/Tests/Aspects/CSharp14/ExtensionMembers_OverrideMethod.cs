@@ -9,6 +9,7 @@
 #if ROSLYN_5_0_0_OR_GREATER
 
 using Metalama.Framework.Aspects;
+using Metalama.Framework.Code.SyntaxBuilders;
 using System;
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.CSharp14.ExtensionMembers_OverrideMethod;
@@ -19,9 +20,9 @@ internal class TheAspect : OverrideMethodAspect
     {
         Console.WriteLine( $"Override '{meta.Target.Method}'." );
 
-        if ( !meta.Target.Method.IsStatic || meta.Target.Method.Parameters.Count > 0 && meta.Target.Parameters[0].IsThis )
+        if ( !meta.Target.Method.IsStatic || (meta.Target.Method.Parameters.Count > 0 && meta.Target.Parameters[0].IsThis) )
         {
-            Console.WriteLine( meta.This );
+            Console.WriteLine( ExpressionFactory.Receiver().Value );
         }
 
         return meta.Proceed();
@@ -34,9 +35,9 @@ internal static class C
     [TheAspect]
     public static void ClassicStaticExtensionMethod( this TestClass c )
     {
-        Console.WriteLine("Original");
+        Console.WriteLine( "Original" );
     }
-    
+
     extension( TestClass test )
     {
         [TheAspect]

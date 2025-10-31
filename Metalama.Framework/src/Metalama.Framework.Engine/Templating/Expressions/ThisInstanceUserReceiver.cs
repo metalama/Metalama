@@ -4,12 +4,15 @@
 
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Aspects;
+using Metalama.Framework.Engine.Diagnostics;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Metalama.Framework.Engine.Templating.Expressions;
 
-internal class ThisInstanceUserReceiver : InstanceUserReceiver
+internal sealed class ThisInstanceUserReceiver : InstanceUserReceiver
 {
     private readonly INamedType _type;
 
@@ -29,4 +32,55 @@ internal class ThisInstanceUserReceiver : InstanceUserReceiver
     protected override UserReceiver WithAspectReferenceSpecification( AspectReferenceSpecification spec ) => new ThisInstanceUserReceiver( this._type, spec );
 
     protected override bool CanBeNull => false;
+
+    public static bool TryCreate(
+        IDeclaration? currentDeclaration,
+        in AspectReferenceSpecification aspectReferenceSpecification,
+        bool throwOnError,
+        [NotNullWhen( true )] out ThisInstanceUserReceiver? receiver )
+    {
+        switch ( currentDeclaration )
+        {
+            // Parameters
+            case IParameter { DeclaringMember: { } m }:
+                return TryCreate( m, aspectReferenceSpecification, throwOnError, out receiver );
+
+            // Instance member.
+            case IMember { IsStatic: false, DeclaringType: { } type }:
+                receiver = new ThisInstanceUserReceiver( type, aspectReferenceSpecification );
+
+                return true;
+
+            // No current declaration. This should happen only in unit tests.
+            case null:
+                throw new AssertionFailedException( $"Cannot create use 'this'  because there is no advising context." );
+
+            default:
+                if ( throwOnError )
+                {
+                    var member = currentDeclaration.GetClosestMemberOrNamedType();
+
+                    if ( member != null )
+                    {
+                        throw TemplatingDiagnosticDescriptors.CannotUseThisInStaticContext.CreateException(
+                            (currentDeclaration,
+                             currentDeclaration.DeclarationKind,
+                             (FormattableString) $"the target {member.DeclarationKind} is static") );
+                    }
+                    else
+                    {
+                        throw TemplatingDiagnosticDescriptors.CannotUseThisInStaticContext.CreateException(
+                            (currentDeclaration,
+                             currentDeclaration.DeclarationKind,
+                             (FormattableString) $"the target {currentDeclaration.DeclarationKind} is neither a member nor a parameter") );
+                    }
+                }
+                else
+                {
+                    receiver = null;
+
+                    return false;
+                }
+        }
+    }
 }

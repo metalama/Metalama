@@ -125,9 +125,10 @@ internal abstract partial class Invoker<T>
             }
             else
             {
+                ThisInstanceUserReceiver.TryCreate( syntaxSerializationContext.CurrentDeclaration, aspectReferenceSpecification, true, out var thisReceiver );
+
                 return new ReceiverTypedExpressionSyntax(
-                    InstanceUserReceiver.Create( syntaxSerializationContext.CurrentDeclaration, aspectReferenceSpecification, "this" )
-                        .ToTypedExpressionSyntax( syntaxSerializationContext ),
+                    thisReceiver.AssertNotNull().ToTypedExpressionSyntax( syntaxSerializationContext ),
                     InvokerOptions.Default,
                     aspectReferenceSpecification );
             }

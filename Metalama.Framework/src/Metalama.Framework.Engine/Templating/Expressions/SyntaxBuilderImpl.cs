@@ -37,8 +37,8 @@ internal class SyntaxBuilderImpl : ISyntaxBuilderImpl
     // For instance, in the BuildAspect method, there is none.
 
     private readonly SyntaxGenerationContext _syntaxGenerationContext;
-    private readonly IDeclaration? _currentDeclaration;
-    private readonly IType _targetTypedExpressionType;
+
+    public IDeclaration? CurrentDeclaration { get; }
 
     ICompilation ISyntaxBuilderImpl.Compilation => this.Compilation;
 
@@ -50,11 +50,8 @@ internal class SyntaxBuilderImpl : ISyntaxBuilderImpl
     {
         this.Compilation = compilation;
         this._syntaxGenerationContext = syntaxGenerationContext;
-        this._currentDeclaration = currentDeclaration;
+        this.CurrentDeclaration = currentDeclaration;
         currentDeclaration?.GetClosestNamedType();
-
-        // The IExpression interface does not allow to represent target-typed expressions (such as `null` or `default`), so we use `object` instead.
-        this._targetTypedExpressionType = compilation.Factory.GetSpecialType( SpecialType.Object );
     }
 
     public SyntaxBuilderImpl( CompilationModel compilation, SyntaxGenerationOptions syntaxGenerationOptions, IDeclaration? currentDeclaration )
@@ -90,7 +87,7 @@ internal class SyntaxBuilderImpl : ISyntaxBuilderImpl
             SyntaxFactory.ExpressionStatement( ((UserExpression) expression).ToExpressionSyntax( this.CreateSyntaxSerializationContext() ) ) );
 
     private SyntaxSerializationContext CreateSyntaxSerializationContext()
-        => new( this.Compilation, this._syntaxGenerationContext, null, this._currentDeclaration );
+        => new( this.Compilation, this._syntaxGenerationContext, null, this.CurrentDeclaration );
 
     public void AppendLiteral( object? value, StringBuilder stringBuilder, SpecialType specialType, bool stronglyTyped )
     {
@@ -213,20 +210,27 @@ internal class SyntaxBuilderImpl : ISyntaxBuilderImpl
 
     protected virtual AspectReferenceSpecification? GetAspectReferenceSpecification( AspectReferenceOrder order ) => null;
 
-    public IExpression ThisExpression( INamedType type ) => this.GetThisExpression( type, "TypeFactory.This()" );
-
-    protected virtual IExpression GetThisExpression( INamedType type, string expressionName )
+    public IExpression ThisExpression( INamedType type )
     {
-        var aspectReferenceSpecification = this.GetAspectReferenceSpecification( AspectReferenceOrder.Final );
+        var aspectReferenceSpecification = this.GetAspectReferenceSpecification( AspectReferenceOrder.Final ).AssertNotNull();
 
-        if ( aspectReferenceSpecification != null )
+        if ( ThisInstanceUserReceiver.TryCreate( this.CurrentDeclaration, aspectReferenceSpecification, true, out var receiver ) )
         {
-            return InstanceUserReceiver.Create( this._currentDeclaration, aspectReferenceSpecification.Value, expressionName );
+            return receiver;
         }
         else
         {
-            throw new AssertionFailedException();
+            return new SyntaxUserExpression( SyntaxFactory.ThisExpression(), type, false, type is INamedType { IsReferenceType: false } );
         }
+    }
+
+    public IExpression ReceiverExpression( IDeclaration declaration )
+    {
+        var aspectReferenceSpecification = this.GetAspectReferenceSpecification( AspectReferenceOrder.Final ).AssertNotNull();
+
+        InstanceUserReceiver.TryCreate( declaration, aspectReferenceSpecification, true, out var receiver );
+
+        return receiver.AssertNotNull();
     }
 
     public IExpression ToExpression( IFieldOrProperty fieldOrProperty, IExpression? instance )
@@ -251,7 +255,8 @@ internal class SyntaxBuilderImpl : ISyntaxBuilderImpl
 
     public IStatement CreateBlock( IStatementList statements ) => new BlockStatement( statements );
 
-    public IExpression NullExpression( IType? type ) => new SyntaxUserExpression( SyntaxFactoryEx.Null, type?.ToNullable() ?? this._targetTypedExpressionType );
+    public IExpression NullExpression( IType? type )
+        => new SyntaxUserExpression( SyntaxFactoryEx.Null, type?.ToNullable() ?? this.Compilation.Factory.GetSpecialType( SpecialType.Object ) );
 
     public IExpression DefaultExpression( IType? type )
     {
@@ -261,29 +266,30 @@ internal class SyntaxBuilderImpl : ISyntaxBuilderImpl
         }
         else
         {
-            return new SyntaxUserExpression( SyntaxFactoryEx.Default, this._targetTypedExpressionType );
+            return new SyntaxUserExpression( SyntaxFactoryEx.Default, this.Compilation.Factory.GetSpecialType( SpecialType.Object ) );
         }
     }
 
     public bool TryConvertExpressionToTypedConstant( IExpression expression, [NotNullWhen( true )] out TypedConstant? typedConstant )
     {
-        if ( expression is TypedConstant expressionAsTypedConstant )
+        switch ( expression )
         {
-            typedConstant = expressionAsTypedConstant;
+            case TypedConstant expressionAsTypedConstant:
+                typedConstant = expressionAsTypedConstant;
 
-            return true;
-        }
-        else if ( expression is IUserExpression userExpression )
-        {
-            var syntax = userExpression.ToTypedExpressionSyntax( this.CreateSyntaxSerializationContext() ).Syntax;
+                return true;
 
-            return this.TryConvertExpressionToTypedConstant( syntax, out typedConstant );
-        }
-        else
-        {
-            typedConstant = null;
+            case IUserExpression userExpression:
+                {
+                    var syntax = userExpression.ToTypedExpressionSyntax( this.CreateSyntaxSerializationContext() ).Syntax;
 
-            return false;
+                    return this.TryConvertExpressionToTypedConstant( syntax, out typedConstant );
+                }
+
+            default:
+                typedConstant = null;
+
+                return false;
         }
     }
 
@@ -296,25 +302,27 @@ internal class SyntaxBuilderImpl : ISyntaxBuilderImpl
 
     private bool TryConvertExpressionToTypedConstant( ExpressionSyntax syntax, [NotNullWhen( true )] out TypedConstant? typedConstant )
     {
-        if ( syntax is LiteralExpressionSyntax literalExpression )
+        switch ( syntax )
         {
-            typedConstant = Code.TypedConstant.Create( literalExpression.Token.Value );
+            case LiteralExpressionSyntax literalExpression:
+                typedConstant = Code.TypedConstant.Create( literalExpression.Token.Value );
 
-            return true;
-        }
-        else if ( syntax is DefaultExpressionSyntax defaultExpressionSyntax )
-        {
-            var type = this.Compilation.GetCompilationModel().SerializableTypeIdResolver.ResolveId( defaultExpressionSyntax.Type.GetSerializableTypeId() );
+                return true;
 
-            typedConstant = Code.TypedConstant.Default( type );
+            case DefaultExpressionSyntax defaultExpressionSyntax:
+                {
+                    var type = this.Compilation.GetCompilationModel()
+                        .SerializableTypeIdResolver.ResolveId( defaultExpressionSyntax.Type.GetSerializableTypeId() );
 
-            return true;
-        }
-        else
-        {
-            typedConstant = null;
+                    typedConstant = Code.TypedConstant.Default( type );
 
-            return false;
+                    return true;
+                }
+
+            default:
+                typedConstant = null;
+
+                return false;
         }
     }
 
