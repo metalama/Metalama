@@ -33,8 +33,13 @@ public static class TypeFactory
     /// Gets an <see cref="IType"/> given a reflection <see cref="Type"/>.
     /// </summary>
     public static IType GetType( Type type ) => Implementation.GetTypeByReflectionType( type );
-    
-    public static INamedType GetNamedType( Type type ) => (INamedType) Implementation.GetTypeByReflectionType( type );
+
+    /// <summary>
+    /// Gets an <see cref="INamedType"/> given a reflection <see cref="Type"/>.
+    /// </summary>
+    public static INamedType GetNamedType( Type type )
+        => Implementation.GetTypeByReflectionType( type ) as INamedType
+           ?? throw new ArgumentOutOfRangeException( nameof(type), $"'{type}' is not a named type." );
 
     /// <summary>
     /// Get type based on its full name, as used in reflection.
