@@ -39,6 +39,9 @@ public static class DeclarationExtensions
         => symbol switch
         {
             INamespaceSymbol => DeclarationKind.Namespace,
+#if ROSLYN_5_0_0_OR_GREATER
+            INamedTypeSymbol { IsExtension: true } => DeclarationKind.ExtensionBlock,
+#endif
             INamedTypeSymbol => DeclarationKind.NamedType,
             IMethodSymbol method =>
                 method.MethodKind switch
@@ -138,11 +141,11 @@ public static class DeclarationExtensions
         }
 
         var arguments = new List<ArgumentSyntax>( args.Count );
-        
+
         for ( var i = 0; i < args.Count; i++ )
         {
             var arg = args[i];
-            
+
             ArgumentSyntax argument;
 
             if ( i >= parameters.Count || parameters[i].IsParams )
@@ -255,6 +258,7 @@ public static class DeclarationExtensions
         {
             DeclarationKind.TypeParameter => "generic parameter",
             DeclarationKind.NamedType => "type",
+            DeclarationKind.ExtensionBlock => "extension block",
             DeclarationKind.AssemblyReference => "assembly reference",
             _ => kind.ToString().ToLowerInvariant()
         };

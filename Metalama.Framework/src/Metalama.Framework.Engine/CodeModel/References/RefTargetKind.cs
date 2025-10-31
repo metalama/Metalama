@@ -25,6 +25,7 @@ namespace Metalama.Framework.Engine.CodeModel.References
         EventRaise,
         EventRaiseParameter,
         EventRaiseReturnParameter,
-        NamedType
+        NamedType,
+        ExtensionBlock
     }
 }

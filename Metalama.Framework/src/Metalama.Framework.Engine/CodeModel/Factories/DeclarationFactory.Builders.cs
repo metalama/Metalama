@@ -191,7 +191,10 @@ public partial class DeclarationFactory
         {
             // TODO PERF: switch based on DeclarationKind or use an array of delegates.
 
-            MethodBuilderData { ContainingDeclaration.DeclarationKind: DeclarationKind.NamedType } methodBuilder => this.GetMethod(
+            MethodBuilderData
+            {
+                ContainingDeclaration.DeclarationKind: DeclarationKind.NamedType or DeclarationKind.ExtensionBlock
+            } methodBuilder => this.GetMethod(
                 methodBuilder,
                 genericContext ),
             MethodBuilderData

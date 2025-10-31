@@ -97,6 +97,11 @@ internal abstract class CompilationElementVisitor
 
                         break;
 
+                    case DeclarationKind.ExtensionBlock:
+                        this.VisitExtensionBlock( (IExtensionBlock) declaration );
+
+                        break;
+
                     case DeclarationKind.Method or DeclarationKind.Finalizer or DeclarationKind.Operator:
                         this.VisitMethod( (IMethod) declaration );
 

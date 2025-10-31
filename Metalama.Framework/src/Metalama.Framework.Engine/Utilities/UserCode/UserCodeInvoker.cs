@@ -59,7 +59,7 @@ public sealed class UserCodeInvoker : IProjectService, IGlobalService
 
         // We prefer to report the diagnostic on the target declaration of the aspect, and not in source code, because we must report the diagnostic
         // in the current project.
-        var diagnosticLocation = context.TargetDeclaration?.GetDiagnosticLocation();
+        var diagnosticLocation = context.DiagnosticDeclaration?.GetDiagnosticLocation();
 
         // If we don't have a target declaration, try to report in source code.
         if ( diagnosticLocation == null && compileTimeProject != null )

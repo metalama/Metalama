@@ -78,6 +78,9 @@ namespace Metalama.Framework.Engine.Diagnostics
                             case DeclarationKind.NamedType:
                                 return "type";
 
+                            case DeclarationKind.ExtensionBlock:
+                                return "extension block";
+
                             case DeclarationKind.Compilation:
                                 return "project";
 

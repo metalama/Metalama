@@ -23,7 +23,7 @@ internal static partial class DocumentationIdHelper
     {
         private readonly CompilationModel _compilation;
         private IType? _aspectGeneratedType;
-        
+
         public Parser( CompilationModel compilation )
         {
             this._compilation = compilation;
@@ -545,7 +545,8 @@ internal static partial class DocumentationIdHelper
             foreach ( var member in members )
             {
                 if ( member.DeclarationKind == DeclarationKind.Namespace
-                     || (member.DeclarationKind == DeclarationKind.NamedType && ((INamedType) member).TypeParameters.Count == 0) )
+                     || (member.DeclarationKind is DeclarationKind.NamedType or DeclarationKind.ExtensionBlock
+                         && ((INamedType) member).TypeParameters.Count == 0) )
                 {
                     results.Add( member );
                 }

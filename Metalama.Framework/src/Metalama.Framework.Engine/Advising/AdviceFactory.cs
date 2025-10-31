@@ -384,7 +384,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
 
     private static void ValidateNotExtensionBlock( IDeclaration declaration, string introduced )
     {
-        if ( declaration.DeclarationKind == DeclarationKind.NamedType && declaration is IExtensionBlock )
+        if ( declaration.DeclarationKind == DeclarationKind.ExtensionBlock )
         {
             throw new InvalidOperationException(
                 MetalamaStringFormatter.Format( $"Cannot introduce {introduced} into '{declaration}' because it represents an extension block." ) );

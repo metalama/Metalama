@@ -38,7 +38,7 @@ internal static class C
       }
       set
       {
-        global::System.Console.WriteLine("Member: Metalama.Framework.Tests.AspectTests.Tests.Aspects.CSharp14.ExtensionMembers_Contract.C.extension(Metalama.Framework.Tests.AspectTests.Tests.Aspects.CSharp14.ExtensionMembers_Contract.TestClass).Property");
+        global::System.Console.WriteLine("Member: C.extension(TestClass).Property.set");
         global::System.Console.WriteLine("Type: C");
         global::System.Console.WriteLine(test);
         Console.WriteLine("Original.");
@@ -54,7 +54,7 @@ internal static class C
       }
       set
       {
-        global::System.Console.WriteLine("Member: Metalama.Framework.Tests.AspectTests.Tests.Aspects.CSharp14.ExtensionMembers_Contract.C.extension(Metalama.Framework.Tests.AspectTests.Tests.Aspects.CSharp14.ExtensionMembers_Contract.TestClass).StaticProperty");
+        global::System.Console.WriteLine("Member: C.extension(TestClass).StaticProperty.set");
         global::System.Console.WriteLine("Type: C");
         Console.WriteLine("Original.");
       }

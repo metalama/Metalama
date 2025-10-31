@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.CompileTimeContracts;
@@ -183,7 +184,7 @@ internal sealed partial class TemplateExpansionContext : UserCodeExecutionContex
         syntaxGenerationContext.CompilationContext,
         aspectLayerId,
         (CompilationModel?) metaApi.Compilation,
-        metaApi.Target.Declaration,
+        metaApi.MethodOrNull ?? metaApi.Declaration, // Give priority to the accessor
         diagnostics: metaApi.Diagnostics,
         metaApi: metaApi )
     {
@@ -283,90 +284,99 @@ internal sealed partial class TemplateExpansionContext : UserCodeExecutionContex
             return ReturnStatement().WithAdditionalAnnotations( FormattingAnnotations.PossibleRedundantAnnotation );
         }
 
-        switch ( this.MetaApi.Declaration )
+        if ( this.MetaApi.AdviceKind == AdviceKind.AddInitializer )
         {
-            case IField field:
-                // This is field initializer template expansion.
-                Invariant.Assert( !awaitResult );
+            // This is a special case where there is no current method.
 
-                return this.CreateReturnStatementDefault( returnExpression, this._localFunctionInfo?.ReturnType ?? field.Type, false );
+            switch ( this.MetaApi.Declaration )
+            {
+                case IField field:
+                    // This is field initializer template expansion.
+                    Invariant.Assert( !awaitResult );
 
-            case IProperty property:
-                // This is property initializer template expansion.
-                Invariant.Assert( !awaitResult );
+                    return this.CreateReturnStatementDefault( returnExpression, this._localFunctionInfo?.ReturnType ?? field.Type, false );
 
-                return this.CreateReturnStatementDefault( returnExpression, this._localFunctionInfo?.ReturnType ?? property.Type, false );
+                case IProperty property:
+                    // This is property initializer template expansion.
+                    Invariant.Assert( !awaitResult );
 
-            case IEvent @event:
-                // This is event initializer template expansion.
-                Invariant.Assert( !awaitResult );
+                    return this.CreateReturnStatementDefault( returnExpression, this._localFunctionInfo?.ReturnType ?? property.Type, false );
 
-                return this.CreateReturnStatementDefault( returnExpression, this._localFunctionInfo?.ReturnType ?? @event.Type, false );
+                case IEvent @event:
+                    // This is event initializer template expansion.
+                    Invariant.Assert( !awaitResult );
 
-            default:
+                    return this.CreateReturnStatementDefault( returnExpression, this._localFunctionInfo?.ReturnType ?? @event.Type, false );
+
+                case IConstructor:
+                    // Fallback.
+                    break;
+
+                default:
+                    throw new AssertionFailedException();
+            }
+        }
+
+        if ( this._localFunctionInfo == null )
+        {
+            var method = this.MetaApi.Method;
+            var returnType = method.ReturnType;
+
+            if ( this._methodTemplate != null && this._methodTemplate.MustInterpretAsAsyncTemplate() )
+            {
+                // If we are in an awaitable async method, then consider the return type as seen by the method body,
+                // not the one as seen from outside.
+                var asyncInfo = method.GetAsyncInfoImpl();
+
+                if ( asyncInfo.IsAwaitableOrVoid )
                 {
-                    if ( this._localFunctionInfo == null )
-                    {
-                        var method = this.MetaApi.Method;
-                        var returnType = method.ReturnType;
-
-                        if ( this._methodTemplate != null && this._methodTemplate.MustInterpretAsAsyncTemplate() )
-                        {
-                            // If we are in an awaitable async method, the consider the return type as seen by the method body,
-                            // not the one as seen from outside.
-                            var asyncInfo = method.GetAsyncInfoImpl();
-
-                            if ( asyncInfo.IsAwaitableOrVoid )
-                            {
-                                returnType = asyncInfo.ResultType;
-                            }
-                        }
-
-                        if ( returnType.Equals( SpecialType.Void ) )
-                        {
-                            return CreateReturnStatementVoid( returnExpression );
-                        }
-                        else if ( method.GetIteratorInfoImpl() is
-                                      { EnumerableKind: EnumerableKind.IAsyncEnumerable or EnumerableKind.IAsyncEnumerator } iteratorInfo &&
-                                  this._methodTemplate != null && this._methodTemplate.MustInterpretAsAsyncIteratorTemplate() )
-                        {
-                            switch ( iteratorInfo.EnumerableKind )
-                            {
-                                case EnumerableKind.IAsyncEnumerable:
-
-                                    return this.CreateReturnStatementAsyncEnumerable( returnExpression );
-
-                                case EnumerableKind.IAsyncEnumerator:
-                                    return this.CreateReturnStatementAsyncEnumerator( returnExpression );
-
-                                default:
-                                    throw new AssertionFailedException( $"Unexpected EnumerableKind: {iteratorInfo.EnumerableKind}." );
-                            }
-                        }
-                        else
-                        {
-                            return this.CreateReturnStatementDefault( returnExpression, returnType, awaitResult );
-                        }
-                    }
-                    else
-                    {
-                        var returnType = this._localFunctionInfo.ReturnType;
-
-                        if ( this._localFunctionInfo.IsAsync )
-                        {
-                            returnType = returnType.GetAsyncInfo().ResultType;
-                        }
-
-                        if ( returnType.Equals( SpecialType.Void ) )
-                        {
-                            return CreateReturnStatementVoid( returnExpression );
-                        }
-                        else
-                        {
-                            return this.CreateReturnStatementDefault( returnExpression, returnType, awaitResult );
-                        }
-                    }
+                    returnType = asyncInfo.ResultType;
                 }
+            }
+
+            if ( returnType.Equals( SpecialType.Void ) )
+            {
+                return CreateReturnStatementVoid( returnExpression );
+            }
+            else if ( method.GetIteratorInfoImpl() is
+                          { EnumerableKind: EnumerableKind.IAsyncEnumerable or EnumerableKind.IAsyncEnumerator } iteratorInfo &&
+                      this._methodTemplate != null && this._methodTemplate.MustInterpretAsAsyncIteratorTemplate() )
+            {
+                switch ( iteratorInfo.EnumerableKind )
+                {
+                    case EnumerableKind.IAsyncEnumerable:
+
+                        return this.CreateReturnStatementAsyncEnumerable( returnExpression );
+
+                    case EnumerableKind.IAsyncEnumerator:
+                        return this.CreateReturnStatementAsyncEnumerator( returnExpression );
+
+                    default:
+                        throw new AssertionFailedException( $"Unexpected EnumerableKind: {iteratorInfo.EnumerableKind}." );
+                }
+            }
+            else
+            {
+                return this.CreateReturnStatementDefault( returnExpression, returnType, awaitResult );
+            }
+        }
+        else
+        {
+            var returnType = this._localFunctionInfo.ReturnType;
+
+            if ( this._localFunctionInfo.IsAsync )
+            {
+                returnType = returnType.GetAsyncInfo().ResultType;
+            }
+
+            if ( returnType.Equals( SpecialType.Void ) )
+            {
+                return CreateReturnStatementVoid( returnExpression );
+            }
+            else
+            {
+                return this.CreateReturnStatementDefault( returnExpression, returnType, awaitResult );
+            }
         }
     }
 

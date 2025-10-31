@@ -217,7 +217,7 @@ public class UserCodeExecutionContext : IExecutionContextInternal
                 // TODO: Translate the MetaApi.
                 throw new AssertionFailedException();
             }
-            
+
             this.Compilation = compilation;
             this.CompilationContext = compilation.CompilationContext;
             this.TargetDeclaration = prototype.TargetDeclaration?.ForCompilation( compilation );
@@ -304,6 +304,8 @@ public class UserCodeExecutionContext : IExecutionContextInternal
 
     ICompilation IExecutionContext.Compilation
         => this.Compilation ?? throw new InvalidOperationException( "There is no compilation in the current execution context" );
+
+    public IDeclaration? DiagnosticDeclaration => this.MetaApi?.DiagnosticDeclaration ?? this.TargetDeclaration;
 
     internal UserCodeExecutionContext WithDescription( UserCodeDescription description ) => new( this, description );
 

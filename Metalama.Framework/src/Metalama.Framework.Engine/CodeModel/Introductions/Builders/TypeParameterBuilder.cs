@@ -176,7 +176,7 @@ internal sealed class TypeParameterBuilder : NamedDeclarationBuilder, ITypeParam
     public TypeParameterKind TypeParameterKind
         => this.ContainingDeclaration.DeclarationKind switch
         {
-            DeclarationKind.NamedType => TypeParameterKind.Type,
+            DeclarationKind.NamedType or DeclarationKind.ExtensionBlock => TypeParameterKind.Type,
             DeclarationKind.Method => TypeParameterKind.Method,
             _ => throw new AssertionFailedException()
         };
@@ -185,6 +185,6 @@ internal sealed class TypeParameterBuilder : NamedDeclarationBuilder, ITypeParam
 
     IRef<IType> IType.ToRef() => this._ref;
 
-    protected override void EnsureReferenceInitialized() 
+    protected override void EnsureReferenceInitialized()
         => this._ref.BuilderData = new TypeParameterBuilderData( this, this.ContainingDeclaration.ToFullRef() );
 }
