@@ -10,6 +10,8 @@ using Metalama.Framework.Engine.CodeModel.GenericContexts;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.Caching;
+using Metalama.Framework.Engine.Utilities.Roslyn;
+using Microsoft.CodeAnalysis.CSharp;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -48,36 +50,6 @@ internal sealed class DisplayStringFormatter : CompilationElementVisitor
     private static readonly Dictionary<MethodKind, string> _methodKinds = new()
     {
         [MethodKind.EventAdd] = "add", [MethodKind.EventRemove] = "remove", [MethodKind.PropertyGet] = "get", [MethodKind.PropertySet] = "set"
-    };
-
-    private static readonly Dictionary<OperatorKind, string> _operators = new()
-    {
-        [OperatorKind.ImplicitConversion] = "implicit operator",
-        [OperatorKind.ExplicitConversion] = "explicit operator",
-        [OperatorKind.Addition] = "operator +",
-        [OperatorKind.BitwiseAnd] = "operator &",
-        [OperatorKind.BitwiseOr] = "operator |",
-        [OperatorKind.Decrement] = "operator --",
-        [OperatorKind.Division] = "operator /",
-        [OperatorKind.Equality] = "operator ==",
-        [OperatorKind.ExclusiveOr] = "operator ^",
-        [OperatorKind.False] = "operator false",
-        [OperatorKind.GreaterThan] = "operator >",
-        [OperatorKind.GreaterThanOrEqual] = "operator >=",
-        [OperatorKind.Increment] = "operator ++",
-        [OperatorKind.Inequality] = "operator !=",
-        [OperatorKind.LeftShift] = "operator <<",
-        [OperatorKind.LessThan] = "operator <",
-        [OperatorKind.LessThanOrEqual] = "operator <=",
-        [OperatorKind.LogicalNot] = "operator !",
-        [OperatorKind.Modulus] = "operator %",
-        [OperatorKind.Multiply] = "operator *",
-        [OperatorKind.OnesComplement] = "operator ~",
-        [OperatorKind.RightShift] = "operator >>",
-        [OperatorKind.Subtraction] = "operator -",
-        [OperatorKind.True] = "operator true",
-        [OperatorKind.UnaryNegation] = "operator -",
-        [OperatorKind.UnaryPlus] = "operator +"
     };
 
     private DisplayStringFormatter( CodeDisplayFormat? format, GenericContext? genericContext, StringBuilder stringBuilder )
@@ -309,8 +281,29 @@ internal sealed class DisplayStringFormatter : CompilationElementVisitor
 
                 break;
 
-            case MethodKind.Operator when _operators.TryGetValue( declaration.OperatorKind, out var operatorName ):
-                this.Append( operatorName );
+            case MethodKind.Operator:
+                switch ( declaration.OperatorKind )
+                {
+                    case OperatorKind.ImplicitConversion:
+                        this.Append( "implicit operator" );
+
+                        break;
+
+                    case OperatorKind.ExplicitConversion:
+                        this.Append( "explicit operator" );
+
+                        break;
+
+                    default:
+                        {
+                            var operatorKeyword = SyntaxFactory.Token( OperatorData.GetByKind( declaration.OperatorKind ).OperatorKeyword ).Text;
+                            this.Append( "operator " );
+                            this.Append( operatorKeyword );
+
+                            break;
+                        }
+                }
+
                 PrintParameters();
 
                 break;

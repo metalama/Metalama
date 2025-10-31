@@ -473,7 +473,7 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                 if ( symbol is IMethodSymbol methodSymbol
                      && methodSymbol.GetReturnTypeAttributes().Any( a => a.AttributeClass?.Name == nameof(CompileTimeAttribute) ) )
                 {
-                    scope = scope?.Scope == TemplatingScope.CompileTimeOnlyReturningRuntimeOnly
+                    scope = scope.Value.Scope == TemplatingScope.CompileTimeOnlyReturningRuntimeOnly
                         ? OnConflict()
                         : (TemplatingScope.CompileTimeOnly, TemplatingRule.Other);
                 }
@@ -651,7 +651,7 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                                     return (TemplatingScope.DynamicTypeConstruction, TemplatingRule.Other);
 
                                 default:
-                                    throw new AssertionFailedException( $"Unexpected scope: {typeArgumentScope?.Scope}." );
+                                    throw new AssertionFailedException( $"Unexpected scope: {typeArgumentScope.Value.Scope}." );
                             }
                         }
 
@@ -753,7 +753,7 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                             return (combinedScope.Value, TemplatingRule.Other);
                         }
 
-                        var isAvailableAtCompileTime = this._compileTimeAssemblyLocator.IsSymbolAvailable( namedType, this._compilationContext );
+                        var isAvailableAtCompileTime = this.IsSymbolAvailableAtCompileTime( namedType, options );
 
                         // From base type.
                         if ( namedType.BaseType != null )
@@ -870,25 +870,30 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                             memberScope = this.GetTemplatingScopeCore( symbol.ContainingSymbol, options, symbolsBeingProcessedIncludingCurrent, tracer )
                                           ?? (TemplatingScope.RunTimeOnly, TemplatingRule.Other);
 
-                            if ( memberScope?.Scope == TemplatingScope.Conflict )
+                            if ( memberScope.Value.Scope == TemplatingScope.Conflict )
                             {
                                 // If the declaring type has conflict scope, we consider it has neutral scope,
                                 // otherwise we would report errors on all type members and this is confusing.
                                 memberScope = null;
                             }
-                            else if ( memberScope?.Scope is TemplatingScope.ImplicitlyRunTimeOrCompileTime
-                                      && this._compileTimeAssemblyLocator.IsSymbolAvailable( symbol, this._compilationContext ) == false )
+                            else if ( memberScope.Value.Scope is TemplatingScope.ImplicitlyRunTimeOrCompileTime )
                             {
-                                // If the type exists in the compile-time references but not the member, the member is run-time only.
-                                // This happens with new members added to .NET Standard 2.0 in other frameworks.
-                                memberScope = (TemplatingScope.RunTimeOnly, TemplatingRule.Other);
+                                if ( this.IsSymbolAvailableAtCompileTime( symbol, options ) == false )
+                                {
+                                    // If the type exists in the compile-time references but not the member, the member is run-time only.
+                                    // This happens with new members added to types that exist in .NET Standard 2.0.
+                                    memberScope = (TemplatingScope.RunTimeOnly, TemplatingRule.Other);
+                                }
                             }
                         }
 
                         // If the scope is given by other means, we do not try to guess by signature.
-                        if ( memberScope != null && memberScope?.Scope is not (TemplatingScope.RunTimeOrCompileTime
+                        if ( memberScope is
+                            {
+                                Scope: not (TemplatingScope.RunTimeOrCompileTime
                                 or TemplatingScope.ForcedRunTimeOrCompileTime
-                                or TemplatingScope.ImplicitlyRunTimeOrCompileTime) )
+                                or TemplatingScope.ImplicitlyRunTimeOrCompileTime)
+                            } )
                         {
                             return memberScope;
                         }
@@ -1078,7 +1083,7 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                 (TemplatingScope.RunTimeOnly, TemplatingScope.NotCompileTimeOnly) => TemplatingScope.RunTimeOnly,
                 (TemplatingScope.ImplicitlyRunTimeOrCompileTime, TemplatingScope.RunTimeOrCompileTime) => TemplatingScope.RunTimeOrCompileTime,
                 (_, TemplatingScope.RunTimeOrCompileTime or TemplatingScope.ForcedRunTimeOrCompileTime
-                    or TemplatingScope.ImplicitlyRunTimeOrCompileTime) => typeScope?.Scope,
+                    or TemplatingScope.ImplicitlyRunTimeOrCompileTime) => typeScope.Value.Scope,
                 (TemplatingScope.RunTimeOrCompileTime or TemplatingScope.ForcedRunTimeOrCompileTime or TemplatingScope.ImplicitlyRunTimeOrCompileTime, _) =>
                     combinedScope,
                 (TemplatingScope.RunTimeOnly, TemplatingScope.CompileTimeOnly) => OnConflict().Scope,
@@ -1205,7 +1210,7 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                 }
 
                 // For types in the system namespace that are available on .NET Standard 2.0, we take a shortcut and don't analyze them recursively.
-                if ( namedType.ContainingNamespace.GetFirstLevel()?.Name == "System" )
+                if ( namedType.GetPrimarySyntaxReference() == null && namedType.ContainingNamespace.GetFirstLevel()?.Name == "System" )
                 {
                     if ( (options & GetTemplatingScopeOptions.Quick) != 0 )
                     {
@@ -1214,7 +1219,7 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                         return true;
                     }
 
-                    if ( this._compileTimeAssemblyLocator.IsSymbolAvailable( namedType, this._compilationContext ) == true )
+                    if ( this.IsSymbolAvailableAtCompileTime( namedType, options ) == true )
                     {
                         scope = (TemplatingScope.ImplicitlyRunTimeOrCompileTime, TemplatingRule.WellKnown);
 
@@ -1251,6 +1256,9 @@ internal sealed class SymbolClassifier : ISymbolClassifier
         }
     }
 
+    private bool? IsSymbolAvailableAtCompileTime( ISymbol symbol, GetTemplatingScopeOptions options )
+        => (options & GetTemplatingScopeOptions.Quick) != 0 ? null : this._compileTimeAssemblyLocator.IsSymbolAvailable( symbol, this._compilationContext );
+    
     public bool IsTemplate( ISymbol symbol ) => !this.GetTemplateInfo( symbol ).IsNone;
 
     [Flags]
@@ -1271,7 +1279,7 @@ internal sealed class SymbolClassifier : ISymbolClassifier
         /// </summary>
         Quick = 4
     }
-
+    
     private readonly struct CacheKey : IEquatable<CacheKey>
     {
         private readonly ISymbol _symbol;

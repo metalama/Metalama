@@ -253,7 +253,7 @@ namespace Metalama.Framework.Engine.Templating
                 = new(
                     "LAMA0236",
                     "Cannot reference a run-time-only declaration in a compile-time-only declaration.",
-                    "Cannot reference '{1}' in '{0}' (except for templates) because '{1}' is run-time-only but '{0}' is {2}.",
+                    "Cannot reference '{1}' in '{0}' because '{1}' is run-time-only but '{0}' is {2}.",
                     _category,
                     Error );
 
