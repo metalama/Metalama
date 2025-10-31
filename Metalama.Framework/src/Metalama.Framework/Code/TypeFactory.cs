@@ -33,6 +33,8 @@ public static class TypeFactory
     /// Gets an <see cref="IType"/> given a reflection <see cref="Type"/>.
     /// </summary>
     public static IType GetType( Type type ) => Implementation.GetTypeByReflectionType( type );
+    
+    public static INamedType GetNamedType( Type type ) => (INamedType) Implementation.GetTypeByReflectionType( type );
 
     /// <summary>
     /// Get type based on its full name, as used in reflection.

@@ -382,6 +382,15 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         }
     }
 
+    private static void ValidateNotExtensionBlock( IDeclaration declaration, string introduced )
+    {
+        if ( declaration.DeclarationKind == DeclarationKind.NamedType && declaration is IExtensionBlock )
+        {
+            throw new InvalidOperationException(
+                MetalamaStringFormatter.Format( $"Cannot introduce {introduced} into '{declaration}' because it represents an extension block." ) );
+        }
+    }
+
     private Advice.AdviceConstructorParameters<TDeclaration> GetAdviceConstructorParameters<TDeclaration>( TDeclaration target, bool requireTemplate = true )
         where TDeclaration : class, IDeclaration
     {
@@ -756,6 +765,8 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         {
             this.Validate( targetType, AdviceKind.IntroduceConstructor );
 
+            ValidateNotExtensionBlock( targetType, "a constructor" );
+
             var template =
                 this.ValidateRequiredTemplateName( defaultTemplate, TemplateKind.Default )
                     .GetTemplateMember<IMethod>( this._compilation, this._state.ServiceProvider, this.TemplateProvider, this.GetTagsReader( tags ) );
@@ -924,6 +935,8 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         {
             this.Validate( targetType, AdviceKind.IntroduceField );
 
+            ValidateNotExtensionBlock( targetType, "a field" );
+
             var advice = new IntroduceFieldAdvice(
                 this.GetAdviceConstructorParameters( targetType ),
                 fieldName,
@@ -970,6 +983,8 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         using ( this.WithNonUserCode() )
         {
             this.Validate( targetType, AdviceKind.IntroduceProperty );
+
+            ValidateNotExtensionBlock( targetType, "an automatic property" );
 
             var advice = new IntroducePropertyAdvice(
                 this.GetAdviceConstructorParameters( targetType ),
@@ -1254,6 +1269,8 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         using ( this.WithNonUserCode() )
         {
             this.Validate( targetType, AdviceKind.IntroduceEvent );
+
+            ValidateNotExtensionBlock( targetType, "an event" );
 
             var eventTemplate = this.ValidateRequiredTemplateName( defaultTemplate, TemplateKind.Default )
                 .GetTemplateMember<IEvent>( this._compilation, this._state.ServiceProvider, this.TemplateProvider, this.GetTagsReader( tags ) );
@@ -1540,6 +1557,8 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
     {
         this.ValidateNotExplicitInterfaceImplementation( AdviceKind.IntroduceAttribute );
 
+        ValidateNotExtensionBlock( targetDeclaration, "an attribute" );
+
         return new AddAttributeAdvice(
             this.GetAdviceConstructorParameters( targetDeclaration ),
             attribute,
@@ -1655,6 +1674,8 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         {
             this.ValidateNotExplicitInterfaceImplementation( AdviceKind.IntroduceType );
 
+            ValidateNotExtensionBlock( targetNamespaceOrType, "a class" );
+
             return
                 new IntroduceNamedTypeAdvice(
                         this.GetAdviceConstructorParameters( targetNamespaceOrType ),
@@ -1675,6 +1696,8 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         using ( this.WithNonUserCode() )
         {
             this.ValidateNotExplicitInterfaceImplementation( AdviceKind.IntroduceType );
+
+            ValidateNotExtensionBlock( targetNamespaceOrType, "an interface" );
 
             return new IntroduceNamedTypeAdvice(
                     this.GetAdviceConstructorParameters( targetNamespaceOrType ),
