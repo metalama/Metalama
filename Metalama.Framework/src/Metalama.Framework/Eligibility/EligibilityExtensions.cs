@@ -65,7 +65,7 @@ public static partial class EligibilityExtensions
     /// </summary>
     public static IEligibilityBuilder<IHasParameters> DeclaringMember( this IEligibilityBuilder<IParameter> eligibilityBuilder )
     {
-        eligibilityBuilder.MustNotBeExtensionParameter();
+        eligibilityBuilder.MustNotBeExtensionBlockReceiverParameter();
         return new ChildEligibilityBuilder<IParameter, IHasParameters>(
             eligibilityBuilder,
             parameter => parameter.DeclaringMember!,
@@ -295,12 +295,12 @@ public static partial class EligibilityExtensions
             member => $"{member} must not be the return value parameter" );
     
     /// <summary>
-    /// Forbids the parameter from being the return parameter.
+    /// Forbids the parameter from being the receiver parameter of an extension block.
     /// </summary>
-    public static void MustNotBeExtensionParameter( this IEligibilityBuilder<IParameter> eligibilityBuilder )
+    public static void MustNotBeExtensionBlockReceiverParameter( this IEligibilityBuilder<IParameter> eligibilityBuilder )
         => eligibilityBuilder.MustSatisfy(
             p => p.ContainingDeclaration is not IExtensionBlock,
-            member => $"{member} must not be an extension parameter" );
+            member => $"{member} must not be the receiver parameter of an extension block" );
 
     /// <summary>
     /// Requires the parameter to be <c>ref</c>.

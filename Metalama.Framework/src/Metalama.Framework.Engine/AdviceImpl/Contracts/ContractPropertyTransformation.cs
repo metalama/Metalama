@@ -40,7 +40,7 @@ internal sealed class ContractPropertyTransformation : ContractBaseTransformatio
     {
         Invariant.Assert( this.ContractTarget.Equals( this.TargetMember ) );
 
-        var targetMember = this._targetProperty.GetTarget( context.FinalCompilation );
+        var targetProperty = this._targetProperty.GetTarget( context.FinalCompilation );
 
         Invariant.Assert( this.ContractDirection is ContractDirection.Output or ContractDirection.Input or ContractDirection.Both );
 
@@ -49,9 +49,9 @@ internal sealed class ContractPropertyTransformation : ContractBaseTransformatio
 
         if ( this.ContractDirection is ContractDirection.Input or ContractDirection.Both )
         {
-            Invariant.Assert( targetMember.SetMethod is not null );
+            Invariant.Assert( targetProperty.SetMethod is not null );
 
-            inputResult = this.TryExecuteTemplate( context, IdentifierName( "value" ), targetMember.Type, out inputContractBlock );
+            inputResult = this.TryExecuteTemplate( context, IdentifierName( "value" ), targetProperty.Type, targetProperty.SetMethod, out inputContractBlock );
         }
         else
         {
@@ -61,10 +61,10 @@ internal sealed class ContractPropertyTransformation : ContractBaseTransformatio
 
         if ( this.ContractDirection is ContractDirection.Output or ContractDirection.Both )
         {
-            Invariant.Assert( targetMember.GetMethod is not null );
+            Invariant.Assert( targetProperty.GetMethod is not null );
 
             var returnVariableName = context.GetReturnValueVariableName();
-            outputResult = this.TryExecuteTemplate( context, IdentifierName( returnVariableName ), targetMember.Type, out outputContractBlock );
+            outputResult = this.TryExecuteTemplate( context, IdentifierName( returnVariableName ), targetProperty.Type, targetProperty.GetMethod, out outputContractBlock );
         }
         else
         {
@@ -84,7 +84,7 @@ internal sealed class ContractPropertyTransformation : ContractBaseTransformatio
             statements.Add(
                 new InsertedStatement(
                     inputContractBlock,
-                    targetMember.SetMethod.AssertNotNull().Parameters[0],
+                    targetProperty.SetMethod.AssertNotNull().Parameters[0],
                     this,
                     InsertedStatementKind.InputContract ) );
         }
@@ -94,7 +94,7 @@ internal sealed class ContractPropertyTransformation : ContractBaseTransformatio
             statements.Add(
                 new InsertedStatement(
                     outputContractBlock,
-                    targetMember.GetMethod.AssertNotNull().ReturnParameter,
+                    targetProperty.GetMethod.AssertNotNull().ReturnParameter,
                     this,
                     InsertedStatementKind.OutputContract ) );
         }

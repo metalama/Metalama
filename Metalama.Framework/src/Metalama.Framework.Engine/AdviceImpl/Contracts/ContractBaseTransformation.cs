@@ -61,6 +61,7 @@ internal abstract class ContractBaseTransformation : BaseSyntaxTreeTransformatio
         TransformationContext context,
         ExpressionSyntax valueExpression,
         IType valueType,
+        IMethodBase method,
         [NotNullWhen( true )] out BlockSyntax? contractBlock )
     {
         var annotatedValueExpression = TypeAnnotationMapper.AddExpressionTypeAnnotation( valueExpression, valueType );
@@ -75,8 +76,9 @@ internal abstract class ContractBaseTransformation : BaseSyntaxTreeTransformatio
             this.AspectInstance,
             context.ServiceProvider );
 
-        var metaApi = MetaApi.ForDeclaration(
+        var metaApi = MetaApi.ForContract(
             this.ContractTarget.GetTarget( context.FinalCompilation ),
+            method,
             metaApiProperties,
             this.ContractDirection );
 

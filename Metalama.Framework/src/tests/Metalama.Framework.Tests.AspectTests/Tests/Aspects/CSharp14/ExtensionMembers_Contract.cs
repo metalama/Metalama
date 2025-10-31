@@ -12,52 +12,73 @@ using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using System;
 
-namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.CSharp14.ExtensionMembers_OverrideMethod;
+namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.CSharp14.ExtensionMembers_Contract;
 
-internal class TheAspect : OverrideMethodAspect
+internal class TheAspect : ContractAspect
 {
-    public override dynamic? OverrideMethod()
+    public override void Validate( dynamic? value )
     {
-        Console.WriteLine( $"Member: {meta.Target.Method}" );
+        Console.WriteLine( $"Member: {meta.Target.Member}" );
         Console.WriteLine( $"Type: {meta.Target.Type}" );
 
         if ( meta.Target.Method.HasReceiver() )
         {
             Console.WriteLine( meta.Receiver );
         }
-
-        return meta.Proceed();
     }
+
 }
 
 // <target>
 internal static class C
 {
-    [TheAspect]
-    public static void ClassicStaticExtensionMethod( this TestClass c )
+    public static void ClassicStaticExtensionMethod( [TheAspect] this TestClass c )
     {
         Console.WriteLine( "Original" );
     }
 
     extension( TestClass test )
     {
-        [TheAspect]
-        public void Method()
+        public static TestClass operator *( [TheAspect] TestClass vector, float scalar ) => vector;
+        
+        
+        public void Method([TheAspect] int x)
         {
             Console.WriteLine( "Original." );
         }
 
-        [TheAspect]
-        public static void StaticMethod()
+        public static void StaticMethod([TheAspect] int x)
         {
             Console.WriteLine( "Original." );
         }
-
-        [TheAspect]
-        public static TestClass operator *( TestClass vector, float scalar ) => vector;
         
         [TheAspect]
-        public void operator *=(TestClass scalar) { }
+        public int Property
+        {
+            get
+            {
+                Console.WriteLine( "Original." );
+                return 42;
+            }
+            set
+            {
+                Console.WriteLine( "Original." );
+            }
+        }
+
+        [TheAspect]
+        public static int StaticProperty
+        {
+            get
+            {
+                Console.WriteLine( "Original." );
+                return 42;
+            }
+            set
+            {
+                Console.WriteLine( "Original." );
+            }
+        }
     }
 }
 
@@ -67,8 +88,8 @@ internal class Test
     public void Foo()
     {
         var test = new TestClass();
-        test.Method();
-        TestClass.StaticMethod();
+        test.Method(1);
+        TestClass.StaticMethod(1);
         test.ClassicStaticExtensionMethod();
         test = test * 5;
         test *= 10;

@@ -7,13 +7,17 @@ internal static class C
     {
       get
       {
-        global::System.Console.WriteLine("Override.");
+        global::System.Console.WriteLine("Member: C.extension(TestClass).Property.get");
+        global::System.Console.WriteLine("Type: C");
+        global::System.Console.WriteLine(test);
         Console.WriteLine("Original.");
         return 42;
       }
       set
       {
-        global::System.Console.WriteLine("Override.");
+        global::System.Console.WriteLine("Member: C.extension(TestClass).Property.set");
+        global::System.Console.WriteLine("Type: C");
+        global::System.Console.WriteLine(test);
         Console.WriteLine("Original.");
       }
     }
@@ -22,13 +26,15 @@ internal static class C
     {
       get
       {
-        global::System.Console.WriteLine("Override.");
+        global::System.Console.WriteLine("Member: C.extension(TestClass).StaticProperty.get");
+        global::System.Console.WriteLine("Type: C");
         Console.WriteLine("Original.");
         return 42;
       }
       set
       {
-        global::System.Console.WriteLine("Override.");
+        global::System.Console.WriteLine("Member: C.extension(TestClass).StaticProperty.set");
+        global::System.Console.WriteLine("Type: C");
         Console.WriteLine("Original.");
       }
     }

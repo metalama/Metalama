@@ -159,6 +159,7 @@ namespace Metalama.Framework.Aspects
         /// </para>
         /// </remarks>
         /// <seealso cref="Base"/>
+        /// <seealso cref="ExpressionFactory.This()"/>
         /// <seealso cref="ThisType"/>
         /// <seealso href="@templates"/>
         /// <seealso cref="Receiver"/>
@@ -170,6 +171,8 @@ namespace Metalama.Framework.Aspects
         /// in extension members or classic extension methods.
         /// </summary>
         /// <seealso cref="This"/>
+        /// <seealso cref="ExpressionFactory.Receiver()"/>
+        /// <seealso cref="MemberExtensions.HasReceiver"/>
         [TemplateKeyword]
         public static dynamic Receiver => CurrentContext.ReceiverExpression( Target.Declaration );
 

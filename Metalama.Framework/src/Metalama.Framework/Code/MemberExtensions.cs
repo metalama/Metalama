@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Code.SyntaxBuilders;
 using System.Linq;
 
 namespace Metalama.Framework.Code;
@@ -31,7 +32,7 @@ public static class MemberExtensions
         => ((ICompilationInternal) declaration.Compilation).Helpers.IsAccessibleFromOutsideAssembly( declaration, honorInternalVisibleToAttributes );
 
     /// <summary>
-    /// Determines whether a <see cref="IMember"/> or <see cref="INamedType"/> can be implemented (i.e. derived from or overridden) from an
+    /// Determines whether an <see cref="IMember"/> or <see cref="INamedType"/> can be implemented (i.e. derived from or overridden) from an
     /// outside assembly. When the declaration is an <see cref="IParameter"/>, considers the parent member. Returns <c>false</c> for other
     /// kinds of declarations.
     /// </summary>
@@ -44,4 +45,13 @@ public static class MemberExtensions
             IParameter { DeclaringMember: { } declaringMember } => declaringMember.CanBeImplementedFromOutsideAssembly( honorInternalVisibleToAttributes ),
             _ => false
         };
+
+    /// <summary>
+    /// Determines whether an <see cref="IMember"/> has a receiver expression, i.e. either <c>this</c> or a receiver parameter.
+    /// </summary>
+    /// <param name="member">A member.</param>
+    /// <returns><c>true</c> if <paramref name="member"/> is an instance member or a classic extension method.</returns>
+    public static bool HasReceiver( this IMember member )
+        => !member.IsStatic || (member.DeclarationKind == DeclarationKind.Method && member is IMethod { Parameters.Count: > 0 } method
+                                                                                 && method.Parameters[0].IsThis);
 }

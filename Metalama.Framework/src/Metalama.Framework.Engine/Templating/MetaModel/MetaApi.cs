@@ -12,6 +12,7 @@ using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Templating.Expressions;
+using Metalama.Framework.Engine.Utilities;
 using System;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -29,6 +30,7 @@ namespace Metalama.Framework.Engine.Templating.MetaModel
         private readonly INamedType? _type;
         private readonly MetaApiProperties _common;
         private readonly ContractDirection? _contractDirection;
+        private readonly IEvent? _event;
 
         private Exception CreateInvalidOperationException( string memberName, string? description = null )
         {
@@ -58,6 +60,7 @@ namespace Metalama.Framework.Engine.Templating.MetaModel
         public IMethodBase MethodBase
             => (IMethodBase?) this._method ?? (IMethodBase?) this._constructor ?? throw this.CreateInvalidOperationException( nameof(this.MethodBase) );
 
+        [Memo]
         public IField Field
             => this._fieldOrPropertyOrIndexer switch
             {
@@ -74,10 +77,15 @@ namespace Metalama.Framework.Engine.Templating.MetaModel
 
         public IDeclaration Declaration { get; }
 
-        public IMember Member => this.Declaration as IMember ?? throw this.CreateInvalidOperationException( nameof(this.Member) );
+        // Make sure properties/events have priority, so we don't expose the accessor first.
+        [Memo]
+        public IMember Member
+            => this._fieldOrPropertyOrIndexer
+               ?? this._event ?? this._method ?? (IMember?) this._constructor ?? throw this.CreateInvalidOperationException( nameof(this.Member) );
 
         public IMethod Method => this._method ?? throw this.CreateInvalidOperationException( nameof(this.Method) );
 
+        [Memo]
         public IProperty Property
             => this._fieldOrPropertyOrIndexer switch
             {
@@ -86,9 +94,7 @@ namespace Metalama.Framework.Engine.Templating.MetaModel
                 _ => throw this.CreateInvalidOperationException( nameof(this.Property) )
             };
 
-        [field: AllowNull]
-        [field: MaybeNull]
-        public IEvent Event => field ?? throw this.CreateInvalidOperationException( nameof(this.Event) );
+        public IEvent Event => this._event ?? throw this.CreateInvalidOperationException( nameof(this.Event) );
 
         public IParameterList Parameters
             => this.MethodBase.Parameters ?? throw this.CreateInvalidOperationException( nameof(this.Parameters), nameof(IMethodBase) );
@@ -193,9 +199,11 @@ namespace Metalama.Framework.Engine.Templating.MetaModel
             (this._type, this.ExtensionBlock) = GetDeclaringType( constructor );
         }
 
-        private MetaApi( IParameter parameter, MetaApiProperties common, ContractDirection? contractDirection ) : this( parameter, common )
+        private MetaApi( IParameter parameter, IMethodBase methodOrConstructor, MetaApiProperties common, ContractDirection? contractDirection ) : this(
+            parameter,
+            common )
         {
-            switch ( parameter.DeclaringMember )
+            switch ( methodOrConstructor )
             {
                 case IConstructor constructor:
                     this._constructor = constructor;
@@ -205,7 +213,29 @@ namespace Metalama.Framework.Engine.Templating.MetaModel
                 case IMethod method:
                     this._method = method;
 
+                    if ( method.DeclaringMember is { } propertyOrEvent )
+                    {
+                        switch ( propertyOrEvent.DeclarationKind )
+                        {
+                            case DeclarationKind.Property or DeclarationKind.Field or DeclarationKind.Indexer:
+                                this._fieldOrPropertyOrIndexer = (IFieldOrPropertyOrIndexer) method.DeclaringMember;
+
+                                break;
+
+                            case DeclarationKind.Event:
+                                this._event = (IEvent) method.DeclaringMember;
+
+                                break;
+
+                            default:
+                                throw new AssertionFailedException();
+                        }
+                    }
+
                     break;
+
+                default:
+                    throw new AssertionFailedException();
             }
 
             if ( parameter.DeclaringMember != null )
@@ -223,32 +253,24 @@ namespace Metalama.Framework.Engine.Templating.MetaModel
             this._contractDirection = contractDirection;
         }
 
-        private MetaApi( IFieldOrPropertyOrIndexer fieldOrPropertyOrIndexer, IMethod accessor, MetaApiProperties common ) : this( accessor, common )
+        private MetaApi( IFieldOrPropertyOrIndexer fieldOrPropertyOrIndexer, IMethod accessor, MetaApiProperties common, ContractDirection? contractDirection = null  ) : this( accessor, common )
         {
             this._method = accessor;
 
             this._fieldOrPropertyOrIndexer = fieldOrPropertyOrIndexer;
-            (this._type, this.ExtensionBlock) = GetDeclaringType( fieldOrPropertyOrIndexer );
-        }
-
-        private MetaApi( IFieldOrPropertyOrIndexer fieldOrPropertyOrIndexer, MetaApiProperties common, ContractDirection? contractDirection = null )
-            : this( (IDeclaration) fieldOrPropertyOrIndexer, common )
-        {
-            this._fieldOrPropertyOrIndexer = fieldOrPropertyOrIndexer;
-
             (this._type, this.ExtensionBlock) = GetDeclaringType( fieldOrPropertyOrIndexer );
             this._contractDirection = contractDirection;
         }
 
         private MetaApi( IEvent eventField, MetaApiProperties common ) : this( (IDeclaration) eventField, common )
         {
-            this.Event = eventField;
+            this._event = eventField;
             this._type = eventField.DeclaringType;
         }
 
         private MetaApi( IEvent @event, IMethod accessor, MetaApiProperties common ) : this( accessor, common )
         {
-            this.Event = @event;
+            this._event = @event;
             this._type = @event.DeclaringType;
             this._method = accessor;
         }
@@ -258,15 +280,13 @@ namespace Metalama.Framework.Engine.Templating.MetaModel
             (this._type, this.ExtensionBlock) = UnwrapExtensionBlock( type );
         }
 
-        public static MetaApi ForDeclaration( IDeclaration declaration, MetaApiProperties common, ContractDirection? contractDirection = null )
+        public static MetaApi ForContract( IDeclaration declaration, IMethodBase method, MetaApiProperties common, ContractDirection? contractDirection = null )
             => declaration switch
             {
-                INamedType type => new MetaApi( type, common ),
-                IMethod method => new MetaApi( method, common ),
-                IFieldOrPropertyOrIndexer fieldOrPropertyOrIndexer => new MetaApi( fieldOrPropertyOrIndexer, common, contractDirection ),
+                IFieldOrPropertyOrIndexer fieldOrPropertyOrIndexer => new MetaApi( fieldOrPropertyOrIndexer, (IMethod) method, common, contractDirection ),
                 IEvent @event => new MetaApi( @event, common ),
                 IConstructor constructor => new MetaApi( constructor, common ),
-                IParameter parameter => new MetaApi( parameter, common, contractDirection ),
+                IParameter parameter => new MetaApi( parameter, method, common, contractDirection ),
                 _ => throw new AssertionFailedException( $"Unexpected type: {declaration.GetType()}." )
             };
 
