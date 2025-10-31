@@ -12,8 +12,6 @@ using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.DeclarationBuilders;
 using Metalama.Framework.Eligibility;
-using System;
-using System.Linq;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 

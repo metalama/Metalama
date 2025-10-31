@@ -48,7 +48,7 @@ internal class TheAspect : TypeAspect
     }
     
     [Template]
-    public static dynamic SomeOperator( dynamic a, dynamic b )
+    public static dynamic? SomeOperator( dynamic a, dynamic b )
     {
         Console.WriteLine( $"Member: {meta.Target.Method}" );
         Console.WriteLine( $"Type: {meta.Target.Type}" );

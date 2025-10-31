@@ -70,7 +70,7 @@ internal class Test
         test.Method();
         TestClass.StaticMethod();
         test.ClassicStaticExtensionMethod();
-        test = test * 5;
+        _ = test * 5;
         test *= 10;
     }
 }

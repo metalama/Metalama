@@ -38,7 +38,7 @@ internal static class C
     [TheAspect]
     public void operator *=(TestClass scalar)
     {
-      global::System.Console.WriteLine("Member: C.extension(TestClass).op_MultiplicationAssignment(TestClass)");
+      global::System.Console.WriteLine("Member: C.extension(TestClass).operator *=(TestClass)");
       global::System.Console.WriteLine("Type: C");
       global::System.Console.WriteLine(test);
       return;
@@ -53,7 +53,7 @@ internal class Test
     test.Method();
     TestClass.StaticMethod();
     test.ClassicStaticExtensionMethod();
-    test = test * 5;
+    _ = test * 5;
     test *= 10;
   }
 }
