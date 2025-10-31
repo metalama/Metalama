@@ -391,6 +391,16 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         }
     }
 
+    private static void ValidateNotExtensionBlockReceiver( IDeclaration declaration, string introduced )
+    {
+        if ( declaration.DeclarationKind == DeclarationKind.Parameter && declaration is IParameter { DeclaringMember: null } )
+        {
+            throw new InvalidOperationException(
+                MetalamaStringFormatter.Format(
+                    $"Cannot introduce {introduced} into '{declaration}' because it is the receiver parameter of an extension block." ) );
+        }
+    }
+
     private Advice.AdviceConstructorParameters<TDeclaration> GetAdviceConstructorParameters<TDeclaration>( TDeclaration target, bool requireTemplate = true )
         where TDeclaration : class, IDeclaration
     {
@@ -1460,6 +1470,8 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         object? tags = null,
         object? args = null )
     {
+        ValidateNotExtensionBlockReceiver( targetParameter, "a contract" );
+
         using ( this.WithNonUserCode() )
         {
             switch ( kind )
@@ -1558,6 +1570,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         this.ValidateNotExplicitInterfaceImplementation( AdviceKind.IntroduceAttribute );
 
         ValidateNotExtensionBlock( targetDeclaration, "an attribute" );
+        ValidateNotExtensionBlockReceiver( targetDeclaration, "an attribute" );
 
         return new AddAttributeAdvice(
             this.GetAdviceConstructorParameters( targetDeclaration ),
