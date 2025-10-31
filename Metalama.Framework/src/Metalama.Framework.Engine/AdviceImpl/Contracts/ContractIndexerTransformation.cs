@@ -46,8 +46,6 @@ internal sealed class ContractIndexerTransformation : ContractBaseTransformation
                 {
                     Invariant.Assert( this.ContractTarget.Equals( this.TargetMember ) );
 
-                    
-
                     Invariant.Assert( this.ContractDirection is ContractDirection.Output or ContractDirection.Input or ContractDirection.Both );
 
                     bool? inputResult, outputResult;
@@ -57,7 +55,12 @@ internal sealed class ContractIndexerTransformation : ContractBaseTransformation
                     {
                         Invariant.Assert( targetIndexer.SetMethod is not null );
 
-                        inputResult = this.TryExecuteTemplate( context, IdentifierName( "value" ), targetIndexer.Type, targetIndexer.SetMethod, out inputContractBlock );
+                        inputResult = this.TryExecuteTemplate(
+                            context,
+                            IdentifierName( "value" ),
+                            targetIndexer.Type,
+                            targetIndexer.SetMethod,
+                            out inputContractBlock );
                     }
                     else
                     {
@@ -125,7 +128,13 @@ internal sealed class ContractIndexerTransformation : ContractBaseTransformation
                     if ( this.ContractDirection is ContractDirection.Input or ContractDirection.Both )
                     {
                         Invariant.Assert( parameter.RefKind is not RefKind.Out );
-                        inputResult = this.TryExecuteTemplate( context, valueSyntax, parameter.Type, targetIndexer.GetMethod.AssertNotNull(),  out inputContractBlock );
+
+                        inputResult = this.TryExecuteTemplate(
+                            context,
+                            valueSyntax,
+                            parameter.Type,
+                            targetIndexer.GetMethod.AssertNotNull(),
+                            out inputContractBlock );
                     }
                     else
                     {
@@ -136,7 +145,13 @@ internal sealed class ContractIndexerTransformation : ContractBaseTransformation
                     if ( this.ContractDirection is ContractDirection.Output or ContractDirection.Both )
                     {
                         Invariant.Assert( parameter.RefKind is not RefKind.None );
-                        outputResult = this.TryExecuteTemplate( context, valueSyntax, parameter.Type, targetIndexer.SetMethod.AssertNotNull(), out outputContractBlock );
+
+                        outputResult = this.TryExecuteTemplate(
+                            context,
+                            valueSyntax,
+                            parameter.Type,
+                            targetIndexer.SetMethod.AssertNotNull(),
+                            out outputContractBlock );
                     }
                     else
                     {

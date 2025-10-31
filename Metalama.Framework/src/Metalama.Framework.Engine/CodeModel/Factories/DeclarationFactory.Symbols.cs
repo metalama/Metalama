@@ -518,6 +518,7 @@ public partial class DeclarationFactory
             return type;
         }
 
+#if ROSLYN_5_0_0_OR_GREATER
         if ( typeSymbol is INamedTypeSymbol { IsExtension: true } )
         {
             if ( isNullable )
@@ -528,6 +529,7 @@ public partial class DeclarationFactory
 
             return type;
         }
+#endif
 
         ITypeSymbol newTypeSymbol;
 
