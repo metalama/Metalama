@@ -4,6 +4,7 @@
 
 #if TEST_OPTIONS
 // @RequiredConstant(ROSLYN_5_0_0_OR_GREATER)
+// @RequiredConstant(NET8_0_OR_GREATER)
 #endif
 
 #if ROSLYN_5_0_0_OR_GREATER
