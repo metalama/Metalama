@@ -19,7 +19,6 @@ using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.Transformations;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.Comparers;
-using Metalama.Framework.Engine.Utilities.Roslyn;
 using Metalama.Framework.Engine.Utilities.Threading;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -259,34 +258,19 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                     .WithMembers( SingletonList( AddHeader( topDeclaration ) ) );
 
                 var generatedSyntaxTree = SyntaxTree( compilationUnit.NormalizeWhitespace(), encoding: Encoding.UTF8 );
-                
-                // Find a unique syntax tree name. This is made difficult because we might generate identical names for extension block files.
+
+                // Find a unique syntax tree name. 
                 var safeTypeName = GetUniqueFilenameForType( declaringTypeOrExtensionBlock );
+                var syntaxTreeName = safeTypeName + ".cs";
 
-                for ( var distinctIndex = 0;; distinctIndex++ )
+                if ( !additionalSyntaxTreeDictionary.TryAdd(
+                        syntaxTreeName,
+                        new IntroducedSyntaxTree( syntaxTreeName, originalSyntaxTree, generatedSyntaxTree ) ) )
                 {
-                    string syntaxTreeName;
-
-                    if ( distinctIndex == 0 )
-                    {
-                        syntaxTreeName = safeTypeName + ".cs";
-                    }
-                    else
-                    {
-                        syntaxTreeName = $"{safeTypeName}.{distinctIndex}.cs";
-                    }
-
-                    if ( !additionalSyntaxTreeDictionary.ContainsKey( syntaxTreeName ) )
-                    {
-                        if ( additionalSyntaxTreeDictionary.TryAdd(
-                                syntaxTreeName,
-                                new IntroducedSyntaxTree( syntaxTreeName, originalSyntaxTree, generatedSyntaxTree ) ) )
-                        {
-                            break;
-                        }
-                    }
+                    // It is essential that GetUniqueFilenameForType deterministically generates unique file names because
+                    // we cannot add de-duplicating suffixes here because concurrency creates non-determinism.
+                    throw new AssertionFailedException( $"The generated file name '{syntaxTreeName}' is not unique." );
                 }
-                
             }
 
             return additionalSyntaxTreeDictionary.Values.AsReadOnly();
@@ -315,18 +299,16 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
 
                 if ( current.TypeKind == TypeKind.Extension )
                 {
-                    // We hash the receiver type and kindness.
-                    var extensionBlock = (IExtensionBlock) current;
+                    var location = current.GetPrimaryDeclarationSyntax().AssertNotNull().GetLocation();
                     XXH64 hash = new();
-                    hash.Update( extensionBlock.ReceiverType.ToSerializableId().Id );
-                    hash.Update( extensionBlock.ReceiverParameter.RefKind );
-                    hash.Update( extensionBlock.TypeArguments.Count );
-                    sb.AppendFormat( CultureInfo.InvariantCulture, "{0:x}", (short) hash.GetHashCode() );
+                    hash.Update( location.SourceTree.AssertNotNull().FilePath );
+                    hash.Update( location.SourceSpan.Start );
+                    sb.AppendFormat( CultureInfo.InvariantCulture, "{0:x}", (int) hash.Digest() );
                 }
                 else
                 {
                     sb.Append( current.Name );
-                    
+
                     if ( current.IsGeneric )
                     {
                         sb.Append( "{" );
@@ -336,42 +318,7 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                 }
             }
         }
-
-        // The following code has become redundant because introduced constructors are generated based on their final model. Consider removing.
-
-        /*
-        private static IEnumerable<MemberDeclarationSyntax> AddIntroducedConstructorParameters(
-            IEnumerable<MemberDeclarationSyntax> injectedMembers,
-            ConstructorBuilderData constructorBuilder,
-            CompilationModel finalCompilationModel,
-            SyntaxGenerationContext syntaxGenerationContext )
-        {
-            var finalConstructor = constructorBuilder.ToRef().GetTarget( finalCompilationModel );
-
-            foreach ( var member in injectedMembers )
-            {
-                if ( member is not ConstructorDeclarationSyntax constructorDeclaration )
-                {
-                    yield return member;
-
-                    continue;
-                }
-
-                for ( var index = constructorBuilder.Parameters.Length; index < finalConstructor.Parameters.Count; index++ )
-                {
-                    constructorDeclaration =
-                        constructorDeclaration.AddParameterListParameters(
-                            syntaxGenerationContext.SyntaxGenerator.Parameter(
-                                finalConstructor.Parameters[index],
-                                finalCompilationModel,
-                                false ) );
-                }
-
-                yield return constructorDeclaration;
-            }
-        }
-        */
-
+        
         private static IEnumerable<MemberDeclarationSyntax> AddPartialModifierToTypes( IEnumerable<MemberDeclarationSyntax> injectedMembers )
         {
             foreach ( var member in injectedMembers )
@@ -534,7 +481,10 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
         }
 
 #if ROSLYN_5_0_0_OR_GREATER
-        private static ExtensionBlockDeclarationSyntax CreateExtensionBlock( IExtensionBlock extensionBlock, SyntaxList<MemberDeclarationSyntax> members, SyntaxGenerationContext syntaxGenerationContext )
+        private static ExtensionBlockDeclarationSyntax CreateExtensionBlock(
+            IExtensionBlock extensionBlock,
+            SyntaxList<MemberDeclarationSyntax> members,
+            SyntaxGenerationContext syntaxGenerationContext )
         {
             return ExtensionBlockDeclaration(
                 attributeLists: default,
@@ -547,10 +497,11 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                 members,
                 Token( SyntaxKind.CloseBraceToken ),
                 default );
-
         }
 
-        private static SyntaxList<TypeParameterConstraintClauseSyntax> CreateConstraintList( IExtensionBlock extensionBlock, SyntaxGenerationContext syntaxGenerationContext )
+        private static SyntaxList<TypeParameterConstraintClauseSyntax> CreateConstraintList(
+            IExtensionBlock extensionBlock,
+            SyntaxGenerationContext syntaxGenerationContext )
         {
             return syntaxGenerationContext.SyntaxGenerator.ConstraintClauses( extensionBlock );
         }
@@ -559,8 +510,7 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
         {
             return syntaxGenerationContext.SyntaxGenerator.ParameterList( [extensionBlock.ReceiverParameter], (CompilationModel) extensionBlock.Compilation );
         }
-        
-        
+
 #endif
 
         private static TypeDeclarationSyntax CreatePartialType( INamedType type, BaseListSyntax? baseList, SyntaxList<MemberDeclarationSyntax> members )
@@ -738,7 +688,7 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                 return this.Equals( x, y, x.Length );
             }
 
-            public bool Equals( (ISymbol Type, RefKind RefKind)[] x, (ISymbol Type, RefKind RefKind)[] y, int count )
+            private bool Equals( (ISymbol Type, RefKind RefKind)[] x, (ISymbol Type, RefKind RefKind)[] y, int count )
             {
                 for ( var i = 0; i < count; i++ )
                 {
