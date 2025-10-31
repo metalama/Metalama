@@ -369,14 +369,6 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
                     MetalamaStringFormatter.Format(
                         $"The advised target '{target}' is not contained in the target of the aspect '{this._aspectTargetType ?? this._aspectTarget}'." ) );
             }
-
-            // Check that we are not advising extension blocks.
-            var namedType = target.GetClosestNamedType();
-
-            if ( namedType is { TypeKind: TypeKind.Extension } )
-            {
-                throw new InvalidOperationException( MetalamaStringFormatter.Format( $"The advised target '{target}' is contained in an extension block." ) );
-            }
         }
     }
 
@@ -387,6 +379,25 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
                  or AdviceKind.IntroduceIndexer) )
         {
             throw new InvalidOperationException( $"The {adviceKind} advice cannot be applied when explicitly implementing an interface." );
+        }
+    }
+
+    private static void ValidateNotExtensionBlock( IDeclaration declaration, string introduced )
+    {
+        if ( declaration.DeclarationKind == DeclarationKind.ExtensionBlock )
+        {
+            throw new InvalidOperationException(
+                MetalamaStringFormatter.Format( $"Cannot introduce {introduced} into '{declaration}' because it represents an extension block." ) );
+        }
+    }
+
+    private static void ValidateNotExtensionBlockReceiver( IDeclaration declaration, string introduced )
+    {
+        if ( declaration.DeclarationKind == DeclarationKind.Parameter && declaration is IParameter { DeclaringMember: null } )
+        {
+            throw new InvalidOperationException(
+                MetalamaStringFormatter.Format(
+                    $"Cannot introduce {introduced} into '{declaration}' because it is the receiver parameter of an extension block." ) );
         }
     }
 
@@ -764,6 +775,8 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         {
             this.Validate( targetType, AdviceKind.IntroduceConstructor );
 
+            ValidateNotExtensionBlock( targetType, "a constructor" );
+
             var template =
                 this.ValidateRequiredTemplateName( defaultTemplate, TemplateKind.Default )
                     .GetTemplateMember<IMethod>( this._compilation, this._state.ServiceProvider, this.TemplateProvider, this.GetTagsReader( tags ) );
@@ -932,6 +945,8 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         {
             this.Validate( targetType, AdviceKind.IntroduceField );
 
+            ValidateNotExtensionBlock( targetType, "a field" );
+
             var advice = new IntroduceFieldAdvice(
                 this.GetAdviceConstructorParameters( targetType ),
                 fieldName,
@@ -978,6 +993,8 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         using ( this.WithNonUserCode() )
         {
             this.Validate( targetType, AdviceKind.IntroduceProperty );
+
+            ValidateNotExtensionBlock( targetType, "an automatic property" );
 
             var advice = new IntroducePropertyAdvice(
                 this.GetAdviceConstructorParameters( targetType ),
@@ -1263,6 +1280,8 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         {
             this.Validate( targetType, AdviceKind.IntroduceEvent );
 
+            ValidateNotExtensionBlock( targetType, "an event" );
+
             var eventTemplate = this.ValidateRequiredTemplateName( defaultTemplate, TemplateKind.Default )
                 .GetTemplateMember<IEvent>( this._compilation, this._state.ServiceProvider, this.TemplateProvider, this.GetTagsReader( tags ) );
 
@@ -1451,6 +1470,8 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         object? tags = null,
         object? args = null )
     {
+        ValidateNotExtensionBlockReceiver( targetParameter, "a contract" );
+
         using ( this.WithNonUserCode() )
         {
             switch ( kind )
@@ -1547,6 +1568,9 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         OverrideStrategy whenExists = OverrideStrategy.Default )
     {
         this.ValidateNotExplicitInterfaceImplementation( AdviceKind.IntroduceAttribute );
+
+        ValidateNotExtensionBlock( targetDeclaration, "an attribute" );
+        ValidateNotExtensionBlockReceiver( targetDeclaration, "an attribute" );
 
         return new AddAttributeAdvice(
             this.GetAdviceConstructorParameters( targetDeclaration ),
@@ -1663,6 +1687,8 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         {
             this.ValidateNotExplicitInterfaceImplementation( AdviceKind.IntroduceType );
 
+            ValidateNotExtensionBlock( targetNamespaceOrType, "a class" );
+
             return
                 new IntroduceNamedTypeAdvice(
                         this.GetAdviceConstructorParameters( targetNamespaceOrType ),
@@ -1683,6 +1709,8 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         using ( this.WithNonUserCode() )
         {
             this.ValidateNotExplicitInterfaceImplementation( AdviceKind.IntroduceType );
+
+            ValidateNotExtensionBlock( targetNamespaceOrType, "an interface" );
 
             return new IntroduceNamedTypeAdvice(
                     this.GetAdviceConstructorParameters( targetNamespaceOrType ),

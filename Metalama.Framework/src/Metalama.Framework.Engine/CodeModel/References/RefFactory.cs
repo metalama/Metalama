@@ -12,7 +12,6 @@ using Metalama.Framework.Engine.CodeModel.Introductions.Introduced;
 using Metalama.Framework.Engine.CodeModel.Source;
 using Metalama.Framework.Engine.CodeModel.Source.Pseudo;
 using Metalama.Framework.Engine.Services;
-using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Concurrent;
@@ -77,10 +76,7 @@ namespace Metalama.Framework.Engine.CodeModel.References
                         key.Symbol,
                         key.GenericContext,
                         me ),
-                    DeclarationKind.NamedType when key.Symbol is INamedTypeSymbol namedType && namedType.IsExtensionSafe() => new SymbolRef<IExtensionBlock>(
-                        key.Symbol,
-                        key.GenericContext,
-                        me ),
+                    DeclarationKind.ExtensionBlock => new SymbolRef<IExtensionBlock>( key.Symbol, key.GenericContext, me ),
                     DeclarationKind.NamedType => new SymbolRef<INamedType>( key.Symbol, key.GenericContext, me ),
                     DeclarationKind.Method => new SymbolRef<IMethod>( key.Symbol, key.GenericContext, me ),
                     DeclarationKind.Property => new SymbolRef<IProperty>( key.Symbol, key.GenericContext, me ),
@@ -149,23 +145,24 @@ namespace Metalama.Framework.Engine.CodeModel.References
         /// <summary>
         /// Creates an <see cref="IRef{T}"/> from a Roslyn symbol.
         /// </summary>
-        public SymbolRef<T> FromSymbol<T>(
+        public ISymbolRef<T> FromSymbol<T>(
             ISymbol symbol,
             GenericContext? genericContext = null,
             RefTargetKind targetKind = RefTargetKind.Default )
             where T : class, ICompilationElement
-            => (SymbolRef<T>)
-                this._symbolCache.GetOrAdd(
+            => this._symbolCache.GetOrAdd(
                     SymbolCacheKey.Create( symbol, targetKind, genericContext ?? GenericContext.Empty, this ),
                     static ( key, me ) => new SymbolRef<T>( key.Symbol, key.GenericContext, me, key.TargetKind ),
-                    this );
+                    this )
+                .As<T>();
 
         public SymbolRef<IParameter> FromReturnParameter( IMethodSymbol methodSymbol )
-            => this.FromSymbol<IParameter>( methodSymbol, null, RefTargetKind.Return );
+            => (SymbolRef<IParameter>) this.FromSymbol<IParameter>( methodSymbol, null, RefTargetKind.Return );
 
-        internal SymbolRef<ICompilation> ForCompilation() => this.FromSymbol<ICompilation>( this.CompilationContext.Compilation.Assembly );
+        internal SymbolRef<ICompilation> ForCompilation()
+            => (SymbolRef<ICompilation>) this.FromSymbol<ICompilation>( this.CompilationContext.Compilation.Assembly );
 
-        public SymbolRef<T> FromSymbolBasedDeclaration<T>( SymbolBasedDeclaration declaration )
+        public ISymbolRef<T> FromSymbolBasedDeclaration<T>( SymbolBasedDeclaration declaration )
             where T : class, IDeclaration
         {
             Invariant.Assert( declaration.GetRefFactory() == this );

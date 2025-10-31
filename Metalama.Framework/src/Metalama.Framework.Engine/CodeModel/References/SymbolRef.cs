@@ -110,10 +110,10 @@ internal sealed partial class SymbolRef<T> : FullRef<T>, ISymbolRef<T>
                     ((SymbolGenericContext) genericContext).NamedTypeSymbol.GetMembers( this.Symbol.Name )
                     .Single( s => s.OriginalDefinition.Equals( this.Symbol.OriginalDefinition ) );
 
-                return this.RefFactory.FromSymbol<T>( mappedSymbol, targetKind: this.TargetKind );
+                return (SymbolRef<T>) this.RefFactory.FromSymbol<T>( mappedSymbol, targetKind: this.TargetKind );
 
             case GenericContextKind.Introduced:
-                return this.RefFactory.FromSymbol<T>( this.Symbol, genericContext, targetKind: this.TargetKind );
+                return (SymbolRef<T>) this.RefFactory.FromSymbol<T>( this.Symbol, genericContext, targetKind: this.TargetKind );
 
             default:
                 throw new AssertionFailedException();
@@ -218,4 +218,8 @@ internal sealed partial class SymbolRef<T> : FullRef<T>, ISymbolRef<T>
 
         return true;
     }
+
+    public new ISymbolRef<TOut> As<TOut>()
+        where TOut : class, ICompilationElement
+        => (ISymbolRef<TOut>) (object) this;
 }

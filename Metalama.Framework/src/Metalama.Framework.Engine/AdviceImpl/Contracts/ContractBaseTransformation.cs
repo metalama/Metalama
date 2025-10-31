@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Advising;
@@ -22,7 +23,7 @@ internal abstract class ContractBaseTransformation : BaseSyntaxTreeTransformatio
 {
     private readonly TemplateMember<IMethod> _template;
     private readonly IObjectReader _templateArguments;
-    
+
     /// <summary>
     /// Gets the target member of the contract into which contract statements will be inserted.
     /// </summary>
@@ -61,6 +62,7 @@ internal abstract class ContractBaseTransformation : BaseSyntaxTreeTransformatio
         TransformationContext context,
         ExpressionSyntax valueExpression,
         IType valueType,
+        IMethodBase method,
         [NotNullWhen( true )] out BlockSyntax? contractBlock )
     {
         var annotatedValueExpression = TypeAnnotationMapper.AddExpressionTypeAnnotation( valueExpression, valueType );
@@ -74,10 +76,11 @@ internal abstract class ContractBaseTransformation : BaseSyntaxTreeTransformatio
             context.SyntaxGenerationContext,
             this.AspectInstance,
             context.ServiceProvider,
-            MetaApiStaticity.Default );
+            AdviceKind.AddContract );
 
-        var metaApi = MetaApi.ForDeclaration(
+        var metaApi = MetaApi.ForContract(
             this.ContractTarget.GetTarget( context.FinalCompilation ),
+            method,
             metaApiProperties,
             this.ContractDirection );
 

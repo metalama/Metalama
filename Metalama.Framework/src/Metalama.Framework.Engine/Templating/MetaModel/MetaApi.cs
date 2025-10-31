@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.Collections;
@@ -12,6 +13,7 @@ using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Templating.Expressions;
+using Metalama.Framework.Engine.Utilities;
 using System;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -24,12 +26,10 @@ namespace Metalama.Framework.Engine.Templating.MetaModel
     internal sealed class MetaApi : SyntaxBuilderImpl, IMetaApi, IMetaTarget, IDiagnosticSource
     {
         private readonly IFieldOrPropertyOrIndexer? _fieldOrPropertyOrIndexer;
-        private readonly IMethod? _method;
         private readonly IConstructor? _constructor;
-        private readonly IEvent? _event;
         private readonly INamedType? _type;
         private readonly MetaApiProperties _common;
-        private readonly IParameter? _parameter;
+        private readonly IEvent? _event;
         private readonly ContractDirection? _contractDirection;
 
         private Exception CreateInvalidOperationException( string memberName, string? description = null )
@@ -45,19 +45,24 @@ namespace Metalama.Framework.Engine.Templating.MetaModel
                 alternativeSuggestion = $" Consider using meta.Target.{alternativeMemberName} instead.";
             }
 
+            var diagnosticDeclaration = this.DiagnosticDeclaration;
+
             return TemplatingDiagnosticDescriptors.MetaMemberNotAvailable.CreateException(
-                (this._common.Template.GetDeclaration( this.Compilation ), "meta.Target." + memberName, this.Declaration,
-                 this.Declaration.DeclarationKind,
+                (this._common.Template.GetDeclaration( this.Compilation ), "meta.Target." + memberName, diagnosticDeclaration,
+                 diagnosticDeclaration.DeclarationKind,
                  description ?? ("I" + memberName), alternativeSuggestion) );
         }
+
+        public IExtensionBlock? ExtensionBlock { get; }
 
         ICompilation IMetaTarget.Compilation => this.Compilation;
 
         public IConstructor Constructor => this._constructor ?? throw this.CreateInvalidOperationException( nameof(this.Constructor) );
 
         public IMethodBase MethodBase
-            => (IMethodBase?) this._method ?? (IMethodBase?) this._constructor ?? throw this.CreateInvalidOperationException( nameof(this.MethodBase) );
+            => (IMethodBase?) this.MethodOrNull ?? (IMethodBase?) this._constructor ?? throw this.CreateInvalidOperationException( nameof(this.MethodBase) );
 
+        [Memo]
         public IField Field
             => this._fieldOrPropertyOrIndexer switch
             {
@@ -74,10 +79,33 @@ namespace Metalama.Framework.Engine.Templating.MetaModel
 
         public IDeclaration Declaration { get; }
 
-        public IMember Member => this.Declaration as IMember ?? throw this.CreateInvalidOperationException( nameof(this.Member) );
+        public IDeclaration DiagnosticDeclaration
+        {
+            get
+            {
+                // We try to return the "deepest" declaration, for better relevance of the error message.
+                var member = this.MemberOrNull;
 
-        public IMethod Method => this._method ?? throw this.CreateInvalidOperationException( nameof(this.Method) );
+                if ( member != null && !this.Declaration.IsContainedIn( member ) )
+                {
+                    return member;
+                }
+                else
+                {
+                    return this.Declaration;
+                }
+            }
+        }
 
+        public IMember Member => this.MemberOrNull ?? throw this.CreateInvalidOperationException( nameof(this.Member) );
+
+        public IMember? MemberOrNull => this.MethodOrNull ?? this._constructor ?? this._fieldOrPropertyOrIndexer ?? (IMember?) this._event;
+
+        public IMethod Method => this.MethodOrNull ?? throw this.CreateInvalidOperationException( nameof(this.Method) );
+
+        public IMethod? MethodOrNull { get; }
+
+        [Memo]
         public IProperty Property
             => this._fieldOrPropertyOrIndexer switch
             {
@@ -91,50 +119,32 @@ namespace Metalama.Framework.Engine.Templating.MetaModel
         public IParameterList Parameters
             => this.MethodBase.Parameters ?? throw this.CreateInvalidOperationException( nameof(this.Parameters), nameof(IMethodBase) );
 
-        public IParameter Parameter => this._parameter ?? throw this.CreateInvalidOperationException( nameof(this.Parameter) );
+        [field: AllowNull]
+        [field: MaybeNull]
+        public IParameter Parameter => field ?? throw this.CreateInvalidOperationException( nameof(this.Parameter) );
 
         public IIndexer Indexer => this._fieldOrPropertyOrIndexer as IIndexer ?? throw this.CreateInvalidOperationException( nameof(this.Indexer) );
 
         public INamedType Type => this._type ?? throw this.CreateInvalidOperationException( nameof(this.Type), nameof(INamedType) );
 
         public ContractDirection ContractDirection
-            => this._contractDirection ?? throw this.CreateInvalidOperationException(
-                nameof(this.ContractDirection),
-                nameof(Framework.Aspects.ContractDirection) );
-
-        private ThisInstanceUserReceiver GetThisOrBase( string expressionName, AspectReferenceSpecification linkerAnnotation )
         {
-            Exception CreateException()
-            {
-                var explanation = this.Declaration is IParameter { DeclaringMember: not null } parameter
-                    ? (FormattableString) $"the target parameter is contained in a static {parameter.DeclaringMember.DeclarationKind}"
-                    : $"the target {this.Declaration.DeclarationKind} is static";
-
-                return TemplatingDiagnosticDescriptors.CannotUseThisInStaticContext.CreateException(
-                    (this._common.Template.GetDeclaration( this.Compilation ), expressionName, this.Declaration,
-                     this.Declaration.DeclarationKind, explanation) );
-            }
-
-            return (this._common.Staticity, this._type, this.Declaration) switch
-            {
-                (_, null, _) => throw this.CreateInvalidOperationException( expressionName ),
-
-                (MetaApiStaticity.AlwaysInstance, _, _)
-                    => new ThisInstanceUserReceiver(
-                        this.Type,
-                        linkerAnnotation ),
-
-                (MetaApiStaticity.AlwaysStatic, _, _)
-                    => throw CreateException(),
-
-                (MetaApiStaticity.Default, { IsStatic: false }, IMemberOrNamedType { IsStatic: false } or IParameter { DeclaringMember.IsStatic: false })
-                    => new ThisInstanceUserReceiver(
-                        this.Type,
-                        linkerAnnotation ),
-
-                _ => throw CreateException()
-            };
+            get
+                => this._contractDirection ?? throw this.CreateInvalidOperationException(
+                    nameof(this.ContractDirection),
+                    nameof(Framework.Aspects.ContractDirection) );
+            init => this._contractDirection = value;
         }
+
+        private InstanceUserReceiver GetThisOrBase( AspectReferenceSpecification aspectReferenceSpecification )
+        {
+            ThisInstanceUserReceiver.TryCreate( this.Declaration, aspectReferenceSpecification, true, out var thisReceiver );
+
+            return thisReceiver.AssertNotNull();
+        }
+
+        protected override AspectReferenceSpecification? GetAspectReferenceSpecification( AspectReferenceOrder order )
+            => new AspectReferenceSpecification( this._common.AspectLayerId, order );
 
         public IMetaTarget Target => this;
 
@@ -143,9 +153,9 @@ namespace Metalama.Framework.Engine.Templating.MetaModel
 
         public IAspectInstanceInternal? AspectInstance => this._common.AspectInstance;
 
-        public object This => this.GetThisOrBase( "meta.This", new AspectReferenceSpecification( this._common.AspectLayerId, AspectReferenceOrder.Final ) );
+        public object This => this.GetThisOrBase( new AspectReferenceSpecification( this._common.AspectLayerId, AspectReferenceOrder.Final ) );
 
-        public object Base => this.GetThisOrBase( "meta.Base", new AspectReferenceSpecification( this._common.AspectLayerId, AspectReferenceOrder.Base ) );
+        public object Base => this.GetThisOrBase( new AspectReferenceSpecification( this._common.AspectLayerId, AspectReferenceOrder.Base ) );
 
         public object ThisType
             => new ThisTypeUserReceiver( this.Type, new AspectReferenceSpecification( this._common.AspectLayerId, AspectReferenceOrder.Final ) );
@@ -177,29 +187,56 @@ namespace Metalama.Framework.Engine.Templating.MetaModel
 
         internal TemplateMember<IMemberOrNamedType> Template => this._common.Template;
 
-        private MetaApi( IDeclaration declaration, MetaApiProperties common )
-            : base( declaration.GetCompilationModel(), common.SyntaxGenerationContext, declaration.GetClosestNamedType() )
+        private static (INamedType Type, IExtensionBlock? ExtensionBlock) GetDeclaringType( IMember member ) => UnwrapExtensionBlock( member.DeclaringType );
+
+        private static (INamedType Type, IExtensionBlock? ExtensionBlock) UnwrapExtensionBlock( INamedType typeOrExtensionBlock )
+        {
+            if ( typeOrExtensionBlock.TypeKind == TypeKind.Extension )
+            {
+                var extensionBlock = (IExtensionBlock) typeOrExtensionBlock;
+
+                return (extensionBlock.DeclaringType, extensionBlock);
+            }
+            else
+            {
+                return (typeOrExtensionBlock, null);
+            }
+        }
+
+        private struct RootConstructorMarker
+        {
+#pragma warning disable CS0649 // Field is never assigned to, and will always have its default value
+            public static readonly RootConstructorMarker Instance;
+#pragma warning restore CS0649 // Field is never assigned to, and will always have its default value
+        }
+
+        private MetaApi( IDeclaration declaration, MetaApiProperties common, RootConstructorMarker marker )
+            : base( declaration.GetCompilationModel(), common.SyntaxGenerationContext, declaration )
         {
             this.Declaration = declaration;
             this._common = common;
+            _ = marker;
         }
 
         private MetaApi( IMethod method, MetaApiProperties common )
-            : this( (IDeclaration) method, common )
+            : this( method, common, RootConstructorMarker.Instance )
         {
-            this._method = method;
-            this._type = method.DeclaringType;
+            this.MethodOrNull = method;
+            (this._type, this.ExtensionBlock) = GetDeclaringType( method );
         }
 
-        private MetaApi( IConstructor constructor, MetaApiProperties common ) : this( (IDeclaration) constructor, common )
+        private MetaApi( IConstructor constructor, MetaApiProperties common ) : this( constructor, common, RootConstructorMarker.Instance )
         {
             this._constructor = constructor;
-            this._type = constructor.DeclaringType;
+            (this._type, this.ExtensionBlock) = GetDeclaringType( constructor );
         }
 
-        private MetaApi( IParameter parameter, MetaApiProperties common, ContractDirection? contractDirection ) : this( parameter, common )
+        private MetaApi( IParameter parameter, IMethodBase methodOrConstructor, MetaApiProperties common ) : this(
+            parameter,
+            common,
+            RootConstructorMarker.Instance )
         {
-            switch ( parameter.DeclaringMember )
+            switch ( methodOrConstructor )
             {
                 case IConstructor constructor:
                     this._constructor = constructor;
@@ -207,60 +244,72 @@ namespace Metalama.Framework.Engine.Templating.MetaModel
                     break;
 
                 case IMethod method:
-                    this._method = method;
+                    this.MethodOrNull = method;
+
+                    if ( method.DeclaringMember is { } propertyOrEvent )
+                    {
+                        switch ( propertyOrEvent.DeclarationKind )
+                        {
+                            case DeclarationKind.Property or DeclarationKind.Field or DeclarationKind.Indexer:
+                                this._fieldOrPropertyOrIndexer = (IFieldOrPropertyOrIndexer) method.DeclaringMember;
+
+                                break;
+
+                            case DeclarationKind.Event:
+                                this._event = (IEvent) method.DeclaringMember;
+
+                                break;
+
+                            default:
+                                throw new AssertionFailedException();
+                        }
+                    }
 
                     break;
+
+                default:
+                    throw new AssertionFailedException();
             }
 
-            this._type = parameter.DeclaringMember?.DeclaringType ?? ((IExtensionBlock) parameter.ContainingDeclaration.AssertNotNull()).DeclaringType;
-            this._parameter = parameter;
-            this._contractDirection = contractDirection;
+            if ( parameter.DeclaringMember != null )
+            {
+                (this._type, this.ExtensionBlock) = GetDeclaringType( parameter.DeclaringMember );
+            }
+            else
+            {
+                // This is the receiver parameter of an extension block.
+                this.ExtensionBlock = (IExtensionBlock) parameter.ContainingDeclaration.AssertNotNull();
+                this._type = this.ExtensionBlock.DeclaringType;
+            }
+
+            this.Parameter = parameter;
         }
 
-        private MetaApi( IFieldOrPropertyOrIndexer fieldOrPropertyOrIndexer, IMethod accessor, MetaApiProperties common ) : this( accessor, common )
+        private MetaApi( IFieldOrPropertyOrIndexer fieldOrPropertyOrIndexer, IMethod? accessor, MetaApiProperties common ) :
+            this( fieldOrPropertyOrIndexer, common, RootConstructorMarker.Instance )
         {
-            this._method = accessor;
-
+            this.MethodOrNull = accessor;
             this._fieldOrPropertyOrIndexer = fieldOrPropertyOrIndexer;
-            this._type = fieldOrPropertyOrIndexer.DeclaringType;
+            (this._type, this.ExtensionBlock) = GetDeclaringType( fieldOrPropertyOrIndexer );
         }
 
-        private MetaApi( IFieldOrPropertyOrIndexer fieldOrPropertyOrIndexer, MetaApiProperties common, ContractDirection? contractDirection = null )
-            : this( (IDeclaration) fieldOrPropertyOrIndexer, common )
-        {
-            this._fieldOrPropertyOrIndexer = fieldOrPropertyOrIndexer;
-
-            this._type = fieldOrPropertyOrIndexer.DeclaringType;
-            this._contractDirection = contractDirection;
-        }
-
-        private MetaApi( IEvent eventField, MetaApiProperties common ) : this( (IDeclaration) eventField, common )
-        {
-            this._event = eventField;
-            this._type = eventField.DeclaringType;
-        }
-
-        private MetaApi( IEvent @event, IMethod accessor, MetaApiProperties common ) : this( accessor, common )
+        private MetaApi( IEvent @event, IMethod? accessor, MetaApiProperties common ) : this( @event, common, RootConstructorMarker.Instance )
         {
             this._event = @event;
-            this._type = @event.DeclaringType;
-            this._method = accessor;
+            (this._type, this.ExtensionBlock) = GetDeclaringType( @event );
+            this.MethodOrNull = accessor;
         }
 
-        private MetaApi( INamedType type, MetaApiProperties common ) : this( (IDeclaration) type, common )
-        {
-            this._type = type;
-        }
-
-        public static MetaApi ForDeclaration( IDeclaration declaration, MetaApiProperties common, ContractDirection? contractDirection = null )
+        public static MetaApi ForContract( IDeclaration declaration, IMethodBase method, MetaApiProperties common, ContractDirection contractDirection )
             => declaration switch
             {
-                INamedType type => new MetaApi( type, common ),
-                IMethod method => new MetaApi( method, common ),
-                IFieldOrPropertyOrIndexer fieldOrPropertyOrIndexer => new MetaApi( fieldOrPropertyOrIndexer, common, contractDirection ),
-                IEvent @event => new MetaApi( @event, common ),
-                IConstructor constructor => new MetaApi( constructor, common ),
-                IParameter parameter => new MetaApi( parameter, common, contractDirection ),
+                IFieldOrPropertyOrIndexer fieldOrPropertyOrIndexer => new MetaApi( fieldOrPropertyOrIndexer, (IMethod) method, common )
+                {
+                    ContractDirection = contractDirection
+                },
+                IEvent @event => new MetaApi( @event, (IMethod) method, common ) { ContractDirection = contractDirection },
+                IConstructor constructor => new MetaApi( constructor, common ) { ContractDirection = contractDirection },
+                IParameter parameter => new MetaApi( parameter, method, common ) { ContractDirection = contractDirection },
                 _ => throw new AssertionFailedException( $"Unexpected type: {declaration.GetType()}." )
             };
 
@@ -274,8 +323,8 @@ namespace Metalama.Framework.Engine.Templating.MetaModel
         public static MetaApi ForInitializer( IMember initializedDeclaration, MetaApiProperties common )
             => initializedDeclaration switch
             {
-                IFieldOrProperty fieldOrProperty => new MetaApi( common.Translate( fieldOrProperty ), common ),
-                IEvent eventField => new MetaApi( common.Translate( eventField ), common ),
+                IFieldOrProperty fieldOrProperty => new MetaApi( common.Translate( fieldOrProperty ), null, common ),
+                IEvent eventField => new MetaApi( common.Translate( eventField ), null, common ),
                 _ => throw new AssertionFailedException( $"Unexpected type: {initializedDeclaration.GetType()}." )
             };
 
@@ -287,5 +336,7 @@ namespace Metalama.Framework.Engine.Templating.MetaModel
 
         string IDiagnosticSource.DiagnosticSourceDescription
             => $"aspect '{this.AspectInstance?.AspectClass.ShortName}' applied to '{this.AspectInstance?.TargetDeclaration.GetTarget( this.Compilation ).ToDisplayString()}' while applying a template on '{this.Declaration.ToDisplayString()}'";
+
+        public AdviceKind AdviceKind => this._common.AdviceKind;
     }
 }

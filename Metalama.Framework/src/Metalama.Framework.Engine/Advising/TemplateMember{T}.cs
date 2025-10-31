@@ -51,11 +51,11 @@ internal sealed class TemplateMember<T> : TemplateMember
         selectedTemplateKind,
         interpretedTemplateKind )
     {
-        this._declarationRef = (ISymbolRef<T>) implementation.As<T>();
+        this._declarationRef = implementation.As<T>();
     }
 
     public TemplateMember( TemplateMember prototype ) : base( prototype )
     {
-        this._declarationRef = (ISymbolRef<T>) prototype.GetDeclarationRef().As<T>();
+        this._declarationRef = prototype.GetDeclarationRef().As<T>();
     }
 }

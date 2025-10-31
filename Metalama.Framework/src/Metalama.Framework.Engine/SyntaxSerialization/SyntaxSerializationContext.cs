@@ -21,25 +21,33 @@ internal sealed class SyntaxSerializationContext : ISyntaxGenerationContext
 {
     private int _recursionLevel;
 
-    public SyntaxSerializationContext( CompilationModel compilation, SyntaxGenerationOptions syntaxGenerationOptions ) : this(
+    public SyntaxSerializationContext(
+        CompilationModel compilation,
+        SyntaxGenerationOptions syntaxGenerationOptions,
+        IDeclaration? currentDeclaration = null ) : this(
         compilation,
         compilation.CompilationContext.GetSyntaxGenerationContext( syntaxGenerationOptions ),
         null,
-        null ) { }
+        currentDeclaration ) { }
 
-    public SyntaxSerializationContext( 
-        CompilationModel compilation, 
-        SyntaxGenerationContext syntaxGenerationContext, 
-        AspectReferenceSyntaxProvider? aspectReferenceSyntaxProvider, 
-        INamedType? currentType )
+    public SyntaxSerializationContext(
+        CompilationModel compilation,
+        SyntaxGenerationContext syntaxGenerationContext,
+        AspectReferenceSyntaxProvider? aspectReferenceSyntaxProvider,
+        IDeclaration? currentDeclaration )
     {
         this.CompilationModel = compilation;
         this.SyntaxGenerationContext = syntaxGenerationContext;
         this.AspectReferenceSyntaxProvider = aspectReferenceSyntaxProvider;
-        this.CurrentType = currentType;
+        this.CurrentDeclaration = currentDeclaration;
     }
 
     public CompilationContext CompilationContext => this.CompilationModel.CompilationContext;
+
+    /// <summary>
+    /// Gets the declaration being advised or implemented.
+    /// </summary>
+    public IDeclaration? CurrentDeclaration { get; }
 
     public ITypeSymbol GetTypeSymbol( Type type ) => this.CompilationContext.ReflectionMapper.GetTypeSymbol( type );
 
@@ -51,8 +59,8 @@ internal sealed class SyntaxSerializationContext : ISyntaxGenerationContext
 
     public AspectReferenceSyntaxProvider? AspectReferenceSyntaxProvider { get; }
 
-    // ReSharper disable once UnusedAutoPropertyAccessor.Global
-    public INamedType? CurrentType { get; }
+    [Memo]
+    public INamedType? CurrentType => this.CurrentDeclaration?.GetClosestNamedType();
 
     public ContextualSyntaxGenerator SyntaxGenerator => this.SyntaxGenerationContext.SyntaxGenerator;
 

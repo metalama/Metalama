@@ -29,12 +29,14 @@ internal sealed class ExtensionBlockImpl : SourceNamedTypeImpl, IExtensionBlock
     public new INamedType DeclaringType => base.DeclaringType.AssertNotNull();
 
     public override TypeKind TypeKind => TypeKind.Extension;
-    
+
     protected override void CheckSymbol()
     {
         Invariant.Assert( this.NamedTypeSymbol.IsExtension );
     }
 
-    protected override IFullRef<INamedType> CreateFullRef() => this.RefFactory.FromSymbolBasedDeclaration<IExtensionBlock>( this );
+    protected override IFullRef<INamedType> CreateFullRef() => this.RefFactory.FromSymbolBasedDeclaration<IExtensionBlock>( this ).As<INamedType>();
+
+    public override DeclarationKind DeclarationKind => DeclarationKind.ExtensionBlock;
 }
 #endif

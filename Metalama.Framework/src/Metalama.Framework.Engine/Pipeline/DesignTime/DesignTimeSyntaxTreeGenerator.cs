@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using K4os.Hash.xxHash;
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.Comparers;
 using Metalama.Framework.Engine.AdviceImpl.Introduction;
@@ -16,6 +17,7 @@ using Metalama.Framework.Engine.Linking;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.Transformations;
+using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.Comparers;
 using Metalama.Framework.Engine.Utilities.Threading;
 using Microsoft.CodeAnalysis;
@@ -24,6 +26,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -116,9 +119,12 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                 }
             }
 
-            void ProcessTransformationsOnType( INamedType declaringType, IEnumerable<ITransformation> typeTransformations )
+            void ProcessTransformationsOnType( INamedType declaringTypeOrExtensionBlock, IEnumerable<ITransformation> typeTransformations )
             {
                 cancellationToken.ThrowIfCancellationRequested();
+
+                var extensionBlock = declaringTypeOrExtensionBlock as IExtensionBlock;
+                var declaringType = extensionBlock?.DeclaringType ?? declaringTypeOrExtensionBlock;
 
                 if ( declaringType is { IsPartial: false, Origin.Kind: not DeclarationOriginKind.Aspect } )
                 {
@@ -133,19 +139,6 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                 {
                     // If the declaring type is not located in a partial source type, we need to skip it. The warning is needed because it was done for the parent type.
                     return;
-                }
-
-                static bool IsInNonPartialSourceType( INamedType declaringType )
-                {
-                    var currentType = declaringType;
-
-                    // Go to the closest type that does not originate in an aspect.
-                    while ( currentType.Origin.Kind is DeclarationOriginKind.Aspect && currentType.DeclaringType != null )
-                    {
-                        currentType = currentType.DeclaringType;
-                    }
-
-                    return currentType.Origin.Kind is not DeclarationOriginKind.Aspect && !currentType.IsPartial;
                 }
 
                 var orderedTransformations = typeTransformations.OrderBy( x => x, TransformationLinkerOrderComparer.Instance );
@@ -222,6 +215,16 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                 members = members.AddRange(
                     CreateInjectedConstructors( initialCompilationModel, finalCompilationModel, syntaxGenerationContext, declaringType ) );
 
+#if ROSLYN_5_0_0_OR_GREATER
+
+                // Create the extension block.
+                if ( extensionBlock != null )
+                {
+                    var extensionBlockSyntax = CreateExtensionBlock( extensionBlock, members, syntaxGenerationContext );
+                    members = List<MemberDeclarationSyntax>( [extensionBlockSyntax] );
+                }
+#endif
+
                 // Create a type.
                 var typeDeclaration = CreatePartialType( declaringType, baseList, members );
 
@@ -232,7 +235,7 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                 {
                     topDeclaration = CreatePartialType(
                         containingType,
-                        default,
+                        null,
                         SingletonList( topDeclaration ) );
                 }
 
@@ -255,14 +258,18 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                     .WithMembers( SingletonList( AddHeader( topDeclaration ) ) );
 
                 var generatedSyntaxTree = SyntaxTree( compilationUnit.NormalizeWhitespace(), encoding: Encoding.UTF8 );
-                var safeTypeName = GetUniqueFilenameForType( declaringType );
+
+                // Find a unique syntax tree name. 
+                var safeTypeName = GetUniqueFilenameForType( declaringTypeOrExtensionBlock );
                 var syntaxTreeName = safeTypeName + ".cs";
 
                 if ( !additionalSyntaxTreeDictionary.TryAdd(
                         syntaxTreeName,
                         new IntroducedSyntaxTree( syntaxTreeName, originalSyntaxTree, generatedSyntaxTree ) ) )
                 {
-                    throw new AssertionFailedException( $"Duplicate generated syntax tree for type {declaringType}." );
+                    // It is essential that GetUniqueFilenameForType deterministically generates unique file names because
+                    // we cannot add de-duplicating suffixes here because concurrency creates non-determinism.
+                    throw new AssertionFailedException( $"The generated file name '{syntaxTreeName}' is not unique." );
                 }
             }
 
@@ -290,52 +297,28 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                     sb.Append( "." );
                 }
 
-                sb.Append( current.Name );
-
-                if ( current.IsGeneric )
+                if ( current.TypeKind == TypeKind.Extension )
                 {
-                    sb.Append( "{" );
-                    sb.Append( current.TypeParameters.Count );
-                    sb.Append( "}" );
+                    var location = current.GetPrimaryDeclarationSyntax().AssertNotNull().GetLocation();
+                    XXH64 hash = new();
+                    hash.Update( location.SourceTree.AssertNotNull().FilePath );
+                    hash.Update( location.SourceSpan.Start );
+                    sb.AppendFormat( CultureInfo.InvariantCulture, "{0:x}", (int) hash.Digest() );
+                }
+                else
+                {
+                    sb.Append( current.Name );
+
+                    if ( current.IsGeneric )
+                    {
+                        sb.Append( "{" );
+                        sb.Append( current.TypeParameters.Count );
+                        sb.Append( "}" );
+                    }
                 }
             }
         }
-
-        // The following code has become redundant because introduced constructors are generated based on their final model. Consider removing.
-
-        /*
-        private static IEnumerable<MemberDeclarationSyntax> AddIntroducedConstructorParameters(
-            IEnumerable<MemberDeclarationSyntax> injectedMembers,
-            ConstructorBuilderData constructorBuilder,
-            CompilationModel finalCompilationModel,
-            SyntaxGenerationContext syntaxGenerationContext )
-        {
-            var finalConstructor = constructorBuilder.ToRef().GetTarget( finalCompilationModel );
-
-            foreach ( var member in injectedMembers )
-            {
-                if ( member is not ConstructorDeclarationSyntax constructorDeclaration )
-                {
-                    yield return member;
-
-                    continue;
-                }
-
-                for ( var index = constructorBuilder.Parameters.Length; index < finalConstructor.Parameters.Count; index++ )
-                {
-                    constructorDeclaration =
-                        constructorDeclaration.AddParameterListParameters(
-                            syntaxGenerationContext.SyntaxGenerator.Parameter(
-                                finalConstructor.Parameters[index],
-                                finalCompilationModel,
-                                false ) );
-                }
-
-                yield return constructorDeclaration;
-            }
-        }
-        */
-
+        
         private static IEnumerable<MemberDeclarationSyntax> AddPartialModifierToTypes( IEnumerable<MemberDeclarationSyntax> injectedMembers )
         {
             foreach ( var member in injectedMembers )
@@ -496,6 +479,39 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                 };
             }
         }
+
+#if ROSLYN_5_0_0_OR_GREATER
+        private static ExtensionBlockDeclarationSyntax CreateExtensionBlock(
+            IExtensionBlock extensionBlock,
+            SyntaxList<MemberDeclarationSyntax> members,
+            SyntaxGenerationContext syntaxGenerationContext )
+        {
+            return ExtensionBlockDeclaration(
+                attributeLists: default,
+                modifiers: default,
+                Token( SyntaxKind.ExtensionKeyword ),
+                CreateTypeParameters( extensionBlock ),
+                CreateExtensionBlockParameterList( extensionBlock, syntaxGenerationContext ),
+                CreateConstraintList( extensionBlock, syntaxGenerationContext ),
+                Token( SyntaxKind.OpenBraceToken ),
+                members,
+                Token( SyntaxKind.CloseBraceToken ),
+                default );
+        }
+
+        private static SyntaxList<TypeParameterConstraintClauseSyntax> CreateConstraintList(
+            IExtensionBlock extensionBlock,
+            SyntaxGenerationContext syntaxGenerationContext )
+        {
+            return syntaxGenerationContext.SyntaxGenerator.ConstraintClauses( extensionBlock );
+        }
+
+        private static ParameterListSyntax CreateExtensionBlockParameterList( IExtensionBlock extensionBlock, SyntaxGenerationContext syntaxGenerationContext )
+        {
+            return syntaxGenerationContext.SyntaxGenerator.ParameterList( [extensionBlock.ReceiverParameter], (CompilationModel) extensionBlock.Compilation );
+        }
+
+#endif
 
         private static TypeDeclarationSyntax CreatePartialType( INamedType type, BaseListSyntax? baseList, SyntaxList<MemberDeclarationSyntax> members )
             => type.TypeKind switch
@@ -672,7 +688,7 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                 return this.Equals( x, y, x.Length );
             }
 
-            public bool Equals( (ISymbol Type, RefKind RefKind)[] x, (ISymbol Type, RefKind RefKind)[] y, int count )
+            private bool Equals( (ISymbol Type, RefKind RefKind)[] x, (ISymbol Type, RefKind RefKind)[] y, int count )
             {
                 for ( var i = 0; i < count; i++ )
                 {
@@ -701,6 +717,19 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
 
                 return hashCode;
             }
+        }
+
+        private static bool IsInNonPartialSourceType( INamedType declaringType )
+        {
+            var currentType = declaringType;
+
+            // Go to the closest type that does not originate in an aspect.
+            while ( currentType.Origin.Kind is DeclarationOriginKind.Aspect && currentType.DeclaringType != null )
+            {
+                currentType = currentType.DeclaringType;
+            }
+
+            return currentType.Origin.Kind is not DeclarationOriginKind.Aspect && !currentType.IsPartial;
         }
     }
 }

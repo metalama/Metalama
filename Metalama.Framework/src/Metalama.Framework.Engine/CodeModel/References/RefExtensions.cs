@@ -96,12 +96,14 @@ public static class RefExtensions
             RefTargetKind.EventRaise => [typeof(IMethod)],
             RefTargetKind.EventRaiseParameter => [typeof(IParameter)],
             RefTargetKind.EventRaiseReturnParameter => [typeof(IParameter)],
-            RefTargetKind.NamedType => [typeof(INamedType), typeof(IExtensionBlock), typeof(ITupleType)],
+            RefTargetKind.NamedType => [typeof(INamedType), typeof(ITupleType)],
+            RefTargetKind.ExtensionBlock => [typeof(IExtensionBlock)],
             RefTargetKind.Default => declarationKind switch
             {
                 DeclarationKind.Type => [typeof(IType)],
                 DeclarationKind.Compilation => [typeof(ICompilation)],
-                DeclarationKind.NamedType => [typeof(INamedType), typeof(IExtensionBlock), typeof(ITupleType)],
+                DeclarationKind.NamedType => [typeof(INamedType), typeof(ITupleType)],
+                DeclarationKind.ExtensionBlock => [typeof(IExtensionBlock)],
                 DeclarationKind.Method or DeclarationKind.Operator or DeclarationKind.Finalizer => [typeof(IMethod)],
                 DeclarationKind.Property => [typeof(IProperty), typeof(IField)],
                 DeclarationKind.Indexer => [typeof(IIndexer)],

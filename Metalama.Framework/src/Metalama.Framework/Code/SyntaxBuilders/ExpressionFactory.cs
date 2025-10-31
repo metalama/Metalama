@@ -170,12 +170,35 @@ public static class ExpressionFactory
     /// Gets a <c>this</c> expression for the given type.
     /// </summary>
     /// <param name="type">A type.</param>
+    /// <remarks>
+    /// Unlike <c>meta.This</c> and the parameterless <see cref="This()"/> method, the current method works in any context,
+    /// even outside a template.
+    /// </remarks>
+    /// <seealso cref="meta.This"/>
     public static IExpression This( INamedType type ) => SyntaxBuilder.CurrentImplementation.ThisExpression( type );
 
     /// <summary>
     /// Gets a <c>this</c> expression for the current type when inside a template.
     /// </summary>
+    /// <seealso cref="meta.This"/>
     public static IExpression This() => This( meta.Target.Type );
+
+    /// <summary>
+    /// Gets an expression representing the receiver, i.e. <c>this</c> in an instance member, or the receiver parameter in an extension member,
+    /// according to the current context.
+    /// </summary>
+    /// <seealso cref="This()"/>
+    public static IExpression Receiver() => SyntaxBuilder.CurrentImplementation.ReceiverExpression( meta.Target.Declaration );
+
+    /// <summary>
+    /// Gets an expression representing the receiver, i.e. <c>this</c> in an instance member, or the receiver parameter in an extension member,
+    /// in the context of a given declaration.
+    /// </summary>
+    /// <remarks>
+    /// Unlike the parameterless <see cref="Receiver()"/> method, the current method works in any context, even outside a template.
+    /// </remarks> 
+    /// <seealso cref="This(Metalama.Framework.Code.INamedType)"/>
+    public static IExpression Receiver( IDeclaration declaration ) => SyntaxBuilder.CurrentImplementation.ReceiverExpression( declaration );
 
     /// <summary>
     /// Gets a <c>null</c> expression without specifying a type. The expression will be target-typed.

@@ -25,7 +25,8 @@ internal sealed partial class LinkerInjectionStep
             { DeclarationKind.Property, 2 },
             { DeclarationKind.Method, 3 },
             { DeclarationKind.Event, 4 },
-            { DeclarationKind.NamedType, 5 }
+            { DeclarationKind.NamedType, 5 },
+            { DeclarationKind.ExtensionBlock, 6 }
         }.ToImmutableDictionary();
 
         private static readonly ImmutableDictionary<Accessibility, int> _orderedAccessibilities = new Dictionary<Accessibility, int>()
@@ -37,7 +38,7 @@ internal sealed partial class LinkerInjectionStep
             { Accessibility.PrivateProtected, 4 },
             { Accessibility.Private, 5 }
         }.ToImmutableDictionary();
-        
+
         public int Compare( InjectedMember? x, InjectedMember? y )
         {
             if ( x == y )

@@ -105,7 +105,7 @@ internal sealed class IntroducedTypeParameter : IntroducedDeclaration, ITypePara
     public TypeParameterKind TypeParameterKind
         => this.ContainingDeclaration.DeclarationKind switch
         {
-            DeclarationKind.NamedType => TypeParameterKind.Type,
+            DeclarationKind.NamedType or DeclarationKind.ExtensionBlock => TypeParameterKind.Type,
             DeclarationKind.Method => TypeParameterKind.Method,
             _ => throw new AssertionFailedException()
         };

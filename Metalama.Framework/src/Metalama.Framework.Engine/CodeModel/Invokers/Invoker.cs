@@ -31,7 +31,7 @@ internal abstract partial class Invoker<T>
     // Note that the result of this method indirectly depends on the execution context, so it cannot be cached.
     private AspectReferenceOrder GetAspectReferenceOrder()
     {
-        var isSelfTarget = this.Target is null or ThisInstanceUserReceiver or ThisTypeUserReceiver;
+        var isSelfTarget = this.Target is null or InstanceUserReceiver or ThisTypeUserReceiver;
 
         var orderOptions = GetOrderOptions( this.Member, this.Options, isSelfTarget );
 
@@ -125,9 +125,10 @@ internal abstract partial class Invoker<T>
             }
             else
             {
+                ThisInstanceUserReceiver.TryCreate( syntaxSerializationContext.CurrentDeclaration, aspectReferenceSpecification, true, out var thisReceiver );
+
                 return new ReceiverTypedExpressionSyntax(
-                    new ThisInstanceUserReceiver( this.Member.DeclaringType, aspectReferenceSpecification ).ToTypedExpressionSyntax(
-                        syntaxSerializationContext ),
+                    thisReceiver.AssertNotNull().ToTypedExpressionSyntax( syntaxSerializationContext ),
                     InvokerOptions.Default,
                     aspectReferenceSpecification );
             }
