@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using K4os.Hash.xxHash;
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.Comparers;
 using Metalama.Framework.Engine.AdviceImpl.Introduction;
@@ -16,7 +17,9 @@ using Metalama.Framework.Engine.Linking;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.Transformations;
+using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.Comparers;
+using Metalama.Framework.Engine.Utilities.Roslyn;
 using Metalama.Framework.Engine.Utilities.Threading;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -24,6 +27,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -116,9 +120,12 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                 }
             }
 
-            void ProcessTransformationsOnType( INamedType declaringType, IEnumerable<ITransformation> typeTransformations )
+            void ProcessTransformationsOnType( INamedType declaringTypeOrExtensionBlock, IEnumerable<ITransformation> typeTransformations )
             {
                 cancellationToken.ThrowIfCancellationRequested();
+
+                var extensionBlock = declaringTypeOrExtensionBlock as IExtensionBlock;
+                var declaringType = extensionBlock?.DeclaringType ?? declaringTypeOrExtensionBlock;
 
                 if ( declaringType is { IsPartial: false, Origin.Kind: not DeclarationOriginKind.Aspect } )
                 {
@@ -133,19 +140,6 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                 {
                     // If the declaring type is not located in a partial source type, we need to skip it. The warning is needed because it was done for the parent type.
                     return;
-                }
-
-                static bool IsInNonPartialSourceType( INamedType declaringType )
-                {
-                    var currentType = declaringType;
-
-                    // Go to the closest type that does not originate in an aspect.
-                    while ( currentType.Origin.Kind is DeclarationOriginKind.Aspect && currentType.DeclaringType != null )
-                    {
-                        currentType = currentType.DeclaringType;
-                    }
-
-                    return currentType.Origin.Kind is not DeclarationOriginKind.Aspect && !currentType.IsPartial;
                 }
 
                 var orderedTransformations = typeTransformations.OrderBy( x => x, TransformationLinkerOrderComparer.Instance );
@@ -222,6 +216,16 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                 members = members.AddRange(
                     CreateInjectedConstructors( initialCompilationModel, finalCompilationModel, syntaxGenerationContext, declaringType ) );
 
+#if ROSLYN_5_0_0_OR_GREATER
+
+                // Create the extension block.
+                if ( extensionBlock != null )
+                {
+                    var extensionBlockSyntax = CreateExtensionBlock( extensionBlock, members, syntaxGenerationContext );
+                    members = List<MemberDeclarationSyntax>( [extensionBlockSyntax] );
+                }
+#endif
+
                 // Create a type.
                 var typeDeclaration = CreatePartialType( declaringType, baseList, members );
 
@@ -232,7 +236,7 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                 {
                     topDeclaration = CreatePartialType(
                         containingType,
-                        default,
+                        null,
                         SingletonList( topDeclaration ) );
                 }
 
@@ -255,15 +259,34 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                     .WithMembers( SingletonList( AddHeader( topDeclaration ) ) );
 
                 var generatedSyntaxTree = SyntaxTree( compilationUnit.NormalizeWhitespace(), encoding: Encoding.UTF8 );
-                var safeTypeName = GetUniqueFilenameForType( declaringType );
-                var syntaxTreeName = safeTypeName + ".cs";
+                
+                // Find a unique syntax tree name. This is made difficult because we might generate identical names for extension block files.
+                var safeTypeName = GetUniqueFilenameForType( declaringTypeOrExtensionBlock );
 
-                if ( !additionalSyntaxTreeDictionary.TryAdd(
-                        syntaxTreeName,
-                        new IntroducedSyntaxTree( syntaxTreeName, originalSyntaxTree, generatedSyntaxTree ) ) )
+                for ( var distinctIndex = 0;; distinctIndex++ )
                 {
-                    throw new AssertionFailedException( $"Duplicate generated syntax tree for type {declaringType}." );
+                    string syntaxTreeName;
+
+                    if ( distinctIndex == 0 )
+                    {
+                        syntaxTreeName = safeTypeName + ".cs";
+                    }
+                    else
+                    {
+                        syntaxTreeName = $"{safeTypeName}.{distinctIndex}.cs";
+                    }
+
+                    if ( !additionalSyntaxTreeDictionary.ContainsKey( syntaxTreeName ) )
+                    {
+                        if ( additionalSyntaxTreeDictionary.TryAdd(
+                                syntaxTreeName,
+                                new IntroducedSyntaxTree( syntaxTreeName, originalSyntaxTree, generatedSyntaxTree ) ) )
+                        {
+                            break;
+                        }
+                    }
                 }
+                
             }
 
             return additionalSyntaxTreeDictionary.Values.AsReadOnly();
@@ -290,13 +313,26 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                     sb.Append( "." );
                 }
 
-                sb.Append( current.Name );
-
-                if ( current.IsGeneric )
+                if ( current.TypeKind == TypeKind.Extension )
                 {
-                    sb.Append( "{" );
-                    sb.Append( current.TypeParameters.Count );
-                    sb.Append( "}" );
+                    // We hash the receiver type and kindness.
+                    var extensionBlock = (IExtensionBlock) current;
+                    XXH64 hash = new();
+                    hash.Update( extensionBlock.ReceiverType.ToSerializableId().Id );
+                    hash.Update( extensionBlock.ReceiverParameter.RefKind );
+                    hash.Update( extensionBlock.TypeArguments.Count );
+                    sb.AppendFormat( CultureInfo.InvariantCulture, "{0:x}", (short) hash.GetHashCode() );
+                }
+                else
+                {
+                    sb.Append( current.Name );
+                    
+                    if ( current.IsGeneric )
+                    {
+                        sb.Append( "{" );
+                        sb.Append( current.TypeParameters.Count );
+                        sb.Append( "}" );
+                    }
                 }
             }
         }
@@ -496,6 +532,36 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                 };
             }
         }
+
+#if ROSLYN_5_0_0_OR_GREATER
+        private static ExtensionBlockDeclarationSyntax CreateExtensionBlock( IExtensionBlock extensionBlock, SyntaxList<MemberDeclarationSyntax> members, SyntaxGenerationContext syntaxGenerationContext )
+        {
+            return ExtensionBlockDeclaration(
+                attributeLists: default,
+                modifiers: default,
+                Token( SyntaxKind.ExtensionKeyword ),
+                CreateTypeParameters( extensionBlock ),
+                CreateExtensionBlockParameterList( extensionBlock, syntaxGenerationContext ),
+                CreateConstraintList( extensionBlock, syntaxGenerationContext ),
+                Token( SyntaxKind.OpenBraceToken ),
+                members,
+                Token( SyntaxKind.CloseBraceToken ),
+                default );
+
+        }
+
+        private static SyntaxList<TypeParameterConstraintClauseSyntax> CreateConstraintList( IExtensionBlock extensionBlock, SyntaxGenerationContext syntaxGenerationContext )
+        {
+            return syntaxGenerationContext.SyntaxGenerator.ConstraintClauses( extensionBlock );
+        }
+
+        private static ParameterListSyntax CreateExtensionBlockParameterList( IExtensionBlock extensionBlock, SyntaxGenerationContext syntaxGenerationContext )
+        {
+            return syntaxGenerationContext.SyntaxGenerator.ParameterList( [extensionBlock.ReceiverParameter], (CompilationModel) extensionBlock.Compilation );
+        }
+        
+        
+#endif
 
         private static TypeDeclarationSyntax CreatePartialType( INamedType type, BaseListSyntax? baseList, SyntaxList<MemberDeclarationSyntax> members )
             => type.TypeKind switch
@@ -701,6 +767,19 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
 
                 return hashCode;
             }
+        }
+
+        private static bool IsInNonPartialSourceType( INamedType declaringType )
+        {
+            var currentType = declaringType;
+
+            // Go to the closest type that does not originate in an aspect.
+            while ( currentType.Origin.Kind is DeclarationOriginKind.Aspect && currentType.DeclaringType != null )
+            {
+                currentType = currentType.DeclaringType;
+            }
+
+            return currentType.Origin.Kind is not DeclarationOriginKind.Aspect && !currentType.IsPartial;
         }
     }
 }

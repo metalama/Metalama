@@ -12,7 +12,6 @@ using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.DeclarationBuilders;
 using Metalama.Framework.Eligibility;
-using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.CSharp14.ExtensionMembers_AddAttribute;
