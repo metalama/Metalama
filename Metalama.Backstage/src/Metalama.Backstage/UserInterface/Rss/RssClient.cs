@@ -69,7 +69,7 @@ internal sealed class RssClient : IRssClient
 
             if ( !this._telemetryConfigurationService.IsEnabled( TelemetryScenario.Rss ) )
             {
-                this._logger.Trace?.Log( "Telemetry is disabled. Do fetch news." );
+                this._logger.Trace?.Log( "Telemetry is disabled. Do not fetch news." );
 
                 return;
             }
