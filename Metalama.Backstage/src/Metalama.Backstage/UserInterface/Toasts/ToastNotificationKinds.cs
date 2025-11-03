@@ -30,7 +30,7 @@ public static class ToastNotificationKinds
 
     // Must be last.
     public static ImmutableDictionary<string, ToastNotificationKind> All { get; } =
-        new[] { RequiresLicense, VsxNotInstalled, SubscriptionExpiring, TrialExpiring, LicenseExpiring, Exception }.ToImmutableDictionary(
+        new[] { RequiresLicense, VsxNotInstalled, SubscriptionExpiring, TrialExpiring, LicenseExpiring, Exception, News }.ToImmutableDictionary(
             i => i.Name,
             i => i );
 }
