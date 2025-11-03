@@ -51,6 +51,11 @@ public record BackstageInitializationOptions( IApplicationInfo ApplicationInfo )
     /// </summary>
     public bool DetectToastNotifications { get; init; } = true;
 
+    /// <summary>
+    /// Gets a value indicating whether the RSS client should fetch the RSS feed and open a toast notification
+    /// upon initialization. It is <c>true</c> by default and can be set to <c>false</c> for commands
+    /// that explicitly call the RSS client.
+    /// </summary>
     public bool NotifyOfLatestNews { get; init; } = true;
 
     /// <summary>
