@@ -11,6 +11,8 @@ namespace Metalama.Backstage.UserInterface;
 // ReSharper disable MemberCanBeMadeStatic.Global
 public sealed class WebLinks : IBackstageService
 {
+    public const string TrackingQueryString = "utm_source=app&utm_medium=app&utm_campaign=backstage";
+
     // We don't add campaign tracking query string parameters so we do not override the attribution to the original campaign.
     public string Welcome => GetLink( "metalama-oss-welcome", false ); // TODO - Implement
 
@@ -43,7 +45,7 @@ public sealed class WebLinks : IBackstageService
 
         if ( trackCampaign )
         {
-            url += "?utm_source=app&utm_medium=app&utm_campaign=backstage";
+            url += "?" + TrackingQueryString;
             queryStringSeparator = '&';
         }
 

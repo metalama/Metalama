@@ -24,6 +24,7 @@
         <PackageReference Include="System.DirectoryServices" />
         <PackageReference Include="Microsoft.Win32.Registry" Condition="'$(TargetFramework)'=='netstandard2.0'" />
         <PackageReference Include="System.Threading.AccessControl" />
+        <PackageReference Include="System.Threading.Tasks.Extensions" />
     </ItemGroup>
 
     <PropertyGroup>

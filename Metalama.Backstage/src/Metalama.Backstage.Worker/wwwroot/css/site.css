@@ -73,6 +73,47 @@ div.checkbox input, div.radio input {
   margin-right: 10px;
 }
 
+div.radio-group {
+  margin: 20px 0;
+}
+
+div.radio-option {
+  display: flex;
+  align-items: start;
+  margin-bottom: 20px;
+  padding: 15px;
+  background-color: #250d45;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+div.radio-option:hover {
+  background-color: #331158;
+}
+
+div.radio-option input[type="radio"] {
+  margin-top: 5px;
+  margin-right: 15px;
+  cursor: pointer;
+  accent-color: #4d4dff;
+}
+
+div.radio-option label {
+  cursor: pointer;
+  flex: 1;
+}
+
+div.radio-option label strong {
+  display: block;
+  margin-bottom: 5px;
+  color: #fff;
+}
+
+div.radio-option label small {
+  color: #b1b0b2;
+}
+
 
 
 /* Style for all text inputs */

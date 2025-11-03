@@ -4,7 +4,7 @@
 
 using JetBrains.Annotations;
 using Metalama.Backstage.Extensibility;
-using Metalama.Backstage.UserInterface;
+using Metalama.Backstage.UserInterface.Toasts;
 
 namespace Metalama.Backstage.Desktop.Windows.Commands;
 

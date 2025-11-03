@@ -5,4 +5,25 @@
 namespace Metalama.Backstage.Desktop.Windows.ViewModel;
 
 // ReSharper disable once NotAccessedPositionalProperty.Global
-internal record NotificationViewModel( string Kind, string Title, string Body, NotificationActionViewModel Action, bool CanSnooze = true, bool CanMute = true );
+internal sealed record NotificationViewModel
+{
+    public NotificationViewModel( string kind, string title, string? body, params NotificationActionViewModel[] actions )
+    {
+        this.Kind = kind;
+        this.Title = title;
+        this.Body = body;
+        this.Actions = actions;
+    }
+
+    public string Kind { get; }
+
+    public string Title { get; }
+
+    public string? Body { get; }
+
+    public NotificationActionViewModel[] Actions { get; }
+
+    public bool CanSnooze { get; init; }
+
+    public bool CanMute { get; init; }
+}

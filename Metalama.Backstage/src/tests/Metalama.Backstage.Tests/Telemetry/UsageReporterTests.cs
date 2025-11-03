@@ -222,7 +222,7 @@ public sealed class UsageReporterTests : TestsBase
         {
             var reporter = new UsageReporter( this.ServiceProvider );
 
-            this.HttpClientFactory.Reset();
+            this.HttpClientFactory.ClearProcessedRequests();
 
             var session = reporter.StartSession( "TestSession", projectName );
             session.Dispose();

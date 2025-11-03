@@ -6,7 +6,7 @@ using JetBrains.Annotations;
 using Metalama.Backstage.Application;
 using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Licensing;
-using Metalama.Backstage.UserInterface;
+using Metalama.Backstage.UserInterface.Toasts;
 using System;
 
 namespace Metalama.Backstage.Extensibility;
@@ -50,6 +50,8 @@ public record BackstageInitializationOptions( IApplicationInfo ApplicationInfo )
     /// <see cref="ToastNotificationKinds.VsxNotInstalled"/> should be detected and opened. The default value is <c>true</c>.
     /// </summary>
     public bool DetectToastNotifications { get; init; } = true;
+
+    public bool NotifyOfLatestNews { get; init; } = true;
 
     /// <summary>
     /// Gets diagnostic (tracing) options. Considered only when <see cref="AddSupportServices"/> is <c>true</c>. 

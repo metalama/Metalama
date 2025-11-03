@@ -8,7 +8,7 @@ using System;
 using System.Collections.Immutable;
 using System.ComponentModel;
 
-namespace Metalama.Backstage.UserInterface;
+namespace Metalama.Backstage.UserInterface.Toasts;
 
 [ConfigurationFile( "toastNotifications.json" )]
 [Description( "Toast notifications." )]

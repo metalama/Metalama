@@ -13,3 +13,9 @@ internal class ThrowCommand : BaseCommand<BaseCommandSettings>
     protected override void Execute( ExtendedCommandContext context, BaseCommandSettings settings )
         => throw new InvalidOperationException( "This exception is intentional." );
 }
+
+[UsedImplicitly( ImplicitUseTargetFlags.WithMembers )]
+internal class DisplayLastNewsCommand : BaseCommand<BaseCommandSettings>
+{
+    protected override void Execute( ExtendedCommandContext context, BaseCommandSettings settings ) => throw new NotImplementedException();
+}

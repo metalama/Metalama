@@ -9,7 +9,7 @@ using Metalama.Backstage.Licensing;
 using Metalama.Backstage.Licensing.Registration;
 using System;
 
-namespace Metalama.Backstage.UserInterface;
+namespace Metalama.Backstage.UserInterface.Toasts;
 
 internal sealed class ToastNotificationDetectionService : IToastNotificationDetectionService
 {

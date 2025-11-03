@@ -14,6 +14,7 @@ using Metalama.Backstage.Maintenance;
 using Metalama.Backstage.Telemetry;
 using Metalama.Backstage.Tools;
 using Metalama.Backstage.UserInterface;
+using Metalama.Backstage.UserInterface.Toasts;
 using Metalama.Backstage.Welcome;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -101,13 +102,14 @@ namespace Metalama.Backstage.Testing
             this._configureServicesAction = this.ConfigureServices;
             this._initializationOptions = options ?? new BackstageInitializationOptions( new TestApplicationInfo() );
 
-            this._defaultTestContext = new Lazy<Services>( () =>
-            {
-                var services = this.CreateServices( this.ConfigureServicesAction, this.InitializationOptions );
-                this.OnAfterServicesCreated( services );
+            this._defaultTestContext = new Lazy<Services>(
+                () =>
+                {
+                    var services = this.CreateServices( this.ConfigureServicesAction, this.InitializationOptions );
+                    this.OnAfterServicesCreated( services );
 
-                return services;
-            } );
+                    return services;
+                } );
         }
 
         private readonly Lazy<Services> _defaultTestContext;

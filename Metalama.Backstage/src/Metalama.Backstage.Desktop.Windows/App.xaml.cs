@@ -15,7 +15,7 @@ using System.Windows.Threading;
 
 namespace Metalama.Backstage.Desktop.Windows;
 
-internal partial class App
+internal sealed partial class App
 {
     public App()
     {
@@ -63,6 +63,7 @@ internal partial class App
                         configuration.AddCommand<SnoozeNotificationCommand>( SnoozeNotificationCommand.Name );
                         configuration.AddCommand<MuteNotificationCommand>( MuteNotificationCommand.Name );
                         configuration.AddCommand<SetupWizardCommand>( SetupWizardCommand.Name );
+                        configuration.AddCommand<OpenWorkerRssOptionsCommand>( OpenWorkerRssOptionsCommand.Name );
                     } );
 
                 return commandApp.RunAsync( args );

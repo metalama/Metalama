@@ -2,14 +2,11 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using JetBrains.Annotations;
+using Metalama.Backstage.Extensibility;
 
-namespace Metalama.Backstage.Desktop.Windows.Commands;
+namespace Metalama.Backstage.UserInterface.Toasts;
 
-[UsedImplicitly( ImplicitUseTargetFlags.WithMembers )]
-internal class SetupWizardCommand : OpenWorkerWebPageCommand
+public interface IToastNotificationService : IBackstageService
 {
-    public const string Name = "setup";
-
-    public SetupWizardCommand() : base( "Setup" ) { }
+    bool Show( ToastNotification notification );
 }

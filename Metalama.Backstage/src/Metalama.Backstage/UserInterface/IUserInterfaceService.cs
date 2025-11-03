@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Backstage.Extensibility;
+using Metalama.Backstage.UserInterface.Toasts;
 using System;
 using System.Threading.Tasks;
 

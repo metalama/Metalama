@@ -7,7 +7,7 @@ using Metalama.Backstage.Diagnostics;
 
 namespace Metalama.Backstage.Desktop.Windows;
 
-internal class DesktopWindowsApplicationInfo : ApplicationInfoBase
+internal sealed class DesktopWindowsApplicationInfo : ApplicationInfoBase
 {
     public DesktopWindowsApplicationInfo() : base( typeof(DesktopWindowsApplicationInfo).Assembly ) { }
 

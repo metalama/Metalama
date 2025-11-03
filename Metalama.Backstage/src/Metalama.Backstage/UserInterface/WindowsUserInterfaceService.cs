@@ -4,6 +4,7 @@
 
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Tools;
+using Metalama.Backstage.UserInterface.Toasts;
 using System;
 
 #if NETFRAMEWORK || NETCOREAPP

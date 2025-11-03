@@ -6,6 +6,7 @@ using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Infrastructure;
 using Metalama.Backstage.Tools;
+using Metalama.Backstage.UserInterface.Toasts;
 using System;
 using System.Diagnostics;
 using System.Net;
