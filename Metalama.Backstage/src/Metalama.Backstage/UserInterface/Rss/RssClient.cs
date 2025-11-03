@@ -112,10 +112,19 @@ internal sealed class RssClient : IRssClient
             // Fetch content.
             var httpClient = this._httpClientFactory.Create();
             var response = await httpClient.GetAsync( url );
+
+            if ( !response.IsSuccessStatusCode )
+            {
+                this._logger.Trace?.Log(
+                    $"Cannot get '{url}': {response.ReasonPhrase}." );
+
+                return;
+            }
+            
             var content = await response.Content.ReadAsStringAsync();
 
             // Try to parse the item.
-            if ( !this.TryParseItem( content, out var title, out var link, out var pubDate ) )
+            if ( !this.TryParseContent( content, out var title, out var link, out var pubDate ) )
             {
                 return;
             }
@@ -148,7 +157,7 @@ internal sealed class RssClient : IRssClient
         }
     }
 
-    private bool TryParseItem(
+    private bool TryParseContent(
         string content,
         out string? title,
         out string? url,

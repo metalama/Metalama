@@ -94,7 +94,7 @@ internal static class ViewModelBuilder
                 [
                     new UriActionViewModel( "Read", settings.Uri! ),
                     new CommandActionViewModel( "Options", activationArguments.OpenRssOptions )
-                ] );
+                ] ) { CanMute = false, CanSnooze = false };
 
             return true;
         }

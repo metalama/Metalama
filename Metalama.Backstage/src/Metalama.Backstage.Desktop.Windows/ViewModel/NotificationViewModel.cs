@@ -23,7 +23,7 @@ internal sealed record NotificationViewModel
 
     public NotificationActionViewModel[] Actions { get; }
 
-    public bool CanSnooze { get; init; }
+    public bool CanSnooze { get; init; } = true;
 
-    public bool CanMute { get; init; }
+    public bool CanMute { get; init; } = true;
 }
