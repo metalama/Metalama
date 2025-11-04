@@ -39,5 +39,7 @@ internal sealed class ExtensionBlock : SourceNamedType, IExtensionBlock
     public new IRef<IExtensionBlock> ToRef() => base.ToRef().As<IExtensionBlock>();
 
     public new INamedType DeclaringType => base.DeclaringType.AssertNotNull();
+
+    public override DeclarationKind DeclarationKind => DeclarationKind.ExtensionBlock;
 }
 #endif

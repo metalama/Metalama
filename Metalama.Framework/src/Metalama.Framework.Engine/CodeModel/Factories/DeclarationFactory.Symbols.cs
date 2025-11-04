@@ -562,6 +562,19 @@ public partial class DeclarationFactory
             return type;
         }
 
+#if ROSLYN_5_0_0_OR_GREATER
+        if ( typeSymbol is INamedTypeSymbol { IsExtension: true } )
+        {
+            if ( isNullable )
+            {
+                throw new ArgumentOutOfRangeException(
+                    MetalamaStringFormatter.Format( $"The type '{type}' cannot be made nullable because it is an extension block." ) );
+            }
+
+            return type;
+        }
+#endif
+
         ITypeSymbol newTypeSymbol;
 
         if ( type.IsReferenceType ?? true )

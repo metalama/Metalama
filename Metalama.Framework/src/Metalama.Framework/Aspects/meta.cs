@@ -144,25 +144,47 @@ namespace Metalama.Framework.Aspects
         }
 
         /// <summary>
-        /// Gets a <c>dynamic</c> object that represents an instance of the target type. It can be used as a value (e.g. as a method argument)
+        /// Gets a <c>dynamic</c> object that represents the current instance (<c>this</c>) of the object being advised. It can be used as a value (e.g. as a method argument)
         /// or can be used to get access to <i>instance</i> members of the instance (e.g. <c>meta.This.MyMethod()</c>).
+        /// </summary>
+        /// <remarks>
+        /// <para>
         /// The <see cref="This"/> property exposes the state of the target type as it is <i>after</i> the application
         /// of all aspects. If the member is <c>virtual</c>, a virtual call is performed, therefore the implementation on the child type
-        /// (possibly with all applied aspects) is performed.  It corresponds to <see cref="InvokerOptions"/>.<see cref="InvokerOptions.Final"/>.  To access the prior layer (or the base type, if there is no prior layer), use <see cref="Base"/>.
+        /// (possibly with all applied aspects) is performed.  It corresponds to <see cref="InvokerOptions"/>.<see cref="InvokerOptions.Final"/>.
+        /// </para>
+        /// <para>
+        /// To access the prior layer (or the base type, if there is no prior layer), use <see cref="Base"/>.
         /// To access static members, use <see cref="ThisType"/>.
-        /// </summary>
+        /// </para>
+        /// </remarks>
         /// <seealso cref="Base"/>
+        /// <seealso cref="ExpressionFactory.This()"/>
         /// <seealso cref="ThisType"/>
         /// <seealso href="@templates"/>
+        /// <seealso cref="Receiver"/>
         [TemplateKeyword]
         public static dynamic This => CurrentContext.This;
         
         /// <summary>
-        /// Gets a <c>dynamic</c> object that must be used to get access to <i>instance</i> members of the instance (e.g. <c>meta.Base.MyMethod()</c>).
+        /// Gets a <c>dynamic</c> object that represents the receiver object, i.e. <c>this</c> in non-extension instance members, or the receiver parameter
+        /// in extension members or classic extension methods.
+        /// </summary>
+        /// <seealso cref="This"/>
+        /// <seealso cref="ExpressionFactory.Receiver()"/>
+        /// <seealso cref="MemberExtensions.HasReceiver"/>
+        [TemplateKeyword]
+        public static dynamic Receiver => CurrentContext.ReceiverExpression( Target.Declaration );
+
+        /// <summary>
+        /// Gets a <c>dynamic</c> object that gives access to the members of the base class for the current instance, equivalent to <c>base</c> in C#.
+        /// The syntax to access these members is e.g. <c>meta.Base.MyMethod()</c>.
+        /// </summary>
+        /// <remarks>
         /// The <see cref="Base"/> property exposes the state of the target type as it is <i>before</i> the application
         /// of the current aspect layer. It corresponds to <see cref="InvokerOptions"/>.<see cref="InvokerOptions.Default"/>. To access the final layer, use <see cref="This"/>.
         /// To access static members, use <see cref="BaseType"/>.
-        /// </summary>
+        /// </remarks>
         /// <seealso cref="This"/>
         /// <seealso cref="BaseType"/>
         /// <seealso href="@templates"/>
@@ -171,10 +193,13 @@ namespace Metalama.Framework.Aspects
 
         /// <summary>
         /// Gets a <c>dynamic</c> object that must be used to get access to <i>static</i> members of the type (e.g. <c>meta.ThisStatic.MyStaticMethod()</c>).
+        /// If the current declaration is an extension member, the property returns the declaring type, <i>not</i> the receiver type.
+        /// </summary>
+        /// <remarks>
         /// The <see cref="ThisType"/> property exposes the state of the target type as it is <i>after</i> the application
         /// of all aspects.  It corresponds to <see cref="InvokerOptions"/>.<see cref="InvokerOptions.Final"/>. To access the prior layer (or the base type, if there is no prior layer), use <see cref="BaseType"/>.
         /// To access instance members, use <see cref="This"/>.
-        /// </summary>
+        /// </remarks>
         /// <seealso cref="This"/>
         /// <seealso cref="BaseType"/>
         /// <seealso href="@templates"/>
@@ -183,10 +208,13 @@ namespace Metalama.Framework.Aspects
 
         /// <summary>
         /// Gets a <c>dynamic</c> object that must be used to get access to <i>static</i> members of the type (e.g. <c>meta.BaseStatic.MyStaticMethod()</c>).
+        /// If the current declaration is an extension member, the property returns the declaring type, <i>not</i> the receiver type. 
+        /// </summary>
+        /// <remarks>
         /// The <see cref="BaseType"/> property exposes the state of the target type as it is <i>before</i> the application
         /// of the current aspect layer.  It corresponds to <see cref="InvokerOptions"/>.<see cref="InvokerOptions.Default"/>. To access the final layer, use <see cref="ThisType"/>.
         /// To access instance members, use <see cref="Base"/>.
-        /// </summary>
+        /// </remarks>
         /// <seealso cref="Base"/>
         /// <seealso cref="ThisType"/>
         /// <seealso href="@templates"/>

@@ -49,6 +49,7 @@ internal static class RefTargetKindExtensions
             RefTargetKind.EventRaiseParameter => DeclarationKind.Parameter,
             RefTargetKind.EventRaiseReturnParameter => DeclarationKind.Parameter,
             RefTargetKind.NamedType => DeclarationKind.NamedType,
+            RefTargetKind.ExtensionBlock => DeclarationKind.ExtensionBlock,
             _ => throw new ArgumentOutOfRangeException( nameof(kind), kind, null )
         };
 }

@@ -37,7 +37,10 @@ internal sealed class ContractMethodTransformation : ContractBaseTransformation
 
     public override IReadOnlyList<InsertedStatement> GetInsertedStatements( InsertStatementTransformationContext context )
     {
-        switch ( this.ContractTarget.GetTarget( this.InitialCompilation ) )
+        var targetDeclaration = this.ContractTarget.GetTarget( this.InitialCompilation );
+        var targetMethod = this._targetMethod.GetTarget( context.FinalCompilation );
+
+        switch ( targetDeclaration )
         {
             case IParameter { IsReturnParameter: true } returnValueParam:
                 {
@@ -45,7 +48,7 @@ internal sealed class ContractMethodTransformation : ContractBaseTransformation
 
                     var variableName = context.GetReturnValueVariableName();
 
-                    if ( !this.TryExecuteTemplate( context, IdentifierName( variableName ), returnValueParam.Type, out var contractBlock ) )
+                    if ( !this.TryExecuteTemplate( context, IdentifierName( variableName ), returnValueParam.Type, targetMethod, out var contractBlock ) )
                     {
                         return Array.Empty<InsertedStatement>();
                     }
@@ -66,7 +69,7 @@ internal sealed class ContractMethodTransformation : ContractBaseTransformation
                     if ( this.ContractDirection is ContractDirection.Input or ContractDirection.Both )
                     {
                         Invariant.Assert( param.RefKind is not RefKind.Out );
-                        inputResult = this.TryExecuteTemplate( context, valueSyntax, param.Type, out inputContractBlock );
+                        inputResult = this.TryExecuteTemplate( context, valueSyntax, param.Type,targetMethod, out inputContractBlock );
                     }
                     else
                     {
@@ -77,7 +80,7 @@ internal sealed class ContractMethodTransformation : ContractBaseTransformation
                     if ( this.ContractDirection is ContractDirection.Output or ContractDirection.Both )
                     {
                         Invariant.Assert( param.RefKind is not RefKind.None );
-                        outputResult = this.TryExecuteTemplate( context, valueSyntax, param.Type, out outputContractBlock );
+                        outputResult = this.TryExecuteTemplate( context, valueSyntax, param.Type, targetMethod,out outputContractBlock );
                     }
                     else
                     {

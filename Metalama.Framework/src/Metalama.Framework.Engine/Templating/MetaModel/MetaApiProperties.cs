@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Advising;
@@ -31,9 +32,9 @@ namespace Metalama.Framework.Engine.Templating.MetaModel
 
         public ProjectServiceProvider ServiceProvider { get; }
 
-        public MetaApiStaticity Staticity { get; }
-
         private ICompilation SourceCompilation { get; }
+
+        public AdviceKind AdviceKind { get; }
 
         public MetaApiProperties(
             ICompilation sourceCompilation,
@@ -43,7 +44,7 @@ namespace Metalama.Framework.Engine.Templating.MetaModel
             SyntaxGenerationContext syntaxGenerationContext,
             IAspectInstanceInternal? aspectInstance, // Can be null in tests.
             ProjectServiceProvider serviceProvider,
-            MetaApiStaticity staticity )
+            AdviceKind adviceKind )
         {
             this.SourceCompilation = sourceCompilation;
             this.DiagnosticSink = diagnosticSink;
@@ -52,7 +53,7 @@ namespace Metalama.Framework.Engine.Templating.MetaModel
             this.SyntaxGenerationContext = syntaxGenerationContext;
             this.AspectInstance = aspectInstance;
             this.ServiceProvider = serviceProvider;
-            this.Staticity = staticity;
+            this.AdviceKind = adviceKind;
         }
 
         internal T Translate<T>( T declaration )

@@ -61,6 +61,10 @@ namespace Metalama.Framework.Code
                 case DeclarationKind.NamedType:
                     return containedDeclarationKind is not (DeclarationKind.Compilation or DeclarationKind.Namespace);
 
+                case DeclarationKind.ExtensionBlock:
+                    return containedDeclarationKind is DeclarationKind.Method or DeclarationKind.Indexer or DeclarationKind.Operator
+                        or DeclarationKind.Property or DeclarationKind.Parameter or DeclarationKind.Attribute or DeclarationKind.TypeParameter;
+
                 case DeclarationKind.Parameter:
                 case DeclarationKind.TypeParameter:
                 case DeclarationKind.Field:

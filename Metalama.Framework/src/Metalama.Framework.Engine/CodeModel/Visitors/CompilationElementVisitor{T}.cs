@@ -32,6 +32,7 @@ internal abstract class CompilationElementVisitor<T>
             {
                 DeclarationKind.Compilation => this.VisitCompilation( (ICompilation) declaration ),
                 DeclarationKind.NamedType => this.VisitNamedType( (INamedType) declaration ),
+                DeclarationKind.ExtensionBlock => this.VisitExtensionBlock( (IExtensionBlock) declaration ),
                 DeclarationKind.Method or DeclarationKind.Finalizer or DeclarationKind.Operator => this.VisitMethod( (IMethod) declaration ),
                 DeclarationKind.Property => this.VisitProperty( (IProperty) declaration ),
                 DeclarationKind.Indexer => this.VisitIndexer( (IIndexer) declaration ),
@@ -80,6 +81,8 @@ internal abstract class CompilationElementVisitor<T>
     protected virtual T VisitDynamicType( IDynamicType dynamicType ) => this.DefaultVisit( dynamicType );
 
     protected virtual T VisitNamedType( INamedType namedType ) => this.DefaultVisit( namedType );
+
+    protected virtual T VisitExtensionBlock( IExtensionBlock extensionBlock ) => this.VisitNamedType( extensionBlock );
 
     protected virtual T VisitPointerType( IPointerType pointerType ) => this.DefaultVisit( pointerType );
 

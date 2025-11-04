@@ -83,13 +83,13 @@ namespace Metalama.Framework.Engine.Templating
                     _category,
                     Error );
 
-        internal static readonly DiagnosticDefinition<(IDeclaration Advice, string Expression, IDeclaration TargetDeclaration, DeclarationKind TargetKind,
+        internal static readonly DiagnosticDefinition<(IDeclaration TargetDeclaration, DeclarationKind TargetKind,
                 FormattableString Explanation)>
             CannotUseThisInStaticContext
                 = new(
                     "LAMA0114",
-                    "Cannot use 'meta.This' from a static context",
-                    "The advice '{0}' cannot use '{1}' in an advice applied to {3} '{2}' because {4}.",
+                    "Cannot reference 'this' from a static context",
+                    "Cannot reference 'this' in an advice applied to {1} '{0}' because {2}.",
                     _category,
                     Error );
 
@@ -635,5 +635,14 @@ namespace Metalama.Framework.Engine.Templating
                 "Cannot cast the non-dynamic run-time expression '{0}' to IExpression. Use ExpressionFactory.Capture.",
                 _category,
                 Error );
+
+        internal static readonly DiagnosticDefinition<(IDeclaration TargetDeclaration, DeclarationKind TargetKind, FormattableString Explanation)>
+            NoReceiverInCurrentContext
+                = new(
+                    "LAMA0287",
+                    "The current context has no receiver",
+                    "Cannot get a receiver in an advice applied to {1} '{0}' because {2}.",
+                    _category,
+                    Error );
     }
 }

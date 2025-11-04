@@ -37,7 +37,10 @@ internal sealed class ContractConstructorTransformation : ContractBaseTransforma
 
     public override IReadOnlyList<InsertedStatement> GetInsertedStatements( InsertStatementTransformationContext context )
     {
-        switch ( this.ContractTarget.GetTarget( context.FinalCompilation ) )
+        var targetConstructor = this._targetConstructor.GetTarget( context.FinalCompilation );
+        var targetDeclaration = this.ContractTarget.GetTarget( context.FinalCompilation );
+
+        switch ( targetDeclaration )
         {
             case IParameter param:
                 {
@@ -50,7 +53,7 @@ internal sealed class ContractConstructorTransformation : ContractBaseTransforma
                     if ( this.ContractDirection is ContractDirection.Input or ContractDirection.Both )
                     {
                         Invariant.Assert( param.RefKind is not RefKind.Out );
-                        inputResult = this.TryExecuteTemplate( context, valueSyntax, param.Type, out inputContractBlock );
+                        inputResult = this.TryExecuteTemplate( context, valueSyntax, param.Type, targetConstructor, out inputContractBlock );
                     }
                     else
                     {
@@ -61,7 +64,7 @@ internal sealed class ContractConstructorTransformation : ContractBaseTransforma
                     if ( this.ContractDirection is ContractDirection.Output or ContractDirection.Both )
                     {
                         Invariant.Assert( param.RefKind is not RefKind.None );
-                        outputResult = this.TryExecuteTemplate( context, valueSyntax, param.Type, out outputContractBlock );
+                        outputResult = this.TryExecuteTemplate( context, valueSyntax, param.Type, targetConstructor, out outputContractBlock );
                     }
                     else
                     {

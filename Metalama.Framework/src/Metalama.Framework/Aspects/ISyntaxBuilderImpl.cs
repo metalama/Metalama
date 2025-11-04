@@ -15,6 +15,8 @@ namespace Metalama.Framework.Aspects;
 internal interface ISyntaxBuilderImpl
 {
     ICompilation Compilation { get; }
+    
+    IDeclaration? CurrentDeclaration { get; }
 
     IExpression Capture( object? expression );
 
@@ -69,4 +71,6 @@ internal interface ISyntaxBuilderImpl
     bool TryConvertExpressionToTypedConstant( IExpression expression, [NotNullWhen( true )] out TypedConstant? typedConstant );
 
     bool TryConvertExpressionToTypedConstant( string expression, [NotNullWhen( true )] out TypedConstant? typedConstant );
+
+    IExpression ReceiverExpression( IDeclaration declaration );
 }

@@ -126,7 +126,7 @@ internal abstract partial class FullRef<T> : BaseRef<T>, IFullRef<T>
         {
             RefTargetKind.Assembly when symbol is IAssemblySymbol => symbol,
             RefTargetKind.Module when symbol is IModuleSymbol => symbol,
-            RefTargetKind.NamedType when symbol is INamedTypeSymbol => symbol,
+            RefTargetKind.NamedType or RefTargetKind.ExtensionBlock when symbol is INamedTypeSymbol => symbol,
             RefTargetKind.Default => symbol,
             RefTargetKind.Return => throw new InvalidOperationException( "Cannot get a symbol for the method return parameter." ),
             RefTargetKind.Field when symbol is IPropertySymbol property => property.GetBackingField().AssertSymbolNotNull(),

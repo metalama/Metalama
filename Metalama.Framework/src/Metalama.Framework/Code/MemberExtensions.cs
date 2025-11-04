@@ -31,7 +31,7 @@ public static class MemberExtensions
         => ((ICompilationInternal) declaration.Compilation).Helpers.IsAccessibleFromOutsideAssembly( declaration, honorInternalVisibleToAttributes );
 
     /// <summary>
-    /// Determines whether a <see cref="IMember"/> or <see cref="INamedType"/> can be implemented (i.e. derived from or overridden) from an
+    /// Determines whether an <see cref="IMember"/> or <see cref="INamedType"/> can be implemented (i.e. derived from or overridden) from an
     /// outside assembly. When the declaration is an <see cref="IParameter"/>, considers the parent member. Returns <c>false</c> for other
     /// kinds of declarations.
     /// </summary>
@@ -44,4 +44,13 @@ public static class MemberExtensions
             IParameter { DeclaringMember: { } declaringMember } => declaringMember.CanBeImplementedFromOutsideAssembly( honorInternalVisibleToAttributes ),
             _ => false
         };
+
+    /// <summary>
+    /// Determines whether an <see cref="IMember"/> has a receiver expression, i.e. either <c>this</c> or a receiver parameter.
+    /// </summary>
+    /// <param name="member">A member.</param>
+    /// <returns><c>true</c> if <paramref name="member"/> is an instance member or a classic extension method.</returns>
+    public static bool HasReceiver( this IMember member )
+        => !member.IsStatic || (member.DeclarationKind == DeclarationKind.Method && member is IMethod { Parameters.Count: > 0 } method
+                                                                                 && method.Parameters[0].IsThis);
 }

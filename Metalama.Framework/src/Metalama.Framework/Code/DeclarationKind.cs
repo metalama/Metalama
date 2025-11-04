@@ -18,72 +18,72 @@ namespace Metalama.Framework.Code
         None,
 
         /// <summary>
-        /// <see cref="ICompilation"/>.
+        /// An <see cref="ICompilation"/>.
         /// </summary>
         Compilation,
 
         /// <summary>
-        /// <see cref="INamedType"/>.
+        /// An <see cref="INamedType"/> or an <see cref="ITupleType"/>, but not an <see cref="IExtensionBlock"/>.
         /// </summary>
         NamedType,
 
         /// <summary>
-        /// <see cref="IMethod"/>.
+        /// An <see cref="IMethod"/>, but not a finalizer nor an operator.
         /// </summary>
         Method,
 
         /// <summary>
-        /// <see cref="IProperty"/>.
+        /// An <see cref="IProperty"/>.
         /// </summary>
         Property,
 
         /// <summary>
-        /// <see cref="IIndexer"/>.
+        /// An <see cref="IIndexer"/>.
         /// </summary>
         Indexer,
 
         /// <summary>
-        /// <see cref="IField"/>.
+        /// An <see cref="IField"/>.
         /// </summary>
         Field,
 
         /// <summary>
-        /// <see cref="IEvent"/>.
+        /// An <see cref="IEvent"/>.
         /// </summary>
         Event,
 
         /// <summary>
-        /// <see cref="IParameter"/>.
+        /// An <see cref="IParameter"/>.
         /// </summary>
         Parameter,
 
         /// <summary>
-        /// <see cref="ITypeParameter"/>.
+        /// An <see cref="ITypeParameter"/>.
         /// </summary>
         TypeParameter,
 
         /// <summary>
-        /// <see cref="IAttribute"/>.
+        /// An <see cref="IAttribute"/>.
         /// </summary>
         Attribute,
 
         /// <summary>
-        /// <see cref="IManagedResource"/>.
+        /// An <see cref="IManagedResource"/>.
         /// </summary>
         ManagedResource,
 
         /// <summary>
-        /// <see cref="IConstructor"/>.
+        /// An <see cref="IConstructor"/>.
         /// </summary>
         Constructor,
 
         /// <summary>
-        /// <see cref="IMethod"/> that is a finalizer (historically referred to as destructors).
+        /// An <see cref="IMethod"/> that is a finalizer (historically referred to as destructors).
         /// </summary>
         Finalizer,
 
         /// <summary>
-        /// <see cref="IMethod"/> that is an operator.
+        /// An <see cref="IMethod"/> that is an operator.
         /// </summary>
         Operator,
 
@@ -95,14 +95,19 @@ namespace Metalama.Framework.Code
         AssemblyReference,
 
         /// <summary>
-        /// <see cref="INamespace"/>.
+        /// An <see cref="INamespace"/>.
         /// </summary>
         Namespace,
 
         /// <summary>
-        /// <see cref="IType"/>, but neither an <see cref="INamedType"/> nor an <see cref="ITypeParameter"/>.
+        /// An <see cref="IType"/>, but neither an <see cref="INamedType"/>, <see cref="ITypeParameter"/>, <see cref="ITupleType"/>, nor <see cref="IExtensionBlock"/>.
         /// Note that <see cref="IType"/> is not an <see cref="IDeclaration"/>.
         /// </summary>
-        Type
+        Type,
+
+        /// <summary>
+        /// An <see cref="IExtensionBlock"/>.
+        /// </summary>
+        ExtensionBlock
     }
 }

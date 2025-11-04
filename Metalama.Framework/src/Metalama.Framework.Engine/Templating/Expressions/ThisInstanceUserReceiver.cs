@@ -1,47 +1,86 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Aspects;
-using Metalama.Framework.Engine.SyntaxSerialization;
+using Metalama.Framework.Engine.Diagnostics;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
+using System;
+using System.Diagnostics.CodeAnalysis;
 
-namespace Metalama.Framework.Engine.Templating.Expressions
+namespace Metalama.Framework.Engine.Templating.Expressions;
+
+internal sealed class ThisInstanceUserReceiver : InstanceUserReceiver
 {
-    /// <summary>
-    /// An implementation of <see cref="UserExpression"/> that represents <c>this</c> and allows to access its instance members dynamically.
-    /// </summary>
-    internal sealed class ThisInstanceUserReceiver : UserReceiver
+    private readonly INamedType _type;
+
+    public ThisInstanceUserReceiver( INamedType type, in AspectReferenceSpecification aspectReferenceSpecification ) : base( aspectReferenceSpecification )
     {
-        private readonly INamedType _type;
+        this._type = type;
+    }
 
-        public ThisInstanceUserReceiver( INamedType type, in AspectReferenceSpecification aspectReferenceSpecification ) : base( aspectReferenceSpecification )
+    protected override ExpressionSyntax ToSyntax() => SyntaxFactory.ThisExpression();
+
+    protected override bool? IsAssignable => this._type.TypeKind is TypeKind.Struct or TypeKind.Extension;
+
+    private protected override bool? IsReferenceable => this.IsAssignable;
+
+    public override IType Type => this._type;
+
+    protected override UserReceiver WithAspectReferenceSpecification( AspectReferenceSpecification spec ) => new ThisInstanceUserReceiver( this._type, spec );
+
+    protected override bool CanBeNull => false;
+
+    public static bool TryCreate(
+        IDeclaration? currentDeclaration,
+        in AspectReferenceSpecification aspectReferenceSpecification,
+        bool throwOnError,
+        [NotNullWhen( true )] out ThisInstanceUserReceiver? receiver )
+    {
+        switch ( currentDeclaration )
         {
-            this._type = type;
+            // Parameters
+            case IParameter { DeclaringMember: { } m }:
+                return TryCreate( m, aspectReferenceSpecification, throwOnError, out receiver );
+
+            // Instance member.
+            case IMember { IsStatic: false, DeclaringType: { } type }:
+                receiver = new ThisInstanceUserReceiver( type, aspectReferenceSpecification );
+
+                return true;
+
+            // No current declaration. This should happen only in unit tests.
+            case null:
+                throw new AssertionFailedException( $"Cannot create use 'this'  because there is no advising context." );
+
+            default:
+                if ( throwOnError )
+                {
+                    var member = currentDeclaration.GetClosestMemberOrNamedType();
+
+                    if ( member != null )
+                    {
+                        throw TemplatingDiagnosticDescriptors.CannotUseThisInStaticContext.CreateException(
+                            (currentDeclaration,
+                             currentDeclaration.DeclarationKind,
+                             (FormattableString) $"the target {member.DeclarationKind} is static") );
+                    }
+                    else
+                    {
+                        throw TemplatingDiagnosticDescriptors.CannotUseThisInStaticContext.CreateException(
+                            (currentDeclaration,
+                             currentDeclaration.DeclarationKind,
+                             (FormattableString) $"the target {currentDeclaration.DeclarationKind} is neither a member nor a parameter") );
+                    }
+                }
+                else
+                {
+                    receiver = null;
+
+                    return false;
+                }
         }
-
-        protected override ExpressionSyntax ToSyntax( SyntaxSerializationContext syntaxSerializationContext, IType? targetType = null ) => ThisExpression();
-
-        protected override bool? IsAssignable => this._type.TypeKind == TypeKind.Struct;
-
-        private protected override bool? IsReferenceable => this.IsAssignable;
-
-        public override IType Type => this._type;
-
-        public override TypedExpressionSyntaxImpl CreateMemberAccessExpression( string member )
-            => new(
-                MemberAccessExpression( SyntaxKind.SimpleMemberAccessExpression, ThisExpression(), IdentifierName( Identifier( member ) ) )
-                    .WithAspectReferenceAnnotation( this.AspectReferenceSpecification ),
-                this._type,
-                TemplateExpansionContext.CurrentSyntaxSerializationContext.CompilationModel,
-                canBeNull: false );
-
-        protected override UserReceiver WithAspectReferenceSpecification( AspectReferenceSpecification spec )
-            => new ThisInstanceUserReceiver( this._type, spec );
-
-        protected override bool CanBeNull => false;
     }
 }

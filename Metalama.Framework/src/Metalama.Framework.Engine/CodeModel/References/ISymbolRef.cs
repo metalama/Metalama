@@ -16,6 +16,9 @@ internal interface ISymbolRef : IFullRef
     RefTargetKind TargetKind { get; }
     
     bool SymbolMustBeMapped { get; }
+
+    new ISymbolRef<TOut> As<TOut>()
+        where TOut : class, ICompilationElement;
 }
 
 internal interface ISymbolRef<out T> : ISymbolRef, IFullRef<T>

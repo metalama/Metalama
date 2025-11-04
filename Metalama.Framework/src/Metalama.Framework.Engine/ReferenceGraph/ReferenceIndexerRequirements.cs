@@ -53,7 +53,8 @@ public sealed record ReferenceIndexerRequirements(
     private static ReferenceKinds GetReferenceKindsSupportedByDeclarationKind( DeclarationKind declarationKind )
         => declarationKind switch
         {
-            DeclarationKind.Compilation or DeclarationKind.Namespace or DeclarationKind.NamedType or DeclarationKind.AssemblyReference => ReferenceKinds.All,
+            DeclarationKind.Compilation or DeclarationKind.Namespace or DeclarationKind.NamedType or DeclarationKind.ExtensionBlock
+                or DeclarationKind.AssemblyReference => ReferenceKinds.All,
             DeclarationKind.Constructor => ReferenceKinds.BaseConstructor | ReferenceKinds.ObjectCreation,
             DeclarationKind.Event or DeclarationKind.Method => ReferenceKinds.Default | ReferenceKinds.Invocation | ReferenceKinds.NameOf
                                                                | ReferenceKinds.InterfaceMemberImplementation | ReferenceKinds.OverrideMember

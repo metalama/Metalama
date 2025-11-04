@@ -256,7 +256,12 @@ internal sealed partial class SymbolTranslator
                     throw new AssertionFailedException( $"More than one type named '{symbol.Name}' in '{symbol.ContainingSymbol}'." );
                 }
 
-                return types[0].WithNullableAnnotation( symbol.NullableAnnotation );
+                if ( types[0].NullableAnnotation != symbol.NullableAnnotation )
+                {
+                    return types[0].WithNullableAnnotation( symbol.NullableAnnotation );
+                }
+
+                return types[0];
             }
         }
 

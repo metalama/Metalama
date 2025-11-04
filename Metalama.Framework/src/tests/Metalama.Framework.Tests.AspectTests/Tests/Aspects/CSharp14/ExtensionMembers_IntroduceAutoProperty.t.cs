@@ -1,0 +1,2 @@
+// CompileTimeAspectPipeline.ExecuteAsync failed.
+// Error LAMA0041 on `C`: `'Exception of type 'System.InvalidOperationException' thrown while executing BuildAspect for aspect [TheAspect] applied to 'C': Cannot introduce an automatic property into 'C.extension(int)' because it represents an extension block. Exception details are in '(none)'. To attach a debugger to the compiler, use the  '-p:MetalamaDebugCompiler=True' command-line option.`
