@@ -25,7 +25,7 @@ public interface ITupleType : INamedType
     /// <summary>
     /// Creates an <see cref="IExpression"/> that creates an instance of the tuple with the specified values, given as <see cref="IExpression"/>.
     /// </summary>
-    IExpression CreateCreateInstanceExpression( params IReadOnlyCollection<IExpression> values );
+    IExpression CreateCreateInstanceExpression( params IEnumerable<IExpression> values );
 
     /// <summary>
     /// Creates an <see cref="IExpression"/> that creates an instance of the tuple with the specified values.

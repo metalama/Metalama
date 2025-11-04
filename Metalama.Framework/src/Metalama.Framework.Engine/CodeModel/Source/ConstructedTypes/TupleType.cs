@@ -49,16 +49,18 @@ internal sealed class TupleType : SourceNamedType, ITupleType
         }
     }
 
-    public IExpression CreateCreateInstanceExpression( params IReadOnlyCollection<IExpression> values )
+    public IExpression CreateCreateInstanceExpression( params IEnumerable<IExpression> values )
     {
-        if ( values.Count != this.TupleLength )
+        var valuesAsList = values.ToReadOnlyList();
+        
+        if ( valuesAsList.Count != this.TupleLength )
         {
             throw new ArgumentOutOfRangeException( nameof(values), "The number of values must equal the length of the tuple type." );
         }
 
         return new CreateTupleExpression(
             this,
-            context => values.SelectAsReadOnlyCollection( x => (TypedExpressionSyntaxImpl) ((IUserExpression) x).ToTypedExpressionSyntax( context ) )
+            context => valuesAsList.SelectAsReadOnlyCollection( x => (TypedExpressionSyntaxImpl) ((IUserExpression) x).ToTypedExpressionSyntax( context ) )
                 .ToReadOnlyList() );
     }
 

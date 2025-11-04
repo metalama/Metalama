@@ -34,31 +34,9 @@ internal class CreateTupleExpression : UserExpression
                             .Syntax ) )
             .ToReadOnlyList();
 
-        return syntaxSerializationContext.SyntaxGenerator.TupleExpression( this._tupleType, values, this.RequiresQualifiedArguments( targetType ) );
+        return syntaxSerializationContext.SyntaxGenerator.TupleExpression( this._tupleType, values  );
     }
 
     public override IType Type => this._tupleType;
-
-    private bool RequiresQualifiedArguments( IType? targetType )
-    {
-        if ( targetType is not ITupleType targetTupleType )
-        {
-            return false;
-        }
-
-        if ( this._tupleType.TupleLength != targetTupleType.TupleLength )
-        {
-            return false;
-        }
-
-        for ( var i = 0; i < this._tupleType.TupleElements.Count; i++ )
-        {
-            if ( this._tupleType.TupleElements[i].Name == targetTupleType.TupleElements[i].Name )
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
+    
 }
