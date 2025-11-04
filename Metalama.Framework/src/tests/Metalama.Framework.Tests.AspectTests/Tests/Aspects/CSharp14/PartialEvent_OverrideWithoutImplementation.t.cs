@@ -1,6 +1,6 @@
 internal partial class C
 {
-  private static readonly global::Metalama.Framework.RunTime.Events.DelegateEventAdapter<global::System.EventHandler, (global::System.Object? , global::System.EventArgs), global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.CSharp14.PartialEvent_OverrideWithoutImplementation.C> E2BrokerCallbacks_0 = new(static (handler, ref args, me) => me.E2_Invoke_TheAspect(handler, ref args), static b => (sender, e) => b.Invoke((sender, e)), static (handler, me) => me.E2_TheAspect += handler, static (handler, me) => me.E2_TheAspect -= handler);
+  private static readonly global::Metalama.Framework.RunTime.Events.DelegateEventAdapter<global::System.EventHandler, (global::System.Object? , global::System.EventArgs), global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.CSharp14.PartialEvent_OverrideWithoutImplementation.C> E2Adapter_0 = new(static (handler, ref args, me) => me.E2_Invoke_TheAspect(handler, ref args), static b => (sender, e) => b.Invoke((sender, e)), static (handler, me) => me.E2_TheAspect += handler, static (handler, me) => me.E2_TheAspect -= handler);
   [TheAspect]
   public partial event EventHandler E1;
   public partial event EventHandler E1
@@ -22,7 +22,7 @@ internal partial class C
   {
     add
     {
-      global::Metalama.Framework.RunTime.Events.EventBroker.EnsureInitialized(ref this._e2Broker, E2BrokerCallbacks_0, this);
+      global::Metalama.Framework.RunTime.Events.EventBroker.EnsureInitialized(ref this._e2Broker, E2Adapter_0, this);
       this._e2Broker.AddHandler(value);
     }
     remove

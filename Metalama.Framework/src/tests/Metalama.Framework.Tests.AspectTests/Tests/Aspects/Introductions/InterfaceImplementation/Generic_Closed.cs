@@ -25,14 +25,14 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Introductions.Inter
         {
             aspectBuilder
                 .ImplementInterface(
-                    ( (INamedType)TypeFactory.GetType( typeof(IInterface<>) ) ).WithTypeArguments( TypeFactory.GetType( SpecialType.Int32 ) ) );
+                    TypeFactory.GetNamedType( typeof(IInterface<>) ).WithTypeArguments( TypeFactory.GetType( SpecialType.Int32 ) ) );
 
             aspectBuilder
-                .ImplementInterface( ( (INamedType)TypeFactory.GetType( typeof(IInterface<>) ) ).WithTypeArguments( TypeFactory.GetType( typeof(int[]) ) ) );
+                .ImplementInterface( TypeFactory.GetNamedType( typeof(IInterface<>) ).WithTypeArguments( TypeFactory.GetType( typeof(int[]) ) ) );
 
             aspectBuilder
                 .ImplementInterface(
-                    ( (INamedType)TypeFactory.GetType( typeof(IInterface<>) ) ).WithTypeArguments( TypeFactory.GetType( typeof(Tuple<int, int>) ) ) );
+                    TypeFactory.GetNamedType( typeof(IInterface<>) ).WithTypeArguments( TypeFactory.GetType( typeof(Tuple<int, int>) ) ) );
         }
 
         [InterfaceMember]

@@ -45,9 +45,8 @@ public sealed partial class DeclarationFactory : IDeclarationFactory, ISdkDeclar
         this._compilationModel = compilation;
         this._builderCache = new Cache<DeclarationBuilderData, IDeclaration>( ReferenceEqualityComparer<DeclarationBuilderData>.Instance );
         this._symbolCache = new Cache<ISymbol, IDeclaration>( compilation.CompilationContext.SymbolComparer );
-
-        this._typeCache = new Cache<SymbolNormalizer.CanonicalSymbolKey, IType>(
-            new SymbolNormalizer.CanonicalSymbolKeyComparer( compilation.CompilationContext.SymbolComparerIncludingNullability ) );
+        this._typeCache = new Cache<ISymbol, IType>( compilation.CompilationContext.SymbolComparerIncludingNullability );
+        this._tupleTypeCache = new Cache<TupleTypeKey, ITupleType>( EqualityComparer<TupleTypeKey>.Default );
 
         this._systemTypeResolver = compilation.Project.ServiceProvider.GetRequiredService<SystemTypeResolver.Provider>()
             .Get( compilation.CompilationContext );
@@ -137,7 +136,20 @@ public sealed partial class DeclarationFactory : IDeclarationFactory, ISdkDeclar
         T? compilationElement,
         IGenericContext? genericContext = null )
         where T : class, ICompilationElement
-        => (T?) ((ICompilationElementImpl?) compilationElement)?.Translate( this._compilationModel, genericContext, typeof(T) );
+    {
+        if ( compilationElement == null )
+        {
+            return null;
+        }
+        else if ( ReferenceEquals( compilationElement.Compilation, this._compilationModel ) )
+        {
+            return compilationElement;
+        }
+        else
+        {
+            return (T?) ((ICompilationElementImpl) compilationElement).Translate( this._compilationModel, genericContext, typeof(T) );
+        }
+    }
 
     public IType GetTypeFromId( SerializableTypeId serializableTypeId, IReadOnlyDictionary<string, IType>? genericArguments )
         => this._compilationModel.SerializableTypeIdResolver.ResolveId( serializableTypeId, genericArguments );
@@ -184,9 +196,9 @@ public sealed partial class DeclarationFactory : IDeclarationFactory, ISdkDeclar
     {
         var elementTypesList = elementTypes.ToReadOnlyList();
         var valueTupleType = (TupleType) this.CreateTupleType( elementTypesList.SelectAsReadOnlyList( x => x.Type ) );
-        var elementNames = elementTypesList.SelectAsReadOnlyList( x => x.Name );
+        var elementNames = elementTypesList.Count > 1 ? elementTypesList.SelectAsImmutableArray( x => x.Name ) : default;
 
-        return new TupleType( valueTupleType.NamedTypeSymbol, this._compilationModel, valueTupleType.GenericContextForSymbolMapping, elementNames );
+        return this.GetTupleTypeFromSymbol( valueTupleType.NamedTypeSymbol, elementNames, valueTupleType.GenericContextForSymbolMapping ).AssertNotNull();
     }
 
     public ITupleType CreateTupleType( IEnumerable<(Type Type, string Name)> elementTypes )

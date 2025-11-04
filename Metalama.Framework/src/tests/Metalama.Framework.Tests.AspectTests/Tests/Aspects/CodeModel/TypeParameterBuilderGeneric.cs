@@ -19,7 +19,7 @@ public class Aspect : TypeAspect
             {
                 var typeParameter = methodBuilder.AddTypeParameter( "T" );
                 typeParameter.TypeKindConstraint = TypeKindConstraint.Struct;
-                var typeParameterList = ( (INamedType)TypeFactory.GetType( typeof(List<>) ) ).WithTypeArguments( typeParameter );
+                var typeParameterList = TypeFactory.GetNamedType( typeof(List<>) ).WithTypeArguments( typeParameter );
                 methodBuilder.AddParameter( "arg", typeParameterList );
             } );
     }

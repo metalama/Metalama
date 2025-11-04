@@ -131,6 +131,11 @@ namespace Metalama.Framework.Engine.CodeModel.Source
             CompilationModel newCompilation,
             IGenericContext? genericContext = null )
         {
+            if ( ReferenceEquals( this.Compilation, newCompilation ) )
+            {
+                return this;
+            }
+
             using ( StackOverflowHelper.Detect() )
             {
                 var translatedSymbol = newCompilation.CompilationContext.SymbolTranslator.Translate(

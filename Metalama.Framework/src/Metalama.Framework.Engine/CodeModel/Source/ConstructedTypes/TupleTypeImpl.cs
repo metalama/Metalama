@@ -9,7 +9,7 @@ using Metalama.Framework.Engine.CodeModel.GenericContexts;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.Utilities;
 using Microsoft.CodeAnalysis;
-using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using TypeKind = Metalama.Framework.Code.TypeKind;
 
@@ -17,13 +17,13 @@ namespace Metalama.Framework.Engine.CodeModel.Source.ConstructedTypes;
 
 internal sealed partial class TupleTypeImpl : SourceNamedTypeImpl
 {
-    private readonly IReadOnlyList<string?>? _overridenElementNames;
+    private readonly ImmutableArray<string> _overridenElementNames;
 
     internal TupleTypeImpl(
         INamedTypeSymbol namedTypeSymbol,
         CompilationModel compilation,
         GenericContext? genericContextForSymbolMapping,
-        IReadOnlyList<string?>? overridenElementNames = null ) : base(
+        ImmutableArray<string> overridenElementNames = default ) : base(
         namedTypeSymbol,
         compilation,
         genericContextForSymbolMapping )
@@ -32,7 +32,11 @@ internal sealed partial class TupleTypeImpl : SourceNamedTypeImpl
     }
 
     [Memo]
-    public IReadOnlyList<ITupleElement> TupleElements => this.NamedTypeSymbol.TupleElements.SelectAsImmutableArray( this.GetTupleElement );
+    public ImmutableArray<ITupleElement> TupleElements => this.NamedTypeSymbol.TupleElements.SelectAsImmutableArray( this.GetTupleElement );
+
+    [Memo]
+    internal ImmutableArray<string> TupleElementNames
+        => this._overridenElementNames.IsDefault ? this.NamedTypeSymbol.TupleElements.SelectAsImmutableArray( e => e.Name ) : this._overridenElementNames;
 
     [Memo]
     public override IFieldCollection Fields
@@ -42,12 +46,12 @@ internal sealed partial class TupleTypeImpl : SourceNamedTypeImpl
 
     private ITupleElement GetTupleElement( IFieldSymbol symbol, int index )
     {
-        var name = this._overridenElementNames?[index] ?? symbol.Name;
+        var elementName = this._overridenElementNames.IsDefault ? symbol.Name : this._overridenElementNames[index];
 
-        return new TupleElement( symbol, this.Compilation, this.GenericContextForSymbolMapping, name, index );
+        return new TupleElement( symbol, this.Compilation, this.GenericContextForSymbolMapping, elementName, index );
     }
 
-    public int TupleLength => this.TupleElements.Count;
+    public int TupleLength => this.TupleElements.Length;
 
     protected override void CheckSymbol()
     {
@@ -56,7 +60,7 @@ internal sealed partial class TupleTypeImpl : SourceNamedTypeImpl
 
     public override TypeKind TypeKind => TypeKind.Tuple;
 
-    protected override IFullRef<INamedType> CreateFullRef() => this.RefFactory.FromSymbolBasedDeclaration<ITupleType>( this );
+    protected override IFullRef<INamedType> CreateFullRef() => this.RefFactory.FromSymbolBasedTupleTypeDeclaration( this );
 
     // A canonical ValueType`n with n > 0 is never represented as a TupleType.
     public override bool IsCanonicalGenericInstance => false;

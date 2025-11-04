@@ -24,7 +24,7 @@ public class MyAspectAttribute : TypeAspect
                 } )
             .Declaration;
 
-        var retType = ((INamedType) TypeFactory.GetType( typeof(IEnumerable<>) ))
+        var retType = TypeFactory.GetNamedType( typeof(IEnumerable<>) )
             .WithTypeArguments( introducedType );
 
         builder.IntroduceMethod(

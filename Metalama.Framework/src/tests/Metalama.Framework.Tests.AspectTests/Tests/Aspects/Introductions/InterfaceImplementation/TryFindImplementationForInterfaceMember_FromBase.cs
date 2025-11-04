@@ -30,7 +30,7 @@ public class CheckInterfaceAttribute : TypeAspect
 {
     public override void BuildAspect( IAspectBuilder<INamedType> aspectBuilder )
     {
-        var methods = ( (INamedType)TypeFactory.GetType( typeof(IInterface) ) ).Methods;
+        var methods = TypeFactory.GetNamedType( typeof(IInterface) ).Methods;
 
         aspectBuilder.Target.TryFindImplementationForInterfaceMember( methods.OfName( "M1" ).Single(), out var m1 );
         aspectBuilder.Target.TryFindImplementationForInterfaceMember( methods.OfName( "M2" ).Single(), out var m2 );

@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Code;
+using Metalama.Framework.Code.Invokers;
 using Metalama.Framework.CompileTimeContracts;
 using Metalama.Framework.Engine.CodeModel.GenericContexts;
 using Metalama.Framework.Engine.Templating.Expressions;
@@ -20,7 +21,7 @@ internal sealed class TupleType : SourceNamedType, ITupleType
         INamedTypeSymbol typeSymbol,
         CompilationModel compilation,
         GenericContext? genericContextForSymbolMapping,
-        IReadOnlyList<string>? names = null ) : base(
+        ImmutableArray<string> names = default ) : base(
         typeSymbol,
         compilation,
         genericContextForSymbolMapping,
@@ -48,16 +49,18 @@ internal sealed class TupleType : SourceNamedType, ITupleType
         }
     }
 
-    public IExpression CreateCreateInstanceExpression( params IReadOnlyCollection<IExpression> values )
+    public IExpression CreateCreateInstanceExpression( params IEnumerable<IExpression> values )
     {
-        if ( values.Count != this.TupleLength )
+        var valuesAsList = values.ToReadOnlyList();
+        
+        if ( valuesAsList.Count != this.TupleLength )
         {
             throw new ArgumentOutOfRangeException( nameof(values), "The number of values must equal the length of the tuple type." );
         }
 
         return new CreateTupleExpression(
             this,
-            context => values.SelectAsReadOnlyCollection( x => (TypedExpressionSyntaxImpl) ((IUserExpression) x).ToTypedExpressionSyntax( context ) )
+            context => valuesAsList.SelectAsReadOnlyCollection( x => (TypedExpressionSyntaxImpl) ((IUserExpression) x).ToTypedExpressionSyntax( context ) )
                 .ToReadOnlyList() );
     }
 
@@ -69,6 +72,19 @@ internal sealed class TupleType : SourceNamedType, ITupleType
         }
 
         return new CreateTupleExpression( this, context => TypedExpressionSyntaxImpl.FromValues( values, context ).AssertNotNull() );
+    }
+
+    public IExpression CreateGetItemExpression( object? tupleInstance, int index, InvokerOptions options )
+        => this.CreateGetItemExpression( CapturedUserExpression.Create( this.Compilation, tupleInstance ), index, options );
+
+    public IExpression CreateGetItemExpression( IExpression tupleInstance, int index, InvokerOptions options )
+    {
+        if ( index >= this.TupleLength )
+        {
+            throw new ArgumentOutOfRangeException( nameof(index), "The index must be smaller than the length of the tuple type." );
+        }
+
+        return new TupleItemExpression( this, tupleInstance.ToUserExpression(), index, options );
     }
 
     // We explicitly don't want to expose the source because we represent all equivalent instances (equivalent

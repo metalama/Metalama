@@ -133,7 +133,7 @@ public static class RefExtensions
         }
         else if ( symbol.IsTupleType )
         {
-            return refFactory.FromSymbol<ITupleType>( symbol );
+            return refFactory.FromTupleTypeSymbol( symbol );
         }
         else
         {
@@ -152,6 +152,7 @@ public static class RefExtensions
         => symbol.Kind switch
         {
             SymbolKind.TypeParameter => refFactory.FromSymbol<ITypeParameter>( symbol, genericContext ),
+            SymbolKind.NamedType when symbol is INamedTypeSymbol { IsTupleType: true } => refFactory.FromSymbol<ITupleType>( symbol, genericContext ),
             SymbolKind.NamedType => refFactory.FromSymbol<INamedType>( symbol, genericContext ),
             _ => refFactory.FromSymbol<IType>( symbol, genericContext )
         };

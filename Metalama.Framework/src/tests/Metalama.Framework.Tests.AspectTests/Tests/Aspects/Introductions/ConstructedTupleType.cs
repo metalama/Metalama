@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
+using System;
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Introductions.ConstructedTupleType;
 
@@ -28,6 +29,11 @@ public class TheAspect : TypeAspect
     {
         var argsFieldType = (ITupleType) argsField.Type;
         argsField.Value = argsFieldType.CreateCreateInstanceExpression( meta.Target.Parameters ).Value;
+
+        foreach ( var parameter in meta.Target.Parameters )
+        {
+            Console.WriteLine( argsFieldType.CreateGetItemExpression( argsField, parameter.Index ).Value );
+        }
 
         return meta.Proceed();
     }

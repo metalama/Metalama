@@ -155,6 +155,11 @@ public class TupleTypeTests : UnitTestClass
         var compilation = testContext.CreateCompilation( "" );
         var tupleType = compilation.Factory.CreateTupleType( Array.Empty<IType>() );
         Assert.Equal( 0, tupleType.TupleLength );
+        
+        // Check references.
+        var tupleTypeRef = tupleType.ToRef();
+        var roundtripTupleType = tupleTypeRef.GetTarget( compilation );
+        Assert.Same( tupleType, roundtripTupleType );
     }
 
     [Fact]
@@ -171,6 +176,11 @@ public class TupleTypeTests : UnitTestClass
         Assert.Equal( SpecialType.Int32, tupleElement.Type.SpecialType );
         Assert.Equal( "Item1", tupleElement.CorrespondingTupleField.Name );
         Assert.False( tupleElement.HasFriendlyName );
+        
+        // Check references.
+        var tupleTypeRef = tupleType.ToRef();
+        var roundtripTupleType = tupleTypeRef.GetTarget( compilation );
+        Assert.Same( tupleType, roundtripTupleType );
     }
 
     [Fact]
@@ -232,17 +242,24 @@ public class TupleTypeTests : UnitTestClass
             (typeof(int), "A7"), (typeof(string), "A8"), (typeof(long), "A9")
         ] );
 
+        // Check tuple type.
         Assert.Equal( 9, tupleType.TupleLength );
         Assert.Equal( 10, tupleType.Fields.Count );
         Assert.All( tupleType.Fields, f => Assert.Equal( FieldKind.Default, f.FieldKind ) );
         Assert.All( tupleType.Fields.Where( f => f.Name != "Rest" ), f => Assert.True( f.IsImplicitlyDeclared ) );
         Assert.False( tupleType.Fields["Rest"].IsImplicitlyDeclared );
 
+        // Check tuple element.
         var tupleElement = tupleType.TupleElements[8];
         Assert.Equal( "A9", tupleElement.Name );
         Assert.Equal( FieldKind.TupleElement, tupleElement.FieldKind );
         Assert.Equal( SpecialType.Int64, tupleElement.Type.SpecialType );
         Assert.Equal( "Item9", tupleElement.CorrespondingTupleField.Name );
         Assert.True( tupleElement.HasFriendlyName );
+
+        // Check references.
+        var tupleTypeRef = tupleType.ToRef();
+        var roundtripTupleType = tupleTypeRef.GetTarget( compilation );
+        Assert.Same( tupleType, roundtripTupleType );
     }
 }
