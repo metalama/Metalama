@@ -20,7 +20,7 @@
     <div class="radio-group">
         <div class="radio-option">
             <input type="radio" id="feedNone" name="PreferredFeed" value="@RssFeed.None"
-                   checked="@( Model.PreferredFeed == RssFeed.None ? "checked" : null )">
+                   checked="@( Model.PreferredFeed == RssFeed.None )">
             <label for="feedNone">
                 <strong>None</strong>
                 <small>Don't show me any notifications.</small>
@@ -29,7 +29,7 @@
 
         <div class="radio-option">
             <input type="radio" id="feedPosts" name="PreferredFeed" value="@RssFeed.Posts"
-                   checked="@( Model.PreferredFeed == RssFeed.Posts ? "checked" : null )">
+                   checked="@( Model.PreferredFeed == RssFeed.Posts )">
             <label for="feedPosts">
                 <strong>Blog Posts Only</strong>
                 <small>Long-form articles with monthly status reports and major releases. <a
@@ -39,7 +39,7 @@
 
         <div class="radio-option">
             <input type="radio" id="feedBriefs" name="PreferredFeed" value="@RssFeed.Briefs"
-                   checked="@( Model.PreferredFeed == RssFeed.Briefs ? "checked" : null )">
+                   checked="@( Model.PreferredFeed == RssFeed.Briefs )">
             <label for="feedBriefs">
                 <strong>All Updates</strong>
                 <small>Stay in the loop with all news, including quick updates and brief announcements. <a

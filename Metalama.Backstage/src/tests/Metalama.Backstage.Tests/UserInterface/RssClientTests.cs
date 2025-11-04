@@ -32,7 +32,7 @@ public sealed class RssClientTests : TestsBase
     private void RegisterResponse( string url, string response )
         => this.HttpClientFactory.AddHook(
             r => r.RequestUri!.ToString().StartsWith( url, StringComparison.Ordinal ),
-            ( _, _ ) => Task.FromResult( new HttpResponseMessage( HttpStatusCode.Accepted ) { Content = new StringContent( response ) } ) );
+            ( _, _ ) => Task.FromResult( new HttpResponseMessage( HttpStatusCode.OK ) { Content = new StringContent( response ) } ) );
 
     // Configuration and Initialization Tests
 

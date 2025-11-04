@@ -9,8 +9,10 @@ using Metalama.Backstage.Infrastructure;
 using Metalama.Backstage.Telemetry;
 using Metalama.Backstage.UserInterface.Toasts;
 using System;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Xml;
 using System.Xml.Linq;
 
 namespace Metalama.Backstage.UserInterface.Rss;
@@ -41,7 +43,7 @@ internal sealed class RssClient : IRssClient
 
     public void Initialize()
     {
-        this._backgroundTasksService.Enqueue( () => this.DisplayUnreadNewsAsync( false ) );
+        this._backgroundTasksService.Enqueue( () => this.DisplayUnreadNewsAsync() );
     }
 
     public Task DisplayLatestNewsAsync()
@@ -80,7 +82,7 @@ internal sealed class RssClient : IRssClient
 
                 // Never display past items upon first fetch.
                 this._configurationManager.Update<RssClientConfiguration>(
-                    c => c with { LastFetchTime = this._dateTimeProvider.UtcNow, PreferredFeed = RssFeed.Briefs } );
+                    c => c with { LastFetchTime = this._dateTimeProvider.UtcNow, PreferredFeed = c.PreferredFeed ?? RssFeed.Briefs } );
 
                 return;
             }
@@ -115,12 +117,11 @@ internal sealed class RssClient : IRssClient
 
             if ( !response.IsSuccessStatusCode )
             {
-                this._logger.Trace?.Log(
-                    $"Cannot get '{url}': {response.ReasonPhrase}." );
+                this._logger.Trace?.Log( $"Cannot get '{url}': {response.ReasonPhrase}." );
 
                 return;
             }
-            
+
             var content = await response.Content.ReadAsStringAsync();
 
             // Try to parse the item.
@@ -137,7 +138,6 @@ internal sealed class RssClient : IRssClient
 
                 return;
             }
-
 
             // Create and show a toast notification.
             var notification = new ToastNotification( ToastNotificationKinds.News, title, null, link );
@@ -160,8 +160,18 @@ internal sealed class RssClient : IRssClient
         out string? url,
         out DateTime? pubDate )
     {
-        // Read as XML.
-        var xml = XDocument.Parse( content );
+        // Read as XML with restrictive settings security.
+        var settings = new XmlReaderSettings
+        {
+            DtdProcessing = DtdProcessing.Prohibit,
+            XmlResolver = null,
+            MaxCharactersFromEntities = 1024
+        };
+        
+        using var stringReader = new StringReader( content );
+        using var xmlReader = XmlReader.Create( stringReader, settings );
+        
+        var xml = XDocument.Load( xmlReader );
 
         // Parse RSS feed and get the most recent item.
         var channel = xml.Root?.Element( "channel" );

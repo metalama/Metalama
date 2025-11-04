@@ -16,7 +16,7 @@ namespace Metalama.Backstage.Testing
 {
     public sealed class TestHttpClientFactory : IHttpClientFactory
     {
-        private readonly List<(Predicate<HttpRequestMessage> Filter, Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>>Hook)>
+        private readonly List<(Predicate<HttpRequestMessage> Filter, Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> Hook)>
             _hooks = new();
 
         public ConcurrentBag<(HttpRequestMessage Request, HttpResponseMessage Response)> ProcessedRequests { get; private set; } = [];
@@ -54,7 +54,7 @@ namespace Metalama.Backstage.Testing
                 }
                 else
                 {
-                    response = new HttpResponseMessage( HttpStatusCode.Accepted );
+                    response = new HttpResponseMessage( HttpStatusCode.OK );
                 }
 
                 this._parent.ProcessedRequests.Add( (request, response) );
