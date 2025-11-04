@@ -11,6 +11,7 @@ using Metalama.Framework.Engine.SyntaxSerialization;
 using Metalama.Framework.Engine.Templating;
 using Metalama.Framework.Engine.Templating.Expressions;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System;
 
 namespace Metalama.Framework.Engine.CodeModel.Invokers;
 
@@ -23,6 +24,11 @@ internal abstract partial class Invoker<T>
 
     protected Invoker( T member, InvokerOptions options, IExpression? target )
     {
+        if ( member.DeclaringType.TypeKind == TypeKind.Extension )
+        {
+            throw new NotImplementedException( "Invoking extension members is not implemented." );
+        }
+        
         this.Options = options;
         this.Target = target;
         this.Member = member;
