@@ -81,7 +81,7 @@ internal sealed class TupleType : SourceNamedType, ITupleType
     {
         if ( index >= this.TupleLength )
         {
-            throw new ArgumentOutOfRangeException( nameof(index), "The index must be smaller than the lenght of the tuple type." );
+            throw new ArgumentOutOfRangeException( nameof(index), "The index must be smaller than the length of the tuple type." );
         }
 
         return new TupleItemExpression( this, tupleInstance.ToUserExpression(), index, options );

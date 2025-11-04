@@ -30,11 +30,40 @@ internal class CreateTupleExpression : UserExpression
                 ( v, i ) =>
                     SyntaxFactory.Argument(
                         v
-                            .Convert( this._tupleType.TupleElements[i].Type, syntaxSerializationContext.SyntaxGenerationContext, true )
+                            .Convert( this._tupleType.TupleElements[i].Type, syntaxSerializationContext.SyntaxGenerationContext, this.RequiresQualifiedArguments( targetType ) )
                             .Syntax ) )
             .ToReadOnlyList();
 
         return syntaxSerializationContext.SyntaxGenerator.TupleExpression( this._tupleType, values );
+    }
+    
+    private bool RequiresQualifiedArguments( IType? targetType )
+    {
+        if ( targetType is null )
+        {
+            // When we don't know the target type, play it safely and qualify. 
+            return true;
+        }
+        
+        if ( targetType is not ITupleType targetTupleType )
+        {
+            return false;
+        }
+
+        if ( this._tupleType.TupleLength != targetTupleType.TupleLength )
+        {
+            return false;
+        }
+
+        for ( var i = 0; i < this._tupleType.TupleElements.Count; i++ )
+        {
+            if ( this._tupleType.TupleElements[i].Name == targetTupleType.TupleElements[i].Name )
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     public override IType Type => this._tupleType;

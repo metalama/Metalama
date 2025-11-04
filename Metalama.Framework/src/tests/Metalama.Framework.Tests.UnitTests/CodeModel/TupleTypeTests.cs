@@ -155,6 +155,11 @@ public class TupleTypeTests : UnitTestClass
         var compilation = testContext.CreateCompilation( "" );
         var tupleType = compilation.Factory.CreateTupleType( Array.Empty<IType>() );
         Assert.Equal( 0, tupleType.TupleLength );
+        
+        // Check references.
+        var tupleTypeRef = tupleType.ToRef();
+        var roundtripTupleType = tupleTypeRef.GetTarget( compilation );
+        Assert.Same( tupleType, roundtripTupleType );
     }
 
     [Fact]
@@ -171,6 +176,11 @@ public class TupleTypeTests : UnitTestClass
         Assert.Equal( SpecialType.Int32, tupleElement.Type.SpecialType );
         Assert.Equal( "Item1", tupleElement.CorrespondingTupleField.Name );
         Assert.False( tupleElement.HasFriendlyName );
+        
+        // Check references.
+        var tupleTypeRef = tupleType.ToRef();
+        var roundtripTupleType = tupleTypeRef.GetTarget( compilation );
+        Assert.Same( tupleType, roundtripTupleType );
     }
 
     [Fact]
@@ -249,7 +259,7 @@ public class TupleTypeTests : UnitTestClass
 
         // Check references.
         var tupleTypeRef = tupleType.ToRef();
-        var roundLoopTupleType = tupleTypeRef.GetTarget( compilation );
-        Assert.Same( tupleType, roundLoopTupleType );
+        var roundtripTupleType = tupleTypeRef.GetTarget( compilation );
+        Assert.Same( tupleType, roundtripTupleType );
     }
 }
