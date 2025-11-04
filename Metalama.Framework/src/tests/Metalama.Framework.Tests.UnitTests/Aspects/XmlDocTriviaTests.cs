@@ -42,7 +42,7 @@ public class TestAspect : TypeAspect
             builder.Advice.IntroduceAttribute(
                 member,
                 AttributeConstruction.Create(
-                    ((INamedType)TypeFactory.GetType(typeof(TestAttribute))).Constructors.Single()),
+                    (TypeFactory.GetNamedType(typeof(TestAttribute))).Constructors.Single()),
                 OverrideStrategy.Override);
         }
     }

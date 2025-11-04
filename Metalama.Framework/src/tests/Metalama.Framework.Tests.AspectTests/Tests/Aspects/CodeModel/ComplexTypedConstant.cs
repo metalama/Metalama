@@ -22,7 +22,7 @@ internal class Aspect : TypeAspect
         builder.IntroduceField( "f", typeof(object[]), buildField: field => field.InitializerExpression = typedConstant );
         builder.IntroduceProperty( nameof(P), buildProperty: property => property.InitializerExpression = typedConstant );
 
-        var attributeConstructor = ( (INamedType)TypeFactory.GetType( typeof(MyAttribute) ) ).Constructors.Single();
+        var attributeConstructor = TypeFactory.GetNamedType( typeof(MyAttribute) ).Constructors.Single();
         builder.IntroduceAttribute( AttributeConstruction.Create( attributeConstructor, new[] { typedConstant } ) );
     }
 }

@@ -169,7 +169,7 @@ public partial class DeclarationFactory
         }
         else if ( typeSymbol.IsTupleType )
         {
-            return this.GetTupleTypeFromSymbol( typeSymbol, default, genericContext );
+            return this.GetTupleTypeFromSymbol( typeSymbol, default, genericContext ).AssertNotNull();
         }
 
         // We must use GetTypeFromSymbol and not GetDeclarationFromSymbol because of nullability.
@@ -340,7 +340,7 @@ public partial class DeclarationFactory
         }
     }
 
-    private (ISymbol mappedSymbol, GenericContext? genericContextForSymbolMapping) MapSymbolAndContext( ISymbol symbol, IGenericContext? genericContext )
+    private (ISymbol MappedSymbol, GenericContext? GenericContextForSymbolMapping) MapSymbolAndContext( ISymbol symbol, IGenericContext? genericContext )
     {
         symbol.ThrowIfBelongsToDifferentCompilationThan( this.CompilationContext );
 

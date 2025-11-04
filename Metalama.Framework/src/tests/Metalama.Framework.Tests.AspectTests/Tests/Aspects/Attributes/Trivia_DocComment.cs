@@ -26,14 +26,14 @@ public sealed class TestAspect : TypeAspect
     public override void BuildAspect( IAspectBuilder<INamedType> builder )
     {
         builder.IntroduceAttribute(
-            AttributeConstruction.Create( ( (INamedType)TypeFactory.GetType( typeof(TestAttribute) ) ).Constructors.Single() ),
+            AttributeConstruction.Create( TypeFactory.GetNamedType( typeof(TestAttribute) ).Constructors.Single() ),
             OverrideStrategy.Override );
 
         foreach (var property in builder.Target.FieldsAndProperties)
         {
             builder.With( property )
                 .IntroduceAttribute(
-                    AttributeConstruction.Create( ( (INamedType)TypeFactory.GetType( typeof(TestAttribute) ) ).Constructors.Single() ),
+                    AttributeConstruction.Create( TypeFactory.GetNamedType( typeof(TestAttribute) ).Constructors.Single() ),
                     OverrideStrategy.Override );
         }
     }

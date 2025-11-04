@@ -69,7 +69,7 @@ namespace Metalama.Framework.Code.DeclarationBuilders
             IReadOnlyList<object?>? constructorArguments = null,
             IReadOnlyList<KeyValuePair<string, object?>>? namedArguments = null )
             => Create(
-                (INamedType) TypeFactory.GetType( attributeType ),
+                TypeFactory.GetNamedType( attributeType ),
                 constructorArguments,
                 namedArguments );
 

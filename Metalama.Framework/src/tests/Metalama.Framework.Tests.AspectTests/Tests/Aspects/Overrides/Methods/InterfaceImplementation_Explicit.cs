@@ -31,7 +31,7 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Overrides.Methods.I
     {
         public override void BuildAspect( IAspectBuilder<INamedType> builder )
         {
-            builder.ImplementInterface( (INamedType)TypeFactory.GetType( typeof(IntroducedInterface) ) );
+            builder.ImplementInterface( TypeFactory.GetNamedType( typeof(IntroducedInterface) ) );
 
             foreach (var m in builder.AdvisedTarget.Methods)
             {

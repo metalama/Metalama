@@ -198,7 +198,7 @@ public sealed partial class DeclarationFactory : IDeclarationFactory, ISdkDeclar
         var valueTupleType = (TupleType) this.CreateTupleType( elementTypesList.SelectAsReadOnlyList( x => x.Type ) );
         var elementNames = elementTypesList.Count > 1 ? elementTypesList.SelectAsImmutableArray( x => x.Name ) : default;
 
-        return this.GetTupleTypeFromSymbol( valueTupleType.NamedTypeSymbol, elementNames, valueTupleType.GenericContextForSymbolMapping );
+        return this.GetTupleTypeFromSymbol( valueTupleType.NamedTypeSymbol, elementNames, valueTupleType.GenericContextForSymbolMapping ).AssertNotNull();
     }
 
     public ITupleType CreateTupleType( IEnumerable<(Type Type, string Name)> elementTypes )

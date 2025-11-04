@@ -5,8 +5,6 @@
 using Metalama.Framework.Engine.CodeModel.GenericContexts;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
-using System;
-using System.Collections.Generic;
 
 namespace Metalama.Framework.Engine.CodeModel.References;
 

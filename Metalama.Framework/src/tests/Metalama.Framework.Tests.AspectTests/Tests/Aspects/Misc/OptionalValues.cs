@@ -40,7 +40,7 @@ namespace Metalama.Framework.Tests.AspectTests.Aspects.Misc.OptionalValues
                     } )
                 .Declaration;
 
-            var optionalValueType = (INamedType) TypeFactory.GetType( typeof(OptionalValue<>) );
+            var optionalValueType = TypeFactory.GetNamedType( typeof(OptionalValue<>) );
 
             // For all automatic properties of the target type.
             foreach ( var property in builder.Target.Properties.Where( p => p.IsAutoPropertyOrField ?? false ) )

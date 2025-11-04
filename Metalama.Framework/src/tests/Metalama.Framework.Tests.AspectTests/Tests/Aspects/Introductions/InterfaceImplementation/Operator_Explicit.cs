@@ -25,7 +25,7 @@ public class IntroductionAttribute : TypeAspect
 {
     public override void BuildAspect(IAspectBuilder<INamedType> builder)
     {
-        var ic = ((INamedType)TypeFactory.GetType(typeof(I<>))).WithTypeArguments(builder.Target);
+        var ic = (TypeFactory.GetNamedType(typeof(I<>))).WithTypeArguments(builder.Target);
 
         var explicitImplementation = builder.ImplementInterface( ic).ExplicitMembers;
 

@@ -76,7 +76,7 @@ internal class TupleItemExpression : UserExpression
         {
             var itemType = this._tupleType.TupleElements[this._index].Type;
 
-            if ( itemType.IsNullable == true && this._options is (InvokerOptions.NullConditionalIfNullable or InvokerOptions.NullConditional) )
+            if ( itemType.IsNullable == true && this._options is InvokerOptions.NullConditionalIfNullable or InvokerOptions.NullConditional )
             {
                 return itemType.ToNullable();
             }

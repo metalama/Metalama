@@ -34,9 +34,8 @@ internal class CreateTupleExpression : UserExpression
                             .Syntax ) )
             .ToReadOnlyList();
 
-        return syntaxSerializationContext.SyntaxGenerator.TupleExpression( this._tupleType, values  );
+        return syntaxSerializationContext.SyntaxGenerator.TupleExpression( this._tupleType, values );
     }
 
     public override IType Type => this._tupleType;
-    
 }

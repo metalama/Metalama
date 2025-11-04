@@ -30,7 +30,7 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Introductions.Inter
     {
         public override void BuildAspect( IAspectBuilder<INamedType> aspectBuilder )
         {
-            aspectBuilder.ImplementInterface( (INamedType)TypeFactory.GetType( typeof(ISuperInterface) ) );
+            aspectBuilder.ImplementInterface( TypeFactory.GetNamedType( typeof(ISuperInterface) ) );
         }
 
         [Introduce]

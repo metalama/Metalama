@@ -30,10 +30,10 @@ internal class WeakEventAttribute : EventAspect
         var eventArgsType = invokeMethod.Parameters[1].Type;
 
         var invokerType =
-            ((INamedType) TypeFactory.GetType( typeof(WeakEventInvokerForEventHandler<>) )).WithTypeArguments( eventArgsType );
+            TypeFactory.GetNamedType( typeof(WeakEventInvokerForEventHandler<>) ).WithTypeArguments( eventArgsType );
 
         var containerType =
-            ((INamedType) TypeFactory.GetType( typeof(WeakEventContainer<,,>) )).WithTypeArguments(
+            TypeFactory.GetNamedType( typeof(WeakEventContainer<,,>) ).WithTypeArguments(
                 builder.Target.Type,
                 argsTupleType,
                 invokerType );

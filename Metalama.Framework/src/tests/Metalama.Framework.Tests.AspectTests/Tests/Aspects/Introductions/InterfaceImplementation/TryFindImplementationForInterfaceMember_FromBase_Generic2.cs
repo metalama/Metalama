@@ -21,7 +21,7 @@ public class IntroduceInterfaceAttribute : TypeAspect
     public override void BuildAspect( IAspectBuilder<INamedType> aspectBuilder )
     {
         var typeParameter = aspectBuilder.Target.TypeParameters[0];
-        var interfaceType = ((INamedType) TypeFactory.GetType( typeof(IInterface<>) )).WithTypeArguments( typeParameter );
+        var interfaceType = TypeFactory.GetNamedType( typeof(IInterface<>) ).WithTypeArguments( typeParameter );
         aspectBuilder.ImplementInterface( interfaceType );
 
         aspectBuilder.IntroduceMethod( nameof(M1), args: new { T = typeParameter } );
@@ -39,7 +39,7 @@ public class CheckInterfaceAttribute : TypeAspect
 {
     public override void BuildAspect( IAspectBuilder<INamedType> aspectBuilder )
     {
-        var methods = ( (INamedType)TypeFactory.GetType( typeof(IInterface<int>) ) ).Methods;
+        var methods = TypeFactory.GetNamedType( typeof(IInterface<int>) ).Methods;
 
         aspectBuilder.Target.TryFindImplementationForInterfaceMember( methods.OfName( "M1" ).Single(), out var m1 );
         aspectBuilder.Target.TryFindImplementationForInterfaceMember( methods.OfName( "M2" ).Single(), out var m2 );

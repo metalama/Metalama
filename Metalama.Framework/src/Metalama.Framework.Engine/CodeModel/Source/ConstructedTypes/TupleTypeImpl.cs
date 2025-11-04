@@ -9,7 +9,6 @@ using Metalama.Framework.Engine.CodeModel.GenericContexts;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.Utilities;
 using Microsoft.CodeAnalysis;
-using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using TypeKind = Metalama.Framework.Code.TypeKind;
@@ -18,13 +17,13 @@ namespace Metalama.Framework.Engine.CodeModel.Source.ConstructedTypes;
 
 internal sealed partial class TupleTypeImpl : SourceNamedTypeImpl
 {
-    private readonly ImmutableArray<string?> _overridenElementNames;
+    private readonly ImmutableArray<string> _overridenElementNames;
 
     internal TupleTypeImpl(
         INamedTypeSymbol namedTypeSymbol,
         CompilationModel compilation,
         GenericContext? genericContextForSymbolMapping,
-        ImmutableArray<string?> overridenElementNames = default ) : base(
+        ImmutableArray<string> overridenElementNames = default ) : base(
         namedTypeSymbol,
         compilation,
         genericContextForSymbolMapping )
