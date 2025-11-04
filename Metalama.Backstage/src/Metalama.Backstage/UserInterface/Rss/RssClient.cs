@@ -138,11 +138,8 @@ internal sealed class RssClient : IRssClient
                 return;
             }
 
-            // Update last fetch time.
-            this._configurationManager.Update<RssClientConfiguration>( c => c with { LastFetchTime = this._dateTimeProvider.UtcNow } );
 
-            // Create and return toast notification.
-
+            // Create and show a toast notification.
             var notification = new ToastNotification( ToastNotificationKinds.News, title, null, link );
             this._toastNotificationService.Show( notification );
         }
