@@ -13,6 +13,7 @@ using Microsoft.Extensions.Logging;
 using Spectre.Console.Cli;
 using System;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Metalama.Backstage.Worker.WebServer;
@@ -20,7 +21,7 @@ namespace Metalama.Backstage.Worker.WebServer;
 [UsedImplicitly]
 internal class WebServerCommand : AsyncCommand<WebServerCommandSettings>
 {
-    public override async Task<int> ExecuteAsync( CommandContext context, WebServerCommandSettings settings )
+    public override async Task<int> ExecuteAsync( CommandContext context, WebServerCommandSettings settings, CancellationToken cancellationToken )
     {
         var appData = (AppData) context.Data!;
 

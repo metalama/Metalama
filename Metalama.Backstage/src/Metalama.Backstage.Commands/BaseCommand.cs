@@ -9,6 +9,7 @@ using Metalama.Backstage.Telemetry;
 using Spectre.Console.Cli;
 using System;
 using System.Diagnostics;
+using System.Threading;
 
 namespace Metalama.Backstage.Commands
 {
@@ -18,7 +19,7 @@ namespace Metalama.Backstage.Commands
         where T : BaseCommandSettings
     {
 #pragma warning disable CS8765
-        public sealed override int Execute( CommandContext context, [System.Diagnostics.CodeAnalysis.NotNull] T settings )
+        public sealed override int Execute( CommandContext context, [System.Diagnostics.CodeAnalysis.NotNull] T settings, CancellationToken cancellationToken )
 #pragma warning restore CS8765
         {
             if ( settings.Debug )

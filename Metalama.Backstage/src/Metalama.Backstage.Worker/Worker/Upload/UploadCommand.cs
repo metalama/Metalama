@@ -9,6 +9,7 @@ using Metalama.Backstage.Maintenance;
 using Metalama.Backstage.Telemetry;
 using Spectre.Console.Cli;
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Metalama.Backstage.Worker.Upload
@@ -16,7 +17,7 @@ namespace Metalama.Backstage.Worker.Upload
     [UsedImplicitly]
     internal class UploadCommand : AsyncCommand<UploadCommandSettings>
     {
-        public override async Task<int> ExecuteAsync( CommandContext context, UploadCommandSettings settings )
+        public override async Task<int> ExecuteAsync( CommandContext context, UploadCommandSettings settings, CancellationToken cancellationToken )
         {
             var appData = (AppData) context.Data!;
             var serviceProvider = appData.ServiceProvider;

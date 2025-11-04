@@ -8,7 +8,6 @@ namespace Metalama.Framework.Workspaces;
 
 internal sealed class Future<T>
 {
-    private T _value = default!;
     private bool _isSet;
 
     public T Value
@@ -20,7 +19,7 @@ internal sealed class Future<T>
                 throw new InvalidOperationException();
             }
 
-            return this._value;
+            return field;
         }
         set
         {
@@ -30,7 +29,7 @@ internal sealed class Future<T>
             }
 
             this._isSet = true;
-            this._value = value;
+            field = value;
         }
-    }
+    } = default!;
 }

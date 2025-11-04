@@ -8,7 +8,6 @@ using Metalama.Backstage.Utilities;
 using Metalama.Framework.Engine;
 using Microsoft.Build.Locator;
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -54,7 +53,7 @@ internal static class MSBuildInitializer
         {
             _logger.Trace?.Log( $"Loaded assembly: '{assembly}' from '{assembly.Location}'." );
         }
-        
+
         // We choose the .NET SDK using `dotnet --list-sdks` because MSBuildLocator does not find .NET SDKs installed 
         // using dotnet-installer.ps1 on Docker.
         if ( !ToolInvocationHelper.InvokeTool(
@@ -74,14 +73,15 @@ internal static class MSBuildInitializer
             .Select( x => parseSdkList.Match( x ) )
             .Where( x => x.Success )
             .Select( x => (Version: x.Groups["version"].Value, Directory: Path.Combine( x.Groups["directory"].Value, x.Groups["version"].Value )) )
-            .Select( x =>
-                         (IsParsed: Version.TryParse( x.Version.Split( '-' )[0], out var parsedVersion ), ParsedVersion: parsedVersion, x.Version,
-                          x.Directory) )
+            .Select(
+                x =>
+                    (IsParsed: Version.TryParse( x.Version.Split( '-' )[0], out var parsedVersion ), ParsedVersion: parsedVersion, x.Version,
+                     x.Directory) )
             .Where( x => x.IsParsed )
             .ToReadOnlyList();
 
         var highestSdk = sdks
-            .Where( i => i.ParsedVersion.Major <= Environment.Version.Major )
+            .Where( i => i.ParsedVersion != null && i.ParsedVersion.Major <= Environment.Version.Major )
             .OrderByDescending( i => i.ParsedVersion )
             .ThenBy( i => i.Version )
             .FirstOrDefault( x => HasMatchingProcessorArchitecture( x.Directory ) );
@@ -90,7 +90,7 @@ internal static class MSBuildInitializer
         {
             throw new MSBuildInitializationException(
                 $"Cannot find a .NET SDK compatible with the current runtime (.NET {Environment.Version} {RuntimeInformation.RuntimeIdentifier}) for the project in '{projectDirectory}'. "
-                +$"Found the following SDKs: {string.Join( ",", sdks.Select( x => x.Version ) )}, but they not compatible with the current runtime." +
+                + $"Found the following SDKs: {string.Join( ",", sdks.Select( x => x.Version ) )}, but they not compatible with the current runtime." +
                 "Consider installing a compatible SDK, or run the process with a different runtime." ) { HasArchitectureMismatch = sdks.Count > 0 };
         }
 
