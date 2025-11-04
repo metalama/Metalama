@@ -41,7 +41,7 @@ internal class CreateTupleExpression : UserExpression
     {
         if ( targetType is null )
         {
-            // When we don't know the target type, play it safely and qualify. 
+            // When we don't know the target type, play it safe and qualify. 
             return true;
         }
         
