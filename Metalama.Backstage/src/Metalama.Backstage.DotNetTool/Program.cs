@@ -18,7 +18,7 @@ internal static class Program
         BackstageCommandFactory.ConfigureCommandApp(
             app,
             options,
-            builder => builder.AddCommand<ThrowCommand>( "throw" ).WithData( options ) );
+            builder => builder.AddCommand<ThrowCommand>( "throw" ).WithData( options ).WithDescription( "Throws an exception to test exception handling." ) );
 
         return app.Run( args );
     }

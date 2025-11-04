@@ -10,7 +10,7 @@ using Metalama.Backstage.Utilities;
 using System;
 using System.Linq;
 
-namespace Metalama.Backstage.UserInterface;
+namespace Metalama.Backstage.UserInterface.Toasts;
 
 /// <summary>
 /// The production implementation of <see cref="IToastNotificationStatusService"/>. 

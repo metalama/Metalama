@@ -5,7 +5,7 @@
 using Metalama.Backstage.Extensibility;
 using System;
 
-namespace Metalama.Backstage.UserInterface;
+namespace Metalama.Backstage.UserInterface.Toasts;
 
 public interface IToastNotificationStatusService : IBackstageService
 {

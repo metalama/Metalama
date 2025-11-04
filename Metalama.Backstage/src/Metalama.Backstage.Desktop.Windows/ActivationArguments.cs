@@ -6,7 +6,7 @@ using Metalama.Backstage.Desktop.Windows.Commands;
 
 namespace Metalama.Backstage.Desktop.Windows;
 
-internal class ActivationArguments
+internal sealed class ActivationArguments
 {
     private readonly string _options;
     private readonly string _kind;
@@ -22,4 +22,6 @@ internal class ActivationArguments
     public string Snooze => $"{SnoozeNotificationCommand.Name} {this._kind} {this._options}";
 
     public string Setup => $"{SetupWizardCommand.Name} {this._options}";
+
+    public string OpenRssOptions => $"{OpenWorkerRssOptionsCommand.Name} {this._options}";
 }

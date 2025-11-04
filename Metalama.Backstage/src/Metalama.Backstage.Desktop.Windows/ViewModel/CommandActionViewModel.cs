@@ -4,4 +4,4 @@
 
 namespace Metalama.Backstage.Desktop.Windows.ViewModel;
 
-internal record CommandActionViewModel( string Text, string Command ) : NotificationActionViewModel( Text );
+internal sealed record CommandActionViewModel( string Text, string Command ) : NotificationActionViewModel( Text );

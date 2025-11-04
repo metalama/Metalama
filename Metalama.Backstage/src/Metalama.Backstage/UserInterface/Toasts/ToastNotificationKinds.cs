@@ -5,7 +5,7 @@
 using System;
 using System.Collections.Immutable;
 
-namespace Metalama.Backstage.UserInterface;
+namespace Metalama.Backstage.UserInterface.Toasts;
 
 public static class ToastNotificationKinds
 {
@@ -24,10 +24,13 @@ public static class ToastNotificationKinds
 
     public static ToastNotificationKind Exception { get; } =
         new( nameof(Exception) ) { AutoSnoozePeriod = TimeSpan.FromSeconds( 5 ), ManualSnoozePeriod = TimeSpan.FromHours( 1 ) };
-    
+
+    // Auto-snooze for RSS news is redundant because we are checking once per day anyway. Setting this to zero eases testing through the `rss notify` CLI command.
+    public static ToastNotificationKind News { get; } = new( nameof(News) ) { AutoSnoozePeriod = TimeSpan.Zero };
+
     // Must be last.
     public static ImmutableDictionary<string, ToastNotificationKind> All { get; } =
-        new[] { RequiresLicense, VsxNotInstalled, SubscriptionExpiring, TrialExpiring, LicenseExpiring, Exception }.ToImmutableDictionary(
+        new[] { RequiresLicense, VsxNotInstalled, SubscriptionExpiring, TrialExpiring, LicenseExpiring, Exception, News }.ToImmutableDictionary(
             i => i.Name,
             i => i );
 }

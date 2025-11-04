@@ -6,7 +6,7 @@ using JetBrains.Annotations;
 using Metalama.Backstage.Application;
 using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Licensing;
-using Metalama.Backstage.UserInterface;
+using Metalama.Backstage.UserInterface.Toasts;
 using System;
 
 namespace Metalama.Backstage.Extensibility;
@@ -50,6 +50,13 @@ public record BackstageInitializationOptions( IApplicationInfo ApplicationInfo )
     /// <see cref="ToastNotificationKinds.VsxNotInstalled"/> should be detected and opened. The default value is <c>true</c>.
     /// </summary>
     public bool DetectToastNotifications { get; init; } = true;
+
+    /// <summary>
+    /// Gets a value indicating whether the RSS client should fetch the RSS feed and open a toast notification
+    /// upon initialization. It is <c>true</c> by default and can be set to <c>false</c> for commands
+    /// that explicitly call the RSS client.
+    /// </summary>
+    public bool NotifyOfLatestNews { get; init; } = true;
 
     /// <summary>
     /// Gets diagnostic (tracing) options. Considered only when <see cref="AddSupportServices"/> is <c>true</c>. 

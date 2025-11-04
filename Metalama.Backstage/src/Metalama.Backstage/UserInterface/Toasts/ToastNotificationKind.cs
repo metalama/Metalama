@@ -4,7 +4,7 @@
 
 using System;
 
-namespace Metalama.Backstage.UserInterface;
+namespace Metalama.Backstage.UserInterface.Toasts;
 
 public sealed record ToastNotificationKind( string Name )
 {

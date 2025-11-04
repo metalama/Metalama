@@ -7,14 +7,7 @@ using Metalama.Backstage.Infrastructure;
 
 namespace Metalama.Backstage.Tools;
 
-public interface IBackstageToolsExecutor : IBackstageService
+internal interface IBackstageToolsExecutor : IBackstageService
 {
     IProcess Start( BackstageTool tool, string arguments );
-}
-
-public interface IBackstageToolsLocator : IBackstageService
-{
-    bool ToolsMustBeExtracted { get; }
-
-    string GetToolDirectory( BackstageTool tool );
 }
