@@ -232,17 +232,24 @@ public class TupleTypeTests : UnitTestClass
             (typeof(int), "A7"), (typeof(string), "A8"), (typeof(long), "A9")
         ] );
 
+        // Check tuple type.
         Assert.Equal( 9, tupleType.TupleLength );
         Assert.Equal( 10, tupleType.Fields.Count );
         Assert.All( tupleType.Fields, f => Assert.Equal( FieldKind.Default, f.FieldKind ) );
         Assert.All( tupleType.Fields.Where( f => f.Name != "Rest" ), f => Assert.True( f.IsImplicitlyDeclared ) );
         Assert.False( tupleType.Fields["Rest"].IsImplicitlyDeclared );
 
+        // Check tuple element.
         var tupleElement = tupleType.TupleElements[8];
         Assert.Equal( "A9", tupleElement.Name );
         Assert.Equal( FieldKind.TupleElement, tupleElement.FieldKind );
         Assert.Equal( SpecialType.Int64, tupleElement.Type.SpecialType );
         Assert.Equal( "Item9", tupleElement.CorrespondingTupleField.Name );
         Assert.True( tupleElement.HasFriendlyName );
+
+        // Check references.
+        var tupleTypeRef = tupleType.ToRef();
+        var roundLoopTupleType = tupleTypeRef.GetTarget( compilation );
+        Assert.Same( tupleType, roundLoopTupleType );
     }
 }

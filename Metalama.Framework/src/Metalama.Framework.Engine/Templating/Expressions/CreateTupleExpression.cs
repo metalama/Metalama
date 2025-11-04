@@ -26,11 +26,12 @@ internal class CreateTupleExpression : UserExpression
     protected override ExpressionSyntax ToSyntax( SyntaxSerializationContext syntaxSerializationContext, IType? targetType = null )
     {
         var values = this._getValues( syntaxSerializationContext )
-            .Select( ( v, i ) =>
-                         SyntaxFactory.Argument(
-                             v
-                                 .Convert( this._tupleType.TupleElements[i].Type, syntaxSerializationContext.SyntaxGenerationContext, true )
-                                 .Syntax ) )
+            .Select(
+                ( v, i ) =>
+                    SyntaxFactory.Argument(
+                        v
+                            .Convert( this._tupleType.TupleElements[i].Type, syntaxSerializationContext.SyntaxGenerationContext, true )
+                            .Syntax ) )
             .ToReadOnlyList();
 
         return syntaxSerializationContext.SyntaxGenerator.TupleExpression( this._tupleType, values, this.RequiresQualifiedArguments( targetType ) );

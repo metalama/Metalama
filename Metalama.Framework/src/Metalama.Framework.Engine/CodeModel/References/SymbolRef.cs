@@ -15,7 +15,7 @@ using System.Linq;
 
 namespace Metalama.Framework.Engine.CodeModel.References;
 
-internal sealed partial class SymbolRef<T> : FullRef<T>, ISymbolRef<T>
+internal partial class SymbolRef<T> : FullRef<T>, ISymbolRef<T>
     where T : class, ICompilationElement
 {
     private readonly GenericContext _genericContextForSymbolMapping;
@@ -125,7 +125,7 @@ internal sealed partial class SymbolRef<T> : FullRef<T>, ISymbolRef<T>
 
     public override SyntaxTree? PrimarySyntaxTree => this.Symbol.GetClosestPrimaryDeclarationSyntax()?.SyntaxTree;
 
-    private GenericContext SelectGenericContext( IGenericContext genericContext )
+    protected GenericContext SelectGenericContext( IGenericContext genericContext )
     {
         if ( this._genericContextForSymbolMapping.IsEmptyOrIdentity )
         {

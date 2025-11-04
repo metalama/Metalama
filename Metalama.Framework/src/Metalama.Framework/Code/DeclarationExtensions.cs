@@ -200,6 +200,10 @@ namespace Metalama.Framework.Code
             {
                 return null;
             }
+            else if ( ReferenceEquals( compilationElement.Compilation, compilation ) )
+            {
+                return compilationElement;
+            }
             else
             {
                 return

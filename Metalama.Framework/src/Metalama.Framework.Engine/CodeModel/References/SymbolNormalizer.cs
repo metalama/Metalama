@@ -49,40 +49,25 @@ internal static class SymbolNormalizer
         }
         else
         {
-            var tupleElementNames = 0;
-
-            if ( namedTypeSymbol.IsTupleType )
-            {
-                HashCode hasher = default;
-
-                foreach ( var tupleElement in namedTypeSymbol.TupleElements )
-                {
-                    hasher.Add( tupleElement.Name );
-        }
-
-                tupleElementNames = hasher.ToHashCode();
-            }
-
             if ( GenericContextHelper.IsCanonicalGenericTypeInstance( namedTypeSymbol ) )
             {
                 var definition = namedTypeSymbol.IsTupleType
                     ? namedTypeSymbol
                     : namedTypeSymbol.OriginalDefinition.WithNullableAnnotation( namedTypeSymbol.NullableAnnotation );
 
-                return new CanonicalSymbolInfo( definition, genericContext, tupleElementNames );
+                return new CanonicalSymbolInfo( definition, genericContext );
             }
-        else if ( genericContext.IsEmptyOrIdentity )
-        {
-                return new CanonicalSymbolInfo( namedTypeSymbol, genericContext, tupleElementNames );
-        }
-        else
-        {
+            else if ( genericContext.IsEmptyOrIdentity )
+            {
+                return new CanonicalSymbolInfo( namedTypeSymbol, genericContext );
+            }
+            else
+            {
                 return new CanonicalSymbolInfo(
                     namedTypeSymbol.OriginalDefinition,
-                    SymbolGenericContext.Get( namedTypeSymbol, refFactory.CompilationContext ).Map( genericContext, refFactory ),
-                    tupleElementNames );
+                    SymbolGenericContext.Get( namedTypeSymbol, refFactory.CompilationContext ).Map( genericContext, refFactory ) );
+            }
         }
-    }
     }
 
     private static CanonicalSymbolInfo GetCanonicalSymbolInfo(
@@ -110,7 +95,7 @@ internal static class SymbolNormalizer
         }
 #endif
 
-        return new CanonicalSymbolInfo(eventSymbol, genericContext);
+        return new CanonicalSymbolInfo( eventSymbol, genericContext );
     }
 
     public static CanonicalSymbolInfo GetCanonicalSymbolInfo( ISymbol symbol, GenericContext genericContext, RefFactory refFactory )
@@ -123,30 +108,5 @@ internal static class SymbolNormalizer
             _ => new CanonicalSymbolInfo( symbol, genericContext )
         };
 
-    public record struct CanonicalSymbolInfo( ISymbol Symbol, GenericContext Context, int AdditionalSymbolHash = 0 )
-    {
-        public CanonicalSymbolKey ToKey() => new( this.Symbol, this.AdditionalSymbolHash );
-    }
-
-    public record struct CanonicalSymbolKey( ISymbol Symbol, int AdditionalSymbolHash );
-
-    public class CanonicalSymbolKeyComparer : IEqualityComparer<CanonicalSymbolKey>
-    {
-        private readonly IEqualityComparer<ISymbol> _underlyingSymbolComparer;
-
-        public CanonicalSymbolKeyComparer( IEqualityComparer<ISymbol> underlyingSymbolComparer )
-        {
-            this._underlyingSymbolComparer = underlyingSymbolComparer;
-        }
-
-        public bool Equals( CanonicalSymbolKey x, CanonicalSymbolKey y )
-        {
-            return x.AdditionalSymbolHash == y.AdditionalSymbolHash && this._underlyingSymbolComparer.Equals( x.Symbol, y.Symbol );
-        }
-
-        public int GetHashCode( CanonicalSymbolKey obj )
-        {
-            return HashCode.Combine( this._underlyingSymbolComparer.GetHashCode( obj.Symbol ), obj.AdditionalSymbolHash );
-        }
-    }
+    public record struct CanonicalSymbolInfo( ISymbol Symbol, GenericContext Context );
 }

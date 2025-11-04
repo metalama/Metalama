@@ -10,12 +10,14 @@ using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 using Metalama.Framework.Engine.CodeModel.Introductions.ConstructedTypes;
 using Metalama.Framework.Engine.CodeModel.Introductions.Introduced;
 using Metalama.Framework.Engine.CodeModel.Source;
+using Metalama.Framework.Engine.CodeModel.Source.ConstructedTypes;
 using Metalama.Framework.Engine.CodeModel.Source.Pseudo;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Immutable;
 using MethodKind = Metalama.Framework.Code.MethodKind;
 
 namespace Metalama.Framework.Engine.CodeModel.References
@@ -27,6 +29,7 @@ namespace Metalama.Framework.Engine.CodeModel.References
     {
         private readonly CompilationModel? _canonicalCompilationModel;
         private readonly ConcurrentDictionary<SymbolCacheKey, ISymbolRef<ICompilationElement>> _symbolCache = new( new SymbolCacheKeyComparer() );
+        private readonly ConcurrentDictionary<TupleTypeSymbolCacheKey, TupleTypeSymbolRef> _tupleTypeSymbolCache = new( new TupleTypeSymbolCacheKeyComparer() );
 
         // There is no need for a cache of builder-based references because the unique instance of the reference is stored
         // inside DeclarationBuilderData.
@@ -68,38 +71,44 @@ namespace Metalama.Framework.Engine.CodeModel.References
         // Must be called _before_ cache lookup to make sure we have unique ref instances.
 
         public ISymbolRef<ICompilationElement> FromAnySymbol( ISymbol symbol, GenericContext? genericContextForSymbolMapping = null )
-            => this._symbolCache.GetOrAdd(
-                SymbolCacheKey.Create( symbol, RefTargetKind.Default, genericContextForSymbolMapping ?? GenericContext.Empty, this ),
-                static ( key, me ) => key.Symbol.GetDeclarationKind( me.CompilationContext ) switch
-                {
-                    DeclarationKind.Compilation => new SymbolRef<ICompilation>( key.Symbol, key.GenericContext, me ),
-                    DeclarationKind.NamedType when key.Symbol is INamedTypeSymbol { IsTupleType: true } => new SymbolRef<ITupleType>(
-                        key.Symbol,
-                        key.GenericContext,
-                        me ),
-                    DeclarationKind.NamedType when key.Symbol is INamedTypeSymbol namedType && namedType.IsExtensionSafe() => new SymbolRef<IExtensionBlock>(
-                        key.Symbol,
-                        key.GenericContext,
-                        me ),
-                    DeclarationKind.NamedType => new SymbolRef<INamedType>( key.Symbol, key.GenericContext, me ),
-                    DeclarationKind.Method => new SymbolRef<IMethod>( key.Symbol, key.GenericContext, me ),
-                    DeclarationKind.Property => new SymbolRef<IProperty>( key.Symbol, key.GenericContext, me ),
-                    DeclarationKind.Indexer => new SymbolRef<IIndexer>( key.Symbol, key.GenericContext, me ),
-                    DeclarationKind.Field => new SymbolRef<IField>( key.Symbol, key.GenericContext, me ),
-                    DeclarationKind.Event => new SymbolRef<IEvent>( key.Symbol, key.GenericContext, me ),
-                    DeclarationKind.Parameter => new SymbolRef<IParameter>( key.Symbol, key.GenericContext, me ),
-                    DeclarationKind.TypeParameter => new SymbolRef<ITypeParameter>( key.Symbol, key.GenericContext, me ),
-                    DeclarationKind.Attribute => new SymbolRef<IAttribute>( key.Symbol, key.GenericContext, me ),
-                    DeclarationKind.ManagedResource => new SymbolRef<IManagedResource>( key.Symbol, key.GenericContext, me ),
-                    DeclarationKind.Constructor => new SymbolRef<IConstructor>( key.Symbol, key.GenericContext, me ),
-                    DeclarationKind.Finalizer => new SymbolRef<IMethod>( key.Symbol, key.GenericContext, me ),
-                    DeclarationKind.Operator => new SymbolRef<IMethod>( key.Symbol, key.GenericContext, me ),
-                    DeclarationKind.AssemblyReference => new SymbolRef<IAssembly>( key.Symbol, key.GenericContext, me ),
-                    DeclarationKind.Namespace => new SymbolRef<INamespace>( key.Symbol, key.GenericContext, me ),
-                    DeclarationKind.Type => new SymbolRef<IType>( key.Symbol, key.GenericContext, me ),
-                    _ => throw new ArgumentOutOfRangeException()
-                },
-                this );
+        {
+            if ( symbol.Kind == SymbolKind.NamedType && symbol is INamedTypeSymbol { IsTupleType: true } tupleType )
+            {
+                return this.FromTupleTypeSymbol( tupleType, default, genericContextForSymbolMapping );
+            }
+            else
+            {
+                return this._symbolCache.GetOrAdd(
+                    SymbolCacheKey.Create( symbol, RefTargetKind.Default, genericContextForSymbolMapping ?? GenericContext.Empty, this ),
+                    static ( key, me ) => key.Symbol.GetDeclarationKind( me.CompilationContext ) switch
+                    {
+                        DeclarationKind.Compilation => new SymbolRef<ICompilation>( key.Symbol, key.GenericContext, me ),
+                        DeclarationKind.NamedType when key.Symbol is INamedTypeSymbol namedType && namedType.IsExtensionSafe() => new
+                            SymbolRef<IExtensionBlock>(
+                                key.Symbol,
+                                key.GenericContext,
+                                me ),
+                        DeclarationKind.NamedType => new SymbolRef<INamedType>( key.Symbol, key.GenericContext, me ),
+                        DeclarationKind.Method => new SymbolRef<IMethod>( key.Symbol, key.GenericContext, me ),
+                        DeclarationKind.Property => new SymbolRef<IProperty>( key.Symbol, key.GenericContext, me ),
+                        DeclarationKind.Indexer => new SymbolRef<IIndexer>( key.Symbol, key.GenericContext, me ),
+                        DeclarationKind.Field => new SymbolRef<IField>( key.Symbol, key.GenericContext, me ),
+                        DeclarationKind.Event => new SymbolRef<IEvent>( key.Symbol, key.GenericContext, me ),
+                        DeclarationKind.Parameter => new SymbolRef<IParameter>( key.Symbol, key.GenericContext, me ),
+                        DeclarationKind.TypeParameter => new SymbolRef<ITypeParameter>( key.Symbol, key.GenericContext, me ),
+                        DeclarationKind.Attribute => new SymbolRef<IAttribute>( key.Symbol, key.GenericContext, me ),
+                        DeclarationKind.ManagedResource => new SymbolRef<IManagedResource>( key.Symbol, key.GenericContext, me ),
+                        DeclarationKind.Constructor => new SymbolRef<IConstructor>( key.Symbol, key.GenericContext, me ),
+                        DeclarationKind.Finalizer => new SymbolRef<IMethod>( key.Symbol, key.GenericContext, me ),
+                        DeclarationKind.Operator => new SymbolRef<IMethod>( key.Symbol, key.GenericContext, me ),
+                        DeclarationKind.AssemblyReference => new SymbolRef<IAssembly>( key.Symbol, key.GenericContext, me ),
+                        DeclarationKind.Namespace => new SymbolRef<INamespace>( key.Symbol, key.GenericContext, me ),
+                        DeclarationKind.Type => new SymbolRef<IType>( key.Symbol, key.GenericContext, me ),
+                        _ => throw new ArgumentOutOfRangeException()
+                    },
+                    this );
+            }
+        }
 
         public SymbolRef<IMethod> FromPseudoAccessor( PseudoAccessor accessor )
         {
@@ -160,6 +169,16 @@ namespace Metalama.Framework.Engine.CodeModel.References
                     static ( key, me ) => new SymbolRef<T>( key.Symbol, key.GenericContext, me, key.TargetKind ),
                     this );
 
+        public TupleTypeSymbolRef FromTupleTypeSymbol(
+            INamedTypeSymbol symbol,
+            ImmutableArray<string> elementNames = default,
+            GenericContext? genericContext = null,
+            RefTargetKind targetKind = RefTargetKind.Default )
+            => this._tupleTypeSymbolCache.GetOrAdd(
+                new TupleTypeSymbolCacheKey( symbol, elementNames, genericContext ?? GenericContext.Empty ),
+                static ( key, me ) => new TupleTypeSymbolRef( key.Symbol, key.ElementNames, key.GenericContext, me ),
+                this );
+
         public SymbolRef<IParameter> FromReturnParameter( IMethodSymbol methodSymbol )
             => this.FromSymbol<IParameter>( methodSymbol, null, RefTargetKind.Return );
 
@@ -171,6 +190,17 @@ namespace Metalama.Framework.Engine.CodeModel.References
             Invariant.Assert( declaration.GetRefFactory() == this );
 
             var reference = this.FromSymbol<T>( declaration.Symbol, declaration.GenericContextForSymbolMapping );
+
+            Invariant.Assert( reference.SymbolMustBeMapped == declaration.SymbolMustBeMapped );
+
+            return reference;
+        }
+
+        public TupleTypeSymbolRef FromSymbolBasedTupleTypeDeclaration( TupleTypeImpl declaration )
+        {
+            Invariant.Assert( declaration.GetRefFactory() == this );
+
+            var reference = this.FromTupleTypeSymbol( declaration.NamedTypeSymbol, declaration.TupleElementNames, declaration.GenericContextForSymbolMapping );
 
             Invariant.Assert( reference.SymbolMustBeMapped == declaration.SymbolMustBeMapped );
 

@@ -13,9 +13,50 @@ internal sealed partial class RefFactory
     private sealed class SymbolCacheKeyComparer : IEqualityComparer<SymbolCacheKey>
     {
         public bool Equals( SymbolCacheKey x, SymbolCacheKey y )
-            => x.Symbol.Equals( y.Symbol, SymbolEqualityComparer.IncludeNullability ) && x.TargetKind == y.TargetKind && x.GenericContext.Equals( y.GenericContext );
+            => x.Symbol.Equals( y.Symbol, SymbolEqualityComparer.IncludeNullability ) && x.TargetKind == y.TargetKind
+                                                                                      && x.GenericContext.Equals( y.GenericContext );
 
         public int GetHashCode( SymbolCacheKey obj )
             => HashCode.Combine( SymbolEqualityComparer.IncludeNullability.GetHashCode( obj.Symbol ), (int) obj.TargetKind, obj.GenericContext );
+    }
+
+    private sealed class TupleTypeSymbolCacheKeyComparer : IEqualityComparer<TupleTypeSymbolCacheKey>
+    {
+        public bool Equals( TupleTypeSymbolCacheKey x, TupleTypeSymbolCacheKey y )
+        {
+            if ( !x.Symbol.Equals( y.Symbol, SymbolEqualityComparer.IncludeNullability ) )
+            {
+                return false;
+            }
+
+            if ( !x.GenericContext.Equals( y.GenericContext ) )
+            {
+                return false;
+            }
+
+            for ( var i = 0; i < x.ElementNames.Length; i++ )
+            {
+                if ( x.ElementNames[i] != y.ElementNames[i] )
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        public int GetHashCode( TupleTypeSymbolCacheKey obj )
+        {
+            var hashCode = default(HashCode);
+            hashCode.Add( SymbolEqualityComparer.IncludeNullability.GetHashCode( obj.Symbol ) );
+            hashCode.Add( obj.GenericContext );
+
+            foreach ( var e in obj.ElementNames )
+            {
+                hashCode.Add( e );
+            }
+
+            return hashCode.ToHashCode();
+        }
     }
 }

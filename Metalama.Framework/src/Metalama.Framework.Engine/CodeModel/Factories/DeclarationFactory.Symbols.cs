@@ -14,6 +14,7 @@ using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
 using System;
+using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using RoslynSpecialType = Microsoft.CodeAnalysis.SpecialType;
@@ -25,8 +26,10 @@ public partial class DeclarationFactory
 {
     private readonly Cache<ISymbol, IDeclaration> _symbolCache;
 
-// For types, we have a null-sensitive comparer to that 'object' and 'object?' are cached as two distinct items.
-    private readonly Cache<SymbolNormalizer.CanonicalSymbolKey, IType> _typeCache;
+    // For types, we have a null-sensitive comparer to that 'object' and 'object?' are cached as two distinct items.
+    private readonly Cache<ISymbol, IType> _typeCache;
+
+    private readonly Cache<TupleTypeKey, ITupleType> _tupleTypeCache;
 
     private readonly record struct CreateFromSymbolArgs<TSymbol>( TSymbol Symbol, DeclarationFactory Factory, GenericContext GenericContext )
     {
@@ -88,7 +91,7 @@ public partial class DeclarationFactory
                 this._compilationModel.RefFactory );
 
             return (TType) this._typeCache.GetOrAdd(
-                canonicalSymbolInfo.ToKey(),
+                canonicalSymbolInfo.Symbol,
                 canonicalSymbolInfo.Context,
                 typeof(IType),
                 static ( _, _, x ) => x.createDeclaration( new CreateFromSymbolArgs<TSymbol>( x.symbol, x.me, x.genericContext ?? GenericContext.Empty ) ),
@@ -164,6 +167,10 @@ public partial class DeclarationFactory
         {
             return this.GetSpecialType( SpecialType.Object );
         }
+        else if ( typeSymbol.IsTupleType )
+        {
+            return this.GetTupleTypeFromSymbol( typeSymbol, default, genericContext );
+        }
 
         // We must use GetTypeFromSymbol and not GetDeclarationFromSymbol because of nullability.
         return this.GetTypeFromSymbol<INamedType, INamedTypeSymbol>(
@@ -176,6 +183,7 @@ public partial class DeclarationFactory
                 {
                     return new ExtensionBlock( args.Symbol, args.Compilation );
                 }
+
 #endif
                 if ( args.Symbol.IsTupleType )
                 {
@@ -316,36 +324,7 @@ public partial class DeclarationFactory
                 return null;
         }
 
-        symbol.ThrowIfBelongsToDifferentCompilationThan( this.CompilationContext );
-
-        var typedGenericContext = genericContext.AsGenericContext();
-
-        ISymbol mappedSymbol;
-        GenericContext? genericContectForSymbolMapping;
-
-        switch ( typedGenericContext.Kind )
-        {
-            case GenericContextKind.Null:
-                mappedSymbol = symbol;
-                genericContectForSymbolMapping = null;
-
-                break;
-
-            case GenericContextKind.Symbol:
-                mappedSymbol = ((SymbolGenericContext) typedGenericContext).MapToSymbol( symbol );
-                genericContectForSymbolMapping = null;
-
-                break;
-
-            case GenericContextKind.Introduced:
-                mappedSymbol = symbol;
-                genericContectForSymbolMapping = typedGenericContext;
-
-                break;
-
-            default:
-                throw new AssertionFailedException();
-        }
+        var (mappedSymbol, genericContextForSymbolMapping) = this.MapSymbolAndContext( symbol, genericContext );
 
         if ( interfaceType == typeof(ITypeParameter) )
         {
@@ -353,12 +332,48 @@ public partial class DeclarationFactory
             // The Roslyn code model does not support "generic instances" of type parameters, the support for this feature in
             // our code model is done in the TypeParameter class.
 
-            return this.GetTypeParameter( (ITypeParameterSymbol) symbol, genericContectForSymbolMapping );
+            return this.GetTypeParameter( (ITypeParameterSymbol) symbol, genericContextForSymbolMapping );
         }
         else
         {
-            return this.GetCompilationElementCore( mappedSymbol, targetKind, genericContectForSymbolMapping, interfaceType );
+            return this.GetCompilationElementCore( mappedSymbol, targetKind, genericContextForSymbolMapping, interfaceType );
         }
+    }
+
+    private (ISymbol mappedSymbol, GenericContext? genericContextForSymbolMapping) MapSymbolAndContext( ISymbol symbol, IGenericContext? genericContext )
+    {
+        symbol.ThrowIfBelongsToDifferentCompilationThan( this.CompilationContext );
+
+        var typedGenericContext = genericContext.AsGenericContext();
+
+        ISymbol mappedSymbol;
+        GenericContext? genericContextForSymbolMapping;
+
+        switch ( typedGenericContext.Kind )
+        {
+            case GenericContextKind.Null:
+                mappedSymbol = symbol;
+                genericContextForSymbolMapping = null;
+
+                break;
+
+            case GenericContextKind.Symbol:
+                mappedSymbol = ((SymbolGenericContext) typedGenericContext).MapToSymbol( symbol );
+                genericContextForSymbolMapping = null;
+
+                break;
+
+            case GenericContextKind.Introduced:
+                mappedSymbol = symbol;
+                genericContextForSymbolMapping = typedGenericContext;
+
+                break;
+
+            default:
+                throw new AssertionFailedException();
+        }
+
+        return (mappedSymbol, genericContextForSymbolMapping);
     }
 
     private ICompilationElement? GetCompilationElementCore(
@@ -481,6 +496,35 @@ public partial class DeclarationFactory
 
             default:
                 throw new AssertionFailedException( $"Don't know how to resolve a '{mappedSymbol.Kind}'." );
+        }
+    }
+
+    internal ITupleType? GetTupleTypeFromSymbol( INamedTypeSymbol symbol, ImmutableArray<string> elementNames, IGenericContext? genericContext = null )
+    {
+        var (mappedSymbol, genericContextForSymbolMapping) = this.MapSymbolAndContext( symbol, genericContext );
+
+        Invariant.Assert( symbol is { IsTupleType: true } );
+
+        if ( elementNames.IsDefault )
+        {
+            elementNames = symbol.TupleElements.SelectAsImmutableArray( e => e.Name );
+        }
+
+        Invariant.Assert( elementNames.Length == symbol.TupleElements.Length );
+
+        using ( StackOverflowHelper.Detect() )
+        {
+            var canonicalSymbolInfo = SymbolNormalizer.GetCanonicalSymbolInfo(
+                mappedSymbol,
+                genericContextForSymbolMapping ?? GenericContext.Empty,
+                this._compilationModel.RefFactory );
+
+            return this._tupleTypeCache.GetOrAdd(
+                new TupleTypeKey( (INamedTypeSymbol) canonicalSymbolInfo.Symbol, elementNames ),
+                canonicalSymbolInfo.Context,
+                typeof(IType),
+                static ( key, _, x ) => new TupleType( key.Symbol, x.me._compilationModel, x.genericContextForSymbolMapping, key.ElementNames ),
+                (me: this, symbol, genericContextForSymbolMapping) );
         }
     }
 
