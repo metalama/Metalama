@@ -39,7 +39,7 @@ public static class TypeFactory
     /// </summary>
     public static INamedType GetNamedType( Type type )
         => Implementation.GetTypeByReflectionType( type ) as INamedType
-           ?? throw new ArgumentOutOfRangeException( $"'{type}' is not a named type." );
+           ?? throw new ArgumentOutOfRangeException( nameof(type), $"'{type}' is not a named type." );
 
     /// <summary>
     /// Get type based on its full name, as used in reflection.
