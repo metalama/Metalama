@@ -41,6 +41,7 @@
         
         <PackageReference Include="Microsoft.Build" ExcludeAssets="runtime" />
         <PackageReference Include="Microsoft.Build.Locator" />
+        <PackageReference Include="Microsoft.VisualStudio.SolutionPersistence" />
 
         <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" VersionOverride="$(RoslynMaxVersion)"  GeneratePathProperty="True" PrivateAssets="all" />
         
@@ -56,20 +57,22 @@
     <ItemGroup>
         <None Include="README.md" Pack="true" PackagePath="/" />
     </ItemGroup>
-    
-    <Target Name="_AddPackageContent">
+
+    <!-- We include the build hosts (included by Microsoft.CodeAnalysis.Workspaces.MSBuild) so that users don't have 
+     to reference the Microsoft.CodeAnalysis.Workspaces.MSBuild and possibly mess up versions. -->
+    <Target Name="IncludeBuildHost" BeforeTargets="_GetPackageFiles">
         <ItemGroup>
+            <Content Remove="$(PkgMicrosoft_CodeAnalysis_Workspaces_MSBuild)/contentFiles/**" />
+            <Content Include="$(PkgMicrosoft_CodeAnalysis_Workspaces_MSBuild)/contentFiles/any/any/**" Pack="true" PackagePath="contentFiles/any/$(TargetFramework)"  PackageCopyToOutput="true" />
+        </ItemGroup>
+    </Target>
+
 
                 <!-- We include the libs of Microsoft.CodeAnalysis.Workspaces.MSBuild so we can make the dependency on Microsoft.CodeAnalysis.Workspaces.MSBuild
-                 completely private, which de facto removes the transitive dependency on Microsoft.Build packages, which confuses LinqPad. -->
-
-
-            <TfmSpecificPackageFile Include="$(PkgMicrosoft_CodeAnalysis_Workspaces_MSBuild)/lib/$(TargetFramework)/**/*.dll" PackagePath="lib/%(RecursiveDir)$(TargetFramework)" />
-
-            <!-- We include the build hosts (included by Microsoft.CodeAnalysis.Workspaces.MSBuild) so that users don't have 
-     to reference the Microsoft.CodeAnalysis.Workspaces.MSBuild and possibly mess up versions. -->
-
-            <TfmSpecificPackageFile Include="$(PkgMicrosoft_CodeAnalysis_Workspaces_MSBuild)/contentFiles/any/any/**" Pack="true" PackagePath="contentFiles/any/$(TargetFramework)"  PackageCopyToOutput="true" />
+         completely private, which de facto removes the transitive dependency on Microsoft.Build packages, which confuse LinqPad. -->
+    <Target Name="_AddPackageContent">
+        <ItemGroup>
+            <TfmSpecificPackageFile Include="$(PkgMicrosoft_CodeAnalysis_Workspaces_MSBuild)/lib/net8.0/**/*.dll" PackagePath="lib/%(RecursiveDir)net8.0" />
         </ItemGroup>
     </Target>
 
