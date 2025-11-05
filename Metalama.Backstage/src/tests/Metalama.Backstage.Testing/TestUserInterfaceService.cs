@@ -5,6 +5,7 @@
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Infrastructure;
 using Metalama.Backstage.UserInterface;
+using Metalama.Backstage.UserInterface.Toasts;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;

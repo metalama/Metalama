@@ -166,12 +166,8 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
             false => ReportingAction.No
         };
 
-        this._configurationManager.Update<TelemetryConfiguration>( c => c with
-        {
-            UsageReportingAction = reportAction,
-            ExceptionReportingAction = reportAction,
-            PerformanceProblemReportingAction = reportAction
-        } );
+        this._configurationManager.Update<TelemetryConfiguration>(
+            c => c with { UsageReportingAction = reportAction, ExceptionReportingAction = reportAction, PerformanceProblemReportingAction = reportAction } );
 
         if ( this._isGloballyEnabled )
         {
@@ -195,17 +191,19 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
             TelemetryScenario.Exception => this._isExceptionTelemetryEnabled,
             TelemetryScenario.Performance => this._isPerformanceTelemetryEnabled,
             TelemetryScenario.Usage => this._isUsageTelemetryEnabled,
+            TelemetryScenario.Rss => this._isGloballyEnabled,
             _ => throw new ArgumentOutOfRangeException()
         };
     }
 
     public void ResetDeviceId()
     {
-        this._configurationManager.Update<TelemetryConfiguration>( c => c with
-        {
-            DeviceId = this._randomNumberGenerator.NextGuid(),
-            Salt = this._randomNumberGenerator.NextInt64(),
-            LastSaltChangeTime = this._dateTimeProvider.UtcNow
-        } );
+        this._configurationManager.Update<TelemetryConfiguration>(
+            c => c with
+            {
+                DeviceId = this._randomNumberGenerator.NextGuid(),
+                Salt = this._randomNumberGenerator.NextInt64(),
+                LastSaltChangeTime = this._dateTimeProvider.UtcNow
+            } );
     }
 }

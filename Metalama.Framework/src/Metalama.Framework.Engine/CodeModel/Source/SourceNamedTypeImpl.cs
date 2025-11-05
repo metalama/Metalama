@@ -37,7 +37,7 @@ internal class SourceNamedTypeImpl : SourceMemberOrNamedType, INamedTypeImpl
 {
     private readonly Promise<SourceNamedType> _facade = new();
 
-    protected INamedTypeSymbol NamedTypeSymbol { get; }
+    internal INamedTypeSymbol NamedTypeSymbol { get; }
 
     public override ISymbol Symbol => this.NamedTypeSymbol;
 

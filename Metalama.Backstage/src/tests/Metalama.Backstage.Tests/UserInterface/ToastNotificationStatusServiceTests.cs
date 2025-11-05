@@ -6,7 +6,7 @@ using Metalama.Backstage.Application;
 using Metalama.Backstage.Configuration;
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Testing;
-using Metalama.Backstage.UserInterface;
+using Metalama.Backstage.UserInterface.Toasts;
 using System;
 using Xunit;
 using Xunit.Abstractions;

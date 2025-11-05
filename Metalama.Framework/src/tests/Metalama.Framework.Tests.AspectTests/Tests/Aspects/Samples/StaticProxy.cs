@@ -38,7 +38,7 @@ public class ProxyAspect : TypeAspect
         var implementInterfaceResult = builder.ImplementInterface( this._interfaceType );
 
         // Implement interface members.
-        var namedType = (INamedType) TypeFactory.GetType( this._interfaceType );
+        var namedType = TypeFactory.GetNamedType( this._interfaceType );
 
         foreach ( var method in namedType.Methods )
         {

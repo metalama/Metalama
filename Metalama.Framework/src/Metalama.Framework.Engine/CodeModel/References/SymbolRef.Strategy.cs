@@ -16,7 +16,7 @@ using RoslynMethodKind = Microsoft.CodeAnalysis.MethodKind;
 
 namespace Metalama.Framework.Engine.CodeModel.References;
 
-internal sealed partial class SymbolRef<T>
+internal partial class SymbolRef<T>
 {
     public override void EnumerateAttributes( CompilationModel compilation, Action<AttributeRef> add )
     {

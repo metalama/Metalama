@@ -28,7 +28,7 @@ public sealed class TestAspect : TypeAspect
 
         foreach (var type in types)
         {
-            var members = ( (INamedType)TypeFactory.GetType( type ) ).Members();
+            var members = TypeFactory.GetNamedType( type ).Members();
 
             if (type.Name == nameof(RunTimeClass))
             {

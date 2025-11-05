@@ -17,7 +17,7 @@ using Xunit;
 
 namespace Metalama.Framework.Tests.UnitTests.CodeModel
 {
-    public sealed class InvokerTest : UnitTestClass
+    public sealed class InvokerTests : UnitTestClass
     {
         [Fact]
         public void Methods()
@@ -455,7 +455,7 @@ class TargetCode
         }
 
         [Fact]
-        public void ToArrayTest()
+        public void ToArray()
         {
             const string code = """
 

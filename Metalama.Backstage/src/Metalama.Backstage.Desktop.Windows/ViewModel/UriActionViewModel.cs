@@ -6,7 +6,7 @@ using System;
 
 namespace Metalama.Backstage.Desktop.Windows.ViewModel;
 
-internal record UriActionViewModel( string Text, Uri Uri ) : NotificationActionViewModel( Text )
+internal sealed record UriActionViewModel( string Text, Uri Uri ) : NotificationActionViewModel( Text )
 {
     public UriActionViewModel( string text, string uri ) : this( text, new Uri( uri ) ) { }
 }

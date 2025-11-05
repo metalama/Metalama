@@ -34,21 +34,27 @@ public sealed class NotifyCommand : BaseCommand<NotifyCommandSettings>
 
         builder.AddVisualChild( new AdaptiveText() { Text = notificationViewModel.Title, HintStyle = AdaptiveTextStyle.Title } );
 
-        builder.AddVisualChild( new AdaptiveText() { Text = notificationViewModel.Body, HintMinLines = 4, HintStyle = AdaptiveTextStyle.Body } );
-
-        switch ( notificationViewModel.Action )
+        if ( notificationViewModel.Body != null )
         {
-            case CommandActionViewModel commandAction:
-                builder.AddArgument( commandAction.Command );
-                builder.AddButton( commandAction.Text, ToastActivationType.Foreground, commandAction.Command );
+            builder.AddVisualChild( new AdaptiveText() { Text = notificationViewModel.Body, HintMinLines = 4, HintStyle = AdaptiveTextStyle.Body } );
+        }
 
-                break;
+        foreach ( var action in notificationViewModel.Actions )
+        {
+            switch ( action )
+            {
+                case CommandActionViewModel commandAction:
+                    builder.AddArgument( commandAction.Command );
+                    builder.AddButton( commandAction.Text, ToastActivationType.Foreground, commandAction.Command );
 
-            case UriActionViewModel uriActionViewModel:
-                builder.SetProtocolActivation( uriActionViewModel.Uri );
-                builder.AddButton( uriActionViewModel.Text, ToastActivationType.Protocol, uriActionViewModel.Uri.ToString() );
+                    break;
 
-                break;
+                case UriActionViewModel uriActionViewModel:
+                    builder.SetProtocolActivation( uriActionViewModel.Uri );
+                    builder.AddButton( uriActionViewModel.Text, ToastActivationType.Protocol, uriActionViewModel.Uri.ToString() );
+
+                    break;
+            }
         }
 
         if ( notificationViewModel.CanSnooze )

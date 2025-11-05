@@ -3,7 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Backstage.Licensing.Consumption;
-using Metalama.Backstage.UserInterface;
+using Metalama.Backstage.UserInterface.Toasts;
 using System.Linq;
 using Xunit;
 using Xunit.Abstractions;

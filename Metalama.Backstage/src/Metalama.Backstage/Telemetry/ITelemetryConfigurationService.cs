@@ -12,7 +12,7 @@ namespace Metalama.Backstage.Telemetry;
 public interface ITelemetryConfigurationService : IBackstageService
 {
     void Initialize();
-    
+
     void SetStatus( bool enabled );
 
     Guid DeviceId { get; }
@@ -20,7 +20,7 @@ public interface ITelemetryConfigurationService : IBackstageService
     bool IsEnabled( TelemetryScenario scenario );
 
     void ResetDeviceId();
-    
+
     long Salt { get; }
 }
 
@@ -29,5 +29,6 @@ public enum TelemetryScenario
     None,
     Usage,
     Exception,
-    Performance
+    Performance,
+    Rss
 }

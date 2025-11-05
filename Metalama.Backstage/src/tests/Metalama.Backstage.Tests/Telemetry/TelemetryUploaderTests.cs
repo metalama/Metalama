@@ -8,6 +8,11 @@ using Metalama.Backstage.Telemetry;
 using Metalama.Backstage.Testing;
 using Metalama.Backstage.Tools;
 using System;
+using System.IO;
+using System.Linq;
+using System.Net;
+using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
@@ -30,15 +35,37 @@ public sealed class TelemetryUploaderTests : TestsBase
 
     protected override void ConfigureServices( ServiceProviderBuilder services )
     {
-        services
-            .AddSingleton<IHttpClientFactory>( serviceProvider =>
-                                                   new TestHttpClientFactory( f => new TelemetryTestsPutMessageHandler(
-                                                                                  serviceProvider,
-                                                                                  _feedbackDirectory,
-                                                                                  f ) ) )
-            .AddTelemetryServices();
-
+        services.AddTelemetryServices();
         services.AddTools();
+    }
+
+    protected override void OnAfterServicesCreated( Services services )
+    {
+        base.OnAfterServicesCreated( services );
+        services.HttpClientFactory.AddHook( r => r.RequestUri!.Host == "bits.postsharp.net", this.ProcessBitsRequest );
+    }
+
+    private async Task<HttpResponseMessage> ProcessBitsRequest( HttpRequestMessage requestMessage, CancellationToken cancellationToken )
+    {
+        var content = ((MultipartFormDataContent) requestMessage.Content!).Single();
+
+        // Read the filename from the content headers
+        var fileName = content.Headers.ContentDisposition?.FileName ?? string.Empty;
+
+        // ReSharper disable once UseAwaitUsing
+        using ( var outputFile = this.FileSystem.Open(
+                   Path.Combine( _feedbackDirectory, fileName ),
+                   FileMode.Create,
+                   FileAccess.Write,
+                   FileShare.None,
+                   4096,
+                   FileOptions.Asynchronous ) )
+        {
+            // ReSharper disable once MethodSupportsCancellation
+            await content.CopyToAsync( outputFile );
+        }
+
+        return new HttpResponseMessage( HttpStatusCode.Accepted );
     }
 
     private async Task AssertUploadedAsync( bool uploadedFileExpected )

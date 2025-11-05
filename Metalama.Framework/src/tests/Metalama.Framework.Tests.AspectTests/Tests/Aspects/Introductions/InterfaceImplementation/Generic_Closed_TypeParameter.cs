@@ -27,7 +27,7 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Introductions.Inter
             void ImplementInterface( IType typeArgument )
             {
                 aspectBuilder
-                    .ImplementInterface( ( (INamedType)TypeFactory.GetType( typeof(IInterface<>) ) ).WithTypeArguments( typeArgument ) );
+                    .ImplementInterface( TypeFactory.GetNamedType( typeof(IInterface<>) ).WithTypeArguments( typeArgument ) );
 
                 aspectBuilder.IntroduceMethod( nameof(Foo), args: new { T = typeArgument } );
             }
@@ -36,7 +36,7 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Introductions.Inter
             ImplementInterface( aspectBuilder.Target.TypeParameters[0].MakeArrayType() );
 
             ImplementInterface(
-                ( (INamedType)TypeFactory.GetType( typeof(Tuple<,>) ) ).WithTypeArguments(
+                TypeFactory.GetNamedType( typeof(Tuple<,>) ).WithTypeArguments(
                     aspectBuilder.Target.TypeParameters[0],
                     aspectBuilder.Target.TypeParameters[0].MakeArrayType() ) );
         }

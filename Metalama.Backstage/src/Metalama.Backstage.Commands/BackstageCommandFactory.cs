@@ -5,6 +5,7 @@
 using Metalama.Backstage.Commands.Configuration;
 using Metalama.Backstage.Commands.Licensing;
 using Metalama.Backstage.Commands.Maintenance;
+using Metalama.Backstage.Commands.Rss;
 using Metalama.Backstage.Commands.Telemetry;
 using Metalama.Backstage.Commands.UserInterface;
 using Spectre.Console.Cli;
@@ -27,15 +28,15 @@ public static class BackstageCommandFactory
                     "license",
                     license =>
                     {
-                        license.SetDescription( "Register or unregister a license key, switch to Metalama Free or Metalama Trial, analyzes license usage." );
+                        license.SetDescription( "Manages license keys and switch between Metalama editions." );
 
                         license.AddCommand<ListLicensesCommand>( "list" )
                             .WithData( options )
-                            .WithDescription( "Lists registered license." );
+                            .WithDescription( "Lists all registered licenses." );
 
                         license.AddCommand<RegisterLicenseCommand>( "register" )
                             .WithData( options )
-                            .WithDescription( "Registers a license key." );
+                            .WithDescription( "Registers a new license key." );
 
                         license.AddCommand<UnregisterCommand>( "unregister" )
                             .WithData( options )
@@ -43,16 +44,16 @@ public static class BackstageCommandFactory
 
                         license.AddCommand<RegisterTrialCommand>( "try" )
                             .WithData( options )
-                            .WithDescription( "Starts the trial period." );
+                            .WithDescription( "Activates the Metalama trial period." );
 
                         license.AddCommand<RegisterCommunityCommand>( "community" )
                             .WithData( options )
-                            .WithDescription( "Switches to Metalama Community." );
+                            .WithDescription( "Switches to the Metalama Community edition." );
 
 #pragma warning disable CS0612 // Type or member is obsolete
                         license.AddCommand<RegisterLegacyFreeCommand>( "free" )
                             .WithData( options )
-                            .WithDescription( "Registers the legacy to Metalama Free license (for Metalama 2025.0 and earlier)." );
+                            .WithDescription( "Registers the legacy Metalama Free license (for Metalama 2025.0 and earlier)." );
 #pragma warning restore CS0612 // Type or member is obsolete
 
                         configureBranch?.Invoke( "license", license );
@@ -62,64 +63,83 @@ public static class BackstageCommandFactory
                     "config",
                     config =>
                     {
-                        config.SetDescription( "Lists, edits, prints, resets configuration settings." );
+                        config.SetDescription( "Manages Metalama configuration settings." );
 
                         config.AddCommand<ListConfigurationsCommand>( "list" )
                             .WithData( options )
-                            .WithDescription( "Lists the supported JSON configuration files" );
+                            .WithDescription( "Lists all supported JSON configuration files." );
 
                         config.AddCommand<EditConfigurationCommand>( "edit" )
                             .WithData( options )
-                            .WithDescription( "Opens a given JSON configuration file in the default text editor." );
+                            .WithDescription( "Opens a JSON configuration file in the default text editor." );
 
                         config.AddCommand<ResetConfigurationCommand>( "reset" )
                             .WithData( options )
-                            .WithDescription( "Resets a given configuration file to its default value." );
+                            .WithDescription( "Resets a configuration file to its default values." );
 
                         config.AddCommand<PrintConfigurationCommand>( "print" )
                             .WithData( options )
-                            .WithDescription( "Prints the content of the given configuration file to the console." );
+                            .WithDescription( "Displays the contents of a configuration file in the console." );
 
                         config.AddCommand<ValidateConfigurationCommand>( "validate" )
                             .WithData( options )
-                            .WithDescription( "Validates the content of the given configuration file." );
+                            .WithDescription( "Validates a configuration file against its schema." );
 
                         configureBranch?.Invoke( "config", config );
                     } );
 
                 appConfig.AddCommand<CleanUpCommand>( "cleanup" )
                     .WithData( options )
-                    .WithDescription( "Cleans up temporary files generated by Metalama." );
+                    .WithDescription( "Removes temporary files and cache generated by Metalama." );
 
                 appConfig.AddCommand<KillCommand>( "kill" )
                     .WithData( options )
-                    .WithDescription( "Shuts down or kills processes that may be locking Metalama packages." );
+                    .WithDescription( "Terminates processes that may be locking Metalama packages." );
 
                 appConfig.AddBranch(
                     "telemetry",
                     telemetry =>
                     {
-                        telemetry.SetDescription( "Manages the telemetry options and upload queue." );
+                        telemetry.SetDescription( "Manages telemetry settings and upload queued data." );
 
-                        telemetry.AddCommand<EnableTelemetryCommand>( "enable" ).WithData( options ).WithDescription( "Enables telemetry." );
-                        telemetry.AddCommand<DisableTelemetryCommand>( "disable" ).WithData( options ).WithDescription( "Disables telemetry." );
+                        telemetry.AddCommand<EnableTelemetryCommand>( "enable" ).WithData( options ).WithDescription( "Enables anonymous usage telemetry." );
+                        telemetry.AddCommand<DisableTelemetryCommand>( "disable" ).WithData( options ).WithDescription( "Disables anonymous usage telemetry." );
 
                         telemetry.AddCommand<ResetDeviceIdCommand>( "reset-device-id" )
-                            .WithDescription( "Resets the identifier that telemetry uses to uniquely identify the current device." );
+                            .WithDescription( "Generates a new anonymous device identifier for telemetry." );
 
                         telemetry.AddCommand<UploadTelemetryCommand>( "upload" )
                             .WithData( options )
-                            .WithDescription( "Uploads all telemetry data present in the queue." );
+                            .WithDescription( "Uploads all queued telemetry data immediately." );
 
                         telemetry.AddCommand<TelemetryStatusCommand>( "status" )
                             .WithData( options )
-                            .WithDescription( "Displays the configuration and the status of telemetry." );
+                            .WithDescription( "Displays current telemetry configuration and status." );
 
                         configureBranch?.Invoke( "telemetry", telemetry );
                     } );
 
-                appConfig.AddCommand<DocsCommand>( "docs" ).WithData( options ).WithDescription( "Opens the Metalama documentation." );
-                appConfig.AddCommand<OpenUICommand>( "ui" ).WithData( options ).WithDescription( "Opens the configuration browser-based UI." );
+                appConfig.AddCommand<DocsCommand>( "docs" ).WithData( options ).WithDescription( "Opens the Metalama documentation in your browser." );
+                appConfig.AddCommand<OpenUICommand>( "ui" ).WithData( options ).WithDescription( "Opens the browser-based configuration interface." );
+
+                appConfig.AddBranch(
+                    "rss",
+                    rss =>
+                    {
+                        rss.SetDescription( "Manages toast notifications for new Metalama updates." );
+                        
+                        rss.AddCommand<DisplayLatestNewsCommand>( "notify" )
+                            .WithData( options )
+                            .WithDescription( "Displays a notification with the latest Metalama news." );
+                        
+                        rss.AddCommand<DisableRssClientCommand>( "disable" )
+                            .WithData( options )
+                            .WithDescription( "Disables automatic notifications for new Metalama updates." );
+                        
+                        rss.AddCommand<EnableRssClientCommand>( "enable" )
+                            .WithData( options )
+                            .WithDescription( "Enables automatic notifications for new Metalama updates." );
+                    } );
 
                 configureMoreCommands?.Invoke( appConfig );
             } );

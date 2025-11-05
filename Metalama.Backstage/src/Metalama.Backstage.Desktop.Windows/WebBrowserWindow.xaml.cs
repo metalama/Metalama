@@ -7,7 +7,7 @@ using Uri = System.Uri;
 
 namespace Metalama.Backstage.Desktop.Windows;
 
-public partial class WebBrowserWindow
+public sealed partial class WebBrowserWindow
 {
     public WebBrowserWindow()
     {

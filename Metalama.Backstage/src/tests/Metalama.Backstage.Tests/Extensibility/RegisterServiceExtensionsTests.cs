@@ -11,6 +11,7 @@ using Metalama.Backstage.Telemetry;
 using Metalama.Backstage.Testing;
 using Metalama.Backstage.Tools;
 using Metalama.Backstage.UserInterface;
+using Metalama.Backstage.UserInterface.Toasts;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using Xunit;

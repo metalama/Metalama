@@ -26,20 +26,25 @@ internal class CreateTupleExpression : UserExpression
     protected override ExpressionSyntax ToSyntax( SyntaxSerializationContext syntaxSerializationContext, IType? targetType = null )
     {
         var values = this._getValues( syntaxSerializationContext )
-            .Select( ( v, i ) =>
-                         SyntaxFactory.Argument(
-                             v
-                                 .Convert( this._tupleType.TupleElements[i].Type, syntaxSerializationContext.SyntaxGenerationContext, true )
-                                 .Syntax ) )
+            .Select(
+                ( v, i ) =>
+                    SyntaxFactory.Argument(
+                        v
+                            .Convert( this._tupleType.TupleElements[i].Type, syntaxSerializationContext.SyntaxGenerationContext, this.RequiresQualifiedArguments( targetType ) )
+                            .Syntax ) )
             .ToReadOnlyList();
 
-        return syntaxSerializationContext.SyntaxGenerator.TupleExpression( this._tupleType, values, this.RequiresQualifiedArguments( targetType ) );
+        return syntaxSerializationContext.SyntaxGenerator.TupleExpression( this._tupleType, values );
     }
-
-    public override IType Type => this._tupleType;
-
+    
     private bool RequiresQualifiedArguments( IType? targetType )
     {
+        if ( targetType is null )
+        {
+            // When we don't know the target type, play it safe and qualify. 
+            return true;
+        }
+        
         if ( targetType is not ITupleType targetTupleType )
         {
             return false;
@@ -60,4 +65,6 @@ internal class CreateTupleExpression : UserExpression
 
         return true;
     }
+
+    public override IType Type => this._tupleType;
 }

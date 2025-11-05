@@ -1,0 +1,55 @@
+﻿@page
+@using Metalama.Backstage.UserInterface.Rss
+@model RssOptionsPageModel
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // Auto-save when radio button selection changes
+            $('input[name="PreferredFeed"]').change(function () {
+                $('form').submit();
+            });
+        });
+    </script>
+}
+
+<form method="post">
+    <h3>Configure News Notifications</h3>
+    <p>Choose how you'd like to stay updated with Metalama news:</p>
+
+    <div class="radio-group">
+        <div class="radio-option">
+            <input type="radio" id="feedNone" name="PreferredFeed" value="@RssFeed.None"
+                   checked="@( Model.PreferredFeed == RssFeed.None )">
+            <label for="feedNone">
+                <strong>None</strong>
+                <small>Don't show me any notifications.</small>
+            </label>
+        </div>
+
+        <div class="radio-option">
+            <input type="radio" id="feedPosts" name="PreferredFeed" value="@RssFeed.Posts"
+                   checked="@( Model.PreferredFeed == RssFeed.Posts )">
+            <label for="feedPosts">
+                <strong>Blog Posts Only</strong>
+                <small>Long-form articles with monthly status reports and major releases. <a
+                        href="https://metalama.net/blog" target="_blank">See past articles.</a></small>
+            </label>
+        </div>
+
+        <div class="radio-option">
+            <input type="radio" id="feedBriefs" name="PreferredFeed" value="@RssFeed.Briefs"
+                   checked="@( Model.PreferredFeed == RssFeed.Briefs )">
+            <label for="feedBriefs">
+                <strong>All Updates</strong>
+                <small>Stay in the loop with all news, including quick updates and brief announcements. <a
+                        href="https://metalama.net/briefs" target="_blank">See past briefs.</a></small>
+            </label>
+        </div>
+
+    </div>
+</form>
+
+
+
+<div asp-validation-summary="ModelOnly" class="text-danger"></div>

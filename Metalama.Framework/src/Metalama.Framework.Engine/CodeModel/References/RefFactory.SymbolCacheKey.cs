@@ -5,6 +5,8 @@
 using Metalama.Framework.Engine.CodeModel.GenericContexts;
 using Microsoft.CodeAnalysis;
 using System;
+using System.Collections.Immutable;
+using System.Linq;
 
 namespace Metalama.Framework.Engine.CodeModel.References;
 
@@ -14,6 +16,8 @@ internal sealed partial class RefFactory
     {
         private SymbolCacheKey( ISymbol symbol, RefTargetKind targetKind, GenericContext genericContext )
         {
+            Invariant.Assert( symbol is not INamedTypeSymbol { IsTupleType: true } );
+
             this.Symbol = symbol;
             this.TargetKind = targetKind;
             this.GenericContext = genericContext;
@@ -49,28 +53,6 @@ internal sealed partial class RefFactory
                 return false;
             }
 
-            // For tuples, we also compare the element names when we compare two references.
-            // We deliberately ignore the source reference because SourceType does not expose it, so we can aggregate
-            // all equivalent tuple types as one.
-            if ( this.Symbol is INamedTypeSymbol thisNamedTypeSymbol && other.Symbol is INamedTypeSymbol otherNamedTypeSymbol )
-            {
-                if ( thisNamedTypeSymbol.IsTupleType != otherNamedTypeSymbol.IsTupleType )
-                {
-                    return false;
-                }
-
-                if ( thisNamedTypeSymbol.IsTupleType )
-                {
-                    for ( var i = 0; i < thisNamedTypeSymbol.TupleElements.Length; i++ )
-                    {
-                        if ( thisNamedTypeSymbol.TupleElements[i].Name != otherNamedTypeSymbol.TupleElements[i].Name )
-                        {
-                            return false;
-                        }
-                    }
-                }
-            }
-
             return true;
         }
 
@@ -78,5 +60,26 @@ internal sealed partial class RefFactory
 
         public override int GetHashCode()
             => HashCode.Combine( SymbolEqualityComparer.IncludeNullability.GetHashCode( this.Symbol ), (int) this.TargetKind, this.GenericContext );
+    }
+
+    private readonly struct TupleTypeSymbolCacheKey
+    {
+        public INamedTypeSymbol Symbol { get; }
+
+        public ImmutableArray<string> ElementNames { get; }
+
+        public GenericContext GenericContext { get; }
+
+        public TupleTypeSymbolCacheKey( INamedTypeSymbol symbol, ImmutableArray<string> elementNames, GenericContext genericContext )
+        {
+            if ( elementNames.IsDefault )
+            {
+                elementNames = symbol.TupleElements.SelectAsImmutableArray( e => e.Name );
+            }
+
+            this.Symbol = symbol;
+            this.ElementNames = elementNames;
+            this.GenericContext = genericContext;
+        }
     }
 }

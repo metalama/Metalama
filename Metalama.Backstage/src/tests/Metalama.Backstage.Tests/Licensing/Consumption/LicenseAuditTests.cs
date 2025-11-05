@@ -95,7 +95,7 @@ public sealed class LicenseAuditTests : LicenseConsumptionServiceTestsBase
 
             // Third time, one day later.
             this.FileSystem.Reset();
-            this.HttpClientFactory.Reset();
+            this.HttpClientFactory.ClearProcessedRequests();
             this.Time.AddTime( TimeSpan.FromDays( 1.01 ) );
 
             Consume();

@@ -30,7 +30,7 @@ public class EnumViewModelAttribute : CompilationAspect
 
     public override void BuildAspect( IAspectBuilder<ICompilation> builder )
     {
-        var enumType = (INamedType)TypeFactory.GetType( _enumType );
+        var enumType = TypeFactory.GetNamedType( _enumType );
 
         // Get or create the namespace.
         var ns = builder.WithNamespace( _targetNamespace );

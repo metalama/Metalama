@@ -23,7 +23,7 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Introductions.Inter
     {
         public override void BuildAspect( IAspectBuilder<INamedType> builder )
         {
-            builder.ImplementInterface( ( (INamedType)TypeFactory.GetType( typeof(IInterface<>) ) ).WithTypeArguments( builder.Target ) );
+            builder.ImplementInterface( TypeFactory.GetNamedType( typeof(IInterface<>) ).WithTypeArguments( builder.Target ) );
 
             builder.IntroduceMethod( nameof(Foo), args: new { T = builder.Target } );
         }

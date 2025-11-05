@@ -198,7 +198,6 @@ namespace Metalama.Framework.Engine.Linking
             var backingFieldReferences =
 #if ROSLYN_5_0_0_OR_GREATER
                 await this.GetPropertyBackingFieldReferencesAsync(
-                    symbolReferenceFinder,
                     overriddenHybridAutoProperties,
                     cancellationToken );
 #else
@@ -299,8 +298,7 @@ namespace Metalama.Framework.Engine.Linking
                         };
 
                         var targetEventSymbol = 
-                            (IEventSymbol) LinkerSymbolHelper.GetCanonicalDefinition(
-                                injectionRegistry.GetIntermediateCompilationSymbol<IEventSymbol>( targetEvent ).AssertNotNull() );
+                            (IEventSymbol) injectionRegistry.GetIntermediateCompilationSymbol<IEventSymbol>( targetEvent ).AssertNotNull().GetCanonicalDefinition();
 
                         var delegateType = targetEvent.Type.AssertNotNull();
                         var invokeMethod = delegateType.Methods.OfName( "Invoke" ).Single();
@@ -369,7 +367,7 @@ namespace Metalama.Framework.Engine.Linking
                                     brokerCallbacksTypeSymbol,
                                     typeMemberIdentifierGenerator.AllocateName(
                                         targetEventSymbol.ContainingType,
-                                        $"{targetEvent.Name}BrokerCallbacks",
+                                        $"{targetEvent.Name}Adapter",
                                         IdentifierFlags.AlwaysUseSuffix ),
                                     context =>
                                         GetEventBrokerCallbacksInitializationExpression(
@@ -412,7 +410,7 @@ namespace Metalama.Framework.Engine.Linking
                                                 context.SyntaxGenerator.TypeSyntax(
                                                     context.CompilationContext.ReflectionMapper.GetTypeSymbol( typeof(EventBroker) ) ),
                                                 IdentifierName( nameof(EventBroker.EnsureInitialized) ) ),
-                                            ArgumentList( SeparatedList<ArgumentSyntax>( fieldInitializationArguments ) ) );
+                                            ArgumentList( SeparatedList( fieldInitializationArguments ) ) );
 
                                 // ReSharper restore AccessToModifiedClosure
 
@@ -439,10 +437,12 @@ namespace Metalama.Framework.Engine.Linking
             }
         }
 
-        private static ExpressionSyntax GetEventBrokerCastDelegateInitializationExpression( ITupleType invokeTupleType, SyntaxGenerationContext context )
+        private static ExpressionSyntax GetEventBrokerCastDelegateInitializationExpression( ITupleType invokeTupleType, INamedType delegateType, SyntaxGenerationContext context )
         {
-            var parameterList = SeparatedList( invokeTupleType.TupleElements.SelectAsArray( p => Parameter( Identifier( p.Name ) ) ) );
-            var argumentList = SeparatedList( invokeTupleType.TupleElements.SelectAsArray( p => Argument( IdentifierName( p.Name ) ) ) );
+            // We must use the invoke method to get the parameter names, and not the tuple type, because the element name is not available for 1-tuples.
+            var invokeMethod = delegateType.Methods.OfName( "Invoke" ).Single();
+            var parameterList = SeparatedList( invokeMethod.Parameters.SelectAsArray( p => Parameter( Identifier( p.Name ) ) ) );
+            var argumentList = SeparatedList( invokeMethod.Parameters.SelectAsArray( p => Argument( IdentifierName( p.Name ) ) ) );
 
             return
                 SimpleLambdaExpression(
@@ -560,7 +560,7 @@ namespace Metalama.Framework.Engine.Linking
             string raiseMethodName,
             string overrideName,
             ITupleType argsType,
-            IType delegateType,
+            INamedType delegateType,
             bool isStatic )
         {
             return
@@ -579,7 +579,7 @@ namespace Metalama.Framework.Engine.Linking
                                         argsType,
                                         isStatic ) ),
                                 Token( TriviaList(), SyntaxKind.CommaToken, context.OptionalElasticEndOfLineTriviaList ),
-                                Argument( GetEventBrokerCastDelegateInitializationExpression( argsType, context ) ),
+                                Argument( GetEventBrokerCastDelegateInitializationExpression( argsType, delegateType, context ) ),
                                 Token( TriviaList(), SyntaxKind.CommaToken, context.OptionalElasticEndOfLineTriviaList ),
                                 Argument(
                                     GetEventBrokerEventAccessDelegateInitializationExpression(
@@ -966,7 +966,6 @@ namespace Metalama.Framework.Engine.Linking
         /// Finds all references to auto property backing fields.
         /// </summary>
         private async Task<IReadOnlyList<IntermediateSymbolSemanticReference>> GetPropertyBackingFieldReferencesAsync(
-            SymbolReferenceFinder symbolReferenceFinder,
             IReadOnlyList<IPropertySymbol> overriddenHybridAutoProperties,
             CancellationToken cancellationToken )
         {

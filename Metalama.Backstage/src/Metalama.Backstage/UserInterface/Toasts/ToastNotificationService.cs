@@ -6,7 +6,7 @@ using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Extensibility;
 using System;
 
-namespace Metalama.Backstage.UserInterface;
+namespace Metalama.Backstage.UserInterface.Toasts;
 
 internal sealed class ToastNotificationService : IToastNotificationService
 {

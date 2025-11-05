@@ -25,7 +25,7 @@ internal class Aspect : TypeAspect
     {
         base.BuildAspect( builder );
 
-        var externalType = (INamedType)TypeFactory.GetType( typeof(C) );
+        var externalType = TypeFactory.GetNamedType( typeof(C) );
 
         var options = externalType.Enhancements().GetOptions<Options>();
 
