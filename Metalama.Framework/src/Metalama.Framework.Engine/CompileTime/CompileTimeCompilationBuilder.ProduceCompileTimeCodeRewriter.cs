@@ -37,11 +37,11 @@ namespace Metalama.Framework.Engine.CompileTime
     {
         /// <summary>
         /// Rewrites a run-time syntax tree into a compile-time syntax tree. Calls <see cref="TemplateCompiler"/> on templates,
-        /// and removes run-time-only sub trees.
+        /// and removes run-time-only subtrees.
         /// </summary>
         /// <remarks>Does not guarantee correctness of trivias. Preprocessor trivias need to be stripped afterwards. </remarks>
 #pragma warning disable CA1001 // Types that own disposable fields should be disposable
-        private sealed partial class ProduceCompileTimeCodeRewriter : SafeSyntaxRewriter
+        private sealed partial class ProduceCompileTimeCodeRewriter : RemovePreprocessorDirectivesRewriter
 #pragma warning restore CA1001 // Types that own disposable fields should be disposable
         {
             private static readonly SyntaxAnnotation _hasCompileTimeCodeAnnotation = new( "Metalama_HasCompileTimeCode" );
@@ -573,12 +573,13 @@ namespace Metalama.Framework.Engine.CompileTime
                                         default,
                                         ParameterList(
                                             SeparatedList(
-                                                method.Parameters.Select( p => Parameter(
-                                                                              default,
-                                                                              default,
-                                                                              syntaxGenerator.TypeSyntax( p.Type ),
-                                                                              Identifier( p.Name ),
-                                                                              default ) ) ) ),
+                                                method.Parameters.Select(
+                                                    p => Parameter(
+                                                        default,
+                                                        default,
+                                                        syntaxGenerator.TypeSyntax( p.Type ),
+                                                        Identifier( p.Name ),
+                                                        default ) ) ) ),
                                         default,
                                         method.ReturnType.SpecialType == SpecialType.System_Void
                                             ? this._syntaxGenerationContext.SyntaxGenerator.FormattedBlock()
@@ -850,8 +851,9 @@ namespace Metalama.Framework.Engine.CompileTime
                                                && (propertyIsTemplate || !this.SymbolClassifier.GetTemplateInfo( propertySymbol.GetMethod! ).IsNone);
 
                         var setAccessor =
-                            node.AccessorList.Accessors.SingleOrDefault( a => a.Kind() == SyntaxKind.SetAccessorDeclaration
-                                                                              || a.Kind() == SyntaxKind.InitAccessorDeclaration );
+                            node.AccessorList.Accessors.SingleOrDefault(
+                                a => a.Kind() == SyntaxKind.SetAccessorDeclaration
+                                     || a.Kind() == SyntaxKind.InitAccessorDeclaration );
 
                         var setterIsTemplate = setAccessor != null
                                                && (propertyIsTemplate || !this.SymbolClassifier.GetTemplateInfo( propertySymbol.SetMethod! ).IsNone);
@@ -989,8 +991,9 @@ namespace Metalama.Framework.Engine.CompileTime
                             Invariant.Assert( rewrittenProperty.AccessorList != null );
 
                             Invariant.Assert(
-                                !rewrittenProperty.AccessorList!.Accessors.Any( a => a.IsKind( SyntaxKind.SetAccessorDeclaration )
-                                                                                     || a.IsKind( SyntaxKind.InitAccessorDeclaration ) )
+                                !rewrittenProperty.AccessorList!.Accessors.Any(
+                                    a => a.IsKind( SyntaxKind.SetAccessorDeclaration )
+                                         || a.IsKind( SyntaxKind.InitAccessorDeclaration ) )
                                 || rewrittenProperty.AccessorList!.Accessors.Any( a => a.IsKind( SyntaxKind.InitAccessorDeclaration ) ) );
 
                             rewritten =
@@ -1427,8 +1430,9 @@ namespace Metalama.Framework.Engine.CompileTime
             {
                 // Get the list of members that are not statements, local variables, local functions,...
                 var nonTopLevelMembers = node.Members
-                    .Where( m => m is BaseTypeDeclarationSyntax or NamespaceDeclarationSyntax or DelegateDeclarationSyntax
-                                or FileScopedNamespaceDeclarationSyntax )
+                    .Where(
+                        m => m is BaseTypeDeclarationSyntax or NamespaceDeclarationSyntax or DelegateDeclarationSyntax
+                            or FileScopedNamespaceDeclarationSyntax )
                     .ToReadOnlyList();
 
                 var transformedMembers = this.VisitTypeOrNamespaceMembers( nonTopLevelMembers );
