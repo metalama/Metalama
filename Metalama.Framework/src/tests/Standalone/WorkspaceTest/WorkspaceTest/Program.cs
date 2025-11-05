@@ -14,6 +14,6 @@ var workspace = Workspace.Load(args[0]);
 
 var types = workspace.SourceCode.Types;
 
-Console.WriteLine($"{types.Count()} types found.");
+Console.WriteLine($"{types.Length} types found.");
 
 return 0;

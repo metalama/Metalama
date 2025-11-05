@@ -5,11 +5,11 @@
     <!-- Properties of NuGet packages-->
     <PropertyGroup>
         <Authors>PostSharp Technologies and contributors</Authors>
-        <PackageProjectUrl>https://github.com/metalama/Metalama</PackageProjectUrl>
+        <PackageProjectUrl>https://metalama.net/</PackageProjectUrl>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <RepositoryUrl>https://github.com/metalama/Metalama</RepositoryUrl>
         <RepositoryType>git</RepositoryType>
-        <PackageReleaseNotes>https://github.com/orgs/metalama/discussions/categories/changelog</PackageReleaseNotes>
+        <PackageReleaseNotes>https://github.com/metalama/Metalama/releases</PackageReleaseNotes>
         <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     </PropertyGroup>
 
