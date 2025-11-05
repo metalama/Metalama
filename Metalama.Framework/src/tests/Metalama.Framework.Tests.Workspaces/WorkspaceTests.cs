@@ -29,7 +29,6 @@ namespace Metalama.Framework.Tests.Workspaces
 
         [Fact]
         public async Task LoadProjectSingleTarget()
-
         {
             using var testContext = this.CreateTestContext();
 
@@ -131,7 +130,7 @@ namespace Metalama.Framework.Tests.Workspaces
             var compilationForReferences = testContext.CreateCSharpCompilation( "" );
 
             var libraryReferences = compilationForReferences.ExternalReferences.OfType<PortableExecutableReference>()
-                .Where( r => Path.GetFileName( r.FilePath ).StartsWith( "Metalama", StringComparison.Ordinal ) )
+                .Where( r => Path.GetFileName( r.FilePath )?.StartsWith( "Metalama", StringComparison.Ordinal ) == true )
                 .Select( r => $"<Reference Include=\"{r.FilePath}\" />" );
 
             var projectReferences = dependentProjectPaths.Select( r => $"<ProjectReference Include=\"{r}\" />" );
@@ -260,7 +259,7 @@ class MyClass {}" );
 
             Assert.Equal( ["B -> A", "B.f -> A", "B.g -> int"], references );
 
-            static IEnumerable<string> GetReferences( IDeclaration d ) => d.GetOutboundReferences().Select( x => x.ToString() ).OrderBy( x => x );
+            static IEnumerable<string> GetReferences( IDeclaration d ) => d.GetOutboundReferences().Select( x => x.ToString()! ).OrderBy( x => x );
         }
 
         [Fact]
@@ -348,7 +347,7 @@ class MyClass {}" );
 
             Assert.Equal( ["B -> A", "B.f -> A", "B.M() -> A.M()"], references );
 
-            static IEnumerable<string> GetReferences( IDeclaration d ) => d.GetInboundReferences().Select( x => x.ToString() ).OrderBy( x => x );
+            static IEnumerable<string> GetReferences( IDeclaration d ) => d.GetInboundReferences().Select( x => x.ToString()! ).OrderBy( x => x );
         }
 
         private static void CheckWorkspace( Workspace workspace )

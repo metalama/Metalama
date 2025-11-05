@@ -137,7 +137,7 @@ var product = new Product( MetalamaDependencies.Metalama )
         "Metalama.Framework.DesignTime.Rpc.$(PackageVersion).nupkg" ),
     ExportedProperties =
     {
-        { "Metalama.Framework\\Directory.Packages.props", ["RoslynApiMaxVersion", "RoslynMaxVersion"] },
+        { "Directory.Packages.props", ["RoslynApiMaxVersion", "RoslynMaxVersion"] },
         { "Metalama.Framework\\Directory.Build.props", ["LangMaxVersion"] }
     },
     Configurations = Product.DefaultConfigurations

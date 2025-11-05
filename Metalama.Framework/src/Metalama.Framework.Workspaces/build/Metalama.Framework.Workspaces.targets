@@ -1,3 +1,3 @@
 ﻿<Project>
-    <Import Project="../../buildTransitive/Metalama.Framework.Workspace.targets"/>
+    <Import Project="../buildTransitive/Metalama.Framework.Workspace.targets"/>
 </Project>

@@ -1,8 +1,9 @@
 <Project>
 
     <Target Name="Build">
-        <Exec Command="dotnet clean $(MSBuildThisFileDirectory)WorkspaceTest/WorkspaceTest.csproj "/>
-        <Exec Command="dotnet run --project $(MSBuildThisFileDirectory)WorkspaceTest/WorkspaceTest.csproj $(MSBuildThisFileDirectory)WorkspaceTest/WorkspaceTest.csproj"/>
+        <Exec Command="dotnet build $(MSBuildThisFileDirectory)WorkspaceTest/WorkspaceTest.csproj -t:rebuild"/>
+        <Exec Command="$(MSBuildThisFileDirectory)WorkspaceTest/bin/debug/net8.0/WorkspaceTest.exe $(MSBuildThisFileDirectory)WorkspaceTest/WorkspaceTest.csproj"/>
+        <Exec Command="$(MSBuildThisFileDirectory)WorkspaceTest/bin/debug/net9.0/WorkspaceTest.exe $(MSBuildThisFileDirectory)WorkspaceTest/WorkspaceTest.csproj"/>
     </Target>
 
 </Project>

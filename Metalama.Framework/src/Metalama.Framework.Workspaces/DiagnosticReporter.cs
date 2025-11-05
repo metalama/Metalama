@@ -98,8 +98,8 @@ public static class DiagnosticReporter
                 severity,
                 id,
                 message,
-                location.Location.SourceTree?.FilePath,
-                location.Location.GetLineSpan().StartLinePosition.Line + 1,
+                location.Location?.SourceTree?.FilePath,
+                location.Location?.GetLineSpan().StartLinePosition.Line + 1,
                 location.Declaration,
                 location.Details );
 
