@@ -14,7 +14,7 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
     /// Rewriter that removes all preprocessor directives including inactive code.
     /// </summary>
     [PublicAPI]
-    public sealed class RemovePreprocessorDirectivesRewriter : SafeSyntaxRewriter
+    public class RemovePreprocessorDirectivesRewriter : SafeSyntaxRewriter
     {
         private readonly ImmutableHashSet<SyntaxKind> _preservedSyntaxKinds;
         private static readonly SyntaxTrivia _emptyTrivia = SyntaxFactory.Whitespace( "" );
@@ -90,5 +90,9 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
 
         public override SyntaxNode? VisitPragmaWarningDirectiveTrivia( PragmaWarningDirectiveTriviaSyntax node )
             => node.IsActive ? this.VisitPreprocessorDirective( node ) : null;
+
+#if ROSLYN_5_0_0_OR_GREATER
+        public override SyntaxNode? VisitIgnoredDirectiveTrivia( IgnoredDirectiveTriviaSyntax node ) => null;
+#endif        
     }
 }

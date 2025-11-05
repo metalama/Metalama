@@ -7,7 +7,7 @@
     <RestorePrerelease>true</RestorePrerelease>
   </PropertyGroup>
   <PropertyGroup>
-    <PostSharpEngineeringVersion Condition="'$(PostSharpEngineeringVersion)'==''">2023.2.271</PostSharpEngineeringVersion>
+    <PostSharpEngineeringVersion Condition="'$(PostSharpEngineeringVersion)'==''">2023.2.275</PostSharpEngineeringVersion>
   
     <!-- We must match the version used by the lowest version of Visual Studio supported by the VSX, i.e. VS 17.10. -->
     <NewtonsoftJsonMinVersion>13.0.3</NewtonsoftJsonMinVersion>
@@ -154,10 +154,10 @@
     <PackageVersion Include="Microsoft.IO.RecyclableMemoryStream" Version="3.0.1" />
 
     <PackageVersion Include="LINQPad.Reference" Version="1.4.0-preview.1" />
-    <PackageVersion Include="LINQPad.Runtime" Version="8.3.7"/>
+    <PackageVersion Include="LINQPad.Runtime" Version="8.3.7" />
     <PackageVersion Include="SharpZipLib" Version="1.4.2" />
 
-    <PackageVersion Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" Version="$(RoslynApiMaxVersion)"/>
+    <PackageVersion Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" Version="$(RoslynApiMaxVersion)" />
     
   
     <!-- These are test-only dependencies for standalone projects. -->

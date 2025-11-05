@@ -1559,5 +1559,27 @@ RemainingNamespace
                 return newCompilation.SyntaxTrees.Single( t => t.FilePath == filePath ).GetText().ToString();
             }
         }
+
+        [Fact]
+        public async Task RemoveDirectives()
+        {
+            using var testContext = this.CreateTestContext();
+
+            const string code = """
+                                #:package Metalama.Framework
+                                #define
+                                #if TRUE
+                                class C;
+                                #else
+                                Some junk
+                                #endif
+                                """;
+
+            var compilation = testContext.CreateCSharpCompilation( code, ignoreErrors: true );
+
+            var pipeline = new CompileTimeAspectPipeline( testContext.ServiceProvider );
+            var result = await pipeline.ExecuteAsync( ThrowingDiagnosticAdder.Instance.Report, null, compilation, ImmutableArray<ManagedResource>.Empty );
+            Assert.True( result.IsSuccessful );
+        }
     }
 }
