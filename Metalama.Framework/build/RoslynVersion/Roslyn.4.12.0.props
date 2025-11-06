@@ -6,8 +6,7 @@
 		<!-- ThisRoslynVersionProjectSuffix should be empty for the latest version, otherwise it should be a dot followed by ThisRoslynVersion -->
 		<ThisRoslynVersionProjectSuffix>.4.12.0</ThisRoslynVersionProjectSuffix>
 		<DefineConstants>$(DefineConstants);ROSLYN_4_12_0;ROSLYN_4_4_0_OR_GREATER;ROSLYN_4_8_0_OR_GREATER;ROSLYN_4_12_0_OR_GREATER;ROSLYN_4_12_0_OR_EARLIER</DefineConstants>
-
-		<SystemTextJsonVersion>$(SystemTextJsonLatestVersion)</SystemTextJsonVersion>
+		<SystemTextJsonVersion>8.0.5</SystemTextJsonVersion>
 
 	</PropertyGroup>
 </Project>
