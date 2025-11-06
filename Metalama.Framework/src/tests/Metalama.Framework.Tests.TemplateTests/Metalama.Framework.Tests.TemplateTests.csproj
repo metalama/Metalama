@@ -34,11 +34,14 @@
         <PackageReference Include="Metalama.Compiler.Sdk" />
         <PackageReference Include="FakeItEasy" />
         <PackageReference Include="FakeItEasy.Analyzer.CSharp" />
-        <PackageReference Include="System.Text.Json" VersionOverride="$(SystemTextJsonVersion)" />
         <PackageReference Include="Metalama.Backstage.Testing" />
 
         <!-- These packages ared used in tests -->
         <PackageReference Include="Microsoft.Win32.Registry" />
+
+        <!-- Override versions for latest security fixes. -->
+        <PackageReference Include="System.Text.Json" VersionOverride="$(SystemTextJsonLatestVersion)" />
+
     </ItemGroup>
 
     <ItemGroup>

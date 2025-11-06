@@ -50,10 +50,6 @@
 
         <!-- The following reference handles [Memo] -->
         <ProjectReference Include="../Metalama.SourceTransformer/Metalama.SourceTransformer.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
-
-        <!-- Override dependencies to avoid vulnarability warnings. -->
-        <PackageReference Include="System.Text.Json" VersionOverride="$(SystemTextJsonLatestVersion)"/>
-        <PackageReference Include="System.Formats.Asn1" VersionOverride="$(SystemFormatsAsn1LatestVersion)"/>
     </ItemGroup>
 
     <!-- === Packaging === -->

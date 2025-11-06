@@ -31,8 +31,8 @@
         <!-- Dependency of the resulting package should be on Implementation package. -->
         <ProjectReference Condition="$(ThisRoslynVersion) == $(RoslynApiMaxVersion)" Include="../Metalama.Framework.Implementation.Package/Metalama.Framework.Implementation.Package.csproj" />
 
-        <!-- Override dependencies to avoid vulnarability warnings. -->
-        <PackageReference Include="System.Text.Json" VersionOverride="$(SystemTextJsonVersion)" />
+        <!-- Override dependencies to avoid vulnerability warnings. -->
+        <PackageReference Include="System.Text.Json" VersionOverride="$(SystemTextJsonLatestVersion)" />
         <PackageReference Include="System.Net.Http" VersionOverride="$(SystemNetHttpLatestVersion)" />
         <PackageReference Include="System.Text.RegularExpressions" VersionOverride="$(SystemTextRegularExpressionsLatestVersion)" />
     </ItemGroup>

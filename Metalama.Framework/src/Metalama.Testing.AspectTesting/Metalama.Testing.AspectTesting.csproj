@@ -22,11 +22,12 @@
         <PackageReference Include="xunit.extensibility.execution" />
         <PackageReference Include="Metalama.Backstage" />
         
-        <!-- Validate that we do not expose internal APIs -->
-        <ProjectReference Include="../Metalama.Framework.Engine.Analyzers/Metalama.Framework.Engine.Analyzers.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
-
         <!-- Explicitly add Microsoft.VisualStudio.Threading and StreamJsonRpc because the reference to Metalama.Framework.DesignTime must have PrivateAssets="all" -->
         <PackageReference Include="Microsoft.VisualStudio.Threading" VersionOverride="$(MicrosoftVisualStudioThreadingLatestVersion)"/>
+
+        <!-- Resolve conflicts -->
+         <PackageReference Include="System.IO.Pipelines" VersionOverride="$(SystemIOPipelinesLatestVersion)"/>
+         <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" VersionOverride="$(MicrosoftBclAsyncInterfacesLatestVersion)" />
     </ItemGroup>
 
     <ItemGroup>
@@ -39,6 +40,9 @@
 
         <!-- Dependency of the resulting package should be on Implementation package. -->
         <ProjectReference Condition="$(ThisRoslynVersion) == $(RoslynApiMaxVersion)" Include="../Metalama.Framework.Implementation.Package/Metalama.Framework.Implementation.Package.csproj" />
+
+        <!-- Validate that we do not expose internal APIs -->
+        <ProjectReference Include="../Metalama.Framework.Engine.Analyzers/Metalama.Framework.Engine.Analyzers.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 
     </ItemGroup>
 

@@ -1,0 +1,8 @@
+<Project>
+    <Import Project="../Directory.Packages.props"/>
+
+    <ItemGroup>
+        <!-- Patterns are not loaded in VS, so we can apply security updates. -->
+        <PackageVersion Update="System.Text.Json" Version="$(SystemTextJsonLatestVersion)" />
+    </ItemGroup>
+</Project>
