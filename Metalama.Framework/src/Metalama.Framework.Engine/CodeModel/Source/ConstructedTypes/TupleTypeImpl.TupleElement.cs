@@ -3,7 +3,9 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Code;
+using Metalama.Framework.Code.Invokers;
 using Metalama.Framework.Engine.CodeModel.GenericContexts;
+using Metalama.Framework.Engine.CodeModel.Invokers;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.Utilities;
 using Microsoft.CodeAnalysis;
@@ -39,6 +41,12 @@ internal sealed partial class TupleTypeImpl
         public int Index { get; }
 
         public bool HasFriendlyName => this.FieldSymbol.CorrespondingTupleField == null || this.Name != this.FieldSymbol.CorrespondingTupleField.Name;
+
+        ref object? IExpression.Value => throw new NotSupportedException( "Cannot get the value of a tuple without the WithObject method." );
+
+        ref object? ITupleElement.Value => throw new NotSupportedException( "Cannot get the value of a tuple without the WithObject method." );
+
+        protected override IFieldOrPropertyInvoker CreateInvoker() => new TupleElementInvoker( this );
 
         [Memo]
         public IField CorrespondingTupleField

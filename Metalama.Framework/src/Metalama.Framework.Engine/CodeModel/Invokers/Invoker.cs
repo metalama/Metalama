@@ -28,7 +28,7 @@ internal abstract partial class Invoker<T>
         {
             throw new NotImplementedException( "Invoking extension members is not implemented." );
         }
-        
+
         this.Options = options;
         this.Target = target;
         this.Member = member;
@@ -80,7 +80,7 @@ internal abstract partial class Invoker<T>
         bool RequiresNullConditionalAccessMember,
         AspectReferenceSpecification AspectReferenceSpecification );
 
-    protected string GetCleanTargetMemberName()
+    protected virtual string GetCleanTargetMemberName()
     {
         var definition = this.Member.Definition;
 
