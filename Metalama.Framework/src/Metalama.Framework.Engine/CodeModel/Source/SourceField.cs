@@ -91,7 +91,7 @@ namespace Metalama.Framework.Engine.CodeModel.Source
 
         private void CheckNotPropertyBackingField()
         {
-            if ( this.IsImplicitlyDeclared )
+            if ( this.IsImplicitlyDeclared && this.FieldKind != FieldKind.TupleElement )
             {
                 throw new InvalidOperationException(
                     $"Cannot generate run-time syntax for '{this.ToDisplayString()}' because this is an implicit property-backing field." );
@@ -101,10 +101,10 @@ namespace Metalama.Framework.Engine.CodeModel.Source
         [Memo]
         private IFieldOrPropertyInvoker Invoker => this.CreateInvoker();
 
-        private FieldOrPropertyInvoker CreateInvoker()
+        protected virtual IFieldOrPropertyInvoker CreateInvoker()
         {
             this.CheckNotPropertyBackingField();
-            
+
             return new FieldOrPropertyInvoker( this );
         }
 

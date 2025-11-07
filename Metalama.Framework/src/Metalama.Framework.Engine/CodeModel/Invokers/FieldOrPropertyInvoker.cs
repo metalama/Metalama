@@ -16,7 +16,7 @@ using RefKind = Metalama.Framework.Code.RefKind;
 
 namespace Metalama.Framework.Engine.CodeModel.Invokers;
 
-internal sealed class FieldOrPropertyInvoker : Invoker<IFieldOrProperty>, IFieldOrPropertyInvoker, IUserExpression
+internal class FieldOrPropertyInvoker : Invoker<IFieldOrProperty>, IFieldOrPropertyInvoker, IUserExpression
 {
     public FieldOrPropertyInvoker(
         IFieldOrProperty fieldOrProperty,
@@ -86,14 +86,17 @@ internal sealed class FieldOrPropertyInvoker : Invoker<IFieldOrProperty>, IField
                 this.IsRef(),
                 this.Member.Writeability != Writeability.None ) );
 
+    protected virtual IFieldOrPropertyInvoker CreateInvoker( IFieldOrProperty fieldOrProperty, InvokerOptions options, IExpression? target )
+        => new FieldOrPropertyInvoker( fieldOrProperty, options, target );
+
     public IFieldOrPropertyInvoker WithOptions( InvokerOptions options )
-        => this.Options == options ? this : new FieldOrPropertyInvoker( this.Member, options, this.Target );
+        => this.Options == options ? this : this.CreateInvoker( this.Member, options, this.Target );
 
     public IFieldOrPropertyInvoker WithObject( IExpression? target )
-        => this.IsSameTarget( target ) ? this : new FieldOrPropertyInvoker( this.Member, this.Options, target );
+        => this.IsSameTarget( target ) ? this : this.CreateInvoker( this.Member, this.Options, target );
 
     public IFieldOrPropertyInvoker WithObject( object? target )
-        => this.IsSameTarget( target ) ? this : this.WithObject( CapturedUserExpression.Create(this.Compilation, target) );
+        => this.IsSameTarget( target ) ? this : this.WithObject( CapturedUserExpression.Create( this.Compilation, target ) );
 
     IFieldOrPropertyInvoker IFieldOrPropertyInvoker.With( InvokerOptions options ) => this.WithOptions( options );
 

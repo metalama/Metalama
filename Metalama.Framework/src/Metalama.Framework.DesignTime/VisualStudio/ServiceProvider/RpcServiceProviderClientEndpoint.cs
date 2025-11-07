@@ -90,7 +90,7 @@ public sealed class RpcServiceProviderClientEndpoint : ClientEndpoint
         where T : class, IRpcApi
     {
         var client = await this.GetClientAsync<RpcClient<T>>( cancellationToken );
-        
+
         return await client.GetApiAsync( cancellationToken );
     }
 
@@ -99,7 +99,7 @@ public sealed class RpcServiceProviderClientEndpoint : ClientEndpoint
     {
         await this.EnsureInitialServicesRetrievedAsync( cancellationToken );
 
-        return this.GetRequiredClient<T>();
+        return await this.GetOrWaitForClientAsync<T>( cancellationToken );
     }
 
     protected override async Task OnEventReceivedAsync( RpcEventEnvelope envelope, CancellationToken cancellationToken )

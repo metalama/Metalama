@@ -32,7 +32,7 @@ public class TheAspect : TypeAspect
 
         foreach ( var parameter in meta.Target.Parameters )
         {
-            Console.WriteLine( argsFieldType.CreateGetItemExpression( argsField, parameter.Index ).Value );
+            Console.WriteLine( argsFieldType.TupleElements[parameter.Index].WithObject( argsField ).Value );
         }
 
         return meta.Proceed();
