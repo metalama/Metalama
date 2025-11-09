@@ -2,12 +2,9 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using Metalama.Framework.Diagnostics;
-using Metalama.Framework.Engine.Diagnostics;
-using Microsoft.CodeAnalysis;
 using Newtonsoft.Json;
 
-namespace Metalama.Framework.DesignTime.Diagnostics
+namespace Metalama.Framework.ConfigurationFiles
 {
     /// <summary>
     /// Represents a JSON-serializable user diagnostic for <see cref="UserDiagnosticsConfiguration"/>.
@@ -16,7 +13,7 @@ namespace Metalama.Framework.DesignTime.Diagnostics
     public sealed class UserDiagnosticRegistration
     {
         [JsonConstructor]
-        public UserDiagnosticRegistration( string id, DiagnosticSeverity severity, string category, string title )
+        public UserDiagnosticRegistration( string id, int severity, string category, string title )
         {
             this.Severity = severity;
             this.Id = id;
@@ -24,23 +21,13 @@ namespace Metalama.Framework.DesignTime.Diagnostics
             this.Title = title;
         }
 
-        public UserDiagnosticRegistration( IDiagnosticDefinition descriptor )
-        {
-            this.Id = descriptor.Id;
-            this.Severity = descriptor.Severity.ToRoslynSeverity();
-            this.Category = descriptor.Category;
-            this.Title = "A Metalama user diagnostic.";
-        }
-
-        public DiagnosticDescriptor DiagnosticDescriptor() => new( this.Id, this.Title, "", this.Category, this.Severity, true );
-
         /// <summary>
-        /// Gets the severity of the diagnostic.
+        /// Gets the severity of the diagnostic. Maps to a value of in the Roslyn's <c>DiagnosticSeverity</c> enum.
         /// </summary>
-        public DiagnosticSeverity Severity { get; }
+        public int Severity { get; }
 
         /// <summary>
-        /// Gets an unique identifier for the diagnostic (e.g. <c>MY001</c>).
+        /// Gets a unique identifier for the diagnostic (e.g. <c>MY001</c>).
         /// </summary>
         public string Id { get; }
 

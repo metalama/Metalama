@@ -4,10 +4,11 @@
 
 using Metalama.Backstage.Configuration;
 using Newtonsoft.Json;
+using System;
 using System.Collections.Immutable;
 using System.ComponentModel;
 
-namespace Metalama.Framework.DesignTime.Diagnostics
+namespace Metalama.Framework.ConfigurationFiles
 {
     /// <summary>
     /// A JSON-serializable file that contains user-defined diagnostic and suppression descriptors.

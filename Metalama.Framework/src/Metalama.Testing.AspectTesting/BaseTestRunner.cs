@@ -7,6 +7,7 @@ using JetBrains.Annotations;
 using Metalama.Backstage.Configuration;
 using Metalama.Backstage.Infrastructure;
 using Metalama.Backstage.Utilities;
+using Metalama.Framework.ConfigurationFiles;
 using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Formatting;

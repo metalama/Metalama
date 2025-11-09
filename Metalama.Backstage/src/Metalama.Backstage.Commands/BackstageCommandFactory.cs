@@ -5,6 +5,7 @@
 using Metalama.Backstage.Commands.Configuration;
 using Metalama.Backstage.Commands.Licensing;
 using Metalama.Backstage.Commands.Maintenance;
+using Metalama.Backstage.Commands.Misc;
 using Metalama.Backstage.Commands.Rss;
 using Metalama.Backstage.Commands.Telemetry;
 using Metalama.Backstage.Commands.UserInterface;
@@ -123,7 +124,7 @@ public static class BackstageCommandFactory
                 appConfig.AddCommand<OpenUICommand>( "ui" ).WithData( options ).WithDescription( "Opens the browser-based configuration interface." );
 
                 appConfig.AddBranch(
-                    "rss",
+                    "news",
                     rss =>
                     {
                         rss.SetDescription( "Manages toast notifications for new Metalama updates." );
@@ -140,6 +141,9 @@ public static class BackstageCommandFactory
                             .WithData( options )
                             .WithDescription( "Enables automatic notifications for new Metalama updates." );
                     } );
+
+
+                appConfig.AddCommand<VersionCommand>( "version" ).WithData( options ).WithDescription( "Prints version information." );
 
                 configureMoreCommands?.Invoke( appConfig );
             } );

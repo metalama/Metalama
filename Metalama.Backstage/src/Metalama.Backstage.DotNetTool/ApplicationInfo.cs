@@ -6,7 +6,7 @@ using Metalama.Backstage.Application;
 
 namespace Metalama.Backstage.DotNetTool;
 
-internal class ApplicationInfo : ApplicationInfoBase
+internal sealed class ApplicationInfo : ApplicationInfoBase
 {
     public ApplicationInfo() : base( typeof(ApplicationInfo).Assembly ) { }
 

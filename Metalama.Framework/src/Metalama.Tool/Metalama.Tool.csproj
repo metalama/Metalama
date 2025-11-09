@@ -2,7 +2,7 @@
 
     <PropertyGroup>
         <OutputType>Exe</OutputType>
-        <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+        <TargetFramework>net8.0</TargetFramework>
         <AssemblyName>metalama</AssemblyName>
         <PackageId>Metalama.Tool</PackageId>
         <RootNamespace>Metalama.Tool</RootNamespace>
@@ -22,6 +22,9 @@
 
         <!-- Avoid error NU5017: Cannot create a package that has no dependencies nor content. -->
         <DebugType>Portable</DebugType>
+        
+        <!-- Disable nuspec customization done by Metalama.Compiler.SDK. -->
+        <MetalamaCompilerDisablePackCustomization>True</MetalamaCompilerDisablePackCustomization>
     </PropertyGroup>
 
     <PropertyGroup>
@@ -45,19 +48,24 @@
         <PackageReference Include="LibGit2Sharp" />
         <PackageReference Include="Metalama.Backstage.Commands" />
         <PackageReference Include="Microsoft.Extensions.Logging.Console" />
+        <PackageReference Include="Metalama.Compiler.Sdk"/>
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" ExcludeAssets="all"/>
+        <PackageReference Include="Microsoft.CodeAnalysis.Common" ExcludeAssets="all"/>
     </ItemGroup>
-
+    
     <ItemGroup>
-      <ProjectReference Include="../Metalama.Framework.DesignTime/Metalama.Framework.DesignTime.csproj" />
-      <ProjectReference Include="../Metalama.Framework.Engine/Metalama.Framework.Engine.csproj" />
-      <ProjectReference Include="../Metalama.Testing.AspectTesting/Metalama.Testing.AspectTesting.csproj" />
+      <ProjectReference Include="..\Metalama.Framework.ConfigurationFiles\Metalama.Framework.ConfigurationFiles.csproj" PrivateAssets="none" />
     </ItemGroup>
 
-    <!-- Exclude full pdbs from packing so the .snupkg doesn't get refused by nuget.org. -->
-    <Target Name="_ExcludeFullPdbs" AfterTargets="Build" BeforeTargets="GenerateNuspec">
+    <Target Name="_ExcludePackageFiles" AfterTargets="Build" BeforeTargets="GenerateNuspec">
         <ItemGroup>
-            <_PackageFilesToExclude Include="$(PublishDir)/runtimes/**/*.pdb" />
+            <!-- Exclude full pdbs from packing so the .snupkg doesn't get refused by nuget.org. -->
+            <_PackageFilesToExclude Include="bin/$(Configuration)/**/*.pdb" />
+            <!-- Exclude xml for smaller files. -->
+            <_PackageFilesToExclude Include="bin/$(Configuration)/**/*.xml" />
         </ItemGroup>
     </Target>
 
+
 </Project>
+
