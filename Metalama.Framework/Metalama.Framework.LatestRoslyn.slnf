@@ -10,6 +10,7 @@
       "src\\Metalama.Framework.DesignTime\\Metalama.Framework.DesignTime.csproj",
       "src\\Metalama.Framework.Engine.Analyzers\\Metalama.Framework.Engine.Analyzers.csproj",
       "src\\Metalama.Framework.Engine\\Metalama.Framework.Engine.csproj",
+      "src\\Metalama.Framework.Implementation.Package\\Metalama.Framework.Implementation.Package.csproj",
       "src\\Metalama.Framework.Introspection\\Metalama.Framework.Introspection.csproj",
       "src\\Metalama.Framework.Sdk\\Metalama.Framework.Sdk.csproj",
       "src\\Metalama.Framework.Workspaces\\Metalama.Framework.Workspaces.csproj",

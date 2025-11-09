@@ -30,6 +30,7 @@ added because the package already contains file 'analyzers/dotnet/cs/Metalama.Fr
         <ProjectReference Include="../Metalama.Framework.DesignTime/Metalama.Framework.DesignTime.csproj" PrivateAssets="all" />
         <ProjectReference Include="../Metalama.Framework.DesignTime.Contracts/Metalama.Framework.DesignTime.Contracts.csproj" PrivateAssets="all" />
         <ProjectReference Include="../Metalama.Framework.DesignTime.Rpc/Metalama.Framework.DesignTime.Rpc.csproj" PrivateAssets="all" />
+        <ProjectReference Include="../Metalama.Framework.ConfigurationFiles/Metalama.Framework.ConfigurationFiles.csproj" PrivateAssets="all" />
         <ProjectReference Include="../Metalama.Framework.Engine/Metalama.Framework.Engine.csproj" PrivateAssets="all" />
     </ItemGroup>
 
@@ -71,35 +72,54 @@ added because the package already contains file 'analyzers/dotnet/cs/Metalama.Fr
         <ItemGroup>
             <!-- NB: PDB may not exist because it's embedded (Debug configuration). -->
 
-            <TfmSpecificPackageFile Include="$(MSBuildProjectDirectory)/bin/$(Configuration)/$(TargetFramework)/Metalama.Framework.CompileTimeContracts.dll" PackagePath="lib/$(TargetFramework)" />
+            <TfmSpecificPackageFile 
+                Include="$(MSBuildProjectDirectory)/bin/$(Configuration)/$(TargetFramework)/Metalama.Framework.CompileTimeContracts.dll" 
+                PackagePath="lib/$(TargetFramework)" />
             <TfmSpecificPackageFile
                 Include="$(MSBuildProjectDirectory)/bin/$(Configuration)/$(TargetFramework)/Metalama.Framework.CompileTimeContracts.pdb"
                 Condition="Exists('$(MSBuildProjectDirectory)/bin/$(Configuration)/$(TargetFramework)/Metalama.Framework.CompileTimeContracts.pdb')"
                 PackagePath="lib/$(TargetFramework)" />
 
-            <TfmSpecificPackageFile Include="$(MSBuildProjectDirectory)/bin/$(Configuration)/$(TargetFramework)/Metalama.Framework.DesignTime.$(ThisRoslynVersionNoPreview).dll" PackagePath="lib/$(TargetFramework)" />
+            <TfmSpecificPackageFile 
+                Include="$(MSBuildProjectDirectory)/bin/$(Configuration)/$(TargetFramework)/Metalama.Framework.DesignTime.$(ThisRoslynVersionNoPreview).dll" 
+                PackagePath="lib/$(TargetFramework)" />
             <TfmSpecificPackageFile
                 Include="$(MSBuildProjectDirectory)/bin/$(Configuration)/$(TargetFramework)/Metalama.Framework.DesignTime.$(ThisRoslynVersionNoPreview).pdb"
                 Condition="Exists('$(MSBuildProjectDirectory)/bin/$(Configuration)/$(TargetFramework)/Metalama.Framework.DesignTime.$(ThisRoslynVersionNoPreview).pdb')"
                 PackagePath="lib/$(TargetFramework)" />
 
-            <TfmSpecificPackageFile Include="$(MSBuildProjectDirectory)/bin/$(Configuration)/$(TargetFramework)/Metalama.Framework.DesignTime.Rpc.dll" PackagePath="lib/$(TargetFramework)" />
+            <TfmSpecificPackageFile 
+                Include="$(MSBuildProjectDirectory)/bin/$(Configuration)/$(TargetFramework)/Metalama.Framework.DesignTime.Rpc.dll" 
+                PackagePath="lib/$(TargetFramework)" />
             <TfmSpecificPackageFile
                 Include="$(MSBuildProjectDirectory)/bin/$(Configuration)/$(TargetFramework)/Metalama.Framework.DesignTime.Rpc.pdb"
                 Condition="Exists('$(MSBuildProjectDirectory)/bin/$(Configuration)/$(TargetFramework)/Metalama.Framework.DesignTime.Rpc.pdb')"
                 PackagePath="lib/$(TargetFramework)" />
 
-            <TfmSpecificPackageFile Include="$(MSBuildProjectDirectory)/bin/$(Configuration)/$(TargetFramework)/Metalama.Framework.DesignTime.Contracts.dll" PackagePath="lib/$(TargetFramework)" />
+            <TfmSpecificPackageFile 
+                Include="$(MSBuildProjectDirectory)/bin/$(Configuration)/$(TargetFramework)/Metalama.Framework.DesignTime.Contracts.dll" 
+                PackagePath="lib/$(TargetFramework)" />
             <TfmSpecificPackageFile
                 Include="$(MSBuildProjectDirectory)/bin/$(Configuration)/$(TargetFramework)/Metalama.Framework.DesignTime.Contracts.pdb"
                 Condition="Exists('$(MSBuildProjectDirectory)/bin/$(Configuration)/$(TargetFramework)/Metalama.Framework.DesignTime.Contracts.pdb')"
                 PackagePath="lib/$(TargetFramework)" />
 
-            <TfmSpecificPackageFile Include="$(MSBuildProjectDirectory)/bin/$(Configuration)/$(TargetFramework)/Metalama.Framework.Engine.$(ThisRoslynVersionNoPreview).dll" PackagePath="lib/$(TargetFramework)" />
+            <TfmSpecificPackageFile 
+                Include="$(MSBuildProjectDirectory)/bin/$(Configuration)/$(TargetFramework)/Metalama.Framework.Engine.$(ThisRoslynVersionNoPreview).dll" 
+                PackagePath="lib/$(TargetFramework)" />
             <TfmSpecificPackageFile
                 Include="$(MSBuildProjectDirectory)/bin/$(Configuration)/$(TargetFramework)/Metalama.Framework.Engine.$(ThisRoslynVersionNoPreview).pdb"
                 Condition="Exists('$(MSBuildProjectDirectory)/bin/$(Configuration)/$(TargetFramework)/Metalama.Framework.Engine.$(ThisRoslynVersionNoPreview).pdb')"
                 PackagePath="lib/$(TargetFramework)" />
+
+            <TfmSpecificPackageFile 
+                Include="$(MSBuildProjectDirectory)/bin/$(Configuration)/$(TargetFramework)/Metalama.Framework.ConfigurationFiles.dll" 
+                PackagePath="lib/$(TargetFramework)" />
+            <TfmSpecificPackageFile
+                Include="$(MSBuildProjectDirectory)/bin/$(Configuration)/$(TargetFramework)/Metalama.Framework.ConfigurationFiles.pdb"
+                Condition="Exists('$(MSBuildProjectDirectory)/bin/$(Configuration)/$(TargetFramework)/Metalama.Framework.ConfigurationFiles.pdb')"
+                PackagePath="lib/$(TargetFramework)" />
+
         </ItemGroup>
     </Target>
     
