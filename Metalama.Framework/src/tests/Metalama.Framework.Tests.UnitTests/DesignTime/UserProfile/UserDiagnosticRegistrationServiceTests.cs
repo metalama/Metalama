@@ -3,7 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Backstage.Configuration;
-using Metalama.Framework.DesignTime.Diagnostics;
+using Metalama.Framework.ConfigurationFiles;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Tests.UnitTestHelpers.Mocks;
 using Metalama.Framework.Tests.UnitTestHelpers.TestClasses;

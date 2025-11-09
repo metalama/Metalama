@@ -161,6 +161,9 @@
     <PackageVersion Include="LINQPad.Runtime" Version="8.3.7" />
     <PackageVersion Include="SharpZipLib" Version="1.4.2" />
 
+
+    <PackageVersion Include="Microsoft.CodeAnalysis.Common" Version="$(RoslynApiMinVersion)" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="$(RoslynApiMinVersion)" />
     <PackageVersion Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" Version="$(RoslynApiMaxVersion)" />
     
   

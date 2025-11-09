@@ -5,7 +5,7 @@
 using JetBrains.Annotations;
 using Metalama.Backstage.Configuration;
 
-namespace Metalama.Testing.AspectTesting;
+namespace Metalama.Framework.ConfigurationFiles;
 
 [ConfigurationFile( "testRunner.json", "testRunner" )]
 [PublicAPI]

@@ -6,12 +6,14 @@ using Metalama.Backstage.Configuration;
 using Metalama.Backstage.Diagnostics;
 using Metalama.Framework.DesignTime.Pipeline;
 using Metalama.Framework.DesignTime.Utilities;
+using Metalama.Framework.ConfigurationFiles;
 using Metalama.Framework.Diagnostics;
 using Metalama.Framework.Engine.Collections;
 using Metalama.Framework.Engine.CompileTime.Manifest;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities;
+using Microsoft.CodeAnalysis;
 
 namespace Metalama.Framework.DesignTime.Diagnostics
 {
@@ -37,7 +39,8 @@ namespace Metalama.Framework.DesignTime.Diagnostics
         [Memo]
         public DesignTimeDiagnosticDefinitions DiagnosticDefinitions
             => new(
-                this._registrationFile.Diagnostics.SelectAsImmutableArray( d => d.Value.DiagnosticDescriptor() ),
+                this._registrationFile.Diagnostics.SelectAsImmutableArray( d => new DiagnosticDescriptor( d.Value.Id,
+                                                                               d.Value.Title, d.Value.Title, d.Value.Id, (DiagnosticSeverity) d.Value.Severity, true) ),
                 this._registrationFile.Suppressions.SelectAsImmutableArray( SuppressionFactories.CreateDescriptor ) );
 
         /// <summary>
@@ -63,7 +66,7 @@ namespace Metalama.Framework.DesignTime.Diagnostics
                         {
                             Diagnostics = f.Diagnostics.AddRange(
                                 missing.Diagnostics.SelectAsReadOnlyCollection(
-                                    d => new KeyValuePair<string, UserDiagnosticRegistration>( d.Id, new UserDiagnosticRegistration( d ) ) ) ),
+                                    d => new KeyValuePair<string, UserDiagnosticRegistration>( d.Id, new UserDiagnosticRegistration( d.Id, (int) d.Severity, d.Category, d.Title ) ) ) ),
                             Suppressions = f.Suppressions.AddRange( missing.Suppressions )
                         };
                     } );
