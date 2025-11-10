@@ -4,7 +4,6 @@
 
 using System;
 using Metalama.Framework.Aspects;
-using Metalama.Framework.Code;
 using Metalama.Framework.Fabrics;
 
 namespace Metalama.Framework.Tests.PublicPipeline.Aspects.Inheritance.Exclude_Accessor;
