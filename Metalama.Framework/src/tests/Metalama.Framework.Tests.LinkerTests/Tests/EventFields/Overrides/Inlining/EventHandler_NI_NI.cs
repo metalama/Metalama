@@ -14,22 +14,22 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.EventFields.Overrides.Inlin
     {
         private event EventHandler? Foo;
 
-        [PseudoOverride( nameof(Foo),"TestAspect")]
+        [PseudoOverride( nameof(Foo), "TestAspect" )]
         [PseudoNotInlineable]
         private event EventHandler? Foo_Override
         {
             add
             {
-                Console.WriteLine("Before");
+                Console.WriteLine( "Before" );
                 Link[This.Foo.add] += value;
-                Console.WriteLine("After");
+                Console.WriteLine( "After" );
             }
 
             remove
             {
-                Console.WriteLine("Before");
+                Console.WriteLine( "Before" );
                 Link[This.Foo.remove] -= value;
-                Console.WriteLine("After");
+                Console.WriteLine( "After" );
             }
         }
     }

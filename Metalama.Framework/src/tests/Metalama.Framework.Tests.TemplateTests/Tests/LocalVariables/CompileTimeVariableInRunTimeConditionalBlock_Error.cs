@@ -2,7 +2,6 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Engine.Templating;
 
@@ -20,7 +19,7 @@ internal class Aspect
         a++;
         i++;
 
-        if (meta.Target.Parameters[0].Value > 0)
+        if ( meta.Target.Parameters[0].Value > 0 )
         {
             var b = 0;
             var j = meta.CompileTime( 0 );
@@ -30,7 +29,7 @@ internal class Aspect
             i++;
             j++;
 
-            if (meta.Target.Parameters[1].Value > 0)
+            if ( meta.Target.Parameters[1].Value > 0 )
             {
                 var c = 0;
                 var k = meta.CompileTime( 0 );

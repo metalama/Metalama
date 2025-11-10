@@ -13,14 +13,15 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Properties.Overrides.Inlini
         [PseudoNotInlineable]
         private int Foo => 42;
 
-        [PseudoOverride(nameof(Foo),"TestAspect1")]
+        [PseudoOverride( nameof(Foo), "TestAspect1" )]
         private int Foo_Override1
         {
             get
             {
-                Console.WriteLine("Before1");
-                var x = Link(This.Foo.get);
-                Console.WriteLine("After1");
+                Console.WriteLine( "Before1" );
+                var x = Link( This.Foo.get );
+                Console.WriteLine( "After1" );
+
                 return x;
             }
         }

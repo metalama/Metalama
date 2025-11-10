@@ -14,18 +14,20 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Properties.Inliners.GetterR
         {
             get
             {
-                Console.WriteLine( "Original");
+                Console.WriteLine( "Original" );
+
                 return 42;
             }
         }
 
-        [PseudoOverride( nameof(Foo),"TestAspect")]
+        [PseudoOverride( nameof(Foo), "TestAspect" )]
         private int Foo_Override
         {
             get
             {
-                Console.WriteLine( "Before");
-                return Link( This.Foo.get, Inline);
+                Console.WriteLine( "Before" );
+
+                return Link( This.Foo.get, Inline );
             }
         }
     }

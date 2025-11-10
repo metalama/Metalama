@@ -34,7 +34,7 @@ namespace Metalama.Backstage.Infrastructure
         private void OnTimerElapsed( object? sender, ElapsedEventArgs e )
         {
             this.DateChanged?.Invoke();
-            this.ScheduleNextMidnight(); 
+            this.ScheduleNextMidnight();
         }
 
         /// <summary>

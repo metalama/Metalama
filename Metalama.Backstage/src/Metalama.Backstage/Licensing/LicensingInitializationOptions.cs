@@ -12,13 +12,10 @@ namespace Metalama.Backstage.Licensing;
 [PublicAPI]
 public record LicensingInitializationOptions
 {
-    public static LicensingInitializationOptions Default { get; } = new LicensingInitializationOptions();
+    public static LicensingInitializationOptions Default { get; } = new();
 
     public static LicensingInitializationOptions ForTest( Action<LicenseKeyDataBuilder> buildTestLicenseAction )
-        => new LicensingInitializationOptions
-        {
-            UseTestAuthority = true, IgnoredLicenseSources = LicenseSourceKind.All, BuildTestLicenseAction = buildTestLicenseAction
-        };
+        => new() { UseTestAuthority = true, IgnoredLicenseSources = LicenseSourceKind.All, BuildTestLicenseAction = buildTestLicenseAction };
 
     internal LicenseSourceKind IgnoredLicenseSources { get; init; } = LicenseSourceKind.None;
 
@@ -27,7 +24,7 @@ public record LicensingInitializationOptions
     /// This property may be set to <c>true</c> only for unit tests.
     /// </summary>
     internal bool UseTestAuthority { get; init; }
-    
+
     /// <summary>
     /// Gets a delegate that can configure a <see cref="LicenseKeyDataBuilder"/>.
     /// This property is only taken into account when <see cref="UseTestAuthority"/> is <c>true</c>.

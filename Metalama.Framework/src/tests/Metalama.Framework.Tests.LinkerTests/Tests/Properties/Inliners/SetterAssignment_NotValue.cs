@@ -16,19 +16,19 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Properties.Inliners.SetterA
         {
             set
             {
-                Console.WriteLine( "Original");
+                Console.WriteLine( "Original" );
                 this._field = value;
             }
         }
 
-        [PseudoOverride( nameof(Foo),"TestAspect")]
+        [PseudoOverride( nameof(Foo), "TestAspect" )]
         private int Foo_Override
         {
             set
             {
-                Console.WriteLine( "Before");
-                Link[ This.Foo.set, Inline ] = 42;
-                Console.WriteLine( "After");
+                Console.WriteLine( "Before" );
+                Link[This.Foo.set, Inline] = 42;
+                Console.WriteLine( "After" );
             }
         }
     }

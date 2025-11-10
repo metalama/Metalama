@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 #pragma warning disable CS8600, CS8603
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Engine.Templating;
 
@@ -17,7 +16,7 @@ namespace Metalama.Framework.Tests.AspectTests.Templating.UnsupportedSyntax.Goto
         {
             var result = meta.Proceed();
 
-            if (result != null)
+            if ( result != null )
             {
                 goto end;
             }

@@ -3,9 +3,10 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Engine.Templating;
+
+#pragma warning disable CA1310
 
 namespace Metalama.Framework.Tests.AspectTests.Templating.Syntax.Combined.ForEachParamIfName
 {
@@ -15,17 +16,17 @@ namespace Metalama.Framework.Tests.AspectTests.Templating.Syntax.Combined.ForEac
         [TestTemplate]
         private dynamic? Template()
         {
-            foreach (var p in meta.Target.Parameters)
+            foreach ( var p in meta.Target.Parameters )
             {
-                if (p.Name.Length == 1)
+                if ( p.Name.Length == 1 )
                 {
                     Console.WriteLine( "{0} = {1}", p.Name, p.Value );
                 }
             }
 
-            foreach (var p in meta.Target.Parameters)
+            foreach ( var p in meta.Target.Parameters )
             {
-                if (p.Name.StartsWith( "b" ))
+                if ( p.Name.StartsWith( "b" ) )
                 {
                     Console.WriteLine( "{0} = {1}", p.Name, p.Value );
                 }

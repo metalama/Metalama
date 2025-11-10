@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Engine.Templating;
 
@@ -29,14 +28,14 @@ namespace Metalama.Framework.Tests.AspectTests.Templating.Syntax.Switch.OldSwitc
         [TestTemplate]
         private dynamic? Template()
         {
-            switch ((int)CompileTimeEnum.one)
+            switch ( (int) CompileTimeEnum.one )
             {
-                case (int)RunTimeEnum.one:
+                case (int) RunTimeEnum.one:
                     Console.WriteLine( "1" );
 
                     break;
 
-                case (int)RunTimeEnum.two:
+                case (int) RunTimeEnum.two:
                     Console.WriteLine( "2" );
 
                     break;

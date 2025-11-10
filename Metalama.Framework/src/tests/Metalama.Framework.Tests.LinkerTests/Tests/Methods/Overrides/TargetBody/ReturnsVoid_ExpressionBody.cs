@@ -10,13 +10,13 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Overrides.TargetBod
     // <target>
     internal class Target
     {
-        private void Foo() => Console.WriteLine( "Original");
+        private void Foo() => Console.WriteLine( "Original" );
 
-        [PseudoOverride( nameof(Foo), "TestAspect")]
+        [PseudoOverride( nameof(Foo), "TestAspect" )]
         private void Foo_Override()
         {
-            Console.WriteLine("Aspect");
-            Link(This.Foo, Inline)();
+            Console.WriteLine( "Aspect" );
+            Link( This.Foo, Inline )();
         }
     }
 }

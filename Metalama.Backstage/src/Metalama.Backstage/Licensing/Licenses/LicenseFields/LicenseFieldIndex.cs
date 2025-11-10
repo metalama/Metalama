@@ -32,6 +32,7 @@ namespace Metalama.Backstage.Licensing.Licenses.LicenseFields
 
         // 128 is reserved as unknown must-understand field for testing purposes
         Generation = 129,
+
         // 130 was used for "origin version" concept, but was removed before released (there may be test keys using this field).
         ServicingPhase = 131,
 

@@ -8,164 +8,164 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Linking.NoOverrides
 {
     public class Base
     {
-        public void BaseMethod()
-        {
-        }
+        public void BaseMethod() { }
 
-        public static void BaseStaticMethod()
-        {
-        }
+        public static void BaseStaticMethod() { }
 
-        public virtual void BaseVirtualMethod()
-        {
-        }
+        public virtual void BaseVirtualMethod() { }
 
-        public virtual void BaseVirtualOverriddenMethod()
-        {
-        }
+        public virtual void BaseVirtualOverriddenMethod() { }
 
-        public virtual void BaseVirtualHiddenMethod()
-        {
-        }
+        public virtual void BaseVirtualHiddenMethod() { }
 
-        public void BaseHiddenMethod()
-        {
-        }
+        public void BaseHiddenMethod() { }
 
-        public static void BaseStaticHiddenMethod()
-        {
-        }
+        public static void BaseStaticHiddenMethod() { }
     }
 
-    [PseudoLayerOrder("TestAspect")]
+    [PseudoLayerOrder( "TestAspect" )]
+
     // <target>
     public class Target : Base
     {
+        public override void BaseVirtualOverriddenMethod() { }
 
-        public override void BaseVirtualOverriddenMethod()
-        {
-        }
+        public new virtual void BaseVirtualHiddenMethod() { }
 
-        public new virtual void BaseVirtualHiddenMethod()
-        {
-        }
+        public new void BaseHiddenMethod() { }
 
-        public new void BaseHiddenMethod()
-        {
-        }
+        public static new void BaseStaticHiddenMethod() { }
 
-        public static new void BaseStaticHiddenMethod()
-        {
-        }
+        public void LocalMethod() { }
 
-        public void LocalMethod()
-        {
-        }
+        public virtual void LocalVirtualMethod() { }
 
-        public virtual void LocalVirtualMethod()
-        {
-        }
+        public static void LocalStaticMethod() { }
 
-        public static void LocalStaticMethod()
-        {
-        }
+        public void Foo() { }
 
-        public void Foo()
-        {
-        }
-
-        [PseudoOverride(nameof(Foo), "TestAspect")]
+        [PseudoOverride( nameof(Foo), "TestAspect" )]
         public void Foo_Override()
         {
             // Should invoke this.
-            Link(This.BaseMethod, Api.Base)();
+            Link( This.BaseMethod, Api.Base )();
+
             // Should invoke this.
-            Link(This.BaseMethod, Previous )();
+            Link( This.BaseMethod, Previous )();
+
             // Should invoke this.
-            Link(This.BaseMethod, Current)();
+            Link( This.BaseMethod, Current )();
+
             // Should invoke this.
-            Link(This.BaseMethod, Final)();
+            Link( This.BaseMethod, Final )();
 
             // Should invoke current type.
-            Link(Static.Target.BaseStaticMethod, Api.Base)();
+            Link( Static.Target.BaseStaticMethod, Api.Base )();
+
             // Should invoke current type.
-            Link(Static.Target.BaseStaticMethod, Previous )();
+            Link( Static.Target.BaseStaticMethod, Previous )();
+
             // Should invoke current type.
-            Link(Static.Target.BaseStaticMethod, Current)();
+            Link( Static.Target.BaseStaticMethod, Current )();
+
             // Should invoke current type.
-            Link(Static.Target.BaseStaticMethod, Final)();
+            Link( Static.Target.BaseStaticMethod, Final )();
 
             // Should invoke base.
-            Link(This.BaseVirtualMethod, Api.Base)();
+            Link( This.BaseVirtualMethod, Api.Base )();
+
             // Should invoke base.
-            Link(This.BaseVirtualMethod, Previous )();
+            Link( This.BaseVirtualMethod, Previous )();
+
             // Should invoke base.
-            Link(This.BaseVirtualMethod, Current)();
-            // Should invoke this.
-            Link(This.BaseVirtualMethod, Final)();
-
-            // Should invoke _Source.
-            Link(This.BaseVirtualOverriddenMethod, Api.Base)();
-            // Should invoke _Source.
-            Link(This.BaseVirtualOverriddenMethod, Previous )();
-            // Should invoke _Source.
-            Link(This.BaseVirtualOverriddenMethod, Current)();
-            // Should invoke this.
-            Link(This.BaseVirtualOverriddenMethod, Final)();
-
-            // Should invoke _Source.
-            Link(This.BaseVirtualHiddenMethod, Api.Base)();
-            // Should invoke _Source.
-            Link(This.BaseVirtualHiddenMethod, Previous )();
-            // Should invoke _Source.
-            Link(This.BaseVirtualHiddenMethod, Current)();
-            // Should invoke this.
-            Link(This.BaseVirtualHiddenMethod, Final)();
+            Link( This.BaseVirtualMethod, Current )();
 
             // Should invoke this.
-            Link(This.BaseHiddenMethod, Api.Base)();
-            // Should invoke this.
-            Link(This.BaseHiddenMethod, Previous )();
-            // Should invoke this.
-            Link(This.BaseHiddenMethod, Current)();
-            // Should invoke this.
-            Link(This.BaseHiddenMethod, Final)();
-
-            // Should invoke current type.
-            Link(Static.Target.BaseStaticHiddenMethod, Api.Base)();
-            // Should invoke current type.
-            Link(Static.Target.BaseStaticHiddenMethod, Previous )();
-            // Should invoke current type.
-            Link(Static.Target.BaseStaticHiddenMethod, Current)();
-            // Should invoke current type.
-            Link(Static.Target.BaseStaticHiddenMethod, Final)();
-
-            // Should invoke this.
-            Link(This.LocalMethod, Api.Base)();
-            // Should invoke this.
-            Link(This.LocalMethod, Previous )();
-            // Should invoke this.
-            Link(This.LocalMethod, Current)();
-            // Should invoke this.
-            Link(This.LocalMethod, Final)();
+            Link( This.BaseVirtualMethod, Final )();
 
             // Should invoke _Source.
-            Link(This.LocalVirtualMethod, Api.Base)();
+            Link( This.BaseVirtualOverriddenMethod, Api.Base )();
+
             // Should invoke _Source.
-            Link(This.LocalVirtualMethod, Previous )();
+            Link( This.BaseVirtualOverriddenMethod, Previous )();
+
             // Should invoke _Source.
-            Link(This.LocalVirtualMethod, Current)();
+            Link( This.BaseVirtualOverriddenMethod, Current )();
+
             // Should invoke this.
-            Link(This.LocalVirtualMethod, Final)();
+            Link( This.BaseVirtualOverriddenMethod, Final )();
+
+            // Should invoke _Source.
+            Link( This.BaseVirtualHiddenMethod, Api.Base )();
+
+            // Should invoke _Source.
+            Link( This.BaseVirtualHiddenMethod, Previous )();
+
+            // Should invoke _Source.
+            Link( This.BaseVirtualHiddenMethod, Current )();
+
+            // Should invoke this.
+            Link( This.BaseVirtualHiddenMethod, Final )();
+
+            // Should invoke this.
+            Link( This.BaseHiddenMethod, Api.Base )();
+
+            // Should invoke this.
+            Link( This.BaseHiddenMethod, Previous )();
+
+            // Should invoke this.
+            Link( This.BaseHiddenMethod, Current )();
+
+            // Should invoke this.
+            Link( This.BaseHiddenMethod, Final )();
 
             // Should invoke current type.
-            Link(Static.Target.LocalStaticMethod, Api.Base)();
+            Link( Static.Target.BaseStaticHiddenMethod, Api.Base )();
+
             // Should invoke current type.
-            Link(Static.Target.LocalStaticMethod, Previous )();
+            Link( Static.Target.BaseStaticHiddenMethod, Previous )();
+
             // Should invoke current type.
-            Link(Static.Target.LocalStaticMethod, Current)();
+            Link( Static.Target.BaseStaticHiddenMethod, Current )();
+
             // Should invoke current type.
-            Link(Static.Target.LocalStaticMethod, Final)();
+            Link( Static.Target.BaseStaticHiddenMethod, Final )();
+
+            // Should invoke this.
+            Link( This.LocalMethod, Api.Base )();
+
+            // Should invoke this.
+            Link( This.LocalMethod, Previous )();
+
+            // Should invoke this.
+            Link( This.LocalMethod, Current )();
+
+            // Should invoke this.
+            Link( This.LocalMethod, Final )();
+
+            // Should invoke _Source.
+            Link( This.LocalVirtualMethod, Api.Base )();
+
+            // Should invoke _Source.
+            Link( This.LocalVirtualMethod, Previous )();
+
+            // Should invoke _Source.
+            Link( This.LocalVirtualMethod, Current )();
+
+            // Should invoke this.
+            Link( This.LocalVirtualMethod, Final )();
+
+            // Should invoke current type.
+            Link( Static.Target.LocalStaticMethod, Api.Base )();
+
+            // Should invoke current type.
+            Link( Static.Target.LocalStaticMethod, Previous )();
+
+            // Should invoke current type.
+            Link( Static.Target.LocalStaticMethod, Current )();
+
+            // Should invoke current type.
+            Link( Static.Target.LocalStaticMethod, Final )();
         }
     }
 }

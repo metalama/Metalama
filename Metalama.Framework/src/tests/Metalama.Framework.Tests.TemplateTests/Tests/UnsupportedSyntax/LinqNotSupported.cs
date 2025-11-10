@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System.Linq;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Engine.Templating;
 
@@ -21,7 +20,7 @@ namespace Metalama.Framework.Tests.AspectTests.Templating.UnsupportedSyntax.Linq
             var list = from i in new int[] { 1, 2, 3 }
                        select i * i;
 #pragma warning restore CS0618
-            if (result == null)
+            if ( result == null )
             {
                 result =
                     from i in list

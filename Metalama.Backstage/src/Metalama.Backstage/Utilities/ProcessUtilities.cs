@@ -76,7 +76,7 @@ public static class ProcessUtilities
             case "microsoft.codeanalysis.languageserver":
             case "microsoft.visualstudio.code.languageserver":
                 return ProcessKind.LanguageServer;
-            
+
             case "msbuild":
                 return ProcessKind.MsBuild;
 

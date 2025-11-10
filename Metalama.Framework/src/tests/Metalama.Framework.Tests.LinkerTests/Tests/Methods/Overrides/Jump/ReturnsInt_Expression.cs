@@ -10,18 +10,21 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Overrides.Jump.Retu
     // <target>
     internal class Target
     {
-        private int Foo(int x)
+        private int Foo( int x )
         {
-            Console.WriteLine( "Original Start");
-            if (x == 0)
+            Console.WriteLine( "Original Start" );
+
+            if ( x == 0 )
             {
                 return 42;
             }
-            Console.WriteLine( "Original End");
+
+            Console.WriteLine( "Original End" );
+
             return x;
         }
 
-        [PseudoOverride( nameof(Foo),"TestAspect")]
-        private int Foo_Override(int x) => Link( This.Foo, Inline)(x);
+        [PseudoOverride( nameof(Foo), "TestAspect" )]
+        private int Foo_Override( int x ) => Link( This.Foo, Inline )( x );
     }
 }

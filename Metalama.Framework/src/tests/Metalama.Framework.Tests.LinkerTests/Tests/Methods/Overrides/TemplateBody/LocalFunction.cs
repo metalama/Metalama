@@ -10,49 +10,53 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Overrides.TemplateB
     // <target>
     internal class TargetClass
     {
-        private int IntMethod(int x)
+        private int IntMethod( int x )
         {
-            Console.WriteLine("Original");
+            Console.WriteLine( "Original" );
+
             return x;
         }
 
-        [PseudoOverride( nameof(IntMethod), "TestAspect")]
-        private int IntMethod_Override(int x)
+        [PseudoOverride( nameof(IntMethod), "TestAspect" )]
+        private int IntMethod_Override( int x )
         {
             return LocalFunction() + LocalFunction();
 
             int LocalFunction()
             {
-                Console.WriteLine("Override");
-                var z = Link(This.IntMethod, Inline)(x);
+                Console.WriteLine( "Override" );
+                var z = Link( This.IntMethod, Inline )( x );
+
                 return z;
             }
         }
 
-        private string? StringMethod(string x)
+        private string? StringMethod( string x )
         {
-            Console.WriteLine("Original");
+            Console.WriteLine( "Original" );
+
             return x;
         }
 
-        [PseudoOverride(nameof(StringMethod), "TestAspect")]
-        private string? StringMethod_Override(string? x)
+        [PseudoOverride( nameof(StringMethod), "TestAspect" )]
+        private string? StringMethod_Override( string? x )
         {
             return ToUpper();
 
             string? ToUpper()
             {
-                Console.WriteLine("Override");
-                return Link(This.StringMethod, Inline)(x)?.ToUpper();
+                Console.WriteLine( "Override" );
+
+                return Link( This.StringMethod, Inline )( x )?.ToUpper();
             }
         }
 
         private void VoidMethod()
         {
-            Console.WriteLine("Original");
+            Console.WriteLine( "Original" );
         }
 
-        [PseudoOverride(nameof(VoidMethod), "TestAspect")]
+        [PseudoOverride( nameof(VoidMethod), "TestAspect" )]
         private void VoidMethod_Override()
         {
             LocalFunction();
@@ -60,8 +64,8 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Overrides.TemplateB
 
             static void LocalFunction()
             {
-                Console.WriteLine("Override");
-                Link(This.VoidMethod, Inline)();
+                Console.WriteLine( "Override" );
+                Link( This.VoidMethod, Inline )();
             }
         }
     }

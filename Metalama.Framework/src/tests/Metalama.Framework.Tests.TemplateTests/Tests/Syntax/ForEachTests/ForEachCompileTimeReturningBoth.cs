@@ -6,7 +6,6 @@
 
 using System;
 using System.Collections.Generic;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Engine.Templating;
 
@@ -26,12 +25,12 @@ namespace Metalama.Framework.Tests.AspectTests.Templating.Syntax.ForEach.Compile
         {
             var compileTimeObject = new CompileTimeClass();
 
-            foreach (var x in compileTimeObject.compileTimeEnumerable)
+            foreach ( var x in compileTimeObject.compileTimeEnumerable )
             {
                 Console.WriteLine( x.ToString() );
             }
 
-            foreach (var x in meta.RunTime( compileTimeObject.compileTimeEnumerable ))
+            foreach ( var x in meta.RunTime( compileTimeObject.compileTimeEnumerable ) )
             {
                 Console.WriteLine( x.ToString() );
             }

@@ -816,7 +816,7 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
         {
             case null:
                 // Coverage: ignore.
-                return nodeOrToken;
+                break;
 
             case ILocalSymbol when scope.GetExpressionExecutionScope() == CompileTimeOnly:
                 nodeOrToken = nodeOrToken.AddColoringAnnotation( TextSpanClassification.CompileTimeVariable );
@@ -2441,7 +2441,7 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
     }
 
 #if ROSLYN_5_0_0_OR_GREATER
-    public override SyntaxNode? VisitFieldExpression( FieldExpressionSyntax node )
+    public override SyntaxNode VisitFieldExpression( FieldExpressionSyntax node )
     {
         this.ReportUnsupportedLanguageFeature( node, "field keyword" );
 

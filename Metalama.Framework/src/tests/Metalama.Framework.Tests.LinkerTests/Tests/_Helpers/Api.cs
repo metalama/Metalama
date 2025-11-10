@@ -18,6 +18,6 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests
 
         public static dynamic Link { get; set; } = new object();
 
-        public static T Cast<T>(object o) => (T)o;
+        public static T Cast<T>( object o ) => (T) o;
     }
 }

@@ -16,28 +16,25 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Events.Inliners.RemoveAssig
         }
     }
 
-
     // <target>
     public class Target : Base
     {
-        [PseudoIntroduction("TestAspect")]
+        [PseudoIntroduction( "TestAspect" )]
         protected override event EventHandler Foo
         {
             add { }
             remove { }
         }
 
-        [PseudoOverride(nameof(Foo), "TestAspect")]
+        [PseudoOverride( nameof(Foo), "TestAspect" )]
         private event EventHandler Foo_Override
         {
-            add
-            {
-            }
+            add { }
             remove
             {
-                Console.WriteLine("Before");
+                Console.WriteLine( "Before" );
                 Link[This.Foo.add, Inline, Api.Base] -= value;
-                Console.WriteLine("After");
+                Console.WriteLine( "After" );
             }
         }
     }

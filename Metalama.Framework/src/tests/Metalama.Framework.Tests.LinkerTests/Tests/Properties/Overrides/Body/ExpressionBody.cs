@@ -13,15 +13,17 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Properties.Overrides.Body.E
     internal class Target
     {
         private int _foo = 0;
+
         private int Foo => this._foo;
 
-        [PseudoOverride( nameof(Foo),"TestAspect")]
+        [PseudoOverride( nameof(Foo), "TestAspect" )]
         private int Foo_Override
         {
             get
             {
-                Console.WriteLine( "Get");
-                return Link[ This.Foo.get, Inline ];
+                Console.WriteLine( "Get" );
+
+                return Link[This.Foo.get, Inline];
             }
         }
     }

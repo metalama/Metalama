@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System.Linq;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Engine.Templating;
 
@@ -19,7 +18,7 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Templating.Syntax.Array.Run
             var fields = meta.Target.Type.FieldsAndProperties.Where( f => !f.IsStatic & !f.IsImplicitlyDeclared ).ToReadOnlyList();
             var values = meta.RunTime( new object[fields.Count] );
 
-            foreach (var i in meta.CompileTime( Enumerable.Range( 0, fields.Count ) ))
+            foreach ( var i in meta.CompileTime( Enumerable.Range( 0, fields.Count ) ) )
             {
                 values[i] = i;
             }

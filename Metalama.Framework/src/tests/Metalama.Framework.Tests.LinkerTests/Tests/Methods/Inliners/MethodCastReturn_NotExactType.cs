@@ -10,18 +10,19 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Inliners.MethodCast
     // <target>
     internal class Target
     {
-
         private int Foo()
         {
-            Console.WriteLine( "Original");
+            Console.WriteLine( "Original" );
+
             return 42;
         }
 
-        [PseudoOverride( nameof(Foo),"TestAspect")]
+        [PseudoOverride( nameof(Foo), "TestAspect" )]
         private int Foo_Override()
         {
-            Console.WriteLine( "Before");
-            return (short)Link( This.Foo, Inline)();
+            Console.WriteLine( "Before" );
+
+            return (short) Link( This.Foo, Inline )();
         }
     }
 }

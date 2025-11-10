@@ -10,18 +10,20 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Inliners.MethodDisc
     // <target>
     internal class Target
     {
-        private int Foo(int x, int y)
+        private int Foo( int x, int y )
         {
-            Console.WriteLine( "Original");
+            Console.WriteLine( "Original" );
+
             return 42;
         }
 
-        [PseudoOverride( nameof(Foo),"TestAspect")]
-        private int Foo_Override(int x, int y)
+        [PseudoOverride( nameof(Foo), "TestAspect" )]
+        private int Foo_Override( int x, int y )
         {
-            Console.WriteLine( "Before");
-            _ = Link( This.Foo, Inline)(y, x);
-            Console.WriteLine( "After");
+            Console.WriteLine( "Before" );
+            _ = Link( This.Foo, Inline )( y, x );
+            Console.WriteLine( "After" );
+
             return 42;
         }
     }

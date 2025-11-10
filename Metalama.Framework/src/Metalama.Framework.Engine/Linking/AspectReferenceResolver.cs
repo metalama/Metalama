@@ -640,7 +640,7 @@ internal sealed class AspectReferenceResolver
                                     {
                                         ExpressionBody: AssignmentExpressionSyntax
                                         {
-                                            RawKind: (int) SyntaxKind.AddAssignmentExpression, Left: ExpressionSyntax eventExpression
+                                            RawKind: (int) SyntaxKind.AddAssignmentExpression, Left: { } eventExpression
                                         }
                                     }
                                 },

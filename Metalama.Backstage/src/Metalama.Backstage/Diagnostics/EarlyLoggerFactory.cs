@@ -47,7 +47,7 @@ internal sealed class EarlyLoggerFactory : ILoggerFactory
 
     public IDisposable EnterScope( string scope ) => default(DisposableAction);
 
-    private class Logger : ILogger
+    private sealed class Logger : ILogger
     {
         public ILogger Underlying { get; set; }
 

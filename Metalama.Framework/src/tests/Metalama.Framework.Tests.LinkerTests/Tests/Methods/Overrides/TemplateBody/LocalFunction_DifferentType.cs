@@ -10,14 +10,15 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Overrides.TemplateB
     // <target>
     internal class TargetClass
     {
-        private int IntMethod_VoidLocalFunction(int x)
+        private int IntMethod_VoidLocalFunction( int x )
         {
-            Console.WriteLine("Original");
+            Console.WriteLine( "Original" );
+
             return x;
         }
 
-        [PseudoOverride( nameof(IntMethod_VoidLocalFunction), "TestAspect")]
-        private int IntMethod_VoidLocalFunction_Override(int x)
+        [PseudoOverride( nameof(IntMethod_VoidLocalFunction), "TestAspect" )]
+        private int IntMethod_VoidLocalFunction_Override( int x )
         {
             LocalFunction();
             LocalFunction();
@@ -26,17 +27,17 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Overrides.TemplateB
 
             void LocalFunction()
             {
-                Console.WriteLine("Override");
-                _ = Link(This.IntMethod_VoidLocalFunction, Inline)(x);
+                Console.WriteLine( "Override" );
+                _ = Link( This.IntMethod_VoidLocalFunction, Inline )( x );
             }
         }
 
         private void VoidMethod_IntLocalFunction()
         {
-            Console.WriteLine("Original");
+            Console.WriteLine( "Original" );
         }
 
-        [PseudoOverride(nameof(VoidMethod_IntLocalFunction), "TestAspect")]
+        [PseudoOverride( nameof(VoidMethod_IntLocalFunction), "TestAspect" )]
         private void VoidMethod_IntLocalFunction_Override()
         {
             _ = LocalFunction();
@@ -44,26 +45,30 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Overrides.TemplateB
 
             static int LocalFunction()
             {
-                Console.WriteLine("Override");
-                Link(This.VoidMethod_IntLocalFunction, Inline)();
+                Console.WriteLine( "Override" );
+                Link( This.VoidMethod_IntLocalFunction, Inline )();
+
                 return 42;
             }
         }
-        private int IntMethod_StringLocalFunction(int x)
+
+        private int IntMethod_StringLocalFunction( int x )
         {
-            Console.WriteLine("Original");
+            Console.WriteLine( "Original" );
+
             return x;
         }
 
-        [PseudoOverride(nameof(IntMethod_StringLocalFunction), "TestAspect")]
-        private int IntMethod_StringLocalFunction_Override(int x)
+        [PseudoOverride( nameof(IntMethod_StringLocalFunction), "TestAspect" )]
+        private int IntMethod_StringLocalFunction_Override( int x )
         {
             return LocalFunction().Length + LocalFunction().Length;
 
             string LocalFunction()
             {
-                Console.WriteLine("Override");
-                var r = Link(This.IntMethod_StringLocalFunction, Inline)(x);
+                Console.WriteLine( "Override" );
+                var r = Link( This.IntMethod_StringLocalFunction, Inline )( x );
+
                 return $"{r}";
             }
         }

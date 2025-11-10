@@ -255,9 +255,9 @@ namespace Metalama.Backstage.Testing
 
         public string GetTempFileName()
         {
-            #pragma warning disable CS0618 // Obsolete: 'Insecure temporary file creation methods should not be used. 
+#pragma warning disable CS0618 // Obsolete: 'Insecure temporary file creation methods should not be used. 
             var path = this.Mock.Path.GetTempFileName();
-            #pragma warning restore CS0618
+#pragma warning restore CS0618
 
             // We don't know the path beforehand, so we set the last write time in a separate dummy step.
             return this._file.Execute( ExecutionKind.Write, WatcherChangeTypes.Created, path, _ => path );

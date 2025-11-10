@@ -3,11 +3,11 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
-using Metalama.Framework.Code;
 using Metalama.Framework.Code.SyntaxBuilders;
 using Metalama.Framework.Engine.Templating;
+
+#pragma warning disable IDE0004
 
 namespace Metalama.Framework.Tests.AspectTests.Templating.Dynamic.DynamicExpressionBuilder
 {
@@ -35,13 +35,13 @@ namespace Metalama.Framework.Tests.AspectTests.Templating.Dynamic.DynamicExpress
             expressionBuilder.AppendVerbatim( ", " );
             expressionBuilder.AppendLiteral( 1UL, true );
             expressionBuilder.AppendVerbatim( ", " );
-            expressionBuilder.AppendLiteral( (byte)1, true );
+            expressionBuilder.AppendLiteral( (byte) 1, true );
             expressionBuilder.AppendVerbatim( ", " );
-            expressionBuilder.AppendLiteral( (sbyte)1, true );
+            expressionBuilder.AppendLiteral( (sbyte) 1, true );
             expressionBuilder.AppendVerbatim( ", " );
-            expressionBuilder.AppendLiteral( (short)1, true );
+            expressionBuilder.AppendLiteral( (short) 1, true );
             expressionBuilder.AppendVerbatim( ", " );
-            expressionBuilder.AppendLiteral( (ushort)1, true );
+            expressionBuilder.AppendLiteral( (ushort) 1, true );
             expressionBuilder.AppendVerbatim( ", " );
             expressionBuilder.AppendExpression( 42 );
             expressionBuilder.AppendVerbatim( ", " );
@@ -58,7 +58,7 @@ namespace Metalama.Framework.Tests.AspectTests.Templating.Dynamic.DynamicExpress
             expressionBuilder.AppendVerbatim( ", " );
             expressionBuilder.AppendExpression( meta.Target.Parameters[0] );
             expressionBuilder.AppendVerbatim( ", typeof(" );
-            expressionBuilder.AppendTypeName( ( (IExpression)meta.Target.Parameters[0] ).Type );
+            expressionBuilder.AppendTypeName( meta.Target.Parameters[0].Type );
             expressionBuilder.AppendVerbatim( ") )" );
 
             var expression = expressionBuilder.ToExpression();

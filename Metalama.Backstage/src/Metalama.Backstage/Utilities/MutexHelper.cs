@@ -135,7 +135,7 @@ public static class MutexHelper
                             catch ( PlatformNotSupportedException e )
                             {
                                 logger?.Warning?.Log( e.ToString() );
-                                
+
                                 // Disabling for further calls.
                                 _isThreadingAccessControlAvailable = false;
                             }

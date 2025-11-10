@@ -13,7 +13,6 @@ namespace Metalama.Backstage.Licensing.Licenses;
 [PublicAPI( "Used by the license generator web page and service." )]
 public partial class LicenseKeyDataBuilder : ILicenseKeyData
 {
-
     private readonly ImmutableSortedDictionary<LicenseFieldIndex, LicenseField>.Builder _fields;
 
     IReadOnlyDictionary<LicenseFieldIndex, LicenseField> ILicenseKeyData.Fields => this._fields;

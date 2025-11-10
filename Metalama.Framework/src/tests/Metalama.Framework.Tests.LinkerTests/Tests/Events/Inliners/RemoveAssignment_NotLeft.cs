@@ -14,18 +14,16 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Events.Inliners.RemoveAssig
     {
         private event EventHandler? Foo;
 
-        [PseudoOverride(nameof(Foo), "TestAspect")]
+        [PseudoOverride( nameof(Foo), "TestAspect" )]
         private event EventHandler Foo_Override
         {
-            add
-            {
-            }
+            add { }
             remove
             {
-                Console.WriteLine("Before");
+                Console.WriteLine( "Before" );
                 EventHandler? x = null;
                 x -= Link[This.Foo.add, Inline];
-                Console.WriteLine("After");
+                Console.WriteLine( "After" );
             }
         }
     }

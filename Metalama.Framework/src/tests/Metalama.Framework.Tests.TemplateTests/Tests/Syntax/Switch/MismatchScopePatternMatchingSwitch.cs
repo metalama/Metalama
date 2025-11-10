@@ -6,7 +6,6 @@ using System;
 using System.Linq;
 using System.Collections.Generic;
 using Metalama.Framework.Code;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Engine.Templating;
 
@@ -19,7 +18,7 @@ namespace Metalama.Framework.Tests.AspectTests.Templating.Syntax.Switch.Mismatch
         {
             var o = new object();
 
-            switch (o)
+            switch ( o )
             {
                 case IParameter p:
                     Console.WriteLine( "0" );

@@ -4,7 +4,6 @@
 
 using System;
 using System.Linq;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Engine.Templating;
 
@@ -20,9 +19,9 @@ internal class Aspect
     {
         var i = meta.CompileTime( 0 );
 
-        if (meta.Target.Parameters.Single().Value > 0)
+        if ( meta.Target.Parameters.Single().Value > 0 )
         {
-            M( out i );
+            this.M( out i );
         }
 
         Console.WriteLine( $"i={i}" );

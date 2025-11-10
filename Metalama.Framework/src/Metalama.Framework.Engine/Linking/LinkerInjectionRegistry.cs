@@ -854,13 +854,13 @@ internal sealed class LinkerInjectionRegistry
             case ISymbolBasedCompilationElement symbolBasedDeclaration:
                 return (TSymbol?) this._intermediateCompilation.CompilationContext.SymbolTranslator.Translate( symbolBasedDeclaration.Symbol );
 
-            case IntroducedDeclaration { GenericContext: { IsEmptyOrIdentity: true } } introducedDeclaration:
+            case IntroducedDeclaration { GenericContext.IsEmptyOrIdentity: true } introducedDeclaration:
                 var builderData = introducedDeclaration.BuilderData;
 
                 if ( this._builderToTransformationMap.TryGetValue( builderData, out var transformation ) )
                 {
                     var injectedMember = this.GetInjectedMembersForTransformation( transformation )
-                        .FirstOrDefault( im => im.BuilderData == builderData );
+                        .FirstOrDefault( im => ReferenceEquals( im.BuilderData, builderData ) );
 
                     if ( injectedMember != null && this._injectedMemberToSymbolMap.TryGetValue( injectedMember, out var symbol ) )
                     {
@@ -873,7 +873,7 @@ internal sealed class LinkerInjectionRegistry
             case ConstructedArrayType arrayType:
                 var elementTypeSymbol = this.GetIntermediateCompilationSymbol<ITypeSymbol>( arrayType.ElementType );
 
-                if ( elementTypeSymbol is ITypeSymbol elementType )
+                if ( elementTypeSymbol is { } elementType )
                 {
                     return (TSymbol?) this._intermediateCompilation.CompilationContext.Compilation.CreateArrayTypeSymbol( elementType, arrayType.Rank );
                 }
@@ -885,7 +885,7 @@ internal sealed class LinkerInjectionRegistry
 
                 switch ( pointedAtTypeSymbol )
                 {
-                    case ITypeSymbol pointedAtType:
+                    case { } pointedAtType:
                         return (TSymbol?) this._intermediateCompilation.CompilationContext.Compilation.CreatePointerTypeSymbol( pointedAtType );
                 }
 
@@ -897,7 +897,7 @@ internal sealed class LinkerInjectionRegistry
                 if ( this._builderToTransformationMap.TryGetValue( builder, out var namedTypeTransformation ) )
                 {
                     var injectedMember = this.GetInjectedMembersForTransformation( namedTypeTransformation )
-                        .FirstOrDefault( im => im.BuilderData == builder );
+                        .FirstOrDefault( im => ReferenceEquals( im.BuilderData, builder ) );
 
                     if ( injectedMember != null && this._injectedMemberToSymbolMap.TryGetValue( injectedMember, out var symbol ) )
                     {
@@ -911,7 +911,7 @@ internal sealed class LinkerInjectionRegistry
                             {
                                 var typeArgumentSymbol = this.GetIntermediateCompilationSymbol<ITypeSymbol>( introducedNamedType.TypeArguments[i] );
 
-                                if ( typeArgumentSymbol is not ITypeSymbol typeArgument )
+                                if ( typeArgumentSymbol is not { } typeArgument )
                                 {
                                     return null;
                                 }

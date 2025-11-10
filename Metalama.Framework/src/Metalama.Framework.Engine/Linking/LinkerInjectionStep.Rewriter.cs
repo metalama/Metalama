@@ -299,7 +299,7 @@ internal sealed partial class LinkerInjectionStep
         public override SyntaxNode VisitRecordDeclaration( RecordDeclarationSyntax node ) => this.VisitTypeDeclaration( node );
 
 #if ROSLYN_5_0_0_OR_GREATER
-        public override SyntaxNode? VisitExtensionBlockDeclaration( ExtensionBlockDeclarationSyntax node ) => this.VisitTypeDeclaration( node );
+        public override SyntaxNode VisitExtensionBlockDeclaration( ExtensionBlockDeclarationSyntax node ) => this.VisitTypeDeclaration( node );
 #endif
 
         public override SyntaxNode VisitEnumDeclaration( EnumDeclarationSyntax node )
@@ -959,7 +959,7 @@ internal sealed partial class LinkerInjectionStep
                             primaryCtorBaseType
                                 .WithArgumentList(
                                     primaryCtorBaseType.ArgumentList.AddArguments(
-                                        memberLevelTransformations.Arguments.SelectAsArray( ( t, index ) => t.ToSyntax() ) ) );
+                                        memberLevelTransformations.Arguments.SelectAsArray( ( t, _ ) => t.ToSyntax() ) ) );
 
                         break;
 

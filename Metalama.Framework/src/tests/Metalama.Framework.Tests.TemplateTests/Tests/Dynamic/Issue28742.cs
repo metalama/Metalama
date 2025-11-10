@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Engine.Templating;
 
@@ -17,9 +16,9 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Templating.Dynamic.Issue287
         [TestTemplate]
         private dynamic? Template()
         {
-            foreach (var fieldOrProperty in meta.Target.Type.FieldsAndProperties)
+            foreach ( var fieldOrProperty in meta.Target.Type.FieldsAndProperties )
             {
-                if (!fieldOrProperty.IsImplicitlyDeclared && fieldOrProperty.IsAutoPropertyOrField.GetValueOrDefault())
+                if ( !fieldOrProperty.IsImplicitlyDeclared && fieldOrProperty.IsAutoPropertyOrField.GetValueOrDefault() )
                 {
                     var value = fieldOrProperty.Value;
                     Console.WriteLine( $"{fieldOrProperty.Name}={value}" );

@@ -10,44 +10,46 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Overrides.Jump.Retu
     // <target>
     internal class Target
     {
-        private void Foo(int x)
+        private void Foo( int x )
         {
-            Console.WriteLine( "Original Start");
-            if (x == 0)
+            Console.WriteLine( "Original Start" );
+
+            if ( x == 0 )
             {
                 return;
             }
 
-            Console.WriteLine( "Original End");
+            Console.WriteLine( "Original End" );
         }
 
-        [PseudoOverride( nameof(Foo),"TestAspect1")]
-        private void Foo_Override1(int x)
+        [PseudoOverride( nameof(Foo), "TestAspect1" )]
+        private void Foo_Override1( int x )
         {
-            Console.WriteLine( "Before1");
-            Link( This.Foo, Inline)(x);
-            Console.WriteLine( "After1");
+            Console.WriteLine( "Before1" );
+            Link( This.Foo, Inline )( x );
+            Console.WriteLine( "After1" );
         }
 
-        [PseudoOverride( nameof(Foo),"TestAspect2")]
-        private void Foo_Override2(int x)
+        [PseudoOverride( nameof(Foo), "TestAspect2" )]
+        private void Foo_Override2( int x )
         {
-            Console.WriteLine( "Before2");
-            if (x == 0)
+            Console.WriteLine( "Before2" );
+
+            if ( x == 0 )
             {
                 return;
             }
 
-            Link( This.Foo, Inline)(x);
-            Console.WriteLine( "After2");
+            Link( This.Foo, Inline )( x );
+            Console.WriteLine( "After2" );
         }
 
-        [PseudoOverride( nameof(Foo),"TestAspect3")]
-        private void Foo_Override3(int x)
+        [PseudoOverride( nameof(Foo), "TestAspect3" )]
+        private void Foo_Override3( int x )
         {
-            Console.WriteLine( "Before3");
-            Link( This.Foo, Inline)(x);
-            Console.WriteLine( "After3");
+            Console.WriteLine( "Before3" );
+            Link( This.Foo, Inline )( x );
+            Console.WriteLine( "After3" );
         }
     }
 }

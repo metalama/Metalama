@@ -12,11 +12,11 @@ namespace Metalama.Backstage.Licensing.Consumption;
 public sealed record LicenseConsumptionOptions
 {
     public string? ProjectLicenseKey { get; init; }
-    
+
     public string? ProjectName { get; init; }
 
     public TimeSpan? SubscriptionGracePeriod { get; init; }
-    
+
     public LicenseSourceKind IgnoredLicenseSources { get; init; } = LicenseSourceKind.None;
 
     /// <summary>

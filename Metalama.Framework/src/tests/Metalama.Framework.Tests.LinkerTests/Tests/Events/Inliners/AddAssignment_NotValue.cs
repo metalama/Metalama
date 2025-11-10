@@ -16,20 +16,20 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Events.Inliners.AddAssignme
         {
             add
             {
-                Console.WriteLine("Original");
+                Console.WriteLine( "Original" );
                 this._field += value;
             }
             remove { }
         }
 
-        [PseudoOverride(nameof(Foo), "TestAspect")]
+        [PseudoOverride( nameof(Foo), "TestAspect" )]
         private event EventHandler Foo_Override
         {
             add
             {
-                Console.WriteLine("Before");
-                Link[This.Foo.add, Inline] += (EventHandler)((s, ea) => { });
-                Console.WriteLine("After");
+                Console.WriteLine( "Before" );
+                Link[This.Foo.add, Inline] += (EventHandler) (( s, ea ) => { });
+                Console.WriteLine( "After" );
             }
             remove { }
         }

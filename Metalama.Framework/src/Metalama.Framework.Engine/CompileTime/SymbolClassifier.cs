@@ -1074,7 +1074,7 @@ internal sealed class SymbolClassifier : ISymbolClassifier
         {
             combinedScope = (typeScope.Value.Scope, combinedScope) switch
             {
-                (_, null) => typeScope?.Scope,
+                (_, null) => typeScope.Value.Scope,
                 (TemplatingScope.Conflict, _) => TemplatingScope.Conflict,
                 (_, TemplatingScope.Conflict) => TemplatingScope.Conflict,
                 (TemplatingScope.CompileTimeOnlyReturningRuntimeOnly, TemplatingScope.RunTimeOnly) => TemplatingScope.RunTimeOnly,

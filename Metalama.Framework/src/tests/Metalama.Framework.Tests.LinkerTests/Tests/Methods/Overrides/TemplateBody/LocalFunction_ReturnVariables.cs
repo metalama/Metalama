@@ -10,36 +10,41 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Overrides.TemplateB
     // <target>
     internal class TargetClass
     {
-        private int Method(int x)
+        private int Method( int x )
         {
-            Console.WriteLine("Original Begin");
+            Console.WriteLine( "Original Begin" );
+
             return x + 1;
         }
 
-        [PseudoOverride( nameof(Method), "TestAspect1")]
-        private int Method_Override1(int x)
+        [PseudoOverride( nameof(Method), "TestAspect1" )]
+        private int Method_Override1( int x )
         {
-            Console.WriteLine("Override1");
+            Console.WriteLine( "Override1" );
+
             return LocalFunction1();
 
             int LocalFunction1()
             {
-                Console.WriteLine("Override1 Local Function");
-                var y = Link(This.Method, Inline)(x);
+                Console.WriteLine( "Override1 Local Function" );
+                var y = Link( This.Method, Inline )( x );
+
                 return y;
             }
         }
 
-        [PseudoOverride(nameof(Method), "TestAspect2")]
-        private int Method_Override2(int x)
+        [PseudoOverride( nameof(Method), "TestAspect2" )]
+        private int Method_Override2( int x )
         {
-            Console.WriteLine("Override2");
+            Console.WriteLine( "Override2" );
+
             return LocalFunction2();
 
             int LocalFunction2()
             {
-                Console.WriteLine("Override2 Local Function");
-                var z = Link(This.Method, Inline)(x);
+                Console.WriteLine( "Override2 Local Function" );
+                var z = Link( This.Method, Inline )( x );
+
                 return z;
             }
         }

@@ -24,7 +24,7 @@ internal class Target : ITest
 {
     int ITest.Foo { get; set; }
 
-    [PseudoOverride(nameof(ITest.Foo), "TestAspect")]
+    [PseudoOverride( nameof(ITest.Foo), "TestAspect" )]
     public int Foo_Override
     {
         get
@@ -42,10 +42,10 @@ internal class Target : ITest
         return 42;
     }
 
-    [PseudoOverride(nameof(ITest.Bar), "TestAspect")]
+    [PseudoOverride( nameof(ITest.Bar), "TestAspect" )]
     private int Bar_Override()
     {
-        return Link(This.Cast<ITest>().Bar)();
+        return Link( This.Cast<ITest>().Bar )();
     }
 
     event EventHandler ITest.Quz
@@ -54,7 +54,7 @@ internal class Target : ITest
         remove { }
     }
 
-    [PseudoOverride(nameof(ITest.Quz), "TestAspect")]
+    [PseudoOverride( nameof(ITest.Quz), "TestAspect" )]
     private event EventHandler Quz_Override
     {
         add { Link[This.Cast<ITest>().Quz.add] += value; }

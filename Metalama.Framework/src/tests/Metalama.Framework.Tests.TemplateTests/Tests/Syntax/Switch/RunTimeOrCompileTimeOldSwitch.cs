@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Engine.Templating;
 
@@ -23,7 +22,7 @@ internal class Aspect
     [TestTemplate]
     private dynamic? Template()
     {
-        switch (SwitchEnum.one)
+        switch ( SwitchEnum.one )
         {
             case SwitchEnum.one:
                 Console.WriteLine( "1" );

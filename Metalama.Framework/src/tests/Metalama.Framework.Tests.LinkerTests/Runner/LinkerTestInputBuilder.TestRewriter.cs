@@ -109,7 +109,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
                 return base.VisitUsingDirective( node );
             }
 
-            public override SyntaxNode? VisitClassDeclaration( ClassDeclarationSyntax node )
+            public override SyntaxNode VisitClassDeclaration( ClassDeclarationSyntax node )
             {
                 var typeRewriter = new TestTypeRewriter( this );
 
@@ -123,7 +123,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
                 return newNode;
             }
 
-            public override SyntaxNode? VisitRecordDeclaration( RecordDeclarationSyntax node )
+            public override SyntaxNode VisitRecordDeclaration( RecordDeclarationSyntax node )
             {
                 var typeRewriter = new TestTypeRewriter( this );
 
@@ -137,7 +137,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
                 return newNode;
             }
 
-            public override SyntaxNode? VisitStructDeclaration( StructDeclarationSyntax node )
+            public override SyntaxNode VisitStructDeclaration( StructDeclarationSyntax node )
             {
                 var typeRewriter = new TestTypeRewriter( this );
 

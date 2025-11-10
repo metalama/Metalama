@@ -536,8 +536,6 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
             {
                 // We have a reference to a template parameter. Currently, only introductions can have template parameters, and these don't need
                 // to be renamed.
-
-                return base.TransformIdentifierName( node );
             }
             else
             {

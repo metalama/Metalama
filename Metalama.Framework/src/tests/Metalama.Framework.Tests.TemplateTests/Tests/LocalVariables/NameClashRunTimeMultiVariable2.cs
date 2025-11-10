@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Engine.Templating;
 
@@ -26,7 +25,7 @@ namespace Metalama.Framework.Tests.AspectTests.Templating.LocalVariables.NameCla
     {
         private int Method( int a, int b )
         {
-            var (i, j) = ( 4, 5 );
+            var (i, j) = (4, 5);
 
             return a + b;
         }

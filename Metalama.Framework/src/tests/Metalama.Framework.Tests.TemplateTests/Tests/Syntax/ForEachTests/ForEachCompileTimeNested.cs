@@ -4,7 +4,6 @@
 
 using System;
 using System.Linq;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Engine.Templating;
 
@@ -18,11 +17,11 @@ namespace Metalama.Framework.Tests.AspectTests.Templating.Syntax.ForEachTests.Fo
         {
             var array = meta.CompileTime( Enumerable.Range( 1, 2 ) );
 
-            foreach (var n in array)
+            foreach ( var n in array )
             {
-                foreach (var p in meta.Target.Parameters)
+                foreach ( var p in meta.Target.Parameters )
                 {
-                    if (p.Value <= n)
+                    if ( p.Value <= n )
                     {
                         Console.WriteLine( "Oops " + p.Name + " <= " + n );
                     }

@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Templating;
@@ -16,9 +15,9 @@ namespace Metalama.Framework.Tests.AspectTests.Templating.Dynamic.Issue28709
         [TestTemplate]
         private dynamic? Template()
         {
-            foreach (var p in meta.Target.Parameters)
+            foreach ( var p in meta.Target.Parameters )
             {
-                Console.WriteLine( "IsOut=" + ( p.RefKind == RefKind.Out ) );
+                Console.WriteLine( "IsOut=" + (p.RefKind == RefKind.Out) );
             }
 
             return default;

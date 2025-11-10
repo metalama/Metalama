@@ -199,7 +199,7 @@ internal sealed partial class LinkerAnalysisStep
 
                     var referencesForContainingSemantic = (List<ResolvedAspectReference>) aspectReferences.GetOrAdd(
                         containingSemantic,
-                        cs => new List<ResolvedAspectReference>() );
+                        _ => new List<ResolvedAspectReference>() );
 
                     lock ( referencesForContainingSemantic )
                     {
@@ -293,7 +293,7 @@ internal sealed partial class LinkerAnalysisStep
 
                 aspectReferenceWalker.Visit( syntax );
 
-                var existingReferences = (List<ResolvedAspectReference>) aspectReferences.GetOrAdd( semantic, cs => new List<ResolvedAspectReference>() );
+                var existingReferences = (List<ResolvedAspectReference>) aspectReferences.GetOrAdd( semantic, _ => new List<ResolvedAspectReference>() );
 
                 existingReferences.AddRange( aspectReferenceWalker.AspectReferences );
             }

@@ -195,7 +195,7 @@ Target.cs:
         var compilation = testContext.CreateCSharpCompilation(
             new Dictionary<string, string>()
             {
-                { "Aspect.cs", aspectCode.Replace( "$version$", "1" ) }, { "Target.cs", targetCode.Replace( "$version$", "1" ) }
+                { "Aspect.cs", aspectCode.ReplaceOrdinal( "$version$", "1" ) }, { "Target.cs", targetCode.ReplaceOrdinal( "$version$", "1" ) }
             },
             assemblyName: assemblyName );
 
@@ -206,14 +206,14 @@ Target.cs:
         Assert.True( factory.TryExecute( testContext.ProjectOptions, compilation, default, out var results ) );
         var dumpedResults = DumpResults( results );
 
-        AssertEx.EolInvariantEqual( expectedResult.Replace( "$AspectVersion$", "1" ).Replace( "$TargetVersion$", "1" ).Trim(), dumpedResults );
+        AssertEx.EolInvariantEqual( expectedResult.ReplaceOrdinal( "$AspectVersion$", "1" ).ReplaceOrdinal( "$TargetVersion$", "1" ).Trim(), dumpedResults );
         Assert.Equal( 1, pipeline.PipelineExecutionCount );
         Assert.Equal( 1, pipeline.PipelineInitializationCount );
 
         // Second execution with the same compilation. The result should be the same, and the number of executions should not change because the result is cached.
         Assert.True( factory.TryExecute( testContext.ProjectOptions, compilation, default, out var results2 ) );
         var dumpedResults2 = DumpResults( results2 );
-        AssertEx.EolInvariantEqual( expectedResult.Replace( "$AspectVersion$", "1" ).Replace( "$TargetVersion$", "1" ).Trim(), dumpedResults2 );
+        AssertEx.EolInvariantEqual( expectedResult.ReplaceOrdinal( "$AspectVersion$", "1" ).ReplaceOrdinal( "$TargetVersion$", "1" ).Trim(), dumpedResults2 );
         Assert.Equal( 1, pipeline.PipelineExecutionCount );
         Assert.Equal( 1, pipeline.PipelineInitializationCount );
 
@@ -221,7 +221,7 @@ Target.cs:
         var compilation3 = testContext.CreateCSharpCompilation(
             new Dictionary<string, string>()
             {
-                { "Aspect.cs", aspectCode.Replace( "$version$", "1" ) }, { "Target.cs", targetCode.Replace( "$version$", "2" ) }
+                { "Aspect.cs", aspectCode.ReplaceOrdinal( "$version$", "1" ) }, { "Target.cs", targetCode.ReplaceOrdinal( "$version$", "2" ) }
             },
             assemblyName: assemblyName );
 
@@ -232,13 +232,13 @@ Target.cs:
 
         Assert.Equal( 2, pipeline.PipelineExecutionCount );
         Assert.Equal( 1, pipeline.PipelineInitializationCount );
-        AssertEx.EolInvariantEqual( expectedResult.Replace( "$AspectVersion$", "1" ).Replace( "$TargetVersion$", "2" ).Trim(), dumpedResults3 );
+        AssertEx.EolInvariantEqual( expectedResult.ReplaceOrdinal( "$AspectVersion$", "1" ).ReplaceOrdinal( "$TargetVersion$", "2" ).Trim(), dumpedResults3 );
 
         // Forth execution, with modified aspect but not target code. This should pause the pipeline. We don't resume the pipeline, so we should get the old result.
         var compilation4 = testContext.CreateCSharpCompilation(
             new Dictionary<string, string>()
             {
-                { "Aspect.cs", aspectCode.Replace( "$version$", "2" ) }, { "Target.cs", targetCode.Replace( "$version$", "2" ) }
+                { "Aspect.cs", aspectCode.ReplaceOrdinal( "$version$", "2" ) }, { "Target.cs", targetCode.ReplaceOrdinal( "$version$", "2" ) }
             },
             assemblyName: assemblyName );
 
@@ -252,7 +252,7 @@ Target.cs:
 
         var dumpedResults4 = DumpResults( results4 );
 
-        AssertEx.EolInvariantEqual( expectedResult.Replace( "$AspectVersion$", "1" ).Replace( "$TargetVersion$", "2" ).Trim(), dumpedResults4 );
+        AssertEx.EolInvariantEqual( expectedResult.ReplaceOrdinal( "$AspectVersion$", "1" ).ReplaceOrdinal( "$TargetVersion$", "2" ).Trim(), dumpedResults4 );
         Assert.Equal( 2, pipeline.PipelineExecutionCount );
         Assert.Equal( 1, pipeline.PipelineInitializationCount );
 
@@ -269,7 +269,7 @@ Target.cs:
         var compilation5 = testContext.CreateCSharpCompilation(
             new Dictionary<string, string>()
             {
-                { "Aspect.cs", aspectCode.Replace( "$version$", "3" ) }, { "Target.cs", targetCode.Replace( "$version$", "2" ) }
+                { "Aspect.cs", aspectCode.ReplaceOrdinal( "$version$", "3" ) }, { "Target.cs", targetCode.ReplaceOrdinal( "$version$", "2" ) }
             },
             assemblyName: assemblyName );
 
@@ -280,7 +280,7 @@ Target.cs:
         Assert.True( factory.TryExecute( testContext.ProjectOptions, compilation5, default, out var results5 ) );
         var dumpedResults5 = DumpResults( results5 );
 
-        AssertEx.EolInvariantEqual( expectedResult.Replace( "$AspectVersion$", "1" ).Replace( "$TargetVersion$", "2" ).Trim(), dumpedResults5 );
+        AssertEx.EolInvariantEqual( expectedResult.ReplaceOrdinal( "$AspectVersion$", "1" ).ReplaceOrdinal( "$TargetVersion$", "2" ).Trim(), dumpedResults5 );
         Assert.Equal( 2, pipeline.PipelineExecutionCount );
         Assert.Equal( 1, pipeline.PipelineInitializationCount );
 
@@ -300,7 +300,7 @@ Target.cs:
         Assert.True( factory.TryExecute( testContext.ProjectOptions, compilation5, default, out var results6 ) );
         var dumpedResults6 = DumpResults( results6 );
 
-        AssertEx.EolInvariantEqual( expectedResult.Replace( "$AspectVersion$", "3" ).Replace( "$TargetVersion$", "2" ).Trim(), dumpedResults6 );
+        AssertEx.EolInvariantEqual( expectedResult.ReplaceOrdinal( "$AspectVersion$", "3" ).ReplaceOrdinal( "$TargetVersion$", "2" ).Trim(), dumpedResults6 );
         Assert.Equal( 3, pipeline.PipelineExecutionCount );
         Assert.Equal( 2, pipeline.PipelineInitializationCount );
         Assert.False( pipeline.IsCompileTimeSyntaxTreeOutdated( "Aspect.cs" ) );
@@ -357,11 +357,11 @@ Target.cs:
         using var testContext = this.CreateTestContext();
 
         var aspectCompilation = testContext.CreateCSharpCompilation(
-            new Dictionary<string, string>() { { "Aspect.cs", aspectCode.Replace( "$version$", "1" ) } },
+            new Dictionary<string, string>() { { "Aspect.cs", aspectCode.ReplaceOrdinal( "$version$", "1" ) } },
             assemblyName: aspectAssemblyName );
 
         var targetCompilation = testContext.CreateCSharpCompilation(
-            new Dictionary<string, string>() { { "Target.cs", targetCode.Replace( "$version$", "1" ) } },
+            new Dictionary<string, string>() { { "Target.cs", targetCode.ReplaceOrdinal( "$version$", "1" ) } },
             assemblyName: targetAssemblyName,
             additionalReferences: new[] { aspectCompilation.ToMetadataReference() } );
 
@@ -373,22 +373,22 @@ Target.cs:
         Assert.True( factory.TryExecute( testContext.ProjectOptions, targetCompilation, default, out var results ) );
         var dumpedResults = DumpResults( results );
 
-        AssertEx.EolInvariantEqual( expectedResult.Replace( "$AspectVersion$", "1" ).Replace( "$TargetVersion$", "1" ).Trim(), dumpedResults );
+        AssertEx.EolInvariantEqual( expectedResult.ReplaceOrdinal( "$AspectVersion$", "1" ).ReplaceOrdinal( "$TargetVersion$", "1" ).Trim(), dumpedResults );
         Assert.Equal( 1, targetProjectPipeline.PipelineExecutionCount );
 
         // Second execution with the same compilation. The result should be the same, and the number of executions should not change because the result is cached.
         Assert.True( factory.TryExecute( testContext.ProjectOptions, targetCompilation, default, out var results2 ) );
         var dumpedResults2 = DumpResults( results2 );
-        AssertEx.EolInvariantEqual( expectedResult.Replace( "$AspectVersion$", "1" ).Replace( "$TargetVersion$", "1" ).Trim(), dumpedResults2 );
+        AssertEx.EolInvariantEqual( expectedResult.ReplaceOrdinal( "$AspectVersion$", "1" ).ReplaceOrdinal( "$TargetVersion$", "1" ).Trim(), dumpedResults2 );
         Assert.Equal( 1, targetProjectPipeline.PipelineExecutionCount );
 
         // Third execution, with modified aspect but not target code. This should pause the pipeline. We don't resume the pipeline, so we should get the old result.
         var aspectCompilation3 = testContext.CreateCSharpCompilation(
-            new Dictionary<string, string>() { { "Aspect.cs", aspectCode.Replace( "$version$", "2" ) } },
+            new Dictionary<string, string>() { { "Aspect.cs", aspectCode.ReplaceOrdinal( "$version$", "2" ) } },
             assemblyName: aspectAssemblyName );
 
         var targetCompilation3 = testContext.CreateCSharpCompilation(
-            new Dictionary<string, string>() { { "Target.cs", targetCode.Replace( "$version$", "1" ) } },
+            new Dictionary<string, string>() { { "Target.cs", targetCode.ReplaceOrdinal( "$version$", "1" ) } },
             assemblyName: targetAssemblyName,
             additionalReferences: new[] { aspectCompilation3.ToMetadataReference() } );
 
@@ -403,7 +403,7 @@ Target.cs:
 
         var dumpedResults3 = DumpResults( results3 );
 
-        AssertEx.EolInvariantEqual( expectedResult.Replace( "$AspectVersion$", "1" ).Replace( "$TargetVersion$", "1" ).Trim(), dumpedResults3 );
+        AssertEx.EolInvariantEqual( expectedResult.ReplaceOrdinal( "$AspectVersion$", "1" ).ReplaceOrdinal( "$TargetVersion$", "1" ).Trim(), dumpedResults3 );
         Assert.Equal( 1, targetProjectPipeline.PipelineExecutionCount );
         Assert.Equal( 1, targetProjectPipeline.PipelineInitializationCount );
 
@@ -419,7 +419,7 @@ Target.cs:
         Assert.True( factory.TryExecute( testContext.ProjectOptions, targetCompilation3, default, out var results6 ) );
         var dumpedResults6 = DumpResults( results6 );
 
-        AssertEx.EolInvariantEqual( expectedResult.Replace( "$AspectVersion$", "2" ).Replace( "$TargetVersion$", "1" ).Trim(), dumpedResults6 );
+        AssertEx.EolInvariantEqual( expectedResult.ReplaceOrdinal( "$AspectVersion$", "2" ).ReplaceOrdinal( "$TargetVersion$", "1" ).Trim(), dumpedResults6 );
         await targetProjectPipeline.ProcessJobQueueWhenLockAvailableAsync();
         await aspectProjectPipeline.ProcessJobQueueWhenLockAvailableAsync();
         Assert.Equal( 2, targetProjectPipeline.PipelineExecutionCount );
@@ -484,7 +484,7 @@ partial class C
             this.TestOutput.WriteLine( "-----------------" );
             this.TestOutput.WriteLine( dumpedResults );
 
-            Assert.Equal( expectedResult.Trim().Replace( "\r\n", "\n" ), dumpedResults.Trim().Replace( "\r\n", "\n" ) );
+            Assert.Equal( expectedResult.Trim().ReplaceOrdinal( "\r\n", "\n" ), dumpedResults.Trim().ReplaceOrdinal( "\r\n", "\n" ) );
         }
 
         TestWithTargetCode( "[MyAspect] partial class C { }" );
@@ -1037,7 +1037,7 @@ class D{version}
             }
             """;
 
-        Assert.Equal( expectedResult.Replace( "\r\n", "\n" ), dumpedResults.Replace( "\r\n", "\n" ) );
+        Assert.Equal( expectedResult.ReplaceOrdinal( "\r\n", "\n" ), dumpedResults.ReplaceOrdinal( "\r\n", "\n" ) );
     }
 
     [Fact]
@@ -1130,7 +1130,7 @@ class D{version}
         Assert.Contains( results.GetAllDiagnostics(), d => d.GetMessage( CultureInfo.InvariantCulture ).Contains( "Option='THE_VALUE'" ) );
 
         // Try an update.
-        dependencyCode["fabric.cs"] = fabricCode.Replace( "THE_VALUE", "THE_UPDATED_VALUE" );
+        dependencyCode["fabric.cs"] = fabricCode.ReplaceOrdinal( "THE_VALUE", "THE_UPDATED_VALUE" );
         var updatedDependencyCompilation = testContext.CreateCSharpCompilation( dependencyCode, assemblyName: "dependency" );
 
         var updatedCompilation = testContext.CreateCSharpCompilation(
@@ -1242,7 +1242,7 @@ class D{version}
         Assert.Contains( results.GetAllDiagnostics(), d => d.GetMessage( CultureInfo.InvariantCulture ).Contains( "Option='THE_VALUE'" ) );
 
         // Try an update.
-        dependencyCode["code.cs"] = dependencyCode["code.cs"].Replace( "THE_VALUE", "THE_UPDATED_VALUE" );
+        dependencyCode["code.cs"] = dependencyCode["code.cs"].ReplaceOrdinal( "THE_VALUE", "THE_UPDATED_VALUE" );
         var updatedDependencyCompilation = testContext.CreateCSharpCompilation( dependencyCode, assemblyName: "dependency" );
 
         var updatedCompilation = testContext.CreateCSharpCompilation(
@@ -1606,11 +1606,9 @@ class D{version}
     {
         using var testContext = this.CreateTestContext();
 
-        var code = new Dictionary<string, string>();
-
         using TestDesignTimeAspectPipelineFactory factory = new( testContext );
 
-        var targetCompilation = testContext.CreateCSharpCompilation( code, "test" );
+        var targetCompilation = testContext.CreateCSharpCompilation( new Dictionary<string, string>(), "test" );
 
         var targetPipeline1 = CreatePipeline( testContext.ProjectOptions );
 

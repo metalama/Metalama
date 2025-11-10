@@ -27,7 +27,7 @@ internal sealed class ProcessExecutor : IProcessExecutor
         return new ProcessWrapper( Process.Start( startInfo ) ?? throw new InvalidOperationException( "The process could not be started." ) );
     }
 
-    private class ProcessWrapper : IProcess
+    private sealed class ProcessWrapper : IProcess
     {
         private readonly Process _process;
 

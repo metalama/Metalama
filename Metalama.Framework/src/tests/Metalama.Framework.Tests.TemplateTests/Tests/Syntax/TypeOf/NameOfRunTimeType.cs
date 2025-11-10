@@ -5,7 +5,6 @@
 #pragma warning disable CS8600, CS8603
 using System;
 using Metalama.Framework.Code;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Engine.Templating;
 
@@ -22,7 +21,7 @@ namespace Metalama.Framework.Tests.AspectTests.Templating.CSharpSyntax.TypeOf.Na
             Console.WriteLine( "rt=" + rt );
             Console.WriteLine( "ct=" + ct );
 
-            if (( (IParameter)meta.Target.Parameters[0] ).Type is INamedType { Name: nameof(MyClass1) })
+            if ( meta.Target.Parameters[0].Type is INamedType { Name: nameof(MyClass1) } )
             {
                 Console.WriteLine( "Oops" );
             }

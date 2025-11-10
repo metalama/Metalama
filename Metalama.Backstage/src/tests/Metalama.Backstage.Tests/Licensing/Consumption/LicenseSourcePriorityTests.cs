@@ -71,7 +71,7 @@ public sealed class LicenseSourcePriorityTests : LicensingTestsBase
         var hasMessage = false;
         this.CreateLicenseConsumer( false, null, null, false, _ => hasMessage = true );
         Assert.False( hasMessage );
-        
+
         // Note that trying to consume does report a message in this case.
     }
 

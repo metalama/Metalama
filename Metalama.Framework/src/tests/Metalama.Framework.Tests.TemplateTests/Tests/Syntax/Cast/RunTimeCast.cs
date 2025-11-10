@@ -4,7 +4,6 @@
 
 #pragma warning disable CS8600, CS8603
 using System;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Engine.Templating;
 
@@ -18,13 +17,13 @@ namespace Metalama.Framework.Tests.AspectTests.Templating.Syntax.Cast.RunTimeCas
         {
             object arg0 = null;
 
-            if (meta.Target.Parameters.Count > 0)
+            if ( meta.Target.Parameters.Count > 0 )
             {
                 arg0 = meta.Target.Parameters[0].Value;
 
-                if (arg0 is string)
+                if ( arg0 is string )
                 {
-                    var s = (string)arg0;
+                    var s = (string) arg0;
                     Console.WriteLine( s );
                 }
             }
@@ -33,7 +32,7 @@ namespace Metalama.Framework.Tests.AspectTests.Templating.Syntax.Cast.RunTimeCas
             object obj = result;
             var text = obj as string;
 
-            if (text != null)
+            if ( text != null )
             {
                 return text.Trim();
             }

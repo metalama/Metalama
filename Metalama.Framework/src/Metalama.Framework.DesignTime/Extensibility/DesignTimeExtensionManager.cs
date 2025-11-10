@@ -76,7 +76,7 @@ public sealed class DesignTimeExtensionManager : IGlobalService
         ImmutableArray<ICodeRefactoringProviderExtension>.Empty;
 
     private TaskCompletionSource<IDesignTimeExtension> GetExtensionAwaiter( string extensionName )
-        => this._extensionsByName.GetOrAdd( extensionName, n => new TaskCompletionSource<IDesignTimeExtension>() );
+        => this._extensionsByName.GetOrAdd( extensionName, _ => new TaskCompletionSource<IDesignTimeExtension>() );
 
     public Task<IDesignTimeExtension> GetExtensionAsync( string extensionName, CancellationToken cancellationToken )
         => this.GetExtensionAwaiter( extensionName ).Task.WithCancellation( cancellationToken );

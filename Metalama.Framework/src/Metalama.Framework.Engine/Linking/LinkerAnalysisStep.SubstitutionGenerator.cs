@@ -428,8 +428,8 @@ internal sealed partial class LinkerAnalysisStep
 
                     case
                     {
-                        ResolvedSemantic: { Symbol: IEventSymbol @event },
-                        ContainingBody: { MethodKind: MethodKind.EventAdd or MethodKind.EventRemove },
+                        ResolvedSemantic.Symbol: IEventSymbol,
+                        ContainingBody.MethodKind: MethodKind.EventAdd or MethodKind.EventRemove,
                         ContainingSemantic.Kind: IntermediateSymbolSemanticKind.Final,
                         TargetKind: AspectReferenceTargetKind.EventRaiseAccessor
                     }:
@@ -438,8 +438,8 @@ internal sealed partial class LinkerAnalysisStep
 
                     case
                     {
-                        ResolvedSemantic: { Symbol: IEventSymbol @event },
-                        ContainingBody: { MethodKind: MethodKind.EventAdd },
+                        ResolvedSemantic.Symbol: IEventSymbol @event,
+                        ContainingBody.MethodKind: MethodKind.EventAdd,
                         ContainingSemantic.Kind: IntermediateSymbolSemanticKind.Final,
                         TargetKind: AspectReferenceTargetKind.EventAddAccessor
                     } when this._injectionRegistry.HasEventRaiseOverride( @event ):
@@ -452,8 +452,8 @@ internal sealed partial class LinkerAnalysisStep
 
                     case
                     {
-                        ResolvedSemantic: { Symbol: IEventSymbol @event },
-                        ContainingBody: { MethodKind: MethodKind.EventRemove },
+                        ResolvedSemantic.Symbol: IEventSymbol @event,
+                        ContainingBody.MethodKind: MethodKind.EventRemove,
                         ContainingSemantic.Kind: IntermediateSymbolSemanticKind.Final,
                         TargetKind: AspectReferenceTargetKind.EventRemoveAccessor
                     } when this._injectionRegistry.HasEventRaiseOverride( @event ):
@@ -467,7 +467,7 @@ internal sealed partial class LinkerAnalysisStep
                     // Unified case for non-inlined references to event add/remove accessors when target has event raise overrides
                     case
                         {
-                            ResolvedSemantic: { Symbol: IEventSymbol @event },
+                            ResolvedSemantic.Symbol: IEventSymbol @event,
                             TargetKind: AspectReferenceTargetKind.EventAddAccessor or AspectReferenceTargetKind.EventRemoveAccessor
                         } when this._injectionRegistry.HasEventRaiseOverride( @event )
                                && this._eventBrokerSemanticIndex.TryGetValue(
@@ -487,7 +487,7 @@ internal sealed partial class LinkerAnalysisStep
                     case
                     {
                         ContainingBody: var method,
-                        ResolvedSemantic: { Symbol: IEventSymbol @event },
+                        ResolvedSemantic.Symbol: IEventSymbol @event,
                         TargetKind: AspectReferenceTargetKind.EventRaiseAccessor
                     }:
                         var eventBrokerInfo =
@@ -523,8 +523,6 @@ internal sealed partial class LinkerAnalysisStep
                             AddSubstitution(
                                 context,
                                 new EventRaiseBrokerCallSubstitution( this._intermediateCompilationContext, nonInlinedReference ) );
-
-                            break;
                         }
                         else if ( this._injectionRegistry.IsOverrideTarget( @event ) || this._injectionRegistry.IsOverride( @event ) )
                         {
@@ -578,7 +576,7 @@ internal sealed partial class LinkerAnalysisStep
 
                         break;
 
-                    case { ResolvedSemantic: { Symbol: IPropertySymbol { Parameters.Length: > 0 } } }:
+                    case { ResolvedSemantic.Symbol: IPropertySymbol { Parameters.Length: > 0 } }:
                         // Indexers (and in future constructors), adds aspect parameter to the target.
                         // TODO: Currently unused because indexer inlining is not supported. See AspectReferenceParameterSubstitution in history.
 
@@ -604,7 +602,7 @@ internal sealed partial class LinkerAnalysisStep
                             { Kind: IntermediateSymbolSemanticKind.Base, Symbol: { IsOverride: true, IsSealed: false } or { IsVirtual: true } }
                         }
                         when !this._injectionRegistry.IsOverrideTarget( nonInlinedReference.ResolvedSemantic.Symbol ):
-                    case { ResolvedSemantic: { Kind: IntermediateSymbolSemanticKind.Default } }
+                    case { ResolvedSemantic.Kind: IntermediateSymbolSemanticKind.Default }
                         when this._injectionRegistry.IsOverrideTarget( nonInlinedReference.ResolvedSemantic.Symbol ):
                         // Base references to non-overridden override member is rewritten to "source" member call.
                         // Default reference to override target is rewritten to "source" member call.
@@ -614,13 +612,13 @@ internal sealed partial class LinkerAnalysisStep
 
                         break;
 
-                    case { ResolvedSemantic: { Kind: IntermediateSymbolSemanticKind.Default } }
+                    case { ResolvedSemantic.Kind: IntermediateSymbolSemanticKind.Default }
                         when !this._injectionRegistry.IsOverrideTarget( nonInlinedReference.ResolvedSemantic.Symbol )
                              && !this._injectionRegistry.IsOverride( nonInlinedReference.ResolvedSemantic.Symbol ):
                         // Default non-inlined semantics that are not override targets need no substitutions.
                         break;
 
-                    case { ResolvedSemantic: { Kind: IntermediateSymbolSemanticKind.Base } }:
+                    case { ResolvedSemantic.Kind: IntermediateSymbolSemanticKind.Base }:
                         // Base references to other members are rewritten to "empty" member call.
                         AddSubstitution(
                             context,

@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Engine.Templating;
 
@@ -17,7 +16,7 @@ namespace Metalama.Framework.Tests.AspectTests.Templating.Syntax.IfTests.IfMetho
         {
             var b = meta.CompileTime( 0 );
 
-            if (meta.Target.Method.Name == "Method")
+            if ( meta.Target.Method.Name == "Method" )
             {
                 b = 1;
             }

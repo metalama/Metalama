@@ -10,7 +10,7 @@ namespace Metalama.Backstage.Utilities;
 internal abstract class ParentProcessSearchBase
 {
     public abstract IReadOnlyList<ProcessInfo> GetParentProcesses( ISet<string>? pivots = null );
-    
+
     protected ILogger Logger { get; }
 
     protected ParentProcessSearchBase( ILogger logger )

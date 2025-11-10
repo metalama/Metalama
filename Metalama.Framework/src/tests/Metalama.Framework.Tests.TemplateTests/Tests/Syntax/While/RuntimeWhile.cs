@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Engine.Templating;
 
@@ -16,7 +15,7 @@ namespace Metalama.Framework.Tests.AspectTests.Templating.Syntax.While.RunTimeWh
         {
             var i = 0;
 
-            while (i < meta.Target.Parameters.Count)
+            while ( i < meta.Target.Parameters.Count )
             {
                 i++;
             }

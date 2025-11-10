@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Engine.Templating;
 
@@ -14,7 +13,7 @@ namespace Metalama.Framework.Tests.AspectTests.Templating.Syntax.Tuples.CompileT
         [TestTemplate]
         private dynamic? Template()
         {
-            var t = meta.CompileTime( ( 1, 2, 3 ) );
+            var t = meta.CompileTime( (1, 2, 3) );
             Console.WriteLine( t.Item3 );
 
             return meta.Proceed();

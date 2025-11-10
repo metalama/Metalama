@@ -7,14 +7,10 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Introductions.Retur
     // <target>
     internal class Target
     {
-        [PseudoIntroduction("TestAspect")]
-        public void Foo()
-        {
-        }
+        [PseudoIntroduction( "TestAspect" )]
+        public void Foo() { }
 
-        [PseudoIntroduction("TestAspect")]
-        public static void Bar()
-        {
-        }
+        [PseudoIntroduction( "TestAspect" )]
+        public static void Bar() { }
     }
 }

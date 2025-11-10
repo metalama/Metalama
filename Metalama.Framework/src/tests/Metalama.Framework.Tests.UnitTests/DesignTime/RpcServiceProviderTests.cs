@@ -55,6 +55,10 @@ public sealed class RpcServiceProviderTests : UnitTestClass
         await clientEndpoint.WhenBackgroundTasksCompletedAsync( testContext.CancellationToken );
 
         Assert.True( clientEndpoint.IsClientAvailable<ExtensionServiceClient>() );
+
+        var api = await clientEndpoint.GetApiAsync<IExtensionService>( testContext.CancellationToken );
+        api.Hello();
+        Assert.True( extensionServiceFactory.IsHelloMethodCalled );
     }
 
     private sealed class Extension : IDesignTimeExtension
@@ -100,7 +104,7 @@ public sealed class RpcServiceProviderTests : UnitTestClass
 
     private sealed class ExtensionServiceFactory : IRpcServiceFactory
     {
-        public string? ExtensionName => _extensionName;
+        public string ExtensionName => _extensionName;
 
         public RpcService CreateRpcService( GlobalServiceProvider serviceProvider, ServerEndpoint endpoint ) => new ExtensionServiceImpl( endpoint, this );
 

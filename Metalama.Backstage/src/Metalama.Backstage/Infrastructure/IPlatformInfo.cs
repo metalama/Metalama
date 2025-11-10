@@ -8,7 +8,6 @@ namespace Metalama.Backstage.Infrastructure
 {
     public interface IPlatformInfo : IBackstageService
     {
-
         string DotNetExePath { get; }
     }
 }

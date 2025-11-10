@@ -134,7 +134,7 @@ public partial class TestContext : ITempFileManager, IApplicationInfoProvider, I
             typedAdditionalServices.GlobalServices.Add(
                 sp => sp.WithService<IProjectOptionsFactory>( _ => new TestProjectOptionsFactory( this.ProjectOptions ) ) );
 
-            typedAdditionalServices.ProjectServices.Add( sp => new TestLanguageVersionProvider() );
+            typedAdditionalServices.ProjectServices.Add( _ => new TestLanguageVersionProvider() );
 
             backstageServices = typedAdditionalServices.BackstageServices.Build( backstageServices );
 
@@ -260,7 +260,9 @@ public partial class TestContext : ITempFileManager, IApplicationInfoProvider, I
         }
     }
 
+#pragma warning disable CA1822
     DateTime IDateTimeProvider.UtcNow => DateTime.UtcNow;
+#pragma warning restore CA1822
 
     event Action? IDateTimeProvider.DateChanged
     {
@@ -311,5 +313,7 @@ public partial class TestContext : ITempFileManager, IApplicationInfoProvider, I
 
     public void Dispose() => this.Dispose( true );
 
+#pragma warning disable CA1822
     IApplicationInfo IApplicationInfoProvider.CurrentApplication => _applicationInfo;
+#pragma warning restore CA1822
 }

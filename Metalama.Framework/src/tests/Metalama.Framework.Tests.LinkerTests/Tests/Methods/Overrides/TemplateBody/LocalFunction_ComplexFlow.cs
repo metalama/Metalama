@@ -10,62 +10,69 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Overrides.TemplateB
     // <target>
     internal class TargetClass
     {
-        private int Method(int x)
+        private int Method( int x )
         {
-            Console.WriteLine("Original Begin");
+            Console.WriteLine( "Original Begin" );
+
             return x + 1;
         }
 
-        [PseudoOverride( nameof(Method), "TestAspect1")]
-        private int Method_Override1(int x)
+        [PseudoOverride( nameof(Method), "TestAspect1" )]
+        private int Method_Override1( int x )
         {
-            Console.WriteLine("Override1 Begin");
+            Console.WriteLine( "Override1 Begin" );
 
-            if (x > 0)
+            if ( x > 0 )
             {
                 return LocalFunction1();
             }
 
-            Console.WriteLine("Override1 End");
+            Console.WriteLine( "Override1 End" );
 
             return 0;
 
             int LocalFunction1()
             {
-                Console.WriteLine("Override1 Local Function Begin");
-                if (x > 0)
+                Console.WriteLine( "Override1 Local Function Begin" );
+
+                if ( x > 0 )
                 {
-                    return Link(This.Method, Inline)(x); ;
+                    return Link( This.Method, Inline )( x );
+
+                    ;
                 }
 
-                Console.WriteLine("Override1 Local Function End");
+                Console.WriteLine( "Override1 Local Function End" );
+
                 return 0;
             }
         }
 
-        [PseudoOverride(nameof(Method), "TestAspect2")]
-        private int Method_Override2(int x)
+        [PseudoOverride( nameof(Method), "TestAspect2" )]
+        private int Method_Override2( int x )
         {
-            Console.WriteLine("Override2 Begin");
+            Console.WriteLine( "Override2 Begin" );
 
-            if (x > 0)
+            if ( x > 0 )
             {
                 return LocalFunction1();
             }
 
-            Console.WriteLine("Override2 End");
+            Console.WriteLine( "Override2 End" );
 
             return 0;
 
             int LocalFunction1()
             {
-                Console.WriteLine("Override2 Local Function Begin");
-                if (x > 0)
+                Console.WriteLine( "Override2 Local Function Begin" );
+
+                if ( x > 0 )
                 {
-                    return Link(This.Method, Inline)(x);
+                    return Link( This.Method, Inline )( x );
                 }
 
-                Console.WriteLine("Override2 Local Function End");
+                Console.WriteLine( "Override2 Local Function End" );
+
                 return 0;
             }
         }

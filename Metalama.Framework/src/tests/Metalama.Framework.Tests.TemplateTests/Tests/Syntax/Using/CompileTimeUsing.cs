@@ -5,7 +5,6 @@
 #pragma warning disable CS0162
 
 using System;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Engine.Templating;
 
@@ -22,12 +21,12 @@ namespace Metalama.Framework.Tests.AspectTests.Templating.Syntax.Using.CompileTi
         [TestTemplate]
         private dynamic? Template()
         {
-            using (new DisposableClass())
+            using ( new DisposableClass() )
             {
                 return meta.Proceed();
             }
 
-            using (DisposableClass c = null) { }
+            using ( DisposableClass c = null ) { }
         }
     }
 

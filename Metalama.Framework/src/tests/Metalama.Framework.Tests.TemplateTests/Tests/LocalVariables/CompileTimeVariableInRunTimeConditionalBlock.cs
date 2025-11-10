@@ -4,11 +4,12 @@
 
 using System;
 using System.Linq;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Engine.Templating;
 
 namespace Metalama.Framework.Tests.AspectTests.Templating.LocalVariables.CompileTimeVariableInRunTimeConditionalBlock;
+
+#pragma warning disable IDE0054
 
 [CompileTime]
 internal class Aspect
@@ -16,7 +17,7 @@ internal class Aspect
     [TestTemplate]
     private dynamic? Template()
     {
-        if (meta.Target.Parameters.Single().Value > 0)
+        if ( meta.Target.Parameters.Single().Value > 0 )
         {
             var i = meta.CompileTime( 0 );
             i++;

@@ -96,11 +96,10 @@ public class Target : Base
     {
     }
   }
-  public event System.EventHandler Foo
+  public event EventHandler Foo
   {
     add
-    {
-      // Should invoke this.
+    { // Should invoke this.
       this.BaseMethod += value;
       // Should invoke this.
       this.BaseMethod += value;
@@ -182,8 +181,7 @@ public class Target : Base
       Target.LocalStaticMethod += value;
     }
     remove
-    {
-      // Should invoke this.
+    { // Should invoke this.
       this.BaseMethod -= value;
       // Should invoke this.
       this.BaseMethod -= value;

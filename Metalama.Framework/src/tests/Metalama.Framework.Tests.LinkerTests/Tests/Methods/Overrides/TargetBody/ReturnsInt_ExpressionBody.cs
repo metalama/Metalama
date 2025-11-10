@@ -12,11 +12,12 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Overrides.TargetBod
     {
         private int Foo() => 42;
 
-        [PseudoOverride( nameof(Foo), "TestAspect")]
+        [PseudoOverride( nameof(Foo), "TestAspect" )]
         private int Foo_Override()
         {
-            Console.WriteLine("Aspect");
-            return Link(This.Foo, Inline)();
+            Console.WriteLine( "Aspect" );
+
+            return Link( This.Foo, Inline )();
         }
     }
 }

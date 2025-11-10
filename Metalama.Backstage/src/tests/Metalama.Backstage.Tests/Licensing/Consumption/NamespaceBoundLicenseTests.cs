@@ -15,14 +15,16 @@ public sealed class NamespaceBoundLicenseTests : LicenseConsumptionServiceTestsB
     public NamespaceBoundLicenseTests( ITestOutputHelper logger ) : base( logger ) { }
 
     [Theory]
-    [InlineData(TestLicenseKeyProvider.NamespaceConstraint, true )]
-    [InlineData(TestLicenseKeyProvider.NamespaceConstraint + ".Yes", true )]
-    [InlineData(null, false )]
-    [InlineData("", false )]
-    [InlineData("AnotherNamespace", false )]
+    [InlineData( TestLicenseKeyProvider.NamespaceConstraint, true )]
+    [InlineData( TestLicenseKeyProvider.NamespaceConstraint + ".Yes", true )]
+    [InlineData( null, false )]
+    [InlineData( "", false )]
+    [InlineData( "AnotherNamespace", false )]
     public void TestWithProjectName( string? projectName, bool expectedResult )
     {
-        var consumer = this.CreateConsumptionService( LicenseKeyProvider.MetalamaProfessionalEvaluationNamespaceConstrained ).CreateConsumer( new LicenseConsumptionOptions() { ProjectName = projectName });
-        Assert.Equal( expectedResult, consumer.TryConsume( new MetalamaExtensionLicenseRequirement( "<ComponentName>" ) ) );   
+        var consumer = this.CreateConsumptionService( LicenseKeyProvider.MetalamaProfessionalEvaluationNamespaceConstrained )
+            .CreateConsumer( new LicenseConsumptionOptions() { ProjectName = projectName } );
+
+        Assert.Equal( expectedResult, consumer.TryConsume( new MetalamaExtensionLicenseRequirement( "<ComponentName>" ) ) );
     }
 }

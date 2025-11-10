@@ -9,15 +9,15 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Overrides.Signature
     // <target>
     internal class Target
     {
-        private int Foo(int x)
+        private int Foo( int x )
         {
             return x;
         }
 
-        [PseudoOverride( nameof(Foo),"TestAspect")]
-        private int Foo_Override(int x)
+        [PseudoOverride( nameof(Foo), "TestAspect" )]
+        private int Foo_Override( int x )
         {
-            return Link( This.Foo, Inline)(x);
+            return Link( This.Foo, Inline )( x );
         }
     }
 }

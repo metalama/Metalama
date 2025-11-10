@@ -14,10 +14,10 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Overrides.Signature
             return 42;
         }
 
-        [PseudoOverride( nameof(Foo),"TestAspect")]
+        [PseudoOverride( nameof(Foo), "TestAspect" )]
         private int Foo_Override()
         {
-            return Link( This.Foo, Inline)();
+            return Link( This.Foo, Inline )();
         }
     }
 }

@@ -60,7 +60,7 @@ internal sealed class ProfilingService : IProfilingService
             ProfilerContainer.StartProfiler( this._tempFileManager, this._configuration, this._logger );
 #endif
         }
-        
+
         this._initialized = true;
     }
 
@@ -73,7 +73,7 @@ internal sealed class ProfilingService : IProfilingService
         {
             throw new InvalidOperationException();
         }
-        
+
         if ( this._configuration.Profiling.Processes.TryGetValue( this._processKind.ToString(), out var enabled ) && enabled )
         {
             // ReSharper disable once RedundantBlankLines

@@ -6,8 +6,6 @@ using System;
 
 namespace Metalama.Framework.Tests.LinkerTests.Tests
 {
-    [AttributeUsage(AttributeTargets.All)]
-    public class PseudoNotDiscardable : Attribute
-    {
-    }
+    [AttributeUsage( AttributeTargets.All )]
+    public class PseudoNotDiscardable : Attribute { }
 }

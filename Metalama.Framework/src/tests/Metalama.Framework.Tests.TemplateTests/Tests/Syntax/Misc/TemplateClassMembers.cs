@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Engine.Templating;
 
@@ -27,7 +26,7 @@ namespace Metalama.Framework.Tests.AspectTests.Templating.CSharpSyntax.TemplateC
 
         public override string? Format( object? o )
         {
-            return o == null ? null : string.Format( FormatString, o );
+            return o == null ? null : string.Format( this.FormatString, o );
         }
     }
 
@@ -36,7 +35,7 @@ namespace Metalama.Framework.Tests.AspectTests.Templating.CSharpSyntax.TemplateC
     {
         protected BaseAspect( string formatString )
         {
-            FormatString = formatString;
+            this.FormatString = formatString;
         }
 
         public string FormatString { get; set; }

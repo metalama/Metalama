@@ -46,7 +46,7 @@ internal class WebServerCommand : AsyncCommand<WebServerCommandSettings>
 
         // Add services to the container.
         var app = builder.Build();
-        
+
         app.Services.GetRequiredService<RecaptchaService>().Initialize();
 
         app.UseCors();

@@ -1,4 +1,1 @@
-root = true
-
-[*.cs]
-dotnet_analyzer_diagnostic.severity = none
+../../../../../eng/style/AspectTests.editorconfig

@@ -7,24 +7,22 @@ using Metalama.Framework.Engine.Templating;
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Templating.Syntax.Misc.CompileTimeThis
 {
-    class Aspect
+    internal class Aspect
     {
         [TestTemplate]
-        dynamic Template()
+        private dynamic Template()
         {
+            Console.WriteLine( CompileTimeMethod( this ) );
 
-            Console.WriteLine(CompileTimeMethod( this ));
-            
             return 0;
         }
 
-        static string CompileTimeMethod( Aspect a ) => a.ToString()!;
-
+        private static string CompileTimeMethod( Aspect a ) => a.ToString()!;
     }
 
-    class TargetCode
+    internal class TargetCode
     {
-        int Method(int a)
+        private int Method( int a )
         {
             return a;
         }

@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 #pragma warning disable CS8600, CS8603
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Engine.Templating;
 
@@ -18,7 +17,7 @@ namespace Metalama.Framework.Tests.AspectTests.Templating.ReturnStatements.Retur
             var a = meta.Target.Parameters[0];
             var b = meta.Target.Parameters[1];
 
-            if (a.Value == null || b.Value == null)
+            if ( a.Value == null || b.Value == null )
             {
                 return null;
             }

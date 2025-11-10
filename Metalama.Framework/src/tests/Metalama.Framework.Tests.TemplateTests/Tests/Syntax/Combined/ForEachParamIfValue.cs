@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Engine.Templating;
 
@@ -15,9 +14,9 @@ namespace Metalama.Framework.Tests.AspectTests.Templating.Syntax.Combined.ForEac
         [TestTemplate]
         private dynamic? Template()
         {
-            foreach (var p in meta.Target.Parameters)
+            foreach ( var p in meta.Target.Parameters )
             {
-                if (p.Value == null)
+                if ( p.Value == null )
                 {
                     throw new ArgumentNullException( p.Name );
                 }

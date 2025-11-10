@@ -19,17 +19,15 @@ internal class Aspect
 
         // Dynamic initializer.
         meta.DefineLocalVariable( "myLocal", typeof(int), 2 );
-        
-              // Expression initializer.
-              meta.DefineLocalVariable( "myLocal", typeof(int), meta.Target.Parameters[0] );
 
+        // Expression initializer.
+        meta.DefineLocalVariable( "myLocal", typeof(int), meta.Target.Parameters[0] );
 
-              // Var, dynamic initializer.
-              meta.DefineLocalVariable( "myLocal", 3 );
+        // Var, dynamic initializer.
+        meta.DefineLocalVariable( "myLocal", 3 );
 
-              // Var, expression initializer.
-              meta.DefineLocalVariable( "myLocal", meta.Target.Parameters[0] );
-      
+        // Var, expression initializer.
+        meta.DefineLocalVariable( "myLocal", meta.Target.Parameters[0] );
 
         return meta.Proceed();
     }

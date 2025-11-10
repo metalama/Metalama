@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Engine.Templating;
 
@@ -19,9 +18,9 @@ internal class Aspect
     {
         var fieldName = meta.CompileTime( "" );
 
-        if (meta.This.logMembers)
+        if ( meta.This.logMembers )
         {
-            foreach (var field in meta.Target.Type.FieldsAndProperties)
+            foreach ( var field in meta.Target.Type.FieldsAndProperties )
             {
                 fieldName = field.Name;
             }

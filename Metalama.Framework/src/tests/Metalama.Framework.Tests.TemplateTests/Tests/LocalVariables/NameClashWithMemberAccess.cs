@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Engine.Templating;
 
@@ -17,13 +16,13 @@ namespace Metalama.Framework.Tests.AspectTests.Templating.LocalVariables.NameCla
         {
             var n = meta.Target.Parameters.Count; // build-time
 
-            if (n == 1)
+            if ( n == 1 )
             {
                 var WriteLine = 0;
                 Console.WriteLine( WriteLine );
             }
 
-            if (n == 1)
+            if ( n == 1 )
             {
                 var WriteLine = 1;
                 Console.WriteLine( WriteLine );

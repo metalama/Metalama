@@ -17,23 +17,22 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Properties.Overrides.Body.B
                 return 42;
             }
 
-            set
-            {
-            }
+            set { }
         }
 
-        [PseudoOverride( nameof(Foo),"TestAspect")]
+        [PseudoOverride( nameof(Foo), "TestAspect" )]
         private int Foo_Override
         {
             get
             {
-                Console.WriteLine( "Get");
-                return Link[ This.Foo.get, Inline ];
+                Console.WriteLine( "Get" );
+
+                return Link[This.Foo.get, Inline];
             }
             set
             {
-                Console.WriteLine( "Set");
-                Link[ This.Foo.set, Inline ] = value;
+                Console.WriteLine( "Set" );
+                Link[This.Foo.set, Inline] = value;
             }
         }
     }

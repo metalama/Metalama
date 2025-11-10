@@ -25,9 +25,9 @@ public partial class EventBrokerTests
             this._onBrokerInvoke = onBrokerInvoke;
 
             var adapter = new DelegateEventAdapter<RefnessDelegate, (int InParam, string? OutParam, DateTime RefParam, string? ReturnValue), TestClassRefness>(
-                ( RefnessDelegate h, ref (int InParam, string? OutParam, DateTime RefParam, string? ReturnValue) args, TestClassRefness i )
+                ( h, ref args, i )
                     => i.OnEventViaBroker( h, ref args ),
-                broker => ( in int inParam, out string? outParam, ref DateTime refParam ) =>
+                broker => ( in inParam, out outParam, ref refParam ) =>
                 {
                     var args = (inParam, outParam: default(string?), refParam, ReturnValue: (string?) null);
                     broker.InvokeByRef( ref args );

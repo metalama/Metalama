@@ -14,16 +14,18 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Inliners.MethodLoca
     {
         private int Foo()
         {
-            Console.WriteLine( "Original");
+            Console.WriteLine( "Original" );
+
             return 42;
         }
 
-        [PseudoOverride( nameof(Foo),"TestAspect")]
+        [PseudoOverride( nameof(Foo), "TestAspect" )]
         private int Foo_Override()
         {
-            Console.WriteLine( "Before");
-            int y = 0, x = Link( This.Foo, Inline)();
-            Console.WriteLine( "After");
+            Console.WriteLine( "Before" );
+            int y = 0, x = Link( This.Foo, Inline )();
+            Console.WriteLine( "After" );
+
             return x;
         }
     }

@@ -54,7 +54,6 @@ namespace Metalama.Framework.Engine.Linking
                         members.Add(
                             this.GetTrampolineForEvent(
                                 eventDeclaration,
-                                symbol,
                                 lastOverride.ToSemantic( IntermediateSymbolSemanticKind.Default ),
                                 context ) );
                     }
@@ -121,7 +120,7 @@ namespace Metalama.Framework.Engine.Linking
 
                 return
                 [
-                    this.GetTrampolineForEvent( eventDeclaration, null, symbol.ToSemantic( IntermediateSymbolSemanticKind.Base ), context ),
+                    this.GetTrampolineForEvent( eventDeclaration, symbol.ToSemantic( IntermediateSymbolSemanticKind.Base ), context ),
                     this.GetOriginalImplEvent( eventDeclaration, symbol, context )
                 ];
             }
@@ -433,7 +432,6 @@ namespace Metalama.Framework.Engine.Linking
 
         private EventDeclarationSyntax GetTrampolineForEvent(
             EventDeclarationSyntax @event,
-            IEventSymbol? contextEventSymbol,
             IntermediateSymbolSemantic<IEventSymbol> targetSemantic,
             SyntaxGenerationContext context )
         {
