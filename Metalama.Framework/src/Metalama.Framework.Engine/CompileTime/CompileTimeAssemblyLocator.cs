@@ -197,12 +197,13 @@ internal sealed class CompileTimeAssemblyLocator
         // Also provide our embedded assemblies.
 
         var embeddedAssemblies =
-            new[] { _compileTimeFrameworkAssemblyName, _compilerInterfaceAssemblyName }.SelectAsImmutableArray( name
-                => (MetadataReference)
-                MetadataReference.CreateFromStream(
-                    this.GetType().Assembly.GetManifestResourceStream( name + ".dll" )
-                    ?? throw new InvalidOperationException( $"{name}.dll not found in assembly manifest resources." ),
-                    filePath: $"[{this.GetType().Assembly.Location}]{name}.dll" ) );
+            new[] { _compileTimeFrameworkAssemblyName, _compilerInterfaceAssemblyName }.SelectAsImmutableArray(
+                name
+                    => (MetadataReference)
+                    MetadataReference.CreateFromStream(
+                        this.GetType().Assembly.GetManifestResourceStream( name + ".dll" )
+                        ?? throw new InvalidOperationException( $"{name}.dll not found in assembly manifest resources." ),
+                        filePath: $"[{this.GetType().Assembly.Location}]{name}.dll" ) );
 
         this._logger.Trace?.Log( "System assemblies: " + string.Join( ", ", referencePaths ) );
         this._logger.Trace?.Log( "Metalama assemblies: " + string.Join( ", ", metalamaImplementationPaths ) );

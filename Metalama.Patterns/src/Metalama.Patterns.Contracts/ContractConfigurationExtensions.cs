@@ -33,8 +33,7 @@ public static class ContractConfigurationExtensions
     /// <summary>
     /// Configures <see cref="ContractOptions"/> for the given <see cref="IFieldOrPropertyOrIndexer"/>.
     /// </summary>
-    public static void ConfigureContracts( this IQuery<IFieldOrPropertyOrIndexer> query, ContractOptions options )
-        => query.SetOptions( options );
+    public static void ConfigureContracts( this IQuery<IFieldOrPropertyOrIndexer> query, ContractOptions options ) => query.SetOptions( options );
 
     /// <summary>
     /// Configures <see cref="ContractOptions"/> for the given <see cref="IMethod"/>.

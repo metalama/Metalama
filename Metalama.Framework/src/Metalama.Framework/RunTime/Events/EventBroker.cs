@@ -178,7 +178,7 @@ public static class EventBroker
     public static void EnsureInitialized<TDelegate, TArgs, TState>(
         ref EventBroker<TDelegate, TArgs, TState>? field,
         DelegateEventAdapter<TDelegate, TArgs, TState> adapter,
-        TState state = default! ) 
+        TState state = default! )
         where TDelegate : Delegate
     {
         EventBroker<TDelegate, TArgs, TState>.EnsureInitializedImpl( ref field, adapter, state );

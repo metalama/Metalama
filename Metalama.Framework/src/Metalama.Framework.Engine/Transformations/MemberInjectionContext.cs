@@ -20,7 +20,13 @@ internal sealed class MemberInjectionContext : TransformationContext
         ITemplateLexicalScopeProvider lexicalScopeProvider,
         AspectReferenceSyntaxProvider aspectReferenceSyntaxProvider,
         SyntaxGenerationContext syntaxGenerationContext,
-        CompilationModel compilation ) : base( serviceProvider, diagnosticSink, syntaxGenerationContext, compilation, lexicalScopeProvider, aspectReferenceSyntaxProvider )
+        CompilationModel compilation ) : base(
+        serviceProvider,
+        diagnosticSink,
+        syntaxGenerationContext,
+        compilation,
+        lexicalScopeProvider,
+        aspectReferenceSyntaxProvider )
     {
         this.InjectionNameProvider = injectionNameProvider;
     }

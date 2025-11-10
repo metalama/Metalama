@@ -7,8 +7,10 @@ using Metalama.Backstage.Diagnostics;
 namespace Metalama.Extensions.DependencyInjection.AspectTests.Aspect.Lazy_Struct;
 
 // <target>
-public struct TargetStruct()
+public readonly struct TargetStruct( int x )
 {
+    public int X { get; } = x;
+
     [Dependency( IsLazy = true )]
     private readonly ILogger _logger;
 }

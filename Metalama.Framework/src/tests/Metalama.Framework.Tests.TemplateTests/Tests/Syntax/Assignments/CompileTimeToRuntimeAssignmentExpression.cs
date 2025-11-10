@@ -4,7 +4,6 @@
 
 #pragma warning disable CS0219
 
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Engine.Templating;
 

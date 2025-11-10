@@ -3,24 +3,16 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Aspects;
-using Microsoft.CodeAnalysis.Scripting;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 // https://github.com/metalama/Metalama/issues/426
 
 namespace Metalama.Extensions.DependencyInjection.AspectTests.Bugs.Issue426;
 
 // <target>
-public class ClientWeb 
+public class ClientWeb
 {
-    public ClientWeb( object appSettings, bool throwOnError = true )
-    {
-    }
+    public ClientWeb( object appSettings, bool throwOnError = true ) { }
 
     [ExtractedResultLoggingAspect]
     public void Foo() { }
@@ -29,23 +21,23 @@ public class ClientWeb
 // <target>
 public class ScriptedClient : ClientWeb
 {
-    protected ILogger<ScriptedClient> _logger;
+    protected ILogger<ScriptedClient> Logger;
 
     public ScriptedClient( object appSettings, ILogger<ScriptedClient> logger ) : base( appSettings )
     {
-        _logger = logger;
+        this.Logger = logger;
     }
 
     [ExtractedResultLoggingAspect]
     public void Bar() { }
 }
 
-
 public class ExtractedResultLoggingAspect : OverrideMethodAspect
 {
-    [IntroduceDependency] private readonly ILogger _logger;
+    [IntroduceDependency]
+    private readonly ILogger _logger;
 
-    public override dynamic? OverrideMethod()
+    public override dynamic OverrideMethod()
     {
         throw new NotImplementedException();
     }

@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Engine.Templating;
 
@@ -17,7 +16,7 @@ namespace Metalama.Framework.Tests.AspectTests.Templating.Syntax.Tuples.CompileT
             var a = meta.CompileTime( 1 );
             var b = meta.CompileTime( 2 );
 
-            var namedItems = meta.CompileTime( ( a, b ) );
+            var namedItems = meta.CompileTime( (a, b) );
             Console.WriteLine( namedItems.a );
 
             return meta.Proceed();

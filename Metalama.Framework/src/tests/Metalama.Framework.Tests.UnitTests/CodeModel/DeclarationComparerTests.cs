@@ -8,6 +8,8 @@ using Metalama.Testing.UnitTesting;
 using System.Linq;
 using Xunit;
 
+// ReSharper disable InconsistentNaming
+
 namespace Metalama.Framework.Tests.UnitTests.CodeModel
 {
     public sealed class DeclarationComparerTests : UnitTestClass

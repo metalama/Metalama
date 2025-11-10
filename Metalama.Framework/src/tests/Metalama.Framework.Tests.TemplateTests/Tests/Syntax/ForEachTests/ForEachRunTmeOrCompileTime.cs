@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Engine.Templating;
 
@@ -15,7 +14,7 @@ internal class Aspect
     [TestTemplate]
     private void Template()
     {
-        foreach (var i in new[] { 42 })
+        foreach ( var i in new[] { 42 } )
         {
             Console.WriteLine( i );
         }

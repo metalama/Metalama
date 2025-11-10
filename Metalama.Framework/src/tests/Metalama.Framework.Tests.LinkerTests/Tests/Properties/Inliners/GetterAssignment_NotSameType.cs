@@ -21,25 +21,27 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Properties.Inliners.GetterA
     // <target>
     internal class Target : Base
     {
-        [PseudoIntroduction(nameof(Foo), "TestAspect")]
+        [PseudoIntroduction( nameof(Foo), "TestAspect" )]
         public override int Foo
         {
             get
             {
-                Console.WriteLine( "Original");
+                Console.WriteLine( "Original" );
+
                 return 42;
             }
         }
 
-        [PseudoOverride( nameof(Foo),"TestAspect")]
+        [PseudoOverride( nameof(Foo), "TestAspect" )]
         private int Foo_Override
         {
             get
             {
-                Console.WriteLine( "Before");
+                Console.WriteLine( "Before" );
                 int x;
-                x = Link( This.Foo.get, Inline, Api.Base);
-                Console.WriteLine( "After");
+                x = Link( This.Foo.get, Inline, Api.Base );
+                Console.WriteLine( "After" );
+
                 return x;
             }
         }

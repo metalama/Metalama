@@ -140,8 +140,7 @@ public sealed class NotEmptyAttributeTests
     {
         var cut = new NotEmptyTestClass();
 
-        var e = Assert.Throws<ArgumentException>(
-            () => cut.IReadOnlyCollectionMethod( new List<int>().AsReadOnly() ) );
+        var e = Assert.Throws<ArgumentException>( () => cut.IReadOnlyCollectionMethod( new List<int>().AsReadOnly() ) );
 
         Assert.Contains( "parameter", e.Message, StringComparison.Ordinal );
     }
@@ -151,8 +150,7 @@ public sealed class NotEmptyAttributeTests
     {
         var cut = new NotEmptyTestClass();
 
-        Assert.Throws<ArgumentNullException>(
-            () => cut.Array( null! ) );
+        Assert.Throws<ArgumentNullException>( () => cut.Array( null! ) );
     }
 
     [Fact]
@@ -192,7 +190,6 @@ public sealed class NotEmptyAttributeTests
     {
         var cut = new NotEmptyTestClass();
 
-        Assert.Throws<ArgumentException>(
-            () => cut.ImmutableArray( ImmutableArray<int>.Empty ) );
+        Assert.Throws<ArgumentException>( () => cut.ImmutableArray( ImmutableArray<int>.Empty ) );
     }
 }

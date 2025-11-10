@@ -14,11 +14,9 @@ internal sealed partial class SyntaxRef<T>
 
     public override void EnumerateAttributes( CompilationModel compilation, Action<AttributeRef> add ) => throw new NotImplementedException();
 
-    public override void EnumerateAllImplementedInterfaces( Action<IFullRef<INamedType>> add )
-        => throw new NotImplementedException();
+    public override void EnumerateAllImplementedInterfaces( Action<IFullRef<INamedType>> add ) => throw new NotImplementedException();
 
-    public override void EnumerateImplementedInterfaces( Action<IFullRef<INamedType>> add )
-        => throw new NotImplementedException();
+    public override void EnumerateImplementedInterfaces( Action<IFullRef<INamedType>> add ) => throw new NotImplementedException();
 
     public override IEnumerable<IFullRef> GetMembersOfName( string name, DeclarationKind kind, CompilationModel compilation )
         => throw new NotImplementedException();

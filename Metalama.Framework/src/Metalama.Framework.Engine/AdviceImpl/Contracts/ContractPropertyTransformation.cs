@@ -64,7 +64,13 @@ internal sealed class ContractPropertyTransformation : ContractBaseTransformatio
             Invariant.Assert( targetProperty.GetMethod is not null );
 
             var returnVariableName = context.GetReturnValueVariableName();
-            outputResult = this.TryExecuteTemplate( context, IdentifierName( returnVariableName ), targetProperty.Type, targetProperty.GetMethod, out outputContractBlock );
+
+            outputResult = this.TryExecuteTemplate(
+                context,
+                IdentifierName( returnVariableName ),
+                targetProperty.Type,
+                targetProperty.GetMethod,
+                out outputContractBlock );
         }
         else
         {

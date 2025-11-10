@@ -11,28 +11,30 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Properties.Overrides.Jump.N
     internal class Target
     {
         private int _foo;
+
         private int Foo
         {
             get
             {
-                return _foo;
+                return this._foo;
             }
 
             set
             {
-                _foo = value;
+                this._foo = value;
             }
         }
 
-        [PseudoOverride( nameof(Foo),"TestAspect1")]
+        [PseudoOverride( nameof(Foo), "TestAspect1" )]
         private int Foo_Override1
         {
             get
             {
-                Console.WriteLine( "Get1");
+                Console.WriteLine( "Get1" );
                 int foo;
-                foo = Link( This.Foo.get, Inline);
-                if (foo > 0)
+                foo = Link( This.Foo.get, Inline );
+
+                if ( foo > 0 )
                 {
                     return foo;
                 }
@@ -43,10 +45,11 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Properties.Overrides.Jump.N
             }
             set
             {
-                Console.WriteLine( "Set1");
-                if (value != 0)
+                Console.WriteLine( "Set1" );
+
+                if ( value != 0 )
                 {
-                    Link[ This.Foo.set, Inline ] = value;
+                    Link[This.Foo.set, Inline] = value;
                 }
                 else
                 {
@@ -55,18 +58,19 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Properties.Overrides.Jump.N
             }
         }
 
-        [PseudoOverride( nameof(Foo),"TestAspect2")]
+        [PseudoOverride( nameof(Foo), "TestAspect2" )]
         private int Foo_Override2
         {
             get
             {
-                Console.WriteLine( "Get2");
-                return Link[ This.Foo.get, Inline ];
+                Console.WriteLine( "Get2" );
+
+                return Link[This.Foo.get, Inline];
             }
             set
             {
-                Console.WriteLine( "Set2");
-                Link[ This.Foo.set, Inline ] = value;
+                Console.WriteLine( "Set2" );
+                Link[This.Foo.set, Inline] = value;
             }
         }
     }

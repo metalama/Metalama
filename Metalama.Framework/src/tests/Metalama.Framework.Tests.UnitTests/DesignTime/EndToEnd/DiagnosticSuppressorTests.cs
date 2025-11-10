@@ -64,13 +64,13 @@ public sealed class DiagnosticSuppressorTests : UnitTestClass
                                 public class SuppressWarningAttribute : MethodAspect
                                 {
                                     private static readonly SuppressionDefinition _suppression1 = new( "CS0219" );
-                            
+
                                     public override void BuildAspect( IAspectBuilder<IMethod> builder )
                                     {
                                         builder.Diagnostics.Suppress( _suppression1, builder.Target );
                                     }
                                 }
-                            
+
                                 // <target>
                                 internal class TargetClass
                                 {
@@ -79,7 +79,7 @@ public sealed class DiagnosticSuppressorTests : UnitTestClass
                                     {
                                         var x = 0;
                                     }
-                            
+
                                     // CS0219 expected
                                     private void M1( string m )
                                     {
@@ -109,13 +109,13 @@ public sealed class DiagnosticSuppressorTests : UnitTestClass
                                 public class SuppressWarningAttribute : FieldAspect
                                 {
                                     private static readonly SuppressionDefinition _suppression1 = new( "CS0169" );
-                            
+
                                     public override void BuildAspect( IAspectBuilder<IField> builder )
                                     {
                                         builder.Diagnostics.Suppress( _suppression1, builder.Target );
                                     }
                                 }
-                            
+
                                 // <target>
                                 internal class TargetClass
                                 {
@@ -145,7 +145,7 @@ public sealed class DiagnosticSuppressorTests : UnitTestClass
                             class SuppressWarningAttribute : ConstructorAspect
                             {
                                 private static readonly SuppressionDefinition _suppression = new("CS8618");
-                            
+
                                 public override void BuildAspect(IAspectBuilder<IConstructor> builder)
                                 {
                                     builder.Diagnostics.Suppress(
@@ -157,7 +157,7 @@ public sealed class DiagnosticSuppressorTests : UnitTestClass
                             {
                                 object o1;
                                 object o2;
-                            
+
                                 [SuppressWarning]
                                 public TargetClass() { }
                             }
@@ -166,7 +166,7 @@ public sealed class DiagnosticSuppressorTests : UnitTestClass
                             {
                                 object o1;
                                 object o2;
-                            
+
                                 public AnotherClass() { }
                             }
                             """;
@@ -194,7 +194,7 @@ public sealed class DiagnosticSuppressorTests : UnitTestClass
                             public class SuppressWarningAttribute : TypeAspect
                             {
                                 private static readonly SuppressionDefinition _suppression1 = new( "CS0169" );
-                            
+
                                 public override void BuildAspect( IAspectBuilder<INamedType> builder )
                                 {
                                     builder.Diagnostics.Suppress( _suppression1, builder.Target );

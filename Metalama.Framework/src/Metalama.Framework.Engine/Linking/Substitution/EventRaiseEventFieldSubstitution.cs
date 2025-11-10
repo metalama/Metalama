@@ -33,7 +33,11 @@ internal sealed class EventRaiseEventFieldSubstitution : SyntaxNodeSubstitution
         {
             case IdentifierNameSyntax identifierName:
                 // Replacing the direct invocation.
-                return IdentifierName( Identifier( TriviaList( identifierName.Identifier.LeadingTrivia ), this._targetEvent.Name, TriviaList( identifierName.Identifier.TrailingTrivia ) ) );
+                return IdentifierName(
+                    Identifier(
+                        TriviaList( identifierName.Identifier.LeadingTrivia ),
+                        this._targetEvent.Name,
+                        TriviaList( identifierName.Identifier.TrailingTrivia ) ) );
 
             case MemberAccessExpressionSyntax { Expression: { }, Name: IdentifierNameSyntax identifierName } simpleMemberAccess:
                 // Replacing the this expression invocation.
@@ -47,27 +51,30 @@ internal sealed class EventRaiseEventFieldSubstitution : SyntaxNodeSubstitution
 
             case InvocationExpressionSyntax
             {
-                Expression: MemberAccessExpressionSyntax 
+                Expression: MemberAccessExpressionSyntax
                 {
-                    Expression: IdentifierNameSyntax { Identifier.ValueText: LinkerInjectionHelperProvider.HelperTypeName, Identifier.LeadingTrivia: var leadingTrivia },
+                    Expression: IdentifierNameSyntax
+                    {
+                        Identifier.ValueText: LinkerInjectionHelperProvider.HelperTypeName, Identifier.LeadingTrivia: var leadingTrivia
+                    },
                     Name: IdentifierNameSyntax { Identifier.ValueText: LinkerInjectionHelperProvider.EventRaiseMemberName }
                 },
-                ArgumentList.Arguments: 
+                ArgumentList.Arguments:
                 [
                     {
-                        Expression: ParenthesizedLambdaExpressionSyntax 
+                        Expression: ParenthesizedLambdaExpressionSyntax
                         {
-                            ExpressionBody: AssignmentExpressionSyntax { Left: MemberAccessExpressionSyntax eventMemberAccess } 
-                        } 
+                            ExpressionBody: AssignmentExpressionSyntax { Left: MemberAccessExpressionSyntax eventMemberAccess }
+                        }
                     },
                     ..
                 ] arguments,
                 ArgumentList.CloseParenToken.TrailingTrivia: var trailingTrivia
             }:
                 // Replacing the linker expression.
-                var backingFieldAccess = 
+                var backingFieldAccess =
                     eventMemberAccess.WithName( IdentifierName( this._targetEvent.Name ) )
-                    .WithRequiredLeadingTrivia( leadingTrivia );
+                        .WithRequiredLeadingTrivia( leadingTrivia );
 
                 var invokeArguments = EventRaiseArgumentsHelper.ExtractInvokeArguments( arguments );
 

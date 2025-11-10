@@ -108,7 +108,8 @@ internal sealed class LinkerInjectionRegistry
         var overriddenDeclarations = new ConcurrentDictionary<IFullRef<IDeclaration>, List<ISymbol>>( RefEqualityComparer<IDeclaration>.Default );
         var builderToInjectedMemberMap = new ConcurrentDictionary<DeclarationBuilderData, InjectedMember>();
 
-        this._transformationToInjectedMemberMap = transformationToInjectedMemberMap = new ConcurrentDictionary<ITransformation, IReadOnlyList<InjectedMember>>();
+        this._transformationToInjectedMemberMap =
+            transformationToInjectedMemberMap = new ConcurrentDictionary<ITransformation, IReadOnlyList<InjectedMember>>();
 
         var transformationsWithSatelliteMemberOverrides = new HashSet<ITransformation>();
 
@@ -127,7 +128,7 @@ internal sealed class LinkerInjectionRegistry
 
                 lock ( injectedMembersForTransformation )
                 {
-                    ((List<InjectedMember>)injectedMembersForTransformation).Add( injectedMember );
+                    ((List<InjectedMember>) injectedMembersForTransformation).Add( injectedMember );
                 }
             }
 
@@ -143,14 +144,18 @@ internal sealed class LinkerInjectionRegistry
                         {
                             list.Add( injectedMemberSymbol );
                         }
+
                         break;
+
                     case InjectedMemberSemantic.OverrideEventRaise:
                         // This is an override of the event raise method - this is a satellite override, which has to be indexed in second phase.
                         lock ( transformationsWithSatelliteMemberOverrides )
                         {
                             transformationsWithSatelliteMemberOverrides.Add( injectedMember.Transformation );
                         }
+
                         break;
+
                     default:
                         throw new AssertionFailedException(
                             $"Unexpected semantic '{injectedMember.Semantic}' for override transformation {overrideTransformation}." );
@@ -253,10 +258,10 @@ internal sealed class LinkerInjectionRegistry
 
             Invariant.Assert( satelliteOverrides.Count > 0 );
 
-            var mainOverride = injectedMembersForTransformation.Single(m => m.Semantic == InjectedMemberSemantic.Override);
+            var mainOverride = injectedMembersForTransformation.Single( m => m.Semantic == InjectedMemberSemantic.Override );
             var mainOverrideSymbol = this._injectedMemberToSymbolMap[mainOverride];
 
-            foreach ( var satelliteOverride in satelliteOverrides)
+            foreach ( var satelliteOverride in satelliteOverrides )
             {
                 var satelliteOverrideSymbol = this._injectedMemberToSymbolMap[satelliteOverride];
 
@@ -266,7 +271,7 @@ internal sealed class LinkerInjectionRegistry
                 {
                     lock ( satelliteOverridesList )
                     {
-                        ((List<ISymbol>)satelliteOverridesList).Add( satelliteOverrideSymbol );
+                        ((List<ISymbol>) satelliteOverridesList).Add( satelliteOverrideSymbol );
                     }
                 }
                 else
@@ -276,7 +281,11 @@ internal sealed class LinkerInjectionRegistry
             }
         }
 
-        concurrentTaskRunner.RunConcurrentlyAsync( transformationsWithSatelliteMemberOverrides, ProcessTransformationsWithSatelliteMemberOverrides, cancellationToken ).Wait( cancellationToken );
+        concurrentTaskRunner.RunConcurrentlyAsync(
+                transformationsWithSatelliteMemberOverrides,
+                ProcessTransformationsWithSatelliteMemberOverrides,
+                cancellationToken )
+            .Wait( cancellationToken );
 
         ISymbol GetCanonicalSymbolForInjectedMember( InjectedMember injectedMember )
         {
@@ -467,7 +476,7 @@ internal sealed class LinkerInjectionRegistry
         }
     }
 
-    public IReadOnlyList<InjectedMember> GetInjectedMembersForTransformation(ITransformation transformation)
+    public IReadOnlyList<InjectedMember> GetInjectedMembersForTransformation( ITransformation transformation )
     {
         if ( this._transformationToInjectedMemberMap.TryGetValue( transformation, out var injectedMembers ) )
         {
@@ -666,6 +675,7 @@ internal sealed class LinkerInjectionRegistry
         {
             return this.GetInjectedMemberForSymbol( methodSymbol ) is { Semantic: InjectedMemberSemantic.OverrideEventRaise };
         }
+
         return false;
     }
 
@@ -677,12 +687,14 @@ internal sealed class LinkerInjectionRegistry
                 var overrides = this.GetOverridesForSymbol( eventSymbol );
 
                 if ( overrides
-                        .SelectMany( o => this.GetInjectedMembersForTransformation( this.GetInjectedMemberForSymbol( o ).AssertNotNull().Transformation.AssertNotNull() ) )
-                        .Any( im => im is { Semantic: InjectedMemberSemantic.OverrideEventRaise } ) )
+                    .SelectMany(
+                        o => this.GetInjectedMembersForTransformation( this.GetInjectedMemberForSymbol( o ).AssertNotNull().Transformation.AssertNotNull() ) )
+                    .Any( im => im is { Semantic: InjectedMemberSemantic.OverrideEventRaise } ) )
                 {
                     // This is an event where at least one of the overrides had invocation template.
                     return true;
                 }
+
                 break;
 
             case IEventSymbol eventSymbol when this.IsOverride( symbol ):
@@ -692,6 +704,7 @@ internal sealed class LinkerInjectionRegistry
                     // This is an override that included invocation template.
                     return true;
                 }
+
                 break;
         }
 
@@ -725,6 +738,7 @@ internal sealed class LinkerInjectionRegistry
     public bool IsSatelliteOverride( ISymbol symbol )
     {
         symbol = symbol.GetCanonicalDefinition();
+
         return this._satelliteOverrideMemberToOverrideMap.ContainsKey( symbol );
     }
 
@@ -736,9 +750,9 @@ internal sealed class LinkerInjectionRegistry
     public ITransformation? GetTransformationForSymbol( ISymbol symbol )
     {
         symbol = symbol.GetCanonicalDefinition();
-        
+
         var injectedMember = this.GetInjectedMemberForSymbol( symbol );
-        
+
         return injectedMember?.Transformation;
     }
 
@@ -750,77 +764,82 @@ internal sealed class LinkerInjectionRegistry
     public IntermediateSymbolSemantic<IEventSymbol>? GetPrecedingSemantic( IntermediateSymbolSemantic<IEventSymbol> semantic )
     {
         var symbol = semantic.Symbol.GetCanonicalDefinition();
-        
+
         switch ( semantic.Kind )
         {
             case IntermediateSymbolSemanticKind.Base:
                 // Base is the first in the sequence, no predecessor
                 return null;
-                
+
             case IntermediateSymbolSemanticKind.Default when this.IsOverrideTarget( symbol ):
                 // For the original symbol's Default semantic, the predecessor is the Base semantic
-                return new IntermediateSymbolSemantic<IEventSymbol>( (IEventSymbol)symbol, IntermediateSymbolSemanticKind.Base );
-                
+                return new IntermediateSymbolSemantic<IEventSymbol>( (IEventSymbol) symbol, IntermediateSymbolSemanticKind.Base );
+
             case IntermediateSymbolSemanticKind.Default when this.IsOverride( symbol ):
                 // For an override's Default semantic, find the previous override in the chain
                 var overrideTarget = this.GetOverrideTarget( symbol );
+
                 if ( overrideTarget == null )
                 {
                     return null;
                 }
-                
+
                 var symbolOverrides = this.GetOverridesForSymbol( overrideTarget );
                 var currentIndex = -1;
-                
+
                 // Find the current override's position in the list
                 for ( var i = 0; i < symbolOverrides.Count; i++ )
                 {
                     if ( this._intermediateCompilation.CompilationContext.SymbolComparer.Equals( symbolOverrides[i], symbol ) )
                     {
                         currentIndex = i;
+
                         break;
                     }
                 }
-                
+
                 if ( currentIndex == -1 )
                 {
                     return null;
                 }
-                
+
                 if ( currentIndex == 0 )
                 {
                     // First override, predecessor is the original symbol's Default semantic
-                    return new IntermediateSymbolSemantic<IEventSymbol>( (IEventSymbol)overrideTarget, IntermediateSymbolSemanticKind.Default );
+                    return new IntermediateSymbolSemantic<IEventSymbol>( (IEventSymbol) overrideTarget, IntermediateSymbolSemanticKind.Default );
                 }
                 else
                 {
                     // Previous override in the chain
                     var previousOverride = symbolOverrides[currentIndex - 1];
-                    return new IntermediateSymbolSemantic<IEventSymbol>( (IEventSymbol)previousOverride, IntermediateSymbolSemanticKind.Default );
+
+                    return new IntermediateSymbolSemantic<IEventSymbol>( (IEventSymbol) previousOverride, IntermediateSymbolSemanticKind.Default );
                 }
-                
+
             case IntermediateSymbolSemanticKind.Final:
                 // For Final semantic, the predecessor is the last override's Default semantic
                 if ( this.IsOverrideTarget( symbol ) )
                 {
                     var finalOverrides = this.GetOverridesForSymbol( symbol );
+
                     if ( finalOverrides.Count > 0 )
                     {
                         var lastOverride = finalOverrides[^1];
-                        return new IntermediateSymbolSemantic<IEventSymbol>( (IEventSymbol)lastOverride, IntermediateSymbolSemanticKind.Default );
+
+                        return new IntermediateSymbolSemantic<IEventSymbol>( (IEventSymbol) lastOverride, IntermediateSymbolSemanticKind.Default );
                     }
                     else
                     {
                         // No overrides, predecessor is the original symbol's Default semantic
-                        return new IntermediateSymbolSemantic<IEventSymbol>( (IEventSymbol)symbol, IntermediateSymbolSemanticKind.Default );
+                        return new IntermediateSymbolSemantic<IEventSymbol>( (IEventSymbol) symbol, IntermediateSymbolSemanticKind.Default );
                     }
                 }
                 else
                 {
                     // For non-override target symbols, Final semantic predecessor is their Default semantic
-                    return new IntermediateSymbolSemantic<IEventSymbol>( (IEventSymbol)symbol, IntermediateSymbolSemanticKind.Default );
+                    return new IntermediateSymbolSemantic<IEventSymbol>( (IEventSymbol) symbol, IntermediateSymbolSemanticKind.Default );
                 }
-                
+
             default:
                 return null;
         }
@@ -835,63 +854,76 @@ internal sealed class LinkerInjectionRegistry
             case ISymbolBasedCompilationElement symbolBasedDeclaration:
                 return (TSymbol?) this._intermediateCompilation.CompilationContext.SymbolTranslator.Translate( symbolBasedDeclaration.Symbol );
 
-            case IntroducedDeclaration { GenericContext: { IsEmptyOrIdentity: true } } introducedDeclaration:
+            case IntroducedDeclaration { GenericContext.IsEmptyOrIdentity: true } introducedDeclaration:
                 var builderData = introducedDeclaration.BuilderData;
+
                 if ( this._builderToTransformationMap.TryGetValue( builderData, out var transformation ) )
                 {
                     var injectedMember = this.GetInjectedMembersForTransformation( transformation )
-                        .FirstOrDefault( im => im.BuilderData == builderData );
+                        .FirstOrDefault( im => ReferenceEquals( im.BuilderData, builderData ) );
 
                     if ( injectedMember != null && this._injectedMemberToSymbolMap.TryGetValue( injectedMember, out var symbol ) )
                     {
                         return (TSymbol?) symbol;
                     }
                 }
+
                 return null;
 
             case ConstructedArrayType arrayType:
                 var elementTypeSymbol = this.GetIntermediateCompilationSymbol<ITypeSymbol>( arrayType.ElementType );
-                if ( elementTypeSymbol is ITypeSymbol elementType )
+
+                if ( elementTypeSymbol is { } elementType )
                 {
                     return (TSymbol?) this._intermediateCompilation.CompilationContext.Compilation.CreateArrayTypeSymbol( elementType, arrayType.Rank );
                 }
+
                 return null;
 
             case ConstructedPointerType pointerType:
                 var pointedAtTypeSymbol = this.GetIntermediateCompilationSymbol<ITypeSymbol>( pointerType.PointedAtType );
+
                 switch ( pointedAtTypeSymbol )
                 {
-                    case ITypeSymbol pointedAtType:                
+                    case { } pointedAtType:
                         return (TSymbol?) this._intermediateCompilation.CompilationContext.Compilation.CreatePointerTypeSymbol( pointedAtType );
                 }
+
                 return null;
 
             case IntroducedNamedType introducedNamedType:
                 var builder = introducedNamedType.BuilderData;
+
                 if ( this._builderToTransformationMap.TryGetValue( builder, out var namedTypeTransformation ) )
                 {
                     var injectedMember = this.GetInjectedMembersForTransformation( namedTypeTransformation )
-                        .FirstOrDefault( im => im.BuilderData == builder );
+                        .FirstOrDefault( im => ReferenceEquals( im.BuilderData, builder ) );
+
                     if ( injectedMember != null && this._injectedMemberToSymbolMap.TryGetValue( injectedMember, out var symbol ) )
                     {
                         var namedTypeSymbol = (INamedTypeSymbol) symbol;
 
-                        if (namedTypeSymbol.IsGenericType)
+                        if ( namedTypeSymbol.IsGenericType )
                         {
                             var typeArguments = new ITypeSymbol[namedTypeSymbol.TypeArguments.Length];
-                            for (var i = 0; i < typeArguments.Length; i++)
+
+                            for ( var i = 0; i < typeArguments.Length; i++ )
                             {
                                 var typeArgumentSymbol = this.GetIntermediateCompilationSymbol<ITypeSymbol>( introducedNamedType.TypeArguments[i] );
-                                if (typeArgumentSymbol is not ITypeSymbol typeArgument)
+
+                                if ( typeArgumentSymbol is not { } typeArgument )
                                 {
                                     return null;
                                 }
+
                                 typeArguments[i] = typeArgument;
                             }
+
                             return (TSymbol?) namedTypeSymbol.Construct( typeArguments );
                         }
                     }
                 }
+
                 return null;
 
             default:

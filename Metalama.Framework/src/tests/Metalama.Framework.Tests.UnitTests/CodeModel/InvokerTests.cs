@@ -130,7 +130,7 @@ class TargetCode
 
             var compilation = testContext.CreateCompilationModel( code );
 
-            var syntaxSerializationContext = new SyntaxSerializationContext( compilation, SyntaxGenerationOptions.Formatted, null );
+            var syntaxSerializationContext = new SyntaxSerializationContext( compilation, SyntaxGenerationOptions.Formatted );
 
             using ( TemplateExpansionContext.WithTestingContext(
                        syntaxSerializationContext,
@@ -205,7 +205,7 @@ class TargetCode
 
             var compilation = testContext.CreateCompilationModel( code );
 
-            var syntaxSerializationContext = new SyntaxSerializationContext( compilation, SyntaxGenerationOptions.Formatted, null );
+            var syntaxSerializationContext = new SyntaxSerializationContext( compilation, SyntaxGenerationOptions.Formatted );
 
             using ( TemplateExpansionContext.WithTestingContext(
                        syntaxSerializationContext,
@@ -287,7 +287,7 @@ class TargetCode
             var compilation = testContext.CreateCompilationModel( code );
 
             using ( TemplateExpansionContext.WithTestingContext(
-                       new SyntaxSerializationContext( compilation, SyntaxGenerationOptions.Formatted, null ),
+                       new SyntaxSerializationContext( compilation, SyntaxGenerationOptions.Formatted ),
                        serviceProvider ) )
             {
                 var method = compilation.Types.Single().Methods.Single();
@@ -482,7 +482,7 @@ class TargetCode
             var compilation = testContext.CreateCompilationModel( code );
 
             using ( TemplateExpansionContext.WithTestingContext(
-                       new SyntaxSerializationContext( compilation, SyntaxGenerationOptions.Formatted, null ),
+                       new SyntaxSerializationContext( compilation, SyntaxGenerationOptions.Formatted ),
                        serviceProvider ) )
             {
                 var type = compilation.Types.Single();

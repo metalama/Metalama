@@ -37,7 +37,7 @@ namespace Metalama.Backstage.Infrastructure
 
             this._serviceProvider = serviceProvider;
 
-            var logger = serviceProvider.GetBackstageService<EarlyLoggerFactory>()?.GetLogger( nameof( StandardDirectories ) );
+            var logger = serviceProvider.GetBackstageService<EarlyLoggerFactory>()?.GetLogger( nameof(StandardDirectories) );
 
             static string GetApplicationDataDirectory( Environment.SpecialFolder applicationDataDirectory, string metalamaDirectoryName )
             {
@@ -73,13 +73,13 @@ namespace Metalama.Backstage.Infrastructure
             // This makes sure that that we are not using a different directory when mixing .NET 6.0 and .NET 8.0.
             var osxForwardCompatibleApplicationDataDirectory =
                 RuntimeInformation.IsOSPlatform( OSPlatform.OSX ) && Environment.Version < new Version( 8, 0 )
-                ? Path.Combine( Environment.GetFolderPath( Environment.SpecialFolder.UserProfile ), "Library", "Application Support", "Metalama" )
-                : null;
+                    ? Path.Combine( Environment.GetFolderPath( Environment.SpecialFolder.UserProfile ), "Library", "Application Support", "Metalama" )
+                    : null;
 
             if ( Directory.Exists( incorrectApplicationDataDirectory ) )
             {
                 // In case the incorrect directory exists already, we won't start using the correct one.
-                logger?.Warning?.Log( 
+                logger?.Warning?.Log(
                     $"Using obsolete data directory '{incorrectApplicationDataDirectory}', " +
                     $"please migrate the content to '{osxForwardCompatibleApplicationDataDirectory ?? correctApplicationDataDirectory}'." );
 
@@ -94,10 +94,11 @@ namespace Metalama.Backstage.Infrastructure
 
                     switch (Directory.Exists( correctApplicationDataDirectory ), Directory.Exists( osxForwardCompatibleApplicationDataDirectory ))
                     {
-                        case (false, _ ):
+                        case (false, _):
                             // The .NET 6 directory does not exists, we use the forward-compatible one.
                             logger?.Trace?.Log( $"Using forward-compatible data directory '{osxForwardCompatibleApplicationDataDirectory}'." );
                             this.ApplicationDataDirectory = osxForwardCompatibleApplicationDataDirectory;
+
                             return;
 
                         case (true, true):
@@ -109,6 +110,7 @@ namespace Metalama.Backstage.Infrastructure
                                 $"Please inspect the latter directory, migrate it's content to the former directory." );
 
                             this.ApplicationDataDirectory = osxForwardCompatibleApplicationDataDirectory;
+
                             return;
                     }
                 }

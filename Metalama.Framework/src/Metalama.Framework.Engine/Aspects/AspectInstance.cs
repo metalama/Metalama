@@ -107,7 +107,7 @@ namespace Metalama.Framework.Engine.Aspects
             this.IsInheritable = aspectClass.IsInheritable
                                  ?? ((IConditionallyInheritableAspect) aspect).IsInheritable( targetDeclaration, this );
         }
-        
+
         internal AspectInstance(
             IAspect aspect,
             IRef<IDeclaration> targetDeclaration,

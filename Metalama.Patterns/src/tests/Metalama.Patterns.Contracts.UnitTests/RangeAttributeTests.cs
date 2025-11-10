@@ -175,8 +175,7 @@ public sealed class RangeAttributeTests
     {
         var cut = new RangeTestClass();
 
-        var e = Assert.Throws<ArgumentOutOfRangeException>(
-            () => cut.ZeroToTenNullableDecimal( -10.0m ) );
+        var e = Assert.Throws<ArgumentOutOfRangeException>( () => cut.ZeroToTenNullableDecimal( -10.0m ) );
 
         Assert.Contains( "parameter", e!.Message, StringComparison.Ordinal );
     }
@@ -239,8 +238,7 @@ public sealed class RangeAttributeTests
 
         long? p = 1;
 
-        var e = Assert.Throws<PostconditionViolationException>(
-            () => cut.ZeroToTenNullableIntRef( -1, ref p ) );
+        var e = Assert.Throws<PostconditionViolationException>( () => cut.ZeroToTenNullableIntRef( -1, ref p ) );
 
         Assert.Contains( "parameter", e!.Message, StringComparison.Ordinal );
     }

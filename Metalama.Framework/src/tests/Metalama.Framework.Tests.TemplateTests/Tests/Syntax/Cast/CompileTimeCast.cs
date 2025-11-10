@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Engine.Templating;
 
@@ -15,16 +14,16 @@ namespace Metalama.Framework.Tests.AspectTests.Templating.Syntax.Cast.CompileTim
         [TestTemplate]
         private dynamic? Template()
         {
-            var c = (short)meta.Target.Parameters.Count;
+            var c = (short) meta.Target.Parameters.Count;
 
-            if (c > 0)
+            if ( c > 0 )
             {
                 var text = meta.CompileTime( "" );
                 object s = meta.Target.Parameters[0].Name;
 
-                if (s is string)
+                if ( s is string )
                 {
-                    text = ( s as string ) + " = ";
+                    text = (s as string) + " = ";
                 }
 
                 Console.WriteLine( text + meta.Target.Parameters[0].Value );

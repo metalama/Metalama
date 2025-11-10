@@ -9,24 +9,22 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Overrides.TargetBod
 {
     internal class Disposable : IDisposable
     {
-        public void Dispose()
-        {
-        }
+        public void Dispose() { }
     }
 
     // <target>
     internal class Target
     {
-        private void Foo(int x)
+        private void Foo( int x )
         {
-            if (x >= 1)
+            if ( x >= 1 )
             {
-                if (x == 1)
+                if ( x == 1 )
                 {
                     goto myLabel;
                 }
 
-            myLabel:;
+            myLabel: ;
             }
 
             // z11 should not be transformed
@@ -34,9 +32,9 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Overrides.TargetBod
             using var z11 = new Disposable();
             using var z12 = new Disposable();
 
-            Console.WriteLine($"First {z11} {z12}");
+            Console.WriteLine( $"First {z11} {z12}" );
 
-            if (x == 0)
+            if ( x == 0 )
             {
                 return;
             }
@@ -46,9 +44,9 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Overrides.TargetBod
             using var z21 = new Disposable();
             using var z22 = new Disposable();
 
-            Console.WriteLine($"Second {z21} {z22}");
+            Console.WriteLine( $"Second {z21} {z22}" );
 
-            if (x == 2)
+            if ( x == 2 )
             {
                 return;
             }
@@ -58,18 +56,18 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Overrides.TargetBod
             using var z31 = new Disposable();
             using var z32 = new Disposable();
 
-            Console.WriteLine($"After dispose {z31} {z32}");
+            Console.WriteLine( $"After dispose {z31} {z32}" );
         }
 
-        [PseudoOverride( nameof(Foo), "TestAspect1")]
-        private void Foo_Override1(int x)
+        [PseudoOverride( nameof(Foo), "TestAspect1" )]
+        private void Foo_Override1( int x )
         {
             using var z41 = new Disposable();
             using var z42 = new Disposable();
 
-            Console.WriteLine($"Before aspect1 {z41} {z42}");
+            Console.WriteLine( $"Before aspect1 {z41} {z42}" );
 
-            if (x == 0)
+            if ( x == 0 )
             {
                 return;
             }
@@ -79,11 +77,11 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Overrides.TargetBod
             using var z51 = new Disposable();
             using var z52 = new Disposable();
 
-            Console.WriteLine($"Mid aspect1 {z51} {z52}");
+            Console.WriteLine( $"Mid aspect1 {z51} {z52}" );
 
-            Link(This.Foo, Inline)(x);
+            Link( This.Foo, Inline )( x );
 
-            if (x == 2)
+            if ( x == 2 )
             {
                 return;
             }
@@ -93,18 +91,18 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Overrides.TargetBod
             using var z61 = new Disposable();
             using var z62 = new Disposable();
 
-            Console.WriteLine($"After aspect1 {z61} {z62}");
+            Console.WriteLine( $"After aspect1 {z61} {z62}" );
         }
 
-        [PseudoOverride(nameof(Foo), "TestAspect2")]
-        private void Foo_Override2(int x)
+        [PseudoOverride( nameof(Foo), "TestAspect2" )]
+        private void Foo_Override2( int x )
         {
             using var z71 = new Disposable();
             using var z72 = new Disposable();
 
-            Console.WriteLine($"Before aspect2 {z71} {z72}");
+            Console.WriteLine( $"Before aspect2 {z71} {z72}" );
 
-            if (x == 0)
+            if ( x == 0 )
             {
                 return;
             }
@@ -114,11 +112,11 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Overrides.TargetBod
             using var z81 = new Disposable();
             using var z82 = new Disposable();
 
-            Console.WriteLine($"Mid aspect2 {z81} {z82}");
+            Console.WriteLine( $"Mid aspect2 {z81} {z82}" );
 
-            Link(This.Foo, Inline)(x);
+            Link( This.Foo, Inline )( x );
 
-            if (x == 2)
+            if ( x == 2 )
             {
                 return;
             }
@@ -128,7 +126,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Overrides.TargetBod
             using var z91 = new Disposable();
             using var z92 = new Disposable();
 
-            Console.WriteLine($"After aspect2 {z91} {z92}");
+            Console.WriteLine( $"After aspect2 {z91} {z92}" );
         }
     }
 }

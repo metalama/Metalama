@@ -11,7 +11,7 @@ namespace Metalama.Backstage.Services;
 internal class RecaptchaService( IHttpClientFactory httpClientFactory, WebLinks webLinks )
 {
     private readonly TaskCompletionSource<string?> _recaptchaSiteKeyTcs = new();
-    
+
     public void Initialize()
         => Task.Run(
             async () =>

@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Engine.Templating;
 
@@ -21,7 +20,7 @@ namespace Metalama.Framework.Tests.AspectTests.Templating.Syntax.TryCatchFinally
             {
                 return 1;
             }
-            catch (Exception e) when (e.GetType().Name.Contains( ctString ))
+            catch ( Exception e ) when ( e.GetType().Name.Contains( ctString ) )
             {
                 return -1;
             }

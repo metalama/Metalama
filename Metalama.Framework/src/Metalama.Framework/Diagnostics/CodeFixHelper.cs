@@ -18,7 +18,7 @@ public static class CodeFixHelper
     /// The character separating values in the code fix properties.
     /// </summary>
     public const char DiagnosticPropertyValueSeparator = '\n';
-    
+
     /// <summary>
     /// A <see cref="DiagnosticDefinition"/> that can be used to add code fixes. Requires a premium edition.
     /// </summary>

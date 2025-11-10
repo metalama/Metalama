@@ -23,10 +23,20 @@ public partial class TestFileSystem
 
         public override void SetLastWriteTime( string path, DateTime lastWriteTime ) => this.Parent.Mock.Directory.SetLastWriteTime( path, lastWriteTime );
 
-        public TResult Execute<TResult>( ExecutionKind executionKind, WatcherChangeTypes changeType, string path, Func<IDirectory, TResult> action, [CallerMemberName] string operation = "" )
+        public TResult Execute<TResult>(
+            ExecutionKind executionKind,
+            WatcherChangeTypes changeType,
+            string path,
+            Func<IDirectory, TResult> action,
+            [CallerMemberName] string operation = "" )
             => this.Execute( executionKind, changeType, path, () => action( this.Parent.Mock.Directory ), operation );
 
-        public void Execute( ExecutionKind executionKind, WatcherChangeTypes changeType, string path, Action<IDirectory> action, [CallerMemberName] string operation = "" )
+        public void Execute(
+            ExecutionKind executionKind,
+            WatcherChangeTypes changeType,
+            string path,
+            Action<IDirectory> action,
+            [CallerMemberName] string operation = "" )
             => this.Execute( executionKind, changeType, path, () => action( this.Parent.Mock.Directory ), operation );
     }
 }

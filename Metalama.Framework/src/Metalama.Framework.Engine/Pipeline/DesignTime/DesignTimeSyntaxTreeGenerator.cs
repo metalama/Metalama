@@ -318,7 +318,7 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                 }
             }
         }
-        
+
         private static IEnumerable<MemberDeclarationSyntax> AddPartialModifierToTypes( IEnumerable<MemberDeclarationSyntax> injectedMembers )
         {
             foreach ( var member in injectedMembers )

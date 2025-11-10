@@ -15,6 +15,6 @@ namespace Metalama.Framework.Code.Collections
         /// <summary>
         /// Gets an event of a given name or throws an exception if there is none.
         /// </summary>
-        IEvent this[string name] { get; }
+        IEvent this[ string name ] { get; }
     }
 }

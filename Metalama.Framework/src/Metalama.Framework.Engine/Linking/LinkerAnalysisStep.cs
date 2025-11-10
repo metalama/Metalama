@@ -297,8 +297,10 @@ namespace Metalama.Framework.Engine.Linking
                             _ => throw new NotSupportedException( $"Unsupported syntax for event override: {overrideMember.Syntax}." )
                         };
 
-                        var targetEventSymbol = 
-                            (IEventSymbol) injectionRegistry.GetIntermediateCompilationSymbol<IEventSymbol>( targetEvent ).AssertNotNull().GetCanonicalDefinition();
+                        var targetEventSymbol =
+                            (IEventSymbol) injectionRegistry.GetIntermediateCompilationSymbol<IEventSymbol>( targetEvent )
+                                .AssertNotNull()
+                                .GetCanonicalDefinition();
 
                         var delegateType = targetEvent.Type.AssertNotNull();
                         var invokeMethod = delegateType.Methods.OfName( "Invoke" ).Single();
@@ -437,7 +439,10 @@ namespace Metalama.Framework.Engine.Linking
             }
         }
 
-        private static ExpressionSyntax GetEventBrokerCastDelegateInitializationExpression( ITupleType invokeTupleType, INamedType delegateType, SyntaxGenerationContext context )
+        private static ExpressionSyntax GetEventBrokerCastDelegateInitializationExpression(
+            ITupleType invokeTupleType,
+            INamedType delegateType,
+            SyntaxGenerationContext context )
         {
             // We must use the invoke method to get the parameter names, and not the tuple type, because the element name is not available for 1-tuples.
             var invokeMethod = delegateType.Methods.OfName( "Invoke" ).Single();
@@ -1060,19 +1065,21 @@ namespace Metalama.Framework.Engine.Linking
                     .AssertEach( x => x.BelongsToCompilation( intermediateCompilation.CompilationContext ) != false )
                     .Select( x => x.ContainingType )
                     .Distinct<INamedTypeSymbol>( intermediateCompilation.CompilationContext.SymbolComparer )
-                    .SelectMany( x =>
-                                     x.GetMembers()
-                                         .Select( member =>
-                                                      member switch
-                                                      {
-                                                          IMethodSymbol method => method,
-                                                          IPropertySymbol => null,
-                                                          IEventSymbol => null,
-                                                          IFieldSymbol => null,
-                                                          INamedTypeSymbol => null,
-                                                          _ => throw new AssertionFailedException( $"Symbol not supported: {member}." )
-                                                      } )
-                                         .OfType<IMethodSymbol>() )
+                    .SelectMany(
+                        x =>
+                            x.GetMembers()
+                                .Select(
+                                    member =>
+                                        member switch
+                                        {
+                                            IMethodSymbol method => method,
+                                            IPropertySymbol => null,
+                                            IEventSymbol => null,
+                                            IFieldSymbol => null,
+                                            INamedTypeSymbol => null,
+                                            _ => throw new AssertionFailedException( $"Symbol not supported: {member}." )
+                                        } )
+                                .OfType<IMethodSymbol>() )
                     .Where( m => !injectionRegistry.IsOverride( m ) );
 
             var allContainedReferences = await symbolReferenceFinder.FindMethodInvocationsAsync( methodsToAnalyze, cancellationToken );

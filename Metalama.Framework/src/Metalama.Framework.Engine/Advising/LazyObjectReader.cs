@@ -13,7 +13,7 @@ internal sealed class LazyObjectReader : IObjectReader
 {
     private readonly Lazy<IObjectReader> _lazyUnderlying;
 
-    public LazyObjectReader( Lazy<IObjectReader> lazyUnderlying ) 
+    public LazyObjectReader( Lazy<IObjectReader> lazyUnderlying )
     {
         this._lazyUnderlying = lazyUnderlying;
     }

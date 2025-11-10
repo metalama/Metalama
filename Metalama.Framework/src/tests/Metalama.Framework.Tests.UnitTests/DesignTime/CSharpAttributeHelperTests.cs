@@ -696,7 +696,8 @@ namespace Test
             return resultRoot!;
         }
 
-        private async Task<(SemanticModel SemanticModel, SyntaxGenerationContext SyntaxGenerationContext)> GetModelAndContextAsync( SyntaxNode syntaxNodeToBeDecorated )
+        private async Task<(SemanticModel SemanticModel, SyntaxGenerationContext SyntaxGenerationContext)> GetModelAndContextAsync(
+            SyntaxNode syntaxNodeToBeDecorated )
         {
             var semanticModel = await this._testFileDocument!.GetSemanticModelAsync().AssertNotNullAsync();
 

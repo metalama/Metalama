@@ -23,7 +23,7 @@ namespace Metalama.Framework.Tests.UnitTests.SyntaxSerialization
         /// </summary>
         private const bool _doCodeExecutionTests = false;
 
-        protected T? ExecuteExpression<T>( string context, string expression )
+        protected T ExecuteExpression<T>( string context, string expression )
         {
             using var testContext = this.CreateTestContext();
 

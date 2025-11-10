@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code.SyntaxBuilders;
 using Metalama.Framework.Engine.Templating;
@@ -19,9 +18,9 @@ namespace Metalama.Framework.Tests.AspectTests.Templating.Dynamic.InterpolatedSt
             var s = new InterpolatedStringBuilder();
             s.AddText( meta.Target.Method.Name + "(" );
 
-            foreach (var p in meta.Target.Parameters)
+            foreach ( var p in meta.Target.Parameters )
             {
-                if (p.Index > 0)
+                if ( p.Index > 0 )
                 {
                     s.AddText( ", " );
                 }

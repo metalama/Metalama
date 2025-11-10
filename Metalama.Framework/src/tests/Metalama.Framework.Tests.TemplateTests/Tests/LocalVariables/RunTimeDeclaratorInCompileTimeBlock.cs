@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Engine.Templating;
 
@@ -15,13 +14,13 @@ namespace Metalama.Framework.Tests.AspectTests.Templating.LocalVariables.RunTime
         [TestTemplate]
         private dynamic? Template()
         {
-            if (meta.Target.Parameters.Count > 0)
+            if ( meta.Target.Parameters.Count > 0 )
             {
                 var x = 0;
                 Console.WriteLine( x );
             }
 
-            foreach (var p in meta.Target.Parameters)
+            foreach ( var p in meta.Target.Parameters )
             {
                 var y = 0;
                 Console.WriteLine( y );

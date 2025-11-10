@@ -23,7 +23,8 @@ internal static class ImmutabilityDiagnostics
         Severity.Warning,
         "The '{0}' property must not have a setter because of the [Immutable] aspect." );
 
-    public static DiagnosticDefinition<(IFieldOrProperty FieldOrProperty, DeclarationKind DeclarationKind)> FieldOrPropertyMustBeOfDeeplyImmutableType { get; } = new(
+    public static DiagnosticDefinition<(IFieldOrProperty FieldOrProperty, DeclarationKind DeclarationKind)>
+        FieldOrPropertyMustBeOfDeeplyImmutableType { get; } = new(
         "LAMA5022",
         Severity.Warning,
         "The type of the '{0}' {1} must be deeply immutable." );

@@ -10,23 +10,23 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Overrides.Proceed.R
     // <target>
     internal class Target
     {
-        private void Foo(int x)
+        private void Foo( int x )
         {
-            Console.WriteLine( "Original");
+            Console.WriteLine( "Original" );
         }
 
-        [PseudoOverride( nameof(Foo),"TestAspect1")]
-        private void Foo_Override1(int x)
+        [PseudoOverride( nameof(Foo), "TestAspect1" )]
+        private void Foo_Override1( int x )
         {
-            Console.WriteLine( "Override1 Start");
-            Link( This.Foo, Inline)(x);
-            Console.WriteLine( "Override1 End");
+            Console.WriteLine( "Override1 Start" );
+            Link( This.Foo, Inline )( x );
+            Console.WriteLine( "Override1 End" );
         }
 
-        [PseudoOverride( nameof(Foo),"TestAspect2")]
-        private void Foo_Override2(int x)
+        [PseudoOverride( nameof(Foo), "TestAspect2" )]
+        private void Foo_Override2( int x )
         {
-            Console.WriteLine( "Override2");
+            Console.WriteLine( "Override2" );
         }
     }
 }

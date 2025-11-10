@@ -6,9 +6,9 @@ internal class Target
     get
     {
       Console.WriteLine("Before");
-      x = this.Foo_Source;
+      this.x = this.Foo_Source;
       Console.WriteLine("After");
-      return x;
+      return this.x;
     }
   }
   private int Foo_Source

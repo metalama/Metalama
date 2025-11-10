@@ -32,7 +32,7 @@ public sealed class AttributeSerializationTests : SerializationTestsBase
                             public class TheAttribute : System.Attribute
                             {
                                 public TheAttribute(string constructorArgument, params object[] constructorArrayArgument) { }
-                            
+
                                 public string NamedArgument
                                 {
                                     get;

@@ -6,11 +6,12 @@
 // @RequiredConstant(NET5_0_OR_GREATER) - Array slices are not supported in .NET Framework
 #endif
 
-#if NET5_0_OR_GREATER
+#pragma warning disable IDE0054
 #pragma warning disable CS8600, CS8603
+
+#if NET5_0_OR_GREATER
 using System;
-using Metalama.Framework.Advising;
-using Metalama.Framework.Aspects; 
+using Metalama.Framework.Aspects;
 using Metalama.Framework.Engine.Templating;
 
 namespace Metalama.Framework.Tests.AspectTests.Templating.CSharpSyntax.OperatorsCompileTime
@@ -57,7 +58,7 @@ namespace Metalama.Framework.Tests.AspectTests.Templating.CSharpSyntax.Operators
             i >>= 1;
             i = i << 1;
             i = i >> 1;
-            i = ~( ~i );
+            i = ~~i;
 
             var x = i switch
             {
@@ -65,12 +66,12 @@ namespace Metalama.Framework.Tests.AspectTests.Templating.CSharpSyntax.Operators
                 _ => false
             };
 
-            var y = ( i >= 2 );
+            var y = i >= 2;
 
-            var t = ( x, y );
-            ( x, y ) = t;
+            var t = (x, y);
+            (x, y) = t;
 
-            bool? z = ( ( x ^ y ) && y ) || !x;
+            bool? z = ((x ^ y) && y) || !x;
 
             string s = default;
             s ??= "42";
@@ -84,7 +85,7 @@ namespace Metalama.Framework.Tests.AspectTests.Templating.CSharpSyntax.Operators
             Console.WriteLine( sizeof(bool) );
             Console.WriteLine( typeof(int) );
 
-            dynamic result = meta.Proceed();
+            var result = meta.Proceed();
 
             return result;
         }

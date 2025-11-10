@@ -119,7 +119,7 @@ public abstract partial class ClientEndpoint : BaseEndpoint
 
     protected Task OnConnectedAsync( IEnumerable<RpcClient> clients, CancellationToken cancellationToken )
         => Task.WhenAll( clients.Select( i => i.OnRpcConnectedAsync( cancellationToken ) ) );
-    
+
     public async Task<bool> ConnectAsync( CancellationToken cancellationToken )
     {
         if ( Interlocked.CompareExchange( ref this._connecting, 1, 0 ) != 0 )
@@ -166,14 +166,15 @@ public abstract partial class ClientEndpoint : BaseEndpoint
                     return true;
                 }
 
-                this.UpdateClientsByInterfaceName( clientsByInterfaceName =>
-                {
-                    foreach ( var client in newClients )
+                this.UpdateClientsByInterfaceName(
+                    clientsByInterfaceName =>
                     {
-                        this.Logger.Trace?.Log( $"Registering interface {client.InterfaceName}. First connection: {firstConnection}." );
-                        clientsByInterfaceName.Add( client.InterfaceName, client );
-                    }
-                } );
+                        foreach ( var client in newClients )
+                        {
+                            this.Logger.Trace?.Log( $"Registering interface {client.InterfaceName}. First connection: {firstConnection}." );
+                            clientsByInterfaceName.Add( client.InterfaceName, client );
+                        }
+                    } );
             }
 
             this.Logger.Trace?.Log( $"Connecting to the named pipe '{pipeName}'." );
@@ -263,13 +264,14 @@ public abstract partial class ClientEndpoint : BaseEndpoint
         if ( this._connectionByStream.TryGetValue( rpc, out var connection ) )
         {
             // Update collections.
-            this.UpdateClientsByInterfaceName( clientsByInterfaceName =>
-            {
-                foreach ( var client in connection.Clients )
+            this.UpdateClientsByInterfaceName(
+                clientsByInterfaceName =>
                 {
-                    clientsByInterfaceName.Remove( client.InterfaceName );
-                }
-            } );
+                    foreach ( var client in connection.Clients )
+                    {
+                        clientsByInterfaceName.Remove( client.InterfaceName );
+                    }
+                } );
 
             this._connectionByStream = this._connectionByStream.Remove( rpc );
         }

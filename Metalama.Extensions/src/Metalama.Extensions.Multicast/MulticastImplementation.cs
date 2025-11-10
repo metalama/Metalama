@@ -415,7 +415,8 @@ public sealed class MulticastImplementation
                 .Outbound.SelectMany(
                     t => t.MethodsAndAccessors()
                         .Where(
-                            m => !m.IsImplicitlyDeclared && Filter( m, attributeGroup, MulticastTargets.ReturnValue ) && !m.ReturnType.Equals( SpecialType.Void ) )
+                            m => !m.IsImplicitlyDeclared && Filter( m, attributeGroup, MulticastTargets.ReturnValue )
+                                                         && !m.ReturnType.Equals( SpecialType.Void ) )
                         .Select( m => m.ReturnParameter ) )
                 .AddAspectIfEligible( attributeGroup.AspectClass.Type, attributeGroup.GetMatchingAspect );
         }
@@ -467,7 +468,8 @@ public sealed class MulticastImplementation
                 .Outbound.SelectMany(
                     t => t.Accessors
                         .Where(
-                            m => !m.IsImplicitlyDeclared && Filter( m, attributeGroup, MulticastTargets.ReturnValue ) && !m.ReturnType.Equals( SpecialType.Void ) )
+                            m => !m.IsImplicitlyDeclared && Filter( m, attributeGroup, MulticastTargets.ReturnValue )
+                                                         && !m.ReturnType.Equals( SpecialType.Void ) )
                         .Select( m => m.ReturnParameter ) )
                 .AddAspectIfEligible( attributeGroup.AspectClass.Type, attributeGroup.GetMatchingAspect );
         }

@@ -47,12 +47,12 @@ public readonly struct ScopedDiagnosticSink : IScopedDiagnosticSink
     /// Reports a diagnostic to the default location of the current <see cref="ScopedDiagnosticSink"/>..
     /// </summary>
     public void Report( IDiagnostic diagnostic ) => this.Sink.Report( diagnostic, this.DefaultTargetLocation, this.Source );
-    
+
     /// <summary>
     /// Reports a parametric diagnostic by specifying its location.
     /// </summary>
     public void Report( IDiagnostic diagnostic, IDiagnosticLocation? location ) => this.Sink.Report( diagnostic, location, this.Source );
-    
+
     /// <summary>
     /// Suppresses a diagnostic from the default declaration of the current <see cref="ScopedDiagnosticSink"/>.
     /// </summary>

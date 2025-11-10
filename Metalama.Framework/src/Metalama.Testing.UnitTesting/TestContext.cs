@@ -37,7 +37,7 @@ namespace Metalama.Testing.UnitTesting;
 /// A context in which a Metalama unit test can run, configured with most required Metalama services and optionally some mocks.
 /// </summary>
 [PublicAPI]
-public partial class TestContext : IDisposable, ITempFileManager, IApplicationInfoProvider, IDateTimeProvider
+public partial class TestContext : ITempFileManager, IApplicationInfoProvider, IDateTimeProvider
 {
     private static readonly IApplicationInfo _applicationInfo = new TestApiApplicationInfo();
     private readonly ITempFileManager _backstageTempFileManager;
@@ -131,10 +131,10 @@ public partial class TestContext : IDisposable, ITempFileManager, IApplicationIn
             typedAdditionalServices.GlobalServices.Add( sp => sp.WithServiceConditional<IGlobalOptions>( _ => new TestGlobalOptions() ) );
             typedAdditionalServices.GlobalServices.Add<IExtensionLoader>( _ => new TestExtensionLoader( contextOptions ), true );
 
-            typedAdditionalServices.GlobalServices.Add( sp => sp.WithService<IProjectOptionsFactory>( _ => new TestProjectOptionsFactory(
-                                                                                                          this.ProjectOptions ) ) );
+            typedAdditionalServices.GlobalServices.Add(
+                sp => sp.WithService<IProjectOptionsFactory>( _ => new TestProjectOptionsFactory( this.ProjectOptions ) ) );
 
-            typedAdditionalServices.ProjectServices.Add( sp => new TestLanguageVersionProvider() );
+            typedAdditionalServices.ProjectServices.Add( _ => new TestLanguageVersionProvider() );
 
             backstageServices = typedAdditionalServices.BackstageServices.Build( backstageServices );
 
@@ -260,7 +260,9 @@ public partial class TestContext : IDisposable, ITempFileManager, IApplicationIn
         }
     }
 
+#pragma warning disable CA1822
     DateTime IDateTimeProvider.UtcNow => DateTime.UtcNow;
+#pragma warning restore CA1822
 
     event Action? IDateTimeProvider.DateChanged
     {
@@ -311,5 +313,7 @@ public partial class TestContext : IDisposable, ITempFileManager, IApplicationIn
 
     public void Dispose() => this.Dispose( true );
 
+#pragma warning disable CA1822
     IApplicationInfo IApplicationInfoProvider.CurrentApplication => _applicationInfo;
+#pragma warning restore CA1822
 }

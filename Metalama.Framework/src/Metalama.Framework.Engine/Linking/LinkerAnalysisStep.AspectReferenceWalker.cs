@@ -83,7 +83,7 @@ internal sealed partial class LinkerAnalysisStep
                         { CandidateSymbols: [{ } symbol] } => symbol,
 
                         // Otherwise we will skip this reference completely, which will cause it not to be transformed.
-                        _ => null,
+                        _ => null
                     };
 
                 if ( referencedSymbol == null )

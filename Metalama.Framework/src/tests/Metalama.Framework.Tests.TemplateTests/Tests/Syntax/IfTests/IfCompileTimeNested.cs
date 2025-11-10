@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Engine.Templating;
 
@@ -18,15 +17,15 @@ namespace Metalama.Framework.Tests.AspectTests.Templating.Syntax.IfTests.IfCompi
             var t = meta.CompileTime( 0 );
             var name = meta.Target.Parameters[0].Name;
 
-            if (name.Contains( "a" ))
+            if ( name.Contains( "a" ) )
             {
-                if (name.Contains( "b" ))
+                if ( name.Contains( "b" ) )
                 {
                     t = 1;
                 }
                 else
                 {
-                    if (name.Contains( "c" ))
+                    if ( name.Contains( "c" ) )
                     {
                         t = 42;
                     }

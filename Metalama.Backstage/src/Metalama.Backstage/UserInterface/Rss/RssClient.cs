@@ -161,16 +161,11 @@ internal sealed class RssClient : IRssClient
         out DateTime? pubDate )
     {
         // Read as XML with restrictive settings security.
-        var settings = new XmlReaderSettings
-        {
-            DtdProcessing = DtdProcessing.Prohibit,
-            XmlResolver = null,
-            MaxCharactersFromEntities = 1024
-        };
-        
+        var settings = new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null, MaxCharactersFromEntities = 1024 };
+
         using var stringReader = new StringReader( content );
         using var xmlReader = XmlReader.Create( stringReader, settings );
-        
+
         var xml = XDocument.Load( xmlReader );
 
         // Parse RSS feed and get the most recent item.

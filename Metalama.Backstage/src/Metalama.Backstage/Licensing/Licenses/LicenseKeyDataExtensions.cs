@@ -110,7 +110,7 @@ namespace Metalama.Backstage.Licensing.Licenses
         /// <summary>
         /// Creates a new object of <see cref="LicenseRegistrationProperties"/> based on the given <see cref="LicenseKeyData"/>.
         /// </summary>
-        [PublicAPI("Used by BusinessSystems.LicenseAuditLoader")]
+        [PublicAPI( "Used by BusinessSystems.LicenseAuditLoader" )]
         public static LicenseRegistrationProperties ToLicenseRegistrationProperties( this LicenseKeyData licenseKeyData, string? licenseString = null )
         {
             var description = licenseKeyData.GetDisplayName();

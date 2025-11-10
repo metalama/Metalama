@@ -177,7 +177,7 @@ internal partial class SymbolRef<T> : FullRef<T>, ISymbolRef<T>
         return symbol;
     }
 
-    protected override IFullRef<TOut> CastAsFullRef<TOut>() => (IFullRef<TOut>) (object) this;
+    protected override IFullRef<TOut> CastAsFullRef<TOut>() => (IFullRef<TOut>) this;
 
     public override int GetHashCode( RefComparison comparison )
         => HashCode.Combine( comparison.GetSymbolComparer().GetHashCode( this.Symbol ), this.TargetKind, this._genericContextForSymbolMapping );
@@ -221,5 +221,5 @@ internal partial class SymbolRef<T> : FullRef<T>, ISymbolRef<T>
 
     public new ISymbolRef<TOut> As<TOut>()
         where TOut : class, ICompilationElement
-        => (ISymbolRef<TOut>) (object) this;
+        => (ISymbolRef<TOut>) this;
 }

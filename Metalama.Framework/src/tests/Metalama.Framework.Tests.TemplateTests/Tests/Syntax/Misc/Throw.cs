@@ -5,7 +5,6 @@
 #pragma warning disable CS0162 // Unreachable code detected
 
 using System;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Engine.Templating;
 

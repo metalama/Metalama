@@ -69,7 +69,7 @@ internal sealed class ContractMethodTransformation : ContractBaseTransformation
                     if ( this.ContractDirection is ContractDirection.Input or ContractDirection.Both )
                     {
                         Invariant.Assert( param.RefKind is not RefKind.Out );
-                        inputResult = this.TryExecuteTemplate( context, valueSyntax, param.Type,targetMethod, out inputContractBlock );
+                        inputResult = this.TryExecuteTemplate( context, valueSyntax, param.Type, targetMethod, out inputContractBlock );
                     }
                     else
                     {
@@ -80,7 +80,7 @@ internal sealed class ContractMethodTransformation : ContractBaseTransformation
                     if ( this.ContractDirection is ContractDirection.Output or ContractDirection.Both )
                     {
                         Invariant.Assert( param.RefKind is not RefKind.None );
-                        outputResult = this.TryExecuteTemplate( context, valueSyntax, param.Type, targetMethod,out outputContractBlock );
+                        outputResult = this.TryExecuteTemplate( context, valueSyntax, param.Type, targetMethod, out outputContractBlock );
                     }
                     else
                     {

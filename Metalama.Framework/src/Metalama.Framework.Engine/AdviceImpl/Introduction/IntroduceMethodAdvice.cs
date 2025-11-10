@@ -34,9 +34,8 @@ internal sealed class IntroduceMethodAdvice : IntroduceMemberAdvice<IMethod, IMe
         IntroductionScope scope,
         OverrideStrategy overrideStrategy,
         Action<IMethodBuilder>? buildAction,
-        INamedType? explicitlyImplementedInterfaceType,
-        IAdviceFactoryImpl adviceFactory )
-        : base( parameters, explicitName, template.TemplateMember, scope, overrideStrategy, buildAction, explicitlyImplementedInterfaceType, adviceFactory )
+        INamedType? explicitlyImplementedInterfaceType )
+        : base( parameters, explicitName, template.TemplateMember, scope, overrideStrategy, buildAction, explicitlyImplementedInterfaceType )
     {
         this._template = template;
     }
@@ -136,8 +135,7 @@ internal sealed class IntroduceMethodAdvice : IntroduceMemberAdvice<IMethod, IMe
 
         var hasNoBody = this.Template?.TemplateClassMember.TemplateInfo.HasNoBody == true;
 
-        if ( existingMethod != null
-             && existingMethod.GetPrimaryDeclarationSyntax() is MethodDeclarationSyntax methodDeclaration
+        if ( existingMethod?.GetPrimaryDeclarationSyntax() is MethodDeclarationSyntax methodDeclaration
              && methodDeclaration.Modifiers.Any( x => x.IsKind( SyntaxKind.PartialKeyword ) )
              && builder.IsPartial )
         {

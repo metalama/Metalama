@@ -46,7 +46,7 @@ internal class WebServerCommand : AsyncCommand<WebServerCommandSettings>
 
         // Add services to the container.
         var app = builder.Build();
-        
+
         app.Services.GetRequiredService<RecaptchaService>().Initialize();
 
         app.UseCors();
@@ -89,11 +89,11 @@ internal class WebServerCommand : AsyncCommand<WebServerCommandSettings>
 
             if ( delay > TimeSpan.Zero )
             {
-                await Task.Delay( delay );
+                await Task.Delay( delay, cancellationToken );
             }
         }
 
-        await app.StopAsync();
+        await app.StopAsync( cancellationToken );
 
         return 0;
 

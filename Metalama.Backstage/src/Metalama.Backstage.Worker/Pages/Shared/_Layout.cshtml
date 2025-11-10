@@ -25,13 +25,13 @@
 <script>
     // Keeps the server alive.
     $(document).ready(function () {
-                setInterval(function () {
-                    $.ajax({
-                        url: 'ping',
-                        type: 'GET'
-                    });
-                }, 10000); 
-            });    
+        setInterval(function () {
+            $.ajax({
+                url: 'ping',
+                type: 'GET'
+            });
+        }, 10000);
+    });
 </script>
 
 @await RenderSectionAsync( "Scripts", required: false )

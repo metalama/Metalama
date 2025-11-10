@@ -8,7 +8,7 @@ internal class Target
       Console.WriteLine("Get2");
       Console.WriteLine("Get1");
       int foo;
-      foo = _foo;
+      foo = this._foo;
       if (foo > 0)
       {
         return foo;
@@ -24,7 +24,7 @@ internal class Target
       Console.WriteLine("Set1");
       if (value != 0)
       {
-        _foo = value;
+        this._foo = value;
       }
       else
       {

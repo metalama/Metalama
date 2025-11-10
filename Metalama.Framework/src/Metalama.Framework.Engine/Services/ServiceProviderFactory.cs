@@ -85,11 +85,11 @@ public static class ServiceProviderFactory
             .WithServiceConditional<ITestableCancellationTokenSourceFactory>( _ => new DefaultTestableCancellationTokenSource() )
             .WithServiceConditional<IMetalamaProjectClassifier>( _ => new MetalamaProjectClassifier() )
             .WithServiceConditional( sp => new UserCodeInvoker( sp ) )
-            .WithServiceConditional<ICompileTimeAssemblyLocatorProvider>( sp => new CompileTimeAssemblyLocatorProvider(
-                                                                              sp.GetRequiredBackstageService<ITempFileManager>() ) )
+            .WithServiceConditional<ICompileTimeAssemblyLocatorProvider>(
+                sp => new CompileTimeAssemblyLocatorProvider( sp.GetRequiredBackstageService<ITempFileManager>() ) )
             .WithServiceConditional( _ => new FrameworkCompileTimeProjectFactory() )
             .WithServiceConditional( _ => new AttributeClassificationService() )
-            .WithServiceConditional<IProjectOptionsFactory>( sp => new MSBuildProjectOptionsFactory() )
+            .WithServiceConditional<IProjectOptionsFactory>( _ => new MSBuildProjectOptionsFactory() )
             .WithServiceConditional( _ => new ObjectReaderFactory() )
             .WithServiceConditional<IExtensionLoader>( _ => new ExtensionLoader() );
 

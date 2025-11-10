@@ -33,7 +33,7 @@ internal abstract class BaseRef<T> : IRefImpl, IRef<T>
     public virtual RefTargetKind TargetKind => RefTargetKind.Default;
 
     public abstract SerializableDeclarationId ToSerializableId();
-    
+
     public virtual SerializableDeclarationId ToSerializableId( CompilationContext compilationContext ) => this.ToSerializableId();
 
     protected abstract IDurableRef<T> ToDurable();
@@ -55,7 +55,7 @@ internal abstract class BaseRef<T> : IRefImpl, IRef<T>
     private ICompilationElement? GetTargetImpl( ICompilation compilation, bool throwIfMissing, IGenericContext? genericContext, Type interfaceType )
     {
         genericContext ??= GenericContext.Empty;
-        
+
         using ( StackOverflowHelper.Detect() )
         {
             var compilationModel = (CompilationModel) compilation;

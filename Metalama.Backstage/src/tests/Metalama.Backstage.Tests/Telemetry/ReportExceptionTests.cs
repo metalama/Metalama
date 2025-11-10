@@ -22,10 +22,11 @@ namespace Metalama.Backstage.Tests.Telemetry;
 public sealed class ReportExceptionTests : TestsBase
 {
     public ReportExceptionTests( ITestOutputHelper logger ) : base( logger, new TestApplicationInfo() { IsTelemetryEnabled = true } ) { }
-    
+
     protected override void OnAfterServicesCreated( Services services )
     {
         base.OnAfterServicesCreated( services );
+
         services.ConfigurationManager!.Update<TelemetryConfiguration>(
             c => c with { ExceptionReportingAction = ReportingAction.Yes, PerformanceProblemReportingAction = ReportingAction.Yes } );
     }

@@ -39,7 +39,7 @@ internal sealed class TypeIdRef<T> : DurableRef<T>
         Type interfaceType )
     {
         Invariant.Assert( genericContext.IsEmptyOrIdentity );
-        
+
         if ( !compilation.SerializableTypeIdResolver.TryResolveId( new SerializableTypeId( this.Id ), out var symbol ) )
         {
             return ReturnNullOrThrow( this.Id, throwIfMissing, compilation );

@@ -4,7 +4,6 @@
 
 using System;
 using System.Linq;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Templating;
@@ -18,7 +17,7 @@ internal class Aspect
     [TestTemplate]
     private dynamic? Template()
     {
-        Console.WriteLine( string.Join( ", ", meta.Target.Parameters.Select( p => (IExpression?)p.Value ) ) );
+        Console.WriteLine( string.Join( ", ", meta.Target.Parameters.Select( p => (IExpression?) p.Value ) ) );
 
         return meta.Proceed();
     }

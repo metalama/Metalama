@@ -36,7 +36,7 @@ public sealed class DependencyPropertyOptionsBuilder
     /// Gets or sets a value indicating whether the property initializer (if present) should be used to for <see cref="PropertyMetadata.DefaultValue"/>.
     /// The default is <see langword="true"/>.
     /// </summary>
-    public bool? InitializerProvidesDefaultValue 
+    public bool? InitializerProvidesDefaultValue
     {
         get => this._options.InitializerProvidesDefaultValue;
         set => this._options = this._options with { InitializerProvidesDefaultValue = value };

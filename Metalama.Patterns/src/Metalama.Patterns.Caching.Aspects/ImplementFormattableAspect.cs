@@ -13,8 +13,8 @@ namespace Metalama.Patterns.Caching.Aspects;
 
 internal sealed class ImplementFormattableAspect : TypeAspect
 {
-    [Template]
-    protected void FormatCacheKey( UnsafeStringBuilder stringBuilder, IFormatterRepository formatterRepository )
+    [Template( Accessibility = Accessibility.Protected )]
+    private void FormatCacheKey( UnsafeStringBuilder stringBuilder, IFormatterRepository formatterRepository )
     {
         if ( meta.Target.Method.OverriddenMethod != null )
         {
@@ -60,6 +60,7 @@ internal sealed class ImplementFormattableAspect : TypeAspect
 
     [UsedImplicitly]
     [InterfaceMember( IsExplicit = true, WhenExists = InterfaceMemberOverrideStrategy.Ignore )]
+#pragma warning disable CA1822
     public void Format( UnsafeStringBuilder stringBuilder, IFormatterRepository formatterRepository )
     {
         meta.This.FormatCacheKey( stringBuilder, formatterRepository );
@@ -75,4 +76,5 @@ internal sealed class ImplementFormattableAspect : TypeAspect
             buildMethod:
             method => method.IsVirtual = !builder.Target.IsSealed );
     }
+#pragma warning restore CA1822
 }

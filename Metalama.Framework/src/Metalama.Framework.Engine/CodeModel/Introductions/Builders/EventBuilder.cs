@@ -160,19 +160,7 @@ internal sealed class EventBuilder : MemberBuilder, IEventBuilder, IEventImpl
 
     public IMethod? GetAccessor( MethodKind methodKind ) => this.GetAccessorImpl( methodKind );
 
-    public IEnumerable<IMethod> Accessors
-    {
-        get
-        {
-            yield return this.AddMethod;
-            yield return this.RemoveMethod;
-
-            if ( this.RaiseMethod != null )
-            {
-                yield return this.RaiseMethod;
-            }
-        }
-    }
+    public IEnumerable<IMethod> Accessors => [this.AddMethod, this.RemoveMethod, this.RaiseMethod];
 
     protected override void FreezeChildren()
     {

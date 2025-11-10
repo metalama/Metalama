@@ -67,7 +67,7 @@ public partial class C
 
         using var pipelineFactory = new TestDesignTimeAspectPipelineFactory( testContext );
 
-        Assert.True( pipelineFactory.TryExecute( testContext1.ProjectOptions, compilation1, default, out var compilationResult1 ) );
+        Assert.True( pipelineFactory.TryExecute( testContext1.ProjectOptions, compilation1, default, out _ ) );
         Assert.True( pipelineFactory.TryExecute( testContext2.ProjectOptions, compilation2, default, out var compilationResult2 ) );
 
         Assert.Single( compilationResult2.Result.IntroducedSyntaxTrees );

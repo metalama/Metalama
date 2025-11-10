@@ -10,22 +10,24 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Overrides.Jumps.Ret
     // <target>
     internal class Target
     {
-        private void Foo(int x)
+        private void Foo( int x )
         {
-            Console.WriteLine( "Original Start");
-            if (x == 0)
+            Console.WriteLine( "Original Start" );
+
+            if ( x == 0 )
             {
                 return;
             }
-            Console.WriteLine( "Original End");
+
+            Console.WriteLine( "Original End" );
         }
 
-        [PseudoOverride( nameof(Foo),"TestAspect")]
-        private void Foo_Override(int x)
+        [PseudoOverride( nameof(Foo), "TestAspect" )]
+        private void Foo_Override( int x )
         {
-            Console.WriteLine( "Before");
-            Link( This.Foo, Inline)(x);
-            Console.WriteLine( "After");
+            Console.WriteLine( "Before" );
+            Link( This.Foo, Inline )( x );
+            Console.WriteLine( "After" );
         }
     }
 }

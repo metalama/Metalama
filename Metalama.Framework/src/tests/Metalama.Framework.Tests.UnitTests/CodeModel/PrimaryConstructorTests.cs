@@ -29,7 +29,7 @@ class A {}
         Assert.Null( typeClass.PrimaryConstructor );
         Assert.All( typeClass.Constructors, c => Assert.False( c.IsPrimary ) );
     }
-    
+
     [Fact]
     public void ImplicitConstructor_Struct()
     {
@@ -46,7 +46,7 @@ struct B {}
         Assert.Null( typeStruct.PrimaryConstructor );
         Assert.All( typeStruct.Constructors, c => Assert.False( c.IsPrimary ) );
     }
-    
+
     [Fact]
     public void ImplicitConstructor_RecordClass()
     {
@@ -63,7 +63,7 @@ record class C {}
         Assert.Null( typeRecordClass.PrimaryConstructor );
         Assert.All( typeRecordClass.Constructors, c => Assert.False( c.IsPrimary ) );
     }
-    
+
     [Fact]
     public void ImplicitConstructor_RecordStruct()
     {
@@ -80,7 +80,7 @@ record struct D {}
         Assert.Null( typeRecordStruct.PrimaryConstructor );
         Assert.All( typeRecordStruct.Constructors, c => Assert.False( c.IsPrimary ) );
     }
-    
+
     [Fact]
     public void ImplicitConstructor_Enum()
     {
@@ -97,7 +97,7 @@ enum E {}
         Assert.Null( typeEnum.PrimaryConstructor );
         Assert.All( typeEnum.Constructors, c => Assert.False( c.IsPrimary ) );
     }
-    
+
     [Fact]
     public void ImplicitConstructor_Delegate()
     {
@@ -359,30 +359,28 @@ record struct D(int x) {}
             "class",
             "struct",
 #endif
-            "record",
-            "record class",
-            "record struct"
+            "record", "record class", "record struct"
         };
 
         foreach ( var kind in kinds )
         {
             var code = $$"""
-                {{kind}} NoInitializer();
+                         {{kind}} NoInitializer();
 
-                interface IFoo { }
+                         interface IFoo { }
 
-                {{kind}} Interface() : IFoo;
-                """;
+                         {{kind}} Interface() : IFoo;
+                         """;
 
             if ( !kind.ContainsOrdinal( "struct" ) )
             {
                 code += $$"""
-                    {{kind}} Base;
+                          {{kind}} Base;
 
-                    {{kind}} DerivedSimple() : Base;
+                          {{kind}} DerivedSimple() : Base;
 
-                    {{kind}} DerivedInitializer() : Base();
-                    """;
+                          {{kind}} DerivedInitializer() : Base();
+                          """;
             }
 
             var compilation = testContext.CreateCompilationModel( code );

@@ -55,7 +55,7 @@ internal static class DeclarationHelper
             {
                 TypeNameKind.Name => symbol.GetReflectionName(),
                 TypeNameKind.FullName => symbol.GetReflectionFullName(),
-                _ => throw new AssertionFailedException( $"Unexpected TypeNameKind value: {kind}." ),
+                _ => throw new AssertionFailedException( $"Unexpected TypeNameKind value: {kind}." )
             };
         }
 
@@ -101,7 +101,8 @@ internal static class DeclarationHelper
 
                     default:
                         // A type is always contained in another type or in a namespace, possibly the global namespace.
-                        throw new AssertionFailedException( $"'{declaration}' has an unexpected containing declaration {(declaration as IDeclaration)?.GetContainingDeclarationOrNamespace()}." );
+                        throw new AssertionFailedException(
+                            $"'{declaration}' has an unexpected containing declaration {(declaration as IDeclaration)?.GetContainingDeclarationOrNamespace()}." );
                 }
             }
 

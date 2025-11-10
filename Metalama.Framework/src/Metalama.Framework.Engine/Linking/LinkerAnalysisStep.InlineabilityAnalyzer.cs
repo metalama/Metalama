@@ -146,7 +146,7 @@ internal sealed partial class LinkerAnalysisStep
 
             bool IsInlineableMethod( IntermediateSymbolSemantic<IMethodSymbol> semantic )
             {
-                if (this._injectionRegistry.IsEventRaiseOverride(semantic.Symbol))
+                if ( this._injectionRegistry.IsEventRaiseOverride( semantic.Symbol ) )
                 {
                     // Event raise override are always inlineable (we will determine inlineability otherwise).
                     return true;
@@ -213,8 +213,7 @@ internal sealed partial class LinkerAnalysisStep
 
             bool IsInlineableEvent( IntermediateSymbolSemantic<IEventSymbol> semantic )
             {
-                if ( semantic.Symbol is IEventSymbol
-                     && semantic.Kind == IntermediateSymbolSemanticKind.Default
+                if ( semantic is { Symbol: not null, Kind: IntermediateSymbolSemanticKind.Default }
                      && this._injectionRegistry.IsLastOverride( semantic.Symbol )
                      && this._injectionRegistry.HasEventRaiseOverride( semantic.Symbol ) )
                 {
@@ -223,8 +222,7 @@ internal sealed partial class LinkerAnalysisStep
                 }
 
                 // Block inlining for any override that has event raise overrides
-                if ( semantic.Symbol is IEventSymbol eventSymbol
-                     && semantic.Kind == IntermediateSymbolSemanticKind.Default
+                if ( semantic is { Symbol: { } eventSymbol, Kind: IntermediateSymbolSemanticKind.Default }
                      && this._injectionRegistry.IsOverride( eventSymbol )
                      && this._injectionRegistry.HasEventRaiseOverride( eventSymbol ) )
                 {
@@ -232,7 +230,7 @@ internal sealed partial class LinkerAnalysisStep
                     return false;
                 }
 
-                if ( semantic.Symbol.IsEventFieldIntroduction() )
+                if ( semantic.Symbol?.IsEventFieldIntroduction() == true )
                 {
                     // Override target that is event field is never inlineable.
                     return false;

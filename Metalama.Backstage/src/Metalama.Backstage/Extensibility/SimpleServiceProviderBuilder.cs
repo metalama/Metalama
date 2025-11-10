@@ -21,7 +21,7 @@ public sealed class SimpleServiceProviderBuilder : ServiceProviderBuilder
 
     public IServiceProvider ServiceProvider { get; }
 
-    private class ServiceProviderImpl : IServiceProvider
+    private sealed class ServiceProviderImpl : IServiceProvider
     {
         private readonly Dictionary<Type, Node> _nodes = [];
 
@@ -42,7 +42,7 @@ public sealed class SimpleServiceProviderBuilder : ServiceProviderBuilder
             }
         }
 
-        private class Node
+        private sealed class Node
         {
             private readonly Func<IServiceProvider, object> _func;
             private object? _instance;

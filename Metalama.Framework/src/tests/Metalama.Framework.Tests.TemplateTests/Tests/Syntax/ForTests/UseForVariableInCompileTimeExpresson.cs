@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Engine.Templating;
 
@@ -15,7 +14,7 @@ namespace Metalama.Framework.Tests.AspectTests.Templating.Syntax.ForTests.UseFor
         [TestTemplate]
         private dynamic? Template()
         {
-            for (var i = 0; i < meta.Target.Parameters.Count; i++)
+            for ( var i = 0; i < meta.Target.Parameters.Count; i++ )
             {
                 Console.WriteLine( meta.Target.Parameters[i].Name );
             }

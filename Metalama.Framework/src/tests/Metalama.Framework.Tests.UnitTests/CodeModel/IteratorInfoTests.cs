@@ -14,7 +14,7 @@ namespace Metalama.Framework.Tests.UnitTests.CodeModel;
 public sealed class IteratorInfoTests : UnitTestClass
 {
     protected override void ConfigureServices( IAdditionalServiceCollection services ) => services.AddProjectService( SyntaxGenerationOptions.Formatted );
-    
+
     [Fact]
     public void GenericEnumerableYield()
     {

@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Patterns.Contracts.UnitTests.Utilities;
 using Xunit;
 
 namespace Metalama.Patterns.Contracts.UnitTests;
@@ -12,8 +13,8 @@ public sealed class LessOrGreaterThanPositiveValueTests : RangeContractTestsBase
     private const ulong _ulongLimit = 100;
     private const double _doubleLimit = 100;
 
-    private static readonly double _doubleStep = Utilities.FloatingPointHelper.GetDoubleStep( _doubleLimit );
-    private static readonly decimal _decimalStep = Utilities.FloatingPointHelper.GetDecimalStep( (decimal) _doubleLimit );
+    private static readonly double _doubleStep = FloatingPointHelper.GetDoubleStep( _doubleLimit );
+    private static readonly decimal _decimalStep = FloatingPointHelper.GetDecimalStep( (decimal) _doubleLimit );
 
     [Fact]
     public void TestMethodsWithGreaterThanAspect_Success()

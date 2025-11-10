@@ -24,6 +24,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
+using TypeKind = Microsoft.CodeAnalysis.TypeKind;
 
 // ReSharper disable SuspiciousTypeConversion.Global
 
@@ -44,7 +45,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
                 this._currentTypeStack = new Stack<(TypeDeclarationSyntax, List<MemberDeclarationSyntax>)>();
                 this._promotions = new Dictionary<IFullRef<IField>, IFullRef<IProperty>>( RefEqualityComparer.Default );
             }
-            
+
             public override SyntaxNode? VisitClassDeclaration( ClassDeclarationSyntax node )
             {
                 var rewrittenNode = this.RewriteTypeDeclaration( node, n => base.VisitClassDeclaration( n ), ( n, m ) => n.WithMembers( List( m ) ) );
@@ -257,7 +258,15 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
                 if ( pseudoIntroductionAttribute != null )
                 {
                     // Introduction will create a temporary declaration, that will help us to provide values for IMethod member.
-                    this.ProcessPseudoIntroduction( semanticModel, node, [], pseudoIntroductionAttribute, notInlineable, notDiscardable, pseudoReplacedAttribute, pseudoReplacementAttribute );
+                    this.ProcessPseudoIntroduction(
+                        semanticModel,
+                        node,
+                        [],
+                        pseudoIntroductionAttribute,
+                        notInlineable,
+                        notDiscardable,
+                        pseudoReplacedAttribute,
+                        pseudoReplacementAttribute );
 
                     return [];
                 }
@@ -317,7 +326,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
                 {
                     FieldDeclarationSyntax { Declaration.Variables: [{ } variable] } => semanticModel.GetDeclaredSymbol( variable ).AssertNotNull(),
                     EventFieldDeclarationSyntax { Declaration.Variables: [{ } variable] } => semanticModel.GetDeclaredSymbol( variable ).AssertNotNull(),
-                    _ => semanticModel.GetDeclaredSymbol( node ).AssertNotNull(),
+                    _ => semanticModel.GetDeclaredSymbol( node ).AssertNotNull()
                 };
 
                 var aspectName = introductionAttribute.ArgumentList.Arguments[0].ToString().Trim( '\"' );
@@ -432,10 +441,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
                                     propertySymbol.IsAutoProperty()!.Value,
                                     propertySymbol.SetMethod is { IsInitOnly: true },
                                     propertySymbol.GetMethod is { IsImplicitlyDeclared: true },
-                                    propertySymbol.SetMethod is { IsImplicitlyDeclared: true } )
-                                {
-                                    OriginalField = replacedField
-                                };
+                                    propertySymbol.SetMethod is { IsImplicitlyDeclared: true } ) { OriginalField = replacedField };
 
                             builder = propertyBuilder;
 
@@ -454,7 +460,12 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
 
                         case FieldDeclarationSyntax fieldDeclaration:
                             var fieldSymbol = (IFieldSymbol) symbol;
-                            var fieldBuilder = new FieldBuilder( aspectLayerInstance, declaringType, fieldDeclaration.Declaration.Variables.Single().Identifier.ValueText );
+
+                            var fieldBuilder = new FieldBuilder(
+                                aspectLayerInstance,
+                                declaringType,
+                                fieldDeclaration.Declaration.Variables.Single().Identifier.ValueText );
+
                             builder = fieldBuilder;
 
                             fieldBuilder.Type = compilationModel.Factory.GetIType( fieldSymbol.Type );
@@ -463,7 +474,13 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
 
                         case EventFieldDeclarationSyntax eventFieldDeclaration:
                             var eventFieldSymbol = (IEventSymbol) symbol;
-                            var eventFieldBuilder = new EventBuilder( aspectLayerInstance, declaringType, eventFieldDeclaration.Declaration.Variables.Single().Identifier.ValueText, true );
+
+                            var eventFieldBuilder = new EventBuilder(
+                                aspectLayerInstance,
+                                declaringType,
+                                eventFieldDeclaration.Declaration.Variables.Single().Identifier.ValueText,
+                                true );
+
                             builder = eventFieldBuilder;
 
                             eventFieldBuilder.Type = (INamedType) compilationModel.Factory.GetIType( eventFieldSymbol.Type );
@@ -574,24 +591,27 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
                     {
                         {
                                 CandidateReason: CandidateReason.MemberGroup,
-                                CandidateSymbols: [{ ContainingType.TypeKind: Microsoft.CodeAnalysis.TypeKind.Interface } interfaceMemberSymbol]
+                                CandidateSymbols: [{ ContainingType.TypeKind: TypeKind.Interface } interfaceMemberSymbol]
                             } =>
-                            semanticModel.GetDeclaredSymbol( node ).AssertNotNull()
+                            semanticModel.GetDeclaredSymbol( node )
+                                .AssertNotNull()
                                 .ContainingType.FindImplementationForInterfaceMember( interfaceMemberSymbol )
                                 .AssertNotNull(),
                         {
                                 CandidateReason: CandidateReason.MemberGroup,
                                 CandidateSymbols: { Length: > 1 } symbols
                             } when
-                            symbols.All( s => s is IMethodSymbol { ContainingType.TypeKind: Microsoft.CodeAnalysis.TypeKind.Interface } )
+                            symbols.All( s => s is IMethodSymbol { ContainingType.TypeKind: TypeKind.Interface } )
                             && node is MethodDeclarationSyntax { ParameterList.Parameters: { } parameters }
                             && symbols.Count( s => ((IMethodSymbol) s).Parameters.Length == parameters.Count ) == 1 =>
-                            semanticModel.GetDeclaredSymbol( node ).AssertNotNull()
+                            semanticModel.GetDeclaredSymbol( node )
+                                .AssertNotNull()
                                 .ContainingType.FindImplementationForInterfaceMember(
                                     symbols.Single( s => ((IMethodSymbol) s).Parameters.Length == parameters.Count ) )
                                 .AssertNotNull(),
-                        { Symbol: { ContainingType.TypeKind: Microsoft.CodeAnalysis.TypeKind.Interface } interfaceMemberSymbol } =>
-                            semanticModel.GetDeclaredSymbol( node ).AssertNotNull()
+                        { Symbol: { ContainingType.TypeKind: TypeKind.Interface } interfaceMemberSymbol } =>
+                            semanticModel.GetDeclaredSymbol( node )
+                                .AssertNotNull()
                                 .ContainingType.FindImplementationForInterfaceMember( interfaceMemberSymbol )
                                 .AssertNotNull(),
                         { CandidateReason: CandidateReason.MemberGroup, CandidateSymbols: [{ } symbol] } => symbol,
@@ -602,7 +622,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
                             && symbols.Count( s => ((IMethodSymbol) s).Parameters.Length == parameters.Count ) == 1 =>
                             symbols.Single( s => ((IMethodSymbol) s).Parameters.Length == parameters.Count ),
                         { Symbol: { } symbol } => symbol,
-                        _ => throw new AssertionFailedException( "Unsupported" ),
+                        _ => throw new AssertionFailedException( "Unsupported" )
                     };
 
                 var aspectName = overrideAttribute.ArgumentList.Arguments[1].ToString().Trim( '\"' );
@@ -719,12 +739,12 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
 
             private static AspectLayerInstance CreateTestAspectLayerInstance( IDeclaration targetDeclaration, AspectLayerId aspectLayer )
             {
-                var fakeAspectInstance = 
-                    new AspectInstance( 
-                        new TestAspect(), 
-                        targetDeclaration, 
-                        new TestAspectClass( aspectLayer.AspectName ), 
-                        [], 
+                var fakeAspectInstance =
+                    new AspectInstance(
+                        new TestAspect(),
+                        targetDeclaration,
+                        new TestAspectClass( aspectLayer.AspectName ),
+                        [],
                         ImmutableArray<AspectPredecessor>.Empty );
 
                 var aspectLayerInstance = new AspectLayerInstance( fakeAspectInstance, aspectLayer.LayerName, null! /* TODO */ );

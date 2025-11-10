@@ -28,7 +28,7 @@ internal sealed class ConstructorInliner : Inliner
                 [.., { Name: AspectReferenceSyntaxProvider.LinkerOverrideParamName }] =>
                     (contextConstructor.Parameters.Length - 1, i => i),
                 _ =>
-                    (contextConstructor.Parameters.Length, (Func<int, int>) (i => i)),
+                    (contextConstructor.Parameters.Length, (Func<int, int>) (i => i))
             };
 
         return

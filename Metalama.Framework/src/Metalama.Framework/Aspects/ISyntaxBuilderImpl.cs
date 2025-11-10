@@ -15,7 +15,7 @@ namespace Metalama.Framework.Aspects;
 internal interface ISyntaxBuilderImpl
 {
     ICompilation Compilation { get; }
-    
+
     IDeclaration? CurrentDeclaration { get; }
 
     IExpression Capture( object? expression );

@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Patterns.Contracts.UnitTests.Utilities;
 using Xunit;
 
 namespace Metalama.Patterns.Contracts.UnitTests;
@@ -45,8 +46,8 @@ public sealed class StrictRangeAttributeTests
     [Fact]
     public void TestDoubleTolerance()
     {
-        MethodWithDoubleInDoubleStrictRange( _doubleMin + Utilities.FloatingPointHelper.GetDoubleStep( _doubleMin ) );
-        MethodWithDoubleInDoubleStrictRange( _doubleMax - Utilities.FloatingPointHelper.GetDoubleStep( _doubleMax ) );
+        MethodWithDoubleInDoubleStrictRange( _doubleMin + FloatingPointHelper.GetDoubleStep( _doubleMin ) );
+        MethodWithDoubleInDoubleStrictRange( _doubleMax - FloatingPointHelper.GetDoubleStep( _doubleMax ) );
     }
 
     private static void TestAllMethods( long longValue, ulong ulongValue, double doubleValue, decimal decimalValue, Action<Action>? action = null )

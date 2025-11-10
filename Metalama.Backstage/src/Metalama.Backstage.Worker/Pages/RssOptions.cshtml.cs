@@ -29,7 +29,7 @@ internal class RssOptionsPageModel : PageModel
     public void OnGet()
     {
         // Load the current preference
-        this.PreferredFeed = this._configurationManager.Get<RssClientConfiguration>()?.PreferredFeed ?? RssFeed.Briefs;
+        this.PreferredFeed = this._configurationManager.Get<RssClientConfiguration>().PreferredFeed ?? RssFeed.Briefs;
     }
 
     public IActionResult OnPost()

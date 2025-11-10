@@ -45,9 +45,7 @@ internal sealed class CachingContext : IDisposable, ICachingContext
                 lock ( this._dependenciesSync )
                 {
                     this._immutableDependencies =
-                        this._dependencies == null
-                            ? ImmutableHashSet<string>.Empty
-                            : this._dependencies.ToImmutableHashSet();
+                        this._dependencies?.ToImmutableHashSet() ?? ImmutableHashSet<string>.Empty;
                 }
             }
 

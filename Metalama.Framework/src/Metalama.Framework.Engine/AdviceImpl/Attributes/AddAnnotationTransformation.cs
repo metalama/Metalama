@@ -14,8 +14,10 @@ namespace Metalama.Framework.Engine.AdviceImpl.Attributes;
 
 internal sealed class AddAnnotationTransformation : BaseTransformation
 {
-    public AddAnnotationTransformation( AspectLayerInstance aspectLayerInstance, IFullRef<IDeclaration> declaration, AnnotationInstance annotationInstance ) : base(
-        aspectLayerInstance )
+    public AddAnnotationTransformation(
+        AspectLayerInstance aspectLayerInstance,
+        IFullRef<IDeclaration> declaration,
+        AnnotationInstance annotationInstance ) : base( aspectLayerInstance )
     {
         this.TargetDeclaration = declaration;
         this.AnnotationInstance = annotationInstance;

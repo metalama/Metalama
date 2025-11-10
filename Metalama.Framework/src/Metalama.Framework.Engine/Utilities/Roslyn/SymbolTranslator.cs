@@ -30,7 +30,7 @@ internal sealed partial class SymbolTranslator
         {
             return symbol;
         }
-        
+
         var containingAssembly = symbol.ContainingAssembly;
 
         if ( containingAssembly != null && this._targetCompilationContext.Assemblies.TryGetValue( containingAssembly.Identity, out var assembly )

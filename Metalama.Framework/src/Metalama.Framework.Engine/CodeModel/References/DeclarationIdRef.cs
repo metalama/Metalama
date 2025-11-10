@@ -32,7 +32,7 @@ internal sealed class DeclarationIdRef<T> : DurableRef<T>
         Type interfaceType )
     {
         Invariant.Assert( genericContext.IsEmptyOrIdentity );
-        
+
         var declaration = new SerializableDeclarationId( this.Id ).ResolveToDeclaration( compilation );
 
         if ( declaration == null )

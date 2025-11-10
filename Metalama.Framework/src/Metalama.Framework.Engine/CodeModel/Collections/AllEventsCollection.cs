@@ -18,5 +18,5 @@ internal sealed class AllEventsCollection : AllMembersCollection<IEvent>, IEvent
 
     protected override IEqualityComparer<IEvent> Comparer => this.CompilationContext.EventComparer;
 
-    public IEvent this[string name] => this.OfName( name ).Single();
+    public IEvent this[ string name ] => this.OfName( name ).Single();
 }

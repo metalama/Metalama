@@ -14,55 +14,63 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.EventFields.Overrides.Jump.
     {
         private event EventHandler? Foo;
 
-        [PseudoOverride( nameof(Foo),"TestAspect1")]
+        [PseudoOverride( nameof(Foo), "TestAspect1" )]
         private event EventHandler? Foo_Override1
         {
             add
             {
-                Console.WriteLine("Before1");
-                if (new Random().Next() == 0)
+                Console.WriteLine( "Before1" );
+
+                if ( new Random().Next() == 0 )
                 {
                     return;
                 }
+
                 Link[This.Foo.add, Inline] += value;
-                Console.WriteLine("After1");
+                Console.WriteLine( "After1" );
             }
 
             remove
             {
-                Console.WriteLine("Before1");
-                if (new Random().Next() == 0)
+                Console.WriteLine( "Before1" );
+
+                if ( new Random().Next() == 0 )
                 {
                     return;
                 }
+
                 Link[This.Foo.remove, Inline] -= value;
-                Console.WriteLine("After1");
+                Console.WriteLine( "After1" );
             }
         }
 
-        [PseudoOverride( nameof(Foo),"TestAspect2")]
+        [PseudoOverride( nameof(Foo), "TestAspect2" )]
         private event EventHandler? Foo_Override2
         {
             add
             {
-                Console.WriteLine("Before2");
-                if (new Random().Next() == 0)
+                Console.WriteLine( "Before2" );
+
+                if ( new Random().Next() == 0 )
                 {
                     return;
                 }
+
                 Link[This.Foo.add, Inline] += value;
-                Console.WriteLine("After2");
+                Console.WriteLine( "After2" );
             }
 
             remove
             {
-                Console.WriteLine("Before2");
-                if (new Random().Next() == 0)
+                Console.WriteLine( "Before2" );
+
+                if ( new Random().Next() == 0 )
                 {
                     return;
                 }
+
                 Link[This.Foo.remove, Inline] -= value;
-                Console.WriteLine("After2");
+                Console.WriteLine( "After2" );
             }
         }
     }

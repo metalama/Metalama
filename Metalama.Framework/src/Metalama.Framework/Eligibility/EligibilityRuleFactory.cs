@@ -46,7 +46,7 @@ public static partial class EligibilityRuleFactory
             builder.MustSatisfy(
                 m => m is
                      {
-                         ContainingDeclaration: { IsImplicitlyDeclared: false },
+                         ContainingDeclaration.IsImplicitlyDeclared: false,
                          MethodKind: MethodKind.EventAdd or MethodKind.EventRemove or MethodKind.EventRaise or MethodKind.PropertyGet or MethodKind.PropertySet
                      }
                      || !m.IsImplicitlyDeclared,

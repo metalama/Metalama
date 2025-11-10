@@ -10,19 +10,21 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Overrides.TemplateB
     // <target>
     internal class Target
     {
-        private int Foo(int x)
+        private int Foo( int x )
         {
-            Console.WriteLine( "Original");
+            Console.WriteLine( "Original" );
+
             return x;
         }
 
-        [PseudoOverride( nameof(Foo),"TestAspect")]
-        private int Foo_Override(int x)
+        [PseudoOverride( nameof(Foo), "TestAspect" )]
+        private int Foo_Override( int x )
         {
-            Console.WriteLine( "Before");
+            Console.WriteLine( "Before" );
             int result;
-            result = Link( This.Foo, Inline)(x);
-            Console.WriteLine( "After");
+            result = Link( This.Foo, Inline )( x );
+            Console.WriteLine( "After" );
+
             return result;
         }
     }

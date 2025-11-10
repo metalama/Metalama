@@ -11,7 +11,7 @@ namespace Metalama.Backstage.Licensing
     internal static class ApplicationInfoLicenseExtensions
     {
         public static bool IsPreviewLicenseEligible( this IComponentInfo component )
-            => (component.IsPrerelease ?? false) && component.BuildDate.HasValue && component.Company == "PostSharp Technologies";
+            => (component.IsPrerelease ?? false) && component is { BuildDate: not null, Company: "PostSharp Technologies" };
 
         // ReSharper disable once UnusedMember.Global
         public static bool IsPreviewLicenseEligible( this IApplicationInfo application )

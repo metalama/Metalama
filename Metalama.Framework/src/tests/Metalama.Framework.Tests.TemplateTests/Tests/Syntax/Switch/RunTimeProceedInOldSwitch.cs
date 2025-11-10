@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Engine.Templating;
 
@@ -16,7 +15,7 @@ namespace Metalama.Framework.Tests.AspectTests.Templating.Syntax.Switch.ProceedI
         {
             var i = 1;
 
-            switch (i)
+            switch ( i )
             {
                 case 0:
                     Console.WriteLine( "0" );

@@ -76,6 +76,6 @@ internal abstract class ParentProcessSearchBase<TProcessHandle> : ParentProcessS
     protected abstract TProcessHandle GetCurrentProcessHandle();
 
     protected abstract (string? ImageName, int CurrentProcessId, TProcessHandle ParentProcessHandle) GetProcessInfo( TProcessHandle processHandle );
-    
+
     protected abstract void CloseProcessHandle( TProcessHandle handle );
 }

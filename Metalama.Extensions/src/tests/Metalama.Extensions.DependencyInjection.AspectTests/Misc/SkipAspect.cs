@@ -22,9 +22,9 @@ public class TestAttribute : FieldOrPropertyAspect
 
     public override void BuildAspect( IAspectBuilder<IFieldOrProperty> builder )
     {
-        if ( !builder.Target.Attributes.OfAttributeType( typeof( DisableAspectAttribute ) ).Any() )
+        if ( !builder.Target.Attributes.OfAttributeType( typeof(DisableAspectAttribute) ).Any() )
         {
-            builder.Override( nameof( this.OverrideProperty ) );
+            builder.Override( nameof(this.OverrideProperty) );
         }
         else
         {
@@ -38,6 +38,7 @@ public class TestAttribute : FieldOrPropertyAspect
         get
         {
             this._testDependency.Foo();
+
             return meta.Proceed();
         }
         set
@@ -49,9 +50,7 @@ public class TestAttribute : FieldOrPropertyAspect
 }
 
 [AttributeUsage( AttributeTargets.Class | AttributeTargets.Method | AttributeTargets.Property )]
-public sealed class DisableAspectAttribute : Attribute
-{
-}
+public sealed class DisableAspectAttribute : Attribute { }
 
 // <target>
 public class TargetClass

@@ -13,6 +13,6 @@ namespace Metalama.Framework.Engine.CodeModel.Collections
     {
         public EventCollection( INamedType declaringType, EventUpdatableCollection sourceItems ) : base( declaringType, sourceItems ) { }
 
-        public IEvent this[string name] => this.OfName( name ).Single();
+        public IEvent this[ string name ] => this.OfName( name ).Single();
     }
 }

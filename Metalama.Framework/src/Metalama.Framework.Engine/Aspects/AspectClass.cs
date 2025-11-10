@@ -30,6 +30,7 @@ using TypeKind = Microsoft.CodeAnalysis.TypeKind;
 
 #if NET8_0_OR_GREATER
 using System.Runtime.CompilerServices;
+
 #else
 using System.Runtime.Serialization;
 #endif

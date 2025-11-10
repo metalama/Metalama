@@ -221,7 +221,9 @@ internal sealed class LinkerInjectionHelperProvider
         var binaryOperators =
             OperatorData.All
                 .Where( op => op.Category == OperatorCategory.Binary )
-                .Select( op => $"public static R{nullabilitySuffix} {op.MemberName}<A,B,R>(A{nullabilitySuffix} a, B{nullabilitySuffix} b) => default(R{nullabilitySuffix});" );
+                .Select(
+                    op
+                        => $"public static R{nullabilitySuffix} {op.MemberName}<A,B,R>(A{nullabilitySuffix} a, B{nullabilitySuffix} b) => default(R{nullabilitySuffix});" );
 
         var binaryAssignmentOperators =
             OperatorData.All

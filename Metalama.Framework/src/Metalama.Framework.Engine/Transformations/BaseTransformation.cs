@@ -30,7 +30,7 @@ internal abstract class BaseTransformation : ITransformation
     protected CompilationModel InitialCompilation => this.AspectLayerInstance.InitialCompilation;
 
     IRef<IDeclaration> ITransformationBase.TargetDeclaration => this.TargetDeclaration;
-    
+
     /// <summary>
     /// Gets the declaration that is transformed, or the declaration into which a new declaration is being introduced. 
     /// </summary>

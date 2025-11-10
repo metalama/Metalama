@@ -10,7 +10,7 @@ namespace Metalama.Backstage.Extensibility;
 /// Profiling service, which allows to control the current profiling session, if active.
 /// </summary>
 [PublicAPI]
-public interface IProfilingService : IBackstageService 
+public interface IProfilingService : IBackstageService
 {
     void Initialize();
 

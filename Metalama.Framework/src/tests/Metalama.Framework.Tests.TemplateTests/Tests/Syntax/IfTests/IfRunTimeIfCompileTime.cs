@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Engine.Templating;
 
@@ -15,9 +14,9 @@ namespace Metalama.Framework.Tests.AspectTests.Templating.Syntax.IfTests.IfRunTi
         [TestTemplate]
         private dynamic? Template()
         {
-            if (meta.Target.Parameters[0].Value == null)
+            if ( meta.Target.Parameters[0].Value == null )
             {
-                if (meta.Target.Method.Name == "DontThrowMethod")
+                if ( meta.Target.Method.Name == "DontThrowMethod" )
                 {
                     Console.WriteLine( "Oops" );
                 }

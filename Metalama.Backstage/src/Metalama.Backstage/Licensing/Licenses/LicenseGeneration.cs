@@ -16,5 +16,5 @@ public enum LicenseGeneration : byte
     /// </summary>
     V2025Q2 = 1,
 
-    Current = V2025Q2,
+    Current = V2025Q2
 }

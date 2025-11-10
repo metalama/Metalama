@@ -100,7 +100,7 @@ namespace Metalama.Framework.Engine.CodeModel.Source
 
         [Memo]
         private IEventInvoker Invoker => new EventInvoker( this );
-        
+
         IEventInvoker IEventInvoker.WithOptions( InvokerOptions options ) => this.Invoker.WithOptions( options );
 
         IEventInvoker IEventInvoker.WithObject( object? obj ) => this.Invoker.WithObject( obj );
@@ -160,8 +160,8 @@ namespace Metalama.Framework.Engine.CodeModel.Source
             {
                 return
                 [
-                    new SourceReference( this._symbol.DeclaringSyntaxReferences[0].GetSyntax(), SourceReferenceImpl.Instance ), 
-                    new SourceReference( this._symbol.PartialImplementationPart.DeclaringSyntaxReferences[0].GetSyntax(), SourceReferenceImpl.Instance ),
+                    new SourceReference( this._symbol.DeclaringSyntaxReferences[0].GetSyntax(), SourceReferenceImpl.Instance ),
+                    new SourceReference( this._symbol.PartialImplementationPart.DeclaringSyntaxReferences[0].GetSyntax(), SourceReferenceImpl.Instance )
                 ];
             }
             else

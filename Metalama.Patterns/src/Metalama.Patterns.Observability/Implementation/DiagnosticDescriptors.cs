@@ -135,7 +135,7 @@ internal static class DiagnosticDescriptors
             "The '{0}' local variable cannot be observed: variables of types other than primitive types are not supported.",
             "Variables of types other than primitive types and types configured as deeply immutable are not supported.",
             _category );
-    
+
     public static readonly DiagnosticDefinition<(ISymbol Member, INamedTypeSymbol DeclaringType)> DeclaringTypeDoesNotImplementInpcLeaf =
         new(
             "LAMA5163",

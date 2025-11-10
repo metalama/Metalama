@@ -1712,7 +1712,7 @@ class C {}
                             {
                                 public NonPartial() {}
                             }
-                            
+
                             public partial class Partial
                             {
                                 public partial Partial();
@@ -1721,7 +1721,7 @@ class C {}
                             """;
 
         var compilation = testContext.CreateCompilationModel( code );
-        var nonPartial = compilation.Types.OfName("NonPartial").Single().Constructors.Single();
+        var nonPartial = compilation.Types.OfName( "NonPartial" ).Single().Constructors.Single();
         var partial = compilation.Types.OfName( "Partial" ).Single().Constructors.Single();
 
         Assert.False( nonPartial.IsPartial );
@@ -1989,7 +1989,7 @@ public partial class B
         var compilation = testContext.CreateCompilationModel( code );
         var type = compilation.Types.Single();
         Assert.Single( type.Sources );
-        var partialConstructor = type.Constructors.Single( c => c.Parameters.Count == 1);
+        var partialConstructor = type.Constructors.Single( c => c.Parameters.Count == 1 );
         Assert.Equal( 2, partialConstructor.Sources.Length );
         Assert.True( partialConstructor.HasImplementation );
         Assert.Single( partialConstructor.Sources, s => s.IsImplementationPart );

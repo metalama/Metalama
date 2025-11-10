@@ -34,8 +34,7 @@ internal sealed class IntroduceOperatorAdvice : IntroduceMemberAdvice<IMethod, I
         PartiallyBoundTemplateMethod template,
         OverrideStrategy overrideStrategy,
         Action<IMethodBuilder>? buildAction,
-        INamedType? explicitlyImplementedInterfaceType,
-        IAdviceFactoryImpl adviceFactory )
+        INamedType? explicitlyImplementedInterfaceType )
         : base(
             parameters,
             explicitName: null,
@@ -43,8 +42,7 @@ internal sealed class IntroduceOperatorAdvice : IntroduceMemberAdvice<IMethod, I
             IntroductionScope.Static,
             overrideStrategy,
             buildAction,
-            explicitlyImplementedInterfaceType,
-            adviceFactory )
+            explicitlyImplementedInterfaceType )
     {
         this._operatorKind = operatorKind;
         this._leftOperandType = leftOperandType;

@@ -51,9 +51,9 @@ internal sealed class RemoteWorkspaceProvider : WorkspaceProvider
         var remoteWorkspaceManagerDefaultField = remoteWorkspaceManagerType.GetField(
             "Default",
             BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic );
-        
+
         // In Roslyn 5, RemoteWorkspaceManager.Default is a property.
-        var remoteWorkspaceManagerDefaultProperty = remoteWorkspaceManagerType.GetProperty( 
+        var remoteWorkspaceManagerDefaultProperty = remoteWorkspaceManagerType.GetProperty(
             "Default",
             BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic );
 

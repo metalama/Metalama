@@ -199,7 +199,7 @@ public partial class EventBrokerTests
         var brokerInvocations = 0;
         var test = new TestClassRefness( () => brokerInvocations++ );
 
-        test.Event += ( in int param, out string? outParam, ref DateTime refParam ) =>
+        test.Event += ( in param, out outParam, ref refParam ) =>
         {
             outParam = $"Ciao {param}";
             refParam = DateTime.Now;

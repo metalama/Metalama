@@ -25,9 +25,12 @@ internal sealed class XunitLoggerFactory : ILoggerFactory
     public ILogger GetLogger( string category )
         => this._loggers.GetOrAdd( category, static ( c, me ) => new Logger( c, me._testOutputHelper, me._verbose ), this );
 
+#pragma warning disable CA1822
     void ILoggerFactory.Flush() { }
-
+    
     public IDisposable EnterScope( string scope ) => default(DisposableAction);
+    
+#pragma warning restore CA1822
 
     private sealed class Logger : ILogger
     {

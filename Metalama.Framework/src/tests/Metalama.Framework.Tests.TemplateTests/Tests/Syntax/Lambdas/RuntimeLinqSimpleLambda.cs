@@ -8,20 +8,20 @@ using Metalama.Framework.Engine.Templating;
 
 namespace Metalama.Framework.Tests.AspectTests.Templating.Syntax.Lambdas.RuntimeLinqSimpleLambda
 {
-    class Aspect
+    internal class Aspect
     {
         [TestTemplate]
-        dynamic Template()
+        private dynamic Template()
         {
             var list = new List<int>();
 
-            return list.Where(a => a > 0).Count();
+            return list.Where( a => a > 0 ).Count();
         }
     }
 
-    class TargetCode
+    internal class TargetCode
     {
-        int Method(int a, int b)
+        private int Method( int a, int b )
         {
             return a + b;
         }

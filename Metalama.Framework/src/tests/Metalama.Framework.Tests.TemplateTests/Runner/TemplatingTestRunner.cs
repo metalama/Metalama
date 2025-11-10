@@ -338,12 +338,6 @@ namespace Metalama.Framework.Tests.TemplateTests.Runner
                 .DeclaringSyntaxReferences.Select( r => (CSharpSyntaxNode) r.GetSyntax() )
                 .Single();
 
-            var semanticModel = compilation.RoslynCompilation.GetSemanticModel( compilation.RoslynCompilation.SyntaxTrees.First() );
-
-            var roslynTargetMethodSymbol =
-                semanticModel.GetDeclaredSymbol( roslynTargetMethod )
-                ?? throw new InvalidOperationException( "The symbol of the target method was not found." );
-
             // ReSharper disable once SuspiciousTypeConversion.Global
             var lexicalScopeFactory = new LexicalScopeFactory( compilation );
             var lexicalScope = lexicalScopeFactory.GetLexicalScope( targetMethod.ToFullRef() );

@@ -13,29 +13,29 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.EventFields.Overrides.Proce
     {
         private event EventHandler? Foo;
 
-        [PseudoOverride(nameof(Foo), "TestAspect1")]
+        [PseudoOverride( nameof(Foo), "TestAspect1" )]
         private event EventHandler Foo_Override1
         {
             add
             {
-                Console.WriteLine( "Override1");
+                Console.WriteLine( "Override1" );
             }
             remove
             {
-                Console.WriteLine("Override1");
+                Console.WriteLine( "Override1" );
             }
         }
 
-        [PseudoOverride( nameof(Foo),"TestAspect2")]
+        [PseudoOverride( nameof(Foo), "TestAspect2" )]
         private event EventHandler Foo_Override2
         {
             add
             {
-                Console.WriteLine("Override2");
+                Console.WriteLine( "Override2" );
             }
             remove
             {
-                Console.WriteLine("Override2");
+                Console.WriteLine( "Override2" );
             }
         }
     }

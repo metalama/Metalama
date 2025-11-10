@@ -89,7 +89,7 @@ public class MetalamaAssertionAnalyzer : DiagnosticAnalyzer
         var hasJustification = arguments is [_, { ArgumentKind: not ArgumentKind.DefaultValue }];
 
         if ( SymbolEqualityComparer.Default.Equals( invariantTypeSymbol, method.ContainingType )
-             && method is { Name: "AssertNotNull", TypeArguments.Length: > 0 } 
+             && method is { Name: "AssertNotNull", TypeArguments.Length: > 0 }
              && !hasJustification
              && namespaces.All( n => !containingNamespace.StartsWith( n, StringComparison.Ordinal ) ) )
         {

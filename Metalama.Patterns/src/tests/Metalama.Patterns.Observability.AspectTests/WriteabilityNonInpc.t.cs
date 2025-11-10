@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel;
+// ReSharper disable AutoPropertyCanBeMadeGetOnly.Local
 // ReSharper disable FieldCanBeMadeReadOnly.Local
 namespace Metalama.Patterns.Observability.AspectTests.WriteabilityNonInpc;
 [Observable]

@@ -299,7 +299,7 @@ internal sealed partial class LinkerInjectionStep
         public override SyntaxNode VisitRecordDeclaration( RecordDeclarationSyntax node ) => this.VisitTypeDeclaration( node );
 
 #if ROSLYN_5_0_0_OR_GREATER
-        public override SyntaxNode? VisitExtensionBlockDeclaration( ExtensionBlockDeclarationSyntax node ) => this.VisitTypeDeclaration( node );
+        public override SyntaxNode VisitExtensionBlockDeclaration( ExtensionBlockDeclarationSyntax node ) => this.VisitTypeDeclaration( node );
 #endif
 
         public override SyntaxNode VisitEnumDeclaration( EnumDeclarationSyntax node )
@@ -406,8 +406,8 @@ internal sealed partial class LinkerInjectionStep
                     node = (T) node.WithBaseList(
                         BaseList(
                             baseList.Types.AddRange(
-                                additionalBaseList.SelectAsReadOnlyList( i => i.Syntax.WithGeneratedCodeAnnotation(
-                                                                             FormattingAnnotations.SystemGeneratedCodeAnnotation ) ) ) ) );
+                                additionalBaseList.SelectAsReadOnlyList(
+                                    i => i.Syntax.WithGeneratedCodeAnnotation( FormattingAnnotations.SystemGeneratedCodeAnnotation ) ) ) ) );
                 }
             }
             else if ( baseList != null )
@@ -637,7 +637,7 @@ internal sealed partial class LinkerInjectionStep
 
                     return constructor.PartialUpdate(
                         body: Block( entryStatements.Concat( exitStatements ) ),
-                        semicolonToken: default( SyntaxToken ) );
+                        semicolonToken: default(SyntaxToken) );
 
                 // Static constructor overrides also go here.
                 case MethodDeclarationSyntax { Body: { } body } method:
@@ -715,28 +715,29 @@ internal sealed partial class LinkerInjectionStep
                             propertyOrIndexer.WithAccessorList(
                                 accessorList.WithAccessors(
                                     List(
-                                        accessorList.Accessors.SelectAsArray( a =>
-                                                                                  IsMatchingAccessor( a, methodKind )
-                                                                                      ? a switch
-                                                                                      {
-                                                                                          { Body: { } body } => a.WithBody(
-                                                                                              ReplaceBlock(
-                                                                                                  contextDeclaration,
-                                                                                                  entryStatements,
-                                                                                                  exitStatements,
-                                                                                                  body ) ),
-                                                                                          { ExpressionBody: { } expressionBody } =>
-                                                                                              a.PartialUpdate(
-                                                                                                  expressionBody: null,
-                                                                                                  semicolonToken: default(SyntaxToken),
-                                                                                                  body: ReplaceExpression(
-                                                                                                      entryStatements,
-                                                                                                      exitStatements,
-                                                                                                      expressionBody.Expression,
-                                                                                                      a.Kind() is not SyntaxKind.GetAccessorDeclaration ) ),
-                                                                                          _ => throw new AssertionFailedException( $"Not supported: {a}" )
-                                                                                      }
-                                                                                      : a ) ) ) );
+                                        accessorList.Accessors.SelectAsArray(
+                                            a =>
+                                                IsMatchingAccessor( a, methodKind )
+                                                    ? a switch
+                                                    {
+                                                        { Body: { } body } => a.WithBody(
+                                                            ReplaceBlock(
+                                                                contextDeclaration,
+                                                                entryStatements,
+                                                                exitStatements,
+                                                                body ) ),
+                                                        { ExpressionBody: { } expressionBody } =>
+                                                            a.PartialUpdate(
+                                                                expressionBody: null,
+                                                                semicolonToken: default(SyntaxToken),
+                                                                body: ReplaceExpression(
+                                                                    entryStatements,
+                                                                    exitStatements,
+                                                                    expressionBody.Expression,
+                                                                    a.Kind() is not SyntaxKind.GetAccessorDeclaration ) ),
+                                                        _ => throw new AssertionFailedException( $"Not supported: {a}" )
+                                                    }
+                                                    : a ) ) ) );
                     }
 
                     static bool IsMatchingAccessor( AccessorDeclarationSyntax accessorDeclaration, MethodKind methodKind )
@@ -809,27 +810,28 @@ internal sealed partial class LinkerInjectionStep
                                     returnValueLocal,
                                     Block(
                                             List(
-                                                exitStatements.Select( ( s, i ) =>
-                                                {
-                                                    if ( i == 0 )
+                                                exitStatements.Select(
+                                                    ( s, i ) =>
                                                     {
-                                                        return s;
-                                                    }
-                                                    else
-                                                    {
-                                                        var declarator = returnValueLocal.Declaration.Variables.Single();
+                                                        if ( i == 0 )
+                                                        {
+                                                            return s;
+                                                        }
+                                                        else
+                                                        {
+                                                            var declarator = returnValueLocal.Declaration.Variables.Single();
 
-                                                        return
-                                                            Block(
-                                                                    ExpressionStatement(
-                                                                        AssignmentExpression(
-                                                                            SyntaxKind.SimpleAssignmentExpression,
-                                                                            IdentifierName( declarator.Identifier.ValueText ),
-                                                                            declarator.Initializer.AssertNotNull().Value ) ),
-                                                                    s )
-                                                                .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock );
-                                                    }
-                                                } ) ) )
+                                                            return
+                                                                Block(
+                                                                        ExpressionStatement(
+                                                                            AssignmentExpression(
+                                                                                SyntaxKind.SimpleAssignmentExpression,
+                                                                                IdentifierName( declarator.Identifier.ValueText ),
+                                                                                declarator.Initializer.AssertNotNull().Value ) ),
+                                                                        s )
+                                                                    .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock );
+                                                        }
+                                                    } ) ) )
                                         .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock ),
                                     whileStatement );
 
@@ -910,7 +912,8 @@ internal sealed partial class LinkerInjectionStep
             MemberLevelTransformations memberLevelTransformations,
             SyntaxGenerationContext syntaxGenerationContext )
         {
-            constructorDeclaration = constructorDeclaration.WithParameterList( this.AppendParameters( constructorDeclaration.ParameterList, memberLevelTransformations.Parameters, syntaxGenerationContext ) );
+            constructorDeclaration = constructorDeclaration.WithParameterList(
+                this.AppendParameters( constructorDeclaration.ParameterList, memberLevelTransformations.Parameters, syntaxGenerationContext ) );
 
             constructorDeclaration = constructorDeclaration.WithInitializer(
                 this.AppendInitializerArguments( constructorDeclaration.Initializer, memberLevelTransformations.Arguments ) );
@@ -956,7 +959,7 @@ internal sealed partial class LinkerInjectionStep
                             primaryCtorBaseType
                                 .WithArgumentList(
                                     primaryCtorBaseType.ArgumentList.AddArguments(
-                                        memberLevelTransformations.Arguments.SelectAsArray( ( t, index ) => t.ToSyntax() ) ) );
+                                        memberLevelTransformations.Arguments.SelectAsArray( ( t, _ ) => t.ToSyntax() ) ) );
 
                         break;
 
@@ -985,15 +988,17 @@ internal sealed partial class LinkerInjectionStep
                     return existingParameters.WithParameters(
                         existingParameters.Parameters.InsertRange(
                             existingParameters.Parameters.Count - 1,
-                            newParameters.Select( x => x.ToSyntax( syntaxGenerationContext, this._compilation )
-                                                      .WithOptionalTrailingTrivia( ElasticSpace, syntaxGenerationContext.Options ) ) ) );
+                            newParameters.Select(
+                                x => x.ToSyntax( syntaxGenerationContext, this._compilation )
+                                    .WithOptionalTrailingTrivia( ElasticSpace, syntaxGenerationContext.Options ) ) ) );
                 }
                 else
                 {
                     return existingParameters.WithParameters(
                         existingParameters.Parameters.AddRange(
-                            newParameters.Select( x => x.ToSyntax( syntaxGenerationContext, this._compilation )
-                                                      .WithOptionalTrailingTrivia( ElasticSpace, syntaxGenerationContext.Options ) ) ) );
+                            newParameters.Select(
+                                x => x.ToSyntax( syntaxGenerationContext, this._compilation )
+                                    .WithOptionalTrailingTrivia( ElasticSpace, syntaxGenerationContext.Options ) ) ) );
                 }
             }
         }

@@ -7,6 +7,7 @@ using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
+using SpecialType = Metalama.Framework.Code.SpecialType;
 
 namespace Metalama.Framework.Engine.Linking;
 
@@ -32,6 +33,6 @@ internal static class DeclarationExtensions
         => (member as IFullRef<IMethod>)?.Definition.DeclaringMember?.ToFullRef() ?? member;
 
     public static bool DoReturnStatementsRequireArgument( this IFullRef<IMethod> method )
-        => method.Definition.ReturnType.SpecialType == Code.SpecialType.Void ||
-           method.Definition.GetAsyncInfo() is { IsAsync: true, ResultType.SpecialType: Code.SpecialType.Void };
+        => method.Definition.ReturnType.SpecialType == SpecialType.Void ||
+           method.Definition.GetAsyncInfo() is { IsAsync: true, ResultType.SpecialType: SpecialType.Void };
 }

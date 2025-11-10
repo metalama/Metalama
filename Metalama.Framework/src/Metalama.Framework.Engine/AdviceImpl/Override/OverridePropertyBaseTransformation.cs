@@ -28,7 +28,7 @@ internal abstract class OverridePropertyBaseTransformation : OverridePropertyOrI
     {
         this.OverriddenProperty = overriddenProperty;
     }
-    
+
     protected IFullRef<IProperty> OverriddenProperty { get; }
 
     public override IFullRef<IMember> OverriddenDeclaration => this.OverriddenProperty;

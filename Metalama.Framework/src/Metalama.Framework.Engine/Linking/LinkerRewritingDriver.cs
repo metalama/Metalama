@@ -793,7 +793,7 @@ internal sealed partial class LinkerRewritingDriver
         return List( filteredAttributeLists );
     }
 
-    public IReadOnlyList<MemberDeclarationSyntax> GetSharedTypeMembers( TypeDeclarationSyntax typeNode, INamedTypeSymbol typeSymbol)
+    public IReadOnlyList<MemberDeclarationSyntax> GetSharedTypeMembers( TypeDeclarationSyntax typeNode, INamedTypeSymbol typeSymbol )
     {
         var syntaxGenerationContext = this.IntermediateCompilationContext.GetSyntaxGenerationContext( this.SyntaxGenerationOptions, typeNode );
 
@@ -807,9 +807,9 @@ internal sealed partial class LinkerRewritingDriver
             sharedMembers.Add(
                 FieldDeclaration(
                     List<AttributeListSyntax>(),
-                    TokenList( 
-                        Token( TriviaList(), SyntaxKind.PrivateKeyword, TriviaList( ElasticSpace ) ), 
-                        Token( TriviaList(), SyntaxKind.StaticKeyword, TriviaList( ElasticSpace ) ), 
+                    TokenList(
+                        Token( TriviaList(), SyntaxKind.PrivateKeyword, TriviaList( ElasticSpace ) ),
+                        Token( TriviaList(), SyntaxKind.StaticKeyword, TriviaList( ElasticSpace ) ),
                         Token( TriviaList(), SyntaxKind.ReadOnlyKeyword, TriviaList( ElasticSpace ) ) ),
                     VariableDeclaration(
                         syntaxGenerationContext.SyntaxGenerator.TypeSyntax( staticDelegateField.FieldType ),
@@ -817,7 +817,7 @@ internal sealed partial class LinkerRewritingDriver
                             VariableDeclarator(
                                 Identifier( staticDelegateField.FieldName ),
                                 null,
-                                EqualsValueClause( staticDelegateField.InitializeExpressionFunc(syntaxGenerationContext) ) ) ) ) ) );
+                                EqualsValueClause( staticDelegateField.InitializeExpressionFunc( syntaxGenerationContext ) ) ) ) ) ) );
         }
 
         return sharedMembers;

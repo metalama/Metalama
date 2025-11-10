@@ -6,5 +6,5 @@ namespace Metalama.Framework.DesignTime.Rpc;
 
 public interface IRpcEventSender
 {
-    public Task RaiseEventAsync( RpcEventData eventData, CancellationToken cancellationToken );
+    Task RaiseEventAsync( RpcEventData eventData, CancellationToken cancellationToken );
 }

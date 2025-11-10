@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Engine.Templating;
 
@@ -15,14 +14,14 @@ namespace Metalama.Framework.Tests.AspectTests.Templating.Syntax.IfTests.IfParam
         [TestTemplate]
         private dynamic? Template()
         {
-            if (meta.Target.Parameters[0].Value == null)
+            if ( meta.Target.Parameters[0].Value == null )
             {
                 throw new ArgumentNullException( meta.Target.Parameters[0].Name );
             }
 
             var p = meta.Target.Parameters[1];
 
-            if (p.Value == null)
+            if ( p.Value == null )
             {
                 throw new ArgumentNullException( p.Name );
             }

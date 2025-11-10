@@ -480,7 +480,7 @@ public partial class DeclarationFactory
                         RefTargetKind.Default => @event,
                         RefTargetKind.EventRaise => @event.RaiseMethod,
                         RefTargetKind.EventRaiseParameter => throw new NotImplementedException(),
-                        RefTargetKind.EventRaiseReturnParameter => @event.RaiseMethod?.ReturnParameter,
+                        RefTargetKind.EventRaiseReturnParameter => @event.RaiseMethod.ReturnParameter,
                         _ => throw new AssertionFailedException( $"Invalid DeclarationRefTargetKind: {targetKind}." )
                     };
                 }
@@ -499,7 +499,7 @@ public partial class DeclarationFactory
         }
     }
 
-    internal ITupleType? GetTupleTypeFromSymbol( INamedTypeSymbol symbol, ImmutableArray<string> elementNames, IGenericContext? genericContext = null )
+    internal ITupleType GetTupleTypeFromSymbol( INamedTypeSymbol symbol, ImmutableArray<string> elementNames, IGenericContext? genericContext = null )
     {
         var (mappedSymbol, genericContextForSymbolMapping) = this.MapSymbolAndContext( symbol, genericContext );
 

@@ -1074,7 +1074,7 @@ internal sealed class SymbolClassifier : ISymbolClassifier
         {
             combinedScope = (typeScope.Value.Scope, combinedScope) switch
             {
-                (_, null) => typeScope?.Scope,
+                (_, null) => typeScope.Value.Scope,
                 (TemplatingScope.Conflict, _) => TemplatingScope.Conflict,
                 (_, TemplatingScope.Conflict) => TemplatingScope.Conflict,
                 (TemplatingScope.CompileTimeOnlyReturningRuntimeOnly, TemplatingScope.RunTimeOnly) => TemplatingScope.RunTimeOnly,
@@ -1258,7 +1258,7 @@ internal sealed class SymbolClassifier : ISymbolClassifier
 
     private bool? IsSymbolAvailableAtCompileTime( ISymbol symbol, GetTemplatingScopeOptions options )
         => (options & GetTemplatingScopeOptions.Quick) != 0 ? null : this._compileTimeAssemblyLocator.IsSymbolAvailable( symbol, this._compilationContext );
-    
+
     public bool IsTemplate( ISymbol symbol ) => !this.GetTemplateInfo( symbol ).IsNone;
 
     [Flags]
@@ -1279,7 +1279,7 @@ internal sealed class SymbolClassifier : ISymbolClassifier
         /// </summary>
         Quick = 4
     }
-    
+
     private readonly struct CacheKey : IEquatable<CacheKey>
     {
         private readonly ISymbol _symbol;

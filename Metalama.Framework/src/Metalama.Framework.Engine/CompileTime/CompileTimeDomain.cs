@@ -57,7 +57,6 @@ namespace Metalama.Framework.Engine.CompileTime
 
             this._assemblyLoader = AssemblyLoaderFactory.CreateAssemblyLoader(
                 this.ResolveAssembly,
-                null,
                 debugName: $"CompileTimeDomain {debugName}".TrimEnd() );
 
             this._logger = Logger.Domain;

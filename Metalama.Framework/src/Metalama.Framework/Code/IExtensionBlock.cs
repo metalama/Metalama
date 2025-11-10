@@ -19,9 +19,9 @@ public interface IExtensionBlock : INamedType
     /// Gets the receiver parameter, i.e. the parameter of the <c>extension</c> keyword.
     /// </summary>
     IParameter ReceiverParameter { get; }
-    
+
     new IRef<IExtensionBlock> ToRef();
-    
+
     /// <summary>
     /// Gets the type containing the current extension block.
     /// </summary>

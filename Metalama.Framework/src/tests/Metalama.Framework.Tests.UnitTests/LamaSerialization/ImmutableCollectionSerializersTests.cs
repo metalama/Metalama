@@ -149,7 +149,7 @@ namespace Metalama.Framework.Tests.UnitTests.LamaSerialization
 
             // ReSharper disable once NotDisposedResource
             var enumerator1 = value.GetEnumerator();
-            
+
             // ReSharper disable once NotDisposedResource
             var enumerator2 = value.GetEnumerator();
 

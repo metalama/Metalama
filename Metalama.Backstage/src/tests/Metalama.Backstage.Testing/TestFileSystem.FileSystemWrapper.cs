@@ -35,7 +35,7 @@ public partial class TestFileSystem
                 {
                     this.Parent.WaitAndThrowIfBlocked( path, true, operation );
                 }
-                
+
                 this.Parent.RaiseEvent( path, operation );
 
                 var accessTime = this.Parent._time.UtcNow;

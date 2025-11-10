@@ -11,32 +11,30 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Properties.Inliners.SetterA
     {
         public virtual int Foo
         {
-            set
-            {
-            }
+            set { }
         }
     }
 
     // <target>
     internal class Target : Base
     {
-        [PseudoIntroduction(nameof(Foo), "TestAspect")]
+        [PseudoIntroduction( nameof(Foo), "TestAspect" )]
         public override int Foo
         {
             set
             {
-                Console.WriteLine( "Original");
+                Console.WriteLine( "Original" );
             }
         }
 
-        [PseudoOverride( nameof(Foo),"TestAspect")]
+        [PseudoOverride( nameof(Foo), "TestAspect" )]
         private int Foo_Override
         {
             set
             {
-                Console.WriteLine( "Before");
-                Link[ This.Foo.set, Inline, Api.Base] = value;
-                Console.WriteLine( "After");
+                Console.WriteLine( "Before" );
+                Link[This.Foo.set, Inline, Api.Base] = value;
+                Console.WriteLine( "After" );
             }
         }
     }

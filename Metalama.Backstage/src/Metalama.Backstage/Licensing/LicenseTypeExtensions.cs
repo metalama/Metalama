@@ -55,7 +55,7 @@ namespace Metalama.Backstage.Licensing
 
                 case LicenseType.Personal:
                     return "Personal License";
-                
+
                 case LicenseType.Test:
                     return "Test License";
 

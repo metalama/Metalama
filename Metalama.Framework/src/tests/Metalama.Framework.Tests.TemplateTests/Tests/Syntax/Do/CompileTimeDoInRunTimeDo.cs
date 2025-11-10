@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Engine.Templating;
 
@@ -25,9 +24,9 @@ internal class Aspect
             {
                 i++;
             }
-            while (j < 2);
+            while ( j < 2 );
         }
-        while (i < meta.Target.Parameters.Count);
+        while ( i < meta.Target.Parameters.Count );
 
         Console.WriteLine( "Test result = " + i );
 

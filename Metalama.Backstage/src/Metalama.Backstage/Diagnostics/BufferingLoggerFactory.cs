@@ -33,7 +33,7 @@ internal sealed class BufferingLoggerFactory : ILoggerFactory
 
     void ILoggerFactory.Flush() { }
 
-    private class Logger : ILogger
+    private sealed class Logger : ILogger
     {
         private readonly BufferingLoggerFactory _parent;
         private readonly string _category;
@@ -58,7 +58,7 @@ internal sealed class BufferingLoggerFactory : ILoggerFactory
         public ILogger WithPrefix( string prefix ) => this._parent.GetLogger( this._category + "." + prefix );
     }
 
-    private class Writer : ILogWriter
+    private sealed class Writer : ILogWriter
     {
         private readonly BufferingLoggerFactory _parent;
         private readonly string _category;

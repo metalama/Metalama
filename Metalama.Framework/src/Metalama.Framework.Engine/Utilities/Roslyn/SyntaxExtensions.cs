@@ -194,7 +194,7 @@ public static class SyntaxExtensions
 
         return node.WithLeadingTrivia( node.GetLeadingTrivia().Add( context.ElasticEndOfLineTrivia ) );
     }
-    
+
     internal static TNode WithRequiredLeadingLineFeed<TNode>(
         this TNode node,
         SyntaxGenerationContext context )

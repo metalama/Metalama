@@ -36,14 +36,15 @@ internal sealed class InliningAnalysisContext
     internal InliningAnalysisContext RecurseWithComplexInlining( string? returnVariableIdentifier )
         => new( this.Id, this._idGenerator, false, returnVariableIdentifier );
 
-    public override string ToString() => $"{{Id={this.Id}, ParentId={this.ParentId?.ToString() ?? "null"}, ReturnVariableIdentifier={this.ReturnVariableIdentifier ?? "null"}}}";
+    public override string ToString()
+        => $"{{Id={this.Id}, ParentId={this.ParentId?.ToString() ?? "null"}, ReturnVariableIdentifier={this.ReturnVariableIdentifier ?? "null"}}}";
 
     private sealed class IdGenerator
     {
         private int _nextOrdinal = 1;
         private int _nextReturnLabelIdentifier = 1;
 
-        public InliningId GetNextId() => new InliningId( this._nextOrdinal++ );
+        public InliningId GetNextId() => new( this._nextOrdinal++ );
 
         public string AllocateReturnLabel()
         {

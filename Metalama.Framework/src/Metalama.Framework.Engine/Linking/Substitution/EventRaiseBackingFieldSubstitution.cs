@@ -18,7 +18,8 @@ internal sealed class EventRaiseBackingFieldSubstitution : SyntaxNodeSubstitutio
     private readonly SyntaxNode _rootNode;
     private readonly IEventSymbol _targetEvent;
 
-    public EventRaiseBackingFieldSubstitution( CompilationContext compilationContext, SyntaxNode rootNode, IEventSymbol targetEvent ) : base( compilationContext )
+    public EventRaiseBackingFieldSubstitution( CompilationContext compilationContext, SyntaxNode rootNode, IEventSymbol targetEvent ) : base(
+        compilationContext )
     {
         this._rootNode = rootNode;
         this._targetEvent = targetEvent;
@@ -37,7 +38,8 @@ internal sealed class EventRaiseBackingFieldSubstitution : SyntaxNodeSubstitutio
         {
             case IdentifierNameSyntax identifierName:
                 // Replacing the direct invocation.
-                return IdentifierName( Identifier( TriviaList( identifierName.Identifier.LeadingTrivia ), targetName, TriviaList( identifierName.Identifier.TrailingTrivia ) ) );
+                return IdentifierName(
+                    Identifier( TriviaList( identifierName.Identifier.LeadingTrivia ), targetName, TriviaList( identifierName.Identifier.TrailingTrivia ) ) );
 
             case MemberAccessExpressionSyntax { Expression: { }, Name: IdentifierNameSyntax identifierName } simpleMemberAccess:
                 // Replacing the this expression invocation.
@@ -51,18 +53,21 @@ internal sealed class EventRaiseBackingFieldSubstitution : SyntaxNodeSubstitutio
 
             case InvocationExpressionSyntax
             {
-                Expression: MemberAccessExpressionSyntax 
+                Expression: MemberAccessExpressionSyntax
                 {
-                    Expression: IdentifierNameSyntax { Identifier.ValueText: LinkerInjectionHelperProvider.HelperTypeName, Identifier.LeadingTrivia: var leadingTrivia },
+                    Expression: IdentifierNameSyntax
+                    {
+                        Identifier.ValueText: LinkerInjectionHelperProvider.HelperTypeName, Identifier.LeadingTrivia: var leadingTrivia
+                    },
                     Name: IdentifierNameSyntax { Identifier.ValueText: LinkerInjectionHelperProvider.EventRaiseMemberName }
                 },
-                ArgumentList.Arguments: 
+                ArgumentList.Arguments:
                 [
-                    {                        
-                        Expression: ParenthesizedLambdaExpressionSyntax 
+                    {
+                        Expression: ParenthesizedLambdaExpressionSyntax
                         {
-                            ExpressionBody: AssignmentExpressionSyntax { Left: MemberAccessExpressionSyntax eventMemberAccess } 
-                        } 
+                            ExpressionBody: AssignmentExpressionSyntax { Left: MemberAccessExpressionSyntax eventMemberAccess }
+                        }
                     },
                     ..
                 ] arguments,

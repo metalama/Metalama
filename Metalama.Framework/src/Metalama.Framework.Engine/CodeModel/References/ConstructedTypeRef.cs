@@ -61,13 +61,11 @@ internal sealed class ConstructedTypeRef<T> : FullRef<T>
 
     public override IFullRef<T> DefinitionRef => this;
 
-    protected override ISymbol GetSymbolIgnoringRefKind( CompilationContext compilationContext )
-        => throw new NotSupportedException();
+    protected override ISymbol GetSymbolIgnoringRefKind( CompilationContext compilationContext ) => throw new NotSupportedException();
 
     public override void EnumerateAttributes( CompilationModel compilation, Action<AttributeRef> add ) => throw new NotSupportedException();
 
-    public override void EnumerateAllImplementedInterfaces( Action<IFullRef<INamedType>> add )
-        => throw new NotSupportedException();
+    public override void EnumerateAllImplementedInterfaces( Action<IFullRef<INamedType>> add ) => throw new NotSupportedException();
 
     public override void EnumerateImplementedInterfaces( Action<IFullRef<INamedType>> add ) => throw new NotSupportedException();
 

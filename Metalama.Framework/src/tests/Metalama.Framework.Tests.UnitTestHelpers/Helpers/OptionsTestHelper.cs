@@ -21,16 +21,16 @@ public static class OptionsTestHelper
         public record MyOptions : IHierarchicalOptions<IDeclaration>
         {
             public string? Value { get; set; }
-        
+
             public IHierarchicalOptions GetDefaultOptions( OptionsInitializationContext context ) => this;
-        
+
             public object ApplyChanges( object overridingObject, in ApplyChangesContext context )
             {
                 var other = (MyOptions)overridingObject;
-        
+
                 return new MyOptions { Value = other.Value ?? Value };
             }
-        
+
             public void BuildEligibility( IEligibilityBuilder<IDeclaration> declaration ) { }
         }
                                

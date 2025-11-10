@@ -5,7 +5,6 @@
 #pragma warning disable CS8600, CS8603
 using System;
 using System.Linq;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Engine.Templating;
 
@@ -19,7 +18,7 @@ namespace Metalama.Framework.Tests.AspectTests.Templating.Syntax.ForEachTests.Fo
         {
             var array = Enumerable.Range( 1, 2 );
 
-            foreach (var i in array)
+            foreach ( var i in array )
             {
                 return meta.Proceed();
             }

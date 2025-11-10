@@ -3,9 +3,10 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System.Linq;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Engine.Templating;
+
+#pragma warning disable IDE0054
 
 namespace Metalama.Framework.Tests.AspectTests.Templating.Syntax.AssignmentInRunTimeForEach
 {
@@ -16,7 +17,7 @@ namespace Metalama.Framework.Tests.AspectTests.Templating.Syntax.AssignmentInRun
         {
             var x = meta.CompileTime( 0 );
 
-            foreach (var i in meta.RunTime( Enumerable.Range( 0, 3 ) ))
+            foreach ( var i in meta.RunTime( Enumerable.Range( 0, 3 ) ) )
             {
                 x = x + 1;
             }

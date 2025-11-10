@@ -84,7 +84,7 @@ public sealed class SerializableTypeIdResolverForSymbol : SerializableTypeIdReso
     {
         var namedType = genericType.AssertCast<INamedTypeSymbol>();
 
-        if ( typeArguments.SequenceEqual( namedType.TypeParameters ))
+        if ( typeArguments.SequenceEqual( namedType.TypeParameters ) )
         {
             // Normalize canonical generic instance.
             return namedType.ConstructedFrom;

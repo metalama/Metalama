@@ -48,7 +48,7 @@ public abstract class TemplateClass : IDiagnosticSource
         string shortName )
     {
         var memberBuilder = serviceProvider.GetRequiredService<ITemplateClassMemberBuilder>();
-        
+
         this.ServiceProvider = serviceProvider;
         this.BaseClass = baseClass;
 
@@ -69,7 +69,7 @@ public abstract class TemplateClass : IDiagnosticSource
             // We have a fake!!
             this.TypeId = default;
         }
-        
+
         this.HasError = !memberBuilder.TryGetMembers( this, typeSymbol, templateReflectionContext.CompilationContext, diagnosticAdder, out var members );
         this.Members = members;
     }

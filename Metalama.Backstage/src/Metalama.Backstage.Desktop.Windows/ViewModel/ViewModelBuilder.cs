@@ -91,10 +91,8 @@ internal static class ViewModelBuilder
                 settings.Kind,
                 "Metalama Blog Update",
                 settings.Title,
-                [
-                    new UriActionViewModel( "Read", settings.Uri! ),
-                    new CommandActionViewModel( "Options", activationArguments.OpenRssOptions )
-                ] ) { CanMute = false, CanSnooze = false };
+                new UriActionViewModel( "Read", settings.Uri! ),
+                new CommandActionViewModel( "Options", activationArguments.OpenRssOptions ) ) { CanMute = false, CanSnooze = false };
 
             return true;
         }

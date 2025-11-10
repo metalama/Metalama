@@ -278,12 +278,16 @@ public sealed partial class CommandAttribute : Attribute, IAspect<IMethod>
                 } );
     }
 
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
+
     // ReSharper disable once UnassignedGetOnlyAutoProperty
     [Template]
     private static dynamic CommandProperty { get; }
 
     [Template]
     private static dynamic AsyncCommandProperty { get; }
+
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
 
     [Template]
     private void InitializeCommandWithoutParameter(

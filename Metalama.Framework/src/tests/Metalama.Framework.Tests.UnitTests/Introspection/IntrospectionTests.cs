@@ -181,13 +181,13 @@ class MyClass
                             public class Options : IHierarchicalOptions<IDeclaration>
                             {
                                 public string? Path { get; set; }
-                            
+
                                 public IHierarchicalOptions GetDefaultOptions(OptionsInitializationContext context) => new Options { Path = "Start" };
-                            
+
                                 public object ApplyChanges(object changes, in ApplyChangesContext context)
                                 {
                                     var other = (Options)changes;
-                            
+
                                     return new Options { Path = $"{this.Path}->{other.Path}" };
                                 }
                             }
@@ -197,7 +197,7 @@ class MyClass
                                 public override void BuildAspect(IAspectBuilder<INamedType> builder)
                                 {
                                     base.BuildAspect(builder);
-                            
+
                                     var options = builder.Target.Enhancements().GetOptions<Options>();
                                 }
                             }

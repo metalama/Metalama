@@ -58,7 +58,10 @@ class C
         Assert.Same( fieldAfter, fieldAfter.SetMethod.AssertNotNull().ContainingDeclaration );
         Assert.Same( fieldAfter.OverridingProperty, fieldAfter.OverridingProperty.GetMethod.AssertNotNull().ContainingDeclaration );
         Assert.Same( fieldAfter.OverridingProperty, fieldAfter.OverridingProperty.SetMethod.AssertNotNull().ContainingDeclaration );
-        Assert.Same( fieldAfter.OverridingProperty, fieldAfter.OverridingProperty.SetMethod.AssertNotNull().ReturnParameter.ContainingDeclaration.AssertNotNull().ContainingDeclaration );
+
+        Assert.Same(
+            fieldAfter.OverridingProperty,
+            fieldAfter.OverridingProperty.SetMethod.AssertNotNull().ReturnParameter.ContainingDeclaration.AssertNotNull().ContainingDeclaration );
 
         // Declaration on references.
         Assert.Same( fieldAfter, field.ToRef().GetTarget( compilation ) );

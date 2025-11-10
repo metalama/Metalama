@@ -23,13 +23,13 @@ internal abstract partial class AspectReferenceRenamingSubstitution : SyntaxNode
     {
         this.AspectReference = aspectReference;
 
-        if ( aspectReference.RootNode is 
-                MemberAccessExpressionSyntax 
-                { 
-                    Expression: IdentifierNameSyntax { Identifier.Text: LinkerInjectionHelperProvider.HelperTypeName }, 
-                    Name.Identifier.Text: var methodName 
-                }
-            && OperatorData.GetByName(methodName) is { IsStatic: false } )
+        if ( aspectReference.RootNode is
+                 MemberAccessExpressionSyntax
+                 {
+                     Expression: IdentifierNameSyntax { Identifier.Text: LinkerInjectionHelperProvider.HelperTypeName },
+                     Name.Identifier.Text: var methodName
+                 }
+             && OperatorData.GetByName( methodName ) is { IsStatic: false } )
         {
             // For operators with static receiver parameter, we replace the parent node.
             this.ReplacedNode = aspectReference.RootNode.Parent.AssertNotNull();
@@ -86,7 +86,7 @@ internal abstract partial class AspectReferenceRenamingSubstitution : SyntaxNode
                 // We presume static operators - non-static operators need to change the argument list, not just the name.
                 Invariant.Assert( !isStaticOperator );
 
-                return this.SubstituteStaticReceiverOperatorInvocation( invocationExpression, substitutionContext );
+                return this.SubstituteStaticReceiverOperatorInvocation( invocationExpression );
 
             case ObjectCreationExpressionSyntax:
                 return this.SubstituteConstructorMemberAccess();
@@ -124,7 +124,6 @@ internal abstract partial class AspectReferenceRenamingSubstitution : SyntaxNode
         var targetSymbol = this.AspectReference.ResolvedSemantic.Symbol;
 
         var memberAccess =
-
             MemberAccessExpression(
                 SyntaxKind.SimpleMemberAccessExpression,
                 substitutionContext.SyntaxGenerationContext.SyntaxGenerator.TypeSyntax( targetSymbol.ContainingType ),
@@ -133,7 +132,7 @@ internal abstract partial class AspectReferenceRenamingSubstitution : SyntaxNode
         return memberAccess;
     }
 
-    private SyntaxNode SubstituteStaticReceiverOperatorInvocation( InvocationExpressionSyntax invocationExpression, SubstitutionContext substitutionContext )
+    private SyntaxNode SubstituteStaticReceiverOperatorInvocation( InvocationExpressionSyntax invocationExpression )
     {
         var memberAccess =
             InvocationExpression(
@@ -141,8 +140,7 @@ internal abstract partial class AspectReferenceRenamingSubstitution : SyntaxNode
                     SyntaxKind.SimpleMemberAccessExpression,
                     invocationExpression.ArgumentList.Arguments[0].Expression,
                     IdentifierName( this.GetTargetMemberName() ) ),
-                ArgumentList(
-                    SeparatedList( invocationExpression.ArgumentList.Arguments.Skip(1) ) ) );
+                ArgumentList( SeparatedList( invocationExpression.ArgumentList.Arguments.Skip( 1 ) ) ) );
 
         return memberAccess;
     }

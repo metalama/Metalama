@@ -190,7 +190,7 @@ namespace Metalama.Framework.Engine.ReflectionMocks
                 syntaxGenerationContext );
         }
 
-        public override bool Equals( Type? o ) => o is CompileTimeType compileTimeType && this.Target.Equals( compileTimeType.Target, RefComparison.Default );
+        public override bool Equals( Type? o ) => o is CompileTimeType compileTimeType && this.Target.Equals( compileTimeType.Target );
 
         public override int GetHashCode() => this.Target.GetHashCode( RefComparison.Default );
     }

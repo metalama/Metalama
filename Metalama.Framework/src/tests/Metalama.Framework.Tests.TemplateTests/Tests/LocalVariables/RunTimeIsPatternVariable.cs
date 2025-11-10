@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System.Collections;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Engine.Templating;
 
@@ -15,7 +14,7 @@ namespace Metalama.Framework.Tests.AspectTests.Templating.LocalVariables.RunTime
         [TestTemplate]
         private dynamic? Template()
         {
-            if (meta.Target.Parameters[0].Value is IEnumerable a)
+            if ( meta.Target.Parameters[0].Value is IEnumerable a )
             {
                 a.GetEnumerator();
             }

@@ -11,15 +11,15 @@ namespace Metalama.Framework.Engine.Extensibility;
 
 public abstract class ContributorKind
 {
-    protected ContributorKind( string name ) 
+    protected ContributorKind( string name )
     {
         this.Name = name;
     }
 
     public string Name { get; }
-    
+
     internal bool IsExtension { get; init; } = true;
-    
+
     public bool IsDesignTimeValidator { get; init; }
 
     public abstract Type Type { get; }

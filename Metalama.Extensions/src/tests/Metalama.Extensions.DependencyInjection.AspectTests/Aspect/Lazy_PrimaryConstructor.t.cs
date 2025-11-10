@@ -1,5 +1,6 @@
 public class TargetClass
 {
+  public int X { get; }
   [Dependency(IsLazy = true)]
   private ILogger _logger
   {
@@ -14,8 +15,9 @@ public class TargetClass
   }
   private ILogger? _loggerCache;
   private Func<ILogger> _loggerFunc;
-  public TargetClass([AspectGenerated] Func<ILogger>? logger = default)
+  public TargetClass(int x, [AspectGenerated] Func<ILogger>? logger = default)
   {
+    X = x;
     this._loggerFunc = logger ?? throw new System.ArgumentNullException(nameof(logger));
   }
 }

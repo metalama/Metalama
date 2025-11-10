@@ -45,15 +45,25 @@ internal abstract class MethodInliner : Inliner
 
     public override bool IsValidForContainingSymbol( ISymbol symbol ) => true;
 
-    private static bool IsCanonicalInvocationWithStaticReceiver( SemanticModel semanticModel, IMethodSymbol contextMethod, InvocationExpressionSyntax invocationExpression )
+    private static bool IsCanonicalInvocationWithStaticReceiver(
+        SemanticModel semanticModel,
+        IMethodSymbol contextMethod,
+        InvocationExpressionSyntax invocationExpression )
     {
-        if ( invocationExpression is not { Expression: MemberAccessExpressionSyntax { Expression: IdentifierNameSyntax { Identifier.ValueText: LinkerInjectionHelperProvider.HelperTypeName } } } )
+        if ( invocationExpression is not
+            {
+                Expression: MemberAccessExpressionSyntax
+                {
+                    Expression: IdentifierNameSyntax { Identifier.ValueText: LinkerInjectionHelperProvider.HelperTypeName }
+                }
+            } )
         {
             // Fast check before we query symbols.
             return false;
         }
 
         var targetSymbol = ModelExtensions.GetSymbolInfo( semanticModel, invocationExpression.Expression ).Symbol;
+
         if ( targetSymbol is null || OperatorData.GetByName( targetSymbol.AssertNotNull().Name ) is not { IsStatic: false } )
         {
             // We currently treat only non-static operators this way.
@@ -75,9 +85,10 @@ internal abstract class MethodInliner : Inliner
         if ( invocationExpression.ArgumentList.Arguments
             .Skip( 1 )
             .Select( ( x, i ) => (Argument: x.Expression, Index: i) )
-            .Any( a => !SymbolEqualityComparer.Default.Equals(
-                      ModelExtensions.GetSymbolInfo( semanticModel, a.Argument ).Symbol,
-                      contextMethod.Parameters[a.Index] ) ) )
+            .Any(
+                a => !SymbolEqualityComparer.Default.Equals(
+                    ModelExtensions.GetSymbolInfo( semanticModel, a.Argument ).Symbol,
+                    contextMethod.Parameters[a.Index] ) ) )
         {
             return false;
         }

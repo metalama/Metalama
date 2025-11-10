@@ -2,7 +2,6 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Templating;
@@ -18,7 +17,7 @@ namespace Metalama.Framework.Tests.AspectTests.Templating.Dynamic.Expression
         private dynamic? Template()
         {
             var x = meta.RunTime( meta.Target.Method.Name );
-            var exp2 = (IExpression)meta.Target.Parameters[0].Value!;
+            var exp2 = (IExpression) meta.Target.Parameters[0].Value!;
             exp2.Value = 5;
 
             return default;

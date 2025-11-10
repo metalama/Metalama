@@ -38,8 +38,6 @@ namespace Metalama.Backstage.Testing
 
         public void AddTime( TimeSpan timeSpan ) => this.Set( this.UtcNow + timeSpan );
 
-        public void Dispose()
-        {
-        }
+        public void Dispose() { }
     }
 }

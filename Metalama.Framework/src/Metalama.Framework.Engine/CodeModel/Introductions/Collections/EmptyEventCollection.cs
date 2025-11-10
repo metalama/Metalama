@@ -16,7 +16,7 @@ internal sealed class EmptyEventCollection : IEventCollection
 
     public INamedType DeclaringType { get; }
 
-    public IEvent this[string name] => throw new InvalidOperationException();
+    public IEvent this[ string name ] => throw new InvalidOperationException();
 
     public EmptyEventCollection( INamedType declaringType )
     {

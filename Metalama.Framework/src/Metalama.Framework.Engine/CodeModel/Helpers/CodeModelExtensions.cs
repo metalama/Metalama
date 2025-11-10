@@ -108,6 +108,6 @@ public static class CodeModelExtensions
 
     internal static string GetCleanName( this IMember member )
         => member.IsExplicitInterfaceImplementation
-                ? member.Name.Split( '.' ).Last()
-                : member.Name;
+            ? member.Name.Split( '.' ).Last()
+            : member.Name;
 }

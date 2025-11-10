@@ -35,7 +35,7 @@ namespace Metalama.Framework.Code
                    && !method.ReturnType.Equals( method.OverriddenMethod.ReturnType )
                    && method.ReturnType.IsConvertibleTo( method.OverriddenMethod.ReturnType, ConversionKind.Reference );
         }
-        
+
         /// <summary>
         /// Determines whether a read-only property or indexer override has a covariant type with respect to the base implementation.
         /// </summary>

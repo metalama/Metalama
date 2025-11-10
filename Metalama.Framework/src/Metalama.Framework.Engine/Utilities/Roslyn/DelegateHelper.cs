@@ -9,6 +9,5 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn;
 
 internal static class DelegateHelper
 {
-    public static IMethodSymbol GetDelegateSignature( this IEventSymbol @event )
-        => @event.Type.GetMembers( "Invoke" ).OfType<IMethodSymbol>().Single();
+    public static IMethodSymbol GetDelegateSignature( this IEventSymbol @event ) => @event.Type.GetMembers( "Invoke" ).OfType<IMethodSymbol>().Single();
 }

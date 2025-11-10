@@ -48,6 +48,7 @@ public class IntroduceDependencyAttribute : DeclarativeAdviceAttribute
         if ( targetType == null )
         {
             builder.Diagnostics.Report( DiagnosticDescriptors.AdviceUsedInNonTypeContext.WithArguments( builder.Target ) );
+
             return;
         }
 

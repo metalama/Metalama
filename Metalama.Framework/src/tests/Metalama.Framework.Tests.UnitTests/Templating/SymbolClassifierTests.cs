@@ -482,7 +482,7 @@ class C  {
 
             AssertScope( "Console", TemplatingScope.RunTimeOnly );   // Hardcoded.
             AssertScope( "WriteLine", TemplatingScope.RunTimeOnly ); // Hardcoded.
-            AssertScope( "Now", TemplatingScope.RunTimeOnly ); // Hardcoded.
+            AssertScope( "Now", TemplatingScope.RunTimeOnly );       // Hardcoded.
 
             AssertScope( "DateTime", TemplatingScope.NotCompileTimeOnly );
             AssertScope( "Math", TemplatingScope.NotCompileTimeOnly );
@@ -506,7 +506,7 @@ class C  {
                                 using System.Threading.Tasks;
                                 using System.Linq;
                                 using System.Linq.Expressions;
-                                
+
                                 namespace System;
 
                                 class C

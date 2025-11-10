@@ -19,10 +19,10 @@ namespace Metalama.Backstage.Utilities;
 internal sealed class ParentProcessSearchWindows : ParentProcessSearchBase<IntPtr>
 {
     public ParentProcessSearchWindows( ILogger logger ) : base( logger ) { }
-    
+
     [DllImport( "kernel32" )]
     private static extern IntPtr GetCurrentProcess();
-    
+
     [StructLayout( LayoutKind.Sequential )]
     private struct PROCESS_BASIC_INFORMATION
     {
@@ -101,7 +101,7 @@ internal sealed class ParentProcessSearchWindows : ParentProcessSearchBase<IntPt
             // not found
             processId = 0;
         }
-        
+
         var hParentProcess = parentProcessId != 0 ? OpenProcess( PROCESS_QUERY_INFORMATION, true, parentProcessId ) : IntPtr.Zero;
 
         return (imageName, processId, hParentProcess);

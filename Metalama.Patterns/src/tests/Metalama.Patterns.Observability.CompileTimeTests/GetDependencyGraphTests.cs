@@ -1514,7 +1514,7 @@ public class A
                             public class DateTimeViewModel
                             {
                                 public DateTime DateTime { get; set; }
-                            
+
                                 public double MinutesFromNow => (DateTime.Now - this.DateTime).TotalMinutes;
                             }
                             """;

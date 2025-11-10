@@ -12,17 +12,19 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Overrides.Inlining.
     {
         private int Foo()
         {
-            Console.WriteLine( "Original");
+            Console.WriteLine( "Original" );
+
             return 42;
         }
 
-        [PseudoOverride( nameof(Foo),"TestAspect")]
+        [PseudoOverride( nameof(Foo), "TestAspect" )]
         private int Foo_Override()
         {
-            Console.WriteLine( "Before");
+            Console.WriteLine( "Before" );
             int result;
-            result = Link( This.Foo)();
-            Console.WriteLine( "After");
+            result = Link( This.Foo )();
+            Console.WriteLine( "After" );
+
             return result;
         }
     }

@@ -60,7 +60,7 @@ internal sealed class WindowsUserDeviceDetectionService : IUserDeviceDetectionSe
     }
 
     [StructLayout( LayoutKind.Sequential, CharSet = CharSet.Auto )]
-    private class MonitorInfo
+    private sealed class MonitorInfo
     {
         public int Size = Marshal.SizeOf( typeof(MonitorInfo) );
         public Rect Monitor;

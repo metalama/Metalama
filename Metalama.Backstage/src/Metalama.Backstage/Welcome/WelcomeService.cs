@@ -39,15 +39,18 @@ public sealed class WelcomeService : IBackstageService
 
     public void OpenWelcomePageIfRequired()
     {
-        this._backgroundTasksService.Enqueue( () =>
-        {
-            if ( this._telemetryConfigurationService.IsEnabled( TelemetryScenario.Usage ) )
+        this._backgroundTasksService.Enqueue(
+            () =>
             {
-                if ( this._configurationManager.UpdateIf<WelcomeConfiguration>( c => !c.WelcomePageDisplayed, c => c with { WelcomePageDisplayed = true } ) )
+                if ( this._telemetryConfigurationService.IsEnabled( TelemetryScenario.Usage ) )
                 {
-                    this._userInterfaceService.OpenExternalWebPage( this._webLinks.Welcome, BrowserMode.Default );
+                    if ( this._configurationManager.UpdateIf<WelcomeConfiguration>(
+                            c => !c.WelcomePageDisplayed,
+                            c => c with { WelcomePageDisplayed = true } ) )
+                    {
+                        this._userInterfaceService.OpenExternalWebPage( this._webLinks.Welcome, BrowserMode.Default );
+                    }
                 }
-            }
-        } );
+            } );
     }
 }

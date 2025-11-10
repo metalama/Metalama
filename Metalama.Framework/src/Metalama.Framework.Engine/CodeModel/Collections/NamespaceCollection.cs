@@ -26,7 +26,7 @@ namespace Metalama.Framework.Engine.CodeModel.Collections
             {
                 throw new ArgumentOutOfRangeException( nameof(name), "The name cannot contain a period." );
             }
-            
+
             var ns = this.OfName( name );
 
             if ( ns == null )

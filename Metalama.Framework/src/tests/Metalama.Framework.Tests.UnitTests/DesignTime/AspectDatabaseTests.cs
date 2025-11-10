@@ -21,6 +21,9 @@ using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
 
+// ReSharper disable AccessToDisposedClosure
+// ReSharper disable ParameterOnlyUsedForPreconditionCheck.Local
+
 namespace Metalama.Framework.Tests.UnitTests.DesignTime;
 
 #pragma warning disable VSTHRD200

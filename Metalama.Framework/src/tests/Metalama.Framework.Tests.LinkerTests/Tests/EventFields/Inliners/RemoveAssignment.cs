@@ -14,15 +14,15 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.EventFields.Inliners.Remove
     {
         private event EventHandler? Foo;
 
-        [PseudoOverride(nameof(Foo), "TestAspect")]
+        [PseudoOverride( nameof(Foo), "TestAspect" )]
         private event EventHandler? Foo_Override
         {
             add { }
             remove
             {
-                Console.WriteLine("Before");
+                Console.WriteLine( "Before" );
                 Link[This.Foo.remove, Inline] -= value;
-                Console.WriteLine("After");
+                Console.WriteLine( "After" );
             }
         }
     }

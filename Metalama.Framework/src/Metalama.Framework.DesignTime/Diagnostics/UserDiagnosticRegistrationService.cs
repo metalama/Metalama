@@ -39,8 +39,14 @@ namespace Metalama.Framework.DesignTime.Diagnostics
         [Memo]
         public DesignTimeDiagnosticDefinitions DiagnosticDefinitions
             => new(
-                this._registrationFile.Diagnostics.SelectAsImmutableArray( d => new DiagnosticDescriptor( d.Value.Id,
-                                                                               d.Value.Title, d.Value.Title, d.Value.Id, (DiagnosticSeverity) d.Value.Severity, true) ),
+                this._registrationFile.Diagnostics.SelectAsImmutableArray(
+                    d => new DiagnosticDescriptor(
+                        d.Value.Id,
+                        d.Value.Title,
+                        d.Value.Title,
+                        d.Value.Id,
+                        (DiagnosticSeverity) d.Value.Severity,
+                        true ) ),
                 this._registrationFile.Suppressions.SelectAsImmutableArray( SuppressionFactories.CreateDescriptor ) );
 
         /// <summary>
@@ -66,7 +72,9 @@ namespace Metalama.Framework.DesignTime.Diagnostics
                         {
                             Diagnostics = f.Diagnostics.AddRange(
                                 missing.Diagnostics.SelectAsReadOnlyCollection(
-                                    d => new KeyValuePair<string, UserDiagnosticRegistration>( d.Id, new UserDiagnosticRegistration( d.Id, (int) d.Severity, d.Category, d.Title ) ) ) ),
+                                    d => new KeyValuePair<string, UserDiagnosticRegistration>(
+                                        d.Id,
+                                        new UserDiagnosticRegistration( d.Id, (int) d.Severity, d.Category, d.Title ) ) ) ),
                             Suppressions = f.Suppressions.AddRange( missing.Suppressions )
                         };
                     } );

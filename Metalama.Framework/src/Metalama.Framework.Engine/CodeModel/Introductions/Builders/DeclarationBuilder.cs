@@ -115,7 +115,7 @@ internal abstract class DeclarationBuilder : IDeclarationBuilderImpl
         {
             return;
         }
-        
+
         this.IsFrozen = true;
 
         this.EnsureReferenceCreated();

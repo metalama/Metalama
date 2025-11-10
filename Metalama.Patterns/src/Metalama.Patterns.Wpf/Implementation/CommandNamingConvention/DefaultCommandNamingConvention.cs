@@ -42,9 +42,9 @@ internal sealed class DefaultCommandNamingConvention : ICommandNamingConvention
 
         TrimStart( ref useName, "execute", StringComparison.OrdinalIgnoreCase );
         TrimStart( ref useName, "_", StringComparison.OrdinalIgnoreCase );
-        
+
         TrimEnd( ref useName, "async", StringComparison.OrdinalIgnoreCase );
-        
+
         _ = TrimEnd( ref useName, "_command", StringComparison.OrdinalIgnoreCase )
             || TrimEnd( ref useName, "command", StringComparison.OrdinalIgnoreCase );
 

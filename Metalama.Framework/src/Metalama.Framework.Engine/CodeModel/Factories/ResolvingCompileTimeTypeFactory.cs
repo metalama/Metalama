@@ -13,7 +13,7 @@ internal sealed class ResolvingCompileTimeTypeFactory : CompileTimeTypeFactory
 {
     private readonly SerializableTypeIdResolverForSymbol _serializableTypeIdResolver;
 
-    public ResolvingCompileTimeTypeFactory( SerializableTypeIdResolverForSymbol serializableTypeIdResolver ) 
+    public ResolvingCompileTimeTypeFactory( SerializableTypeIdResolverForSymbol serializableTypeIdResolver )
     {
         this._serializableTypeIdResolver = serializableTypeIdResolver;
     }

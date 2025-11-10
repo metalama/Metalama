@@ -21,6 +21,7 @@ using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 
 namespace Metalama.Framework.Engine.Utilities.UserCode;
@@ -295,6 +296,7 @@ public class UserCodeExecutionContext : IExecutionContextInternal
 
     IMetaApi? IExecutionContextInternal.MetaApi => this.MetaApi;
 
+    [field: AllowNull]
     IExpressionHelper IExecutionContextInternal.ExpressionHelper => field ??= new ExpressionHelper( SyntaxGenerationContext.Contextless );
 
     private protected MetaApi? MetaApi { get; }

@@ -77,7 +77,7 @@ internal sealed partial class LinkerLinkingStep
         }
 
 #if ROSLYN_5_0_0_OR_GREATER
-        public override SyntaxNode? VisitExtensionBlockDeclaration( ExtensionBlockDeclarationSyntax node )
+        public override SyntaxNode VisitExtensionBlockDeclaration( ExtensionBlockDeclarationSyntax node )
         {
             var transformedMembers = this.GetMembersForTypeDeclaration( node ).AssertNotNull();
 

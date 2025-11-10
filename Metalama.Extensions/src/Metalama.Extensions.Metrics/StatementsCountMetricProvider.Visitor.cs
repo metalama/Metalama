@@ -8,13 +8,13 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Metalama.Extensions.Metrics
 {
-    public partial class StatementsCountMetricProvider
+    public sealed partial class StatementsCountMetricProvider
     {
         /// <summary>
         /// A visitor that counts the statements.
         /// </summary>
         [CompileTime]
-        private class Visitor : BaseVisitor
+        private sealed class Visitor : BaseVisitor
         {
             public override StatementsCount DefaultVisit( SyntaxNode node )
             {

@@ -46,7 +46,7 @@ public sealed class CodeLensTests : DesignTimeTestBase
                             {
                                 [Introduce]
                                 private readonly TextWriter _logger = Console.Out;
-                            
+
                                 public override dynamic? OverrideMethod()
                                 {
                                     _logger.WriteLine("Logged.");
@@ -59,10 +59,10 @@ public sealed class CodeLensTests : DesignTimeTestBase
                                 public override void BuildAspect(IAspectBuilder<INamedType> builder)
                                 {
                                     var introduced = builder.IntroduceMethod( nameof(Get) );
-                            
+
                                     introduced.AddAspect<InjectedLoggerAttribute>();
                                 }
-                            
+
                                 [Template]
                                 public object Get(int id) => id.ToString();
                             }
@@ -132,24 +132,24 @@ public sealed class CodeLensTests : DesignTimeTestBase
                                 {
                                     this.skip = skip;
                                 }
-                            
+
                                 private readonly bool skip;
-                            
+
                                 [Introduce]
                                 int i;
-                            
+
                                 public override void BuildAspect(IAspectBuilder<INamedType> builder)
                                 {
                                     if (skip)
                                     {
                                         builder.SkipAspect();
                                     }
-                            
+
                                     builder.AddAspect<MyChildAspect>();
-                            
+
                                     builder.IntroduceMethod( nameof(Template));
                                 }
-                            
+
                                 [Template]
                                 void Template() { }
                             }

@@ -22,7 +22,11 @@ public sealed class DotNetTool
         this._platformInfo = serviceProvider.GetRequiredBackstageService<IPlatformInfo>();
     }
 
-    public void Execute( string arguments, string? workingDirectory = null, int timeout = 30_000, Func<KeyValuePair<string, string?>, bool>? environmentVariableFilter = null )
+    public void Execute(
+        string arguments,
+        string? workingDirectory = null,
+        int timeout = 30_000,
+        Func<KeyValuePair<string, string?>, bool>? environmentVariableFilter = null )
     {
         var startInfo = new ProcessStartInfo( this._platformInfo.DotNetExePath, arguments )
         {
@@ -33,7 +37,7 @@ public sealed class DotNetTool
             RedirectStandardOutput = true,
             RedirectStandardError = true
         };
-        
+
         // We must avoid passing the following environment variables to the child process, otherwise there can be a mismatch
         // between SDK versions and the build will fail.
         startInfo.Environment.Remove( "DOTNET_ROOT_X64" );

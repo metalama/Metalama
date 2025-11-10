@@ -64,7 +64,7 @@ public static class BackstageServiceFactory
 
         return serviceProvider;
     }
-    
+
     public static ILicenseConsumptionService CreateTestLicenseConsumptionService( IServiceProvider serviceProvider, string? licenseKey )
     {
         var sources = licenseKey == null

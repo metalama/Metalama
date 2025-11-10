@@ -153,8 +153,9 @@ namespace Metalama.Framework.Engine.Linking
                 if ( symbol.SetMethod != null )
                 {
                     var setAccessorDeclaration =
-                        indexerDeclaration.AccessorList!.Accessors.Single( a => a.IsKind( SyntaxKind.SetAccessorDeclaration )
-                                                                                || a.IsKind( SyntaxKind.InitAccessorDeclaration ) );
+                        indexerDeclaration.AccessorList!.Accessors.Single(
+                            a => a.IsKind( SyntaxKind.SetAccessorDeclaration )
+                                 || a.IsKind( SyntaxKind.InitAccessorDeclaration ) );
 
                     transformedAccessors.Add( GetLinkedAccessor( semanticKind, setAccessorDeclaration, symbol.SetMethod ) );
                 }
@@ -310,16 +311,17 @@ namespace Metalama.Framework.Engine.Linking
                 existingAccessorList
                     .WithAccessors(
                         List(
-                            existingAccessorList.Accessors.SelectAsArray( a =>
-                                                                              TransformAccessor(
-                                                                                  a,
-                                                                                  a.Kind() switch
-                                                                                  {
-                                                                                      SyntaxKind.GetAccessorDeclaration => symbol.GetMethod.AssertNotNull(),
-                                                                                      SyntaxKind.SetAccessorDeclaration or SyntaxKind.InitAccessorDeclaration =>
-                                                                                          symbol.SetMethod.AssertNotNull(),
-                                                                                      _ => throw new AssertionFailedException( $"Unexpected kind: {a}" )
-                                                                                  } ) ) ) )
+                            existingAccessorList.Accessors.SelectAsArray(
+                                a =>
+                                    TransformAccessor(
+                                        a,
+                                        a.Kind() switch
+                                        {
+                                            SyntaxKind.GetAccessorDeclaration => symbol.GetMethod.AssertNotNull(),
+                                            SyntaxKind.SetAccessorDeclaration or SyntaxKind.InitAccessorDeclaration =>
+                                                symbol.SetMethod.AssertNotNull(),
+                                            _ => throw new AssertionFailedException( $"Unexpected kind: {a}" )
+                                        } ) ) ) )
                     .WithSourceCodeAnnotation();
 
             return this.GetSpecialImplIndexer(

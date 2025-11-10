@@ -53,8 +53,8 @@ public sealed class DistributedDesignTimeTestContext : TestContext
             analysisProcessServices.Add( sp => new TestDesignTimeAspectPipelineFactory( this, sp ) );
             analysisProcessServices.Add( sp => new TestServiceHubClientEndpointProvider( new ServiceHubClientEndpoint( sp, hubPipeName ) ) );
 
-            analysisProcessServices.Add( sp => new TestRpcServiceProviderServerEndpointProvider(
-                                             new RpcServiceProviderServerEndpoint( sp, servicePipeName ) ) );
+            analysisProcessServices.Add(
+                sp => new TestRpcServiceProviderServerEndpointProvider( new RpcServiceProviderServerEndpoint( sp, servicePipeName ) ) );
 
             var analysisProcessServiceProvider = (GlobalServiceProvider) this.ServiceProvider.Global.Underlying.WithDisjointSharedServices();
 

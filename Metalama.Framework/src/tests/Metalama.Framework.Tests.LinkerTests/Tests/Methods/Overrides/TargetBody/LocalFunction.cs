@@ -4,6 +4,7 @@
 
 using System;
 using static Metalama.Framework.Tests.LinkerTests.Tests.Api;
+// ReSharper disable RedundantJumpStatement
 
 namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Overrides.TargetBody.LocalFunction
 {
@@ -12,7 +13,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Overrides.TargetBod
     {
         private int IntMethod()
         {
-            if (new Random().Next() == 0)
+            if ( new Random().Next() == 0 )
             {
                 return 0;
             }
@@ -20,9 +21,10 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Overrides.TargetBod
             Foo();
             var x = Bar();
 
-            Console.WriteLine( "Original");
-            return x; 
-            
+            Console.WriteLine( "Original" );
+
+            return x;
+
             void Foo()
             {
                 return;
@@ -36,22 +38,21 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Overrides.TargetBod
             }
         }
 
-        [PseudoOverride( nameof(IntMethod), "TestAspect")]
+        [PseudoOverride( nameof(IntMethod), "TestAspect" )]
         private int IntMethod_Override()
         {
-            Console.WriteLine( "Before");
+            Console.WriteLine( "Before" );
 
-            var y = Link(This.IntMethod, Inline)();
+            var y = Link( This.IntMethod, Inline )();
 
-            Console.WriteLine( "After");
+            Console.WriteLine( "After" );
 
             return y;
         }
 
-
         private void VoidMethod()
         {
-            if (new Random().Next() == 0)
+            if ( new Random().Next() == 0 )
             {
                 return;
             }
@@ -59,7 +60,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Overrides.TargetBod
             Foo();
             _ = Bar();
 
-            Console.WriteLine("Original");
+            Console.WriteLine( "Original" );
 
             void Foo()
             {
@@ -74,14 +75,14 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Overrides.TargetBod
             }
         }
 
-        [PseudoOverride(nameof(VoidMethod), "TestAspect")]
+        [PseudoOverride( nameof(VoidMethod), "TestAspect" )]
         private void VoidMethod_Override()
         {
-            Console.WriteLine("Before");
+            Console.WriteLine( "Before" );
 
-            Link(This.VoidMethod, Inline)();
+            Link( This.VoidMethod, Inline )();
 
-            Console.WriteLine("After");
+            Console.WriteLine( "After" );
         }
     }
 }

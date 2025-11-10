@@ -10,42 +10,49 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Overrides.Jump.Retu
     // <target>
     internal class Target
     {
-        private void Foo(int x)
+        private void Foo( int x )
         {
-            Console.WriteLine( "Original Start");
-            if (x == 0)
+            Console.WriteLine( "Original Start" );
+
+            if ( x == 0 )
             {
-                Console.WriteLine("Branch End");
+                Console.WriteLine( "Branch End" );
+
                 return;
             }
-            else
-            {
-            }
-            Console.WriteLine("Original End");
+            else { }
+
+            Console.WriteLine( "Original End" );
         }
 
-        [PseudoOverride( nameof(Foo), "TestAspect1")]
-        private void Foo_Override1(int x)
+        [PseudoOverride( nameof(Foo), "TestAspect1" )]
+        private void Foo_Override1( int x )
         {
-            Console.WriteLine( "Before1");
-            if (x == 0)
+            Console.WriteLine( "Before1" );
+
+            if ( x == 0 )
             {
-                Link(This.Foo, Inline)(x);
+                Link( This.Foo, Inline )( x );
+
                 return;
             }
-            Console.WriteLine( "After1");
+
+            Console.WriteLine( "After1" );
         }
 
-        [PseudoOverride(nameof(Foo), "TestAspect2")]
-        private void Foo_Override2(int x)
+        [PseudoOverride( nameof(Foo), "TestAspect2" )]
+        private void Foo_Override2( int x )
         {
-            Console.WriteLine("Before2");
-            if (x == 0)
+            Console.WriteLine( "Before2" );
+
+            if ( x == 0 )
             {
-                Link(This.Foo, Inline)(x);
+                Link( This.Foo, Inline )( x );
+
                 return;
             }
-            Console.WriteLine("After2");
+
+            Console.WriteLine( "After2" );
         }
     }
 }

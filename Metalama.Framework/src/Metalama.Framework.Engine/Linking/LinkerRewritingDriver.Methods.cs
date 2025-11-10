@@ -84,7 +84,7 @@ namespace Metalama.Framework.Engine.Linking
                     return Array.Empty<MemberDeclarationSyntax>();
                 }
             }
-            else if (this.InjectionRegistry.IsEventRaiseOverride(symbol))
+            else if ( this.InjectionRegistry.IsEventRaiseOverride( symbol ) )
             {
                 return [GetLinkedDeclaration( IntermediateSymbolSemanticKind.Default, symbol.IsAsync )];
             }

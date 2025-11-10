@@ -129,7 +129,7 @@ class A
             IReadOnlyList<T> symbols1,
             IReadOnlyList<T> symbols2,
             IEqualityComparer<T> comparer,
-            IEqualityComparer<T> roslynEqualityComparer ) 
+            IEqualityComparer<T> roslynEqualityComparer )
             where T : notnull
         {
             Assert.Equal( symbols1.Count, symbols2.Count );

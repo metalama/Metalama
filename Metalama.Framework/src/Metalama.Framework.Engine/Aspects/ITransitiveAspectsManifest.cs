@@ -14,9 +14,9 @@ namespace Metalama.Framework.Engine.Aspects;
 public interface ITransitiveAspectsManifest
 {
     IEnumerable<string> InheritableAspectTypes { get; }
-    
+
     IEnumerable<InheritableAspectInstance> GetInheritableAspects( string aspectType );
-    
+
     ImmutableArray<ITransitiveAspectsManifestExtension> Extensions { get; }
 
     ImmutableDictionary<HierarchicalOptionsKey, IHierarchicalOptions> InheritableOptions { get; }

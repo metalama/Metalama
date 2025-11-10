@@ -406,15 +406,16 @@ internal sealed class AspectReferenceResolver
             // Order coming from transformation needs to be incremented by 1, because 0 represents state before the aspect layer.
             return
                 referencedDeclarationOverrides
-                    .SelectAsReadOnlyList( x =>
-                    {
-                        var injectedMember = @this._injectionRegistry.GetInjectedMemberForSymbol( x ).AssertNotNull();
+                    .SelectAsReadOnlyList(
+                        x =>
+                        {
+                            var injectedMember = @this._injectionRegistry.GetInjectedMemberForSymbol( x ).AssertNotNull();
 
-                        return
-                            new OverrideIndex(
-                                @this.GetMemberLayerIndex( injectedMember ),
-                                injectedMember );
-                    } )
+                            return
+                                new OverrideIndex(
+                                    @this.GetMemberLayerIndex( injectedMember ),
+                                    injectedMember );
+                        } )
                     .Materialize()
                     .AssertSorted( x => x.Index );
         }
@@ -639,7 +640,7 @@ internal sealed class AspectReferenceResolver
                                     {
                                         ExpressionBody: AssignmentExpressionSyntax
                                         {
-                                            RawKind: (int) SyntaxKind.AddAssignmentExpression, Left: ExpressionSyntax eventExpression
+                                            RawKind: (int) SyntaxKind.AddAssignmentExpression, Left: { } eventExpression
                                         }
                                     }
                                 },
@@ -683,20 +684,24 @@ internal sealed class AspectReferenceResolver
                     targetSymbol = operatorData.Kind.GetCategory() switch
                     {
                         OperatorCategory.Binary => operatorsOfName
-                            .Single( m => m.Parameters.Length == 2
-                                          && SignatureTypeComparer.Instance.Equals( m.Parameters[0].Type, helperMethod.Parameters[0].Type )
-                                          && SignatureTypeComparer.Instance.Equals( m.Parameters[1].Type, helperMethod.Parameters[1].Type )
-                                          && SignatureTypeComparer.Instance.Equals( m.ReturnType, helperMethod.ReturnType ) ),
+                            .Single(
+                                m => m.Parameters.Length == 2
+                                     && SignatureTypeComparer.Instance.Equals( m.Parameters[0].Type, helperMethod.Parameters[0].Type )
+                                     && SignatureTypeComparer.Instance.Equals( m.Parameters[1].Type, helperMethod.Parameters[1].Type )
+                                     && SignatureTypeComparer.Instance.Equals( m.ReturnType, helperMethod.ReturnType ) ),
                         OperatorCategory.Unary or OperatorCategory.Conversion => operatorsOfName
-                            .Single( m => m.Parameters.Length == 1
-                                          && SignatureTypeComparer.Instance.Equals( m.ReturnType, helperMethod.ReturnType ) ),
+                            .Single(
+                                m => m.Parameters.Length == 1
+                                     && SignatureTypeComparer.Instance.Equals( m.ReturnType, helperMethod.ReturnType ) ),
                         OperatorCategory.BinaryAssignment => operatorsOfName
-                            .Single( m => m.Parameters.Length == 1
-                                          && SignatureTypeComparer.Instance.Equals( m.Parameters[0].Type, helperMethod.Parameters[1].Type )
-                                          && SignatureTypeComparer.Instance.Equals( m.ReturnType, helperMethod.ReturnType ) ),
+                            .Single(
+                                m => m.Parameters.Length == 1
+                                     && SignatureTypeComparer.Instance.Equals( m.Parameters[0].Type, helperMethod.Parameters[1].Type )
+                                     && SignatureTypeComparer.Instance.Equals( m.ReturnType, helperMethod.ReturnType ) ),
                         OperatorCategory.UnaryAssignment => operatorsOfName
-                            .Single( m => m.Parameters.Length == 0
-                                          && SignatureTypeComparer.Instance.Equals( m.ReturnType, helperMethod.ReturnType ) ),
+                            .Single(
+                                m => m.Parameters.Length == 0
+                                     && SignatureTypeComparer.Instance.Equals( m.ReturnType, helperMethod.ReturnType ) ),
                         _ => throw new AssertionFailedException()
                     };
 

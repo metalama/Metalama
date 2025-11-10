@@ -54,7 +54,7 @@ namespace Metalama.Framework.Engine.Linking
 
                 var lastOverride = (IPropertySymbol) this.InjectionRegistry.GetLastOverride( symbol );
 
-                if ( ( propertyDeclaration.IsAutoPropertyDeclaration() || symbol.GetBackingField() != null )
+                if ( (propertyDeclaration.IsAutoPropertyDeclaration() || symbol.GetBackingField() != null)
                      && this.AnalysisRegistry.IsReachable( symbol.ToSemantic( IntermediateSymbolSemanticKind.Default ) ) )
                 {
                     // Backing field for auto property.

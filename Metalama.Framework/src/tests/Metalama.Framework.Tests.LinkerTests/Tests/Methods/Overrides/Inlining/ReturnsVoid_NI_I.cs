@@ -10,19 +10,18 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Overrides.Inlining.
     // <target>
     internal class Target
     {
-
         private void Foo()
         {
-            Console.WriteLine( "Original");
+            Console.WriteLine( "Original" );
         }
 
         [PseudoNotInlineable]
-        [PseudoOverride( nameof(Foo),"TestAspect")]
+        [PseudoOverride( nameof(Foo), "TestAspect" )]
         private void Foo_Override()
         {
-            Console.WriteLine( "Before");
-            Link( This.Foo, Inline)();
-            Console.WriteLine( "After");
+            Console.WriteLine( "Before" );
+            Link( This.Foo, Inline )();
+            Console.WriteLine( "After" );
         }
     }
 }

@@ -55,7 +55,9 @@ internal sealed class BoundTemplateMethod
             var runTimeParameter = this.TemplateMember.TemplateClassMember.RunTimeParameters[index];
             var parameter = signature.Parameters[index];
 
-            newArguments[runTimeParameter.SourceIndex] = TypeAnnotationMapper.AddExpressionTypeAnnotation( SyntaxFactory.IdentifierName( parameter.Name ), parameter.Type );
+            newArguments[runTimeParameter.SourceIndex] = TypeAnnotationMapper.AddExpressionTypeAnnotation(
+                SyntaxFactory.IdentifierName( parameter.Name ),
+                parameter.Type );
         }
 
         return newArguments;

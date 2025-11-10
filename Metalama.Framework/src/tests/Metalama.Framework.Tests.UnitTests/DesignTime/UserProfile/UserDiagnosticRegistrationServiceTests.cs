@@ -90,7 +90,7 @@ namespace Metalama.Framework.Tests.UnitTests.DesignTime.TestCode
                                            "MY001",
                                            Severity.Error,
                                            "User error description.");
-                               
+
                                    public override void BuildAspect(IAspectBuilder<IMethod> builder)
                                    {
                                        builder.Diagnostics.Report( _userError.WithArguments( builder.Target ) );
@@ -148,7 +148,7 @@ namespace Metalama.Framework.Tests.UnitTests.DesignTime.TestCode
                                            "MY001",
                                            Severity.Error,
                                            "User error description.");
-                               
+
                                    public override void BuildAspect(IAspectBuilder<IMethod> builder)
                                    {
                                        builder.Diagnostics.Report( UserError.WithArguments( builder.Target ) );

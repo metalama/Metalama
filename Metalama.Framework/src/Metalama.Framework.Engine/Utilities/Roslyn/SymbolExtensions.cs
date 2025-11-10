@@ -169,8 +169,9 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
                 return null;
             }
 
-            return symbol.DeclaringSyntaxReferences.Any( r => r.GetSyntax() is MemberDeclarationSyntax member
-                                                              && member.Modifiers.Any( m => m.IsKind( kind ) ) );
+            return symbol.DeclaringSyntaxReferences.Any(
+                r => r.GetSyntax() is MemberDeclarationSyntax member
+                     && member.Modifiers.Any( m => m.IsKind( kind ) ) );
         }
 
         private static ImmutableArray<ISymbol> ExplicitInterfaceImplementations( this ISymbol symbol )

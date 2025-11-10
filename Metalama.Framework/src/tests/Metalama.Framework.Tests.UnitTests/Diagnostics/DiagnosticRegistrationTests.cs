@@ -108,7 +108,7 @@ public sealed class DiagnosticRegistrationTests : UnitTestClass
         {
             // Assert that the service is present.
             _ = context.ServiceProvider.GetRequiredService<DiagnosticDefinitionDiscoveryService>();
-            
+
             context.AddDiagnosticDefinitions( [new DiagnosticDefinition( "TEST01", Severity.Error, "Test" )] );
             context.AddSuppressionDefinitions( [new SuppressionDefinition( "TEST01" )] );
 

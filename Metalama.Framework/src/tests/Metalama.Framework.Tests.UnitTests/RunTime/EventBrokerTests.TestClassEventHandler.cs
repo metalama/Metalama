@@ -23,7 +23,7 @@ public partial class EventBrokerTests
             this._onBrokerInvoke = onBrokerInvoke;
 
             var adapter = new DelegateEventAdapter<EventHandler, (object? Sender, EventArgs Args), TestClassEventHandler>(
-                ( EventHandler h, ref (object? Sender, EventArgs Args) args, TestClassEventHandler i ) => i.OnEventViaBroker( h, args ),
+                ( h, ref args, i ) => i.OnEventViaBroker( h, args ),
                 broker => ( sender, args ) => broker.Invoke( (sender, args) ),
                 ( h, i ) => i._originalEvent += h,
                 ( h, i ) => i._originalEvent -= h );

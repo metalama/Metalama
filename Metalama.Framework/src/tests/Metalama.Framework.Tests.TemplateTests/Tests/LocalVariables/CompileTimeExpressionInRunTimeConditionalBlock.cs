@@ -4,7 +4,6 @@
 
 using System;
 using System.Linq;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Engine.Templating;
 
@@ -16,11 +15,11 @@ internal class Aspect
     [TestTemplate]
     private dynamic? Template()
     {
-        if (meta.Target.Parameters.Single().Value > 0)
+        if ( meta.Target.Parameters.Single().Value > 0 )
         {
             var i = meta.CompileTime( 0 );
             var j = meta.CompileTime( 0 );
-            ( i, j ) = ( 3, 4 );
+            (i, j) = (3, 4);
             Console.WriteLine( $"i={i} j={j}" );
         }
 

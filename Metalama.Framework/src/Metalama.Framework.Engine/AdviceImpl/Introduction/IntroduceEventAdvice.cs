@@ -37,9 +37,8 @@ internal sealed class IntroduceEventAdvice : IntroduceMemberAdvice<IEvent, IEven
         IntroductionScope scope,
         OverrideStrategy overrideStrategy,
         Action<IEventBuilder>? buildAction,
-        INamedType? explicitlyImplementedInterfaceType,
-        IAdviceFactoryImpl adviceFactory )
-        : base( parameters, explicitName, eventTemplate, scope, overrideStrategy, buildAction, explicitlyImplementedInterfaceType, adviceFactory )
+        INamedType? explicitlyImplementedInterfaceType )
+        : base( parameters, explicitName, eventTemplate, scope, overrideStrategy, buildAction, explicitlyImplementedInterfaceType )
     {
         this._addTemplate = addTemplate;
         this._removeTemplate = removeTemplate;

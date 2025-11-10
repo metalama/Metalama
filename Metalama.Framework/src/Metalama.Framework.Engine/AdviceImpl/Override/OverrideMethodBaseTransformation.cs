@@ -72,7 +72,8 @@ internal abstract class OverrideMethodBaseTransformation : OverrideMemberTransfo
 
             if ( overriddenDeclaration.ReturnType.Equals( SpecialType.Void ) )
             {
-                returnType = context.SyntaxGenerator.TypeSyntax( overriddenDeclaration.GetCompilationContext().ReflectionMapper.GetTypeSymbol( typeof(ValueTask) ) );
+                returnType = context.SyntaxGenerator.TypeSyntax(
+                    overriddenDeclaration.GetCompilationContext().ReflectionMapper.GetTypeSymbol( typeof(ValueTask) ) );
             }
         }
 
@@ -121,10 +122,11 @@ internal abstract class OverrideMethodBaseTransformation : OverrideMemberTransfo
             MethodKind.Finalizer =>
                 context.AspectReferenceSyntaxProvider.AssertNotNull().GetFinalizerReference( this.AspectLayerId ),
             MethodKind.Operator =>
-                context.AspectReferenceSyntaxProvider.AssertNotNull().GetOperatorReference(
-                    this.AspectLayerId,
-                    (IMethod) this.TargetDeclaration.GetTarget( context.FinalCompilation ),
-                    context.SyntaxGenerator ),
+                context.AspectReferenceSyntaxProvider.AssertNotNull()
+                    .GetOperatorReference(
+                        this.AspectLayerId,
+                        (IMethod) this.TargetDeclaration.GetTarget( context.FinalCompilation ),
+                        context.SyntaxGenerator ),
             _ => throw new AssertionFailedException( $"Unsupported method kind: {overriddenDeclaration} is {overriddenDeclaration.MethodKind}." )
         };
     }

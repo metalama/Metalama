@@ -10,6 +10,6 @@ namespace Metalama.Backstage.Telemetry.User;
 public interface IUserInfoService : IBackstageService
 {
     bool TryGetUserInfo( [NotNullWhen( true )] out UserInfo? userInfo );
-    
+
     void SaveEmailAddress( string emailAddress );
 }

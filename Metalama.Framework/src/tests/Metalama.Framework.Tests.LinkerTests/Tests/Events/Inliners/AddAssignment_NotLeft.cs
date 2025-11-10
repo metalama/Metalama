@@ -14,15 +14,15 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Events.Inliners.AddAssignme
     {
         private event EventHandler? Foo;
 
-        [PseudoOverride(nameof(Foo), "TestAspect")]
+        [PseudoOverride( nameof(Foo), "TestAspect" )]
         private event EventHandler Foo_Override
         {
             add
             {
-                Console.WriteLine("Before");
+                Console.WriteLine( "Before" );
                 EventHandler? x = null;
                 x += Link[This.Foo.add, Inline];
-                Console.WriteLine("After");
+                Console.WriteLine( "After" );
             }
             remove { }
         }

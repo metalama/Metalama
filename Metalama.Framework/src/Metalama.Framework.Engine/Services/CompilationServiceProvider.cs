@@ -20,8 +20,7 @@ internal abstract class CompilationServiceProvider<T> : IProjectService, IDispos
         this.ServiceProvider = serviceProvider;
     }
 
-    public T Get( CompilationContext compilationContext )
-        => this._cache.GetOrAdd( compilationContext, this.Create );
+    public T Get( CompilationContext compilationContext ) => this._cache.GetOrAdd( compilationContext, this.Create );
 
     protected abstract T Create( CompilationContext compilationContext );
 

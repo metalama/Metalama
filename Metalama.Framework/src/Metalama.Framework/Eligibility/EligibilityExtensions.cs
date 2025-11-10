@@ -66,6 +66,7 @@ public static partial class EligibilityExtensions
     public static IEligibilityBuilder<IHasParameters> DeclaringMember( this IEligibilityBuilder<IParameter> eligibilityBuilder )
     {
         eligibilityBuilder.MustNotBeExtensionBlockReceiverParameter();
+
         return new ChildEligibilityBuilder<IParameter, IHasParameters>(
             eligibilityBuilder,
             parameter => parameter.DeclaringMember!,
@@ -293,7 +294,7 @@ public static partial class EligibilityExtensions
         => eligibilityBuilder.MustSatisfy(
             p => !p.IsReturnParameter,
             member => $"{member} must not be the return value parameter" );
-    
+
     /// <summary>
     /// Forbids the parameter from being the receiver parameter of an extension block.
     /// </summary>
@@ -497,7 +498,7 @@ public static partial class EligibilityExtensions
         => eligibilityBuilder.MustSatisfy(
             member => member.TypeKind != TypeKind.Interface,
             member => $"{member} must not an interface" );
-    
+
     /// <summary>
     /// Forbids the target member from being declared in an extension block.
     /// </summary>
@@ -505,7 +506,7 @@ public static partial class EligibilityExtensions
         => eligibilityBuilder.MustSatisfy(
             member => member.DeclaringType is not { TypeKind: TypeKind.Extension },
             member => $"{member} must not be an extension block member" );
-    
+
     /// <summary>
     /// Forbids the target member from being declared in an extension block.
     /// </summary>
@@ -513,7 +514,7 @@ public static partial class EligibilityExtensions
         => eligibilityBuilder.MustSatisfy(
             member => member is not { TypeKind: TypeKind.Extension },
             member => $"{member} must not be an extension block" );
-    
+
     [Obsolete( "This method has been renamed MustBeConvertibleTo or MustEqual." )]
     public static void MustBe( this IEligibilityBuilder<IType> eligibilityBuilder, Type type, ConversionKind conversionKind = ConversionKind.Default )
         => MustBeConvertibleTo( eligibilityBuilder, type, conversionKind );

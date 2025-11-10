@@ -83,7 +83,7 @@ public sealed class SourceReferenceImpl : ISourceReferenceImpl
                 constructor.Modifiers.Any( SyntaxKind.PartialKeyword ):
                 return false;
 
-            case VariableDeclaratorSyntax {Parent: VariableDeclarationSyntax { Parent: EventFieldDeclarationSyntax eventField } } variable when
+            case VariableDeclaratorSyntax { Parent: VariableDeclarationSyntax { Parent: EventFieldDeclarationSyntax eventField } } when
                 eventField.Modifiers.Any( SyntaxKind.PartialKeyword ):
                 return false;
 #endif

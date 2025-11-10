@@ -15,24 +15,12 @@ internal class NsFabric : NamespaceFabric
             b =>
             {
                 b.RemoveNamingConvention( "default" );
-                
-                b.AddNamingConvention(
-                    new CommandNamingConvention( "rx1" )
-                    {
-                        CommandNamePattern = "^Rx1(?<CommandName>.+)$",
-                    } );
 
-                b.AddNamingConvention(
-                    new CommandNamingConvention( "rx2" )
-                    {
-                        CommandNamePattern = "^Rx2(?<CommandName>.+)$",
-                    } );
+                b.AddNamingConvention( new CommandNamingConvention( "rx1" ) { CommandNamePattern = "^Rx1(?<CommandName>.+)$" } );
 
-                b.AddNamingConvention(
-                    new CommandNamingConvention( "rx3" )
-                    {
-                        CommandNamePattern = "^Rx3(?<CommandName>.+)$",
-                    } );
+                b.AddNamingConvention( new CommandNamingConvention( "rx2" ) { CommandNamePattern = "^Rx2(?<CommandName>.+)$" } );
+
+                b.AddNamingConvention( new CommandNamingConvention( "rx3" ) { CommandNamePattern = "^Rx3(?<CommandName>.+)$" } );
 
                 b.RemoveNamingConvention( CommandOptionsBuilder.DefaultNamingConventionName );
             } );

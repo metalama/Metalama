@@ -15,19 +15,17 @@ namespace Metalama.Backstage.Telemetry.Metrics
     [Serializable]
     public sealed class SetMetric : Metric
     {
-        private readonly HashSet<string> _set = [];
-
         public SetMetric( string name ) : base( name ) { }
 
         [PublicAPI]
-        public HashSet<string> Set => this._set;
+        public HashSet<string> Set { get; } = [];
 
         /// <inheritdoc />
         public override void WriteValue( TextWriter textWriter )
         {
             var first = true;
 
-            foreach ( var s in this._set )
+            foreach ( var s in this.Set )
             {
                 if ( first )
                 {
@@ -59,7 +57,7 @@ namespace Metalama.Backstage.Telemetry.Metrics
                 return false;
             }
 
-            this._set.Add( operand );
+            this.Set.Add( operand );
 
             return true;
         }

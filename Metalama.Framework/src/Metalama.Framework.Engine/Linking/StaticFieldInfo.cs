@@ -25,7 +25,11 @@ public class StaticFieldInfo
 
     public Func<SyntaxGenerationContext, ExpressionSyntax> InitializeExpressionFunc { get; }
 
-    public StaticFieldInfo( INamedTypeSymbol containingType, INamedTypeSymbol fieldType, string fieldName, Func<SyntaxGenerationContext, ExpressionSyntax> initializeExpressionFunc )
+    public StaticFieldInfo(
+        INamedTypeSymbol containingType,
+        INamedTypeSymbol fieldType,
+        string fieldName,
+        Func<SyntaxGenerationContext, ExpressionSyntax> initializeExpressionFunc )
     {
         this.ContainingType = containingType;
         this.FieldType = fieldType;

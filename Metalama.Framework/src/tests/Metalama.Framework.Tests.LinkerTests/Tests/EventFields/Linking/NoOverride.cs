@@ -11,7 +11,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.EventFields.Linking.NoOverr
     // <target>
     internal class Target
     {
-        [PseudoIntroduction("TestAspect")]
+        [PseudoIntroduction( "TestAspect" )]
         [PseudoNotInlineable]
         public event EventHandler? Bar;
     }

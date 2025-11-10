@@ -54,11 +54,12 @@ internal sealed class LinkerAspectReferenceSyntaxProvider : AspectReferenceSynta
                             ArgumentList(
                                 SeparatedList(
                                     overriddenConstructor.Parameters
-                                        .SelectAsArray( p =>
-                                                            Argument(
-                                                                NameColon( IdentifierName( p.Name ) ),
-                                                                p.RefKind.InvocationRefKindToken(),
-                                                                IdentifierName( p.Name ) ) ) ) ),
+                                        .SelectAsArray(
+                                            p =>
+                                                Argument(
+                                                    NameColon( IdentifierName( p.Name ) ),
+                                                    p.RefKind.InvocationRefKindToken(),
+                                                    IdentifierName( p.Name ) ) ) ) ),
                             null ) ) ) ) );
 
     public override ExpressionSyntax GetEventRaiseReference(
@@ -144,10 +145,11 @@ internal sealed class LinkerAspectReferenceSyntaxProvider : AspectReferenceSynta
                 CreateIndexerAccessExpression( targetIndexer, syntaxGenerator ),
                 BracketedArgumentList(
                     SeparatedList(
-                        targetIndexer.Parameters.SelectAsReadOnlyList( p => Argument(
-                                                                           null,
-                                                                           p.RefKind.InvocationRefKindToken(),
-                                                                           IdentifierName( p.Name ) ) ) ) ) )
+                        targetIndexer.Parameters.SelectAsReadOnlyList(
+                            p => Argument(
+                                null,
+                                p.RefKind.InvocationRefKindToken(),
+                                IdentifierName( p.Name ) ) ) ) ) )
             .WithAspectReferenceAnnotation(
                 aspectLayer,
                 AspectReferenceOrder.Previous,

@@ -6,7 +6,6 @@
 
 using System;
 using System.IO;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Engine.Templating;
 
@@ -17,7 +16,7 @@ namespace Metalama.Framework.Tests.AspectTests.Templating.Syntax.Using.RunTimeUs
         [TestTemplate]
         private dynamic? Template()
         {
-            using (new MemoryStream())
+            using ( new MemoryStream() )
             {
                 var x = meta.CompileTime( 0 );
                 var y = meta.Target.Parameters[0].Value + x;
@@ -25,7 +24,7 @@ namespace Metalama.Framework.Tests.AspectTests.Templating.Syntax.Using.RunTimeUs
                 return meta.Proceed();
             }
 
-            using (var s = new MemoryStream())
+            using ( var s = new MemoryStream() )
             {
                 Console.WriteLine( "" );
             }

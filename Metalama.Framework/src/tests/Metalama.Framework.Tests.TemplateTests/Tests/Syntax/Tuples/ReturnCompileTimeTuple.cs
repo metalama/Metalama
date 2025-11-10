@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Engine.Templating;
 
@@ -14,9 +13,9 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Templating.Syntax.Tuples.Re
         [TestTemplate]
         private (int, Type) Template()
         {
-            var t = ( meta.Target.Method.Parameters.Count, typeof(int) );
+            var t = (meta.Target.Method.Parameters.Count, typeof(int));
 
-            return ( t.Count + 1, t.Item2 );
+            return (t.Count + 1, t.Item2);
         }
     }
 
@@ -24,7 +23,7 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Templating.Syntax.Tuples.Re
     {
         private (int, Type) Method( int a )
         {
-            return meta.CompileTime( ( a, typeof(int) ) );
+            return meta.CompileTime( (a, typeof(int)) );
         }
     }
 }

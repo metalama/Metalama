@@ -22,7 +22,7 @@ public class DefaultParameterPullStrategy : IParameterPullStrategy
     public IRef<IType> ParameterType
     {
         get;
-        
+
         [UsedImplicitly]
         private set;
     }
@@ -30,7 +30,7 @@ public class DefaultParameterPullStrategy : IParameterPullStrategy
     public string DependencyName
     {
         get;
-        
+
         [UsedImplicitly]
         private set;
     }

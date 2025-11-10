@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Engine.Templating;
 
@@ -14,7 +13,7 @@ namespace Metalama.Framework.Tests.AspectTests.Templating.Syntax.Lock.RunTimeLoc
         [TestTemplate]
         private dynamic? Template()
         {
-            lock (meta.This)
+            lock ( meta.This )
             {
                 var x = meta.Target.Parameters.Count;
                 Console.WriteLine( x );

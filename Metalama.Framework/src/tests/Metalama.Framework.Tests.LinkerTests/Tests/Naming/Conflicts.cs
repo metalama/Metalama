@@ -17,7 +17,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Naming.Conflicts
     {
         public int Foo { get; set; }
 
-        [PseudoOverride(nameof(Foo), "TestAspect")]
+        [PseudoOverride( nameof(Foo), "TestAspect" )]
         public int Foo_Override
         {
             get
@@ -51,5 +51,5 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Naming.Conflicts
         public int _foo3;
 
         public int Foo_Source3;
-    }   
+    }
 }

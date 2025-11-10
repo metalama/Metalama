@@ -22,7 +22,7 @@ internal sealed class UserInfoService : IUserInfoService
     {
         this._logger = serviceProvider.GetLoggerFactory().GetLogger( nameof(UserInfoService) );
         this._exceptionReporter = serviceProvider.GetRequiredBackstageService<IExceptionReporter>();
-        this._configurationUserInfoSource = new( serviceProvider );
+        this._configurationUserInfoSource = new ConfigurationUserInfoSource( serviceProvider );
 
         this._orderedUserInfoSources =
             new UserInfoSource[]
@@ -30,27 +30,28 @@ internal sealed class UserInfoService : IUserInfoService
                 this._configurationUserInfoSource, new VisualStudioUserInfoSource(), new ActiveDirectoryUserInfoSource(), new WindowsProfileUserInfoSource()
             };
     }
-    
+
     public bool TryGetUserInfo( [NotNullWhen( true )] out UserInfo? userInfo )
     {
         foreach ( var source in this._orderedUserInfoSources )
         {
             this._logger.Trace?.Log( $"Retrieving user information from {source.GetType().Name}." );
-            
+
             try
             {
                 if ( source.TryGetUserInfo( out userInfo ) )
                 {
                     this._logger.Trace?.Log( $"User information retrieved from {source.GetType().Name}." );
-                    
+
                     return true;
                 }
             }
             catch ( Exception e )
             {
-                try 
+                try
                 {
-                    this._exceptionReporter.ReportException( new InvalidOperationException( $"{source.GetType().Name} failed to retrieve user information.", e ) );
+                    this._exceptionReporter.ReportException(
+                        new InvalidOperationException( $"{source.GetType().Name} failed to retrieve user information.", e ) );
                 }
                 catch
                 {
@@ -62,7 +63,7 @@ internal sealed class UserInfoService : IUserInfoService
         this._logger.Trace?.Log( "Failed to retrieve user information." );
 
         userInfo = null;
-        
+
         return false;
     }
 

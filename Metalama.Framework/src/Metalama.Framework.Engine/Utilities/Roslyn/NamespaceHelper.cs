@@ -45,7 +45,7 @@ internal static class NamespaceHelper
                 _ => (s.ContainingSymbol, '.')
             };
 
-            if ( parent != null )
+            if ( parent != null! )
             {
                 AppendNameRecursive( parent );
             }

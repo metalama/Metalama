@@ -12,19 +12,20 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.Methods.Overrides.TemplateB
     {
         private void Foo()
         {
-            Console.WriteLine( "Original");
+            Console.WriteLine( "Original" );
         }
 
-        [PseudoOverride( nameof(Foo),"TestAspect")]
+        [PseudoOverride( nameof(Foo), "TestAspect" )]
         private void Foo_Override()
         {
-            Console.WriteLine( "Before");
-            foreach (var i in new[] { 1, 2, 3, 4, 5 })
+            Console.WriteLine( "Before" );
+
+            foreach ( var i in new[] { 1, 2, 3, 4, 5 } )
             {
-                Link( This.Foo, Inline)();
+                Link( This.Foo, Inline )();
             }
 
-            Console.WriteLine( "After");
+            Console.WriteLine( "After" );
         }
     }
 }
