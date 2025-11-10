@@ -39,9 +39,6 @@ internal abstract class PropertyOrIndexerBuilder : MemberBuilder, IPropertyOrInd
         set
         {
             this.CheckNotFrozen();
-
-            Invariant.Assert( value is not { TypeKind: TypeKind.Dynamic } );
-
             this._type = this.Translate( value );
         }
     }
