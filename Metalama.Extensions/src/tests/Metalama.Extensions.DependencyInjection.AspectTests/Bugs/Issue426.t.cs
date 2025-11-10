@@ -13,14 +13,16 @@ public class ClientWeb
 }
 public class ScriptedClient : ClientWeb
 {
-  protected ILogger<ScriptedClient> _logger;
+  protected ILogger<ScriptedClient> Logger;
   public ScriptedClient(object appSettings, ILogger<ScriptedClient> logger) : base(appSettings, logger: logger)
   {
-    _logger = logger;
+    this._logger = logger ?? throw new System.ArgumentNullException(nameof(logger));
+    this.Logger = logger;
   }
   [ExtractedResultLoggingAspect]
   public void Bar()
   {
     throw new NotImplementedException();
   }
+  private ILogger _logger;
 }

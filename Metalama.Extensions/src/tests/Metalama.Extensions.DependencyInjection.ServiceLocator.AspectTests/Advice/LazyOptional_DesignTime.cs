@@ -15,12 +15,14 @@ using Metalama.Framework.Aspects;
 
 namespace Metalama.Extensions.DependencyInjection.DotNet.Tests.Advice.LazyOptional_DesignTime;
 
-public class MyAspect : TypeAspect
+// ReSharper disable once MemberCanBeInternal
+public sealed class MyAspect : TypeAspect
 {
     [IntroduceDependency( IsLazy = true, IsRequired = false )]
     private readonly IFormatProvider _formatProvider;
 }
 
+// ReSharper disable once MemberCanBeInternal
 // <target>
 [MyAspect]
 public partial class TargetClass

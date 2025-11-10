@@ -9,7 +9,7 @@ using Xunit;
 
 namespace Metalama.Extensions.Metrics.UnitTests
 {
-    public class StatementNumberTests : UnitTestClass
+    public sealed class StatementNumberTests : UnitTestClass
     {
         [Fact]
         public void SimpleTest()
@@ -17,7 +17,7 @@ namespace Metalama.Extensions.Metrics.UnitTests
             var services = CreateAdditionalServiceCollection( new StatementsCountMetricProvider() );
             using var testContext = this.CreateTestContext( services );
 
-            var code = @"
+            const string code = @"
 class C 
 {
   void M1 () {}

@@ -48,7 +48,7 @@ internal class MulticastAttributeGroup
     /// Gets a value indicating whether the group contains a single attribute that has the <see cref="IMulticastAttribute.AttributeExclude"/> property
     /// set to <c>true</c>.
     /// </summary>
-    public bool IsExcludeOnly => this._attributes.Count == 1 && this._attributes[0].Attribute.AttributeExclude;
+    public bool IsExcludeOnly => this._attributes is [{ Attribute.AttributeExclude: true }];
 
     /// <summary>
     /// Gets a value indicating whether a given declaration matches an attribute in the current group and has not been eventually excluded by <see cref="IMulticastAttribute.AttributeExclude"/>.

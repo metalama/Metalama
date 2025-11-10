@@ -46,6 +46,7 @@ public abstract class ModelBase
 
 public abstract class UpdateModelBase : ModelBase
 {
+    // ReSharper disable once NotAccessedField.Local
     private readonly IMutable _last;
 
     protected UpdateModelBase() : this( new Copied() ) { }

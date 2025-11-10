@@ -7,7 +7,7 @@ using Metalama.Backstage.Diagnostics;
 namespace Metalama.Extensions.DependencyInjection.AspectTests.Aspect.Lazy_RecordStruct;
 
 // <target>
-public record struct TargetRecordStruct()
+public record struct TargetRecordStruct( int X )
 {
     [Dependency( IsLazy = true )]
     private readonly ILogger _logger;

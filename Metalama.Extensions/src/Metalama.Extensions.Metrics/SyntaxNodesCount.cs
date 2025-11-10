@@ -23,6 +23,6 @@ namespace Metalama.Extensions.Metrics
             this.Value += other.Value;
         }
 
-        public override string ToString() => this.Value.ToString( CultureInfo.InvariantCulture );
+        public override readonly string ToString() => this.Value.ToString( CultureInfo.InvariantCulture );
     }
 }

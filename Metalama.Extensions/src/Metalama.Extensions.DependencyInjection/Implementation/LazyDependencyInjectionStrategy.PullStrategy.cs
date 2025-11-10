@@ -7,9 +7,10 @@ using System;
 
 namespace Metalama.Extensions.DependencyInjection.Implementation;
 
+// ReSharper disable once MemberCanBeInternal
 public partial class LazyDependencyInjectionStrategy
 {
-    private class InjectionStrategy : DefaultDependencyPullStrategy
+    private sealed class InjectionStrategy : DefaultDependencyPullStrategy
     {
         private readonly IField _funcField;
         private readonly INamedType _funcType;

@@ -7,8 +7,10 @@ using Metalama.Backstage.Diagnostics;
 namespace Metalama.Extensions.DependencyInjection.AspectTests.Aspect.Lazy_PrimaryConstructor;
 
 // <target>
-public class TargetClass()
+public class TargetClass( int x )
 {
+    public int X { get; } = x;
+
     [Dependency( IsLazy = true )]
     private readonly ILogger _logger;
 }

@@ -3,13 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Aspects;
-using Microsoft.CodeAnalysis.Scripting;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 // https://github.com/metalama/Metalama/issues/426
 
@@ -27,11 +21,11 @@ public class ClientWeb
 // <target>
 public class ScriptedClient : ClientWeb
 {
-    protected ILogger<ScriptedClient> _logger;
+    protected ILogger<ScriptedClient> Logger;
 
     public ScriptedClient( object appSettings, ILogger<ScriptedClient> logger ) : base( appSettings )
     {
-        this._logger = logger;
+        this.Logger = logger;
     }
 
     [ExtractedResultLoggingAspect]
@@ -43,7 +37,7 @@ public class ExtractedResultLoggingAspect : OverrideMethodAspect
     [IntroduceDependency]
     private readonly ILogger _logger;
 
-    public override dynamic? OverrideMethod()
+    public override dynamic OverrideMethod()
     {
         throw new NotImplementedException();
     }

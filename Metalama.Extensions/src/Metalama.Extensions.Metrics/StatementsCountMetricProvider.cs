@@ -11,7 +11,7 @@ namespace Metalama.Extensions.Metrics
     /// A prototype implementation of <see cref="StatementsCount"/>.
     /// </summary>
     [MetalamaPlugIn]
-    public partial class StatementsCountMetricProvider : SyntaxMetricProvider<StatementsCount>
+    public sealed partial class StatementsCountMetricProvider : SyntaxMetricProvider<StatementsCount>
     {
         public StatementsCountMetricProvider() : base( new Visitor() ) { }
 

@@ -21,6 +21,7 @@ public abstract class ModelBase<T>
 }
 public abstract class UpdateModelBase<T> : ModelBase<T> where T : class
 {
+  // ReSharper disable once NotAccessedField.Local
   private readonly IMutable<T> _last;
   protected UpdateModelBase() : this(new Copied<T>())
   {

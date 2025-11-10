@@ -13,7 +13,7 @@ namespace Metalama.Extensions.Metrics
         /// A visitor that counts the syntax nodes.
         /// </summary>
         [CompileTime]
-        private class Visitor : BaseVisitor
+        private sealed class Visitor : BaseVisitor
         {
             public override SyntaxNodesCount DefaultVisit( SyntaxNode node )
             {
