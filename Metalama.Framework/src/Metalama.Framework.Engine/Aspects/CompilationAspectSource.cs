@@ -45,14 +45,22 @@ internal sealed class CompilationAspectSource : IAspectSource
     {
         if ( this._exclusions == null )
         {
-            var excludeAspectType = (INamedType) compilation.Factory.GetTypeByReflectionType( typeof(ExcludeAspectAttribute) );
+            var excludeAspectType = compilation.Factory.GetNamedTypeByReflectionType( typeof(ExcludeAspectAttribute) );
+
+            var attributes = compilation.GetAllAttributesOfType( excludeAspectType )
+                .SelectMany(
+                    a => a.ConstructorArguments[0]
+                        .Values.Select( arg => (TargetDeclaration: a.ContainingDeclaration, AspectType: (IType) arg.Value!) ) )
+                .SelectMany(
+                    x => x.TargetDeclaration switch
+                    {
+                        IHasAccessors hasAccessors => hasAccessors.Accessors.Select( a => x with { TargetDeclaration = a } ).Concat( x ),
+                        _ => [x]
+                    } );
 
             this._exclusions =
-                compilation.GetAllAttributesOfType( excludeAspectType )
-                    .SelectMany(
-                        a => a.ConstructorArguments[0]
-                            .Values.Select( arg => (TargetDeclaration: a.ContainingDeclaration.ToRef(), AspectType: (IType) arg.Value!) ) )
-                    .ToMultiValueDictionary( x => x.AspectType, x => x.TargetDeclaration );
+                attributes
+                    .ToMultiValueDictionary( x => x.AspectType, x => x.TargetDeclaration.ToRef() );
         }
 
         return this._exclusions;

@@ -86,7 +86,7 @@ namespace Metalama.Framework.Code
             var compilation = (ICompilationInternal) left.Compilation;
 
             return compilation.Helpers
-                .DerivesFrom( left, (INamedType) compilation.Factory.GetTypeByReflectionType( right ), options );
+                .DerivesFrom( left, compilation.Factory.GetNamedTypeByReflectionType( right ), options );
         }
 
         /// <summary>

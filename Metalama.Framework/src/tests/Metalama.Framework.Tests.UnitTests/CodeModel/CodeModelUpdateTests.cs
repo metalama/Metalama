@@ -390,7 +390,7 @@ class C
         var attributeBuilder = new AttributeBuilder(
             null!,
             type,
-            AttributeConstruction.Create( (INamedType) compilation.Factory.GetTypeByReflectionType( typeof(SerializableAttribute) ) ) );
+            AttributeConstruction.Create( compilation.Factory.GetNamedTypeByReflectionType( typeof(SerializableAttribute) ) ) );
 
         attributeBuilder.Freeze();
 
@@ -416,7 +416,7 @@ class C
         var attributeBuilder = new AttributeBuilder(
             aspectLayerInstance,
             compilation,
-            AttributeConstruction.Create( (INamedType) compilation.Factory.GetTypeByReflectionType( typeof(SerializableAttribute) ) ) );
+            AttributeConstruction.Create( compilation.Factory.GetNamedTypeByReflectionType( typeof(SerializableAttribute) ) ) );
 
         attributeBuilder.Freeze();
 

@@ -46,7 +46,7 @@ internal sealed class CompilationHierarchicalOptionsSource : IHierarchicalOption
         var attributeDeserializer = this._attributeDeserializerProvider.Get( compilation.CompilationContext );
 
         foreach ( var attributeType in compilation.GetDerivedTypes(
-                     (INamedType) compilation.Factory.GetTypeByReflectionType( typeof(IHierarchicalOptionsProvider) ),
+                     compilation.Factory.GetNamedTypeByReflectionType( typeof(IHierarchicalOptionsProvider) ),
                      DerivedTypesOptions.IncludingExternalTypesDangerous ) )
         {
             if ( attributeType.IsConvertibleTo( aspectType ) )

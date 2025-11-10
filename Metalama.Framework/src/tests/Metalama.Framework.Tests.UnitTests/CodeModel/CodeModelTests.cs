@@ -818,7 +818,7 @@ class C<TC>
         Assert.Equal( "(string, int)", closedMethod.ReturnType.ToString() );
 
         // Generic type from a typeof.
-        _ = ((INamedType) compilation.Factory.GetTypeByReflectionType( typeof(AsyncLocal<>) )).MakeGenericInstance( typeof(int) );
+        _ = compilation.Factory.GetNamedTypeByReflectionType( typeof(AsyncLocal<>) ).MakeGenericInstance( typeof(int) );
 
 #pragma warning disable CS0618 // Type or member is obsolete
         var closedMethod2 = openMethod.WithTypeArguments( new[] { typeof(int) }, new[] { typeof(string) } );
@@ -1075,7 +1075,7 @@ class D
 
         var compilation = testContext.CreateCompilationModel( code );
 
-        var systemText = ((INamedType) compilation.Factory.GetTypeByReflectionType( typeof(StringBuilder) )).ContainingNamespace;
+        var systemText = compilation.Factory.GetNamedTypeByReflectionType( typeof(StringBuilder) ).ContainingNamespace;
         Assert.Equal( "System.Text", systemText.FullName );
         Assert.Equal( "Text", systemText.Name );
         Assert.NotEmpty( systemText.Types );
@@ -1161,7 +1161,7 @@ namespace System { class MySystemClass {} }
         Assert.Same( ns2, compilation.GlobalNamespace.GetDescendant( "Ns1.Ns2" ) );
         Assert.Same( compilation.GlobalNamespace, compilation.GlobalNamespace.GetDescendant( "" ) );
 
-        var externalType = (INamedType) compilation.Factory.GetTypeByReflectionType( typeof(EventHandler) );
+        var externalType = compilation.Factory.GetNamedTypeByReflectionType( typeof(EventHandler) );
         Assert.True( externalType.DeclaringAssembly.IsExternal );
 
         var systemNs = compilation.GlobalNamespace.GetDescendant( "System" ).AssertNotNull();
@@ -1270,7 +1270,7 @@ public class PublicClass
         using var testContext = this.CreateTestContext();
 
         var compilation = testContext.CreateCompilationModel( "" );
-        var intType = (INamedType) compilation.Factory.GetTypeByReflectionType( typeof(int) );
+        var intType = compilation.Factory.GetNamedTypeByReflectionType( typeof(int) );
         Assert.False( intType.IsNullable );
         Assert.Same( intType, intType.ToNonNullable() );
         Assert.Same( intType, intType.UnderlyingType );
@@ -1286,7 +1286,7 @@ public class PublicClass
         using var testContext = this.CreateTestContext();
 
         var compilation = testContext.CreateCompilationModel( "" );
-        var objectType = (INamedType) compilation.Factory.GetTypeByReflectionType( typeof(object) );
+        var objectType = compilation.Factory.GetNamedTypeByReflectionType( typeof(object) );
         Assert.Null( objectType.IsNullable );
         Assert.Same( objectType, objectType.UnderlyingType );
         var nonNullableObjectType = (INamedType) objectType.ToNonNullable();
@@ -1405,13 +1405,13 @@ class C {}
         var compilation = testContext.CreateCompilationModel(
             "",
             ignoreErrors: true,
-            additionalReferences: new[]
-            {
+            additionalReferences:
+            [
                 MetadataReference.CreateFromFile( typeof(Aspect).Assembly.Location ), MetadataReference.CreateFromFile( this.GetType().Assembly.Location )
-            } );
+            ] );
 
-        var assemblyWithInternals = ((INamedType) compilation.Factory.GetTypeByReflectionType( typeof(Aspect) )).DeclaringAssembly;
-        var consumingAssembly = ((INamedType) compilation.Factory.GetTypeByReflectionType( this.GetType() )).DeclaringAssembly;
+        var assemblyWithInternals = compilation.Factory.GetNamedTypeByReflectionType( typeof(Aspect) ).DeclaringAssembly;
+        var consumingAssembly = compilation.Factory.GetNamedTypeByReflectionType( this.GetType() ).DeclaringAssembly;
 
         Assert.True( assemblyWithInternals.AreInternalsVisibleFrom( consumingAssembly ) );
         Assert.False( consumingAssembly.AreInternalsVisibleFrom( assemblyWithInternals ) );
@@ -1564,7 +1564,7 @@ class C {}
     {
         using var testContext = this.CreateTestContext();
         var compilation = testContext.CreateCompilationModel( "" );
-        var enumType = (INamedType) compilation.Factory.GetTypeByReflectionType( typeof(ConsoleColor) );
+        var enumType = compilation.Factory.GetNamedTypeByReflectionType( typeof(ConsoleColor) );
 
         var blue = enumType.Fields[nameof(ConsoleColor.Blue)];
         Assert.Equal( (int) ConsoleColor.Blue, blue.ConstantValue!.Value.Value );

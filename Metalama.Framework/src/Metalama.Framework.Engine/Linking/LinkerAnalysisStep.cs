@@ -342,7 +342,7 @@ namespace Metalama.Framework.Engine.Linking
                                 if ( !eventBrokersWritable.TryGetValue( targetEventSymbol, out var eventBrokerInfo ) )
                                 {
                                     var eventBrokerType =
-                                        ((INamedType) finalCompilationModel.Factory.GetTypeByReflectionType( typeof(EventBroker<,,>) ))
+                                        finalCompilationModel.Factory.GetNamedTypeByReflectionType( typeof(EventBroker<,,>) )
                                         .WithTypeArguments( delegateType, argsType, stateType );
 
                                     var eventBrokerTypeSymbol =
@@ -357,7 +357,7 @@ namespace Metalama.Framework.Engine.Linking
                                     (Dictionary<ITransformation, EventBrokerTransformationInfo>) eventBrokerInfo.Transformations;
 
                                 var brokerCallbacksType =
-                                    ((INamedType) finalCompilationModel.Factory.GetTypeByReflectionType( typeof(DelegateEventAdapter<,,>) ))
+                                    finalCompilationModel.Factory.GetNamedTypeByReflectionType( typeof(DelegateEventAdapter<,,>) )
                                     .WithTypeArguments( delegateType, argsType, stateType );
 
                                 var brokerCallbacksTypeSymbol =

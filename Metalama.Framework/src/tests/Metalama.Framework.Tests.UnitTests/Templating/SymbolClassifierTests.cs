@@ -254,8 +254,8 @@ class C
 
             const string code = "class C {}";
             var compilation = testContext.CreateCompilationModel( code, addMetalamaReferences: false );
-            this.AssertScope( (INamedType) compilation.Factory.GetTypeByReflectionType( typeof(int) ), TemplatingScope.RunTimeOrCompileTime );
-            this.AssertScope( (INamedType) compilation.Factory.GetTypeByReflectionType( typeof(Console) ), TemplatingScope.RunTimeOnly );
+            this.AssertScope( compilation.Factory.GetNamedTypeByReflectionType( typeof(int) ), TemplatingScope.RunTimeOrCompileTime );
+            this.AssertScope( compilation.Factory.GetNamedTypeByReflectionType( typeof(Console) ), TemplatingScope.RunTimeOnly );
             this.AssertScope( compilation.Types.Single(), TemplatingScope.RunTimeOnly );
         }
 
