@@ -45,7 +45,7 @@ public class DotNetLoggerProvider : ILoggerProvider, IDotNetLogger
     public void Log<TState>( LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter )
         => this.GetLogWriter( logLevel )?.Log( formatter( state, exception ) );
 
-    private class DotNetLoggerScope : IDisposable
+    private sealed class DotNetLoggerScope : IDisposable
     {
         public void Dispose() { }
     }

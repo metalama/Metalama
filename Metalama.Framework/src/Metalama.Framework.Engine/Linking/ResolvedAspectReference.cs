@@ -41,24 +41,22 @@ internal sealed class ResolvedAspectReference
     /// Gets the symbol semantic for the target body (always a method).
     /// </summary>
     public IntermediateSymbolSemantic<IMethodSymbol> ResolvedSemanticBody
-        => this._explicitResolvedSemanticBody != null
-            ? this._explicitResolvedSemanticBody.Value
-            : (this.ResolvedSemantic, this.TargetKind) switch
-            {
-                ({ Symbol: IMethodSymbol method }, AspectReferenceTargetKind.Self) =>
-                    method.ToSemantic( this.ResolvedSemantic.Kind ),
-                ({ Symbol: IPropertySymbol property }, AspectReferenceTargetKind.PropertyGetAccessor) =>
-                    property.GetMethod.AssertNotNull().ToSemantic( this.ResolvedSemantic.Kind ),
-                ({ Symbol: IPropertySymbol { SetMethod: null } property }, AspectReferenceTargetKind.PropertySetAccessor) =>
-                    property.GetMethod.AssertNotNull().ToSemantic( this.ResolvedSemantic.Kind ),
-                ({ Symbol: IPropertySymbol property }, AspectReferenceTargetKind.PropertySetAccessor) =>
-                    property.SetMethod.AssertNotNull().ToSemantic( this.ResolvedSemantic.Kind ),
-                ({ Symbol: IEventSymbol @event }, AspectReferenceTargetKind.EventAddAccessor) =>
-                    @event.AddMethod.AssertNotNull().ToSemantic( this.ResolvedSemantic.Kind ),
-                ({ Symbol: IEventSymbol @event }, AspectReferenceTargetKind.EventRemoveAccessor) =>
-                    @event.RemoveMethod.AssertNotNull().ToSemantic( this.ResolvedSemantic.Kind ),
-                _ => throw new AssertionFailedException( $"{this} does not point to a semantic with a body." )
-            };
+        => this._explicitResolvedSemanticBody ?? (this.ResolvedSemantic, this.TargetKind) switch
+        {
+            ({ Symbol: IMethodSymbol method }, AspectReferenceTargetKind.Self) =>
+                method.ToSemantic( this.ResolvedSemantic.Kind ),
+            ({ Symbol: IPropertySymbol property }, AspectReferenceTargetKind.PropertyGetAccessor) =>
+                property.GetMethod.AssertNotNull().ToSemantic( this.ResolvedSemantic.Kind ),
+            ({ Symbol: IPropertySymbol { SetMethod: null } property }, AspectReferenceTargetKind.PropertySetAccessor) =>
+                property.GetMethod.AssertNotNull().ToSemantic( this.ResolvedSemantic.Kind ),
+            ({ Symbol: IPropertySymbol property }, AspectReferenceTargetKind.PropertySetAccessor) =>
+                property.SetMethod.AssertNotNull().ToSemantic( this.ResolvedSemantic.Kind ),
+            ({ Symbol: IEventSymbol @event }, AspectReferenceTargetKind.EventAddAccessor) =>
+                @event.AddMethod.AssertNotNull().ToSemantic( this.ResolvedSemantic.Kind ),
+            ({ Symbol: IEventSymbol @event }, AspectReferenceTargetKind.EventRemoveAccessor) =>
+                @event.RemoveMethod.AssertNotNull().ToSemantic( this.ResolvedSemantic.Kind ),
+            _ => throw new AssertionFailedException( $"{this} does not point to a semantic with a body." )
+        };
 
     public bool HasResolvedSemanticBody
         => this._explicitResolvedSemanticBody != null ||

@@ -401,6 +401,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         }
     }
 
+    // ReSharper disable once ParameterOnlyUsedForPreconditionCheck.Local
     private Advice.AdviceConstructorParameters<TDeclaration> GetAdviceConstructorParameters<TDeclaration>( TDeclaration target, bool requireTemplate = true )
         where TDeclaration : class, IDeclaration
     {
@@ -571,8 +572,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
                 scope,
                 whenExists,
                 buildMethod,
-                this._explicitlyImplementedInterfaceType,
-                this );
+                this._explicitlyImplementedInterfaceType );
 
             return advice.Execute( this._state );
         }
@@ -595,8 +595,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
             var advice = new IntroduceFinalizerAdvice(
                 this.GetAdviceConstructorParameters( targetType ),
                 template.PartialForIntroduction( this.GetArgsReader( args ) ),
-                whenExists,
-                this );
+                whenExists );
 
             return advice.Execute( this._state );
         }
@@ -642,8 +641,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
                 template.PartialForIntroduction( this.GetArgsReader( args ) ),
                 whenExists,
                 buildAction,
-                this._explicitlyImplementedInterfaceType,
-                this );
+                this._explicitlyImplementedInterfaceType );
 
             return advice.Execute( this._state );
         }
@@ -690,8 +688,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
                 template.PartialForIntroduction( this.GetArgsReader( args ) ),
                 whenExists,
                 buildAction,
-                this._explicitlyImplementedInterfaceType,
-                this );
+                this._explicitlyImplementedInterfaceType );
 
             return advice.Execute( this._state );
         }
@@ -733,8 +730,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
                 template.PartialForIntroduction( this.GetArgsReader( args ) ),
                 whenExists,
                 buildAction,
-                this._explicitlyImplementedInterfaceType,
-                this );
+                this._explicitlyImplementedInterfaceType );
 
             return advice.Execute( this._state );
         }
@@ -785,8 +781,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
                     this.GetAdviceConstructorParameters( targetType ),
                     template.PartialForIntroduction( this.GetArgsReader( args ) ),
                     whenExists,
-                    buildAction,
-                    this )
+                    buildAction )
                 .Execute( this._state );
         }
     }
@@ -925,8 +920,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
                 template,
                 scope,
                 whenExists,
-                buildField,
-                this );
+                buildField );
 
             return advice.Execute( this._state );
         }
@@ -957,8 +951,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
                 {
                     builder.Type = fieldType;
                     buildField?.Invoke( builder );
-                },
-                this );
+                } );
 
             return advice.Execute( this._state );
         }
@@ -1006,8 +999,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
                 scope,
                 whenExists,
                 buildProperty,
-                this._explicitlyImplementedInterfaceType,
-                this );
+                this._explicitlyImplementedInterfaceType );
 
             return advice.Execute( this._state );
         }
@@ -1057,8 +1049,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
                 scope,
                 whenExists,
                 buildProperty,
-                this._explicitlyImplementedInterfaceType,
-                this );
+                this._explicitlyImplementedInterfaceType );
 
             return advice.Execute( this._state );
         }
@@ -1102,8 +1093,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
                 scope,
                 whenExists,
                 buildProperty,
-                this._explicitlyImplementedInterfaceType,
-                this );
+                this._explicitlyImplementedInterfaceType );
 
             return advice.Execute( this._state );
         }
@@ -1213,8 +1203,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
                 scope,
                 whenExists,
                 buildIndexer,
-                this._explicitlyImplementedInterfaceType,
-                this );
+                this._explicitlyImplementedInterfaceType );
 
             return advice.Execute( this._state );
         }
@@ -1297,8 +1286,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
                 scope,
                 whenExists,
                 buildEvent,
-                this._explicitlyImplementedInterfaceType,
-                this );
+                this._explicitlyImplementedInterfaceType );
 
             return advice.Execute( this._state );
         }
@@ -1350,8 +1338,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
                 scope,
                 whenExists,
                 buildEvent,
-                this._explicitlyImplementedInterfaceType,
-                this );
+                this._explicitlyImplementedInterfaceType );
 
             return advice.Execute( this._state );
         }
@@ -1803,7 +1790,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         using ( this.WithNonUserCode() )
         {
             return
-                new IntroduceNamespaceAdvice( this.GetAdviceConstructorParameters( targetNamespace ), name, this )
+                new IntroduceNamespaceAdvice( this.GetAdviceConstructorParameters( targetNamespace ), name )
                     .Execute( this._state );
         }
     }

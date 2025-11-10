@@ -37,7 +37,7 @@ namespace Metalama.Testing.UnitTesting;
 /// A context in which a Metalama unit test can run, configured with most required Metalama services and optionally some mocks.
 /// </summary>
 [PublicAPI]
-public partial class TestContext : IDisposable, ITempFileManager, IApplicationInfoProvider, IDateTimeProvider
+public partial class TestContext : ITempFileManager, IApplicationInfoProvider, IDateTimeProvider
 {
     private static readonly IApplicationInfo _applicationInfo = new TestApiApplicationInfo();
     private readonly ITempFileManager _backstageTempFileManager;

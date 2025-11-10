@@ -574,16 +574,7 @@ internal partial class DeclarationEqualityComparer
 
             var hasFullyLifted = HasUnique( conversions, conv => TypesAreEqual( conv ) && conv.LiftingCount == 2 );
 
-            switch ( hasFullyLifted )
-            {
-                case true:
-                    return true;
-
-                case null:
-                    return false;
-            }
-
-            return false;
+            return hasFullyLifted == true;
         }
 
         private static TResult? UniqueBest<TItem, TResult>(

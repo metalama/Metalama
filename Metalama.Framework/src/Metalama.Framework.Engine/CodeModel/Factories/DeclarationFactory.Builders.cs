@@ -69,7 +69,7 @@ public partial class DeclarationFactory
         => this.GetDeclarationFromBuilder<IAttribute, AttributeBuilderData>(
             attributeBuilder,
             genericContext,
-            static ( in CreateFromBuilderArgs<AttributeBuilderData> args ) => new IntroducedAttribute( args.Builder, args.Compilation, args.GenericContext ) );
+            static ( in args ) => new IntroducedAttribute( args.Builder, args.Compilation, args.GenericContext ) );
 
     private IParameter GetParameter(
         ParameterBuilderData parameterBuilder,
@@ -77,7 +77,7 @@ public partial class DeclarationFactory
         => this.GetDeclarationFromBuilder<IParameter, ParameterBuilderData>(
             parameterBuilder,
             genericContext,
-            static ( in CreateFromBuilderArgs<ParameterBuilderData> args ) => new IntroducedParameter(
+            static ( in args ) => new IntroducedParameter(
                 args.Builder,
                 args.Compilation,
                 args.GenericContext,
@@ -90,7 +90,7 @@ public partial class DeclarationFactory
         => this.GetDeclarationFromBuilder<ITypeParameter, TypeParameterBuilderData>(
             typeParameterBuilder,
             genericContext,
-            static ( in CreateFromBuilderArgs<TypeParameterBuilderData> args )
+            static ( in args )
                 => new IntroducedTypeParameter( args.Builder, args.Compilation, args.GenericContext, args.IsNullable ),
             isNullable: isNullable );
 
@@ -100,13 +100,13 @@ public partial class DeclarationFactory
         => this.GetDeclarationFromBuilder<IMethod, MethodBuilderData>(
             methodBuilder,
             genericContext,
-            static ( in CreateFromBuilderArgs<MethodBuilderData> args ) => new IntroducedMethod( args.Builder, args.Compilation, args.GenericContext ) );
+            static ( in args ) => new IntroducedMethod( args.Builder, args.Compilation, args.GenericContext ) );
 
     internal IMethod GetAccessor( MethodBuilderData methodBuilder, IGenericContext? genericContext = null )
         => this.GetDeclarationFromBuilder(
             methodBuilder,
             genericContext,
-            static ( in CreateFromBuilderArgs<MethodBuilderData> args ) =>
+            static ( in args ) =>
                 ((IHasAccessors) args.Builder.ContainingDeclaration.GetTarget( args.Compilation, args.GenericContext ))
                 .GetAccessor( args.Builder.MethodKind )
                 .AssertNotNull() );
@@ -117,7 +117,7 @@ public partial class DeclarationFactory
         => this.GetDeclarationFromBuilder<IConstructor, ConstructorBuilderData>(
             constructorBuilder,
             genericContext,
-            static ( in CreateFromBuilderArgs<ConstructorBuilderData> args )
+            static ( in args )
                 => new IntroducedConstructor( args.Builder, args.Compilation, args.GenericContext ),
             true );
 
@@ -128,7 +128,7 @@ public partial class DeclarationFactory
         => this.GetDeclarationFromBuilder<IField, FieldBuilderData>(
             fieldBuilder,
             genericContext,
-            static ( in CreateFromBuilderArgs<FieldBuilderData> args ) => new IntroducedField( args.Builder, args.Compilation, args.GenericContext ) );
+            static ( in args ) => new IntroducedField( args.Builder, args.Compilation, args.GenericContext ) );
 
     internal IProperty GetProperty(
         PropertyBuilderData propertyBuilder,
@@ -136,7 +136,7 @@ public partial class DeclarationFactory
         => this.GetDeclarationFromBuilder<IProperty, PropertyBuilderData>(
             propertyBuilder,
             genericContext,
-            static ( in CreateFromBuilderArgs<PropertyBuilderData> args ) => new IntroducedProperty( args.Builder, args.Compilation, args.GenericContext ) );
+            static ( in args ) => new IntroducedProperty( args.Builder, args.Compilation, args.GenericContext ) );
 
     internal IIndexer GetIndexer(
         IndexerBuilderData indexerBuilder,
@@ -144,7 +144,7 @@ public partial class DeclarationFactory
         => this.GetDeclarationFromBuilder<IIndexer, IndexerBuilderData>(
             indexerBuilder,
             genericContext,
-            static ( in CreateFromBuilderArgs<IndexerBuilderData> args ) => new IntroducedIndexer( args.Builder, args.Compilation, args.GenericContext ) );
+            static ( in args ) => new IntroducedIndexer( args.Builder, args.Compilation, args.GenericContext ) );
 
     internal IEvent GetEvent(
         EventBuilderData eventBuilder,
@@ -152,7 +152,7 @@ public partial class DeclarationFactory
         => this.GetDeclarationFromBuilder<IEvent, EventBuilderData>(
             eventBuilder,
             genericContext,
-            static ( in CreateFromBuilderArgs<EventBuilderData> args ) => new IntroducedEvent( args.Builder, args.Compilation, args.GenericContext ) );
+            static ( in args ) => new IntroducedEvent( args.Builder, args.Compilation, args.GenericContext ) );
 
     internal INamedType GetNamedType(
         NamedTypeBuilderData namedTypeBuilder,
@@ -161,7 +161,7 @@ public partial class DeclarationFactory
         => this.GetDeclarationFromBuilder<INamedType, NamedTypeBuilderData>(
             namedTypeBuilder,
             genericContext,
-            static ( in CreateFromBuilderArgs<NamedTypeBuilderData> args ) => new IntroducedNamedType(
+            static ( in args ) => new IntroducedNamedType(
                 args.Builder,
                 args.Compilation,
                 args.GenericContext,
@@ -174,7 +174,7 @@ public partial class DeclarationFactory
         => this.GetDeclarationFromBuilder<INamespace, NamespaceBuilderData>(
             namespaceBuilder,
             genericContext,
-            static ( in CreateFromBuilderArgs<NamespaceBuilderData> args ) => new IntroducedNamespace( args.Builder, args.Compilation ) );
+            static ( in args ) => new IntroducedNamespace( args.Builder, args.Compilation ) );
 
     internal IDeclaration GetDeclaration(
         DeclarationBuilderData builder,

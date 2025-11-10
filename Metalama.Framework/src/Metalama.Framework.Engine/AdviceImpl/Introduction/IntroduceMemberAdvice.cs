@@ -41,8 +41,7 @@ internal abstract class IntroduceMemberAdvice<TTemplate, TIntroduced, TBuilder> 
         IntroductionScope scope,
         OverrideStrategy overrideStrategy,
         Action<TBuilder>? buildAction,
-        INamedType? explicitlyImplementedInterfaceType,
-        IAdviceFactoryImpl adviceFactory )
+        INamedType? explicitlyImplementedInterfaceType )
         : base( parameters, buildAction )
     {
         var templateAttribute = (ITemplateAttribute?) template?.AdviceAttribute;

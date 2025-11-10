@@ -160,12 +160,6 @@ internal static class ReflectionSignatureBuilder
         {
             var requiresNamespace = this._isTypeArgument || symbol.SpecialType switch
             {
-                SpecialType.None => true,
-                SpecialType.System_Object => true,
-                SpecialType.System_Enum => true,
-                SpecialType.System_MulticastDelegate => true,
-                SpecialType.System_Delegate => true,
-                SpecialType.System_ValueType => true,
                 SpecialType.System_Void => false,
                 SpecialType.System_Boolean => false,
                 SpecialType.System_Char => false,
@@ -177,13 +171,7 @@ internal static class ReflectionSignatureBuilder
                 SpecialType.System_UInt32 => false,
                 SpecialType.System_Int64 => false,
                 SpecialType.System_UInt64 => false,
-                SpecialType.System_Decimal => true,
-                SpecialType.System_Single => true,
                 SpecialType.System_Double => false,
-                SpecialType.System_String => true,
-                SpecialType.System_IntPtr => true,
-                SpecialType.System_UIntPtr => true,
-                SpecialType.System_Array => true,
                 _ => true
             };
 

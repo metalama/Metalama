@@ -15,7 +15,6 @@ namespace Metalama.Framework.Engine.Advising;
 
 internal sealed class AdviceFactoryState : IAdviceExecutionContext
 {
-    private readonly int _pipelineStepIndex;
     private readonly int _orderWithinType;
     private readonly ProjectServiceProvider _serviceProvider;
     private int _nextTransformationOrder;
@@ -50,7 +49,7 @@ internal sealed class AdviceFactoryState : IAdviceExecutionContext
         int orderWithinType,
         IAspectClassResolver aspectClassResolver )
     {
-        this._pipelineStepIndex = pipelineStepIndex;
+        this.AspectOrder = pipelineStepIndex;
         this._orderWithinType = orderWithinType;
         this.AspectLayerInstance = aspectLayerInstance;
         this.MutableCompilation = currentCompilation;
@@ -91,10 +90,10 @@ internal sealed class AdviceFactoryState : IAdviceExecutionContext
     {
         transformation.OrderWithinPipelineStepAndTypeAndAspectInstance = this._nextTransformationOrder++;
         transformation.OrderWithinPipelineStepAndType = this._orderWithinType;
-        transformation.OrderWithinPipeline = this._pipelineStepIndex;
+        transformation.OrderWithinPipeline = this.AspectOrder;
     }
 
-    public int AspectOrder => this._pipelineStepIndex;
+    public int AspectOrder { get; }
 
     public IAspectClassResolver AspectClassResolver { get; }
 }

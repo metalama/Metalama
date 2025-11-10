@@ -86,7 +86,7 @@ internal abstract partial class AspectReferenceRenamingSubstitution : SyntaxNode
                 // We presume static operators - non-static operators need to change the argument list, not just the name.
                 Invariant.Assert( !isStaticOperator );
 
-                return this.SubstituteStaticReceiverOperatorInvocation( invocationExpression, substitutionContext );
+                return this.SubstituteStaticReceiverOperatorInvocation( invocationExpression );
 
             case ObjectCreationExpressionSyntax:
                 return this.SubstituteConstructorMemberAccess();
@@ -132,7 +132,7 @@ internal abstract partial class AspectReferenceRenamingSubstitution : SyntaxNode
         return memberAccess;
     }
 
-    private SyntaxNode SubstituteStaticReceiverOperatorInvocation( InvocationExpressionSyntax invocationExpression, SubstitutionContext substitutionContext )
+    private SyntaxNode SubstituteStaticReceiverOperatorInvocation( InvocationExpressionSyntax invocationExpression )
     {
         var memberAccess =
             InvocationExpression(

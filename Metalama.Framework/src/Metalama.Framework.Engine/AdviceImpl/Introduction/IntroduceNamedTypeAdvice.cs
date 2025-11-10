@@ -41,8 +41,7 @@ internal sealed class IntroduceNamedTypeAdvice : IntroduceDeclarationAdvice<INam
             this.AspectLayerInstance,
             (INamespaceOrNamedType) this.TargetDeclaration.AssertNotNull(),
             this._explicitName,
-            this._typeKind,
-            false );
+            this._typeKind );
     }
 
     protected override IntroductionAdviceResult<INamedType> ImplementCore( NamedTypeBuilder builder, AdviceImplementationContext context )

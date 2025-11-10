@@ -115,8 +115,7 @@ internal sealed class IntroduceConstructorParameterAdvice : Advice<IntroductionA
             AdviceKind.IntroduceParameter,
             AdviceOutcome.Default,
             this.AdviceFactory,
-            parameterBuilderData.ToRef(),
-            null );
+            parameterBuilderData.ToRef() );
     }
 
     protected override IntroductionAdviceResult<IParameter> CreateFailedResult( ImmutableArray<Diagnostic> diagnostics )

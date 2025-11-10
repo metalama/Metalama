@@ -220,7 +220,7 @@ internal class SyntaxBuilderImpl : ISyntaxBuilderImpl
         }
         else
         {
-            return new SyntaxUserExpression( SyntaxFactory.ThisExpression(), type, false, type is INamedType { IsReferenceType: false } );
+            return new SyntaxUserExpression( SyntaxFactory.ThisExpression(), type, false, type is { IsReferenceType: false } );
         }
     }
 

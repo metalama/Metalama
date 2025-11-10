@@ -96,7 +96,7 @@ internal sealed class LinkerAnalysisRegistry
 
     public EventBrokerInfo? GetEventBrokerTypeInfo( IEventSymbol @event )
     {
-        var canonicalEvent = (IEventSymbol) LinkerSymbolHelper.GetCanonicalDefinition( @event );
+        var canonicalEvent = (IEventSymbol) @event.GetCanonicalDefinition();
 
         if ( this._eventBrokers.TryGetValue( canonicalEvent, out var eventBroker ) )
         {

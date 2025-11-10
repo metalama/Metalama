@@ -37,7 +37,7 @@ internal sealed class AnsiConsoleLoggerFactory : ILoggerFactory, ILogger
 
     public IDisposable EnterScope( string scope ) => default(DisposableAction);
 
-    private class LogWriter : ILogWriter
+    private sealed class LogWriter : ILogWriter
     {
         private readonly Action<string> _action;
 

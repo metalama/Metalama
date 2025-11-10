@@ -222,7 +222,7 @@ public sealed partial class SourceTransformer : ISourceTransformerWithServices
                     new DiagnosticFilter(
                         suppressionDescriptor,
                         syntaxReference.SyntaxTree.FilePath,
-                        ( in DiagnosticFilteringRequest request ) =>
+                        ( in request ) =>
                             suppression.Matches(
                                 request.Diagnostic,
                                 request.Compilation,

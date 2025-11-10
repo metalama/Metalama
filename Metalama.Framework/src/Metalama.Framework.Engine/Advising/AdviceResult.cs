@@ -42,7 +42,7 @@ internal abstract class AdviceResult : IAdviceResult
     // This property is used only by the introspection API.
     public ImmutableArray<ITransformation> Transformations { get; internal set; } = ImmutableArray<ITransformation>.Empty;
 
-    public CompilationModel? Compilation => this.AdviceFactory.MutableCompilation;
+    public CompilationModel Compilation => this.AdviceFactory.MutableCompilation;
 
     protected T Resolve<T>( IRef<T>? reference, [CallerMemberName] string? caller = null )
         where T : class, ICompilationElement

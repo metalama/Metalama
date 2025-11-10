@@ -97,7 +97,7 @@ public interface IProjectOptions : IProjectService, IEquatable<IProjectOptions>
     string? AdditionalCompilationOutputDirectory { get; }
 
     /// <summary>
-    /// Invoked when project options have been applied globally or contextually through the <see cref="!:ServiceProviderFactory" />,
+    /// Invoked when project options have been applied globally or contextually,
     /// and are then overridden by options provided by the compiler.
     /// </summary>
     IProjectOptions Apply( IProjectOptions options );

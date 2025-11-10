@@ -43,7 +43,7 @@ internal class TransitiveAspectInstance : ITransitivePipelineContributor, IExten
 
     public SyntaxTree? SyntaxTree { get; }
 
-    public IDesignTimePipelineResultExtension? ToDesignTime() => this;
+    public IDesignTimePipelineResultExtension ToDesignTime() => this;
 
     public ContributorKind ContributorKind => ContributorKind.TransitiveAspectInstance;
 

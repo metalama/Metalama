@@ -175,7 +175,7 @@ namespace Metalama.Framework.Engine
             => AssertNotNullAsync( task, description );
 
         [Obsolete( "Use AssertNotNullAsync" )]
-        public static ValueTask<T> AssertNotNull<T>( [NotNull] this ValueTask<T?> task, [CallerArgumentExpression( nameof(task) )] string? description = null )
+        public static ValueTask<T> AssertNotNull<T>( this ValueTask<T?> task, [CallerArgumentExpression( nameof(task) )] string? description = null )
             where T : class
             => AssertNotNullAsync( task, description );
 
@@ -223,7 +223,7 @@ namespace Metalama.Framework.Engine
 #if DEBUG
         [DebuggerStepThrough]
         public static async ValueTask<T> AssertNotNullAsync<T>(
-            [NotNull] this ValueTask<T?> task,
+            this ValueTask<T?> task,
             [CallerArgumentExpression( nameof(task) )]
             string? description = null )
             where T : class

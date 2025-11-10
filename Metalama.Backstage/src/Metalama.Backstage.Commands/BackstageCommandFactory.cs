@@ -128,20 +128,19 @@ public static class BackstageCommandFactory
                     rss =>
                     {
                         rss.SetDescription( "Manages toast notifications for new Metalama updates." );
-                        
+
                         rss.AddCommand<DisplayLatestNewsCommand>( "notify" )
                             .WithData( options )
                             .WithDescription( "Displays a notification with the latest Metalama news." );
-                        
+
                         rss.AddCommand<DisableRssClientCommand>( "disable" )
                             .WithData( options )
                             .WithDescription( "Disables automatic notifications for new Metalama updates." );
-                        
+
                         rss.AddCommand<EnableRssClientCommand>( "enable" )
                             .WithData( options )
                             .WithDescription( "Enables automatic notifications for new Metalama updates." );
                     } );
-
 
                 appConfig.AddCommand<VersionCommand>( "version" ).WithData( options ).WithDescription( "Prints version information." );
 

@@ -15,40 +15,40 @@ namespace Metalama.Framework.Tests.LinkerTests.Tests.EventFields.Overrides.Inlin
         [PseudoNotInlineable]
         private event EventHandler? Foo;
 
-        [PseudoOverride( nameof(Foo),"TestAspect1")]
+        [PseudoOverride( nameof(Foo), "TestAspect1" )]
         private event EventHandler? Foo_Override1
         {
             add
             {
-                Console.WriteLine("Before1");
+                Console.WriteLine( "Before1" );
                 Link[This.Foo.add] += value;
-                Console.WriteLine("After1");
+                Console.WriteLine( "After1" );
             }
 
             remove
             {
-                Console.WriteLine("Before1");
+                Console.WriteLine( "Before1" );
                 Link[This.Foo.remove] -= value;
-                Console.WriteLine("After1");
+                Console.WriteLine( "After1" );
             }
         }
 
-        [PseudoOverride( nameof(Foo),"TestAspect2")]
+        [PseudoOverride( nameof(Foo), "TestAspect2" )]
         [PseudoNotInlineable]
         private event EventHandler? Foo_Override2
         {
             add
             {
-                Console.WriteLine("Before2");
+                Console.WriteLine( "Before2" );
                 Link[This.Foo.add, Inline] += value;
-                Console.WriteLine("After2");
+                Console.WriteLine( "After2" );
             }
 
             remove
             {
-                Console.WriteLine("Before2");
+                Console.WriteLine( "Before2" );
                 Link[This.Foo.remove, Inline] -= value;
-                Console.WriteLine("After2");
+                Console.WriteLine( "After2" );
             }
         }
     }

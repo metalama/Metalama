@@ -40,7 +40,7 @@ internal class NetCoreAssemblyLoader : AssemblyLoader
         _metalamaAlcType ??= GenerateAssemblyLoadContext( alcType );
         var metalamaAlc = Activator.CreateInstance( _metalamaAlcType, currentAlc, resolveAssembly, debugName );
 
-        var loadByPathMethod = alcType!.GetMethod( "LoadFromAssemblyPath" )
+        var loadByPathMethod = alcType.GetMethod( "LoadFromAssemblyPath" )
                                ?? throw new InvalidOperationException( "cannot find the LoadFromAssemblyPath method." );
 
         this._loadFromAssemblyPath = (Func<string, Assembly>) Delegate.CreateDelegate( typeof(Func<string, Assembly>), metalamaAlc, loadByPathMethod );
@@ -69,7 +69,7 @@ internal class NetCoreAssemblyLoader : AssemblyLoader
             var loadAssemblyFromAssemblyName =
                 (Func<AssemblyName, Assembly>) Delegate.CreateDelegate( typeof(Func<AssemblyName, Assembly>), metalamaAlc, loadByNameMethod );
 
-            this._globalResolveHandler = ( sender, e )
+            this._globalResolveHandler = ( _, e )
                 => globalResolveHandlerFilter( e.RequestingAssembly ) ? loadAssemblyFromAssemblyName( new AssemblyName( e.Name ) ) : null;
 
             AppDomain.CurrentDomain.AssemblyResolve += this._globalResolveHandler;
@@ -187,7 +187,7 @@ internal class NetCoreAssemblyLoader : AssemblyLoader
         ilg.Emit( OpCodes.Ldloc, assemblyLocal );
         ilg.Emit( OpCodes.Ret );
 
-        return type.CreateTypeInfo()!.AsType();
+        return type.CreateTypeInfo().AsType();
     }
 
     public override Assembly LoadFromPath( string assemblyPath ) => this._loadFromAssemblyPath( assemblyPath );
