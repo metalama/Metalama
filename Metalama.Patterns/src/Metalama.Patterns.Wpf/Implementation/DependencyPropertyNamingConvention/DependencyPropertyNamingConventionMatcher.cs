@@ -156,9 +156,6 @@ internal static class DependencyPropertyNamingConventionMatcher
 
         switch ( p.Count )
         {
-            case 0:
-                return null;
-
             case 1:
 
                 if ( p[0].Type.SpecialType == SpecialType.Object

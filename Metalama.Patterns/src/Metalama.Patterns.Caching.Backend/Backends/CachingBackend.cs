@@ -877,7 +877,7 @@ public abstract class CachingBackend : IDisposable, IAsyncDisposable
     public override string ToString()
         => string.Format( CultureInfo.InvariantCulture, "{{{0} Id={1}, Status={2}}}", this.GetType().Name, this.DebugName, this.Status );
 
-    public ValueTask DisposeAsync() => this.DisposeAsync( default );
+    public ValueTask DisposeAsync() => this.DisposeAsync( CancellationToken.None );
 
     /// <summary>
     /// Returns a <see cref="Task"/> that is signaled to the complete state when all background tasks
@@ -1033,7 +1033,7 @@ public abstract class CachingBackend : IDisposable, IAsyncDisposable
     /// In case the <see cref="CachingBackend"/> has pending background tasks (typically cache non-blocking cache update tasks for distributed backends),
     /// it will wait until all tasks are processed.
     /// </summary>
-    public void Dispose() => this.Dispose( true, default );
+    public void Dispose() => this.Dispose( true, CancellationToken.None );
 
     /// <summary>
     /// Synchronously disposes the current <see cref="CachingBackend"/>. This overloads accepts a <see cref="CancellationToken"/>.

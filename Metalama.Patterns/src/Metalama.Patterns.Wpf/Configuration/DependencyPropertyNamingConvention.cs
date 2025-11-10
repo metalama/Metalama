@@ -116,9 +116,8 @@ public sealed record DependencyPropertyNamingConvention : IDependencyPropertyNam
 #if NETCOREAPP
 #pragma warning disable CA1307 // Specify StringComparison for clarity
 #endif
-        var registrationFieldName = this.RegistrationFieldName != null
-            ? this.RegistrationFieldName.Replace( "{PropertyName}", propertyName )
-            : DefaultDependencyPropertyNamingConvention.GetRegistrationFieldNameFromPropertyName( propertyName );
+        var registrationFieldName = this.RegistrationFieldName?.Replace( "{PropertyName}", propertyName )
+                                    ?? DefaultDependencyPropertyNamingConvention.GetRegistrationFieldNameFromPropertyName( propertyName );
 
         var matchPropertyChanged = this.OnPropertyChangedPattern?.Replace( "{PropertyName}", propertyName );
 

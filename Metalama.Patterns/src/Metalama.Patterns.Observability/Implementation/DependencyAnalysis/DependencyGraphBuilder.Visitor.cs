@@ -259,9 +259,9 @@ internal partial class DependencyGraphBuilder
                             var referencedProperty =
                                 this._propertyInfo.DeclaringTypeInfo.Builder.GetOrAddPropertyNode( this.GetFieldOrProperty( symbols[i].Symbol ) );
 
-                            reference = reference == null
-                                ? this._propertyInfo.DeclaringTypeInfo.GetOrAddProperty( this.GetFieldOrProperty( firstSymbol ) ).RootReferenceNode
-                                : reference.GetOrAddChildReference( referencedProperty );
+                            reference = reference?.GetOrAddChildReference( referencedProperty ) ?? this._propertyInfo.DeclaringTypeInfo
+                                .GetOrAddProperty( this.GetFieldOrProperty( firstSymbol ) )
+                                .RootReferenceNode;
                         }
                     }
 

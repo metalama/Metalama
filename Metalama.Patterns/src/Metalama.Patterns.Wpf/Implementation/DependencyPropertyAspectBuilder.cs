@@ -49,6 +49,8 @@ internal sealed partial class DependencyPropertyAspectBuilder
 
         var namingConventions = hasExplicitNaming
             ?
+
+            // ReSharper disable once RedundantLinebreak
             [
                 new ExplicitDependencyPropertyNamingConvention(
                     this._attribute.RegistrationField,

@@ -181,16 +181,19 @@ public sealed class BackgroundTaskScheduler : IDisposable, IAsyncDisposable
         cancellationToken.ThrowIfCancellationRequested();
 
         // AwaitableEvent does not support CancellationToken.
+        // ReSharper disable once InconsistentlySynchronizedField
         await this._backgroundTasksFinishedEvent.WaitAsync( CancellationToken.None );
     }
 
-    public void Dispose() => this.Dispose( default );
+    public void Dispose() => this.Dispose( CancellationToken.None );
 
     public void Dispose( CancellationToken cancellationToken )
     {
         using ( cancellationToken.Register( this._disposeCancellationTokenSource.Cancel ) )
         {
             this.StopAcceptingBackgroundTasks();
+
+            // ReSharper disable once InconsistentlySynchronizedField
             this._backgroundTasksFinishedEvent.Wait( cancellationToken );
         }
     }

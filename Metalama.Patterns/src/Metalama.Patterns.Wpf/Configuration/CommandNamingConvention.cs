@@ -116,9 +116,7 @@ public sealed record CommandNamingConvention : ICommandNamingConvention
 #if NETCOREAPP
 #pragma warning disable CA1307 // Specify StringComparison for clarity
 #endif
-        var commandPropertyName = this.CommandPropertyName != null
-            ? this.CommandPropertyName.Replace( _commandNameToken, commandName )
-            : DefaultCommandNamingConvention.GetCommandPropertyNameFromCommandName( commandName );
+        var commandPropertyName = this.CommandPropertyName?.Replace( _commandNameToken, commandName ) ?? DefaultCommandNamingConvention.GetCommandPropertyNameFromCommandName( commandName );
 
         INameMatchPredicate canExecutePredicate;
 

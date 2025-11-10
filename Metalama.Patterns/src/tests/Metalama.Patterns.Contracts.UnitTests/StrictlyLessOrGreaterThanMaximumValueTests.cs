@@ -17,9 +17,9 @@ namespace Metalama.Patterns.Contracts.UnitTests;
 public sealed class StrictlyLessOrGreaterThanMaximumValueTests : RangeContractTestsBase
 {
     private const long _longLimit = long.MaxValue - 1;
-    private const double _longLimitAsDouble = ((double) long.MaxValue) / (1 + DoubleTolerance);
+    private const double _longLimitAsDouble = (double) long.MaxValue / (1 + DoubleTolerance);
     private const ulong _ulongLimit = ulong.MaxValue - 1;
-    private const double _ulongLimitAsDouble = ((double) ulong.MaxValue) / (1 + DoubleTolerance);
+    private const double _ulongLimitAsDouble = (double) ulong.MaxValue / (1 + DoubleTolerance);
     private const double _doubleLimit = double.MaxValue / (1 + DoubleTolerance);
 
     // This has to be double because decimal is not allowed as attribute constructor value.

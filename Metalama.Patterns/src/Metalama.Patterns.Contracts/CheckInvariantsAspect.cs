@@ -61,16 +61,16 @@ internal sealed class CheckInvariantsAspect : IAspect<INamedType>
     [Template]
     private readonly InvariantSuspensionCounter _invariantSuspensionCounter = new();
 
-    [Template]
-    protected SuspendInvariantsCookie SuspendInvariants( IField counterField )
+    [Template( Accessibility = Accessibility.Protected )]
+    private SuspendInvariantsCookie SuspendInvariants( IField counterField )
     {
         ((InvariantSuspensionCounter) counterField.Value!).Increment();
 
         return new SuspendInvariantsCookie( (InvariantSuspensionCounter) counterField.Value! );
     }
 
-    [Template]
-    protected bool AreInvariantsSuspended( IField counterField )
+    [Template( Accessibility = Accessibility.Protected )]
+    private bool AreInvariantsSuspended( IField counterField )
     {
         return ((InvariantSuspensionCounter) counterField.Value!).AreInvariantsSuspended;
     }
