@@ -43,7 +43,7 @@ public sealed class AsyncDelegateCommand<T> : BaseAsyncDelegateCommand
         this._execute = execute;
         this._canExecute = canExecute;
     }
-    
+
     /// <summary>
     /// Gets a value indicating whether the <see cref="Execute"/> command can be called with a given parameter.
     /// </summary>

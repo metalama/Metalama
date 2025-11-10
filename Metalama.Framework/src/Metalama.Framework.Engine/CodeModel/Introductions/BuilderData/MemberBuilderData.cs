@@ -11,7 +11,9 @@ namespace Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 
 internal abstract class MemberBuilderData : MemberOrNamedTypeBuilderData
 {
-    protected MemberBuilderData( IMemberBuilder builder, IFullRef<IDeclaration> containingDeclaration ) : base( (IMemberOrNamedTypeBuilderImpl) builder, containingDeclaration )
+    protected MemberBuilderData( IMemberBuilder builder, IFullRef<IDeclaration> containingDeclaration ) : base(
+        (IMemberOrNamedTypeBuilderImpl) builder,
+        containingDeclaration )
     {
         this.IsVirtual = builder.IsVirtual;
         this.IsAsync = builder.IsAsync;
@@ -30,6 +32,6 @@ internal abstract class MemberBuilderData : MemberOrNamedTypeBuilderData
     public abstract IRef<IMember>? OverriddenMember { get; }
 
     public new IFullRef<INamedType> DeclaringType => (IFullRef<INamedType>) this.ContainingDeclaration;
-    
+
     public override string ToString() => this.ContainingDeclaration + "." + this.Name;
 }

@@ -32,10 +32,10 @@ public sealed class CompileTimeErrorNotificationTests : DistributedDesignTimeTes
                                                  using Metalama.Framework.Aspects; 
                                                  using Metalama.Framework.Code;
                                                  using System;
-                                     
+
                                                  public class InjectedLoggerAttribute : OverrideMethodAspect
                                                  {
-                                     
+
                                                      public override dynamic? OverrideMethod()
                                                      {
                                                          some error here

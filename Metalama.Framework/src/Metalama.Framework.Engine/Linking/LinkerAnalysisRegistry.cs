@@ -91,12 +91,12 @@ internal sealed class LinkerAnalysisRegistry
 
             default:
                 return false;
-        }    
+        }
     }
 
-    public EventBrokerInfo? GetEventBrokerTypeInfo(IEventSymbol @event)
+    public EventBrokerInfo? GetEventBrokerTypeInfo( IEventSymbol @event )
     {
-        var canonicalEvent = (IEventSymbol) LinkerSymbolHelper.GetCanonicalDefinition(@event);
+        var canonicalEvent = (IEventSymbol) LinkerSymbolHelper.GetCanonicalDefinition( @event );
 
         if ( this._eventBrokers.TryGetValue( canonicalEvent, out var eventBroker ) )
         {

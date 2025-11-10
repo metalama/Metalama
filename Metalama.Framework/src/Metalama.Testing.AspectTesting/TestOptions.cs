@@ -306,7 +306,7 @@ public class TestOptions
     /// The default value is <c>false</c>. To enable this option in a test, add this comment to your test file: <c>// @IncludeLineNumberInDiagnosticReport</c>.
     /// </summary>
     public bool? IncludeLineNumberInDiagnosticReport { get; set; }
-    
+
     public bool? IncludeDeclarationInDiagnosticReport { get; set; }
 
     /// <summary>
@@ -746,7 +746,7 @@ public class TestOptions
                     this.IncludeLineNumberInDiagnosticReport = true;
 
                     break;
-                
+
                 case "IncludeDeclarationInDiagnosticReport":
                     this.IncludeDeclarationInDiagnosticReport = true;
 

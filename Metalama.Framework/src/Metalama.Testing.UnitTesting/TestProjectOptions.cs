@@ -101,12 +101,13 @@ internal sealed class TestProjectOptions : DefaultProjectOptions, IDisposable
     internal ICompileTimeDomainObserver DomainObserver { get; }
 
     private static Lazy<string> CreateDirectoryLazy( string path )
-        => new( () =>
-        {
-            Directory.CreateDirectory( path );
+        => new(
+            () =>
+            {
+                Directory.CreateDirectory( path );
 
-            return path;
-        } );
+                return path;
+            } );
 
     public override string? ProjectName { get; }
 

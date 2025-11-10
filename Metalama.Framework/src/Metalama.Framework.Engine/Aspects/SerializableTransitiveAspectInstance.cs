@@ -61,7 +61,7 @@ internal class SerializableTransitiveAspectInstance : ICompileTimeSerializable, 
             this.TargetDeclarationDepth,
             (IAspectClassImpl) aspectClassResolver.GetAspectClass( this.AspectClassName ),
             [],
-            ImmutableArray<AspectPredecessor>.Empty, 
+            ImmutableArray<AspectPredecessor>.Empty,
             false );
     }
 

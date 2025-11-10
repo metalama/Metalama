@@ -37,7 +37,7 @@ namespace Metalama.Framework.Engine.Linking
         public UserDiagnosticSink DiagnosticSink { get; }
 
         public CompilationModel SourceCompilationModel { get; }
-        
+
         /// <summary>
         /// Gets the intermediate compilation (produced in injection step).
         /// </summary>

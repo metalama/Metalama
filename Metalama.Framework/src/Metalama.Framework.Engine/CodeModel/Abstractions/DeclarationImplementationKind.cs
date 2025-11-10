@@ -21,7 +21,7 @@ internal enum DeclarationImplementationKind
     /// A declaration introduced by an aspect.
     /// </summary>
     Introduced,
-    
+
     Builder,
     DeserializedAttribute
 }

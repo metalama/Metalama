@@ -82,7 +82,7 @@ namespace Metalama.AspectWorkbench.ViewModels
             get => this._compiledTemplateDocument;
             set => this.SetField( ref this._compiledTemplateDocument, value );
         }
-        
+
         public FlowDocument? TransformedCodeDocument
         {
             get => this._transformedCodeDocument;
@@ -185,7 +185,7 @@ namespace Metalama.AspectWorkbench.ViewModels
                     testContext.GetMetadataReferences().ToImmutableArray(),
                     ImmutableArray<TestAssemblyReference>.Empty,
                     ImmutableArray<TestAssemblyReference>.Empty,
-                    ImmutableArray<string>.Empty, 
+                    ImmutableArray<string>.Empty,
                     null ),
                 null );
 

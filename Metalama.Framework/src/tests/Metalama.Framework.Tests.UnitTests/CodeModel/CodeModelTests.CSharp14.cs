@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 #if ROSLYN_5_0_0_OR_GREATER && NET7_0_OR_GREATER
+
 // We don't run these tests with old frameworks because they require the type CompilerFeatureRequiredAttribute.
 
 using Metalama.Framework.Code;
@@ -67,7 +68,7 @@ public sealed partial class CodeModelTests
                             using System.Collections.Generic;
                             using System.Linq;
                             using System.Numerics;
-                            
+
                             public static class MyExtensions
                             {
                                 extension(IEnumerable<int> source)
@@ -125,11 +126,11 @@ public sealed partial class CodeModelTests
         var reference = extension1.ToRef();
         var roundloop = reference.GetTarget( compilation );
         Assert.Same( extension1, roundloop );
-        
+
         // Nameless parameter.
         var extension4 = type.ExtensionBlocks.OrderBy( x => x.Sources[0].Span.Start ).ElementAt( 3 );
         Assert.Empty( extension4.ReceiverParameter.Name );
-        
+
         // Type parameters.
         Assert.Single( extension4.TypeParameters );
     }

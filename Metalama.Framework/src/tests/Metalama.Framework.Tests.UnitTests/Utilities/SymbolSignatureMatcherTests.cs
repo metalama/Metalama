@@ -20,19 +20,19 @@ public class SymbolSignatureMatcherTests : UnitTestClass
         using var context = this.CreateTestContext();
 
         const string oldCode = """
-            class MyString
-            {
-                public MyString TrimStart(params char[]? trimChars) => this;
-            }
-            """;
+                               class MyString
+                               {
+                                   public MyString TrimStart(params char[]? trimChars) => this;
+                               }
+                               """;
 
         const string newCode = """
-            class MyString
-            {
-                public MyString TrimStart(char trimChar) => this;
-                public MyString TrimStart(params char[]? trimChars) => this;
-            }
-            """;
+                               class MyString
+                               {
+                                   public MyString TrimStart(char trimChar) => this;
+                                   public MyString TrimStart(params char[]? trimChars) => this;
+                               }
+                               """;
 
         var oldCompilation = context.CreateCSharpCompilation( oldCode );
 
@@ -41,7 +41,8 @@ public class SymbolSignatureMatcherTests : UnitTestClass
 
         var newCompilation = context.CreateCSharpCompilation( newCode );
 
-        var newOverload = newCompilation.GetTypeByMetadataName( "MyString" ).AssertNotNull()
+        var newOverload = newCompilation.GetTypeByMetadataName( "MyString" )
+            .AssertNotNull()
             .GetMembers( "TrimStart" )
             .OfType<IMethodSymbol>()
             .Single( m => !m.Parameters[0].IsParams );
@@ -60,43 +61,44 @@ public class SymbolSignatureMatcherTests : UnitTestClass
         using var context = this.CreateTestContext();
 
         const string oldCode = """
-            class MyStringBuilder
-            {
-                public void Append(string? value) { }
-            }
-            """;
+                               class MyStringBuilder
+                               {
+                                   public void Append(string? value) { }
+                               }
+                               """;
 
         const string newCode = """
-            using System;
-            using System.Runtime.CompilerServices;
-            using System.Text;
+                               using System;
+                               using System.Runtime.CompilerServices;
+                               using System.Text;
 
-            class MyStringBuilder
-            {
-                public void Append(string? value) { }
-                public void Append(ref AppendInterpolatedStringHandler handler) { }
+                               class MyStringBuilder
+                               {
+                                   public void Append(string? value) { }
+                                   public void Append(ref AppendInterpolatedStringHandler handler) { }
 
-                [InterpolatedStringHandler]
-                public struct AppendInterpolatedStringHandler
-                {
-                    public AppendInterpolatedStringHandler(int literalLength, int formattedCount) { }
-                }
-            }
+                                   [InterpolatedStringHandler]
+                                   public struct AppendInterpolatedStringHandler
+                                   {
+                                       public AppendInterpolatedStringHandler(int literalLength, int formattedCount) { }
+                                   }
+                               }
 
-            namespace System.Runtime.CompilerServices
-            {
-                public sealed class InterpolatedStringHandlerAttribute : Attribute;
-            }
-            """;
+                               namespace System.Runtime.CompilerServices
+                               {
+                                   public sealed class InterpolatedStringHandlerAttribute : Attribute;
+                               }
+                               """;
 
         var oldCompilation = context.CreateCSharpCompilation( oldCode );
 
-        var oldType = oldCompilation.GetTypeByMetadataName( "MyStringBuilder").AssertNotNull();
+        var oldType = oldCompilation.GetTypeByMetadataName( "MyStringBuilder" ).AssertNotNull();
         var oldOverload = oldType.GetMembers( "Append" ).Single();
 
         var newCompilation = context.CreateCSharpCompilation( newCode );
 
-        var newOverload = newCompilation.GetTypeByMetadataName( "MyStringBuilder" ).AssertNotNull()
+        var newOverload = newCompilation.GetTypeByMetadataName( "MyStringBuilder" )
+            .AssertNotNull()
             .GetMembers( "Append" )
             .OfType<IMethodSymbol>()
             .Single( m => m.Parameters[0].RefKind == RefKind.Ref );

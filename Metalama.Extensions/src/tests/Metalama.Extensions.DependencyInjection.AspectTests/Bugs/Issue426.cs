@@ -16,11 +16,9 @@ using System.Threading.Tasks;
 namespace Metalama.Extensions.DependencyInjection.AspectTests.Bugs.Issue426;
 
 // <target>
-public class ClientWeb 
+public class ClientWeb
 {
-    public ClientWeb( object appSettings, bool throwOnError = true )
-    {
-    }
+    public ClientWeb( object appSettings, bool throwOnError = true ) { }
 
     [ExtractedResultLoggingAspect]
     public void Foo() { }
@@ -33,17 +31,17 @@ public class ScriptedClient : ClientWeb
 
     public ScriptedClient( object appSettings, ILogger<ScriptedClient> logger ) : base( appSettings )
     {
-        _logger = logger;
+        this._logger = logger;
     }
 
     [ExtractedResultLoggingAspect]
     public void Bar() { }
 }
 
-
 public class ExtractedResultLoggingAspect : OverrideMethodAspect
 {
-    [IntroduceDependency] private readonly ILogger _logger;
+    [IntroduceDependency]
+    private readonly ILogger _logger;
 
     public override dynamic? OverrideMethod()
     {

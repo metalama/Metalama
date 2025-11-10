@@ -165,7 +165,7 @@ namespace Metalama.Framework.Aspects
         /// <seealso cref="Receiver"/>
         [TemplateKeyword]
         public static dynamic This => CurrentContext.This;
-        
+
         /// <summary>
         /// Gets a <c>dynamic</c> object that represents the receiver object, i.e. <c>this</c> in non-extension instance members, or the receiver parameter
         /// in extension members or classic extension methods.

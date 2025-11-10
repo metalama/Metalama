@@ -39,7 +39,7 @@ public sealed class ContractContext
     /// Gets the type of the <see cref="TargetDeclaration"/>.
     /// </summary>
     public IType Type => ((IHasType) this.TargetDeclaration).Type;
-    
+
     /// <summary>
     /// Gets the <see cref="ContractDirection"/>.
     /// </summary>

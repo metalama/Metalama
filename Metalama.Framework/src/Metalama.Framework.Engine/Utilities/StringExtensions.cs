@@ -85,7 +85,7 @@ namespace Metalama.Framework.Engine.Utilities
             while ( index < input.Length )
             {
                 var nextIndex = input.IndexOfAny( separators, index );
-                
+
                 if ( nextIndex == -1 )
                 {
                     nextIndex = input.Length;
@@ -98,7 +98,7 @@ namespace Metalama.Framework.Engine.Utilities
 
                 index = nextIndex + 1;
             }
-            
+
             return false;
         }
     }

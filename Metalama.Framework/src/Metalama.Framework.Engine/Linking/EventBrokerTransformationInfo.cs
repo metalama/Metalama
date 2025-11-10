@@ -17,7 +17,7 @@ internal class EventBrokerTransformationInfo
     public EventBrokerInfo Parent { get; }
 
     public OverrideEventTransformation Transformation { get; }
-    
+
     public string EventBrokerFieldName { get; }
 
     public Func<SyntaxGenerationContext, ExpressionSyntax> FieldInitializationExpression { get; }

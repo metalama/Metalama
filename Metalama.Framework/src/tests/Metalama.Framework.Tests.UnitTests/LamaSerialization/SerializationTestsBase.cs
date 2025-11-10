@@ -60,7 +60,7 @@ namespace Metalama.Framework.Tests.UnitTests.LamaSerialization
             return TestSerialization( testContext, instance, assert, testEquality );
         }
 
-        [return:NotNullIfNotNull(nameof(instance))]
+        [return: NotNullIfNotNull( nameof(instance) )]
         protected static T? TestSerialization<T>(
             SerializationTestContext testContext,
             T? instance,

@@ -10,5 +10,5 @@ namespace Metalama.Framework.Engine.CodeModel.Abstractions;
 
 internal interface ISdkDeclarationFactory
 {
-    public bool TryGetDeclaration( ISymbol symbol, [NotNullWhen( true )] out IDeclaration? declaration );
+    bool TryGetDeclaration( ISymbol symbol, [NotNullWhen( true )] out IDeclaration? declaration );
 }

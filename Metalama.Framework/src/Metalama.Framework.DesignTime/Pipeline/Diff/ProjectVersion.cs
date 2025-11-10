@@ -87,18 +87,19 @@ namespace Metalama.Framework.DesignTime.Pipeline.Diff
                     {
                         if ( existingTreeVersion.SyntaxTree.GetRoot( cancellationToken ).IsEquivalentTo( syntaxTree.GetRoot( cancellationToken ) ) )
                         {
-                            warningLogger.Log( $"Two trees with the path '{syntaxTree.FilePath}' and the same code are included in the compilation; ignoring the second one." );
+                            warningLogger.Log(
+                                $"Two trees with the path '{syntaxTree.FilePath}' and the same code are included in the compilation; ignoring the second one." );
                         }
                         else
                         {
                             warningLogger.Log(
                                 $"""
-                                Two trees with the path '{syntaxTree.FilePath}' and different code are included in the compilation; ignoring the second one.
-                                Tree 1:
-                                {existingTreeVersion.SyntaxTree}
-                                Tree 2:
-                                {syntaxTree}
-                                """ );
+                                 Two trees with the path '{syntaxTree.FilePath}' and different code are included in the compilation; ignoring the second one.
+                                 Tree 1:
+                                 {existingTreeVersion.SyntaxTree}
+                                 Tree 2:
+                                 {syntaxTree}
+                                 """ );
                         }
                     }
 

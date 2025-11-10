@@ -12,6 +12,5 @@ internal sealed class TestCompileTimeAspectPipeline : CompileTimeAspectPipeline
 {
     public TestCompileTimeAspectPipeline( ProjectServiceProvider serviceProvider ) : base( serviceProvider ) { }
 
-    protected override IDiagnosticExtensionPolicy GetDiagnosticExtensionPolicy()
-        => ConstantDiagnosticExtensionPolicy.PropertiesOnly;
+    protected override IDiagnosticExtensionPolicy GetDiagnosticExtensionPolicy() => ConstantDiagnosticExtensionPolicy.PropertiesOnly;
 }

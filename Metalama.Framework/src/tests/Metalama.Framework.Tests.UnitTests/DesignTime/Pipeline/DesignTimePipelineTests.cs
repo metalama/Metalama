@@ -1701,10 +1701,7 @@ class D{version}
 
         var code = new Dictionary<string, string>
         {
-            ["options.cs"] = options,
-            ["aspect.cs"] = aspect,
-            ["optionsAttribute.cs"] = "",
-            ["target.cs"] = target,
+            ["options.cs"] = options, ["aspect.cs"] = aspect, ["optionsAttribute.cs"] = "", ["target.cs"] = target,
 #if NETFRAMEWORK
             ["isexternalinit.cs"] = "namespace System.Runtime.CompilerServices { internal static class IsExternalInit; }"
 #endif

@@ -49,9 +49,10 @@ public static class CompilationExtensions
 
     public static SemanticModelProvider GetSemanticModelProvider( this Compilation compilation ) => SemanticModelProvider.GetInstance( compilation );
 
-    public static Compilation RewriteAll( this Compilation compilation, Func<Compilation, SyntaxTree,CSharpSyntaxRewriter> getRewriter )
+    public static Compilation RewriteAll( this Compilation compilation, Func<Compilation, SyntaxTree, CSharpSyntaxRewriter> getRewriter )
     {
         var modifiedCompilation = compilation;
+
         foreach ( var tree in compilation.SyntaxTrees )
         {
             var rewriter = getRewriter( compilation, tree );
@@ -85,7 +86,7 @@ public static class CompilationExtensions
             compilation.SyntaxTrees.FirstOrDefault() switch
             {
                 { Options: CSharpParseOptions options } => options,
-                _ => CSharpParseOptions.Default,
+                _ => CSharpParseOptions.Default
             },
             path,
             Encoding.UTF8 );

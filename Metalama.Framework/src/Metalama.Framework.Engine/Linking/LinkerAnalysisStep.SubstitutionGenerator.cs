@@ -347,6 +347,7 @@ internal sealed partial class LinkerAnalysisStep
                 }
 
 #if ROSLYN_5_0_0_OR_GREATER
+
                 // Add substitutions for backing field invocation references.
                 if ( this._backingFieldReferencesByContainingSemantic.TryGetValue(
                         inliningSpecification.TargetSemantic,
@@ -425,21 +426,23 @@ internal sealed partial class LinkerAnalysisStep
                         // Any virtual reference is skipped.
                         break;
 
-                    case { 
-                        ResolvedSemantic: { Symbol: IEventSymbol @event }, 
-                        ContainingBody: { MethodKind: MethodKind.EventAdd or MethodKind.EventRemove }, 
-                        ContainingSemantic.Kind: IntermediateSymbolSemanticKind.Final, 
+                    case
+                    {
+                        ResolvedSemantic: { Symbol: IEventSymbol @event },
+                        ContainingBody: { MethodKind: MethodKind.EventAdd or MethodKind.EventRemove },
+                        ContainingSemantic.Kind: IntermediateSymbolSemanticKind.Final,
                         TargetKind: AspectReferenceTargetKind.EventRaiseAccessor
                     }:
                         // References to event raise are ignored from the final semantic because they are implicitly made by adder/remover substitution.
                         break;
 
-                    case {
+                    case
+                    {
                         ResolvedSemantic: { Symbol: IEventSymbol @event },
                         ContainingBody: { MethodKind: MethodKind.EventAdd },
                         ContainingSemantic.Kind: IntermediateSymbolSemanticKind.Final,
                         TargetKind: AspectReferenceTargetKind.EventAddAccessor
-                    } when this._injectionRegistry.HasEventRaiseOverride(@event):
+                    } when this._injectionRegistry.HasEventRaiseOverride( @event ):
 
                         AddSubstitution(
                             context,
@@ -463,12 +466,14 @@ internal sealed partial class LinkerAnalysisStep
 
                     // Unified case for non-inlined references to event add/remove accessors when target has event raise overrides
                     case
-                    {
-                        ResolvedSemantic: { Symbol: IEventSymbol @event },
-                        TargetKind: AspectReferenceTargetKind.EventAddAccessor or AspectReferenceTargetKind.EventRemoveAccessor
-                    } when this._injectionRegistry.HasEventRaiseOverride( @event ) 
-                           && this._eventBrokerSemanticIndex.TryGetValue( nonInlinedReference.ResolvedSemantic.ToTyped<IEventSymbol>(), out var proxyEventBrokerInfo ) 
-                           && proxyEventBrokerInfo?.BrokerProxyName != null:
+                        {
+                            ResolvedSemantic: { Symbol: IEventSymbol @event },
+                            TargetKind: AspectReferenceTargetKind.EventAddAccessor or AspectReferenceTargetKind.EventRemoveAccessor
+                        } when this._injectionRegistry.HasEventRaiseOverride( @event )
+                               && this._eventBrokerSemanticIndex.TryGetValue(
+                                   nonInlinedReference.ResolvedSemantic.ToTyped<IEventSymbol>(),
+                                   out var proxyEventBrokerInfo )
+                               && proxyEventBrokerInfo?.BrokerProxyName != null:
 
                         AddSubstitution(
                             context,
@@ -487,18 +492,21 @@ internal sealed partial class LinkerAnalysisStep
                     }:
                         var eventBrokerInfo =
                             this._eventBrokerSemanticIndex.TryGetValue( nonInlinedReference.ResolvedSemantic.ToTyped<IEventSymbol>(), out var info )
-                            ? info
-                            : null;
+                                ? info
+                                : null;
 
                         if ( this._injectionRegistry.IsEventRaiseOverride( method ) )
                         {
                             // This is event raise override, which can reference the handler parameter.
-                            var currentEventOverride = (IEventSymbol)this._injectionRegistry.GetMainOverrideForSatelliteOverride( method ).AssertNotNull();
-                            var previousSemantic = this._injectionRegistry.GetPrecedingSemantic( currentEventOverride.ToSemantic( IntermediateSymbolSemanticKind.Default ) );
-                            var currentEventBrokerInfo = 
+                            var currentEventOverride = (IEventSymbol) this._injectionRegistry.GetMainOverrideForSatelliteOverride( method ).AssertNotNull();
+
+                            var previousSemantic =
+                                this._injectionRegistry.GetPrecedingSemantic( currentEventOverride.ToSemantic( IntermediateSymbolSemanticKind.Default ) );
+
+                            var currentEventBrokerInfo =
                                 previousSemantic != null && this._eventBrokerSemanticIndex.TryGetValue( previousSemantic.Value, out var info2 )
-                                ? info2
-                                : null;
+                                    ? info2
+                                    : null;
 
                             if ( eventBrokerInfo == currentEventBrokerInfo )
                             {
@@ -515,9 +523,10 @@ internal sealed partial class LinkerAnalysisStep
                             AddSubstitution(
                                 context,
                                 new EventRaiseBrokerCallSubstitution( this._intermediateCompilationContext, nonInlinedReference ) );
+
                             break;
                         }
-                        else if ( this._injectionRegistry.IsOverrideTarget(@event) || this._injectionRegistry.IsOverride(@event) )
+                        else if ( this._injectionRegistry.IsOverrideTarget( @event ) || this._injectionRegistry.IsOverride( @event ) )
                         {
                             AddSubstitution(
                                 context,
@@ -528,7 +537,6 @@ internal sealed partial class LinkerAnalysisStep
                         }
                         else
                         {
-
                             AddSubstitution(
                                 context,
                                 new EventRaiseEventFieldSubstitution(
@@ -537,7 +545,7 @@ internal sealed partial class LinkerAnalysisStep
                                     @event ) );
                         }
 
-                        break; 
+                        break;
 
                     case { ResolvedSemantic: { Kind: IntermediateSymbolSemanticKind.Default, Symbol: IPropertySymbol property } }
                         when property.IsAutoProperty() == true && this._injectionRegistry.IsOverrideTarget( property ):
@@ -590,7 +598,11 @@ internal sealed partial class LinkerAnalysisStep
 
                         break;
 
-                    case { ResolvedSemantic: { Kind: IntermediateSymbolSemanticKind.Base, Symbol: { IsOverride: true, IsSealed: false } or { IsVirtual: true } } }
+                    case
+                        {
+                            ResolvedSemantic:
+                            { Kind: IntermediateSymbolSemanticKind.Base, Symbol: { IsOverride: true, IsSealed: false } or { IsVirtual: true } }
+                        }
                         when !this._injectionRegistry.IsOverrideTarget( nonInlinedReference.ResolvedSemantic.Symbol ):
                     case { ResolvedSemantic: { Kind: IntermediateSymbolSemanticKind.Default } }
                         when this._injectionRegistry.IsOverrideTarget( nonInlinedReference.ResolvedSemantic.Symbol ):
@@ -654,22 +666,31 @@ internal sealed partial class LinkerAnalysisStep
                     usingSimpleInlining,
                     returnVariableIdentifier ),
 
-                AccessorDeclarationSyntax { Body: null, ExpressionBody: null } when targetSymbol is { AssociatedSymbol: IPropertySymbol property } && property.IsAutoProperty() == true =>
+                AccessorDeclarationSyntax { Body: null, ExpressionBody: null } when targetSymbol is { AssociatedSymbol: IPropertySymbol property }
+                                                                                    && property.IsAutoProperty() == true =>
                     new PropertyImplicitAccessorSubstitution(
                         this._intermediateCompilationContext,
                         root,
                         property ),
 
                 MethodDeclarationSyntax { Body: null, ExpressionBody: null } emptyPartialMethod
-                    => new EmptyPartialMethodSubstitution( this._intermediateCompilationContext, emptyPartialMethod, usingSimpleInlining, returnVariableIdentifier ),
+                    => new EmptyPartialMethodSubstitution(
+                        this._intermediateCompilationContext,
+                        emptyPartialMethod,
+                        usingSimpleInlining,
+                        returnVariableIdentifier ),
 
                 AccessorDeclarationSyntax { Body: null, ExpressionBody: null } emptyPartialAccessor
-                    => new EmptyPartialAccessorSubstitution( this._intermediateCompilationContext, emptyPartialAccessor, usingSimpleInlining, returnVariableIdentifier ),
+                    => new EmptyPartialAccessorSubstitution(
+                        this._intermediateCompilationContext,
+                        emptyPartialAccessor,
+                        usingSimpleInlining,
+                        returnVariableIdentifier ),
 
                 ParameterSyntax { Parent: ParameterListSyntax { Parent: RecordDeclarationSyntax } } recordParameter
                     => new RecordParameterSubstitution( this._intermediateCompilationContext, recordParameter, targetSymbol, returnVariableIdentifier ),
 
-                _ => throw new AssertionFailedException( $"Unexpected syntax: '{root}'." ),
+                _ => throw new AssertionFailedException( $"Unexpected syntax: '{root}'." )
             };
     }
 }

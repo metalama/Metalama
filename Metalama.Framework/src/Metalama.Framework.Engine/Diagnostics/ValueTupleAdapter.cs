@@ -50,12 +50,12 @@ namespace Metalama.Framework.Engine.Diagnostics
                     for ( var i = 0; i < depth; i++ )
                     {
                         var restType = currentTupleType.GetGenericArguments()[^1];
-                        
+
                         rest = Expression.Convert( Expression.Field( rest, $"Rest" ), restType );
 
                         currentTupleType = restType;
                     }
-                    
+
                     return Expression.Convert( Expression.Field( rest, $"Item{(index % 7) + 1}" ), typeof(object) );
                 }
             }

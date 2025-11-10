@@ -55,7 +55,12 @@ internal sealed class UserProcessInvalidationService : IGlobalService
 
     private static Action<Workspace, ProjectId>? GetUpdateSourceGeneratorsAction()
     {
-        var updateSourceGeneratorsMethod = typeof(Workspace).GetMethod( "EnqueueUpdateSourceGeneratorVersion", BindingFlags.NonPublic | BindingFlags.Instance, null, [typeof(ProjectId), typeof(bool)], null );
+        var updateSourceGeneratorsMethod = typeof(Workspace).GetMethod(
+            "EnqueueUpdateSourceGeneratorVersion",
+            BindingFlags.NonPublic | BindingFlags.Instance,
+            null,
+            [typeof(ProjectId), typeof(bool)],
+            null );
 
         if ( updateSourceGeneratorsMethod == null )
         {

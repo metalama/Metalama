@@ -16,7 +16,7 @@ namespace Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 internal abstract class MethodBaseBuilder : MemberBuilder, IMethodBaseBuilder, IMethodBaseImpl
 {
     public ParameterBuilderList Parameters { get; } = [];
-    
+
     protected override void FreezeChildren()
     {
         base.FreezeChildren();

@@ -12,7 +12,11 @@ internal sealed class EmptyPartialAccessorSubstitution : EmptyPartialMemberSubst
 {
     private readonly AccessorDeclarationSyntax _rootNode;
 
-    public EmptyPartialAccessorSubstitution( CompilationContext compilationContext, AccessorDeclarationSyntax rootNode, bool usingSimpleInlining, string? returnVariableIdentifier )
+    public EmptyPartialAccessorSubstitution(
+        CompilationContext compilationContext,
+        AccessorDeclarationSyntax rootNode,
+        bool usingSimpleInlining,
+        string? returnVariableIdentifier )
         : base( compilationContext, usingSimpleInlining, returnVariableIdentifier )
     {
         this._rootNode = rootNode;
@@ -24,7 +28,7 @@ internal sealed class EmptyPartialAccessorSubstitution : EmptyPartialMemberSubst
         => currentNode switch
         {
             AccessorDeclarationSyntax => this.Substitute( substitutionContext ),
-            _ => throw new AssertionFailedException( $"Unsupported syntax: {currentNode}" ),
+            _ => throw new AssertionFailedException( $"Unsupported syntax: {currentNode}" )
         };
 
     protected override bool IsVoid => false;

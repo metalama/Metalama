@@ -5,6 +5,7 @@
 using Metalama.Framework.Engine.CompileTime.Manifest;
 using Metalama.Framework.Engine.Utilities;
 using Microsoft.CodeAnalysis;
+using System.Collections.Generic;
 
 namespace Metalama.Framework.Engine.Diagnostics;
 
@@ -21,6 +22,6 @@ public static class DiagnosticExtensions
     public static Diagnostic WithSyntaxTreeInstance( this Diagnostic diagnostic, SyntaxTree tree )
     {
         // It is a hack to use manifest code here, but it already does what we need.
-        return new CompileTimeDiagnosticManifest( diagnostic, new() { { tree.FilePath, 0 } } ).ToDiagnostic( [tree] );
+        return new CompileTimeDiagnosticManifest( diagnostic, new Dictionary<string, int> { { tree.FilePath, 0 } } ).ToDiagnostic( [tree] );
     }
 }

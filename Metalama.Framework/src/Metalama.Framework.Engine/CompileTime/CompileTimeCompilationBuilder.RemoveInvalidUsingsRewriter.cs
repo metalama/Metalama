@@ -59,7 +59,7 @@ namespace Metalama.Framework.Engine.CompileTime
                 {
                     return null;
                 }
-                
+
                 if ( this._removedTrivia is { Count: > 0 } )
                 {
                     transformedNode = transformedNode.WithLeadingTrivia( transformedNode.GetLeadingTrivia().InsertRange( 0, this._removedTrivia ) );

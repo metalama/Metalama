@@ -14,7 +14,7 @@ namespace Metalama.Framework.Code.Invokers
     public interface IEventInvoker
     {
         // TODO: Create methods CreateAddExpression, CreateRemoveExpression, CreateRaiseExpression.
-        
+
         /// <summary>
         /// Generates run-time code that adds a handler, given as run-time C# expression, to the event.
         /// </summary>
@@ -27,7 +27,7 @@ namespace Metalama.Framework.Code.Invokers
         /// use the <see cref="WithOptions"/> method.
         /// </remarks>
         dynamic Add( dynamic? handler );
-      
+
         /// <summary>
         /// Generates run-time code that adds a handler, given as an <see cref="IExpression"/>, to the event.
         /// </summary>
@@ -52,7 +52,7 @@ namespace Metalama.Framework.Code.Invokers
         /// use the <see cref="WithOptions"/> method.
         /// </remarks>
         dynamic Remove( dynamic? handler );
-        
+
         /// <summary>
         /// Generates run-time code that removes a handler, given as an <see cref="IExpression"/>, from the event.
         /// </summary>
@@ -78,7 +78,7 @@ namespace Metalama.Framework.Code.Invokers
         /// use the <see cref="WithOptions"/> method.
         /// </remarks>
         dynamic? Raise( params dynamic?[] args );
-        
+
         /// <summary>
         /// Generates run-time code that raises the current event with arguments specified as compile-time <see cref="IExpression"/> objects.
         /// </summary>

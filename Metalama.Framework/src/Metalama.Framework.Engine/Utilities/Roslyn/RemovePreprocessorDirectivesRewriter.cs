@@ -93,6 +93,6 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
 
 #if ROSLYN_5_0_0_OR_GREATER
         public override SyntaxNode? VisitIgnoredDirectiveTrivia( IgnoredDirectiveTriviaSyntax node ) => null;
-#endif        
+#endif
     }
 }

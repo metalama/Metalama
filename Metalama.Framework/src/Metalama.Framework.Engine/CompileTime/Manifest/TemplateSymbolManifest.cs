@@ -132,7 +132,9 @@ internal sealed class TemplateSymbolManifest : ITemplateInfo
             => new(
                 this._symbol.GetSerializableId().Id,
                 this._scope?.ToExecutionScope(),
-                this._templateInfo == null ? null : new TemplateInfoManifest( this._templateInfo.AttributeType, this._templateInfo.IsAbstract, this._templateInfo.HasNoBody ),
+                this._templateInfo == null
+                    ? null
+                    : new TemplateInfoManifest( this._templateInfo.AttributeType, this._templateInfo.IsAbstract, this._templateInfo.HasNoBody ),
                 this._usedApiVersion,
                 this._children?.ToDictionary( x => x.Key, x => (IReadOnlyList<TemplateSymbolManifest>) x.Value.SelectAsArray( b => b.Build() ) ) );
     }

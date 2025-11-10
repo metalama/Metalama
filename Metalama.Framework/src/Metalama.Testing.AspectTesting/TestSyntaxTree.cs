@@ -23,7 +23,7 @@ namespace Metalama.Testing.AspectTesting
     public sealed class TestSyntaxTree
     {
         private readonly TestResult _parent;
-        
+
         private TestSyntaxTree( string? inputPath, Document? inputDocument, TestResult parent, SyntaxTree? inputSyntaxTree )
         {
             this.InputDocument = inputDocument;
@@ -86,12 +86,12 @@ namespace Metalama.Testing.AspectTesting
             get
             {
                 var fileName = Path.GetFileNameWithoutExtension( this.FilePath );
-                
+
                 if ( this.Kind is TestSyntaxTreeKind.Introduced )
                 {
                     var nameParts = fileName.Split( '.' );
                     fileName = nameParts[^1];
-            
+
                     return this._parent.TestInput.AssertNotNull().TestName + "." + fileName;
                 }
 

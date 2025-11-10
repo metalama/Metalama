@@ -25,10 +25,10 @@ namespace Metalama.Framework.Engine.Fabrics
     internal sealed class FabricAggregateAspectClass : IAspectClassImpl
     {
         public const string AspectClassName = "<Fabric>";
-        
+
         public static IBoundAspectClass CreateTopLevelAspectClass( in ProjectServiceProvider serviceProvider, CompilationModel compilation )
             => new SystemAspectClass( serviceProvider, compilation, AspectClassName, typeof(Fabric) );
-        
+
         public FabricAggregateAspectClass( ImmutableArray<TemplateClass> templateClasses )
         {
             this.TemplateClasses = templateClasses;
@@ -58,7 +58,7 @@ namespace Metalama.Framework.Engine.Fabrics
         public Type Type => typeof(Fabric);
 
         public EditorExperienceOptions EditorExperienceOptions => EditorExperienceOptions.Default;
-        
+
         public ImmutableArray<TemplateClass> TemplateClasses { get; }
 
         public SyntaxAnnotation GeneratedCodeAnnotation { get; }

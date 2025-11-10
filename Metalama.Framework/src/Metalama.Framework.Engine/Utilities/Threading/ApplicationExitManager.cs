@@ -12,7 +12,7 @@ public sealed class ApplicationExitManager : IGlobalService, IDisposable
 {
     private readonly CancellationTokenSource _cancellationTokenSource = new();
     private bool _isDisposed;
-    
+
     public void OnApplicationExiting()
     {
         if ( !this._isDisposed )
@@ -28,7 +28,7 @@ public sealed class ApplicationExitManager : IGlobalService, IDisposable
         if ( !this._isDisposed )
         {
             this._isDisposed = true;
-            
+
             this._cancellationTokenSource.Cancel();
             this._cancellationTokenSource.Dispose();
         }

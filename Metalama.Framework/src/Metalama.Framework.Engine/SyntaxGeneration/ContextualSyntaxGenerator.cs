@@ -258,8 +258,9 @@ public sealed partial class ContextualSyntaxGenerator
             // TODO: optional parameters.
             SyntaxFactory.ArgumentList(
                 SeparatedList(
-                    method.Parameters.SelectAsImmutableArray( p =>
-                                                                  Argument( expressionFunc( p ).AssertNotNull() ) ) ) );
+                    method.Parameters.SelectAsImmutableArray(
+                        p =>
+                            Argument( expressionFunc( p ).AssertNotNull() ) ) ) );
 #pragma warning restore CA1822 // Can be made static
 
     internal SyntaxList<TypeParameterConstraintClauseSyntax> ConstraintClauses( IGeneric methodOrType )
@@ -670,10 +671,11 @@ public sealed partial class ContextualSyntaxGenerator
             constructorArguments = attribute.ConstructorArguments.Select( a => AttributeArgument( this.TypedConstantExpression( a ) ) );
         }
 
-        var namedArguments = attribute.NamedArguments.SelectAsImmutableArray( a => AttributeArgument(
-                                                                                  NameEquals( a.Key ),
-                                                                                  null,
-                                                                                  this.TypedConstantExpression( a.Value ) ) );
+        var namedArguments = attribute.NamedArguments.SelectAsImmutableArray(
+            a => AttributeArgument(
+                NameEquals( a.Key ),
+                null,
+                this.TypedConstantExpression( a.Value ) ) );
 
         var attributeSyntax = SyntaxFactory.Attribute( (NameSyntax) this.TypeSyntax( attribute.Type ) );
 
@@ -1034,9 +1036,10 @@ public sealed partial class ContextualSyntaxGenerator
         => Block(
             Token( default, SyntaxKind.OpenBraceToken, this.SyntaxGenerationContext.OptionalElasticEndOfLineTriviaList ),
             List(
-                statements.Select( s => NeedsLineFeed( s )
-                                       ? s.WithOptionalTrailingLineFeed( this.SyntaxGenerationContext )
-                                       : s ) ),
+                statements.Select(
+                    s => NeedsLineFeed( s )
+                        ? s.WithOptionalTrailingLineFeed( this.SyntaxGenerationContext )
+                        : s ) ),
             Token( this.SyntaxGenerationContext.OptionalElasticEndOfLineTriviaList, SyntaxKind.CloseBraceToken, default ) );
 
     internal ExpressionSyntax SuppressNullableWarningExpression( ExpressionSyntax operand, IType? operandType )

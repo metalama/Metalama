@@ -88,7 +88,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
             public CompilationContext InputCompilation { get; }
 
             public LinkerTestInputBuilder Builder { get; }
-            
+
             public TestRewriter( LinkerTestInputBuilder builder, CompilationContext inputCompilation )
             {
                 this.Builder = builder;

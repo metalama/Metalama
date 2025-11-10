@@ -153,7 +153,7 @@ public sealed class FlashtraceLevelSource
 
         return this.OpenAsyncActivity( description, options, callerInfo );
     }
-    
+
     // ReSharper restore InvalidXmlDocComment
 #pragma warning restore CS1574, CS1584
 

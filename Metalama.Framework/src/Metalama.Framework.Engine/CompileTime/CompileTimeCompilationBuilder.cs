@@ -277,29 +277,31 @@ internal sealed partial class CompileTimeCompilationBuilder
         // Creates the new syntax trees. Store them in a dictionary mapping the transformed trees to the source trees.
 
         var syntaxTrees = treesWithCompileTimeCode
-            .SelectAsArray( t => (SyntaxTree: t, FileName: Path.GetFileNameWithoutExtension( t.FilePath ),
-                                  Hash: XXH64.DigestOf( Encoding.UTF8.GetBytes( t.GetText().ToString() ) )) )
+            .SelectAsArray(
+                t => (SyntaxTree: t, FileName: Path.GetFileNameWithoutExtension( t.FilePath ),
+                      Hash: XXH64.DigestOf( Encoding.UTF8.GetBytes( t.GetText().ToString() ) )) )
             .OrderBy( t => t.FileName )
             .ThenBy( t => t.Hash )
-            .Select( t =>
-            {
-                var path = transformedFileGenerator.GetTransformedFilePath( t.FileName, t.Hash );
+            .Select(
+                t =>
+                {
+                    var path = transformedFileGenerator.GetTransformedFilePath( t.FileName, t.Hash );
 
-                var compileTimeSyntaxRoot = produceCompileTimeCodeRewriter.Visit( t.SyntaxTree.GetRoot() )
-                    .AssertNotNull();
+                    var compileTimeSyntaxRoot = produceCompileTimeCodeRewriter.Visit( t.SyntaxTree.GetRoot() )
+                        .AssertNotNull();
 
-                compileTimeToSourceMap?.Add( path, t.SyntaxTree.FilePath );
+                    compileTimeToSourceMap?.Add( path, t.SyntaxTree.FilePath );
 
-                // Remove all preprocessor trivias.
-                // PERF: only do this if the node actually contains preprocessor directives.
-                compileTimeSyntaxRoot = new RemovePreprocessorDirectivesRewriter().Visit( compileTimeSyntaxRoot ).AssertNotNull();
+                    // Remove all preprocessor trivias.
+                    // PERF: only do this if the node actually contains preprocessor directives.
+                    compileTimeSyntaxRoot = new RemovePreprocessorDirectivesRewriter().Visit( compileTimeSyntaxRoot ).AssertNotNull();
 
-                return CSharpSyntaxTree.Create(
-                    (CSharpSyntaxNode) compileTimeSyntaxRoot,
-                    new CSharpParseOptions( languageVersion ),
-                    path,
-                    Encoding.UTF8 );
-            } )
+                    return CSharpSyntaxTree.Create(
+                        (CSharpSyntaxNode) compileTimeSyntaxRoot,
+                        new CSharpParseOptions( languageVersion ),
+                        path,
+                        Encoding.UTF8 );
+                } )
             .ToReadOnlyList();
 
         locationAnnotationMap = templateCompiler.LocationAnnotationMap;
@@ -380,11 +382,12 @@ internal sealed partial class CompileTimeCompilationBuilder
         var references = assemblyLocator.MetadataReferences;
 
         var predefinedSyntaxTrees =
-            _predefinedTypesSyntaxTree.Value.SelectAsArray( x => CSharpSyntaxTree.ParseText(
-                                                                x.Value.Text,
-                                                                parseOptions,
-                                                                transformedFileGenerator.GetTransformedFilePath( x.Key, x.Value.Hash ),
-                                                                Encoding.UTF8 ) );
+            _predefinedTypesSyntaxTree.Value.SelectAsArray(
+                x => CSharpSyntaxTree.ParseText(
+                    x.Value.Text,
+                    parseOptions,
+                    transformedFileGenerator.GetTransformedFilePath( x.Key, x.Value.Hash ),
+                    Encoding.UTF8 ) );
 
         var compilation = CSharpCompilation.Create(
                 assemblyName,
@@ -778,8 +781,9 @@ internal sealed partial class CompileTimeCompilationBuilder
 
         // If the compilation does not reference Metalama.Framework, do not create a compile-time project.
         if ( !runTimeCompilation.References.OfType<PortableExecutableReference>()
-                .Any( p => p.FilePath != null && Path.GetFileNameWithoutExtension( p.FilePath )
-                          .Equals( "Metalama.Framework", StringComparison.OrdinalIgnoreCase ) ) )
+                .Any(
+                    p => p.FilePath != null && Path.GetFileNameWithoutExtension( p.FilePath )
+                        .Equals( "Metalama.Framework", StringComparison.OrdinalIgnoreCase ) ) )
         {
             this._logger.Trace?.Log( $"TryGetCompileTimeProject( '{runTimeCompilation.AssemblyName}' ) : no reference to Metalama.Framework" );
             project = null;
@@ -1053,12 +1057,13 @@ internal sealed partial class CompileTimeCompilationBuilder
                     // Without this local function, the closure for this method causes a memory leak.
                     static DiagnosticAdderAdapter CreateDiagnosticAdder( IDiagnosticAdder diagnosticSink, List<Diagnostic> diagnostics )
                     {
-                        return new DiagnosticAdderAdapter( diagnostic =>
-                        {
-                            // Report diagnostics to the current sink and also store them for the cache.
-                            diagnosticSink.Report( diagnostic );
-                            diagnostics.Add( diagnostic );
-                        } );
+                        return new DiagnosticAdderAdapter(
+                            diagnostic =>
+                            {
+                                // Report diagnostics to the current sink and also store them for the cache.
+                                diagnosticSink.Report( diagnostic );
+                                diagnostics.Add( diagnostic );
+                            } );
                     }
 
                     var diagnosticAdder = CreateDiagnosticAdder( diagnosticSink, diagnostics );
@@ -1145,8 +1150,9 @@ internal sealed partial class CompileTimeCompilationBuilder
                             .ToReadOnlyList();
 
                         var fabricTypes = allTypes
-                            .Where( t => IsFabric( t ) &&
-                                         !compilationForManifest.HasImplicitConversion( t, transitiveFabricType ) )
+                            .Where(
+                                t => IsFabric( t ) &&
+                                     !compilationForManifest.HasImplicitConversion( t, transitiveFabricType ) )
                             .ToReadOnlyList();
 
                         var fabricTypeNames = fabricTypes

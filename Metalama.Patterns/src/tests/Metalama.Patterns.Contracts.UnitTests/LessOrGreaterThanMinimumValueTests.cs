@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Patterns.Contracts.UnitTests.Utilities;
 using Xunit;
 
 // This is a modified copy of LessOrGreaterThanPositiveValueTests.cs
@@ -25,7 +26,7 @@ public sealed class LessOrGreaterThanMinimumValueTests : RangeContractTestsBase
     // Loss of precision is a consequence.
     private const double _decimalMin = (double) decimal.MinValue / (1 + DoubleTolerance);
 
-    private static readonly double _doubleStep = Utilities.FloatingPointHelper.GetDoubleStep( _doubleLimit );
+    private static readonly double _doubleStep = FloatingPointHelper.GetDoubleStep( _doubleLimit );
     private static readonly decimal _decimalStep = Math.Abs( decimal.MinValue ) * DecimalTolerance;
 
     [Fact]

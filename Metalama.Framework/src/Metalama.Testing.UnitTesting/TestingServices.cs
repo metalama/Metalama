@@ -23,7 +23,7 @@ internal static class TestingServices
                 AddSupportServices = true,
                 AddLicensing = false,
                 AddDumperService = true,
-                
+
                 // Provide a test license for all tests. This is not useful for the open-soure tests,
                 // but it's useful for premium components.
                 LicensingOptions = LicensingInitializationOptions.ForTest(

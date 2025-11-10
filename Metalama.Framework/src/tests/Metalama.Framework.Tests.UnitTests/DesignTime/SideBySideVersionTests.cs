@@ -55,17 +55,17 @@ public sealed class SideBySideVersionTests( ITestOutputHelper logger ) : SideByS
                                   public class TheAspect : TypeAspect
                                   {
                                     private Type _compileTimeType;
-                                  
+
                                     public TheAspect()
                                     {
                                         this._compileTimeType = typeof(TestType<int>);
                                     }
-                                  
+
                                     public override void BuildAspect(IAspectBuilder<INamedType> builder)
                                     {
                                         builder.IntroduceMethod(nameof(IntroducedMethod), args: new { type = this._compileTimeType });
                                     }
-                                  
+
                                     [Template]
                                     public Type IntroducedMethod([CompileTime] Type type)
                                     {

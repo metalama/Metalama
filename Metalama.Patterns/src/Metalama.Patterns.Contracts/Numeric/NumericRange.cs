@@ -404,13 +404,13 @@ public readonly struct NumericRange : ICompileTimeSerializable
             else if ( hasMinCheck )
             {
                 builder.AppendExpression( value );
-             
+
                 AppendMin();
             }
             else
             {
                 builder.AppendExpression( value );
-             
+
                 AppendMax();
             }
         }

@@ -13,7 +13,11 @@ internal sealed class EmptyPartialMethodSubstitution : EmptyPartialMemberSubstit
 {
     private readonly MethodDeclarationSyntax _rootNode;
 
-    public EmptyPartialMethodSubstitution( CompilationContext compilationContext, MethodDeclarationSyntax rootNode, bool usingSimpleInlining, string? returnVariableIdentifier )
+    public EmptyPartialMethodSubstitution(
+        CompilationContext compilationContext,
+        MethodDeclarationSyntax rootNode,
+        bool usingSimpleInlining,
+        string? returnVariableIdentifier )
         : base( compilationContext, usingSimpleInlining, returnVariableIdentifier )
     {
         this._rootNode = rootNode;
@@ -25,8 +29,9 @@ internal sealed class EmptyPartialMethodSubstitution : EmptyPartialMemberSubstit
         => currentNode switch
         {
             MethodDeclarationSyntax => this.Substitute( substitutionContext ),
-            _ => throw new AssertionFailedException( $"Unsupported syntax: {currentNode}" ),
+            _ => throw new AssertionFailedException( $"Unsupported syntax: {currentNode}" )
         };
 
-    protected override bool IsVoid => this._rootNode.ReturnType is PredefinedTypeSyntax predefinedType && predefinedType.Keyword.IsKind( SyntaxKind.VoidKeyword );
+    protected override bool IsVoid
+        => this._rootNode.ReturnType is PredefinedTypeSyntax predefinedType && predefinedType.Keyword.IsKind( SyntaxKind.VoidKeyword );
 }

@@ -186,7 +186,7 @@ namespace Metalama.Framework.DesignTime.Pipeline.Diff
 
                 // At design time, the collection of syntax trees can contain duplicates,
                 // which may not even have the same text (e.g. one could contain `internal class C`, while the other just `class C`).
-                if ( newTrees.TryGetValue( newSyntaxTree.FilePath, out var _ ) )
+                if ( newTrees.TryGetValue( newSyntaxTree.FilePath, out _ ) )
                 {
                     continue;
                 }

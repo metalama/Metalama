@@ -120,5 +120,5 @@ internal sealed class IntroduceConstructorParameterAdvice : Advice<IntroductionA
     }
 
     protected override IntroductionAdviceResult<IParameter> CreateFailedResult( ImmutableArray<Diagnostic> diagnostics )
-        => new IntroductionAdviceResult<IParameter>( AdviceKind.IntroduceParameter, AdviceOutcome.Error, this.AdviceFactory, reportedDiagnostics: diagnostics );
+        => new( AdviceKind.IntroduceParameter, AdviceOutcome.Error, this.AdviceFactory, reportedDiagnostics: diagnostics );
 }

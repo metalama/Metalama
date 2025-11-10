@@ -146,7 +146,7 @@ internal sealed partial class LinkerAnalysisStep
 
             bool IsInlineableMethod( IntermediateSymbolSemantic<IMethodSymbol> semantic )
             {
-                if (this._injectionRegistry.IsEventRaiseOverride(semantic.Symbol))
+                if ( this._injectionRegistry.IsEventRaiseOverride( semantic.Symbol ) )
                 {
                     // Event raise override are always inlineable (we will determine inlineability otherwise).
                     return true;

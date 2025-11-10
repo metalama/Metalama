@@ -21,12 +21,12 @@ internal sealed class EventInvoker : Invoker<IEvent>, IEventInvoker
     public EventInvoker( IEvent @event, InvokerOptions options = default, IExpression? target = null ) : base( @event, options, target ) { }
 
     public object Add( object? handler ) => this.Add( CapturedUserExpression.Create( this.Compilation, handler ) );
-    
+
     public object Add( IExpression handler )
     {
         // We might receive a null value as a result of incorrect selection of the overload when null is passed.
         this.EnsureHandlerNotNull( ref handler );
-        
+
         return new DelegateUserExpression(
             context =>
             {
@@ -41,7 +41,7 @@ internal sealed class EventInvoker : Invoker<IEvent>, IEventInvoker
     }
 
     public object Remove( object? handler ) => this.Remove( CapturedUserExpression.Create( this.Compilation, handler ) );
-    
+
     public object Remove( IExpression handler )
     {
         // We might receive a null value as a result of incorrect selection of the overload when null is passed.
@@ -61,7 +61,7 @@ internal sealed class EventInvoker : Invoker<IEvent>, IEventInvoker
     }
 
     public object Raise( object?[]? args ) => this.Raise( CapturedUserExpression.Create( this.Compilation, args ) );
-    
+
     private void EnsureHandlerNotNull( ref IExpression handler )
     {
         if ( handler == null! )
@@ -108,7 +108,8 @@ internal sealed class EventInvoker : Invoker<IEvent>, IEventInvoker
 
     public IEventInvoker WithObject( IExpression? obj ) => this.IsSameTarget( obj ) ? this : new EventInvoker( this.Member, this.Options, obj );
 
-    public IEventInvoker WithObject( object? obj ) => this.IsSameTarget( obj ) ? this : this.WithObject( CapturedUserExpression.Create(this.Compilation, obj) );
+    public IEventInvoker WithObject( object? obj )
+        => this.IsSameTarget( obj ) ? this : this.WithObject( CapturedUserExpression.Create( this.Compilation, obj ) );
 
     IEventInvoker IEventInvoker.With( InvokerOptions options ) => this.WithOptions( options );
 

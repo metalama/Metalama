@@ -235,8 +235,9 @@ internal partial class DependencyGraphBuilder
                     var firstSymbol = symbols[0].Symbol;
 
                     var supportedStemAndLeafCount = this.IsLocalInstanceMember( firstSymbol )
-                        ? symbols.TakeWhile( sr => sr.Symbol.Kind == SymbolKind.Property
-                                                   || (sr.Symbol.Kind == SymbolKind.Field && sr.Symbol.GetEffectiveAccessibility() == Accessibility.Private) )
+                        ? symbols.TakeWhile(
+                                sr => sr.Symbol.Kind == SymbolKind.Property
+                                      || (sr.Symbol.Kind == SymbolKind.Field && sr.Symbol.GetEffectiveAccessibility() == Accessibility.Private) )
                             .Count()
                         : 0;
 

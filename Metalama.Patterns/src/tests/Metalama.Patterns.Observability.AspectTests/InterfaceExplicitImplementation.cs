@@ -18,8 +18,8 @@ public class TheClass : ITheInterface
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
-    protected virtual void OnPropertyChanged(string propertyName)
+    protected virtual void OnPropertyChanged( string propertyName )
     {
-        this.PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        this.PropertyChanged?.Invoke( this, new PropertyChangedEventArgs( propertyName ) );
     }
 }

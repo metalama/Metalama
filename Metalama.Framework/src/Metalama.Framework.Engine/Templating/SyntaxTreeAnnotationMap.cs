@@ -306,10 +306,10 @@ namespace Metalama.Framework.Engine.Templating
 
                 if ( collectionType is IArrayTypeSymbol arrayType )
                 {
-                    return arrayType.ElementType;   
+                    return arrayType.ElementType;
                 }
             }
-            
+
             var annotation = node.GetAnnotations( TypeAnnotationMapper.ExpressionTypeSymbolAnnotationKind ).SingleOrDefault();
 
             if ( annotation is not null )

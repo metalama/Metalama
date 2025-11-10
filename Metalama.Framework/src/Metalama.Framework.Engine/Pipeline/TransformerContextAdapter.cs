@@ -46,7 +46,7 @@ internal sealed class TransformerContextAdapter : ITransformerContext
     public Compilation Compilation => this._underlying.Compilation;
 
     public IProjectOptions ProjectOptions { get; }
-    
+
     public ImmutableArray<ManagedResource> Resources => this._underlying.Resources;
 
     public void ReportDiagnostic( Diagnostic diagnostic ) => this._underlying.ReportDiagnostic( diagnostic );

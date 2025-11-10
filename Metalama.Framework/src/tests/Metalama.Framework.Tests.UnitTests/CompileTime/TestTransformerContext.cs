@@ -20,7 +20,7 @@ internal sealed class TestTransformerContext : ITransformerContext
         this.ProjectOptions = projectOptions;
         this.ServiceProvider = serviceProvider;
     }
-    
+
     public DiagnosticFilterCollection ReportedSuppressions { get; } = new();
 
     public GlobalServiceProvider ServiceProvider { get; }

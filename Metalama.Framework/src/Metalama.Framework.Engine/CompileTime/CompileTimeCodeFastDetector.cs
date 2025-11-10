@@ -58,8 +58,8 @@ namespace Metalama.Framework.Engine.CompileTime
                     }
 
                     if ( node.Name is QualifiedNameSyntax qualifiedName &&
-                        _frameworkSubNamespaces.Contains( qualifiedName.Right.Identifier.ValueText ) &&
-                        IsMetalamaFramework( qualifiedName.Left ) )
+                         _frameworkSubNamespaces.Contains( qualifiedName.Right.Identifier.ValueText ) &&
+                         IsMetalamaFramework( qualifiedName.Left ) )
                     {
                         return true;
                     }

@@ -14,7 +14,7 @@ internal interface ISymbolRef : IFullRef
 
     [PublicAPI]
     RefTargetKind TargetKind { get; }
-    
+
     bool SymbolMustBeMapped { get; }
 
     new ISymbolRef<TOut> As<TOut>()

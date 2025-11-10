@@ -830,22 +830,23 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
                     InitializerExpression(
                         SyntaxKind.ObjectInitializerExpression,
                         SeparatedList<ExpressionSyntax>(
-                            this._templateCompileTimeTypeParameterNames.SelectAsReadOnlyCollection( name =>
-                                                                                                        AssignmentExpression(
-                                                                                                            SyntaxKind.SimpleAssignmentExpression,
-                                                                                                            ImplicitElementAccess()
-                                                                                                                .WithArgumentList(
-                                                                                                                    BracketedArgumentList(
-                                                                                                                        SingletonSeparatedList(
-                                                                                                                            Argument(
-                                                                                                                                LiteralExpression(
-                                                                                                                                    SyntaxKind
-                                                                                                                                        .StringLiteralExpression,
-                                                                                                                                    Literal( name ) ) ) ) ) ),
-                                                                                                            MemberAccessExpression(
-                                                                                                                SyntaxKind.SimpleMemberAccessExpression,
-                                                                                                                IdentifierName( name ),
-                                                                                                                IdentifierName( propertyName ) ) ) ) ) ) )
+                            this._templateCompileTimeTypeParameterNames.SelectAsReadOnlyCollection(
+                                name =>
+                                    AssignmentExpression(
+                                        SyntaxKind.SimpleAssignmentExpression,
+                                        ImplicitElementAccess()
+                                            .WithArgumentList(
+                                                BracketedArgumentList(
+                                                    SingletonSeparatedList(
+                                                        Argument(
+                                                            LiteralExpression(
+                                                                SyntaxKind
+                                                                    .StringLiteralExpression,
+                                                                Literal( name ) ) ) ) ) ),
+                                        MemberAccessExpression(
+                                            SyntaxKind.SimpleMemberAccessExpression,
+                                            IdentifierName( name ),
+                                            IdentifierName( propertyName ) ) ) ) ) ) )
                 .NormalizeWhitespace();
         }
     }
@@ -2853,9 +2854,8 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
     protected override ExpressionSyntax TransformAssignmentExpression( AssignmentExpressionSyntax node )
     {
         var transformedNode = base.TransformAssignmentExpression( node );
-        
-        return InvocationExpression(
-                this._templateMetaSyntaxFactory.TemplateSyntaxFactoryMember( nameof(ITemplateSyntaxFactory.RewriteAssignmentExpression) ) )
+
+        return InvocationExpression( this._templateMetaSyntaxFactory.TemplateSyntaxFactoryMember( nameof(ITemplateSyntaxFactory.RewriteAssignmentExpression) ) )
             .AddArgumentListArguments( Argument( transformedNode ) );
     }
 }

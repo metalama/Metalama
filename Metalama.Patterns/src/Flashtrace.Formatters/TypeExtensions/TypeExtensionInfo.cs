@@ -25,7 +25,8 @@ public readonly struct TypeExtensionInfo<T> : IEquatable<TypeExtensionInfo<T>>
     internal bool ShouldOverwrite( TypeExtensionInfo<T> typeExtension )
         => CovariantTypeExtensionFactory<T>.ShouldOverwrite( this.ObjectType, this.IsGeneric, typeExtension.ObjectType, this.IsGeneric );
 
-    public bool Equals( TypeExtensionInfo<T> other ) => EqualityComparer<T?>.Default.Equals( this.Extension, other.Extension ) && this.ObjectType == other.ObjectType && this.IsGeneric == other.IsGeneric;
+    public bool Equals( TypeExtensionInfo<T> other )
+        => EqualityComparer<T?>.Default.Equals( this.Extension, other.Extension ) && this.ObjectType == other.ObjectType && this.IsGeneric == other.IsGeneric;
 
     public override bool Equals( object? obj ) => obj is TypeExtensionInfo<T> other && this.Equals( other );
 

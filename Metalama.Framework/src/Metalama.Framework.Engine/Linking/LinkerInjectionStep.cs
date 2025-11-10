@@ -638,10 +638,11 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
                         transformationCollection.AddInsertedStatements(
                             propertyOrIndexer.GetMethod.ToRef(),
                             insertedStatements
-                                .Where( s =>
-                                            s.ContextDeclaration.IsContainedIn( propertyOrIndexer.GetMethod )
-                                            || (propertyOrIndexer is IIndexer indexer && s.ContextDeclaration is IParameter parameter
-                                                                                      && parameter.ContainingDeclaration!.Equals( indexer )) )
+                                .Where(
+                                    s =>
+                                        s.ContextDeclaration.IsContainedIn( propertyOrIndexer.GetMethod )
+                                        || (propertyOrIndexer is IIndexer indexer && s.ContextDeclaration is IParameter parameter
+                                                                                  && parameter.ContainingDeclaration!.Equals( indexer )) )
                                 .ToReadOnlyList() );
                     }
 
@@ -650,10 +651,11 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
                         transformationCollection.AddInsertedStatements(
                             propertyOrIndexer.SetMethod.ToRef(),
                             insertedStatements
-                                .Where( s =>
-                                            s.ContextDeclaration.IsContainedIn( propertyOrIndexer.SetMethod )
-                                            || (propertyOrIndexer is IIndexer indexer && s.ContextDeclaration is IParameter parameter
-                                                                                      && parameter.ContainingDeclaration!.Equals( indexer )) )
+                                .Where(
+                                    s =>
+                                        s.ContextDeclaration.IsContainedIn( propertyOrIndexer.SetMethod )
+                                        || (propertyOrIndexer is IIndexer indexer && s.ContextDeclaration is IParameter parameter
+                                                                                  && parameter.ContainingDeclaration!.Equals( indexer )) )
                                 .ToReadOnlyList() );
                     }
 

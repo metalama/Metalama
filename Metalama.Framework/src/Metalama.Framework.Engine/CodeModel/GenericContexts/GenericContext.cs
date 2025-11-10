@@ -71,7 +71,7 @@ public abstract partial class GenericContext : IEquatable<GenericContext?>, IGen
 
     private protected static bool ReferencesTypeParameter( ITypeSymbol typeSymbol ) => TypeParameterSymbolDetector.Instance.Visit( typeSymbol );
 
-    protected virtual T TranslateSymbolIfNecessary<T>( T symbol ) 
+    protected virtual T TranslateSymbolIfNecessary<T>( T symbol )
         where T : class, ISymbol
         => symbol;
 }

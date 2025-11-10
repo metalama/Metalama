@@ -87,13 +87,13 @@ public sealed class DiagnosticAnalyzerTests( ITestOutputHelper logger ) : Diagno
                                 public override dynamic? OverrideMethod()
                                 {
                                     int i = meta.CompileTime(0);
-                            
+
                                     if (meta.Target.Parameters[0].Value)
                                     {
                                         // The following line is an error.
                                         i = 1;
                                     }
-                            
+
                                     return null;
                                 }
                             }
@@ -117,7 +117,7 @@ public sealed class DiagnosticAnalyzerTests( ITestOutputHelper logger ) : Diagno
                  class ErrorAspect : TypeAspect
                  {
                      static readonly DiagnosticDefinition _error = new( "MLTEST", Severity.Error, "Error!" );
-                 
+
                      public override void BuildAspect( IAspectBuilder<INamedType> builder )
                      {
                          builder.Diagnostics.Report( _error );

@@ -22,7 +22,7 @@ namespace Metalama.Framework.Aspects
                 nameof(this.OverrideAdd),
                 nameof(this.OverrideRemove),
                 null,
-                nameof( this.OverrideInvoke ) );
+                nameof(this.OverrideInvoke) );
         }
 
         [Template( IsEmpty = true )]

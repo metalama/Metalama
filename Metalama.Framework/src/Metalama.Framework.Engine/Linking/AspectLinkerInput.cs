@@ -30,7 +30,7 @@ internal readonly struct AspectLinkerInput
     /// Gets a list of ordered aspect layers.
     /// </summary>
     public IReadOnlyList<OrderedAspectLayer> OrderedAspectLayers { get; }
-    
+
     public AspectLinkerInput(
         CompilationModel initialCompilationModel,
         CompilationModel finalCompilationModel,

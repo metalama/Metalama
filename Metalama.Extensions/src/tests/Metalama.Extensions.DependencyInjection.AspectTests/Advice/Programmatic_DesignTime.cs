@@ -20,7 +20,7 @@ public class MyAspect : TypeAspect
 {
     public override void BuildAspect( IAspectBuilder<INamedType> builder )
     {
-        builder.IntroduceDependency( typeof( IFormatProvider ), new() { MemberName = "_formatProvider" } );
+        builder.IntroduceDependency( typeof(IFormatProvider), new DependencyOptions { MemberName = "_formatProvider" } );
     }
 }
 

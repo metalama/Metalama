@@ -96,7 +96,8 @@ internal static class SymbolSignatureMatcher
         bool? isStatic )
         where TMember : ISymbol
     {
-        return GetMembersOfSignature<TMember, (TPayload InnerPayload, Func<TPayload, int, (ITypeSymbol? Type, RefKind? RefKind)> ArgumentGetter, CompilationContext Compilation)>(
+        return GetMembersOfSignature<TMember, (TPayload InnerPayload, Func<TPayload, int, (ITypeSymbol? Type, RefKind? RefKind)> ArgumentGetter,
+            CompilationContext Compilation)>(
             containingType,
             containingTypeCompilation,
             (payload, argumentGetter, argumentTypesCompilation),
@@ -118,16 +119,16 @@ internal static class SymbolSignatureMatcher
 
             var parameterMatches =
                 (parameterInfo.Type == null ||
-                    (translatedExpectedType != null && payload.ArgumentCompilation.SymbolComparer.IsConvertibleTo( parameterInfo.Type, translatedExpectedType )))
+                 (translatedExpectedType != null && payload.ArgumentCompilation.SymbolComparer.IsConvertibleTo( parameterInfo.Type, translatedExpectedType )))
                 && (parameterInfo.RefKind == null || expectedRefKind == parameterInfo.RefKind);
 
             if ( !parameterMatches )
             {
                 // InterpolatedStringHandlers have been added in a backward-compatible way.
                 if ( parameterInfo.RefKind == RefKind.Ref
-                    && parameterInfo.Type?.GetAttributes().Any( a => a.AttributeClass?.Name == "InterpolatedStringHandlerAttribute" ) == true
-                    && expectedRefKind == RefKind.None
-                    && expectedType.SpecialType == SpecialType.System_String )
+                     && parameterInfo.Type?.GetAttributes().Any( a => a.AttributeClass?.Name == "InterpolatedStringHandlerAttribute" ) == true
+                     && expectedRefKind == RefKind.None
+                     && expectedType.SpecialType == SpecialType.System_String )
                 {
                     parameterMatches = true;
                 }
@@ -272,7 +273,8 @@ internal static class SymbolSignatureMatcher
             IArrayTypeSymbol { Rank: 1 } arrayType => arrayType.ElementType,
             INamedTypeSymbol namedType when namedType.GetFullName() is "System.Span" or "System.ReadOnlySpan"
                 => namedType.TypeArguments[0],
-            INamedTypeSymbol namedType when namedType.GetAttributes().Any( a => a.AttributeClass.GetFullName() == "System.Runtime.CompilerServices.CollectionBuilderAttribute" )
+            INamedTypeSymbol namedType when namedType.GetAttributes()
+                    .Any( a => a.AttributeClass.GetFullName() == "System.Runtime.CompilerServices.CollectionBuilderAttribute" )
                 => GetIterationType( namedType, compilation ),
             INamedTypeSymbol { TypeKind: TypeKind.Struct or TypeKind.Class } namedType when
                 namedType.AllInterfaces.Any( i => i.GetFullName() == "System.Collections.Generic.IEnumerable" )

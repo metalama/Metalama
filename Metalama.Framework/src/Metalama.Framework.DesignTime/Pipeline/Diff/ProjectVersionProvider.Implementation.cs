@@ -595,7 +595,7 @@ internal sealed partial class ProjectVersionProvider
                                 first.Changes.HasCompileTimeCodeChange,
                                 first.Changes.IsIncremental );
 
-                        return new( firstOldCompilation, second.NewCompilation, first.ChangeKind, changes );
+                        return new ReferencedProjectChange( firstOldCompilation, second.NewCompilation, first.ChangeKind, changes );
                     }
 
                 case (ReferenceChangeKind.None, _):
@@ -612,7 +612,7 @@ internal sealed partial class ProjectVersionProvider
                                 second.Changes.HasCompileTimeCodeChange,
                                 second.Changes.IsIncremental );
 
-                        return new( firstOldCompilation, second.NewCompilation, second.ChangeKind, changes );
+                        return new ReferencedProjectChange( firstOldCompilation, second.NewCompilation, second.ChangeKind, changes );
                     }
 
                 case (ReferenceChangeKind.Removed, ReferenceChangeKind.Added):
@@ -622,7 +622,7 @@ internal sealed partial class ProjectVersionProvider
                             second.NewCompilation.AssertNotNull(),
                             cancellationToken );
 
-                        return new(
+                        return new ReferencedProjectChange(
                             firstOldCompilation,
                             second.NewCompilation,
                             ReferenceChangeKind.Modified,
@@ -636,7 +636,7 @@ internal sealed partial class ProjectVersionProvider
                     {
                         var changes = await this.MergeCompilationChangesAsync( first.Changes!.ToHandle(), second.Changes!, cancellationToken );
 
-                        return new(
+                        return new ReferencedProjectChange(
                             firstOldCompilation,
                             second.NewCompilation,
                             changes.HasChange ? ReferenceChangeKind.Modified : ReferenceChangeKind.None,
@@ -644,10 +644,10 @@ internal sealed partial class ProjectVersionProvider
                     }
 
                 case (ReferenceChangeKind.Added, ReferenceChangeKind.Modified):
-                    return new( null, second.NewCompilation, ReferenceChangeKind.Added );
+                    return new ReferencedProjectChange( null, second.NewCompilation, ReferenceChangeKind.Added );
 
                 case (ReferenceChangeKind.Modified, ReferenceChangeKind.Removed):
-                    return new( firstOldCompilation, null, ReferenceChangeKind.Removed );
+                    return new ReferencedProjectChange( firstOldCompilation, null, ReferenceChangeKind.Removed );
 
                 default:
                     throw new AssertionFailedException( $"Unexpected combination: ({first.ChangeKind}, {second.ChangeKind})" );

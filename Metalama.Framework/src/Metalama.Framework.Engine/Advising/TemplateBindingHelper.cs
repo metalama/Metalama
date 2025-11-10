@@ -12,6 +12,7 @@ using Metalama.Framework.Engine.Templating;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
@@ -265,7 +266,7 @@ internal static class TemplateBindingHelper
         void AddParameter( IParameter methodParameter, IParameterSymbol templateParameter, ExpressionSyntax? customExpression = null )
         {
             ExpressionSyntax parameterSyntax;
-            
+
             if ( customExpression != null )
             {
                 parameterSyntax = customExpression;
@@ -411,7 +412,7 @@ internal static class TemplateBindingHelper
                 if ( template.TemplateClassMember.RunTimeParameters.Length > 0 )
                 {
                     // Template has runtime parameters - must be either 1 (handler only) or 1+n (handler + all invoke args)
-                    if ( template.TemplateClassMember.RunTimeParameters.Length != 1 && 
+                    if ( template.TemplateClassMember.RunTimeParameters.Length != 1 &&
                          template.TemplateClassMember.RunTimeParameters.Length != fullParameterCount )
                     {
                         throw new InvalidTemplateSignatureException(
@@ -422,13 +423,13 @@ internal static class TemplateBindingHelper
                     for ( var i = 0; i < template.TemplateClassMember.RunTimeParameters.Length; i++ )
                     {
                         var templateParameter = templateMethodSymbol.Parameters[template.TemplateClassMember.RunTimeParameters[i].SourceIndex];
-                        
+
                         if ( i == 0 )
                         {
                             // First parameter is always the handler/delegate type with special name "handler"
                             ExpressionSyntax handlerExpression = IdentifierName( "handler" );
                             handlerExpression = TypeAnnotationMapper.AddExpressionTypeAnnotation( handlerExpression, containingEvent.Type );
-                            
+
                             parameterMapping.Add( templateParameter.Name, handlerExpression );
 
                             if ( !VerifyTemplateType( templateParameter.Type, containingEvent.Type, template, targetMethod, arguments ) )
@@ -445,7 +446,7 @@ internal static class TemplateBindingHelper
                             var delegateParameter = delegateInvokeMethod.Parameters[delegateParameterIndex];
 
                             ExpressionSyntax tupleAccessExpression = MemberAccessExpression(
-                                Microsoft.CodeAnalysis.CSharp.SyntaxKind.SimpleMemberAccessExpression,
+                                SyntaxKind.SimpleMemberAccessExpression,
                                 IdentifierName( "args" ),
                                 IdentifierName( delegateParameter.Name ) );
 

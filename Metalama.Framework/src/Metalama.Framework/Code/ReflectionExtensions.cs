@@ -14,14 +14,14 @@ namespace Metalama.Framework.Code;
 public static class ReflectionExtensions
 {
     // ReSharper disable once SuspiciousTypeConversion.Global
-    
+
     /// <summary>
     /// Returns the <see cref="IExpression"/> representation of the given <see cref="MemberInfo"/>, when available, or <see langword="null"/>.
     /// </summary>
     public static IExpression? AsExpression( this MemberInfo memberInfo ) => memberInfo as IExpression;
-    
+
     // ReSharper disable once SuspiciousTypeConversion.Global
-    
+
     /// <summary>
     /// Returns the <see cref="IExpression"/> representation of the given <see cref="ParameterInfo"/>, when available, or <see langword="null"/>.
     /// </summary>
@@ -32,14 +32,14 @@ public static class ReflectionExtensions
             $"Cannot convert an instance of type {obj?.GetType().Name} to a run-time expression. If you are attempting to use a run-time expression as IExpression in compile-time code, that is not supported." );
 
     // ReSharper disable once SuspiciousTypeConversion.Global
-    
+
     /// <summary>
     /// Returns the <see cref="IExpression"/> representation of the given <see cref="MemberInfo"/>, when available, or throws an exception.
     /// </summary>
     public static IExpression ToExpression( this MemberInfo memberInfo ) => memberInfo as IExpression ?? Throw( memberInfo );
-    
+
     // ReSharper disable once SuspiciousTypeConversion.Global
-    
+
     /// <summary>
     /// Returns the <see cref="IExpression"/> representation of the given <see cref="ParameterInfo"/>, when available, or throws an exception.
     /// </summary>

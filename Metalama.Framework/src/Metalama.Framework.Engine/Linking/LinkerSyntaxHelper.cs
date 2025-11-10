@@ -19,7 +19,7 @@ internal static class LinkerSyntaxHelper
                 when accessors.Any( a => a.IsKind( SyntaxKind.UnknownAccessorDeclaration ) ) => true,
             IndexerDeclarationSyntax { AccessorList.Accessors: { } accessors }
                 when accessors.Any( a => a.IsKind( SyntaxKind.UnknownAccessorDeclaration ) ) => true,
-            _ => false,
+            _ => false
         };
     }
 }

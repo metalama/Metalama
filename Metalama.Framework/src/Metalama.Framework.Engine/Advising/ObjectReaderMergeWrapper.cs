@@ -17,7 +17,7 @@ namespace Metalama.Framework.Engine.Advising
         private ImmutableDictionary<string, object?>? _dictionary;
 
         private ImmutableDictionary<string, object?> Dictionary => this._dictionary ??= this.BuildDictionary();
-        
+
         public ObjectReaderMergeWrapper( params IObjectReader?[] readers )
         {
             this._readers = readers;
@@ -26,7 +26,7 @@ namespace Metalama.Framework.Engine.Advising
         private ImmutableDictionary<string, object?> BuildDictionary()
         {
             var dictionaryBuilder = ImmutableDictionary<string, object?>.Empty.ToBuilder();
-        
+
             foreach ( var reader in this._readers )
             {
                 if ( reader == null )

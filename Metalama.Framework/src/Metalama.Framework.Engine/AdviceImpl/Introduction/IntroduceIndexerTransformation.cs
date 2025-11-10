@@ -36,7 +36,8 @@ internal sealed class IntroduceIndexerTransformation : IntroduceMemberTransforma
                 finalIndexer.GetSyntaxModifierList(),
                 syntaxGenerator.TypeSyntax( finalIndexer.Type ).WithOptionalTrailingTrivia( ElasticSpace, context.SyntaxGenerationContext.Options ),
                 finalIndexer.ExplicitInterfaceImplementations.Count > 0
-                    ? ExplicitInterfaceSpecifier( (NameSyntax) syntaxGenerator.TypeSyntax( finalIndexer.ExplicitInterfaceImplementations.Single().DeclaringType ) )
+                    ? ExplicitInterfaceSpecifier(
+                        (NameSyntax) syntaxGenerator.TypeSyntax( finalIndexer.ExplicitInterfaceImplementations.Single().DeclaringType ) )
                     : null,
                 Token( SyntaxKind.ThisKeyword ),
                 context.SyntaxGenerator.ParameterList( finalIndexer, context.FinalCompilation ),

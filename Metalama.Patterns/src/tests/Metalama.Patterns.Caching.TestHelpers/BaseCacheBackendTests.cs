@@ -563,7 +563,6 @@ namespace Metalama.Patterns.Caching.TestHelpers
         }
 
         [Fact]
-
         public void TestRemovalEventByDependency()
         {
             if ( !this.TestDependencies )

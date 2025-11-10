@@ -12,6 +12,8 @@ using System.Collections.Generic;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 using Accessibility = Metalama.Framework.Code.Accessibility;
 using RefKind = Metalama.Framework.Code.RefKind;
+using SpecialType = Metalama.Framework.Code.SpecialType;
+using TypeKind = Metalama.Framework.Code.TypeKind;
 
 namespace Metalama.Framework.Engine.CodeModel.Helpers;
 
@@ -84,7 +86,7 @@ internal static class ModifierHelper
 
         // Private void partial methods skip accessibility to make implementation non-mandatory.
         if ( (categories & ModifierCategories.Accessibility) != 0
-             && member is not IMethod { IsPartial: true, Accessibility: Accessibility.Private, ReturnType.SpecialType: Code.SpecialType.Void } )
+             && member is not IMethod { IsPartial: true, Accessibility: Accessibility.Private, ReturnType.SpecialType: SpecialType.Void } )
         {
             AddAccessibilityTokens( member, tokens );
         }
@@ -116,7 +118,7 @@ internal static class ModifierHelper
                 AddToken( SyntaxKind.NewKeyword );
             }
 
-            if ( member.DeclaringType is { TypeKind: Code.TypeKind.Interface } )
+            if ( member.DeclaringType is { TypeKind: TypeKind.Interface } )
             {
                 Invariant.Assert( !member.IsOverride );
                 Invariant.Implies( member.IsAbstract, member.Accessibility is not Accessibility.Private );
@@ -212,8 +214,8 @@ internal static class ModifierHelper
             {
                 AddToken( SyntaxKind.NewKeyword );
             }
-            
-            if ( namedType.IsAbstract && namedType.TypeKind != Code.TypeKind.Interface )
+
+            if ( namedType.IsAbstract && namedType.TypeKind != TypeKind.Interface )
             {
                 AddToken( SyntaxKind.AbstractKeyword );
             }
@@ -292,7 +294,7 @@ internal static class ModifierHelper
                 break;
 
             case Accessibility.Public:
-                if ( member.DeclaringType is not { TypeKind: Code.TypeKind.Interface } )
+                if ( member.DeclaringType is not { TypeKind: TypeKind.Interface } )
                 {
                     // Idiomatically, public accessor is skipped in interfaces.
                     AddToken( SyntaxKind.PublicKeyword );

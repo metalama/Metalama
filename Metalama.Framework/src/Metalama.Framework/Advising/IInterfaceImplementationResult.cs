@@ -11,7 +11,7 @@ namespace Metalama.Framework.Advising
     /// Describes an interface type implemented by <see cref="IAdviceFactory.ImplementInterface(INamedType, INamedType, OverrideStrategy, object?)"/>.
     /// </summary>
     [CompileTime]
-    public interface IInterfaceImplementationResult 
+    public interface IInterfaceImplementationResult
     {
         /// <summary>
         /// Gets an interface type that was considered by the advice.
@@ -22,7 +22,7 @@ namespace Metalama.Framework.Advising
         /// Gets a value indicating the action taken to implement the interface type.
         /// </summary>
         InterfaceImplementationOutcome Outcome { get; }
-        
+
         IInterfaceImplementationAdviser ExplicitMembers { get; }
     }
 }

@@ -344,16 +344,17 @@ namespace Metalama.Framework.Engine.Linking
                 existingAccessorList
                     .WithAccessors(
                         List(
-                            existingAccessorList.Accessors.SelectAsArray( a =>
-                                                                              TransformAccessor(
-                                                                                  a,
-                                                                                  a.Kind() switch
-                                                                                  {
-                                                                                      SyntaxKind.AddAccessorDeclaration => symbol.AddMethod.AssertNotNull(),
-                                                                                      SyntaxKind.RemoveAccessorDeclaration =>
-                                                                                          symbol.RemoveMethod.AssertNotNull(),
-                                                                                      _ => throw new AssertionFailedException( $"Unexpected kind: {a}" )
-                                                                                  } ) ) ) )
+                            existingAccessorList.Accessors.SelectAsArray(
+                                a =>
+                                    TransformAccessor(
+                                        a,
+                                        a.Kind() switch
+                                        {
+                                            SyntaxKind.AddAccessorDeclaration => symbol.AddMethod.AssertNotNull(),
+                                            SyntaxKind.RemoveAccessorDeclaration =>
+                                                symbol.RemoveMethod.AssertNotNull(),
+                                            _ => throw new AssertionFailedException( $"Unexpected kind: {a}" )
+                                        } ) ) ) )
                     .WithSourceCodeAnnotation();
 
             return this.GetSpecialImplEvent(
@@ -400,17 +401,18 @@ namespace Metalama.Framework.Engine.Linking
             var cleanAccessorList =
                 accessorList.WithAccessors(
                     List(
-                        accessorList.Accessors.SelectAsReadOnlyList( a =>
-                                                                         a.Kind() switch
-                                                                         {
-                                                                             SyntaxKind.AddAccessorDeclaration => this.FilterAttributesOnSpecialImpl(
-                                                                                 symbol.AddMethod.AssertNotNull(),
-                                                                                 a ),
-                                                                             SyntaxKind.RemoveAccessorDeclaration => this.FilterAttributesOnSpecialImpl(
-                                                                                 symbol.RemoveMethod.AssertNotNull(),
-                                                                                 a ),
-                                                                             _ => throw new AssertionFailedException( $"Unexpected kind: {a}" )
-                                                                         } ) ) );
+                        accessorList.Accessors.SelectAsReadOnlyList(
+                            a =>
+                                a.Kind() switch
+                                {
+                                    SyntaxKind.AddAccessorDeclaration => this.FilterAttributesOnSpecialImpl(
+                                        symbol.AddMethod.AssertNotNull(),
+                                        a ),
+                                    SyntaxKind.RemoveAccessorDeclaration => this.FilterAttributesOnSpecialImpl(
+                                        symbol.RemoveMethod.AssertNotNull(),
+                                        a ),
+                                    _ => throw new AssertionFailedException( $"Unexpected kind: {a}" )
+                                } ) ) );
 
             return
                 EventDeclaration(

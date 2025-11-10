@@ -8,13 +8,13 @@ using System.ComponentModel;
 namespace Metalama.Patterns.Observability.UnitTests.Assets.Generic;
 
 /* Currently supported generic property types:
- * 
+ *
  * where class
  * where class, INotifyPropertyChanged
  * where struct
- * 
+ *
  * Not supported, probably never will(?):
- * 
+ *
  * where struct, INotifyPropertyChanged
  * unconstrained
  */

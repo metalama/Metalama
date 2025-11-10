@@ -24,5 +24,5 @@ public enum TestSyntaxTreeKind
     /// <summary>
     /// A helper syntax tree added by the pipeline but not by the aspect.
     /// </summary>
-    Helper,
+    Helper
 }

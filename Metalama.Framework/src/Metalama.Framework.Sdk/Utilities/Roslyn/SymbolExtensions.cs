@@ -78,7 +78,8 @@ public static class SymbolExtensions
                 return GetReferenceOfShortestPath( symbol ) ?? GetReferenceOfShortestPath( associatedSymbol );
 
             // We have to use reflection here, because the properties don't exist in Roslyn 4.4, which is the only target of this project.
-            case IPropertySymbol propertySymbol when _isPartialDefinition( propertySymbol ) && _getPartialImplementationPart( propertySymbol ) is { } partialDefinitionSymbol:
+            case IPropertySymbol propertySymbol
+                when _isPartialDefinition( propertySymbol ) && _getPartialImplementationPart( propertySymbol ) is { } partialDefinitionSymbol:
                 return GetReferenceOfShortestPath( partialDefinitionSymbol );
 
             default:

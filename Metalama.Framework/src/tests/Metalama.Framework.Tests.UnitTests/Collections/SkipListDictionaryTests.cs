@@ -244,7 +244,7 @@ namespace Metalama.Framework.Tests.UnitTests.Collections
             Assert.Equal( 0, skipList.IndexOfKey( 1 ) );
             Assert.Equal( 1, skipList.IndexOfKey( 2 ) );
             Assert.Equal( -1, skipList.IndexOfKey( 0 ) );
-            
+
             // ReSharper disable UsageOfDefaultStructEquality
             Assert.Equal( 0, skipList.IndexOf( new KeyValuePair<int, int>( 1, 4 ) ) );
             Assert.Equal( -1, skipList.IndexOf( new KeyValuePair<int, int>( 1, 0 ) ) );

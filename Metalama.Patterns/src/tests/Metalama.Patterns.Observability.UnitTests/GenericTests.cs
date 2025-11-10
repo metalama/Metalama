@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using FluentAssertions;
+using Metalama.Patterns.Observability.UnitTests.Assets.Core;
 using Metalama.Patterns.Observability.UnitTests.Assets.Generic;
 using Xunit;
 
@@ -17,7 +18,7 @@ public sealed class GenericTests : InpcTestsBase
 
         this.SubscribeTo( v );
 
-        this.EventsFrom( () => v.A1 = new() )
+        this.EventsFrom( () => v.A1 = new Simple() )
             .Should()
             .Equal( "RefA1S1", "A1" );
 
@@ -77,7 +78,7 @@ public sealed class GenericTests : InpcTestsBase
 
         this.SubscribeTo( v );
 
-        this.EventsFrom( () => v.D1 = new() )
+        this.EventsFrom( () => v.D1 = new MyFoo() )
             .Should()
             .Equal( "FooX", "FooY", "D1" );
 

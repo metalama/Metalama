@@ -131,8 +131,8 @@ public partial class TestContext : IDisposable, ITempFileManager, IApplicationIn
             typedAdditionalServices.GlobalServices.Add( sp => sp.WithServiceConditional<IGlobalOptions>( _ => new TestGlobalOptions() ) );
             typedAdditionalServices.GlobalServices.Add<IExtensionLoader>( _ => new TestExtensionLoader( contextOptions ), true );
 
-            typedAdditionalServices.GlobalServices.Add( sp => sp.WithService<IProjectOptionsFactory>( _ => new TestProjectOptionsFactory(
-                                                                                                          this.ProjectOptions ) ) );
+            typedAdditionalServices.GlobalServices.Add(
+                sp => sp.WithService<IProjectOptionsFactory>( _ => new TestProjectOptionsFactory( this.ProjectOptions ) ) );
 
             typedAdditionalServices.ProjectServices.Add( sp => new TestLanguageVersionProvider() );
 

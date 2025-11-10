@@ -121,7 +121,7 @@ internal sealed partial class AccessorBuilder : DeclarationBuilder, IMethodBuild
         };
 
     [Memo]
-    private IMethod EventDelegateInvokeMethod => ( (IEvent)this._containingMember ).Type.Methods.OfName( "Invoke" ).Single();
+    private IMethod EventDelegateInvokeMethod => ((IEvent) this._containingMember).Type.Methods.OfName( "Invoke" ).Single();
 
     public MethodKind MethodKind { get; }
 

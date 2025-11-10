@@ -78,7 +78,8 @@ public class ImmutableAttribute : TypeAspect, IHierarchicalOptionsProvider
             {
                 builder.Outbound.Select( c => field.ForCompilation( c.Compilation ) )
                     .Where( field => field.Type.GetImmutabilityKind() != ImmutabilityKind.Deep )
-                    .ReportDiagnostic( field => ImmutabilityDiagnostics.FieldOrPropertyMustBeOfDeeplyImmutableType.WithArguments( (field, field.DeclarationKind) ) );
+                    .ReportDiagnostic(
+                        field => ImmutabilityDiagnostics.FieldOrPropertyMustBeOfDeeplyImmutableType.WithArguments( (field, field.DeclarationKind) ) );
             }
         }
     }

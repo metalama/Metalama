@@ -36,7 +36,8 @@ internal sealed class CompileTimeFieldInfoSerializer : ObjectSerializer<CompileT
         ExpressionSyntax fieldInfo = InvocationExpression(
                 MemberAccessExpression( SyntaxKind.SimpleMemberAccessExpression, typeCreation, IdentifierName( "GetField" ) ),
                 ArgumentList(
-                    SeparatedList( [Argument( LiteralExpression( SyntaxKind.StringLiteralExpression, Literal( field.Name ) ) ), Argument( allBindingFlags )] ) ) )
+                    SeparatedList(
+                        [Argument( LiteralExpression( SyntaxKind.StringLiteralExpression, Literal( field.Name ) ) ), Argument( allBindingFlags )] ) ) )
             .NormalizeWhitespaceIfNecessary( serializationContext.SyntaxGenerationContext );
 
         // In the new .NET, the API is marked for nullability, so we have to suppress the warning.

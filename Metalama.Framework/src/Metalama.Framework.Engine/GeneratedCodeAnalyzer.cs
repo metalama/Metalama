@@ -38,7 +38,14 @@ internal class GeneratedCodeAnalyzer : DiagnosticAnalyzer
         context.EnableConcurrentExecution();
         context.ConfigureGeneratedCodeAnalysis( GeneratedCodeAnalysisFlags.Analyze | GeneratedCodeAnalysisFlags.ReportDiagnostics );
 
-        context.RegisterSymbolAction( AnalyzeSymbol, SymbolKind.Event, SymbolKind.Field, SymbolKind.Method, SymbolKind.NamedType, SymbolKind.Parameter, SymbolKind.Property );
+        context.RegisterSymbolAction(
+            AnalyzeSymbol,
+            SymbolKind.Event,
+            SymbolKind.Field,
+            SymbolKind.Method,
+            SymbolKind.NamedType,
+            SymbolKind.Parameter,
+            SymbolKind.Property );
     }
 
     private static void AnalyzeSymbol( SymbolAnalysisContext context )

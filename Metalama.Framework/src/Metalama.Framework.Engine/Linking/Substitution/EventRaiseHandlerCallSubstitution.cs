@@ -76,29 +76,30 @@ internal sealed class EventRaiseHandlerCallSubstitution : SyntaxNodeSubstitution
                             ArgumentList(
                                 Token( SyntaxKind.OpenParenToken ),
                                 SeparatedList(
-                                    this._delegateSignature.Parameters.Select( ( p, i ) =>
-                                                                                   Argument(
-                                                                                       null,
-                                                                                       p.RefKind switch
-                                                                                       {
-                                                                                           RefKind.In => Token(
-                                                                                               default,
-                                                                                               SyntaxKind.InKeyword,
-                                                                                               SyntaxFactoryEx.ElasticSpaceTriviaList ),
-                                                                                           RefKind.Ref => Token(
-                                                                                               default,
-                                                                                               SyntaxKind.RefKeyword,
-                                                                                               SyntaxFactoryEx.ElasticSpaceTriviaList ),
-                                                                                           RefKind.Out => Token(
-                                                                                               default,
-                                                                                               SyntaxKind.OutKeyword,
-                                                                                               SyntaxFactoryEx.ElasticSpaceTriviaList ),
-                                                                                           _ => default
-                                                                                       },
-                                                                                       MemberAccessExpression(
-                                                                                           SyntaxKind.SimpleMemberAccessExpression,
-                                                                                           IdentifierName( argsName ),
-                                                                                           IdentifierName( tupleElements[i].Name ) ) ) ) ),
+                                    this._delegateSignature.Parameters.Select(
+                                        ( p, i ) =>
+                                            Argument(
+                                                null,
+                                                p.RefKind switch
+                                                {
+                                                    RefKind.In => Token(
+                                                        default,
+                                                        SyntaxKind.InKeyword,
+                                                        SyntaxFactoryEx.ElasticSpaceTriviaList ),
+                                                    RefKind.Ref => Token(
+                                                        default,
+                                                        SyntaxKind.RefKeyword,
+                                                        SyntaxFactoryEx.ElasticSpaceTriviaList ),
+                                                    RefKind.Out => Token(
+                                                        default,
+                                                        SyntaxKind.OutKeyword,
+                                                        SyntaxFactoryEx.ElasticSpaceTriviaList ),
+                                                    _ => default
+                                                },
+                                                MemberAccessExpression(
+                                                    SyntaxKind.SimpleMemberAccessExpression,
+                                                    IdentifierName( argsName ),
+                                                    IdentifierName( tupleElements[i].Name ) ) ) ) ),
                                 Token( TriviaList(), SyntaxKind.CloseParenToken, TriviaList( trailingTrivia ) ) ) );
                 }
                 else

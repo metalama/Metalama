@@ -13,20 +13,20 @@ namespace Metalama.Framework.Tests.UnitTests.CodeModel;
 public sealed class DerivedTypesTests : UnitTestClass
 {
     private const string _code = """
-                                 
+
                                      using System;
                                      using System.IO;
-                                 
+
                                      class NotDerived { }
-                                 
+
                                      class DirectlyDerivedClass : IDisposable { public void Dispose() {} }
-                                 
+
                                      interface IDerivedInterface : IDisposable {}
-                                 
+
                                      class IndirectlyDerivedThroughBaseClass : DirectlyDerivedClass {}
-                                 
+
                                      class IndirectlyDerivedThroughInterface : IDerivedInterface { public void Dispose() {} }
-                                 
+
                                      class MyTextReader : TextReader { }
 
                                  """;

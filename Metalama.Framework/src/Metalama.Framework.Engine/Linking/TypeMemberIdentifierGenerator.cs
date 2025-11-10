@@ -19,7 +19,7 @@ internal class TypeMemberIdentifierGenerator
         this.UsedNames = new ConcurrentDictionary<INamedTypeSymbol, HashSet<string>>( compilationContext.SymbolComparer );
     }
 
-    private static HashSet<string> InitializeType(INamedTypeSymbol typeSymbol)
+    private static HashSet<string> InitializeType( INamedTypeSymbol typeSymbol )
     {
         var usedNames = new HashSet<string>( StringComparer.Ordinal );
 
@@ -39,21 +39,24 @@ internal class TypeMemberIdentifierGenerator
         var alwaysUseSuffix = (flags & IdentifierFlags.AlwaysUseSuffix) != 0;
         var makePrivateFieldName = (flags & IdentifierFlags.MakePrivateFieldName) != 0;
 
-        if (makePrivateFieldName)
+        if ( makePrivateFieldName )
         {
             // Prefix with underscore and lowercase first letter.
-            hint = $"_{char.ToLowerInvariant(hint[0])}{hint.Substring(1)}";
+            hint = $"_{char.ToLowerInvariant( hint[0] )}{hint.Substring( 1 )}";
         }
 
         lock ( usedNames )
         {
             var name = alwaysUseSuffix ? $"{hint}_0" : hint;
             var index = alwaysUseSuffix ? 1 : 0;
+
             while ( usedNames.Contains( name ) )
             {
                 name = $"{hint}_{++index}";
             }
+
             usedNames.Add( name );
+
             return name;
         }
     }

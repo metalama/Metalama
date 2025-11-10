@@ -29,5 +29,5 @@ internal enum InjectedMemberSemantic
     /// <summary>
     /// The injected member is an override of event raise.
     /// </summary>
-    OverrideEventRaise,
+    OverrideEventRaise
 }

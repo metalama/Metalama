@@ -178,7 +178,11 @@ public static partial class EligibilityRuleFactory
                 d =>
                 {
                     d.MustBeInstanceOfAnyType( typeof(IParameter), typeof(IFieldOrPropertyOrIndexer) );
-                    d.Convert().When<IParameter>().MustSatisfyAll( p => p.AddRule( parameterEligibilityDefault ), p => p.MustNotBeExtensionBlockReceiverParameter() );
+
+                    d.Convert()
+                        .When<IParameter>()
+                        .MustSatisfyAll( p => p.AddRule( parameterEligibilityDefault ), p => p.MustNotBeExtensionBlockReceiverParameter() );
+
                     d.Convert().When<IFieldOrPropertyOrIndexer>().AddRule( propertyOrIndexerEligibilityDefault );
                 } );
         }

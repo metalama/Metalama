@@ -161,7 +161,7 @@ namespace Metalama.Framework.Code
         /// <c>-=</c> operator (C# 14+).
         /// </summary>
         SubtractionAssignment,
-        
+
         /// <summary>
         /// <c>/=</c> operator (C# 14+).
         /// </summary>

@@ -19,7 +19,8 @@ internal sealed class PropertyBackingFieldReferenceSubstitution : SyntaxNodeSubs
     private readonly SyntaxNode _rootNode;
     private readonly IPropertySymbol _targetProperty;
 
-    public PropertyBackingFieldReferenceSubstitution( CompilationContext compilationContext, SyntaxNode rootNode, IPropertySymbol targetProperty ) : base( compilationContext )
+    public PropertyBackingFieldReferenceSubstitution( CompilationContext compilationContext, SyntaxNode rootNode, IPropertySymbol targetProperty ) : base(
+        compilationContext )
     {
         this._rootNode = rootNode;
         this._targetProperty = targetProperty;
@@ -35,7 +36,8 @@ internal sealed class PropertyBackingFieldReferenceSubstitution : SyntaxNodeSubs
         {
             case FieldExpressionSyntax fieldExpression:
                 // Replacing the direct invocation.
-                return IdentifierName( Identifier( TriviaList( fieldExpression.Token.LeadingTrivia ), targetName, TriviaList( fieldExpression.Token.TrailingTrivia ) ) );
+                return IdentifierName(
+                    Identifier( TriviaList( fieldExpression.Token.LeadingTrivia ), targetName, TriviaList( fieldExpression.Token.TrailingTrivia ) ) );
 
             default:
                 throw new AssertionFailedException( $"Unsupported syntax: {currentNode}" );

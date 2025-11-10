@@ -16,8 +16,7 @@ namespace Metalama.Framework.Engine.Diagnostics;
 
 public static class SuppressionFactories
 {
-    public static SuppressionDescriptor CreateDescriptor( string diagnosticId )
-        => new( "Metalama." + diagnosticId, diagnosticId, justification: string.Empty );
+    public static SuppressionDescriptor CreateDescriptor( string diagnosticId ) => new( "Metalama." + diagnosticId, diagnosticId, justification: string.Empty );
 
     public static ISuppressibleDiagnostic CreateDiagnostic( Diagnostic diagnostic ) => new SuppressibleDiagnostic( diagnostic );
 
@@ -35,7 +34,7 @@ public static class SuppressionFactories
         {
             var recorder = new RecorderFormatProvider();
             diagnostic.GetMessage( recorder );
-            
+
             return recorder.Arguments.ToImmutableArray();
         }
 

@@ -142,9 +142,9 @@ internal sealed class IntroduceConstructorAdvice : IntroduceMemberAdvice<IMethod
                     if ( !hasNoOverrideSemantics )
                     {
                         var overriddenConstructor = new OverrideConstructorTransformation(
-                        this.AspectLayerInstance,
-                        existingConstructor.ToFullRef(),
-                        this._template.ForIntroduction( existingConstructor ) );
+                            this.AspectLayerInstance,
+                            existingConstructor.ToFullRef(),
+                            this._template.ForIntroduction( existingConstructor ) );
 
                         context.AddTransformation( overriddenConstructor );
 

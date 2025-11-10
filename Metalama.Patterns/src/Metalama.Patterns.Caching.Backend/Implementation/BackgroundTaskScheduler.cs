@@ -183,7 +183,7 @@ public sealed class BackgroundTaskScheduler : IDisposable, IAsyncDisposable
         // AwaitableEvent does not support CancellationToken.
         await this._backgroundTasksFinishedEvent.WaitAsync( CancellationToken.None );
     }
-    
+
     public void Dispose() => this.Dispose( default );
 
     public void Dispose( CancellationToken cancellationToken )

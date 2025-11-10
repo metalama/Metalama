@@ -100,12 +100,13 @@ public sealed partial class SourceTransformer : ISourceTransformerWithServices
             // ReSharper disable once AccessToDisposedClosure
 
             var pipelineResult =
-                taskRunner.RunSynchronously( () => pipeline.ExecuteAsync(
-                                                 context.ReportDiagnostic,
-                                                 suppressions.Enqueue,
-                                                 context.Compilation,
-                                                 context.Resources,
-                                                 TestableCancellationToken.None ) );
+                taskRunner.RunSynchronously(
+                    () => pipeline.ExecuteAsync(
+                        context.ReportDiagnostic,
+                        suppressions.Enqueue,
+                        context.Compilation,
+                        context.Resources,
+                        TestableCancellationToken.None ) );
 
             HandleSuppressions( context, projectServiceProvider, suppressions );
 

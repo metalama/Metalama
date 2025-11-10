@@ -72,7 +72,7 @@ internal sealed partial class LinkerAnalysisStep
                         if ( property.GetMethod != null )
                         {
                             AddImplicitReference(
-                                property.GetMethod.ToSemantic(IntermediateSymbolSemanticKind.Final),
+                                property.GetMethod.ToSemantic( IntermediateSymbolSemanticKind.Final ),
                                 property,
                                 this._injectionRegistry.GetLastOverride( property ).ToSemantic( IntermediateSymbolSemanticKind.Default ),
                                 AspectReferenceTargetKind.PropertyGetAccessor );
@@ -110,11 +110,13 @@ internal sealed partial class LinkerAnalysisStep
 
                             var previousSemantic = @event.ToSemantic( IntermediateSymbolSemanticKind.Final );
 
-                            for (var i = overrides.Count - 1; i >= 0; i-- )
+                            for ( var i = overrides.Count - 1; i >= 0; i-- )
                             {
                                 if ( this._injectionRegistry.HasEventRaiseOverride( overrides[i] ) )
                                 {
-                                    var eventRaiseOverride = (IMethodSymbol?) this._injectionRegistry.GetSatelliteOverrideMembers( overrides[i] ).SingleOrDefault();
+                                    var eventRaiseOverride =
+                                        (IMethodSymbol?) this._injectionRegistry.GetSatelliteOverrideMembers( overrides[i] ).SingleOrDefault();
+
                                     var sourceAddSemantic = previousSemantic.Symbol.AddMethod.AssertNotNull().ToSemantic( previousSemantic.Kind );
                                     var sourceRemoveSemantic = previousSemantic.Symbol.RemoveMethod.AssertNotNull().ToSemantic( previousSemantic.Kind );
 
@@ -160,7 +162,8 @@ internal sealed partial class LinkerAnalysisStep
                             MethodDeclarationSyntax method => method.Body ?? (SyntaxNode?) method.ExpressionBody ?? method,
                             DestructorDeclarationSyntax destructor => destructor.Body
                                                                       ?? (SyntaxNode?) destructor.ExpressionBody
-                                                                      ?? throw new AssertionFailedException( $"'{containingSemantic.Symbol}' has no implementation." ),
+                                                                      ?? throw new AssertionFailedException(
+                                                                          $"'{containingSemantic.Symbol}' has no implementation." ),
                             OperatorDeclarationSyntax @operator => @operator.Body
                                                                    ?? (SyntaxNode?) @operator.ExpressionBody
                                                                    ?? @operator,
@@ -172,7 +175,8 @@ internal sealed partial class LinkerAnalysisStep
                                                                   ?? accessor ?? throw new AssertionFailedException(
                                                                       $"'{containingSemantic.Symbol}' has no implementation." ),
                             VariableDeclaratorSyntax declarator => declarator
-                                                                   ?? throw new AssertionFailedException( $"'{containingSemantic.Symbol}' has no implementation." ),
+                                                                   ?? throw new AssertionFailedException(
+                                                                       $"'{containingSemantic.Symbol}' has no implementation." ),
                             ArrowExpressionClauseSyntax arrowExpressionClause => arrowExpressionClause,
                             ParameterSyntax { Parent: ParameterListSyntax { Parent: RecordDeclarationSyntax } } recordParameter => recordParameter,
                             _ => throw new AssertionFailedException( $"Unexpected syntax for '{containingSemantic.Symbol}'." )
@@ -191,11 +195,13 @@ internal sealed partial class LinkerAnalysisStep
                             targetKind,
                             isInlineable ?? true,
                             true,
-                            isVirtual ?? false);
+                            isVirtual ?? false );
 
-                    var referencesForContainingSemantic =(List<ResolvedAspectReference>) aspectReferences.GetOrAdd( containingSemantic, cs => new List<ResolvedAspectReference>() );
+                    var referencesForContainingSemantic = (List<ResolvedAspectReference>) aspectReferences.GetOrAdd(
+                        containingSemantic,
+                        cs => new List<ResolvedAspectReference>() );
 
-                    lock (referencesForContainingSemantic)
+                    lock ( referencesForContainingSemantic )
                     {
                         referencesForContainingSemantic.Add( resolvedReference );
                     }

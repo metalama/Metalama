@@ -52,9 +52,9 @@ public sealed class AsyncEnumerableTests : AsyncEnumTestsBase
     {
         // ReSharper disable once NotDisposedResource
         _ = await this.Instance.CachedEnumerable().GetAsyncEnumerator().MoveNextAsync();
-        
+
         this.StringBuilder.Clear();
-        
+
         // ReSharper disable once NotDisposedResource
         _ = await this.Instance.CachedEnumerable().GetAsyncEnumerator().MoveNextAsync();
 

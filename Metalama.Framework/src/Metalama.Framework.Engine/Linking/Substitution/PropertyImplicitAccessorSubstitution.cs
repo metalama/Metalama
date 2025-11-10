@@ -20,7 +20,8 @@ internal sealed class PropertyImplicitAccessorSubstitution : SyntaxNodeSubstitut
     private readonly SyntaxNode _rootNode;
     private readonly IPropertySymbol _targetProperty;
 
-    public PropertyImplicitAccessorSubstitution( CompilationContext compilationContext, SyntaxNode rootNode, IPropertySymbol targetProperty ) : base( compilationContext )
+    public PropertyImplicitAccessorSubstitution( CompilationContext compilationContext, SyntaxNode rootNode, IPropertySymbol targetProperty ) : base(
+        compilationContext )
     {
         this._rootNode = rootNode;
         this._targetProperty = targetProperty;
@@ -34,25 +35,28 @@ internal sealed class PropertyImplicitAccessorSubstitution : SyntaxNodeSubstitut
 
         switch ( currentNode )
         {
-            case AccessorDeclarationSyntax { RawKind: (int)SyntaxKind.SetAccessorDeclaration or (int)SyntaxKind.InitAccessorDeclaration, Body: null, ExpressionBody: null } accessorDeclaration:
+            case AccessorDeclarationSyntax
+            {
+                RawKind: (int) SyntaxKind.SetAccessorDeclaration or (int) SyntaxKind.InitAccessorDeclaration, Body: null, ExpressionBody: null
+            } accessorDeclaration:
                 // Replacing a body-less set/init accessor (auto property).
-                return 
+                return
                     Block(
-                        ExpressionStatement(
-                            AssignmentExpression(
-                                SyntaxKind.SimpleAssignmentExpression,
-                                IdentifierName( targetName ),
-                                IdentifierName( "value" ) ) ) )
-                    .WithTriviaFromIfNecessary( accessorDeclaration, substitutionContext.SyntaxGenerationContext.Options );
+                            ExpressionStatement(
+                                AssignmentExpression(
+                                    SyntaxKind.SimpleAssignmentExpression,
+                                    IdentifierName( targetName ),
+                                    IdentifierName( "value" ) ) ) )
+                        .WithTriviaFromIfNecessary( accessorDeclaration, substitutionContext.SyntaxGenerationContext.Options );
 
             case AccessorDeclarationSyntax { RawKind: (int) SyntaxKind.GetAccessorDeclaration, Body: null, ExpressionBody: null } accessorDeclaration:
                 // Replacing a body-less get accessor (auto property).
                 return
                     Block(
-                        ReturnStatement(
-                            SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.ReturnKeyword ),
-                            IdentifierName( targetName ),
-                            Token( SyntaxKind.SemicolonToken ) ) )
+                            ReturnStatement(
+                                SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.ReturnKeyword ),
+                                IdentifierName( targetName ),
+                                Token( SyntaxKind.SemicolonToken ) ) )
                         .WithTriviaFromIfNecessary( accessorDeclaration, substitutionContext.SyntaxGenerationContext.Options );
 
             default:
