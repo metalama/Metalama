@@ -45,4 +45,7 @@ internal class Targets
         [ExcludeAspect( typeof(Aspect) )]
         set;
     }
+
+    [ExcludeAspect( typeof(Aspect) )]
+    public int F;
 }

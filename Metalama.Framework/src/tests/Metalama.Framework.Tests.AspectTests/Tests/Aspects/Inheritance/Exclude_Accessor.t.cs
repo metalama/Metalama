@@ -31,4 +31,6 @@ internal class Targets
       this._c = value;
     }
   }
+  [ExcludeAspect(typeof(Aspect))]
+  public int F;
 }
