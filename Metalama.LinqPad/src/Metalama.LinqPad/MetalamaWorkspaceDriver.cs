@@ -5,7 +5,6 @@
 using JetBrains.Annotations;
 using LINQPad.Extensibility.DataContext;
 using Metalama.Framework.Engine.Utilities;
-using Metalama.Framework.Workspaces;
 using System;
 using System.Collections.Generic;
 using System.IO;

@@ -7,8 +7,6 @@ using Metalama.Backstage.Application;
 using Metalama.Backstage.Extensibility;
 using Metalama.Framework.Engine.Utilities.Diagnostics;
 using Metalama.Framework.Workspaces;
-using Microsoft.CodeAnalysis.MSBuild;
-using System.IO;
 
 namespace Metalama.LinqPad;
 
@@ -45,7 +43,7 @@ internal static class DriverInitialization
         }
     }
 
-    private class LinqPadApplicationInfo : ApplicationInfoBase
+    private sealed class LinqPadApplicationInfo : ApplicationInfoBase
     {
         public LinqPadApplicationInfo() : base( typeof(LinqPadApplicationInfo).Assembly ) { }
 
