@@ -19,8 +19,6 @@ namespace Metalama.Framework.Engine.Templating.Expressions
             bool? isReferenceable = null,
             bool? isAssignable = null )
         {
-            Invariant.Assert( type is not { TypeKind: TypeKind.Dynamic } );
-
             this.Expression = expression;
             this.Type = type;
             this.IsAssignable = isAssignable;

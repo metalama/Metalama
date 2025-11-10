@@ -69,8 +69,6 @@ namespace Metalama.Framework.Engine.Templating.Expressions
             bool? isReferenceable = null,
             bool? canBeNull = null )
         {
-            Invariant.Assert( expressionType is not { TypeKind: TypeKind.Dynamic } );
-
             if ( expressionType == null )
             {
                 TypeAnnotationMapper.TryFindExpressionTypeFromAnnotation( syntax, compilationModel, out expressionType );
