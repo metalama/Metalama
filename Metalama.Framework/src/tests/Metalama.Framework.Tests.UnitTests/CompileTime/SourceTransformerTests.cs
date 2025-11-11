@@ -53,6 +53,15 @@ public sealed class SourceTransformerTests : UnitTestClass
                                 
                                 [Introduce]
                                 private static dynamic Field;
+                                
+                                [Introduce]
+                                private readonly object _logger;
+                                
+                                [Introduce]
+                                private void M()
+                                {
+                                    _ = this._logger.ToString();
+                                }
 
                             }
                             """;

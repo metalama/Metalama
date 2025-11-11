@@ -12,6 +12,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Linq;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -28,7 +29,8 @@ public sealed class DiagnosticSuppressorTests : UnitTestClass
         services.AddGlobalService( provider => new DesignTimeExtensionManager( provider ) );
     }
 
-    private async Task<List<Suppression>> ExecuteSuppressorAsync( string code, string diagnosticId )
+    private async Task<(ImmutableArray<Diagnostic> Diagnostics, List<Suppression> Suppressions, IReadOnlyList<Diagnostic> RemainingDiagnostics)>
+        ExecuteSuppressorAsync( string code, string diagnosticId )
     {
         using var testContext = this.CreateTestContext();
 
@@ -46,7 +48,10 @@ public sealed class DiagnosticSuppressorTests : UnitTestClass
             analysisContext,
             ImmutableDictionary<string, SuppressionDescriptor>.Empty.Add( diagnosticId, new SuppressionDescriptor( diagnosticId, diagnosticId, "Because" ) ) );
 
-        return analysisContext.ReportedSuppressions;
+        var suppressedDiagnostics = analysisContext.ReportedSuppressions.SelectAsReadOnlyCollection( x => x.SuppressedDiagnostic ).ToHashSet();
+        var remainingDiagnostics = diagnostics.Where( d => d.Severity != DiagnosticSeverity.Hidden && !suppressedDiagnostics.Contains( d ) ).ToReadOnlyList();
+
+        return (diagnostics, analysisContext.ReportedSuppressions, remainingDiagnostics);
     }
 
     [Fact]
@@ -91,7 +96,7 @@ public sealed class DiagnosticSuppressorTests : UnitTestClass
 
         var suppressions = await this.ExecuteSuppressorAsync( code, "CS0219" );
 
-        var suppression = Assert.Single( suppressions );
+        var suppression = Assert.Single( suppressions.Suppressions );
 
         Assert.Equal( "code.cs(25,17): warning CS0219: The variable 'x' is assigned but its value is never used", suppression.SuppressedDiagnostic.ToString() );
     }
@@ -127,7 +132,7 @@ public sealed class DiagnosticSuppressorTests : UnitTestClass
 
         var suppressions = await this.ExecuteSuppressorAsync( code, "CS0169" );
 
-        var suppression = Assert.Single( suppressions );
+        var suppression = Assert.Single( suppressions.Suppressions );
 
         Assert.Equal( "code.cs(21,13): warning CS0169: The field 'TargetClass._field' is never used", suppression.SuppressedDiagnostic.ToString() );
     }
@@ -173,7 +178,7 @@ public sealed class DiagnosticSuppressorTests : UnitTestClass
 
         var suppressions = await this.ExecuteSuppressorAsync( code, "CS8618" );
 
-        var suppression = Assert.Single( suppressions );
+        var suppression = Assert.Single( suppressions.Suppressions );
 
 #if ROSLYN_4_12_0_OR_GREATER // The diagnostic message has changed between Roslyn 4.8 and 4.12
         Assert.Equal(
@@ -210,7 +215,7 @@ public sealed class DiagnosticSuppressorTests : UnitTestClass
 
         var suppressions = await this.ExecuteSuppressorAsync( code, "CS0169" );
 
-        var suppression = Assert.Single( suppressions );
+        var suppression = Assert.Single( suppressions.Suppressions );
 
         Assert.Equal( "code.cs(19,9): warning CS0169: The field 'TargetClass._field' is never used", suppression.SuppressedDiagnostic.ToString() );
     }
@@ -230,16 +235,27 @@ public sealed class DiagnosticSuppressorTests : UnitTestClass
                                 protected void SuspendInvariants()
                                 {
                                 }
+                                
+                                [Template]
+                                private static dynamic CommandProperty { get; }
+                                
+                                [Introduce]
+                                private static dynamic Field;
+                                
+                                [Introduce]
+                                private readonly object _logger;
+                                
+                                [Introduce]
+                                private void M()
+                                {
+                                    _ = this._logger.ToString();
+                                }
 
                             }
                             """;
 
-        var suppressions = await this.ExecuteSuppressorAsync( code, "CS0628" );
+        var result = await this.ExecuteSuppressorAsync( code, "CS0628" );
 
-        var suppression = Assert.Single( suppressions );
-
-        Assert.Equal(
-            "code.cs(9,20): warning CS0628: 'SomeAspect.SuspendInvariants()': new protected member declared in sealed type",
-            suppression.SuppressedDiagnostic.ToString() );
+        Assert.Empty( result.RemainingDiagnostics );
     }
 }
