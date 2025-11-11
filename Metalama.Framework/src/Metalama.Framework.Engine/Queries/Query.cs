@@ -82,7 +82,7 @@ namespace Metalama.Framework.Engine.Queries
         IQuery<INamedType> IQuery<TDeclaration>.SelectTypes( bool includeNestedTypes ) => this.SelectTypes( includeNestedTypes );
 
         ITaggedQuery<INamedType, TTag> ITaggedQuery<TDeclaration, TTag>.SelectTypesDerivedFrom( Type baseType, DerivedTypesOptions options )
-            => this.SelectTypesDerivedFromCore( c => (INamedType) c.Factory.GetTypeByReflectionType( baseType ), options );
+            => this.SelectTypesDerivedFromCore( c => c.Factory.GetNamedTypeByReflectionType( baseType ), options );
 
         ITaggedQuery<INamedType, TTag> ITaggedQuery<TDeclaration, TTag>.SelectTypesDerivedFrom(
             INamedType baseType,
@@ -90,7 +90,7 @@ namespace Metalama.Framework.Engine.Queries
             => this.SelectTypesDerivedFromCore( _ => baseType, options );
 
         IQuery<INamedType> IQuery<TDeclaration>.SelectTypesDerivedFrom( Type baseType, DerivedTypesOptions options )
-            => this.SelectTypesDerivedFromCore( c => (INamedType) c.Factory.GetTypeByReflectionType( baseType ), options );
+            => this.SelectTypesDerivedFromCore( c => c.Factory.GetNamedTypeByReflectionType( baseType ), options );
 
         IQuery<INamedType> IQuery<TDeclaration>.SelectTypesDerivedFrom( INamedType baseType, DerivedTypesOptions options )
             => this.SelectTypesDerivedFromCore( _ => baseType, options );

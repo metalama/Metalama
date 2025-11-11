@@ -7,7 +7,7 @@ using System;
 namespace Metalama.Framework.Aspects;
 
 /// <summary>
-/// Custom attribute attribute that, when applied to a declaration, specifies that this declaration and all its members must not be
+/// Custom attribute that, when applied to a declaration, specifies that this declaration and all its members must not be
 /// the target of aspects of given types, unless the aspect is explicitly specified as a custom attribute.
 /// </summary>
 [AttributeUsage( AttributeTargets.All )]

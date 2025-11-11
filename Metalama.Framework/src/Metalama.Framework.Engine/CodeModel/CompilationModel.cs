@@ -439,7 +439,7 @@ namespace Metalama.Framework.Engine.CodeModel
         }
 
         public IEnumerable<INamedType> GetDerivedTypes( Type baseType, DerivedTypesOptions options = default )
-            => this.GetDerivedTypes( (INamedType) this.Factory.GetTypeByReflectionType( baseType ), options );
+            => this.GetDerivedTypes( this.Factory.GetNamedTypeByReflectionType( baseType ), options );
 
         // TODO: throw an exception when the caller tries to get aspects that have not been initialized yet.
 
@@ -454,7 +454,7 @@ namespace Metalama.Framework.Engine.CodeModel
         ICompilation ICompilationElement.Compilation => this;
 
         public IEnumerable<IAttribute> GetAllAttributesOfType( Type type, bool includeDerivedTypes = false )
-            => this.GetAllAttributesOfType( (INamedType) this.Factory.GetTypeByReflectionType( type ), includeDerivedTypes );
+            => this.GetAllAttributesOfType( this.Factory.GetNamedTypeByReflectionType( type ), includeDerivedTypes );
 
         public IEnumerable<IAttribute> GetAllAttributesOfType( INamedType type, bool includeDerivedTypes = false )
         {

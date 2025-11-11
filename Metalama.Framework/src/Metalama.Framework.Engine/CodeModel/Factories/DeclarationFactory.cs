@@ -101,13 +101,13 @@ public sealed partial class DeclarationFactory : IDeclarationFactory, ISdkDeclar
             return
                 specialType switch
                 {
-                    SpecialType.List_T => (INamedType) this.GetTypeByReflectionType( typeof(List<>) ),
-                    SpecialType.ValueTask => (INamedType) this.GetTypeByReflectionType( typeof(ValueTask) ),
-                    SpecialType.ValueTask_T => (INamedType) this.GetTypeByReflectionType( typeof(ValueTask<>) ),
-                    SpecialType.ValueTuple => (INamedType) this.GetTypeByReflectionType( typeof(ValueTuple) ),
-                    SpecialType.Task => (INamedType) this.GetTypeByReflectionType( typeof(Task) ),
-                    SpecialType.Task_T => (INamedType) this.GetTypeByReflectionType( typeof(Task<>) ),
-                    SpecialType.Type => (INamedType) this.GetTypeByReflectionType( typeof(Type) ),
+                    SpecialType.List_T => this.GetNamedTypeByReflectionType( typeof(List<>) ),
+                    SpecialType.ValueTask => this.GetNamedTypeByReflectionType( typeof(ValueTask) ),
+                    SpecialType.ValueTask_T => this.GetNamedTypeByReflectionType( typeof(ValueTask<>) ),
+                    SpecialType.ValueTuple => this.GetNamedTypeByReflectionType( typeof(ValueTuple) ),
+                    SpecialType.Task => this.GetNamedTypeByReflectionType( typeof(Task) ),
+                    SpecialType.Task_T => this.GetNamedTypeByReflectionType( typeof(Task<>) ),
+                    SpecialType.Type => this.GetNamedTypeByReflectionType( typeof(Type) ),
                     SpecialType.IAsyncEnumerable_T => this.GetTypeByReflectionName( "System.Collections.Generic.IAsyncEnumerable`1" ),
                     SpecialType.IAsyncEnumerator_T => this.GetTypeByReflectionName( "System.Collections.Generic.IAsyncEnumerator`1" ),
                     _ => throw new ArgumentOutOfRangeException( nameof(specialType) )
@@ -118,7 +118,7 @@ public sealed partial class DeclarationFactory : IDeclarationFactory, ISdkDeclar
     private INamedType GetSpecialTypeCore( InternalSpecialType specialType )
         => specialType switch
         {
-            InternalSpecialType.ITemplateAttribute => (INamedType) this.GetTypeByReflectionType( typeof(ITemplateAttribute) ),
+            InternalSpecialType.ITemplateAttribute => this.GetNamedTypeByReflectionType( typeof(ITemplateAttribute) ),
             _ => throw new ArgumentOutOfRangeException( nameof(specialType) )
         };
 

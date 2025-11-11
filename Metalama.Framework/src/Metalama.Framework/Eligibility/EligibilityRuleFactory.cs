@@ -54,6 +54,11 @@ public static partial class EligibilityRuleFactory
 
             builder.MustNotBeRef();
             builder.MustSatisfy( m => !m.IsExtern, m => $"'{m}' must not be extern" );
+
+            builder.MustSatisfy(
+                m => !(m.MethodKind == MethodKind.PropertyGet && m.DeclaringMember is IField { Writeability: Writeability.None }),
+                m => $"'{m}' must not be the getter of a const field." );
+
             builder.MustNotBePartialMemberWithSourceGeneratorAttribute();
             builder.DeclaringType().AddRule( _overrideDeclaringTypeRule );
         } );

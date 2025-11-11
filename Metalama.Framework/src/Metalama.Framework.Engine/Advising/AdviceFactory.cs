@@ -1578,7 +1578,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
     }
 
     public IRemoveAttributesAdviceResult RemoveAttributes( IDeclaration targetDeclaration, Type attributeType )
-        => this.RemoveAttributes( targetDeclaration, (INamedType) this._compilation.Factory.GetTypeByReflectionType( attributeType ) );
+        => this.RemoveAttributes( targetDeclaration, this._compilation.Factory.GetNamedTypeByReflectionType( attributeType ) );
 
     [Obsolete]
     public IIntroductionAdviceResult<IParameter> IntroduceParameter(

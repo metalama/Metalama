@@ -33,8 +33,6 @@ internal sealed class ParameterBuilder : BaseParameterBuilder
         RefKind refKind,
         AspectLayerInstance aspectLayerInstance ) : base( declaringMember.GetCompilationModel(), aspectLayerInstance )
     {
-        Invariant.Assert( type is not { TypeKind: TypeKind.Dynamic } );
-
         this.DeclaringMember = declaringMember;
         this.Index = index;
         this._name = name;
@@ -67,8 +65,6 @@ internal sealed class ParameterBuilder : BaseParameterBuilder
         set
         {
             this.CheckNotFrozen();
-
-            Invariant.Assert( value is not { TypeKind: TypeKind.Dynamic } );
 
             this._type = this.Translate( value );
         }

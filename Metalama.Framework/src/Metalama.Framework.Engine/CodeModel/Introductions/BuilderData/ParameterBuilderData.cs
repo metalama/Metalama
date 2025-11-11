@@ -27,8 +27,6 @@ internal sealed class ParameterBuilderData : NamedDeclarationBuilderData
 
     public ParameterBuilderData( BaseParameterBuilder builder, IFullRef<IDeclaration> containingDeclaration ) : base( builder, containingDeclaration )
     {
-        Invariant.Assert( builder.Type is not { TypeKind: TypeKind.Dynamic } );
-
         this._ref = builder.Ref;
 
         this.Type = builder.Type.ToFullRef();

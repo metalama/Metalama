@@ -114,7 +114,7 @@ class A
             using var testContext = this.CreateTestContext();
 
             var compilation = testContext.CreateCompilationModel( code );
-            var externalNamespace = ((INamedType) compilation.Factory.GetTypeByReflectionType( typeof(int) )).ContainingNamespace;
+            var externalNamespace = compilation.Factory.GetNamedTypeByReflectionType( typeof(int) ).ContainingNamespace;
             var internalNamespace = compilation.Types.Single().ContainingNamespace;
 
             Assert.NotSame( externalNamespace, internalNamespace );
