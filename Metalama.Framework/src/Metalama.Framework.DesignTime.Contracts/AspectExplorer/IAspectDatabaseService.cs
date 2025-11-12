@@ -22,7 +22,7 @@ public interface IAspectDatabaseService : ICompilerService
     Task GetAspectInstancesAsync(
         Compilation compilation,
         INamedTypeSymbol aspectClass,
-        IEnumerable<AspectExplorerAspectInstance>[] result,
+        IEnumerable<AspectExplorerAspectInstance>?[] result,
         CancellationToken cancellationToken );
 
     event Action<string> AspectClassesChanged;
@@ -37,6 +37,6 @@ public interface IAspectDatabaseService2 : IAspectDatabaseService
     Task GetAspectInstancesAsync(
         Compilation compilation,
         INamedTypeSymbol aspectClass,
-        IEnumerable<IAspectExplorerAspectInstance>[] result,
+        IEnumerable<IAspectExplorerAspectInstance>?[] result,
         CancellationToken cancellationToken );
 }

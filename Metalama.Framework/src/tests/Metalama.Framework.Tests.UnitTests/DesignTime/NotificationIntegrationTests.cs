@@ -29,7 +29,7 @@ public sealed class NotificationIntegrationTests : DistributedDesignTimeTestBase
         // Start the notification listener.
         var notificationListenerEndpoint = new CodeLensProcessClientEndpoint(
             testContext.ServiceProvider.Underlying,
-            testContext.ServiceHubServerEndpoint.PipeName );
+            testContext.UserProcessServiceHubEndpoint.PipeName );
 
         // We need to make sure that the notification listener listens before we run the pipeline,
         // otherwise the notification will be missed.

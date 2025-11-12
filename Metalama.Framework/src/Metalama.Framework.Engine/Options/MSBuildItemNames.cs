@@ -17,7 +17,13 @@ public static class MSBuildItemNames
 
     public const string MetalamaSourceGeneratorAttribute = nameof(MetalamaSourceGeneratorAttribute);
 
+    /// <summary>
+    /// List of compile-time extension assemblies. Passed through the <see cref="MSBuildPropertyNames.MetalamaExtensionAssemblies"/> property.
+    /// </summary>
     public const string MetalamaExtensionAssembly = nameof(MetalamaExtensionAssembly);
 
-    public const string MetalamaDesignTimeExtensionAssembly = nameof(MetalamaExtensionAssembly);
+    /// <summary>
+    /// List of design-time extension assemblies. Passed through the <see cref="MSBuildPropertyNames.MetalamaDesignTimeExtensionAssemblies"/> property.
+    /// </summary>
+    public const string MetalamaDesignTimeExtensionAssembly = nameof(MetalamaDesignTimeExtensionAssembly);
 }

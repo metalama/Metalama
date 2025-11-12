@@ -2,13 +2,14 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using Metalama.Framework.DesignTime.Contracts.CodeLens;
-using Metalama.Framework.DesignTime.VisualStudio.CodeLens;
+using Metalama.Framework.DesignTime.Contracts.AspectExplorer;
+using Metalama.Framework.DesignTime.VisualStudio.AspectExplorer;
 using Metalama.Framework.Engine.Pipeline.DesignTime;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Services;
 using Metalama.Framework.Tests.UnitTestHelpers.TestClasses;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
@@ -17,13 +18,16 @@ namespace Metalama.Framework.Tests.UnitTests.DesignTime.EndToEnd;
 
 #pragma warning disable VSTHRD200
 
-public sealed class CodeLensTests : DistributedDesignTimeTestBase
+public sealed class AspectDatabaseDistributedTests : DistributedDesignTimeTestBase
 {
-    public CodeLensTests( ITestOutputHelper? testOutputHelper ) : base( testOutputHelper ) { }
+    public AspectDatabaseDistributedTests( ITestOutputHelper? testOutputHelper ) : base( testOutputHelper ) { }
 
     [Fact]
     public async Task EndToEnd()
     {
+        // This test reproduces https://github.com/metalama/Metalama/issues/1183, which is linked to the serialization
+        // in presence of successors.
+
         var analysisProcessServices = new ServiceProviderBuilder<IGlobalService>();
 
         // Initialize the components.
@@ -34,16 +38,25 @@ public sealed class CodeLensTests : DistributedDesignTimeTestBase
         const string code = """
                             using Metalama.Framework.Advising;
                             using Metalama.Framework.Aspects; 
-                            using Metalama.Framework.Advising;
                             using Metalama.Framework.Code;
 
-                            class TheAspect : TypeAspect
+                            [assembly: AspectOrder( AspectOrderDirection.CompileTime, typeof( Aspect1 ), typeof( Aspect2 ) )]
+
+                            class Aspect1 : TypeAspect
+                            {
+                                public override void BuildAspect(IAspectBuilder<INamedType> builder)
+                                {
+                                    builder.RequireAspect<Aspect2>();
+                                }
+                            }
+
+                            class Aspect2 : TypeAspect
                             {
                                [Introduce]
                                void IntroducedMethod(){}
                             }
 
-                            [TheAspect]
+                            [Aspect1]
                             class TheClass {}
                             """;
 
@@ -55,25 +68,25 @@ public sealed class CodeLensTests : DistributedDesignTimeTestBase
         // We need to run the pipeline because code lens does not run it on its own.
         var project = testContext.WorkspaceProvider.GetProject( "project" );
         var pipeline = testContext.PipelineFactory.GetOrCreatePipeline( project )!;
-        await pipeline.ExecuteAsync( (await project.GetCompilationAsync())!, AsyncExecutionContext.Get() );
+        var pipelineResult = await pipeline.ExecuteAsync( (await project.GetCompilationAsync())!, AsyncExecutionContext.Get() );
+        Assert.True( pipelineResult.IsSuccessful );
 
-        // Test the CodeLens service.
-        var theClassSymbol = compilation.GetTypeByMetadataName( "TheClass" )!;
+        var aspectDatabaseService = new AspectDatabaseService( testContext.UserProcessServiceProvider );
 
-        var codeLensService = new CodeLensService( testContext.UserProcessServiceProvider );
+        var aspectClasses = (await aspectDatabaseService.GetAspectClassesAsync( compilation, testContext.CancellationToken ))
+            .OrderBy( x => x.Name )
+            .ToArray();
 
-        var summary = new ICodeLensSummary[1];
-        await codeLensService.GetCodeLensSummaryAsync( compilation, theClassSymbol, summary );
+        Assert.Equal( 2, aspectClasses.Length );
 
-        Assert.NotNull( summary[0] );
-        Assert.Equal( "1 aspect", summary[0].Description );
+        var aspectInstances1 = new IEnumerable<IAspectExplorerAspectInstance>[1];
+        await aspectDatabaseService.GetAspectInstancesAsync( compilation, aspectClasses[0], aspectInstances1, testContext.CancellationToken );
 
-        var details = new ICodeLensDetails[1];
-        await codeLensService.GetCodeLensDetailsAsync( compilation, theClassSymbol, details );
+        Assert.Equal( 2, aspectInstances1[0].Count() );
 
-        Assert.NotNull( details[0] );
-        var table = (ICodeLensDetailsTable) details[0];
-        Assert.Single( table.Entries );
-        Assert.NotNull( table.Entries[0].Fields[0] );
+        var aspectInstances2 = new IEnumerable<IAspectExplorerAspectInstance>[1];
+        await aspectDatabaseService.GetAspectInstancesAsync( compilation, aspectClasses[1], aspectInstances2, testContext.CancellationToken );
+
+        Assert.Single( aspectInstances2[0] );
     }
 }

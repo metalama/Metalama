@@ -31,7 +31,7 @@ namespace Metalama.Framework.DesignTime.VisualStudio.Services
                 nameof(ICompileTimeEditingStatusService) => new CompileTimeEditingStatusService( this.ServiceProvider ),
                 nameof(ICodeLensService) => new CodeLensService( this.ServiceProvider ),
                 nameof(IServiceHubLocator) => new ServiceHubLocator( this.ServiceProvider ),
-                nameof(IAspectDatabaseService) => new AspectDatabase( this.ServiceProvider ),
+                nameof(IAspectDatabaseService) => new AspectDatabaseService( this.ServiceProvider ),
 
                 // When components implement several services, we ask for the primary interface so we ensure there 
                 // is a single instance of the component.

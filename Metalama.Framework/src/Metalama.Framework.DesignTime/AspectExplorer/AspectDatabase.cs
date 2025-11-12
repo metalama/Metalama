@@ -213,7 +213,7 @@ internal sealed class AspectDatabase : IGlobalService
                                         : null,
                                     transformedDeclaration.GetPrimarySyntaxTree()?.FilePath );
                             } )
-                        .ToArray() ) );
+                        .ToImmutableArray() ) );
 
         static string GetSerializableIdForOriginalDeclaration( IDeclaration declaration )
         {
@@ -239,7 +239,6 @@ internal sealed class AspectDatabase : IGlobalService
             };
         }
 
-#pragma warning disable IDE0300 // Don't use collection literal, since <>z__ReadOnlyArray`1 can't be deserialized here.
         var predecessorAspectInstances = aspectInstances
             .Where( aspectInstance => aspectInstance.Predecessors.Any( predecessor => GetPredecessorFullName( predecessor.Instance ) == aspectClassFullName ) )
             .Select(
@@ -250,7 +249,6 @@ internal sealed class AspectDatabase : IGlobalService
                             GetSerializableIdForOriginalDeclaration( aspectInstance.TargetDeclaration ),
                             $"Add the '{aspectInstance.AspectClass}' aspect to '{aspectInstance.TargetDeclaration}'." )
                     ] ) );
-#pragma warning restore IDE0300
 
         return transformationAspectInstances.Concat( predecessorAspectInstances ).ToArray();
     }
