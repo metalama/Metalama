@@ -18,9 +18,9 @@
     <RoslynApiMinVersion>4.8.0</RoslynApiMinVersion>
 
     <!-- RoslynApiMaxVersion is the maximum version of the Roslyn API we support. -->
-    <RoslynApiMaxVersion>5.0.0-2.25515.2</RoslynApiMaxVersion>
+    <RoslynApiMaxVersion>5.0.0-2.final</RoslynApiMaxVersion>
     <!-- RoslynMaxVersion is the version of Roslyn that should be referenced by the Workspaces package. -->
-    <RoslynMaxVersion>5.0.0-2.25515.2</RoslynMaxVersion>
+    <RoslynMaxVersion>5.0.0-2.final</RoslynMaxVersion>
 
     <!-- xUnitApiVersion is the version of xUnit against which we build the testing framework -->
     <xUnitApiVersion>2.9.3</xUnitApiVersion>
