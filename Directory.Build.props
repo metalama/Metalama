@@ -8,5 +8,10 @@
         -->
         <NoWarn>$(NoWarn);IDE0032;IDE0031</NoWarn>
 
+
+        <!-- Metalama.Extensions and Metalama.Patterns must be compatible with VS 2022,
+             so we can't use C# 14 in templates and build-time code. -->
+        <MetalamaTemplateLanguageVersion>13.0</MetalamaTemplateLanguageVersion>
+
     </PropertyGroup>
 </Project>

@@ -228,7 +228,8 @@ internal sealed partial class CompileTimeCompilationBuilder
         out Compilation? compileTimeCompilation,
         out ILocationAnnotationMap? locationAnnotationMap,
         out TemplateProjectManifest? compilationResultManifest,
-        out bool referencesMetalamaSdk )
+        out bool referencesMetalamaSdk,
+        out LanguageVersion compileTimeLanguageVersion )
     {
         locationAnnotationMap = null;
 
@@ -238,6 +239,7 @@ internal sealed partial class CompileTimeCompilationBuilder
             compileTimeCompilation = null;
             compilationResultManifest = null;
             referencesMetalamaSdk = false;
+            compileTimeLanguageVersion = default;
 
             return true;
         }
@@ -258,6 +260,16 @@ internal sealed partial class CompileTimeCompilationBuilder
 
         var templateSymbolManifestBuilder = new TemplateProjectManifestBuilder( compilationContext.SourceCompilation );
         var templateCompiler = new TemplateCompiler( this._serviceProvider, compilationContext, templateSymbolManifestBuilder );
+
+        if ( !templateCompiler.TryReadProjectOptions( diagnosticSink ) )
+        {
+            compileTimeCompilation = null;
+            compilationResultManifest = null;
+            referencesMetalamaSdk = false;
+            compileTimeLanguageVersion = default;
+
+            return false;
+        }
 
         var produceCompileTimeCodeRewriter = new ProduceCompileTimeCodeRewriter(
             this._serviceProvider,
@@ -307,6 +319,7 @@ internal sealed partial class CompileTimeCompilationBuilder
         locationAnnotationMap = templateCompiler.LocationAnnotationMap;
         compilationResultManifest = produceCompileTimeCodeRewriter.GetManifest();
         referencesMetalamaSdk = produceCompileTimeCodeRewriter.ReferencesMetalamaSdk;
+        compileTimeLanguageVersion = templateCompiler.TemplateLanguageVersion;
 
         if ( !produceCompileTimeCodeRewriter.Success )
         {
@@ -1080,7 +1093,8 @@ internal sealed partial class CompileTimeCompilationBuilder
                             out var compileTimeCompilation,
                             out var locationAnnotationMap,
                             out var compilationResultManifest,
-                            out var referencesMetalamaSdk ) )
+                            out var referencesMetalamaSdk,
+                            out var templateLanguageVersion ) )
                     {
                         project = null;
 
@@ -1203,7 +1217,7 @@ internal sealed partial class CompileTimeCompilationBuilder
                             textMapDirectory.FilesByTargetPath.Values.Select( f => new CompileTimeFileManifest( f ) ).ToArray(),
                             diagnostics.SelectAsArray( d => new CompileTimeDiagnosticManifest( d, sourceFilePathIndexes! ) ),
                             referencesMetalamaSdk,
-                            languageVersion: this._languageVersionProvider.GetCompileTimeLanguageVersion() );
+                            languageVersion: templateLanguageVersion );
 
                         project = CompileTimeProject.Create(
                             this._serviceProvider,

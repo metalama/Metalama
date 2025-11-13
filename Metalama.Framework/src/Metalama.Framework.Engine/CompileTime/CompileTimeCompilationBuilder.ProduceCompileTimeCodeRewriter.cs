@@ -379,7 +379,7 @@ namespace Metalama.Framework.Engine.CompileTime
             private void AddToManifestIfNecessary(
                 ISymbol symbol,
                 TemplateInfo? templateInfo,
-                TemplatingScope? scope = default,
+                TemplatingScope? scope = null,
                 params IMethodSymbol?[] accessors )
             {
                 scope ??= this.SymbolClassifier.GetTemplatingScope( symbol );
