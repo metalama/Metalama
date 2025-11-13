@@ -50,12 +50,12 @@ public sealed class CompileTimeErrorNotificationTests : DistributedDesignTimeTes
             "project",
             new Dictionary<string, string> { ["code.cs"] = codeWithError } );
 
-        await testContext.RpcServiceProviderEndpoint.RegisterProjectAsync( projectKey, testContext.CancellationToken );
+        await testContext.AnalysisProcessEndpoint.RegisterProjectAsync( projectKey, testContext.CancellationToken );
 
         // Register a synchronization point.
         var hasCompilerErrorData = new TaskCompletionSource<bool>();
 
-        testContext.ServiceHubServerEndpoint.ServiceHub.Endpoints.Single().EventReceived += eventData =>
+        testContext.UserProcessServiceHubEndpoint.ServiceHub.Endpoints.Single().EventReceived += eventData =>
         {
             if ( eventData is CompileTimeErrorsChangedEventData )
             {

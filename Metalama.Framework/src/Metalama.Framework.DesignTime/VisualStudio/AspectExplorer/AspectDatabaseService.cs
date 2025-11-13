@@ -15,11 +15,11 @@ using Microsoft.CodeAnalysis;
 
 namespace Metalama.Framework.DesignTime.VisualStudio.AspectExplorer;
 
-internal sealed class AspectDatabase : IAspectDatabaseService2, IDisposable
+internal sealed class AspectDatabaseService : IAspectDatabaseService2, IDisposable
 {
     private readonly ServiceHubRpcService _serviceHub;
 
-    public AspectDatabase( GlobalServiceProvider serviceProvider )
+    public AspectDatabaseService( GlobalServiceProvider serviceProvider )
     {
         this._serviceHub = serviceProvider.GetRequiredService<IServiceHubRpcServiceProvider>().ServiceHub;
 
@@ -91,21 +91,23 @@ internal sealed class AspectDatabase : IAspectDatabaseService2, IDisposable
     public async Task GetAspectInstancesAsync(
         Compilation compilation,
         INamedTypeSymbol aspectClass,
-        IEnumerable<AspectExplorerAspectInstance>[] result,
+        IEnumerable<AspectExplorerAspectInstance>?[] result,
         CancellationToken cancellationToken )
     {
-        var version2Result = new IEnumerable<IAspectExplorerAspectInstance>[1];
+        var version2Result = new IEnumerable<IAspectExplorerAspectInstance>?[1];
 
         await this.GetAspectInstancesAsync( compilation, aspectClass, version2Result, cancellationToken );
 
-        result[0] = version2Result[0].Select( ToVersion1 ).ToArray();
+        // Be strict with nulls in the debug build and tolerant in the release build.
+        version2Result.AssertNotNull();
+        result[0] = version2Result[0]?.Select( ToVersion1 ).ToArray() ?? [];
     }
 #pragma warning restore CS0612
 
     public async Task GetAspectInstancesAsync(
         Compilation compilation,
         INamedTypeSymbol aspectClass,
-        IEnumerable<IAspectExplorerAspectInstance>[] result,
+        IEnumerable<IAspectExplorerAspectInstance>?[] result,
         CancellationToken cancellationToken )
     {
         var projectKey = compilation.GetProjectKey();
@@ -126,6 +128,8 @@ internal sealed class AspectDatabase : IAspectDatabaseService2, IDisposable
             cancellationToken );
 
         result[0] = GetAspectInstances().ToArray();
+
+        return;
 
         IEnumerable<IAspectExplorerAspectInstance> GetAspectInstances()
         {

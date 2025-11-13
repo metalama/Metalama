@@ -114,9 +114,9 @@ public sealed class DistributedDesignTimeTestContext : TestContext
 
     public GlobalServiceProvider UserProcessServiceProvider { get; private set; }
 
-    public ServiceHubServerEndpoint ServiceHubServerEndpoint => this._userProcessServiceHubEndpoint ?? throw new InvalidOperationException();
+    public ServiceHubServerEndpoint UserProcessServiceHubEndpoint => this._userProcessServiceHubEndpoint ?? throw new InvalidOperationException();
 
-    public RpcServiceProviderServerEndpoint RpcServiceProviderEndpoint => this._analysisProcessEndpoint ?? throw new InvalidOperationException();
+    public RpcServiceProviderServerEndpoint AnalysisProcessEndpoint => this._analysisProcessEndpoint ?? throw new InvalidOperationException();
 
     public TestDesignTimeAspectPipelineFactory PipelineFactory => this._pipelineFactory ?? throw new InvalidOperationException();
 
