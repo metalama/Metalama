@@ -29,7 +29,8 @@ namespace Metalama.Framework.Engine.Templating
         private readonly SerializableTypes _serializableTypes;
         private readonly ILogger _logger;
         private readonly IProjectOptions _options;
-        private readonly ILanguageVersionProvider _languageVersionProvider;
+
+        public LanguageVersion TemplateLanguageVersion { get; private set; }
 
         public TemplateCompiler(
             ProjectServiceProvider serviceProvider,
@@ -47,10 +48,36 @@ namespace Metalama.Framework.Engine.Templating
             this._observer = serviceProvider.GetService<ITemplateCompilerObserver>();
 
             this._options = serviceProvider.GetRequiredService<IProjectOptions>();
-            this._languageVersionProvider = serviceProvider.GetRequiredService<ILanguageVersionProvider>();
+            this.TemplateLanguageVersion = serviceProvider.GetRequiredService<ILanguageVersionProvider>().GetCompileTimeLanguageVersion();
         }
 
         public ILocationAnnotationMapBuilder LocationAnnotationMap => this._syntaxTreeAnnotationMap;
+
+        public bool TryReadProjectOptions( IDiagnosticAdder diagnosticAdder )
+        {
+            var optionsTemplateLanguageVersion = this._options.TemplateLanguageVersion;
+
+            if ( !string.IsNullOrWhiteSpace( optionsTemplateLanguageVersion ) )
+            {
+                if ( LanguageVersionFacts.TryParse( optionsTemplateLanguageVersion, out var templateLanguageVersion )
+                     && SupportedCSharpVersions.All.Contains( templateLanguageVersion ) )
+                {
+                    this.TemplateLanguageVersion = templateLanguageVersion;
+                }
+                else
+                {
+                    diagnosticAdder.Report(
+                        GeneralDiagnosticDescriptors.CSharpVersionNotSupported.CreateRoslynDiagnostic(
+                            null,
+                            (optionsTemplateLanguageVersion, nameof(MSBuildPropertyNames.MetalamaTemplateLanguageVersion),
+                             SupportedCSharpVersions.FormatSupportedVersions()) ) );
+
+                    return false;
+                }
+            }
+
+            return true;
+        }
 
         public bool TryAnnotate(
             SyntaxNode sourceSyntaxRoot,
@@ -75,27 +102,8 @@ namespace Metalama.Framework.Engine.Templating
                 currentSyntaxRoot = annotatedTree.GetAnnotatedNodes( markerAnnotation ).Single();
             }
 
-            var maximalAcceptableLanguageVersion = this._languageVersionProvider.GetCompileTimeLanguageVersion();
-
-            if ( !string.IsNullOrWhiteSpace( this._options.TemplateLanguageVersion ) )
-            {
-                if ( LanguageVersionFacts.TryParse( this._options.TemplateLanguageVersion, out var templateLanguageVersion )
-                     && SupportedCSharpVersions.All.Contains( templateLanguageVersion ) )
-                {
-                    maximalAcceptableLanguageVersion = templateLanguageVersion;
-                }
-                else
-                {
-                    diagnostics.Report(
-                        GeneralDiagnosticDescriptors.CSharpVersionNotSupported.CreateRoslynDiagnostic(
-                            null,
-                            (this._options.TemplateLanguageVersion, "MetalamaTemplateLanguageVersion",
-                             SupportedCSharpVersions.FormatSupportedVersions()) ) );
-                }
-            }
-
             // Verify the language version of the template.
-            var versionVerifier = new RoslynVersionSyntaxVerifier( diagnostics, maximalAcceptableLanguageVersion );
+            var versionVerifier = new RoslynVersionSyntaxVerifier( diagnostics, this.TemplateLanguageVersion );
             versionVerifier.Visit( sourceSyntaxRoot );
             usedApiVersion = versionVerifier.MaximalUsedVersion;
 

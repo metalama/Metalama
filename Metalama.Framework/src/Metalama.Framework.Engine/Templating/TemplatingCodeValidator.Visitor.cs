@@ -459,7 +459,14 @@ namespace Metalama.Framework.Engine.Templating
                     {
                         if ( this._isDesignTime && !node.IsKind( SyntaxKind.UnknownAccessorDeclaration ) )
                         {
-                            this._templateCompiler ??= new TemplateCompiler( this._serviceProvider, this._compilationContext );
+                            if ( this._templateCompiler == null )
+                            {
+                                this._templateCompiler = new TemplateCompiler( this._serviceProvider, this._compilationContext );
+
+                                // It does not matter if reading project options fails.
+                                this._templateCompiler.TryReadProjectOptions( this );
+                            }
+
                             _ = this._templateCompiler.TryAnnotate( node, this._semanticModel, this, this._cancellationToken, out _, out _ );
                         }
                         else

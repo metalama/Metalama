@@ -15,6 +15,7 @@ using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Testing.UnitTesting;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -1580,6 +1581,61 @@ RemainingNamespace
             var pipeline = new CompileTimeAspectPipeline( testContext.ServiceProvider );
             var result = await pipeline.ExecuteAsync( ThrowingDiagnosticAdder.Instance.Report, null, compilation, ImmutableArray<ManagedResource>.Empty );
             Assert.True( result.IsSuccessful );
+        }
+
+        [Fact]
+        public void TemplateLanguageVersion()
+        {
+            const string code = """
+                                using System;
+                                using Metalama.Framework.Advising;
+                                using Metalama.Framework.Aspects; 
+
+                                namespace Ns
+                                {
+                                    namespace Ns2
+                                    {
+                                        class Aspect1 : OverrideMethodAspect
+                                        {
+                                            public override dynamic? OverrideMethod() { return meta.Proceed(); }
+                                        }
+
+                                        class Aspect2 : OverrideFieldOrPropertyAspect
+                                        {
+                                            public override dynamic? OverrideProperty
+                                            {
+                                                get => null!;
+                                                set {}
+                                            }
+                                        }
+
+                                        class RunTimeOnlyClass {}
+
+                                        [CompileTime]
+                                        class CompileTimeOnlyClass {}
+
+                                        class Aspect3 : TypeAspect 
+                                        {
+                                            [Template]
+                                            void TemplateMethod<T1, [CompileTime] T2>( int runTimeParameter, [CompileTime] int compileTimeParameter ) {}
+                                        }
+                                    }
+
+                                }
+
+
+                                """;
+
+            const LanguageVersion templateLanguageVersion = LanguageVersion.CSharp13;
+            using var testContext = this.CreateTestContext( new TestContextOptions() { TemplateLanguageVersion = templateLanguageVersion.ToDisplayString() } );
+
+            var roslynCompilation = testContext.CreateCSharpCompilation( code );
+            var compilation = CompilationModel.CreateInitialInstance( new ProjectModel( roslynCompilation, testContext.ServiceProvider ), roslynCompilation );
+
+            using var compileTimeDomain = testContext.Domain;
+            var loader = CompileTimeProjectRepository.Create( compileTimeDomain, testContext.ServiceProvider, compilation.RoslynCompilation ).AssertNotNull();
+
+            Assert.Equal( templateLanguageVersion, loader.RootProject.Manifest!.LanguageVersion );
         }
     }
 }

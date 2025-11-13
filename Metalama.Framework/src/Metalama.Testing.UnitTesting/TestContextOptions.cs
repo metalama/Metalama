@@ -115,4 +115,9 @@ public record TestContextOptions
     /// This allows to reproduce issues linked to the length of the temp path.
     /// </summary>
     public int? TempPathLength { get; init; }
+
+    /// <summary>
+    /// Gets the C# version used in the compile-time project.
+    /// </summary>
+    public string? TemplateLanguageVersion { get; init; }
 }

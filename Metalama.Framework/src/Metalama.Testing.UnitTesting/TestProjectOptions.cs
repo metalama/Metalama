@@ -45,6 +45,7 @@ internal sealed class TestProjectOptions : DefaultProjectOptions, IDisposable
         this.SourceGeneratorTouchFile = prototype.SourceGeneratorTouchFile;
         this.BuildTouchFile = prototype.BuildTouchFile;
         this.CompileTimeAssemblies = prototype.CompileTimeAssemblies;
+        this.TemplateLanguageVersion = prototype.TemplateLanguageVersion;
         this.DomainObserver = new DomainObserverImpl( this );
     }
 
@@ -84,6 +85,7 @@ internal sealed class TestProjectOptions : DefaultProjectOptions, IDisposable
         this.RequireOrderedAspects = contextOptions.RequireOrderedAspects;
         this.RoslynIsCompileTimeOnly = contextOptions.RoslynIsCompileTimeOnly;
         this.CompileTimeAssemblies = contextOptions.CompileTimeAssemblies.Select( x => new ExtensionAssemblyReference( x ) ).ToImmutableArray();
+        this.TemplateLanguageVersion = contextOptions.TemplateLanguageVersion;
 
         if ( contextOptions.HasSourceGeneratorTouchFile )
         {
@@ -130,6 +132,8 @@ internal sealed class TestProjectOptions : DefaultProjectOptions, IDisposable
     public override bool RoslynIsCompileTimeOnly { get; }
 
     public override ImmutableArray<ExtensionAssemblyReference> CompileTimeAssemblies { get; }
+
+    public override string? TemplateLanguageVersion { get; }
 
     public override bool TryGetProperty( string name, [NotNullWhen( true )] out string? value ) => this._properties.TryGetValue( name, out value );
 
