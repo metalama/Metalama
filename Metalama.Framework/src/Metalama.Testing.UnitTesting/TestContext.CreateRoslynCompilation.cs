@@ -6,7 +6,6 @@ using Metalama.Framework.Aspects;
 using Metalama.Framework.CompileTimeContracts;
 using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.AspectWeavers;
-using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.RunTime;
 using Microsoft.CodeAnalysis;
@@ -109,7 +108,8 @@ public partial class TestContext
             ] );
 
             assemblies.AddRange( this.TestProjectOptions.AdditionalAssemblies );
-            libraries.AddRange( ExtensionLoaderHelper.GetExtensionAssemblies( this.TestProjectOptions.CompileTimeAssemblies ) );
+            var extensionLoader = new TestExtensionLoader( this.ServiceProvider.Global, this.TestProjectOptions.TestContextOptions );
+            libraries.AddRange( extensionLoader.GetExtensionAssemblies( this.TestProjectOptions.CompileTimeAssemblies ) );
         }
 
         // Force the loading of some system assemblies before we search them in the AppDomain.
