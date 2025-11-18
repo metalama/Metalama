@@ -114,7 +114,7 @@ internal sealed class TestProjectOptions : DefaultProjectOptions, IDisposable
     public override bool RoslynIsCompileTimeOnly => this.TestContextOptions.RoslynIsCompileTimeOnly;
 
     public override ImmutableArray<TargetedAssemblyReference> CompileTimeAssemblies
-        => this.TestContextOptions.CompileTimeAssemblies.Select( x => new ExtensionAssemblyReference( x ) ).ToImmutableArray();
+        => this.TestContextOptions.CompileTimeAssemblies.Select( TargetedAssemblyReference.FromPath ).ToImmutableArray();
 
     public override string? TemplateLanguageVersion => this.TestContextOptions.TemplateLanguageVersion;
 

@@ -6,6 +6,7 @@ using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Utilities;
 using Newtonsoft.Json;
 using System;
+using System.Runtime.InteropServices;
 
 namespace Metalama.Framework.Engine.Options;
 
@@ -15,7 +16,11 @@ namespace Metalama.Framework.Engine.Options;
 [JsonObject]
 public sealed record TargetedAssemblyReference( string Name, string? Path, string? TargetFramework, Version? TargetRoslynVersion )
 {
-    public bool IsCorrectRoslynVersion => this.TargetRoslynVersion == null || this.TargetRoslynVersion.Equals( RoslynApiVersion.Current.ToVersion() );
+    private static readonly string _targetFramework = RuntimeInformation.FrameworkDescription.StartsWith( ".NET Framework", StringComparison.Ordinal ) ? "net472" : "net8.0";
+
+    public bool SatisfiesCurrentProcess
+        => (this.TargetRoslynVersion == null || this.TargetRoslynVersion.Equals( RoslynApiVersion.Current.ToVersion() ))
+           && (this.TargetFramework == null || this.TargetFramework == _targetFramework);
 
     public static TargetedAssemblyReference FromPath( string path ) => new TargetedAssemblyReference( System.IO.Path.GetFileNameWithoutExtension( path ), path, null, null );
     

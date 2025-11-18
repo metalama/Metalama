@@ -23,20 +23,21 @@ public class ExtensionLoaderBase
         this._logger = serviceProvider.GetLoggerFactory().GetLogger( nameof(ExtensionLoaderBase) );
     }
 
-    public IEnumerable<string> GetExtensionAssemblies( IEnumerable<ExtensionAssemblyReference> assemblyReferences )
+    public IEnumerable<string> GetExtensionAssemblies( IEnumerable<TargetedAssemblyReference> assemblyReferences )
     {
         var targetFramework = RuntimeInformation.FrameworkDescription.StartsWith( ".NET Framework", StringComparison.Ordinal ) ? "net472" : "net8.0";
 
         this._logger.Trace?.Log( $"Getting extension assemblies for target framework '{targetFramework}'." );
 
-        return assemblyReferences.Where( a => a.TargetFramework == targetFramework || string.IsNullOrEmpty( a.TargetFramework ) )
-            .Select( a => a.Path );
+        return assemblyReferences
+            .Where( a => a.SatisfiesCurrentProcess )
+            .Select( a => a.Path.AssertNotNull() );
     }
 
     internal List<Type> DiscoverExtensionTypes(
         CompileTimeDomain domain,
         ExtensionKind extensionKind,
-        IReadOnlyCollection<ExtensionAssemblyReference> assemblyReferences,
+        IReadOnlyCollection<TargetedAssemblyReference> assemblyReferences,
         bool avoidLockingAssemblies = false )
     {
         this._logger.Trace?.Log( $"Discovering extension types of kind '{extensionKind}' in assemblies: {string.Join( ", ", assemblyReferences )}." );
@@ -50,7 +51,7 @@ public class ExtensionLoaderBase
 
     private List<Assembly> LoadExtensionAssemblies(
         CompileTimeDomain domain,
-        IEnumerable<ExtensionAssemblyReference> assemblyReferences,
+        IEnumerable<TargetedAssemblyReference> assemblyReferences,
         bool avoidLockingAssemblies )
     {
         // It is essential to materialize the query into a list, otherwise assemblies are not loaded if the caller does not evaluate the query.
