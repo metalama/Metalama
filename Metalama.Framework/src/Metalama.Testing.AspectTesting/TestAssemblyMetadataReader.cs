@@ -83,10 +83,7 @@ namespace Metalama.Testing.AspectTesting
                 var lines = ReadStringsFromFile( propertyName );
 
                 return lines.SelectAsImmutableArray(
-                    t =>
-                    {
-                        return TargetedAssemblyReference.ParsePipeSeparatedString( t, path => FindImplementationAssembly( projectDirectory, path ) );
-                    } );
+                    t => TargetedAssemblyReference.ParsePipeSeparatedString( t, path => FindImplementationAssembly( projectDirectory, path ) ) );
             }
 
             ImmutableArray<string> ReadStringsFromFile( string propertyName )

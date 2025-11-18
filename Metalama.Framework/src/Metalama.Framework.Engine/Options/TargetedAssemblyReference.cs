@@ -16,15 +16,16 @@ namespace Metalama.Framework.Engine.Options;
 [JsonObject]
 public sealed record TargetedAssemblyReference( string Name, string? Path, string? TargetFramework, Version? TargetRoslynVersion )
 {
-    private static readonly string _targetFramework = RuntimeInformation.FrameworkDescription.StartsWith( ".NET Framework", StringComparison.Ordinal ) ? "net472" : "net8.0";
+    private static readonly string _targetFramework =
+        RuntimeInformation.FrameworkDescription.StartsWith( ".NET Framework", StringComparison.Ordinal ) ? "net472" : "net8.0";
 
     public bool SatisfiesCurrentProcess
         => (this.TargetRoslynVersion == null || this.TargetRoslynVersion.Equals( RoslynApiVersion.Current.ToVersion() ))
            && (this.TargetFramework == null || this.TargetFramework == _targetFramework);
 
-    public static TargetedAssemblyReference FromPath( string path ) => new TargetedAssemblyReference( System.IO.Path.GetFileNameWithoutExtension( path ), path, null, null );
-    
-    public static TargetedAssemblyReference FromName( string name ) => new TargetedAssemblyReference( name, null, null, null );
+    public static TargetedAssemblyReference FromPath( string path ) => new( System.IO.Path.GetFileNameWithoutExtension( path ), path, null, null );
+
+    public static TargetedAssemblyReference FromName( string name ) => new( name, null, null, null );
 
     public static TargetedAssemblyReference ParsePipeSeparatedString( string s ) => ParsePipeSeparatedString( s, null );
 
@@ -50,7 +51,10 @@ public sealed record TargetedAssemblyReference( string Name, string? Path, strin
 
         if ( parts.Length >= 3 && !string.IsNullOrEmpty( parts[2] ) )
         {
-            roslynVersion = Version.Parse( parts[2] );
+            if ( !Version.TryParse( parts[2], out roslynVersion ) )
+            {
+                throw new ArgumentOutOfRangeException( nameof(s), $"Cannot parse the Roslyn version number in '{s}'." );
+            }
         }
 
         return new TargetedAssemblyReference( System.IO.Path.GetFileNameWithoutExtension( path ), path, targetFramework, roslynVersion );
