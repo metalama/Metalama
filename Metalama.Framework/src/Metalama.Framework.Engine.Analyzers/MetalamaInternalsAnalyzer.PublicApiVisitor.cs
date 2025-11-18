@@ -23,6 +23,10 @@ public partial class MetalamaInternalsAnalyzer
 
         public override void VisitClassDeclaration( ClassDeclarationSyntax node ) => this.VisitDeclaration( node, base.VisitClassDeclaration );
 
+        public override void VisitStructDeclaration( StructDeclarationSyntax node ) => this.VisitDeclaration( node, base.VisitStructDeclaration );
+
+        public override void VisitRecordDeclaration( RecordDeclarationSyntax node ) => this.VisitDeclaration( node, base.VisitRecordDeclaration );
+
         public override void VisitMethodDeclaration( MethodDeclarationSyntax node )
             => this.VisitDeclaration(
                 node,

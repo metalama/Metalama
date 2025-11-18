@@ -4,6 +4,7 @@
 
 using JetBrains.Annotations;
 using Metalama.Framework.Engine.Formatting;
+using Metalama.Framework.Engine.Options;
 using Metalama.Testing.UnitTesting;
 using Microsoft.CodeAnalysis.CSharp;
 using Newtonsoft.Json;
@@ -70,7 +71,7 @@ public class TestOptions
     /// Gets the list of assembly names that should be included in the compilation.
     /// To add a named assembly reference, add this comment to your test file: <c>// @AssemblyReference(assemblyName)</c>.
     /// </summary>
-    public List<TestAssemblyReference> References { get; } = new();
+    internal List<TargetedAssemblyReference> References { get; } = new();
 
     /// <summary>
     /// Gets the list of source code files that should be included in the compilation.
@@ -654,7 +655,7 @@ public class TestOptions
                     break;
 
                 case "AssemblyReference":
-                    this.References.Add( new TestAssemblyReference { Name = optionArg } );
+                    this.References.Add( TargetedAssemblyReference.FromName( optionArg ) );
 
                     break;
 

@@ -22,8 +22,8 @@
         <MetalamaCompileTimePackages>@(MetalamaCompileTimePackage, ',')</MetalamaCompileTimePackages>
         <MetalamaCompileTimeAssemblies>@(MetalamaCompileTimeAssembly, ',')</MetalamaCompileTimeAssemblies>
         <MetalamaSourceGeneratorAttributes>@(MetalamaSourceGeneratorAttribute, ',')</MetalamaSourceGeneratorAttributes>
-        <MetalamaExtensionAssemblies>@(MetalamaExtensionAssembly -> '%(FullPath)|%(TargetFramework)', ',')</MetalamaExtensionAssemblies>
-        <MetalamaDesignTimeExtensionAssemblies>@(MetalamaDesignTimeExtensionAssembly -> '%(FullPath)|%(TargetFramework)', ',')</MetalamaDesignTimeExtensionAssemblies>
+        <MetalamaExtensionAssemblies>@(MetalamaExtensionAssembly -> '%(FullPath)|%(TargetFramework)|%(TargetRoslynVersion)', ',')</MetalamaExtensionAssemblies>
+        <MetalamaDesignTimeExtensionAssemblies>@(MetalamaDesignTimeExtensionAssembly -> '%(FullPath)|%(TargetFramework)|%(TargetRoslynVersion)', ',')</MetalamaDesignTimeExtensionAssemblies>
 
         <!-- Elevating CS8032: An instance of analyzer X cannot be created. 
              We elevate this warning to an error because otherwise, if Metalama.Framework fails to load, the compilation will be incorrect while there

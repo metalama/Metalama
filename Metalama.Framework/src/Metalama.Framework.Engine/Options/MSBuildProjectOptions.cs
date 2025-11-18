@@ -193,21 +193,21 @@ public partial class MSBuildProjectOptions : DefaultProjectOptions
     public override bool AvoidLockingExtensionAssemblies => this.GetBooleanOption( MSBuildPropertyNames.MetalamaAvoidLockingExtensionAssemblies );
 
     [Memo]
-    public override ImmutableArray<ExtensionAssemblyReference> DesignTimeExtensionAssemblies
+    public override ImmutableArray<TargetedAssemblyReference> DesignTimeExtensionAssemblies
         => this.GetListOption( MSBuildPropertyNames.MetalamaDesignTimeExtensionAssemblies )
-            .Select( ParseExtensionAssemblyReference )
+            .Select( TargetedAssemblyReference.ParsePipeSeparatedString )
             .ToImmutableArray();
 
     [Memo]
-    public override ImmutableArray<ExtensionAssemblyReference> ExtensionAssemblies
+    public override ImmutableArray<TargetedAssemblyReference> ExtensionAssemblies
         => this.GetListOption( MSBuildPropertyNames.MetalamaExtensionAssemblies )
-            .Select( ParseExtensionAssemblyReference )
+            .Select( TargetedAssemblyReference.ParsePipeSeparatedString )
             .ToImmutableArray();
 
     [Memo]
-    public override ImmutableArray<ExtensionAssemblyReference> CompileTimeAssemblies
+    public override ImmutableArray<TargetedAssemblyReference> CompileTimeAssemblies
         => this.GetListOption( MSBuildPropertyNames.MetalamaCompileTimeAssemblies )
-            .Select( ParseExtensionAssemblyReference )
+            .Select( TargetedAssemblyReference.ParsePipeSeparatedString )
             .ToImmutableArray();
 
     public override bool TryGetProperty( string name, [NotNullWhen( true )] out string? value )
@@ -264,13 +264,6 @@ public partial class MSBuildProjectOptions : DefaultProjectOptions
             .SelectAsReadOnlyList( p => p.Trim() )
             .Where( p => !string.IsNullOrEmpty( p ) )
             .ToImmutableArray();
-
-    private static ExtensionAssemblyReference ParseExtensionAssemblyReference( string s )
-    {
-        var parts = s.Split( '|' );
-
-        return new ExtensionAssemblyReference( parts[0], parts.Length == 1 || parts[1] == "" ? null : parts[1] );
-    }
 
     public override bool Equals( IProjectOptions? other )
     {

@@ -80,7 +80,7 @@ public class DefaultProjectOptions : IProjectOptions
 
     public virtual ImmutableArray<string> CompileTimePackages => ImmutableArray<string>.Empty;
 
-    public virtual ImmutableArray<ExtensionAssemblyReference> CompileTimeAssemblies => ImmutableArray<ExtensionAssemblyReference>.Empty;
+    public virtual ImmutableArray<TargetedAssemblyReference> CompileTimeAssemblies => ImmutableArray<TargetedAssemblyReference>.Empty;
 
     public virtual string? ProjectAssetsFile => null;
 
@@ -112,9 +112,9 @@ public class DefaultProjectOptions : IProjectOptions
 
     public virtual ImmutableArray<string> SourceGeneratorAttributes => ImmutableArray<string>.Empty;
 
-    public virtual ImmutableArray<ExtensionAssemblyReference> ExtensionAssemblies => ImmutableArray<ExtensionAssemblyReference>.Empty;
+    public virtual ImmutableArray<TargetedAssemblyReference> ExtensionAssemblies => ImmutableArray<TargetedAssemblyReference>.Empty;
 
-    public virtual ImmutableArray<ExtensionAssemblyReference> DesignTimeExtensionAssemblies => ImmutableArray<ExtensionAssemblyReference>.Empty;
+    public virtual ImmutableArray<TargetedAssemblyReference> DesignTimeExtensionAssemblies => ImmutableArray<TargetedAssemblyReference>.Empty;
 
     public virtual bool AvoidLockingExtensionAssemblies => false;
 

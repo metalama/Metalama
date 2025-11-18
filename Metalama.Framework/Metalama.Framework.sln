@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 18
-VisualStudioVersion = 18.0.11201.2 d18.0
+VisualStudioVersion = 18.0.11201.2
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Metalama.Framework", "src\Metalama.Framework\Metalama.Framework.csproj", "{3D5D53DA-F498-4432-A3F4-99F21DEECD69}"
 EndProject
@@ -106,6 +106,10 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "4.8.12", "4.8.12", "{3818DB96-E67D-45DA-B861-E0E1D9FEAC11}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Metalama.Framework.ConfigurationFiles", "src\Metalama.Framework.ConfigurationFiles\Metalama.Framework.ConfigurationFiles.csproj", "{E76B39B5-C3A3-4E1C-8FB0-5B5E8B42486F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Metalama.Framework.Implementation.Package.4.12.0", "src\Metalama.Framework.Implementation.Package.4.12.0\Metalama.Framework.Implementation.Package.4.12.0.csproj", "{5CAC4A6D-B196-6DDC-8AB2-76DE5C188852}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Metalama.Framework.Implementation.Package.4.8.0", "src\Metalama.Framework.Implementation.Package.4.8.0\Metalama.Framework.Implementation.Package.4.8.0.csproj", "{41A4F8E0-3A12-3250-E523-89D60E3E31BB}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -681,6 +685,30 @@ Global
 		{E76B39B5-C3A3-4E1C-8FB0-5B5E8B42486F}.Release|x64.Build.0 = Release|Any CPU
 		{E76B39B5-C3A3-4E1C-8FB0-5B5E8B42486F}.Release|x86.ActiveCfg = Release|Any CPU
 		{E76B39B5-C3A3-4E1C-8FB0-5B5E8B42486F}.Release|x86.Build.0 = Release|Any CPU
+		{5CAC4A6D-B196-6DDC-8AB2-76DE5C188852}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5CAC4A6D-B196-6DDC-8AB2-76DE5C188852}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5CAC4A6D-B196-6DDC-8AB2-76DE5C188852}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{5CAC4A6D-B196-6DDC-8AB2-76DE5C188852}.Debug|x64.Build.0 = Debug|Any CPU
+		{5CAC4A6D-B196-6DDC-8AB2-76DE5C188852}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{5CAC4A6D-B196-6DDC-8AB2-76DE5C188852}.Debug|x86.Build.0 = Debug|Any CPU
+		{5CAC4A6D-B196-6DDC-8AB2-76DE5C188852}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5CAC4A6D-B196-6DDC-8AB2-76DE5C188852}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5CAC4A6D-B196-6DDC-8AB2-76DE5C188852}.Release|x64.ActiveCfg = Release|Any CPU
+		{5CAC4A6D-B196-6DDC-8AB2-76DE5C188852}.Release|x64.Build.0 = Release|Any CPU
+		{5CAC4A6D-B196-6DDC-8AB2-76DE5C188852}.Release|x86.ActiveCfg = Release|Any CPU
+		{5CAC4A6D-B196-6DDC-8AB2-76DE5C188852}.Release|x86.Build.0 = Release|Any CPU
+		{41A4F8E0-3A12-3250-E523-89D60E3E31BB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{41A4F8E0-3A12-3250-E523-89D60E3E31BB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{41A4F8E0-3A12-3250-E523-89D60E3E31BB}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{41A4F8E0-3A12-3250-E523-89D60E3E31BB}.Debug|x64.Build.0 = Debug|Any CPU
+		{41A4F8E0-3A12-3250-E523-89D60E3E31BB}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{41A4F8E0-3A12-3250-E523-89D60E3E31BB}.Debug|x86.Build.0 = Debug|Any CPU
+		{41A4F8E0-3A12-3250-E523-89D60E3E31BB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{41A4F8E0-3A12-3250-E523-89D60E3E31BB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{41A4F8E0-3A12-3250-E523-89D60E3E31BB}.Release|x64.ActiveCfg = Release|Any CPU
+		{41A4F8E0-3A12-3250-E523-89D60E3E31BB}.Release|x64.Build.0 = Release|Any CPU
+		{41A4F8E0-3A12-3250-E523-89D60E3E31BB}.Release|x86.ActiveCfg = Release|Any CPU
+		{41A4F8E0-3A12-3250-E523-89D60E3E31BB}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -716,6 +744,8 @@ Global
 		{D94DED38-E4F3-4FB6-A0F4-F482BEBC7124} = {3818DB96-E67D-45DA-B861-E0E1D9FEAC11}
 		{658E38A9-D87F-49D1-BAC2-DCCF81BAC51E} = {59709DBF-050C-4E30-906E-1252C6B6C0E0}
 		{3818DB96-E67D-45DA-B861-E0E1D9FEAC11} = {59709DBF-050C-4E30-906E-1252C6B6C0E0}
+		{5CAC4A6D-B196-6DDC-8AB2-76DE5C188852} = {3818DB96-E67D-45DA-B861-E0E1D9FEAC11}
+		{41A4F8E0-3A12-3250-E523-89D60E3E31BB} = {658E38A9-D87F-49D1-BAC2-DCCF81BAC51E}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {59CB4F2D-3547-4DDF-9712-7B3F95C1ED66}

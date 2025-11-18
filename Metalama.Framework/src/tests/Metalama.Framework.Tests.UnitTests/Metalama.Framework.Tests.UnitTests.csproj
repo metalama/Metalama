@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-    <Import Project="../../../build/RoslynVersion/Latest.imports" />
+    <Import Project="../../../../eng/RoslynVersions/Latest.props" />
     <Import Project="../../../../eng/Coverage.props" />
 
     <PropertyGroup>

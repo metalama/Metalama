@@ -2,44 +2,33 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Utilities;
 using Microsoft.CodeAnalysis;
-using Newtonsoft.Json;
 using System;
 using System.Linq;
 using System.Reflection;
 
 namespace Metalama.Testing.AspectTesting
 {
-    /// <summary>
-    /// Represents a metadata reference. This class is JSON-serializable.
-    /// </summary>
-    [JsonObject]
-    public sealed class TestAssemblyReference
+    internal static class ExtensionAssemblyReferenceExtensions
     {
-        public string? Path { get; set; }
-
-        public string? Name { get; set; }
-
-        internal PortableExecutableReference? ToMetadataReference()
+        internal static PortableExecutableReference? ToMetadataReference( this TargetedAssemblyReference reference )
         {
-            if ( this.Path != null )
+            if ( reference.Path != null )
             {
-                return MetadataReference.CreateFromFile( this.Path! );
+                return MetadataReference.CreateFromFile( reference.Path! );
             }
-            else if ( this.Name != null )
+            else
             {
-                var assembly = AppDomainUtility.GetLoadedAssemblies( x => string.Equals( x.GetName().Name, this.Name, StringComparison.OrdinalIgnoreCase ) )
+                var assembly = AppDomainUtility
+                                   .GetLoadedAssemblies( x => string.Equals( x.GetName().Name, reference.Name, StringComparison.OrdinalIgnoreCase ) )
                                    .FirstOrDefault()
                                ??
-                               Assembly.Load( this.Name );
+                               Assembly.Load( reference.Name );
 
                 return MetadataReference.CreateFromFile( assembly.Location );
             }
-
-            return null;
         }
-
-        public override string ToString() => this.Path ?? "<null>";
     }
 }

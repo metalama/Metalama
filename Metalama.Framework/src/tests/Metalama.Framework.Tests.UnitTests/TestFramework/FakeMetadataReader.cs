@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Engine.Options;
 using Metalama.Testing.AspectTesting;
 using System.Collections.Immutable;
 using Xunit.Abstractions;
@@ -24,9 +25,9 @@ internal sealed class FakeMetadataReader : ITestAssemblyMetadataReader
             ImmutableArray<string>.Empty,
             "net8.0",
             false,
-            ImmutableArray<TestAssemblyReference>.Empty,
-            ImmutableArray<TestAssemblyReference>.Empty,
-            ImmutableArray<TestAssemblyReference>.Empty,
+            ImmutableArray<TargetedAssemblyReference>.Empty,
+            ImmutableArray<TargetedAssemblyReference>.Empty,
+            ImmutableArray<TargetedAssemblyReference>.Empty,
             ImmutableArray<string>.Empty,
             null,
             ImmutableArray<string>.Empty );

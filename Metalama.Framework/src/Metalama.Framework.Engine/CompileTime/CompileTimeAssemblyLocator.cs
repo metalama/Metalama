@@ -266,7 +266,7 @@ internal sealed class CompileTimeAssemblyLocator
         return
             string.Join(
                 Environment.NewLine,
-                options.CompileTimeAssemblies.Select( a => $"\t\t<Reference Include=\"{Path.GetFullPath( a.Path )}\"/>" ) );
+                options.CompileTimeAssemblies.Select( a => $"\t\t<Reference Include=\"{Path.GetFullPath( a.Path ?? a.Name )}\"/>" ) );
     }
 
     private static string GetAdditionalPackageReferences( IProjectOptions options )

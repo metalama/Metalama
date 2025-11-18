@@ -6,7 +6,7 @@
         <MetalamaTestSourceDirectory>$(MSBuildThisFileDirectory)</MetalamaTestSourceDirectory>
     </PropertyGroup>
 
-    <Import Project="../../../build/RoslynVersion/Latest.imports" />
+    <Import Project="../../../../eng/RoslynVersions/Latest.props" />
     <Import Project="../../Metalama.Testing.AspectTesting/Metalama.Testing.AspectTesting.props" />
     <Import Project="../../../../eng/Coverage.props" />
 
