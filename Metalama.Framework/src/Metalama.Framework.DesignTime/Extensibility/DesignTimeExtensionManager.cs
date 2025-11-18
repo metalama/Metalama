@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using JetBrains.Annotations;
+using Metalama.Backstage.Diagnostics;
 using Metalama.Framework.DesignTime.CodeFixes;
 using Metalama.Framework.DesignTime.Services;
 using Metalama.Framework.DesignTime.VisualStudio.ServiceProvider;
@@ -29,6 +30,7 @@ public sealed class DesignTimeExtensionManager : IGlobalService
     private readonly IRpcServiceProviderServerEndpointProvider? _rpcServiceProviderServerEndpointProvider;
     private readonly IExtensionLoader _extensionLoader;
     private readonly ConcurrentDictionary<string, TaskCompletionSource<IDesignTimeExtension>> _extensionsByName = new();
+    private readonly ILogger _logger;
 
     private GlobalServiceProvider ServiceProvider { get; }
 
@@ -39,6 +41,7 @@ public sealed class DesignTimeExtensionManager : IGlobalService
         this._domain = serviceProvider.GetRequiredService<CompileTimeDomain>();
         this._rpcServiceProviderServerEndpointProvider = serviceProvider.GetService<IRpcServiceProviderServerEndpointProvider>();
         this._extensionLoader = serviceProvider.GetRequiredService<IExtensionLoader>();
+        this._logger = serviceProvider.GetLoggerFactory().GetLogger( nameof(DesignTimeExtensionManager) );
     }
 
     internal void OnProjectDiscovered( IProjectOptions options )
@@ -49,6 +52,8 @@ public sealed class DesignTimeExtensionManager : IGlobalService
             return;
         }
 
+        this._logger.Trace?.Log( $"OnProjectDiscovered('{options.ProjectPath}', '{options.TargetFramework}', '{options.Configuration}')" );
+
         lock ( this._extensions )
         {
             var extensionTypes = this._extensionLoader.GetExtensionTypes( options, this._domain, ExtensionKind.DesignTime );
@@ -57,9 +62,12 @@ public sealed class DesignTimeExtensionManager : IGlobalService
             {
                 if ( this._extensions.ContainsKey( extensionType ) )
                 {
+                    this._logger.Trace?.Log( $"The extension '{extensionType}' was already loaded." );
+
                     continue;
                 }
 
+                this._logger.Trace?.Log( $"Loading extension '{extensionType}'." );
                 var extension = (IDesignTimeExtension) Activator.CreateInstance( extensionType, true ).AssertNotNull();
                 this._extensions.TryAdd( extensionType, extension );
 
@@ -92,7 +100,12 @@ public sealed class DesignTimeExtensionManager : IGlobalService
 
             this._rpcServiceProviderServerEndpointProvider?.Endpoint.AddServices( context.RpcServices );
 
+            this._logger.Trace?.Log( $"The extension '{extension.GetType()}' is now initialized." );
             this.GetExtensionAwaiter( extension.Name ).SetResult( extension );
+        }
+        else
+        {
+            this._logger.Warning?.Log( $"The extension '{extension.GetType()}' was not initialized." );
         }
     }
 }

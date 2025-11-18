@@ -21,7 +21,8 @@ namespace Metalama.Testing.UnitTesting;
 /// </summary>
 internal sealed class TestProjectOptions : DefaultProjectOptions, IDisposable
 {
-    private readonly ImmutableDictionary<string, string> _properties;
+    public TestContextOptions TestContextOptions { get; }
+
     private readonly Lazy<string> _baseDirectory;
     private readonly Lazy<string> _projectDirectory;
 
@@ -29,38 +30,29 @@ internal sealed class TestProjectOptions : DefaultProjectOptions, IDisposable
 
     /// <summary>
     /// Initializes a new instance of the <see cref="TestProjectOptions"/> class from
-    /// a prototype <see cref="TestContextOptions"/>, allowing to override some properties.
+    /// a prototype <see cref="UnitTesting.TestContextOptions"/>, allowing to override some properties.
     /// </summary>
     public TestProjectOptions( TestProjectOptions prototype, CodeFormattingOptions? codeFormattingOptions = null )
     {
-        this.ProjectName = prototype.ProjectName;
-        this._properties = prototype._properties;
         this._baseDirectory = prototype._baseDirectory;
         this._projectDirectory = prototype._projectDirectory;
-        this.CodeFormattingOptions = codeFormattingOptions ?? prototype.CodeFormattingOptions;
-        this.FormatCompileTimeCode = prototype.FormatCompileTimeCode;
-        this.AdditionalAssemblies = prototype.AdditionalAssemblies;
-        this.RequireOrderedAspects = prototype.RequireOrderedAspects;
-        this.RoslynIsCompileTimeOnly = prototype.RoslynIsCompileTimeOnly;
         this.SourceGeneratorTouchFile = prototype.SourceGeneratorTouchFile;
         this.BuildTouchFile = prototype.BuildTouchFile;
-        this.CompileTimeAssemblies = prototype.CompileTimeAssemblies;
-        this.TemplateLanguageVersion = prototype.TemplateLanguageVersion;
+        this.TestContextOptions = prototype.TestContextOptions;
         this.DomainObserver = new DomainObserverImpl( this );
     }
 
-    public TestProjectOptions( TestContextOptions contextOptions )
+    public TestProjectOptions( TestContextOptions testContextOptions )
     {
-        this.ProjectName = contextOptions.ProjectName;
-        this._properties = contextOptions.Properties;
+        this.TestContextOptions = testContextOptions;
 
         // We don't use the backstage TempFileManager because it would generate paths that are too long.
         var baseDirectory = Path.Combine( MetalamaPathUtilities.GetTempPath(), "Metalama", "Tests", Guid.NewGuid().ToString() );
 
-        if ( contextOptions.TempPathLength.HasValue )
+        if ( testContextOptions.TempPathLength.HasValue )
         {
             var currentLenght = baseDirectory.Length;
-            var remainingLength = contextOptions.TempPathLength.Value - currentLenght - 1;
+            var remainingLength = testContextOptions.TempPathLength.Value - currentLenght - 1;
 
             switch ( remainingLength )
             {
@@ -75,24 +67,14 @@ internal sealed class TestProjectOptions : DefaultProjectOptions, IDisposable
         }
 
         this._baseDirectory = CreateDirectoryLazy( baseDirectory );
+        this._projectDirectory = CreateDirectoryLazy( Path.Combine( baseDirectory, "Project" ) );
 
-        var projectDirectory = Path.Combine( baseDirectory, "Project" );
-        this._projectDirectory = CreateDirectoryLazy( projectDirectory );
-
-        this.CodeFormattingOptions = contextOptions.CodeFormattingOptions;
-        this.FormatCompileTimeCode = contextOptions.FormatCompileTimeCode;
-        this.AdditionalAssemblies = contextOptions.AdditionalAssemblies;
-        this.RequireOrderedAspects = contextOptions.RequireOrderedAspects;
-        this.RoslynIsCompileTimeOnly = contextOptions.RoslynIsCompileTimeOnly;
-        this.CompileTimeAssemblies = contextOptions.CompileTimeAssemblies.Select( TargetedAssemblyReference.FromPath ).ToImmutableArray();
-        this.TemplateLanguageVersion = contextOptions.TemplateLanguageVersion;
-
-        if ( contextOptions.HasSourceGeneratorTouchFile )
+        if ( testContextOptions.HasSourceGeneratorTouchFile )
         {
             this.SourceGeneratorTouchFile = Path.Combine( baseDirectory, "SourceGeneratorTouchFile.txt" );
         }
 
-        if ( contextOptions.HasBuildTouchFile )
+        if ( testContextOptions.HasBuildTouchFile )
         {
             this.BuildTouchFile = Path.Combine( baseDirectory, "BuildTouchFile.txt" );
         }
@@ -111,17 +93,17 @@ internal sealed class TestProjectOptions : DefaultProjectOptions, IDisposable
                 return path;
             } );
 
-    public override string? ProjectName { get; }
+    public override string? ProjectName => this.TestContextOptions.ProjectName;
 
     public string BaseDirectory => this._baseDirectory.Value;
 
-    public override CodeFormattingOptions CodeFormattingOptions { get; }
+    public override CodeFormattingOptions CodeFormattingOptions => this.TestContextOptions.CodeFormattingOptions;
 
-    public override bool FormatCompileTimeCode { get; }
+    public override bool FormatCompileTimeCode => this.TestContextOptions.FormatCompileTimeCode;
 
-    public override bool RequireOrderedAspects { get; }
+    public override bool RequireOrderedAspects => this.TestContextOptions.RequireOrderedAspects;
 
-    public ImmutableArray<Assembly> AdditionalAssemblies { get; }
+    public ImmutableArray<Assembly> AdditionalAssemblies => this.TestContextOptions.AdditionalAssemblies;
 
     public override string? SourceGeneratorTouchFile { get; }
 
@@ -129,13 +111,15 @@ internal sealed class TestProjectOptions : DefaultProjectOptions, IDisposable
 
     public override string? BuildTouchFile { get; }
 
-    public override bool RoslynIsCompileTimeOnly { get; }
+    public override bool RoslynIsCompileTimeOnly => this.TestContextOptions.RoslynIsCompileTimeOnly;
 
-    public override ImmutableArray<TargetedAssemblyReference> CompileTimeAssemblies { get; }
+    public override ImmutableArray<TargetedAssemblyReference> CompileTimeAssemblies
+        => this.TestContextOptions.CompileTimeAssemblies.Select( x => new ExtensionAssemblyReference( x ) ).ToImmutableArray();
 
-    public override string? TemplateLanguageVersion { get; }
+    public override string? TemplateLanguageVersion => this.TestContextOptions.TemplateLanguageVersion;
 
-    public override bool TryGetProperty( string name, [NotNullWhen( true )] out string? value ) => this._properties.TryGetValue( name, out value );
+    public override bool TryGetProperty( string name, [NotNullWhen( true )] out string? value )
+        => this.TestContextOptions.Properties.TryGetValue( name, out value );
 
     private void AddFileLocker() => Interlocked.Increment( ref this._fileLockers );
 

@@ -91,7 +91,7 @@ public static class ServiceProviderFactory
             .WithServiceConditional( _ => new AttributeClassificationService() )
             .WithServiceConditional<IProjectOptionsFactory>( _ => new MSBuildProjectOptionsFactory() )
             .WithServiceConditional( _ => new ObjectReaderFactory() )
-            .WithServiceConditional<IExtensionLoader>( _ => new ExtensionLoader() );
+            .WithServiceConditional<IExtensionLoader>( sp => new ExtensionLoader( sp ) );
 
         return serviceProvider;
     }

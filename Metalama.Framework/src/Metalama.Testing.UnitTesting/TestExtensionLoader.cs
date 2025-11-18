@@ -5,17 +5,19 @@
 using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Options;
+using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Services;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace Metalama.Testing.UnitTesting;
 
-internal sealed class TestExtensionLoader : IExtensionLoader
+internal sealed class TestExtensionLoader : ExtensionLoaderBase, IExtensionLoader
 {
     private readonly TestContextOptions _testContextOptions;
 
-    public TestExtensionLoader( TestContextOptions testContextOptions )
+    public TestExtensionLoader( ServiceProvider<IGlobalService> sp, TestContextOptions testContextOptions ) : base( sp )
     {
         this._testContextOptions = testContextOptions;
     }
@@ -26,6 +28,6 @@ internal sealed class TestExtensionLoader : IExtensionLoader
             ? (this._testContextOptions.ExtensionTypes, this._testContextOptions.ExtensionAssemblies)
             : (this._testContextOptions.DesignTimeExtensionTypes, this._testContextOptions.DesignTimeExtensionAssemblies);
 
-        return extensionTypes.Concat( ExtensionLoaderHelper.LoadExtensionTypes( domain, extensionKind, extensionAssemblies ) );
+        return extensionTypes.Concat( this.DiscoverExtensionTypes( domain, extensionKind, extensionAssemblies ) );
     }
 }

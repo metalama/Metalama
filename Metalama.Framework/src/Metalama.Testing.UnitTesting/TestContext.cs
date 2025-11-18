@@ -129,7 +129,7 @@ public partial class TestContext : ITempFileManager, IApplicationInfoProvider, I
             var typedAdditionalServices = (AdditionalServiceCollection?) additionalServices ?? new AdditionalServiceCollection();
             typedAdditionalServices.GlobalServices.Add( sp => new TestCompileTimeDomainFactory( sp ) );
             typedAdditionalServices.GlobalServices.Add( sp => sp.WithServiceConditional<IGlobalOptions>( _ => new TestGlobalOptions() ) );
-            typedAdditionalServices.GlobalServices.Add<IExtensionLoader>( _ => new TestExtensionLoader( contextOptions ), true );
+            typedAdditionalServices.GlobalServices.Add<IExtensionLoader>( sp => new TestExtensionLoader( sp, contextOptions ), true );
 
             typedAdditionalServices.GlobalServices.Add(
                 sp => sp.WithService<IProjectOptionsFactory>( _ => new TestProjectOptionsFactory( this.ProjectOptions ) ) );
