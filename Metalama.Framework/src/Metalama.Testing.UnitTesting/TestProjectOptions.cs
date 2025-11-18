@@ -84,7 +84,7 @@ internal sealed class TestProjectOptions : DefaultProjectOptions, IDisposable
         this.AdditionalAssemblies = contextOptions.AdditionalAssemblies;
         this.RequireOrderedAspects = contextOptions.RequireOrderedAspects;
         this.RoslynIsCompileTimeOnly = contextOptions.RoslynIsCompileTimeOnly;
-        this.CompileTimeAssemblies = contextOptions.CompileTimeAssemblies.Select( x => new ExtensionAssemblyReference( x ) ).ToImmutableArray();
+        this.CompileTimeAssemblies = contextOptions.CompileTimeAssemblies.Select( TargetedAssemblyReference.FromPath ).ToImmutableArray();
         this.TemplateLanguageVersion = contextOptions.TemplateLanguageVersion;
 
         if ( contextOptions.HasSourceGeneratorTouchFile )
@@ -131,7 +131,7 @@ internal sealed class TestProjectOptions : DefaultProjectOptions, IDisposable
 
     public override bool RoslynIsCompileTimeOnly { get; }
 
-    public override ImmutableArray<ExtensionAssemblyReference> CompileTimeAssemblies { get; }
+    public override ImmutableArray<TargetedAssemblyReference> CompileTimeAssemblies { get; }
 
     public override string? TemplateLanguageVersion { get; }
 

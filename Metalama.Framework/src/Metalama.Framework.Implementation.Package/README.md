@@ -1,6 +1,6 @@
 ![Metalama Logo](https://raw.githubusercontent.com/metalama/Metalama/master/images/metalama-by-postsharp.svg)
 
-The `Metalama.Framework.Implementation` package contains multiple implementation libraries for `Metalama.Framework`. 
+The `Metalama.Framework.Implementation.<RoslynVersion>` package contains multiple implementation libraries for `Metalama.Framework`, where `<RoslynVersion>` refers to the Roslyn API version for which libraries are compiled.
 
 Libraries included in this package have the following content:
 * `Metalama.Framework.Engine.*` assembly contains the implementation details of `Metalama.Framework` for the latest version of Roslyn. 
@@ -12,5 +12,6 @@ Libraries included in this package have the following content:
 This package is required by `Metalama.Framework.Workspaces`, `Metalama.Testing.AspectTesting` and `Metalama.Testing.UnitTesting`.
 
 You should normally never reference it directly in your projects.
+
 
 ** All APIs in this package are considered implementation details and are subject to change without notice. **

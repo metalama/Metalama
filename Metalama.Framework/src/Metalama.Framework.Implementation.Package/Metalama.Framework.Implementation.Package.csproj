@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-    <Import Project="../../build/RoslynVersion/Latest.imports" />
+    <Import Project="../../../eng/RoslynVersions/Latest.props" />
 
     <PropertyGroup>
         <TargetFrameworks>net472;net8.0</TargetFrameworks>
@@ -9,10 +9,10 @@
 
         <!-- Packaging -->
         <IsPackable>true</IsPackable>
-        <PackageId>Metalama.Framework.Implementation</PackageId>
+        <PackageId>Metalama.Framework.Implementation.$(ThisRoslynVersionNoPreview)</PackageId>
         <IncludeBuildOutput>False</IncludeBuildOutput>
         
-        <PackageDescription>The implementation assemblies of Metalama.Framework. It should normally never be referenced in any user project.</PackageDescription>
+        <PackageDescription>The implementation assemblies of Metalama.Framework for Roslyn $(ThisRoslynVersion). This package should normally never be referenced in any user project.</PackageDescription>
         <PackageReadmeFile>README.md</PackageReadmeFile>
 
         <!-- warning NU5118: File 'C:/src/Metalama/Metalama.Framework.Engine.Analyzers/bin/Debug/netstandard2.0/Metalama.Framework.Engine.Analyzers.dll' is not
@@ -27,11 +27,11 @@ added because the package already contains file 'analyzers/dotnet/cs/Metalama.Fr
         <ProjectReference Include="../Metalama.Framework.Introspection/Metalama.Framework.Introspection.csproj" />
         <ProjectReference Include="../Metalama.Framework.Sdk/Metalama.Framework.Sdk.csproj" />
         <ProjectReference Include="../Metalama.Framework.CompileTimeContracts/Metalama.Framework.CompileTimeContracts.csproj" PrivateAssets="all" />
-        <ProjectReference Include="../Metalama.Framework.DesignTime/Metalama.Framework.DesignTime.csproj" PrivateAssets="all" />
         <ProjectReference Include="../Metalama.Framework.DesignTime.Contracts/Metalama.Framework.DesignTime.Contracts.csproj" PrivateAssets="all" />
         <ProjectReference Include="../Metalama.Framework.DesignTime.Rpc/Metalama.Framework.DesignTime.Rpc.csproj" PrivateAssets="all" />
         <ProjectReference Include="../Metalama.Framework.ConfigurationFiles/Metalama.Framework.ConfigurationFiles.csproj" PrivateAssets="all" />
-        <ProjectReference Include="../Metalama.Framework.Engine/Metalama.Framework.Engine.csproj" PrivateAssets="all" />
+        <ProjectReference Include="../Metalama.Framework.Engine$(ThisRoslynVersionProjectSuffix)/Metalama.Framework.Engine$(ThisRoslynVersionProjectSuffix).csproj" PrivateAssets="all" />
+        <ProjectReference Include="../Metalama.Framework.DesignTime$(ThisRoslynVersionProjectSuffix)/Metalama.Framework.DesignTime$(ThisRoslynVersionProjectSuffix).csproj" PrivateAssets="all" />
     </ItemGroup>
 
     
@@ -59,7 +59,7 @@ added because the package already contains file 'analyzers/dotnet/cs/Metalama.Fr
 
     <!-- Packaging -->
     <ItemGroup>
-        <None Include="README.md" Pack="true" PackagePath="/" />
+        <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="/" />
     </ItemGroup>
 
     <Target Name="_AddAnalyzerToPackage">

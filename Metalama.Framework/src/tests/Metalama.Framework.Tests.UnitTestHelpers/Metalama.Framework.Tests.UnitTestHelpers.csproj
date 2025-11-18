@@ -2,7 +2,7 @@
 
     <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" Condition="$(MSBuildThisFileFullPath) == $(MSBuildProjectFullPath)" />
 
-    <Import Project="../../../build/RoslynVersion/Latest.imports" />
+    <Import Project="../../../../eng/RoslynVersions/Latest.props" />
 
     <PropertyGroup>
         <TargetFrameworks>net48;net8.0</TargetFrameworks>

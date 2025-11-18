@@ -6,6 +6,7 @@ using JetBrains.Annotations;
 using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis.CSharp;
+using System;
 using System.Collections.Immutable;
 using System.Linq;
 
@@ -82,5 +83,16 @@ public static class SupportedCSharpVersions
             RoslynApiVersion.V4_12_0 => "4.12.0",
             RoslynApiVersion.V5_0_0 => "5.0.0-2.final",
             _ => throw new AssertionFailedException( $"Unexpected Roslyn version {roslynVersion}." )
+        };
+
+    internal static Version ToVersion( this RoslynApiVersion roslynApiVersion )
+        => roslynApiVersion switch
+        {
+            RoslynApiVersion.V4_0_1 => new Version( 4, 0, 1 ),
+            RoslynApiVersion.V4_4_0 => new Version( 4, 4, 0 ),
+            RoslynApiVersion.V4_8_0 => new Version( 4, 8, 0 ),
+            RoslynApiVersion.V4_12_0 => new Version( 4, 12, 0 ),
+            RoslynApiVersion.V5_0_0 => new Version( 5, 0, 0 ),
+            _ => throw new AssertionFailedException( $"Unexpected Roslyn version {roslynApiVersion}." )
         };
 }

@@ -14,18 +14,20 @@ namespace Metalama.Framework.Engine.Extensibility;
 
 public static class ExtensionLoaderHelper
 {
-    public static IEnumerable<string> GetExtensionAssemblies( IEnumerable<ExtensionAssemblyReference> assemblyReferences )
+    public static IEnumerable<string> GetExtensionAssemblies( IEnumerable<TargetedAssemblyReference> assemblyReferences )
     {
         var targetFramework = RuntimeInformation.FrameworkDescription.StartsWith( ".NET Framework", StringComparison.Ordinal ) ? "net472" : "net8.0";
 
-        return assemblyReferences.Where( a => a.TargetFramework == targetFramework || string.IsNullOrEmpty( a.TargetFramework ) )
-            .Select( a => a.Path );
+        return assemblyReferences
+            .Where( a => a.TargetFramework == targetFramework || string.IsNullOrEmpty( a.TargetFramework ) )
+            .Where( a => a.IsCorrectRoslynVersion )
+            .Select( a => a.Path.AssertNotNull() );
     }
 
     internal static List<Type> LoadExtensionTypes(
         CompileTimeDomain domain,
         ExtensionKind extensionKind,
-        IEnumerable<ExtensionAssemblyReference> assemblyReferences,
+        IEnumerable<TargetedAssemblyReference> assemblyReferences,
         bool avoidLockingAssemblies = false )
     {
         // First load assemblies, because we don't know their order and dependencies.
@@ -37,7 +39,7 @@ public static class ExtensionLoaderHelper
 
     private static List<Assembly> LoadExtensionAssemblies(
         CompileTimeDomain domain,
-        IEnumerable<ExtensionAssemblyReference> assemblyReferences,
+        IEnumerable<TargetedAssemblyReference> assemblyReferences,
         bool avoidLockingAssemblies )
     {
         // It is essential to materialize the query into a list, otherwise assemblies are not loaded if the caller does not evaluate the query.

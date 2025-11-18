@@ -5,6 +5,7 @@
 #if NET5_0_OR_GREATER
 using Metalama.Backstage.Infrastructure;
 using Metalama.Backstage.Testing;
+using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Services;
 using Metalama.Testing.AspectTesting;
 using Metalama.Testing.UnitTesting;
@@ -137,8 +138,8 @@ public class Program
 
             var testProjectReferences = new TestProjectReferences(
                 metadataReferences.ToImmutableArray(),
-                ImmutableArray<TestAssemblyReference>.Empty,
-                ImmutableArray<TestAssemblyReference>.Empty,
+                ImmutableArray<TargetedAssemblyReference>.Empty,
+                ImmutableArray<TargetedAssemblyReference>.Empty,
                 ImmutableArray<string>.Empty,
                 null );
 

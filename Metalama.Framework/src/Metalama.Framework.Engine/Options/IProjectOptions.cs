@@ -128,7 +128,7 @@ public interface IProjectOptions : IProjectService, IEquatable<IProjectOptions>
     /// <summary>
     /// Gets the list of assemblies that should be included in the compile-time project.
     /// </summary>
-    ImmutableArray<ExtensionAssemblyReference> CompileTimeAssemblies { get; }
+    ImmutableArray<TargetedAssemblyReference> CompileTimeAssemblies { get; }
 
     /// <summary>
     /// Gets the path to <c>project.assets.json</c>.
@@ -199,12 +199,12 @@ public interface IProjectOptions : IProjectService, IEquatable<IProjectOptions>
     /// <summary>
     /// Gets the list of extension assemblies for the current project.
     /// </summary>
-    ImmutableArray<ExtensionAssemblyReference> ExtensionAssemblies { get; }
+    ImmutableArray<TargetedAssemblyReference> ExtensionAssemblies { get; }
 
     /// <summary>
     /// Gets the list of design-time extension assemblies for the current project.
     /// </summary>
-    ImmutableArray<ExtensionAssemblyReference> DesignTimeExtensionAssemblies { get; }
+    ImmutableArray<TargetedAssemblyReference> DesignTimeExtensionAssemblies { get; }
 
     bool AvoidLockingExtensionAssemblies { get; }
 

@@ -5,6 +5,7 @@
 using Metalama.AspectWorkbench.Model;
 using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.Formatting;
+using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Templating;
 using Metalama.Framework.Tests.TemplateTests.Runner;
 using Metalama.Testing.UnitTesting;
@@ -183,8 +184,8 @@ namespace Metalama.AspectWorkbench.ViewModels
                 serviceProvider,
                 new TestProjectReferences(
                     testContext.GetMetadataReferences().ToImmutableArray(),
-                    ImmutableArray<TestAssemblyReference>.Empty,
-                    ImmutableArray<TestAssemblyReference>.Empty,
+                    ImmutableArray<TargetedAssemblyReference>.Empty,
+                    ImmutableArray<TargetedAssemblyReference>.Empty,
                     ImmutableArray<string>.Empty,
                     null ),
                 null );

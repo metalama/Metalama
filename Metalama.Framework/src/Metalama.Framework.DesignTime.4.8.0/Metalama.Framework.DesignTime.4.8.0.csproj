@@ -9,6 +9,6 @@
   <ItemGroup>
     <Compile Remove="..\Metalama.Framework.DesignTime\Diagnostics\UserDiagnosticsConfiguration.cs" />
   </ItemGroup>
-  <Import Project="../../build/RoslynVersion/Roslyn.4.8.0.props" />
+  <Import Project="../../../eng/RoslynVersions/Roslyn.4.8.0.props" />
   <Import Project="../Metalama.Framework.DesignTime/Metalama.Framework.DesignTime.csproj" />
 </Project>

@@ -70,7 +70,7 @@ public abstract class ProjectOptionsWrapper : IProjectOptions
 
     public virtual ImmutableArray<string> CompileTimePackages => this.Wrapped.CompileTimePackages;
 
-    public virtual ImmutableArray<ExtensionAssemblyReference> CompileTimeAssemblies => this.Wrapped.CompileTimeAssemblies;
+    public virtual ImmutableArray<TargetedAssemblyReference> CompileTimeAssemblies => this.Wrapped.CompileTimeAssemblies;
 
     public virtual string? ProjectAssetsFile => this.Wrapped.ProjectAssetsFile;
 
@@ -98,9 +98,9 @@ public abstract class ProjectOptionsWrapper : IProjectOptions
 
     public virtual ImmutableArray<string> SourceGeneratorAttributes => this.Wrapped.SourceGeneratorAttributes;
 
-    public virtual ImmutableArray<ExtensionAssemblyReference> ExtensionAssemblies => this.Wrapped.ExtensionAssemblies;
+    public virtual ImmutableArray<TargetedAssemblyReference> ExtensionAssemblies => this.Wrapped.ExtensionAssemblies;
 
-    public virtual ImmutableArray<ExtensionAssemblyReference> DesignTimeExtensionAssemblies => this.Wrapped.DesignTimeExtensionAssemblies;
+    public virtual ImmutableArray<TargetedAssemblyReference> DesignTimeExtensionAssemblies => this.Wrapped.DesignTimeExtensionAssemblies;
 
     public virtual bool AvoidLockingExtensionAssemblies => this.Wrapped.AvoidLockingExtensionAssemblies;
 

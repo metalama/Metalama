@@ -126,7 +126,7 @@
         <WriteLinesToFile File='$(IntermediateOutputPath)compile-time-assemblies.txt' Overwrite='true'
                           Lines='@(MetalamaCompileTimeAssembly)' />
         <WriteLinesToFile File='$(IntermediateOutputPath)extensions.txt' Overwrite='true'
-                          Lines='@(TfmFilteredExtensionAssembly)' />
+                          Lines="@(TfmFilteredExtensionAssembly -> '%(FullPath)|%(TargetFramework)|%(TargetRoslynVersion)', ',')" />
         <WriteLinesToFile File='$(IntermediateOutputPath)plugins.txt' Overwrite='true'
                           Lines='@(MetalamaTestPlugIn)' />
     </Target>

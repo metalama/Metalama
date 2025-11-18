@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Engine.Options;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
@@ -13,7 +14,7 @@ using Xunit.Abstractions;
 namespace Metalama.Testing.AspectTesting
 {
     /// <summary>
-    /// Reads the set of <see cref="TestAssemblyReference"/> from the project.
+    /// Reads the set of <see cref="TargetedAssemblyReference"/> from the project.
     /// </summary>
     internal sealed class TestAssemblyMetadataReader : ITestAssemblyMetadataReader
     {
@@ -77,11 +78,15 @@ namespace Metalama.Testing.AspectTesting
 
             string GetTargetFramework() => GetRequiredAssemblyMetadataValue( "TargetFramework" );
 
-            ImmutableArray<TestAssemblyReference> GetAssemblyReferences( string propertyName )
+            ImmutableArray<TargetedAssemblyReference> GetAssemblyReferences( string propertyName )
             {
                 var lines = ReadStringsFromFile( propertyName );
 
-                return lines.SelectAsImmutableArray( t => new TestAssemblyReference { Path = FindImplementationAssembly( projectDirectory, t ) } );
+                return lines.SelectAsImmutableArray(
+                    t =>
+                    {
+                        return TargetedAssemblyReference.ParsePipeSeparatedString( t, path => FindImplementationAssembly( projectDirectory, path ) );
+                    } );
             }
 
             ImmutableArray<string> ReadStringsFromFile( string propertyName )
