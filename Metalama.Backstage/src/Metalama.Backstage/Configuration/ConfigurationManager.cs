@@ -39,6 +39,11 @@ namespace Metalama.Backstage.Configuration
 
         public ConfigurationManager( IServiceProvider serviceProvider )
         {
+            if ( !string.IsNullOrEmpty( Environment.GetEnvironmentVariable( "METALAMA_DEBUG_CONFIGURATION_MANAGER" ) ) )
+            {
+                DebuggerHelper.Launch();
+            }
+
             var applicationInfo = serviceProvider.GetBackstageService<IApplicationInfoProvider>()?.CurrentApplication;
             this._fileSystem = serviceProvider.GetRequiredBackstageService<IFileSystem>();
             this._dateTimeProvider = serviceProvider.GetRequiredBackstageService<IDateTimeProvider>();

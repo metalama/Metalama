@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Backstage.Diagnostics;
 using Metalama.Framework.DesignTime.CodeLens;
 using Metalama.Framework.DesignTime.Contracts.CodeLens;
 using Metalama.Framework.DesignTime.VisualStudio.ServiceHub;
@@ -14,10 +15,12 @@ namespace Metalama.Framework.DesignTime.VisualStudio.CodeLens;
 internal sealed class CodeLensService : ICodeLensService
 {
     private readonly ServiceHubRpcService _serviceHub;
+    private readonly ILogger _logger;
 
     public CodeLensService( GlobalServiceProvider serviceProvider )
     {
         this._serviceHub = serviceProvider.GetRequiredService<IServiceHubRpcServiceProvider>().ServiceHub;
+        this._logger = serviceProvider.GetLoggerFactory().GetLogger( nameof(CodeLensService) );
     }
 
     public async Task GetCodeLensSummaryAsync(
@@ -30,6 +33,7 @@ internal sealed class CodeLensService : ICodeLensService
 
         if ( !projectKey.IsMetalamaEnabled )
         {
+            this._logger.Trace?.Log( $"Returning NoAspect because '{compilation.AssemblyName}' is not a Metalama project." );
             result[0] = CodeLensSummary.NoAspect;
 
             return;
