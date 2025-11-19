@@ -281,7 +281,7 @@ namespace Metalama.Backstage.Configuration
                 RetryHelper.Retry( () => this._fileSystem.WriteAllText( fileName, json ) );
 
                 var newLastModified = this._fileSystem.GetFileLastWriteTime( fileName );
-                value.SetFilesystemTimestamp( newLastModified );
+                value.SetFileSystemTimestamp( newLastModified );
                 this.AddToCache( value );
 
                 this.Logger.Trace?.Log( $"File '{fileName}' updated. The new timestamp is '{value.Timestamp}'." );
@@ -371,7 +371,7 @@ namespace Metalama.Backstage.Configuration
                     settings.Validate( message => this.Logger.Warning?.Log( $"Recoverable error in '{fileName}: {message}'" ) );
                 }
 
-                settings.SetFilesystemTimestamp( lastModified );
+                settings.SetFileSystemTimestamp( lastModified );
 
                 return true;
             }
@@ -383,7 +383,7 @@ namespace Metalama.Backstage.Configuration
                 // with the LastModified property properly set. If instead we return false, the caller
                 // will interpret this as if the file did not exist, and it can create an infinite loop.
                 settings = (ConfigurationFile) Activator.CreateInstance( type )!;
-                settings.SetFilesystemTimestamp( lastModified );
+                settings.SetFileSystemTimestamp( lastModified );
 
                 return true;
             }

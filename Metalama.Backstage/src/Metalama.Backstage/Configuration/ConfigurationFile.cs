@@ -18,7 +18,7 @@ public abstract record ConfigurationFile
     internal ConfigurationFileTimestamp? Timestamp
         => this._fileSystemTimestamp == null ? null : new ConfigurationFileTimestamp( this._fileSystemTimestamp.Value, this.Version );
 
-    internal void SetFilesystemTimestamp( DateTime value )
+    internal void SetFileSystemTimestamp( DateTime value )
     {
         this._fileSystemTimestamp = value.ToUniversalTime();
     }

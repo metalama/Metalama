@@ -4,12 +4,14 @@
 
 using Metalama.Framework.DesignTime.Contracts.EntryPoint;
 using Metalama.Framework.DesignTime.Contracts.Pipeline;
+using Metalama.Framework.DesignTime.Services;
 using Metalama.Framework.Engine.Services;
+using Microsoft.CodeAnalysis;
 using System.Collections.Concurrent;
 
 namespace Metalama.Framework.DesignTime.VersionNeutral;
 
-internal class CompilerServiceProvider : ICompilerServiceProvider
+internal class CompilerServiceProvider : ICompilerServiceProvider2
 {
     private readonly ConcurrentDictionary<string, ICompilerService?> _services = new( StringComparer.Ordinal );
     private GlobalServiceProvider? _serviceProvider;
@@ -32,6 +34,14 @@ internal class CompilerServiceProvider : ICompilerServiceProvider
     }
 
     public ICompilerService? GetService( Type serviceType ) => this.GetService( serviceType.Name );
+
+    public void SetWorkspace( Workspace workspace )
+    {
+        if ( this.ServiceProvider.GetService<WorkspaceProvider>() is LocalWorkspaceProvider localWorkspaceProvider )
+        {
+            localWorkspaceProvider.TrySetWorkspace( workspace );
+        }
+    }
 
     private ICompilerService? GetService( string name ) => this._services.GetOrAdd( name, this.GetServiceCore );
 
