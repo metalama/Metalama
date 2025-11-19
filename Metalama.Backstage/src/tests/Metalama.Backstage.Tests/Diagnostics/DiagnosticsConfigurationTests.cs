@@ -48,29 +48,32 @@ public sealed class DiagnosticsConfigurationTests : TestsBase
         }
 
         // First: configure the logging.
-        var (serviceProvider1, fileName) = BuildServiceProvider(
+        var (serviceProvider1, configFileName) = BuildServiceProvider(
             configurationManager => configurationManager.Update<DiagnosticsConfiguration>(
                 _ => new DiagnosticsConfiguration()
                 {
                     Logging = new LoggingConfiguration()
                     {
                         TraceCategories = ImmutableDictionary<string, bool>.Empty.Add( "*", true ),
-                        Processes = ImmutableDictionary<string, bool>.Empty.Add( ProcessKind.Other.ToString(), true )
+                        Processes = ImmutableDictionary<string, bool>.Empty.Add( ProcessKind.Other.ToString(), true ),
                     }
                 } ) );
 
         // Make sure it actually logs.
         var logger1 = serviceProvider1.GetRequiredBackstageService<ILoggerFactory>().GetLogger( "Foo" );
         Assert.NotNull( logger1.Trace );
-
-        Assert.True( this.FileSystem.FileExists( fileName ) );
-
+        Assert.True( this.FileSystem.FileExists( configFileName ) );
+        
+        // Move the clock 10 minutes later.
+        this.Time.AddTime( TimeSpan.FromMinutes( 10 ) );
+        var (serviceProvider2, _) = BuildServiceProvider();
+        var logger2 = serviceProvider2.GetRequiredBackstageService<ILoggerFactory>().GetLogger( "Foo" );
+        Assert.NotNull( logger2.Trace );
+        
         // Move the clock 3 hours later.
         this.Time.AddTime( TimeSpan.FromHours( 3 ) );
-
-        var (serviceProvider2, _) = BuildServiceProvider();
-
-        var logger2 = serviceProvider2.GetRequiredBackstageService<ILoggerFactory>().GetLogger( "Foo" );
-        Assert.Null( logger2.Trace );
+        var (serviceProvider3, _) = BuildServiceProvider();
+        var logger3 = serviceProvider3.GetRequiredBackstageService<ILoggerFactory>().GetLogger( "Foo" );
+        Assert.Null( logger3.Trace );
     }
 }
