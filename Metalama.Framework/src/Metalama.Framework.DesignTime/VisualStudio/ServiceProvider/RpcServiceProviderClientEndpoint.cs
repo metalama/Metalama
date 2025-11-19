@@ -58,27 +58,40 @@ public sealed class RpcServiceProviderClientEndpoint : ClientEndpoint
 
         var servicesByPipeName = registeredServices.GroupBy( s => s.PipeName );
 
-        foreach ( var serviceGroup in servicesByPipeName )
-        {
-            var clients = this.CreateClientsFromServiceInfo( serviceGroup );
+        await Task.WhenAll(
+            servicesByPipeName.Select(
+                async serviceGroup =>
+                {
+                    var clients = await this.CreateClientsFromServiceInfoAsync( serviceGroup, cancellationToken );
 
-            await this.AddServiceClientsAsync( serviceGroup.Key, clients, cancellationToken );
-        }
+                    await this.AddServiceClientsAsync( serviceGroup.Key, clients, cancellationToken );
+                } ) );
     }
 
-    private ImmutableArray<RpcClient> CreateClientsFromServiceInfo( IEnumerable<RpcServiceInfo> serviceInfos )
+    private async Task<ImmutableArray<RpcClient>> CreateClientsFromServiceInfoAsync( IEnumerable<RpcServiceInfo> serviceInfos, CancellationToken cancellationToken )
     {
-        var clients = ImmutableArray.CreateBuilder<RpcClient>();
+        var clients = await Task.WhenAll(
+            serviceInfos.Select(
+                async serviceInfo =>
+                {
+                    if ( serviceInfo.ExtensionName != null )
+                    {
+                        if ( this._extensionManager == null )
+                        {
+                            throw new InvalidOperationException( $"{nameof(DesignTimeExtensionManager)} is not available." );
+                        }
 
-        foreach ( var serviceInfo in serviceInfos )
-        {
-            var type = Type.GetType( serviceInfo.FactoryTypeName, true ).AssertNotNull();
-            var serviceFactory = (IRpcServiceFactory) Activator.CreateInstance( type ).AssertNotNull();
-            var client = serviceFactory.CreateRpcClient( this._serviceProvider, this );
-            clients.Add( client );
-        }
+                        await this._extensionManager.GetExtensionAsync( serviceInfo.ExtensionName, cancellationToken )
+                            .WarnIfLongAsync( this.Logger, $"Awaiting for extension '{serviceInfo.ExtensionName}'.", cancellationToken );
+                    }
 
-        return clients.ToImmutable();
+                    var type = Type.GetType( serviceInfo.FactoryTypeName, true ).AssertNotNull();
+                    var serviceFactory = (IRpcServiceFactory) Activator.CreateInstance( type ).AssertNotNull();
+
+                    return serviceFactory.CreateRpcClient( this._serviceProvider, this );
+                } ) );
+        
+        return clients.ToImmutableArray();
     }
 
     /// <summary>
@@ -160,7 +173,7 @@ public sealed class RpcServiceProviderClientEndpoint : ClientEndpoint
             this.Logger.Trace?.Log( $"The extension '{extensionName}' is available." );
         }
 
-        var clients = this.CreateClientsFromServiceInfo( services );
+        var clients = await this.CreateClientsFromServiceInfoAsync( services, cancellationToken );
 
         await this.AddServiceClientsAsync( pipeName, clients, cancellationToken );
     }
