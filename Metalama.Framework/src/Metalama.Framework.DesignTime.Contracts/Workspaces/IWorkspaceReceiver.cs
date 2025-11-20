@@ -5,14 +5,14 @@
 using Microsoft.CodeAnalysis;
 using System.Runtime.InteropServices;
 
-namespace Metalama.Framework.DesignTime.Contracts.EntryPoint;
+namespace Metalama.Framework.DesignTime.Contracts.Workspaces;
 
 /// <summary>
-/// Extends <see cref="ICompilerServiceProvider"/> with a method accepting the <c>VisualStudioWorkspace</c> instance.
+/// Exposes the <see cref="SetWorkspace"/> method accepting the <c>VisualStudioWorkspace</c> instance.
 /// </summary>
 [ComImport]
 [Guid( "b2a4a92a-8b0f-45d4-bad7-bc5e9a370fc0" )]
-public interface ICompilerServiceProvider2 : ICompilerServiceProvider
+public interface IWorkspaceReceiver
 {
     /// <summary>
     /// Sets the <c>VisualStudioWorkspace</c> instance.

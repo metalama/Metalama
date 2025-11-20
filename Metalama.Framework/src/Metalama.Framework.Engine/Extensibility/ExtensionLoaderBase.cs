@@ -4,6 +4,7 @@
 
 using Metalama.Backstage.Diagnostics;
 using Metalama.Framework.Engine.CompileTime;
+using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Services;
 using System;
@@ -23,7 +24,7 @@ public class ExtensionLoaderBase
         this._logger = serviceProvider.GetLoggerFactory().GetLogger( nameof(ExtensionLoaderBase) );
     }
 
-    public IEnumerable<string> GetExtensionAssemblies( IEnumerable<TargetedAssemblyReference> assemblyReferences )
+    public IEnumerable<string> GetExtensionAssemblyPaths( IEnumerable<TargetedAssemblyReference> assemblyReferences )
     {
         var targetFramework = RuntimeInformation.FrameworkDescription.StartsWith( ".NET Framework", StringComparison.Ordinal ) ? "net472" : "net8.0";
 
@@ -34,62 +35,104 @@ public class ExtensionLoaderBase
             .Select( a => a.Path.AssertNotNull() );
     }
 
-    internal List<Type> DiscoverExtensionTypes(
+    internal IEnumerable<Type> DiscoverExtensionTypes(
         CompileTimeDomain domain,
         ExtensionKind extensionKind,
         IReadOnlyCollection<TargetedAssemblyReference> assemblyReferences,
-        bool avoidLockingAssemblies = false )
+        bool avoidLockingAssemblies,
+        IDiagnosticAdder diagnosticAdder )
     {
         this._logger.Trace?.Log( $"Discovering extension types of kind '{extensionKind}' in assemblies: {string.Join( ", ", assemblyReferences )}." );
 
         // First load assemblies, because we don't know their order and dependencies.
-        var assemblies = this.LoadExtensionAssemblies( domain, assemblyReferences, avoidLockingAssemblies );
+        var assemblies = this.LoadExtensionAssemblies( domain, assemblyReferences, avoidLockingAssemblies, diagnosticAdder );
 
         // Now we can load the types.
-        return this.DiscoverExtensionTypes( extensionKind, assemblies );
+        return this.DiscoverExtensionTypes( extensionKind, assemblies, diagnosticAdder );
     }
 
-    private List<Assembly> LoadExtensionAssemblies(
+    private IEnumerable<Assembly> LoadExtensionAssemblies(
         CompileTimeDomain domain,
         IEnumerable<TargetedAssemblyReference> assemblyReferences,
-        bool avoidLockingAssemblies )
+        bool avoidLockingAssemblies,
+        IDiagnosticAdder diagnosticAdder )
     {
         // It is essential to materialize the query into a list, otherwise assemblies are not loaded if the caller does not evaluate the query.
 
-        return this.GetExtensionAssemblies( assemblyReferences )
-            .Select(
-                path =>
-                {
-                    this._logger.Trace?.Log( $"Loading extension assembly '{path}'." );
+        var assemblies = new List<Assembly>();
 
-                    return domain.LoadAssembly( path, null, new LoadAssemblyOptions() { IsShared = true, AvoidLocking = avoidLockingAssemblies } );
-                } )
-            .ToList();
+        foreach ( var path in this.GetExtensionAssemblyPaths( assemblyReferences ) )
+        {
+            try
+            {
+                this._logger.Trace?.Log( $"Loading extension assembly '{path}'." );
+
+                var assembly = domain.LoadAssembly( path, null, new LoadAssemblyOptions() { IsShared = true, AvoidLocking = avoidLockingAssemblies } );
+                assemblies.Add( assembly );
+            }
+            catch ( Exception e )
+            {
+                diagnosticAdder.Report( GeneralDiagnosticDescriptors.CannotLoadExtensionAssembly.CreateRoslynDiagnostic( null, (path, e.Message) ) );
+                this._logger.Error?.Log( $"Cannot load extension assembly '{path}': {e.Message}" );
+            }
+        }
+
+        return assemblies;
     }
 
-    public List<Type> DiscoverExtensionTypes( CompileTimeDomain domain, ExtensionKind extensionKind, IEnumerable<string> assemblies )
+    public IEnumerable<Type> DiscoverExtensionTypes(
+        CompileTimeDomain domain,
+        ExtensionKind extensionKind,
+        IEnumerable<string> assemblyPaths,
+        IDiagnosticAdder diagnosticAdder )
     {
-        var loadedAssemblies = assemblies.Select(
-                path =>
-                {
-                    this._logger.Trace?.Log( $"Loading extension assembly '{path}'." );
+        var assemblies = new List<Assembly>();
 
-                    return domain.LoadAssembly( path, null, LoadAssemblyOptions.Shared );
-                } )
-            .ToList();
+        foreach ( var path in assemblyPaths )
+        {
+            try
+            {
+                this._logger.Trace?.Log( $"Loading extension assembly '{path}'." );
 
-        return this.DiscoverExtensionTypes( extensionKind, loadedAssemblies );
+                var assembly = domain.LoadAssembly( path, null, LoadAssemblyOptions.Shared );
+                assemblies.Add( assembly );
+            }
+            catch ( Exception e )
+            {
+                diagnosticAdder.Report( GeneralDiagnosticDescriptors.CannotLoadExtensionAssembly.CreateRoslynDiagnostic( null, (path, e.Message) ) );
+                this._logger.Error?.Log( $"Cannot load extension assembly '{path}': {e.Message}" );
+            }
+        }
+
+        return this.DiscoverExtensionTypes( extensionKind, assemblies, diagnosticAdder );
     }
 
-    private List<Type> DiscoverExtensionTypes( ExtensionKind extensionKind, IEnumerable<Assembly> assemblies )
+    private IEnumerable<Type> DiscoverExtensionTypes( ExtensionKind extensionKind, IEnumerable<Assembly> assemblies, IDiagnosticAdder diagnosticAdder )
     {
-        this._logger.Trace?.Log( $"Discovering ExportExtensionAttribute with kind '{extensionKind}'." );
+        var extensionTypes = new List<Type>();
 
-        return assemblies
-            .SelectMany(
-                assembly => assembly.GetCustomAttributes<ExportExtensionAttribute>()
-                    .Where( attribute => attribute.ExtensionKind == extensionKind )
-                    .Select( attribute => attribute.ExtensionType ) )
-            .ToList();
+        foreach ( var assembly in assemblies )
+        {
+            try
+            {
+                this._logger.Trace?.Log( $"Discovering ExportExtensionAttribute with kind '{extensionKind}' in assembly '{assembly.FullName}'." );
+
+                extensionTypes.AddRange(
+                    assembly.GetCustomAttributes<ExportExtensionAttribute>()
+                        .Where( attribute => attribute.ExtensionKind == extensionKind )
+                        .Select( attribute => attribute.ExtensionType ) );
+            }
+            catch ( Exception e )
+            {
+                diagnosticAdder.Report(
+                    GeneralDiagnosticDescriptors.CannotLoadExtensionAssembly.CreateRoslynDiagnostic(
+                        null,
+                        (assembly.FullName.AssertNotNull(), "Cannot enumerate custom attributes: " + e.Message) ) );
+
+                this._logger.Error?.Log( $"Cannot load extension attributes from '{assembly.FullName}': {e.Message}" );
+            }
+        }
+
+        return extensionTypes;
     }
 }

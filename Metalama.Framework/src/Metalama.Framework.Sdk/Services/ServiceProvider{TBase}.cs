@@ -180,8 +180,6 @@ public sealed partial class ServiceProvider<TBase> : ServiceProvider, IServicePr
             {
                 _interfaceImplementationCache[serviceType] = implementedInterfaces;
             }
-
-            return implementedInterfaces;
         }
 
         return implementedInterfaces;

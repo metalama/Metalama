@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Engine.CompileTime;
+using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Services;
 using System;
@@ -12,5 +13,9 @@ namespace Metalama.Framework.Engine.Extensibility;
 
 public interface IExtensionLoader : IGlobalService
 {
-    IEnumerable<Type> GetExtensionTypes( IProjectOptions projectOptions, CompileTimeDomain domain, ExtensionKind extensionKind );
+    IEnumerable<Type> GetExtensionTypes(
+        IProjectOptions projectOptions,
+        CompileTimeDomain domain,
+        ExtensionKind extensionKind,
+        IDiagnosticAdder diagnosticAdder );
 }

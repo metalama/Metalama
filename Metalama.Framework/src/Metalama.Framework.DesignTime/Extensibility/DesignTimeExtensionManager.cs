@@ -9,6 +9,7 @@ using Metalama.Framework.DesignTime.Services;
 using Metalama.Framework.DesignTime.VisualStudio.ServiceProvider;
 using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.CompileTime;
+using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Services;
@@ -46,6 +47,12 @@ public sealed class DesignTimeExtensionManager : IGlobalService
 
     internal void OnProjectDiscovered( IProjectOptions options )
     {
+        if ( !options.IsFrameworkEnabled )
+        {
+            // Not a Metalama project.
+            return;
+        }
+
         if ( !this._processedOptions.TryAdd( options.Id, options.Id ) )
         {
             // The project was already processed.
@@ -56,7 +63,7 @@ public sealed class DesignTimeExtensionManager : IGlobalService
 
         lock ( this._extensions )
         {
-            var extensionTypes = this._extensionLoader.GetExtensionTypes( options, this._domain, ExtensionKind.DesignTime );
+            var extensionTypes = this._extensionLoader.GetExtensionTypes( options, this._domain, ExtensionKind.DesignTime, NullDiagnosticAdder.Instance );
 
             foreach ( var extensionType in extensionTypes )
             {

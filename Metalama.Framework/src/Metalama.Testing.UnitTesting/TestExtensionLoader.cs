@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Engine.CompileTime;
+using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Services;
@@ -22,12 +23,16 @@ internal sealed class TestExtensionLoader : ExtensionLoaderBase, IExtensionLoade
         this._testContextOptions = testContextOptions;
     }
 
-    public IEnumerable<Type> GetExtensionTypes( IProjectOptions projectOptions, CompileTimeDomain domain, ExtensionKind extensionKind )
+    public IEnumerable<Type> GetExtensionTypes(
+        IProjectOptions projectOptions,
+        CompileTimeDomain domain,
+        ExtensionKind extensionKind,
+        IDiagnosticAdder diagnosticAdder )
     {
         var (extensionTypes, extensionAssemblies) = extensionKind == ExtensionKind.Default
             ? (this._testContextOptions.ExtensionTypes, this._testContextOptions.ExtensionAssemblies)
             : (this._testContextOptions.DesignTimeExtensionTypes, this._testContextOptions.DesignTimeExtensionAssemblies);
 
-        return extensionTypes.Concat( this.DiscoverExtensionTypes( domain, extensionKind, extensionAssemblies ) );
+        return extensionTypes.Concat( this.DiscoverExtensionTypes( domain, extensionKind, extensionAssemblies, NullDiagnosticAdder.Instance ) );
     }
 }

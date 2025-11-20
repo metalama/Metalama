@@ -341,6 +341,14 @@ namespace Metalama.Framework.Engine.Diagnostics
                 "An aspect or fabric can report or suppress a diagnostic  only under its target declaration.",
                 _category );
 
+        internal static readonly DiagnosticDefinition<(string Path, string Message)>
+            CannotLoadExtensionAssembly = new(
+                "LAMA0070",
+                Error,
+                "Cannot load the extension assembly '{0}': {1}",
+                "Cannot load an extension assembly.",
+                _category );
+
         // TODO: Use formattable string (C# does not seem to find extension methods).
         internal static readonly DiagnosticDefinition<string>
             UnsupportedFeature = new(

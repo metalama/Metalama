@@ -21,4 +21,6 @@ internal sealed class RpcServiceInfo
         this.ExtensionName = extensionName;
         this.PipeName = pipeName;
     }
+
+    public override string ToString() => this.FactoryTypeName;
 }

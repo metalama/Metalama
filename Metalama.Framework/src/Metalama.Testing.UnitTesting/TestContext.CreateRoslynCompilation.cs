@@ -109,7 +109,7 @@ public partial class TestContext
 
             assemblies.AddRange( this.TestProjectOptions.AdditionalAssemblies );
             var extensionLoader = new TestExtensionLoader( this.ServiceProvider.Global, this.TestProjectOptions.TestContextOptions );
-            libraries.AddRange( extensionLoader.GetExtensionAssemblies( this.TestProjectOptions.CompileTimeAssemblies ) );
+            libraries.AddRange( extensionLoader.GetExtensionAssemblyPaths( this.TestProjectOptions.CompileTimeAssemblies ) );
         }
 
         // Force the loading of some system assemblies before we search them in the AppDomain.

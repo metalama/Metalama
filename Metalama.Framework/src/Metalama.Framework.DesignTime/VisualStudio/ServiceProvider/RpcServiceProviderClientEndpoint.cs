@@ -58,40 +58,67 @@ public sealed class RpcServiceProviderClientEndpoint : ClientEndpoint
 
         var servicesByPipeName = registeredServices.GroupBy( s => s.PipeName );
 
-        await Task.WhenAll(
-            servicesByPipeName.Select(
-                async serviceGroup =>
-                {
-                    var clients = await this.CreateClientsFromServiceInfoAsync( serviceGroup, cancellationToken );
-
-                    await this.AddServiceClientsAsync( serviceGroup.Key, clients, cancellationToken );
-                } ) );
+        await Task.WhenAll( servicesByPipeName.Select( serviceGroup => this.AddServiceClientsAsync( serviceGroup.Key, serviceGroup, cancellationToken ) ) );
     }
 
-    private async Task<ImmutableArray<RpcClient>> CreateClientsFromServiceInfoAsync( IEnumerable<RpcServiceInfo> serviceInfos, CancellationToken cancellationToken )
+    private Task AddServiceClientsAsync( string pipeName, IEnumerable<RpcServiceInfo> serviceInfos, CancellationToken cancellationToken )
     {
-        var clients = await Task.WhenAll(
-            serviceInfos.Select(
-                async serviceInfo =>
-                {
-                    if ( serviceInfo.ExtensionName != null )
+        var clients =
+            serviceInfos
+                .GroupBy( serviceInfo => serviceInfo.ExtensionName )
+                .SelectMany(
+                    group =>
                     {
-                        if ( this._extensionManager == null )
+                        var extensionName = group.Key;
+
+                        if ( extensionName != null )
                         {
-                            throw new InvalidOperationException( $"{nameof(DesignTimeExtensionManager)} is not available." );
+                            if ( this._extensionManager == null )
+                            {
+                                throw new InvalidOperationException( $"{nameof(DesignTimeExtensionManager)} is not available." );
+                            }
+
+                            var getExtensionTask = this._extensionManager.GetExtensionAsync( extensionName, CancellationToken.None );
+
+                            if ( !getExtensionTask.IsCompleted )
+                            {
+                                // If the extension is not loaded yet, schedule a continuation task to load the services
+                                // when it will be available. We do not await for it now because it would make other services
+                                // dependent upon the availability of this extension,
+
+                                var extensionServiceInfos = group.ToList();
+
+                                this.Logger.Trace?.Log(
+                                    $"Cannot add RPC services {string.Join( ", ", extensionServiceInfos )} because the extension '{extensionName}' is not loaded yet." );
+
+                                this.ExecuteBackgroundTask(
+                                    async ct =>
+                                    {
+                                        await this._extensionManager.GetExtensionAsync( extensionName, ct );
+
+                                        this.Logger.Trace?.Log( $"Loading RPC services for extension '{extensionName}'." );
+
+                                        await this.AddServiceClientsAsync( pipeName, extensionServiceInfos, this.DisposeCancellationToken );
+                                    },
+                                    $"Loading RPC services for extension '{extensionName}'." );
+
+                                return [];
+                            }
                         }
 
-                        await this._extensionManager.GetExtensionAsync( serviceInfo.ExtensionName, cancellationToken )
-                            .WarnIfLongAsync( this.Logger, $"Awaiting for extension '{serviceInfo.ExtensionName}'.", cancellationToken );
-                    }
+                        return group;
+                    } )
+                .Select(
+                    serviceInfo =>
+                    {
+                        var type = Type.GetType( serviceInfo.FactoryTypeName, true ).AssertNotNull();
+                        var serviceFactory = (IRpcServiceFactory) Activator.CreateInstance( type ).AssertNotNull();
 
-                    var type = Type.GetType( serviceInfo.FactoryTypeName, true ).AssertNotNull();
-                    var serviceFactory = (IRpcServiceFactory) Activator.CreateInstance( type ).AssertNotNull();
+                        return serviceFactory.CreateRpcClient( this._serviceProvider, this );
+                    } )
+                .ToImmutableArray();
 
-                    return serviceFactory.CreateRpcClient( this._serviceProvider, this );
-                } ) );
-        
-        return clients.ToImmutableArray();
+        return this.AddServiceClientsAsync( pipeName, clients, cancellationToken );
     }
 
     /// <summary>
@@ -136,45 +163,8 @@ public sealed class RpcServiceProviderClientEndpoint : ClientEndpoint
     {
         var pipeName = servicesAdded.Services.Select( s => s.PipeName ).Distinct().Single();
 
-        foreach ( var group in servicesAdded.Services.GroupBy( s => s.ExtensionName ) )
-        {
-            this.ExecuteBackgroundTask(
-                ct => this.AddServiceClientGroupAsync( pipeName, group.Key, group.ToList(), ct ),
-                nameof(this.AddServiceClientGroupAsync) );
-        }
-    }
-
-    private async Task AddServiceClientGroupAsync(
-        string pipeName,
-        string? extensionName,
-        IReadOnlyCollection<RpcServiceInfo> services,
-        CancellationToken cancellationToken )
-    {
-        this.Logger.Trace?.Log( $"Registering services {string.Join( "; ", services.Select( x => x.FactoryTypeName ) )} from extension '{extensionName}'." );
-
-        if ( extensionName != null )
-        {
-            if ( this._extensionManager == null )
-            {
-                throw new InvalidOperationException( $"There is no {nameof(DesignTimeExtensionManager)}." );
-            }
-
-            // Wait until the extension is registered.
-            var getExtensionTask = this._extensionManager.GetExtensionAsync( extensionName, cancellationToken );
-
-            if ( !getExtensionTask.IsCompleted )
-            {
-                this.Logger.Trace?.Log( $"Waiting for extension '{extensionName}'." );
-
-                await getExtensionTask
-                    .WarnIfLongAsync( this.Logger, $"Waiting for extension {extensionName} to be registered.", cancellationToken );
-            }
-
-            this.Logger.Trace?.Log( $"The extension '{extensionName}' is available." );
-        }
-
-        var clients = await this.CreateClientsFromServiceInfoAsync( services, cancellationToken );
-
-        await this.AddServiceClientsAsync( pipeName, clients, cancellationToken );
+        this.ExecuteBackgroundTask(
+            ct => this.AddServiceClientsAsync( pipeName, servicesAdded.Services, ct ),
+            $"Loading RPC services {string.Join( ", ", servicesAdded.Services )}." );
     }
 }
