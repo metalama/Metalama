@@ -4,12 +4,15 @@
 
 using JetBrains.Annotations;
 using Metalama.Backstage.Diagnostics;
+using System.Diagnostics;
 
 namespace Metalama.Framework.DesignTime.Rpc;
 
 [PublicAPI]
 public static class LongTaskHelper
 {
+    private const int _threshold = 1000;
+    
     public static Task WarnIfLongAsync( this Task task, ILogger? logger, string taskDescription, CancellationToken cancellationToken )
     {
         if ( task.IsCompleted || task.IsFaulted || task.IsCanceled )
@@ -46,13 +49,16 @@ public static class LongTaskHelper
 
     private static async Task WarnIfTaskLongCoreAsync( Task task, ILogWriter logger, string taskDescription, CancellationToken cancellationToken )
     {
-        var delayTask = Task.Delay( 1000, cancellationToken );
+        var stopwatch = Stopwatch.StartNew();
+        var delayTask = Task.Delay( _threshold, cancellationToken );
 
         if ( await Task.WhenAny( delayTask, task ) == delayTask )
         {
             logger.Log( $"The task is taking a long time: '{taskDescription}'." );
 
             await task;
+            
+            logger.Log( $"The task '{taskDescription}' has completed after {stopwatch.Elapsed}." );
         }
     }
 
@@ -62,13 +68,16 @@ public static class LongTaskHelper
         string taskDescription,
         CancellationToken cancellationToken )
     {
-        var delayTask = Task.Delay( 1000, cancellationToken );
+        var stopwatch = Stopwatch.StartNew();
+        var delayTask = Task.Delay( _threshold, cancellationToken );
 
         if ( await Task.WhenAny( delayTask, task.AsTask() ) == delayTask )
         {
             logger.Log( $"The task is taking a long time: '{taskDescription}'." );
 
             await task;
+            
+            logger.Log( $"The task '{taskDescription}' has completed after {stopwatch.Elapsed}." );
         }
     }
 
@@ -108,14 +117,25 @@ public static class LongTaskHelper
 
     private static async Task<T> WarnIfTaskLongCoreAsync<T>( Task<T> task, ILogWriter logger, string taskDescription, CancellationToken cancellationToken )
     {
-        var delayTask = Task.Delay( 1000, cancellationToken );
+        var stopwatch = Stopwatch.StartNew();
+        var delayTask = Task.Delay( _threshold, cancellationToken );
+
+        var isLong = false;
 
         if ( await Task.WhenAny( delayTask, task ) == delayTask )
         {
             logger.Log( $"The task is taking a long time: '{taskDescription}'." );
+            isLong = true;
         }
 
-        return await task;
+        var result = await task;
+
+        if ( isLong )
+        {        
+            logger.Log( $"The task '{taskDescription}' has completed after {stopwatch.Elapsed}." );
+        }
+
+        return result;
     }
 
     private static async ValueTask<T> WarnIfValueTaskLongCoreAsync<T>(
@@ -124,13 +144,18 @@ public static class LongTaskHelper
         string taskDescription,
         CancellationToken cancellationToken )
     {
-        var delayTask = Task.Delay( 1000, cancellationToken );
+        var stopwatch = Stopwatch.StartNew();
+        var delayTask = Task.Delay( _threshold, cancellationToken );
 
         if ( await Task.WhenAny( delayTask, task.AsTask() ) == delayTask )
         {
             logger.Log( $"The task is taking a long time: '{taskDescription}'." );
         }
 
-        return await task;
+        var result = await task;
+        
+        logger.Log( $"The task '{taskDescription}' has completed after {stopwatch.Elapsed}." );
+
+        return result;
     }
 }
