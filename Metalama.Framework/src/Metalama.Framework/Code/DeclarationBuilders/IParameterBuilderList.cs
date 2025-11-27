@@ -9,11 +9,19 @@ namespace Metalama.Framework.Code.DeclarationBuilders
     /// <summary>
     /// Read-only list of <see cref="IParameterBuilder"/>.
     /// </summary>
+    /// <seealso cref="IParameterBuilder"/>
+    /// <seealso cref="IMethodBaseBuilder"/>
+    /// <seealso href="@introducing-members"/>
     public interface IParameterBuilderList : IReadOnlyList<IParameterBuilder>
     {
         // TODO: This type cannot simply extend IParameterList, because it leads to ambiguity of indexer, GetEnumerator etc.
         // The only way to do this is to redeclare all IReadOnlyList members here to hide conflicting base interface members.
 
+        /// <summary>
+        /// Gets the parameter with the specified name.
+        /// </summary>
+        /// <param name="name">The name of the parameter.</param>
+        /// <returns>The parameter with the specified name.</returns>
         IParameterBuilder this[ string name ] { get; }
     }
 }

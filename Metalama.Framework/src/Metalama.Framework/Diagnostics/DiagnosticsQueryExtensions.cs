@@ -10,13 +10,17 @@ using System;
 
 namespace Metalama.Framework.Diagnostics;
 
+/// <summary>
+/// Extension methods for <see cref="IQuery{T}"/> and <see cref="ITaggedQuery{T, TTag}"/> to report and suppress diagnostics.
+/// </summary>
 [CompileTime]
 public static class DiagnosticsQueryExtensions
 {
     /// <summary>
     /// Reports a diagnostic for each declaration selected by the the current object.
     /// </summary>
-    /// <param name="query">A query selecting the declarations to validate.</param> 
+    /// <typeparam name="TDeclaration">The type of declaration in the query.</typeparam>
+    /// <param name="query">A query selecting the declarations to validate.</param>
     /// <param name="diagnostic">A function returning an <see cref="IDiagnostic"/> given a declaration.</param>
     public static void ReportDiagnostic<TDeclaration>( this IQuery<TDeclaration> query, Func<TDeclaration, IDiagnostic> diagnostic )
         where TDeclaration : class, IDeclaration
@@ -25,7 +29,8 @@ public static class DiagnosticsQueryExtensions
     /// <summary>
     /// Suppresses a diagnostic for each declaration selected by the current object.
     /// </summary>
-    /// <param name="query">A query selecting the declarations to validate.</param> 
+    /// <typeparam name="TDeclaration">The type of declaration in the query.</typeparam>
+    /// <param name="query">A query selecting the declarations to validate.</param>
     /// <param name="suppression">A function returning a <see cref="SuppressionDefinition"/> given a declaration.</param>
     public static void SuppressDiagnostic<TDeclaration>( this IQuery<TDeclaration> query, Func<TDeclaration, SuppressionDefinition> suppression )
         where TDeclaration : class, IDeclaration
@@ -34,7 +39,9 @@ public static class DiagnosticsQueryExtensions
     /// <summary>
     /// Reports a diagnostic for each declaration selected by the the current object.
     /// </summary>
-    /// <param name="query">A query selecting the declarations to validate.</param> 
+    /// <typeparam name="TDeclaration">The type of declaration in the query.</typeparam>
+    /// <typeparam name="TTag">The type of tag associated with each declaration.</typeparam>
+    /// <param name="query">A query selecting the declarations to validate.</param>
     /// <param name="diagnostic">A function returning an <see cref="IDiagnostic"/> given a declaration.</param>
     public static void ReportDiagnostic<TDeclaration, TTag>( this ITaggedQuery<TDeclaration, TTag> query, Func<TDeclaration, TTag, IDiagnostic> diagnostic )
         where TDeclaration : class, IDeclaration
@@ -43,7 +50,9 @@ public static class DiagnosticsQueryExtensions
     /// <summary>
     /// Suppresses a diagnostic for each declaration selected by the current object.
     /// </summary>
-    /// <param name="query">A query selecting the declarations to validate.</param> 
+    /// <typeparam name="TDeclaration">The type of declaration in the query.</typeparam>
+    /// <typeparam name="TTag">The type of tag associated with each declaration.</typeparam>
+    /// <param name="query">A query selecting the declarations to validate.</param>
     /// <param name="suppression">A function returning a <see cref="SuppressionDefinition"/> given a declaration.</param>
     public static void SuppressDiagnostic<TDeclaration, TTag>(
         this ITaggedQuery<TDeclaration, TTag> query,

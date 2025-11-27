@@ -12,6 +12,8 @@ namespace Metalama.Framework.Code
     /// <summary>
     /// Represents an assembly identity, used in project references.
     /// </summary>
+    /// <seealso cref="IAssembly"/>
+    /// <seealso cref="ICompilation"/>
     [InternalImplement]
     [CompileTime]
     public interface IAssemblyIdentity : IEquatable<IAssemblyIdentity>

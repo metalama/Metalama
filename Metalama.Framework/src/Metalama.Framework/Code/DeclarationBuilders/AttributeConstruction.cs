@@ -13,8 +13,11 @@ using System.Linq;
 namespace Metalama.Framework.Code.DeclarationBuilders
 {
     /// <summary>
-    /// Encapsulates the information necessary to create a custom attribute. 
+    /// Encapsulates the information necessary to create a custom attribute.
     /// </summary>
+    /// <seealso cref="IAttribute"/>
+    /// <seealso cref="IDeclarationBuilder"/>
+    /// <seealso cref="AttributeExtensions"/>
     public sealed class AttributeConstruction : IAttributeData
     {
         /// <summary>
@@ -51,6 +54,10 @@ namespace Metalama.Framework.Code.DeclarationBuilders
         /// <summary>
         /// Creates a new <see cref="AttributeConstruction"/> by explicitly specifying the constructor and strongly-typed arguments.
         /// </summary>
+        /// <param name="constructor">The attribute constructor.</param>
+        /// <param name="constructorArguments">The constructor arguments.</param>
+        /// <param name="namedArguments">The named arguments (i.e., the assigned fields and properties).</param>
+        /// <returns>A new <see cref="AttributeConstruction"/> instance.</returns>
         public static AttributeConstruction Create(
             IConstructor constructor,
             IReadOnlyList<TypedConstant>? constructorArguments = default,
@@ -64,6 +71,10 @@ namespace Metalama.Framework.Code.DeclarationBuilders
         /// Creates a new <see cref="AttributeConstruction"/> by specifying the reflection <see cref="System.Type"/> of the attribute.
         /// The method will attempt to find a suitable constructor.
         /// </summary>
+        /// <param name="attributeType">The attribute type.</param>
+        /// <param name="constructorArguments">The constructor arguments.</param>
+        /// <param name="namedArguments">The named arguments (i.e., the assigned fields and properties).</param>
+        /// <returns>A new <see cref="AttributeConstruction"/> instance.</returns>
         public static AttributeConstruction Create(
             Type attributeType,
             IReadOnlyList<object?>? constructorArguments = null,
@@ -77,6 +88,10 @@ namespace Metalama.Framework.Code.DeclarationBuilders
         /// Creates a new <see cref="AttributeConstruction"/> by specifying the <see cref="INamedType"/> of the attribute.
         /// The method will attempt to find a suitable constructor.
         /// </summary>
+        /// <param name="attributeType">The attribute type.</param>
+        /// <param name="constructorArguments">The constructor arguments.</param>
+        /// <param name="namedArguments">The named arguments (i.e., the assigned fields and properties).</param>
+        /// <returns>A new <see cref="AttributeConstruction"/> instance.</returns>
         public static AttributeConstruction Create(
             INamedType attributeType,
             IReadOnlyList<object?>? constructorArguments = null,

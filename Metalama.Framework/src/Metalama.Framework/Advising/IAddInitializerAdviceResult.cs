@@ -5,7 +5,10 @@
 namespace Metalama.Framework.Advising;
 
 /// <summary>
-/// Represents the result of the <see cref="IAdviceFactory.AddInitializer(Metalama.Framework.Code.INamedType,string,InitializerKind,object?,object?)"/>
-/// method.
+/// Represents the result of an advice that adds an initializer.
 /// </summary>
+/// <seealso cref="IAdviceResult"/>
+/// <seealso cref="AdviserExtensions.AddInitializer"/>
+/// <seealso cref="InitializerKind"/>
+/// <seealso href="@initializers"/>
 public interface IAddInitializerAdviceResult : IAdviceResult;

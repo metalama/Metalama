@@ -14,6 +14,13 @@ namespace Metalama.Framework.Code
     /// <summary>
     /// Represents a set of types compiled together. See also <see cref="IProject"/>.
     /// </summary>
+    /// <seealso cref="IProject"/>
+    /// <seealso cref="IAssembly"/>
+    /// <seealso cref="IDeclaration"/>
+    /// <seealso cref="INamedType"/>
+    /// <seealso cref="IDeclarationFactory"/>
+    /// <seealso cref="CompilationExtensions"/>
+    /// <seealso cref="CompilationAspect"/>
     [CompileTime]
     public interface ICompilation : IAssembly
     {

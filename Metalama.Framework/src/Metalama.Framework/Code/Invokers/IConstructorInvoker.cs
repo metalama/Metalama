@@ -10,6 +10,10 @@ namespace Metalama.Framework.Code.Invokers;
 /// <summary>
 /// Allows invocation of the constructor.
 /// </summary>
+/// <seealso cref="IConstructor"/>
+/// <seealso cref="IExpression"/>
+/// <seealso cref="IObjectCreationExpression"/>
+/// <seealso href="@invokers"/>
 [CompileTime]
 public interface IConstructorInvoker
 {

@@ -12,14 +12,19 @@ namespace Metalama.Framework.Fabrics
     /// When the project contains several project fabrics, the ones whose source file is the closest to the root directory is executed
     /// first. The project fabrics are then ordered by type name.
     /// </remarks>
-    /// <seealso href="@fabrics"/> 
+    /// <seealso cref="Fabric"/>
+    /// <seealso cref="IProjectAmender"/>
+    /// <seealso cref="NamespaceFabric"/>
+    /// <seealso cref="TypeFabric"/>
+    /// <seealso href="@fabrics"/>
     /// <seealso href="@aspect-configuration"/>
     /// <seealso href="@fabrics-adding-aspects"/>
     public abstract class ProjectFabric : Fabric
     {
         /// <summary>
-        /// The user can implement this method to analyze types in the current project, add aspects, and report or suppress diagnostics.
+        /// The user can implement this method to analyze types in the current project, add aspects, set options, validate architecture, and report or suppress diagnostics.
         /// </summary>
+        /// <param name="amender">An object that allows to query declarations in the project, add aspects, and set options.</param>
         public abstract void AmendProject( IProjectAmender amender );
     }
 }

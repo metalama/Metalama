@@ -7,6 +7,9 @@ namespace Metalama.Framework.Aspects;
 /// <summary>
 /// Directions of the data flow to which the contract applies.
 /// </summary>
+/// <seealso cref="ContractAspect"/>
+/// <seealso cref="AdviserExtensions.AddContract"/>
+/// <seealso href="@contracts"/>
 [RunTimeOrCompileTime]
 public enum ContractDirection
 {

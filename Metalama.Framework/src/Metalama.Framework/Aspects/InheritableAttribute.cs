@@ -10,8 +10,10 @@ namespace Metalama.Framework.Aspects
     /// <summary>
     /// Custom attribute that, when applied to an aspect class, means that instances of this aspect
     /// are inherited from the base class or interface to derived classes, from base methods to method overrides,
-    /// from interface methods to method implementations, and so on. 
+    /// from interface methods to method implementations, and so on.
     /// </summary>
+    /// <seealso cref="IConditionallyInheritableAspect"/>
+    /// <seealso href="@aspect-inheritance"/>
     [AttributeUsage( AttributeTargets.Class )]
     [CompileTime]
     [PublicAPI]

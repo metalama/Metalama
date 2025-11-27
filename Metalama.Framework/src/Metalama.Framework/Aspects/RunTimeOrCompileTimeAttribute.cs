@@ -16,6 +16,9 @@ namespace Metalama.Framework.Aspects
     /// available to your aspects.
     /// </para>
     /// </remarks>
+    /// <seealso cref="CompileTimeAttribute"/>
+    /// <seealso cref="RunTimeAttribute"/>
+    /// <seealso cref="ExecutionScope"/>
     [AttributeUsage(
         AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Enum | AttributeTargets.Delegate | AttributeTargets.Interface
         | AttributeTargets.Assembly )]

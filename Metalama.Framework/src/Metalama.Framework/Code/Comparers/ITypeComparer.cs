@@ -12,6 +12,10 @@ namespace Metalama.Framework.Code.Comparers;
 /// Extends <see cref="IEqualityComparer{T}"/> of <see cref="IType"/> with the method <see cref="IsConvertibleTo(Metalama.Framework.Code.IType,Metalama.Framework.Code.IType,Metalama.Framework.Code.ConversionKind)"/>,
 /// which checks for type inheritance and not equality.
 /// </summary>
+/// <seealso cref="IType"/>
+/// <seealso cref="IDeclarationComparer"/>
+/// <seealso cref="ICompilationComparers"/>
+/// <seealso cref="ConversionKind"/>
 [CompileTime]
 public interface ITypeComparer : IEqualityComparer<IType>, IEqualityComparer<INamedType>
 {

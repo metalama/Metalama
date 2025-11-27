@@ -10,6 +10,10 @@ namespace Metalama.Framework.Code.Invokers
     /// <summary>
     /// Allows accessing the value of indexers.
     /// </summary>
+    /// <seealso cref="IIndexer"/>
+    /// <seealso cref="InvokerOptions"/>
+    /// <seealso cref="IExpression"/>
+    /// <seealso href="@invokers"/>
     [CompileTime]
     public interface IIndexerInvoker
     {

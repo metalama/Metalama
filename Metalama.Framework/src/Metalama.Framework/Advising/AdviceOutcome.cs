@@ -10,8 +10,11 @@ namespace Metalama.Framework.Advising;
 
 /// <summary>
 /// Status codes of the result of an advice. This enum is exposed on the <see cref="IAdviceResult.Outcome"/> property
-/// of the <see cref="IAdviceResult"/> interface, which is returned by all methods of the <see cref="IAdviceFactory"/> interface.
+/// of the <see cref="IAdviceResult"/> interface, which is returned by advice methods.
 /// </summary>
+/// <seealso cref="IAdviceResult"/>
+/// <seealso cref="AdviserExtensions"/>
+/// <seealso cref="IAspectBuilder"/>
 [CompileTime]
 public enum AdviceOutcome
 {

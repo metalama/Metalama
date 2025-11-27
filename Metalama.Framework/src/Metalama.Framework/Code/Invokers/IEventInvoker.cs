@@ -10,6 +10,10 @@ namespace Metalama.Framework.Code.Invokers
     /// <summary>
     /// Allows adding/removing delegates to/from events.
     /// </summary>
+    /// <seealso cref="IEvent"/>
+    /// <seealso cref="InvokerOptions"/>
+    /// <seealso cref="IExpression"/>
+    /// <seealso href="@invokers"/>
     [CompileTime]
     public interface IEventInvoker
     {

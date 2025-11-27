@@ -7,6 +7,12 @@ using System;
 
 namespace Metalama.Framework.Code
 {
+    /// <summary>
+    /// Provides extension methods for the <see cref="Accessibility"/> type to compare accessibility levels.
+    /// </summary>
+    /// <seealso cref="Accessibility"/>
+    /// <seealso cref="IMemberOrNamedType"/>
+    /// <seealso cref="MemberExtensions"/>
     [CompileTime]
     public static class AccessibilityExtensions
     {
@@ -37,6 +43,9 @@ namespace Metalama.Framework.Code
         /// <summary>
         /// Returns whether the left accessibility is strictly less restrictive than the right accessibility.
         /// </summary>
+        /// <param name="left">The accessibility level to compare.</param>
+        /// <param name="right">The accessibility level to compare against.</param>
+        /// <returns><see langword="true"/> if <paramref name="left"/> is strictly less restrictive than <paramref name="right"/>; otherwise, <see langword="false"/>.</returns>
         /// <example>
         /// For example, <c>a.IsSupersetOf(Accessibility.Protected)</c> returns <see langword="true"/> for <c>a</c> being
         /// <see cref="Accessibility.ProtectedInternal"/> or <see cref="Accessibility.Public"/>.
@@ -47,6 +56,9 @@ namespace Metalama.Framework.Code
         /// <summary>
         /// Returns whether the left accessibility is strictly more restrictive than the right accessibility.
         /// </summary>
+        /// <param name="left">The accessibility level to compare.</param>
+        /// <param name="right">The accessibility level to compare against.</param>
+        /// <returns><see langword="true"/> if <paramref name="left"/> is strictly more restrictive than <paramref name="right"/>; otherwise, <see langword="false"/>.</returns>
         /// <example>
         /// For example, <c>a.IsSubsetOf(Accessibility.Protected)</c> returns <see langword="true"/> for <c>a</c> being
         /// <see cref="Accessibility.Private"/> or <see cref="Accessibility.PrivateProtected"/>.
@@ -56,6 +68,9 @@ namespace Metalama.Framework.Code
         /// <summary>
         /// Returns whether the left accessibility is less restrictive or equal than the right accessibility.
         /// </summary>
+        /// <param name="left">The accessibility level to compare.</param>
+        /// <param name="right">The accessibility level to compare against.</param>
+        /// <returns><see langword="true"/> if <paramref name="left"/> is less restrictive or equal to <paramref name="right"/>; otherwise, <see langword="false"/>.</returns>
         /// <example>
         /// For example, <c>a.IsSupersetOf(Accessibility.Protected)</c> returns <see langword="true"/> for <c>a</c> being
         /// <see cref="Accessibility.Protected"/>, <see cref="Accessibility.ProtectedInternal"/> or <see cref="Accessibility.Public"/>.
@@ -66,6 +81,9 @@ namespace Metalama.Framework.Code
         /// <summary>
         /// Returns whether the left accessibility is more restrictive or equal than the right accessibility.
         /// </summary>
+        /// <param name="left">The accessibility level to compare.</param>
+        /// <param name="right">The accessibility level to compare against.</param>
+        /// <returns><see langword="true"/> if <paramref name="left"/> is more restrictive or equal to <paramref name="right"/>; otherwise, <see langword="false"/>.</returns>
         /// <example>
         /// For example, <c>a.IsSubsetOf(Accessibility.Protected)</c> returns <see langword="true"/> for <c>a</c> being
         /// <see cref="Accessibility.Protected"/>, <see cref="Accessibility.Private"/> or <see cref="Accessibility.PrivateProtected"/>.

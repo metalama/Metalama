@@ -9,6 +9,10 @@ namespace Metalama.Framework.Code.SyntaxBuilders;
 /// <summary>
 /// A common interface for objects that produce an <see cref="IStatement"/>.
 /// </summary>
+/// <seealso cref="IStatement"/>
+/// <seealso cref="StatementBuilder"/>
+/// <seealso cref="StatementFactory"/>
+/// <seealso href="@run-time-statements"/>
 [CompileTime]
 public interface IStatementBuilder
 {

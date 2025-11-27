@@ -13,6 +13,11 @@ namespace Metalama.Framework.Code
     /// To create an expression, use <see cref="ExpressionFactory"/> or <see cref="ExpressionBuilder"/>. Note that
     /// <see cref="IField"/>, <see cref="IProperty"/> and <see cref="IParameter"/> also implement the <see cref="IExpression"/> interface.
     /// </summary>
+    /// <seealso cref="ExpressionFactory"/>
+    /// <seealso cref="ExpressionBuilder"/>
+    /// <seealso cref="IExpressionBuilder"/>
+    /// <seealso cref="TypedConstant"/>
+    /// <seealso cref="IHasType"/>
     [CompileTime]
     [InternalImplement]
     [Hidden]

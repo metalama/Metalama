@@ -8,6 +8,39 @@ using System;
 
 namespace Metalama.Framework.Aspects;
 
+/// <summary>
+/// Configures how an aspect is presented in the IDE's code refactoring menu, including options for applying the aspect
+/// as a live template or as a custom attribute. This attribute is applied to aspect classes to control their editor experience.
+/// </summary>
+/// <remarks>
+/// <para>
+/// Use this attribute on aspect classes (types implementing <see cref="IAspect"/>) to customize how the IDE
+/// suggests and displays the aspect to users. You can control whether the aspect appears in code refactoring menus
+/// and customize the menu item titles.
+/// </para>
+/// <para>
+/// Two modes of aspect application are supported:
+/// </para>
+/// <list type="bullet">
+/// <item><description><b>Live Template:</b> The aspect is applied directly to the source code, transforming the code itself. Enable this with <see cref="SuggestAsLiveTemplate"/>.</description></item>
+/// <item><description><b>Custom Attribute:</b> The aspect is applied by adding a custom attribute to the target declaration. Enable this with <see cref="SuggestAsAddAttribute"/>.</description></item>
+/// </list>
+/// <para>
+/// For both modes, the aspect class must have a default constructor, and the aspect's eligibility (see <see cref="IEligible{T}.BuildEligibility"/>)
+/// determines which code elements can have the aspect applied.
+/// </para>
+/// </remarks>
+/// <example>
+/// <code>
+/// [EditorExperience(SuggestAsLiveTemplate = true, LiveTemplateSuggestionTitle = "Logging|Add Method Logging")]
+/// public class LogAttribute : OverrideMethodAspect
+/// {
+///     // Aspect implementation
+/// }
+/// </code>
+/// </example>
+/// <seealso cref="IAspect"/>
+/// <seealso cref="IEligible{T}"/>
 [AttributeUsage( AttributeTargets.Class )]
 [CompileTime]
 [PublicAPI]

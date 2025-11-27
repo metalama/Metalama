@@ -9,6 +9,8 @@ namespace Metalama.Framework.Code;
 /// <summary>
 /// Kinds of <see cref="IDeclarationOrigin"/>.
 /// </summary>
+/// <seealso cref="IDeclarationOrigin"/>
+/// <seealso cref="IDeclaration.Origin"/>
 [CompileTime]
 public enum DeclarationOriginKind
 {

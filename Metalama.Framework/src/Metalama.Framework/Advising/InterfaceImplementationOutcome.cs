@@ -9,6 +9,9 @@ namespace Metalama.Framework.Advising
     /// <summary>
     /// Actions taken by the advice when implementing an interface.
     /// </summary>
+    /// <seealso cref="IInterfaceImplementationResult"/>
+    /// <seealso cref="IImplementInterfaceAdviceResult"/>
+    /// <seealso cref="AdviserExtensions.ImplementInterface"/>
     [CompileTime]
     public enum InterfaceImplementationOutcome
     {

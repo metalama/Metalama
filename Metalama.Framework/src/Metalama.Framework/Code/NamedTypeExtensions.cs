@@ -17,17 +17,23 @@ public static class NamedTypeExtensions
     /// <summary>
     /// Gets the name of a named type in metadata format, i.e. the <c>`1</c>, <c>`2</c>, ... suffixes for generic types.
     /// </summary>
+    /// <param name="type">The named type.</param>
+    /// <returns>The metadata name of the type.</returns>
     public static string GetMetadataName( this INamedType type ) => ((ICompilationInternal) type.Compilation).Helpers.GetMetadataName( type );
 
     /// <summary>
     /// Gets the full name of a named type in metadata format, i.e. with <c>+</c> as the nested type separator and the <c>`1</c>, <c>`2</c>, ... suffixes
     /// for generic types.
     /// </summary>
+    /// <param name="type">The named type.</param>
+    /// <returns>The full metadata name of the type.</returns>
     public static string GetFullMetadataName( this INamedType type ) => ((ICompilationInternal) type.Compilation).Helpers.GetFullMetadataName( type );
 
     /// <summary>
     /// Gets all methods of a named type, including the accessors of properties and events.
     /// </summary>
+    /// <param name="type">The named type.</param>
+    /// <returns>An enumerable of all methods and accessor methods.</returns>
     public static IEnumerable<IMethod> MethodsAndAccessors( this INamedType type )
     {
         foreach ( var m in type.Methods )
@@ -58,6 +64,8 @@ public static class NamedTypeExtensions
     /// <summary>
     /// Gets all members of the current type, except nested types.
     /// </summary>
+    /// <param name="type">The named type.</param>
+    /// <returns>An enumerable of all members (methods, properties, fields, events, indexers, constructors) but not nested types.</returns>
     public static IEnumerable<IMember> Members( this INamedType type )
     {
         foreach ( var m in type.Methods )
@@ -94,6 +102,8 @@ public static class NamedTypeExtensions
     /// <summary>
     /// Gets all members of the current type and members inherited from the base type, except nested types.
     /// </summary>
+    /// <param name="type">The named type.</param>
+    /// <returns>An enumerable of all members including inherited members, but not nested types.</returns>
     public static IEnumerable<IMember> AllMembers( this INamedType type )
     {
         foreach ( var m in type.AllMethods )
@@ -130,10 +140,14 @@ public static class NamedTypeExtensions
     /// <summary>
     /// Gets all nested types of the current type, and all recursively all nested types of those nested types, but not the current type.
     /// </summary>
+    /// <param name="type">The named type.</param>
+    /// <returns>An enumerable of all nested types, recursively.</returns>
     public static IEnumerable<INamedType> NestedTypes( this INamedType type ) => type.SelectManyRecursive( t => t.Types );
 
     /// <summary>
     /// Gets all nested types of the current type, and all recursively all nested types of those nested types, including the current type.
     /// </summary>
+    /// <param name="type">The named type.</param>
+    /// <returns>An enumerable starting with the type itself, followed by all nested types, recursively.</returns>
     public static IEnumerable<INamedType> NestedTypesAndSelf( this INamedType type ) => type.SelectManyRecursive( t => t.Types, true );
 }

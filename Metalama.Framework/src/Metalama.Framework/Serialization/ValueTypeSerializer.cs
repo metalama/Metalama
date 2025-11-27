@@ -6,6 +6,14 @@ using System;
 
 namespace Metalama.Framework.Serialization
 {
+    /// <summary>
+    /// Base class for serializers of value types that use a single-phase deserialization process.
+    /// </summary>
+    /// <typeparam name="T">The value type to serialize.</typeparam>
+    /// <seealso cref="ReferenceTypeSerializer"/>
+    /// <seealso cref="ReferenceTypeSerializer{T}"/>
+    /// <seealso cref="ISerializer"/>
+    /// <seealso href="@serialization"/>
     public abstract class ValueTypeSerializer<T> : ISerializer
         where T : struct
     {
@@ -14,7 +22,7 @@ namespace Metalama.Framework.Serialization
         /// <summary>
         /// Serializes an object.
         /// </summary>
-        /// <param name="obj"></param>
+        /// <param name="obj">The object to serialize.</param>
         /// <param name="constructorArguments">Gives access to arguments that will be passed to the <see cref="DeserializeObject"/> method during deserialization.</param>
         public abstract void SerializeObject( T obj, IArgumentsWriter constructorArguments );
 
@@ -32,7 +40,12 @@ namespace Metalama.Framework.Serialization
             this.SerializeObject( typedValue, constructorArguments );
         }
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Converts a deserialized value to a target type.
+        /// </summary>
+        /// <param name="value">The value to convert.</param>
+        /// <param name="targetType">The target type to convert to.</param>
+        /// <returns>The converted value.</returns>
         public virtual object Convert( object value, Type targetType )
         {
             return value;

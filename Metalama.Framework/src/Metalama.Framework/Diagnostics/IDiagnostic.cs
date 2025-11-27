@@ -11,6 +11,9 @@ namespace Metalama.Framework.Diagnostics;
 /// <summary>
 /// Represents an instance of a diagnostic, including its parameters and its optional code fixes.
 /// </summary>
+/// <seealso cref="IDiagnosticDefinition"/>
+/// <seealso cref="ScopedDiagnosticSink"/>
+/// <seealso cref="DiagnosticSeverity"/>
 /// <seealso href="@diagnostics"/>
 [CompileTime]
 [InternalImplement]

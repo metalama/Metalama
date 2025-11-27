@@ -7,6 +7,9 @@ namespace Metalama.Framework.Code.DeclarationBuilders;
 /// <summary>
 /// Base interface for <see cref="IPropertyBuilder"/> and <see cref="IIndexerBuilder"/>.
 /// </summary>
+/// <seealso cref="IPropertyBuilder"/>
+/// <seealso cref="IIndexerBuilder"/>
+/// <seealso cref="IPropertyOrIndexer"/>
 public interface IPropertyOrIndexerBuilder : IPropertyOrIndexer, IFieldOrPropertyOrIndexerBuilder
 {
     /// <summary>

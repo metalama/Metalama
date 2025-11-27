@@ -15,6 +15,9 @@ namespace Metalama.Framework.Advising;
 /// Represents a way to pull a field or property.
 /// </summary>
 /// <seealso cref="IPullStrategy"/>
+/// <seealso cref="PullActionKind"/>
+/// <seealso cref="AdviserExtensions.IntroduceParameter"/>
+/// <seealso href="@introducing-constructor-parameters"/>
 [CompileTime]
 [PublicAPI]
 public readonly struct PullAction
@@ -29,6 +32,9 @@ public readonly struct PullAction
 
     internal string? ParameterName { get; }
 
+    /// <summary>
+    /// Gets the expression to use for pulling the dependency when <see cref="UseExpression"/> or <see cref="UseConstant"/> is used.
+    /// </summary>
     public IExpression? Expression { get; }
 
     private PullAction(
@@ -55,6 +61,8 @@ public readonly struct PullAction
     /// <summary>
     /// Creates a <see cref="PullAction"/> that means that the dependency should be pulled from an existing constructor parameter.
     /// </summary>
+    /// <param name="parameter">The existing parameter to use.</param>
+    /// <returns>A <see cref="PullAction"/> that uses the specified parameter.</returns>
     public static PullAction UseExistingParameter( IParameter parameter ) => UseExpression( ExpressionFactory.Parse( parameter.Name ) );
 
     /// <summary>
@@ -62,6 +70,9 @@ public readonly struct PullAction
     /// </summary>
     /// <param name="parameterName">Name of the new parameter.</param>
     /// <param name="parameterType">Type of the new parameter.</param>
+    /// <param name="parameterDefaultValue">Optional default value for the new parameter.</param>
+    /// <param name="parameterAttributes">Optional attributes to apply to the new parameter.</param>
+    /// <returns>A <see cref="PullAction"/> that introduces a new parameter and pulls from it.</returns>
     public static PullAction IntroduceParameterAndPull(
         string parameterName,
         IType parameterType,
@@ -72,10 +83,14 @@ public readonly struct PullAction
     /// <summary>
     /// Creates a <see cref="PullAction"/> that means that the dependency should be assigned to a given <see cref="IExpression"/>.
     /// </summary>
+    /// <param name="expression">The expression to use for pulling the dependency.</param>
+    /// <returns>A <see cref="PullAction"/> that uses the specified expression.</returns>
     public static PullAction UseExpression( IExpression expression ) => new( PullActionKind.UseExpression, expression );
 
     /// <summary>
     /// Creates a <see cref="PullAction"/> that means that the dependency should be assigned to a given <see cref="TypedConstant"/>.
     /// </summary>
+    /// <param name="constant">The constant value to use for pulling the dependency.</param>
+    /// <returns>A <see cref="PullAction"/> that uses the specified constant.</returns>
     public static PullAction UseConstant( TypedConstant constant ) => new( PullActionKind.UseExpression, constant );
 }

@@ -11,6 +11,11 @@ namespace Metalama.Framework.Code
     /// <summary>
     /// Represent an event.
     /// </summary>
+    /// <seealso cref="IHasAccessors"/>
+    /// <seealso cref="IEventInvoker"/>
+    /// <seealso cref="IEventBuilder"/>
+    /// <seealso cref="EventAspect"/>
+    /// <seealso href="@overriding-events"/>
     public interface IEvent : IHasAccessors, IEventInvoker
     {
         /// <summary>

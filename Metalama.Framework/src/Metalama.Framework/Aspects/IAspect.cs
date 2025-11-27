@@ -12,6 +12,11 @@ namespace Metalama.Framework.Aspects
     /// The base interface for all aspects. A class should not implement
     /// this interface, but the strongly-typed variant <see cref="IAspect{T}"/>.
     /// </summary>
+    /// <seealso cref="IAspect{T}"/>
+    /// <seealso cref="IAspectBuilder"/>
+    /// <seealso cref="Aspect"/>
+    /// <seealso cref="ITemplateProvider"/>
+    /// <seealso href="@aspects"/>
     [RunTimeOrCompileTime]
     public interface IAspect : ICompileTimeSerializable, ITemplateProvider;
 
@@ -19,6 +24,9 @@ namespace Metalama.Framework.Aspects
     /// The base interface for all aspects, with the type parameter indicating to which types
     /// of declarations the aspect can be added.
     /// </summary>
+    /// <seealso cref="IAspectBuilder{T}"/>
+    /// <seealso cref="IAspectInstance"/>
+    /// <seealso href="@aspects"/>
     [ForcedGenericRunTimeOrCompileTime]
     public interface IAspect<in T> : IAspect, IEligible<T>
         where T : class, IDeclaration

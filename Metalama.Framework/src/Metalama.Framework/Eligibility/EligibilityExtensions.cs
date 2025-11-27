@@ -53,6 +53,9 @@ public static partial class EligibilityExtensions
     /// <summary>
     /// Gets an <see cref="IEligibilityBuilder"/> for the declaring type of the member validated by the given <see cref="IEligibilityBuilder"/>.
     /// </summary>
+    /// <typeparam name="T">The type of member or named type being validated.</typeparam>
+    /// <param name="eligibilityBuilder">The parent eligibility builder.</param>
+    /// <returns>An eligibility builder for the declaring type.</returns>
     public static IEligibilityBuilder<INamedType> DeclaringType<T>( this IEligibilityBuilder<T> eligibilityBuilder )
         where T : class, IMemberOrNamedType
         => new ChildEligibilityBuilder<T, INamedType>(
@@ -63,6 +66,8 @@ public static partial class EligibilityExtensions
     /// <summary>
     /// Gets an <see cref="IEligibilityBuilder"/> for the declaring method or property of the parameter validated by the given <see cref="IEligibilityBuilder"/>.
     /// </summary>
+    /// <param name="eligibilityBuilder">The parent eligibility builder for a parameter.</param>
+    /// <returns>An eligibility builder for the declaring member of the parameter.</returns>
     public static IEligibilityBuilder<IHasParameters> DeclaringMember( this IEligibilityBuilder<IParameter> eligibilityBuilder )
     {
         eligibilityBuilder.MustNotBeExtensionBlockReceiverParameter();
@@ -76,6 +81,9 @@ public static partial class EligibilityExtensions
     /// <summary>
     /// Gets an object that allows to convert the given <see cref="IEligibilityBuilder"/> into an <see cref="IEligibilityBuilder"/> for a more specific type.
     /// </summary>
+    /// <typeparam name="T">The type of declaration being validated.</typeparam>
+    /// <param name="eligibilityBuilder">The eligibility builder to convert.</param>
+    /// <returns>A converter object that provides type conversion methods.</returns>
     public static Converter<T> Convert<T>( this IEligibilityBuilder<T> eligibilityBuilder )
         where T : class
         => new( eligibilityBuilder );
@@ -83,12 +91,19 @@ public static partial class EligibilityExtensions
     /// <summary>
     /// Gets an <see cref="IEligibilityBuilder"/> for the return type of the method validated by the given <see cref="IEligibilityBuilder"/>.
     /// </summary>
+    /// <param name="eligibilityBuilder">The eligibility builder for a method.</param>
+    /// <returns>An eligibility builder for the return type of the method.</returns>
     public static IEligibilityBuilder<IType> ReturnType( this IEligibilityBuilder<IMethod> eligibilityBuilder )
         => new ChildEligibilityBuilder<IMethod, IType>(
             eligibilityBuilder,
             declaration => declaration.ReturnType,
             declarationDescription => $"the return type of {declarationDescription}" );
 
+    /// <summary>
+    /// Gets an <see cref="IEligibilityBuilder"/> for the return parameter of the method validated by the given <see cref="IEligibilityBuilder"/>.
+    /// </summary>
+    /// <param name="eligibilityBuilder">The eligibility builder for a method.</param>
+    /// <returns>An eligibility builder for the return parameter of the method.</returns>
     public static IEligibilityBuilder<IParameter> ReturnParameter( this IEligibilityBuilder<IMethod> eligibilityBuilder )
         => new ChildEligibilityBuilder<IMethod, IParameter>(
             eligibilityBuilder,
@@ -99,6 +114,9 @@ public static partial class EligibilityExtensions
     /// Gets an <see cref="IEligibilityBuilder"/> for a parameter of the method validated by the given <see cref="IEligibilityBuilder"/>,
     /// identified by index.
     /// </summary>
+    /// <param name="eligibilityBuilder">The eligibility builder for a method, property, indexer or event.</param>
+    /// <param name="index">The zero-based index of the parameter.</param>
+    /// <returns>An eligibility builder for the specified parameter.</returns>
     public static IEligibilityBuilder<IParameter> Parameter( this IEligibilityBuilder<IHasParameters> eligibilityBuilder, int index )
         => new ChildEligibilityBuilder<IHasParameters, IParameter>(
             eligibilityBuilder,
@@ -111,6 +129,9 @@ public static partial class EligibilityExtensions
     /// Gets an <see cref="IEligibilityBuilder"/> for a parameter of the method validated by the given <see cref="IEligibilityBuilder"/>,
     /// identified by name.
     /// </summary>
+    /// <param name="eligibilityBuilder">The eligibility builder for a method, property, indexer or event.</param>
+    /// <param name="name">The name of the parameter.</param>
+    /// <returns>An eligibility builder for the specified parameter.</returns>
     public static IEligibilityBuilder<IParameter> Parameter( this IEligibilityBuilder<IHasParameters> eligibilityBuilder, string name )
         => new ChildEligibilityBuilder<IHasParameters, IParameter>(
             eligibilityBuilder,
@@ -122,6 +143,8 @@ public static partial class EligibilityExtensions
     /// <summary>
     /// Gets an <see cref="IEligibilityBuilder"/> for the type of the declaration validated by the given <see cref="IEligibilityBuilder"/>.
     /// </summary>
+    /// <param name="eligibilityBuilder">The eligibility builder for a declaration that has a type (field, property, parameter, etc.).</param>
+    /// <returns>An eligibility builder for the type of the declaration.</returns>
     public static IEligibilityBuilder<IType> Type( this IEligibilityBuilder<IHasType> eligibilityBuilder )
         => new ChildEligibilityBuilder<IHasType, IType>(
             eligibilityBuilder,
@@ -134,6 +157,10 @@ public static partial class EligibilityExtensions
     /// Gets an <see cref="IEligibilityBuilder"/> for the same declaration as the given <see cref="IEligibilityBuilder"/>
     /// but that is applicable only to specified <see cref="EligibleScenarios"/>.
     /// </summary>
+    /// <typeparam name="T">The type of declaration being validated.</typeparam>
+    /// <param name="eligibilityBuilder">The parent eligibility builder.</param>
+    /// <param name="excludedScenarios">The scenarios to exclude.</param>
+    /// <returns>An eligibility builder that applies only to the specified scenarios.</returns>
     public static IEligibilityBuilder<T> ForScenarios<T>( this IEligibilityBuilder<T> eligibilityBuilder, EligibleScenarios excludedScenarios )
         where T : class
         => new ExcludedScenarioEligibilityBuilder<T>( eligibilityBuilder, EligibleScenarios.All & ~excludedScenarios );
@@ -142,6 +169,10 @@ public static partial class EligibilityExtensions
     /// Gets an <see cref="IEligibilityBuilder"/> for the same declaration as the given <see cref="IEligibilityBuilder"/>
     /// but that is not applicable to specified <see cref="EligibleScenarios"/>.
     /// </summary>
+    /// <typeparam name="T">The type of declaration being validated.</typeparam>
+    /// <param name="eligibilityBuilder">The parent eligibility builder.</param>
+    /// <param name="excludedScenarios">The scenarios to exclude.</param>
+    /// <returns>An eligibility builder that excludes the specified scenarios.</returns>
     public static IEligibilityBuilder<T> ExceptForScenarios<T>( this IEligibilityBuilder<T> eligibilityBuilder, EligibleScenarios excludedScenarios )
         where T : class
         => new ExcludedScenarioEligibilityBuilder<T>( eligibilityBuilder, excludedScenarios );
@@ -150,6 +181,9 @@ public static partial class EligibilityExtensions
     /// Gets an <see cref="IEligibilityBuilder"/> for the same declaration as the given <see cref="IEligibilityBuilder"/>
     /// but that is not applicable when the aspect is inheritable and is applied to a declaration that can be inherited or overridden.
     /// </summary>
+    /// <typeparam name="T">The type of declaration being validated.</typeparam>
+    /// <param name="eligibilityBuilder">The parent eligibility builder.</param>
+    /// <returns>An eligibility builder that excludes inheritance scenarios.</returns>
     public static IEligibilityBuilder<T> ExceptForInheritance<T>( this IEligibilityBuilder<T> eligibilityBuilder )
         where T : class
         => new ExcludedScenarioEligibilityBuilder<T>( eligibilityBuilder, EligibleScenarios.Inheritance );

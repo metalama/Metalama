@@ -10,6 +10,46 @@ namespace Metalama.Framework.Aspects
     /// <summary>
     /// Represents an instance of an aspect. The instance of the <see cref="IAspect"/> itself is in the <see cref="Aspect"/> property.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Use Cases:</b>
+    /// </para>
+    /// <list type="bullet">
+    /// <item>
+    /// <description>
+    /// <b>Accessing the current aspect instance:</b> In the <see cref="IAspect{T}.BuildAspect"/> method, access the current
+    /// aspect instance via <see cref="IAspectBuilder.AspectInstance"/> to retrieve aspect-specific information such as
+    /// <see cref="AspectClass"/>, <see cref="AspectState"/>, <see cref="SecondaryInstances"/>, or <see cref="IAspectPredecessor.Predecessors"/>.
+    /// </description>
+    /// </item>
+    /// <item>
+    /// <description>
+    /// <b>In templates:</b> Access the current aspect instance via <c>meta.AspectInstance</c> to retrieve aspect-specific information
+    /// during code generation.
+    /// </description>
+    /// </item>
+    /// <item>
+    /// <description>
+    /// <b>Querying aspects on declarations:</b> Retrieve aspect instances applied to any declaration using
+    /// <see cref="DeclarationEnhancements{T}.GetAspectInstances"/> to inspect which aspects have been applied and their state.
+    /// This can only query aspects that have already been applied or are being applied (e.g., aspects ordered before the current one,
+    /// or instances of the current aspect applied in a parent class).
+    /// </description>
+    /// </item>
+    /// <item>
+    /// <description>
+    /// <b>In aspect predecessor chains:</b> When examining <see cref="IAspectPredecessor.Predecessors"/>, predecessor instances
+    /// can be cast to <see cref="IAspectInstance"/> when <see cref="AspectPredecessor.Kind"/> indicates an aspect relationship.
+    /// </description>
+    /// </item>
+    /// </list>
+    /// </remarks>
+    /// <seealso cref="IAspect"/>
+    /// <seealso cref="IAspectClass"/>
+    /// <seealso cref="IAspectBuilder"/>
+    /// <seealso cref="IAspectState"/>
+    /// <seealso cref="IAspectPredecessor"/>
+    /// <seealso href="@child-aspects"/>
     [InternalImplement]
     [CompileTime]
     public interface IAspectInstance : IAspectPredecessor

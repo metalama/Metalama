@@ -12,6 +12,9 @@ namespace Metalama.Framework.Code.SyntaxBuilders;
 /// <summary>
 /// A class that allows to dynamically build an <see cref="IStatementList"/>.
 /// </summary>
+/// <seealso cref="IStatementList"/>
+/// <seealso cref="StatementFactory"/>
+/// <seealso href="@run-time-statements"/>
 [CompileTime]
 [PublicAPI]
 public class StatementListBuilder

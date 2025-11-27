@@ -7,10 +7,13 @@ using Metalama.Framework.Code;
 namespace Metalama.Framework.Advising;
 
 /// <summary>
-/// Represents the result of the <see cref="IAdviceFactory.AddContract(Metalama.Framework.Code.IParameter,string,Metalama.Framework.Aspects.ContractDirection,object?,object?)"/>
-/// method.
+/// Represents the result of an advice that adds a contract.
 /// </summary>
 /// <typeparam name="T"><see cref="IParameter"/> or <see cref="IPropertyOrIndexer"/>.</typeparam>
+/// <seealso cref="IAdviceResult"/>
+/// <seealso cref="AdviserExtensions.AddContract"/>
+/// <seealso cref="ContractDirection"/>
+/// <seealso href="@contracts"/>
 public interface IAddContractAdviceResult<out T> : IAdviceResult
     where T : IDeclaration
 {

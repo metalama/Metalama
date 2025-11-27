@@ -9,8 +9,11 @@ using System.Collections.Generic;
 namespace Metalama.Framework.Code.Comparers;
 
 /// <summary>
-/// Exposes comparers of different characteristics.
+/// Exposes comparers of different characteristics. To get an instance of this interface, use the <see cref="ICompilation.Comparers"/> property.
 /// </summary>
+/// <seealso cref="IDeclarationComparer"/>
+/// <seealso cref="ITypeComparer"/>
+/// <seealso cref="TypeComparison"/>
 [CompileTime]
 [InternalImplement]
 public interface ICompilationComparers

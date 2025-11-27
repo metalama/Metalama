@@ -11,6 +11,11 @@ namespace Metalama.Framework.Code.SyntaxBuilders
     /// Allows to build a run-time statement that can be injected to run-time code using
     /// <see cref="ToStatement"/> and <see cref="meta.InsertStatement(Metalama.Framework.Code.SyntaxBuilders.IStatement)"/>.
     /// </summary>
+    /// <seealso cref="IStatement"/>
+    /// <seealso cref="IStatementBuilder"/>
+    /// <seealso cref="StatementFactory"/>
+    /// <seealso cref="SyntaxBuilder"/>
+    /// <seealso href="@run-time-statements" />
     [CompileTime]
     [PublicAPI]
     public sealed class StatementBuilder : SyntaxBuilder, IStatementBuilder
@@ -36,6 +41,7 @@ namespace Metalama.Framework.Code.SyntaxBuilders
         /// be inserted into run-time code using the <see cref="meta.InsertStatement(Metalama.Framework.Code.SyntaxBuilders.IStatement)"/>
         /// method.
         /// </summary>
+        /// <returns>An <see cref="IStatement"/> representing the built statement.</returns>
         public IStatement ToStatement() => StatementFactory.Parse( this.StringBuilder.ToString() );
 
         /// <summary>
@@ -46,6 +52,7 @@ namespace Metalama.Framework.Code.SyntaxBuilders
         /// <summary>
         /// Returns a clone of the current <see cref="StatementBuilder"/>.
         /// </summary>
+        /// <returns>A new <see cref="StatementBuilder"/> with the same content.</returns>
         public StatementBuilder Clone() => new( this );
 
         /// <summary>

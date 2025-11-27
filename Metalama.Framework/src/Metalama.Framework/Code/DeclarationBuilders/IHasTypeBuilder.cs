@@ -7,6 +7,9 @@ namespace Metalama.Framework.Code.DeclarationBuilders;
 /// <summary>
 /// Exposes a settable <see cref="Type"/> property.
 /// </summary>
+/// <seealso cref="IHasType"/>
+/// <seealso cref="IType"/>
+/// <seealso cref="RefKind"/>
 public interface IHasTypeBuilder : IHasType
 {
     /// <summary>

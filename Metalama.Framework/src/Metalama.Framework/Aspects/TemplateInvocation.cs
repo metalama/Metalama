@@ -5,12 +5,19 @@
 namespace Metalama.Framework.Aspects;
 
 /// <summary>
-/// Represents call to a template method.
+/// Represents call to a template method. Pass an instance of this class to the <see cref="meta.InvokeTemplate(TemplateInvocation, object?)"/> method
+/// to call auxiliary templates.
 /// </summary>
 /// <param name="TemplateName">The name of the called template method.</param>
 /// <param name="TemplateProvider">An optional <see cref="Metalama.Framework.Aspects.TemplateProvider"/>, or <c>default</c> if the
 /// current template provider should be used.</param>
 /// <param name="Arguments">Compile-time template arguments that will be passed to the template.</param>
+/// <seealso cref="TemplateAttribute"/>
+/// <seealso cref="ITemplateProvider"/>
+/// <seealso cref="TemplateProvider"/>
+/// <seealso cref="meta.InvokeTemplate(TemplateInvocation, object?)"/>
+/// <seealso href="@templates"/>
+/// <seealso href="@auxiliary-templates"/>
 [CompileTime]
 public sealed record TemplateInvocation( string TemplateName, TemplateProvider TemplateProvider, object? Arguments = null )
 {

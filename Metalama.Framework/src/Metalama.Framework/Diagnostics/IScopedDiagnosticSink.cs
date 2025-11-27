@@ -4,6 +4,14 @@
 
 namespace Metalama.Framework.Diagnostics;
 
+/// <summary>
+/// A scoped diagnostic sink that provides a simplified API for reporting diagnostics.
+/// </summary>
+/// <seealso cref="ScopedDiagnosticSink"/>
+/// <seealso cref="IDiagnosticSink"/>
+/// <seealso cref="IDiagnostic"/>
+/// <seealso cref="ISuppression"/>
+/// <seealso href="@diagnostics"/>
 public interface IScopedDiagnosticSink
 {
     IDiagnosticSink Sink { get; }

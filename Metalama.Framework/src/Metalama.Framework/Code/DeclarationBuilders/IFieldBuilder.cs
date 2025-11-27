@@ -7,5 +7,9 @@ namespace Metalama.Framework.Code.DeclarationBuilders
     /// <summary>
     /// Allows to complete the construction of a field that has been created by an advice.
     /// </summary>
+    /// <seealso cref="IField"/>
+    /// <seealso cref="IFieldOrPropertyBuilder"/>
+    /// <seealso cref="AdviserExtensions.IntroduceField"/>
+    /// <seealso href="@introducing-members"/>
     public interface IFieldBuilder : IFieldOrPropertyBuilder, IField;
 }

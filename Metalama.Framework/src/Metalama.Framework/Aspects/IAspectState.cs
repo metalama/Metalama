@@ -10,5 +10,17 @@ namespace Metalama.Framework.Aspects;
 /// An empty interface that must be implemented by objects assigned to the <see cref="IAspectBuilder.AspectState"/> property of the
 /// <see cref="IAspectBuilder"/> interface.
 /// </summary>
+/// <remarks>
+/// <para><b>Writing aspect state:</b> Set the <see cref="IAspectBuilder.AspectState"/> property during <see cref="IAspect{T}.BuildAspect"/>
+/// to store arbitrary data specific to the target declaration.</para>
+/// <para><b>Reading aspect state:</b> Access <see cref="IAspectInstance.AspectState"/> to read your own aspect's state (e.g., in later layers)
+/// or access predecessor aspect states via <c>builder.AspectInstance.Predecessors[i].Instance</c> cast to <see cref="IAspectInstance"/>.</para>
+/// <para><b>Serialization requirement:</b> Aspect state must be compile-time serializable (via <see cref="ICompileTimeSerializable"/>) because
+/// it may be persisted across projects when aspects are inherited or affect downstream projects through reference validation.</para>
+/// </remarks>
+/// <seealso cref="IAspectBuilder"/>
+/// <seealso cref="IAspectInstance"/>
+/// <seealso href="@aspects"/>
+/// <seealso href="@sharing-state-with-advice"/>
 [CompileTime]
 public interface IAspectState : ICompileTimeSerializable;

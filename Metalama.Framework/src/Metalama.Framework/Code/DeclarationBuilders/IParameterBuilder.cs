@@ -10,12 +10,16 @@ namespace Metalama.Framework.Code.DeclarationBuilders;
 /// Allows to complete the construction of a parameter that has been created using e.g.
 /// <see cref="IMethodBaseBuilder.AddParameter(string,IType,Code.RefKind,TypedConstant?)"/>.
 /// </summary>
+/// <seealso cref="IParameter"/>
+/// <seealso cref="IMethodBaseBuilder"/>
+/// <seealso cref="IDeclarationBuilder"/>
+/// <seealso href="@introducing-members"/>
 public interface IParameterBuilder : IParameter, IDeclarationBuilder
 {
-    /// <remarks>
-    /// Gets or sets the default value of the parameter, or  <c>default</c> if the parameter type is a struct and the default
+    /// <summary>
+    /// Gets or sets the default value of the parameter, or <c>default</c> if the parameter type is a struct and the default
     /// value of the parameter is the default value of the struct type.
-    /// </remarks>
+    /// </summary>
     /// <exception cref="System.InvalidOperationException">The parameter has no default value.</exception>
     new TypedConstant? DefaultValue { get; set; }
 

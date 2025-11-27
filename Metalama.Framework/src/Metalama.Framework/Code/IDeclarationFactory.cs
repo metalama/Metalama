@@ -11,6 +11,10 @@ namespace Metalama.Framework.Code
     /// <summary>
     /// Allows to get instances of the <see cref="IType"/> interface or to test for type equality or inheritance.
     /// </summary>
+    /// <seealso cref="IType"/>
+    /// <seealso cref="INamedType"/>
+    /// <seealso cref="TypeFactory"/>
+    /// <seealso cref="ICompilation"/>
     [CompileTime]
     public interface IDeclarationFactory
     {
@@ -35,6 +39,9 @@ namespace Metalama.Framework.Code
         /// </summary>
         IType GetTypeByReflectionType( Type type );
 
+        /// <summary>
+        /// Gets an <see cref="INamedType"/> given a reflection <see cref="Type"/>.
+        /// </summary>
         INamedType GetNamedTypeByReflectionType( Type type );
 
         /// <summary>
@@ -47,11 +54,24 @@ namespace Metalama.Framework.Code
         /// </summary>
         IDeclaration GetDeclarationFromId( SerializableDeclarationId declarationId );
 
+        /// <summary>
+        /// Translates a compilation element to the current compilation context, optionally applying a generic context for type parameter substitution.
+        /// </summary>
+        /// <typeparam name="T">The type of compilation element to translate.</typeparam>
+        /// <param name="compilationElement">The compilation element to translate.</param>
+        /// <param name="genericContext">Optional generic context for type parameter substitution.</param>
+        /// <returns>The translated compilation element, or <c>null</c> if the input is <c>null</c> or cannot be translated.</returns>
         T? Translate<T>(
             T? compilationElement,
             IGenericContext? genericContext = null )
             where T : class, ICompilationElement;
 
+        /// <summary>
+        /// Gets a type from a serialized type identifier, optionally substituting generic arguments.
+        /// </summary>
+        /// <param name="serializableTypeId">The serialized type identifier.</param>
+        /// <param name="genericArguments">Optional dictionary mapping generic parameter names to their type arguments.</param>
+        /// <returns>The type corresponding to the serialized identifier.</returns>
         IType GetTypeFromId( SerializableTypeId serializableTypeId, IReadOnlyDictionary<string, IType>? genericArguments );
 
         /// <summary>

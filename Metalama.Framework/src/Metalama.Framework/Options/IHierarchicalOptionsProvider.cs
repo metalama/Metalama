@@ -10,6 +10,9 @@ namespace Metalama.Framework.Options;
 /// <summary>
 /// A base interface for attributes that provide options.
 /// </summary>
+/// <seealso cref="IHierarchicalOptions"/>
+/// <seealso cref="IHierarchicalOptions{T}"/>
+/// <seealso cref="IAspect"/>
 /// <seealso href="@exposing-options"/>
 [RunTimeOrCompileTime]
 public interface IHierarchicalOptionsProvider

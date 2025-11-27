@@ -10,6 +10,9 @@ namespace Metalama.Framework.Options;
 /// A base interface for all classes whose individual instances represent incremental changes that can be combined
 /// with the <see cref="ApplyChanges"/> method.
 /// </summary>
+/// <seealso cref="IHierarchicalOptions"/>
+/// <seealso cref="IncrementalHashSet{T}"/>
+/// <seealso cref="IncrementalKeyedCollection{TKey,TValue}"/>
 /// <seealso href="@exposing-options"/>
 [CompileTime]
 public interface IIncrementalObject

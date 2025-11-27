@@ -17,6 +17,12 @@ namespace Metalama.Framework.Project
     /// <see cref="Configuration"/> or <see cref="TargetFramework"/>. To access a custom MSBuild property, use <see cref="TryGetProperty"/>. You can extend
     /// this interface with your own framework-specific by using the <see cref="Extension{T}"/> method.
     /// </summary>
+    /// <seealso cref="ICompilation"/>
+    /// <seealso cref="IExecutionContext"/>
+    /// <seealso cref="MetalamaExecutionContext"/>
+    /// <seealso cref="IAspectBuilder"/>
+    /// <seealso cref="ProjectExtension"/>
+    /// <seealso href="@reading-msbuild-properties"/>
     [InternalImplement]
     [CompileTime]
     public interface IProject

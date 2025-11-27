@@ -27,11 +27,10 @@ public readonly struct DeclarationEnhancements<T>
     private T Declaration => this._declaration ?? throw new InvalidOperationException( $"The DeclarationEnhancements is not initialized." );
 
     /// <summary>
-    /// Gets the set of instances of a specified type of aspects that have been applied to a specified declaration.
+    /// Gets the set of instances of a specified type of aspects that have been applied to the current declaration.
     /// </summary>
-    /// <param name="declaration">The declaration.</param>
     /// <typeparam name="TAspect">The exact type of aspects.</typeparam>
-    /// <returns>The set of aspects of exact type <typeparamref name="T"/> applied on the current <see cref="Declaration"/>.</returns>
+    /// <returns>The set of aspects of exact type <typeparamref name="TAspect"/> applied on the current <see cref="Declaration"/>.</returns>
     /// <remarks>
     /// You can call this method only for aspects that have been already been applied or are being applied, i.e. you can query aspects
     /// that are applied before the current aspect, or you can query instances of the current aspects applied in a parent class.
@@ -45,6 +44,8 @@ public readonly struct DeclarationEnhancements<T>
     /// <summary>
     /// Determines if the current declaration has at least one aspect of the given type.
     /// </summary>
+    /// <param name="aspectType">The exact type of aspect to check for.</param>
+    /// <returns><see langword="true"/> if the declaration has at least one aspect of the specified type; otherwise, <see langword="false"/>.</returns>
     /// <remarks>
     /// You can call this method only for aspects that have been already been applied or are being applied, i.e. you can query aspects
     /// that are applied before the current aspect, or you can query instances of the current aspects applied in a parent class.
@@ -53,10 +54,9 @@ public readonly struct DeclarationEnhancements<T>
         => ((ICompilationInternal) this.Declaration.Compilation.Compilation).AspectRepository.HasAspect( this.Declaration, aspectType );
 
     /// <summary>
-    /// Gets the set of aspects (represented by their <see cref="IAspectInstance"/>) that have been applied to a specified declaration.
+    /// Gets the set of aspects (represented by their <see cref="IAspectInstance"/>) that have been applied to the current declaration.
     /// </summary>
-    /// <param name="declaration">The declaration.</param>
-    /// <returns>The set of aspects of exact type <typeparamref name="T"/> applied on the current <see cref="Declaration"/>.</returns>
+    /// <returns>The set of aspect instances applied on the current <see cref="Declaration"/>.</returns>
     /// <remarks>
     /// This method will only return aspects that have been already been applied or are being applied, i.e. you can query aspects
     /// that are applied before the current aspect, or you can query instances of the current aspects applied in a parent class.
@@ -67,6 +67,8 @@ public readonly struct DeclarationEnhancements<T>
     /// <summary>
     /// Determines if the current declaration has at least one aspect of the given type.
     /// </summary>
+    /// <typeparam name="TAspect">The exact type of aspect to check for.</typeparam>
+    /// <returns><see langword="true"/> if the declaration has at least one aspect of the specified type; otherwise, <see langword="false"/>.</returns>
     /// <remarks>
     /// You can call this method only for aspects that have been already been applied or are being applied, i.e. you can query aspects
     /// that are applied before the current aspect, or you can query instances of the current aspects applied in a parent class.
@@ -80,6 +82,7 @@ public readonly struct DeclarationEnhancements<T>
     /// aspect instance has been initialized; options provided by other means are available immediately.
     /// </summary>
     /// <typeparam name="TOptions">The type of options.</typeparam>
+    /// <returns>The effective options for the current declaration.</returns>
     /// <seealso href="@exposing-options"/>
     public TOptions GetOptions<TOptions>()
         where TOptions : class, IHierarchicalOptions<T>, new()
@@ -90,7 +93,7 @@ public readonly struct DeclarationEnhancements<T>
     /// Gets the list of annotations of a given type on the current declaration.
     /// </summary>
     /// <typeparam name="TAnnotation">The type of annotations.</typeparam>
-    /// <returns>The list of annotations of this type on the current declaration.</returns>
+    /// <returns>The list of annotations of type <typeparamref name="TAnnotation"/> on the current declaration.</returns>
     public IEnumerable<TAnnotation> GetAnnotations<TAnnotation>()
         where TAnnotation : class, IAnnotation<T>
         => ((ICompilationInternal) this.Declaration.Compilation).GetAnnotations<TAnnotation>( this.Declaration );

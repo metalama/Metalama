@@ -11,6 +11,10 @@ namespace Metalama.Framework.Diagnostics;
 /// <summary>
 /// Represents an instance of a diagnostic suppression, including an optional filter delegate.
 /// </summary>
+/// <seealso cref="SuppressionDefinition"/>
+/// <seealso cref="ISuppressibleDiagnostic"/>
+/// <seealso cref="IDiagnosticSink"/>
+/// <seealso cref="ScopedDiagnosticSink"/>
 /// <seealso href="@diagnostics"/>
 [CompileTime]
 [InternalImplement]

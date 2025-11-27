@@ -14,8 +14,13 @@ namespace Metalama.Framework.Aspects
 {
     /// <summary>
     /// Custom attribute that can be applied to any member of an aspect class and that means that this member must be introduced to
-    /// the target class of the aspect. 
+    /// the target class of the aspect.
     /// </summary>
+    /// <seealso cref="DeclarativeAdviceAttribute"/>
+    /// <seealso cref="ITemplateAttribute"/>
+    /// <seealso cref="TemplateAttribute"/>
+    /// <seealso cref="IntroductionScope"/>
+    /// <seealso cref="OverrideStrategy"/>
     /// <seealso href="@introducing-members"/>
     [AttributeUsage( AttributeTargets.Property | AttributeTargets.Field | AttributeTargets.Method | AttributeTargets.Event )]
     [PublicAPI]

@@ -20,6 +20,10 @@ namespace Metalama.Framework.Code
     /// <item>Arrays as <c>IReadOnlyList&lt;object&gt;</c>.</item>
     /// </list>
     /// </remarks>
+    /// <seealso cref="IAttribute"/>
+    /// <seealso cref="TypedConstant"/>
+    /// <seealso cref="INamedArgumentList"/>
+    /// <seealso href="@adding-attributes"/>
     [CompileTime]
     public interface IAttributeData
     {

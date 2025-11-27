@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+cr// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -15,6 +15,9 @@ namespace Metalama.Framework.Code
     /// <summary>
     /// Extension methods for <see cref="IDeclaration"/>.
     /// </summary>
+    /// <seealso cref="IDeclaration"/>
+    /// <seealso cref="DeclarationEnhancements{T}"/>
+    /// <seealso cref="MemberExtensions"/>
     [CompileTime]
     [PublicAPI]
     public static class DeclarationExtensions
@@ -23,6 +26,9 @@ namespace Metalama.Framework.Code
         /// Determines if a given declaration is a child of another given declaration, using the <see cref="IDeclaration.ContainingDeclaration"/>
         /// relationship for all declarations except for named type, where the parent namespace is considered.
         /// </summary>
+        /// <param name="declaration">The declaration to check.</param>
+        /// <param name="containingDeclaration">The potential containing declaration.</param>
+        /// <returns><c>true</c> if <paramref name="declaration"/> is contained in <paramref name="containingDeclaration"/>; otherwise, <c>false</c>.</returns>
         public static bool IsContainedIn( this IDeclaration declaration, IDeclaration containingDeclaration )
         {
             if ( declaration.GetDefinition().Equals( containingDeclaration.GetDefinition() ) )
@@ -89,6 +95,11 @@ namespace Metalama.Framework.Code
             }
         }
 
+        /// <summary>
+        /// Determines whether a <see cref="DeclarationKind"/> represents an <see cref="IMember"/> (event, field, finalizer, property, indexer, constructor, operator, or method).
+        /// </summary>
+        /// <param name="declarationKind">The declaration kind to check.</param>
+        /// <returns><c>true</c> if the declaration kind represents a member; otherwise, <c>false</c>.</returns>
         public static bool IsMemberKind( this DeclarationKind declarationKind )
             => declarationKind is DeclarationKind.Event or DeclarationKind.Field or DeclarationKind.Finalizer or DeclarationKind.Property
                 or DeclarationKind.Indexer
@@ -96,8 +107,10 @@ namespace Metalama.Framework.Code
 
         /// <summary>
         /// Gets all containing ancestors, i.e. <c>declaration.ContainingDeclaration</c>, <c>declaration.ContainingDeclaration.ContainingDeclaration</c>,
-        /// <c>declaration.ContainingDeclaration.ContainingDeclaration.ContainingDeclaration</c>... 
+        /// <c>declaration.ContainingDeclaration.ContainingDeclaration.ContainingDeclaration</c>...
         /// </summary>
+        /// <param name="declaration">The declaration whose ancestors to retrieve.</param>
+        /// <returns>An enumerable of all containing ancestors, from the immediate parent to the root.</returns>
         public static IEnumerable<IDeclaration> ContainingAncestors( this IDeclaration declaration )
         {
             for ( var cursor = declaration.ContainingDeclaration; cursor != null; cursor = cursor.ContainingDeclaration )
@@ -108,8 +121,10 @@ namespace Metalama.Framework.Code
 
         /// <summary>
         /// Gets all containing ancestors including the current declaration, i.e. <c>declaration</c>, <c>declaration.ContainingDeclaration</c>, <c>declaration.ContainingDeclaration.ContainingDeclaration</c>,
-        /// <c>declaration.ContainingDeclaration.ContainingDeclaration.ContainingDeclaration</c>... 
+        /// <c>declaration.ContainingDeclaration.ContainingDeclaration.ContainingDeclaration</c>...
         /// </summary>
+        /// <param name="declaration">The declaration whose ancestors (and itself) to retrieve.</param>
+        /// <returns>An enumerable starting with the declaration itself, followed by all containing ancestors.</returns>
         public static IEnumerable<IDeclaration> ContainingAncestorsAndSelf( this IDeclaration declaration )
         {
             for ( var cursor = declaration; cursor != null; cursor = cursor.ContainingDeclaration )
@@ -121,13 +136,18 @@ namespace Metalama.Framework.Code
         /// <summary>
         /// Gets an object that gives access to the aspects, options and annotations on the current declaration.
         /// </summary>
+        /// <typeparam name="T">The type of the declaration.</typeparam>
+        /// <param name="declaration">The declaration.</param>
+        /// <returns>A <see cref="DeclarationEnhancements{T}"/> object for accessing aspects, options, and annotations.</returns>
         public static DeclarationEnhancements<T> Enhancements<T>( this T declaration )
             where T : class, IDeclaration
             => new( declaration );
 
         /// <summary>
-        /// Gets the declaring <see cref="INamedType"/> of a given declaration if the declaration is not an <see cref="INamedType"/>, or the <see cref="INamedType"/> itself if the given declaration is itself an <see cref="INamedType"/>. 
+        /// Gets the declaring <see cref="INamedType"/> of a given declaration if the declaration is not an <see cref="INamedType"/>, or the <see cref="INamedType"/> itself if the given declaration is itself an <see cref="INamedType"/>.
         /// </summary>
+        /// <param name="declaration">The declaration.</param>
+        /// <returns>The closest named type, or <c>null</c> if none is found.</returns>
         public static INamedType? GetClosestNamedType( this IDeclaration declaration )
             => declaration switch
             {
@@ -139,8 +159,10 @@ namespace Metalama.Framework.Code
             };
 
         /// <summary>
-        /// Gets the declaring <see cref="IMemberOrNamedType"/> of a given declaration if the declaration if not an <see cref="IMemberOrNamedType"/>, or the <see cref="IMemberOrNamedType"/> itself if the given declaration is itself an <see cref="IMemberOrNamedType"/>. 
+        /// Gets the declaring <see cref="IMemberOrNamedType"/> of a given declaration if the declaration if not an <see cref="IMemberOrNamedType"/>, or the <see cref="IMemberOrNamedType"/> itself if the given declaration is itself an <see cref="IMemberOrNamedType"/>.
         /// </summary>
+        /// <param name="declaration">The declaration.</param>
+        /// <returns>The closest member or named type, or <c>null</c> if none is found.</returns>
         public static IMemberOrNamedType? GetClosestMemberOrNamedType( this IDeclaration declaration )
             => declaration switch
             {
@@ -169,9 +191,11 @@ namespace Metalama.Framework.Code
             };
 
         /// <summary>
-        /// Gets the topmost type of a nested type, i.e. a type that is not contained in any other type. If the given type is not a given type,
-        /// returns the given type itself. 
+        /// Gets the topmost type of a nested type, i.e. a type that is not contained in any other type. If the given type is not a nested type,
+        /// returns the given type itself.
         /// </summary>
+        /// <param name="declaration">The declaration.</param>
+        /// <returns>The topmost named type in the nesting hierarchy, or <c>null</c> if none is found.</returns>
         public static INamedType? GetTopmostNamedType( this IDeclaration declaration )
             => declaration switch
             {
@@ -185,6 +209,8 @@ namespace Metalama.Framework.Code
         /// Gets the namespace of a given declaration, i.e. the namespace itself if the given declaration is a namespace,
         /// the closest containing namespace, or the global namespace if an <see cref="ICompilation"/> is given.
         /// </summary>
+        /// <param name="declaration">The declaration.</param>
+        /// <returns>The namespace, or <c>null</c> if none is found.</returns>
         public static INamespace? GetNamespace( this IDeclaration declaration )
             => declaration switch
             {
@@ -196,6 +222,11 @@ namespace Metalama.Framework.Code
         /// <summary>
         /// Gets a representation of the current declaration in a different version of the compilation.
         /// </summary>
+        /// <typeparam name="T">The type of compilation element.</typeparam>
+        /// <param name="compilationElement">The compilation element to translate.</param>
+        /// <param name="compilation">The target compilation.</param>
+        /// <returns>The compilation element in the context of the target compilation.</returns>
+        /// <exception cref="InvalidOperationException">The declaration does not exist in the requested compilation. Use <see cref="TryForCompilation{T}"/> to avoid this exception.</exception>
         [return: NotNullIfNotNull( nameof(compilationElement) )]
         public static T? ForCompilation<T>( this T? compilationElement, ICompilation compilation )
             where T : class, ICompilationElement
@@ -221,6 +252,11 @@ namespace Metalama.Framework.Code
         /// <summary>
         /// Tries to get a representation of the current declaration in a different version of the compilation.
         /// </summary>
+        /// <typeparam name="T">The type of compilation element.</typeparam>
+        /// <param name="compilationElement">The compilation element to translate.</param>
+        /// <param name="compilation">The target compilation.</param>
+        /// <param name="translated">When this method returns <c>true</c>, contains the translated compilation element; otherwise, <c>null</c>.</param>
+        /// <returns><c>true</c> if the compilation element exists in the target compilation; otherwise, <c>false</c>.</returns>
         public static bool TryForCompilation<T>(
             this T? compilationElement,
             ICompilation compilation,
@@ -241,6 +277,11 @@ namespace Metalama.Framework.Code
             }
         }
 
+        /// <summary>
+        /// Determines whether a constructor is a compiler-generated record copy constructor.
+        /// </summary>
+        /// <param name="constructor">The constructor to check.</param>
+        /// <returns><c>true</c> if the constructor is a record copy constructor; otherwise, <c>false</c>.</returns>
         public static bool IsRecordCopyConstructor( this IConstructor constructor )
             => constructor is
             {
@@ -254,6 +295,8 @@ namespace Metalama.Framework.Code
         /// <summary>
         /// Gets the declarations (namespaces, types, methods, properties, fields, constructors, events, indexers) directly contained in the given declaration.
         /// </summary>
+        /// <param name="declaration">The declaration whose children to retrieve.</param>
+        /// <returns>An enumerable of all directly contained declarations.</returns>
         /// <remarks>The method does not descent into accessors, custom attributes, parameters, or type parameters.</remarks>
         public static IEnumerable<IDeclaration> ContainedChildren( this IDeclaration declaration )
             => declaration switch
@@ -268,6 +311,8 @@ namespace Metalama.Framework.Code
         /// Gets the declarations (namespaces, types, methods, properties, fields, constructors, events, indexers) in the given declaration
         /// and in any child of the declaration.
         /// </summary>
+        /// <param name="declaration">The declaration whose descendants to retrieve.</param>
+        /// <returns>An enumerable of all descendant declarations, recursively.</returns>
         /// <remarks>The method does not descent into accessors, custom attributes, parameters, or type parameters.</remarks>
         public static IEnumerable<IDeclaration> ContainedDescendants( this IDeclaration declaration )
             => declaration.SelectManyRecursive( d => d.ContainedChildren() );
@@ -276,6 +321,8 @@ namespace Metalama.Framework.Code
         /// Gets the declarations (namespaces, types, methods, properties, fields, constructors, events, indexers) in the given declaration
         /// and in any child of the declaration, plus the given declaration.
         /// </summary>
+        /// <param name="declaration">The declaration whose descendants (and itself) to retrieve.</param>
+        /// <returns>An enumerable starting with the declaration itself, followed by all descendant declarations, recursively.</returns>
         /// <remarks>The method does not descent into accessors, custom attributes, parameters, or type parameters.</remarks>
         public static IEnumerable<IDeclaration> ContainedDescendantsAndSelf( this IDeclaration declaration )
             => declaration.SelectManyRecursive( d => d.ContainedChildren(), true );

@@ -7,8 +7,13 @@ using Metalama.Framework.Code;
 namespace Metalama.Framework.Advising;
 
 /// <summary>
-/// Represents the result of the <c>Override</c> methods of the <see cref="IAdviceFactory"/> interface.
+/// Represents the result of override advice methods.
 /// </summary>
+/// <seealso cref="IAdviceResult"/>
+/// <seealso cref="AdviserExtensions"/>
+/// <seealso cref="AdviceOutcome"/>
+/// <seealso href="@overriding-methods"/>
+/// <seealso href="@overriding-fields-or-properties"/>
 public interface IOverrideAdviceResult<out T> : IAdviceResult
     where T : class, IDeclaration
 {

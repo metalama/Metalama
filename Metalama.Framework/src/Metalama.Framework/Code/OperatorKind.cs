@@ -9,6 +9,8 @@ namespace Metalama.Framework.Code
     /// <summary>
     /// Kinds of operators.
     /// </summary>
+    /// <seealso cref="IMethod"/>
+    /// <seealso cref="MethodKind"/>
     [CompileTime]
     public enum OperatorKind
     {

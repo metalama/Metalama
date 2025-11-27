@@ -9,4 +9,8 @@ namespace Metalama.Framework.Code.SyntaxBuilders;
 /// To create an <see cref="IStatementList"/>, use <see cref="StatementFactory.List(Metalama.Framework.Code.SyntaxBuilders.IStatement[])"/>,
 ///  <see cref="StatementFactory.UnwrapBlock"/>, or <see cref="StatementExtensions.AsList(Metalama.Framework.Code.SyntaxBuilders.IStatement)"/>.
 /// </summary>
+/// <seealso cref="IStatement"/>
+/// <seealso cref="StatementFactory"/>
+/// <seealso cref="StatementListBuilder"/>
+/// <seealso href="@run-time-statements"/>
 public interface IStatementList;

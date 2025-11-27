@@ -10,6 +10,11 @@ namespace Metalama.Framework.Serialization
     /// <summary>
     /// Defines the semantics of an object serializer.
     /// </summary>
+    /// <seealso cref="IArgumentsReader"/>
+    /// <seealso cref="IArgumentsWriter"/>
+    /// <seealso cref="ISerializerFactory"/>
+    /// <seealso cref="ICompileTimeSerializable"/>
+    /// <seealso href="@serialization"/>
     [CompileTime]
     public interface ISerializer
     {

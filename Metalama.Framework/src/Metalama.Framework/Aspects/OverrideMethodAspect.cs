@@ -15,6 +15,9 @@ namespace Metalama.Framework.Aspects
     /// <summary>
     /// A base aspect that overrides the implementation of a method.
     /// </summary>
+    /// <seealso cref="MethodAspect"/>
+    /// <seealso cref="MethodTemplateSelector"/>
+    /// <seealso cref="AdviserExtensions.Override(IAdviser{IMethod}, in MethodTemplateSelector, object?, object?)"/>
     /// <seealso href="@overriding-methods"/>
     [AttributeUsage( AttributeTargets.Method )]
     [PublicAPI]
@@ -58,27 +61,54 @@ namespace Metalama.Framework.Aspects
             builder.AddRule( EligibilityRuleFactory.OverrideMethodAdviceRule );
         }
 
+        /// <summary>
+        /// Template of the new method implementation for asynchronous methods. By default, this template is used for methods with the <c>async</c> modifier.
+        /// When <see cref="UseAsyncTemplateForAnyAwaitable"/> is <c>true</c>, this template is used for all methods returning an awaitable type
+        /// (including <c>Task</c>, <c>ValueTask</c>, <c>IAsyncEnumerable</c>, and <c>IAsyncEnumerator</c>).
+        /// If this template is not overridden, <see cref="OverrideMethod"/> is used instead.
+        /// </summary>
         [Template( IsEmpty = true )]
         public virtual Task<dynamic?> OverrideAsyncMethod() => throw new NotSupportedException();
 
+        /// <summary>
+        /// Template of the new method implementation for methods returning <see cref="IEnumerable{T}"/>. By default, this template is used for methods using the <c>yield</c> statement.
+        /// When <see cref="UseEnumerableTemplateForAnyEnumerable"/> is <c>true</c>, this template is used for all methods returning <see cref="IEnumerable{T}"/>.
+        /// If this template is not overridden, <see cref="OverrideMethod"/> is used instead.
+        /// </summary>
         [Template( IsEmpty = true )]
         public virtual IEnumerable<dynamic?> OverrideEnumerableMethod() => throw new NotSupportedException();
 
+        /// <summary>
+        /// Template of the new method implementation for methods returning <see cref="IEnumerator{T}"/>. By default, this template is used for methods using the <c>yield</c> statement.
+        /// When <see cref="UseEnumerableTemplateForAnyEnumerable"/> is <c>true</c>, this template is used for all methods returning <see cref="IEnumerator{T}"/>.
+        /// If this template is not overridden, <see cref="OverrideMethod"/> is used instead.
+        /// </summary>
         [Template( IsEmpty = true )]
         public virtual IEnumerator<dynamic?> OverrideEnumeratorMethod() => throw new NotSupportedException();
 
 #if NET5_0_OR_GREATER
+        /// <summary>
+        /// Template of the new method implementation for methods returning <see cref="IAsyncEnumerable{T}"/>. By default, this template is used for methods using the <c>yield</c> statement with <c>async</c>.
+        /// When <see cref="UseEnumerableTemplateForAnyEnumerable"/> is <c>true</c>, this template is used for all methods returning <see cref="IAsyncEnumerable{T}"/>.
+        /// If this template is not overridden, <see cref="OverrideAsyncMethod"/> is used when <see cref="UseAsyncTemplateForAnyAwaitable"/> is <c>true</c>, otherwise <see cref="OverrideMethod"/> is used.
+        /// </summary>
         [Template( IsEmpty = true )]
         public virtual IAsyncEnumerable<dynamic?> OverrideAsyncEnumerableMethod() => throw new NotSupportedException();
 
+        /// <summary>
+        /// Template of the new method implementation for methods returning <see cref="IAsyncEnumerator{T}"/>. By default, this template is used for methods using the <c>yield</c> statement with <c>async</c>.
+        /// When <see cref="UseEnumerableTemplateForAnyEnumerable"/> is <c>true</c>, this template is used for all methods returning <see cref="IAsyncEnumerator{T}"/>.
+        /// If this template is not overridden, <see cref="OverrideAsyncMethod"/> is used when <see cref="UseAsyncTemplateForAnyAwaitable"/> is <c>true</c>, otherwise <see cref="OverrideMethod"/> is used.
+        /// </summary>
         [Template( IsEmpty = true )]
         public virtual IAsyncEnumerator<dynamic?> OverrideAsyncEnumeratorMethod() => throw new NotSupportedException();
 #endif
 
         /// <summary>
-        /// Default template of the new method implementation.
+        /// Default template of the new method implementation. This template is used for all methods where a more specific template
+        /// (<see cref="OverrideAsyncMethod"/>, <see cref="OverrideEnumerableMethod"/>, <see cref="OverrideEnumeratorMethod"/>,
+        /// <c>OverrideAsyncEnumerableMethod</c>, or <c>OverrideAsyncEnumeratorMethod</c>) has not been overridden or does not apply.
         /// </summary>
-        /// <returns></returns>
         [Template]
         public abstract dynamic? OverrideMethod();
     }

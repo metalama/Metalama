@@ -7,6 +7,8 @@ namespace Metalama.Framework.Code.Types
     /// <summary>
     /// Represent the <c>dynamic</c> type.
     /// </summary>
+    /// <seealso cref="IType"/>
+    /// <seealso href="@type-system"/>
     public interface IDynamicType : IType
     {
         new IDynamicType ToNullable();

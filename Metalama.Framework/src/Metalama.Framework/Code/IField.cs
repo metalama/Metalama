@@ -10,11 +10,17 @@ namespace Metalama.Framework.Code
     /// <summary>
     /// Represents a field. Note that fields can be promoted to properties by aspects.
     /// </summary>
+    /// <seealso cref="IFieldOrProperty"/>
+    /// <seealso cref="IProperty"/>
+    /// <seealso cref="FieldKind"/>
+    /// <seealso cref="FieldAspect"/>
+    /// <seealso href="@overriding-fields-or-properties"/>
     public interface IField : IFieldOrProperty
     {
         /// <summary>
         /// Converts the current compile-time field to a run-time <see cref="FieldInfo"/> object.
         /// </summary>
+        /// <seealso href="@reflection"/>
         [CompileTimeReturningRunTime]
         FieldInfo ToFieldInfo();
 

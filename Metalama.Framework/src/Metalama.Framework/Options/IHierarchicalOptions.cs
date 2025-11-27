@@ -39,8 +39,12 @@ namespace Metalama.Framework.Options;
 /// </para>
 /// <para>
 /// Options are exposed by the <c>declaration.</c><see cref="DeclarationExtensions.Enhancements{T}"/>.<see cref="DeclarationEnhancements{T}.GetOptions{TOptions}"/> method.
-/// </para> 
+/// </para>
 /// </remarks>
+/// <seealso cref="IHierarchicalOptions{T}"/>
+/// <seealso cref="IHierarchicalOptionsProvider"/>
+/// <seealso cref="IHierarchicalOptionsManager"/>
+/// <seealso cref="IIncrementalObject"/>
 /// <seealso href="@exposing-options"/>
 public interface IHierarchicalOptions : IIncrementalObject, ICompileTimeSerializable
 {
@@ -71,5 +75,7 @@ public interface IHierarchicalOptions : IIncrementalObject, ICompileTimeSerializ
 ///  See the remarks for the non-generic <see cref="IHierarchicalOptions"/> interface.
 /// </remarks>
 /// <seealso cref="IHierarchicalOptions"/>
+/// <seealso cref="IHierarchicalOptionsProvider"/>
+/// <seealso href="@exposing-options"/>
 public interface IHierarchicalOptions<in T> : IHierarchicalOptions
     where T : class, IDeclaration;

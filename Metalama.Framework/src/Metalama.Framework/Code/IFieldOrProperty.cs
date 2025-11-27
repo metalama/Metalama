@@ -11,6 +11,8 @@ namespace Metalama.Framework.Code
     /// <summary>
     /// A base interface for <see cref="IField"/> and <see cref="IProperty"/>.
     /// </summary>
+    /// <seealso cref="IField"/>
+    /// <seealso cref="IProperty"/>
     public interface IFieldOrProperty : IFieldOrPropertyOrIndexer, IFieldOrPropertyInvoker
     {
         /// <summary>

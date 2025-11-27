@@ -10,6 +10,9 @@ namespace Metalama.Framework.Diagnostics
     /// <summary>
     /// A non-generic base interface for <see cref="DiagnosticDefinition{T}"/>.
     /// </summary>
+    /// <seealso cref="DiagnosticDefinition{T}"/>
+    /// <seealso cref="IDiagnostic"/>
+    /// <seealso cref="Severity"/>
     /// <seealso href="@diagnostics"/>
     [CompileTime]
     [InternalImplement]

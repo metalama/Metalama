@@ -13,8 +13,18 @@ namespace Metalama.Framework.Advising;
 */
 
 /// <summary>
-/// A base interface that represents the result of any advice method of the <see cref="IAdviceFactory"/> interface.
+/// A base interface that represents the result of any advice method.
 /// </summary>
+/// <seealso cref="IIntroductionAdviceResult{T}"/>
+/// <seealso cref="IOverrideAdviceResult{T}"/>
+/// <seealso cref="IImplementInterfaceAdviceResult"/>
+/// <seealso cref="IAddContractAdviceResult{T}"/>
+/// <seealso cref="IAddInitializerAdviceResult"/>
+/// <seealso cref="IRemoveAttributesAdviceResult"/>
+/// <seealso cref="AdviceOutcome"/>
+/// <seealso cref="AdviceKind"/>
+/// <seealso cref="AdviserExtensions"/>
+/// <seealso href="@advising-code"/>
 [CompileTime]
 [InternalImplement]
 public interface IAdviceResult

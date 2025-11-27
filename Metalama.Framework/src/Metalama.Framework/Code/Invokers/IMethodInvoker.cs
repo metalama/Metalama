@@ -11,6 +11,11 @@ namespace Metalama.Framework.Code.Invokers
     /// <summary>
     /// Allows invocation of the method.
     /// </summary>
+    /// <seealso cref="IMethod"/>
+    /// <seealso cref="InvokerOptions"/>
+    /// <seealso cref="IExpression"/>
+    /// <seealso href="@invokers"/>
+    /// <seealso href="@template-dynamic-code"/>
     [CompileTime]
     public interface IMethodInvoker
     {

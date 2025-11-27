@@ -12,6 +12,11 @@ namespace Metalama.Framework.Code.SyntaxBuilders;
 /// <summary>
 /// Provides several ways to create instances of the <see cref="IExpression"/> interface.
 /// </summary>
+/// <seealso cref="IExpression"/>
+/// <seealso cref="ExpressionBuilder"/>
+/// <seealso cref="IExpressionBuilder"/>
+/// <seealso cref="TypedConstant"/>
+/// <seealso href="@run-time-expressions"/>
 [CompileTime]
 [PublicAPI]
 public static class ExpressionFactory

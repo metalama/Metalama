@@ -12,6 +12,13 @@ namespace Metalama.Framework.Code
     /// <summary>
     /// Represents a method, but not a constructor.
     /// </summary>
+    /// <seealso cref="IMethodBase"/>
+    /// <seealso cref="IConstructor"/>
+    /// <seealso cref="MethodExtensions"/>
+    /// <seealso cref="MethodKind"/>
+    /// <seealso cref="IMethodInvoker"/>
+    /// <seealso cref="MethodAspect"/>
+    /// <seealso href="@overriding-methods"/>
     public interface IMethod : IMethodBase, IGeneric, IMethodInvoker
     {
         /// <summary>
@@ -43,6 +50,7 @@ namespace Metalama.Framework.Code
         /// Gets a <see cref="MethodInfo"/> that represents the current method at run time.
         /// </summary>
         /// <returns>A <see cref="MethodInfo"/> that can be used only in run-time code.</returns>
+        /// <seealso href="@reflection"/>
         [CompileTimeReturningRunTime]
         MethodInfo ToMethodInfo();
 

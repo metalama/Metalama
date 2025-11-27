@@ -5,8 +5,10 @@
 namespace Metalama.Framework.Aspects;
 
 /// <summary>
-/// Specifies the order in which the aspect types or aspect layers are supplied to  <see cref="AspectOrderAttribute"/>. 
+/// Specifies the order in which the aspect types or aspect layers are supplied to  <see cref="AspectOrderAttribute"/>.
 /// </summary>
+/// <seealso cref="AspectOrderAttribute"/>
+/// <seealso href="@ordering-aspects"/>
 public enum AspectOrderDirection
 {
     /// <summary>

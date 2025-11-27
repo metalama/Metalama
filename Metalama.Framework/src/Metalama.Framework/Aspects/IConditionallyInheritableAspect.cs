@@ -11,6 +11,8 @@ namespace Metalama.Framework.Aspects;
 /// based of a field or property of the aspect. When all the instances of the aspect class are unconditionally inheritable,
 /// the class must be annotated with the <see cref="InheritableAttribute"/> instead.
 /// </summary>
+/// <seealso cref="InheritableAttribute"/>
+/// <seealso href="@aspect-inheritance"/>
 public interface IConditionallyInheritableAspect : IAspect
 {
     bool IsInheritable( IDeclaration targetDeclaration, IAspectInstance aspectInstance );

@@ -9,6 +9,9 @@ namespace Metalama.Framework.Code
     /// <summary>
     /// Kinds of parameters, such as <c>ref</c>, <c>in</c>, <c>out</c>...
     /// </summary>
+    /// <seealso cref="IParameter"/>
+    /// <seealso cref="IHasType"/>
+    /// <seealso cref="RefKindExtensions"/>
     [CompileTime]
     public enum RefKind
     {

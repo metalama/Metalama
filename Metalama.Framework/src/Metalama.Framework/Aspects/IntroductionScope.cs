@@ -7,6 +7,9 @@ namespace Metalama.Framework.Aspects
     /// <summary>
     /// Scope of introduction advice.
     /// </summary>
+    /// <seealso cref="IntroduceAttribute"/>
+    /// <seealso cref="AdviserExtensions"/>
+    /// <seealso href="@introducing-members"/>
     [CompileTime]
     public enum IntroductionScope
     {

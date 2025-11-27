@@ -10,9 +10,15 @@ using System.Collections.Generic;
 namespace Metalama.Framework.Advising;
 
 /// <summary>
-/// Represents the result of the <see cref="IAdviceFactory.ImplementInterface(INamedType,INamedType,OverrideStrategy,object?)"/>
-/// method. The result can be used to introduce interface members using the extension methods in <see cref="AdviserExtensions"/>.
+/// Represents the result of an advice that implements an interface.
+/// The result can be used to introduce interface members using the extension methods in <see cref="AdviserExtensions"/>.
 /// </summary>
+/// <seealso cref="IAdviceResult"/>
+/// <seealso cref="AdviserExtensions.ImplementInterface"/>
+/// <seealso cref="IInterfaceImplementationResult"/>
+/// <seealso cref="IInterfaceImplementationAdviser"/>
+/// <seealso cref="InterfaceImplementationOutcome"/>
+/// <seealso href="@implementing-interfaces"/>
 [CompileTime]
 public interface IImplementInterfaceAdviceResult : IAdviceResult
 {

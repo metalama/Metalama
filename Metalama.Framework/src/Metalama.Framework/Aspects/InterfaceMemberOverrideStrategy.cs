@@ -10,6 +10,9 @@ namespace Metalama.Framework.Aspects
     /// <summary>
     /// Member conflict behavior of interface introduction advice.
     /// </summary>
+    /// <seealso cref="InterfaceMemberAttribute"/>
+    /// <seealso cref="AdviserExtensions.ImplementInterface"/>
+    /// <seealso href="@implementing-interfaces"/>
     [CompileTime]
     public enum InterfaceMemberOverrideStrategy
     {

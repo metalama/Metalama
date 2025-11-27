@@ -12,6 +12,9 @@ namespace Metalama.Framework.Aspects;
 /// code and, therefore, not from compile-time code. Code is run-time by default, so this attribute only makes sense on classes or interface that
 /// are run-time-only but derive a run-time-or-compile-time type. See <see cref="RunTimeOrCompileTimeAttribute"/>.
 /// </summary>
+/// <seealso cref="CompileTimeAttribute"/>
+/// <seealso cref="RunTimeOrCompileTimeAttribute"/>
+/// <seealso cref="ExecutionScope"/>
 [PublicAPI]
 [AttributeUsage(
     AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Enum | AttributeTargets.Delegate | AttributeTargets.Interface

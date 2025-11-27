@@ -11,6 +11,9 @@ namespace Metalama.Framework.Code.SyntaxBuilders
     /// <summary>
     /// Compile-time object that allows to build a run-time array. Items of the array are run-time expressions.
     /// </summary>
+    /// <seealso cref="IExpressionBuilder"/>
+    /// <seealso cref="ExpressionFactory"/>
+    /// <seealso href="@run-time-expressions"/>
     [CompileTime]
     public sealed class ArrayBuilder : INotNullExpressionBuilder
     {
@@ -23,6 +26,7 @@ namespace Metalama.Framework.Code.SyntaxBuilders
         /// <summary>
         /// Initializes a new instance of the <see cref="ArrayBuilder"/> class where the item type is a given <see cref="IType"/>.
         /// </summary>
+        /// <param name="itemType">The type of items in the array.</param>
         public ArrayBuilder( IType itemType )
         {
             this.ItemType = itemType;
@@ -31,6 +35,7 @@ namespace Metalama.Framework.Code.SyntaxBuilders
         /// <summary>
         /// Initializes a new instance of the <see cref="ArrayBuilder"/> class where the item type is a given <see cref="Type"/>.
         /// </summary>
+        /// <param name="itemType">The reflection type of items in the array.</param>
         public ArrayBuilder( Type itemType ) : this( TypeFactory.GetType( itemType ) ) { }
 
         /// <summary>
@@ -47,21 +52,25 @@ namespace Metalama.Framework.Code.SyntaxBuilders
         /// <summary>
         /// Adds an item to the array.
         /// </summary>
+        /// <param name="expression">The expression representing the item to add.</param>
         public void Add( dynamic? expression ) => this._items.Add( (object?) expression );
 
         /// <summary>
         /// Adds an item to the array.
         /// </summary>
+        /// <param name="expression">The expression representing the item to add.</param>
         public void Add( IExpression expression ) => this._items.Add( expression );
 
         /// <summary>
-        /// Returns a clone of the current <see cref="ArrayBuilder"/>.
+        /// Creates a compile-time <see cref="IExpression"/> representing the array from the current <see cref="ArrayBuilder"/>.
         /// </summary>
+        /// <returns>An expression representing the array.</returns>
         public IExpression ToExpression() => SyntaxBuilder.CurrentImplementation.BuildArray( this );
 
         /// <summary>
         /// Returns a clone of the current <see cref="ArrayBuilder"/>.
         /// </summary>
+        /// <returns>A new <see cref="ArrayBuilder"/> with the same items.</returns>
         public ArrayBuilder Clone() => new( this );
     }
 }

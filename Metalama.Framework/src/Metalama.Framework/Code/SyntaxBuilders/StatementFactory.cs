@@ -11,6 +11,10 @@ namespace Metalama.Framework.Code.SyntaxBuilders;
 /// <summary>
 /// Creates instances of the <see cref="IStatement"/> interface.
 /// </summary>
+/// <seealso cref="IStatement"/>
+/// <seealso cref="StatementBuilder"/>
+/// <seealso cref="IStatementBuilder"/>
+/// <seealso href="@run-time-statements"/>
 [CompileTime]
 public static class StatementFactory
 {

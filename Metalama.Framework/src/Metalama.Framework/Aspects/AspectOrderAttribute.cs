@@ -12,6 +12,8 @@ namespace Metalama.Framework.Aspects
     /// <summary>
     /// Custom attribute that specifies the order  of execution of aspects or aspect layers.
     /// </summary>
+    /// <seealso cref="AspectOrderDirection"/>
+    /// <seealso cref="LayersAttribute"/>
     /// <seealso href="@ordering-aspects"/>
     [AttributeUsage( AttributeTargets.Assembly, AllowMultiple = true )]
     [PublicAPI]

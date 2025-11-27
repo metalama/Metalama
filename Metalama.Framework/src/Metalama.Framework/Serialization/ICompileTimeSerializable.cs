@@ -26,6 +26,13 @@ namespace Metalama.Framework.Serialization
     /// adding a <see cref="ImportSerializerAttribute"/> custom attribute to the types that uses it.</para>
     /// <para>To serialize an <see cref="IDeclaration"/>, use the <see cref="IDeclaration.ToRef"/> method and store the <see cref="IRef{T}"/>.</para>
     /// </remarks>
+    /// <seealso cref="IAspect"/>
+    /// <seealso cref="IRef{T}"/>
+    /// <seealso cref="ReferenceTypeSerializer"/>
+    /// <seealso cref="ValueTypeSerializer{T}"/>
+    /// <seealso cref="NonCompileTimeSerializedAttribute"/>
+    /// <seealso cref="ImportSerializerAttribute"/>
+    /// <seealso href="@aspect-serialization"/>
     [CompileTime]
     public interface ICompileTimeSerializable;
 }

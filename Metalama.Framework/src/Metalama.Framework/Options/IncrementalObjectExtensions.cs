@@ -15,6 +15,11 @@ public static class IncrementalObjectExtensions
     /// <summary>
     /// Invokes <see cref="IIncrementalObject.ApplyChanges"/> in a type- and nullable-safe way.
     /// </summary>
+    /// <typeparam name="T">The type of incremental object.</typeparam>
+    /// <param name="baseOptions">The base options object, or <c>null</c>.</param>
+    /// <param name="overrideOptions">The override options object, or <c>null</c>.</param>
+    /// <param name="context">The context for applying changes.</param>
+    /// <returns>The result of applying <paramref name="overrideOptions"/> to <paramref name="baseOptions"/>, handling null values.</returns>
     public static T? ApplyChangesSafe<T>( this T? baseOptions, T? overrideOptions, in ApplyChangesContext context )
         where T : class, IIncrementalObject
     {
@@ -33,8 +38,13 @@ public static class IncrementalObjectExtensions
     }
 
     /// <summary>
-    /// Invokes <see cref="IIncrementalObject.ApplyChanges"/> in a type--safe way.
+    /// Invokes <see cref="IIncrementalObject.ApplyChanges"/> in a type-safe way.
     /// </summary>
+    /// <typeparam name="T">The type of incremental object.</typeparam>
+    /// <param name="baseOptions">The base options object.</param>
+    /// <param name="overrideOptions">The override options object.</param>
+    /// <param name="context">The context for applying changes.</param>
+    /// <returns>The result of applying <paramref name="overrideOptions"/> to <paramref name="baseOptions"/>.</returns>
     public static T ApplyChanges<T>( this T baseOptions, T overrideOptions, in ApplyChangesContext context )
         where T : class, IIncrementalObject
         => (T) baseOptions.ApplyChanges( overrideOptions, context );

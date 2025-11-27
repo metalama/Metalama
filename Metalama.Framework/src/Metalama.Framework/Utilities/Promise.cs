@@ -11,8 +11,11 @@ namespace Metalama.Framework.Utilities;
 /// <summary>
 /// Encapsulates value that must be defined later. Promises can used to to pass introduced declarations to templates as arguments
 /// when these declarations have not been introduced yet, resolving a chicken-or-egg situation. When objects of type <see cref="IPromise"/> are passed to a template,
-/// the template will automatically receive its resolved <see cref="Value"/> instead of the <see cref="IPromise"/> object. 
+/// the template will automatically receive its resolved <see cref="Value"/> instead of the <see cref="IPromise"/> object.
 /// </summary>
+/// <typeparam name="T">The type of the promised value.</typeparam>
+/// <seealso cref="IPromise"/>
+/// <seealso cref="IPromise{T}"/>
 [CompileTime]
 [PublicAPI]
 public sealed class Promise<T> : IPromise<T>
@@ -33,6 +36,7 @@ public sealed class Promise<T> : IPromise<T>
     /// <summary>
     /// Sets the <see cref="System.Exception"/> in which the promise resulted and sets the <see cref="IsFaulted"/> property to <c>true</c>.
     /// </summary>
+    /// <param name="exception">The exception that caused the promise to fail.</param>
     public void SetException( Exception exception )
     {
         this.CheckAssignable();

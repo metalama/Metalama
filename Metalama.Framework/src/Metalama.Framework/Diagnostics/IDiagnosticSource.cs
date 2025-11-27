@@ -7,6 +7,12 @@ using Metalama.Framework.Utilities;
 
 namespace Metalama.Framework.Diagnostics;
 
+/// <summary>
+/// Represents the source of a diagnostic.
+/// </summary>
+/// <seealso cref="IDiagnosticSink"/>
+/// <seealso cref="ScopedDiagnosticSink"/>
+/// <seealso href="@diagnostics"/>
 [CompileTime]
 [InternalImplement]
 public interface IDiagnosticSource

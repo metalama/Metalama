@@ -12,6 +12,10 @@ namespace Metalama.Framework.Diagnostics
     /// <summary>
     /// A sink that reports diagnostics reported from user code.
     /// </summary>
+    /// <seealso cref="ScopedDiagnosticSink"/>
+    /// <seealso cref="IDiagnostic"/>
+    /// <seealso cref="ISuppression"/>
+    /// <seealso cref="IAdviser"/>
     /// <seealso href="@diagnostics"/>
     [CompileTime]
     [PublicAPI]

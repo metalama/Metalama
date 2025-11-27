@@ -9,6 +9,9 @@ namespace Metalama.Framework.Code
     /// <summary>
     /// Represents a method or a constructor.
     /// </summary>
+    /// <seealso cref="IMethod"/>
+    /// <seealso cref="IConstructor"/>
+    /// <seealso cref="IHasParameters"/>
     public interface IMethodBase : IHasParameters
     {
         /// <summary>

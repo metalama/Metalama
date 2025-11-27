@@ -9,6 +9,10 @@ namespace Metalama.Framework.Aspects;
 /// <summary>
 /// Wraps a template provider type or instance.
 /// </summary>
+/// <seealso cref="ITemplateProvider"/>
+/// <seealso cref="TemplateInvocation"/>
+/// <seealso href="@templates"/>
+/// <seealso href="@auxiliary-templates"/>
 [CompileTime]
 public readonly record struct TemplateProvider
 {

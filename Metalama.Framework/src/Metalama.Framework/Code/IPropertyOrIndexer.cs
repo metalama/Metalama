@@ -7,12 +7,19 @@ using System.Reflection;
 
 namespace Metalama.Framework.Code;
 
+/// <summary>
+/// A base interface for <see cref="IProperty"/> and <see cref="IIndexer"/>.
+/// </summary>
+/// <seealso cref="IProperty"/>
+/// <seealso cref="IIndexer"/>
+/// <seealso cref="IFieldOrPropertyOrIndexer"/>
 public interface IPropertyOrIndexer : IFieldOrPropertyOrIndexer
 {
     /// <summary>
     /// Gets a <see cref="PropertyInfo"/> that represents the current property at run time.
     /// </summary>
     /// <returns>A <see cref="PropertyInfo"/> that can be used only in run-time code.</returns>
+    /// <seealso href="@reflection"/>
     [CompileTimeReturningRunTime]
     PropertyInfo ToPropertyInfo();
 

@@ -13,6 +13,10 @@ namespace Metalama.Framework.Project
     /// <summary>
     /// Represents the execution context of Metalama. Exposed by the <see cref="MetalamaExecutionContext.Current"/> property of <see cref="MetalamaExecutionContext"/>.
     /// </summary>
+    /// <seealso cref="MetalamaExecutionContext"/>
+    /// <seealso cref="IProject"/>
+    /// <seealso cref="ICompilation"/>
+    /// <seealso cref="IExecutionScenario"/>
     [InternalImplement]
     [CompileTime]
     public interface IExecutionContext

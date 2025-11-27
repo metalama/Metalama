@@ -4,6 +4,10 @@
 
 namespace Metalama.Framework.Code.DeclarationBuilders;
 
+/// <seealso cref="INamedType"/>
+/// <seealso cref="IMemberOrNamedTypeBuilder"/>
+/// <seealso cref="AdviserExtensions.IntroduceClass"/>
+/// <seealso href="@introducing-types"/>
 public interface INamedTypeBuilder : IMemberOrNamedTypeBuilder, INamedType
 {
     /// <summary>

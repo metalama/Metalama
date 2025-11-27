@@ -9,6 +9,10 @@ namespace Metalama.Framework.Code;
 /// <summary>
 /// Represents a tuple type.
 /// </summary>
+/// <seealso cref="INamedType"/>
+/// <seealso cref="ITupleElement"/>
+/// <seealso cref="IExpression"/>
+/// <seealso href="@type-system"/>
 public interface ITupleType : INamedType
 {
     /// <summary>

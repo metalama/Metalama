@@ -9,6 +9,8 @@ namespace Metalama.Framework.Diagnostics
     /// <summary>
     /// Severity of diagnostics.
     /// </summary>
+    /// <seealso cref="IDiagnosticDefinition"/>
+    /// <seealso cref="DiagnosticDefinition{T}"/>
     /// <seealso href="@diagnostics"/>
     [CompileTime]
     public enum Severity

@@ -7,5 +7,9 @@ namespace Metalama.Framework.Code.DeclarationBuilders
     /// <summary>
     /// Allows to complete the construction of a property that has been created by an advice.
     /// </summary>
+    /// <seealso cref="IProperty"/>
+    /// <seealso cref="IFieldOrPropertyBuilder"/>
+    /// <seealso cref="AdviserExtensions.IntroduceProperty"/>
+    /// <seealso href="@introducing-members"/>
     public interface IPropertyBuilder : IFieldOrPropertyBuilder, IProperty, IPropertyOrIndexerBuilder;
 }

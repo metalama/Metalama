@@ -9,8 +9,14 @@ using System.Collections.Generic;
 namespace Metalama.Framework.Advising
 {
     /// <summary>
-    /// Specifies the templates that must be used by the <c>IAdviceFactory.Override(IMethod)</c> advice.
+    /// Specifies the templates that must be used by the <c>IAdviser&lt;IMethod&gt;.Override</c> advice.
+    /// This type can be used when using <see cref="AdviserExtensions.Override(IAdviser{IMethod}, in MethodTemplateSelector, object?, object?)"/> as an extension method for <see cref="IAdviser{T}"/>.
     /// </summary>
+    /// <seealso cref="GetterTemplateSelector"/>
+    /// <seealso cref="AdviserExtensions.Override(IAdviser{IMethod}, in MethodTemplateSelector, object?, object?)"/>
+    /// <seealso cref="IAdviser{T}"/>
+    /// <seealso cref="TemplateAttribute"/>
+    /// <seealso href="@overriding-methods"/>
     [CompileTime]
     public readonly struct MethodTemplateSelector
     {
@@ -127,7 +133,7 @@ namespace Metalama.Framework.Advising
         /// set to this string.
         /// </summary>
         /// <param name="defaultTemplate">Name of the default template.</param>
-        /// <returns></returns>
+        /// <returns>A new <see cref="MethodTemplateSelector"/> with the specified default template.</returns>
         public static implicit operator MethodTemplateSelector( string defaultTemplate ) => new( defaultTemplate );
 
         internal GetterTemplateSelector AsGetterTemplateSelector()

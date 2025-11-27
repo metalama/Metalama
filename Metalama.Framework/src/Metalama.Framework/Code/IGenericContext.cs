@@ -10,6 +10,8 @@ namespace Metalama.Framework.Code;
 /// <summary>
 /// Represents a context in which type parameters are mapped to their values.
 /// </summary>
+/// <seealso cref="IGeneric"/>
+/// <seealso cref="ITypeParameter"/>
 [CompileTime]
 [InternalImplement]
 public interface IGenericContext

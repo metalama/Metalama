@@ -10,8 +10,12 @@ using System.Collections.Generic;
 namespace Metalama.Framework.Advising
 {
     /// <summary>
-    /// Specifies the templates that must be used for the <c>get</c> accessor by the <c>IAdviceFactory.OverrideAccessors</c> advice.
+    /// Specifies the templates that must be used for the <c>get</c> accessor by the <c>OverrideAccessors</c> advice.
     /// </summary>
+    /// <seealso cref="AdviserExtensions.OverrideAccessors"/>
+    /// <seealso cref="MethodTemplateSelector"/>
+    /// <seealso cref="TemplateAttribute"/>
+    /// <seealso href="@overriding-fields-or-properties"/>
     [CompileTime]
     [PublicAPI]
     public readonly struct GetterTemplateSelector
@@ -85,7 +89,7 @@ namespace Metalama.Framework.Advising
         /// set to this string.
         /// </summary>
         /// <param name="defaultTemplate">Name of the default template.</param>
-        /// <returns></returns>
+        /// <returns>A new <see cref="GetterTemplateSelector"/> with the specified default template.</returns>
         public static implicit operator GetterTemplateSelector( string? defaultTemplate ) => new( defaultTemplate );
     }
 }

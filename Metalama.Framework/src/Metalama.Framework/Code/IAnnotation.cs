@@ -9,6 +9,9 @@ namespace Metalama.Framework.Code;
 /// <summary>
 /// A non-generic base interface for the generic <see cref="IAnnotation{T}"/>. You should always implement the generic interface.
 /// </summary>
+/// <seealso cref="IAnnotation{T}"/>
+/// <seealso cref="DeclarationEnhancements{T}"/>
+/// <seealso cref="ICompileTimeSerializable"/>
 public interface IAnnotation : ICompileTimeSerializable;
 
 // ReSharper disable once UnusedTypeParameter
@@ -18,5 +21,9 @@ public interface IAnnotation : ICompileTimeSerializable;
 /// Annotations are a way of communication between aspects or classes of aspects.
 /// </summary>
 /// <typeparam name="T">The type of declarations to which the annotation can be added.</typeparam>
+/// <seealso cref="IAnnotation"/>
+/// <seealso cref="DeclarationEnhancements{T}"/>
+/// <seealso cref="DeclarationExtensions"/>
+/// <seealso cref="IDeclaration"/>
 public interface IAnnotation<in T> : IAnnotation
     where T : class, IDeclaration;

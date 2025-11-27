@@ -11,6 +11,8 @@ namespace Metalama.Framework.Aspects
     /// <summary>
     /// A base aspect that overrides the implementation of an event.
     /// </summary>
+    /// <seealso cref="EventAspect"/>
+    /// <seealso cref="AdviserExtensions.OverrideAccessors"/>
     /// <seealso href="@overriding-events"/>
     [AttributeUsage( AttributeTargets.Event )]
     public abstract class OverrideEventAspect : EventAspect

@@ -9,8 +9,17 @@ using System;
 namespace Metalama.Framework.Aspects
 {
     /// <summary>
-    /// The base class for all custom attributes that mark a declaration as a template.
+    /// Custom attribute that marks a declaration as a T# template. This attribute has properties that allow you to
+    /// override the name and modifiers of the introduced member. When a property is not explicitly set,
+    /// its value is taken from the template member that this attribute is applied to.
     /// </summary>
+    /// <seealso cref="IntroduceAttribute"/>
+    /// <seealso cref="ITemplateAttribute"/>
+    /// <seealso cref="MethodTemplateSelector"/>
+    /// <seealso cref="GetterTemplateSelector"/>
+    /// <seealso cref="ITemplateProvider"/>
+    /// <seealso href="@templates"/>
+    /// <seealso href="@auxiliary-templates"/>
     [AttributeUsage( AttributeTargets.Method | AttributeTargets.Property | AttributeTargets.Field | AttributeTargets.Event )]
     public class TemplateAttribute : Attribute, ITemplateAttribute
     {
@@ -18,48 +27,80 @@ namespace Metalama.Framework.Aspects
 
         internal static TemplateAttribute Default { get; } = new();
 
+        /// <summary>
+        /// Gets or sets the name of the introduced member when the template is used as an introduction. When this property is not set,
+        /// the name is taken from the template member that this attribute is applied to.
+        /// </summary>
         public string? Name
         {
             get => this._properties.Name;
             set => this._properties = this._properties with { Name = value };
         }
 
+        /// <summary>
+        /// Gets or sets the accessibility of the introduced member. When this property is not set,
+        /// the accessibility is taken from the template member that this attribute is applied to.
+        /// </summary>
         public Accessibility Accessibility
         {
             get => this._properties.Accessibility.GetValueOrDefault();
             set => this._properties = this._properties with { Accessibility = value };
         }
 
+        /// <summary>
+        /// Gets or sets a value indicating whether the introduced member is virtual. When this property is not set,
+        /// the value is taken from the template member that this attribute is applied to.
+        /// </summary>
         public bool IsVirtual
         {
             get => this._properties.IsVirtual.GetValueOrDefault();
             set => this._properties = this._properties with { IsVirtual = value };
         }
 
+        /// <summary>
+        /// Gets or sets a value indicating whether the introduced member is sealed. When this property is not set,
+        /// the value is taken from the template member that this attribute is applied to.
+        /// </summary>
         public bool IsSealed
         {
             get => this._properties.IsSealed.GetValueOrDefault();
             set => this._properties = this._properties with { IsSealed = value };
         }
 
+        /// <summary>
+        /// Gets or sets a value indicating whether the introduced member is required. When this property is not set,
+        /// the value is taken from the template member that this attribute is applied to.
+        /// </summary>
         public bool IsRequired
         {
             get => this._properties.IsRequired.GetValueOrDefault();
             set => this._properties = this._properties with { IsRequired = value };
         }
 
+        /// <summary>
+        /// Gets or sets a value indicating whether the introduced member is abstract. When this property is not set,
+        /// the value is taken from the template member that this attribute is applied to.
+        /// </summary>
         public bool IsAbstract
         {
             get => this._properties.IsAbstract.GetValueOrDefault();
             set => this._properties = this._properties with { IsAbstract = value };
         }
 
+        /// <summary>
+        /// Gets or sets a value indicating whether the introduced member is partial. When this property is not set,
+        /// the value is taken from the template member that this attribute is applied to.
+        /// </summary>
         public bool IsPartial
         {
             get => this._properties.IsPartial.GetValueOrDefault();
             set => this._properties = this._properties with { IsPartial = value };
         }
 
+        /// <summary>
+        /// Gets or sets a value indicating whether the introduced member is extern. When this property is not set,
+        /// the value is taken from the template member that this attribute is applied to.
+        /// </summary>
         public bool IsExtern
         {
             get => this._properties.IsExtern.GetValueOrDefault();

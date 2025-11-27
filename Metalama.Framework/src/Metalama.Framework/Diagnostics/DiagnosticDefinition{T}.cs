@@ -10,11 +10,15 @@ namespace Metalama.Framework.Diagnostics;
 /// Defines a diagnostic with a strongly-typed set of parameters that are typically specified by using a named tuple for generic parameter
 /// <typeparamref name="T"/>. For diagnostics that accept a single parameter, <typeparamref name="T"/> must be set to the type of this parameter.
 /// To accept several parameters, use a tuple.
-/// For a diagnostic that does not accept parameters, use <see cref="DiagnosticDefinition"/>. 
+/// For a diagnostic that does not accept parameters, use <see cref="DiagnosticDefinition"/>.
 /// </summary>
 /// <typeparam name="T">Type of arguments: a single type if there is a single argument, or a named tuple type for several arguments
 /// Alternatively, you can also use <c>object[]</c>.
 /// </typeparam>
+/// <seealso cref="DiagnosticDefinition"/>
+/// <seealso cref="IDiagnosticDefinition"/>
+/// <seealso cref="IDiagnostic"/>
+/// <seealso cref="Severity"/>
 /// <seealso href="@diagnostics"/>
 public class DiagnosticDefinition<T> : IDiagnosticDefinition
     where T : notnull

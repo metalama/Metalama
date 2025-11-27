@@ -10,6 +10,10 @@ namespace Metalama.Framework.Diagnostics
     /// <summary>
     /// A base interface for objects to which a diagnostic can be reported.
     /// </summary>
+    /// <seealso cref="IDiagnostic"/>
+    /// <seealso cref="IDiagnosticSink"/>
+    /// <seealso cref="SourceReference"/>
+    /// <seealso cref="SourceSpan"/>
     /// <seealso href="@diagnostics"/>
     [CompileTime]
     [InternalImplement]

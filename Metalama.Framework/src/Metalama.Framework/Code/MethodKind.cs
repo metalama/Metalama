@@ -9,6 +9,7 @@ namespace Metalama.Framework.Code
     /// <summary>
     /// Kinds of <see cref="IMethodBase"/>.
     /// </summary>
+    /// <seealso cref="IMethodBase.Kind"/>
     [CompileTime]
     public enum MethodKind
     {

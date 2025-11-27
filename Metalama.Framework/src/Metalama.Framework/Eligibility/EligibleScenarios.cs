@@ -10,6 +10,9 @@ namespace Metalama.Framework.Eligibility
     /// <summary>
     /// Enumeration of scenarios in which an aspect can be used.
     /// </summary>
+    /// <seealso cref="IEligibilityBuilder"/>
+    /// <seealso cref="IEligible{T}"/>
+    /// <seealso cref="EligibilityExtensions"/>
     /// <seealso href="@eligibility"/>
     [CompileTime]
     [Flags]

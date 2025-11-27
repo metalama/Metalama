@@ -5,6 +5,9 @@
 namespace Metalama.Framework.Advising;
 
 /// <summary>
-/// Represents the result of the <see cref="IAdviceFactory.RemoveAttributes(Metalama.Framework.Code.IDeclaration,Metalama.Framework.Code.INamedType)"/> method.
+/// Represents the result of an advice that removes attributes.
 /// </summary>
+/// <seealso cref="IAdviceResult"/>
+/// <seealso cref="AdviserExtensions.RemoveAttributes"/>
+/// <seealso href="@adding-attributes"/>
 public interface IRemoveAttributesAdviceResult : IAdviceResult;

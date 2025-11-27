@@ -8,8 +8,13 @@ using Metalama.Framework.Code;
 namespace Metalama.Framework.Fabrics
 {
     /// <summary>
-    /// Argument of <see cref="TypeFabric.AmendType"/>. Allows reporting diagnostics and adding aspects to the target declaration of the fabric. 
+    /// Argument of <see cref="TypeFabric.AmendType"/>. Allows reporting diagnostics and adding aspects to the target declaration of the fabric.
     /// </summary>
+    /// <seealso cref="TypeFabric"/>
+    /// <seealso cref="IAmender{T}"/>
+    /// <seealso cref="INamedType"/>
+    /// <seealso cref="IAdviser"/>
+    /// <seealso href="@fabrics"/>
     public interface ITypeAmender : IAmender<INamedType>
     {
         /// <summary>

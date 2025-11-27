@@ -15,6 +15,13 @@ namespace Metalama.Framework.Utilities;
 [PublicAPI]
 public static class PromiseExtensions
 {
+    /// <summary>
+    /// Attempts to get the value of a promise if it is resolved.
+    /// </summary>
+    /// <typeparam name="T">The type of value contained in the promise.</typeparam>
+    /// <param name="promise">The promise to get the value from.</param>
+    /// <param name="value">When this method returns, contains the value if the promise is resolved; otherwise, the default value for type <typeparamref name="T"/>.</param>
+    /// <returns><see langword="true"/> if the promise is resolved and the value was retrieved; otherwise, <see langword="false"/>.</returns>
     public static bool TryGetValue<T>( this IPromise<T> promise, [MaybeNullWhen( false )] out T value )
     {
         if ( promise.IsResolved )

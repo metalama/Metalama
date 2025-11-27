@@ -4,7 +4,7 @@
 
 namespace Metalama.Framework.Aspects;
 
-public sealed record EditorExperienceOptions(
+internal sealed record EditorExperienceOptions(
     bool? SuggestAsAddAttribute = null,
     string? AddAttributeSuggestionTitle = null,
     bool? SuggestAsLiveTemplate = null,

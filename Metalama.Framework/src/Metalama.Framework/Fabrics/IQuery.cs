@@ -13,6 +13,9 @@ namespace Metalama.Framework.Fabrics;
 /// The non-generic base interface for <see cref="IQuery{TDeclaration}"/>. Represents query of declarations to which
 /// aspects, validators, diagnostics and code fix suggestions can be added. This interface exposes LINQ-like methods that can be combined in complex queries.
 /// </summary>
+/// <seealso cref="IQuery{TDeclaration}"/>
+/// <seealso cref="IAmender"/>
+/// <seealso href="@fabrics"/>
 [InternalImplement]
 [CompileTime]
 public interface IQuery

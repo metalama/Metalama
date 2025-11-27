@@ -10,6 +10,12 @@ namespace Metalama.Framework.Code
     /// <summary>
     /// Represents an instance constructor or a static constructor.
     /// </summary>
+    /// <seealso cref="IMethodBase"/>
+    /// <seealso cref="IConstructorInvoker"/>
+    /// <seealso cref="ConstructorInitializerKind"/>
+    /// <seealso cref="ConstructorAspect"/>
+    /// <seealso href="@overriding-constructors"/>
+    /// <seealso href="@introducing-constructor-parameters"/>
     public interface IConstructor : IMethodBase, IConstructorInvoker
     {
         /// <summary>
@@ -29,6 +35,7 @@ namespace Metalama.Framework.Code
         /// Gets a <see cref="ConstructorInfo"/> that represents the current constructor at run time.
         /// </summary>
         /// <returns>A <see cref="ConstructorInfo"/> that can be used only in run-time code.</returns>
+        /// <seealso href="@reflection"/>
         ConstructorInfo ToConstructorInfo();
 
         /// <summary>

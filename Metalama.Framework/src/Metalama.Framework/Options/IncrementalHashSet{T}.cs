@@ -17,6 +17,10 @@ namespace Metalama.Framework.Options;
 /// The class can represent the <see cref="Add(T)"/>, <see cref="Remove(T)"/> and <see cref="IncrementalHashSet.Clear{T}"/> operations.
 /// </summary>
 /// <typeparam name="T">Type of items.</typeparam>
+/// <seealso cref="IIncrementalObject"/>
+/// <seealso cref="IHierarchicalOptions"/>
+/// <seealso cref="IncrementalKeyedCollection{TKey,TValue}"/>
+/// <seealso href="@exposing-options"/>
 [PublicAPI]
 public partial class IncrementalHashSet<T> : IIncrementalObject, IReadOnlyCollection<T>, ICompileTimeSerializable
     where T : notnull

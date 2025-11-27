@@ -13,6 +13,10 @@ namespace Metalama.Framework.Code.SyntaxBuilders;
 /// <summary>
 /// Builds a <c>switch</c> statement.
 /// </summary>
+/// <seealso cref="IStatementBuilder"/>
+/// <seealso cref="StatementFactory"/>
+/// <seealso cref="SwitchStatementLabel"/>
+/// <seealso href="@run-time-statements"/>
 [CompileTime]
 [PublicAPI]
 public sealed class SwitchStatementBuilder : IStatementBuilder
@@ -103,6 +107,7 @@ public sealed class SwitchStatementBuilder : IStatementBuilder
     /// <summary>
     /// Builds an <see cref="IStatement"/> from the current object.
     /// </summary>
+    /// <returns>An <see cref="IStatement"/> representing the switch statement.</returns>
     public IStatement ToStatement()
     {
         if ( this._cases.Count == 0 )

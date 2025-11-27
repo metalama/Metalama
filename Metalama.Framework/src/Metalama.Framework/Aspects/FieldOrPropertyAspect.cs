@@ -14,6 +14,15 @@ namespace Metalama.Framework.Aspects
     /// <remarks>
     /// <para>This class is a redundant helper class. The aspect framework only respects the <see cref="IAspect{T}"/> interface.</para>
     /// </remarks>
+    /// <seealso cref="IAspect{T}"/>
+    /// <seealso cref="OverrideFieldOrPropertyAspect"/>
+    /// <seealso cref="IAspectBuilder{T}"/>
+    /// <seealso cref="IFieldOrProperty"/>
+    /// <seealso cref="Aspect"/>
+    /// <seealso cref="FieldAspect"/>
+    /// <seealso cref="PropertyAspect"/>
+    /// <seealso href="@aspects"/>
+    /// <seealso href="@overriding-fields-or-properties"/>
     [AttributeUsage( AttributeTargets.Field | AttributeTargets.Property )]
     public abstract class FieldOrPropertyAspect : Aspect, IAspect<IFieldOrProperty>
     {

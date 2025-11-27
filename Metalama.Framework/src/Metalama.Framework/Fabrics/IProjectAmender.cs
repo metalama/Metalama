@@ -7,7 +7,11 @@ using Metalama.Framework.Code;
 namespace Metalama.Framework.Fabrics
 {
     /// <summary>
-    /// Argument of <see cref="ProjectFabric.AmendProject"/>. Allows reporting diagnostics and adding aspects to the target project. 
+    /// Argument of <see cref="ProjectFabric.AmendProject"/>. Allows reporting diagnostics and adding aspects to the target project.
     /// </summary>
+    /// <seealso cref="ProjectFabric"/>
+    /// <seealso cref="IAmender{T}"/>
+    /// <seealso cref="ICompilation"/>
+    /// <seealso href="@fabrics"/>
     public interface IProjectAmender : IAmender<ICompilation>;
 }

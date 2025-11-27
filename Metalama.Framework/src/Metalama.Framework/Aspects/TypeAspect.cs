@@ -15,6 +15,11 @@ namespace Metalama.Framework.Aspects
     /// <remarks>
     /// <para>This class is a redundant helper class. The aspect framework only respects the <see cref="IAspect{T}"/> interface.</para>
     /// </remarks>
+    /// <seealso cref="IAspect{T}"/>
+    /// <seealso cref="IAspectBuilder{T}"/>
+    /// <seealso cref="INamedType"/>
+    /// <seealso cref="Aspect"/>
+    /// <seealso href="@aspects"/>
     [AttributeUsage( AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Interface | AttributeTargets.Delegate | AttributeTargets.Enum )]
     [PublicAPI]
     public abstract class TypeAspect : Aspect, IAspect<INamedType>

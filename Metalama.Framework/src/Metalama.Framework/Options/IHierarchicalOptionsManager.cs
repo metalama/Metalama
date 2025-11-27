@@ -11,6 +11,9 @@ namespace Metalama.Framework.Options;
 /// <summary>
 /// Provides read-only access to hierarchical options.
 /// </summary>
+/// <seealso cref="IHierarchicalOptions"/>
+/// <seealso cref="IHierarchicalOptions{T}"/>
+/// <seealso href="@exposing-options"/>
 [CompileTime]
 public interface IHierarchicalOptionsManager
 {

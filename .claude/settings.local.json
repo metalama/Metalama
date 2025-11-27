@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find:*)",
+      "Bash(done)",
+      "Bash(paste:*)",
+      "Bash(bc)",
+      "Bash(powershell -NoProfile -Command:*)",
+      "Bash(python extract-docs.py:*)",
+      "Bash(pip install:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

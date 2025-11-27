@@ -10,6 +10,12 @@ namespace Metalama.Framework.Code
     /// <summary>
     /// Base interface for <see cref="IMethod"/>, <see cref="IFieldOrPropertyOrIndexer"/>, <see cref="IEvent"/>, and <see cref="INamedType"/>.
     /// </summary>
+    /// <seealso cref="IMethod"/>
+    /// <seealso cref="IFieldOrPropertyOrIndexer"/>
+    /// <seealso cref="IEvent"/>
+    /// <seealso cref="INamedType"/>
+    /// <seealso cref="IMember"/>
+    /// <seealso cref="MemberExtensions"/>
     public interface IMemberOrNamedType : INamedDeclaration
     {
         /// <summary>

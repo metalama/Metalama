@@ -14,6 +14,16 @@ namespace Metalama.Framework.Aspects
     /// <remarks>
     /// <para>This class is a redundant helper class. The aspect framework only respects the <see cref="IAspect{T}"/> interface.</para>
     /// </remarks>
+    /// <seealso cref="IAspect{T}"/>
+    /// <seealso cref="IAspectBuilder"/>
+    /// <seealso cref="TypeAspect"/>
+    /// <seealso cref="MethodAspect"/>
+    /// <seealso cref="PropertyAspect"/>
+    /// <seealso cref="FieldAspect"/>
+    /// <seealso cref="EventAspect"/>
+    /// <seealso cref="ConstructorAspect"/>
+    /// <seealso cref="CompilationAspect"/>
+    /// <seealso href="@aspects"/>
     public abstract class Aspect : Attribute, IAspect
     {
         public override string ToString() => this.GetType().Name;

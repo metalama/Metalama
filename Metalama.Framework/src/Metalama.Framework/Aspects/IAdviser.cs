@@ -13,6 +13,10 @@ namespace Metalama.Framework.Aspects;
 /// An object that allows declarations to be advised using one of the extension methods of the <see cref="AdviserExtensions"/> class.
 /// This interface is the non-generic base one. All advisers implement the generic interface <see cref="IAdviser{T}"/>.
 /// </summary>
+/// <seealso cref="IAdviser{T}"/>
+/// <seealso cref="AdviserExtensions"/>
+/// <seealso cref="IAspectBuilder"/>
+/// <seealso href="@advising-code"/>
 [InternalImplement]
 [CompileTime]
 [PublicAPI]

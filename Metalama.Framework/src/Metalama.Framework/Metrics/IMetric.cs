@@ -9,6 +9,8 @@ namespace Metalama.Framework.Metrics
     /// <summary>
     /// A weakly-typed base interface for <see cref="IMetric{T}"/>. Never implement directly. Always implement <see cref="IMetric{T}"/>.
     /// </summary>
+    /// <seealso cref="IMetric{T}"/>
+    /// <seealso cref="IMetricProvider{T}"/>
     [CompileTime]
     public interface IMetric;
 
@@ -22,6 +24,9 @@ namespace Metalama.Framework.Metrics
     /// and you need to add the service to the service provider (TODO).
     /// </remarks>
     /// <typeparam name="T">The type of objects for which the metric applies.</typeparam>
+    /// <seealso cref="IMetric"/>
+    /// <seealso cref="IMeasurable"/>
+    /// <seealso cref="IMetricProvider{T}"/>
     public interface IMetric<in T> : IMetric
         where T : IMeasurable;
 }

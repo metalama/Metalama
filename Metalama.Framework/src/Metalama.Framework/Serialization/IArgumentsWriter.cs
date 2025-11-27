@@ -9,6 +9,10 @@ namespace Metalama.Framework.Serialization
     /// <summary>
     /// Provides write access to a collection of arguments that need to be serialized.
     /// </summary>
+    /// <seealso cref="IArgumentsReader"/>
+    /// <seealso cref="ISerializer"/>
+    /// <seealso cref="ICompileTimeSerializable"/>
+    /// <seealso href="@serialization"/>
     [CompileTime]
     public interface IArgumentsWriter
     {

@@ -16,7 +16,7 @@ public sealed class ExcludeAspectAttribute : Attribute
     /// <summary>
     /// Initializes a new instance of the <see cref="ExcludeAspectAttribute"/> class.
     /// </summary>
-    /// <param name="excludedAspectTypes"></param>
+    /// <param name="excludedAspectTypes">An array of aspect types to exclude from this declaration and its members.</param>
     public ExcludeAspectAttribute( params Type[] excludedAspectTypes )
     {
         _ = excludedAspectTypes;

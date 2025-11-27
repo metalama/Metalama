@@ -11,6 +11,9 @@ namespace Metalama.Framework.Eligibility
     /// <summary>
     /// The non-generic base interface for <see cref="IEligibilityBuilder{T}"/>.
     /// </summary>
+    /// <seealso cref="IEligibilityBuilder{T}"/>
+    /// <seealso cref="IEligible{T}"/>
+    /// <seealso cref="EligibilityExtensions"/>
     /// <seealso href="@eligibility"/> 
     [InternalImplement]
     [CompileTime]
@@ -36,8 +39,11 @@ namespace Metalama.Framework.Eligibility
     /// using methods of <see cref="EligibilityExtensions"/>.
     /// </summary>
     /// <typeparam name="T">Type of declaration.</typeparam>
-    /// <seealso href="@eligibility"/>
-    /// <seealso cref="EligibilityExtensions"/> 
+    /// <seealso cref="IEligibilityBuilder"/>
+    /// <seealso cref="IEligible{T}"/>
+    /// <seealso cref="EligibilityExtensions"/>
+    /// <seealso cref="IEligibilityRule{T}"/>
+    /// <seealso href="@eligibility"/> 
     public interface IEligibilityBuilder<out T> : IEligibilityBuilder
         where T : class
     {

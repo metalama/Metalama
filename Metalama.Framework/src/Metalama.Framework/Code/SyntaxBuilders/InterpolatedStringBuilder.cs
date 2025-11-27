@@ -10,6 +10,9 @@ namespace Metalama.Framework.Code.SyntaxBuilders
     /// <summary>
     /// Compile-time object that allows to build a run-time interpolated string.
     /// </summary>
+    /// <seealso cref="IExpressionBuilder"/>
+    /// <seealso cref="ExpressionFactory"/>
+    /// <seealso href="@run-time-expressions"/>
     [CompileTime]
     public sealed partial class InterpolatedStringBuilder : INotNullExpressionBuilder
     {
@@ -32,6 +35,7 @@ namespace Metalama.Framework.Code.SyntaxBuilders
         /// <summary>
         /// Adds a fixed text to the interpolated string.
         /// </summary>
+        /// <param name="text">The text to add.</param>
         public void AddText( string? text )
         {
             if ( !string.IsNullOrEmpty( text ) )
@@ -43,20 +47,31 @@ namespace Metalama.Framework.Code.SyntaxBuilders
         /// <summary>
         /// Adds an expression to the interpolated string.
         /// </summary>
+        /// <param name="expression">The expression to add.</param>
+        /// <param name="alignment">Optional alignment specification for the expression.</param>
+        /// <param name="format">Optional format string for the expression.</param>
         public void AddExpression( dynamic? expression, int? alignment = null, string? format = null )
             => this._items.Add( new Token( (object?) expression, alignment, format ) );
 
         /// <summary>
         /// Adds an expression to the interpolated string.
         /// </summary>
+        /// <param name="expression">The expression to add.</param>
+        /// <param name="alignment">Optional alignment specification for the expression.</param>
+        /// <param name="format">Optional format string for the expression.</param>
         public void AddExpression( IExpression? expression, int? alignment = null, string? format = null )
             => this._items.Add( new Token( expression, alignment, format ) );
 
         /// <summary>
-        /// Creates a compile-time <see cref="IExpression"/> from the current <see cref="ExpressionBuilder"/>.
+        /// Creates a compile-time <see cref="IExpression"/> from the current <see cref="InterpolatedStringBuilder"/>.
         /// </summary>
+        /// <returns>An expression representing the interpolated string.</returns>
         public IExpression ToExpression() => SyntaxBuilder.CurrentImplementation.BuildInterpolatedString( this );
 
+        /// <summary>
+        /// Returns a clone of the current <see cref="InterpolatedStringBuilder"/>.
+        /// </summary>
+        /// <returns>A new <see cref="InterpolatedStringBuilder"/> with the same items.</returns>
         public InterpolatedStringBuilder Clone() => new( this );
     }
 }

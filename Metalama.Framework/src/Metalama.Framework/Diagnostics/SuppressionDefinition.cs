@@ -12,6 +12,9 @@ namespace Metalama.Framework.Diagnostics;
 /// Defines the suppression of a kind of diagnostics. Suppression definitions must be
 /// static fields or properties of an aspect classes. Suppressions are instantiated with <see cref="IDiagnosticSink.Suppress"/>.
 /// </summary>
+/// <seealso cref="ISuppression"/>
+/// <seealso cref="IDiagnosticSink"/>
+/// <seealso cref="ScopedDiagnosticSink"/>
 /// <seealso href="@diagnostics"/>
 [CompileTime]
 [PublicAPI]
@@ -22,12 +25,16 @@ public sealed class SuppressionDefinition : ISuppression
     /// </summary>
     public string SuppressedDiagnosticId { get; }
 
+    /// <summary>
+    /// Gets the justification for the suppression.
+    /// </summary>
     public string? Justification { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SuppressionDefinition"/> class.
     /// </summary>
     /// <param name="suppressedDiagnosticId">The ID of the diagnostic to be suppressed (e.g. <c>CS0169</c>).</param>
+    /// <param name="justification">Optional justification for the suppression.</param>
     public SuppressionDefinition( string suppressedDiagnosticId, string? justification = null )
     {
         this.SuppressedDiagnosticId = suppressedDiagnosticId;
@@ -41,6 +48,8 @@ public sealed class SuppressionDefinition : ISuppression
     /// <summary>
     /// Returns a new instance of the current suppression with a filter that will be applied to the diagnostics.
     /// </summary>
+    /// <param name="filter">A predicate that determines which diagnostics should be suppressed.</param>
+    /// <returns>A new suppression instance with the specified filter.</returns>
     public ISuppression WithFilter( Func<ISuppressibleDiagnostic, bool> filter ) => new SuppressionImpl( this, filter );
 
     public override string ToString() => $"suppress {this.SuppressedDiagnosticId}";

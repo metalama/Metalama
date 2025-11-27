@@ -14,8 +14,14 @@ namespace Metalama.Framework.Options;
 [CompileTime]
 public readonly struct OptionsProviderContext
 {
+    /// <summary>
+    /// Gets the declaration for which options are being provided.
+    /// </summary>
     public IDeclaration TargetDeclaration { get; }
 
+    /// <summary>
+    /// Gets a service allowing to report diagnostics.
+    /// </summary>
     public ScopedDiagnosticSink Diagnostics { get; }
 
     internal OptionsProviderContext( IDeclaration targetDeclaration, in ScopedDiagnosticSink diagnostics )

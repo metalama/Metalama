@@ -1363,7 +1363,7 @@ public static class AdviserExtensions
     /// Gets an <see cref="IAdviser{T}"/> for a specific child namespace of the current namespace.
     /// </summary>
     /// <param name="adviser">An adviser of the current namespace.</param>
-    /// <param name="name">The namespace, relatively to the current namespace. It can include periods to specify sub-namespaces..</param>
+    /// <param name="name">The namespace, relatively to the current namespace. It can include periods to specify sub-namespaces.</param>
     /// <returns>An <see cref="IAdviser{T}"/> for the child namespace.</returns>
     public static IAdviser<INamespace> WithChildNamespace( this IAdviser<INamespace> adviser, string name )
         => ((IAdviserInternal) adviser).AdviceFactory.WithNamespace(
@@ -1426,6 +1426,8 @@ public static class AdviserExtensions
     /// <summary>
     /// Gets an <see cref="IAdviser{T}"/> for the declaring type of the current member.
     /// </summary>
+    /// <param name="memberAdviser">An adviser for a member.</param>
+    /// <returns>An <see cref="IAdviser{T}"/> for the declaring type of the member.</returns>
     public static IAdviser<INamedType> WithDeclaringType( this IAdviser<IMember> memberAdviser ) => memberAdviser.With( memberAdviser.Target.DeclaringType );
 
     private class Adviser<T> : IAdviser<T>, IAdviserInternal

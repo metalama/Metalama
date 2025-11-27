@@ -12,6 +12,17 @@ namespace Metalama.Framework.Code
     /// <summary>
     /// Represents a class, struct, interface, enum, or delegate.
     /// </summary>
+    /// <remarks>
+    /// An <see cref="INamedType"/> can be obtained by navigating from <see cref="ICompilation"/> through the global namespace
+    /// and then through sub-namespaces, or by using <c>TypeFactory.GetNamedType</c> with a <see langword="typeof"/> expression.
+    /// </remarks>
+    /// <seealso cref="IType"/>
+    /// <seealso cref="INamedTypeBuilder"/>
+    /// <seealso cref="NamedTypeExtensions"/>
+    /// <seealso cref="TypeKind"/>
+    /// <seealso cref="TypeAspect"/>
+    /// <seealso href="@introducing-types"/>
+    /// <seealso href="@type-system"/>
     public interface INamedType : IType, IGeneric, INamespaceOrNamedType, IEquatable<INamedType>
     {
         // TODO: there should probably be an interface to represent named tuples. It would be derived from INamedType

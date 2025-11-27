@@ -8,19 +8,31 @@ using Metalama.Framework.Serialization;
 namespace Metalama.Framework.Advising;
 
 /// <summary>
-/// A strategy to pull an introduced parameter. For standard implementation, see <see cref="PullStrategy"/>. 
+/// A strategy that defines how an introduced constructor parameter should be propagated (or "pulled") to child constructors in derived classes.
+/// For standard implementations, see <see cref="PullStrategy"/>.
 /// </summary>
 /// <remarks>
-/// Custom implementations must be serializable because pulling operates across projects.
+/// <para>
+/// When you introduce a parameter to a base constructor using <see cref="AdviserExtensions.IntroduceParameter"/>
+/// or the corresponding extension methods in <see cref="Aspects.AdviserExtensions"/>, this strategy determines how child constructors (in derived classes or in the same class)
+/// should obtain the value for this parameter when calling the base constructor.
+/// </para>
+/// <para>
+/// Custom implementations must be serializable (implement <see cref="ICompileTimeSerializable"/>) because pulling operates across project boundaries.
+/// </para>
 /// </remarks>
+/// <seealso cref="PullStrategy"/>
+/// <seealso cref="PullAction"/>
+/// <seealso cref="AdviserExtensions.IntroduceParameter"/>
+/// <seealso href="@introducing-constructor-parameters"/>
 public interface IPullStrategy : ICompileTimeSerializable
 {
     /// <summary>
-    /// Gets the <seealso cref="PullAction"/> instructing how to assign a parameter to
-    /// an introduced constructor parameter.
+    /// Gets the <see cref="PullAction"/> that specifies how to obtain the value for an introduced parameter
+    /// when it needs to be passed from a child constructor to the constructor where it was introduced.
     /// </summary>
-    /// <param name="pulledParameter">The parameter that has been introduced in the base constructor.</param>
-    /// <param name="targetMember">The member into which <paramref name="pulledParameter"/> is being pulled.</param>
-    /// <returns>A <seealso cref="PullAction"/>.</returns>
+    /// <param name="pulledParameter">The parameter that was introduced in the parent constructor and needs to be passed a value.</param>
+    /// <param name="targetMember">The child constructor or method that needs to provide a value for <paramref name="pulledParameter"/>.</param>
+    /// <returns>A <see cref="PullAction"/> that specifies how the child constructor should obtain the value for the introduced parameter.</returns>
     PullAction GetPullAction( IParameter pulledParameter, IHasParameters targetMember );
 }

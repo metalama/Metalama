@@ -9,6 +9,8 @@ namespace Metalama.Framework.Advising;
 /// <summary>
 /// Enumerates the kinds of advice.
 /// </summary>
+/// <seealso cref="IAdviceResult"/>
+/// <seealso cref="AdviserExtensions"/>
 [CompileTime]
 public enum AdviceKind
 {

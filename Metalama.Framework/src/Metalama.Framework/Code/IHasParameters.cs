@@ -9,6 +9,10 @@ namespace Metalama.Framework.Code
     /// <summary>
     /// Represents a method, constructor, or indexer.
     /// </summary>
+    /// <seealso cref="IMethod"/>
+    /// <seealso cref="IConstructor"/>
+    /// <seealso cref="IIndexer"/>
+    /// <seealso cref="IParameter"/>
     public interface IHasParameters : IMember
     {
         /// <summary>

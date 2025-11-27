@@ -9,7 +9,12 @@ namespace Metalama.Framework.Code
     /// <summary>
     /// Represents a property.
     /// </summary>
+    /// <seealso cref="IFieldOrProperty"/>
+    /// <seealso cref="IPropertyOrIndexer"/>
     /// <seealso cref="IIndexer"/>
+    /// <seealso cref="IField"/>
+    /// <seealso cref="PropertyAspect"/>
+    /// <seealso href="@overriding-fields-or-properties"/>
     public interface IProperty : IFieldOrProperty, IPropertyOrIndexer
     {
         /// <summary>

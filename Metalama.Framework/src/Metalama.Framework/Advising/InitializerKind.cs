@@ -8,6 +8,16 @@ using System.ComponentModel;
 
 namespace Metalama.Framework.Advising
 {
+    /// <summary>
+    /// Specifies the kind of initializer that should be added by an advice operation.
+    /// </summary>
+    /// <remarks>
+    /// This enumeration is used with methods like <see cref="AdviserExtensions.AddInitializer"/> to determine
+    /// when and where initialization code should be injected into a type's constructors or initialization sequence.
+    /// </remarks>
+    /// <seealso cref="AdviserExtensions"/>
+    /// <seealso cref="IAddInitializerAdviceResult"/>
+    /// <seealso href="@initializers"/>
     [CompileTime]
     public enum InitializerKind
     {

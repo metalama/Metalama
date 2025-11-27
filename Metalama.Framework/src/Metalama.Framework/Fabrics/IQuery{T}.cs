@@ -15,6 +15,9 @@ namespace Metalama.Framework.Fabrics;
 /// This interface exposes LINQ-like methods that can be combined in complex queries.
 /// </summary>
 /// <typeparam name="TDeclaration">The type of declarations in the current set.</typeparam>
+/// <seealso cref="IAmender{T}"/>
+/// <seealso cref="ITaggedQuery{TDeclaration,TTag}"/>
+/// <seealso cref="QueryExtensions"/>
 public interface IQuery<out TDeclaration> : IQuery
     where TDeclaration : class, IDeclaration
 {

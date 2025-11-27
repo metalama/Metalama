@@ -11,6 +11,10 @@ namespace Metalama.Framework.Diagnostics
     /// <summary>
     /// Defines a diagnostic that does not accept any parameters. For a diagnostic that accepts parameters, use <see cref="DiagnosticDefinition{T}"/>.
     /// </summary>
+    /// <seealso cref="DiagnosticDefinition{T}"/>
+    /// <seealso cref="IDiagnosticDefinition"/>
+    /// <seealso cref="IDiagnostic"/>
+    /// <seealso cref="Severity"/>
     /// <seealso href="@diagnostics"/>
     public sealed class DiagnosticDefinition : DiagnosticDefinition<None>, IDiagnostic
     {

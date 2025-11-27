@@ -11,6 +11,9 @@ using System;
 
 namespace Metalama.Framework.Options;
 
+/// <summary>
+/// Extension methods for <see cref="IQuery{T}"/> and <see cref="ITaggedQuery{T, TTag}"/> to set hierarchical options.
+/// </summary>
 [CompileTime]
 [PublicAPI]
 public static class OptionQueryExtensions

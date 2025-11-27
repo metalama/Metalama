@@ -7,6 +7,11 @@ namespace Metalama.Framework.Code;
 /// <summary>
 /// A base interface for <see cref="IProperty"/>, <see cref="IField"/> and <see cref="IIndexer"/>.
 /// </summary>
+/// <seealso cref="IProperty"/>
+/// <seealso cref="IField"/>
+/// <seealso cref="IIndexer"/>
+/// <seealso cref="IFieldOrProperty"/>
+/// <seealso cref="IHasAccessors"/>
 public interface IFieldOrPropertyOrIndexer : IHasAccessors
 {
     /// <summary>

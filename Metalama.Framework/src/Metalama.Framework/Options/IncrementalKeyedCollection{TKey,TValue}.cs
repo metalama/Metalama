@@ -18,6 +18,11 @@ namespace Metalama.Framework.Options;
 /// </summary>
 /// <typeparam name="TKey">Type of keys.</typeparam>
 /// <typeparam name="TValue">Type of items, implementing the <see cref="IIncrementalKeyedCollectionItem{TKey}"/> interface.</typeparam>
+/// <seealso cref="IIncrementalObject"/>
+/// <seealso cref="IHierarchicalOptions"/>
+/// <seealso cref="IncrementalHashSet{T}"/>
+/// <seealso cref="IIncrementalKeyedCollectionItem{TKey}"/>
+/// <seealso href="@exposing-options"/>
 [PublicAPI]
 public partial class IncrementalKeyedCollection<TKey, TValue> : IIncrementalObject, IReadOnlyCollection<TValue>, ICompileTimeSerializable
     where TKey : notnull

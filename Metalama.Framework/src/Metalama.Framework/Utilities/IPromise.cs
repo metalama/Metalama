@@ -15,6 +15,8 @@ namespace Metalama.Framework.Utilities;
 /// the template will automatically receive its resolved <see cref="Value"/> instead of the <see cref="IPromise"/> object. The <see cref="Promise{T}"/> class
 /// implements this interface.
 /// </summary>
+/// <seealso cref="IPromise{T}"/>
+/// <seealso cref="Promise{T}"/>
 [CompileTime]
 public interface IPromise
 {
@@ -45,6 +47,9 @@ public interface IPromise
 /// the template will automatically receive its resolved <see cref="Value"/> instead of the <see cref="IPromise"/> object. The <see cref="Promise{T}"/> class
 /// implements this interface.
 /// </summary>
+/// <typeparam name="T">The type of the promised value.</typeparam>
+/// <seealso cref="IPromise"/>
+/// <seealso cref="Promise{T}"/>
 public interface IPromise<out T> : IPromise
 {
     /// <summary>

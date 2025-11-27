@@ -8,8 +8,14 @@ using Metalama.Framework.Code;
 namespace Metalama.Framework.Advising;
 
 /// <summary>
-/// Represents the result of the <c>Introduce*</c> methods of the <see cref="IAdviceFactory"/> interface.
+/// Represents the result of introduction advice methods.
 /// </summary>
+/// <seealso cref="AdviceResultExtensions.TryGetDeclaration{T}"/>
+/// <seealso cref="IAdviceResult"/>
+/// <seealso cref="IAdviser{T}"/>
+/// <seealso cref="AdviserExtensions"/>
+/// <seealso cref="AdviceOutcome"/>
+/// <seealso href="@introducing-members"/>
 public interface IIntroductionAdviceResult<out T> : IAdviceResult, IAdviser<T>
     where T : class, IDeclaration
 {
@@ -17,6 +23,7 @@ public interface IIntroductionAdviceResult<out T> : IAdviceResult, IAdviser<T>
     /// Gets the introduced or overridden declaration. This returns the same value as the <see cref="IAdviser{T}.Target"/>
     /// property.
     /// </summary>
+    /// <seealso cref="AdviceResultExtensions.TryGetDeclaration{T}"/>
     T Declaration { get; }
 
     /// <summary>

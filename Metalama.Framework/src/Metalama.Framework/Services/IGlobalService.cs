@@ -8,5 +8,6 @@ namespace Metalama.Framework.Services
     /// Base interface to be inherited by all classes and interfaces that implement globally-scoped services.
     /// </summary>
     /// <seealso cref="IProjectService"/>
+    /// <seealso cref="IServiceProvider{TBase}"/>
     public interface IGlobalService : IService;
 }

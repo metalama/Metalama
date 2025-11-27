@@ -9,6 +9,8 @@ namespace Metalama.Framework.Code;
 /// <summary>
 /// Options for the <see cref="ICompilation.GetDerivedTypes(Metalama.Framework.Code.INamedType,Metalama.Framework.Code.DerivedTypesOptions)"/> method.
 /// </summary>
+/// <seealso cref="ICompilation"/>
+/// <seealso cref="INamedType"/>
 [CompileTime]
 public enum DerivedTypesOptions
 {

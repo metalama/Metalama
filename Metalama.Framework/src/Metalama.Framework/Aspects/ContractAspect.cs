@@ -29,6 +29,10 @@ namespace Metalama.Framework.Aspects
     /// cannot be skipped.
     /// </para>
     /// </remarks>
+    /// <seealso cref="ContractDirection"/>
+    /// <seealso cref="IParameter"/>
+    /// <seealso cref="IFieldOrPropertyOrIndexer"/>
+    /// <seealso href="@contracts"/>
     [AttributeUsage( AttributeTargets.ReturnValue | AttributeTargets.Parameter | AttributeTargets.Field | AttributeTargets.Property )]
     [Layers( BuildLayer )]
     [Inheritable]

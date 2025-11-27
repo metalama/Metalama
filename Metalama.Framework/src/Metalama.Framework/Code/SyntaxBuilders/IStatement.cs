@@ -10,8 +10,11 @@ namespace Metalama.Framework.Code.SyntaxBuilders
     /// <summary>
     /// Represents a statement, which can be inserted into run-time code using the <see cref="meta.InsertStatement(Metalama.Framework.Code.SyntaxBuilders.IStatement)"/>.
     /// To create a statement, use <see cref="StatementFactory"/>, <see cref="StatementBuilder"/>, or <see cref="SwitchStatementBuilder"/>.
-    /// method.
     /// </summary>
+    /// <seealso cref="StatementFactory"/>
+    /// <seealso cref="StatementBuilder"/>
+    /// <seealso cref="SwitchStatementBuilder"/>
+    /// <seealso href="@run-time-statements"/>
     [CompileTime]
     [InternalImplement]
     public interface IStatement;

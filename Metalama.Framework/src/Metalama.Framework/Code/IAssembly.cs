@@ -9,6 +9,9 @@ namespace Metalama.Framework.Code
     /// <summary>
     /// Represents an assembly (typically a reference assembly).
     /// </summary>
+    /// <seealso cref="ICompilation"/>
+    /// <seealso cref="IAssemblyIdentity"/>
+    /// <seealso cref="INamespace"/>
     public interface IAssembly : IDeclaration
     {
         /// <summary>

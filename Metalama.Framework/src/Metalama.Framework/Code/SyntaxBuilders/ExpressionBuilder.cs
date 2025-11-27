@@ -11,8 +11,13 @@ namespace Metalama.Framework.Code.SyntaxBuilders
     /// Allows to build a run-time expression by composing a string thanks to an underlying <see cref="System.Text.StringBuilder"/>.
     /// Use the <see cref="ToExpression"/> method to convert the <see cref="ExpressionBuilder"/> into a compile-time representation of the expression,
     /// or the <see cref="ExpressionBuilderExtensions.ToValue(Metalama.Framework.Code.SyntaxBuilders.IExpressionBuilder)"/> methods converts it to a dynamic expression that can be used in the C# code
-    /// of the template. 
+    /// of the template.
     /// </summary>
+    /// <seealso cref="IExpression"/>
+    /// <seealso cref="IExpressionBuilder"/>
+    /// <seealso cref="ExpressionFactory"/>
+    /// <seealso cref="SyntaxBuilder"/>
+    /// <seealso href="@run-time-expressions"/>
     [CompileTime]
     [PublicAPI]
     public sealed class ExpressionBuilder : SyntaxBuilder, IExpressionBuilder
@@ -24,11 +29,13 @@ namespace Metalama.Framework.Code.SyntaxBuilders
         /// <summary>
         /// Creates a compile-time <see cref="IExpression"/> from the current <see cref="ExpressionBuilder"/>.
         /// </summary>
+        /// <returns>An <see cref="IExpression"/> representing the built expression.</returns>
         public IExpression ToExpression() => ExpressionFactory.Parse( this.ToString(), this.ExpressionType, this.IsReferenceable );
 
         /// <summary>
         /// Returns a clone of the current <see cref="ExpressionBuilder"/>.
         /// </summary>
+        /// <returns>A new <see cref="ExpressionBuilder"/> with the same content.</returns>
         public ExpressionBuilder Clone() => new( this );
 
         /// <summary>

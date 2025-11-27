@@ -13,10 +13,14 @@ namespace Metalama.Framework.Code.Invokers
     /// the object on which the field or property is accessed, as well as nullability options (see remarks).
     /// </summary>
     /// <remarks>
-    /// By default, the property is accessed on the current object (<c>this</c>), unless the property is static. The <c>base</c> implementation 
+    /// By default, the property is accessed on the current object (<c>this</c>), unless the property is static. The <c>base</c> implementation
     /// of the property is invoked, i.e. the implementation <i>before</i> the current aspect layer. To change the default values,
     /// use the <see cref="WithOptions"/> method.
     /// </remarks>
+    /// <seealso cref="IFieldOrProperty"/>
+    /// <seealso cref="InvokerOptions"/>
+    /// <seealso cref="IExpression"/>
+    /// <seealso href="@invokers"/>
     [CompileTime]
     public interface IFieldOrPropertyInvoker : IExpression
     {

@@ -7,6 +7,10 @@ namespace Metalama.Framework.Code.DeclarationBuilders;
 /// <summary>
 /// Base interface for <see cref="IFieldBuilder"/>, <see cref="IPropertyBuilder"/> and <see cref="IIndexerBuilder"/>.
 /// </summary>
+/// <seealso cref="IFieldBuilder"/>
+/// <seealso cref="IPropertyBuilder"/>
+/// <seealso cref="IIndexerBuilder"/>
+/// <seealso cref="IFieldOrPropertyOrIndexer"/>
 public interface IFieldOrPropertyOrIndexerBuilder : IFieldOrPropertyOrIndexer, IMemberBuilder, IHasTypeBuilder
 {
     /// <summary>

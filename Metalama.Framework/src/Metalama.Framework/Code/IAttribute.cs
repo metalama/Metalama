@@ -10,6 +10,9 @@ namespace Metalama.Framework.Code
     /// Represent a custom attributes.
     /// </summary>
     /// <seealso cref="AttributeExtensions"/>
+    /// <seealso cref="IAttributeData"/>
+    /// <seealso cref="IDeclaration"/>
+    /// <seealso href="@adding-attributes"/>
     public interface IAttribute : IDeclaration, IAttributeData, IAspectPredecessor
     {
         /// <summary>

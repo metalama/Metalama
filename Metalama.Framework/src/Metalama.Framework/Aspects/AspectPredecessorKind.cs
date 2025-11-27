@@ -9,6 +9,8 @@ namespace Metalama.Framework.Aspects
     /// <summary>
     /// Kinds of <see cref="AspectPredecessor"/>.
     /// </summary>
+    /// <seealso cref="AspectPredecessor"/>
+    /// <seealso cref="IAspectPredecessor"/>
     [CompileTime]
     public enum AspectPredecessorKind
     {

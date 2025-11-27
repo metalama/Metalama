@@ -11,6 +11,8 @@ namespace Metalama.Framework.Aspects
     /// <summary>
     /// Represents the metadata of an aspect class.
     /// </summary>
+    /// <seealso cref="IAspectInstance"/>
+    /// <seealso cref="IAspect"/>
     [InternalImplement]
     [CompileTime]
     public interface IAspectClass
@@ -54,10 +56,14 @@ namespace Metalama.Framework.Aspects
         bool IsAttribute { get; }
 
         /// <summary>
-        /// Gets the type of the aspect. 
+        /// Gets the type of the aspect.
         /// </summary>
         Type Type { get; }
 
+        /// <summary>
+        /// Gets the editor experience options for the aspect, which control how the aspect is suggested in the IDE's code refactoring menu.
+        /// These options can be configured using the <see cref="EditorExperienceAttribute"/> custom attribute on the aspect class.
+        /// </summary>
         EditorExperienceOptions EditorExperienceOptions { get; }
     }
 }

@@ -14,6 +14,7 @@ namespace Metalama.Framework.Project
     /// <remarks>
     /// The implementation must not allow modifications of the state after the object has been made read only.
     /// </remarks>
+    /// <seealso cref="IProject"/>
     /// <seealso href="@aspect-configuration"/>
     [CompileTime]
     [Obsolete( "Use IHierarchicalOptions." )]
@@ -39,6 +40,9 @@ namespace Metalama.Framework.Project
             this.IsReadOnly = true;
         }
 
+        /// <summary>
+        /// Gets a value indicating whether the project extension is read-only.
+        /// </summary>
         public bool IsReadOnly { get; internal set; }
     }
 }

@@ -9,6 +9,13 @@ namespace Metalama.Framework.Code
     /// <summary>
     /// Represents a parameter of a method or property.
     /// </summary>
+    /// <seealso cref="IParameterBuilder"/>
+    /// <seealso cref="IHasParameters"/>
+    /// <seealso cref="IMethod"/>
+    /// <seealso cref="IConstructor"/>
+    /// <seealso cref="IIndexer"/>
+    /// <seealso cref="RefKind"/>
+    /// <seealso href="@introducing-constructor-parameters"/>
     public interface IParameter : INamedDeclaration, IExpression
     {
         /// <summary>

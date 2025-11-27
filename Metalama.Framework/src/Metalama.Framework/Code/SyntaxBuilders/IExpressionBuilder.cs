@@ -9,6 +9,10 @@ namespace Metalama.Framework.Code.SyntaxBuilders
     /// <summary>
     /// Interface to be implemented by any compile-time object that can be serialized into a run-time expression.
     /// </summary>
+    /// <seealso cref="IExpression"/>
+    /// <seealso cref="ExpressionBuilder"/>
+    /// <seealso cref="ExpressionFactory"/>
+    /// <seealso href="@run-time-expressions"/>
     [RunTimeOrCompileTime]
     public interface IExpressionBuilder
     {

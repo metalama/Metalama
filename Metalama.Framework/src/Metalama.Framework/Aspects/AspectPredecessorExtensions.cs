@@ -14,6 +14,8 @@ public static class AspectPredecessorExtensions
     /// <summary>
     /// Gets the roots of the predecessor tree. A root is a predecessor that does not itself have a predecessor.
     /// </summary>
+    /// <param name="predecessor">The predecessor to start from.</param>
+    /// <returns>A list of root predecessors in the predecessor tree.</returns>
     public static IReadOnlyList<IAspectPredecessor> GetRoots( this IAspectPredecessor predecessor )
     {
         if ( predecessor.Predecessors.IsDefaultOrEmpty )

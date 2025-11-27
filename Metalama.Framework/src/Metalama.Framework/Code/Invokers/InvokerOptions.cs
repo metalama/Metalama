@@ -11,6 +11,11 @@ namespace Metalama.Framework.Code.Invokers;
 /// Options that influence the behavior of invokers, i.e. <see cref="IMethodInvoker"/>, <see cref="IFieldOrPropertyInvoker"/>,
 /// <see cref="IEventInvoker"/> or <see cref="IIndexerInvoker"/>.
 /// </summary>
+/// <seealso cref="IMethodInvoker"/>
+/// <seealso cref="IFieldOrPropertyInvoker"/>
+/// <seealso cref="IEventInvoker"/>
+/// <seealso cref="IIndexerInvoker"/>
+/// <seealso href="@invokers"/>
 [CompileTime]
 [Flags]
 public enum InvokerOptions
