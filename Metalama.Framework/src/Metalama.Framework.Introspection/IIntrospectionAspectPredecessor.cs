@@ -13,6 +13,9 @@ namespace Metalama.Framework.Introspection;
 /// Base interface for objects that can cause aspects to be added to a compilation. Predecessors are exposed on
 /// the <see cref="IAspectPredecessor.Predecessors"/> property.
 /// </summary>
+/// <seealso cref="IIntrospectionAspectInstance"/>
+/// <seealso cref="IntrospectionAspectRelationship"/>
+/// <seealso href="@introspection-api"/>
 [PublicAPI]
 public interface IIntrospectionAspectPredecessor
 {

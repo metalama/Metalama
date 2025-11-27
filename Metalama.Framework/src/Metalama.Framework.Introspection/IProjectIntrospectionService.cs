@@ -7,7 +7,17 @@ using Metalama.Framework.Services;
 
 namespace Metalama.Framework.Introspection;
 
-public interface IProjectIntrospectionService : IProjectService
+/// <summary>
+/// Provides introspection services for a project.
+/// </summary>
+/// <seealso cref="IProjectService"/>
+/// <seealso href="@introspection-api"/>
+internal interface IProjectIntrospectionService : IProjectService
 {
+    /// <summary>
+    /// Gets the reference graph for a compilation.
+    /// </summary>
+    /// <param name="compilation">The compilation.</param>
+    /// <returns>The reference graph.</returns>
     IIntrospectionReferenceGraph GetReferenceGraph( ICompilation compilation );
 }

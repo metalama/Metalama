@@ -4,4 +4,9 @@
 
 namespace Metalama.Framework.Introspection;
 
+/// <summary>
+/// Options for introspection operations.
+/// </summary>
+/// <param name="IgnoreErrors">A value indicating whether to ignore errors during introspection.</param>
+/// <seealso href="@introspection-api"/>
 public sealed record IntrospectionOptions( bool IgnoreErrors = false );

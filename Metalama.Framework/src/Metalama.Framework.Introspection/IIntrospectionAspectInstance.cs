@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+cr// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -9,8 +9,18 @@ using System.Collections.Immutable;
 namespace Metalama.Framework.Introspection;
 
 /// <summary>
-///  Represents an instance of an aspect, as well as the results of the aspect instance.
+/// Represents an instance of an aspect, as well as the results of the aspect instance.
 /// </summary>
+/// <remarks>
+/// To obtain an <see cref="IIntrospectionAspectInstance"/> from a <see cref="Metalama.Framework.Workspaces.Workspace"/>, use the
+/// <see cref="Metalama.Framework.Workspaces.Workspace.AspectInstances"/> property, which returns all aspect instances aggregated
+/// across all projects in the workspace. For per-project access, use the <see cref="Metalama.Framework.Workspaces.Project.AspectInstances"/> property.
+/// Alternatively, use the <see cref="IIntrospectionAspectClass.Instances"/> property to get all instances of a specific <see cref="IIntrospectionAspectClass"/>.
+/// </remarks>
+/// <seealso cref="IIntrospectionAspectClass"/>
+/// <seealso cref="IIntrospectionAdvice"/>
+/// <seealso cref="IIntrospectionDiagnostic"/>
+/// <seealso href="@introspection-api"/>
 [PublicAPI]
 public interface IIntrospectionAspectInstance : IIntrospectionAspectPredecessor
 {

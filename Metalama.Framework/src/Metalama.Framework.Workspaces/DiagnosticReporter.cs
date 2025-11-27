@@ -15,24 +15,43 @@ using System.Linq;
 namespace Metalama.Framework.Workspaces;
 
 /// <summary>
-/// A utility class that makes it easy to report diagnostics from object queries in different environments.
+/// A utility class that makes it easy to report diagnostics from code queries in different environments.
 /// The default implementation writes messages to the console using the <see cref="ReportToConsole"/> method.
 /// The action can be changed by setting the <see cref="ReportAction"/> property.
 /// </summary>
+/// <seealso cref="IIntrospectionDiagnostic"/>
+/// <seealso cref="DiagnosticExtensions"/>
+/// <seealso href="@introspection-api"/>
 [PublicAPI]
 public static class DiagnosticReporter
 {
+    /// <summary>
+    /// Gets the number of warnings reported since the last call to <see cref="ClearCounters"/>.
+    /// </summary>
     public static int ReportedWarnings { get; private set; }
 
+    /// <summary>
+    /// Gets the number of errors reported since the last call to <see cref="ClearCounters"/>.
+    /// </summary>
     public static int ReportedErrors { get; private set; }
 
+    /// <summary>
+    /// Clears the <see cref="ReportedWarnings"/> and <see cref="ReportedErrors"/> counters.
+    /// </summary>
     public static void ClearCounters()
     {
         ReportedWarnings = ReportedErrors = 0;
     }
 
+    /// <summary>
+    /// Gets or sets the action to execute when diagnostics are reported. The default action is <see cref="ReportToConsole"/>.
+    /// </summary>
     public static Action<IReadOnlyList<IIntrospectionDiagnostic>>? ReportAction { get; set; } = ReportToConsole;
 
+    /// <summary>
+    /// Reports diagnostics to the console with color-coded output based on severity.
+    /// </summary>
+    /// <param name="diagnostics">The diagnostics to report.</param>
     public static void ReportToConsole( IReadOnlyList<IIntrospectionDiagnostic> diagnostics )
     {
         foreach ( var d in diagnostics )
@@ -63,6 +82,14 @@ public static class DiagnosticReporter
         }
     }
 
+    /// <summary>
+    /// Creates and reports diagnostics for a set of introspection references.
+    /// </summary>
+    /// <param name="references">The references to report diagnostics for.</param>
+    /// <param name="severity">The severity of the diagnostics.</param>
+    /// <param name="id">The diagnostic identifier.</param>
+    /// <param name="message">The diagnostic message.</param>
+    /// <returns>An enumerable of diagnostics that were reported.</returns>
     public static IEnumerable<IIntrospectionDiagnostic> Report(
         this IEnumerable<IIntrospectionReference> references,
         Severity severity,
@@ -81,6 +108,14 @@ public static class DiagnosticReporter
                 } )
             .Report( severity, id, message );
 
+    /// <summary>
+    /// Creates and reports diagnostics for a set of declarations.
+    /// </summary>
+    /// <param name="declarations">The declarations to report diagnostics for.</param>
+    /// <param name="severity">The severity of the diagnostics.</param>
+    /// <param name="id">The diagnostic identifier.</param>
+    /// <param name="message">The diagnostic message.</param>
+    /// <returns>An enumerable of diagnostics that were reported.</returns>
     public static IEnumerable<IIntrospectionDiagnostic> Report( this IEnumerable<IDeclaration> declarations, Severity severity, string id, string message )
         => declarations
             .Select( x => new DiagnosticTarget( x.GetDiagnosticLocation(), x, null ) )
@@ -125,6 +160,11 @@ public static class DiagnosticReporter
         }
     }
 
+    /// <summary>
+    /// Reports a collection of diagnostics using the configured <see cref="ReportAction"/> and updates the diagnostic counters.
+    /// </summary>
+    /// <param name="diagnostics">The diagnostics to report.</param>
+    /// <returns>A copy of the reported diagnostics.</returns>
     public static IEnumerable<IIntrospectionDiagnostic> Report( this IEnumerable<IIntrospectionDiagnostic> diagnostics )
     {
         var copy = new List<IIntrospectionDiagnostic>();

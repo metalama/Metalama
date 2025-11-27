@@ -10,6 +10,10 @@ namespace Metalama.Framework.Introspection;
 /// Represents the relationship that an object (attribute, fabric, aspect) has created or required another aspect or validator.
 /// These relationships are exposed on <see cref="IIntrospectionAspectPredecessor.Predecessors"/> and <see cref="IIntrospectionAspectPredecessor.Successors"/>.
 /// </summary>
+/// <seealso cref="IIntrospectionAspectPredecessor"/>
+/// <seealso cref="AspectPredecessorKind"/>
+/// <seealso href="@introspection-api"/>
+/// <seealso href="@child-aspects"/>
 public sealed class IntrospectionAspectRelationship
 {
     /// <summary>

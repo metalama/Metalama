@@ -10,6 +10,9 @@ namespace Metalama.Framework.Introspection;
 /// <summary>
 /// Represents a code transformation.
 /// </summary>
+/// <seealso cref="IIntrospectionAdvice"/>
+/// <seealso cref="IntrospectionTransformationKind"/>
+/// <seealso href="@introspection-api"/>
 [PublicAPI]
 public interface IIntrospectionTransformation : IComparable<IIntrospectionTransformation>
 {

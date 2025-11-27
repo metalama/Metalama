@@ -10,6 +10,11 @@ namespace Metalama.Framework.Introspection;
 /// <summary>
 /// Exposes the compilation results but not the transformed source code.
 /// </summary>
+/// <seealso cref="IIntrospectionAspectInstance"/>
+/// <seealso cref="IIntrospectionAdvice"/>
+/// <seealso cref="IIntrospectionTransformation"/>
+/// <seealso cref="IIntrospectionDiagnostic"/>
+/// <seealso href="@introspection-api"/>
 [PublicAPI]
 public interface IIntrospectionCompilationDetails
 {

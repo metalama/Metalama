@@ -10,6 +10,9 @@ namespace Metalama.Framework.Introspection;
 /// <summary>
 /// Exception thrown when the compilation failed.
 /// </summary>
+/// <seealso cref="IIntrospectionDiagnostic"/>
+/// <seealso cref="IIntrospectionCompilationDetails"/>
+/// <seealso href="@introspection-api"/>
 [PublicAPI]
 public sealed class CompilationFailedException : Exception
 {

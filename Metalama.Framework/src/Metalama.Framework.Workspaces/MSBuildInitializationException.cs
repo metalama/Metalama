@@ -8,11 +8,17 @@ using System;
 namespace Metalama.Framework.Workspaces;
 
 /// <summary>
-/// An exception thrown then initializing MSBuild.
+/// An exception thrown when MSBuild initialization fails.
 /// </summary>
+/// <seealso cref="Workspace"/>
+/// <seealso cref="WorkspaceCollection"/>
 [PublicAPI]
 public sealed class MSBuildInitializationException : Exception
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="MSBuildInitializationException"/> class.
+    /// </summary>
+    /// <param name="message">The exception message.</param>
     public MSBuildInitializationException( string message ) : base( message ) { }
 
     /// <summary>

@@ -6,7 +6,7 @@ using Metalama.Framework.Code;
 
 namespace Metalama.Framework.Introspection;
 
-public interface IIntrospectionReferenceGraph
+internal interface IIntrospectionReferenceGraph
 {
     IEnumerable<IIntrospectionReference> GetInboundReferences(
         IDeclaration destination,

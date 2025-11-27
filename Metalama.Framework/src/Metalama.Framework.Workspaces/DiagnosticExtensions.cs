@@ -7,12 +7,19 @@ using Metalama.Framework.Introspection;
 
 namespace Metalama.Framework.Workspaces;
 
+/// <summary>
+/// Extension methods for <see cref="IIntrospectionDiagnostic"/>.
+/// </summary>
+/// <seealso cref="IIntrospectionDiagnostic"/>
+/// <seealso href="@introspection-api"/>
 [PublicAPI]
 public static class DiagnosticExtensions
 {
     /// <summary>
-    /// Formats an <see cref="IIntrospectionDiagnostic"/> as a string formatted as a diagnostic of <c>dotnet build</c> or <c>msbuild</c>.
+    /// Formats an <see cref="IIntrospectionDiagnostic"/> as a string in the format used by <c>dotnet build</c> or <c>msbuild</c>.
     /// </summary>
+    /// <param name="diagnostic">The diagnostic to format.</param>
+    /// <returns>A formatted string suitable for displaying in build output.</returns>
     public static string FormatAsBuildDiagnostic( this IIntrospectionDiagnostic diagnostic )
         => diagnostic switch
         {

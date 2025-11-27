@@ -12,6 +12,14 @@ namespace Metalama.Framework.Workspaces;
 /// Represents a set of compilations and exposes lists of declarations that merge the declarations from all
 /// the compilations in the set.
 /// </summary>
+/// <remarks>
+/// This interface provides a unified view of multiple compilations, aggregating declarations such as types,
+/// methods, fields, and properties across all compilations in the set. It is used by <see cref="Workspace"/>
+/// and <see cref="Project"/> to provide access to both source code and transformed code.
+/// </remarks>
+/// <seealso cref="ICompilationSetResult"/>
+/// <seealso cref="IProjectSet"/>
+/// <seealso href="@introspection-api"/>
 [PublicAPI]
 public interface ICompilationSet
 {
@@ -41,7 +49,7 @@ public interface ICompilationSet
     ImmutableArray<IProperty> Properties { get; }
 
     /// <summary>
-    /// Gets all properties and properties in the current set of compilations.
+    /// Gets all fields and properties in the current set of compilations.
     /// </summary>
     ImmutableArray<IFieldOrProperty> FieldsAndProperties { get; }
 

@@ -11,6 +11,9 @@ namespace Metalama.Framework.Introspection
     /// <summary>
     /// Represents a diagnostic (error, warning, information, hidden message).
     /// </summary>
+    /// <seealso cref="IntrospectionDiagnosticSource"/>
+    /// <seealso cref="Severity"/>
+    /// <seealso href="@introspection-api"/>
     [PublicAPI]
     public interface IIntrospectionDiagnostic
     {

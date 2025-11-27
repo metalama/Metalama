@@ -12,6 +12,10 @@ namespace Metalama.Framework.Introspection;
 /// <summary>
 /// Represents a piece of advice provided by an aspect.
 /// </summary>
+/// <seealso cref="IIntrospectionAspectInstance"/>
+/// <seealso cref="IIntrospectionTransformation"/>
+/// <seealso cref="AdviceKind"/>
+/// <seealso href="@introspection-api"/>
 [PublicAPI]
 public interface IIntrospectionAdvice
 {
