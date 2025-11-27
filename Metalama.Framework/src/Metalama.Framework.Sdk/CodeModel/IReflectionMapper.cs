@@ -8,8 +8,17 @@ using System;
 
 namespace Metalama.Framework.Engine.CodeModel;
 
+/// <summary>
+/// Provides a service to map .NET reflection types to Roslyn symbols.
+/// </summary>
+/// <seealso cref="ICompilationServices"/>
 [PublicAPI]
 public interface IReflectionMapper
 {
+    /// <summary>
+    /// Gets the Roslyn <see cref="ITypeSymbol"/> corresponding to a .NET reflection <see cref="Type"/>.
+    /// </summary>
+    /// <param name="type">The .NET reflection type.</param>
+    /// <returns>The corresponding Roslyn type symbol.</returns>
     ITypeSymbol GetTypeSymbol( Type type );
 }
