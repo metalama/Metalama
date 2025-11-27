@@ -8,8 +8,14 @@ using Metalama.Framework.Engine.Metrics;
 namespace Metalama.Extensions.Metrics
 {
     /// <summary>
-    /// A prototype implementation of <see cref="StatementsCount"/>.
+    /// Provides the implementation for the <see cref="StatementsCount"/> metric.
     /// </summary>
+    /// <remarks>
+    /// This provider is automatically registered and used when you call <see cref="IMetric{T}.Get"/> on the
+    /// <see cref="StatementsCount"/> metric.
+    /// </remarks>
+    /// <seealso cref="StatementsCount"/>
+    /// <seealso href="@metrics"/>
     [MetalamaPlugIn]
     public sealed partial class StatementsCountMetricProvider : SyntaxMetricProvider<StatementsCount>
     {

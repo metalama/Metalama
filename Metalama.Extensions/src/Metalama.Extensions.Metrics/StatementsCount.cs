@@ -13,8 +13,12 @@ namespace Metalama.Extensions.Metrics
     /// </summary>
     /// <remarks>
     /// Counting statements is more relevant than counting lines of code. However, modern C# is more expression-oriented than
-    /// earlier versions of the language. Counting expression nodes has become a more relevant metric.
+    /// earlier versions of the language. Counting expression nodes with <see cref="SyntaxNodesCount"/> has become a more relevant metric.
+    /// Use this metric with <see cref="IMetric{T}.Get"/> to measure the complexity of methods, types, namespaces, or entire compilations.
     /// </remarks>
+    /// <seealso cref="SyntaxNodesCount"/>
+    /// <seealso cref="StatementsCountMetricProvider"/>
+    /// <seealso href="@metrics"/>
     public struct StatementsCount : IMetric<IMethodBase>, IMetric<INamedType>, IMetric<INamespace>, IMetric<ICompilation>
     {
         /// <summary>

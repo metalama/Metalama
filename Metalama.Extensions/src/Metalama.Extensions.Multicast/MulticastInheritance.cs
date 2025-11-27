@@ -9,10 +9,21 @@ using System;
 namespace Metalama.Extensions.Multicast;
 
 /// <summary>
-///   In Metalama, aspect inheritance is ruled at the class level by the <see cref="InheritableAttribute"/> custom attribute. In Metalama itself, only
-/// <c>Strict</c> inheritance is implemented.  <see cref="MulticastAspect"/> and <see cref="MulticastImplementation"/> implement an emulation of the <c>Multicast</c>
-/// inheritance mode by passing the proper parameter to the constructor.
+/// Specifies how a multicast attribute is inherited along inheritance hierarchies.
 /// </summary>
+/// <remarks>
+/// <para>
+/// In Metalama, aspect inheritance is ruled at the class level by the <see cref="InheritableAttribute"/> custom attribute. In Metalama itself, only
+/// <c>Strict</c> inheritance is implemented. <see cref="MulticastAspect"/> and <see cref="MulticastImplementation"/> implement an emulation of the <c>Multicast</c>
+/// inheritance mode by passing the proper parameter to the constructor.
+/// </para>
+/// <para>
+/// This enum is provided for PostSharp compatibility and is obsolete. Use <see cref="InheritableAttribute"/> on aspect classes instead.
+/// </para>
+/// </remarks>
+/// <seealso cref="InheritableAttribute"/>
+/// <seealso cref="IMulticastAttribute"/>
+/// <seealso href="@multicast"/>
 [Obsolete(
     "Inheritance is Metalama is implemented at the aspect class level with the [Inheritable] attribute, and the difference between Strict and " +
     "Multicast is made by an argument passed to the MulticastImplementation constructor." )]

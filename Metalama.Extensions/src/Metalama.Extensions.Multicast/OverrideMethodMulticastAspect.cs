@@ -16,6 +16,21 @@ namespace Metalama.Extensions.Multicast;
 /// <summary>
 /// An aspect equivalent to <see cref="OverrideMethodAspect"/> that also implements multicasting for backward compatibility with PostSharp.
 /// </summary>
+/// <remarks>
+/// <para>
+/// This class combines the method overriding capabilities of <see cref="OverrideMethodAspect"/> with the multicasting features
+/// provided by <see cref="MulticastAspect"/>. It can be applied to methods, properties, events, types, or assemblies, and will
+/// automatically apply to matching members based on the multicasting filter properties inherited from <see cref="IMulticastAttribute"/>.
+/// </para>
+/// <para>
+/// Derived classes must implement the <see cref="OverrideMethod"/> template to define the new method implementation.
+/// Additional templates are available for async methods, iterators, and async iterators.
+/// </para>
+/// </remarks>
+/// <seealso cref="OverrideMethodAspect"/>
+/// <seealso cref="MulticastAspect"/>
+/// <seealso cref="IMulticastAttribute"/>
+/// <seealso href="@multicast"/>
 [AttributeUsage(
     AttributeTargets.Method | AttributeTargets.Assembly | AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Property | AttributeTargets.Event,
     AllowMultiple = true )]

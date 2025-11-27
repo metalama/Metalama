@@ -12,10 +12,29 @@ using System;
 namespace Metalama.Extensions.Multicast;
 
 /// <summary>
-/// A base class that can be used to build aspects that mimics PostSharp attribute multicasting. This class implements multicasting
+/// A base class that can be used to build aspects that mimic PostSharp attribute multicasting. This class implements multicasting
 /// from the assembly- or type-level custom attributes. Implementations of this class must provide the other implementations of the
 /// <see cref="IAspect{T}"/> generic interface for the final type of declarations.
 /// </summary>
+/// <remarks>
+/// <para>
+/// This class serves as the foundation for aspects that support PostSharp-style multicasting, allowing aspects to be applied
+/// at the assembly or type level and automatically cascade to matching members based on filtering criteria defined through
+/// <see cref="IMulticastAttribute"/> properties.
+/// </para>
+/// <para>
+/// Derived classes should implement <see cref="IAspect{T}"/> for the specific target declaration types they want to support
+/// (e.g., <see cref="IMethod"/>, <see cref="IProperty"/>, <see cref="IField"/>).
+/// </para>
+/// <para>
+/// For an example implementation, see the source code of <see cref="OverrideMethodMulticastAspect"/> at
+/// <see href="https://github.com/postsharp/Metalama.Extensions/blob/HEAD/src/Metalama.Extensions.Multicast/OverrideMethodMulticastAspect.cs"/>.
+/// </para>
+/// </remarks>
+/// <seealso cref="IMulticastAttribute"/>
+/// <seealso cref="OverrideMethodMulticastAspect"/>
+/// <seealso cref="MulticastImplementation"/>
+/// <seealso href="@multicast"/>
 public abstract class MulticastAspect : Aspect, IMulticastAttribute, IAspect<ICompilation>, IAspect<INamedType>
 {
     internal static readonly DiagnosticDefinition<(string PropertyName, string AspectName, DeclarationKind DeclarationKind, IDeclaration Declaration, string
