@@ -8,7 +8,6 @@ using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Fabrics;
 using Metalama.Framework.Options;
-using Metalama.Framework.Project;
 using System;
 using System.Diagnostics.CodeAnalysis;
 

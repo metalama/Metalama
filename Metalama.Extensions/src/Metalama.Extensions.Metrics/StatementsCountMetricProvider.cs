@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.Metrics;
+using Metalama.Framework.Metrics;
 
 namespace Metalama.Extensions.Metrics
 {
@@ -11,7 +12,7 @@ namespace Metalama.Extensions.Metrics
     /// Provides the implementation for the <see cref="StatementsCount"/> metric.
     /// </summary>
     /// <remarks>
-    /// This provider is automatically registered and used when you call <see cref="IMetric{T}.Get"/> on the
+    /// This provider is automatically registered and used when you call <see cref="Metrics{T}.Get{TExtension}"/> on the
     /// <see cref="StatementsCount"/> metric.
     /// </remarks>
     /// <seealso cref="StatementsCount"/>

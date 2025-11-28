@@ -21,7 +21,7 @@ namespace Metalama.Extensions.DependencyInjection;
 /// </para>
 /// <para>
 /// The implementation of dependency injection depends on the selected framework, which can be configured using
-/// <see cref="DependencyInjectionExtensions.ConfigureDependencyInjection"/>.
+/// <see cref="DependencyInjectionExtensions.ConfigureDependencyInjection(Framework.Fabrics.IQuery{ICompilation}, System.Action{DependencyInjectionOptionsBuilder})"/>.
 /// </para>
 /// </remarks>
 /// <seealso cref="DependencyAttribute"/>

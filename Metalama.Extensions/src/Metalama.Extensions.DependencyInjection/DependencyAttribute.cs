@@ -16,7 +16,7 @@ namespace Metalama.Extensions.DependencyInjection;
 /// <para>
 /// When applied to a field or property, this aspect will automatically implement dependency injection according to the
 /// configured DI framework (e.g., constructor injection, property injection). The implementation depends on the selected
-/// dependency injection framework, which can be configured using <see cref="DependencyInjectionExtensions.ConfigureDependencyInjection"/>.
+/// dependency injection framework, which can be configured using <see cref="DependencyInjectionExtensions.ConfigureDependencyInjection(Framework.Fabrics.IQuery{ICompilation}, System.Action{DependencyInjectionOptionsBuilder})"/>.
 /// </para>
 /// </remarks>
 /// <seealso cref="IntroduceDependencyAttribute"/>
