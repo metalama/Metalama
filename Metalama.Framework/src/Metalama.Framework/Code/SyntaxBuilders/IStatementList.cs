@@ -5,12 +5,26 @@
 namespace Metalama.Framework.Code.SyntaxBuilders;
 
 /// <summary>
-/// Represents a list of statements. This list cannot be enumerated because it is evaluated late, when the statement is used in the target syntax tree.
-/// To create an <see cref="IStatementList"/>, use <see cref="StatementFactory.List(Metalama.Framework.Code.SyntaxBuilders.IStatement[])"/>,
-///  <see cref="StatementFactory.UnwrapBlock"/>, or <see cref="StatementExtensions.AsList(Metalama.Framework.Code.SyntaxBuilders.IStatement)"/>.
+/// Represents a list of statements that can be used in contexts requiring multiple statements, such as switch case sections or block contents.
 /// </summary>
+/// <remarks>
+/// <para>
+/// <see cref="IStatementList"/> is a compile-time abstraction over a sequence of statements. Unlike regular collections, statement lists
+/// cannot be enumerated at compile time because they are evaluated lazily when the statements are inserted into the target syntax tree.
+/// </para>
+/// <para>
+/// To create an <see cref="IStatementList"/>, use one of the following methods:
+/// <list type="bullet">
+/// <item><see cref="StatementFactory.List(IStatement[])"/> - Create a list from a fixed array of statements</item>
+/// <item><see cref="StatementListBuilder"/> - Build a list dynamically when the statements are determined at compile time</item>
+/// <item><see cref="StatementFactory.UnwrapBlock"/> - Extract the statement list from a block statement</item>
+/// <item><see cref="StatementExtensions.AsList(IStatement)"/> - Convert a single statement into a singleton list</item>
+/// </list>
+/// </para>
+/// </remarks>
 /// <seealso cref="IStatement"/>
 /// <seealso cref="StatementFactory"/>
 /// <seealso cref="StatementListBuilder"/>
 /// <seealso href="@run-time-statements"/>
+/// <seealso href="@templates"/>
 public interface IStatementList;

@@ -10,8 +10,43 @@ using System.Linq;
 namespace Metalama.Framework.Aspects
 {
     /// <summary>
-    /// Custom attribute that specifies the order  of execution of aspects or aspect layers.
+    /// Assembly-level custom attribute that specifies the execution order of aspects or aspect layers.
+    /// Define ordering relationships using this attribute to control how aspects compose with each other.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Build-time vs run-time order:</b> Metalama follows the "matryoshka" model—aspects are applied from the inside out
+    /// at build time, but executed from the outside in at runtime. The build-time order and run-time order are therefore opposite.
+    /// Use <see cref="AspectOrderDirection.RunTime"/> to specify the more intuitive run-time order, or <see cref="AspectOrderDirection.CompileTime"/>
+    /// for build-time order.
+    /// </para>
+    /// <para>
+    /// <b>Partial ordering:</b> You can define partial order relationships using multiple attributes. Metalama merges all
+    /// relationships from the current project and all referenced projects/libraries using topological sorting. When aspects
+    /// have no explicit ordering relationship, alphabetical ordering is used for determinism.
+    /// </para>
+    /// <para>
+    /// <b>Cross-project ordering:</b> Metalama automatically imports aspect order attributes from all referenced projects and assemblies.
+    /// You do not need to repeat <c>[assembly: AspectOrder(...)]</c> attributes in projects that use aspects—it is sufficient
+    /// to define them once in the projects that define the aspects.
+    /// </para>
+    /// <para>
+    /// <b>Derived aspects:</b> By default (<see cref="ApplyToDerivedTypes"/> = <c>true</c>), ordering relationships apply
+    /// to derived aspect classes as well. For example, if you order <c>CacheAspect</c> before <c>LoggingAspect</c>, this
+    /// also orders <c>MemoryCacheAspect : CacheAspect</c> before <c>FileLoggingAspect : LoggingAspect</c>.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// <code>
+    /// // Specify run-time order (more intuitive for users)
+    /// [assembly: AspectOrder(AspectOrderDirection.RunTime, typeof(CacheAspect), typeof(LoggingAspect), typeof(RetryAspect))]
+    ///
+    /// // Or specify build-time order (more intuitive for aspect authors)
+    /// [assembly: AspectOrder(AspectOrderDirection.CompileTime, typeof(RetryAspect), typeof(LoggingAspect), typeof(CacheAspect))]
+    ///
+    /// // These two declarations are equivalent - they both result in the same run-time execution order
+    /// </code>
+    /// </example>
     /// <seealso cref="AspectOrderDirection"/>
     /// <seealso cref="LayersAttribute"/>
     /// <seealso href="@ordering-aspects"/>

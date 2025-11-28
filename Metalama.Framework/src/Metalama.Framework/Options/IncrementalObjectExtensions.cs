@@ -9,6 +9,14 @@ namespace Metalama.Framework.Options;
 /// <summary>
 /// Extensions of the <see cref="IIncrementalObject"/> interface.
 /// </summary>
+/// <remarks>
+/// <para>
+/// These extension methods provide type-safe and null-safe wrappers around the <see cref="IIncrementalObject.ApplyChanges"/> method,
+/// making it easier to work with incremental objects in a strongly-typed manner.
+/// </para>
+/// </remarks>
+/// <seealso cref="IIncrementalObject"/>
+/// <seealso href="@exposing-options"/>
 [CompileTime]
 public static class IncrementalObjectExtensions
 {

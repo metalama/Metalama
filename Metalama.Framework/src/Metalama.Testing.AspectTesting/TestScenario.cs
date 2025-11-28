@@ -7,9 +7,20 @@ using JetBrains.Annotations;
 namespace Metalama.Testing.AspectTesting
 {
     /// <summary>
-    /// Enumerates the scenarios that are simulated for the test, for instance compilation (the <see cref="Default"/> scenario),
-    /// applying a code fix, or others.
+    /// Specifies the scenario to simulate when running an aspect test.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This enum controls what aspect of the aspect system is being tested: compilation-time transformation,
+    /// code fix application, live template application, design-time behavior, or diff preview.
+    /// </para>
+    /// <para>
+    /// Set the test scenario using the <c>// @TestScenario(scenarioName)</c> comment in your test file,
+    /// or configure it via <see cref="TestOptions.TestScenario"/>.
+    /// </para>
+    /// </remarks>
+    /// <seealso cref="TestOptions.TestScenario"/>
+    /// <seealso href="@testing-aspects"/>
     [PublicAPI]
     public enum TestScenario
     {

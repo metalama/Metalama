@@ -7,8 +7,23 @@ using Metalama.Framework.Code;
 namespace Metalama.Framework.Fabrics
 {
     /// <summary>
-    /// Argument of <see cref="NamespaceFabric.AmendNamespace"/>. Allows reporting diagnostics and adding aspects to the target declaration of the fabric. 
+    /// The parameter passed to <see cref="NamespaceFabric.AmendNamespace"/>.
+    /// Provides capabilities to query declarations within the namespace and its nested namespaces, add aspects programmatically using LINQ-like queries,
+    /// configure options, report diagnostics, and validate architecture.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Through this interface, you can access all types and nested namespaces within the namespace using LINQ-like queries,
+    /// allowing you to scope aspect application and configuration to specific namespace hierarchies.
+    /// </para>
+    /// </remarks>
+    /// <seealso cref="NamespaceFabric"/>
+    /// <seealso cref="IAmender{T}"/>
+    /// <seealso cref="INamespace"/>
+    /// <seealso href="@fabrics"/>
+    /// <seealso href="@fabrics-adding-aspects"/>
+    /// <seealso href="@aspect-configuration"/>
+    /// <seealso href="@validation"/>
     public interface INamespaceAmender : IAmender<INamespace>
     {
         /// <summary>

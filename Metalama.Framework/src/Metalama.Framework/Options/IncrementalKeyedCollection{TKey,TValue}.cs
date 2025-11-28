@@ -18,6 +18,26 @@ namespace Metalama.Framework.Options;
 /// </summary>
 /// <typeparam name="TKey">Type of keys.</typeparam>
 /// <typeparam name="TValue">Type of items, implementing the <see cref="IIncrementalKeyedCollectionItem{TKey}"/> interface.</typeparam>
+/// <remarks>
+/// <para>
+/// <see cref="IncrementalKeyedCollection{TKey,TValue}"/> is designed for use as a property type within hierarchical options classes when
+/// you need to work with collections of complex, keyed items. Unlike a regular dictionary or keyed collection, each instance represents
+/// a <i>layer of changes</i> rather than the complete collection. When multiple layers are merged using <see cref="ApplyChanges"/>,
+/// the operations from each layer are combined intelligently.
+/// </para>
+/// <para>
+/// The key feature of this collection is that when an item with the same key exists in both the base collection and the overriding collection,
+/// the two items are themselves merged using <see cref="IIncrementalObject.ApplyChanges"/>. This allows for fine-grained incremental
+/// modifications to complex configuration objects.
+/// </para>
+/// <para>
+/// For example, if one layer has a rule with key "DefaultPolicy" specifying cache duration of 60 seconds, and another layer provides a rule
+/// with the same key specifying a different setting, the two rules are merged, allowing partial updates rather than complete replacement.
+/// </para>
+/// <para>
+/// This class is immutable. All operations return new instances rather than modifying the current instance.
+/// </para>
+/// </remarks>
 /// <seealso cref="IIncrementalObject"/>
 /// <seealso cref="IHierarchicalOptions"/>
 /// <seealso cref="IncrementalHashSet{T}"/>
@@ -53,8 +73,14 @@ public partial class IncrementalKeyedCollection<TKey, TValue> : IIncrementalObje
 
     /// <summary>
     /// Creates a <see cref="IncrementalKeyedCollection{TKey,TValue}"/> that contains all operations already contained in the current object,
-    /// plus the operation of adding an item, or, if an item with the same key already exists, update it with the given new values.
+    /// plus the operation of adding an item, or merging it with an existing item if the same key already exists.
     /// </summary>
+    /// <param name="item">The item to add or merge.</param>
+    /// <returns>A new <see cref="IncrementalKeyedCollection{TKey,TValue}"/> with the additional operation.</returns>
+    /// <remarks>
+    /// This method does not modify the current instance; it returns a new instance with the combined operations.
+    /// If an item with the same key exists in the current layer, the items are merged using <see cref="IIncrementalObject.ApplyChanges"/>.
+    /// </remarks>
     public IncrementalKeyedCollection<TKey, TValue> AddOrApplyChanges( TValue item )
     {
         var key = item.Key;
@@ -75,14 +101,26 @@ public partial class IncrementalKeyedCollection<TKey, TValue> : IIncrementalObje
 
     /// <summary>
     /// Creates a <see cref="IncrementalKeyedCollection{TKey,TValue}"/> that contains all operations already contained in the current object,
-    /// plus the operation of adding items, or, if any item with the same key already exists, update it with the given new values.
+    /// plus the operation of adding items, or merging them with existing items if the same keys already exist.
     /// </summary>
+    /// <param name="items">The items to add or merge.</param>
+    /// <returns>A new <see cref="IncrementalKeyedCollection{TKey,TValue}"/> with the additional operations.</returns>
+    /// <remarks>
+    /// This method does not modify the current instance; it returns a new instance with the combined operations.
+    /// For each item, if an item with the same key exists in the current layer, the items are merged using <see cref="IIncrementalObject.ApplyChanges"/>.
+    /// </remarks>
     public IncrementalKeyedCollection<TKey, TValue> AddOrApplyChanges( params TValue[] items ) => this.AddOrApplyChanges( (IEnumerable<TValue>) items );
 
     /// <summary>
     /// Creates a <see cref="IncrementalKeyedCollection{TKey,TValue}"/> that contains all operations already contained in the current object,
-    /// plus the operation of adding items, or, if any item with the same key already exists, update it with the given new values.
+    /// plus the operation of adding items, or merging them with existing items if the same keys already exist.
     /// </summary>
+    /// <param name="items">The items to add or merge.</param>
+    /// <returns>A new <see cref="IncrementalKeyedCollection{TKey,TValue}"/> with the additional operations.</returns>
+    /// <remarks>
+    /// This method does not modify the current instance; it returns a new instance with the combined operations.
+    /// For each item, if an item with the same key exists in the current layer, the items are merged using <see cref="IIncrementalObject.ApplyChanges"/>.
+    /// </remarks>
     public IncrementalKeyedCollection<TKey, TValue> AddOrApplyChanges( IEnumerable<TValue> items )
     {
         var builder = this._dictionary.ToBuilder();
@@ -112,18 +150,33 @@ public partial class IncrementalKeyedCollection<TKey, TValue> : IIncrementalObje
     /// Creates a <see cref="IncrementalKeyedCollection{TKey,TValue}"/> that contains all operations already contained in the current object,
     /// plus the operation of removing an item from the collection.
     /// </summary>
+    /// <param name="key">The key of the item to remove.</param>
+    /// <returns>A new <see cref="IncrementalKeyedCollection{TKey,TValue}"/> with the additional remove operation.</returns>
+    /// <remarks>
+    /// This method does not modify the current instance; it returns a new instance with the combined operations.
+    /// </remarks>
     public IncrementalKeyedCollection<TKey, TValue> Remove( TKey key ) => this.Create( this._dictionary.SetItem( key, new Item( default, false ) ) );
 
     /// <summary>
     /// Creates a <see cref="IncrementalKeyedCollection{TKey,TValue}"/> that contains all operations already contained in the current object,
     /// plus the operation of removing items from the collection.
     /// </summary>
+    /// <param name="keys">The keys of the items to remove.</param>
+    /// <returns>A new <see cref="IncrementalKeyedCollection{TKey,TValue}"/> with the additional remove operations.</returns>
+    /// <remarks>
+    /// This method does not modify the current instance; it returns a new instance with the combined operations.
+    /// </remarks>
     public IncrementalKeyedCollection<TKey, TValue> Remove( TKey[] keys ) => this.Remove( (IEnumerable<TKey>) keys );
 
     /// <summary>
     /// Creates a <see cref="IncrementalKeyedCollection{TKey,TValue}"/> that contains all operations already contained in the current object,
     /// plus the operation of removing items from the collection.
     /// </summary>
+    /// <param name="keys">The keys of the items to remove.</param>
+    /// <returns>A new <see cref="IncrementalKeyedCollection{TKey,TValue}"/> with the additional remove operations.</returns>
+    /// <remarks>
+    /// This method does not modify the current instance; it returns a new instance with the combined operations.
+    /// </remarks>
     public IncrementalKeyedCollection<TKey, TValue> Remove( IEnumerable<TKey> keys )
     {
         var builder = this._dictionary.ToBuilder();
@@ -139,20 +192,46 @@ public partial class IncrementalKeyedCollection<TKey, TValue> : IIncrementalObje
         return this.Create( builder.ToImmutable(), this._clear );
     }
 
+    /// <summary>
+    /// Returns an enumerator that iterates through the items in the collection.
+    /// </summary>
+    /// <returns>An enumerator for the items that are currently enabled in the collection layer.</returns>
     public IEnumerator<TValue> GetEnumerator() => this._dictionary.Values.Where( i => i.IsEnabled ).Select( i => i.Value! ).GetEnumerator();
 
+    /// <summary>
+    /// Returns an enumerator that iterates through the items in the collection.
+    /// </summary>
+    /// <returns>An enumerator for the items that are currently enabled in the collection.</returns>
     IEnumerator IEnumerable.GetEnumerator() => this.GetEnumerator();
 
     /// <summary>
-    /// Gets the number of items in the current collection.
+    /// Gets the number of items in the current collection layer.
     /// </summary>
+    /// <value>
+    /// The count of items that are enabled (not removed) in this incremental keyed collection layer.
+    /// </value>
     public int Count => this._count ??= this._dictionary.Count( i => i.Value.IsEnabled );
 
+    /// <summary>
+    /// Gets a value indicating whether this collection layer is empty.
+    /// </summary>
+    /// <value>
+    /// <c>true</c> if the collection layer has no enabled items; otherwise, <c>false</c>.
+    /// </value>
     public bool IsEmpty => this.Count == 0;
 
     /// <summary>
-    /// Overrides the current collection with another collection and returns the result.
+    /// Merges the current collection layer with another collection layer and returns the result.
     /// </summary>
+    /// <param name="overridingOptions">The collection layer to merge with the current layer.</param>
+    /// <param name="context">The context of the merge operation.</param>
+    /// <returns>A new <see cref="IncrementalKeyedCollection{TKey,TValue}"/> representing the merged result.</returns>
+    /// <remarks>
+    /// If <paramref name="overridingOptions"/> contains a clear operation, it takes precedence and the result contains only the operations from <paramref name="overridingOptions"/>.
+    /// Otherwise, items from both layers are combined. When an item with the same key exists in both layers and both are enabled (not marked for removal),
+    /// the two item instances are themselves merged using <see cref="IIncrementalObject.ApplyChanges"/>. In all other cases (removal operations,
+    /// or item present in only one layer), the operation from <paramref name="overridingOptions"/> takes precedence if it defines that key.
+    /// </remarks>
     public IncrementalKeyedCollection<TKey, TValue> ApplyChanges( IncrementalKeyedCollection<TKey, TValue> overridingOptions, in ApplyChangesContext context )
     {
         var dictionary = overridingOptions._clear ? ImmutableDictionary<TKey, Item>.Empty : this._dictionary;

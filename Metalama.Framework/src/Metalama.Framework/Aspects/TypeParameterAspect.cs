@@ -10,11 +10,23 @@ using System;
 namespace Metalama.Framework.Aspects
 {
     /// <summary>
-    /// A base class for aspects that can be applied to type parameters (i.e. generic parameters) as custom attributes.
+    /// A base class for aspects that target generic type parameter declarations.
     /// </summary>
     /// <remarks>
-    /// <para>This class is a redundant helper class. The aspect framework only respects the <see cref="IAspect{T}"/> interface.</para>
+    /// <para>
+    /// This class provides a convenient base for creating generic type parameter aspects by implementing <see cref="IAspect{T}"/>
+    /// with <typeparamref name="T"/> set to <see cref="ITypeParameter"/>. Derived classes override <see cref="BuildAspect"/>
+    /// to add advice (such as adding constraints, attributes, or validation) to the target generic type parameter.
+    /// </para>
+    /// <para>
+    /// This is a convenience base class. The aspect framework primarily requires implementation of <see cref="IAspect{T}"/>.
+    /// </para>
     /// </remarks>
+    /// <seealso cref="IAspect{T}"/>
+    /// <seealso cref="ITypeParameter"/>
+    /// <seealso cref="IAspectBuilder{T}"/>
+    /// <seealso cref="Aspect"/>
+    /// <seealso href="@aspects"/>
     [AttributeUsage( AttributeTargets.GenericParameter )]
     [PublicAPI]
     public abstract class TypeParameterAspect : Aspect, IAspect<ITypeParameter>

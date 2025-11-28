@@ -9,12 +9,14 @@ using System.ComponentModel;
 namespace Metalama.Framework.Advising;
 
 /// <summary>
-/// Status codes of the result of an advice. This enum is exposed on the <see cref="IAdviceResult.Outcome"/> property
-/// of the <see cref="IAdviceResult"/> interface, which is returned by advice methods.
+/// Indicates the result of applying an advice (code transformation). This enum is returned via <see cref="IAdviceResult.Outcome"/>
+/// by all advice methods to indicate whether the transformation succeeded, was ignored, or encountered an error.
 /// </summary>
 /// <seealso cref="IAdviceResult"/>
 /// <seealso cref="AdviserExtensions"/>
 /// <seealso cref="IAspectBuilder"/>
+/// <seealso cref="OverrideStrategy"/>
+/// <seealso href="@advising-code"/>
 [CompileTime]
 public enum AdviceOutcome
 {
@@ -39,7 +41,9 @@ public enum AdviceOutcome
     New,
 
     /// <summary>
-    /// The advice was ignored, possibly because of a conflict.
+    /// The advice was ignored due to a conflict or <see cref="OverrideStrategy"/> settings. Common scenarios include:
+    /// a member with the same signature already exists and the <see cref="OverrideStrategy"/> prevents overriding it,
+    /// or another aspect with higher priority already introduced the same member.
     /// </summary>
     Ignore,
 
@@ -48,7 +52,7 @@ public enum AdviceOutcome
     Ignored = Ignore,
 
     /// <summary>
-    /// There was a conflict or another error. The advice was ignored and the whole aspect was disabled using <see cref="IAspectBuilder.SkipAspect"/>.
+    /// An error diagnostic was reported during advice application. The advice was ignored and the whole aspect was automatically skipped.
     /// </summary>
     Error
 }

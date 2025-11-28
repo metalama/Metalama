@@ -25,11 +25,31 @@ namespace Metalama.Framework.Advising
         /// Indicates that the advice should be executed before any user code in all instance constructors except those that are chained to a constructor of the current class (using the <c>this</c> chaining keyword). The initialization logic executes
         /// after the call to the base constructor.
         /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Use this when you need to initialize instance state or register instances before any user constructor code runs.
+        /// The initialization code runs after <c>: base(...)</c> calls but before any user code in the constructor body.
+        /// </para>
+        /// <para>
+        /// A default constructor will be automatically created if the type does not contain any constructor.
+        /// </para>
+        /// </remarks>
+        /// <seealso href="@initializers"/>
         BeforeInstanceConstructor,
 
         /// <summary>
         /// Indicates that the advice should be executed before the type constructor (aka static constructor) of the target type. If there is no type constructor, this advice adds one.
         /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Use this when you need to initialize static/type-level state before any user static constructor code runs.
+        /// The type constructor is called once when the type is first accessed.
+        /// </para>
+        /// <para>
+        /// The initialization code runs at the beginning of the static constructor, after field initializers.
+        /// </para>
+        /// </remarks>
+        /// <seealso href="@initializers"/>
         BeforeTypeConstructor,
 
         /// <summary>

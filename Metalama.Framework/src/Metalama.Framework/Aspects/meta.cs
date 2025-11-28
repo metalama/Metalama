@@ -41,6 +41,21 @@ namespace Metalama.Framework.Aspects
         /// <summary>
         /// Gets access to the declaration being overridden or introduced.
         /// </summary>
+        /// <remarks>
+        /// <para>
+        /// The <see cref="Target"/> property provides access to metadata and invokers for the target declaration:
+        /// <list type="bullet">
+        /// <item><see cref="IMetaTarget.Method"/> - Access method metadata (name, parameters, return type, attributes)</item>
+        /// <item><see cref="IMetaTarget.FieldOrProperty"/> - Access field/property metadata and use <c>.Value</c> to get/set the underlying value</item>
+        /// <item><see cref="IMetaTarget.Event"/> - Access event metadata and use <c>.Add</c>/<c>.Remove</c> to manage handlers</item>
+        /// <item><see cref="IMetaTarget.Parameters"/> - Access parameter metadata (<c>meta.Target.Parameters[0].Value) and values (<c>meta.Target.Parameters[0].Value</c>)</item>
+        /// </list>
+        /// </para>
+        /// </remarks>
+        /// <seealso cref="IMetaTarget"/>
+        /// <seealso href="@overriding-methods"/>
+        /// <seealso href="@overriding-fields-or-properties"/>
+        /// <seealso href="@overriding-events"/>
         /// <seealso href="@templates"/>
         [TemplateKeyword]
         public static IMetaTarget Target => CurrentContext.Target;
@@ -51,6 +66,19 @@ namespace Metalama.Framework.Aspects
         /// calling <see cref="Proceed"/> invokes the method being overridden. Note that the way how the
         /// logic is invoked (as a method call or inlining) is considered an implementation detail.
         /// </summary>
+        /// <remarks>
+        /// <para>
+        /// For async and iterator methods, <see cref="Proceed"/> automatically adapts its behavior:
+        /// async methods are awaited, and iterators are buffered into a collection. To avoid buffering
+        /// or to use <c>await</c>/<c>yield</c> in your template, use the specialized Proceed methods
+        /// (<see cref="ProceedAsync"/>, <see cref="ProceedEnumerable"/>, etc.) in conjunction with
+        /// specialized template methods in <see cref="OverrideMethodAspect"/> or <see cref="MethodTemplateSelector"/>.
+        /// </para>
+        /// </remarks>
+        /// <seealso cref="ProceedAsync"/>
+        /// <seealso cref="ProceedEnumerable"/>
+        /// <seealso cref="ProceedEnumerator"/>
+        /// <seealso href="@overriding-methods"/>
         /// <seealso href="@templates"/>
         [TemplateKeyword]
         public static dynamic? Proceed() => throw CreateException();
@@ -61,6 +89,13 @@ namespace Metalama.Framework.Aspects
         /// the actual return type of the overridden method or accessor is the one of the overwritten semantic, so it
         /// can be a void <see cref="Task"/>, a <see cref="ValueType"/>, or any other type.
         /// </summary>
+        /// <remarks>
+        /// Use this method in specialized async templates (e.g., <see cref="OverrideMethodAspect.OverrideAsyncMethod"/>)
+        /// to enable <c>await</c> usage in your template code and avoid automatic awaiting by the default template.
+        /// </remarks>
+        /// <seealso cref="Proceed"/>
+        /// <seealso cref="OverrideMethodAspect.OverrideAsyncMethod"/>
+        /// <seealso href="@overriding-methods"/>
         /// <seealso href="@templates"/>
         [TemplateKeyword]
         public static Task<dynamic?> ProceedAsync() => throw CreateException();
@@ -68,6 +103,15 @@ namespace Metalama.Framework.Aspects
         /// <summary>
         /// Synonym to <see cref="Proceed"/>, but the return type is exposed as a <c>IEnumerable&lt;dynamic?&gt;</c>.
         /// </summary>
+        /// <remarks>
+        /// Use this method in specialized iterator templates (e.g., <see cref="OverrideMethodAspect.OverrideEnumerableMethod"/>
+        /// or <see cref="OverrideFieldOrPropertyAspect.OverrideEnumerableProperty"/>) to enable <c>yield</c> usage in your
+        /// template code and avoid automatic buffering by the default template.
+        /// </remarks>
+        /// <seealso cref="Proceed"/>
+        /// <seealso cref="OverrideMethodAspect.OverrideEnumerableMethod"/>
+        /// <seealso cref="OverrideFieldOrPropertyAspect.OverrideEnumerableProperty"/>
+        /// <seealso href="@overriding-methods"/>
         /// <seealso href="@templates"/>
         [TemplateKeyword]
         [CompileTime( isTemplateOnly: true )]
@@ -76,6 +120,15 @@ namespace Metalama.Framework.Aspects
         /// <summary>
         /// Synonym to <see cref="Proceed"/>, but the return type is exposed as a <c>IEnumerator&lt;dynamic?&gt;</c>.
         /// </summary>
+        /// <remarks>
+        /// Use this method in specialized iterator templates (e.g., <see cref="OverrideMethodAspect.OverrideEnumeratorMethod"/>
+        /// or <see cref="OverrideFieldOrPropertyAspect.OverrideEnumeratorProperty"/>) to enable <c>yield</c> usage in your
+        /// template code and avoid automatic buffering by the default template.
+        /// </remarks>
+        /// <seealso cref="Proceed"/>
+        /// <seealso cref="OverrideMethodAspect.OverrideEnumeratorMethod"/>
+        /// <seealso cref="OverrideFieldOrPropertyAspect.OverrideEnumeratorProperty"/>
+        /// <seealso href="@overriding-methods"/>
         /// <seealso href="@templates"/>
         [TemplateKeyword]
         public static IEnumerator<dynamic?> ProceedEnumerator() => throw CreateException();
@@ -157,10 +210,16 @@ namespace Metalama.Framework.Aspects
         /// To access the prior layer (or the base type, if there is no prior layer), use <see cref="Base"/>.
         /// To access static members, use <see cref="ThisType"/>.
         /// </para>
+        /// <para>
+        /// Because <see cref="This"/> returns a <c>dynamic</c> value, you can access any instance member through it (e.g.,
+        /// <c>meta.This._logger.WriteLine()</c>), and the actual member access will be validated and resolved when the template
+        /// is expanded in the context of a specific target declaration, not when the template is compiled.
+        /// </para>
         /// </remarks>
         /// <seealso cref="Base"/>
         /// <seealso cref="ExpressionFactory.This()"/>
         /// <seealso cref="ThisType"/>
+        /// <seealso href="@dynamic-typing"/>
         /// <seealso href="@templates"/>
         /// <seealso cref="Receiver"/>
         [TemplateKeyword]
@@ -181,12 +240,19 @@ namespace Metalama.Framework.Aspects
         /// The syntax to access these members is e.g. <c>meta.Base.MyMethod()</c>.
         /// </summary>
         /// <remarks>
+        /// <para>
         /// The <see cref="Base"/> property exposes the state of the target type as it is <i>before</i> the application
         /// of the current aspect layer. It corresponds to <see cref="InvokerOptions"/>.<see cref="InvokerOptions.Default"/>. To access the final layer, use <see cref="This"/>.
         /// To access static members, use <see cref="BaseType"/>.
+        /// </para>
+        /// <para>
+        /// Because <see cref="Base"/> returns a <c>dynamic</c> value, any member accessed through it is validated when the template
+        /// is expanded, not when the template is compiled.
+        /// </para>
         /// </remarks>
         /// <seealso cref="This"/>
         /// <seealso cref="BaseType"/>
+        /// <seealso href="@dynamic-typing"/>
         /// <seealso href="@templates"/>
         [TemplateKeyword]
         public static dynamic Base => CurrentContext.Base;
@@ -196,27 +262,41 @@ namespace Metalama.Framework.Aspects
         /// If the current declaration is an extension member, the property returns the declaring type, <i>not</i> the receiver type.
         /// </summary>
         /// <remarks>
+        /// <para>
         /// The <see cref="ThisType"/> property exposes the state of the target type as it is <i>after</i> the application
         /// of all aspects.  It corresponds to <see cref="InvokerOptions"/>.<see cref="InvokerOptions.Final"/>. To access the prior layer (or the base type, if there is no prior layer), use <see cref="BaseType"/>.
         /// To access instance members, use <see cref="This"/>.
+        /// </para>
+        /// <para>
+        /// Because <see cref="ThisType"/> returns a <c>dynamic</c> value, static members accessed through it are validated at
+        /// template expansion time, not at template compilation time.
+        /// </para>
         /// </remarks>
         /// <seealso cref="This"/>
         /// <seealso cref="BaseType"/>
+        /// <seealso href="@dynamic-typing"/>
         /// <seealso href="@templates"/>
         [TemplateKeyword]
         public static dynamic ThisType => CurrentContext.ThisType;
 
         /// <summary>
         /// Gets a <c>dynamic</c> object that must be used to get access to <i>static</i> members of the type (e.g. <c>meta.BaseStatic.MyStaticMethod()</c>).
-        /// If the current declaration is an extension member, the property returns the declaring type, <i>not</i> the receiver type. 
+        /// If the current declaration is an extension member, the property returns the declaring type, <i>not</i> the receiver type.
         /// </summary>
         /// <remarks>
+        /// <para>
         /// The <see cref="BaseType"/> property exposes the state of the target type as it is <i>before</i> the application
         /// of the current aspect layer.  It corresponds to <see cref="InvokerOptions"/>.<see cref="InvokerOptions.Default"/>. To access the final layer, use <see cref="ThisType"/>.
         /// To access instance members, use <see cref="Base"/>.
+        /// </para>
+        /// <para>
+        /// Because <see cref="BaseType"/> returns a <c>dynamic</c> value, static members accessed through it are validated at
+        /// template expansion time, not at template compilation time.
+        /// </para>
         /// </remarks>
         /// <seealso cref="Base"/>
         /// <seealso cref="ThisType"/>
+        /// <seealso href="@dynamic-typing"/>
         /// <seealso href="@templates"/>
         [TemplateKeyword]
         public static dynamic BaseType => CurrentContext.BaseType;

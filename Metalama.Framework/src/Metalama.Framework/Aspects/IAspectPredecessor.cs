@@ -9,17 +9,55 @@ using System.Collections.Immutable;
 namespace Metalama.Framework.Aspects
 {
     /// <summary>
-    /// Base interface for objects that can cause aspects to be added to a compilation. Predecessors are exposed on
-    /// the <see cref="IAspectPredecessor.Predecessors"/> property.
+    /// Base interface for objects that can cause aspects to be added to a compilation, such as aspect instances and fabric instances.
+    /// This interface tracks the chain of causality that led to an aspect being applied, accessible through the <see cref="Predecessors"/> property.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This interface is implemented by <see cref="IAspectInstance"/>, <see cref="Fabrics.IFabricInstance"/>, and <see cref="Code.IAttribute"/>,
+    /// establishing a unified model for tracking what caused aspects to be added to declarations.
+    /// </para>
+    /// <para>
+    /// The primary use case for predecessors when building aspects is to access the state of parent aspects through <see cref="IAspectState"/>.
+    /// When a parent aspect creates child aspects, the child aspects can query their <see cref="Predecessors"/> to find the parent aspect instance
+    /// and access its state, enabling communication and data sharing between parent and child aspects in the aspect composition hierarchy.
+    /// </para>
+    /// <para>
+    /// Predecessors also serve secondary purposes for debugging, introspection, and understanding aspect composition and provenance.
+    /// </para>
+    /// <para>
+    /// For example:
+    /// </para>
+    /// <list type="bullet">
+    /// <item><description>When a fabric adds an aspect to a type, that fabric instance becomes a predecessor of the aspect instance.</description></item>
+    /// <item><description>When an aspect creates child aspects, the parent aspect instance becomes a predecessor of the child aspect instances, allowing children to access parent state.</description></item>
+    /// <item><description>When a custom attribute that is also an aspect (e.g., a class implementing <see cref="IAspect"/>) is applied to a declaration, the attribute becomes a predecessor.</description></item>
+    /// </list>
+    /// </remarks>
+    /// <seealso cref="IAspectInstance"/>
+    /// <seealso cref="IAspectState"/>
+    /// <seealso cref="Fabrics.IFabricInstance"/>
+    /// <seealso cref="Code.IAttribute"/>
+    /// <seealso href="@child-aspects"/>
+    /// <seealso href="@introspection"/>
     [CompileTime]
     [InternalImplement]
     public interface IAspectPredecessor
     {
         /// <summary>
-        /// Gets the number of predecessors between the root cause and the current predecessor, or <c>0</c>
-        /// if the current predecessor is the root cause. 
+        /// Gets the depth in the predecessor chain, indicating how many levels of indirection exist between
+        /// the root cause and this predecessor. A value of <c>0</c> means this is the root cause (e.g., a custom
+        /// attribute or fabric that directly applied the aspect).
         /// </summary>
+        /// <remarks>
+        /// <para>
+        /// For example: If a fabric (degree 0) adds aspect A, which then adds child aspect B (degree 1),
+        /// which adds child aspect C (degree 2), then C's <see cref="PredecessorDegree"/> is 2.
+        /// </para>
+        /// <para>
+        /// This property is primarily used for debugging and introspection to understand the chain of causality.
+        /// </para>
+        /// </remarks>
         int PredecessorDegree { get; }
 
         /// <summary>
@@ -29,8 +67,18 @@ namespace Metalama.Framework.Aspects
 
         /// <summary>
         /// Gets the list of objects that have caused the current aspect instance (but not any instance in the <see cref="IAspectInstance.SecondaryInstances"/> list)
-        /// to be created. The ordering of this list is undetermined.
+        /// to be created. The ordering of this list is undetermined and should not be relied upon.
         /// </summary>
+        /// <remarks>
+        /// <para>
+        /// An aspect can have multiple predecessors when it's applied through multiple mechanisms simultaneously
+        /// (e.g., both inherited from a base class and added by a fabric). The order of predecessors in this array
+        /// is implementation-defined and may vary between builds.
+        /// </para>
+        /// <para>
+        /// To find a specific predecessor type, iterate through the array and check each <see cref="AspectPredecessor.Kind"/>.
+        /// </para>
+        /// </remarks>
         /// <seealso href="@child-aspects"/>
         ImmutableArray<AspectPredecessor> Predecessors { get; }
     }

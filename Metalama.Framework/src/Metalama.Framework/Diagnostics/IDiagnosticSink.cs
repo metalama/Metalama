@@ -10,8 +10,20 @@ using Metalama.Framework.Utilities;
 namespace Metalama.Framework.Diagnostics
 {
     /// <summary>
-    /// A sink that reports diagnostics reported from user code.
+    /// A sink that reports diagnostics and suppressions from aspect code.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This interface provides the low-level API for reporting diagnostics and suppressing diagnostics.
+    /// Most aspect code should use <see cref="ScopedDiagnosticSink"/> instead, which provides a simpler API.
+    /// </para>
+    /// <para>
+    /// Diagnostics are defined as static fields in aspect classes using <see cref="DiagnosticDefinition"/> or
+    /// <see cref="DiagnosticDefinition{T}"/>, then reported using the <see cref="Report"/> method.
+    /// Similarly, suppressions are defined using <see cref="SuppressionDefinition"/> and applied using
+    /// the <see cref="Suppress"/> method.
+    /// </para>
+    /// </remarks>
     /// <seealso cref="ScopedDiagnosticSink"/>
     /// <seealso cref="IDiagnostic"/>
     /// <seealso cref="ISuppression"/>
@@ -23,16 +35,19 @@ namespace Metalama.Framework.Diagnostics
     public interface IDiagnosticSink
     {
         /// <summary>
-        /// Reports a parametric diagnostic by specifying its location.
+        /// Reports a diagnostic at a specific location.
         /// </summary>
+        /// <param name="diagnostic">The diagnostic to report, typically created from a <see cref="DiagnosticDefinition"/>.</param>
+        /// <param name="location">The location where the diagnostic should be reported, or <c>null</c> to use a default location.</param>
+        /// <param name="source">The source reporting the diagnostic.</param>
         void Report( IDiagnostic diagnostic, IDiagnosticLocation? location, IDiagnosticSource source );
 
         /// <summary>
-        /// Suppresses a diagnostic by specifying the declaration in which the suppression must be effective.
+        /// Suppresses a diagnostic within a specific declaration scope.
         /// </summary>
-        /// <param name="suppression">The suppression.</param>
-        /// <param name="scope">The declaration in which the diagnostic must be suppressed.</param>
-        /// <param name="source"></param>
+        /// <param name="suppression">The suppression definition, which specifies the diagnostic ID to suppress.</param>
+        /// <param name="scope">The declaration within which the diagnostic should be suppressed.</param>
+        /// <param name="source">The source performing the suppression.</param>
         void Suppress( ISuppression suppression, IDeclaration scope, IDiagnosticSource source );
     }
 }

@@ -21,12 +21,12 @@ namespace Metalama.Framework.Options;
 /// <para>
 ///  Implementations of this class must be immutable. An instance of this object represents a <i>layer</i> of options,
 ///  and these layers are merged by the <see cref="IIncrementalObject.ApplyChanges"/> method. Therefore, all properties should typically be nullable or
-///  support another representation of being unset.
+///  support another representation of being unset. A <c>null</c> value typically signifies that a property is not modified.
 /// </para>
 /// <para>
 /// Classes that implement this interface must implement the <see cref="IHierarchicalOptions{T}"/> generic interface where <c>T</c> is
 /// the type of declarations for which the user is allowed to set the options. Typically, a single class would implement several instances
-/// of this instance. For instance, for an option affecting a method-level aspect, a good practice is to implement this interface
+/// of this interface. For instance, for an option affecting a method-level aspect, a good practice is to implement this interface
 /// for <see cref="ICompilation"/>, <see cref="INamespace"/>, <see cref="INamedType"/> and <see cref="IMethod"/>.
 /// </para>
 /// <para>
@@ -40,12 +40,29 @@ namespace Metalama.Framework.Options;
 /// <para>
 /// Options are exposed by the <c>declaration.</c><see cref="DeclarationExtensions.Enhancements{T}"/>.<see cref="DeclarationEnhancements{T}.GetOptions{TOptions}"/> method.
 /// </para>
+/// <para>
+/// For option classes, all properties must use <c>init</c> accessors (not <c>set</c>) to ensure immutability. Option classes should not define an explicit constructor,
+/// relying on the default parameterless constructor instead.
+/// </para>
+/// <para>
+/// <b>Builder Pattern for User-Friendly APIs:</b> While option classes use nullable <c>init</c> properties, aspect authors can provide a more user-friendly
+/// API by implementing the builder pattern. Create a separate builder class with non-nullable properties and fluent methods that return a modified builder.
+/// The builder's <c>Build()</c> method constructs the immutable options object. Then provide extension methods on <see cref="IQuery{T}"/> that accept
+/// a configuration delegate taking the builder, internally calling <c>Build()</c> and <see cref="OptionQueryExtensions.SetOptions{TDeclaration, TOptions}(IQuery{TDeclaration}, TOptions)"/>.
+/// For a complete example implementation, see the Metalama.Extensions.DependencyInjection source code:
+/// <list type="bullet">
+/// <item><description>Options class: <see href="https://github.com/metalama/Metalama/blob/HEAD/Metalama.Extensions/src/Metalama.Extensions.DependencyInjection/Implementation/DependencyInjectionOptions.cs"/></description></item>
+/// <item><description>Builder class: <see href="https://github.com/metalama/Metalama/blob/HEAD/Metalama.Extensions/src/Metalama.Extensions.DependencyInjection/DependencyInjectionOptionsBuilder.cs"/></description></item>
+/// <item><description>Extension methods: <see href="https://github.com/metalama/Metalama/blob/HEAD/Metalama.Extensions/src/Metalama.Extensions.DependencyInjection/DependencyInjectionExtensions.cs"/></description></item>
+/// </list>
+/// </para>
 /// </remarks>
 /// <seealso cref="IHierarchicalOptions{T}"/>
 /// <seealso cref="IHierarchicalOptionsProvider"/>
 /// <seealso cref="IHierarchicalOptionsManager"/>
 /// <seealso cref="IIncrementalObject"/>
 /// <seealso href="@exposing-options"/>
+/// <seealso href="@aspect-configuration"/>
 public interface IHierarchicalOptions : IIncrementalObject, ICompileTimeSerializable
 {
     /// <summary>

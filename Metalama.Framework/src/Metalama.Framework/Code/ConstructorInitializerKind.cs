@@ -24,6 +24,7 @@ namespace Metalama.Framework.Code
     {
         /// <summary>
         /// The constructor has no explicit initializer (no <c>: base(...)</c> or <c>: this(...)</c> clause).
+        /// The C# compiler implicitly calls the parameterless base class constructor.
         /// </summary>
         None,
 

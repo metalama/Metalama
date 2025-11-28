@@ -5,7 +5,7 @@
 namespace Metalama.Framework.Advising;
 
 /// <summary>
-/// Represents the result of an advice that removes attributes.
+/// Represents the result of an advice that removes attributes, returned by <see cref="AdviserExtensions.RemoveAttributes"/>.
 /// </summary>
 /// <seealso cref="IAdviceResult"/>
 /// <seealso cref="AdviserExtensions.RemoveAttributes"/>

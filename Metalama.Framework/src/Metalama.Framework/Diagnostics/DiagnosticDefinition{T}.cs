@@ -7,14 +7,38 @@ using System.Collections.Immutable;
 namespace Metalama.Framework.Diagnostics;
 
 /// <summary>
-/// Defines a diagnostic with a strongly-typed set of parameters that are typically specified by using a named tuple for generic parameter
-/// <typeparamref name="T"/>. For diagnostics that accept a single parameter, <typeparamref name="T"/> must be set to the type of this parameter.
-/// To accept several parameters, use a tuple.
-/// For a diagnostic that does not accept parameters, use <see cref="DiagnosticDefinition"/>.
+/// Defines a diagnostic with strongly-typed parameters.
 /// </summary>
-/// <typeparam name="T">Type of arguments: a single type if there is a single argument, or a named tuple type for several arguments
-/// Alternatively, you can also use <c>object[]</c>.
-/// </typeparam>
+/// <remarks>
+/// <para>
+/// Diagnostic definitions must be declared as static fields in compile-time classes (such as aspect classes,
+/// fabric classes, or other compile-time helper classes). They specify a unique ID, severity level, and a
+/// message format string that uses the standard .NET string formatting syntax.
+/// </para>
+/// <para>
+/// To report a diagnostic with parameters, first call <see cref="WithArguments"/> to create an <see cref="IDiagnostic"/>
+/// instance with the parameter values, then pass it to <see cref="ScopedDiagnosticSink.Report(IDiagnostic)"/>.
+/// </para>
+/// <para>
+/// For a single parameter, set <typeparamref name="T"/> to the parameter type (e.g., <c>DiagnosticDefinition&lt;string&gt;</c>).
+/// For multiple parameters, use a tuple (e.g., <c>DiagnosticDefinition&lt;(int, string)&gt;</c>).
+/// For weakly-typed parameters, use <c>DiagnosticDefinition&lt;object[]&gt;</c>.
+/// For diagnostics without parameters, use <see cref="DiagnosticDefinition"/> instead.
+/// </para>
+/// </remarks>
+/// <example>
+/// <code>
+/// private static readonly DiagnosticDefinition&lt;string&gt; _fieldNotFoundError = new(
+///     "MY002",
+///     Severity.Error,
+///     "The field '{0}' was not found in type.");
+///
+/// // In BuildAspect:
+/// builder.Diagnostics.Report(_fieldNotFoundError.WithArguments("_logger"));
+/// </code>
+/// </example>
+/// <typeparam name="T">The type of arguments: a single type for one parameter, or a tuple type for multiple parameters.
+/// Alternatively, you can use <c>object[]</c> for weakly-typed parameters.</typeparam>
 /// <seealso cref="DiagnosticDefinition"/>
 /// <seealso cref="IDiagnosticDefinition"/>
 /// <seealso cref="IDiagnostic"/>
@@ -64,8 +88,10 @@ public class DiagnosticDefinition<T> : IDiagnosticDefinition
     public string Title { get; }
 
     /// <summary>
-    /// Creates an instance of the current diagnostic definition with specific arguments.
+    /// Creates a diagnostic instance with the specified arguments.
     /// </summary>
+    /// <param name="arguments">The arguments to be formatted into the diagnostic message. For multiple parameters, pass a tuple.</param>
+    /// <returns>An <see cref="IDiagnostic"/> instance that can be reported using <see cref="ScopedDiagnosticSink.Report(IDiagnostic)"/>.</returns>
     public IDiagnostic WithArguments( T arguments ) => new DiagnosticImpl<T>( this, arguments, ImmutableArray<IDiagnosticExtension>.Empty );
 
     public override string ToString() => $"{this.Severity} {this.Id}: {this.Title}";

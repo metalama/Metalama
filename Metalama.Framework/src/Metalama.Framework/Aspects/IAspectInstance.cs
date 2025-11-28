@@ -50,6 +50,7 @@ namespace Metalama.Framework.Aspects
     /// <seealso cref="IAspectState"/>
     /// <seealso cref="IAspectPredecessor"/>
     /// <seealso href="@child-aspects"/>
+    /// <seealso href="@aspect-design"/>
     [InternalImplement]
     [CompileTime]
     public interface IAspectInstance : IAspectPredecessor
@@ -80,8 +81,24 @@ namespace Metalama.Framework.Aspects
         /// <summary>
         /// Gets the other instances of the same <see cref="AspectClass"/> on the same <see cref="IAspectPredecessor.TargetDeclaration"/>.
         /// When several instances of the same <see cref="AspectClass"/> are found on the same <see cref="IAspectPredecessor.TargetDeclaration"/>,
-        /// they are ordered by priority, and only the first one gets executed. The other instances are exposed on this property.
+        /// they are ordered by priority, and only the first one (the primary instance) gets executed. The other instances are exposed on this property.
         /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Priority ordering (highest to lowest):</b>
+        /// </para>
+        /// <list type="number">
+        /// <item><description>Aspects defined using a custom attribute directly on the declaration</description></item>
+        /// <item><description>Aspects added by another aspect as child aspects</description></item>
+        /// <item><description>Aspects inherited from base declarations</description></item>
+        /// <item><description>Aspects added by fabrics</description></item>
+        /// </list>
+        /// <para>
+        /// The aspect implementation is responsible for handling secondary instances if needed, typically by examining
+        /// their properties or state and incorporating that information into the primary instance's behavior.
+        /// </para>
+        /// </remarks>
+        /// <seealso href="@ordering-aspects"/>
         ImmutableArray<IAspectInstance> SecondaryInstances { get; }
 
         /// <summary>

@@ -8,12 +8,29 @@ using System;
 namespace Metalama.Framework.Code.Invokers
 {
     /// <summary>
-    /// Allows adding/removing delegates to/from events.
+    /// Allows generating run-time code that adds handlers to, removes handlers from, or raises an event when you have its compile-time <see cref="IEvent"/> representation.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Invokers are APIs that allow you to generate run-time code from compile-time declarations. When you have an <see cref="IEvent"/>
+    /// object (a compile-time representation of an event), you can use its invoker methods to create expressions that add or remove
+    /// event handlers, or raise the event. These operations can then be used in templates and will be expanded into actual C# code.
+    /// </para>
+    /// <para>
+    /// The <see cref="Add"/> and <see cref="Remove"/> methods generate code to manage event handlers, while <see cref="Raise"/>
+    /// generates code to invoke the event. Use <see cref="WithObject"/> to specify the target instance and <see cref="WithOptions"/>
+    /// to control nullability behavior and which implementation layer (base, current, or final) to access.
+    /// </para>
+    /// <para>
+    /// By default, the event is accessed on the current object (<c>this</c>) for instance events. The <c>base</c> implementation
+    /// is accessed, i.e. the implementation <i>before</i> the current aspect layer.
+    /// </para>
+    /// </remarks>
     /// <seealso cref="IEvent"/>
     /// <seealso cref="InvokerOptions"/>
     /// <seealso cref="IExpression"/>
     /// <seealso href="@invokers"/>
+    /// <seealso href="@dynamic-typing"/>
     [CompileTime]
     public interface IEventInvoker
     {

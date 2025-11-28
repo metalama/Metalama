@@ -13,15 +13,37 @@ using System.Linq;
 namespace Metalama.Framework.Aspects
 {
     /// <summary>
-    /// Custom attribute that can be applied to any member of an aspect class and that means that this member must be introduced to
-    /// the target class of the aspect.
+    /// Marks a member in an aspect class to be introduced (added) to the target type.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This attribute enables <i>declarative member introduction</i>, the simplest way to add members through aspects.
+    /// When applied to a method, property, field, or event in an aspect class, that member is automatically introduced
+    /// into the target type when the aspect is applied.
+    /// </para>
+    /// <para>
+    /// The introduced member is based on a T# template - compile-time logic executes to generate the run-time code.
+    /// Properties like <see cref="Name"/>, <see cref="Accessibility"/>, and <see cref="IsVirtual"/> allow you to
+    /// customize the introduced member's characteristics. When not set, these properties default to the values from
+    /// the template member.
+    /// </para>
+    /// <para>
+    /// Use <see cref="WhenExists"/> to control behavior when a member with the same name already exists in the target type.
+    /// The default is <see cref="OverrideStrategy.Fail"/>, which reports an error.
+    /// </para>
+    /// <para>
+    /// For programmatic member introduction with more control, use <see cref="AdviserExtensions.IntroduceMethod"/>,
+    /// <see cref="AdviserExtensions.IntroduceProperty"/>, <see cref="AdviserExtensions.IntroduceField"/>, or
+    /// <see cref="AdviserExtensions.IntroduceEvent"/> in the <see cref="IAspect{T}.BuildAspect"/> method.
+    /// </para>
+    /// </remarks>
     /// <seealso cref="DeclarativeAdviceAttribute"/>
     /// <seealso cref="ITemplateAttribute"/>
     /// <seealso cref="TemplateAttribute"/>
     /// <seealso cref="IntroductionScope"/>
     /// <seealso cref="OverrideStrategy"/>
     /// <seealso href="@introducing-members"/>
+    /// <seealso href="@advising-concepts"/>
     [AttributeUsage( AttributeTargets.Property | AttributeTargets.Field | AttributeTargets.Method | AttributeTargets.Event )]
     [PublicAPI]
     public sealed class IntroduceAttribute : DeclarativeAdviceAttribute, ITemplateAttribute
@@ -62,9 +84,19 @@ namespace Metalama.Framework.Aspects
         public IntroductionScope Scope { get; set; }
 
         /// <summary>
-        /// Gets or sets the implementation strategy (like <see cref="OverrideStrategy.Override"/>, <see cref="OverrideStrategy.Fail"/> or <see cref="OverrideStrategy.Ignore"/>) when the member is already declared in the target type.
-        /// The default value is <see cref="OverrideStrategy.Fail"/>. 
+        /// Gets or sets the strategy to use when a member with the same name already exists in the target type.
         /// </summary>
+        /// <remarks>
+        /// <para>
+        /// The default value is <see cref="OverrideStrategy.Fail"/>, which reports an error when a conflict is detected.
+        /// Other options include:
+        /// <list type="bullet">
+        /// <item><see cref="OverrideStrategy.Override"/>: Replace the existing member with the introduced one</item>
+        /// <item><see cref="OverrideStrategy.Ignore"/>: Skip introducing the member without reporting an error</item>
+        /// <item><see cref="OverrideStrategy.New"/>: Introduce the member with the <c>new</c> modifier, hiding the existing member</item>
+        /// </list>
+        /// </para>
+        /// </remarks>
         public OverrideStrategy WhenExists { get; set; }
 
         /// <summary>

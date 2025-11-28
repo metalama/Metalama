@@ -8,19 +8,30 @@ using System;
 namespace Metalama.Framework.Code.Invokers
 {
     /// <summary>
-    /// Allows accessing the value of fields or properties through the <see cref="IExpression.Value"/> property of
-    /// the <see cref="IExpression"/> interface. This interface augments <see cref="IExpression"/> with methods that allow to control
-    /// the object on which the field or property is accessed, as well as nullability options (see remarks).
+    /// Allows generating run-time code that accesses a field or property when you have its compile-time <see cref="IFieldOrProperty"/> representation.
     /// </summary>
     /// <remarks>
-    /// By default, the property is accessed on the current object (<c>this</c>), unless the property is static. The <c>base</c> implementation
-    /// of the property is invoked, i.e. the implementation <i>before</i> the current aspect layer. To change the default values,
-    /// use the <see cref="WithOptions"/> method.
+    /// <para>
+    /// Invokers are APIs that allow you to generate run-time code from compile-time declarations. When you have an <see cref="IFieldOrProperty"/>
+    /// object (a compile-time representation of a field or property), you can use it as an <see cref="IExpression"/> to access its value
+    /// in generated code. Since this interface implements <see cref="IExpression"/>, you can use the <see cref="IExpression.Value"/>
+    /// property to get or set the field or property value directly in template code.
+    /// </para>
+    /// <para>
+    /// For fields, you can also use <c>ref</c> when accessing the <see cref="IExpression.Value"/> property, allowing you to pass fields
+    /// by reference. Use <see cref="WithObject"/> to specify the target instance and <see cref="WithOptions"/> to control nullability
+    /// behavior and which implementation layer (base, current, or final) to access.
+    /// </para>
+    /// <para>
+    /// By default, the field or property is accessed on the current object (<c>this</c>) for instance members. The <c>base</c>
+    /// implementation is accessed, i.e. the implementation <i>before</i> the current aspect layer.
+    /// </para>
     /// </remarks>
     /// <seealso cref="IFieldOrProperty"/>
     /// <seealso cref="InvokerOptions"/>
     /// <seealso cref="IExpression"/>
     /// <seealso href="@invokers"/>
+    /// <seealso href="@dynamic-typing"/>
     [CompileTime]
     public interface IFieldOrPropertyInvoker : IExpression
     {

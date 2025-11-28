@@ -11,49 +11,64 @@ using System;
 namespace Metalama.Framework.Diagnostics;
 
 /// <summary>
-/// Extension methods for <see cref="IQuery{T}"/> and <see cref="ITaggedQuery{T, TTag}"/> to report and suppress diagnostics.
+/// Extension methods for <see cref="IQuery{T}"/> and <see cref="ITaggedQuery{T, TTag}"/> that enable reporting and suppressing diagnostics
+/// on sets of declarations in fabrics.
 /// </summary>
+/// <remarks>
+/// <para>
+/// These extension methods allow fabrics to report diagnostics or suppress diagnostics for multiple declarations at once
+/// using LINQ-like queries. This is particularly useful for implementing architecture rules or validation logic that
+/// applies to many declarations.
+/// </para>
+/// <para>
+/// Use these methods in <see cref="ProjectFabric"/>, <see cref="NamespaceFabric"/>, or <see cref="TypeFabric"/>
+/// to validate code structure and report diagnostics based on query results.
+/// </para>
+/// </remarks>
+/// <seealso cref="ProjectFabric"/>
+/// <seealso href="@fabrics"/>
+/// <seealso href="@diagnostics"/>
 [CompileTime]
 public static class DiagnosticsQueryExtensions
 {
     /// <summary>
-    /// Reports a diagnostic for each declaration selected by the the current object.
+    /// Reports a diagnostic for each declaration selected by the query.
     /// </summary>
     /// <typeparam name="TDeclaration">The type of declaration in the query.</typeparam>
-    /// <param name="query">A query selecting the declarations to validate.</param>
-    /// <param name="diagnostic">A function returning an <see cref="IDiagnostic"/> given a declaration.</param>
+    /// <param name="query">A query selecting the declarations for which to report diagnostics.</param>
+    /// <param name="diagnostic">A function that creates an <see cref="IDiagnostic"/> for each selected declaration.</param>
     public static void ReportDiagnostic<TDeclaration>( this IQuery<TDeclaration> query, Func<TDeclaration, IDiagnostic> diagnostic )
         where TDeclaration : class, IDeclaration
         => query.Project.ServiceProvider.GetRequiredService<IDiagnosticsQueryService>().ReportDiagnostic( query, diagnostic );
 
     /// <summary>
-    /// Suppresses a diagnostic for each declaration selected by the current object.
+    /// Suppresses a diagnostic for each declaration selected by the query.
     /// </summary>
     /// <typeparam name="TDeclaration">The type of declaration in the query.</typeparam>
-    /// <param name="query">A query selecting the declarations to validate.</param>
-    /// <param name="suppression">A function returning a <see cref="SuppressionDefinition"/> given a declaration.</param>
+    /// <param name="query">A query selecting the declarations for which to suppress diagnostics.</param>
+    /// <param name="suppression">A function that creates a <see cref="SuppressionDefinition"/> for each selected declaration.</param>
     public static void SuppressDiagnostic<TDeclaration>( this IQuery<TDeclaration> query, Func<TDeclaration, SuppressionDefinition> suppression )
         where TDeclaration : class, IDeclaration
         => query.Project.ServiceProvider.GetRequiredService<IDiagnosticsQueryService>().SuppressDiagnostic( query, suppression );
 
     /// <summary>
-    /// Reports a diagnostic for each declaration selected by the the current object.
+    /// Reports a diagnostic for each declaration selected by the tagged query, with access to the tag value.
     /// </summary>
     /// <typeparam name="TDeclaration">The type of declaration in the query.</typeparam>
     /// <typeparam name="TTag">The type of tag associated with each declaration.</typeparam>
-    /// <param name="query">A query selecting the declarations to validate.</param>
-    /// <param name="diagnostic">A function returning an <see cref="IDiagnostic"/> given a declaration.</param>
+    /// <param name="query">A tagged query selecting the declarations for which to report diagnostics.</param>
+    /// <param name="diagnostic">A function that creates an <see cref="IDiagnostic"/> for each selected declaration and its tag.</param>
     public static void ReportDiagnostic<TDeclaration, TTag>( this ITaggedQuery<TDeclaration, TTag> query, Func<TDeclaration, TTag, IDiagnostic> diagnostic )
         where TDeclaration : class, IDeclaration
         => query.Project.ServiceProvider.GetRequiredService<IDiagnosticsQueryService>().ReportDiagnostic( query, diagnostic );
 
     /// <summary>
-    /// Suppresses a diagnostic for each declaration selected by the current object.
+    /// Suppresses a diagnostic for each declaration selected by the tagged query, with access to the tag value.
     /// </summary>
     /// <typeparam name="TDeclaration">The type of declaration in the query.</typeparam>
     /// <typeparam name="TTag">The type of tag associated with each declaration.</typeparam>
-    /// <param name="query">A query selecting the declarations to validate.</param>
-    /// <param name="suppression">A function returning a <see cref="SuppressionDefinition"/> given a declaration.</param>
+    /// <param name="query">A tagged query selecting the declarations for which to suppress diagnostics.</param>
+    /// <param name="suppression">A function that creates a <see cref="SuppressionDefinition"/> for each selected declaration and its tag.</param>
     public static void SuppressDiagnostic<TDeclaration, TTag>(
         this ITaggedQuery<TDeclaration, TTag> query,
         Func<TDeclaration, TTag, SuppressionDefinition> suppression )

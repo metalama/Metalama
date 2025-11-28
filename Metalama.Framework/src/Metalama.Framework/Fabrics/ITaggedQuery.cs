@@ -8,6 +8,42 @@ using System.Collections.Generic;
 
 namespace Metalama.Framework.Fabrics;
 
+/// <summary>
+/// Represents a LINQ-like query over a set of code declarations where each declaration is associated with a tag. Create using <see cref="IQuery{TDeclaration}.WithTag{TTag}"/>.
+/// Tags allow you to pass additional data alongside declarations through query transformations, enabling context-aware aspect application and configuration.
+/// </summary>
+/// <typeparam name="TDeclaration">The type of declarations in the current query result set (e.g., <see cref="INamedType"/>, <see cref="IMethod"/>, <see cref="IProperty"/>).</typeparam>
+/// <typeparam name="TTag">The type of the tag associated with each declaration in the query.</typeparam>
+/// <remarks>
+/// <para>
+/// Tagged queries extend <see cref="IQuery{T}"/> by associating arbitrary data (tags) with each declaration. This allows you to carry context through query transformations.
+/// For example, when adding aspects based on attribute data, you can tag declarations with the attribute instance and later use that tag when configuring the aspect.
+/// </para>
+/// <para>
+/// Many methods in this interface have overloads that accept the tag as a parameter to the selector or predicate delegates,
+/// allowing you to make decisions based on both the declaration and its associated tag.
+/// </para>
+/// <para>
+/// Extension methods for this interface are provided by:
+/// </para>
+/// <list type="bullet">
+/// <item><description><see cref="Aspects.AspectQueryExtensions"/> - for adding aspects with tag-based configuration</description></item>
+/// <item><description><see cref="Options.OptionQueryExtensions"/> - for configuring options based on tags</description></item>
+/// <item><description><see cref="Diagnostics.DiagnosticsQueryExtensions"/> - for reporting diagnostics</description></item>
+/// <item><description><see cref="QueryExtensions"/> - for additional querying capabilities</description></item>
+/// <item><description><c>Metalama.Extensions.Architecture.Predicates.PredicateExtensions</c> - for architecture validation predicates</description></item>
+/// <item><description><c>Metalama.Extensions.Validation.ValidationQueryExtensions</c> - for validation rules</description></item>
+/// <item><description><c>Metalama.Extensions.Validation.ReferenceValidationQueryExtensions</c> - for reference validation</description></item>
+/// <item><description><c>Metalama.Extensions.CodeFixes.CodeFixQueryExtensions</c> - for code fix suggestions</description></item>
+/// </list>
+/// </remarks>
+/// <seealso cref="IQuery{TDeclaration}"/>
+/// <seealso cref="IAmender{T}"/>
+/// <seealso cref="Aspects.AspectQueryExtensions"/>
+/// <seealso cref="Options.OptionQueryExtensions"/>
+/// <seealso cref="QueryExtensions"/>
+/// <seealso href="@fabrics"/>
+/// <seealso href="@fabrics-adding-aspects"/>
 public interface ITaggedQuery<out TDeclaration, out TTag> : IQuery<TDeclaration>
     where TDeclaration : class, IDeclaration
 {
@@ -85,6 +121,10 @@ public interface ITaggedQuery<out TDeclaration, out TTag> : IQuery<TDeclaration>
     /// </summary>
     ITaggedQuery<TDeclaration, TTag> Where( Func<TDeclaration, TTag, bool> predicate );
 
+    /// <summary>
+    /// Selects all declarations of a given type.
+    /// </summary>
+    /// <typeparam name="TOut">The type of selected declarations.</typeparam>
     new ITaggedQuery<TOut, TTag> OfType<TOut>()
         where TOut : class, IDeclaration;
 

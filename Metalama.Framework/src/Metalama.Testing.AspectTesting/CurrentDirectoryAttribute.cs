@@ -16,10 +16,27 @@ using Xunit.Sdk;
 namespace Metalama.Testing.AspectTesting
 {
     /// <summary>
-    /// An implementation of <c>SyntaxAttribute</c> that generates test cases from files in the current directory. To be used with <c>[Theory]</c>.
-    /// This attribute will not include subdirectories that contain a file named <c>_Runner.cs</c>, nor subdirectories that are covered by
-    /// another test method of the same class. It also takes into account the <c>metalamaTests.config</c> file.
+    /// An xUnit data attribute that generates test cases from aspect test files in the current directory.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This attribute is used with <c>[Theory]</c> to automatically discover test files (typically <c>*.cs</c> files) in a directory
+    /// and generate a test case for each file. Use this in conjunction with <see cref="AspectTestClass"/>.
+    /// </para>
+    /// <para>
+    /// The attribute excludes:
+    /// <list type="bullet">
+    /// <item>Subdirectories that contain a file named <c>_Runner.cs</c></item>
+    /// <item>Subdirectories covered by another test method in the same class</item>
+    /// </list>
+    /// </para>
+    /// <para>
+    /// Test discovery respects options from <c>metalamaTests.json</c> files.
+    /// </para>
+    /// </remarks>
+    /// <seealso cref="AspectTestClass"/>
+    /// <seealso cref="TestOptions"/>
+    /// <seealso href="@testing-aspects"/>
     [PublicAPI]
     public sealed class CurrentDirectoryAttribute : DataAttribute
     {

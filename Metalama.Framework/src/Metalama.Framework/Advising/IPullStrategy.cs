@@ -18,7 +18,12 @@ namespace Metalama.Framework.Advising;
 /// should obtain the value for this parameter when calling the base constructor.
 /// </para>
 /// <para>
-/// Custom implementations must be serializable (implement <see cref="ICompileTimeSerializable"/>) because pulling operates across project boundaries.
+/// <strong>Cross-Project Operation:</strong> Pull strategies operate across project boundaries. Custom implementations
+/// must be serializable (implement <see cref="ICompileTimeSerializable"/>) because the strategy needs to be persisted
+/// and applied in projects that reference the project where the parameter was introduced. For example, if you introduce
+/// a parameter to a base class in Project A using <see cref="PullStrategy.IntroduceParameterAndPull"/>, and Project B
+/// references Project A and has derived classes, those derived classes will automatically have the parameter added to
+/// their constructors.
 /// </para>
 /// </remarks>
 /// <seealso cref="PullStrategy"/>

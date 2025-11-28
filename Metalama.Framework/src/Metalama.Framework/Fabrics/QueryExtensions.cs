@@ -12,8 +12,18 @@ using System.Linq;
 namespace Metalama.Framework.Fabrics;
 
 /// <summary>
-/// Extends the <see cref="IQuery{TDeclaration}"/> interface with some utility methods.
+/// Provides extension methods for <see cref="IQuery{TDeclaration}"/> to enable additional querying capabilities,
+/// such as selecting types by reflection, finding declarations with attributes, and selecting referenced assemblies.
 /// </summary>
+/// <remarks>
+/// <para>
+/// These extension methods complement the core query methods defined in <see cref="IQuery{TDeclaration}"/>,
+/// providing convenience methods for common querying scenarios within fabrics.
+/// </para>
+/// </remarks>
+/// <seealso cref="IQuery{TDeclaration}"/>
+/// <seealso href="@fabrics"/>
+/// <seealso href="@fabrics-adding-aspects"/>
 [CompileTime]
 [PublicAPI]
 public static class QueryExtensions

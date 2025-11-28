@@ -5,10 +5,11 @@
 namespace Metalama.Framework.Advising;
 
 /// <summary>
-/// Represents the result of an advice that adds an initializer.
+/// Represents the result of an advice that adds an initializer, returned by <see cref="AdviserExtensions.AddInitializer"/>.
 /// </summary>
 /// <seealso cref="IAdviceResult"/>
 /// <seealso cref="AdviserExtensions.AddInitializer"/>
 /// <seealso cref="InitializerKind"/>
 /// <seealso href="@initializers"/>
+/// <seealso href="@overriding-constructors"/>
 public interface IAddInitializerAdviceResult : IAdviceResult;

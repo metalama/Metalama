@@ -10,21 +10,42 @@ namespace Metalama.Framework.Advising;
 /// <summary>
 /// Provides factory methods for creating standard implementations of the <see cref="IPullStrategy"/> interface.
 /// </summary>
+/// <remarks>
+/// <para>
+/// A pull strategy determines how an introduced constructor parameter's value is obtained in child constructors.
+/// This class provides common implementations that cover most scenarios. For custom behavior, implement
+/// <see cref="IPullStrategy"/> directly.
+/// </para>
+/// <para>
+/// The pull strategy is invoked for each constructor that calls the constructor where the parameter was introduced,
+/// either through <c>: base(...)</c> or <c>: this(...)</c> syntax. The strategy returns a <see cref="PullAction"/>
+/// that specifies what value to pass for the introduced parameter.
+/// </para>
+/// </remarks>
 /// <seealso cref="IPullStrategy"/>
 /// <seealso cref="PullAction"/>
+/// <seealso cref="AdviserExtensions.IntroduceParameter"/>
 /// <seealso href="@introducing-constructor-parameters"/>
 public static class PullStrategy
 {
     /// <summary>
-    /// Creates a pull strategy that passes a specific expression value to the introduced parameter.
+    /// Creates a pull strategy that passes a static expression value to the introduced parameter.
     /// </summary>
-    /// <param name="expression">An expression that evaluates to the value to pass. Only a limited set of expressions are supported,
-    /// including <see cref="TypedConstant"/>, <see cref="IParameter"/>, and other static expressions created via <see cref="Code.SyntaxBuilders.ExpressionFactory"/>.</param>
+    /// <param name="expression">An expression that evaluates to the value to pass. Only static expressions are supported,
+    /// such as <see cref="TypedConstant"/>, static field/property access, or static method calls created via <see cref="Code.SyntaxBuilders.ExpressionFactory"/>.
+    /// To forward an existing parameter, pass an <see cref="IParameter"/> directly.</param>
     /// <returns>A pull strategy that uses the specified expression to provide the parameter value.</returns>
     /// <remarks>
-    /// This is useful when you want to pass a value from an existing parameter or a specific expression to the introduced parameter.
-    /// For example, you can use <c>PullStrategy.UseExpression(existingParameter)</c> to forward an existing parameter's value.
+    /// <para>
+    /// This strategy is useful when you want to pass a static or compile-time expression to the introduced parameter.
+    /// </para>
+    /// <para>
+    /// <strong>Note:</strong> While you can pass an <see cref="IParameter"/> directly to this method to forward a parameter value,
+    /// it's generally clearer to let <see cref="IntroduceParameterAndPull"/> handle parameter forwarding when appropriate.
+    /// </para>
     /// </remarks>
+    /// <seealso cref="PullAction.UseExpression"/>
+    /// <seealso cref="IntroduceParameterAndPull"/>
     public static IPullStrategy UseExpression( IExpression expression ) => new ExpressionPullStrategy( expression );
 
     /// <summary>
@@ -33,9 +54,15 @@ public static class PullStrategy
     /// <param name="constant">The constant value to pass to the introduced parameter.</param>
     /// <returns>A pull strategy that uses the specified constant to provide the parameter value.</returns>
     /// <remarks>
+    /// <para>
     /// This is a convenience method equivalent to calling <see cref="UseExpression"/> with a <see cref="TypedConstant"/>.
     /// Use this when you want all child constructors to pass the same constant value to the introduced parameter.
+    /// </para>
+    /// <para>
+    /// Example: <c>PullStrategy.UseConstant(TypedConstant.Create(true))</c> will pass <c>true</c> from all child constructors.
+    /// </para>
     /// </remarks>
+    /// <seealso cref="PullAction.UseConstant"/>
     public static IPullStrategy UseConstant( TypedConstant constant ) => new ExpressionPullStrategy( constant );
 
     /// <summary>
@@ -56,9 +83,15 @@ public static class PullStrategy
     /// even if those derived types are defined in different projects that reference the project containing the base type.
     /// </para>
     /// <para>
-    /// This is the most common pull strategy when you want derived classes to provide values for the introduced parameter.
+    /// This is the most common pull strategy when you want derived classes to provide values for the introduced parameter,
+    /// especially for dependency injection scenarios where dependencies should flow through the constructor hierarchy.
+    /// </para>
+    /// <para>
+    /// Example: If you introduce an <c>ILogger</c> parameter to a base class constructor with this strategy, all derived
+    /// class constructors will also get an <c>ILogger</c> parameter added, and they will pass it to the base constructor.
     /// </para>
     /// </remarks>
+    /// <seealso cref="PullAction.IntroduceParameterAndPull"/>
     public static IPullStrategy IntroduceParameterAndPull(
         string? name = null,
         IType? type = null,

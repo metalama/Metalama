@@ -7,10 +7,23 @@ namespace Metalama.Framework.Code.DeclarationBuilders
     /// <summary>
     /// Allows you to configure a constructor that has been created by an advice.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Use this builder when introducing constructors via <see cref="AdviserExtensions.IntroduceConstructor"/>
+    /// or when introducing parameters via <see cref="AdviserExtensions.IntroduceParameter"/>.
+    /// </para>
+    /// <para>
+    /// The builder allows you to configure the constructor initializer (base or this call) and add arguments
+    /// to pass to the chained constructor.
+    /// </para>
+    /// </remarks>
     /// <seealso cref="IConstructor"/>
     /// <seealso cref="IMethodBaseBuilder"/>
     /// <seealso cref="AdviserExtensions.IntroduceConstructor"/>
+    /// <seealso cref="AdviserExtensions.IntroduceParameter"/>
+    /// <seealso cref="AdviserExtensions.AddInitializer"/>
     /// <seealso href="@introducing-constructor-parameters"/>
+    /// <seealso href="@initializers"/>
     public interface IConstructorBuilder : IConstructor, IMethodBaseBuilder
     {
         /// <summary>
@@ -23,6 +36,11 @@ namespace Metalama.Framework.Code.DeclarationBuilders
         /// </summary>
         /// <param name="initializerArgumentExpression">The expression to pass as an argument to the constructor initializer.</param>
         /// <param name="parameterName">The optional name of the parameter to which the argument should be assigned. If <c>null</c>, arguments are assigned positionally.</param>
+        /// <remarks>
+        /// This method is commonly used when introducing constructor parameters to pass the new parameter value
+        /// to base or chained constructors via the <c>: base(...)</c> or <c>: this(...)</c> syntax.
+        /// </remarks>
+        /// <seealso href="@introducing-constructor-parameters"/>
         void AddInitializerArgument( IExpression initializerArgumentExpression, string? parameterName = null );
     }
 }

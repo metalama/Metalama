@@ -11,12 +11,32 @@ using System.Collections.Immutable;
 namespace Metalama.Framework.Code.SyntaxBuilders;
 
 /// <summary>
-/// Builds a <c>switch</c> statement.
+/// Allows building run-time <c>switch</c> statements programmatically by adding case and default sections.
 /// </summary>
+/// <remarks>
+/// <para>
+/// <see cref="SwitchStatementBuilder"/> provides a specialized builder for creating <c>switch</c> statements when the cases
+/// are determined at compile time. You initialize it with the switch expression, then use <see cref="AddCase(SwitchStatementLabel, IStatementList, bool)"/>
+/// to add case sections and <see cref="AddDefault(IStatementList, bool)"/> for the default section. Each section can optionally
+/// include a <c>when</c> clause for pattern matching.
+/// </para>
+/// <para>
+/// For case sections that need multiple statements, create an <see cref="IStatementList"/> using <see cref="StatementFactory.List(IStatement[])"/>
+/// for a fixed set of statements, or use <see cref="StatementListBuilder"/> when the statements are determined dynamically at
+/// compile time. For single-statement cases, use the overloads that accept <see cref="IStatement"/> directly.
+/// </para>
+/// <para>
+/// The builder automatically handles <c>break</c> statements unless you specify otherwise, and supports both C# pattern matching
+/// syntax and traditional constant case labels. After adding all sections, call <see cref="ToStatement"/> to get an <see cref="IStatement"/>
+/// that can be inserted into template code using <see cref="meta.InsertStatement"/>.
+/// </para>
+/// </remarks>
 /// <seealso cref="IStatementBuilder"/>
 /// <seealso cref="StatementFactory"/>
+/// <seealso cref="StatementBuilder"/>
 /// <seealso cref="SwitchStatementLabel"/>
 /// <seealso href="@run-time-statements"/>
+/// <seealso href="@templates"/>
 [CompileTime]
 [PublicAPI]
 public sealed class SwitchStatementBuilder : IStatementBuilder

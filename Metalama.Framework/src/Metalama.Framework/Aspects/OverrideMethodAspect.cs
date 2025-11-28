@@ -13,8 +13,31 @@ using System.Threading.Tasks;
 namespace Metalama.Framework.Aspects
 {
     /// <summary>
-    /// A base aspect that overrides the implementation of a method.
+    /// A base class for aspects that override method implementations.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This class simplifies creating aspects that replace method implementations. Derived classes must implement the
+    /// <see cref="OverrideMethod"/> template, which defines the new method implementation. The template has access to the
+    /// original method through <c>meta.Proceed()</c>.
+    /// </para>
+    /// <para>
+    /// This aspect automatically selects the appropriate template based on the target method's characteristics:
+    /// <list type="bullet">
+    /// <item><see cref="OverrideAsyncMethod"/> for <c>async</c> methods (or all awaitable types if <see cref="UseAsyncTemplateForAnyAwaitable"/> is <c>true</c>)</item>
+    /// <item><see cref="OverrideEnumerableMethod"/> or <see cref="OverrideEnumeratorMethod"/> for iterator methods using <c>yield</c> (or all enumerable types if <see cref="UseEnumerableTemplateForAnyEnumerable"/> is <c>true</c>)</item>
+    /// <item><c>OverrideAsyncEnumerableMethod</c> or <c>OverrideAsyncEnumeratorMethod</c> for async iterator methods (or all async enumerable types if both properties are <c>true</c>)</item>
+    /// <item><see cref="OverrideMethod"/> for all other methods</item>
+    /// </list>
+    /// If specialized templates are not overridden, <see cref="OverrideMethod"/> is used as the fallback.
+    /// </para>
+    /// <para>
+    /// The properties <see cref="UseAsyncTemplateForAnyAwaitable"/> and <see cref="UseEnumerableTemplateForAnyEnumerable"/>
+    /// control template selection strategy. By default (<c>false</c>), templates are selected based on method modifiers
+    /// (<c>async</c>, <c>yield</c>). When set to <c>true</c>, selection is based solely on return type, which is useful
+    /// when you need to handle all methods of certain return types consistently.
+    /// </para>
+    /// </remarks>
     /// <seealso cref="MethodAspect"/>
     /// <seealso cref="MethodTemplateSelector"/>
     /// <seealso cref="AdviserExtensions.Override(IAdviser{IMethod}, in MethodTemplateSelector, object?, object?)"/>
@@ -43,16 +66,38 @@ namespace Metalama.Framework.Aspects
 #pragma warning disable SA1623
 
         /// <summary>
-        /// Gets or sets a value indicating whether the <see cref="OverrideAsyncMethod"/> template must be applied to all methods returning an awaitable
-        /// type (including <c>IAsyncEnumerable</c> and <c>IAsyncEnumerator</c>), instead of only to methods that have the <c>async</c> modifier.
+        /// Gets or sets a value indicating whether enumerable templates should be selected based on return type rather than the <c>yield</c> modifier.
         /// </summary>
+        /// <remarks>
+        /// <para>
+        /// When <c>false</c> (default), the <see cref="OverrideEnumerableMethod"/> or <see cref="OverrideEnumeratorMethod"/> templates
+        /// are used only for methods that use the <c>yield</c> statement.
+        /// </para>
+        /// <para>
+        /// When <c>true</c>, these templates are used for <i>all</i> methods returning <see cref="System.Collections.Generic.IEnumerable{T}"/>
+        /// or <see cref="System.Collections.Generic.IEnumerator{T}"/>, regardless of whether they use <c>yield</c>.
+        /// </para>
+        /// <para>
+        /// This property is useful when you want to handle all methods returning enumerable types uniformly, even if they don't use iterators.
+        /// </para>
+        /// </remarks>
         protected bool UseEnumerableTemplateForAnyEnumerable { get; init; }
 
         /// <summary>
-        /// Gets or sets a value indicating whether the <see cref="OverrideEnumerableMethod"/>, <see cref="OverrideEnumeratorMethod"/>,
-        /// <c>OverrideAsyncEnumerableMethod"</c> or  <c>OverrideAsyncEnumeratorMethod"</c> template must be applied to all methods returning
-        /// a compatible return type, instead of only to methods using the <c>yield</c> statement.
+        /// Gets or sets a value indicating whether async templates should be selected based on return type rather than the <c>async</c> modifier.
         /// </summary>
+        /// <remarks>
+        /// <para>
+        /// When <c>false</c> (default), the <see cref="OverrideAsyncMethod"/> template is used only for methods with the <c>async</c> modifier.
+        /// </para>
+        /// <para>
+        /// When <c>true</c>, this template is used for <i>all</i> methods returning awaitable types (<see cref="System.Threading.Tasks.Task"/>,
+        /// <see cref="System.Threading.Tasks.ValueTask"/>, <c>IAsyncEnumerable</c>, <c>IAsyncEnumerator</c>), regardless of the <c>async</c> modifier.
+        /// </para>
+        /// <para>
+        /// This property is useful when you want to handle all methods returning awaitable types uniformly, even if they're not marked <c>async</c>.
+        /// </para>
+        /// </remarks>
         protected bool UseAsyncTemplateForAnyAwaitable { get; init; }
 #pragma warning restore SA1623
 
@@ -62,11 +107,20 @@ namespace Metalama.Framework.Aspects
         }
 
         /// <summary>
-        /// Template of the new method implementation for asynchronous methods. By default, this template is used for methods with the <c>async</c> modifier.
-        /// When <see cref="UseAsyncTemplateForAnyAwaitable"/> is <c>true</c>, this template is used for all methods returning an awaitable type
-        /// (including <c>Task</c>, <c>ValueTask</c>, <c>IAsyncEnumerable</c>, and <c>IAsyncEnumerator</c>).
-        /// If this template is not overridden, <see cref="OverrideMethod"/> is used instead.
+        /// Template for overriding asynchronous methods.
         /// </summary>
+        /// <remarks>
+        /// <para>
+        /// By default, this template is selected for methods with the <c>async</c> modifier. When <see cref="UseAsyncTemplateForAnyAwaitable"/>
+        /// is set to <c>true</c>, it applies to all methods returning an awaitable type (<c>Task</c>, <c>ValueTask</c>, <c>IAsyncEnumerable</c>,
+        /// <c>IAsyncEnumerator</c>).
+        /// </para>
+        /// <para>
+        /// If not overridden in a derived class, <see cref="OverrideMethod"/> is used instead. This template is marked with
+        /// <c>[Template(IsEmpty = true)]</c>, making it optional to override.
+        /// </para>
+        /// </remarks>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         [Template( IsEmpty = true )]
         public virtual Task<dynamic?> OverrideAsyncMethod() => throw new NotSupportedException();
 
@@ -105,10 +159,21 @@ namespace Metalama.Framework.Aspects
 #endif
 
         /// <summary>
-        /// Default template of the new method implementation. This template is used for all methods where a more specific template
-        /// (<see cref="OverrideAsyncMethod"/>, <see cref="OverrideEnumerableMethod"/>, <see cref="OverrideEnumeratorMethod"/>,
-        /// <c>OverrideAsyncEnumerableMethod</c>, or <c>OverrideAsyncEnumeratorMethod</c>) has not been overridden or does not apply.
+        /// The default template for overriding method implementations.
         /// </summary>
+        /// <remarks>
+        /// <para>
+        /// This is the primary template method that must be implemented in derived aspects. It is used for all methods where
+        /// a more specific template (<see cref="OverrideAsyncMethod"/>, <see cref="OverrideEnumerableMethod"/>,
+        /// <see cref="OverrideEnumeratorMethod"/>, <c>OverrideAsyncEnumerableMethod</c>, or <c>OverrideAsyncEnumeratorMethod</c>)
+        /// does not apply or has not been overridden.
+        /// </para>
+        /// <para>
+        /// Within the template, use <c>meta.Proceed()</c> to invoke the original method implementation, and <c>meta.Target</c>
+        /// to access information about the target method.
+        /// </para>
+        /// </remarks>
+        /// <returns>The return value of the method. Use <c>dynamic?</c> to support any return type.</returns>
         [Template]
         public abstract dynamic? OverrideMethod();
     }

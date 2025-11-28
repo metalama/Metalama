@@ -11,13 +11,42 @@ using System.Collections.Generic;
 namespace Metalama.Framework.Fabrics;
 
 /// <summary>
-/// Represents query of declarations to which aspects, validators, diagnostics and code fix suggestions can be added.
-/// This interface exposes LINQ-like methods that can be combined in complex queries.
+/// Represents a LINQ-like query over a set of code declarations. Provides methods to filter, project, and transform the declaration set,
+/// and to apply aspects, validators, configuration, and diagnostics to the selected declarations.
 /// </summary>
-/// <typeparam name="TDeclaration">The type of declarations in the current set.</typeparam>
+/// <typeparam name="TDeclaration">The type of declarations in the current query result set (e.g., <see cref="INamedType"/>, <see cref="IMethod"/>, <see cref="IProperty"/>).</typeparam>
+/// <remarks>
+/// <para>
+/// This interface provides a fluent API for querying declarations within fabrics. You can chain methods like <see cref="Where"/>, <see cref="Select{TMember}"/>,
+/// <see cref="SelectMany{TMember}"/>, and <see cref="SelectTypes"/> to build complex queries. The resulting query can then be used with extension methods
+/// from <see cref="QueryExtensions"/> to add aspects or configure options for the selected declarations.
+/// </para>
+/// <para>
+/// Query methods are executed concurrently for better performance, so it's preferable to use the query methods provided by this interface
+/// rather than using standard LINQ methods inside selector delegates.
+/// </para>
+/// <para>
+/// Extension methods for this interface are provided by:
+/// </para>
+/// <list type="bullet">
+/// <item><description><see cref="Aspects.AspectQueryExtensions"/> - for adding aspects to selected declarations</description></item>
+/// <item><description><see cref="Options.OptionQueryExtensions"/> - for configuring options on selected declarations</description></item>
+/// <item><description><see cref="Diagnostics.DiagnosticsQueryExtensions"/> - for reporting diagnostics and suppressions</description></item>
+/// <item><description><see cref="QueryExtensions"/> - for additional querying capabilities</description></item>
+/// <item><description><c>Metalama.Extensions.Architecture.Predicates.PredicateExtensions</c> - for architecture validation predicates</description></item>
+/// <item><description><c>Metalama.Extensions.Validation.ValidationQueryExtensions</c> - for validation rules</description></item>
+/// <item><description><c>Metalama.Extensions.Validation.ReferenceValidationQueryExtensions</c> - for reference validation</description></item>
+/// <item><description><c>Metalama.Extensions.CodeFixes.CodeFixQueryExtensions</c> - for code fix suggestions</description></item>
+/// </list>
+/// </remarks>
 /// <seealso cref="IAmender{T}"/>
 /// <seealso cref="ITaggedQuery{TDeclaration,TTag}"/>
 /// <seealso cref="QueryExtensions"/>
+/// <seealso cref="Aspects.AspectQueryExtensions"/>
+/// <seealso cref="Options.OptionQueryExtensions"/>
+/// <seealso cref="Diagnostics.DiagnosticsQueryExtensions"/>
+/// <seealso href="@fabrics"/>
+/// <seealso href="@fabrics-adding-aspects"/>
 public interface IQuery<out TDeclaration> : IQuery
     where TDeclaration : class, IDeclaration
 {

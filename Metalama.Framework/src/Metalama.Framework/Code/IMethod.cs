@@ -77,6 +77,14 @@ namespace Metalama.Framework.Code
 
         new IRef<IMethod> ToRef();
 
+        /// <summary>
+        /// Creates a constructed generic method from the current generic method definition by substituting type arguments.
+        /// </summary>
+        /// <param name="typeArguments">The type arguments to substitute for the generic method's type parameters.</param>
+        /// <returns>A constructed generic method with the specified type arguments.</returns>
+        /// <remarks>
+        /// This method is analogous to <see cref="System.Reflection.MethodInfo.MakeGenericMethod"/>. The current method must be a generic method definition.
+        /// </remarks>
         IMethod MakeGenericInstance( IReadOnlyList<IType> typeArguments );
     }
 }

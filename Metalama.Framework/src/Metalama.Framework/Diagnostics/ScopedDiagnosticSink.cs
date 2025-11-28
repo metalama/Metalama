@@ -10,8 +10,21 @@ using System;
 namespace Metalama.Framework.Diagnostics;
 
 /// <summary>
-/// Encapsulates an <see cref="IDiagnosticSink"/> and the default target of diagnostics, suppressions, and code fixes.
+/// A diagnostic sink that combines an <see cref="IDiagnosticSink"/> with default target location and declaration,
+/// simplifying diagnostic reporting and suppression.
 /// </summary>
+/// <remarks>
+/// <para>
+/// This struct maintains a default target location and declaration, allowing diagnostics and suppressions
+/// to be reported without explicitly specifying where they apply. This is the primary way aspect code
+/// interacts with the diagnostic system, accessed via <see cref="IAspectBuilder{TAspectTarget}.Diagnostics"/>.
+/// </para>
+/// <para>
+/// The <see cref="Report(IDiagnostic)"/> method reports a diagnostic to the default location, while the
+/// <see cref="Suppress(ISuppression)"/> method suppresses diagnostics within the default declaration scope.
+/// Overloads allow specifying different locations or scopes when needed.
+/// </para>
+/// </remarks>
 /// <seealso cref="IDiagnosticSink"/>
 /// <seealso cref="IScopedDiagnosticSink"/>
 /// <seealso cref="IDiagnostic"/>
@@ -61,22 +74,22 @@ public readonly struct ScopedDiagnosticSink : IScopedDiagnosticSink
     }
 
     /// <summary>
-    /// Reports a diagnostic to the default location of the current <see cref="ScopedDiagnosticSink"/>..
+    /// Reports a diagnostic to the default location of this scoped sink.
     /// </summary>
-    /// <param name="diagnostic">The diagnostic to report.</param>
+    /// <param name="diagnostic">The diagnostic to report, created from a <see cref="DiagnosticDefinition"/> or <see cref="DiagnosticDefinition{T}"/>.</param>
     public void Report( IDiagnostic diagnostic ) => this.Sink.Report( diagnostic, this.DefaultTargetLocation, this.Source );
 
     /// <summary>
-    /// Reports a parametric diagnostic by specifying its location.
+    /// Reports a diagnostic to a specific location instead of the default location.
     /// </summary>
     /// <param name="diagnostic">The diagnostic to report.</param>
     /// <param name="location">The location where the diagnostic should be reported.</param>
     public void Report( IDiagnostic diagnostic, IDiagnosticLocation? location ) => this.Sink.Report( diagnostic, location, this.Source );
 
     /// <summary>
-    /// Suppresses a diagnostic from the default declaration of the current <see cref="ScopedDiagnosticSink"/>.
+    /// Suppresses a diagnostic within the default declaration scope of this scoped sink.
     /// </summary>
-    /// <param name="suppression">The suppression definition.</param>
+    /// <param name="suppression">The suppression definition, which must be defined as a static field in a compile-time class.</param>
     public void Suppress( ISuppression suppression )
     {
         this.Sink.Suppress(
@@ -86,9 +99,9 @@ public readonly struct ScopedDiagnosticSink : IScopedDiagnosticSink
     }
 
     /// <summary>
-    /// Suppresses a diagnostic by specifying the declaration in which the suppression must be effective.
+    /// Suppresses a diagnostic within a specific declaration scope instead of the default scope.
     /// </summary>
-    /// <param name="suppression">The suppression definition, which must be defined as a static field or property.</param>
-    /// <param name="scope">The declaration in which the diagnostic must be suppressed.</param>
+    /// <param name="suppression">The suppression definition, which must be defined as a static field in a compile-time class.</param>
+    /// <param name="scope">The declaration within which the diagnostic should be suppressed.</param>
     public void Suppress( ISuppression suppression, IDeclaration scope ) => this.Sink.Suppress( suppression, scope, this.Source );
 }

@@ -9,10 +9,25 @@ using System.ComponentModel;
 namespace Metalama.Framework.Aspects
 {
     /// <summary>
-    /// Represents the metadata of an aspect class.
+    /// Represents the metadata and characteristics of an aspect class type, providing information about how the aspect
+    /// is displayed, whether it's inheritable, and other type-level properties.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <see cref="IAspectClass"/> exposes compile-time metadata about an aspect type that can be queried from:
+    /// </para>
+    /// <list type="bullet">
+    /// <item><description><see cref="IAspectInstance.AspectClass"/> - Get the class of a specific aspect instance</description></item>
+    /// <item><description>Introspection APIs - Query aspect metadata for analysis or tooling</description></item>
+    /// </list>
+    /// <para>
+    /// This interface provides access to both runtime type information (via <see cref="Type"/>) and Metalama-specific
+    /// metadata such as display names, inheritance settings, and editor experience configuration.
+    /// </para>
+    /// </remarks>
     /// <seealso cref="IAspectInstance"/>
     /// <seealso cref="IAspect"/>
+    /// <seealso href="@aspect-design"/>
     [InternalImplement]
     [CompileTime]
     public interface IAspectClass

@@ -3,11 +3,11 @@
     "allow": [
       "Bash(find:*)",
       "Bash(done)",
-      "Bash(paste:*)",
       "Bash(bc)",
-      "Bash(powershell -NoProfile -Command:*)",
-      "Bash(python extract-docs.py:*)",
-      "Bash(pip install:*)"
+      "Bash(git fetch:*)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(dir /B *.cs)",
+      "WebFetch(domain:github.com)"
     ],
     "deny": [],
     "ask": []

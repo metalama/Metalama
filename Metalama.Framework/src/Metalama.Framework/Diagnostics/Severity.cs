@@ -7,32 +7,36 @@ using Metalama.Framework.Aspects;
 namespace Metalama.Framework.Diagnostics
 {
     /// <summary>
-    /// Severity of diagnostics.
+    /// Specifies the severity level of a diagnostic.
     /// </summary>
     /// <seealso cref="IDiagnosticDefinition"/>
+    /// <seealso cref="DiagnosticDefinition"/>
     /// <seealso cref="DiagnosticDefinition{T}"/>
     /// <seealso href="@diagnostics"/>
     [CompileTime]
     public enum Severity
     {
         /// <summary>
-        /// Something that is an issue, but is not surfaced through normal means.
-        /// There may be different mechanisms that act on these issues.
+        /// An issue that is not surfaced through normal IDE or compiler output but may be acted upon by other tools or mechanisms.
         /// </summary>
+        /// <remarks>
+        /// Use this for diagnostics that should not appear in the error list or output window but might be used
+        /// by code analysis tools or other automated processes.
+        /// </remarks>
         Hidden = 0,
 
         /// <summary>
-        /// Information that does not indicate a problem (i.e. not prescriptive).
+        /// Informational message that does not indicate a problem.
         /// </summary>
         Info = 1,
 
         /// <summary>
-        /// Something suspicious but allowed.
+        /// A potential issue that is allowed but may indicate a problem.
         /// </summary>
         Warning = 2,
 
         /// <summary>
-        /// Something not allowed by the rules of the aspect.
+        /// A violation of aspect rules that prevents successful compilation.
         /// </summary>
         Error = 3
     }

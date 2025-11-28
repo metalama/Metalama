@@ -11,8 +11,31 @@ using System.Linq;
 namespace Metalama.Framework.Code;
 
 /// <summary>
-/// Gives access to the aspects, options and annotations on a declaration.
+/// Provides access to aspects, options, and annotations applied to a declaration. This allows querying
+/// metadata added by aspects and accessing hierarchical configuration.
 /// </summary>
+/// <remarks>
+/// <para>
+/// Access this API through the <see cref="DeclarationExtensions.GetEnhancements{T}"/> extension method on any <see cref="IDeclaration"/>.
+/// It provides methods to:
+/// </para>
+/// <list type="bullet">
+/// <item><description>Query aspects applied to the declaration via <see cref="GetAspects{TAspect}"/>, <see cref="GetAspectInstances"/>, or <see cref="HasAspect{TAspect}"/></description></item>
+/// <item><description>Retrieve hierarchical options using <see cref="GetOptions{TOptions}"/></description></item>
+/// <item><description>Access annotations added by aspects using <see cref="GetAnnotations{TAnnotation}"/></description></item>
+/// </list>
+/// <para>
+/// <b>Important limitation:</b> Aspect queries only return aspects that have already been applied or are currently being applied.
+/// You can query aspects ordered before the current aspect, or instances of the current aspect applied in a parent class,
+/// but you cannot query aspects ordered after the current one.
+/// </para>
+/// </remarks>
+/// <typeparam name="T">The type of declaration.</typeparam>
+/// <seealso cref="DeclarationExtensions.Enhancements{T}"/>
+/// <seealso cref="IAspectInstance"/>
+/// <seealso cref="IHierarchicalOptions{T}"/>
+/// <seealso cref="IAnnotation{T}"/>
+/// <seealso href="@exposing-options"/>
 [CompileTime]
 public readonly struct DeclarationEnhancements<T>
     where T : class, IDeclaration

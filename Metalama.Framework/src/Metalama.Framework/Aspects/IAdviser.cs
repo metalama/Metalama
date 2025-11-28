@@ -10,13 +10,29 @@ using Metalama.Framework.Utilities;
 namespace Metalama.Framework.Aspects;
 
 /// <summary>
-/// An object that allows declarations to be advised using one of the extension methods of the <see cref="AdviserExtensions"/> class.
-/// This interface is the non-generic base one. All advisers implement the generic interface <see cref="IAdviser{T}"/>.
+/// An object that allows declarations to be advised (transformed) using extension methods from <see cref="AdviserExtensions"/>.
+/// This is the non-generic base interface; aspects typically use the generic <see cref="IAdviser{T}"/> variant.
 /// </summary>
+/// <remarks>
+/// <para>
+/// The <see cref="IAdviser"/> interface provides the foundation for code transformation in Metalama. It exposes:
+/// </para>
+/// <list type="bullet">
+/// <item><description><b>Target declaration:</b> The code element being advised (method, type, property, etc.)</description></item>
+/// <item><description><b>Diagnostics:</b> Report errors, warnings, or suppress compiler diagnostics</description></item>
+/// <item><description><b>Compilation context:</b> Access to the code model in both original and modified states</description></item>
+/// <item><description><b>Declaration switching:</b> Create adviser instances for other declarations via <see cref="With{TNewDeclaration}"/></description></item>
+/// </list>
+/// <para>
+/// Advising is performed through extension methods in <see cref="AdviserExtensions"/>, such as <c>Override()</c>,
+/// <c>IntroduceMethod()</c>, <c>ImplementInterface()</c>, and others.
+/// </para>
+/// </remarks>
 /// <seealso cref="IAdviser{T}"/>
 /// <seealso cref="AdviserExtensions"/>
 /// <seealso cref="IAspectBuilder"/>
 /// <seealso href="@advising-code"/>
+/// <seealso href="@aspect-design"/>
 [InternalImplement]
 [CompileTime]
 [PublicAPI]
@@ -32,12 +48,23 @@ public interface IAdviser
     /// </summary>
     IDeclaration Target { get; }
 
+    /// <summary>
+    /// Gets the compilation in its original state, before any modifications by aspects.
+    /// </summary>
     ICompilation Compilation { get; }
 
     /// <summary>
-    /// Gets the mutable compilation that the current <see cref="IAspectBuilder"/> is working on. It includes all modifications done by
-    /// the current aspect in the current type using declarative advices and the <see cref="IAspectBuilder"/>.
+    /// Gets the mutable compilation that the current <see cref="IAspectBuilder"/> is working on. It includes all modifications made by
+    /// the current aspect so far, including advice added programmatically via <see cref="AdviserExtensions"/> methods and
+    /// advice added declaratively via attributes like <see cref="IntroduceAttribute"/>.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Use <see cref="MutableCompilation"/> when you need to query the code model with transformations from the current aspect applied.
+    /// Use <see cref="Compilation"/> when you need to see the original, unmodified code model.
+    /// </para>
+    /// </remarks>
+    /// <seealso cref="Compilation"/>
     ICompilation MutableCompilation { get; }
 
     /// <summary>

@@ -8,9 +8,14 @@ using System;
 namespace Metalama.Framework.Eligibility
 {
     /// <summary>
-    /// Encapsulates an object and a human-readable description.
+    /// A concrete implementation of <see cref="IDescribedObject{T}"/> that encapsulates an object and its human-readable description.
     /// </summary>
-    /// <typeparam name="T"></typeparam>
+    /// <typeparam name="T">The type of object being described.</typeparam>
+    /// <remarks>
+    /// This class is used internally by the eligibility system to provide formatted error messages when eligibility rules fail.
+    /// User code rarely needs to create instances of this class directly.
+    /// </remarks>
+    /// <seealso cref="IDescribedObject{T}"/>
     /// <seealso href="@eligibility"/>
     public sealed class DescribedObject<T> : IDescribedObject<T>
     {
@@ -20,6 +25,11 @@ namespace Metalama.Framework.Eligibility
         /// <inheritdoc />
         public FormattableString? Description { get; }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="DescribedObject{T}"/> class.
+        /// </summary>
+        /// <param name="o">The object to describe.</param>
+        /// <param name="description">An optional human-readable description of the object. If <c>null</c>, a default description will be generated.</param>
         public DescribedObject( T o, FormattableString? description = null )
         {
             this.Object = o;

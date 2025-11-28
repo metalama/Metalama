@@ -13,12 +13,13 @@ namespace Metalama.Framework.Advising;
 /// <seealso cref="IAdviceResult"/>
 /// <seealso cref="AdviserExtensions.AddContract"/>
 /// <seealso cref="ContractDirection"/>
+/// <seealso cref="Aspects.ContractAspect"/>
 /// <seealso href="@contracts"/>
 public interface IAddContractAdviceResult<out T> : IAdviceResult
     where T : IDeclaration
 {
     /// <summary>
-    /// Gets the declaration to which the contract was added. When the contracted is added to a field, returns the <see cref="IProperty"/>
+    /// Gets the declaration to which the contract was added. When the contract is added to a field, this property returns the <see cref="IProperty"/>
     /// that the field has been transformed into.
     /// </summary>
     T Declaration { get; }

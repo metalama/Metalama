@@ -16,14 +16,38 @@ public interface IAnnotation : ICompileTimeSerializable;
 
 // ReSharper disable once UnusedTypeParameter
 /// <summary>
-/// An annotation is an arbitrary but serializable object that can then be retrieved
-/// using the <see cref="DeclarationEnhancements{T}.GetAnnotations{TAnnotation}"/> method of the <see cref="DeclarationExtensions.Enhancements{T}"/> object.
-/// Annotations are a way of communication between aspects or classes of aspects.
+/// Represents an annotation - an arbitrary serializable object that aspects can attach to declarations
+/// to communicate information to other aspects or subsequent compilation phases.
 /// </summary>
+/// <remarks>
+/// <para>
+/// Annotations provide a mechanism for aspects to store and share custom metadata on declarations.
+/// Common use cases include:
+/// </para>
+/// <list type="bullet">
+/// <item><description><b>Inter-aspect communication:</b> One aspect adds an annotation that other aspects can query to coordinate behavior</description></item>
+/// <item><description><b>Code generation metadata:</b> Store configuration or contextual information that template code needs during code generation</description></item>
+/// <item><description><b>Aspect coordination:</b> Mark declarations with flags or data that influence how subsequent aspects process them</description></item>
+/// </list>
+/// <para>
+/// <b>Adding annotations:</b> Use <see cref="AdviserExtensions.AddAnnotation{TDeclaration}"/> in your aspect's
+/// <see cref="IAspect{T}.BuildAspect"/> method to attach an annotation to a declaration.
+/// </para>
+/// <para>
+/// <b>Retrieving annotations:</b> Call <see cref="DeclarationEnhancements{T}.GetAnnotations{TAnnotation}"/>
+/// via <see cref="DeclarationExtensions.GetEnhancements{T}"/> to retrieve annotations from a declaration.
+/// </para>
+/// <para>
+/// <b>Serialization:</b> Annotations must be compile-time serializable (implement <see cref="ICompileTimeSerializable"/>)
+/// as they may be persisted and accessed across project boundaries.
+/// </para>
+/// </remarks>
 /// <typeparam name="T">The type of declarations to which the annotation can be added.</typeparam>
 /// <seealso cref="IAnnotation"/>
 /// <seealso cref="DeclarationEnhancements{T}"/>
-/// <seealso cref="DeclarationExtensions"/>
-/// <seealso cref="IDeclaration"/>
+/// <seealso cref="AdviserExtensions.AddAnnotation{TDeclaration}"/>
+/// <seealso cref="DeclarationExtensions.GetEnhancements{T}"/>
+/// <seealso cref="ICompileTimeSerializable"/>
+/// <seealso href="@sharing-state-with-advice"/>
 public interface IAnnotation<in T> : IAnnotation
     where T : class, IDeclaration;
