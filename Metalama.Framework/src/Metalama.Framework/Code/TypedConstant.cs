@@ -17,6 +17,10 @@ namespace Metalama.Framework.Code
     /// Represents a typed value that can be defined, defined to null, or undefined. Used to represent default values,
     /// for instance <see cref="IParameter.DefaultValue"/>, or attribute arguments.
     /// </summary>
+    /// <seealso cref="IExpression"/>
+    /// <seealso cref="IParameter"/>
+    /// <seealso cref="IAttribute"/>
+    /// <seealso cref="ExpressionFactory"/>
     [CompileTime]
     public readonly struct TypedConstant : IExpression, IEquatable<TypedConstant>
     {

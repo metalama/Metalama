@@ -8,10 +8,27 @@ using Metalama.Framework.Utilities;
 namespace Metalama.Framework.Code.SyntaxBuilders
 {
     /// <summary>
-    /// Represents a statement, which can be inserted into run-time code using the <see cref="meta.InsertStatement(Metalama.Framework.Code.SyntaxBuilders.IStatement)"/>.
-    /// To create a statement, use <see cref="StatementFactory"/>, <see cref="StatementBuilder"/>, or <see cref="SwitchStatementBuilder"/>.
-    /// method.
+    /// A compile-time representation of a run-time statement that can be inserted into generated code.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// In Metalama templates, <see cref="IStatement"/> objects are compile-time representations of C# statements that will be
+    /// inserted into the transformed code. Unlike <see cref="IExpression"/> which represents values and can be used within
+    /// expressions, statements represent complete actions that are inserted as separate lines of code using
+    /// <see cref="meta.InsertStatement(IStatement)"/>.
+    /// </para>
+    /// <para>
+    /// To create statements, use <see cref="StatementFactory"/> for common scenarios (parsing strings, creating blocks, invoking
+    /// templates), <see cref="StatementBuilder"/> for programmatic construction with proper indentation support, or
+    /// <see cref="SwitchStatementBuilder"/> for building switch statements.
+    /// </para>
+    /// </remarks>
+    /// <seealso cref="StatementFactory"/>
+    /// <seealso cref="StatementBuilder"/>
+    /// <seealso cref="SwitchStatementBuilder"/>
+    /// <seealso cref="IExpression"/>
+    /// <seealso href="@run-time-statements"/>
+    /// <seealso href="@templates"/>
     [CompileTime]
     [InternalImplement]
     public interface IStatement;

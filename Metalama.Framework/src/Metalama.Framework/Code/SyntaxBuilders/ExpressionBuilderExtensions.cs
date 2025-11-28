@@ -7,6 +7,9 @@ using Metalama.Framework.Aspects;
 
 namespace Metalama.Framework.Code.SyntaxBuilders
 {
+    /// <summary>
+    /// Extension methods for <see cref="IExpressionBuilder"/> and <see cref="INotNullExpressionBuilder"/>.
+    /// </summary>
     [CompileTime]
     [PublicAPI]
     public static class ExpressionBuilderExtensions
@@ -14,11 +17,15 @@ namespace Metalama.Framework.Code.SyntaxBuilders
         /// <summary>
         /// Gets an object that can be used in a run-time expression of a template to represent the result of the current expression builder.
         /// </summary>
+        /// <param name="builder">The expression builder.</param>
+        /// <returns>A dynamic value representing the expression, or <c>null</c> if the expression evaluates to null.</returns>
         public static dynamic? ToValue( this IExpressionBuilder builder ) => builder.ToExpression().Value;
 
         /// <summary>
         /// Gets an object that can be used in a run-time expression of a template to represent the result of the current expression builder.
         /// </summary>
+        /// <param name="builder">The expression builder that produces a non-null value.</param>
+        /// <returns>A dynamic value representing the expression.</returns>
         public static dynamic ToValue( this INotNullExpressionBuilder builder ) => builder.ToExpression().Value!;
     }
 }

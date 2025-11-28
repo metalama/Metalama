@@ -6,6 +6,12 @@ namespace Metalama.Framework.Aspects;
 
 /// <summary>
 /// An interface that specifies that the type contains templates. Templates must be annotated with <see cref="TemplateAttribute"/>.
+/// To call auxiliary templates from a class implementing this interface, use the <see cref="meta.InvokeTemplate(string, ITemplateProvider?, object?)"/> method.
 /// </summary>
+/// <seealso cref="TemplateAttribute"/>
+/// <seealso cref="IAspect"/>
+/// <seealso cref="meta.InvokeTemplate(string, ITemplateProvider?, object?)"/>
+/// <seealso href="@templates"/>
+/// <seealso href="@auxiliary-templates"/>
 [RunTimeOrCompileTime]
 public interface ITemplateProvider;

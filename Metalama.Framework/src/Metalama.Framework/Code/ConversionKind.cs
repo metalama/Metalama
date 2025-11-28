@@ -10,6 +10,7 @@ namespace Metalama.Framework.Code
     /// <summary>
     /// Describes conversion between types possible during comparison.
     /// </summary>
+    /// <seealso cref="IType"/>
     [CompileTime]
     public enum ConversionKind
     {

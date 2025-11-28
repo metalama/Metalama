@@ -19,12 +19,27 @@ using System.Collections.Immutable;
 namespace Metalama.Framework.Workspaces
 {
     /// <summary>
-    /// Represents a C# project for a specific compilation.
+    /// Represents a C# project for a specific compilation. When a project targets multiple frameworks,
+    /// each target framework is represented by a separate <see cref="Project"/> instance.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The <see cref="Project"/> class provides access to the project's source code through the <see cref="SourceCode"/> property,
+    /// and to Metalama's transformed output through the <see cref="TransformedCode"/> property. It also exposes introspection
+    /// information about aspect instances, transformations, and diagnostics.
+    /// </para>
+    /// </remarks>
+    /// <seealso cref="Workspace"/>
+    /// <seealso cref="IProjectSet"/>
+    /// <seealso href="@introspection-api"/>
+    [PublicAPI]
     public sealed class Project : IProjectSet
     {
         private readonly ProjectServiceProvider _serviceProvider;
 
+        /// <summary>
+        /// Gets the underlying Roslyn compilation for this project.
+        /// </summary>
         public Compilation RoslynCompilation { get; }
 
         private readonly WorkspaceProjectOptions _projectOptions;
@@ -33,11 +48,17 @@ namespace Metalama.Framework.Workspaces
 
         internal bool IsMetalamaOutputEvaluated { get; private set; }
 
+        /// <summary>
+        /// Gets the file path of the project's <c>csproj</c> file.
+        /// </summary>
         [PublicAPI]
         public string Path { get; }
 
         internal ICompilation Compilation => this._compilationModel.Value;
 
+        /// <summary>
+        /// Gets the target framework of this project, or <c>null</c> if the project does not specify a target framework.
+        /// </summary>
         [PublicAPI]
         public string? TargetFramework => this._projectOptions.TargetFramework;
 
@@ -57,8 +78,9 @@ namespace Metalama.Framework.Workspaces
         }
 
         /// <summary>
-        /// Gets the set of types defined in the project, including nested types.
+        /// Gets all types defined in the project, including nested types.
         /// </summary>
+        /// <seealso cref="ICompilationSet.Types"/>
         [Memo]
         public ImmutableArray<INamedType> Types => [..this.Compilation.Types.SelectManyRecursive( t => t.Types, includeRoot: true )];
 
@@ -90,6 +112,9 @@ namespace Metalama.Framework.Workspaces
             }
         }
 
+        /// <summary>
+        /// Gets the project name (file name without extension).
+        /// </summary>
         [PublicAPI]
         [Memo]
         public string Name => System.IO.Path.GetFileNameWithoutExtension( this.Path );
@@ -116,6 +141,7 @@ namespace Metalama.Framework.Workspaces
         /// <inheritdoc />
         public ImmutableArray<IIntrospectionDiagnostic> Diagnostics => this.CompilationResult.Diagnostics;
 
+        /// <inheritdoc />
         public ImmutableArray<IIntrospectionAspectLayer> AspectLayers => this.CompilationResult.AspectLayers;
 
         /// <inheritdoc />

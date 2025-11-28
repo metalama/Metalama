@@ -7,8 +7,12 @@ using Metalama.Framework.Aspects;
 namespace Metalama.Framework.Advising;
 
 /// <summary>
-/// Enumerates the kinds of advice.
+/// Enumerates the different types of code transformations (advice) that can be applied by aspects.
+/// Each advice kind corresponds to a specific transformation operation available through <see cref="AdviserExtensions"/>.
 /// </summary>
+/// <seealso cref="IAdviceResult"/>
+/// <seealso cref="AdviserExtensions"/>
+/// <seealso href="@advising-code"/>
 [CompileTime]
 public enum AdviceKind
 {

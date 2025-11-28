@@ -16,8 +16,10 @@ namespace Metalama.Framework.Code
         // Coverage: ignore
 
         /// <summary>
-        /// Determines whether the parameter or return value represents a reference (<c>in</c> and <c>out</c> properties, <c>ref</c> and <c>ref readonly</c> methods and properties).  
+        /// Determines whether the parameter or return value represents a reference (<c>in</c> and <c>out</c> properties, <c>ref</c> and <c>ref readonly</c> methods and properties).
         /// </summary>
+        /// <param name="kind">The <see cref="RefKind"/> to check.</param>
+        /// <returns><c>true</c> if the kind represents a by-reference parameter or return; otherwise, <c>false</c>.</returns>
         public static bool IsByRef( this RefKind kind ) => kind != RefKind.None;
 
         // Coverage: ignore
@@ -25,6 +27,8 @@ namespace Metalama.Framework.Code
         /// <summary>
         /// Determines whether the parameter or return value can be assigned.
         /// </summary>
+        /// <param name="kind">The <see cref="RefKind"/> to check.</param>
+        /// <returns><c>true</c> if the parameter or return value can be written to; otherwise, <c>false</c>.</returns>
         public static bool IsWritable( this RefKind kind )
             => kind switch
             {
@@ -39,6 +43,8 @@ namespace Metalama.Framework.Code
         /// <summary>
         /// Determines whether the parameter or return value can be read before it has been assigned.
         /// </summary>
+        /// <param name="kind">The <see cref="RefKind"/> to check.</param>
+        /// <returns><c>true</c> if the parameter or return value can be read before assignment; otherwise, <c>false</c>.</returns>
         public static bool IsReadable( this RefKind kind ) => kind != RefKind.Out;
     }
 }

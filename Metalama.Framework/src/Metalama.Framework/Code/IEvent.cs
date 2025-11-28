@@ -2,6 +2,8 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Aspects;
+using Metalama.Framework.Code.DeclarationBuilders;
 using Metalama.Framework.Code.Invokers;
 using System.Collections.Generic;
 using System.Reflection;
@@ -11,6 +13,11 @@ namespace Metalama.Framework.Code
     /// <summary>
     /// Represent an event.
     /// </summary>
+    /// <seealso cref="IHasAccessors"/>
+    /// <seealso cref="IEventInvoker"/>
+    /// <seealso cref="IEventBuilder"/>
+    /// <seealso cref="EventAspect"/>
+    /// <seealso href="@overriding-events"/>
     public interface IEvent : IHasAccessors, IEventInvoker
     {
         /// <summary>

@@ -7,6 +7,13 @@ using System;
 
 namespace Metalama.Framework.Serialization
 {
+    /// <summary>
+    /// Base class for serializers of reference types that use a two-phase deserialization process.
+    /// </summary>
+    /// <seealso cref="ReferenceTypeSerializer{T}"/>
+    /// <seealso cref="ValueTypeSerializer{T}"/>
+    /// <seealso cref="ISerializer"/>
+    /// <seealso href="@serialization"/>
     [PublicAPI]
     public abstract class ReferenceTypeSerializer : ISerializer
     {
@@ -36,7 +43,7 @@ namespace Metalama.Framework.Serialization
         /// <summary>
         /// Serializes an object.
         /// </summary>
-        /// <param name="obj"></param>
+        /// <param name="obj">The object to serialize.</param>
         /// <param name="constructorArguments">Gives access to arguments that will be passed to the <see cref="CreateInstance"/> method during deserialization.</param>
         /// <param name="initializationArguments">Gives access to arguments that will be passed to the <see cref="DeserializeFields"/> method during deserialization.</param>
         public abstract void SerializeObject( object obj, IArgumentsWriter constructorArguments, IArgumentsWriter initializationArguments );
@@ -48,7 +55,12 @@ namespace Metalama.Framework.Serialization
         /// <param name="initializationArguments">Gives access to field values.</param>
         public abstract void DeserializeFields( object obj, IArgumentsReader initializationArguments );
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Converts a deserialized value to a target type.
+        /// </summary>
+        /// <param name="value">The value to convert.</param>
+        /// <param name="targetType">The target type to convert to.</param>
+        /// <returns>The converted value.</returns>
         public virtual object Convert( object value, Type targetType )
         {
             return value;

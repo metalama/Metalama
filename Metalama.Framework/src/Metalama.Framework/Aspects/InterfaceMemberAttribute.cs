@@ -12,6 +12,8 @@ namespace Metalama.Framework.Aspects
     /// Custom attribute that, when applied to a member of an aspect class, means that this aspect member is a template implementing a member of an interface implemented by
     /// <see cref="IAdviceFactory.ImplementInterface(Code.INamedType,Code.INamedType,OverrideStrategy,object?)"/>.
     /// </summary>
+    /// <seealso cref="AdviserExtensions.ImplementInterface(IAdviser{Code.INamedType}, Code.INamedType, OverrideStrategy, object?)"/>
+    /// <seealso href="@implementing-interfaces"/>
     [AttributeUsage( AttributeTargets.Property | AttributeTargets.Field | AttributeTargets.Method | AttributeTargets.Event )]
     [PublicAPI]
     public sealed class InterfaceMemberAttribute : TemplateAttribute, IInterfaceMemberAttribute

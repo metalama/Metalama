@@ -11,6 +11,14 @@ namespace Metalama.Framework.Code;
 /// <summary>
 /// Kinds of iterators.
 /// </summary>
+/// <remarks>
+/// To get the <see cref="EnumerableKind"/> of a method, use the <see cref="MethodExtensions.GetIteratorInfo"/> extension method,
+/// which returns an <see cref="IteratorInfo"/> struct. The <see cref="IteratorInfo.EnumerableKind"/> property contains the enumerable kind.
+/// </remarks>
+/// <seealso cref="IMethod"/>
+/// <seealso cref="IteratorInfo"/>
+/// <seealso cref="MethodExtensions.GetIteratorInfo"/>
+/// <seealso cref="IFieldOrPropertyOrIndexer.GetMethod"/>
 [CompileTime]
 public enum EnumerableKind
 {

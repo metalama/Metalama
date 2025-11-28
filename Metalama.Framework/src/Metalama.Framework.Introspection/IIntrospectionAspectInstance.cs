@@ -9,8 +9,18 @@ using System.Collections.Immutable;
 namespace Metalama.Framework.Introspection;
 
 /// <summary>
-///  Represents an instance of an aspect, as well as the results of the aspect instance.
+/// Represents an instance of an aspect, as well as the results of the aspect instance.
 /// </summary>
+/// <remarks>
+/// To obtain an <see cref="IIntrospectionAspectInstance"/> from a <c>Metalama.Framework.Workspaces.Workspace</c>, use the
+/// <c>Workspace.AspectInstances</c> property, which returns all aspect instances aggregated
+/// across all projects in the workspace. For per-project access, use the <c>Project.AspectInstances</c> property.
+/// Alternatively, use the <c>IIntrospectionAspectClass.Instances</c> property to get all instances of a specific <c>IIntrospectionAspectClass</c>.
+/// </remarks>
+/// <seealso cref="IIntrospectionAspectClass"/>
+/// <seealso cref="IIntrospectionAdvice"/>
+/// <seealso cref="IIntrospectionDiagnostic"/>
+/// <seealso href="@introspection-api"/>
 [PublicAPI]
 public interface IIntrospectionAspectInstance : IIntrospectionAspectPredecessor
 {

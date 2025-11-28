@@ -8,15 +8,21 @@ using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Fabrics;
 using Metalama.Framework.Options;
-using Metalama.Framework.Project;
 using System;
 using System.Diagnostics.CodeAnalysis;
 
 namespace Metalama.Extensions.DependencyInjection;
 
 /// <summary>
-/// Extends the <see cref="IProject"/> and <see cref="IAspectBuilder"/> interfaces.
+/// Provides extension methods for configuring and using dependency injection in Metalama aspects.
 /// </summary>
+/// <remarks>
+/// This class provides methods to configure the dependency injection framework for projects, namespaces, or types,
+/// as well as methods to programmatically introduce dependencies into types from aspects.
+/// </remarks>
+/// <seealso cref="DependencyAttribute"/>
+/// <seealso cref="IntroduceDependencyAttribute"/>
+/// <seealso href="@dependency-injection"/>
 [CompileTime]
 [PublicAPI]
 public static class DependencyInjectionExtensions
@@ -110,6 +116,14 @@ public static class DependencyInjectionExtensions
         }
     }
 
+    /// <summary>
+    /// Introduces a dependency into a type.
+    /// </summary>
+    /// <param name="adviser">The adviser for the target type.</param>
+    /// <param name="dependencyType">The type of the dependency to introduce.</param>
+    /// <param name="options">Options for configuring the dependency, or <c>null</c> to use defaults.</param>
+    /// <returns>The result of the introduction operation. Use <see cref="IntroduceDependencyResult.Declaration"/> to access the introduced field or property.</returns>
+    /// <seealso cref="IntroduceDependencyResult"/>
     public static IntroduceDependencyResult IntroduceDependency(
         this IAdviser<INamedType> adviser,
         IType dependencyType,
@@ -160,6 +174,14 @@ public static class DependencyInjectionExtensions
         }
     }
 
+    /// <summary>
+    /// Introduces a dependency into a type using a reflection <see cref="Type"/>.
+    /// </summary>
+    /// <param name="adviser">The adviser for the target type.</param>
+    /// <param name="dependencyType">The reflection type of the dependency to introduce.</param>
+    /// <param name="options">Options for configuring the dependency, or <c>null</c> to use defaults.</param>
+    /// <returns>The result of the introduction operation. Use <see cref="IntroduceDependencyResult.Declaration"/> to access the introduced field or property.</returns>
+    /// <seealso cref="IntroduceDependencyResult"/>
     public static IntroduceDependencyResult IntroduceDependency(
         this IAdviser<INamedType> adviser,
         Type dependencyType,

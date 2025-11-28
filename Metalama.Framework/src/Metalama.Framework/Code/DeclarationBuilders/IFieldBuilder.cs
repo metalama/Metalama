@@ -2,10 +2,16 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Aspects;
+
 namespace Metalama.Framework.Code.DeclarationBuilders
 {
     /// <summary>
     /// Allows to complete the construction of a field that has been created by an advice.
     /// </summary>
+    /// <seealso cref="IField"/>
+    /// <seealso cref="IFieldOrPropertyBuilder"/>
+    /// <seealso cref="AdviserExtensions.IntroduceField(IAdviser{INamedType}, string, IntroductionScope, OverrideStrategy, System.Action{IFieldBuilder}?, object?)"/>
+    /// <seealso href="@introducing-members"/>
     public interface IFieldBuilder : IFieldOrPropertyBuilder, IField;
 }

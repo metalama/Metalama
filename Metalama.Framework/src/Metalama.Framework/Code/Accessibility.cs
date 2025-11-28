@@ -9,6 +9,9 @@ namespace Metalama.Framework.Code
     /// <summary>
     /// Accessibility of types and members, for instance <see cref="Private"/> or <see cref="Public"/>.
     /// </summary>
+    /// <seealso cref="IMemberOrNamedType"/>
+    /// <seealso cref="AccessibilityExtensions"/>
+    /// <seealso cref="MemberExtensions"/>
     [CompileTime]
     public enum Accessibility
     {

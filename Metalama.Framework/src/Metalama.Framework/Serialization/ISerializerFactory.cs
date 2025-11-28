@@ -11,6 +11,9 @@ namespace Metalama.Framework.Serialization
     /// Defines a method <see cref="CreateSerializer"/>, which creates instances of the <see cref="ISerializer"/> interface for
     /// given object types.
     /// </summary>
+    /// <seealso cref="ISerializer"/>
+    /// <seealso cref="ICompileTimeSerializable"/>
+    /// <seealso href="@serialization"/>
     [CompileTime]
     public interface ISerializerFactory
     {

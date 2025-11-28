@@ -18,12 +18,25 @@ namespace Metalama.Framework.Code
     {
         /// <summary>
         /// Gets the target of the reference for a given compilation, or throws an exception if the reference cannot be resolved. To get the reference for the
-        /// current execution context, use the <see cref="GetTarget{T}(Metalama.Framework.Code.IRef{T},Metalama.Framework.Code.ICompilation,Metalama.Framework.Code.IGenericContext?)"/> extension method.
+        /// current execution context, use the <see cref="GetTarget{T}(Metalama.Framework.Code.IRef{T})"/> extension method.
         /// </summary>
+        /// <typeparam name="T">The type of compilation element.</typeparam>
+        /// <param name="reference">The reference to resolve.</param>
+        /// <param name="compilation">The compilation context in which to resolve the reference.</param>
+        /// <param name="genericContext">The optional generic context for resolving generic instances.</param>
+        /// <returns>The resolved compilation element.</returns>
         public static T GetTarget<T>( this IRef<T> reference, ICompilation compilation, IGenericContext? genericContext = null )
             where T : class, ICompilationElement
             => (T) reference.GetTargetInterface( compilation, typeof(T), genericContext, true )!;
 
+        /// <summary>
+        /// Gets the target of the reference for a given compilation, or throws an exception if the reference cannot be resolved.
+        /// </summary>
+        /// <param name="reference">The reference to resolve.</param>
+        /// <param name="compilation">The compilation context in which to resolve the reference.</param>
+        /// <param name="genericContext">The optional generic context for resolving generic instances.</param>
+        /// <param name="interfaceType">The optional interface type to use for the target.</param>
+        /// <returns>The resolved compilation element.</returns>
         public static ICompilationElement GetTarget(
             this IRef reference,
             ICompilation compilation,
@@ -33,12 +46,25 @@ namespace Metalama.Framework.Code
 
         /// <summary>
         /// Gets the target of the reference for a given compilation, or returns <c>null</c> if the reference cannot be resolved. To get the reference for the
-        /// current execution context, use the <see cref="GetTargetOrNull{T}(Metalama.Framework.Code.IRef{T},Metalama.Framework.Code.ICompilation,Metalama.Framework.Code.IGenericContext?)"/> extension method.
+        /// current execution context, use the <see cref="GetTargetOrNull{T}(Metalama.Framework.Code.IRef{T})"/> extension method.
         /// </summary>
+        /// <typeparam name="T">The type of compilation element.</typeparam>
+        /// <param name="reference">The reference to resolve.</param>
+        /// <param name="compilation">The compilation context in which to resolve the reference.</param>
+        /// <param name="genericContext">The optional generic context for resolving generic instances.</param>
+        /// <returns>The resolved compilation element, or <c>null</c> if the reference cannot be resolved.</returns>
         public static T? GetTargetOrNull<T>( this IRef<T> reference, ICompilation compilation, IGenericContext? genericContext = null )
             where T : class, ICompilationElement
             => (T?) reference.GetTargetInterface( compilation, typeof(T), genericContext );
 
+        /// <summary>
+        /// Gets the target of the reference for a given compilation, or returns <c>null</c> if the reference cannot be resolved.
+        /// </summary>
+        /// <param name="reference">The reference to resolve.</param>
+        /// <param name="compilation">The compilation context in which to resolve the reference.</param>
+        /// <param name="genericContext">The optional generic context for resolving generic instances.</param>
+        /// <param name="interfaceType">The optional interface type to use for the target.</param>
+        /// <returns>The resolved compilation element, or <c>null</c> if the reference cannot be resolved.</returns>
         public static ICompilationElement? GetTargetOrNull(
             this IRef reference,
             ICompilation compilation,
@@ -53,6 +79,9 @@ namespace Metalama.Framework.Code
         /// <summary>
         /// Gets the target of the reference for the current execution context, or throws an exception if the reference cannot be resolved.
         /// </summary>
+        /// <typeparam name="T">The type of compilation element.</typeparam>
+        /// <param name="reference">The reference to resolve.</param>
+        /// <returns>The resolved compilation element.</returns>
         public static T GetTarget<T>( this IRef<T> reference )
             where T : class, ICompilationElement
             => reference.GetTarget( MetalamaExecutionContext.Current.Compilation );
@@ -60,6 +89,9 @@ namespace Metalama.Framework.Code
         /// <summary>
         /// Gets the target of the reference for the current execution context, or returns <c>null</c> if the reference cannot be resolved.
         /// </summary>
+        /// <typeparam name="T">The type of compilation element.</typeparam>
+        /// <param name="reference">The reference to resolve.</param>
+        /// <returns>The resolved compilation element, or <c>null</c> if the reference cannot be resolved.</returns>
         public static T? GetTargetOrNull<T>( this IRef<T> reference )
             where T : class, ICompilationElement
             => reference.GetTargetOrNull( MetalamaExecutionContext.Current.Compilation );

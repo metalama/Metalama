@@ -8,9 +8,28 @@ using Metalama.Framework.Fabrics;
 namespace Metalama.Framework.Aspects
 {
     /// <summary>
-    /// Represents the relationship that an object (attribute, fabric, aspect) has created or required another aspect or validator.
-    /// These relationships are exposed on <see cref="IAspectPredecessor.Predecessors"/>.
+    /// Represents one link in the causality chain that led to an aspect being applied. Each predecessor describes
+    /// what caused an aspect instance to be created (e.g., a custom attribute, a fabric, a parent aspect, or inheritance).
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Aspect predecessors form a chain that tracks the provenance of aspect instances. This is primarily useful for:
+    /// </para>
+    /// <list type="bullet">
+    /// <item><description><b>Parent-child communication:</b> Child aspects can access parent aspect state via <see cref="IAspectPredecessor.Predecessors"/></description></item>
+    /// <item><description><b>Introspection:</b> Analyzing aspect composition and dependencies programmatically using the <c>Metalama.Framework.Introspection</c> namespace</description></item>
+    /// </list>
+    /// <para>
+    /// Use the <see cref="Kind"/> property to determine the type of predecessor, then cast <see cref="Instance"/> to the
+    /// appropriate type: <see cref="IAspectInstance"/>, <see cref="Fabrics.IFabricInstance"/>, or <see cref="Code.IAttribute"/>.
+    /// </para>
+    /// </remarks>
+    /// <seealso cref="IAspectPredecessor"/>
+    /// <seealso cref="AspectPredecessorKind"/>
+    /// <seealso cref="IAspectInstance"/>
+    /// <seealso cref="IAspectState"/>
+    /// <seealso href="@child-aspects"/>
+    /// <seealso href="@introspection"/>
     [CompileTime]
     public readonly struct AspectPredecessor
     {

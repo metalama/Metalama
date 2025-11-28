@@ -10,6 +10,8 @@ namespace Metalama.Framework.Code
     /// <summary>
     /// Exposes a <see cref="Compilation"/> property.
     /// </summary>
+    /// <seealso cref="ICompilation"/>
+    /// <seealso cref="IDeclaration"/>
     [InternalImplement]
     [CompileTime]
     [Hidden]

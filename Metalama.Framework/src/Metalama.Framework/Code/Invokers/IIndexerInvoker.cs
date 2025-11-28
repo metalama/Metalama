@@ -8,8 +8,29 @@ using System;
 namespace Metalama.Framework.Code.Invokers
 {
     /// <summary>
-    /// Allows accessing the value of indexers.
+    /// Allows generating run-time code that accesses indexer items when you have the compile-time <see cref="IIndexer"/> representation.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Invokers are APIs that allow you to generate run-time code from compile-time declarations. When you have an <see cref="IIndexer"/>
+    /// object (a compile-time representation of an indexer), you can use its indexer syntax to create <see cref="IExpression"/> objects
+    /// that represent indexed access. The returned expression can be used to get or set indexer values in template code via the
+    /// <see cref="IExpression.Value"/> property.
+    /// </para>
+    /// <para>
+    /// Use <see cref="WithObject(dynamic)"/> to specify the target instance and <see cref="WithOptions"/> to control nullability behavior
+    /// (such as using the <c>?.</c> operator) and which implementation layer (base, current, or final) to access.
+    /// </para>
+    /// <para>
+    /// By default, the indexer is accessed on the current object (<c>this</c>) for instance indexers. The <c>base</c> implementation
+    /// is accessed, i.e. the implementation <i>before</i> the current aspect layer.
+    /// </para>
+    /// </remarks>
+    /// <seealso cref="IIndexer"/>
+    /// <seealso cref="InvokerOptions"/>
+    /// <seealso cref="IExpression"/>
+    /// <seealso href="@invokers"/>
+    /// <seealso href="@dynamic-typing"/>
     [CompileTime]
     public interface IIndexerInvoker
     {

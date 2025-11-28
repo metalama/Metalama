@@ -9,6 +9,9 @@ namespace Metalama.Framework.Code;
 /// <summary>
 /// Represents a namespace or a named type.
 /// </summary>
+/// <seealso cref="INamespace"/>
+/// <seealso cref="INamedType"/>
+/// <seealso cref="INamedDeclaration"/>
 public interface INamespaceOrNamedType : INamedDeclaration
 {
     /// <summary>

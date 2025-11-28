@@ -13,8 +13,25 @@ using System.Linq;
 namespace Metalama.Framework.Eligibility;
 
 /// <summary>
-/// Creates instances of the <see cref="IEligibilityRule{T}"/> interface, which can then be used by the <see cref="IAspectBuilder{TAspectTarget}.VerifyEligibility"/> method.
+/// Factory methods for creating instances of the <see cref="IEligibilityRule{T}"/> interface, including predefined rules
+/// for standard advice kinds and methods for creating custom rules.
 /// </summary>
+/// <remarks>
+/// <para>
+/// This class provides:
+/// </para>
+/// <list type="bullet">
+/// <item><description><see cref="GetAdviceEligibilityRule"/> - Gets the default eligibility rules for built-in advice kinds (Override, Introduce, etc.).</description></item>
+/// <item><description><see cref="GetContractAdviceEligibilityRule"/> - Gets the default eligibility rules for contract advice.</description></item>
+/// <item><description><see cref="CreateRule{T}"/> - Creates custom eligibility rules using a builder pattern.</description></item>
+/// </list>
+/// <para>
+/// Use these methods when implementing <see cref="IEligible{T}.BuildEligibility"/> manually or when you need to verify
+/// eligibility programmatically using <see cref="IAspectBuilder{TAspectTarget}.VerifyEligibility"/>.
+/// </para>
+/// </remarks>
+/// <seealso cref="IEligibilityRule{T}"/>
+/// <seealso href="@eligibility"/>
 [CompileTime]
 [PublicAPI]
 public static partial class EligibilityRuleFactory
@@ -167,12 +184,21 @@ public static partial class EligibilityRuleFactory
         } );
 
     /// <summary>
-    /// Gets the default eligibility rules that apply to a specific advice.
-    /// The rules returned by this method are those used by classes <see cref="OverrideMethodAspect"/>, <see cref="OverrideFieldOrPropertyAspect"/>
-    /// and so on. If you implement the <see cref="IEligible{T}.BuildEligibility"/> method manually, you can use this method to get the base rules, and
-    /// add only rules that are specific to your aspect.
+    /// Gets the default eligibility rules that apply to a specific advice kind.
     /// </summary>
-    /// <param name="adviceKind">The kind of advice.</param>
+    /// <param name="adviceKind">The kind of advice (e.g., <see cref="AdviceKind.OverrideMethod"/>, <see cref="AdviceKind.IntroduceField"/>).</param>
+    /// <returns>An <see cref="IEligibilityRule{T}"/> that encapsulates the default eligibility requirements for the specified advice kind.</returns>
+    /// <remarks>
+    /// <para>
+    /// The rules returned by this method are those used by built-in aspect classes such as <see cref="OverrideMethodAspect"/>,
+    /// <see cref="OverrideFieldOrPropertyAspect"/>, and others. If you implement the <see cref="IEligible{T}.BuildEligibility"/>
+    /// method manually, you can use this method to get the base rules and add only rules that are specific to your aspect.
+    /// </para>
+    /// <para>
+    /// For contract advice (<see cref="AdviceKind.AddContract"/>), use <see cref="GetContractAdviceEligibilityRule"/> instead.
+    /// </para>
+    /// </remarks>
+    /// <seealso cref="GetContractAdviceEligibilityRule"/>
     public static IEligibilityRule<IDeclaration> GetAdviceEligibilityRule( AdviceKind adviceKind )
         => adviceKind switch
         {
@@ -197,19 +223,38 @@ public static partial class EligibilityRuleFactory
         };
 
     /// <summary>
-    /// Gets the default eligibility rules that apply to a contract advice for a specific direction.
-    /// The rules returned by this method are those used by the <see cref="ContractAspect"/> class.
-    /// If you implement the <see cref="IEligible{T}.BuildEligibility"/> method manually, you can use this method to get the base rules, and
-    /// add only rules that are specific to your aspect.
+    /// Gets the default eligibility rules that apply to a contract advice for a specific contract direction.
     /// </summary>
+    /// <param name="contractDirection">The contract direction (e.g., <see cref="ContractDirection.Input"/>, <see cref="ContractDirection.Output"/>).</param>
+    /// <returns>An <see cref="IEligibilityRule{T}"/> that encapsulates the default eligibility requirements for contract advice with the specified direction.</returns>
+    /// <remarks>
+    /// <para>
+    /// The rules returned by this method are those used by the <see cref="ContractAspect"/> class.
+    /// If you implement the <see cref="IEligible{T}.BuildEligibility"/> method manually, you can use this method to get the base rules
+    /// and add only rules that are specific to your aspect.
+    /// </para>
+    /// </remarks>
+    /// <seealso cref="GetAdviceEligibilityRule"/>
+    /// <seealso cref="ContractAspect"/>
     public static IEligibilityRule<IDeclaration> GetContractAdviceEligibilityRule( ContractDirection contractDirection )
         => Contracts.GetEligibilityRule( contractDirection );
 
     /// <summary>
-    /// Create an instance of the <see cref="IEligibilityRule{T}"/> interface, which can then be used by the <see cref="IAspectBuilder{TAspectTarget}.VerifyEligibility"/> method.
+    /// Creates a custom instance of the <see cref="IEligibilityRule{T}"/> interface using a builder pattern.
     /// </summary>
+    /// <typeparam name="T">The type of declaration that the rule validates.</typeparam>
+    /// <param name="predicate">An action that configures the eligibility builder by adding rules using methods from <see cref="EligibilityExtensions"/>.</param>
+    /// <param name="otherPredicates">Additional actions that configure the eligibility builder. All actions are combined with AND logic.</param>
+    /// <returns>An immutable <see cref="IEligibilityRule{T}"/> that can be used to validate declarations.</returns>
     /// <remarks>
-    /// Eligibility rules are heavy and expensive objects although their evaluation is fast and efficient. It is recommended to store rules in static fields of the aspect. 
+    /// <para>
+    /// Eligibility rules are relatively expensive objects to create, although their evaluation is fast and efficient.
+    /// It is strongly recommended to store rules in static fields of the aspect class to avoid recreating them for each aspect instance.
+    /// </para>
+    /// <para>
+    /// The created rule can be used with <see cref="IAspectBuilder{TAspectTarget}.VerifyEligibility"/> to programmatically validate
+    /// eligibility within aspect logic.
+    /// </para>
     /// </remarks>
     public static IEligibilityRule<T> CreateRule<T>( Action<IEligibilityBuilder<T>> predicate, params Action<IEligibilityBuilder<T>>[]? otherPredicates )
         where T : class
@@ -228,6 +273,24 @@ public static partial class EligibilityRuleFactory
         return builder.Build();
     }
 
+    /// <summary>
+    /// Creates a custom instance of the <see cref="IEligibilityRule{T}"/> interface that validates a general type but requires
+    /// a more specific type for the rule definition.
+    /// </summary>
+    /// <typeparam name="TGeneral">The general type of declaration that the rule can validate (e.g., <see cref="IDeclaration"/>).</typeparam>
+    /// <typeparam name="TRequired">The more specific type required for building the rule (e.g., <see cref="IMethod"/>). Must be derived from <typeparamref name="TGeneral"/>.</typeparam>
+    /// <param name="predicate">An action that configures the eligibility builder for <typeparamref name="TRequired"/> by adding rules.</param>
+    /// <param name="otherPredicates">Additional actions that configure the eligibility builder. All actions are combined with AND logic.</param>
+    /// <returns>An immutable <see cref="IEligibilityRule{T}"/> for <typeparamref name="TGeneral"/> that implicitly requires the declaration to be of type <typeparamref name="TRequired"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// This overload automatically adds a type conversion requirement (using <see cref="EligibilityExtensions.Converter{T}.To{TOutput}"/>), making declarations
+    /// ineligible if they are not of type <typeparamref name="TRequired"/>.
+    /// </para>
+    /// <para>
+    /// Eligibility rules are relatively expensive objects to create. Store them in static fields to avoid recreating them for each aspect instance.
+    /// </para>
+    /// </remarks>
     public static IEligibilityRule<TGeneral> CreateRule<TGeneral, TRequired>(
         Action<IEligibilityBuilder<TRequired>> predicate,
         params Action<IEligibilityBuilder<TRequired>>[]? otherPredicates )

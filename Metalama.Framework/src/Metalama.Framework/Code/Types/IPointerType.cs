@@ -7,6 +7,17 @@ namespace Metalama.Framework.Code.Types
     /// <summary>
     /// Represents an unsafe pointer type.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// To create an instance of <see cref="IPointerType"/>, use <see cref="IType.MakePointerType"/> on an existing type.
+    /// For example, to create <c>int*</c>, use <c>TypeFactory.GetType(SpecialType.Int32).MakePointerType()</c>.
+    /// </para>
+    /// </remarks>
+    /// <seealso cref="IType"/>
+    /// <seealso cref="IType.MakePointerType"/>
+    /// <seealso cref="IArrayType"/>
+    /// <seealso cref="IFunctionPointerType"/>
+    /// <seealso href="@type-system"/>
     public interface IPointerType : IType
     {
         /// <summary>

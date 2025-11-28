@@ -8,6 +8,11 @@ namespace Metalama.Framework.Code.DeclarationBuilders
     /// Represents a builder of method, constructor, or indexer. Overrides the <see cref="Parameters"/> property to allow
     /// using <see cref="IParameterBuilderList"/> interface.
     /// </summary>
+    /// <seealso cref="IHasParameters"/>
+    /// <seealso cref="IParameterBuilderList"/>
+    /// <seealso cref="IMethodBuilder"/>
+    /// <seealso cref="IConstructorBuilder"/>
+    /// <seealso cref="IIndexerBuilder"/>
     public interface IHasParametersBuilder : IMemberBuilder, IHasParameters
     {
         /// <summary>

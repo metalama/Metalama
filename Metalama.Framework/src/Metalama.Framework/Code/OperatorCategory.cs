@@ -6,6 +6,13 @@ using Metalama.Framework.Aspects;
 
 namespace Metalama.Framework.Code;
 
+/// <summary>
+/// Categorizes operator kinds. To get the <see cref="OperatorCategory"/> from an <see cref="OperatorKind"/>,
+/// use the <see cref="OperatorKindExtensions.GetCategory"/> extension method.
+/// </summary>
+/// <seealso cref="OperatorKind"/>
+/// <seealso cref="OperatorKindExtensions.GetCategory"/>
+/// <seealso cref="IMethod"/>
 [CompileTime]
 public enum OperatorCategory
 {

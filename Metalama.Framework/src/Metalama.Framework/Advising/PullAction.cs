@@ -12,9 +12,29 @@ using System.Collections.Immutable;
 namespace Metalama.Framework.Advising;
 
 /// <summary>
-/// Represents a way to pull a field or property.
+/// Represents a way to pull a constructor parameter value from child constructors when propagating introduced parameters.
 /// </summary>
+/// <remarks>
+/// <para>
+/// When a parameter is introduced to a constructor using <see cref="AdviserExtensions.IntroduceParameter(IAdviser{IConstructor}, string, IType, TypedConstant, Metalama.Framework.Advising.IPullStrategy?, ImmutableArray{AttributeConstruction})"/>,
+/// child constructors (those that call the modified constructor via <c>: base(...)</c> or <c>: this(...)</c>)
+/// need to provide a value for this new parameter. A <see cref="PullAction"/> specifies how to obtain that value.
+/// </para>
+/// <para>
+/// Common scenarios:
+/// <list type="bullet">
+/// <item><see cref="None"/> - Use the default value of the introduced parameter</item>
+/// <item><see cref="UseExistingParameter"/> - Forward an existing parameter from the child constructor</item>
+/// <item><see cref="IntroduceParameterAndPull"/> - Add a new parameter to the child constructor and forward its value</item>
+/// <item><see cref="UseExpression"/> - Pass a custom expression (e.g., a constant or field access)</item>
+/// </list>
+/// </para>
+/// </remarks>
 /// <seealso cref="IPullStrategy"/>
+/// <seealso cref="PullStrategy"/>
+/// <seealso cref="PullActionKind"/>
+/// <seealso cref="AdviserExtensions.IntroduceParameter(IAdviser{IConstructor}, string, IType, TypedConstant, Metalama.Framework.Advising.IPullStrategy?, ImmutableArray{AttributeConstruction})"/>
+/// <seealso href="@introducing-constructor-parameters"/>
 [CompileTime]
 [PublicAPI]
 public readonly struct PullAction
@@ -29,6 +49,9 @@ public readonly struct PullAction
 
     internal string? ParameterName { get; }
 
+    /// <summary>
+    /// Gets the expression to use for pulling the dependency when <see cref="UseExpression"/> or <see cref="UseConstant"/> is used.
+    /// </summary>
     public IExpression? Expression { get; }
 
     private PullAction(
@@ -50,11 +73,23 @@ public readonly struct PullAction
     /// <summary>
     /// Gets a <see cref="PullAction"/> that means that the dependency has to be set to its default value.
     /// </summary>
+    /// <remarks>
+    /// When this action is used, the child constructor will pass the default value (as specified in
+    /// <see cref="AdviserExtensions.IntroduceParameter(IAdviser{IConstructor}, string, IType, TypedConstant, Metalama.Framework.Advising.IPullStrategy?, ImmutableArray{AttributeConstruction})"/>) to the introduced parameter.
+    /// </remarks>
     public static PullAction None => new( PullActionKind.DoNotPull );
 
     /// <summary>
     /// Creates a <see cref="PullAction"/> that means that the dependency should be pulled from an existing constructor parameter.
     /// </summary>
+    /// <param name="parameter">The existing parameter to use.</param>
+    /// <returns>A <see cref="PullAction"/> that uses the specified parameter.</returns>
+    /// <remarks>
+    /// This action is useful when the child constructor already has a parameter with the value needed for the
+    /// introduced parameter. For example, if you introduce an <c>ILogger</c> parameter to a base constructor,
+    /// and a derived class constructor already has an <c>ILogger logger</c> parameter, you can use
+    /// <c>UseExistingParameter(loggerParam)</c> to forward that value.
+    /// </remarks>
     public static PullAction UseExistingParameter( IParameter parameter ) => UseExpression( ExpressionFactory.Parse( parameter.Name ) );
 
     /// <summary>
@@ -62,6 +97,25 @@ public readonly struct PullAction
     /// </summary>
     /// <param name="parameterName">Name of the new parameter.</param>
     /// <param name="parameterType">Type of the new parameter.</param>
+    /// <param name="parameterDefaultValue">Optional default value for the new parameter.</param>
+    /// <param name="parameterAttributes">Optional attributes to apply to the new parameter.</param>
+    /// <returns>A <see cref="PullAction"/> that introduces a new parameter and pulls from it.</returns>
+    /// <remarks>
+    /// <para>
+    /// This action propagates the parameter requirement to child constructors. A new parameter with the specified
+    /// name, type, and default value will be added to each child constructor, and its value will be passed to the
+    /// base/this constructor.
+    /// </para>
+    /// <para>
+    /// <strong>Cross-Project Support:</strong> This pull action operates across project boundaries. When a parameter
+    /// is introduced to a base class in one project, all derived classes in referencing projects will automatically
+    /// have the parameter added to their constructors. This makes it ideal for framework-level dependency injection.
+    /// </para>
+    /// <para>
+    /// This is the most common pull action for dependency injection scenarios where derived classes should also
+    /// receive and forward the dependency.
+    /// </para>
+    /// </remarks>
     public static PullAction IntroduceParameterAndPull(
         string parameterName,
         IType parameterType,
@@ -72,10 +126,30 @@ public readonly struct PullAction
     /// <summary>
     /// Creates a <see cref="PullAction"/> that means that the dependency should be assigned to a given <see cref="IExpression"/>.
     /// </summary>
+    /// <param name="expression">The expression to use for pulling the dependency. Only static expressions are supported
+    /// (e.g., constants, field access, static method calls).</param>
+    /// <returns>A <see cref="PullAction"/> that uses the specified expression.</returns>
+    /// <remarks>
+    /// <para>
+    /// This action allows you to pass a static expression to the introduced parameter. Use this for expressions that
+    /// can be evaluated at compile-time and are static in nature, i.e. do not reference <c>this</c>.
+    /// </para>
+    /// <para>
+    /// <strong>Note:</strong> To forward an existing parameter from the child constructor, use <see cref="UseExistingParameter"/>
+    /// instead, as it provides better readability and type safety.
+    /// </para>
+    /// </remarks>
+    /// <seealso cref="UseExistingParameter"/>
     public static PullAction UseExpression( IExpression expression ) => new( PullActionKind.UseExpression, expression );
 
     /// <summary>
     /// Creates a <see cref="PullAction"/> that means that the dependency should be assigned to a given <see cref="TypedConstant"/>.
     /// </summary>
+    /// <param name="constant">The constant value to use for pulling the dependency.</param>
+    /// <returns>A <see cref="PullAction"/> that uses the specified constant.</returns>
+    /// <remarks>
+    /// This is a convenience method for passing constant values. Use this when all child constructors should
+    /// pass the same constant value to the introduced parameter (e.g., <c>UseConstant(TypedConstant.Create(true))</c>).
+    /// </remarks>
     public static PullAction UseConstant( TypedConstant constant ) => new( PullActionKind.UseExpression, constant );
 }

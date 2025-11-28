@@ -11,6 +11,36 @@ using System;
 
 namespace Metalama.Framework.Options;
 
+/// <summary>
+/// Extension methods for <see cref="IQuery{T}"/> and <see cref="ITaggedQuery{T, TTag}"/> to set hierarchical options.
+/// </summary>
+/// <remarks>
+/// <para>
+/// These extension methods allow fabrics and aspects to configure hierarchical options for declarations selected by queries.
+/// This is the primary mechanism for applying options at scale across a project, namespace, or type family.
+/// </para>
+/// <para>
+/// The <see cref="SetOptions{TDeclaration, TOptions}(IQuery{TDeclaration}, TOptions)"/> methods are typically called from
+/// fabric classes (such as <see cref="ProjectFabric"/>, <see cref="NamespaceFabric"/>, or <see cref="TypeFabric"/>) on the
+/// <see cref="IAmender{T}.Outbound"/> property to configure aspects throughout the codebase.
+/// </para>
+/// <para>
+/// <b>Builder Pattern for Better User Experience:</b> For complex option classes, aspect authors can improve the user experience
+/// by providing a builder pattern. Create custom extension methods (e.g., <c>ConfigureMyAspect(this IQuery&lt;T&gt; query, Action&lt;MyOptionsBuilder&gt; configure)</c>)
+/// that accept a configuration delegate. The extension method creates a builder instance, invokes the delegate to configure it,
+/// calls <c>Build()</c> to produce the options object, and finally calls <see cref="SetOptions{TDeclaration, TOptions}(IQuery{TDeclaration}, TOptions)"/>.
+/// This allows users to write fluent configuration code without dealing with nullable properties directly.
+/// For a complete example, see Metalama.Extensions.DependencyInjection:
+/// <list type="bullet">
+/// <item><description>Options class: <see href="https://github.com/metalama/Metalama/blob/HEAD/Metalama.Extensions/src/Metalama.Extensions.DependencyInjection/Implementation/DependencyInjectionOptions.cs"/></description></item>
+/// <item><description>Builder class: <see href="https://github.com/metalama/Metalama/blob/HEAD/Metalama.Extensions/src/Metalama.Extensions.DependencyInjection/DependencyInjectionOptionsBuilder.cs"/></description></item>
+/// <item><description>Extension methods: <see href="https://github.com/metalama/Metalama/blob/HEAD/Metalama.Extensions/src/Metalama.Extensions.DependencyInjection/DependencyInjectionExtensions.cs"/></description></item>
+/// </list>
+/// </para>
+/// </remarks>
+/// <seealso cref="IHierarchicalOptions"/>
+/// <seealso href="@exposing-options"/>
+/// <seealso href="@fabrics"/>
 [CompileTime]
 [PublicAPI]
 public static class OptionQueryExtensions

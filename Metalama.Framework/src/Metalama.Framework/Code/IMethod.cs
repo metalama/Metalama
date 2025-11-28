@@ -12,6 +12,13 @@ namespace Metalama.Framework.Code
     /// <summary>
     /// Represents a method, but not a constructor.
     /// </summary>
+    /// <seealso cref="IMethodBase"/>
+    /// <seealso cref="IConstructor"/>
+    /// <seealso cref="MethodExtensions"/>
+    /// <seealso cref="MethodKind"/>
+    /// <seealso cref="IMethodInvoker"/>
+    /// <seealso cref="MethodAspect"/>
+    /// <seealso href="@overriding-methods"/>
     public interface IMethod : IMethodBase, IGeneric, IMethodInvoker
     {
         /// <summary>
@@ -43,6 +50,7 @@ namespace Metalama.Framework.Code
         /// Gets a <see cref="MethodInfo"/> that represents the current method at run time.
         /// </summary>
         /// <returns>A <see cref="MethodInfo"/> that can be used only in run-time code.</returns>
+        /// <seealso href="@reflection"/>
         [CompileTimeReturningRunTime]
         MethodInfo ToMethodInfo();
 
@@ -69,6 +77,14 @@ namespace Metalama.Framework.Code
 
         new IRef<IMethod> ToRef();
 
+        /// <summary>
+        /// Creates a constructed generic method from the current generic method definition by substituting type arguments.
+        /// </summary>
+        /// <param name="typeArguments">The type arguments to substitute for the generic method's type parameters.</param>
+        /// <returns>A constructed generic method with the specified type arguments.</returns>
+        /// <remarks>
+        /// This method is analogous to <see cref="System.Reflection.MethodInfo.MakeGenericMethod"/>. The current method must be a generic method definition.
+        /// </remarks>
         IMethod MakeGenericInstance( IReadOnlyList<IType> typeArguments );
     }
 }

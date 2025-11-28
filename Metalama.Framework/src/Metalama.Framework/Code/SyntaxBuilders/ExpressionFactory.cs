@@ -10,8 +10,28 @@ using System.Diagnostics.CodeAnalysis;
 namespace Metalama.Framework.Code.SyntaxBuilders;
 
 /// <summary>
-/// Provides several ways to create instances of the <see cref="IExpression"/> interface.
+/// Provides factory methods to create <see cref="IExpression"/> objects, which are compile-time representations
+/// of run-time C# expressions.
 /// </summary>
+/// <remarks>
+/// <para>
+/// The <see cref="ExpressionFactory"/> class provides multiple approaches to creating <see cref="IExpression"/> objects:
+/// <list type="bullet">
+/// <item><see cref="Literal(object, bool)"/> and overloads - Create literal expressions from compile-time values</item>
+/// <item><see cref="Parse"/> - Parse C# expression strings into <see cref="IExpression"/> objects</item>
+/// <item><see cref="Capture"/> - Capture the syntax of a C# expression written in a template without evaluating it</item>
+/// <item><see cref="This()"/>, <see cref="Null()"/>, <see cref="Default()"/> - Create common expressions like <c>this</c>, <c>null</c>, and <c>default</c></item>
+/// </list>
+/// For complex expressions that need programmatic construction, use <see cref="ExpressionBuilder"/> instead, which provides
+/// a StringBuilder-like API for building expressions piece by piece.
+/// </para>
+/// </remarks>
+/// <seealso cref="IExpression"/>
+/// <seealso cref="ExpressionBuilder"/>
+/// <seealso cref="IExpressionBuilder"/>
+/// <seealso cref="TypedConstant"/>
+/// <seealso href="@run-time-expressions"/>
+/// <seealso href="@templates"/>
 [CompileTime]
 [PublicAPI]
 public static class ExpressionFactory
@@ -145,8 +165,20 @@ public static class ExpressionFactory
     /// itself. The returned <see cref="IExpression"/> can then be used in run-time C# code thanks to the <see cref="IExpression.Value"/> property.
     /// This mechanism allows to generate expressions that depend on a compile-time control flow.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The <see cref="Capture"/> method is the simplest way to create an <see cref="IExpression"/> in a template. It captures the
+    /// C# syntax tree of an expression without evaluating it. This is particularly useful for creating expressions that depend on
+    /// compile-time conditions.
+    /// </para>
+    /// <para>
+    /// When the compile-time type of the expression to capture is <c>dynamic</c>, it must be explicitly cast to <see cref="IExpression"/>
+    /// instead of using this method. This is a workaround for C# language limitations.
+    /// </para>
+    /// </remarks>
     /// <param name="expression">A run-time expression, possibly containing compile-time sub-expressions. The expression cannot be <c>dynamic</c>. If
     /// you have a dynamic expression, do not call this method, but cast the dynamic expression to <see cref="IExpression"/>.</param>
+    /// <seealso href="@run-time-expressions"/>
     /// <seealso href="@templates"/>
     [CompileTime( isTemplateOnly: true )]
     public static IExpression Capture( dynamic? expression ) => SyntaxBuilder.CurrentImplementation.Capture( (object?) expression );

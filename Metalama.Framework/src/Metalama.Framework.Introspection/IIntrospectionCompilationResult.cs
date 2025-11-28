@@ -10,9 +10,15 @@ namespace Metalama.Framework.Introspection;
 /// <summary>
 /// Represents the result of the processing of a compilation by Metalama.
 /// </summary>
+/// <seealso cref="IIntrospectionCompilationDetails"/>
+/// <seealso cref="ICompilation"/>
+/// <seealso href="@introspection-api"/>
 [PublicAPI]
 public interface IIntrospectionCompilationResult : IIntrospectionCompilationDetails
 {
+    /// <summary>
+    /// Gets the name of the compilation.
+    /// </summary>
     string Name { get; }
 
     /// <summary>

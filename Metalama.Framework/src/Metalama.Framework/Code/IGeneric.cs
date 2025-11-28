@@ -9,7 +9,7 @@ namespace Metalama.Framework.Code
 {
     /// <summary>
     /// An interface, common to <see cref="INamedType"/> and <see cref="IMethod"/>, that represents a generic declaration, i.e. a declaration
-    /// with type parameters. 
+    /// with type parameters.
     /// </summary>
     /// <remarks>
     /// In Metalama, and unlike <c>System.Reflection</c>, generic types and methods are always fully bound. In generic declarations,
@@ -17,6 +17,10 @@ namespace Metalama.Framework.Code
     /// properties are identical.
     /// </remarks>
     /// <seealso cref="GenericExtensions"/>
+    /// <seealso cref="INamedType"/>
+    /// <seealso cref="IMethod"/>
+    /// <seealso cref="ITypeParameter"/>
+    /// <seealso cref="IGenericContext"/>
     public interface IGeneric : IMemberOrNamedType
     {
         /// <summary>

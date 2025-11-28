@@ -13,12 +13,22 @@ namespace Metalama.Framework.Aspects;
 /// the <see cref="IAspect{T}.BuildAspect"/> method is called several times, once for each layer.
 /// The current layer is exposed in the <see cref="IAspectBuilder.Layer"/> property.
 /// </summary>
+/// <seealso cref="IAspectBuilder.Layer"/>
+/// <seealso cref="AspectOrderAttribute"/>
+/// <seealso href="@ordering-aspects"/>
 [AttributeUsage( AttributeTargets.Class )]
 [PublicAPI]
 public sealed class LayersAttribute : Attribute
 {
+    /// <summary>
+    /// Gets the names of the layers defined by this attribute, in their order of execution.
+    /// </summary>
     public string[] Layers { get; }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="LayersAttribute"/> class.
+    /// </summary>
+    /// <param name="layers">The names of the layers in their order of execution.</param>
     public LayersAttribute( params string[] layers )
     {
         this.Layers = layers;

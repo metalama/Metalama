@@ -11,9 +11,20 @@ namespace Metalama.Extensions.Multicast;
 #pragma warning disable SA1623 // Property summary documentation should match accessors
 
 /// <summary>
-/// An interface that exposes properties that are equivalent those of the PostSharp <c>MulticastAttribute</c>.
-/// Multicast aspects in Metalama should implement this interface. All properties should be implemented as automatic properties. 
+/// An interface that exposes properties equivalent to those of the PostSharp <c>MulticastAttribute</c>.
+/// Multicast aspects in Metalama should implement this interface. All properties should be implemented as automatic properties.
 /// </summary>
+/// <remarks>
+/// <para>
+/// This interface provides PostSharp-compatible multicasting capabilities, allowing aspects to be automatically applied to
+/// multiple targets based on filtering criteria such as visibility, scope, and naming patterns. Types implementing this interface
+/// can control where they are applied using properties like <see cref="AttributeTargetElements"/>, <see cref="AttributeTargetTypes"/>,
+/// and <see cref="AttributeTargetMembers"/>.
+/// </para>
+/// </remarks>
+/// <seealso cref="MulticastTargets"/>
+/// <seealso cref="MulticastAttributes"/>
+/// <seealso href="@multicast"/>
 [RunTimeOrCompileTime]
 [PublicAPI]
 public interface IMulticastAttribute : IAspect

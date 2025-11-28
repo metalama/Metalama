@@ -16,6 +16,8 @@ namespace Metalama.Framework.Services;
 /// <remarks>
 /// The generic interface is intentionally not variant.
 /// </remarks>
+/// <seealso cref="IProjectService"/>
+/// <seealso cref="IGlobalService"/>
 [CompileTime]
 public interface IServiceProvider<TBase> : IServiceProvider
 {

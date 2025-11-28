@@ -7,6 +7,19 @@ namespace Metalama.Framework.Code.Types
     /// <summary>
     /// Represents an array, e.g. <c>T[]</c>.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// To create an <see cref="IArrayType"/>, call the <see cref="IType.MakeArrayType"/> method on any <see cref="IType"/> instance.
+    /// For example: <c>intType.MakeArrayType()</c> creates <c>int[]</c>, and <c>intType.MakeArrayType(2)</c> creates <c>int[,]</c>.
+    /// </para>
+    /// <para>
+    /// You can also obtain array types from existing declarations in the code model.
+    /// </para>
+    /// </remarks>
+    /// <seealso cref="IType"/>
+    /// <seealso cref="IType.MakeArrayType"/>
+    /// <seealso cref="IPointerType"/>
+    /// <seealso href="@type-system"/>
     public interface IArrayType : IType
     {
         /// <summary>

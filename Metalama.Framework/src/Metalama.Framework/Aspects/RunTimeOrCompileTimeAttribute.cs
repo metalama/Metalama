@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Code;
 using System;
 
 namespace Metalama.Framework.Aspects
@@ -16,6 +17,9 @@ namespace Metalama.Framework.Aspects
     /// available to your aspects.
     /// </para>
     /// </remarks>
+    /// <seealso cref="CompileTimeAttribute"/>
+    /// <seealso cref="RunTimeAttribute"/>
+    /// <seealso cref="ExecutionScope"/>
     [AttributeUsage(
         AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Enum | AttributeTargets.Delegate | AttributeTargets.Interface
         | AttributeTargets.Assembly )]

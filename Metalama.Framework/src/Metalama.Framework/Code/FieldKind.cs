@@ -9,6 +9,8 @@ namespace Metalama.Framework.Code;
 /// <summary>
 /// Specifies the kind of field.
 /// </summary>
+/// <seealso cref="IField"/>
+/// <seealso cref="ITupleElement"/>
 [CompileTime]
 public enum FieldKind
 {

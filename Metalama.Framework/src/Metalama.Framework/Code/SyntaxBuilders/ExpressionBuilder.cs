@@ -8,11 +8,33 @@ using Metalama.Framework.Aspects;
 namespace Metalama.Framework.Code.SyntaxBuilders
 {
     /// <summary>
-    /// Allows to build a run-time expression by composing a string thanks to an underlying <see cref="System.Text.StringBuilder"/>.
-    /// Use the <see cref="ToExpression"/> method to convert the <see cref="ExpressionBuilder"/> into a compile-time representation of the expression,
-    /// or the <see cref="ExpressionBuilderExtensions.ToValue(Metalama.Framework.Code.SyntaxBuilders.IExpressionBuilder)"/> methods converts it to a dynamic expression that can be used in the C# code
-    /// of the template. 
+    /// Allows to build a run-time expression programmatically by composing a string using an underlying <see cref="System.Text.StringBuilder"/>.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <see cref="ExpressionBuilder"/> provides a text-based approach to constructing complex C# expressions programmatically or
+    /// dynamically. It offers specialized methods for appending different syntax elements: <see cref="SyntaxBuilder.AppendLiteral(byte, bool)"/>
+    /// for literals, <see cref="SyntaxBuilder.AppendTypeName(IType)"/> for fully-qualified type names, <see cref="SyntaxBuilder.AppendExpression(dynamic?)"/>
+    /// for existing expressions, and <see cref="SyntaxBuilder.AppendVerbatim"/> for keywords and punctuation.
+    /// </para>
+    /// <para>
+    /// A major benefit of <see cref="ExpressionBuilder"/> is that it can be used in compile-time methods that are not templates,
+    /// providing flexibility for building expressions in helper methods. After building the expression string, call
+    /// <see cref="ToExpression"/> to get an <see cref="IExpression"/> object, or use <see cref="ExpressionBuilderExtensions.ToValue(INotNullExpressionBuilder)"/>
+    /// to get a <c>dynamic</c> value that can be used directly in template code.
+    /// </para>
+    /// <para>
+    /// When using <see cref="ExpressionBuilder"/>, ensure that all type names are fully namespace-qualified, as you cannot assume
+    /// the target code has any required <c>using</c> directives. Metalama will simplify the code and add relevant <c>using</c>
+    /// directives when producing formatted output.
+    /// </para>
+    /// </remarks>
+    /// <seealso cref="IExpression"/>
+    /// <seealso cref="IExpressionBuilder"/>
+    /// <seealso cref="ExpressionFactory"/>
+    /// <seealso cref="SyntaxBuilder"/>
+    /// <seealso href="@run-time-expressions"/>
+    /// <seealso href="@templates"/>
     [CompileTime]
     [PublicAPI]
     public sealed class ExpressionBuilder : SyntaxBuilder, IExpressionBuilder
@@ -24,11 +46,13 @@ namespace Metalama.Framework.Code.SyntaxBuilders
         /// <summary>
         /// Creates a compile-time <see cref="IExpression"/> from the current <see cref="ExpressionBuilder"/>.
         /// </summary>
+        /// <returns>An <see cref="IExpression"/> representing the built expression.</returns>
         public IExpression ToExpression() => ExpressionFactory.Parse( this.ToString(), this.ExpressionType, this.IsReferenceable );
 
         /// <summary>
         /// Returns a clone of the current <see cref="ExpressionBuilder"/>.
         /// </summary>
+        /// <returns>A new <see cref="ExpressionBuilder"/> with the same content.</returns>
         public ExpressionBuilder Clone() => new( this );
 
         /// <summary>

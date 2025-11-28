@@ -7,6 +7,9 @@ namespace Metalama.Framework.Introspection;
 /// <summary>
 /// Represents a fabric.
 /// </summary>
+/// <seealso cref="IIntrospectionAspectPredecessor"/>
+/// <seealso href="@introspection-api"/>
+/// <seealso href="@fabrics"/>
 public interface IIntrospectionFabric : IIntrospectionAspectPredecessor
 {
     /// <summary>

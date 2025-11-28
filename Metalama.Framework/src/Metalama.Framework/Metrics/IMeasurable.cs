@@ -10,6 +10,8 @@ namespace Metalama.Framework.Metrics
     /// <summary>
     /// Base interface for objects that can be extended with metrics.
     /// </summary>
+    /// <seealso cref="IMetric{T}"/>
+    /// <seealso cref="IMetricProvider{T}"/>
     [InternalImplement]
     [CompileTime]
     public interface IMeasurable;

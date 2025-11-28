@@ -13,7 +13,9 @@ namespace Metalama.Framework.Code;
 /// <remarks>
 /// To access a tuple element as an expression, use the <see cref="IFieldOrPropertyInvoker.WithObject(Metalama.Framework.Code.IExpression?)"/> method.
 /// </remarks>
-/// <seealso cref="ITupleType.TupleElements"/>
+/// <seealso cref="ITupleType"/>
+/// <seealso cref="IField"/>
+/// <seealso cref="IFieldOrPropertyInvoker"/>
 public interface ITupleElement : IField
 {
     /// <summary>

@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find:*)",
+      "Bash(done)",
+      "Bash(bc)",
+      "Bash(git fetch:*)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(dir /B *.cs)",
+      "WebFetch(domain:github.com)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

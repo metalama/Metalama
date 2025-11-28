@@ -12,6 +12,14 @@ namespace Metalama.Framework.Code;
 /// <summary>
 /// Represents a syntax node in source code. Using <c>Metalama.Framework.Sdk</c> you can use <c>ToSyntaxNodeOrToken</c> to convert it to a Roslyn object.
 /// </summary>
+/// <remarks>
+/// <para>
+/// To obtain a <see cref="SourceReference"/>, access the <see cref="IDeclaration.Sources"/> property on any declaration.
+/// </para>
+/// </remarks>
+/// <seealso cref="SourceSpan"/>
+/// <seealso cref="IDiagnosticLocation"/>
+/// <seealso cref="IDeclaration"/>
 [CompileTime]
 [PublicAPI]
 public readonly struct SourceReference : IDiagnosticLocation

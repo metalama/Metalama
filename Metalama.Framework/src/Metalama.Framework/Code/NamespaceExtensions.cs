@@ -15,6 +15,9 @@ public static class NamespaceExtensions
     /// Gets a value indicating whether the current namespace is the ancestor of another given namespace.
     /// This method returns <c>false</c> when both namespaces are equal.
     /// </summary>
+    /// <param name="a">The potential ancestor namespace.</param>
+    /// <param name="b">The namespace to check.</param>
+    /// <returns><c>true</c> if <paramref name="a"/> is an ancestor of <paramref name="b"/>; otherwise, <c>false</c>.</returns>
     public static bool IsAncestorOf( this INamespace a, INamespace b )
     {
         if ( a.IsGlobalNamespace )
@@ -32,11 +35,16 @@ public static class NamespaceExtensions
     /// Gets a value indicating whether the current namespace is the descendant of another given namespace.
     /// This method returns <c>false</c> when both namespaces are equal.
     /// </summary>
+    /// <param name="a">The potential descendant namespace.</param>
+    /// <param name="b">The namespace to check.</param>
+    /// <returns><c>true</c> if <paramref name="a"/> is a descendant of <paramref name="b"/>; otherwise, <c>false</c>.</returns>
     public static bool IsDescendantOf( this INamespace a, INamespace b ) => b.IsAncestorOf( a );
 
     /// <summary>
-    /// Gets all child and descendant namespaces of the current namespace, excluding the current namespace. 
+    /// Gets all child and descendant namespaces of the current namespace, excluding the current namespace.
     /// </summary>
+    /// <param name="ns">The namespace whose descendants to retrieve.</param>
+    /// <returns>A list of all descendant namespaces, excluding the current namespace.</returns>
     public static IReadOnlyList<INamespace> Descendants( this INamespace ns )
     {
         var list = new List<INamespace>();
@@ -57,8 +65,10 @@ public static class NamespaceExtensions
     }
 
     /// <summary>
-    /// Gets all child and descendant namespaces of the current namespace, plus the current namespace. 
+    /// Gets all child and descendant namespaces of the current namespace, plus the current namespace.
     /// </summary>
+    /// <param name="ns">The namespace whose descendants to retrieve, along with the namespace itself.</param>
+    /// <returns>A list of all descendant namespaces, including the current namespace.</returns>
     public static IReadOnlyList<INamespace> DescendantsAndSelf( this INamespace ns )
     {
         var list = new List<INamespace>();

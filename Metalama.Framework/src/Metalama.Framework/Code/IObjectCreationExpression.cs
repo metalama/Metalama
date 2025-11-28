@@ -3,6 +3,8 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Aspects;
+using Metalama.Framework.Code.Invokers;
+using Metalama.Framework.Code.SyntaxBuilders;
 using Metalama.Framework.Utilities;
 
 namespace Metalama.Framework.Code
@@ -10,6 +12,25 @@ namespace Metalama.Framework.Code
     /// <summary>
     /// A compile-time representation of a run-time object creation expression.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The main use case for this interface is to add object initializers to constructor invocation expressions created via
+    /// <see cref="IConstructorInvoker.CreateInvokeExpression()"/>. Use the <see cref="WithObjectInitializer(System.ValueTuple{IFieldOrProperty,IExpression}[])"/>
+    /// or <see cref="WithObjectInitializer(System.ValueTuple{string,IExpression}[])"/> methods to specify the fields or properties to initialize.
+    /// </para>
+    /// <para>
+    /// For example, to create a <c>new MyClass() { Field = 42, Property = "value" }</c> expression:
+    /// </para>
+    /// <code>
+    /// var expr = constructor.CreateInvokeExpression()
+    ///     .WithObjectInitializer(
+    ///         (fieldDeclaration, ExpressionFactory.Literal(42)),
+    ///         (propertyDeclaration, ExpressionFactory.Literal("value")));
+    /// </code>
+    /// </remarks>
+    /// <seealso cref="IExpression"/>
+    /// <seealso cref="IConstructorInvoker"/>
+    /// <seealso cref="ExpressionFactory"/>
     [CompileTime]
     [InternalImplement]
     [Hidden]

@@ -10,11 +10,30 @@ using System;
 namespace Metalama.Framework.Aspects
 {
     /// <summary>
-    /// A base class for aspects that can be applied to parameters as custom attributes.
+    /// A base class for aspects that target method, constructor, or indexer parameter declarations.
     /// </summary>
     /// <remarks>
-    /// <para>This class is a redundant helper class. The aspect framework only respects the <see cref="IAspect{T}"/> interface.</para>
+    /// <para>
+    /// This class provides a convenient base for creating parameter-level aspects by implementing <see cref="IAspect{T}"/>
+    /// with <c>T</c> set to <see cref="IParameter"/>. Derived classes override <see cref="BuildAspect"/>
+    /// to add advice (such as adding contracts for parameter validation, introducing attributes, or applying constraints)
+    /// to the target parameter.
+    /// </para>
+    /// <para>
+    /// Aspects can only be applied to run-time code, never to compile-time types or their members. This eligibility
+    /// restriction is enforced by the <see cref="BuildEligibility"/> method.
+    /// </para>
+    /// <para>
+    /// This is a convenience base class. The aspect framework primarily requires implementation of <see cref="IAspect{T}"/>.
+    /// </para>
     /// </remarks>
+    /// <seealso cref="IAspect{T}"/>
+    /// <seealso cref="IParameter"/>
+    /// <seealso cref="IAspectBuilder{T}"/>
+    /// <seealso cref="Aspect"/>
+    /// <seealso cref="ContractAspect"/>
+    /// <seealso href="@aspects"/>
+    /// <seealso href="@contracts"/>
     [AttributeUsage( AttributeTargets.Parameter )]
     [PublicAPI]
     public abstract class ParameterAspect : Aspect, IAspect<IParameter>

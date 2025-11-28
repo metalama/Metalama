@@ -8,8 +8,22 @@ using System.Linq;
 
 namespace Metalama.Framework.Code;
 
+/// <summary>
+/// Extension methods for the <see cref="ICompilation"/> interface.
+/// </summary>
+/// <seealso cref="ICompilation"/>
+/// <seealso cref="IDeclaration"/>
+/// <seealso cref="IAttribute"/>
 public static class CompilationExtensions
 {
+    /// <summary>
+    /// Gets all declarations in the compilation that are annotated with a specific attribute type.
+    /// </summary>
+    /// <typeparam name="TAttribute">The attribute type to search for. Must be a compile-time or run-time-or-compile-time type.</typeparam>
+    /// <param name="compilation">The compilation to search.</param>
+    /// <param name="predicate">An optional predicate to filter attributes based on their constructed values.</param>
+    /// <param name="includeDerivedTypes">Whether to include attributes whose type derives from <typeparamref name="TAttribute"/>.</param>
+    /// <returns>An enumerable of declarations that have the specified attribute.</returns>
     public static IEnumerable<IDeclaration> GetDeclarationsWithAttribute<TAttribute>(
         this ICompilation compilation,
         Func<TAttribute, bool>? predicate = null,
@@ -31,6 +45,14 @@ public static class CompilationExtensions
                 .Distinct();
     }
 
+    /// <summary>
+    /// Gets all declarations in the compilation that are annotated with a specific attribute type, specified as a reflection <see cref="Type"/>.
+    /// </summary>
+    /// <param name="compilation">The compilation to search.</param>
+    /// <param name="attributeType">The attribute type to search for.</param>
+    /// <param name="predicate">An optional predicate to filter attributes based on their <see cref="IAttribute"/> representation.</param>
+    /// <param name="includeDerivedTypes">Whether to include attributes whose type derives from <paramref name="attributeType"/>.</param>
+    /// <returns>An enumerable of declarations that have the specified attribute.</returns>
     public static IEnumerable<IDeclaration> GetDeclarationsWithAttribute(
         this ICompilation compilation,
         Type attributeType,

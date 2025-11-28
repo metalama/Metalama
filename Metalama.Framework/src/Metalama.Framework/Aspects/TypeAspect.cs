@@ -10,11 +10,28 @@ using System;
 namespace Metalama.Framework.Aspects
 {
     /// <summary>
-    /// A base class for aspects that can be applied to types as custom attributes.
+    /// A base class for aspects that target type declarations (classes, structs, interfaces, delegates, and enums).
     /// </summary>
     /// <remarks>
-    /// <para>This class is a redundant helper class. The aspect framework only respects the <see cref="IAspect{T}"/> interface.</para>
+    /// <para>
+    /// This class provides a convenient base for creating type-level aspects by implementing <see cref="IAspect{T}"/>
+    /// with <c>T</c> set to <see cref="INamedType"/>. Derived classes override <see cref="BuildAspect"/>
+    /// to add advice (such as introducing members, implementing interfaces, or applying child aspects) to the target type.
+    /// </para>
+    /// <para>
+    /// Aspects can only be applied to run-time code, never to compile-time types (types marked with <see cref="CompileTimeAttribute"/>
+    /// or <see cref="RunTimeOrCompileTimeAttribute"/>). This eligibility restriction is enforced by the <see cref="BuildEligibility"/>
+    /// method.
+    /// </para>
+    /// <para>
+    /// This is a convenience base class. The aspect framework primarily requires implementation of <see cref="IAspect{T}"/>.
+    /// </para>
     /// </remarks>
+    /// <seealso cref="IAspect{T}"/>
+    /// <seealso cref="IAspectBuilder{T}"/>
+    /// <seealso cref="INamedType"/>
+    /// <seealso cref="Aspect"/>
+    /// <seealso href="@aspects"/>
     [AttributeUsage( AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Interface | AttributeTargets.Delegate | AttributeTargets.Enum )]
     [PublicAPI]
     public abstract class TypeAspect : Aspect, IAspect<INamedType>

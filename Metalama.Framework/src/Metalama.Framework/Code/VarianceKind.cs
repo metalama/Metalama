@@ -7,8 +7,9 @@ using Metalama.Framework.Aspects;
 namespace Metalama.Framework.Code;
 
 /// <summary>
-/// Specifies the kind variance: <see cref="In"/>, <see cref="Out"/> or <see cref="None"/>.
+/// Specifies the kind variance for type parameters: <see cref="In"/>, <see cref="Out"/> or <see cref="None"/>.
 /// </summary>
+/// <seealso cref="ITypeParameter"/>
 [CompileTime]
 public enum VarianceKind
 {

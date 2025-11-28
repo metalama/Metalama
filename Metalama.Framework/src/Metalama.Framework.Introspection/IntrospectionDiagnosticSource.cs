@@ -7,6 +7,8 @@ namespace Metalama.Framework.Introspection;
 /// <summary>
 /// Enumerates the possible sources (or originators) of an <see cref="IIntrospectionDiagnostic"/>.
 /// </summary>
+/// <seealso cref="IIntrospectionDiagnostic"/>
+/// <seealso href="@introspection-api"/>
 public enum IntrospectionDiagnosticSource
 {
     /// <summary>
@@ -14,12 +16,21 @@ public enum IntrospectionDiagnosticSource
     /// </summary>
     Metalama,
 
+    /// <summary>
+    /// The diagnostic is produced by the C# compiler.
+    /// </summary>
     // Resharper disable UnusedMember.Global
     CSharp,
 
+    /// <summary>
+    /// The diagnostic is reported by the user using an API.
+    /// </summary>
     // Reported by the user using an API
     User,
 
+    /// <summary>
+    /// The diagnostic is reported by MSBuild.
+    /// </summary>
     // Reported by MSBuild.
     MSBuild
 }

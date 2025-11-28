@@ -9,13 +9,20 @@ using System;
 
 namespace Metalama.Framework.Engine.Services;
 
+/// <summary>
+/// Provides compilation-scoped services.
+/// </summary>
+/// <seealso cref="IReflectionMapper"/>
 [PublicAPI]
 public interface ICompilationServices
 {
+    /// <summary>
+    /// Gets the Roslyn <see cref="Compilation"/> associated with this service provider.
+    /// </summary>
     Compilation Compilation { get; }
 
     /// <summary>
-    /// Gets a service able to map a system <see cref="Type"/> to a Roslyn <see cref="ITypeSymbol"/>.
+    /// Gets a service able to map a .NET reflection <see cref="Type"/> to a Roslyn <see cref="ITypeSymbol"/>.
     /// </summary>
     IReflectionMapper ReflectionMapper { get; }
 }

@@ -10,6 +10,14 @@ namespace Metalama.Framework.Code;
 /// <summary>
 /// Represents a span of source code.
 /// </summary>
+/// <remarks>
+/// <para>
+/// To obtain a <see cref="SourceSpan"/>, access the <see cref="IDeclaration.Sources"/> property on any declaration.
+/// to get an enumeration of <see cref="SourceReference"/>, then access the <see cref="SourceReference.Span"/> property.
+/// </para>
+/// </remarks>
+/// <seealso cref="SourceReference"/>
+/// <seealso cref="IDeclaration"/>
 [CompileTime]
 [PublicAPI]
 public readonly struct SourceSpan
@@ -39,6 +47,18 @@ public readonly struct SourceSpan
         this._sourceReferenceImpl = sourceReferenceImpl;
     }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="SourceSpan"/> struct.
+    /// </summary>
+    /// <param name="filePath">The path of the source file.</param>
+    /// <param name="syntaxTree">The Roslyn syntax tree.</param>
+    /// <param name="start">The start position in the file.</param>
+    /// <param name="end">The end position in the file.</param>
+    /// <param name="startLine">The start line (zero-based).</param>
+    /// <param name="startColumn">The start column (zero-based).</param>
+    /// <param name="endLine">The end line (zero-based).</param>
+    /// <param name="endColumn">The end column (zero-based).</param>
+    /// <param name="text">The text of the span.</param>
     public SourceSpan(
         string filePath,
         object syntaxTree,

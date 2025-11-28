@@ -11,10 +11,22 @@ namespace Metalama.Extensions.Metrics
     /// <summary>
     /// A metric that counts the number of syntax nodes in a declaration.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This metric provides a more accurate measure of code complexity than line counts, as it counts actual syntax
+    /// nodes in the syntax tree. 
+    /// </para>
+    /// <para>
+    /// Use this metric with <see cref="IDeclaration"/>.<see cref="MetricsExtensions.Metrics{TExtensible}(TExtensible)"/>.<see cref="Metrics{T}.Get{TExtension}"/>.
+    /// </para>
+    /// </remarks>
+    /// <seealso cref="StatementsCount"/>
+    /// <seealso cref="SyntaxNodesCountMetricProvider"/>
+    /// <seealso href="@metrics"/>
     public struct SyntaxNodesCount : IMetric<IMethodBase>, IMetric<INamedType>, IMetric<INamespace>, IMetric<ICompilation>
     {
         /// <summary>
-        /// Gets the total number of statements.
+        /// Gets the total number of syntax nodes.
         /// </summary>
         public int Value { get; internal set; }
 

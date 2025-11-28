@@ -24,16 +24,22 @@ public sealed class SwitchStatementLabel
     /// <summary>
     /// Creates a literal <see cref="SwitchStatementLabel"/> by giving the literals as intrinsic values (<see cref="string"/>, <see cref="int"/>, ...).
     /// </summary>
+    /// <param name="values">The literal values to match.</param>
+    /// <returns>A new <see cref="SwitchStatementLabel"/>.</returns>
     public static SwitchStatementLabel CreateLiteral( params object[] values ) => new( values.Select( TypedConstant.Create ).ToList() );
 
     /// <summary>
     /// Creates a literal <see cref="SwitchStatementLabel"/> by giving the literals as <see cref="TypedConstant"/> values.
     /// </summary>
+    /// <param name="values">The literal values to match.</param>
+    /// <returns>A new <see cref="SwitchStatementLabel"/>.</returns>
     public static SwitchStatementLabel CreateLiteral( params TypedConstant[] values ) => new( values );
 
     /// <summary>
     /// Creates a literal <see cref="SwitchStatementLabel"/> by giving the literals as <see cref="TypedConstant"/> values.
     /// </summary>
+    /// <param name="values">The literal values to match.</param>
+    /// <returns>A new <see cref="SwitchStatementLabel"/>.</returns>
     public static SwitchStatementLabel CreateLiteral( IReadOnlyList<TypedConstant> values ) => new( values );
 
     private SwitchStatementLabel( IReadOnlyList<TypedConstant> values )

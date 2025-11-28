@@ -10,6 +10,9 @@ namespace Metalama.Framework.Code.Comparers;
 /// Specifies which comparer should be used.
 /// </summary>
 /// <seealso cref="ICompilation.Comparers"/>
+/// <seealso cref="ICompilationComparers"/>
+/// <seealso cref="IType"/>
+/// <seealso cref="ITypeComparer"/>
 [CompileTime]
 public enum TypeComparison
 {

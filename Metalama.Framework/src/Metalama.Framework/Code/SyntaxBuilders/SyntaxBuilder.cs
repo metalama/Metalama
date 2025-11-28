@@ -10,8 +10,29 @@ using System.Text;
 namespace Metalama.Framework.Code.SyntaxBuilders
 {
     /// <summary>
-    /// A base class for <see cref="ExpressionBuilder"/> and <see cref="StatementBuilder"/>.
+    /// Base class for <see cref="ExpressionBuilder"/> and <see cref="StatementBuilder"/>, providing common methods for
+    /// building C# syntax programmatically.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <see cref="SyntaxBuilder"/> provides the core functionality for building C# code as text through an underlying
+    /// <see cref="System.Text.StringBuilder"/>. It offers specialized methods for appending different syntax elements:
+    /// <list type="bullet">
+    /// <item><see cref="AppendLiteral(int)"/> and overloads - Append literal values with proper C# syntax</item>
+    /// <item><see cref="AppendTypeName(IType)"/> - Append fully-qualified type names</item>
+    /// <item><see cref="AppendExpression(IExpression)"/> - Append existing expressions</item>
+    /// <item><see cref="AppendVerbatim"/> - Append raw text for keywords, operators, and punctuation</item>
+    /// </list>
+    /// </para>
+    /// <para>
+    /// Derived classes <see cref="ExpressionBuilder"/> and <see cref="StatementBuilder"/> provide additional functionality
+    /// specific to building expressions and statements respectively.
+    /// </para>
+    /// </remarks>
+    /// <seealso cref="ExpressionBuilder"/>
+    /// <seealso cref="StatementBuilder"/>
+    /// <seealso href="@run-time-expressions"/>
+    /// <seealso href="@run-time-statements"/>
     [CompileTime]
     public abstract class SyntaxBuilder
     {

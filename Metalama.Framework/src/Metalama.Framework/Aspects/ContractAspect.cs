@@ -13,11 +13,34 @@ using System.Linq;
 namespace Metalama.Framework.Aspects
 {
     /// <summary>
-    /// A base aspect that can validate or change the value of fields, properties, indexers, and parameters.
+    /// A base aspect that can validate or change the value of fields, properties, indexers, and parameters. Contracts are typically used
+    /// to validate input parameters (preconditions), output parameters and return values (postconditions), or to normalize values.
+    /// For ready-made contract implementations, see the <c>Metalama.Patterns.Contracts</c> package.
     /// </summary>
     /// <remarks>
-    /// <para>A contract aspect can apply to the input or output data flow, or to both data flows, according to the <see cref="ContractDirection"/> value
-    /// passed to the constructor. Since the current class does not know the value of this parameter before it is instantiated, this class cannot
+    /// <para>
+    /// <b>Contract Directions:</b> A contract aspect can apply to the input data flow, output data flow, or both, according to the <see cref="ContractDirection"/> value
+    /// returned by <see cref="GetDefinedDirection"/>. The default direction is:
+    /// </para>
+    /// <list type="bullet">
+    /// <item><description>For input and <c>ref</c> parameters: the <i>input</i> value (precondition).</description></item>
+    /// <item><description>For fields and properties: the <i>assigned</i> value (i.e., the <c>value</c> parameter of the setter).</description></item>
+    /// <item><description>For <c>out</c> parameters and return value parameters: the <i>output</i> value (postcondition).</description></item>
+    /// </list>
+    /// <para>
+    /// To customize the contract direction, override the <see cref="GetDefinedDirection"/> method in your derived contract aspect class.
+    /// </para>
+    /// <para>
+    /// <b>Accessing Metadata:</b> In your <see cref="Validate"/> template, you can access the target context using:
+    /// </para>
+    /// <list type="bullet">
+    /// <item><description><c>meta.Target.Declaration</c> - Returns the target parameter, property, or field.</description></item>
+    /// <item><description><c>meta.Target.FieldOrProperty</c> - Returns the target property or field (throws if applied to a parameter).</description></item>
+    /// <item><description><c>meta.Target.Parameter</c> - Returns the parameter including return value parameter (throws if applied to a field or property).</description></item>
+    /// <item><description><c>meta.Target.ContractDirection</c> - Returns <see cref="ContractDirection.Input"/> or <see cref="ContractDirection.Output"/> according to the data flow being validated.</description></item>
+    /// </list>
+    /// <para>
+    /// <b>Eligibility:</b> Since the current class does not know the value of the contract direction before it is instantiated, this class cannot
     /// set the eligibility conditions using the <see cref="BuildEligibility(IEligibilityBuilder{IFieldOrPropertyOrIndexer})"/> method.
     /// If a derived class targets a specific <see cref="ContractDirection"/> (i.e. if the choice is not left to the user),
     /// its implementation of <see cref="BuildEligibility(IEligibilityBuilder{IFieldOrPropertyOrIndexer})"/>
@@ -28,7 +51,23 @@ namespace Metalama.Framework.Aspects
     /// In any case, this aspect verifies the eligibility of the target with respect to the specific <see cref="ContractDirection"/> and target declaration. This verification
     /// cannot be skipped.
     /// </para>
+    /// <para>
+    /// <b>Programmatic Usage:</b> You can add contracts programmatically using <see cref="AdviserExtensions.AddContract(IAdviser{IFieldOrPropertyOrIndexer}, string, ContractDirection, object?, object?)"/> from your aspect's <c>BuildAspect</c> method.
+    /// When possible, provide all contracts to the same method from a single aspect for better compile-time performance.
+    /// </para>
+    /// <para>
+    /// <b>Ready-Made Contracts:</b> Instead of implementing your own contract aspects, consider using the ready-made contracts provided by the
+    /// <c>Metalama.Patterns.Contracts</c> package, which includes contracts for nullability ([NotNull], [Required]), strings ([Email], [Url], [Phone], [CreditCard], [StringLength]),
+    /// numeric ranges ([Range], [Positive], [Negative]), enums ([EnumDataType]), and collections ([NotEmpty]). See <see href="@contract-patterns"/> for details.
+    /// </para>
     /// </remarks>
+    /// <seealso cref="ContractDirection"/>
+    /// <seealso cref="IParameter"/>
+    /// <seealso cref="IFieldOrPropertyOrIndexer"/>
+    /// <seealso cref="AdviserExtensions.AddContract(IAdviser{IFieldOrPropertyOrIndexer}, string, ContractDirection, object?, object?)"/>
+    /// <seealso href="@contracts"/>
+    /// <seealso href="@simple-contracts"/>
+    /// <seealso href="@contract-patterns"/>
     [AttributeUsage( AttributeTargets.ReturnValue | AttributeTargets.Parameter | AttributeTargets.Field | AttributeTargets.Property )]
     [Layers( BuildLayer )]
     [Inheritable]
@@ -338,6 +377,27 @@ namespace Metalama.Framework.Aspects
             BuildEligibilityForDirection( builder, ContractDirection.Default );
         }
 
+        /// <summary>
+        /// The template method that validates or normalizes the value of a field, property, indexer, or parameter.
+        /// </summary>
+        /// <param name="value">The value to validate or normalize. This is a <c>dynamic</c> parameter to support any value type.</param>
+        /// <remarks>
+        /// <para>
+        /// This is the primary template method that must be implemented in derived contract aspects. It is executed at the point
+        /// in the data flow determined by <see cref="GetDefinedDirection"/>, which can be input (precondition), output (postcondition),
+        /// or both.
+        /// </para>
+        /// <para>
+        /// Within the template, use <c>meta.Target.ContractDirection</c> to determine whether you're validating input or output flow.
+        /// Access the target declaration through <c>meta.Target.Declaration</c>, <c>meta.Target.FieldOrProperty</c>, or
+        /// <c>meta.Target.Parameter</c> depending on the target type.
+        /// </para>
+        /// <para>
+        /// To reject invalid values, throw an appropriate exception (typically <see cref="ArgumentException"/> for parameters,
+        /// or a custom validation exception). To normalize values, modify the <paramref name="value"/> parameter using assignment
+        /// (e.g., <c>value = value.Trim()</c>), which will update the value in the data flow.
+        /// </para>
+        /// </remarks>
         [Template]
         public abstract void Validate( dynamic? value );
 

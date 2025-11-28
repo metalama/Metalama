@@ -10,6 +10,14 @@ namespace Metalama.Framework.Introspection;
 /// <summary>
 /// Represents an aspect class (i.e. a type of aspect) and exposes all its instances in the current scope.
 /// </summary>
+/// <remarks>
+/// To obtain an <see cref="IIntrospectionAspectClass"/> from a <c>Metalama.Framework.Workspaces.Workspace</c>, use the
+/// <c>Workspace.AspectClasses</c> property, which returns all aspect classes aggregated
+/// across all projects in the workspace. For per-project access, use the <c>Project.AspectClasses</c> property.
+/// </remarks>
+/// <seealso cref="IIntrospectionAspectInstance"/>
+/// <seealso cref="IAspectClass"/>
+/// <seealso href="@introspection-api"/>
 public interface IIntrospectionAspectClass : IAspectClass
 {
     /// <summary>

@@ -15,6 +15,11 @@ namespace Metalama.Framework.Code
     /// <summary>
     /// Represents a generic parameter of a method or type.
     /// </summary>
+    /// <seealso cref="IGeneric"/>
+    /// <seealso cref="INamedType"/>
+    /// <seealso cref="IMethod"/>
+    /// <seealso cref="IType"/>
+    /// <seealso href="@type-system"/>
     public interface ITypeParameter : INamedDeclaration, IType
     {
         /// <summary>

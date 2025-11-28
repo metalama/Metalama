@@ -7,8 +7,13 @@ using Metalama.Framework.Code;
 namespace Metalama.Framework.Aspects
 {
     /// <summary>
-    /// Kinds of <see cref="AspectPredecessor"/>.
+    /// Specifies how an aspect instance was created or added to a declaration. This determines the type of object
+    /// in <see cref="AspectPredecessor.Instance"/>.
     /// </summary>
+    /// <seealso cref="AspectPredecessor"/>
+    /// <seealso cref="IAspectPredecessor"/>
+    /// <seealso href="@child-aspects"/>
+    /// <seealso href="@aspect-inheritance"/>
     [CompileTime]
     public enum AspectPredecessorKind
     {
@@ -33,7 +38,7 @@ namespace Metalama.Framework.Aspects
         Inherited,
 
         /// <summary>
-        /// The aspect has been created by a fabric. <see cref="AspectPredecessor.Instance"/> is an <see cref="Fabrics.Fabric"/>.
+        /// The aspect has been created by a fabric. <see cref="AspectPredecessor.Instance"/> is an <see cref="Fabrics.IFabricInstance"/>.
         /// </summary>
         Fabric,
 

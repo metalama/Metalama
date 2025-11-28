@@ -9,6 +9,10 @@ namespace Metalama.Framework.Code
     /// <summary>
     /// Kinds of <see cref="IDeclaration"/>.
     /// </summary>
+    /// <seealso cref="IDeclaration"/>
+    /// <seealso cref="ICompilation"/>
+    /// <seealso cref="INamedType"/>
+    /// <seealso cref="IMember"/>
     [CompileTime]
     public enum DeclarationKind
     {

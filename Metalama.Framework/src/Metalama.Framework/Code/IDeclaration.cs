@@ -21,6 +21,11 @@ namespace Metalama.Framework.Code
     /// To use a different comparer, choose a different comparer from <see cref="IDeclaration"/>.<see cref="ICompilationElement.Compilation"/>.<see cref="ICompilation.Comparers"/>.
     /// </remarks>
     /// <seealso cref="DeclarationExtensions"/>
+    /// <seealso cref="ICompilation"/>
+    /// <seealso cref="INamedType"/>
+    /// <seealso cref="IMember"/>
+    /// <seealso cref="DeclarationKind"/>
+    /// <seealso cref="IDeclarationOrigin"/>
     [CompileTime]
     public interface IDeclaration : IDisplayable, IDiagnosticLocation, ICompilationElement, IMeasurable, IEquatable<IDeclaration>
     {

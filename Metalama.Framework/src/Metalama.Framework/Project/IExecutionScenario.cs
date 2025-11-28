@@ -11,6 +11,8 @@ namespace Metalama.Framework.Project
     /// Exposes the properties of the scenarios in which an aspect, template, or fabric is being executed. The interface is accessible
     /// from the <see cref="MetalamaExecutionContext"/> class.
     /// </summary>
+    /// <seealso cref="MetalamaExecutionContext"/>
+    /// <seealso cref="IExecutionContext"/>
     [CompileTime]
     [InternalImplement]
     public interface IExecutionScenario

@@ -32,6 +32,22 @@ namespace Metalama.Framework.Workspaces
     /// Represents a set of projects. Workspaces can be created using the <see cref="WorkspaceCollection"/> class.  When projects target several frameworks,
     /// they are represented by several instances of the <see cref="Project"/> class in the workspace.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A workspace can be created by calling <see cref="Load(string[])"/> or <see cref="LoadAsync(string[])"/>, which load
+    /// projects or solutions into the default <see cref="WorkspaceCollection"/>. Workspaces with the same parameters are cached
+    /// and reused within the same collection.
+    /// </para>
+    /// <para>
+    /// The workspace provides access to project information through the <see cref="Projects"/> property, and exposes
+    /// introspection capabilities for analyzing aspect instances, transformations, and diagnostics across all loaded projects.
+    /// Use <see cref="ApplyFilter"/> to filter projects and focus introspection queries on specific subsets.
+    /// </para>
+    /// </remarks>
+    /// <seealso cref="WorkspaceCollection"/>
+    /// <seealso cref="Project"/>
+    /// <seealso cref="IProjectSet"/>
+    /// <seealso href="@introspection-api"/>
     [PublicAPI]
     public sealed class Workspace : IDisposable, IProjectSet, IWorkspaceLoadInfo
     {
@@ -96,8 +112,10 @@ namespace Metalama.Framework.Workspaces
         }
 
         /// <summary>
-        /// Gets the <see cref="IntrospectionOptions"/> for the current workspace.
+        /// Gets or sets the <see cref="Introspection.IntrospectionOptions"/> for the current workspace.
         /// </summary>
+        /// <seealso cref="WithIntrospectionOptions"/>
+        /// <seealso cref="WithIgnoreErrors"/>
         public IntrospectionOptions IntrospectionOptions
         {
             get => this._introspectionOptions.IntrospectionOptions;
@@ -107,6 +125,9 @@ namespace Metalama.Framework.Workspaces
         /// <summary>
         /// Modifies the <see cref="Introspection.IntrospectionOptions"/> of the current workspace, and returns the current workspace.
         /// </summary>
+        /// <param name="options">The new introspection options to apply.</param>
+        /// <returns>The current workspace instance with modified options.</returns>
+        /// <seealso cref="WithIgnoreErrors"/>
         public Workspace WithIntrospectionOptions( IntrospectionOptions options )
         {
             this.IntrospectionOptions = options;
@@ -116,9 +137,10 @@ namespace Metalama.Framework.Workspaces
 
         /// <summary>
         /// Modifies the <see cref="IntrospectionOptions"/> of the current workspace by setting the <see cref="Introspection.IntrospectionOptions.IgnoreErrors"/>
-        /// property to <c>true</c>.
+        /// property to <c>true</c>, and returns the current workspace.
         /// </summary>
-        /// <returns></returns>
+        /// <returns>The current workspace instance with errors ignored.</returns>
+        /// <seealso cref="WithIntrospectionOptions"/>
         public Workspace WithIgnoreErrors()
         {
             // ReSharper disable once WithExpressionModifiesAllMembers
@@ -128,8 +150,9 @@ namespace Metalama.Framework.Workspaces
         }
 
         /// <summary>
-        /// Clear all filters applied by <see cref="ApplyFilter"/>.
+        /// Clears all filters applied by <see cref="ApplyFilter"/>, restoring the <see cref="Projects"/> collection to include all loaded projects.
         /// </summary>
+        /// <seealso cref="ApplyFilter"/>
         public void ClearFilters()
         {
             this._projectFilter = _defaultProjectFilter;
@@ -138,9 +161,10 @@ namespace Metalama.Framework.Workspaces
 
         /// <summary>
         /// Filters the <see cref="Projects"/> collection with a given predicate.
-        /// This allows to filter the output of methods such as <see cref="DeclarationExtensions.GetInboundReferences"/>
+        /// This allows filtering the output of methods such as <see cref="DeclarationExtensions.GetInboundReferences"/>
         /// or <see cref="DeclarationExtensions.GetDerivedTypes"/> to the filtered subset.
         /// </summary>
+        /// <param name="filter">A predicate that determines which projects to include in the filtered collection.</param>
         /// <seealso cref="ClearFilters"/>
         public void ApplyFilter( Predicate<Project> filter )
         {
@@ -150,8 +174,12 @@ namespace Metalama.Framework.Workspaces
         }
 
         /// <summary>
-        /// Reloads all projects in the current workspace.
+        /// Asynchronously reloads all projects in the current workspace.
         /// </summary>
+        /// <param name="restore">Indicates whether to run <c>dotnet restore</c> before loading projects. The default is <c>true</c>.</param>
+        /// <param name="cancellationToken">A cancellation token.</param>
+        /// <returns>The current workspace instance after reloading.</returns>
+        /// <seealso cref="Reload"/>
         public async Task<Workspace> ReloadAsync( bool restore = true, CancellationToken cancellationToken = default )
         {
             var result = await LoadProjectSetAsync(
@@ -171,6 +199,13 @@ namespace Metalama.Framework.Workspaces
             return this;
         }
 
+        /// <summary>
+        /// Synchronously reloads all projects in the current workspace.
+        /// </summary>
+        /// <param name="restore">Indicates whether to run <c>dotnet restore</c> before loading projects. The default is <c>true</c>.</param>
+        /// <param name="cancellationToken">A cancellation token.</param>
+        /// <returns>The current workspace instance after reloading.</returns>
+        /// <seealso cref="ReloadAsync"/>
         public Workspace Reload( bool restore = true, CancellationToken cancellationToken = default )
         {
             this._taskRunner.RunSynchronously( () => this.ReloadAsync( restore, cancellationToken ) );
@@ -427,6 +462,10 @@ namespace Metalama.Framework.Workspaces
         /// <inheritdoc />
         public ImmutableArray<IIntrospectionDiagnostic> Diagnostics => this.CompilationResult.Diagnostics;
 
+        /// <summary>
+        /// Gets the diagnostics produced while loading the workspace, such as MSBuild errors or warnings.
+        /// </summary>
+        /// <seealso cref="IIntrospectionCompilationDetails.Diagnostics"/>
         public ImmutableArray<IIntrospectionDiagnostic> WorkspaceDiagnostics
             => this._loadDiagnostics.SelectAsImmutableArray( x => (IIntrospectionDiagnostic) new WorkspaceDiagnosticWrapper( x ) );
 
@@ -434,10 +473,18 @@ namespace Metalama.Framework.Workspaces
 
         /// <summary>
         /// Gets the version number of Metalama. This is determined by the LinqPad packages for Metalama, not by the Metalama packages in the projects
-        /// loaded in the workspace. 
+        /// loaded in the workspace.
         /// </summary>
         public string? MetalamaVersion => EngineAssemblyMetadataReader.Instance.PackageVersion;
 
+        /// <summary>
+        /// Gets a project by name and optionally by target framework.
+        /// </summary>
+        /// <param name="name">The project name (without extension).</param>
+        /// <param name="targetFramework">The target framework, or <c>null</c> to match any framework.</param>
+        /// <returns>The matching project.</returns>
+        /// <exception cref="KeyNotFoundException">Thrown when no project with the specified name is found.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when multiple projects match and no target framework is specified.</exception>
         public Project GetProject( string name, string? targetFramework = null )
         {
             var candidates = this.Projects.Where( p => p.Name == name && (targetFramework == null || p.TargetFramework == targetFramework) ).ToReadOnlyList();

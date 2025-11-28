@@ -8,8 +8,28 @@ using System.Collections.Generic;
 namespace Metalama.Framework.Code.Invokers;
 
 /// <summary>
-/// Allows invocation of the constructor.
+/// Allows generating run-time code that invokes a constructor when you have its compile-time <see cref="IConstructor"/> representation.
 /// </summary>
+/// <remarks>
+/// <para>
+/// Invokers are APIs that allow you to generate run-time code from compile-time declarations. When you have an <see cref="IConstructor"/>
+/// object (a compile-time representation of a constructor), you can use its invoker methods to create <see cref="IObjectCreationExpression"/>
+/// objects that represent object instantiation. These expressions can then be used in templates and will be expanded into actual C# code.
+/// </para>
+/// <para>
+/// The <see cref="Invoke(dynamic[])"/> method returns a <c>dynamic</c> value that can be used directly in template code, while
+/// <see cref="CreateInvokeExpression()"/> and its overloads return an <see cref="IObjectCreationExpression"/> for use in compile-time APIs.
+/// </para>
+/// <para>
+/// Unlike other invokers, constructors do not support <c>WithObject</c> or <c>WithOptions</c> since they always create new instances
+/// and do not have implementation layers or nullability concerns in the same way as member access.
+/// </para>
+/// </remarks>
+/// <seealso cref="IConstructor"/>
+/// <seealso cref="IExpression"/>
+/// <seealso cref="IObjectCreationExpression"/>
+/// <seealso href="@invokers"/>
+/// <seealso href="@dynamic-typing"/>
 [CompileTime]
 public interface IConstructorInvoker
 {

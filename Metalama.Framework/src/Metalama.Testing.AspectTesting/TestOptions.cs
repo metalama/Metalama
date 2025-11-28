@@ -18,10 +18,22 @@ using System.Text.RegularExpressions;
 namespace Metalama.Testing.AspectTesting;
 
 /// <summary>
-/// A set of test options, which can be included in the source text of tests using special comments like <c>// @ReportOutputWarnings</c>.
-/// This class is JSON-serializable. Another way to define options is to add a file named <c>metalamaTests.json</c> into the test directory or
-/// any parent directory.
+/// A set of test options that control how aspect tests are executed and validated.
 /// </summary>
+/// <remarks>
+/// <para>
+/// Test options can be specified in two ways:
+/// <list type="bullet">
+/// <item>In-source comments: Add special <c>// @OptionName</c> or <c>// @OptionName(value)</c> comments within test files</item>
+/// <item>Configuration file: Add a <c>metalamaTests.json</c> file in the test directory or any parent directory</item>
+/// </list>
+/// </para>
+/// <para>
+/// Options specified in test files override options from configuration files. This class is JSON-serializable.
+/// </para>
+/// </remarks>
+/// <seealso cref="AspectTestClass"/>
+/// <seealso href="@testing-aspects"/>
 [PublicAPI]
 [JsonObject]
 public class TestOptions

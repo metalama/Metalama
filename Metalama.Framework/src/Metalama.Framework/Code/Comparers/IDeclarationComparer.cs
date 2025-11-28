@@ -8,8 +8,12 @@ using System.Collections.Generic;
 namespace Metalama.Framework.Code.Comparers
 {
     /// <summary>
-    /// An umbrella interface for an equality comparer of <see cref="IDeclaration"/> and <see cref="IType"/>.
+    /// An umbrella interface for an equality comparer of <see cref="IDeclaration"/> and <see cref="IType"/>. To get an instance of this interface,
+    /// use the <see cref="ICompilationComparers.Default"/> property.
     /// </summary>
+    /// <seealso cref="IDeclaration"/>
+    /// <seealso cref="ITypeComparer"/>
+    /// <seealso cref="ICompilationComparers"/>
     [CompileTime]
     public interface IDeclarationComparer : IEqualityComparer<IDeclaration>, ITypeComparer;
 }

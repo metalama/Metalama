@@ -13,8 +13,46 @@ namespace Metalama.Framework.Advising;
 */
 
 /// <summary>
-/// A base interface that represents the result of any advice method of the <see cref="IAdviceFactory"/> interface.
+/// Represents the result of applying an advice (code transformation) through <see cref="AdviserExtensions"/> methods.
+/// Check the <see cref="Outcome"/> property to determine whether the advice was successfully applied.
 /// </summary>
+/// <remarks>
+/// <para>
+/// All advice methods in <see cref="AdviserExtensions"/> return an <see cref="IAdviceResult"/> or a derived interface.
+/// The result provides information about:
+/// </para>
+/// <list type="bullet">
+/// <item><description><see cref="AdviceKind"/>: The type of transformation attempted (override, introduce, etc.)</description></item>
+/// <item><description><see cref="Outcome"/>: Whether the advice succeeded, was ignored, or encountered an error</description></item>
+/// </list>
+/// <para>
+/// Derived result interfaces (e.g., <see cref="IIntroductionAdviceResult{T}"/>) provide additional properties
+/// such as the introduced declaration or specific outcome details.
+/// </para>
+/// <para>
+/// <b>Typical usage:</b> Check the <see cref="Outcome"/> property after applying advice to determine if follow-up
+/// actions are needed or to conditionally proceed based on success/failure.
+/// </para>
+/// </remarks>
+/// <example>
+/// <code>
+/// var result = builder.IntroduceMethod(nameof(MyMethod));
+/// if (result.Outcome == AdviceOutcome.Success)
+/// {
+///     // Use result.Declaration to reference the introduced method
+/// }
+/// </code>
+/// </example>
+/// <seealso cref="IIntroductionAdviceResult{T}"/>
+/// <seealso cref="IOverrideAdviceResult{T}"/>
+/// <seealso cref="IImplementInterfaceAdviceResult"/>
+/// <seealso cref="IAddContractAdviceResult{T}"/>
+/// <seealso cref="IAddInitializerAdviceResult"/>
+/// <seealso cref="IRemoveAttributesAdviceResult"/>
+/// <seealso cref="AdviceOutcome"/>
+/// <seealso cref="AdviceKind"/>
+/// <seealso cref="AdviserExtensions"/>
+/// <seealso href="@advising-code"/>
 [CompileTime]
 [InternalImplement]
 public interface IAdviceResult
@@ -25,8 +63,8 @@ public interface IAdviceResult
     AdviceKind AdviceKind { get; }
 
     /// <summary>
-    /// Gets the advice outcome, i.e. indication whether the advice was applied, was ignored because the same declaration already exists (according to <see cref="OverrideStrategy"/>),
-    /// or an error for different reasons. 
+    /// Gets the advice outcome, indicating whether the advice was applied, was ignored because the same declaration already exists (according to <see cref="OverrideStrategy"/>),
+    /// or resulted in an error diagnostic that caused the aspect to be skipped.
     /// </summary>
     AdviceOutcome Outcome { get; }
 }

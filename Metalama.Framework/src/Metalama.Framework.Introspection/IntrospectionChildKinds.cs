@@ -4,10 +4,30 @@
 
 namespace Metalama.Framework.Introspection;
 
+/// <summary>
+/// Specifies which kinds of child declarations to include when querying references.
+/// </summary>
+/// <seealso href="@introspection-api"/>
+[Flags]
 public enum IntrospectionChildKinds
 {
-    None,
+    /// <summary>
+    /// No child declarations.
+    /// </summary>
+    None = 0,
+
+    /// <summary>
+    /// Include derived types.
+    /// </summary>
     DerivedType = 1,
+
+    /// <summary>
+    /// Include declarations contained within the declaration.
+    /// </summary>
     ContainingDeclaration = 2,
+
+    /// <summary>
+    /// Include all child declarations (both derived types and contained declarations).
+    /// </summary>
     All = DerivedType | ContainingDeclaration
 }

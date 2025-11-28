@@ -7,4 +7,7 @@ namespace Metalama.Framework.Code.Types;
 /// <summary>
 /// Represents a function pointer type.
 /// </summary>
+/// <seealso cref="IType"/>
+/// <seealso cref="IPointerType"/>
+/// <seealso href="@type-system"/>
 public interface IFunctionPointerType : IType;

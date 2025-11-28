@@ -66,7 +66,7 @@ namespace Metalama.Framework.Advising
         ///     copies of the scope of the target declaration of the aspect.</param>
         /// <param name="whenExists">Determines the implementation strategy when a method of the same name and signature is already declared in the target type.
         ///     The default strategy is to fail with a compile-time error.</param>
-        /// <param name="buildMethod"></param>
+        /// <param name="buildMethod">An optional callback that allows you to configure the introduced method, such as changing its name, accessibility, return type, or adding custom attributes.</param>
         /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods.</param>
         /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property
         ///     of the <see cref="meta"/> API.</param>
@@ -100,6 +100,20 @@ namespace Metalama.Framework.Advising
             object? args = null,
             object? tags = null );
 
+        /// <summary>
+        /// Introduces a new unary operator or overrides the implementation of the existing one.
+        /// </summary>
+        /// <param name="targetType">The type into which the unary operator must be introduced.</param>
+        /// <param name="template">Name of the method of the aspect class that will be used as a template for the introduced operator. This method must be annotated with <see cref="TemplateAttribute"/>.</param>
+        /// <param name="inputType">The type of the operator's input parameter.</param>
+        /// <param name="resultType">The return type of the operator.</param>
+        /// <param name="kind">The kind of unary operator to introduce (e.g., <see cref="OperatorKind.UnaryPlus"/>, <see cref="OperatorKind.UnaryNegation"/>).</param>
+        /// <param name="whenExists">Determines the implementation strategy when a unary operator of the same signature is already declared in the target type. The default strategy is to fail with a compile-time error.</param>
+        /// <param name="buildOperator">An optional callback that allows you to configure the introduced operator method, such as adding custom attributes.</param>
+        /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template method.</param>
+        /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property of the <see cref="meta"/> API.</param>
+        /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> representing the result of the advice. The <see cref="IIntroductionAdviceResult{T}.Declaration"/> property provides access to the introduced unary operator.</returns>
+        /// <seealso href="@introducing-members"/>
         IIntroductionAdviceResult<IMethod> IntroduceUnaryOperator(
             INamedType targetType,
             string template,
@@ -111,6 +125,21 @@ namespace Metalama.Framework.Advising
             object? args = null,
             object? tags = null );
 
+        /// <summary>
+        /// Introduces a new binary operator or overrides the implementation of the existing one.
+        /// </summary>
+        /// <param name="targetType">The type into which the binary operator must be introduced.</param>
+        /// <param name="template">Name of the method of the aspect class that will be used as a template for the introduced operator. This method must be annotated with <see cref="TemplateAttribute"/>.</param>
+        /// <param name="leftType">The type of the operator's left-hand parameter.</param>
+        /// <param name="rightType">The type of the operator's right-hand parameter.</param>
+        /// <param name="resultType">The return type of the operator.</param>
+        /// <param name="kind">The kind of binary operator to introduce (e.g., <see cref="OperatorKind.Addition"/>, <see cref="OperatorKind.Multiplication"/>, ...).</param>
+        /// <param name="whenExists">Determines the implementation strategy when a binary operator of the same signature is already declared in the target type. The default strategy is to fail with a compile-time error.</param>
+        /// <param name="buildOperator">An optional callback that allows you to configure the introduced operator method, such as adding custom attributes.</param>
+        /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template method.</param>
+        /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property of the <see cref="meta"/> API.</param>
+        /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> representing the result of the advice. The <see cref="IIntroductionAdviceResult{T}.Declaration"/> property provides access to the introduced binary operator.</returns>
+        /// <seealso href="@introducing-members"/>
         IIntroductionAdviceResult<IMethod> IntroduceBinaryOperator(
             INamedType targetType,
             string template,
@@ -123,6 +152,21 @@ namespace Metalama.Framework.Advising
             object? args = null,
             object? tags = null );
 
+        /// <summary>
+        /// Introduces a new conversion operator or overrides the implementation of the existing one.
+        /// </summary>
+        /// <param name="targetType">The type into which the conversion operator must be introduced.</param>
+        /// <param name="template">Name of the method of the aspect class that will be used as a template for the introduced operator. This method must be annotated with <see cref="TemplateAttribute"/>.</param>
+        /// <param name="fromType">The source type of the conversion.</param>
+        /// <param name="toType">The target type of the conversion.</param>
+        /// <param name="isImplicit"><c>true</c> to introduce an implicit conversion operator; <c>false</c> to introduce an explicit conversion operator. The default is <c>false</c>.</param>
+        /// <param name="isChecked"><c>true</c> to introduce a checked conversion operator; <c>false</c> otherwise. The default is <c>false</c>.</param>
+        /// <param name="whenExists">Determines the implementation strategy when a conversion operator of the same signature is already declared in the target type. The default strategy is to fail with a compile-time error.</param>
+        /// <param name="buildOperator">An optional callback that allows you to configure the introduced operator method, such as adding custom attributes.</param>
+        /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template method.</param>
+        /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property of the <see cref="meta"/> API.</param>
+        /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> representing the result of the advice. The <see cref="IIntroductionAdviceResult{T}.Declaration"/> property provides access to the introduced conversion operator.</returns>
+        /// <seealso href="@introducing-members"/>
         IIntroductionAdviceResult<IMethod> IntroduceConversionOperator(
             INamedType targetType,
             string template,
@@ -146,6 +190,17 @@ namespace Metalama.Framework.Advising
         ///     of the <see cref="meta"/> API.</param>
         IOverrideAdviceResult<IConstructor> Override( IConstructor targetConstructor, string template, object? args = null, object? tags = null );
 
+        /// <summary>
+        /// Introduces a new constructor or overrides the implementation of the existing one.
+        /// </summary>
+        /// <param name="targetType">The type into which the constructor must be introduced.</param>
+        /// <param name="template">Name of the method of the aspect class that will be used as a template for the introduced constructor. This method must be annotated with <see cref="TemplateAttribute"/>.</param>
+        /// <param name="whenExists">Determines the implementation strategy when a constructor with the same signature is already declared in the target type. The default strategy is to fail with a compile-time error.</param>
+        /// <param name="buildConstructor">An optional callback that allows you to configure the introduced constructor, such as changing its accessibility, parameters, or adding custom attributes.</param>
+        /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template method.</param>
+        /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property of the <see cref="meta"/> API.</param>
+        /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> representing the result of the advice. The <see cref="IIntroductionAdviceResult{T}.Declaration"/> property provides access to the introduced constructor.</returns>
+        /// <seealso href="@introducing-members"/>
         IIntroductionAdviceResult<IConstructor> IntroduceConstructor(
             INamedType targetType,
             string template,
@@ -192,6 +247,16 @@ namespace Metalama.Framework.Advising
             object? args = null,
             object? tags = null );
 
+        /// <summary>
+        /// Overrides a field or property by specifying method templates for the getter, the setter, or both.
+        /// </summary>
+        /// <param name="targetFieldOrProperty">The field or property to override.</param>
+        /// <param name="getTemplate">The name of the method of the aspect class whose implementation will be used as a template for the getter, or <c>null</c> if the getter should not be overridden. This method must be annotated with <see cref="TemplateAttribute"/>. To select different templates for iterator getters, use the constructor of the <see cref="GetterTemplateSelector"/> type.</param>
+        /// <param name="setTemplate">The name of the method of the aspect class whose implementation will be used as a template for the setter, or <c>null</c> if the setter should not be overridden. This method must be annotated with <see cref="TemplateAttribute"/>.</param>
+        /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods.</param>
+        /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property of the <see cref="meta"/> API.</param>
+        /// <returns>An <see cref="IOverrideAdviceResult{T}"/> representing the result of the advice.</returns>
+        /// <seealso href="@overriding-fields-or-properties"/>
         IOverrideAdviceResult<IProperty> OverrideAccessors(
             IFieldOrProperty targetFieldOrProperty,
             in GetterTemplateSelector getTemplate = default,
@@ -199,6 +264,16 @@ namespace Metalama.Framework.Advising
             object? args = null,
             object? tags = null );
 
+        /// <summary>
+        /// Overrides an indexer by specifying method templates for the getter, the setter, or both.
+        /// </summary>
+        /// <param name="targetIndexer">The indexer to override.</param>
+        /// <param name="getTemplate">The name of the method of the aspect class whose implementation will be used as a template for the getter, or <c>null</c> if the getter should not be overridden. This method must be annotated with <see cref="TemplateAttribute"/>. To select different templates for iterator getters, use the constructor of the <see cref="GetterTemplateSelector"/> type.</param>
+        /// <param name="setTemplate">The name of the method of the aspect class whose implementation will be used as a template for the setter, or <c>null</c> if the setter should not be overridden. This method must be annotated with <see cref="TemplateAttribute"/>.</param>
+        /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods.</param>
+        /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property of the <see cref="meta"/> API.</param>
+        /// <returns>An <see cref="IOverrideAdviceResult{T}"/> representing the result of the advice.</returns>
+        /// <seealso href="@overriding-fields-or-properties"/>
         IOverrideAdviceResult<IIndexer> OverrideAccessors(
             IIndexer targetIndexer,
             in GetterTemplateSelector getTemplate = default,
@@ -209,15 +284,15 @@ namespace Metalama.Framework.Advising
         /// <summary>
         /// Introduces a field to the target type by specifying a template.
         /// </summary>
-        /// <param name="targetType">The type into which the property must be introduced.</param>
+        /// <param name="targetType">The type into which the field must be introduced.</param>
         /// <param name="template">Name of the introduced field.</param>
         /// <param name="scope">Determines the scope (e.g. <see cref="IntroductionScope.Instance"/> or <see cref="IntroductionScope.Static"/>) of the introduced
         ///     field. The default scope is <see cref="IntroductionScope.Instance"/>.</param>
-        /// <param name="whenExists">Determines the implementation strategy when a property of the same name is already declared in the target type.
+        /// <param name="whenExists">Determines the implementation strategy when a field of the same name is already declared in the target type.
         ///     The default strategy is to fail with a compile-time error.</param>
-        /// <param name="buildField"></param>
-        /// <param name="tags"></param>
-        /// <returns>An <see cref="IPropertyBuilder"/> that allows to dynamically change the name or type of the introduced property.</returns>
+        /// <param name="buildField">An optional callback that allows you to configure the introduced field, such as changing its name, type, accessibility, or adding custom attributes.</param>
+        /// <param name="tags">An optional opaque object of anonymous type passed to the template and exposed under the <see cref="meta.Tags"/> property of the <see cref="meta"/> API.</param>
+        /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> representing the result of the advice. The <see cref="IIntroductionAdviceResult{T}.Declaration"/> property provides access to the introduced field.</returns>
         /// <seealso href="@introducing-members"/>
         IIntroductionAdviceResult<IField> IntroduceField(
             INamedType targetType,
@@ -230,16 +305,16 @@ namespace Metalama.Framework.Advising
         /// <summary>
         /// Introduces a field to the target type by specifying a field name and <see cref="IType"/>.
         /// </summary>
-        /// <param name="targetType">The type into which the property must be introduced.</param>
+        /// <param name="targetType">The type into which the field must be introduced.</param>
         /// <param name="fieldName">Name of the introduced field.</param>
         /// <param name="fieldType">Type of the introduced field.</param>
         /// <param name="scope">Determines the scope (e.g. <see cref="IntroductionScope.Instance"/> or <see cref="IntroductionScope.Static"/>) of the introduced
         ///     field. The default scope is <see cref="IntroductionScope.Instance"/>.</param>
-        /// <param name="whenExists">Determines the implementation strategy when a property of the same name is already declared in the target type.
+        /// <param name="whenExists">Determines the implementation strategy when a field of the same name is already declared in the target type.
         ///     The default strategy is to fail with a compile-time error.</param>
-        /// <param name="buildField"></param>
-        /// <param name="tags"></param>
-        /// <returns>An <see cref="IPropertyBuilder"/> that allows to dynamically change the name or type of the introduced property.</returns>
+        /// <param name="buildField">An optional callback that allows you to configure the introduced field, such as changing its accessibility or adding custom attributes.</param>
+        /// <param name="tags">An optional opaque object of anonymous type passed to the template and exposed under the <see cref="meta.Tags"/> property of the <see cref="meta"/> API.</param>
+        /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> representing the result of the advice. The <see cref="IIntroductionAdviceResult{T}.Declaration"/> property provides access to the introduced field.</returns>
         /// <seealso href="@introducing-members"/>
         IIntroductionAdviceResult<IField> IntroduceField(
             INamedType targetType,
@@ -253,16 +328,16 @@ namespace Metalama.Framework.Advising
         /// <summary>
         /// Introduces a field to the target type by specifying a field name and <see cref="Type"/>.
         /// </summary>
-        /// <param name="targetType">The type into which the property must be introduced.</param>
+        /// <param name="targetType">The type into which the field must be introduced.</param>
         /// <param name="fieldName">Name of the introduced field.</param>
         /// <param name="fieldType">Type of the introduced field.</param>
         /// <param name="scope">Determines the scope (e.g. <see cref="IntroductionScope.Instance"/> or <see cref="IntroductionScope.Static"/>) of the introduced
         ///     field. The default scope is <see cref="IntroductionScope.Instance"/>.</param>
-        /// <param name="whenExists">Determines the implementation strategy when a property of the same name is already declared in the target type.
+        /// <param name="whenExists">Determines the implementation strategy when a field of the same name is already declared in the target type.
         ///     The default strategy is to fail with a compile-time error.</param>
-        /// <param name="buildField"></param>
-        /// <param name="tags"></param>
-        /// <returns>An <see cref="IPropertyBuilder"/> that allows to dynamically change the name or type of the introduced property.</returns>
+        /// <param name="buildField">An optional callback that allows you to configure the introduced field, such as changing its accessibility or adding custom attributes.</param>
+        /// <param name="tags">An optional opaque object of anonymous type passed to the template and exposed under the <see cref="meta.Tags"/> property of the <see cref="meta"/> API.</param>
+        /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> representing the result of the advice. The <see cref="IIntroductionAdviceResult{T}.Declaration"/> property provides access to the introduced field.</returns>
         /// <seealso href="@introducing-members"/>
         IIntroductionAdviceResult<IField> IntroduceField(
             INamedType targetType,
@@ -277,15 +352,15 @@ namespace Metalama.Framework.Advising
         /// Introduces an auto-implemented property to the target type by specifying a property name and <see cref="Type"/>.
         /// </summary>
         /// <param name="targetType">The type into which the property must be introduced.</param>
-        /// <param name="propertyName">Name of the introduced field.</param>
-        /// <param name="propertyType">Type of the introduced field.</param>
+        /// <param name="propertyName">Name of the introduced property.</param>
+        /// <param name="propertyType">Type of the introduced property.</param>
         /// <param name="scope">Determines the scope (e.g. <see cref="IntroductionScope.Instance"/> or <see cref="IntroductionScope.Static"/>) of the introduced
-        ///     field. The default scope is <see cref="IntroductionScope.Instance"/>.</param>
+        ///     property. The default scope is <see cref="IntroductionScope.Instance"/>.</param>
         /// <param name="whenExists">Determines the implementation strategy when a property of the same name is already declared in the target type.
         ///     The default strategy is to fail with a compile-time error.</param>
-        /// <param name="buildProperty"></param>
-        /// <param name="tags"></param>
-        /// <returns>An <see cref="IPropertyBuilder"/> that allows to dynamically change the name or type of the introduced property.</returns>
+        /// <param name="buildProperty">An optional callback that allows you to configure the introduced property, such as changing its accessibility, getter/setter visibility, or adding custom attributes.</param>
+        /// <param name="tags">An optional opaque object of anonymous type passed to the template and exposed under the <see cref="meta.Tags"/> property of the <see cref="meta"/> API.</param>
+        /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> representing the result of the advice. The <see cref="IIntroductionAdviceResult{T}.Declaration"/> property provides access to the introduced property.</returns>
         /// <seealso href="@introducing-members"/>
         IIntroductionAdviceResult<IProperty> IntroduceAutomaticProperty(
             INamedType targetType,
@@ -300,15 +375,15 @@ namespace Metalama.Framework.Advising
         /// Introduces an auto-implemented property to the target type by specifying a property name and <see cref="IType"/>.
         /// </summary>
         /// <param name="targetType">The type into which the property must be introduced.</param>
-        /// <param name="propertyName">Name of the introduced field.</param>
-        /// <param name="propertyType">Type of the introduced field.</param>
+        /// <param name="propertyName">Name of the introduced property.</param>
+        /// <param name="propertyType">Type of the introduced property.</param>
         /// <param name="scope">Determines the scope (e.g. <see cref="IntroductionScope.Instance"/> or <see cref="IntroductionScope.Static"/>) of the introduced
-        ///     field. The default scope is <see cref="IntroductionScope.Instance"/>.</param>
+        ///     property. The default scope is <see cref="IntroductionScope.Instance"/>.</param>
         /// <param name="whenExists">Determines the implementation strategy when a property of the same name is already declared in the target type.
         ///     The default strategy is to fail with a compile-time error.</param>
-        /// <param name="buildProperty"></param>
-        /// <param name="tags"></param>
-        /// <returns>An <see cref="IPropertyBuilder"/> that allows to dynamically change the name or type of the introduced property.</returns>
+        /// <param name="buildProperty">An optional callback that allows you to configure the introduced property, such as changing its accessibility, getter/setter visibility, or adding custom attributes.</param>
+        /// <param name="tags">An optional opaque object of anonymous type passed to the template and exposed under the <see cref="meta.Tags"/> property of the <see cref="meta"/> API.</param>
+        /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> representing the result of the advice. The <see cref="IIntroductionAdviceResult{T}.Declaration"/> property provides access to the introduced property.</returns>
         /// <seealso href="@introducing-members"/>
         IIntroductionAdviceResult<IProperty> IntroduceAutomaticProperty(
             INamedType targetType,
@@ -333,10 +408,10 @@ namespace Metalama.Framework.Advising
         ///     template property is non-static, then the introduced property copies of the scope of the target declaration of the aspect.</param>
         /// <param name="whenExists">Determines the implementation strategy when a property of the same name is already declared in the target type.
         ///     The default strategy is to fail with a compile-time error.</param>
-        /// <param name="buildProperty"></param>
+        /// <param name="buildProperty">An optional callback that allows you to configure the introduced property, such as changing its name, type, accessibility, or adding custom attributes.</param>
         /// <param name="tags">An optional opaque object of anonymous type passed to the template property and exposed under the <see cref="meta.Tags"/> property of the
         ///     <see cref="meta"/> API.</param>
-        /// <returns>An <see cref="IPropertyBuilder"/> that allows to dynamically change the name or type of the introduced property.</returns>
+        /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> representing the result of the advice. The <see cref="IIntroductionAdviceResult{T}.Declaration"/> property provides access to the introduced property.</returns>
         /// <seealso href="@introducing-members"/>
         IIntroductionAdviceResult<IProperty> IntroduceProperty(
             INamedType targetType,
@@ -362,11 +437,11 @@ namespace Metalama.Framework.Advising
         ///     template accessors are non-static, then the introduced property copies of the scope of the target declaration of the aspect.</param>
         /// <param name="whenExists">Determines the implementation strategy when a property of the same name is already declared in the target type.
         ///     The default strategy is to fail with a compile-time error.</param>
-        /// <param name="buildProperty"></param>
+        /// <param name="buildProperty">An optional callback that allows you to configure the introduced property, such as changing its name, type, accessibility, or adding custom attributes.</param>
         /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods.</param>
         /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property of the
         ///     <see cref="meta"/> API.</param>
-        /// <returns>An <see cref="IPropertyBuilder"/> that allows to dynamically change the name or type of the introduced property.</returns>
+        /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> representing the result of the advice. The <see cref="IIntroductionAdviceResult{T}.Declaration"/> property provides access to the introduced property.</returns>
         /// <seealso href="@introducing-members"/>
         IIntroductionAdviceResult<IProperty> IntroduceProperty(
             INamedType targetType,
@@ -393,13 +468,13 @@ namespace Metalama.Framework.Advising
         /// <param name="scope">Determines the scope (e.g. <see cref="IntroductionScope.Instance"/> or <see cref="IntroductionScope.Static"/>) of the introduced
         ///     indexer. The default scope depends on the scope of the template accessors. If the accessors are static, the introduced indexer is static. However, if the
         ///     template accessors are non-static, then the introduced indexer copies of the scope of the target declaration of the aspect.</param>
-        /// <param name="whenExists">Determines the implementation strategy when an indexer of the same name is already declared in the target type.
+        /// <param name="whenExists">Determines the implementation strategy when an indexer of the same signature is already declared in the target type.
         ///     The default strategy is to fail with a compile-time error.</param>
-        /// <param name="buildIndexer"></param>
+        /// <param name="buildIndexer">An optional callback that allows you to configure the introduced indexer, such as changing its type, accessibility, parameters, or adding custom attributes.</param>
         /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods.</param>
         /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property of the
         ///     <see cref="meta"/> API.</param>
-        /// <returns>An <see cref="IIndexerBuilder"/> that allows to dynamically change the name or type of the introduced indexer.</returns>
+        /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> representing the result of the advice. The <see cref="IIntroductionAdviceResult{T}.Declaration"/> property provides access to the introduced indexer.</returns>
         /// <seealso href="@introducing-members"/>
         IIntroductionAdviceResult<IIndexer> IntroduceIndexer(
             INamedType targetType,
@@ -426,13 +501,13 @@ namespace Metalama.Framework.Advising
         /// <param name="scope">Determines the scope (e.g. <see cref="IntroductionScope.Instance"/> or <see cref="IntroductionScope.Static"/>) of the introduced
         ///     indexer. The default scope depends on the scope of the template accessors. If the accessors are static, the introduced indexer is static. However, if the
         ///     template accessors are non-static, then the introduced indexer copies of the scope of the target declaration of the aspect.</param>
-        /// <param name="whenExists">Determines the implementation strategy when an indexer of the same name is already declared in the target type.
+        /// <param name="whenExists">Determines the implementation strategy when an indexer of the same signature is already declared in the target type.
         ///     The default strategy is to fail with a compile-time error.</param>
-        /// <param name="buildIndexer"></param>
+        /// <param name="buildIndexer">An optional callback that allows you to configure the introduced indexer, such as changing its type, accessibility, parameters, or adding custom attributes.</param>
         /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods.</param>
         /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property of the
         ///     <see cref="meta"/> API.</param>
-        /// <returns>An <see cref="IIndexerBuilder"/> that allows to dynamically change the name or type of the introduced indexer.</returns>
+        /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> representing the result of the advice. The <see cref="IIntroductionAdviceResult{T}.Declaration"/> property provides access to the introduced indexer.</returns>
         /// <seealso href="@introducing-members"/>
         IIntroductionAdviceResult<IIndexer> IntroduceIndexer(
             INamedType targetType,
@@ -459,13 +534,13 @@ namespace Metalama.Framework.Advising
         /// <param name="scope">Determines the scope (e.g. <see cref="IntroductionScope.Instance"/> or <see cref="IntroductionScope.Static"/>) of the introduced
         ///     indexer. The default scope depends on the scope of the template accessors. If the accessors are static, the introduced indexer is static. However, if the
         ///     template accessors are non-static, then the introduced indexer copies of the scope of the target declaration of the aspect.</param>
-        /// <param name="whenExists">Determines the implementation strategy when an indexer of the same name is already declared in the target type.
+        /// <param name="whenExists">Determines the implementation strategy when an indexer of the same signature is already declared in the target type.
         ///     The default strategy is to fail with a compile-time error.</param>
-        /// <param name="buildIndexer"></param>
+        /// <param name="buildIndexer">An optional callback that allows you to configure the introduced indexer, such as changing its type, accessibility, parameters, or adding custom attributes.</param>
         /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods.</param>
         /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property of the
         ///     <see cref="meta"/> API.</param>
-        /// <returns>An <see cref="IIndexerBuilder"/> that allows to dynamically change the name or type of the introduced indexer.</returns>
+        /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> representing the result of the advice. The <see cref="IIntroductionAdviceResult{T}.Declaration"/> property provides access to the introduced indexer.</returns>
         /// <seealso href="@introducing-members"/>
         IIntroductionAdviceResult<IIndexer> IntroduceIndexer(
             INamedType targetType,
@@ -492,13 +567,13 @@ namespace Metalama.Framework.Advising
         /// <param name="scope">Determines the scope (e.g. <see cref="IntroductionScope.Instance"/> or <see cref="IntroductionScope.Static"/>) of the introduced
         ///     indexer. The default scope depends on the scope of the template accessors. If the accessors are static, the introduced indexer is static. However, if the
         ///     template accessors are non-static, then the introduced indexer copies of the scope of the target declaration of the aspect.</param>
-        /// <param name="whenExists">Determines the implementation strategy when an indexer of the same name is already declared in the target type.
+        /// <param name="whenExists">Determines the implementation strategy when an indexer of the same signature is already declared in the target type.
         ///     The default strategy is to fail with a compile-time error.</param>
-        /// <param name="buildIndexer"></param>
+        /// <param name="buildIndexer">An optional callback that allows you to configure the introduced indexer, such as changing its type, accessibility, parameters, or adding custom attributes.</param>
         /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods.</param>
         /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property of the
         ///     <see cref="meta"/> API.</param>
-        /// <returns>An <see cref="IIndexerBuilder"/> that allows to dynamically change the name or type of the introduced indexer.</returns>
+        /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> representing the result of the advice. The <see cref="IIntroductionAdviceResult{T}.Declaration"/> property provides access to the introduced indexer.</returns>
         /// <seealso href="@introducing-members"/>
         IIntroductionAdviceResult<IIndexer> IntroduceIndexer(
             INamedType targetType,
@@ -552,10 +627,10 @@ namespace Metalama.Framework.Advising
         ///     template event is non-static, then the introduced event copies of the scope of the target declaration of the aspect.</param>
         /// <param name="whenExists">Determines the implementation strategy when an event of the same name is already declared in the target type.
         ///     The default strategy is to fail with a compile-time error.</param>
-        /// <param name="buildEvent"></param>
+        /// <param name="buildEvent">An optional callback that allows you to configure the introduced event, such as changing its name, type, accessibility, or adding custom attributes.</param>
         /// <param name="tags">An optional opaque object of anonymous type passed to the template event and exposed under the <see cref="meta.Tags"/> property of the
         ///     <see cref="meta"/> API.</param>
-        /// <returns>An <see cref="IEventBuilder"/> that allows to change the name and the type of the event.</returns>
+        /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> representing the result of the advice. The <see cref="IIntroductionAdviceResult{T}.Declaration"/> property provides access to the introduced event.</returns>
         /// <seealso href="@introducing-members"/>
         IIntroductionAdviceResult<IEvent> IntroduceEvent(
             INamedType targetType,
@@ -836,12 +911,32 @@ namespace Metalama.Framework.Advising
             IPullStrategy? pullStrategy = null,
             ImmutableArray<AttributeConstruction> attributes = default );
 
+        /// <summary>
+        /// Introduces a new class to the target namespace or type.
+        /// </summary>
+        /// <param name="targetNamespaceOrType">The namespace or type into which the class must be introduced.</param>
+        /// <param name="name">The name of the introduced class.</param>
+        /// <param name="whenExists">Determines the implementation strategy when a type of the same name is already declared in the target namespace or type.
+        ///     The default strategy is to fail with a compile-time error.</param>
+        /// <param name="buildType">An optional callback that allows you to configure the introduced class, such as adding members, base types, or custom attributes.</param>
+        /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> representing the result of the advice. The <see cref="IIntroductionAdviceResult{T}.Declaration"/> property provides access to the introduced class.
+        /// The <see cref="IIntroductionAdviceResult{T}"/> interface itself implements <see cref="IAdviser{T}"/> and can be used to introduce members to the type.</returns>
         IIntroductionAdviceResult<INamedType> IntroduceClass(
             INamespaceOrNamedType targetNamespaceOrType,
             string name,
             OverrideStrategy whenExists = OverrideStrategy.Default,
             Action<INamedTypeBuilder>? buildType = null );
 
+        /// <summary>
+        /// Introduces a new interface to the target namespace or type.
+        /// </summary>
+        /// <param name="targetNamespaceOrType">The namespace or type into which the interface must be introduced.</param>
+        /// <param name="name">The name of the introduced interface.</param>
+        /// <param name="whenExists">Determines the implementation strategy when a type of the same name is already declared in the target namespace or type.
+        ///     The default strategy is to fail with a compile-time error.</param>
+        /// <param name="buildType">An optional callback that allows you to configure the introduced interface, such as adding members, base interfaces, or custom attributes.</param>
+        /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> representing the result of the advice. The <see cref="IIntroductionAdviceResult{T}.Declaration"/> property provides access to the introduced interface.
+        /// The <see cref="IIntroductionAdviceResult{T}"/> interface itself implements <see cref="IAdviser{T}"/> and can be used to introduce members to the type.</returns>
         IIntroductionAdviceResult<INamedType> IntroduceInterface(
             INamespaceOrNamedType targetNamespaceOrType,
             string name,

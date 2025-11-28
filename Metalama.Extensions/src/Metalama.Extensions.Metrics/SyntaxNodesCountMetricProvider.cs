@@ -4,12 +4,19 @@
 
 using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.Metrics;
+using Metalama.Framework.Metrics;
 
 namespace Metalama.Extensions.Metrics
 {
     /// <summary>
-    /// A prototype implementation of <see cref="StatementsCount"/>.
+    /// Provides the implementation for the <see cref="SyntaxNodesCount"/> metric.
     /// </summary>
+    /// <remarks>
+    /// This provider is automatically registered and used when you call <see cref="Metrics{T}.Get{TExtension}"/> on the
+    /// <see cref="SyntaxNodesCount"/> metric.
+    /// </remarks>
+    /// <seealso cref="SyntaxNodesCount"/>
+    /// <seealso href="@metrics"/>
     [MetalamaPlugIn]
     public partial class SyntaxNodesCountMetricProvider : SyntaxMetricProvider<SyntaxNodesCount>
     {

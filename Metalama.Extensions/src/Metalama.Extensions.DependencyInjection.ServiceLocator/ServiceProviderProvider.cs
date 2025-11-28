@@ -7,8 +7,17 @@ using System;
 namespace Metalama.Extensions.DependencyInjection.ServiceLocator
 {
     /// <summary>
-    /// Exposes the global service provider.
+    /// Exposes the global service provider used by the service locator dependency injection framework.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This class provides a global access point for dependency resolution when using the
+    /// <see cref="ServiceLocatorDependencyInjectionFramework"/>. Configure the <see cref="ServiceProvider"/>
+    /// property in your application startup code to provide the <see cref="IServiceProvider"/> instance.
+    /// </para>
+    /// </remarks>
+    /// <seealso cref="ServiceLocatorDependencyInjectionFramework"/>
+    /// <seealso href="@dependency-injection"/>
     public static class ServiceProviderProvider
     {
         /// <summary>

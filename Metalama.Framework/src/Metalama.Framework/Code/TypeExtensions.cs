@@ -22,6 +22,11 @@ namespace Metalama.Framework.Code
         /// Equivalent to the <c>is</c> operator in C#. Gets a value indicating whether the current type is assignable to another given type,
         /// given as an <see cref="IType"/>.
         /// </summary>
+        /// <param name="left">The source type.</param>
+        /// <param name="right">The target type.</param>
+        /// <param name="kind">The kind of conversion to check.</param>
+        /// <param name="typeComparison">The type comparison strategy to use.</param>
+        /// <returns><c>true</c> if <paramref name="left"/> is convertible to <paramref name="right"/>; otherwise, <c>false</c>.</returns>
         public static bool IsConvertibleTo(
             this IType left,
             IType right,
@@ -37,8 +42,11 @@ namespace Metalama.Framework.Code
         /// Equivalent to the <c>is</c> operator in C#. Gets a value indicating whether the current type is assignable to another given type,
         /// given as a reflection <see cref="Type"/>.
         /// </summary>
-        /// <param name="left"></param>
-        /// <param name="right">Another type.</param>
+        /// <param name="left">The source type.</param>
+        /// <param name="right">The target type.</param>
+        /// <param name="kind">The kind of conversion to check.</param>
+        /// <param name="typeComparison">The type comparison strategy to use.</param>
+        /// <returns><c>true</c> if <paramref name="left"/> is convertible to <paramref name="right"/>; otherwise, <c>false</c>.</returns>
         public static bool IsConvertibleTo( this IType left, Type right, ConversionKind kind = default, TypeComparison typeComparison = TypeComparison.Default )
             => left.Compilation.Comparers.GetTypeComparer( typeComparison ).IsConvertibleTo( left, right, kind );
 
@@ -47,10 +55,12 @@ namespace Metalama.Framework.Code
 
         /// <summary>
         /// Equivalent to the <c>is</c> operator in C#. Gets a value indicating whether the current type is assignable to another given type,
-        /// given as a reflection <see cref="Type"/>.
+        /// given as a <see cref="SpecialType"/>.
         /// </summary>
-        /// <param name="left"></param>
-        /// <param name="right">Another type.</param>
+        /// <param name="left">The source type.</param>
+        /// <param name="right">The target special type.</param>
+        /// <param name="kind">The kind of conversion to check.</param>
+        /// <returns><c>true</c> if <paramref name="left"/> is convertible to <paramref name="right"/>; otherwise, <c>false</c>.</returns>
         public static bool IsConvertibleTo( this IType left, SpecialType right, ConversionKind kind = default )
             => (right, kind) switch
             {
@@ -104,11 +114,15 @@ namespace Metalama.Framework.Code
         /// <summary>
         /// Gets a <see cref="SerializableTypeId"/> for the type.
         /// </summary>
+        /// <param name="type">The type.</param>
+        /// <returns>A <see cref="SerializableTypeId"/> representing the type.</returns>
         public static SerializableTypeId ToSerializableId( this IType type ) => ((ICompilationInternal) type.Compilation).Helpers.GetSerializableId( type );
 
         /// <summary>
         /// Gets an <see cref="IExpression"/> representing 'typeof' expression for the given type.
         /// </summary>
+        /// <param name="type">The type.</param>
+        /// <returns>An <see cref="IExpression"/> representing <c>typeof(type)</c>.</returns>
         public static IExpression ToTypeOfExpression( this IType type ) => ((ICompilationInternal) type.Compilation).Helpers.ToTypeOfExpression( type );
     }
 }

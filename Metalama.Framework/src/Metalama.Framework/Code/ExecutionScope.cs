@@ -9,6 +9,8 @@ namespace Metalama.Framework.Code;
 /// <summary>
 /// Enumerates the possible execution scopes of a declaration i.e. <see cref="RunTime"/>, <see cref="CompileTime"/> or <see cref="RunTimeOrCompileTime"/>.
 /// </summary>
+/// <seealso cref="CompileTimeAttribute"/>
+/// <seealso cref="RunTimeOrCompileTimeAttribute"/>
 [CompileTime]
 public enum ExecutionScope
 {

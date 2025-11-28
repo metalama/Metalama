@@ -16,6 +16,10 @@ namespace Metalama.Framework.Serialization
     /// For types whose source code you can modify, it is preferable to use <see cref="ICompileTimeSerializable"/>.
     /// </para>
     /// </remarks>
+    /// <seealso cref="ICompileTimeSerializable"/>
+    /// <seealso cref="ReferenceTypeSerializer{T}"/>
+    /// <seealso cref="ValueTypeSerializer{T}"/>
+    /// <seealso href="@aspect-serialization"/>
     [AttributeUsage( AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Assembly, AllowMultiple = true )]
     public sealed class ImportSerializerAttribute : Attribute
     {

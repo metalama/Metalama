@@ -16,15 +16,21 @@ public static class StatementExtensions
     /// <summary>
     /// Wraps a given <see cref="IStatement"/> into a singleton <see cref="IStatementList"/>.
     /// </summary>
+    /// <param name="statement">The statement to wrap.</param>
+    /// <returns>A statement list containing the single statement.</returns>
     public static IStatementList AsList( this IStatement statement ) => StatementFactory.List( statement );
 
     /// <summary>
     /// Wraps a list of <see cref="IStatement"/> into an <see cref="IStatementList"/>.
     /// </summary>
+    /// <param name="statements">The statements to wrap.</param>
+    /// <returns>A statement list containing all the statements.</returns>
     public static IStatementList AsList( this IEnumerable<IStatement> statements ) => StatementFactory.List( statements );
 
     /// <summary>
     /// Unwraps a block (i.e. remove its braces), if the statement is a block, and returns the resulting <see cref="IStatementList"/>.
     /// </summary>
+    /// <param name="statement">The statement to unwrap.</param>
+    /// <returns>A statement list containing the statements within the block, or a list with the original statement if it is not a block.</returns>
     public static IStatementList UnwrapBlock( this IStatement statement ) => StatementFactory.UnwrapBlock( statement );
 }

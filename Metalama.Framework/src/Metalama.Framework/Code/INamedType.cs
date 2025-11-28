@@ -2,7 +2,9 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Aspects;
 using Metalama.Framework.Code.Collections;
+using Metalama.Framework.Code.DeclarationBuilders;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -12,6 +14,17 @@ namespace Metalama.Framework.Code
     /// <summary>
     /// Represents a class, struct, interface, enum, or delegate.
     /// </summary>
+    /// <remarks>
+    /// An <see cref="INamedType"/> can be obtained by navigating from <see cref="ICompilation"/> through the global namespace
+    /// and then through sub-namespaces, or by using <c>TypeFactory.GetNamedType</c> with a <see langword="typeof"/> expression.
+    /// </remarks>
+    /// <seealso cref="IType"/>
+    /// <seealso cref="INamedTypeBuilder"/>
+    /// <seealso cref="NamedTypeExtensions"/>
+    /// <seealso cref="TypeKind"/>
+    /// <seealso cref="TypeAspect"/>
+    /// <seealso href="@introducing-types"/>
+    /// <seealso href="@type-system"/>
     public interface INamedType : IType, IGeneric, INamespaceOrNamedType, IEquatable<INamedType>
     {
         // TODO: there should probably be an interface to represent named tuples. It would be derived from INamedType

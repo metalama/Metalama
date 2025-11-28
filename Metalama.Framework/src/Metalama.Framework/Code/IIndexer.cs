@@ -10,7 +10,10 @@ namespace Metalama.Framework.Code;
 /// <summary>
 /// Represents an indexer, i.e. a <c>this[*]</c> property.
 /// </summary>
+/// <seealso cref="IPropertyOrIndexer"/>
 /// <seealso cref="IProperty"/>
+/// <seealso cref="IHasParameters"/>
+/// <seealso cref="IIndexerInvoker"/>
 public interface IIndexer : IPropertyOrIndexer, IHasParameters, IIndexerInvoker
 {
     /// <summary>

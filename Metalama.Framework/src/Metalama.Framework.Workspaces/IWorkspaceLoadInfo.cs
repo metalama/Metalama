@@ -11,12 +11,20 @@ namespace Metalama.Framework.Workspaces
     /// <summary>
     /// Exposes the information needed to reconstruct a <see cref="Workspace"/>.
     /// </summary>
+    /// <seealso cref="Workspace"/>
+    /// <seealso cref="WorkspaceCollection"/>
     [Hidden]
     [PublicAPI]
     public interface IWorkspaceLoadInfo
     {
+        /// <summary>
+        /// Gets the paths of the projects or solutions that were loaded into the workspace.
+        /// </summary>
         ImmutableArray<string> LoadedPaths { get; }
 
+        /// <summary>
+        /// Gets the MSBuild properties that were used when loading the workspace.
+        /// </summary>
         ImmutableDictionary<string, string> Properties { get; }
     }
 }

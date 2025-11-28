@@ -10,6 +10,8 @@ namespace Metalama.Framework.Code.Collections
     /// <summary>
     /// Read-only list of <see cref="IParameter"/>.
     /// </summary>
+    /// <seealso cref="IParameter"/>
+    /// <seealso cref="IHasParameters"/>
     [CompileTime]
     public interface IParameterList : IReadOnlyList<IParameter>
     {

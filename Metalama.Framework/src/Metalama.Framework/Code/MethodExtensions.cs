@@ -16,17 +16,24 @@ namespace Metalama.Framework.Code
         /// Determines whether a method is a <c>yield</c>-based iterator and returns an <see cref="IteratorInfo"/> value
         /// exposing details about the iterator.
         /// </summary>
-        /// <param name="method"></param>
-        /// <returns></returns>
+        /// <param name="method">The method to check.</param>
+        /// <returns>An <see cref="IteratorInfo"/> containing information about the iterator, or a default value if the method is not an iterator.</returns>
         [CompileTime]
         public static IteratorInfo GetIteratorInfo( this IMethod method ) => ((ICompilationInternal) method.Compilation).Helpers.GetIteratorInfo( method );
 
+        /// <summary>
+        /// Gets the <see cref="AsyncInfo"/> for a method.
+        /// </summary>
+        /// <param name="method">The method to analyze.</param>
+        /// <returns>An <see cref="AsyncInfo"/> containing information about the async characteristics of the method.</returns>
         [CompileTime]
         public static AsyncInfo GetAsyncInfo( this IMethod method ) => ((ICompilationInternal) method.Compilation).Helpers.GetAsyncInfo( method );
 
         /// <summary>
         /// Determines whether a method override has a covariant return type with respect to the base implementation.
         /// </summary>
+        /// <param name="method">The method to check.</param>
+        /// <returns><c>true</c> if the method has a covariant return type compared to its overridden method; otherwise, <c>false</c>.</returns>
         /// <seealso href="https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/proposals/csharp-9.0/covariant-returns"/>
         [CompileTime]
         public static bool HasCovariantReturnType( this IMethod method )
@@ -39,7 +46,9 @@ namespace Metalama.Framework.Code
         /// <summary>
         /// Determines whether a read-only property or indexer override has a covariant type with respect to the base implementation.
         /// </summary>
-        /// <seealso href="https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/proposals/csharp-9.0/covariant-returns"/> 
+        /// <param name="propertyOrIndexer">The property or indexer to check.</param>
+        /// <returns><c>true</c> if the property or indexer has a covariant type compared to its overridden member; otherwise, <c>false</c>.</returns>
+        /// <seealso href="https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/proposals/csharp-9.0/covariant-returns"/>
         [CompileTime]
         public static bool HasCovariantType( this IPropertyOrIndexer propertyOrIndexer )
         {

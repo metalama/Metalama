@@ -9,8 +9,30 @@ using System.Collections.Generic;
 namespace Metalama.Framework.Code.Invokers
 {
     /// <summary>
-    /// Allows invocation of the method.
+    /// Allows generating run-time code that invokes a method when you have its compile-time <see cref="IMethod"/> representation.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Invokers are APIs that allow you to generate run-time code from compile-time declarations. When you have an <see cref="IMethod"/>
+    /// object (a compile-time representation of a method), you can use its invoker methods to create <see cref="IExpression"/> objects
+    /// that represent method calls. These expressions can then be used in templates and will be expanded into actual C# code.
+    /// </para>
+    /// <para>
+    /// The <see cref="Invoke(dynamic[])"/> method returns a <c>dynamic</c> value that can be used directly in template code, while
+    /// <see cref="CreateInvokeExpression(IEnumerable{IExpression})"/> returns an <see cref="IExpression"/> for use in compile-time APIs.
+    /// Use <see cref="WithObject(dynamic?)"/> to specify the target instance and <see cref="WithOptions"/> to control nullability behavior and
+    /// which implementation layer (base, current, or final) to invoke.
+    /// </para>
+    /// <para>
+    /// The invoker API is not type-safe. It will generate code even with mismatched argument types, which will only be caught when
+    /// the transformed code is compiled. Always verify that generated code matches actual member signatures.
+    /// </para>
+    /// </remarks>
+    /// <seealso cref="IMethod"/>
+    /// <seealso cref="InvokerOptions"/>
+    /// <seealso cref="IExpression"/>
+    /// <seealso href="@invokers"/>
+    /// <seealso href="@dynamic-typing"/>
     [CompileTime]
     public interface IMethodInvoker
     {

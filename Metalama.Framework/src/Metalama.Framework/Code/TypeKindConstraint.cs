@@ -6,6 +6,11 @@ using Metalama.Framework.Aspects;
 
 namespace Metalama.Framework.Code
 {
+    /// <summary>
+    /// Specifies type kind constraints for generic type parameters.
+    /// </summary>
+    /// <seealso cref="ITypeParameter"/>
+    /// <seealso cref="IGeneric"/>
     [CompileTime]
     public enum TypeKindConstraint
     {

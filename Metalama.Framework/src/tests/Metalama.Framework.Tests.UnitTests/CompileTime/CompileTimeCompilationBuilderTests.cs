@@ -1583,13 +1583,14 @@ RemainingNamespace
             Assert.True( result.IsSuccessful );
         }
 
+#if ROSLYN_4_12_0_OR_GREATER
         [Fact]
         public void TemplateLanguageVersion()
         {
             const string code = """
                                 using System;
                                 using Metalama.Framework.Advising;
-                                using Metalama.Framework.Aspects; 
+                                using Metalama.Framework.Aspects;
 
                                 namespace Ns
                                 {
@@ -1614,7 +1615,7 @@ RemainingNamespace
                                         [CompileTime]
                                         class CompileTimeOnlyClass {}
 
-                                        class Aspect3 : TypeAspect 
+                                        class Aspect3 : TypeAspect
                                         {
                                             [Template]
                                             void TemplateMethod<T1, [CompileTime] T2>( int runTimeParameter, [CompileTime] int compileTimeParameter ) {}
@@ -1637,5 +1638,6 @@ RemainingNamespace
 
             Assert.Equal( templateLanguageVersion, loader.RootProject.Manifest!.LanguageVersion );
         }
+#endif
     }
 }

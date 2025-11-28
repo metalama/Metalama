@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Aspects;
 using Metalama.Framework.Code.Invokers;
 using System.Reflection;
 
@@ -10,6 +11,12 @@ namespace Metalama.Framework.Code
     /// <summary>
     /// Represents an instance constructor or a static constructor.
     /// </summary>
+    /// <seealso cref="IMethodBase"/>
+    /// <seealso cref="IConstructorInvoker"/>
+    /// <seealso cref="ConstructorInitializerKind"/>
+    /// <seealso cref="ConstructorAspect"/>
+    /// <seealso href="@overriding-constructors"/>
+    /// <seealso href="@introducing-constructor-parameters"/>
     public interface IConstructor : IMethodBase, IConstructorInvoker
     {
         /// <summary>
@@ -29,6 +36,7 @@ namespace Metalama.Framework.Code
         /// Gets a <see cref="ConstructorInfo"/> that represents the current constructor at run time.
         /// </summary>
         /// <returns>A <see cref="ConstructorInfo"/> that can be used only in run-time code.</returns>
+        /// <seealso href="@reflection"/>
         ConstructorInfo ToConstructorInfo();
 
         /// <summary>

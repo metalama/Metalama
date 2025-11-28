@@ -11,6 +11,9 @@ using System;
 
 namespace Metalama.Framework.Aspects;
 
+/// <summary>
+/// Extension methods for <see cref="IQuery{T}"/> and <see cref="ITaggedQuery{T, TTag}"/> to add aspects to declarations.
+/// </summary>
 [CompileTime]
 [PublicAPI]
 public static class AspectQueryExtensions
@@ -23,6 +26,7 @@ public static class AspectQueryExtensions
     /// <summary>
     /// Adds a aspect to the current set of declarations or throws an exception if the aspect is not eligible for the aspect. This overload is non-generic.
     /// </summary>
+    /// <typeparam name="TDeclaration">The type of declaration in the query.</typeparam>
     /// <param name="query">A query selecting the declarations to validate.</param>
     /// <param name="aspectType">The exact type of the aspect returned by <paramref name="createAspect"/>. It is not allowed to specify a base type in this parameter, only the exact type.</param>
     /// <param name="createAspect">A function that returns the aspect for a given declaration.</param>
@@ -33,6 +37,7 @@ public static class AspectQueryExtensions
     /// <summary>
     /// Adds an aspect to the current set of declarations but only if the aspect is eligible for the declaration. This overload is non-generic.
     /// </summary>
+    /// <typeparam name="TDeclaration">The type of declaration in the query.</typeparam>
     /// <param name="query">A query selecting the declarations to validate.</param>
     /// <param name="aspectType">The exact type of the aspect returned by <paramref name="createAspect"/>. It is not allowed to specify a base type in this parameter, only the exact type.</param>
     /// <param name="createAspect">A function that returns the aspect for a given declaration.</param>
@@ -50,6 +55,8 @@ public static class AspectQueryExtensions
     /// <summary>
     /// Adds an aspect to the current set of declarations or throws an exception if the aspect is not eligible for the aspect.
     /// </summary>
+    /// <typeparam name="TDeclaration">The type of declaration in the query.</typeparam>
+    /// <typeparam name="TAspect">The type of aspect to add.</typeparam>
     /// <param name="query">A query selecting the declarations to validate.</param>
     /// <param name="createAspect">A function that returns the aspect for a given declaration.</param>
     public static void AddAspect<TDeclaration, TAspect>( this IQuery<TDeclaration> query, Func<TDeclaration, TAspect> createAspect )
@@ -58,8 +65,10 @@ public static class AspectQueryExtensions
         => query.Project.ServiceProvider.GetRequiredService<IAspectQueryService>().AddAspect( query, typeof(TAspect), createAspect );
 
     /// <summary>
-    /// Adds an aspect to the current set of declarations but only if the aspect is eligible for the declaration. 
+    /// Adds an aspect to the current set of declarations but only if the aspect is eligible for the declaration.
     /// </summary>
+    /// <typeparam name="TDeclaration">The type of declaration in the query.</typeparam>
+    /// <typeparam name="TAspect">The type of aspect to add.</typeparam>
     /// <param name="query">A query selecting the declarations to validate.</param>
     /// <param name="createAspect">A function that returns the aspect for a given declaration.</param>
     /// <param name="eligibility">The scenarios for which the aspect may be eligible. The default value is <see cref="EligibleScenarios.Default"/> | <see cref="EligibleScenarios.Inheritance"/>.
@@ -77,6 +86,8 @@ public static class AspectQueryExtensions
     /// Adds an aspect to the current set of declarations or throws an exception if the aspect is not eligible for the aspect. This overload creates a new instance of the
     /// aspect class for each target declaration.
     /// </summary>
+    /// <typeparam name="TAspect">The type of aspect to add.</typeparam>
+    /// <param name="query">A query selecting the declarations to which the aspect should be added.</param>
     public static void AddAspect<TAspect>( this IQuery<IDeclaration> query )
         where TAspect : class, IAspect, new()
         => query.Project.ServiceProvider.GetRequiredService<IAspectQueryService>().AddAspect( query, typeof(TAspect), _ => new TAspect() );
@@ -86,6 +97,7 @@ public static class AspectQueryExtensions
     /// does not verify the eligibility of the declaration for the aspect unless you specify the <paramref name="eligibility"/> parameter.
     /// This overload creates a new instance of the aspect class for each eligible target declaration.
     /// </summary>
+    /// <typeparam name="TAspect">The type of aspect to add.</typeparam>
     /// <param name="query">A query selecting the declarations to validate.</param>
     /// <param name="eligibility">The scenarios for which the aspect may be eligible. The default value is <see cref="EligibleScenarios.Default"/> | <see cref="EligibleScenarios.Inheritance"/>.
     /// If <see cref="EligibleScenarios.None"/> is provided, eligibility is not checked.
@@ -113,6 +125,8 @@ public static class AspectQueryExtensions
     /// <summary>
     /// Adds a aspect to the current set of declarations or throws an exception if the aspect is not eligible for the aspect. This overload is non-generic.
     /// </summary>
+    /// <typeparam name="TDeclaration">The type of declaration in the query.</typeparam>
+    /// <typeparam name="TTag">The type of tag associated with each declaration.</typeparam>
     /// <param name="query">A query selecting the declarations to validate.</param>
     /// <param name="aspectType">The exact type of the aspect returned by <paramref name="createAspect"/>. It is not allowed to specify a base type in this parameter, only the exact type.</param>
     /// <param name="createAspect">A function that returns the aspect for a given declaration.</param>
@@ -126,7 +140,9 @@ public static class AspectQueryExtensions
     /// <summary>
     /// Adds an aspect to the current set of declarations but only if the aspect is eligible for the declaration. This overload is non-generic.
     /// </summary>
-    /// <param name="query">A query selecting the declarations to validate.</param> 
+    /// <typeparam name="TDeclaration">The type of declaration in the query.</typeparam>
+    /// <typeparam name="TTag">The type of tag associated with each declaration.</typeparam>
+    /// <param name="query">A query selecting the declarations to validate.</param>
     /// <param name="aspectType">The exact type of the aspect returned by <paramref name="createAspect"/>. It is not allowed to specify a base type in this parameter, only the exact type.</param>
     /// <param name="createAspect">A function that returns the aspect for a given declaration.</param>
     /// <param name="eligibility">The scenarios for which the aspect may be eligible. The default value is <see cref="EligibleScenarios.Default"/> | <see cref="EligibleScenarios.Inheritance"/>.
@@ -143,7 +159,10 @@ public static class AspectQueryExtensions
     /// <summary>
     /// Adds an aspect to the current set of declarations or throws an exception if the aspect is not eligible for the aspect.
     /// </summary>
-    /// <param name="query">A query selecting the declarations to validate.</param> 
+    /// <typeparam name="TDeclaration">The type of declaration in the query.</typeparam>
+    /// <typeparam name="TTag">The type of tag associated with each declaration.</typeparam>
+    /// <typeparam name="TAspect">The type of aspect to add.</typeparam>
+    /// <param name="query">A query selecting the declarations to validate.</param>
     /// <param name="createAspect">A function that returns the aspect for a given declaration.</param>
     public static void AddAspect<TDeclaration, TTag, TAspect>( this ITaggedQuery<TDeclaration, TTag> query, Func<TDeclaration, TTag, TAspect> createAspect )
         where TDeclaration : class, IDeclaration
@@ -151,9 +170,12 @@ public static class AspectQueryExtensions
         => query.Project.ServiceProvider.GetRequiredService<IAspectQueryService>().AddAspect( query, typeof(TAspect), createAspect );
 
     /// <summary>
-    /// Adds an aspect to the current set of declarations but only if the aspect is eligible for the declaration. 
+    /// Adds an aspect to the current set of declarations but only if the aspect is eligible for the declaration.
     /// </summary>
-    /// <param name="query">A query selecting the declarations to validate.</param> 
+    /// <typeparam name="TDeclaration">The type of declaration in the query.</typeparam>
+    /// <typeparam name="TTag">The type of tag associated with each declaration.</typeparam>
+    /// <typeparam name="TAspect">The type of aspect to add.</typeparam>
+    /// <param name="query">A query selecting the declarations to validate.</param>
     /// <param name="createAspect">A function that returns the aspect for a given declaration.</param>
     /// <param name="eligibility">The scenarios for which the aspect may be eligible. The default value is <see cref="EligibleScenarios.Default"/> | <see cref="EligibleScenarios.Inheritance"/>.
     /// If <see cref="EligibleScenarios.None"/> is provided, eligibility is not checked.

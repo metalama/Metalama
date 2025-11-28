@@ -6,6 +6,14 @@ using System;
 
 namespace Metalama.Framework.Code.DeclarationBuilders
 {
+    /// <summary>
+    /// Base interface for <see cref="IMethodBuilder"/> and <see cref="IConstructorBuilder"/>.
+    /// </summary>
+    /// <seealso cref="IMethodBuilder"/>
+    /// <seealso cref="IConstructorBuilder"/>
+    /// <seealso cref="IMethodBase"/>
+    /// <seealso cref="IParameterBuilder"/>
+    /// <seealso href="@introducing-members"/>
     public interface IMethodBaseBuilder : IMethodBase, IHasParametersBuilder
     {
         /// <summary>

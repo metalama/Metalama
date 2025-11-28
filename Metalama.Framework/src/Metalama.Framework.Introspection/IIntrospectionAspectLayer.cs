@@ -7,6 +7,20 @@ using Metalama.Framework.Aspects;
 
 namespace Metalama.Framework.Introspection;
 
+/// <summary>
+/// Represents an aspect layer in the compilation.
+/// </summary>
+/// <remarks>
+/// To obtain an <see cref="IIntrospectionAspectLayer"/>, use the <see cref="IIntrospectionCompilationDetails.AspectLayers"/> property,
+/// which is exposed by <c>Metalama.Framework.Workspaces.Workspace</c>, <c>Metalama.Framework.Workspaces.ProjectSet</c>,
+/// and <c>Metalama.Framework.Workspaces.Project</c>. From an <see cref="IIntrospectionAspectLayer"/>, you can also access
+/// its parent <see cref="IIntrospectionAspectClass"/> via the <see cref="AspectClass"/> property.
+/// </remarks>
+/// <seealso cref="IIntrospectionAspectClass"/>
+/// <seealso cref="AspectOrderAttribute"/>
+/// <seealso cref="LayersAttribute"/>
+/// <seealso href="@introspection-api"/>
+/// <seealso href="@ordering-aspects"/>
 [PublicAPI]
 public interface IIntrospectionAspectLayer
 {

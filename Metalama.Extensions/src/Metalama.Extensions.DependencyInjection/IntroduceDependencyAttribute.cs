@@ -10,13 +10,23 @@ using Metalama.Framework.Code;
 namespace Metalama.Extensions.DependencyInjection;
 
 /// <summary>
-/// Custom attribute that, when be applied to a field or automatic property of an aspect, means that this field or property is a service dependency
-/// that introduced into the target type and handled by a dependency injection framework. Contrarily to <see cref="DependencyAttribute"/> that can be used
-/// in user code, this attribute can be used only in an aspect. 
+/// Marks a field or property in an aspect as a service dependency to be introduced into the target type.
+/// This attribute is used in an aspect class to introduce dependencies, whereas <see cref="DependencyAttribute"/> is used in user code.
 /// </summary>
 /// <remarks>
-///  The implementation of this custom attribute depends on the selected dependency injection framework.
+/// <para>
+/// When applied to a field or property within an aspect, this advice will introduce a corresponding dependency into the
+/// target type and implement the injection logic according to the configured DI framework. This allows aspects to declare
+/// dependencies that will be automatically injected into types where the aspect is applied.
+/// </para>
+/// <para>
+/// The implementation of dependency injection depends on the selected framework, which can be configured using
+/// <see cref="DependencyInjectionExtensions.ConfigureDependencyInjection(Framework.Fabrics.IQuery{ICompilation}, System.Action{DependencyInjectionOptionsBuilder})"/>.
+/// </para>
 /// </remarks>
+/// <seealso cref="DependencyAttribute"/>
+/// <seealso cref="DependencyInjectionExtensions"/>
+/// <seealso href="@dependency-injection"/>
 [PublicAPI]
 public class IntroduceDependencyAttribute : DeclarativeAdviceAttribute
 {

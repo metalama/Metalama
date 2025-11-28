@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Aspects;
+using Metalama.Framework.Code.SyntaxBuilders;
 using Metalama.Framework.Code.Types;
 using Metalama.Framework.Project;
 using System;
@@ -13,6 +14,11 @@ namespace Metalama.Framework.Code;
 /// <summary>
 /// Exposes methods that return instances of the <see cref="IType"/> interface.
 /// </summary>
+/// <seealso cref="IType"/>
+/// <seealso cref="INamedType"/>
+/// <seealso cref="IDeclarationFactory"/>
+/// <seealso cref="ExpressionFactory"/>
+/// <seealso href="@type-system"/>
 [CompileTime]
 public static class TypeFactory
 {

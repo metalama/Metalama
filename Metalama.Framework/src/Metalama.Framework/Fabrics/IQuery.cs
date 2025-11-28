@@ -10,9 +10,21 @@ using Metalama.Framework.Utilities;
 namespace Metalama.Framework.Fabrics;
 
 /// <summary>
-/// The non-generic base interface for <see cref="IQuery{TDeclaration}"/>. Represents query of declarations to which
-/// aspects, validators, diagnostics and code fix suggestions can be added. This interface exposes LINQ-like methods that can be combined in complex queries.
+/// The non-generic base interface for <see cref="IQuery{TDeclaration}"/>. Represents a query over code declarations
+/// that can be used to programmatically select declarations and apply aspects, configuration, validators, and diagnostics.
+/// Provides LINQ-like methods that can be combined to create complex queries.
 /// </summary>
+/// <remarks>
+/// <para>
+/// Query interfaces are used within fabrics to select declarations programmatically using method chaining and LINQ-like operations.
+/// For example, you can select all types, filter by namespace or attributes, and then apply aspects to the results.
+/// </para>
+/// </remarks>
+/// <seealso cref="IQuery{TDeclaration}"/>
+/// <seealso cref="IAmender"/>
+/// <seealso cref="QueryExtensions"/>
+/// <seealso href="@fabrics"/>
+/// <seealso href="@fabrics-adding-aspects"/>
 [InternalImplement]
 [CompileTime]
 public interface IQuery

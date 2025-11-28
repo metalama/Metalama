@@ -8,8 +8,23 @@ using System.Reflection;
 
 namespace Metalama.Framework.RunTime;
 
+/// <summary>
+/// Provides extension methods for reflection operations.
+/// </summary>
+/// <seealso cref="MethodInfo"/>
+/// <seealso cref="ConstructorInfo"/>
 public static class ReflectionHelper
 {
+    /// <summary>
+    /// Gets a method from a type by its name, binding flags, and <see cref="MethodInfo"/>.<see cref="object.ToString()"/> signature.
+    /// </summary>
+    /// <param name="type">The type containing the method.</param>
+    /// <param name="methodName">The name of the method.</param>
+    /// <param name="bindingFlags">The binding flags to use when searching for the method.</param>
+    /// <param name="signature">The full signature of the method as returned by <see cref="MethodInfo"/>.<see cref="object.ToString()"/>.</param>
+    /// <returns>The <see cref="MethodInfo"/> matching the specified criteria.</returns>
+    /// <exception cref="InvalidOperationException">No method with the specified signature was found.</exception>
+    /// <exception cref="AmbiguousMatchException">More than one method with the specified signature was found.</exception>
     public static MethodInfo GetMethod( this Type type, string methodName, BindingFlags bindingFlags, string signature )
     {
         var methods = type.GetMethods( bindingFlags )
@@ -30,6 +45,15 @@ public static class ReflectionHelper
         }
     }
 
+    /// <summary>
+    /// Gets a constructor from a type by its binding flags and <see cref="MethodInfo"/>.<see cref="object.ToString()"/> signature.
+    /// </summary>
+    /// <param name="type">The type containing the constructor.</param>
+    /// <param name="bindingFlags">The binding flags to use when searching for the constructor.</param>
+    /// <param name="signature">The full signature of the constructor as returned by <see cref="MethodInfo"/>.<see cref="object.ToString()"/>.</param>
+    /// <returns>The <see cref="ConstructorInfo"/> matching the specified criteria.</returns>
+    /// <exception cref="InvalidOperationException">No constructor with the specified signature was found.</exception>
+    /// <exception cref="AmbiguousMatchException">More than one constructor with the specified signature was found.</exception>
     public static ConstructorInfo GetConstructor( this Type type, BindingFlags bindingFlags, string signature )
     {
         var constructors = type.GetConstructors( bindingFlags )

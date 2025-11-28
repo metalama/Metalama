@@ -9,6 +9,10 @@ namespace Metalama.Framework.Code
     /// <summary>
     /// Exposes a <see cref="Type"/> property.
     /// </summary>
+    /// <seealso cref="IType"/>
+    /// <seealso cref="IParameter"/>
+    /// <seealso cref="IFieldOrProperty"/>
+    /// <seealso cref="IExpression"/>
     [CompileTime]
     public interface IHasType
     {

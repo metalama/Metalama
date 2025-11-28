@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Aspects;
+using Metalama.Framework.Code;
 using Metalama.Framework.Utilities;
 
 namespace Metalama.Framework.Diagnostics
@@ -10,6 +11,10 @@ namespace Metalama.Framework.Diagnostics
     /// <summary>
     /// A base interface for objects to which a diagnostic can be reported.
     /// </summary>
+    /// <seealso cref="IDiagnostic"/>
+    /// <seealso cref="IDiagnosticSink"/>
+    /// <seealso cref="SourceReference"/>
+    /// <seealso cref="SourceSpan"/>
     /// <seealso href="@diagnostics"/>
     [CompileTime]
     [InternalImplement]

@@ -17,6 +17,13 @@ namespace Metalama.Framework.Project
     [CompileTime]
     public static class ServiceProviderExtensions
     {
+        /// <summary>
+        /// Gets a required globally scoped service from the service provider, throwing an exception if the service is not available.
+        /// </summary>
+        /// <typeparam name="T">The type of service to retrieve.</typeparam>
+        /// <param name="serviceProvider">The service provider.</param>
+        /// <returns>The requested service.</returns>
+        /// <exception cref="InvalidOperationException">The service is not available.</exception>
         public static T GetRequiredService<T>( this IServiceProvider<IGlobalService> serviceProvider )
             where T : class, IGlobalService
         {
@@ -25,6 +32,13 @@ namespace Metalama.Framework.Project
             return service;
         }
 
+        /// <summary>
+        /// Gets a required project-scoped service from the service provider, throwing an exception if the service is not available.
+        /// </summary>
+        /// <typeparam name="T">The type of service to retrieve.</typeparam>
+        /// <param name="serviceProvider">The service provider.</param>
+        /// <returns>The requested service.</returns>
+        /// <exception cref="InvalidOperationException">The service is not available.</exception>
         public static T GetRequiredService<T>( this IServiceProvider<IProjectService> serviceProvider )
             where T : class, IProjectService
         {

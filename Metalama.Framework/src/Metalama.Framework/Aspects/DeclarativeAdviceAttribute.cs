@@ -11,8 +11,9 @@ using System;
 namespace Metalama.Framework.Aspects;
 
 /// <summary>
-/// A base class for attributes that define declarative advice members. 
+/// A base class for attributes that define declarative advice members.
 /// </summary>
+/// <seealso cref="IntroduceAttribute"/>
 [CompileTime]
 public abstract class DeclarativeAdviceAttribute : Attribute, IAdviceAttribute
 {

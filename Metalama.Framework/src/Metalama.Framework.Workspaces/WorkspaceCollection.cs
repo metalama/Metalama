@@ -21,6 +21,18 @@ namespace Metalama.Framework.Workspaces
     /// Represents a set of workspaces. Two attempts to load a workspace with the same parameters, in the same <see cref="WorkspaceCollection"/>,
     /// will return the exact same instance, unless the <see cref="Reset"/> method is called.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The <see cref="WorkspaceCollection"/> provides caching of loaded workspaces. When you call <see cref="Load"/> or <see cref="LoadAsync(ImmutableArray{string}, ImmutableDictionary{string, string}?, bool, CancellationToken)"/>
+    /// with the same paths and properties, the collection returns the previously loaded <see cref="Workspace"/> instead of reloading it.
+    /// This improves performance and ensures that multiple parts of your application can share the same workspace instance.
+    /// </para>
+    /// <para>
+    /// Use the <see cref="Default"/> property to access the default collection, or create a new instance with a custom service provider.
+    /// </para>
+    /// </remarks>
+    /// <seealso cref="Workspace"/>
+    /// <seealso href="@introspection-api"/>
     [PublicAPI]
     public sealed class WorkspaceCollection
     {
@@ -37,7 +49,7 @@ namespace Metalama.Framework.Workspaces
         /// <summary>
         /// Initializes a new instance of the <see cref="WorkspaceCollection"/> class.
         /// </summary>
-        /// <param name="serviceProvider"></param>
+        /// <param name="serviceProvider">The service provider to use, or <c>null</c> to use the default service provider.</param>
         public WorkspaceCollection( GlobalServiceProvider? serviceProvider = null )
         {
             this.ServiceProvider = serviceProvider ?? ServiceProviderFactory.GetServiceProvider();
@@ -49,6 +61,9 @@ namespace Metalama.Framework.Workspaces
         /// </summary>
         public static WorkspaceCollection Default { get; }
 
+        /// <summary>
+        /// Gets the service builder for the current collection. Use this to register custom services that will be available to all workspaces in this collection.
+        /// </summary>
         public ServiceBuilder ServiceBuilder { get; } = new();
 
         internal GlobalServiceProvider ServiceProvider { get; }
@@ -57,28 +72,33 @@ namespace Metalama.Framework.Workspaces
         public bool IgnoreLoadErrors { get; set; }
 
         /// <summary>
-        /// Loads a set of projects of solutions into a <see cref="Workspace"/>, or returns an existing workspace
-        /// if the method has been previously called with the exact same parameters. 
+        /// Synchronously loads a set of projects or solutions into a <see cref="Workspace"/>, or returns an existing workspace
+        /// if the method has been previously called with the exact same parameters.
         /// </summary>
         /// <param name="paths">A list of project or solution paths.</param>
-        /// <returns>A <see cref="Workspace"/> where all specified project or solutions, and their dependencies, have been loaded.</returns>
+        /// <returns>A <see cref="Workspace"/> where all specified projects or solutions, and their dependencies, have been loaded.</returns>
+        /// <seealso cref="LoadAsync(string[])"/>
         public Workspace Load( params string[] paths )
             => this.ServiceProvider.GetRequiredService<ITaskRunner>().RunSynchronously( () => this.LoadAsync( paths.ToImmutableArray() ) );
 
         /// <summary>
-        /// Asynchronously loads a set of projects of solutions into a <see cref="Workspace"/>, or returns an existing workspace
-        /// if the method has been previously called with the exact same parameters. 
+        /// Asynchronously loads a set of projects or solutions into a <see cref="Workspace"/>, or returns an existing workspace
+        /// if the method has been previously called with the exact same parameters.
         /// </summary>
         /// <param name="paths">A list of project or solution paths.</param>
-        /// <returns>A <see cref="Workspace"/> where all specified project or solutions, and their dependencies, have been loaded.</returns>
+        /// <returns>A <see cref="Workspace"/> where all specified projects or solutions, and their dependencies, have been loaded.</returns>
+        /// <seealso cref="Load(string[])"/>
         public Task<Workspace> LoadAsync( params string[] paths ) => this.LoadAsync( paths.ToImmutableArray() );
 
         /// <summary>
-        /// Asynchronously loads a set of projects of solutions into a <see cref="Workspace"/>, or returns an existing workspace
-        /// if the method has been previously called with the exact same parameters. This overload allows to specify MSBuild properties.
+        /// Asynchronously loads a set of projects or solutions into a <see cref="Workspace"/>, or returns an existing workspace
+        /// if the method has been previously called with the exact same parameters. This overload allows specifying MSBuild properties.
         /// </summary>
         /// <param name="paths">A list of project or solution paths.</param>
-        /// <returns>A <see cref="Workspace"/> where all specified project or solutions, and their dependencies, have been loaded.</returns>
+        /// <param name="properties">MSBuild properties to pass to the projects, or <c>null</c> to use default properties.</param>
+        /// <param name="restore">Indicates whether to run <c>dotnet restore</c> before loading projects. The default is <c>true</c>.</param>
+        /// <param name="cancellationToken">A cancellation token.</param>
+        /// <returns>A <see cref="Workspace"/> where all specified projects or solutions, and their dependencies, have been loaded.</returns>
         public Task<Workspace> LoadAsync(
             ImmutableArray<string> paths,
             ImmutableDictionary<string, string>? properties = null,
@@ -115,8 +135,13 @@ namespace Metalama.Framework.Workspaces
         }
 
         /// <summary>
-        /// Finds the <see cref="Workspace"/> and <see cref="Project"/> that defines a given Roslyn <see cref="Compilation" /> in the current <see cref="WorkspaceCollection"/>.
+        /// Finds the <see cref="Workspace"/> and <see cref="Project"/> that defines a given Roslyn <see cref="Compilation"/> in the current <see cref="WorkspaceCollection"/>.
         /// </summary>
+        /// <param name="compilation">The Roslyn compilation to search for.</param>
+        /// <param name="workspace">When this method returns <c>true</c>, contains the workspace that contains the compilation.</param>
+        /// <param name="project">When this method returns <c>true</c>, contains the project that contains the compilation.</param>
+        /// <param name="isMetalamaOutput">When this method returns <c>true</c>, indicates whether the compilation is Metalama's transformed output.</param>
+        /// <returns><c>true</c> if a matching project was found; otherwise, <c>false</c>.</returns>
         public bool TryFindProject(
             Compilation compilation,
             [NotNullWhen( true )] out Workspace? workspace,
@@ -156,7 +181,8 @@ namespace Metalama.Framework.Workspaces
         }
 
         /// <summary>
-        /// Removes all cached workspaces, but not the set of registered services.
+        /// Removes all cached workspaces, but not the set of registered services. After calling this method,
+        /// subsequent calls to <see cref="Load"/> or <see cref="LoadAsync(ImmutableArray{string}, ImmutableDictionary{string, string}?, bool, CancellationToken)"/> will reload workspaces from disk.
         /// </summary>
         public void Reset()
         {

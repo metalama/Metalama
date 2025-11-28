@@ -15,14 +15,34 @@ namespace Metalama.Framework.Code
     /// derive from <see cref="IType"/>.
     /// </summary>
     /// <remarks>
+    /// <para>
+    /// <b>Obtaining IType instances:</b>
+    /// You can obtain an <see cref="IType"/> instance using <see cref="TypeFactory"/>, or by constructing derived types from an existing
+    /// <see cref="IType"/> using methods like <see cref="MakeArrayType"/>, <see cref="MakePointerType"/>, <see cref="ToNullable"/>, and <see cref="ToNonNullable"/>.
+    /// </para>
+    /// <para>
+    /// <b>Comparing types:</b>
     /// The <see cref="IType"/> interface implements <see cref="IEquatable{T}"/>. The implementation uses the <see cref="ICompilationComparers.Default"/> comparer.
     /// To use a different comparer, choose a different comparer from <see cref="IDeclaration"/>.<see cref="ICompilationElement.Compilation"/>.<see cref="ICompilation.Comparers"/>.
     /// You can also use <see cref="Equals(IType,TypeComparison)"/> and specify a <see cref="TypeComparison"/>.
+    /// </para>
     /// </remarks>
     /// <seealso cref="TypeExtensions"/>
+    /// <seealso cref="INamedType"/>
+    /// <seealso cref="IArrayType"/>
+    /// <seealso cref="IPointerType"/>
+    /// <seealso cref="TypeKind"/>
+    /// <seealso cref="SpecialType"/>
+    /// <seealso cref="TypeComparison"/>
+    /// <seealso cref="TypeFactory"/>
+    /// <seealso href="@type-system"/>
     [CompileTime]
     public interface IType : ICompilationElement, IDisplayable, IEquatable<IType>
     {
+        /// <summary>
+        /// Converts the current <see cref="IType"/> to an <see cref="IRef{T}"/> that can be used to reference this type later,
+        /// even after the type might have been modified by aspects.
+        /// </summary>
         IRef<IType> ToRef();
 
         /// <summary>
@@ -40,6 +60,7 @@ namespace Metalama.Framework.Code
         /// Gets a reflection <see cref="Type"/> that represents the current type at run time.
         /// </summary>
         /// <returns>A <see cref="Type"/> that can be used only in run-time code.</returns>
+        /// <seealso href="@reflection"/>
         [CompileTimeReturningRunTime]
         Type ToType();
 
@@ -62,8 +83,18 @@ namespace Metalama.Framework.Code
         /// </summary>
         bool Equals( SpecialType specialType );
 
+        /// <summary>
+        /// Determines whether the current type is equal to another <see cref="IType"/> using a specified <see cref="TypeComparison"/> mode.
+        /// </summary>
+        /// <param name="otherType">The type to compare with the current type.</param>
+        /// <param name="typeComparison">The comparison mode to use.</param>
         bool Equals( IType? otherType, TypeComparison typeComparison );
 
+        /// <summary>
+        /// Determines whether the current type is equal to a reflection <see cref="Type"/> using a specified <see cref="TypeComparison"/> mode.
+        /// </summary>
+        /// <param name="otherType">The reflection type to compare with the current type.</param>
+        /// <param name="typeComparison">The comparison mode to use.</param>
         bool Equals( Type? otherType, TypeComparison typeComparison = TypeComparison.Default );
 
         /// <summary>

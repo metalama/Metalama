@@ -7,6 +7,11 @@ namespace Metalama.Framework.Code.DeclarationBuilders;
 /// <summary>
 /// Allows to complete the construction of a member or named type that has been created by an advice.
 /// </summary>
+/// <seealso cref="IMemberOrNamedType"/>
+/// <seealso cref="IMemberBuilder"/>
+/// <seealso cref="INamedTypeBuilder"/>
+/// <seealso href="@introducing-members"/>
+/// <seealso href="@introducing-types"/>
 public interface IMemberOrNamedTypeBuilder : IMemberOrNamedType, IDeclarationBuilder
 {
     /// <summary>

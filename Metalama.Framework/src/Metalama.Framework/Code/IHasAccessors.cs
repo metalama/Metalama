@@ -9,6 +9,9 @@ namespace Metalama.Framework.Code
     /// <summary>
     /// A base interface for <see cref="IProperty"/> and <see cref="IEvent"/>. Exposes <see cref="GetAccessor"/>.
     /// </summary>
+    /// <seealso cref="IProperty"/>
+    /// <seealso cref="IEvent"/>
+    /// <seealso cref="IMethod"/>
     public interface IHasAccessors : IMember, IHasType
     {
         /// <summary>

@@ -4,6 +4,12 @@
 
 namespace Metalama.Framework.Code.Collections
 {
+    /// <summary>
+    /// Read-only collection of members.
+    /// </summary>
+    /// <typeparam name="T">Type of members in the collection.</typeparam>
+    /// <seealso cref="IMember"/>
+    /// <seealso cref="IMemberOrNamedTypeCollection{T}"/>
     public interface IMemberCollection<out T> : IMemberOrNamedTypeCollection<T>
         where T : IMember
     {

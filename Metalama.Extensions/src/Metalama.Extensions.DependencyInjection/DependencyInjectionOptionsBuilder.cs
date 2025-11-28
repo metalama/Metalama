@@ -8,6 +8,15 @@ using Metalama.Framework.Aspects;
 
 namespace Metalama.Extensions.DependencyInjection;
 
+/// <summary>
+/// Builder for configuring dependency injection options.
+/// </summary>
+/// <remarks>
+/// Use this builder with <see cref="DependencyInjectionExtensions.ConfigureDependencyInjection"/> to configure
+/// the dependency injection framework, set default options, and register custom DI frameworks.
+/// </remarks>
+/// <seealso cref="DependencyInjectionExtensions"/>
+/// <seealso href="@dependency-injection"/>
 [CompileTime]
 [PublicAPI]
 public class DependencyInjectionOptionsBuilder
@@ -30,6 +39,11 @@ public class DependencyInjectionOptionsBuilder
         set => this._options = this._options with { IsLazy = value };
     }
 
+    /// <summary>
+    /// Registers a custom dependency injection framework.
+    /// </summary>
+    /// <typeparam name="TFramework">The type of the framework to register. Must implement <see cref="IDependencyInjectionFramework"/>.</typeparam>
+    /// <param name="priority">The priority of the framework. Frameworks with higher priority are consulted first. Default is 0.</param>
     public void RegisterFramework<TFramework>( int priority = 0 )
         where TFramework : IDependencyInjectionFramework
     {
@@ -40,12 +54,21 @@ public class DependencyInjectionOptionsBuilder
         };
     }
 
+    /// <summary>
+    /// Unregisters a previously registered dependency injection framework.
+    /// </summary>
+    /// <typeparam name="TFramework">The type of the framework to unregister.</typeparam>
     public void UnregisterFramework<TFramework>()
         where TFramework : IDependencyInjectionFramework
     {
         this._options = this._options with { FrameworkRegistrations = this._options.FrameworkRegistrations.Remove( typeof(TFramework) ) };
     }
 
+    /// <summary>
+    /// Sets the priority of a registered dependency injection framework.
+    /// </summary>
+    /// <typeparam name="TFramework">The type of the framework.</typeparam>
+    /// <param name="priority">The new priority value. Frameworks with higher priority are consulted first.</param>
     public void SetFrameworkPriority<TFramework>( int priority )
         where TFramework : IDependencyInjectionFramework
     {

@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Code;
 using Metalama.Framework.Utilities;
 using System.Collections.Immutable;
 
@@ -10,6 +11,47 @@ namespace Metalama.Framework.Aspects
     /// <summary>
     /// Represents an instance of an aspect. The instance of the <see cref="IAspect"/> itself is in the <see cref="Aspect"/> property.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Use Cases:</b>
+    /// </para>
+    /// <list type="bullet">
+    /// <item>
+    /// <description>
+    /// <b>Accessing the current aspect instance:</b> In the <see cref="IAspect{T}.BuildAspect"/> method, access the current
+    /// aspect instance via <see cref="IAspectBuilder.AspectInstance"/> to retrieve aspect-specific information such as
+    /// <see cref="AspectClass"/>, <see cref="AspectState"/>, <see cref="SecondaryInstances"/>, or <see cref="IAspectPredecessor.Predecessors"/>.
+    /// </description>
+    /// </item>
+    /// <item>
+    /// <description>
+    /// <b>In templates:</b> Access the current aspect instance via <c>meta.AspectInstance</c> to retrieve aspect-specific information
+    /// during code generation.
+    /// </description>
+    /// </item>
+    /// <item>
+    /// <description>
+    /// <b>Querying aspects on declarations:</b> Retrieve aspect instances applied to any declaration using
+    /// <see cref="DeclarationEnhancements{T}.GetAspectInstances"/> to inspect which aspects have been applied and their state.
+    /// This can only query aspects that have already been applied or are being applied (e.g., aspects ordered before the current one,
+    /// or instances of the current aspect applied in a parent class).
+    /// </description>
+    /// </item>
+    /// <item>
+    /// <description>
+    /// <b>In aspect predecessor chains:</b> When examining <see cref="IAspectPredecessor.Predecessors"/>, predecessor instances
+    /// can be cast to <see cref="IAspectInstance"/> when <see cref="AspectPredecessor.Kind"/> indicates an aspect relationship.
+    /// </description>
+    /// </item>
+    /// </list>
+    /// </remarks>
+    /// <seealso cref="IAspect"/>
+    /// <seealso cref="IAspectClass"/>
+    /// <seealso cref="IAspectBuilder"/>
+    /// <seealso cref="IAspectState"/>
+    /// <seealso cref="IAspectPredecessor"/>
+    /// <seealso href="@child-aspects"/>
+    /// <seealso href="@aspect-design"/>
     [InternalImplement]
     [CompileTime]
     public interface IAspectInstance : IAspectPredecessor
@@ -40,8 +82,24 @@ namespace Metalama.Framework.Aspects
         /// <summary>
         /// Gets the other instances of the same <see cref="AspectClass"/> on the same <see cref="IAspectPredecessor.TargetDeclaration"/>.
         /// When several instances of the same <see cref="AspectClass"/> are found on the same <see cref="IAspectPredecessor.TargetDeclaration"/>,
-        /// they are ordered by priority, and only the first one gets executed. The other instances are exposed on this property.
+        /// they are ordered by priority, and only the first one (the primary instance) gets executed. The other instances are exposed on this property.
         /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Priority ordering (highest to lowest):</b>
+        /// </para>
+        /// <list type="number">
+        /// <item><description>Aspects defined using a custom attribute directly on the declaration</description></item>
+        /// <item><description>Aspects added by another aspect as child aspects</description></item>
+        /// <item><description>Aspects inherited from base declarations</description></item>
+        /// <item><description>Aspects added by fabrics</description></item>
+        /// </list>
+        /// <para>
+        /// The aspect implementation is responsible for handling secondary instances if needed, typically by examining
+        /// their properties or state and incorporating that information into the primary instance's behavior.
+        /// </para>
+        /// </remarks>
+        /// <seealso href="@ordering-aspects"/>
         ImmutableArray<IAspectInstance> SecondaryInstances { get; }
 
         /// <summary>

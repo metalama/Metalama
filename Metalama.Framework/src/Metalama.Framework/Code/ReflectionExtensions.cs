@@ -9,8 +9,12 @@ using System.Reflection;
 
 namespace Metalama.Framework.Code;
 
+/// <summary>
+/// Extension methods for reflection types to convert them to Metalama expressions.
+/// </summary>
 [CompileTime]
 [PublicAPI]
+[Obsolete]
 public static class ReflectionExtensions
 {
     // ReSharper disable once SuspiciousTypeConversion.Global
@@ -18,6 +22,8 @@ public static class ReflectionExtensions
     /// <summary>
     /// Returns the <see cref="IExpression"/> representation of the given <see cref="MemberInfo"/>, when available, or <see langword="null"/>.
     /// </summary>
+    /// <param name="memberInfo">The member info to convert.</param>
+    /// <returns>An <see cref="IExpression"/> if the conversion is possible; otherwise, <c>null</c>.</returns>
     public static IExpression? AsExpression( this MemberInfo memberInfo ) => memberInfo as IExpression;
 
     // ReSharper disable once SuspiciousTypeConversion.Global
@@ -25,6 +31,8 @@ public static class ReflectionExtensions
     /// <summary>
     /// Returns the <see cref="IExpression"/> representation of the given <see cref="ParameterInfo"/>, when available, or <see langword="null"/>.
     /// </summary>
+    /// <param name="parameterInfo">The parameter info to convert.</param>
+    /// <returns>An <see cref="IExpression"/> if the conversion is possible; otherwise, <c>null</c>.</returns>
     public static IExpression? AsExpression( this ParameterInfo parameterInfo ) => parameterInfo as IExpression;
 
     private static IExpression Throw( object? obj )
@@ -36,6 +44,9 @@ public static class ReflectionExtensions
     /// <summary>
     /// Returns the <see cref="IExpression"/> representation of the given <see cref="MemberInfo"/>, when available, or throws an exception.
     /// </summary>
+    /// <param name="memberInfo">The member info to convert.</param>
+    /// <returns>An <see cref="IExpression"/> representing the member.</returns>
+    /// <exception cref="InvalidOperationException">The member cannot be converted to an expression.</exception>
     public static IExpression ToExpression( this MemberInfo memberInfo ) => memberInfo as IExpression ?? Throw( memberInfo );
 
     // ReSharper disable once SuspiciousTypeConversion.Global
@@ -43,5 +54,8 @@ public static class ReflectionExtensions
     /// <summary>
     /// Returns the <see cref="IExpression"/> representation of the given <see cref="ParameterInfo"/>, when available, or throws an exception.
     /// </summary>
+    /// <param name="parameterInfo">The parameter info to convert.</param>
+    /// <returns>An <see cref="IExpression"/> representing the parameter.</returns>
+    /// <exception cref="InvalidOperationException">The parameter cannot be converted to an expression.</exception>
     public static IExpression ToExpression( this ParameterInfo parameterInfo ) => parameterInfo as IExpression ?? Throw( parameterInfo );
 }

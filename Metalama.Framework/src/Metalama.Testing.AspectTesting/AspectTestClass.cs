@@ -23,10 +23,25 @@ using Xunit.Sdk;
 namespace Metalama.Testing.AspectTesting;
 
 /// <summary>
-/// A base class for test classes built using the current framework.
-/// All test methods must be annotated with both <c>[Theory]</c> and <see cref="CurrentDirectoryAttribute"/>,
-/// must have a single parameter accepting the relative path of the test file, and must call <see cref="RunTestAsync"/> as their only implementation.
+/// A base class for xUnit test classes that test Metalama aspects.
 /// </summary>
+/// <remarks>
+/// <para>
+/// This class provides infrastructure for running aspect tests using xUnit. Test methods must follow these conventions:
+/// <list type="bullet">
+/// <item>Annotate with both <c>[Theory]</c> and <see cref="CurrentDirectoryAttribute"/></item>
+/// <item>Have a single parameter accepting the relative path of the test file</item>
+/// <item>Call <see cref="RunTestAsync"/> as their only implementation</item>
+/// </list>
+/// </para>
+/// <para>
+/// Test files can include special comments (e.g., <c>// @ReportOutputWarnings</c>) to configure test behavior.
+/// See <see cref="TestOptions"/> for available options.
+/// </para>
+/// </remarks>
+/// <seealso cref="TestOptions"/>
+/// <seealso cref="CurrentDirectoryAttribute"/>
+/// <seealso href="@testing-aspects"/>
 public abstract class AspectTestClass
 {
     static AspectTestClass()

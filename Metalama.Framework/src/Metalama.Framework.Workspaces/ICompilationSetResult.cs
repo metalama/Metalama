@@ -6,7 +6,18 @@ using Metalama.Framework.Introspection;
 
 namespace Metalama.Framework.Workspaces;
 
+/// <summary>
+/// Represents the result of compiling a set of compilations, providing access to both introspection details
+/// and the transformed code produced by Metalama.
+/// </summary>
+/// <seealso cref="ICompilationSet"/>
+/// <seealso cref="IIntrospectionCompilationDetails"/>
+/// <seealso href="@introspection-api"/>
 public interface ICompilationSetResult : IIntrospectionCompilationDetails
 {
+    /// <summary>
+    /// Gets the transformed code produced by Metalama for the compilations in this set.
+    /// </summary>
+    /// <seealso cref="IProjectSet.SourceCode"/>
     ICompilationSet TransformedCode { get; }
 }

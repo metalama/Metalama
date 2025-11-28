@@ -33,10 +33,10 @@ public static class InterfaceImplementationAdviserExtensions
     ///     template property is non-static, then the introduced property copies of the scope of the target declaration of the aspect.</param>
     /// <param name="whenExists">Determines the implementation strategy when a property of the same name is already declared in the target type.
     ///     The default strategy is to fail with a compile-time error.</param>
-    /// <param name="buildProperty"></param>
+    /// <param name="buildProperty">An optional callback that allows you to configure the introduced property, such as changing its name, type, accessibility, or adding custom attributes.</param>
     /// <param name="tags">An optional opaque object of anonymous type passed to the template property and exposed under the <see cref="meta.Tags"/> property of the
     ///     <see cref="meta"/> API.</param>
-    /// <returns>An <see cref="IPropertyBuilder"/> that allows to dynamically change the name or type of the introduced property.</returns>
+    /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> where the <see cref="IIntroductionAdviceResult{T}.Declaration"/> property exposes the introduced or overridden property.</returns>
     /// <seealso href="@introducing-members"/>
     public static IIntroductionAdviceResult<IProperty> IntroduceProperty(
         this IInterfaceImplementationAdviser adviser,
@@ -70,11 +70,11 @@ public static class InterfaceImplementationAdviserExtensions
     ///     template accessors are non-static, then the introduced property copies of the scope of the target declaration of the aspect.</param>
     /// <param name="whenExists">Determines the implementation strategy when a property of the same name is already declared in the target type.
     ///     The default strategy is to fail with a compile-time error.</param>
-    /// <param name="buildProperty"></param>
+    /// <param name="buildProperty">An optional callback that allows you to configure the introduced property, such as changing its name, type, accessibility, or adding custom attributes.</param>
     /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods.</param>
     /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property of the
     ///     <see cref="meta"/> API.</param>
-    /// <returns>An <see cref="IPropertyBuilder"/> that allows to dynamically change the name or type of the introduced property.</returns>
+    /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> where the <see cref="IIntroductionAdviceResult{T}.Declaration"/> property exposes the introduced or overridden property.</returns>
     /// <seealso href="@introducing-members"/>
     public static IIntroductionAdviceResult<IProperty> IntroduceProperty(
         this IInterfaceImplementationAdviser adviser,
@@ -114,11 +114,11 @@ public static class InterfaceImplementationAdviserExtensions
     ///     template accessors are non-static, then the introduced indexer copies of the scope of the target declaration of the aspect.</param>
     /// <param name="whenExists">Determines the implementation strategy when a indexer of the same name is already declared in the target type.
     ///     The default strategy is to fail with a compile-time error.</param>
-    /// <param name="buildIndexer"></param>
+    /// <param name="buildIndexer">An optional callback that allows you to configure the introduced indexer, such as changing its type, accessibility, parameters, or adding custom attributes.</param>
     /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods.</param>
     /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property of the
     ///     <see cref="meta"/> API.</param>
-    /// <returns>An <see cref="IIndexerBuilder"/> that allows to dynamically change the name or type of the introduced indexer.</returns>
+    /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> where the <see cref="IIntroductionAdviceResult{T}.Declaration"/> property exposes the introduced or overridden indexer.</returns>
     /// <seealso href="@introducing-members"/>
     public static IIntroductionAdviceResult<IIndexer> IntroduceIndexer(
         this IInterfaceImplementationAdviser adviser,
@@ -158,11 +158,11 @@ public static class InterfaceImplementationAdviserExtensions
     ///     template accessors are non-static, then the introduced indexer copies of the scope of the target declaration of the aspect.</param>
     /// <param name="whenExists">Determines the implementation strategy when a indexer of the same name is already declared in the target type.
     ///     The default strategy is to fail with a compile-time error.</param>
-    /// <param name="buildIndexer"></param>
+    /// <param name="buildIndexer">An optional callback that allows you to configure the introduced indexer, such as changing its type, accessibility, parameters, or adding custom attributes.</param>
     /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods.</param>
     /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property of the
     ///     <see cref="meta"/> API.</param>
-    /// <returns>An <see cref="IIndexerBuilder"/> that allows to dynamically change the name or type of the introduced indexer.</returns>
+    /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> where the <see cref="IIntroductionAdviceResult{T}.Declaration"/> property exposes the introduced or overridden indexer.</returns>
     /// <seealso href="@introducing-members"/>
     public static IIntroductionAdviceResult<IIndexer> IntroduceIndexer(
         this IInterfaceImplementationAdviser adviser,
@@ -202,11 +202,11 @@ public static class InterfaceImplementationAdviserExtensions
     ///     template accessors are non-static, then the introduced indexer copies of the scope of the target declaration of the aspect.</param>
     /// <param name="whenExists">Determines the implementation strategy when a indexer of the same name is already declared in the target type.
     ///     The default strategy is to fail with a compile-time error.</param>
-    /// <param name="buildIndexer"></param>
+    /// <param name="buildIndexer">An optional callback that allows you to configure the introduced indexer, such as changing its type, accessibility, parameters, or adding custom attributes.</param>
     /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods.</param>
     /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property of the
     ///     <see cref="meta"/> API.</param>
-    /// <returns>An <see cref="IIndexerBuilder"/> that allows to dynamically change the name or type of the introduced indexer.</returns>
+    /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> where the <see cref="IIntroductionAdviceResult{T}.Declaration"/> property exposes the introduced or overridden indexer.</returns>
     /// <seealso href="@introducing-members"/>
     public static IIntroductionAdviceResult<IIndexer> IntroduceIndexer(
         this IInterfaceImplementationAdviser adviser,
@@ -246,11 +246,11 @@ public static class InterfaceImplementationAdviserExtensions
     ///     template accessors are non-static, then the introduced indexer copies of the scope of the target declaration of the aspect.</param>
     /// <param name="whenExists">Determines the implementation strategy when a indexer of the same name is already declared in the target type.
     ///     The default strategy is to fail with a compile-time error.</param>
-    /// <param name="buildIndexer"></param>
+    /// <param name="buildIndexer">An optional callback that allows you to configure the introduced indexer, such as changing its type, accessibility, parameters, or adding custom attributes.</param>
     /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods.</param>
     /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property of the
     ///     <see cref="meta"/> API.</param>
-    /// <returns>An <see cref="IIndexerBuilder"/> that allows to dynamically change the name or type of the introduced indexer.</returns>
+    /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> where the <see cref="IIntroductionAdviceResult{T}.Declaration"/> property exposes the introduced or overridden indexer.</returns>
     /// <seealso href="@introducing-members"/>
     public static IIntroductionAdviceResult<IIndexer> IntroduceIndexer(
         this IInterfaceImplementationAdviser adviser,
@@ -287,10 +287,10 @@ public static class InterfaceImplementationAdviserExtensions
     ///     template event is non-static, then the introduced event copies of the scope of the target declaration of the aspect.</param>
     /// <param name="whenExists">Determines the implementation strategy when an event of the same name is already declared in the target type.
     ///     The default strategy is to fail with a compile-time error.</param>
-    /// <param name="buildEvent"></param>
+    /// <param name="buildEvent">An optional callback that allows you to configure the introduced event, such as changing its name, type, accessibility, or adding custom attributes.</param>
     /// <param name="tags">An optional opaque object of anonymous type passed to the template event and exposed under the <see cref="meta.Tags"/> property of the
     ///     <see cref="meta"/> API.</param>
-    /// <returns>An <see cref="IEventBuilder"/> that allows to change the name and the type of the event.</returns>
+    /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> where the <see cref="IIntroductionAdviceResult{T}.Declaration"/> property exposes the introduced or overridden event.</returns>
     /// <seealso href="@introducing-members"/>
     public static IIntroductionAdviceResult<IEvent> IntroduceEvent(
         this IInterfaceImplementationAdviser adviser,
@@ -330,11 +330,11 @@ public static class InterfaceImplementationAdviserExtensions
     ///     template event is non-static, then the introduced event copies of the scope of the target declaration of the aspect.</param>
     /// <param name="whenExists">Determines the implementation strategy when an event of the same name is already declared in the target type.
     ///     The default strategy is to fail with a compile-time error.</param>
-    /// <param name="buildEvent"></param>
+    /// <param name="buildEvent">An optional callback that allows you to configure the introduced event, such as changing its name, type, accessibility, or adding custom attributes.</param>
     /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods.</param>
     /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property of the
     ///     <see cref="meta"/> API.</param>
-    /// <returns>An <see cref="IEventBuilder"/> that allows to change the name and the type of the event.</returns>
+    /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> where the <see cref="IIntroductionAdviceResult{T}.Declaration"/> property exposes the introduced or overridden event.</returns>
     /// <seealso href="@introducing-members"/>
     public static IIntroductionAdviceResult<IEvent> IntroduceEvent(
         this IInterfaceImplementationAdviser adviser,
@@ -375,11 +375,11 @@ public static class InterfaceImplementationAdviserExtensions
     ///     copies of the scope of the target declaration of the aspect.</param>
     /// <param name="whenExists">Determines the implementation strategy when a method of the same name and signature is already declared in the target type.
     ///     The default strategy is to fail with a compile-time error.</param>
-    /// <param name="buildMethod"></param>
+    /// <param name="buildMethod">An optional callback that allows you to configure the introduced method, such as changing its name, signature, accessibility, or adding custom attributes.</param>
     /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template methods.</param>
     /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property
     ///     of the <see cref="meta"/> API.</param>
-    /// <returns>An <see cref="IMethodBuilder"/> that allows to modify the name or signature, or to add custom attributes.</returns>
+    /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> where the <see cref="IIntroductionAdviceResult{T}.Declaration"/> property exposes the introduced or overridden method.</returns>
     /// <seealso href="@introducing-members"/>
     public static IIntroductionAdviceResult<IMethod> IntroduceMethod(
         this IInterfaceImplementationAdviser adviser,
@@ -398,6 +398,21 @@ public static class InterfaceImplementationAdviserExtensions
             args,
             tags );
 
+    /// <summary>
+    /// Introduces a unary operator to the target type, or overrides the implementation of an existing one.
+    /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to apply the advice to another declaration than the current one.
+    /// </summary>
+    /// <param name="adviser">An <see cref="IInterfaceImplementationAdviser"/>.</param>
+    /// <param name="template">Name of the method of the aspect class that will be used as a template for the introduced operator. This method must be annotated with <see cref="TemplateAttribute"/>.</param>
+    /// <param name="inputType">The type of the input parameter of the operator.</param>
+    /// <param name="resultType">The return type of the operator.</param>
+    /// <param name="kind">The kind of operator to introduce.</param>
+    /// <param name="whenExists">Determines the implementation strategy when an operator of the same kind and signature is already declared in the target type. The default strategy is to fail with a compile-time error.</param>
+    /// <param name="buildOperator">An optional callback that allows you to configure the introduced operator method, such as adding custom attributes.</param>
+    /// <param name="args">An object (typically of anonymous type) whose properties map to parameters or type parameters of the template method.</param>
+    /// <param name="tags">An optional opaque object of anonymous type passed to the template method and exposed under the <see cref="meta.Tags"/> property of the <see cref="meta"/> API.</param>
+    /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> where the <see cref="IIntroductionAdviceResult{T}.Declaration"/> property exposes the introduced or overridden unary operator.</returns>
+    /// <seealso href="@introducing-members"/>
     public static IIntroductionAdviceResult<IMethod> IntroduceUnaryOperator(
         this IInterfaceImplementationAdviser adviser,
         string template,

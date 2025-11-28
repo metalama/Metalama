@@ -6,5 +6,13 @@ using Metalama.Framework.Aspects;
 
 namespace Metalama.Framework.Advising;
 
+/// <summary>
+/// A marker interface for attributes that provide advice-related metadata. This interface serves as a common base
+/// for attributes that configure or describe members used in aspect-oriented programming scenarios, such as templates
+/// and declarative advice.
+/// </summary>
+/// <seealso cref="ITemplateAttribute"/>
+/// <seealso cref="TemplateAttribute"/>
+/// <seealso cref="DeclarativeAdviceAttribute"/>
 [RunTimeOrCompileTime]
 public interface IAdviceAttribute;

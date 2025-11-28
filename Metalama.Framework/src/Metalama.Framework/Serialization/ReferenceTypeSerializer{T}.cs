@@ -7,6 +7,13 @@ using System;
 
 namespace Metalama.Framework.Serialization;
 
+/// <summary>
+/// Base class for serializers of reference types with strongly-typed serialization methods.
+/// </summary>
+/// <typeparam name="T">The type of objects being serialized.</typeparam>
+/// <seealso cref="ReferenceTypeSerializer"/>
+/// <seealso cref="ISerializer"/>
+/// <seealso href="@serialization"/>
 [PublicAPI]
 public abstract class ReferenceTypeSerializer<T> : ReferenceTypeSerializer
     where T : class

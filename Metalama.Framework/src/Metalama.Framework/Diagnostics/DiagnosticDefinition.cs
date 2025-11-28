@@ -9,8 +9,36 @@ namespace Metalama.Framework.Diagnostics
     // ReSharper disable once UnusedTypeParameter
 
     /// <summary>
-    /// Defines a diagnostic that does not accept any parameters. For a diagnostic that accepts parameters, use <see cref="DiagnosticDefinition{T}"/>.
+    /// Defines a diagnostic that does not accept any parameters. For diagnostics with parameters, use <see cref="DiagnosticDefinition{T}"/>.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Diagnostic definitions must be declared as static fields in compile-time classes (such as aspect classes,
+    /// fabric classes, or other compile-time helper classes) and include a unique ID, severity level, and message
+    /// format string. The aspect framework requires diagnostics to be defined this way to ensure they can be
+    /// properly detected by static analysis of the code.
+    /// </para>
+    /// <para>
+    /// This class implements both <see cref="IDiagnosticDefinition"/> and <see cref="IDiagnostic"/>, which means
+    /// instances can be used directly with <see cref="ScopedDiagnosticSink.Report(IDiagnostic)"/> without needing
+    /// to call <c>WithArguments</c>.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// <code>
+    /// private static readonly DiagnosticDefinition _missingFieldError = new(
+    ///     "MY001",
+    ///     Severity.Error,
+    ///     "The type must have a field named '_logger'.");
+    ///
+    /// // In BuildAspect:
+    /// builder.Diagnostics.Report(_missingFieldError);
+    /// </code>
+    /// </example>
+    /// <seealso cref="DiagnosticDefinition{T}"/>
+    /// <seealso cref="IDiagnosticDefinition"/>
+    /// <seealso cref="IDiagnostic"/>
+    /// <seealso cref="Severity"/>
     /// <seealso href="@diagnostics"/>
     public sealed class DiagnosticDefinition : DiagnosticDefinition<None>, IDiagnostic
     {

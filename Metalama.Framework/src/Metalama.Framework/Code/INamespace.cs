@@ -13,6 +13,10 @@ namespace Metalama.Framework.Code
     /// <remarks>
     /// At design time, namespaces of the current compilation can be partial, or incomplete. See <see cref="IsPartial"/> for details.
     /// </remarks>
+    /// <seealso cref="INamespaceOrNamedType"/>
+    /// <seealso cref="INamedType"/>
+    /// <seealso cref="ICompilation"/>
+    /// <seealso cref="Fabrics.NamespaceFabric"/>
     public interface INamespace : INamespaceOrNamedType
     {
         /// <summary>

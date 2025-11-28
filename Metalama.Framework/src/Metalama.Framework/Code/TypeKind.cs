@@ -11,6 +11,8 @@ namespace Metalama.Framework.Code
     /// <summary>
     /// Kinds of <see cref="IType"/>.
     /// </summary>
+    /// <seealso cref="IType.TypeKind"/>
+    /// <seealso href="@type-system"/>
     [CompileTime]
     public enum TypeKind
     {

@@ -17,7 +17,10 @@ namespace Metalama.Framework.Code
     /// </summary>
     /// <remarks>
     /// <para>Use <see cref="RefEqualityComparer{T}"/> to compare instances of <see cref="IRef"/>.</para>
-    /// </remarks> 
+    /// </remarks>
+    /// <seealso cref="IRef{T}"/>
+    /// <seealso cref="RefExtensions"/>
+    /// <seealso cref="RefEqualityComparer{T}"/>
     [CompileTime]
     [InternalImplement]
     public interface IRef : IEquatable<IRef>

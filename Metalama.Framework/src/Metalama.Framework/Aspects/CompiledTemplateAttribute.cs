@@ -8,10 +8,24 @@ using System;
 namespace Metalama.Framework.Aspects;
 
 /// <summary>
-/// This custom attribute is internal to the Metalama infrastructure and should not be used in user code.
-/// It is added by Metalama when an aspect is compile to store the original characteristics of the template because some are
-/// changed during compilation.
+/// Internal attribute added by Metalama during compilation to preserve the original characteristics of templates.
 /// </summary>
+/// <remarks>
+/// <para>
+/// This attribute is internal to the Metalama infrastructure and should not be used in user code. When Metalama compiles
+/// T# templates into standard C# code that generates run-time code using the Roslyn API, some characteristics of the
+/// template methods (such as accessibility, async state, and iterator state) may be modified during the compilation
+/// process. This attribute stores the original values so they can be referenced during template expansion.
+/// </para>
+/// <para>
+/// As part of the T# compilation process, Metalama separates compile-time code from run-time code and embeds the
+/// compile-time code (including compiled templates) as a managed resource in the run-time assembly. This attribute
+/// ensures that template metadata remains accurate throughout this transformation.
+/// </para>
+/// </remarks>
+/// <seealso cref="TemplateAttribute"/>
+/// <seealso href="@template-overview"/>
+/// <seealso href="@templates"/>
 [CompileTime]
 [AttributeUsage( AttributeTargets.Event | AttributeTargets.Field | AttributeTargets.Method | AttributeTargets.Property )]
 public sealed class CompiledTemplateAttribute : Attribute
