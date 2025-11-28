@@ -11,13 +11,18 @@ using System.Collections.Generic;
 namespace Metalama.Framework.Aspects
 {
     /// <summary>
-    /// A base aspect that overrides the implementation of a field or a property by providing property templates.
+    /// A base aspect that overrides the implementation of a field or property using T# template properties.
     /// </summary>
     /// <remarks>
     /// <para>
     /// This class simplifies creating aspects that override field or property behavior. Derived classes must implement the
-    /// <see cref="OverrideProperty"/> template property, which defines the new accessor implementations. The template has access
-    /// to the original field or property through <c>meta.Target.FieldOrProperty.Value</c>.
+    /// <see cref="OverrideProperty"/> template property, which is a T# template that executes at compile-time to generate
+    /// the new accessor implementations. Use <c>meta.Target.FieldOrProperty.Value</c> within the template to access or modify
+    /// the underlying field or property value, and <c>meta.Target.FieldOrProperty</c> to access metadata.
+    /// </para>
+    /// <para>
+    /// When applied to a field or auto-property, a backing field is automatically created to store the value,
+    /// similar to how auto-properties are transformed.
     /// </para>
     /// <para>
     /// The aspect automatically selects the appropriate template based on the property's return type:
@@ -29,13 +34,9 @@ namespace Metalama.Framework.Aspects
     /// If specialized templates are not overridden, <see cref="OverrideProperty"/> is used as the fallback.
     /// </para>
     /// <para>
-    /// When applied to a field or auto-property, a backing field is automatically created to store the value.
-    /// Access the target field or property metadata via <c>meta.Target.FieldOrProperty</c>, <c>meta.Target.Field</c>,
-    /// or <c>meta.Target.Property</c> in your template.
-    /// </para>
-    /// <para>
-    /// For more control or to override multiple fields/properties from one aspect, use <see cref="AdviserExtensions.Override(IAdviser{IFieldOrProperty}, string, object?, object?)"/>
-    /// or <see cref="AdviserExtensions.OverrideAccessors"/> instead.
+    /// For overriding multiple fields or properties from a single aspect, or for separate control over getter and setter templates,
+    /// use <see cref="AdviserExtensions.Override(IAdviser{IFieldOrProperty}, string, object?, object?)"/> or
+    /// <see cref="AdviserExtensions.OverrideAccessors"/> from your <c>BuildAspect</c> method instead of deriving from this class.
     /// </para>
     /// </remarks>
     /// <seealso cref="FieldOrPropertyAspect"/>

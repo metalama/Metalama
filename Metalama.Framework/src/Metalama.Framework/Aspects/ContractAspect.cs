@@ -377,6 +377,27 @@ namespace Metalama.Framework.Aspects
             BuildEligibilityForDirection( builder, ContractDirection.Default );
         }
 
+        /// <summary>
+        /// The template method that validates or normalizes the value of a field, property, indexer, or parameter.
+        /// </summary>
+        /// <param name="value">The value to validate or normalize. This is a <c>dynamic</c> parameter to support any value type.</param>
+        /// <remarks>
+        /// <para>
+        /// This is the primary template method that must be implemented in derived contract aspects. It is executed at the point
+        /// in the data flow determined by <see cref="GetDefinedDirection"/>, which can be input (precondition), output (postcondition),
+        /// or both.
+        /// </para>
+        /// <para>
+        /// Within the template, use <c>meta.Target.ContractDirection</c> to determine whether you're validating input or output flow.
+        /// Access the target declaration through <c>meta.Target.Declaration</c>, <c>meta.Target.FieldOrProperty</c>, or
+        /// <c>meta.Target.Parameter</c> depending on the target type.
+        /// </para>
+        /// <para>
+        /// To reject invalid values, throw an appropriate exception (typically <see cref="ArgumentException"/> for parameters,
+        /// or a custom validation exception). To normalize values, modify the <paramref name="value"/> parameter using assignment
+        /// (e.g., <c>value = value.Trim()</c>), which will update the value in the data flow.
+        /// </para>
+        /// </remarks>
         [Template]
         public abstract void Validate( dynamic? value );
 

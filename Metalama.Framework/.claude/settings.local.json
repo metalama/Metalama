@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dotnet build:*)",
+      "Bash(xxd:*)",
+      "Bash(while read f)",
+      "Bash(do head -c 3 $f)",
+      "Bash(done)",
+      "Bash(findstr:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

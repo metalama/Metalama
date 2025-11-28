@@ -48,7 +48,7 @@ namespace Metalama.Framework.Aspects
         /// <item><see cref="IMetaTarget.Method"/> - Access method metadata (name, parameters, return type, attributes)</item>
         /// <item><see cref="IMetaTarget.FieldOrProperty"/> - Access field/property metadata and use <c>.Value</c> to get/set the underlying value</item>
         /// <item><see cref="IMetaTarget.Event"/> - Access event metadata and use <c>.Add</c>/<c>.Remove</c> to manage handlers</item>
-        /// <item><see cref="IMetaTarget.Parameters"/> - Access parameter metadata (<c>meta.Target.Parameters[0].Value) and values (<c>meta.Target.Parameters[0].Value</c>)</item>
+        /// <item><see cref="IMetaTarget.Parameters"/> - Access parameter metadata (<c>meta.Target.Parameters[0]</c>) and values (<c>meta.Target.Parameters[0].Value</c>)</item>
         /// </list>
         /// </para>
         /// </remarks>

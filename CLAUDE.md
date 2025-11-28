@@ -5,3 +5,11 @@
 - Do not write long code examples.
 - Read the related conceptual documentation in project `../Metalama.Documentation/content` mentioned by DocFx uid in the `<seealso href="@..."/>` tags.
 - Complete the API doc with the conceptual documentation where relevant.
+
+## Pre-PR checks and enhancements
+
+- Documentation
+    - Check and complete the documentation of all new or modified APIs.
+    - Look for relevant conceptual articles in `../Metalama.Documentation/content` using keyword search.
+    - Suggest changes in affected conceptual articles
+

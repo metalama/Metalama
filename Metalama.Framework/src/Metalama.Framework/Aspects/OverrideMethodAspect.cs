@@ -13,13 +13,14 @@ using System.Threading.Tasks;
 namespace Metalama.Framework.Aspects
 {
     /// <summary>
-    /// A base class for aspects that override method implementations.
+    /// A base class for aspects that override method implementations using T# templates.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// This class simplifies creating aspects that replace method implementations. Derived classes must implement the
-    /// <see cref="OverrideMethod"/> template, which defines the new method implementation. The template has access to the
-    /// original method through <c>meta.Proceed()</c>.
+    /// This class simplifies creating aspects that replace method implementations using the decorator pattern.
+    /// Derived classes must implement the <see cref="OverrideMethod"/> template method, which is a T# template that executes
+    /// at compile-time to generate the new method implementation. Use <c>meta.Proceed()</c> within the template to invoke
+    /// the original method implementation, and <c>meta.Target.Method</c> to access method metadata.
     /// </para>
     /// <para>
     /// This aspect automatically selects the appropriate template based on the target method's characteristics:
@@ -32,10 +33,21 @@ namespace Metalama.Framework.Aspects
     /// If specialized templates are not overridden, <see cref="OverrideMethod"/> is used as the fallback.
     /// </para>
     /// <para>
+    /// <strong>Important:</strong> When the default <see cref="OverrideMethod"/> template is applied to iterator methods,
+    /// the stream is buffered into a <c>List&lt;T&gt;</c> using <see cref="Metalama.Framework.RunTime.RunTimeAspectHelper.Buffer(System.Collections.Generic.IEnumerable{object})"/>.
+    /// For long-running or infinite streams, implement the specific iterator templates (<see cref="OverrideEnumerableMethod"/>
+    /// or <see cref="OverrideEnumeratorMethod"/>) to avoid buffering and support streaming.
+    /// </para>
+    /// <para>
     /// The properties <see cref="UseAsyncTemplateForAnyAwaitable"/> and <see cref="UseEnumerableTemplateForAnyEnumerable"/>
     /// control template selection strategy. By default (<c>false</c>), templates are selected based on method modifiers
     /// (<c>async</c>, <c>yield</c>). When set to <c>true</c>, selection is based solely on return type, which is useful
     /// when you need to handle all methods of certain return types consistently.
+    /// </para>
+    /// <para>
+    /// For overriding multiple methods from a single aspect or for more control, use
+    /// <see cref="AdviserExtensions.Override(IAdviser{IMethod}, in MethodTemplateSelector, object?, object?)"/> from your
+    /// <c>BuildAspect</c> method instead of deriving from this class.
     /// </para>
     /// </remarks>
     /// <seealso cref="MethodAspect"/>

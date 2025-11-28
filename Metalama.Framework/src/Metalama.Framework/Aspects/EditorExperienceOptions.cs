@@ -4,7 +4,17 @@
 
 namespace Metalama.Framework.Aspects;
 
-internal sealed record EditorExperienceOptions(
+/// <summary>
+/// Options controlling how an aspect is suggested in the IDE's code refactoring menu.
+/// </summary>
+/// <param name="SuggestAsAddAttribute">Whether the aspect should be suggested when adding an attribute.</param>
+/// <param name="AddAttributeSuggestionTitle">The title for the "Add attribute" suggestion.</param>
+/// <param name="SuggestAsLiveTemplate">Whether the aspect should be suggested as a live template.</param>
+/// <param name="LiveTemplateSuggestionTitle">The title for the live template suggestion.</param>
+/// <seealso cref="EditorExperienceAttribute"/>
+/// <seealso cref="IAspectClass.EditorExperienceOptions"/>
+[CompileTime]
+public sealed record EditorExperienceOptions(
     bool? SuggestAsAddAttribute = null,
     string? AddAttributeSuggestionTitle = null,
     bool? SuggestAsLiveTemplate = null,
