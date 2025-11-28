@@ -12,10 +12,10 @@ namespace Metalama.Framework.Introspection;
 /// Represents an instance of an aspect, as well as the results of the aspect instance.
 /// </summary>
 /// <remarks>
-/// To obtain an <see cref="IIntrospectionAspectInstance"/> from a <see cref="Metalama.Framework.Workspaces.Workspace"/>, use the
-/// <see cref="Metalama.Framework.Workspaces.Workspace.AspectInstances"/> property, which returns all aspect instances aggregated
-/// across all projects in the workspace. For per-project access, use the <see cref="Metalama.Framework.Workspaces.Project.AspectInstances"/> property.
-/// Alternatively, use the <see cref="IIntrospectionAspectClass.Instances"/> property to get all instances of a specific <see cref="IIntrospectionAspectClass"/>.
+/// To obtain an <see cref="IIntrospectionAspectInstance"/> from a <c>Metalama.Framework.Workspaces.Workspace</c>, use the
+/// <c>Workspace.AspectInstances</c> property, which returns all aspect instances aggregated
+/// across all projects in the workspace. For per-project access, use the <c>Project.AspectInstances</c> property.
+/// Alternatively, use the <c>IIntrospectionAspectClass.Instances</c> property to get all instances of a specific <c>IIntrospectionAspectClass</c>.
 /// </remarks>
 /// <seealso cref="IIntrospectionAspectClass"/>
 /// <seealso cref="IIntrospectionAdvice"/>

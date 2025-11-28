@@ -15,7 +15,7 @@ namespace Metalama.Framework.Aspects
     /// <remarks>
     /// <para>
     /// This class provides a convenient base for creating generic type parameter aspects by implementing <see cref="IAspect{T}"/>
-    /// with <typeparamref name="T"/> set to <see cref="ITypeParameter"/>. Derived classes override <see cref="BuildAspect"/>
+    /// with <c>T</c> set to <see cref="ITypeParameter"/>. Derived classes override <see cref="BuildAspect"/>
     /// to add advice (such as adding constraints, attributes, or validation) to the target generic type parameter.
     /// </para>
     /// <para>

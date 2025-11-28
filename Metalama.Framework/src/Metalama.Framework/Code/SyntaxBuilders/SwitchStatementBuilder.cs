@@ -28,7 +28,7 @@ namespace Metalama.Framework.Code.SyntaxBuilders;
 /// <para>
 /// The builder automatically handles <c>break</c> statements unless you specify otherwise, and supports both C# pattern matching
 /// syntax and traditional constant case labels. After adding all sections, call <see cref="ToStatement"/> to get an <see cref="IStatement"/>
-/// that can be inserted into template code using <see cref="meta.InsertStatement"/>.
+/// that can be inserted into template code using <see cref="meta.InsertStatement(Metalama.Framework.Code.SyntaxBuilders.IStatement)"/>.
 /// </para>
 /// </remarks>
 /// <seealso cref="IStatementBuilder"/>

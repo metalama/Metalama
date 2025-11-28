@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Aspects;
+using Metalama.Framework.Code;
 using Metalama.Framework.Utilities;
 
 namespace Metalama.Framework.Diagnostics

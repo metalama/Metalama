@@ -20,7 +20,7 @@ namespace Metalama.Framework.Code.Invokers
     /// <para>
     /// The <see cref="Invoke(dynamic[])"/> method returns a <c>dynamic</c> value that can be used directly in template code, while
     /// <see cref="CreateInvokeExpression(IEnumerable{IExpression})"/> returns an <see cref="IExpression"/> for use in compile-time APIs.
-    /// Use <see cref="WithObject"/> to specify the target instance and <see cref="WithOptions"/> to control nullability behavior and
+    /// Use <see cref="WithObject(dynamic?)"/> to specify the target instance and <see cref="WithOptions"/> to control nullability behavior and
     /// which implementation layer (base, current, or final) to invoke.
     /// </para>
     /// <para>

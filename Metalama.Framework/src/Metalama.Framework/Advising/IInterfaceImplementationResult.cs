@@ -10,7 +10,7 @@ namespace Metalama.Framework.Advising
     /// <summary>
     /// Describes an interface type implemented by advice.
     /// </summary>
-    /// <seealso cref="AdviserExtensions.ImplementInterface"/>
+    /// <seealso cref="AdviserExtensions.ImplementInterface(IAdviser{INamedType}, INamedType, OverrideStrategy, object?)"/>
     /// <seealso cref="IInterfaceImplementationAdviser"/>
     /// <seealso cref="InterfaceImplementationOutcome"/>
     /// <seealso cref="IImplementInterfaceAdviceResult"/>

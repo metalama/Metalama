@@ -23,7 +23,7 @@ namespace Metalama.Framework.Workspaces
     /// </summary>
     /// <remarks>
     /// <para>
-    /// The <see cref="WorkspaceCollection"/> provides caching of loaded workspaces. When you call <see cref="Load"/> or <see cref="LoadAsync"/>
+    /// The <see cref="WorkspaceCollection"/> provides caching of loaded workspaces. When you call <see cref="Load"/> or <see cref="LoadAsync(ImmutableArray{string}, ImmutableDictionary{string, string}?, bool, CancellationToken)"/>
     /// with the same paths and properties, the collection returns the previously loaded <see cref="Workspace"/> instead of reloading it.
     /// This improves performance and ensures that multiple parts of your application can share the same workspace instance.
     /// </para>
@@ -182,7 +182,7 @@ namespace Metalama.Framework.Workspaces
 
         /// <summary>
         /// Removes all cached workspaces, but not the set of registered services. After calling this method,
-        /// subsequent calls to <see cref="Load"/> or <see cref="LoadAsync"/> will reload workspaces from disk.
+        /// subsequent calls to <see cref="Load"/> or <see cref="LoadAsync(ImmutableArray{string}, ImmutableDictionary{string, string}?, bool, CancellationToken)"/> will reload workspaces from disk.
         /// </summary>
         public void Reset()
         {

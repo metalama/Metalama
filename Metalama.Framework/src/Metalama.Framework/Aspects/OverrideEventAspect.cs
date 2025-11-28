@@ -26,7 +26,7 @@ namespace Metalama.Framework.Aspects
     /// For example, if there are 3 event handlers and the event is invoked once, <see cref="OverrideInvoke"/> will be called 3 times.
     /// This enables per-handler interception patterns such as exception handling with handler removal, async execution, or handler filtering.
     /// Use <c>meta.Proceed()</c> to invoke the actual handler. You can remove handlers from within the template using
-    /// <see cref="Metalama.Framework.Code.Invokers.IEventInvoker.Remove">meta.Target.Event.Remove(handler)</see>.
+    /// <see cref="Metalama.Framework.Code.Invokers.IEventInvoker.Remove(dynamic?)">meta.Target.Event.Remove(handler)</see>.
     /// </para>
     /// <para>
     /// <strong>Limitations:</strong> Delegate signatures with non-void return types or with <c>ref</c>/<c>out</c> parameters are not supported.
@@ -42,7 +42,7 @@ namespace Metalama.Framework.Aspects
     /// </para>
     /// </remarks>
     /// <seealso cref="EventAspect"/>
-    /// <seealso cref="AdviserExtensions.OverrideAccessors"/>
+    /// <seealso cref="AdviserExtensions.OverrideAccessors(IAdviser{IEvent}, string?, string?, string?, string?, object?, object?)"/>
     /// <seealso href="@overriding-events"/>
     [AttributeUsage( AttributeTargets.Event )]
     public abstract class OverrideEventAspect : EventAspect
@@ -110,8 +110,8 @@ namespace Metalama.Framework.Aspects
         /// <para>
         /// Use <c>meta.Proceed()</c> to invoke the actual handler. Within the template, you can access event metadata via
         /// <c>meta.Target.Event</c> and remove handlers programmatically using
-        /// <see cref="Metalama.Framework.Code.Invokers.IEventInvoker.Remove">meta.Target.Event.Remove(handler)</see>.
-        /// Note that <see cref="Metalama.Framework.Code.Invokers.IEventInvoker.Raise">meta.Target.Event.Raise()</see> is not
+        /// <see cref="Metalama.Framework.Code.Invokers.IEventInvoker.Remove(dynamic?)">meta.Target.Event.Remove(handler)</see>.
+        /// Note that <see cref="Metalama.Framework.Code.Invokers.IEventInvoker.Raise(dynamic?[])">meta.Target.Event.Raise()</see> is not
         /// supported from this template; you must use <c>meta.Proceed()</c>.
         /// </para>
         /// </remarks>

@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Aspects;
+using System;
 
 namespace Metalama.Framework.Code
 {
@@ -117,7 +118,10 @@ namespace Metalama.Framework.Code
         /// <summary>
         /// <c>*</c> operator.
         /// </summary>
-        Multiply,
+        Multiplication,
+
+        [Obsolete( "Use 'Multiply' instead." )]
+        Multiply = Multiplication,
 
         /// <summary>
         /// <c>~</c> operator.

@@ -15,7 +15,7 @@ namespace Metalama.Framework.Aspects
     /// <remarks>
     /// <para>
     /// This class provides a convenient base for creating constructor-level aspects by implementing <see cref="IAspect{T}"/>
-    /// with <typeparamref name="T"/> set to <see cref="IConstructor"/>. Derived classes override <see cref="BuildAspect"/>
+    /// with <c>T</c> set to <see cref="IConstructor"/>. Derived classes override <see cref="BuildAspect"/>
     /// to add advice (such as overriding constructor implementations, adding initializers, introducing parameters, or adding contracts)
     /// to the target constructor.
     /// </para>

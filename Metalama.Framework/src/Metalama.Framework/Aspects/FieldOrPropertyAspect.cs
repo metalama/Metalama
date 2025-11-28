@@ -14,7 +14,7 @@ namespace Metalama.Framework.Aspects
     /// <remarks>
     /// <para>
     /// This class provides a convenient base for creating aspects that apply to both fields and properties by implementing
-    /// <see cref="IAspect{T}"/> with <typeparamref name="T"/> set to <see cref="IFieldOrProperty"/>. Derived classes override
+    /// <see cref="IAspect{T}"/> with <c>T</c> set to <see cref="IFieldOrProperty"/>. Derived classes override
     /// <see cref="BuildAspect"/> to add advice (such as overriding accessors, adding contracts, or introducing attributes)
     /// to the target field or property.
     /// </para>

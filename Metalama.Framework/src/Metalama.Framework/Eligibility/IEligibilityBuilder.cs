@@ -49,7 +49,7 @@ namespace Metalama.Framework.Eligibility
     /// <item><description><see cref="EligibilityExtensions.MustSatisfy"/> - Defines custom eligibility conditions</description></item>
     /// <item><description><see cref="EligibilityExtensions.DeclaringType"/> - Validates the declaring type</description></item>
     /// <item><description><see cref="EligibilityExtensions.ReturnType"/> - Validates method return types</description></item>
-    /// <item><description><see cref="EligibilityExtensions.Parameter"/> - Validates method parameters</description></item>
+    /// <item><description><see cref="EligibilityExtensions.Parameter(IEligibilityBuilder{IHasParameters}, int)"/> - Validates method parameters</description></item>
     /// </list>
     /// <para>
     /// For complex scenarios, use <see cref="EligibilityExtensions.If"/> to apply conditional rules,

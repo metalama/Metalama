@@ -4,6 +4,7 @@
 
 using JetBrains.Annotations;
 using Metalama.Framework.Aspects;
+using Metalama.Framework.Engine.AspectWeavers;
 using System;
 
 namespace Metalama.Framework.Engine;

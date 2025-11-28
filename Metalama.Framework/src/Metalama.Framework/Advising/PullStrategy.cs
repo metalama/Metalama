@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Advising.PullStrategies;
+using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 
 namespace Metalama.Framework.Advising;
@@ -24,7 +25,7 @@ namespace Metalama.Framework.Advising;
 /// </remarks>
 /// <seealso cref="IPullStrategy"/>
 /// <seealso cref="PullAction"/>
-/// <seealso cref="AdviserExtensions.IntroduceParameter"/>
+/// <seealso cref="AdviserExtensions.IntroduceParameter(IAdviser{IConstructor}, string, IType, TypedConstant, Metalama.Framework.Advising.IPullStrategy?, System.Collections.Immutable.ImmutableArray{Metalama.Framework.Code.DeclarationBuilders.AttributeConstruction})"/>
 /// <seealso href="@introducing-constructor-parameters"/>
 public static class PullStrategy
 {

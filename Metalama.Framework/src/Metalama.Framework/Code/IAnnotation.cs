@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Aspects;
 using Metalama.Framework.Serialization;
 
 namespace Metalama.Framework.Code;
@@ -35,7 +36,7 @@ public interface IAnnotation : ICompileTimeSerializable;
 /// </para>
 /// <para>
 /// <b>Retrieving annotations:</b> Call <see cref="DeclarationEnhancements{T}.GetAnnotations{TAnnotation}"/>
-/// via <see cref="DeclarationExtensions.GetEnhancements{T}"/> to retrieve annotations from a declaration.
+/// via <see cref="DeclarationExtensions.Enhancements{T}"/> to retrieve annotations from a declaration.
 /// </para>
 /// <para>
 /// <b>Serialization:</b> Annotations must be compile-time serializable (implement <see cref="ICompileTimeSerializable"/>)
@@ -46,7 +47,7 @@ public interface IAnnotation : ICompileTimeSerializable;
 /// <seealso cref="IAnnotation"/>
 /// <seealso cref="DeclarationEnhancements{T}"/>
 /// <seealso cref="AdviserExtensions.AddAnnotation{TDeclaration}"/>
-/// <seealso cref="DeclarationExtensions.GetEnhancements{T}"/>
+/// <seealso cref="DeclarationExtensions.Enhancements{T}"/>
 /// <seealso cref="ICompileTimeSerializable"/>
 /// <seealso href="@sharing-state-with-advice"/>
 public interface IAnnotation<in T> : IAnnotation

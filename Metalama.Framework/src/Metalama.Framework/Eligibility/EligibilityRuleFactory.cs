@@ -284,7 +284,7 @@ public static partial class EligibilityRuleFactory
     /// <returns>An immutable <see cref="IEligibilityRule{T}"/> for <typeparamref name="TGeneral"/> that implicitly requires the declaration to be of type <typeparamref name="TRequired"/>.</returns>
     /// <remarks>
     /// <para>
-    /// This overload automatically adds a type conversion requirement (using <see cref="Converter{T}.To{TOutput}"/>), making declarations
+    /// This overload automatically adds a type conversion requirement (using <see cref="EligibilityExtensions.Converter{T}.To{TOutput}"/>), making declarations
     /// ineligible if they are not of type <typeparamref name="TRequired"/>.
     /// </para>
     /// <para>

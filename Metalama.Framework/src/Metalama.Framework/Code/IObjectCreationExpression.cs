@@ -3,6 +3,8 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Aspects;
+using Metalama.Framework.Code.Invokers;
+using Metalama.Framework.Code.SyntaxBuilders;
 using Metalama.Framework.Utilities;
 
 namespace Metalama.Framework.Code

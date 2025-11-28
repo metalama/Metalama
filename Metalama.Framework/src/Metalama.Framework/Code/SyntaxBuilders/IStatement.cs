@@ -15,7 +15,7 @@ namespace Metalama.Framework.Code.SyntaxBuilders
     /// In Metalama templates, <see cref="IStatement"/> objects are compile-time representations of C# statements that will be
     /// inserted into the transformed code. Unlike <see cref="IExpression"/> which represents values and can be used within
     /// expressions, statements represent complete actions that are inserted as separate lines of code using
-    /// <see cref="meta.InsertStatement"/>.
+    /// <see cref="meta.InsertStatement(IStatement)"/>.
     /// </para>
     /// <para>
     /// To create statements, use <see cref="StatementFactory"/> for common scenarios (parsing strings, creating blocks, invoking

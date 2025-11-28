@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Aspects;
 using System;
 
 namespace Metalama.Framework.Code.DeclarationBuilders;
@@ -11,7 +12,7 @@ namespace Metalama.Framework.Code.DeclarationBuilders;
 /// </summary>
 /// <seealso cref="IIndexer"/>
 /// <seealso cref="IPropertyOrIndexerBuilder"/>
-/// <seealso cref="AdviserExtensions.IntroduceIndexer"/>
+/// <seealso cref="AdviserExtensions.IntroduceIndexer(IAdviser{Metalama.Framework.Code.INamedType}, Metalama.Framework.Code.IType, string?, string?, IntroductionScope, OverrideStrategy, Action{Metalama.Framework.Code.DeclarationBuilders.IIndexerBuilder}?, object?, object?)"/>
 public interface IIndexerBuilder : IPropertyOrIndexerBuilder, IIndexer, IHasParametersBuilder
 {
     /// <summary>

@@ -19,7 +19,7 @@ namespace Metalama.Framework.Code.Invokers
     /// </para>
     /// <para>
     /// For fields, you can also use <c>ref</c> when accessing the <see cref="IExpression.Value"/> property, allowing you to pass fields
-    /// by reference. Use <see cref="WithObject"/> to specify the target instance and <see cref="WithOptions"/> to control nullability
+    /// by reference. Use <see cref="WithObject(dynamic?)"/> to specify the target instance and <see cref="WithOptions"/> to control nullability
     /// behavior and which implementation layer (base, current, or final) to access.
     /// </para>
     /// <para>

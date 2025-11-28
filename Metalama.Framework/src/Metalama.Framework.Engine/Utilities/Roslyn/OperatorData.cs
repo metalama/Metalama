@@ -42,7 +42,7 @@ internal record OperatorData( OperatorKind Kind, string MemberName, LanguageVers
         // Arithmetic operators - available since C# 1.0
         new OperatorData( OperatorKind.Addition, WellKnownMemberNames.AdditionOperatorName, LanguageVersion.CSharp1, SyntaxKind.PlusToken, false ),
         new OperatorData( OperatorKind.Subtraction, WellKnownMemberNames.SubtractionOperatorName, LanguageVersion.CSharp1, SyntaxKind.MinusToken, false ),
-        new OperatorData( OperatorKind.Multiply, WellKnownMemberNames.MultiplyOperatorName, LanguageVersion.CSharp1, SyntaxKind.AsteriskToken, false ),
+        new OperatorData( OperatorKind.Multiplication, WellKnownMemberNames.MultiplyOperatorName, LanguageVersion.CSharp1, SyntaxKind.AsteriskToken, false ),
         new OperatorData( OperatorKind.Division, WellKnownMemberNames.DivisionOperatorName, LanguageVersion.CSharp1, SyntaxKind.SlashToken, false ),
         new OperatorData( OperatorKind.Modulus, WellKnownMemberNames.ModulusOperatorName, LanguageVersion.CSharp1, SyntaxKind.PercentToken, false ),
         new OperatorData( OperatorKind.UnaryNegation, WellKnownMemberNames.UnaryNegationOperatorName, LanguageVersion.CSharp1, SyntaxKind.MinusToken, false ),

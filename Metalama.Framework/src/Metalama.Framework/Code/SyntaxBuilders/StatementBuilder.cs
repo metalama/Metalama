@@ -13,8 +13,8 @@ namespace Metalama.Framework.Code.SyntaxBuilders
     /// <remarks>
     /// <para>
     /// <see cref="StatementBuilder"/> provides a text-based approach to constructing C# statements programmatically. It offers
-    /// the same specialized methods as <see cref="ExpressionBuilder"/> for appending syntax elements (<see cref="SyntaxBuilder.AppendLiteral"/>,
-    /// <see cref="SyntaxBuilder.AppendTypeName"/>, etc.). For building multi-line code blocks, it provides methods to manage
+    /// the same specialized methods as <see cref="ExpressionBuilder"/> for appending syntax elements (<see cref="SyntaxBuilder.AppendLiteral(byte, bool)"/>,
+    /// <see cref="SyntaxBuilder.AppendTypeName(IType)"/>, etc.). For building multi-line code blocks, it provides methods to manage
     /// indentation and braces (<see cref="BeginBlock"/>, <see cref="EndBlock"/>, <see cref="Indent"/>, <see cref="Unindent"/>),
     /// which automatically add proper indentation after line breaks.
     /// </para>
@@ -22,7 +22,7 @@ namespace Metalama.Framework.Code.SyntaxBuilders
     /// A major benefit of <see cref="StatementBuilder"/> is that it can be used in compile-time methods that are not templates,
     /// providing flexibility for building statements in helper methods. After building the statement string, call
     /// <see cref="ToStatement"/> to get an <see cref="IStatement"/> object that can be inserted into template code using
-    /// <see cref="meta.InsertStatement"/>.
+    /// <see cref="meta.InsertStatement(IStatement)"/>.
     /// </para>
     /// <para>
     /// When using <see cref="StatementBuilder"/>, ensure that all type names are fully namespace-qualified, as you cannot assume

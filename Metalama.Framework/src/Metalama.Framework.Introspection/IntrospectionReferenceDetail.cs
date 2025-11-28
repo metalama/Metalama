@@ -19,7 +19,7 @@ namespace Metalama.Framework.Introspection;
 /// </para>
 /// <para>
 /// To navigate to reference details from a declaration, use the extension methods
-/// <see cref="Workspaces.DeclarationExtensions.GetInboundReferences"/> or <see cref="Workspaces.DeclarationExtensions.GetOutboundReferences"/>
+/// <c>Metalama.Framework.Workspaces.DeclarationExtensions.GetInboundReferences</c> or <c>Metalama.Framework.Workspaces.DeclarationExtensions.GetOutboundReferences</c>
 /// to obtain <see cref="IIntrospectionReference"/> instances, then access their <see cref="IIntrospectionReference.Details"/> property.
 /// </para>
 /// </remarks>

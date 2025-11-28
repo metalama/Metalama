@@ -10,10 +10,10 @@ namespace Metalama.Framework.Advising
 {
     /// <summary>
     /// Specifies the templates that must be used by the <c>IAdviser&lt;IMethod&gt;.Override</c> advice.
-    /// This type can be used when using <see cref="AdviserExtensions.Override(IAdviser{IMethod}, in MethodTemplateSelector, object?, object?)"/> as an extension method for <see cref="IAdviser{T}"/>.
+    /// This type can be used when using <see cref="AdviserExtensions.Override(IAdviser{Code.IMethod}, in MethodTemplateSelector, object?, object?)"/> as an extension method for <see cref="IAdviser{T}"/>.
     /// </summary>
     /// <seealso cref="GetterTemplateSelector"/>
-    /// <seealso cref="AdviserExtensions.Override(IAdviser{IMethod}, in MethodTemplateSelector, object?, object?)"/>
+    /// <seealso cref="AdviserExtensions.Override(IAdviser{Code.IMethod}, in MethodTemplateSelector, object?, object?)"/>
     /// <seealso cref="IAdviser{T}"/>
     /// <seealso cref="TemplateAttribute"/>
     /// <seealso href="@overriding-methods"/>

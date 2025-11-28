@@ -33,7 +33,7 @@ namespace Metalama.Framework.Workspaces
         /// <summary>
         /// Gets the source code compilations for all projects in this set, before Metalama transformations are applied.
         /// </summary>
-        /// <seealso cref="TransformedCode"/>
+        /// <seealso cref="ICompilationSetResult.TransformedCode"/>
         ICompilationSet SourceCode { get; }
 
         /// <summary>

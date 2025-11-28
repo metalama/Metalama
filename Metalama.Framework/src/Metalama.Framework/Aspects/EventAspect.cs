@@ -14,7 +14,7 @@ namespace Metalama.Framework.Aspects
     /// <remarks>
     /// <para>
     /// This class provides a convenient base for creating event-level aspects by implementing <see cref="IAspect{T}"/>
-    /// with <typeparamref name="T"/> set to <see cref="IEvent"/>. Derived classes override <see cref="BuildAspect"/>
+    /// with <c>T</c> set to <see cref="IEvent"/>. Derived classes override <see cref="BuildAspect"/>
     /// to add advice (such as overriding event accessors or invoke semantics, adding attributes, or introducing related members)
     /// to the target event.
     /// </para>

@@ -52,7 +52,7 @@ namespace Metalama.Framework.Aspects
     /// cannot be skipped.
     /// </para>
     /// <para>
-    /// <b>Programmatic Usage:</b> You can add contracts programmatically using <see cref="AdviserExtensions.AddContract"/> from your aspect's <c>BuildAspect</c> method.
+    /// <b>Programmatic Usage:</b> You can add contracts programmatically using <see cref="AdviserExtensions.AddContract(IAdviser{IFieldOrPropertyOrIndexer}, string, ContractDirection, object?, object?)"/> from your aspect's <c>BuildAspect</c> method.
     /// When possible, provide all contracts to the same method from a single aspect for better compile-time performance.
     /// </para>
     /// <para>
@@ -64,7 +64,7 @@ namespace Metalama.Framework.Aspects
     /// <seealso cref="ContractDirection"/>
     /// <seealso cref="IParameter"/>
     /// <seealso cref="IFieldOrPropertyOrIndexer"/>
-    /// <seealso cref="AdviserExtensions.AddContract"/>
+    /// <seealso cref="AdviserExtensions.AddContract(IAdviser{IFieldOrPropertyOrIndexer}, string, ContractDirection, object?, object?)"/>
     /// <seealso href="@contracts"/>
     /// <seealso href="@simple-contracts"/>
     /// <seealso href="@contract-patterns"/>

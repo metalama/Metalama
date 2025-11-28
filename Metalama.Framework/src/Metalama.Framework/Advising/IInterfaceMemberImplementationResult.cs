@@ -13,7 +13,7 @@ namespace Metalama.Framework.Advising
     /// <seealso cref="IImplementInterfaceAdviceResult"/>
     /// <seealso cref="IInterfaceImplementationResult"/>
     /// <seealso cref="InterfaceMemberImplementationOutcome"/>
-    /// <seealso cref="AdviserExtensions.ImplementInterface"/>
+    /// <seealso cref="AdviserExtensions.ImplementInterface(IAdviser{INamedType}, INamedType, OverrideStrategy, object?)"/>
     [CompileTime]
     public interface IInterfaceMemberImplementationResult
     {

@@ -19,7 +19,7 @@ namespace Metalama.Framework.Code.SyntaxBuilders;
 /// <item><see cref="Parse"/> - Parse C# statement strings into <see cref="IStatement"/> objects</item>
 /// <item><see cref="FromExpression"/> - Create expression statements from <see cref="IExpression"/> objects</item>
 /// <item><see cref="FromTemplate(TemplateInvocation, object)"/> and overloads - Create statements by invoking templates</item>
-/// <item><see cref="Block(IStatement[])"/> and <see cref="List"/> - Create blocks and statement lists</item>
+/// <item><see cref="Block(IStatement[])"/> and <see cref="List(IEnumerable{Metalama.Framework.Code.SyntaxBuilders.IStatement})"/> - Create blocks and statement lists</item>
 /// </list>
 /// For complex statements that need programmatic construction with indentation, use <see cref="StatementBuilder"/> instead,
 /// which provides a StringBuilder-like API with automatic indentation management.

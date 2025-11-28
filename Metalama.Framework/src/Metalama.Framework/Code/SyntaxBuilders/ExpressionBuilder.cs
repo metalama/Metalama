@@ -13,14 +13,14 @@ namespace Metalama.Framework.Code.SyntaxBuilders
     /// <remarks>
     /// <para>
     /// <see cref="ExpressionBuilder"/> provides a text-based approach to constructing complex C# expressions programmatically or
-    /// dynamically. It offers specialized methods for appending different syntax elements: <see cref="SyntaxBuilder.AppendLiteral"/>
-    /// for literals, <see cref="SyntaxBuilder.AppendTypeName"/> for fully-qualified type names, <see cref="SyntaxBuilder.AppendExpression"/>
+    /// dynamically. It offers specialized methods for appending different syntax elements: <see cref="SyntaxBuilder.AppendLiteral(byte, bool)"/>
+    /// for literals, <see cref="SyntaxBuilder.AppendTypeName(IType)"/> for fully-qualified type names, <see cref="SyntaxBuilder.AppendExpression(dynamic?)"/>
     /// for existing expressions, and <see cref="SyntaxBuilder.AppendVerbatim"/> for keywords and punctuation.
     /// </para>
     /// <para>
     /// A major benefit of <see cref="ExpressionBuilder"/> is that it can be used in compile-time methods that are not templates,
     /// providing flexibility for building expressions in helper methods. After building the expression string, call
-    /// <see cref="ToExpression"/> to get an <see cref="IExpression"/> object, or use <see cref="ExpressionBuilderExtensions.ToValue"/>
+    /// <see cref="ToExpression"/> to get an <see cref="IExpression"/> object, or use <see cref="ExpressionBuilderExtensions.ToValue(INotNullExpressionBuilder)"/>
     /// to get a <c>dynamic</c> value that can be used directly in template code.
     /// </para>
     /// <para>

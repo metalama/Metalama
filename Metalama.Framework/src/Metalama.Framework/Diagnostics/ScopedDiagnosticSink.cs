@@ -17,7 +17,7 @@ namespace Metalama.Framework.Diagnostics;
 /// <para>
 /// This struct maintains a default target location and declaration, allowing diagnostics and suppressions
 /// to be reported without explicitly specifying where they apply. This is the primary way aspect code
-/// interacts with the diagnostic system, accessed via <see cref="IAspectBuilder{TAspectTarget}.Diagnostics"/>.
+/// interacts with the diagnostic system, accessed via <see cref="IAdviser.Diagnostics"/>.
 /// </para>
 /// <para>
 /// The <see cref="Report(IDiagnostic)"/> method reports a diagnostic to the default location, while the

@@ -7,7 +7,7 @@ using Metalama.Framework.Code;
 namespace Metalama.Framework.Fabrics
 {
     /// <summary>
-    /// The parameter passed to <see cref="ProjectFabric.AmendProject"/> and <see cref="TransitiveProjectFabric.AmendProject"/>.
+    /// The parameter passed to <see cref="ProjectFabric.AmendProject"/> (both for <see cref="ProjectFabric"/> and <see cref="TransitiveProjectFabric"/>).
     /// Provides capabilities to query declarations across the project, add aspects programmatically using LINQ-like queries,
     /// configure options, report diagnostics, and validate architecture.
     /// </summary>

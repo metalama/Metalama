@@ -23,7 +23,7 @@ namespace Metalama.Framework.Aspects;
 /// </remarks>
 /// <seealso cref="ContractAspect"/>
 /// <seealso cref="ContractAspect.GetDefinedDirection"/>
-/// <seealso cref="AdviserExtensions.AddContract"/>
+/// <seealso cref="AdviserExtensions.AddContract(Metalama.Framework.Aspects.IAdviser{Metalama.Framework.Code.IParameter}, string, Metalama.Framework.Aspects.ContractDirection, object?, object?)"/>
 /// <seealso href="@contracts"/>
 [RunTimeOrCompileTime]
 public enum ContractDirection

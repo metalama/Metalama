@@ -14,7 +14,7 @@ namespace Metalama.Framework.Advising;
 /// The result can be used to introduce interface members using the extension methods in <see cref="AdviserExtensions"/>.
 /// </summary>
 /// <seealso cref="IAdviceResult"/>
-/// <seealso cref="AdviserExtensions.ImplementInterface"/>
+/// <seealso cref="AdviserExtensions.ImplementInterface(IAdviser{INamedType}, INamedType, OverrideStrategy, object?)"/>
 /// <seealso cref="IInterfaceImplementationResult"/>
 /// <seealso cref="IInterfaceImplementationAdviser"/>
 /// <seealso cref="InterfaceImplementationOutcome"/>

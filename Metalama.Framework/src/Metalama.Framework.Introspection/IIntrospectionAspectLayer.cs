@@ -12,8 +12,8 @@ namespace Metalama.Framework.Introspection;
 /// </summary>
 /// <remarks>
 /// To obtain an <see cref="IIntrospectionAspectLayer"/>, use the <see cref="IIntrospectionCompilationDetails.AspectLayers"/> property,
-/// which is exposed by <see cref="Metalama.Framework.Workspaces.Workspace"/>, <see cref="Metalama.Framework.Workspaces.ProjectSet"/>,
-/// and <see cref="Metalama.Framework.Workspaces.Project"/>. From an <see cref="IIntrospectionAspectLayer"/>, you can also access
+/// which is exposed by <c>Metalama.Framework.Workspaces.Workspace</c>, <c>Metalama.Framework.Workspaces.ProjectSet</c>,
+/// and <c>Metalama.Framework.Workspaces.Project</c>. From an <see cref="IIntrospectionAspectLayer"/>, you can also access
 /// its parent <see cref="IIntrospectionAspectClass"/> via the <see cref="AspectClass"/> property.
 /// </remarks>
 /// <seealso cref="IIntrospectionAspectClass"/>

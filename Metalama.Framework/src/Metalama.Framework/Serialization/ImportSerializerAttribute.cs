@@ -17,8 +17,8 @@ namespace Metalama.Framework.Serialization
     /// </para>
     /// </remarks>
     /// <seealso cref="ICompileTimeSerializable"/>
-    /// <seealso cref="ReferenceTypeSerializer"/>
-    /// <seealso cref="ValueTypeSerializer"/>
+    /// <seealso cref="ReferenceTypeSerializer{T}"/>
+    /// <seealso cref="ValueTypeSerializer{T}"/>
     /// <seealso href="@aspect-serialization"/>
     [AttributeUsage( AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Assembly, AllowMultiple = true )]
     public sealed class ImportSerializerAttribute : Attribute

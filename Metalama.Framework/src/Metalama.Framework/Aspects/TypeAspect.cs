@@ -15,7 +15,7 @@ namespace Metalama.Framework.Aspects
     /// <remarks>
     /// <para>
     /// This class provides a convenient base for creating type-level aspects by implementing <see cref="IAspect{T}"/>
-    /// with <typeparamref name="T"/> set to <see cref="INamedType"/>. Derived classes override <see cref="BuildAspect"/>
+    /// with <c>T</c> set to <see cref="INamedType"/>. Derived classes override <see cref="BuildAspect"/>
     /// to add advice (such as introducing members, implementing interfaces, or applying child aspects) to the target type.
     /// </para>
     /// <para>

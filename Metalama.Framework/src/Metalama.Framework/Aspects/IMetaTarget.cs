@@ -53,7 +53,7 @@ namespace Metalama.Framework.Aspects
         /// Access the underlying value using <c>meta.Target.FieldOrProperty.Value</c> in property override templates.
         /// This works for both reading and writing the value.
         /// </remarks>
-        /// <seealso cref="IFieldOrProperty.Value"/>
+        /// <seealso cref="IExpression.Value"/>
         /// <seealso cref="Field"/>
         /// <seealso cref="Property"/>
         /// <seealso cref="FieldOrPropertyOrIndexer"/>
@@ -116,8 +116,8 @@ namespace Metalama.Framework.Aspects
         /// Programmatically add or remove handlers using <c>meta.Target.Event.Add(handler)</c> or
         /// <c>meta.Target.Event.Remove(handler)</c> in event override templates.
         /// </remarks>
-        /// <seealso cref="IEventInvoker.Add"/>
-        /// <seealso cref="IEventInvoker.Remove"/>
+        /// <seealso cref="IEventInvoker.Add(dynamic?)"/>
+        /// <seealso cref="IEventInvoker.Remove(dynamic?)"/>
         /// <seealso cref="Member"/>
         /// <seealso href="@overriding-events"/>
         IEvent Event { get; }

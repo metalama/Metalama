@@ -35,13 +35,14 @@ namespace Metalama.Framework.Aspects
     /// </para>
     /// <para>
     /// For overriding multiple fields or properties from a single aspect, or for separate control over getter and setter templates,
-    /// use <see cref="AdviserExtensions.Override(IAdviser{IFieldOrProperty}, string, object?, object?)"/> or
-    /// <see cref="AdviserExtensions.OverrideAccessors"/> from your <c>BuildAspect</c> method instead of deriving from this class.
+    /// use <see cref="AdviserExtensions.OverrideAccessors(IAdviser{IFieldOrProperty}, in GetterTemplateSelector, string?, object?, object?)"/> or
+    /// <see cref="AdviserExtensions.Override(IAdviser{IFieldOrProperty}, string, object?)"/> from your <c>BuildAspect</c> method instead of deriving from this class.
     /// </para>
     /// </remarks>
     /// <seealso cref="FieldOrPropertyAspect"/>
     /// <seealso cref="GetterTemplateSelector"/>
-    /// <seealso cref="AdviserExtensions.OverrideAccessors"/>
+    /// <seealso cref="AdviserExtensions.OverrideAccessors(IAdviser{IFieldOrProperty}, in GetterTemplateSelector, string?, object?, object?)"/>
+    /// <seealso cref="AdviserExtensions.Override(IAdviser{IFieldOrProperty}, string, object?)"/>
     /// <seealso href="@overriding-fields-or-properties"/>
     [AttributeUsage( AttributeTargets.Property | AttributeTargets.Field )]
     public abstract class OverrideFieldOrPropertyAspect : FieldOrPropertyAspect
@@ -79,7 +80,7 @@ namespace Metalama.Framework.Aspects
         /// <para>
         /// Due to C# language rules, the template property must implement both getter and setter if both are needed.
         /// For fine-grained control over individual accessors, derive from <see cref="FieldOrPropertyAspect"/> and use
-        /// <see cref="AdviserExtensions.Override(IAdviser{IFieldOrProperty}, string, object?, object?)"/> to override specific accessors.
+        /// <see cref="AdviserExtensions.Override(IAdviser{IFieldOrProperty}, string, object?)"/> or <see cref="AdviserExtensions.OverrideAccessors(IAdviser{IFieldOrProperty}, in GetterTemplateSelector, string?, object?, object?)"/> to override specific accessors.
         /// </para>
         /// </remarks>
         [Template]

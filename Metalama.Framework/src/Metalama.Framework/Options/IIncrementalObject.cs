@@ -19,7 +19,7 @@ namespace Metalama.Framework.Options;
 /// <para>
 /// Implementations must be immutable. Each instance should only store the properties that are explicitly being changed,
 /// with all other properties typically set to <c>null</c> or an equivalent "unset" state. When <see cref="ApplyChanges"/> is called,
-/// properties from the <paramref name="changes"/> parameter override properties from the current instance, but only if they are set
+/// properties from the <c>changes</c> parameter override properties from the current instance, but only if they are set
 /// (i.e., non-null or otherwise marked as "set").
 /// </para>
 /// <para>

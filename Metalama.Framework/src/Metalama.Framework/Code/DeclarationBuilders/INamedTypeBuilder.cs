@@ -2,11 +2,13 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Aspects;
+
 namespace Metalama.Framework.Code.DeclarationBuilders;
 
 /// <seealso cref="INamedType"/>
 /// <seealso cref="IMemberOrNamedTypeBuilder"/>
-/// <seealso cref="AdviserExtensions.IntroduceClass"/>
+/// <seealso cref="AdviserExtensions.IntroduceClass(IAdviser{Metalama.Framework.Code.INamespaceOrNamedType}, string, OverrideStrategy, System.Action{Metalama.Framework.Code.DeclarationBuilders.INamedTypeBuilder}?)"/>
 /// <seealso href="@introducing-types"/>
 public interface INamedTypeBuilder : IMemberOrNamedTypeBuilder, INamedType
 {

@@ -28,9 +28,9 @@ namespace Metalama.Framework.Eligibility;
 /// </para>
 /// <list type="bullet">
 /// <item><description><strong>Common rules:</strong> Methods like <see cref="MustNotBeStatic"/>, <see cref="MustNotBeAbstract"/>,
-/// and <see cref="MustNotBePartial"/> for standard eligibility conditions.</description></item>
+/// and <see cref="MustNotBePartial(Metalama.Framework.Eligibility.IEligibilityBuilder{IMemberOrNamedType})"/> for standard eligibility conditions.</description></item>
 /// <item><description><strong>Custom rules:</strong> <see cref="MustSatisfy"/> for defining custom predicates and error messages.</description></item>
-/// <item><description><strong>Navigation:</strong> Methods like <see cref="DeclaringType"/>, <see cref="ReturnType"/>, and <see cref="Parameter"/>
+/// <item><description><strong>Navigation:</strong> Methods like <see cref="DeclaringType{T}(Metalama.Framework.Eligibility.IEligibilityBuilder{T})"/>, <see cref="ReturnType(Metalama.Framework.Eligibility.IEligibilityBuilder{IMethod})"/>, and <see cref="Parameter(Metalama.Framework.Eligibility.IEligibilityBuilder{IHasParameters}, int)"/>
 /// to validate related declarations.</description></item>
 /// <item><description><strong>Conditional rules:</strong> <see cref="If"/> to apply rules conditionally, and <see cref="MustSatisfyAny"/>
 /// for alternative requirements.</description></item>

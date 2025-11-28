@@ -7,9 +7,9 @@ using Metalama.Framework.Aspects;
 namespace Metalama.Framework.Code
 {
     /// <summary>
-    /// Kinds of <see cref="IMethodBase"/>.
+    /// Kinds of <see cref="IMethod"/>.
     /// </summary>
-    /// <seealso cref="IMethodBase.Kind"/>
+    /// <seealso cref="IMethod.MethodKind"/>
     [CompileTime]
     public enum MethodKind
     {

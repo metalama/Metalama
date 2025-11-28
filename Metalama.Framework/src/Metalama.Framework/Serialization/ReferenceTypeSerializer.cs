@@ -11,7 +11,7 @@ namespace Metalama.Framework.Serialization
     /// Base class for serializers of reference types that use a two-phase deserialization process.
     /// </summary>
     /// <seealso cref="ReferenceTypeSerializer{T}"/>
-    /// <seealso cref="ValueTypeSerializer"/>
+    /// <seealso cref="ValueTypeSerializer{T}"/>
     /// <seealso cref="ISerializer"/>
     /// <seealso href="@serialization"/>
     [PublicAPI]

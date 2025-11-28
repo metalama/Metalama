@@ -34,7 +34,7 @@ namespace Metalama.Framework.Aspects
     /// </para>
     /// <para>
     /// <strong>Important:</strong> When the default <see cref="OverrideMethod"/> template is applied to iterator methods,
-    /// the stream is buffered into a <c>List&lt;T&gt;</c> using <see cref="Metalama.Framework.RunTime.RunTimeAspectHelper.Buffer(System.Collections.Generic.IEnumerable{object})"/>.
+    /// the stream is buffered into a <c>List&lt;T&gt;</c> using <see cref="Metalama.Framework.RunTime.RunTimeAspectHelper.Buffer(System.Collections.IEnumerable)"/>.
     /// For long-running or infinite streams, implement the specific iterator templates (<see cref="OverrideEnumerableMethod"/>
     /// or <see cref="OverrideEnumeratorMethod"/>) to avoid buffering and support streaming.
     /// </para>
@@ -104,7 +104,7 @@ namespace Metalama.Framework.Aspects
         /// </para>
         /// <para>
         /// When <c>true</c>, this template is used for <i>all</i> methods returning awaitable types (<see cref="System.Threading.Tasks.Task"/>,
-        /// <see cref="System.Threading.Tasks.ValueTask"/>, <c>IAsyncEnumerable</c>, <c>IAsyncEnumerator</c>), regardless of the <c>async</c> modifier.
+        /// <c>ValueTask</c>, <c>IAsyncEnumerable</c>, <c>IAsyncEnumerator</c>), regardless of the <c>async</c> modifier.
         /// </para>
         /// <para>
         /// This property is useful when you want to handle all methods returning awaitable types uniformly, even if they're not marked <c>async</c>.

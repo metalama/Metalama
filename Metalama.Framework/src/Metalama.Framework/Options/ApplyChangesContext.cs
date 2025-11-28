@@ -18,7 +18,7 @@ namespace Metalama.Framework.Options;
 /// </para>
 /// <para>
 /// Most implementations of <see cref="IIncrementalObject.ApplyChanges"/> can ignore the context and simply merge properties
-/// where the <paramref name="changes"/> parameter wins over the current instance. However, advanced scenarios may use the
+/// where the <c>changes</c> parameter wins over the current instance. However, advanced scenarios may use the
 /// <see cref="Axis"/> to apply different merging logic based on the inheritance dimension.
 /// </para>
 /// </remarks>

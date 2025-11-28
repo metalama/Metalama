@@ -56,7 +56,7 @@ namespace Metalama.Framework.Eligibility
         /// Use <see cref="EligibilityExtensions.MustSatisfy"/> to define custom eligibility conditions when standard methods
         /// like <c>MustNotBeStatic</c> or <c>MustNotBeAbstract</c> are insufficient. You can also validate related declarations
         /// such as the declaring type (using <see cref="EligibilityExtensions.DeclaringType"/>), return type
-        /// (using <see cref="EligibilityExtensions.ReturnType"/>), or parameters (using <see cref="EligibilityExtensions.Parameter"/>).
+        /// (using <see cref="EligibilityExtensions.ReturnType"/>), or parameters (using <see cref="EligibilityExtensions.Parameter(IEligibilityBuilder{IHasParameters}, int)"/>).
         /// </para>
         /// <para>
         /// When implementing <see cref="BuildEligibility"/> manually (instead of inheriting from built-in aspect classes like

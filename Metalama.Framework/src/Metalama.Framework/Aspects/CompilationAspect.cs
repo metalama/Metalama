@@ -5,6 +5,7 @@
 using JetBrains.Annotations;
 using Metalama.Framework.Code;
 using Metalama.Framework.Eligibility;
+using Metalama.Framework.Fabrics;
 using System;
 
 namespace Metalama.Framework.Aspects
@@ -15,7 +16,7 @@ namespace Metalama.Framework.Aspects
     /// <remarks>
     /// <para>
     /// This class provides a convenient base for creating compilation-level aspects by implementing <see cref="IAspect{T}"/>
-    /// with <typeparamref name="T"/> set to <see cref="ICompilation"/>. Derived classes override <see cref="BuildAspect"/>
+    /// with <c>T</c> set to <see cref="ICompilation"/>. Derived classes override <see cref="BuildAspect"/>
     /// to perform project-wide transformations, such as applying aspects to types meeting certain criteria, introducing
     /// project-level configuration, or validating project-wide conventions.
     /// </para>

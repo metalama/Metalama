@@ -2,13 +2,13 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 
 namespace Metalama.Framework.Advising;
 
 /// <summary>
-/// Represents the result of override advice, returned by methods such as <see cref="AdviserExtensions.Override(IAdviser{Code.IMethod}, string, object?, object?)"/>
-/// and <see cref="AdviserExtensions.OverrideAccessors"/>.
+/// Represents the result of override advice, returned by methods such as <see cref="AdviserExtensions.OverrideAccessors(IAdviser{IFieldOrProperty}, in Metalama.Framework.Advising.GetterTemplateSelector, string?, object?, object?)"/>.
 /// </summary>
 /// <typeparam name="T">The type of declaration that was overridden (e.g., <see cref="Code.IMethod"/>, <see cref="Code.IFieldOrProperty"/>, <see cref="Code.IEvent"/>).</typeparam>
 /// <seealso cref="IAdviceResult"/>

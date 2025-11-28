@@ -14,7 +14,7 @@ namespace Metalama.Framework.Aspects
     /// <remarks>
     /// <para>
     /// This class provides a convenient base for creating method-level aspects by implementing <see cref="IAspect{T}"/>
-    /// with <typeparamref name="T"/> set to <see cref="IMethod"/>. Derived classes override <see cref="BuildAspect"/>
+    /// with <c>T</c> set to <see cref="IMethod"/>. Derived classes override <see cref="BuildAspect"/>
     /// to add advice (such as overriding the method implementation, adding contracts, or introducing attributes) to the target method.
     /// </para>
     /// <para>

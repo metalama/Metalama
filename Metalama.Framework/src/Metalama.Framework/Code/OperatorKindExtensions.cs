@@ -32,7 +32,7 @@ public static class OperatorKindExtensions
             // Binary arithmetic operators
             OperatorKind.Addition => OperatorCategory.Binary,
             OperatorKind.Subtraction => OperatorCategory.Binary,
-            OperatorKind.Multiply => OperatorCategory.Binary,
+            OperatorKind.Multiplication => OperatorCategory.Binary,
             OperatorKind.Division => OperatorCategory.Binary,
             OperatorKind.Modulus => OperatorCategory.Binary,
 

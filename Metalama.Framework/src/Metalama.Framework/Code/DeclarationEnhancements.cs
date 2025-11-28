@@ -16,7 +16,7 @@ namespace Metalama.Framework.Code;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Access this API through the <see cref="DeclarationExtensions.GetEnhancements{T}"/> extension method on any <see cref="IDeclaration"/>.
+/// Access this API through the <see cref="Metalama.Framework.Code.DeclarationExtensions.Enhancements{T}(T)"/> extension method on any <see cref="IDeclaration"/>.
 /// It provides methods to:
 /// </para>
 /// <list type="bullet">

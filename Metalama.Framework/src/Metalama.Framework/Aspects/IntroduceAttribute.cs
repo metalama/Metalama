@@ -33,8 +33,8 @@ namespace Metalama.Framework.Aspects
     /// </para>
     /// <para>
     /// For programmatic member introduction with more control, use <see cref="AdviserExtensions.IntroduceMethod"/>,
-    /// <see cref="AdviserExtensions.IntroduceProperty"/>, <see cref="AdviserExtensions.IntroduceField"/>, or
-    /// <see cref="AdviserExtensions.IntroduceEvent"/> in the <see cref="IAspect{T}.BuildAspect"/> method.
+    /// <see cref="AdviserExtensions.IntroduceProperty(IAdviser{INamedType}, string, IntroductionScope, OverrideStrategy, Action{Code.DeclarationBuilders.IPropertyBuilder}?, object?)"/>, <see cref="AdviserExtensions.IntroduceField(IAdviser{INamedType}, string, IntroductionScope, OverrideStrategy, Action{Code.DeclarationBuilders.IFieldBuilder}?, object?)"/>, or
+    /// <see cref="AdviserExtensions.IntroduceEvent(IAdviser{INamedType}, string, IntroductionScope, OverrideStrategy, Action{Code.DeclarationBuilders.IEventBuilder}?, object?)"/> in the <see cref="IAspect{T}.BuildAspect"/> method.
     /// </para>
     /// </remarks>
     /// <seealso cref="DeclarativeAdviceAttribute"/>

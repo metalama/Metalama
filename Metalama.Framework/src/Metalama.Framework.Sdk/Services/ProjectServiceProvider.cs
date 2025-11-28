@@ -15,7 +15,7 @@ namespace Metalama.Framework.Engine.Services;
 /// <remarks>
 /// <para>Project services are scoped to a specific compilation or project. This provider also provides access to global services
 /// through the <see cref="Global"/> property.</para>
-/// <para>This type is immutable. Methods like <see cref="WithService"/> and <see cref="WithServices"/> return a new instance
+/// <para>This type is immutable. Methods like <see cref="WithService"/> and <see cref="WithServices(IEnumerable{IProjectService})"/> return a new instance
 /// instead of modifying the current one.</para>
 /// </remarks>
 /// <seealso cref="GlobalServiceProvider"/>

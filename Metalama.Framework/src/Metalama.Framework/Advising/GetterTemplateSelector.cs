@@ -12,7 +12,7 @@ namespace Metalama.Framework.Advising
     /// <summary>
     /// Specifies the templates that must be used for the <c>get</c> accessor by the <c>OverrideAccessors</c> advice.
     /// </summary>
-    /// <seealso cref="AdviserExtensions.OverrideAccessors"/>
+    /// <seealso cref="AdviserExtensions.OverrideAccessors(IAdviser{Code.IFieldOrProperty}, in GetterTemplateSelector, string?, object?, object?)"/>
     /// <seealso cref="MethodTemplateSelector"/>
     /// <seealso cref="TemplateAttribute"/>
     /// <seealso href="@overriding-fields-or-properties"/>

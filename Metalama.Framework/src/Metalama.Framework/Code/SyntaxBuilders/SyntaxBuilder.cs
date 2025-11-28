@@ -18,7 +18,7 @@ namespace Metalama.Framework.Code.SyntaxBuilders
     /// <see cref="SyntaxBuilder"/> provides the core functionality for building C# code as text through an underlying
     /// <see cref="System.Text.StringBuilder"/>. It offers specialized methods for appending different syntax elements:
     /// <list type="bullet">
-    /// <item><see cref="AppendLiteral(object, bool)"/> and overloads - Append literal values with proper C# syntax</item>
+    /// <item><see cref="AppendLiteral(int)"/> and overloads - Append literal values with proper C# syntax</item>
     /// <item><see cref="AppendTypeName(IType)"/> - Append fully-qualified type names</item>
     /// <item><see cref="AppendExpression(IExpression)"/> - Append existing expressions</item>
     /// <item><see cref="AppendVerbatim"/> - Append raw text for keywords, operators, and punctuation</item>

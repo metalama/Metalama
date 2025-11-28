@@ -13,7 +13,7 @@ namespace Metalama.Framework.Introspection;
 /// <remarks>
 /// <para>
 /// To obtain instances of <see cref="IIntrospectionReference"/> from a declaration, use the extension methods
-/// <see cref="Workspaces.DeclarationExtensions.GetInboundReferences"/> and <see cref="Workspaces.DeclarationExtensions.GetOutboundReferences"/>.
+/// <c>Metalama.Framework.Workspaces.DeclarationExtensions.GetInboundReferences</c> and <c>Metalama.Framework.Workspaces.DeclarationExtensions.GetOutboundReferences</c>.
 /// </para>
 /// </remarks>
 /// <seealso cref="IntrospectionReferenceDetail"/>

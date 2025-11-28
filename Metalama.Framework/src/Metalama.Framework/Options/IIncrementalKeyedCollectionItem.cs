@@ -18,7 +18,7 @@ namespace Metalama.Framework.Options;
 /// <para>
 /// Because this interface extends <see cref="IIncrementalObject"/>, items in the collection must be immutable and use the
 /// same pattern as hierarchical options: properties should typically be nullable, and <see cref="IIncrementalObject.ApplyChanges"/>
-/// should merge properties from two instances, with the <paramref name="changes"/> parameter taking precedence for non-null values.
+/// should merge properties from two instances, with the <c>changes</c> parameter taking precedence for non-null values.
 /// </para>
 /// </remarks>
 /// <typeparam name="TKey">The type of the key that identifies items in the collection.</typeparam>

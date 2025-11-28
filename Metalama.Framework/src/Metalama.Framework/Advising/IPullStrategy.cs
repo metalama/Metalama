@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Serialization;
 
@@ -13,7 +14,7 @@ namespace Metalama.Framework.Advising;
 /// </summary>
 /// <remarks>
 /// <para>
-/// When you introduce a parameter to a base constructor using <see cref="AdviserExtensions.IntroduceParameter"/>
+/// When you introduce a parameter to a base constructor using <see cref="AdviserExtensions.IntroduceParameter(IAdviser{IConstructor}, string, IType, TypedConstant, Metalama.Framework.Advising.IPullStrategy?, System.Collections.Immutable.ImmutableArray{Metalama.Framework.Code.DeclarationBuilders.AttributeConstruction})"/>
 /// or the corresponding extension methods in <see cref="Aspects.AdviserExtensions"/>, this strategy determines how child constructors (in derived classes or in the same class)
 /// should obtain the value for this parameter when calling the base constructor.
 /// </para>
@@ -28,7 +29,7 @@ namespace Metalama.Framework.Advising;
 /// </remarks>
 /// <seealso cref="PullStrategy"/>
 /// <seealso cref="PullAction"/>
-/// <seealso cref="AdviserExtensions.IntroduceParameter"/>
+/// <seealso cref="AdviserExtensions.IntroduceParameter(IAdviser{IConstructor}, string, IType, TypedConstant, Metalama.Framework.Advising.IPullStrategy?, System.Collections.Immutable.ImmutableArray{Metalama.Framework.Code.DeclarationBuilders.AttributeConstruction})"/>
 /// <seealso href="@introducing-constructor-parameters"/>
 public interface IPullStrategy : ICompileTimeSerializable
 {
