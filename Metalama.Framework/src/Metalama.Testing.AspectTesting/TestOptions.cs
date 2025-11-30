@@ -33,7 +33,7 @@ namespace Metalama.Testing.AspectTesting;
 /// </para>
 /// </remarks>
 /// <seealso cref="AspectTestClass"/>
-/// <seealso href="@testing-aspects"/>
+/// <seealso href="@aspect-testing"/>
 [PublicAPI]
 [JsonObject]
 public class TestOptions

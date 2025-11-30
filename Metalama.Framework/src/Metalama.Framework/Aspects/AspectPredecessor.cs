@@ -21,7 +21,7 @@ namespace Metalama.Framework.Aspects
     /// </list>
     /// <para>
     /// Use the <see cref="Kind"/> property to determine the type of predecessor, then cast <see cref="Instance"/> to the
-    /// appropriate type: <see cref="IAspectInstance"/>, <see cref="Fabrics.IFabricInstance"/>, or <see cref="Code.IAttribute"/>.
+    /// appropriate type: <see cref="IAspectInstance"/>, <see cref="IFabricInstance"/>, or <see cref="IAttribute"/>.
     /// </para>
     /// </remarks>
     /// <seealso cref="IAspectPredecessor"/>

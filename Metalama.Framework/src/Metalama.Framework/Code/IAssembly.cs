@@ -50,6 +50,7 @@ namespace Metalama.Framework.Code
 
         IAssemblyCollection ReferencedAssemblies { get; }
 
+        /// <inheritdoc cref="IDeclaration.ToRef"/>
         new IRef<IAssembly> ToRef();
     }
 }

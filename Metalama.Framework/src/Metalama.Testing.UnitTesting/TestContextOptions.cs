@@ -15,9 +15,23 @@ using System.Reflection;
 namespace Metalama.Testing.UnitTesting;
 
 /// <summary>
-/// Options that influence the <see cref="UnitTestClass.CreateTestContext(Metalama.Testing.UnitTesting.TestContextOptions?,Metalama.Framework.Engine.Services.IAdditionalServiceCollection?,string?,string?)"/>
-/// method.
+/// Options that configure the behavior of a <see cref="TestContext"/>.
 /// </summary>
+/// <remarks>
+/// <para>
+/// Pass an instance of this record to <see cref="UnitTestClass.CreateTestContext(TestContextOptions?,IAdditionalServiceCollection?,string?,string?)"/>
+/// to customize test behavior. Common options include:
+/// <list type="bullet">
+/// <item><see cref="Timeout"/>: Maximum time before the test's <see cref="TestContext.CancellationToken"/> is signaled</item>
+/// <item><see cref="AdditionalAssemblies"/>: Assemblies to add as references to compile-time compilation</item>
+/// <item><see cref="AdditionalMetadataReferences"/>: References to add to test compilations</item>
+/// <item><see cref="RequireOrderedAspects"/>: Whether to require explicit aspect ordering</item>
+/// </list>
+/// </para>
+/// </remarks>
+/// <seealso cref="TestContext"/>
+/// <seealso cref="UnitTestClass"/>
+/// <seealso href="@compile-time-testing"/>
 [PublicAPI]
 public record TestContextOptions
 {

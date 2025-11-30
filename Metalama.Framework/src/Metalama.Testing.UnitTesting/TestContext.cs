@@ -34,8 +34,31 @@ using Xunit.Abstractions;
 namespace Metalama.Testing.UnitTesting;
 
 /// <summary>
-/// A context in which a Metalama unit test can run, configured with most required Metalama services and optionally some mocks.
+/// A context in which a Metalama unit test can run, configured with Metalama services and optionally mocks.
 /// </summary>
+/// <remarks>
+/// <para>
+/// This class provides access to the Metalama code model and services for unit testing compile-time logic.
+/// Tests should create a <see cref="TestContext"/> by calling <see cref="UnitTestClass.CreateTestContext(string?,string?)"/>
+/// rather than using the constructor directly.
+/// </para>
+/// <para>
+/// Key capabilities:
+/// <list type="bullet">
+/// <item><see cref="CreateCompilation(string,string?,bool,System.Collections.Generic.IEnumerable{Microsoft.CodeAnalysis.MetadataReference}?,string?,bool)"/>: Create an <see cref="Metalama.Framework.Code.ICompilation"/> from source code</item>
+/// <item><see cref="WithExecutionContext"/>: Set the execution context for APIs like <see cref="Metalama.Framework.Code.SyntaxBuilders.ExpressionFactory"/></item>
+/// <item><see cref="ServiceProvider"/>: Access Metalama services</item>
+/// <item><see cref="CancellationToken"/>: A token that signals test timeout</item>
+/// </list>
+/// </para>
+/// <para>
+/// The <see cref="TestContext"/> must be disposed at the end of each test method; failure to do so will result
+/// in an exception from the finalizer. Using the <c>using</c> statement or <c>using</c> declaration is recommended.
+/// </para>
+/// </remarks>
+/// <seealso cref="UnitTestClass"/>
+/// <seealso cref="TestContextOptions"/>
+/// <seealso href="@compile-time-testing"/>
 [PublicAPI]
 public partial class TestContext : ITempFileManager, IApplicationInfoProvider, IDateTimeProvider
 {
@@ -226,12 +249,16 @@ public partial class TestContext : ITempFileManager, IApplicationInfoProvider, I
     internal CompileTimeDomain Domain => this.ServiceProvider.Global.GetRequiredService<CompileTimeDomain>();
 
     /// <summary>
-    /// Switches the <see cref="MetalamaExecutionContext"/> to a test context for a given <see cref="ICompilation"/>.
-    /// This allows compile-time unit tests to use facilities such as <see cref="ExpressionFactory"/>.
+    /// Switches the execution context to a test context for a given <see cref="ICompilation"/>,
+    /// enabling APIs such as <see cref="ExpressionFactory"/> to work correctly.
     /// </summary>
-    /// <param name="compilation"></param>
-    /// <param name="description"></param>
-    /// <returns></returns>
+    /// <param name="compilation">The compilation to use as the execution context.</param>
+    /// <param name="description">An optional description for diagnostics.</param>
+    /// <returns>An <see cref="IDisposable"/> that restores the previous execution context when disposed.</returns>
+    /// <remarks>
+    /// Some Metalama APIs require an active execution context. In normal aspect execution, this context is set automatically.
+    /// In unit tests, you must explicitly set it using this method before calling such APIs.
+    /// </remarks>
     [MustDisposeResource]
     public IDisposable WithExecutionContext( ICompilation compilation, string? description = null )
         => UserCodeExecutionContext.WithContext( this.ServiceProvider, (CompilationModel) compilation, description ?? "executing test method" );

@@ -7,13 +7,25 @@ using Metalama.Framework.Code.Comparers;
 namespace Metalama.Framework.Code;
 
 /// <summary>
-/// Represents a reference to an <see cref="IDeclaration"/> or <see cref="IType"/>, which is valid across different compilation versions
-/// (i.e. <see cref="ICompilation"/>) and, when serialized, across projects and processes. References can be resolved using
-/// <see cref="RefExtensions.GetTarget{T}(Metalama.Framework.Code.IRef{T},Metalama.Framework.Code.ICompilation,Metalama.Framework.Code.IGenericContext?)"/>.
+/// Represents a strongly-typed reference to an <see cref="IDeclaration"/> or <see cref="IType"/> that remains valid across
+/// different compilation versions (i.e., <see cref="ICompilation"/>) and, when serialized, across projects and processes.
 /// </summary>
-/// <typeparam name="T">The type of the target object of the declaration or type.</typeparam>
+/// <typeparam name="T">The type of the target object, such as <see cref="IMethod"/>, <see cref="IProperty"/>,
+/// <see cref="INamedType"/>, or any other <see cref="ICompilationElement"/>.</typeparam>
 /// <remarks>
-/// <para>Use <see cref="RefEqualityComparer{T}"/> to compare instances of <see cref="IRef"/>.</para>
+/// <para>
+/// This is the strongly-typed variant of <see cref="IRef"/>. To obtain a reference, call <see cref="IDeclaration.ToRef"/>
+/// or the type-specific <c>ToRef()</c> method on any declaration interface. To resolve a reference back to the declaration
+/// in a specific compilation, use <see cref="RefExtensions.GetTarget{T}(IRef{T},ICompilation,IGenericContext?)"/> or
+/// <see cref="RefExtensions.GetTarget{T}(IRef{T})"/> (for the current execution context).
+/// </para>
+/// <para>
+/// Use <see cref="RefEqualityComparer{T}"/> to compare instances of <see cref="IRef{T}"/> in collections.
+/// </para>
 /// </remarks>
+/// <seealso cref="IRef"/>
+/// <seealso cref="RefExtensions"/>
+/// <seealso cref="RefEqualityComparer{T}"/>
+/// <seealso href="@aspect-serialization"/>
 public interface IRef<out T> : IRef
     where T : class, ICompilationElement { }

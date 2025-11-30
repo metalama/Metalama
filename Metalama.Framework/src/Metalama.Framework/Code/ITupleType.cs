@@ -7,10 +7,21 @@ using System.Collections.Generic;
 namespace Metalama.Framework.Code;
 
 /// <summary>
-/// Represents a tuple type.
+/// Represents a tuple type, such as <c>(int, string)</c> or <c>(decimal Quantity, string ProductCode)</c>.
 /// </summary>
+/// <remarks>
+/// <para>
+/// <see cref="ITupleType"/> is derived from <see cref="INamedType"/> because C# tuple types are syntactic sugar
+/// over the <see cref="System.ValueTuple"/> type.
+/// </para>
+/// <para>
+/// To create a tuple type, use <see cref="TypeFactory.CreateTupleType(System.Collections.Generic.IEnumerable{IType})"/> or its overloads.
+/// To create an instance in generated code, use <see cref="CreateCreateInstanceExpression(System.Collections.Generic.IEnumerable{IExpression})"/>.
+/// </para>
+/// </remarks>
 /// <seealso cref="INamedType"/>
 /// <seealso cref="ITupleElement"/>
+/// <seealso cref="TypeFactory.CreateTupleType(System.Collections.Generic.IEnumerable{IType})"/>
 /// <seealso cref="IExpression"/>
 /// <seealso href="@type-system"/>
 public interface ITupleType : INamedType

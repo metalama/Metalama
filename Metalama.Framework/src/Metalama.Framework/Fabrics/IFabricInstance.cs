@@ -7,22 +7,22 @@ using Metalama.Framework.Aspects;
 namespace Metalama.Framework.Fabrics
 {
     /// <summary>
-    /// Represents a <see cref="Fabrics.Fabric"/> as an <see cref="Aspects.IAspectPredecessor"/>, allowing fabrics to participate
+    /// Represents a <see cref="Fabric"/> as an <see cref="IAspectPredecessor"/>, allowing fabrics to participate
     /// in the aspect predecessor chain when they cause aspects to be added to declarations.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// This interface serves as a wrapper that presents a <see cref="Fabrics.Fabric"/> within the <see cref="Aspects.IAspectPredecessor"/> model.
+    /// This interface serves as a wrapper that presents a <see cref="Fabric"/> within the <see cref="IAspectPredecessor"/> model.
     /// When a fabric adds an aspect to a declaration (via <see cref="ProjectFabric.AmendProject"/>, <see cref="NamespaceFabric.AmendNamespace"/>,
     /// or <see cref="TypeFabric.AmendType"/>), the fabric instance becomes a predecessor of that aspect instance, appearing in the aspect's
-    /// <see cref="Aspects.IAspectPredecessor.Predecessors"/> collection.
+    /// <see cref="IAspectPredecessor.Predecessors"/> collection.
     /// </para>
     /// <para>
-    /// The <see cref="Aspects.IAspectPredecessor.TargetDeclaration"/> property identifies the declaration scope where the fabric executes:
+    /// The <see cref="IAspectPredecessor.TargetDeclaration"/> property identifies the declaration scope where the fabric executes:
     /// the compilation for <see cref="ProjectFabric"/>, the namespace for <see cref="NamespaceFabric"/>, or the containing type for <see cref="TypeFabric"/>.
     /// </para>
     /// </remarks>
-    /// <seealso cref="Aspects.IAspectPredecessor"/>
+    /// <seealso cref="IAspectPredecessor"/>
     /// <seealso cref="Fabric"/>
     /// <seealso href="@fabrics"/>
     /// <seealso href="@child-aspects"/>
@@ -30,7 +30,7 @@ namespace Metalama.Framework.Fabrics
     public interface IFabricInstance : IAspectPredecessor
     {
         /// <summary>
-        /// Gets the <see cref="Fabrics.Fabric"/> instance.
+        /// Gets the <see cref="Fabric"/> instance.
         /// </summary>
         Fabric Fabric { get; }
     }

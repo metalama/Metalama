@@ -84,6 +84,7 @@ namespace Metalama.Framework.Code
         [Hidden]
         IDeclarationCache Cache { get; }
 
+        /// <inheritdoc cref="IDeclaration.ToRef"/>
         new IRef<ICompilation> ToRef();
 
         /// <summary>

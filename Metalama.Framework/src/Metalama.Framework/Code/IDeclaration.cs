@@ -30,18 +30,52 @@ namespace Metalama.Framework.Code
     public interface IDeclaration : IDisplayable, IDiagnosticLocation, ICompilationElement, IMeasurable, IEquatable<IDeclaration>
     {
         /// <summary>
-        /// Gets a reference to the compilation, which can be used to identify the current declaration
-        /// in a different revision of the compilation. The reference object is compile-time serializable. It is guaranteed to
-        /// be deserializable in a different process, even with a different version of Metalama.
+        /// Gets a reference that can be used to identify the current declaration across different compilation versions.
         /// </summary>
-        /// <returns></returns>
+        /// <returns>A compile-time serializable reference to the current declaration.</returns>
+        /// <remarks>
+        /// <para>
+        /// References are essential in Metalama because <see cref="IDeclaration"/> objects are bound to a specific
+        /// <see cref="ICompilation"/>. As aspects execute, the compilation evolves through multiple immutable versions.
+        /// References provide a stable way to track the same declaration across these versions.
+        /// </para>
+        /// <para>
+        /// <b>Common use cases:</b>
+        /// </para>
+        /// <list type="bullet">
+        /// <item><description>Storing declaration references in aspect fields for use in later compilation versions.</description></item>
+        /// <item><description>Serializing references for cross-project scenarios (inheritable aspects, validators).</description></item>
+        /// <item><description>Passing references to child aspects via <see cref="IAspectState"/>.</description></item>
+        /// </list>
+        /// <para>
+        /// To resolve a reference back to the declaration, use <see cref="RefExtensions.GetTarget{T}(IRef{T})"/> or
+        /// <see cref="RefExtensions.GetTarget{T}(IRef{T},ICompilation,IGenericContext?)"/>.
+        /// </para>
+        /// </remarks>
+        /// <seealso cref="IRef{T}"/>
+        /// <seealso cref="RefExtensions"/>
+        /// <seealso cref="ToSerializableId"/>
+        /// <seealso href="@aspect-serialization"/>
         IRef<IDeclaration> ToRef();
 
         /// <summary>
-        /// Gets a serializable identifier for the current declaration. This identifier is guaranteed to
-        /// be deserializable in a different process, even with a different version of Metalama.
+        /// Gets a string-based identifier that uniquely identifies the current declaration within a compilation.
         /// </summary>
+        /// <returns>A serializable declaration identifier.</returns>
+        /// <remarks>
+        /// <para>
+        /// Unlike <see cref="ToRef"/>, which returns a strongly-typed reference object, this method returns a lightweight string-based
+        /// identifier that can be persisted to disk or transmitted across processes. The identifier is guaranteed to
+        /// be resolvable in a different process, even with a different version of Metalama.
+        /// </para>
+        /// <para>
+        /// Use <see cref="SerializableDeclarationId.Resolve"/> or <see cref="IDeclarationFactory.GetDeclarationFromId"/>
+        /// to resolve the identifier back to a declaration.
+        /// </para>
+        /// </remarks>
         /// <seealso cref="ToRef"/>
+        /// <seealso cref="SerializableDeclarationId"/>
+        /// <seealso href="@aspect-serialization"/>
         SerializableDeclarationId ToSerializableId();
 
         /// <summary>

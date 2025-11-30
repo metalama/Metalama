@@ -8,35 +8,53 @@ using Metalama.Framework.Code;
 namespace Metalama.Framework.Aspects
 {
     /// <summary>
-    /// Member conflict behavior of interface introduction advice.
+    /// Determines how to handle conflicts when introducing an interface member via <see cref="InterfaceMemberAttribute"/>
+    /// when a member with the same name already exists on the target type.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Use this enum with <see cref="InterfaceMemberAttribute.WhenExists"/> to control per-member conflict resolution,
+    /// overriding the default behavior specified by the <see cref="OverrideStrategy"/> parameter of
+    /// <see cref="AdviserExtensions.ImplementInterface(IAdviser{INamedType}, INamedType, OverrideStrategy, object?)"/>.
+    /// </para>
+    /// </remarks>
     /// <seealso cref="InterfaceMemberAttribute"/>
+    /// <seealso cref="OverrideStrategy"/>
     /// <seealso cref="AdviserExtensions.ImplementInterface(IAdviser{INamedType}, INamedType, OverrideStrategy, object?)"/>
     /// <seealso href="@implementing-interfaces"/>
     [CompileTime]
     public enum InterfaceMemberOverrideStrategy
     {
         /// <summary>
-        /// The behavior depends on the <see cref="OverrideStrategy"/> specified when calling the <see cref="IAdviceFactory.ImplementInterface(INamedType,INamedType,OverrideStrategy,object?)"/>
-        /// method. When set to <see cref="OverrideStrategy.Fail"/>, the default value is <see cref="Fail"/>. When set to <see cref="OverrideStrategy.Override"/>,
-        /// the strategy is to override.
+        /// Use the strategy from the <see cref="OverrideStrategy"/> parameter of
+        /// <see cref="IAdviceFactory.ImplementInterface(INamedType,INamedType,OverrideStrategy,object?)"/>.
         /// </summary>
+        /// <remarks>
+        /// When the interface-level strategy is <see cref="OverrideStrategy.Fail"/>, this member fails on conflict.
+        /// When it is <see cref="OverrideStrategy.Override"/>, the existing member is overridden.
+        /// </remarks>
         Default = 0,
 
         /// <summary>
-        /// The advice fails with a compilation error if a matching interface member already exists in the target declaration.
+        /// Report a compilation error if a matching member already exists in the target type.
         /// </summary>
         Fail,
 
         /// <summary>
-        /// The advice introduces the interface member as explicit even if the interface member was supposed to be introduced as implicit.
+        /// Introduce the interface member as an explicit implementation, avoiding the conflict with the existing member.
         /// </summary>
+        /// <remarks>
+        /// Use this when the target type already has a public member with the same name but you want to provide
+        /// a different implementation for the interface member.
+        /// </remarks>
         MakeExplicit,
 
         /// <summary>
-        /// When the <see cref="OverrideStrategy"/> of the <see cref="IAdviceFactory.ImplementInterface(INamedType,INamedType,OverrideStrategy,object?)"/>
-        /// is set to <see cref="OverrideStrategy.Override"/>, does not override this member if there is already an implementation. 
+        /// Do not introduce or override this member if a matching member already exists.
         /// </summary>
+        /// <remarks>
+        /// Use this to allow the existing implementation to satisfy the interface member requirement.
+        /// </remarks>
         Ignore = 3
 
         // TODO: Support.

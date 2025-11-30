@@ -8,25 +8,48 @@ using System.Threading.Tasks;
 namespace Metalama.Framework.Engine.AspectWeavers
 {
     /// <summary>
-    /// Defines an aspect weaver that applies low-level transformations to Roslyn compilations. Aspect weavers
-    /// are used for low-level transformations only and don't fully integrate with high-level aspects. Implementations
-    /// must be public, have a default constructor, and be annotated with the <see cref="MetalamaPlugInAttribute"/> custom attribute.
+    /// Defines an aspect weaver that applies low-level transformations to Roslyn compilations using the Roslyn API directly.
+    /// Aspect weavers bypass the standard <see cref="IAspect{T}.BuildAspect"/> method and provide full control over C# code transformations.
+    /// Implementations must be public, have a default constructor, and be annotated with the <see cref="MetalamaPlugInAttribute"/> custom attribute.
     /// </summary>
     /// <remarks>
-    /// Aspect weavers provide a way to perform custom Roslyn syntax transformations that are not possible with
-    /// standard Metalama aspects. They operate at a lower level than high-level aspects and have direct access
-    /// to the Roslyn compilation.
+    /// <para>
+    /// Aspect weavers enable arbitrary C# code transformations that are not possible with the high-level <see cref="IAspectBuilder"/> advice API.
+    /// They operate at the Roslyn syntax tree level and have direct access to the <see cref="Microsoft.CodeAnalysis.Compilation"/>.
+    /// </para>
+    /// <para>
+    /// To create an aspect weaver:
+    /// </para>
+    /// <list type="number">
+    /// <item><description>Reference the <c>Metalama.Framework.Sdk</c> package with <c>PrivateAssets="all"</c>.</description></item>
+    /// <item><description>Create a class implementing <see cref="IAspectWeaver"/> and annotate it with <see cref="MetalamaPlugInAttribute"/>.</description></item>
+    /// <item><description>Create an aspect class and annotate it with <see cref="RequireAspectWeaverAttribute"/> pointing to the weaver type.</description></item>
+    /// <item><description>Implement the <see cref="TransformAsync"/> method to perform the transformations.</description></item>
+    /// </list>
+    /// <para>
+    /// <b>Warning:</b> Weaver-based aspects are significantly more complex to implement, have worse IDE integration, and have
+    /// a significant performance impact when many are in use. Prefer using the standard <see cref="Metalama.Framework.Aspects.IAspect{T}"/>
+    /// approach when possible.
+    /// </para>
+    /// <para>
+    /// Each weaver is invoked once per project, regardless of the number of aspect instances. The <see cref="AspectWeaverContext.AspectInstances"/>
+    /// property provides the list of all aspect instances to process.
+    /// </para>
     /// </remarks>
     /// <seealso cref="AspectWeaverContext"/>
     /// <seealso cref="MetalamaPlugInAttribute"/>
+    /// <seealso cref="RequireAspectWeaverAttribute"/>
     /// <seealso cref="IAspectDriver"/>
+    /// <seealso href="@aspect-weavers"/>
     [CompileTime]
     public interface IAspectWeaver : IAspectDriver
     {
         /// <summary>
         /// Transforms a Roslyn compilation according to the aspects being woven.
         /// </summary>
-        /// <param name="context">The context providing access to the compilation and weaving services.</param>
+        /// <param name="context">The context providing access to the compilation, aspect instances, and weaving services.
+        /// Use <see cref="AspectWeaverContext.AspectInstances"/> to iterate over targets, and set <see cref="AspectWeaverContext.Compilation"/>
+        /// or use helper methods like <see cref="AspectWeaverContext.RewriteAspectTargetsAsync"/> to apply transformations.</param>
         /// <returns>A task representing the asynchronous transformation operation.</returns>
         Task TransformAsync( AspectWeaverContext context );
     }

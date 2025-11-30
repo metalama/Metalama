@@ -5,13 +5,26 @@
 namespace Metalama.Framework.Aspects;
 
 /// <summary>
-/// Represents call to a template method. Pass an instance of this class to the <see cref="meta.InvokeTemplate(TemplateInvocation, object?)"/> method
-/// to call auxiliary templates.
+/// Represents a delegate-like encapsulation of a template method invocation. This enables passing template calls
+/// as parameters to other templates, supporting advanced patterns like decorator composition.
 /// </summary>
-/// <param name="TemplateName">The name of the called template method.</param>
-/// <param name="TemplateProvider">An optional <see cref="Metalama.Framework.Aspects.TemplateProvider"/>, or <c>default</c> if the
-/// current template provider should be used.</param>
-/// <param name="Arguments">Compile-time template arguments that will be passed to the template.</param>
+/// <remarks>
+/// <para>
+/// <see cref="TemplateInvocation"/> is similar to a delegate in that it captures everything needed to invoke a template:
+/// the template name, the template provider, and any compile-time arguments. Unlike a delegate, it is a compile-time
+/// construct that generates code when invoked via <see cref="meta.InvokeTemplate(TemplateInvocation, object?)"/>.
+/// </para>
+/// <para>
+/// This is useful when an aspect allows customizations that must call back to the aspect's logic. For example, a caching
+/// aspect could allow derived classes to wrap the caching logic in a try/catch by accepting a <see cref="TemplateInvocation"/>
+/// that the customization template must invoke.
+/// </para>
+/// </remarks>
+/// <param name="TemplateName">The name of the called template method. This method must be annotated with <see cref="TemplateAttribute"/>.</param>
+/// <param name="TemplateProvider">An optional <see cref="Metalama.Framework.Aspects.TemplateProvider"/> specifying where to find the template,
+/// or <c>default</c> if the current template provider (usually the current aspect) should be used.</param>
+/// <param name="Arguments">Compile-time template arguments that will be passed to the template. These are typically anonymous objects
+/// whose properties map to template parameters (e.g., <c>new { paramName = value }</c>).</param>
 /// <seealso cref="TemplateAttribute"/>
 /// <seealso cref="ITemplateProvider"/>
 /// <seealso cref="TemplateProvider"/>

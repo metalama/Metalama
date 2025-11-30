@@ -7,7 +7,20 @@ using System;
 namespace Metalama.Framework.Aspects;
 
 /// <summary>
-/// When applied to a template method parameter, indicates that the introduced parameter should have the <see langword="this"/> modifier, and that the introduced method should be an extension method.
+/// When applied to a template method parameter, indicates that the introduced parameter should have the <see langword="this"/> modifier,
+/// making the introduced method an extension method.
 /// </summary>
+/// <remarks>
+/// <para>
+/// Use this attribute on the first parameter of a template method when you want the introduced method to be an extension method.
+/// The parameter type determines the extended type.
+/// </para>
+/// <para>
+/// The introduced method must be static.
+/// </para>
+/// </remarks>
+/// <seealso cref="TemplateAttribute"/>
+/// <seealso cref="IntroduceAttribute"/>
+/// <seealso href="@introducing-members"/>
 [AttributeUsage( AttributeTargets.Parameter )]
 public sealed class ThisAttribute : Attribute;

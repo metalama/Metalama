@@ -42,6 +42,12 @@ public interface IAnnotation : ICompileTimeSerializable;
 /// <b>Serialization:</b> Annotations must be compile-time serializable (implement <see cref="ICompileTimeSerializable"/>)
 /// as they may be persisted and accessed across project boundaries.
 /// </para>
+/// <para>
+/// <b>Design-time limitation:</b> At design time (in the IDE), Metalama performs partial compilations that only include
+/// the inheritance closure of modified files. Aspects targeting declarations outside of this partial compilation
+/// do not execute, so their annotations are not added and cannot be queried. This limitation does not apply at full
+/// compile time when all aspects execute.
+/// </para>
 /// </remarks>
 /// <typeparam name="T">The type of declarations to which the annotation can be added.</typeparam>
 /// <seealso cref="IAnnotation"/>

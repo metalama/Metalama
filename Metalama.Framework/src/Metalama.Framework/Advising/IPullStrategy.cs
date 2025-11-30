@@ -15,7 +15,7 @@ namespace Metalama.Framework.Advising;
 /// <remarks>
 /// <para>
 /// When you introduce a parameter to a base constructor using <see cref="AdviserExtensions.IntroduceParameter(IAdviser{IConstructor}, string, IType, TypedConstant, Metalama.Framework.Advising.IPullStrategy?, System.Collections.Immutable.ImmutableArray{Metalama.Framework.Code.DeclarationBuilders.AttributeConstruction})"/>
-/// or the corresponding extension methods in <see cref="Aspects.AdviserExtensions"/>, this strategy determines how child constructors (in derived classes or in the same class)
+/// or the corresponding extension methods in <see cref="AdviserExtensions"/>, this strategy determines how child constructors (in derived classes or in the same class)
 /// should obtain the value for this parameter when calling the base constructor.
 /// </para>
 /// <para>

@@ -45,6 +45,7 @@ namespace Metalama.Framework.Code
         /// </summary>
         IExpression? InitializerExpression { get; }
 
+        /// <inheritdoc cref="IDeclaration.ToRef"/>
         new IRef<IFieldOrProperty> ToRef();
     }
 }

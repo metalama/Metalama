@@ -314,7 +314,7 @@ public static partial class EligibilityExtensions
     /// <para>
     /// This is a convenience method equivalent to calling <c>ExceptForScenarios(EligibleScenarios.Inheritance)</c>.
     /// Use it to prevent aspects from being eligible on derived or overridden declarations when the aspect
-    /// is marked with <see cref="Aspects.InheritableAttribute"/>.
+    /// is marked with <see cref="InheritableAttribute"/>.
     /// </para>
     /// </remarks>
     /// <seealso cref="ExceptForScenarios{T}"/>

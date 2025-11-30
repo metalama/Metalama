@@ -10,7 +10,7 @@ namespace Metalama.Framework.Advising;
 /// <summary>
 /// Represents the result of override advice, returned by methods such as <see cref="AdviserExtensions.OverrideAccessors(IAdviser{IFieldOrProperty}, in Metalama.Framework.Advising.GetterTemplateSelector, string?, object?, object?)"/>.
 /// </summary>
-/// <typeparam name="T">The type of declaration that was overridden (e.g., <see cref="Code.IMethod"/>, <see cref="Code.IFieldOrProperty"/>, <see cref="Code.IEvent"/>).</typeparam>
+/// <typeparam name="T">The type of declaration that was overridden (e.g., <see cref="IMethod"/>, <see cref="IFieldOrProperty"/>, <see cref="IEvent"/>).</typeparam>
 /// <seealso cref="IAdviceResult"/>
 /// <seealso cref="AdviserExtensions"/>
 /// <seealso cref="AdviceOutcome"/>

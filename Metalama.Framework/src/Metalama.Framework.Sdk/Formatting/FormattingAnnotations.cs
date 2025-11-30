@@ -14,8 +14,26 @@ using System.Linq;
 namespace Metalama.Framework.Engine.Formatting
 {
     /// <summary>
-    /// Exposes the <see cref="SyntaxAnnotation"/>s used by Metalama.
+    /// Provides <see cref="SyntaxAnnotation"/>s and extension methods for marking generated and source code in syntax trees.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Aspect weavers must annotate their generated code so Metalama can properly format it and distinguish it from source code.
+    /// Use these methods when transforming syntax trees in <see cref="AspectWeavers.IAspectWeaver"/> implementations.
+    /// </para>
+    /// <para>
+    /// Key methods:
+    /// </para>
+    /// <list type="bullet">
+    /// <item><description><see cref="WithGeneratedCodeAnnotation{T}(T, SyntaxAnnotation)"/>: Mark a node and all children as generated code.</description></item>
+    /// <item><description><see cref="WithSourceCodeAnnotation{T}(T)"/>: Mark a node as source code (within a generated tree).</description></item>
+    /// <item><description><see cref="WithSimplifierAnnotation{T}(T)"/>: Mark a type name for simplification (e.g., remove namespace qualifications).</description></item>
+    /// </list>
+    /// <para>
+    /// The <see cref="AspectWeavers.AspectWeaverContext.GeneratedCodeAnnotation"/> property provides the annotation specific to the current aspect.
+    /// </para>
+    /// </remarks>
+    /// <seealso cref="AspectWeavers.AspectWeaverContext.GeneratedCodeAnnotation"/>
     [PublicAPI]
     public static class FormattingAnnotations
     {
@@ -52,6 +70,12 @@ namespace Metalama.Framework.Engine.Formatting
             _simplifier = [value];
         }
 
+        /// <summary>
+        /// Marks a syntax node for simplification (e.g., removing unnecessary namespace qualifications from type names).
+        /// </summary>
+        /// <typeparam name="T">The type of syntax node.</typeparam>
+        /// <param name="node">The node to mark.</param>
+        /// <returns>The node with the simplifier annotation.</returns>
         public static T WithSimplifierAnnotation<T>( this T node ) where T : SyntaxNode => node.WithAdditionalAnnotations( _simplifier );
 
         [return: NotNullIfNotNull( "node" )]
@@ -100,6 +124,12 @@ namespace Metalama.Framework.Engine.Formatting
             where T : SyntaxNode
             => node?.WithAnnotationInsideBlock( annotation );
 
+        /// <summary>
+        /// Annotates a syntax trivia with an annotation meaning that it is generated code.
+        /// </summary>
+        /// <param name="trivia">The trivia to annotate.</param>
+        /// <param name="annotation">The generated code annotation, typically from <see cref="AspectWeaverContext.GeneratedCodeAnnotation"/>.</param>
+        /// <returns>The annotated trivia.</returns>
         public static SyntaxTrivia WithGeneratedCodeAnnotation( this in SyntaxTrivia trivia, SyntaxAnnotation annotation )
             => trivia.WithAdditionalAnnotations( annotation );
 
@@ -115,6 +145,12 @@ namespace Metalama.Framework.Engine.Formatting
             where T : SyntaxNode
             => node?.WithAnnotationInsideBlock( SourceCodeAnnotation );
 
+        /// <summary>
+        /// Marks a syntax node as source code only if it is not already marked as generated code.
+        /// </summary>
+        /// <typeparam name="T">The type of syntax node.</typeparam>
+        /// <param name="node">The node to potentially mark.</param>
+        /// <returns>The node with the source code annotation if not already generated; otherwise, the original node.</returns>
         [return: NotNullIfNotNull( "node" )]
         public static T WithSourceCodeAnnotationIfNotGenerated<T>( this T node )
             where T : SyntaxNode
@@ -122,6 +158,13 @@ namespace Metalama.Framework.Engine.Formatting
                 ? node.WithSourceCodeAnnotation()
                 : node;
 
+        /// <summary>
+        /// Copies the formatting annotations (source or generated code) from one node to another.
+        /// </summary>
+        /// <typeparam name="T">The type of syntax node.</typeparam>
+        /// <param name="node">The node to annotate.</param>
+        /// <param name="source">The node to copy annotations from.</param>
+        /// <returns>The target node with the same formatting annotations as the source node.</returns>
         public static T WithFormattingAnnotationsFrom<T>( this T node, SyntaxNode source )
             where T : SyntaxNode
         {

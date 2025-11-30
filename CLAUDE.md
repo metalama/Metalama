@@ -13,3 +13,6 @@
     - Look for relevant conceptual articles in `../Metalama.Documentation/content` using keyword search.
     - Suggest changes in affected conceptual articles
 
+## Aspect tests
+
+- In aspect tests, Foo.t.cs is the result file of Foo.cs

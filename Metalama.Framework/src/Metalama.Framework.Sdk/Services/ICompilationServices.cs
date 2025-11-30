@@ -10,9 +10,16 @@ using System;
 namespace Metalama.Framework.Engine.Services;
 
 /// <summary>
-/// Provides compilation-scoped services.
+/// Provides compilation-scoped services for aspect weavers, including access to the Roslyn compilation
+/// and reflection mapping services.
 /// </summary>
+/// <remarks>
+/// <para>
+/// Access this interface through <see cref="AspectWeavers.AspectWeaverContext.CompilationServices"/>.
+/// </para>
+/// </remarks>
 /// <seealso cref="IReflectionMapper"/>
+/// <seealso cref="AspectWeavers.AspectWeaverContext"/>
 [PublicAPI]
 public interface ICompilationServices
 {

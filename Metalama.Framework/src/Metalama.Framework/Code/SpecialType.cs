@@ -9,8 +9,18 @@ using Metalama.Framework.Aspects;
 namespace Metalama.Framework.Code
 {
     /// <summary>
-    /// Special types, such as <see cref="Void"/>.
+    /// Identifies well-known types for efficient type checking without string comparisons.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Use <see cref="IType.SpecialType"/> to check if a type is one of the well-known types,
+    /// or <see cref="IType.Equals(SpecialType)"/> for comparison.
+    /// Use <see cref="TypeFactory.GetType(SpecialType)"/> to obtain an <see cref="IType"/> for a special type.
+    /// </para>
+    /// </remarks>
+    /// <seealso cref="IType.SpecialType"/>
+    /// <seealso cref="TypeFactory.GetType(SpecialType)"/>
+    /// <seealso href="@type-system"/>
     [CompileTime]
     public enum SpecialType
     {

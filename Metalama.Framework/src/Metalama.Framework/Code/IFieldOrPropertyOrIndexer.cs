@@ -33,5 +33,6 @@ public interface IFieldOrPropertyOrIndexer : IHasAccessors
     /// </summary>
     IMethod? SetMethod { get; }
 
+    /// <inheritdoc cref="IDeclaration.ToRef"/>
     new IRef<IFieldOrPropertyOrIndexer> ToRef();
 }

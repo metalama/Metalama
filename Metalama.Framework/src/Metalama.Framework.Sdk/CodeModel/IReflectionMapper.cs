@@ -10,8 +10,17 @@ using System;
 namespace Metalama.Framework.Engine.CodeModel;
 
 /// <summary>
-/// Provides a service to map .NET reflection types to Roslyn symbols.
+/// Provides a service to map .NET reflection <see cref="Type"/>s to Roslyn <see cref="ITypeSymbol"/>s.
 /// </summary>
+/// <remarks>
+/// <para>
+/// This service is useful in aspect weavers when you need to convert a <c>typeof()</c> expression
+/// or a reflection <see cref="Type"/> instance to a Roslyn symbol for code generation.
+/// </para>
+/// <para>
+/// Access this service through <see cref="ICompilationServices.ReflectionMapper"/>.
+/// </para>
+/// </remarks>
 /// <seealso cref="ICompilationServices"/>
 [PublicAPI]
 public interface IReflectionMapper

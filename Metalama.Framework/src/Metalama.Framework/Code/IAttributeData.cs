@@ -9,20 +9,33 @@ using System.Collections.Immutable;
 namespace Metalama.Framework.Code
 {
     /// <summary>
-    /// Represent the members of a custom attribute, but not its relationship to the containing declaration.
+    /// Represents the data of a custom attribute (type, constructor arguments, and named arguments) without its relationship to the containing declaration.
     /// </summary>
     /// <remarks>
+    /// <para>
+    /// This interface provides access to the intrinsic data of a custom attribute. It is implemented by both <see cref="IAttribute"/>
+    /// (for attributes in the code model) and <see cref="DeclarationBuilders.AttributeConstruction"/> (for creating new attributes programmatically).
+    /// </para>
+    /// <para>
     /// Values of <see cref="ConstructorArguments"/> and <see cref="NamedArguments"/> are represented as:
+    /// </para>
     /// <list type="bullet">
-    /// <item>Primitive types as themselves (e.g. int as int, string as string).</item>
-    /// <item>Enums as their underlying type.</item>
-    /// <item><see cref="System.Type"/> as <see cref="IType"/>.</item>
-    /// <item>Arrays as <c>IReadOnlyList&lt;object&gt;</c>.</item>
+    /// <item><description>Primitive types as themselves (e.g., <c>int</c> as <c>int</c>, <c>string</c> as <c>string</c>).</description></item>
+    /// <item><description>Enums as their underlying type.</description></item>
+    /// <item><description><see cref="System.Type"/> as <see cref="IType"/>.</description></item>
+    /// <item><description>Arrays as <c>IReadOnlyList&lt;object&gt;</c>.</description></item>
     /// </list>
+    /// <para>
+    /// To introduce an attribute to a declaration using this interface, pass an <see cref="IAttributeData"/> instance
+    /// to <see cref="AdviserExtensions.IntroduceAttribute"/>. Use <see cref="DeclarationBuilders.AttributeConstruction.Create(IConstructor, System.Collections.Generic.IReadOnlyList{TypedConstant}?, System.Collections.Generic.IReadOnlyList{System.Collections.Generic.KeyValuePair{string, TypedConstant}}?)"/>
+    /// to create a new <see cref="IAttributeData"/> programmatically.
+    /// </para>
     /// </remarks>
     /// <seealso cref="IAttribute"/>
     /// <seealso cref="TypedConstant"/>
     /// <seealso cref="INamedArgumentList"/>
+    /// <seealso cref="DeclarationBuilders.AttributeConstruction"/>
+    /// <seealso cref="AdviserExtensions.IntroduceAttribute"/>
     /// <seealso href="@adding-attributes"/>
     [CompileTime]
     public interface IAttributeData

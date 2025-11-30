@@ -41,6 +41,9 @@ namespace Metalama.Framework.Aspects;
 /// </example>
 /// <seealso cref="IAspect"/>
 /// <seealso cref="IEligible{T}"/>
+/// <seealso cref="EditorExperienceOptions"/>
+/// <seealso href="@live-template"/>
+/// <seealso href="@building-ide-interactions"/>
 [AttributeUsage( AttributeTargets.Class )]
 [CompileTime]
 [PublicAPI]

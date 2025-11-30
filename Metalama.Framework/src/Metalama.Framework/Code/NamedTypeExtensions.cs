@@ -11,6 +11,9 @@ namespace Metalama.Framework.Code;
 /// <summary>
 /// Extension methods for the <see cref="INamedType"/> interface.
 /// </summary>
+/// <seealso cref="INamedType"/>
+/// <seealso cref="TypeExtensions"/>
+/// <seealso href="@type-system"/>
 [CompileTime]
 public static class NamedTypeExtensions
 {

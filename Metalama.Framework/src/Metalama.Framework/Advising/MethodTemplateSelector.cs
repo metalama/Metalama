@@ -9,14 +9,51 @@ using System.Collections.Generic;
 namespace Metalama.Framework.Advising
 {
     /// <summary>
-    /// Specifies the templates that must be used by the <c>IAdviser&lt;IMethod&gt;.Override</c> advice.
-    /// This type can be used when using <see cref="AdviserExtensions.Override(IAdviser{Code.IMethod}, in MethodTemplateSelector, object?, object?)"/> as an extension method for <see cref="IAdviser{T}"/>.
+    /// Specifies which T# templates to use when overriding methods, enabling automatic selection of specialized
+    /// templates based on the target method's characteristics (async, iterator, async iterator).
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// When overriding methods with <see cref="AdviserExtensions.Override(IAdviser{Code.IMethod}, in MethodTemplateSelector, object?, object?)"/>,
+    /// different target methods may require different template implementations. For example, an async method might need
+    /// a template that uses <c>await meta.ProceedAsync()</c>, while an iterator method might need <c>yield return</c> semantics.
+    /// </para>
+    /// <para>
+    /// <see cref="MethodTemplateSelector"/> allows you to specify multiple templates and let Metalama automatically
+    /// select the appropriate one. Template selection depends on two factors: the method's characteristics and the
+    /// <see cref="UseAsyncTemplateForAnyAwaitable"/> and <see cref="UseEnumerableTemplateForAnyEnumerable"/> flags.
+    /// </para>
+    /// <para>
+    /// <b>Default behavior</b> (both flags are <c>false</c>): Templates are selected based on how the method is <i>implemented</i>:
+    /// <list type="bullet">
+    /// <item><description><see cref="AsyncTemplate"/>: Methods with the <c>async</c> modifier</description></item>
+    /// <item><description><see cref="EnumerableTemplate"/>/<see cref="EnumeratorTemplate"/>: Methods using <c>yield</c> statements</description></item>
+    /// <item><description><see cref="AsyncEnumerableTemplate"/>/<see cref="AsyncEnumeratorTemplate"/>: Async iterator methods (both <c>async</c> and <c>yield</c>)</description></item>
+    /// <item><description><see cref="DefaultTemplate"/>: All other methods (required)</description></item>
+    /// </list>
+    /// </para>
+    /// <para>
+    /// <b>When <see cref="UseAsyncTemplateForAnyAwaitable"/> is <c>true</c></b>: <see cref="AsyncTemplate"/> is selected based on
+    /// the method's <i>return type</i> being awaitable (e.g., <c>Task</c>, <c>ValueTask</c>), regardless of whether the method
+    /// has the <c>async</c> modifier.
+    /// </para>
+    /// <para>
+    /// <b>When <see cref="UseEnumerableTemplateForAnyEnumerable"/> is <c>true</c></b>: Iterator templates are selected based on
+    /// the method's <i>return type</i> (e.g., <see cref="IEnumerable{T}"/>, <c>IAsyncEnumerable</c>), regardless of whether
+    /// the method uses <c>yield</c> statements.
+    /// </para>
+    /// <para>
+    /// This type has an implicit conversion from <see cref="string"/>, so if you only need a default template,
+    /// you can pass the template name directly without constructing a <see cref="MethodTemplateSelector"/>.
+    /// </para>
+    /// </remarks>
     /// <seealso cref="GetterTemplateSelector"/>
     /// <seealso cref="AdviserExtensions.Override(IAdviser{Code.IMethod}, in MethodTemplateSelector, object?, object?)"/>
     /// <seealso cref="IAdviser{T}"/>
     /// <seealso cref="TemplateAttribute"/>
+    /// <seealso cref="OverrideMethodAspect"/>
     /// <seealso href="@overriding-methods"/>
+    /// <seealso href="@templates"/>
     [CompileTime]
     public readonly struct MethodTemplateSelector
     {

@@ -53,6 +53,8 @@ public enum AdviceOutcome
 
     /// <summary>
     /// An error diagnostic was reported during advice application. The advice was ignored and the whole aspect was automatically skipped.
+    /// The <see cref="IAspect{T}.BuildAspect"/> method continues executing without throwing an exception; check <see cref="IAdviceResult.Outcome"/>
+    /// to detect errors and handle them appropriately.
     /// </summary>
     Error
 }

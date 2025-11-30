@@ -32,5 +32,6 @@ public interface IIndexer : IPropertyOrIndexer, IHasParameters, IIndexerInvoker
     /// </summary>
     new IIndexer Definition { get; }
 
+    /// <inheritdoc cref="IDeclaration.ToRef"/>
     new IRef<IIndexer> ToRef();
 }

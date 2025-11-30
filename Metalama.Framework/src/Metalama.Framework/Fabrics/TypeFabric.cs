@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using JetBrains.Annotations;
+using Metalama.Framework.Aspects;
 
 namespace Metalama.Framework.Fabrics
 {
@@ -45,7 +46,7 @@ namespace Metalama.Framework.Fabrics
         /// Implement this method to programmatically advise the containing type, add aspects to its members, configure options, validate architecture, and report or suppress diagnostics.
         /// This method is invoked automatically at compile time and design time. You can also add declarative advice such as member introductions to the type fabric class itself.
         /// </summary>
-        /// <param name="amender">An object that provides access to the containing type's members through <see cref="Aspects.IAspectBuilder.Advice"/>, allowing you to add advice, introduce members, configure options, and report diagnostics.</param>
+        /// <param name="amender">An object that provides access to the containing type's members through <see cref="IAspectBuilder.Advice"/>, allowing you to add advice, introduce members, configure options, and report diagnostics.</param>
         /// <seealso href="@fabrics-advising"/>
         /// <seealso href="@advising-code"/>
         /// <seealso href="@introducing-members"/>

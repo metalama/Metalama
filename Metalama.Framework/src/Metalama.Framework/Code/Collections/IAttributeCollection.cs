@@ -8,13 +8,27 @@ using System.Collections.Generic;
 namespace Metalama.Framework.Code.Collections
 {
     /// <summary>
-    /// Read-only list of <see cref="IAttribute"/>.
+    /// A read-only collection of <see cref="IAttribute"/> representing the custom attributes applied to a declaration.
     /// </summary>
     /// <remarks>
-    ///  <para>The order of items in this list is undetermined and may change between versions.</para>
+    /// <para>
+    /// This collection is exposed via the <see cref="IDeclaration.Attributes"/> property and provides methods to query attributes
+    /// by type using <see cref="OfAttributeType(IType)"/> or check for attribute presence using <see cref="Any(IType)"/>.
+    /// </para>
+    /// <para>
+    /// The order of items in this collection is undetermined and may change between versions.
+    /// </para>
+    /// <para>
+    /// To add attributes to existing declarations, use <see cref="O:Metalama.Framework.Advising.AdviserExtensions.IntroduceAttribute">IntroduceAttribute</see>.
+    /// To add attributes to introduced declarations, use <see cref="DeclarationBuilders.IDeclarationBuilder.AddAttribute"/>.
+    /// To remove attributes, use <see cref="O:Metalama.Framework.Advising.AdviserExtensions.RemoveAttributes">RemoveAttributes</see>.
+    /// </para>
     /// </remarks>
     /// <seealso cref="IAttribute"/>
-    /// <seealso cref="IDeclaration"/>
+    /// <seealso cref="IDeclaration.Attributes"/>
+    /// <seealso cref="O:Metalama.Framework.Advising.AdviserExtensions.IntroduceAttribute">IntroduceAttribute</seealso>
+    /// <seealso cref="DeclarationBuilders.IDeclarationBuilder.AddAttribute"/>
+    /// <seealso href="@adding-attributes"/>
     public interface IAttributeCollection : IReadOnlyCollection<IAttribute>
     {
         /// <summary>

@@ -10,9 +10,27 @@ using System;
 namespace Metalama.Framework.Engine.Utilities.Roslyn;
 
 /// <summary>
-/// A derivation of <see cref="CSharpSyntaxRewriter"/> that throws a <see cref="SyntaxProcessingException"/>
-/// when an unhandled exception is detected while processing a node. 
+/// A derivation of <see cref="CSharpSyntaxRewriter"/> that provides enhanced exception handling and stack overflow protection
+/// when processing syntax nodes.
 /// </summary>
+/// <remarks>
+/// <para>
+/// This class wraps exceptions thrown during node visitation with <see cref="SyntaxProcessingException"/>,
+/// which includes detailed information about the syntax node being processed when the exception occurred.
+/// This makes debugging weaver issues significantly easier.
+/// </para>
+/// <para>
+/// It also includes a recursion guard to prevent <see cref="InsufficientExecutionStackException"/> when processing
+/// deeply nested syntax trees.
+/// </para>
+/// <para>
+/// Use this class instead of directly inheriting from <see cref="CSharpSyntaxRewriter"/> in your aspect weaver implementations.
+/// Override <see cref="VisitCore"/> instead of <see cref="Visit"/> to add custom visiting logic.
+/// </para>
+/// </remarks>
+/// <seealso cref="SafeSyntaxWalker"/>
+/// <seealso cref="SafeSyntaxVisitor"/>
+/// <seealso cref="SafeSyntaxVisitor{T}"/>
 [PublicAPI]
 public abstract class SafeSyntaxRewriter : CSharpSyntaxRewriter
 {

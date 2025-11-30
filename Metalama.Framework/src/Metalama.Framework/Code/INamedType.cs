@@ -12,17 +12,34 @@ using System.Diagnostics.CodeAnalysis;
 namespace Metalama.Framework.Code
 {
     /// <summary>
-    /// Represents a class, struct, interface, enum, or delegate.
+    /// Represents a named type: class, struct, interface, enum, delegate, or record.
     /// </summary>
     /// <remarks>
-    /// An <see cref="INamedType"/> can be obtained by navigating from <see cref="ICompilation"/> through the global namespace
-    /// and then through sub-namespaces, or by using <c>TypeFactory.GetNamedType</c> with a <see langword="typeof"/> expression.
+    /// <para>
+    /// Named types are the fundamental building blocks of C# programs. Unlike other types in the type system
+    /// (such as arrays, pointers, or type parameters), named types have a fully qualified name, can contain members
+    /// (methods, properties, fields, events, constructors), can implement interfaces, inherit from base types,
+    /// and can have nested types.
+    /// </para>
+    /// <para>
+    /// To obtain an <see cref="INamedType"/>, you can:
+    /// <list type="bullet">
+    /// <item>Use <see cref="TypeFactory.GetNamedType"/> with a <see langword="typeof"/> expression.</item>
+    /// <item>Navigate from <see cref="ICompilation"/> through namespaces to types.</item>
+    /// <item>Access the <see cref="IMember.DeclaringType"/> property of a member.</item>
+    /// </list>
+    /// </para>
+    /// <para>
+    /// For generic types, use <see cref="MakeGenericInstance"/> to create a constructed generic type from a generic definition.
+    /// </para>
     /// </remarks>
     /// <seealso cref="IType"/>
     /// <seealso cref="INamedTypeBuilder"/>
     /// <seealso cref="NamedTypeExtensions"/>
     /// <seealso cref="TypeKind"/>
     /// <seealso cref="TypeAspect"/>
+    /// <seealso cref="IGeneric"/>
+    /// <seealso cref="ITupleType"/>
     /// <seealso href="@introducing-types"/>
     /// <seealso href="@type-system"/>
     public interface INamedType : IType, IGeneric, INamespaceOrNamedType, IEquatable<INamedType>
@@ -208,12 +225,20 @@ namespace Metalama.Framework.Code
         /// </summary>
         INamedType UnderlyingType { get; }
 
+        /// <inheritdoc cref="IDeclaration.ToRef"/>
         new IRef<INamedType> ToRef();
 
         new INamedType ToNullable();
 
         // Note that ToNonNullable, when called with Nullable<T>, can return an ITypeParameter and therefore cannot be cast to INamedType.
 
+        /// <summary>
+        /// Creates a constructed generic type from the current generic type definition with the specified type arguments.
+        /// </summary>
+        /// <param name="typeArguments">The type arguments to bind to the type parameters.</param>
+        /// <returns>A constructed generic type with the specified type arguments.</returns>
+        /// <seealso cref="GenericExtensions.MakeGenericInstance(INamedType, IType[])"/>
+        /// <seealso cref="IGeneric"/>
         INamedType MakeGenericInstance( IReadOnlyList<IType> typeArguments );
     }
 }

@@ -37,5 +37,6 @@ public interface INamespaceOrNamedType : INamedDeclaration
     /// </summary>
     INamespace? ContainingNamespace { get; }
 
+    /// <inheritdoc cref="IDeclaration.ToRef"/>
     new IRef<INamespaceOrNamedType> ToRef();
 }

@@ -13,8 +13,25 @@ using SpecialType = Microsoft.CodeAnalysis.SpecialType;
 namespace Metalama.Framework.Engine.CodeModel
 {
     /// <summary>
-    /// Exposes the <see cref="ISymbol" /> from <see cref="IDeclaration"/>.
+    /// Provides extension methods to bridge between the Metalama code model (<see cref="IDeclaration"/>, <see cref="IType"/>, etc.)
+    /// and the Roslyn symbol model (<see cref="ISymbol"/>).
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This class enables aspect weavers to convert Metalama declarations to Roslyn symbols for use with the Roslyn API.
+    /// It also provides methods to go from Roslyn symbols back to Metalama declarations.
+    /// </para>
+    /// <para>
+    /// Common operations:
+    /// </para>
+    /// <list type="bullet">
+    /// <item><description><see cref="GetSymbol(ICompilationElement, bool)"/>: Get the Roslyn <see cref="ISymbol"/> for a Metalama declaration.</description></item>
+    /// <item><description><see cref="GetDeclaration(ICompilation, ISymbol)"/>: Get the Metalama <see cref="IDeclaration"/> for a Roslyn symbol.</description></item>
+    /// <item><description><see cref="GetRoslynCompilation(ICompilation)"/>: Get the underlying Roslyn <see cref="Compilation"/>.</description></item>
+    /// <item><description><see cref="GetSemanticModel(ICompilation, SyntaxTree)"/>: Get a <see cref="SemanticModel"/> for a syntax tree.</description></item>
+    /// </list>
+    /// </remarks>
+    /// <seealso href="@roslyn-api"/>
     [PublicAPI]
     public static class SymbolExtensions
     {
@@ -28,9 +45,23 @@ namespace Metalama.Framework.Engine.CodeModel
                 _ => null // not symbol-backed.
             };
 
+        /// <summary>
+        /// Gets the Roslyn <see cref="ISymbol"/> for a Metalama declaration.
+        /// </summary>
+        /// <param name="declaration">The Metalama declaration.</param>
+        /// <param name="returnNullIfMappingRequired">If <c>true</c>, returns <c>null</c> when the symbol requires generic context mapping;
+        /// if <c>false</c>, throws <see cref="ArgumentOutOfRangeException"/>.</param>
+        /// <returns>The Roslyn symbol, or <c>null</c> if not symbol-backed or mapping is required.</returns>
         public static ISymbol? GetSymbol( this ICompilationElement declaration, bool returnNullIfMappingRequired = true )
             => GetSymbolImpl( declaration, returnNullIfMappingRequired );
 
+        /// <summary>
+        /// Gets the Roslyn <see cref="ISymbol"/> for a declaration reference in a specific compilation.
+        /// </summary>
+        /// <param name="declaration">The declaration reference.</param>
+        /// <param name="compilation">The Roslyn compilation to resolve the symbol in.</param>
+        /// <param name="ignoreAssemblyKey">If <c>true</c>, ignores assembly key when resolving.</param>
+        /// <returns>The Roslyn symbol, or <c>null</c> if not found.</returns>
         public static ISymbol? GetSymbol( this IRef declaration, Compilation compilation, bool ignoreAssemblyKey = false )
             => ((ISdkRef) declaration).GetSymbol( compilation, ignoreAssemblyKey );
 
@@ -38,33 +69,93 @@ namespace Metalama.Framework.Engine.CodeModel
             where T : class, ISymbol
             => (T?) GetSymbolImpl( declaration, returnNullIfMappingRequired );
 
+        /// <summary>
+        /// Gets the Roslyn <see cref="ITypeSymbol"/> for a Metalama <see cref="IType"/>.
+        /// </summary>
+        /// <param name="type">The Metalama type.</param>
+        /// <param name="returnNullIfMappingRequired">If <c>true</c>, returns <c>null</c> when the symbol requires generic context mapping.</param>
+        /// <returns>The Roslyn type symbol, or <c>null</c> if not available.</returns>
         public static ITypeSymbol? GetSymbol( this IType type, bool returnNullIfMappingRequired = true )
             => type.GetSymbol<ITypeSymbol>( returnNullIfMappingRequired );
 
+        /// <summary>
+        /// Gets the Roslyn <see cref="INamedTypeSymbol"/> for a Metalama <see cref="INamedType"/>.
+        /// </summary>
+        /// <param name="namedType">The Metalama named type.</param>
+        /// <param name="returnNullIfMappingRequired">If <c>true</c>, returns <c>null</c> when the symbol requires generic context mapping.</param>
+        /// <returns>The Roslyn named type symbol, or <c>null</c> if not available.</returns>
         public static INamedTypeSymbol? GetSymbol( this INamedType namedType, bool returnNullIfMappingRequired = true )
             => namedType.GetSymbol<INamedTypeSymbol>( returnNullIfMappingRequired );
 
+        /// <summary>
+        /// Gets the Roslyn <see cref="ITypeParameterSymbol"/> for a Metalama <see cref="ITypeParameter"/>.
+        /// </summary>
+        /// <param name="typeParameter">The Metalama type parameter.</param>
+        /// <param name="returnNullIfMappingRequired">If <c>true</c>, returns <c>null</c> when the symbol requires generic context mapping.</param>
+        /// <returns>The Roslyn type parameter symbol, or <c>null</c> if not available.</returns>
         public static ITypeParameterSymbol? GetSymbol( this ITypeParameter typeParameter, bool returnNullIfMappingRequired = true )
             => typeParameter.GetSymbol<ITypeParameterSymbol>( returnNullIfMappingRequired );
 
+        /// <summary>
+        /// Gets the Roslyn <see cref="IMethodSymbol"/> for a Metalama <see cref="IMethodBase"/> (method or constructor).
+        /// </summary>
+        /// <param name="method">The Metalama method or constructor.</param>
+        /// <param name="returnNullIfMappingRequired">If <c>true</c>, returns <c>null</c> when the symbol requires generic context mapping.</param>
+        /// <returns>The Roslyn method symbol, or <c>null</c> if not available.</returns>
         public static IMethodSymbol? GetSymbol( this IMethodBase method, bool returnNullIfMappingRequired = true )
             => method.GetSymbol<IMethodSymbol>( returnNullIfMappingRequired );
 
+        /// <summary>
+        /// Gets the Roslyn <see cref="IPropertySymbol"/> for a Metalama <see cref="IProperty"/>.
+        /// </summary>
+        /// <param name="property">The Metalama property.</param>
+        /// <param name="returnNullIfMappingRequired">If <c>true</c>, returns <c>null</c> when the symbol requires generic context mapping.</param>
+        /// <returns>The Roslyn property symbol, or <c>null</c> if not available.</returns>
         public static IPropertySymbol? GetSymbol( this IProperty property, bool returnNullIfMappingRequired = true )
             => property.GetSymbol<IPropertySymbol>( returnNullIfMappingRequired );
 
+        /// <summary>
+        /// Gets the Roslyn <see cref="IEventSymbol"/> for a Metalama <see cref="IEvent"/>.
+        /// </summary>
+        /// <param name="event">The Metalama event.</param>
+        /// <param name="returnNullIfMappingRequired">If <c>true</c>, returns <c>null</c> when the symbol requires generic context mapping.</param>
+        /// <returns>The Roslyn event symbol, or <c>null</c> if not available.</returns>
         public static IEventSymbol? GetSymbol( this IEvent @event, bool returnNullIfMappingRequired = true )
             => @event.GetSymbol<IEventSymbol>( returnNullIfMappingRequired );
 
+        /// <summary>
+        /// Gets the Roslyn <see cref="IFieldSymbol"/> for a Metalama <see cref="IField"/>.
+        /// </summary>
+        /// <param name="field">The Metalama field.</param>
+        /// <param name="returnNullIfMappingRequired">If <c>true</c>, returns <c>null</c> when the symbol requires generic context mapping.</param>
+        /// <returns>The Roslyn field symbol, or <c>null</c> if not available.</returns>
         public static IFieldSymbol? GetSymbol( this IField field, bool returnNullIfMappingRequired = true )
             => field.GetSymbol<IFieldSymbol>( returnNullIfMappingRequired );
 
+        /// <summary>
+        /// Gets the Roslyn <see cref="IParameterSymbol"/> for a Metalama <see cref="IParameter"/>.
+        /// </summary>
+        /// <param name="parameter">The Metalama parameter.</param>
+        /// <param name="returnNullIfMappingRequired">If <c>true</c>, returns <c>null</c> when the symbol requires generic context mapping.</param>
+        /// <returns>The Roslyn parameter symbol, or <c>null</c> if not available.</returns>
         public static IParameterSymbol? GetSymbol( this IParameter parameter, bool returnNullIfMappingRequired = true )
             => parameter.GetSymbol<IParameterSymbol>( returnNullIfMappingRequired );
 
+        /// <summary>
+        /// Gets the Roslyn <see cref="IAssemblySymbol"/> for a Metalama <see cref="IAssembly"/>.
+        /// </summary>
+        /// <param name="assembly">The Metalama assembly.</param>
+        /// <param name="returnNullIfMappingRequired">If <c>true</c>, returns <c>null</c> when the symbol requires generic context mapping.</param>
+        /// <returns>The Roslyn assembly symbol.</returns>
         public static IAssemblySymbol GetSymbol( this IAssembly assembly, bool returnNullIfMappingRequired = true )
             => assembly.GetSymbol<IAssemblySymbol>( returnNullIfMappingRequired );
 
+        /// <summary>
+        /// Gets the member that the specified symbol overrides, if any.
+        /// </summary>
+        /// <param name="symbol">The Roslyn symbol (method, property, or event).</param>
+        /// <param name="returnNullIfMappingRequired">Unused, for API consistency.</param>
+        /// <returns>The overridden member, or <c>null</c> if none or not applicable.</returns>
         public static ISymbol? GetOverriddenMember( this ISymbol? symbol, bool returnNullIfMappingRequired = true )
             => symbol switch
             {
@@ -74,6 +165,11 @@ namespace Metalama.Framework.Engine.CodeModel
                 _ => null
             };
 
+        /// <summary>
+        /// Gets the type of the expression represented by the symbol (e.g., the return type for a method, the field type for a field).
+        /// </summary>
+        /// <param name="symbol">The Roslyn symbol.</param>
+        /// <returns>The expression type, or <c>null</c> if <c>void</c> or not applicable.</returns>
         public static ITypeSymbol? GetExpressionType( this ISymbol symbol )
         {
             var type = ExpressionTypeVisitor.Instance.Visit( symbol );
@@ -88,14 +184,37 @@ namespace Metalama.Framework.Engine.CodeModel
             }
         }
 
+        /// <summary>
+        /// Gets the underlying Roslyn <see cref="Compilation"/> from a Metalama <see cref="ICompilation"/>.
+        /// </summary>
         public static Compilation GetRoslynCompilation( this ICompilation compilation ) => ((ISdkCompilation) compilation).RoslynCompilation;
 
+        /// <summary>
+        /// Gets a cached <see cref="SemanticModel"/> for a syntax tree in the compilation.
+        /// </summary>
+        /// <param name="compilation">The Metalama compilation.</param>
+        /// <param name="syntaxTree">The syntax tree.</param>
+        /// <returns>The semantic model for the syntax tree.</returns>
         public static SemanticModel GetSemanticModel( this ICompilation compilation, SyntaxTree syntaxTree )
             => ((ISdkCompilation) compilation).GetCachedSemanticModel( syntaxTree );
 
+        /// <summary>
+        /// Attempts to get the Metalama <see cref="IDeclaration"/> for a Roslyn <see cref="ISymbol"/>.
+        /// </summary>
+        /// <param name="compilation">The Metalama compilation.</param>
+        /// <param name="symbol">The Roslyn symbol.</param>
+        /// <param name="declaration">When successful, the Metalama declaration.</param>
+        /// <returns><c>true</c> if the symbol was found in the compilation; otherwise <c>false</c>.</returns>
         public static bool TryGetDeclaration( this ICompilation compilation, ISymbol symbol, out IDeclaration? declaration )
             => ((ISdkCompilation) compilation).Factory.TryGetDeclaration( symbol, out declaration );
 
+        /// <summary>
+        /// Gets the Metalama <see cref="IDeclaration"/> for a Roslyn <see cref="ISymbol"/>.
+        /// </summary>
+        /// <param name="compilation">The Metalama compilation.</param>
+        /// <param name="symbol">The Roslyn symbol.</param>
+        /// <returns>The Metalama declaration.</returns>
+        /// <exception cref="ArgumentOutOfRangeException">The symbol is not found in the compilation.</exception>
         public static IDeclaration GetDeclaration( this ICompilation compilation, ISymbol symbol )
         {
             if ( !compilation.TryGetDeclaration( symbol, out var declaration ) )
@@ -106,6 +225,11 @@ namespace Metalama.Framework.Engine.CodeModel
             return declaration;
         }
 
+        /// <summary>
+        /// Gets the root definition of a symbol (the original definition before any generic substitution).
+        /// </summary>
+        /// <param name="symbol">The Roslyn symbol.</param>
+        /// <returns>The original definition of the symbol.</returns>
         public static ISymbol GetRootDefinition( this ISymbol symbol )
             => symbol.Kind switch
             {
@@ -113,13 +237,25 @@ namespace Metalama.Framework.Engine.CodeModel
                 _ => symbol.OriginalDefinition
             };
 
+        /// <summary>
+        /// Gets the root definition of a field symbol, handling tuple fields specially.
+        /// </summary>
+        /// <param name="symbol">The field symbol.</param>
+        /// <returns>The original definition of the field.</returns>
         public static IFieldSymbol GetRootDefinition( this IFieldSymbol symbol )
             => symbol.CorrespondingTupleField == symbol
                 ? symbol.OriginalDefinition
                 : symbol.CorrespondingTupleField?.OriginalDefinition ?? symbol.OriginalDefinition;
 
-        // We don't use ISymbol.IsDefinition because it uses identity comparison to give its result, while we want
-        // to be tolerance to non-identical but equal instances.
+        /// <summary>
+        /// Determines whether a symbol is its own definition, using equality comparison rather than identity.
+        /// </summary>
+        /// <param name="symbol">The Roslyn symbol.</param>
+        /// <returns><c>true</c> if the symbol is a definition; otherwise <c>false</c>.</returns>
+        /// <remarks>
+        /// This method differs from <see cref="ISymbol.IsDefinition"/> in that it uses equality comparison,
+        /// making it tolerant to non-identical but equal symbol instances. Tuple types are always considered definitions.
+        /// </remarks>
         public static bool IsDefinitionSafe( this ISymbol symbol )
             => symbol.Equals( symbol.OriginalDefinition ) || symbol is INamedTypeSymbol { IsTupleType: true };
 

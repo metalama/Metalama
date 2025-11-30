@@ -12,8 +12,20 @@ using System.Collections.Generic;
 namespace Metalama.Framework.Advising;
 
 /// <summary>
-/// Provides extension methods for the <see cref="IInterfaceImplementationAdviser"/> interface.
+/// Provides extension methods for introducing explicit interface member implementations via <see cref="IInterfaceImplementationAdviser"/>.
 /// </summary>
+/// <remarks>
+/// <para>
+/// Use these methods to programmatically add explicit interface member implementations after calling
+/// <see cref="AdviserExtensions.ImplementInterface(IAdviser{INamedType}, INamedType, OverrideStrategy, object?)"/>.
+/// Access the <see cref="IInterfaceImplementationAdviser"/> through the <see cref="IImplementInterfaceAdviceResult.ExplicitMembers"/>
+/// or <see cref="IInterfaceImplementationResult.ExplicitMembers"/> property.
+/// </para>
+/// </remarks>
+/// <seealso cref="IInterfaceImplementationAdviser"/>
+/// <seealso cref="IImplementInterfaceAdviceResult"/>
+/// <seealso cref="AdviserExtensions.ImplementInterface(IAdviser{INamedType}, INamedType, OverrideStrategy, object?)"/>
+/// <seealso href="@implementing-interfaces"/>
 [CompileTime]
 [PublicAPI]
 public static class InterfaceImplementationAdviserExtensions

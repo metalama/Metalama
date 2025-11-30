@@ -5,9 +5,13 @@
 namespace Metalama.Framework.Code.Types;
 
 /// <summary>
-/// Represents a function pointer type.
+/// Represents a function pointer type (<c>delegate*</c>).
 /// </summary>
+/// <remarks>
+/// Function pointer types are not fully supported in Metalama.
+/// </remarks>
 /// <seealso cref="IType"/>
 /// <seealso cref="IPointerType"/>
+/// <seealso cref="TypeKind.FunctionPointer"/>
 /// <seealso href="@type-system"/>
 public interface IFunctionPointerType : IType;

@@ -5,8 +5,15 @@
 namespace Metalama.Framework.Aspects
 {
     /// <summary>
-    /// Scope of introduction advice.
+    /// Determines the scope (static vs instance) of a member introduced by an aspect.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This enum is used with the <see cref="IntroduceAttribute.Scope"/> property and the <c>scope</c> parameter of
+    /// programmatic introduction methods like <see cref="AdviserExtensions.IntroduceMethod"/>.
+    /// It controls whether the introduced member is static or instance.
+    /// </para>
+    /// </remarks>
     /// <seealso cref="IntroduceAttribute"/>
     /// <seealso cref="AdviserExtensions"/>
     /// <seealso href="@introducing-members"/>
@@ -14,23 +21,44 @@ namespace Metalama.Framework.Aspects
     public enum IntroductionScope
     {
         /// <summary>
-        /// If the advice template is static, the behavior is the same as <see cref="Static"/>, otherwise behavior is the same as <see cref="Target"/>.
+        /// The scope is determined by the template: if the template member is static, the introduced member is static;
+        /// if the template is non-static, the introduced member is an instance member.
         /// </summary>
+        /// <remarks>
+        /// This is the default behavior. Note that introducing an instance member to a static type results in an error.
+        /// </remarks>
         Default,
 
         /// <summary>
-        /// Introduced member will be always of instance scope.
+        /// The introduced member is always an instance member, regardless of the template or target declaration.
         /// </summary>
+        /// <remarks>
+        /// Use this option when you need to introduce an instance member from a static template, or when you want to
+        /// ensure the member is always an instance member regardless of the aspect target.
+        /// </remarks>
         Instance,
 
         /// <summary>
-        /// Introduced member will be always of static scope.
+        /// The introduced member is always a static member, regardless of the template or target declaration.
         /// </summary>
+        /// <remarks>
+        /// Use this option when you need to introduce a static member from an instance template, or when you want to
+        /// ensure the member is always static regardless of the aspect target.
+        /// </remarks>
         Static,
 
         /// <summary>
-        /// Introduced member will be always of the same scope as the target declaration.
+        /// The introduced member matches the scope of the target declaration to which the aspect is applied.
         /// </summary>
+        /// <remarks>
+        /// <para>
+        /// If the aspect is applied to a static member or type, the introduced member is static.
+        /// If the aspect is applied to an instance member, the introduced member is an instance member.
+        /// </para>
+        /// <para>
+        /// This is useful when creating aspects that can be applied to both static and instance members.
+        /// </para>
+        /// </remarks>
         Target
     }
 }
