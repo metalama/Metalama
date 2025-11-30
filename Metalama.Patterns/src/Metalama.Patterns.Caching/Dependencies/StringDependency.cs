@@ -9,6 +9,15 @@ namespace Metalama.Patterns.Caching.Dependencies;
 /// <summary>
 /// A cache dependency that is already represented as a string.
 /// </summary>
+/// <remarks>
+/// <para>Use this class to represent singleton or global dependencies that don't have a corresponding object
+/// (for example, "ProductList" or "PriceList" dependencies that represent entire collections).</para>
+/// <para>For object-based dependencies, consider using <see cref="ObjectDependency"/> instead.</para>
+/// </remarks>
+/// <param name="Key">The string key that uniquely identifies this dependency.</param>
+/// <seealso cref="ICacheDependency"/>
+/// <seealso cref="ObjectDependency"/>
+/// <seealso href="@caching-dependencies"/>
 [PublicAPI]
 public sealed record StringDependency( string Key ) : ICacheDependency
 {

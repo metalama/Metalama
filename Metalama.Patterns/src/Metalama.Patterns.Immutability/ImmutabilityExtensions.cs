@@ -9,15 +9,31 @@ using Metalama.Patterns.Immutability.Configuration;
 namespace Metalama.Patterns.Immutability;
 
 /// <summary>
-/// Provides the <see cref="GetImmutabilityKind"/> method that returns the <see cref="ImmutabilityKind"/>
-/// for a given type.
+/// Provides extension methods for querying the immutability of types.
 /// </summary>
+/// <seealso cref="ImmutableAttribute"/>
+/// <seealso cref="ImmutabilityKind"/>
+/// <seealso href="@immutability"/>
 [CompileTime]
 public static class ImmutabilityExtensions
 {
     /// <summary>
     /// Returns the <see cref="ImmutabilityKind"/> for a given type.
     /// </summary>
+    /// <param name="type">The type to evaluate.</param>
+    /// <returns>
+    /// The <see cref="ImmutabilityKind"/> of the type, determined by the following rules in order:
+    /// <list type="bullet">
+    /// <item><description><see cref="ImmutabilityKind.Deep"/> for intrinsic types (<c>bool</c>, <c>byte</c>, <c>int</c>,
+    /// <c>string</c>, etc.), delegates, enums, pointers, and function pointers.</description></item>
+    /// <item><description>The <see cref="ImmutabilityKind"/> configured via <see cref="ImmutableAttribute"/> or
+    /// <see cref="Configuration.ImmutabilityConfigurationExtensions.ConfigureImmutability(Metalama.Framework.Fabrics.IQuery{Metalama.Framework.Code.INamedType},ImmutabilityKind)"/>.</description></item>
+    /// <item><description>The result of a configured <see cref="Configuration.IImmutabilityClassifier"/> if one is set.</description></item>
+    /// <item><description><see cref="ImmutabilityKind.Deep"/> for value types in the <c>System</c> namespace.</description></item>
+    /// <item><description><see cref="ImmutabilityKind.Shallow"/> for read-only structs.</description></item>
+    /// <item><description><see cref="ImmutabilityKind.None"/> for all other types.</description></item>
+    /// </list>
+    /// </returns>
     public static ImmutabilityKind GetImmutabilityKind( this IType type )
     {
         if ( type is {

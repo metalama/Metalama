@@ -59,8 +59,16 @@ public sealed partial class CachedMethodMetadata
     /// </remarks>
     internal Type? AwaitableResultType { get; }
 
+    /// <summary>
+    /// Gets a value indicating whether the <c>this</c> parameter should be excluded from the cache key.
+    /// </summary>
     public bool IgnoreThisParameter => this.Configuration.IgnoreThisParameter.GetValueOrDefault( false );
 
+    /// <summary>
+    /// Determines whether a parameter at a specific index should be excluded from the cache key.
+    /// </summary>
+    /// <param name="index">The zero-based index of the parameter.</param>
+    /// <returns><c>true</c> if the parameter is ignored; otherwise, <c>false</c>.</returns>
     public bool IsParameterIgnored( int index ) => this.Parameters[index].IsParameterIgnored;
 
     private CachedMethodMetadata(
@@ -88,6 +96,13 @@ public sealed partial class CachedMethodMetadata
         }
     }
 
+    /// <summary>
+    /// Registers a cached method and returns its metadata.
+    /// </summary>
+    /// <param name="method">The <see cref="MethodInfo"/> of the cached method.</param>
+    /// <param name="buildTimeConfiguration">Optional compile-time configuration.</param>
+    /// <param name="throwIfAlreadyRegistered">If <c>true</c>, throws an exception if the method is already registered.</param>
+    /// <returns>The registered <see cref="CachedMethodMetadata"/>.</returns>
     public static CachedMethodMetadata Register(
         MethodInfo method,
         CachedMethodConfiguration? buildTimeConfiguration = null,
@@ -101,6 +116,12 @@ public sealed partial class CachedMethodMetadata
         return CachedMethodMetadataRegistry.Instance.Register( metadata, throwIfAlreadyRegistered );
     }
 
+    /// <summary>
+    /// Gets or registers the metadata for the calling method.
+    /// </summary>
+    /// <param name="configuration">Optional configuration for the method.</param>
+    /// <param name="skipFrames">Number of stack frames to skip when determining the calling method.</param>
+    /// <returns>The <see cref="CachedMethodMetadata"/> for the calling method.</returns>
     [MethodImpl( MethodImplOptions.NoInlining )]
     public static CachedMethodMetadata ForCallingMethod( CachedMethodConfiguration? configuration = null, int skipFrames = 0 )
     {

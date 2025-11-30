@@ -12,10 +12,33 @@ using System.Linq;
 namespace Metalama.Extensions.Multicast;
 
 /// <summary>
-/// A reusable implementation of the multicasting logic. Each multicast-enabled aspect must contain an instance of the <see cref="MulticastImplementation"/>
-/// class and should call its <see cref="BuildAspect{T}"/> method.
-/// to perform multicasting.
+/// A reusable implementation of the multicasting logic. Multicast-enabled aspects can contain an instance of this class
+/// and call its <see cref="BuildAspect{T}"/> method to perform multicasting.
 /// </summary>
+/// <remarks>
+/// <para>
+/// This class provides the core multicasting functionality that enables aspects to be applied at the assembly or type level
+/// and automatically cascade to matching members based on filtering criteria defined through <see cref="IMulticastAttribute"/> properties.
+/// </para>
+/// <para>
+/// When using this class directly (rather than deriving from <see cref="MulticastAspect"/>), your aspect must:
+/// <list type="bullet">
+/// <item>Implement <see cref="IMulticastAttribute"/> to expose the filtering properties.</item>
+/// <item>Implement <see cref="IAspect{T}"/> for intermediate targets (<see cref="ICompilation"/> and <see cref="INamedType"/>) that
+/// serve only as entry points for the multicasting process.</item>
+/// <item>Implement <see cref="IAspect{T}"/> for final targets (e.g., <see cref="IMethod"/>, <see cref="IProperty"/>, <see cref="IField"/>)
+/// where the aspect will actually perform its work.</item>
+/// </list>
+/// </para>
+/// <para>
+/// The multicasting process cascades from parent declarations to children: from assemblies to types, and from types to members.
+/// At each level, the <see cref="BuildAspect{T}"/> method should be called to propagate the aspect to matching child declarations.
+/// </para>
+/// </remarks>
+/// <seealso cref="MulticastAspect"/>
+/// <seealso cref="IMulticastAttribute"/>
+/// <seealso cref="MulticastTargets"/>
+/// <seealso href="@migrating-multicasting"/>
 [CompileTime]
 public sealed class MulticastImplementation
 {
@@ -44,13 +67,30 @@ public sealed class MulticastImplementation
         => this._multicastOnInheritance || builder.AspectInstance.Predecessors[0].Kind != AspectPredecessorKind.Inherited;
 
     /// <summary>
-    /// This method must be called from the <see cref="IAspect{T}.BuildAspect"/> method of the aspect class. It adds the
-    /// aspect to child declarations that match the <see cref="IMulticastAttribute"/> properties. 
-    /// If the aspect is applied to a potential concrete target declaration (see <see cref="ConcreteTargets"/>), it calls
-    /// an optional delegate that should provide advice to this target. 
+    /// Implements the multicasting logic for a given declaration level. This method must be called from the
+    /// <see cref="IAspect{T}.BuildAspect"/> method of the aspect class.
     /// </summary>
-    /// <param name="builder">The <see cref="IAspectBuilder{T}"/>.</param>
-    /// <param name="implementConcreteAspect">An action called when the aspect is applied on a concrete target declaration (see <see cref="ConcreteTargets"/>).</param>
+    /// <typeparam name="T">The type of the target declaration.</typeparam>
+    /// <param name="builder">The <see cref="IAspectBuilder{T}"/> provided to the aspect's <c>BuildAspect</c> method.</param>
+    /// <param name="implementConcreteAspect">An optional action that implements the aspect's actual behavior. This delegate is called
+    /// only when the current target is a final (concrete) target as specified by <see cref="ConcreteTargets"/> and matches the
+    /// filtering criteria. For intermediate targets (assemblies, types), pass <c>null</c> or omit this parameter.</param>
+    /// <remarks>
+    /// <para>
+    /// This method performs two key operations:
+    /// <list type="number">
+    /// <item>If the current target is a concrete target (as defined by <see cref="ConcreteTargets"/>) and matches
+    /// the filtering criteria defined by <see cref="IMulticastAttribute"/> properties, it invokes the
+    /// <paramref name="implementConcreteAspect"/> delegate to apply the aspect's actual transformation.</item>
+    /// <item>It propagates the aspect to matching child declarations based on the filtering criteria, enabling
+    /// the cascading multicast behavior from assemblies to types to members.</item>
+    /// </list>
+    /// </para>
+    /// <para>
+    /// If the <see cref="IMulticastAttribute.AttributeExclude"/> property is <c>true</c> on the current aspect instance,
+    /// no transformation is applied and the aspect is skipped.
+    /// </para>
+    /// </remarks>
     public void BuildAspect<T>( IAspectBuilder<T> builder, Action<IAspectBuilder<T>>? implementConcreteAspect = null )
         where T : class, IDeclaration
     {

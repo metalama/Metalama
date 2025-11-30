@@ -10,6 +10,9 @@ namespace Metalama.Patterns.Contracts;
 /// A class used by the <see cref="InvariantAttribute"/> aspect to count the number of times the <c>SuspendInvariants</c>
 /// method has been invoked.
 /// </summary>
+/// <seealso cref="InvariantAttribute"/>
+/// <seealso cref="SuspendInvariantsCookie"/>
+/// <seealso href="@invariants"/>
 [PublicAPI]
 public sealed class InvariantSuspensionCounter
 {

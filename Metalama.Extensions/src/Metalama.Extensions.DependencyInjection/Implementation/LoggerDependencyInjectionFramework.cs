@@ -8,11 +8,31 @@ using System.Linq;
 
 namespace Metalama.Extensions.DependencyInjection.Implementation;
 
+/// <summary>
+/// A specialized <see cref="IDependencyInjectionFramework"/> implementation that handles <c>Microsoft.Extensions.Logging.ILogger</c>
+/// dependencies by generating the correct code pattern for .NET Core logging.
+/// </summary>
+/// <remarks>
+/// <para>
+/// Unlike the standard dependency injection pattern where the constructor parameter type matches the dependency type,
+/// the <c>ILogger</c> service requires a parameter of type <c>ILogger&lt;T&gt;</c>, where <c>T</c> is the current type
+/// used as a logging category.
+/// </para>
+/// <para>
+/// This framework is automatically registered with a higher priority than <see cref="DefaultDependencyInjectionFramework"/>
+/// and only handles dependencies of type <c>Microsoft.Extensions.Logging.ILogger</c>.
+/// </para>
+/// </remarks>
+/// <seealso cref="DefaultDependencyInjectionFramework"/>
+/// <seealso cref="IDependencyInjectionFramework"/>
+/// <seealso href="@dependency-injection"/>
 public sealed class LoggerDependencyInjectionFramework : DefaultDependencyInjectionFramework
 {
+    /// <inheritdoc />
     public override bool CanHandleDependency( DependencyProperties properties, in ScopedDiagnosticSink diagnostics )
         => properties.DependencyType is INamedType { Name: "ILogger", FullName: "Microsoft.Extensions.Logging.ILogger" };
 
+    /// <inheritdoc />
     protected override DefaultDependencyInjectionStrategy GetStrategy( DependencyProperties properties ) => new InjectionStrategy( properties );
 
     // Our customized injection strategy. Decides how to create the field or property.

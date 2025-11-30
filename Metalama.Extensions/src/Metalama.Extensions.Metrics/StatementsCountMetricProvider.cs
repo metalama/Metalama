@@ -16,7 +16,7 @@ namespace Metalama.Extensions.Metrics
     /// <see cref="StatementsCount"/> metric.
     /// </remarks>
     /// <seealso cref="StatementsCount"/>
-    /// <seealso href="@metrics"/>
+    /// <seealso href="@custom-metrics"/>
     [MetalamaPlugIn]
     public sealed partial class StatementsCountMetricProvider : SyntaxMetricProvider<StatementsCount>
     {

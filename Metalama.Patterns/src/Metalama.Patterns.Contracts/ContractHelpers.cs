@@ -9,8 +9,13 @@ using System.Text.RegularExpressions;
 namespace Metalama.Patterns.Contracts;
 
 /// <summary>
-/// Runtime helper methods for <see cref="RangeAttribute"/>.
+/// Provides runtime helper methods and configurable delegates used by contract aspects.
 /// </summary>
+/// <remarks>
+/// <para>This class exposes configurable delegates and regular expressions that control the validation logic
+/// of certain contracts. You can customize these properties during application startup to change the validation behavior.</para>
+/// </remarks>
+/// <seealso href="@configuring-contracts"/>
 [PublicAPI]
 public static class ContractHelpers
 {

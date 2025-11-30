@@ -7,9 +7,19 @@ using System.Globalization;
 
 namespace Metalama.Patterns.Contracts;
 
+/// <summary>
+/// Provides runtime helper methods for validating enum values, used by <see cref="EnumDataTypeAttribute"/>.
+/// </summary>
+/// <seealso cref="EnumDataTypeAttribute"/>
 [PublicAPI]
 public static class EnumDataTypeAttributeHelper
 {
+    /// <summary>
+    /// Determines whether the specified string value is a valid member of the specified enumeration type.
+    /// </summary>
+    /// <param name="value">The string value to validate. Null or empty strings are considered valid.</param>
+    /// <param name="enumType">The enumeration type to validate against.</param>
+    /// <returns><c>true</c> if the value is valid for the enumeration; otherwise, <c>false</c>.</returns>
     public static bool IsValidEnumValue( string value, Type enumType )
     {
         if ( string.IsNullOrEmpty( value ) )
@@ -31,6 +41,12 @@ public static class EnumDataTypeAttributeHelper
         return IsValidEnumValueCore( enumValue, enumType );
     }
 
+    /// <summary>
+    /// Determines whether the specified object value is a valid member of the specified enumeration type.
+    /// </summary>
+    /// <param name="value">The value to validate. Null values are considered valid. If the value is a string, it is matched against enum member names.</param>
+    /// <param name="enumType">The enumeration type to validate against.</param>
+    /// <returns><c>true</c> if the value is valid for the enumeration; otherwise, <c>false</c>.</returns>
     public static bool IsValidEnumValue( object? value, Type enumType )
     {
         switch ( value )

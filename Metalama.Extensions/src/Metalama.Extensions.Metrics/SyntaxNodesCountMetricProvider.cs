@@ -16,7 +16,7 @@ namespace Metalama.Extensions.Metrics
     /// <see cref="SyntaxNodesCount"/> metric.
     /// </remarks>
     /// <seealso cref="SyntaxNodesCount"/>
-    /// <seealso href="@metrics"/>
+    /// <seealso href="@custom-metrics"/>
     [MetalamaPlugIn]
     public partial class SyntaxNodesCountMetricProvider : SyntaxMetricProvider<SyntaxNodesCount>
     {

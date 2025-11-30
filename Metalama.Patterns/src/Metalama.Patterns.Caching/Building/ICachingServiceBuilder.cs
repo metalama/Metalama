@@ -10,6 +10,18 @@ using Metalama.Patterns.Caching.ValueAdapters;
 
 namespace Metalama.Patterns.Caching.Building;
 
+/// <summary>
+/// Builder interface for configuring a <see cref="CachingService"/> instance, providing methods to configure
+/// caching profiles, backends, value adapters, and key builders.
+/// </summary>
+/// <remarks>
+/// <para>This interface is used as a parameter to the delegate passed to
+/// <see cref="CachingServiceFactory.AddMetalamaCaching"/> or <see cref="CachingService.Create"/>.</para>
+/// </remarks>
+/// <seealso cref="CachingService"/>
+/// <seealso cref="CachingServiceFactory"/>
+/// <seealso cref="CachingProfile"/>
+/// <seealso href="@caching-getting-started"/>
 [PublicAPI]
 public interface ICachingServiceBuilder
 {

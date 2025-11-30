@@ -10,11 +10,24 @@ namespace Metalama.Patterns.Caching.Building;
 /// <summary>
 /// The initial object of the <see cref="CachingBackend"/> factory fluent API.
 /// </summary>
+/// <remarks>
+/// <para>This class is the entry point for building caching backends. Use extension methods like
+/// <see cref="CachingBackendFactory.Memory"/> to select a specific backend type.</para>
+/// </remarks>
+/// <seealso cref="ConcreteCachingBackendBuilder"/>
+/// <seealso cref="MemoryCachingBackendBuilder"/>
 [PublicAPI]
 public class CachingBackendBuilder
 {
+    /// <summary>
+    /// Gets the <see cref="IServiceProvider"/> used to resolve services during backend creation.
+    /// </summary>
     public IServiceProvider? ServiceProvider { get; }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="CachingBackendBuilder"/> class.
+    /// </summary>
+    /// <param name="serviceProvider">The service provider for resolving dependencies, or <c>null</c>.</param>
     public CachingBackendBuilder( IServiceProvider? serviceProvider )
     {
         this.ServiceProvider = serviceProvider;

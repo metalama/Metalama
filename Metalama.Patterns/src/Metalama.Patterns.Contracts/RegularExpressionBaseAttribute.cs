@@ -11,8 +11,18 @@ using System.Text.RegularExpressions;
 namespace Metalama.Patterns.Contracts;
 
 /// <summary>
-/// The base class of contracts that are based on custom attributes.
+/// Base class for contract aspects that validate strings against regular expressions.
 /// </summary>
+/// <remarks>
+/// <para>Derived classes must implement <see cref="GetRegex"/> to provide the regular expression used for validation.
+/// If the target is a nullable type, null strings are accepted and do not throw an exception.</para>
+/// <para>To customize the behavior when validation fails, override the <see cref="OnContractViolated"/> template method.</para>
+/// </remarks>
+/// <seealso cref="RegularExpressionAttribute"/>
+/// <seealso cref="EmailAttribute"/>
+/// <seealso cref="PhoneAttribute"/>
+/// <seealso cref="UrlAttribute"/>
+/// <seealso href="@contract-types"/>
 [PublicAPI]
 public abstract class RegularExpressionBaseAttribute : ContractBaseAttribute
 {
@@ -30,6 +40,11 @@ public abstract class RegularExpressionBaseAttribute : ContractBaseAttribute
         builder.Type().MustBeConvertibleTo<string>();
     }
 
+    /// <summary>
+    /// When implemented in a derived class, returns an expression that evaluates to the <see cref="Regex"/>
+    /// used for validation.
+    /// </summary>
+    /// <returns>An expression that evaluates to the regular expression to match against.</returns>
     protected abstract IExpression GetRegex();
 
     /// <inheritdoc/>
@@ -57,6 +72,12 @@ public abstract class RegularExpressionBaseAttribute : ContractBaseAttribute
         }
     }
 
+    /// <summary>
+    /// Template method called when the contract validation fails. Override to customize the error behavior.
+    /// </summary>
+    /// <param name="value">The value that failed validation.</param>
+    /// <param name="regex">The regular expression that was not matched.</param>
+    /// <param name="context">The contract context.</param>
     [Template]
     protected virtual void OnContractViolated( dynamic? value, dynamic regex, ContractContext context )
     {

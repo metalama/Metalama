@@ -11,6 +11,9 @@ namespace Metalama.Patterns.Caching.ValueAdapters;
 /// A strongly-typed version of <see cref="IValueAdapter"/>.
 /// </summary>
 /// <typeparam name="T">Type of the exposed value, i.e. typically return type of the cached method.</typeparam>
+/// <seealso cref="IValueAdapter"/>
+/// <seealso cref="ValueAdapter{T}"/>
+/// <seealso href="@caching-value-adapters"/>
 [PublicAPI]
 public interface IValueAdapter<T> : IValueAdapter
 {
@@ -40,6 +43,15 @@ public interface IValueAdapter<T> : IValueAdapter
 /// <summary>
 /// Wraps uncacheable classes or interfaces into cacheable objects, for instance an <see cref="IEnumerable"/> may be wrapped into an array.
 /// </summary>
+/// <remarks>
+/// <para>Value adapters are used when a cached method returns a type that cannot be directly cached,
+/// such as <see cref="IEnumerable{T}"/>, <see cref="Stream"/>, or <see cref="IEnumerator{T}"/>.
+/// The adapter converts the value to a cacheable form before storing and converts it back when retrieving.</para>
+/// <para>To register a custom value adapter, use the <c>ICachingServiceBuilder.AddValueAdapter</c> method.</para>
+/// </remarks>
+/// <seealso cref="IValueAdapter{T}"/>
+/// <seealso cref="ValueAdapter{T}"/>
+/// <seealso href="@caching-value-adapters"/>
 [PublicAPI]
 public interface IValueAdapter
 {

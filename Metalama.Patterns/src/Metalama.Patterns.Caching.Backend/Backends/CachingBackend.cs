@@ -13,8 +13,20 @@ using static Flashtrace.Messages.FormattedMessageBuilder;
 namespace Metalama.Patterns.Caching.Backends;
 
 /// <summary>
-/// An abstraction of the physical implementation of the cache.
+/// An abstraction of the physical implementation of the cache, providing methods for storing, retrieving,
+/// and invalidating cache items and dependencies.
 /// </summary>
+/// <remarks>
+/// <para>The <see cref="CachingBackend"/> class is the base class for all cache storage implementations.
+/// Built-in implementations include in-memory caching (via <see cref="Building.MemoryCachingBackendBuilder"/>)
+/// and distributed caching (via Redis, Azure, etc. in separate packages).</para>
+/// <para>Backends are configured when creating a caching service through the
+/// <c>ICachingServiceBuilder.WithBackend</c> method.</para>
+/// </remarks>
+/// <seealso cref="Building.CachingBackendBuilder"/>
+/// <seealso cref="CachingBackendFeatures"/>
+/// <seealso cref="Implementation.CacheItem"/>
+/// <seealso href="@caching-getting-started"/>
 [PublicAPI]
 public abstract class CachingBackend : IDisposable, IAsyncDisposable
 {

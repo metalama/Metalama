@@ -21,6 +21,26 @@ using MetalamaAccessibility = Metalama.Framework.Code.Accessibility;
 
 namespace Metalama.Patterns.Wpf;
 
+/// <summary>
+/// Aspect that generates a WPF command property from a method. When applied to a method, it introduces an <see cref="ICommand"/>
+/// property that invokes the method when executed. The aspect supports synchronous commands, asynchronous commands (returning <see cref="Task"/>),
+/// and background commands.
+/// </summary>
+/// <remarks>
+/// <para>The target method becomes the implementation of <see cref="ICommand.Execute"/>. It must have one of the following signatures:
+/// <c>void Execute()</c>, <c>void Execute(T)</c>, <c>Task ExecuteAsync()</c>, <c>Task ExecuteAsync(T)</c>,
+/// or variants with a <see cref="CancellationToken"/> parameter.</para>
+/// <para>An optional <c>CanExecute</c> property or method can be associated with the command to control when it can be executed.
+/// The association can be implicit (based on naming conventions like <c>CanFoo</c>, <c>CanExecuteFoo</c>, or <c>IsFooEnabled</c>)
+/// or explicit (via <see cref="CanExecuteMethod"/> or <see cref="CanExecuteProperty"/>).</para>
+/// <para>When the containing type implements <see cref="INotifyPropertyChanged"/> and a <c>CanExecute</c> property is used,
+/// the <see cref="ICommand.CanExecuteChanged"/> event is automatically raised when the property changes.</para>
+/// </remarks>
+/// <seealso cref="DelegateCommand"/>
+/// <seealso cref="AsyncDelegateCommand"/>
+/// <seealso cref="DelegateCommand{T}"/>
+/// <seealso cref="AsyncDelegateCommand{T}"/>
+/// <seealso href="@wpf-command"/>
 [PublicAPI]
 [AttributeUsage( AttributeTargets.Method )]
 public sealed partial class CommandAttribute : Attribute, IAspect<IMethod>

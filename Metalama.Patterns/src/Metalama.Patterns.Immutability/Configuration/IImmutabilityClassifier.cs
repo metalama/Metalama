@@ -8,13 +8,24 @@ using Metalama.Framework.Serialization;
 namespace Metalama.Patterns.Immutability.Configuration;
 
 /// <summary>
-/// Exposes a <see cref="GetImmutabilityKind"/> method that returns the <see cref="ImmutabilityKind"/>
-/// of a given type. This interface is useful when the immutability of a type depends on its type arguments.
+/// Exposes a method that determines the <see cref="ImmutabilityKind"/> of a type dynamically. This interface
+/// is useful for generic types whose immutability depends on their type arguments.
 /// </summary>
+/// <remarks>
+/// <para>Implementations of this interface must be compile-time serializable because they may need to
+/// be persisted across compilation steps or project boundaries.</para>
+/// <para>Use <see cref="ImmutabilityConfigurationExtensions.ConfigureImmutability(Metalama.Framework.Fabrics.IQuery{INamedType},IImmutabilityClassifier)"/>
+/// to configure a classifier for specific types or namespaces.</para>
+/// </remarks>
+/// <seealso cref="ImmutabilityKind"/>
+/// <seealso cref="ImmutabilityConfigurationExtensions"/>
+/// <seealso href="@immutability"/>
 public interface IImmutabilityClassifier : ICompileTimeSerializable
 {
     /// <summary>
-    /// Returns the <see cref="ImmutabilityKind"/> of a given type.
+    /// Returns the <see cref="ImmutabilityKind"/> of the specified type.
     /// </summary>
+    /// <param name="type">The type to classify.</param>
+    /// <returns>The <see cref="ImmutabilityKind"/> of the type.</returns>
     ImmutabilityKind GetImmutabilityKind( INamedType type );
 }

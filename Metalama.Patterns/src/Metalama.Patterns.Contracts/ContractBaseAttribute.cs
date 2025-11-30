@@ -11,8 +11,18 @@ namespace Metalama.Patterns.Contracts;
 #pragma warning disable SA1623
 
 /// <summary>
-/// A base class for all contracts defined in this library.
+/// Base class for all contract aspects defined in the <c>Metalama.Patterns.Contracts</c> namespace.
 /// </summary>
+/// <remarks>
+/// <para>This class extends <see cref="ContractAspect"/> to provide common functionality for all contracts,
+/// including support for conditional inheritance via <see cref="IConditionallyInheritableAspect"/>,
+/// configurable contract direction via <see cref="Direction"/>, and hierarchical options integration
+/// via <see cref="ContractOptions"/>.</para>
+/// </remarks>
+/// <seealso cref="ContractOptions"/>
+/// <seealso cref="ContractContext"/>
+/// <seealso href="@contract-patterns"/>
+/// <seealso href="@value-contracts"/>
 [PublicAPI]
 public abstract class ContractBaseAttribute : ContractAspect, IConditionallyInheritableAspect
 {

@@ -11,5 +11,9 @@ namespace Metalama.Patterns.Caching.Building;
 /// </summary>
 public abstract class OutOfProcessCachingBackendBuilder : ConcreteCachingBackendBuilder
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="OutOfProcessCachingBackendBuilder"/> class.
+    /// </summary>
+    /// <param name="serviceProvider">The service provider for resolving dependencies.</param>
     protected OutOfProcessCachingBackendBuilder( IServiceProvider? serviceProvider ) : base( serviceProvider ) { }
 }

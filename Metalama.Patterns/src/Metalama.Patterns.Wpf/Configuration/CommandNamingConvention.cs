@@ -20,6 +20,18 @@ namespace Metalama.Patterns.Wpf.Configuration;
 
 #pragma warning disable SA1623
 
+/// <summary>
+/// Defines a naming convention for the <see cref="CommandAttribute"/> aspect, specifying how to derive the command property name
+/// and <c>CanExecute</c> member from the target method name.
+/// </summary>
+/// <remarks>
+/// <para>Use <see cref="CommandOptionsBuilder.AddNamingConvention"/> to register custom naming conventions.</para>
+/// <para>Patterns can use the <c>{CommandName}</c> placeholder which is replaced with the command name extracted from the target method.</para>
+/// </remarks>
+/// <seealso cref="CommandOptionsBuilder"/>
+/// <seealso cref="CommandExtensions"/>
+/// <seealso cref="CommandAttribute"/>
+/// <seealso href="@wpf-command"/>
 [CompileTime]
 [PublicAPI]
 public sealed record CommandNamingConvention : ICommandNamingConvention
@@ -72,6 +84,10 @@ public sealed record CommandNamingConvention : ICommandNamingConvention
     [NonCompileTimeSerialized]
     private Regex? _commandNameRegex;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="CommandNamingConvention"/> class with the specified name.
+    /// </summary>
+    /// <param name="name">The unique name for this naming convention.</param>
     public CommandNamingConvention( string name )
     {
         this.Name = name;

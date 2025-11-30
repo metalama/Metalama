@@ -500,6 +500,13 @@ public readonly struct NumericRange : ICompileTimeSerializable
         }
     }
 
+    /// <summary>
+    /// Creates a <see cref="NumericRange"/> with bounds of type <see cref="long"/>.
+    /// </summary>
+    /// <param name="min">The minimum value, or <c>null</c> for no minimum.</param>
+    /// <param name="max">The maximum value, or <c>null</c> for no maximum.</param>
+    /// <param name="areBoundsAllowed">A value indicating whether the bounds are inclusive (<c>true</c>) or exclusive (<c>false</c>).</param>
+    /// <returns>A new <see cref="NumericRange"/> instance.</returns>
     public static NumericRange Create( long? min, long? max, bool areBoundsAllowed = true )
     {
         var minBound = min == null ? null : NumericBound.Create( min.Value, areBoundsAllowed );
@@ -508,6 +515,13 @@ public readonly struct NumericRange : ICompileTimeSerializable
         return new NumericRange( minBound, maxBound );
     }
 
+    /// <summary>
+    /// Creates a <see cref="NumericRange"/> with bounds of type <see cref="ulong"/>.
+    /// </summary>
+    /// <param name="min">The minimum value, or <c>null</c> for no minimum.</param>
+    /// <param name="max">The maximum value, or <c>null</c> for no maximum.</param>
+    /// <param name="areBoundsAllowed">A value indicating whether the bounds are inclusive (<c>true</c>) or exclusive (<c>false</c>).</param>
+    /// <returns>A new <see cref="NumericRange"/> instance.</returns>
     public static NumericRange Create( ulong? min, ulong? max, bool areBoundsAllowed = true )
     {
         var minBound = min == null ? null : NumericBound.Create( min.Value, areBoundsAllowed );
@@ -516,6 +530,13 @@ public readonly struct NumericRange : ICompileTimeSerializable
         return new NumericRange( minBound, maxBound );
     }
 
+    /// <summary>
+    /// Creates a <see cref="NumericRange"/> with bounds of type <see cref="double"/>.
+    /// </summary>
+    /// <param name="min">The minimum value, or <c>null</c> for no minimum.</param>
+    /// <param name="max">The maximum value, or <c>null</c> for no maximum.</param>
+    /// <param name="areBoundsAllowed">A value indicating whether the bounds are inclusive (<c>true</c>) or exclusive (<c>false</c>).</param>
+    /// <returns>A new <see cref="NumericRange"/> instance.</returns>
     public static NumericRange Create( double? min, double? max, bool areBoundsAllowed = true )
     {
         var minBound = min == null ? null : NumericBound.Create( min.Value, areBoundsAllowed );
@@ -524,6 +545,13 @@ public readonly struct NumericRange : ICompileTimeSerializable
         return new NumericRange( minBound, maxBound );
     }
 
+    /// <summary>
+    /// Creates a <see cref="NumericRange"/> with bounds of type <see cref="decimal"/>.
+    /// </summary>
+    /// <param name="min">The minimum value, or <c>null</c> for no minimum.</param>
+    /// <param name="max">The maximum value, or <c>null</c> for no maximum.</param>
+    /// <param name="areBoundsAllowed">A value indicating whether the bounds are inclusive (<c>true</c>) or exclusive (<c>false</c>).</param>
+    /// <returns>A new <see cref="NumericRange"/> instance.</returns>
     public static NumericRange Create( decimal? min, decimal? max, bool areBoundsAllowed = true )
     {
         var minBound = min == null ? null : NumericBound.Create( min.Value, areBoundsAllowed );
@@ -532,6 +560,7 @@ public readonly struct NumericRange : ICompileTimeSerializable
         return new NumericRange( minBound, maxBound );
     }
 
+    /// <inheritdoc />
     public override string ToString()
     {
         var stringBuilder = new StringBuilder();

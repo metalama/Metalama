@@ -9,8 +9,19 @@ using System;
 namespace Metalama.Extensions.Multicast;
 
 /// <summary>
-///   Kinds of targets to which multicast aspects (<see cref = "IMulticastAttribute" />) can be applied.
+/// Kinds of targets to which multicast aspects (<see cref="IMulticastAttribute"/>) can be applied.
 /// </summary>
+/// <remarks>
+/// <para>
+/// Use this enumeration to specify which declaration kinds the multicast aspect should target. This can be set
+/// both in the <see cref="MulticastImplementation"/> constructor (to define which targets the aspect supports)
+/// and in the <see cref="IMulticastAttribute.AttributeTargetElements"/> property (to filter targets at the usage site).
+/// </para>
+/// </remarks>
+/// <seealso cref="IMulticastAttribute.AttributeTargetElements"/>
+/// <seealso cref="MulticastAttributes"/>
+/// <seealso cref="MulticastAspect"/>
+/// <seealso href="@migrating-multicasting"/>
 [Flags]
 [RunTimeOrCompileTime]
 [PublicAPI]

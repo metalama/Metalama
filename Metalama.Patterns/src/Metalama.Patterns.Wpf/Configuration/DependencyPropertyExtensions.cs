@@ -10,6 +10,13 @@ using Metalama.Framework.Options;
 
 namespace Metalama.Patterns.Wpf.Configuration;
 
+/// <summary>
+/// Provides extension methods for configuring the <see cref="DependencyPropertyAttribute"/> aspect at various levels
+/// in the code hierarchy.
+/// </summary>
+/// <seealso cref="DependencyPropertyOptionsBuilder"/>
+/// <seealso cref="DependencyPropertyAttribute"/>
+/// <seealso href="@wpf-dependency-property"/>
 [PublicAPI]
 [CompileTime]
 public static class DependencyPropertyExtensions

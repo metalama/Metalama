@@ -11,6 +11,18 @@ using System.Windows;
 
 namespace Metalama.Patterns.Wpf.Configuration;
 
+/// <summary>
+/// Builder for configuring the <see cref="DependencyPropertyAttribute"/> aspect, allowing customization of naming conventions,
+/// read-only behavior, and default value handling.
+/// </summary>
+/// <remarks>
+/// <para>Use this builder through the <see cref="DependencyPropertyExtensions.ConfigureDependencyProperty(IQuery{ICompilation},Action{DependencyPropertyOptionsBuilder})"/> method
+/// and its overloads to configure dependency property options at the project, namespace, type, or property level.</para>
+/// </remarks>
+/// <seealso cref="DependencyPropertyExtensions"/>
+/// <seealso cref="DependencyPropertyNamingConvention"/>
+/// <seealso cref="DependencyPropertyAttribute"/>
+/// <seealso href="@wpf-dependency-property"/>
 [PublicAPI]
 [CompileTime]
 public sealed class DependencyPropertyOptionsBuilder
@@ -76,6 +88,11 @@ public sealed class DependencyPropertyOptionsBuilder
         };
     }
 
+    /// <summary>
+    /// Changes the priority of a <see cref="DependencyPropertyNamingConvention"/>.
+    /// </summary>
+    /// <param name="key">The <see cref="DependencyPropertyNamingConvention.Name"/> of the naming convention.</param>
+    /// <param name="priority">The new priority of the naming convention.</param>
     public void SetNamingConventionPriority( string key, int priority )
         => this._options = this._options with
         {
@@ -84,6 +101,10 @@ public sealed class DependencyPropertyOptionsBuilder
                 new NamingConventionRegistration<IDependencyPropertyNamingConvention>( key, null, priority ) )
         };
 
+    /// <summary>
+    /// Removes a <see cref="DependencyPropertyNamingConvention"/>.
+    /// </summary>
+    /// <param name="key">The <see cref="DependencyPropertyNamingConvention.Name"/> of the naming convention to remove.</param>
     public void RemoveNamingConvention( string key )
         => this._options = this._options with
         {

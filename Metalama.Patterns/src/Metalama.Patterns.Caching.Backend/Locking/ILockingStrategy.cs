@@ -5,11 +5,20 @@
 namespace Metalama.Patterns.Caching.Locking;
 
 /// <summary>
-/// Provides instances of named locks. 
+/// Provides instances of named locks for synchronizing concurrent executions of cached methods.
 /// </summary>
 /// <remarks>
-/// Two implementations are provided: <see cref="NullLockingStrategy"/> and <see cref="LocalLockingStrategy"/>.
+/// <para>Two built-in implementations are provided:</para>
+/// <list type="bullet">
+/// <item><description><see cref="NullLockingStrategy"/>: Allows concurrent execution (default).</description></item>
+/// <item><description><see cref="LocalLockingStrategy"/>: Prevents concurrent execution of the same method with the same parameters in the current process.</description></item>
+/// </list>
+/// <para>The locking strategy is configured per caching profile through the
+/// <c>CachingProfile.LockingStrategy</c> property.</para>
 /// </remarks>
+/// <seealso cref="ILockHandle"/>
+/// <seealso cref="NullLockingStrategy"/>
+/// <seealso cref="LocalLockingStrategy"/>
 public interface ILockingStrategy
 {
     /// <summary>

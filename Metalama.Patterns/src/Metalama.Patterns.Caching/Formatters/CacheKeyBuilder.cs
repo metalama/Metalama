@@ -10,8 +10,18 @@ using System.Reflection;
 namespace Metalama.Patterns.Caching.Formatters;
 
 /// <summary>
-/// Builds cache item keys and dependency keys. Implementation of <see cref="ICacheKeyBuilder"/>.
+/// Default implementation of <see cref="ICacheKeyBuilder"/> that builds cache item keys and dependency keys.
 /// </summary>
+/// <remarks>
+/// <para>This class generates cache keys by combining method signature information with formatted argument values.
+/// The format includes the declaring type, method name, generic arguments, and parameter values.</para>
+/// <para>To customize key generation, either derive from this class and override the virtual methods,
+/// or implement <see cref="ICacheKeyBuilder"/> directly. Register custom implementations using
+/// <see cref="Building.ICachingServiceBuilder.WithKeyBuilder"/>.</para>
+/// </remarks>
+/// <seealso cref="ICacheKeyBuilder"/>
+/// <seealso cref="CacheKeyBuilderOptions"/>
+/// <seealso href="@caching-keys"/>
 [PublicAPI]
 public class CacheKeyBuilder : IDisposable, ICacheKeyBuilder
 {

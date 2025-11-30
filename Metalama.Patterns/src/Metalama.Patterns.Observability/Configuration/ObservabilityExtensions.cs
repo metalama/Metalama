@@ -11,8 +11,19 @@ using Metalama.Framework.Options;
 namespace Metalama.Patterns.Observability.Configuration;
 
 /// <summary>
-/// Extension methods that configure the <see cref="ObservableAttribute"/> aspect.
+/// Extension methods that configure the <see cref="ObservableAttribute"/> aspect from fabrics.
 /// </summary>
+/// <remarks>
+/// <para>
+/// Use these methods to configure observability options programmatically at the compilation, namespace, type, or
+/// member level. This is particularly useful for marking multiple methods as constant without adding the
+/// <see cref="ConstantAttribute"/> to each one individually.
+/// </para>
+/// </remarks>
+/// <seealso cref="ObservableAttribute"/>
+/// <seealso cref="ObservabilityTypeOptionsBuilder"/>
+/// <seealso cref="ObservabilityMemberOptionsBuilder"/>
+/// <seealso href="@observability"/>
 [PublicAPI]
 [CompileTime]
 public static class ObservabilityExtensions

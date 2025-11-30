@@ -9,6 +9,18 @@ using Metalama.Patterns.Caching.Implementation;
 
 namespace Metalama.Patterns.Caching.Aspects.Configuration;
 
+/// <summary>
+/// Builder class for configuring caching options through the <see cref="CachingConfigurationExtensions.ConfigureCaching(Metalama.Framework.Fabrics.IQuery{Metalama.Framework.Code.IMethod}, Action{CachingOptionsBuilder})"/>
+/// fabric extension method.
+/// </summary>
+/// <remarks>
+/// <para>This class provides the same configuration options as <see cref="CachingConfigurationAttribute"/>,
+/// but can be used programmatically in fabrics for more fine-grained control over caching configuration.</para>
+/// </remarks>
+/// <seealso cref="CachingConfigurationExtensions"/>
+/// <seealso cref="CachingConfigurationAttribute"/>
+/// <seealso cref="ICacheParameterClassifier"/>
+/// <seealso href="@caching-configuration"/>
 [PublicAPI]
 [CompileTime]
 public sealed class CachingOptionsBuilder
@@ -78,11 +90,22 @@ public sealed class CachingOptionsBuilder
 
     public bool? UseDependencyInjection { get; set; }
 
+    /// <summary>
+    /// Registers a parameter classifier that determines how method parameters are handled in cache key generation.
+    /// </summary>
+    /// <param name="name">A unique name for this classifier registration, used to identify and potentially remove it later.</param>
+    /// <param name="classifier">The classifier implementation that evaluates parameters and returns a <see cref="CacheParameterClassification"/>.</param>
+    /// <seealso cref="ICacheParameterClassifier"/>
+    /// <seealso cref="CacheParameterClassification"/>
     public void AddParameterClassifier( string name, ICacheParameterClassifier classifier )
     {
         this._parameterClassifiers = this._parameterClassifiers.AddOrApplyChanges( new ParameterFilterRegistration( name, classifier ) );
     }
 
+    /// <summary>
+    /// Removes a previously registered parameter classifier by name.
+    /// </summary>
+    /// <param name="name">The name of the classifier registration to remove.</param>
     public void RemoveParameterClassifier( string name )
     {
         this._parameterClassifiers = this._parameterClassifiers.Remove( name );

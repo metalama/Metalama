@@ -14,14 +14,27 @@ namespace Metalama.Patterns.Contracts.Numeric;
 /// <summary>
 /// Represents a single bound of a <see cref="NumericRange"/>.
 /// </summary>
+/// <seealso cref="NumericRange"/>
+/// <seealso cref="RangeAttribute"/>
 [RunTimeOrCompileTime]
 public abstract record NumericBound : ICompileTimeSerializable
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="NumericBound"/> class.
+    /// </summary>
+    /// <param name="isAllowed">A value indicating whether the bound value itself is allowed (inclusive) or not (exclusive).</param>
     protected internal NumericBound( bool isAllowed )
     {
         this.IsAllowed = isAllowed;
     }
 
+    /// <summary>
+    /// Creates a <see cref="NumericBound"/> from a <see cref="long"/> value.
+    /// </summary>
+    /// <param name="value">The bound value.</param>
+    /// <param name="isAllowed">A value indicating whether the bound value is inclusive (<c>true</c>) or exclusive (<c>false</c>).</param>
+    /// <param name="decimalPlaces">When non-zero, interprets the value as a decimal with the specified number of decimal places.</param>
+    /// <returns>A new <see cref="NumericBound"/> instance.</returns>
     public static NumericBound Create( long value, bool isAllowed = true, int decimalPlaces = 0 )
     {
         return decimalPlaces switch
@@ -37,15 +50,39 @@ public abstract record NumericBound : ICompileTimeSerializable
         };
     }
 
+    /// <summary>
+    /// Creates a <see cref="NumericBound"/> from a <see cref="ulong"/> value.
+    /// </summary>
+    /// <param name="value">The bound value.</param>
+    /// <param name="isAllowed">A value indicating whether the bound value is inclusive (<c>true</c>) or exclusive (<c>false</c>).</param>
+    /// <returns>A new <see cref="NumericBound"/> instance.</returns>
     public static NumericBound Create( ulong value, bool isAllowed = true ) => new UInt64Bound( value, isAllowed );
 
+    /// <summary>
+    /// Creates a <see cref="NumericBound"/> from a <see cref="decimal"/> value.
+    /// </summary>
+    /// <param name="value">The bound value.</param>
+    /// <param name="isAllowed">A value indicating whether the bound value is inclusive (<c>true</c>) or exclusive (<c>false</c>).</param>
+    /// <returns>A new <see cref="NumericBound"/> instance.</returns>
     public static NumericBound Create( decimal value, bool isAllowed = true ) => new DecimalBound( value, isAllowed );
 
+    /// <summary>
+    /// Creates a <see cref="NumericBound"/> from a <see cref="double"/> value.
+    /// </summary>
+    /// <param name="value">The bound value.</param>
+    /// <param name="isAllowed">A value indicating whether the bound value is inclusive (<c>true</c>) or exclusive (<c>false</c>).</param>
+    /// <returns>A new <see cref="NumericBound"/> instance.</returns>
     public static NumericBound Create( double value, bool isAllowed = true ) => new DoubleBound( value, isAllowed );
 
+    /// <summary>
+    /// Gets or sets a value indicating whether the bound value itself is allowed (inclusive) or not (exclusive).
+    /// </summary>
     [PublicAPI]
     public bool IsAllowed { get; init; }
 
+    /// <summary>
+    /// Gets the bound value as an <see cref="object"/>.
+    /// </summary>
     [PublicAPI]
     public abstract object ObjectValue { get; }
 

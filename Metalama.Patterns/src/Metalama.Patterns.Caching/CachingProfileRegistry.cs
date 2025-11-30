@@ -12,6 +12,9 @@ namespace Metalama.Patterns.Caching;
 /// <summary>
 /// Exposes the profiles registered in the <see cref="CachingService"/>.
 /// </summary>
+/// <seealso cref="CachingProfile"/>
+/// <seealso cref="CachingService"/>
+/// <seealso cref="Building.ICachingServiceBuilder.AddProfile"/>
 [PublicAPI]
 public sealed class CachingProfileRegistry : IReadOnlyCollection<CachingProfile>
 {
@@ -50,10 +53,13 @@ public sealed class CachingProfileRegistry : IReadOnlyCollection<CachingProfile>
         }
     }
 
+    /// <inheritdoc />
     // ReSharper disable once NotDisposedResourceIsReturned
     public IEnumerator<CachingProfile> GetEnumerator() => this._profiles.Values.GetEnumerator();
 
+    /// <inheritdoc />
     IEnumerator IEnumerable.GetEnumerator() => this.GetEnumerator();
 
+    /// <inheritdoc />
     public int Count => this._profiles.Count;
 }

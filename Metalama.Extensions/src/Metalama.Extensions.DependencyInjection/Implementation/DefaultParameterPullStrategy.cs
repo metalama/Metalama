@@ -11,14 +11,41 @@ using System.Linq;
 
 namespace Metalama.Extensions.DependencyInjection.Implementation;
 
+/// <summary>
+/// The default implementation of <see cref="IParameterPullStrategy"/> that handles constructor parameter introduction
+/// and propagation for dependency injection.
+/// </summary>
+/// <remarks>
+/// <para>
+/// This class is responsible for determining whether an existing constructor parameter can satisfy a dependency,
+/// and if not, specifying how to create a new parameter. It also handles parameter propagation to derived classes
+/// via the <see cref="IPullStrategy"/> interface.
+/// </para>
+/// <para>
+/// For most use cases, you can use this default implementation. Override the virtual methods if you need custom
+/// behavior for parameter matching or creation.
+/// </para>
+/// </remarks>
+/// <seealso cref="IDependencyPullStrategy"/>
+/// <seealso cref="DefaultDependencyPullStrategy"/>
+/// <seealso cref="DefaultDependencyInjectionStrategy"/>
+/// <seealso href="@dependency-injection"/>
 public class DefaultParameterPullStrategy : IParameterPullStrategy
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DefaultParameterPullStrategy"/> class.
+    /// </summary>
+    /// <param name="parameterType">A reference to the type of the constructor parameter.</param>
+    /// <param name="dependencyName">The name of the dependency, used to derive the parameter name.</param>
     public DefaultParameterPullStrategy( IRef<IType> parameterType, string dependencyName )
     {
         this.ParameterType = parameterType;
         this.DependencyName = dependencyName;
     }
 
+    /// <summary>
+    /// Gets the type of the constructor parameter.
+    /// </summary>
     public IRef<IType> ParameterType
     {
         get;
@@ -27,6 +54,9 @@ public class DefaultParameterPullStrategy : IParameterPullStrategy
         private set;
     }
 
+    /// <summary>
+    /// Gets the name of the dependency, which is used to derive the name of the constructor parameter.
+    /// </summary>
     public string DependencyName
     {
         get;
@@ -35,6 +65,7 @@ public class DefaultParameterPullStrategy : IParameterPullStrategy
         private set;
     }
 
+    /// <inheritdoc />
     public virtual IParameter? GetExistingParameter( IConstructor constructor )
     {
         var parameterType = this.ParameterType.GetTarget( constructor.Compilation );
@@ -42,6 +73,7 @@ public class DefaultParameterPullStrategy : IParameterPullStrategy
         return constructor.Parameters.FirstOrDefault( p => p.Type.IsConvertibleTo( parameterType ) );
     }
 
+    /// <inheritdoc />
     public virtual ParameterSpecification GetNewParameter( IConstructor constructor )
     {
         var parameterName = this.GetNewParameterName( constructor );
@@ -50,6 +82,7 @@ public class DefaultParameterPullStrategy : IParameterPullStrategy
         return new ParameterSpecification( parameterName, parameterType );
     }
 
+    /// <inheritdoc />
     public virtual PullAction GetPullAction( IParameter pulledParameter, IHasParameters targetMember )
     {
         var callingConstructor = (IConstructor) targetMember;

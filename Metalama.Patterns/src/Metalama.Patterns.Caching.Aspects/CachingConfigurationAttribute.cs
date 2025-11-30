@@ -8,14 +8,20 @@ using Metalama.Framework.Aspects;
 namespace Metalama.Patterns.Caching.Aspects;
 
 /// <summary>
-/// Custom attribute that, when applied on a type, configures the <see cref="CacheAttribute"/> aspects applied to the methods of this type
+/// Custom attribute that, when applied to a type, configures the <see cref="CacheAttribute"/> aspects applied to the methods of this type
 /// or its derived types. When applied to an assembly, the <see cref="CachingConfigurationAttribute"/> custom attribute configures all methods
 /// of the current assembly.
 /// </summary>
 /// <remarks>
 /// <para>Any <see cref="CachingConfigurationAttribute"/> on the base class has always priority over a <see cref="CachingConfigurationAttribute"/>
 /// on the assembly, even if the base class is in a different assembly.</para>
+/// <para>Configuration can also be specified programmatically using the <see cref="Configuration.CachingConfigurationExtensions.ConfigureCaching(Metalama.Framework.Fabrics.IQuery{Metalama.Framework.Code.IMethod}, Action{Configuration.CachingOptionsBuilder})"/>
+/// fabric extension method.</para>
 /// </remarks>
+/// <seealso cref="CacheAttribute"/>
+/// <seealso cref="CachingBaseAttribute"/>
+/// <seealso cref="Configuration.CachingOptionsBuilder"/>
+/// <seealso href="@caching-configuration"/>
 [PublicAPI]
 [AttributeUsage( AttributeTargets.Class | AttributeTargets.Assembly )]
 [RunTimeOrCompileTime]

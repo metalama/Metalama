@@ -8,9 +8,18 @@ using Metalama.Framework.Aspects;
 namespace Metalama.Patterns.Observability.Configuration;
 
 /// <summary>
-/// Builds options for the classic implementation strategy of the <see cref="ObservableAttribute"/> aspect.
-/// To use, call <see cref="ObservabilityExtensions.ConfigureObservability(Metalama.Framework.Fabrics.IQuery{Metalama.Framework.Code.ICompilation},System.Action{Metalama.Patterns.Observability.Configuration.ObservabilityTypeOptionsBuilder})"/>.
+/// Builder for configuring options specific to the classic (default) implementation strategy of the <see cref="ObservableAttribute"/> aspect.
 /// </summary>
+/// <remarks>
+/// <para>
+/// The classic strategy generates code that follows standard MVVM patterns with an <c>OnPropertyChanged</c> method
+/// and support for child object monitoring through <c>OnChildPropertyChanged</c> and <c>OnObservablePropertyChanged</c> methods.
+/// </para>
+/// </remarks>
+/// <seealso cref="ObservableAttribute"/>
+/// <seealso cref="ObservabilityExtensions"/>
+/// <seealso cref="ObservabilityTypeOptionsBuilder"/>
+/// <seealso href="@observability"/>
 [PublicAPI]
 [CompileTime]
 public sealed class ClassicObservabilityStrategyOptionsBuilder
