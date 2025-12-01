@@ -38,6 +38,7 @@ namespace Metalama.Framework.Aspects
     /// </remarks>
     /// <seealso cref="IConditionallyInheritableAspect"/>
     /// <seealso href="@aspect-inheritance"/>
+    /// <seealso href="@same-type-multiple-instances"/>
     [AttributeUsage( AttributeTargets.Class )]
     [CompileTime]
     [PublicAPI]
