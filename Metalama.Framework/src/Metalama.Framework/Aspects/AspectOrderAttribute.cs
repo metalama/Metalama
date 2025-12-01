@@ -50,6 +50,7 @@ namespace Metalama.Framework.Aspects
     /// <seealso cref="AspectOrderDirection"/>
     /// <seealso cref="LayersAttribute"/>
     /// <seealso href="@ordering-aspects"/>
+    /// <seealso href="@multiple-instances"/>
     [AttributeUsage( AttributeTargets.Assembly, AllowMultiple = true )]
     [PublicAPI]
     public sealed class AspectOrderAttribute : Attribute
