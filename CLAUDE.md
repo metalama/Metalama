@@ -1,3 +1,18 @@
+# Claude Instructions
+
+## Repository
+
+This repo contains mostly C# projects.
+
+This repo is composed of different parts called "solutions", but one "solution" can contain different sln files. Each "solution" is a different first-level directory. E.g. `Metalama` and `Metalama.Extensions` are different solutions.
+
+Solutions are defined in `eng/src/Program.cs`. Solutions are layered and ordered. A solution N can depend on a solution N-1 onlyu through PackageReference, never through ProjectReference.
+
+Solutions are build by `Build.ps1 build`, which is a front end to `eng/src/Program.cs`. `Build.ps1 build` is the only valid way to build the packages of a solution. However, `Build.ps1 build` is slow and should only be executed when truly needed.
+
+When changes are done _within_ a solution, it's ok to do builds using `dotnet build` or to run tests with `dotnet test`. When any change is done in a _lower_ solution (N-1), then `Build.ps1 build` is required.
+
+
 ## When writing XML documentation
 
 - Use `<see>` tags where possible.
@@ -16,3 +31,21 @@
 ## Aspect tests
 
 - In aspect tests, Foo.t.cs is the result file of Foo.cs
+
+
+## Incremental learning
+
+When you learn something important that can make save you time the next time, update CLAUDE.md.
+
+## Key learnings
+
+### Cross-solution builds
+- When changes span multiple solutions (e.g., Framework + Extensions + LinqPad), use `Build.ps1 build` - `dotnet build` will fail because packages from lower solutions aren't published yet.
+- When adding new package references, also add the `PackageVersion` to `Directory.Packages.props` (Central Package Management).
+
+
+### Documentation updates
+- When adding public APIs, also update:
+  - XML documentation with `<see>` tags and usage examples
+  - Conceptual documentation in `../Metalama.Documentation/content`
+  - Sample code in `../Metalama.Documentation/code`

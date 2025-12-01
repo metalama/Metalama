@@ -21,6 +21,7 @@
 
     <ItemGroup>
         <PackageReference Include="Metalama.Framework.Workspaces" />
+        <PackageReference Include="Metalama.Extensions.Metrics" />
         <PackageReference Include="JetBrains.Annotations" PrivateAssets="all" />
         <PackageReference Include="LINQPad.Reference" />
         <PackageReference Include="Metalama.Framework.Sdk" ExcludeAssets="build;buildTransitive" />

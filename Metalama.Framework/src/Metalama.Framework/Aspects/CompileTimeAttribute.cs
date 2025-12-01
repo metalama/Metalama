@@ -12,6 +12,9 @@ namespace Metalama.Framework.Aspects;
 /// that can be called both from compile-time and run-time code.
 /// </summary>
 /// <param name="isTemplateOnly">Indicates whether the target declaration can only be used from templates, but not from other compile-time code.</param>
+/// <remarks>
+/// Types that extend or use types marked with <see cref="CompileTimeAttribute"/> must also be marked with this attribute.
+/// </remarks>
 /// <seealso cref="RunTimeOrCompileTimeAttribute"/>
 /// <seealso cref="RunTimeAttribute"/>
 /// <seealso href="@template-compile-time"/>
