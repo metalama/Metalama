@@ -10,6 +10,18 @@ namespace Metalama.Framework.Code.SyntaxBuilders
     /// <summary>
     /// Extension methods for <see cref="IExpressionBuilder"/> and <see cref="INotNullExpressionBuilder"/>.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// These extension methods provide a convenient way to get a <c>dynamic</c> value from an expression builder,
+    /// which can then be used directly in template code. The <see cref="ToValue(IExpressionBuilder)"/> method
+    /// calls <see cref="IExpressionBuilder.ToExpression"/> and then accesses <see cref="IExpression.Value"/>.
+    /// </para>
+    /// </remarks>
+    /// <seealso cref="IExpressionBuilder"/>
+    /// <seealso cref="INotNullExpressionBuilder"/>
+    /// <seealso cref="IExpression"/>
+    /// <seealso href="@run-time-expressions"/>
+    /// <seealso href="@templates"/>
     [CompileTime]
     [PublicAPI]
     public static class ExpressionBuilderExtensions

@@ -34,6 +34,7 @@ namespace Metalama.Framework.Code
         /// </summary>
         new IProperty Definition { get; }
 
+        /// <inheritdoc cref="IDeclaration.ToRef"/>
         new IRef<IProperty> ToRef();
 
         /// <summary>

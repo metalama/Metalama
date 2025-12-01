@@ -8,23 +8,34 @@ using System.Collections.Generic;
 namespace Metalama.Framework.Code
 {
     /// <summary>
-    /// An interface, common to <see cref="INamedType"/> and <see cref="IMethod"/>, that represents a generic declaration, i.e. a declaration
-    /// with type parameters.
+    /// Represents a generic declaration with type parameters, common to <see cref="INamedType"/> and <see cref="IMethod"/>.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// In Metalama, and unlike <c>System.Reflection</c>, generic types and methods are always fully bound. In generic declarations,
-    /// such as in (<c>typeof(List&lt;&gt;)</c>, type parameters are bound to themselves, i.e. the content of the <see cref="TypeArguments"/> and <see cref="TypeParameters"/>
+    /// such as in <c>typeof(List&lt;&gt;)</c>, type parameters are bound to themselves, i.e. the content of the <see cref="TypeArguments"/> and <see cref="TypeParameters"/>
     /// properties are identical.
+    /// </para>
+    /// <para>
+    /// Consider the type <c>List&lt;T&gt;</c>, where <c>T</c> is a type parameter. In the generic type instance <c>List&lt;int&gt;</c>,
+    /// <c>T</c> is the type parameter and <c>int</c> is the type argument; the <c>T</c> parameter is bound to <c>int</c>.
+    /// In the type definition <c>List&lt;T&gt;</c>, <c>T</c> is both the type parameter and the type argument, because <c>T</c> is bound to itself.
+    /// The <see cref="IsCanonicalGenericInstance"/> property returns <c>true</c> when all type parameters are bound to themselves.
+    /// </para>
+    /// <para>
+    /// To create a generic instance from a generic definition, use <see cref="INamedType.MakeGenericInstance"/> or the extension methods in <see cref="GenericExtensions"/>.
+    /// </para>
     /// </remarks>
     /// <seealso cref="GenericExtensions"/>
     /// <seealso cref="INamedType"/>
     /// <seealso cref="IMethod"/>
     /// <seealso cref="ITypeParameter"/>
     /// <seealso cref="IGenericContext"/>
+    /// <seealso href="@type-system"/>
     public interface IGeneric : IMemberOrNamedType
     {
         /// <summary>
-        /// Gets the generic parameters of the current type or method.
+        /// Gets the type parameters of the current type or method.
         /// </summary>
         ITypeParameterList TypeParameters { get; }
 

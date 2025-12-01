@@ -9,6 +9,9 @@ namespace Metalama.Framework.Aspects;
 
 // Range: 0700, 0750-0799
 
+/// <summary>
+/// Contains diagnostic descriptors used internally by the Metalama Framework. This class is reserved for internal use.
+/// </summary>
 public static class FrameworkDiagnosticDescriptors
 {
     internal static readonly DiagnosticDefinition<(string AspectType, DeclarationKind IntroducedDeclarationKind, DeclarationKind TargetDeclarationKind)>

@@ -10,12 +10,48 @@ using System.Collections.Generic;
 namespace Metalama.Framework.Engine.Metrics
 {
     /// <summary>
-    /// The default implementation of <see cref="IMetricProvider{T}"/>.
+    /// Base class for implementing custom metric providers. Derive from this class to create metrics that
+    /// can measure code characteristics like complexity, coupling, or custom patterns.
     /// </summary>
-    /// <typeparam name="T">The type of metric.</typeparam>
+    /// <typeparam name="T">The metric type, which must be a struct implementing <see cref="IMetric"/>.</typeparam>
+    /// <remarks>
+    /// <para>
+    /// To create a custom metric:
+    /// </para>
+    /// <list type="number">
+    /// <item><description>Create a metric struct implementing <see cref="IMetric{TTarget}"/> for each declaration type it supports.</description></item>
+    /// <item><description>Create a metric provider class deriving from <see cref="MetricProvider{T}"/> (or <see cref="SyntaxMetricProvider{T}"/> for syntax-based metrics).</description></item>
+    /// <item><description>Annotate the provider class with <see cref="Metalama.Framework.Engine.MetalamaPlugInAttribute"/>.</description></item>
+    /// </list>
+    /// <para>
+    /// Override the following methods:
+    /// </para>
+    /// <list type="bullet">
+    /// <item><description><see cref="ComputeMetricForType"/>: Compute the metric for a type.</description></item>
+    /// <item><description><see cref="ComputeMetricForMember"/>: Compute the metric for a member.</description></item>
+    /// <item><description><see cref="Aggregate"/>: Combine metric values when aggregating across members or types.</description></item>
+    /// </list>
+    /// <para>
+    /// For syntax-based metrics that analyze syntax trees, use <see cref="SyntaxMetricProvider{T}"/> instead.
+    /// </para>
+    /// </remarks>
+    /// <seealso cref="SyntaxMetricProvider{T}"/>
+    /// <seealso cref="IMetric"/>
+    /// <seealso href="@custom-metrics"/>
     public abstract class MetricProvider<T> : IMetricProvider<T>
         where T : struct, IMetric
     {
+        /// <summary>
+        /// Gets the metric for a measurable code element.
+        /// </summary>
+        /// <param name="measurable">The code element to measure (type, member, namespace, or compilation).</param>
+        /// <returns>The computed metric value.</returns>
+        /// <exception cref="InvalidOperationException">The metric cannot be computed for the given target type.</exception>
+        /// <remarks>
+        /// This method dispatches to the appropriate compute method based on the target type:
+        /// <see cref="ComputeMetricForType"/> for types, <see cref="ComputeMetricForMember"/> for members,
+        /// and aggregates results for namespaces and compilations.
+        /// </remarks>
         public T GetMetric( IMeasurable measurable )
         {
             switch ( measurable )

@@ -11,8 +11,18 @@ using System.ComponentModel;
 namespace Metalama.Patterns.Observability.Configuration;
 
 /// <summary>
-/// Builds dependency options. Used at the level of <see cref="ICompilation"/>, <see cref="INamespace"/> and <see cref="INamedType"/>.
+/// Builder for configuring <see cref="ObservableAttribute"/> options at the compilation, namespace, or type level.
 /// </summary>
+/// <remarks>
+/// <para>
+/// Use this builder with the <see cref="ObservabilityExtensions.ConfigureObservability(Metalama.Framework.Fabrics.IQuery{ICompilation},System.Action{ObservabilityTypeOptionsBuilder})"/>
+/// extension method to configure observability options from a fabric.
+/// </para>
+/// </remarks>
+/// <seealso cref="ObservableAttribute"/>
+/// <seealso cref="ObservabilityExtensions"/>
+/// <seealso cref="ObservabilityMemberOptionsBuilder"/>
+/// <seealso href="@observability"/>
 [PublicAPI]
 [CompileTime]
 public sealed class ObservabilityTypeOptionsBuilder

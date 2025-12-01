@@ -26,9 +26,10 @@ namespace Metalama.Framework.Aspects
     /// <item><description>From a parameter of an interface member to the corresponding parameter of all its implementations</description></item>
     /// </list>
     /// <para>
-    /// <b>Cross-project inheritance:</b> Aspect inheritance works across project boundaries. The aspect instance
-    /// is serialized in the assembly containing the base declaration and deserialized when compiling projects
-    /// that reference it.
+    /// <b>Cross-project inheritance:</b> Aspect inheritance works across project boundaries. When the base declaration
+    /// is in a referenced assembly, the <see cref="IAspect"/> object itself and its <see cref="IAspectState"/> (if set)
+    /// are serialized into that assembly and deserialized when compiling the derived project. This is why aspect classes
+    /// must be compile-time serializable (they derive from <see cref="Attribute"/>, which is automatically serializable).
     /// </para>
     /// <para>
     /// <b>Conditional inheritance:</b> For aspects that need to decide inheritability based on properties or context,

@@ -18,8 +18,25 @@ using System.Threading.Tasks;
 namespace Metalama.Framework.Engine.CodeModel
 {
     /// <summary>
-    /// Extension methods for the <see cref="IPartialCompilation"/> interface.
+    /// Provides extension methods for transforming <see cref="IPartialCompilation"/> instances.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// These methods simplify common compilation transformation patterns in <see cref="Metalama.Framework.Engine.AspectWeavers.IAspectWeaver"/> implementations:
+    /// </para>
+    /// <list type="bullet">
+    /// <item><description>UpdateSyntaxTrees: Transform syntax trees using a delegate.</description></item>
+    /// <item><description>RewriteSyntaxTreesAsync: Rewrite using a <see cref="CSharpSyntaxRewriter"/>.</description></item>
+    /// <item><description><see cref="AddSyntaxTrees(IPartialCompilation, SyntaxTree[])"/>: Add new syntax trees.</description></item>
+    /// <item><description><see cref="GetParseOptions"/>: Get parse options for creating new syntax trees.</description></item>
+    /// </list>
+    /// <para>
+    /// All methods process syntax trees in parallel for performance. When using <see cref="RewriteSyntaxTreesAsync(IPartialCompilation, CSharpSyntaxRewriter, ProjectServiceProvider, CancellationToken)"/>
+    /// with a shared rewriter, ensure the rewriter is thread-safe.
+    /// </para>
+    /// </remarks>
+    /// <seealso cref="IPartialCompilation"/>
+    /// <seealso href="@aspect-weavers"/>
     [PublicAPI]
     public static class PartialCompilationExtensions
     {

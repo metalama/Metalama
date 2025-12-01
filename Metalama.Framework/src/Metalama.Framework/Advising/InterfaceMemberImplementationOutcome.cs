@@ -7,26 +7,33 @@ using Metalama.Framework.Aspects;
 namespace Metalama.Framework.Advising
 {
     /// <summary>
-    /// Actions taken by the advice when implementing an interface member.
+    /// Indicates the action taken by the advice when implementing an individual interface member.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This outcome is available via <see cref="IInterfaceMemberImplementationResult.Outcome"/> and indicates
+    /// how the interface member was resolved: introduced, overridden, or mapped to an existing member.
+    /// </para>
+    /// </remarks>
     /// <seealso cref="IInterfaceMemberImplementationResult"/>
     /// <seealso cref="IImplementInterfaceAdviceResult"/>
     /// <seealso cref="AdviserExtensions.ImplementInterface(IAdviser{Code.INamedType}, Code.INamedType, OverrideStrategy, object?)"/>
+    /// <seealso href="@implementing-interfaces"/>
     [CompileTime]
     public enum InterfaceMemberImplementationOutcome
     {
         /// <summary>
-        /// Interface member was introduced as a new declaration.
+        /// The interface member was introduced as a new declaration in the target type.
         /// </summary>
         Introduce = 0,
 
         /// <summary>
-        /// The interface member template was used to override an existing declaration.
+        /// An existing declaration was overridden using the interface member template.
         /// </summary>
         Override = 1,
 
         /// <summary>
-        /// An existing class member was used for to implement the interface member.
+        /// An existing compatible member in the target type was used to satisfy the interface member requirement.
         /// </summary>
         UseExisting = 2
     }

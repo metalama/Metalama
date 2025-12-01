@@ -12,8 +12,55 @@ using System;
 namespace Metalama.Framework.Aspects;
 
 /// <summary>
-/// Extension methods for <see cref="IQuery{T}"/> and <see cref="ITaggedQuery{T, TTag}"/> to add aspects to declarations.
+/// Extension methods for <see cref="IQuery{T}"/> and <see cref="ITaggedQuery{T,TTag}"/> that provide
+/// methods to add aspects to declarations selected through queries.
 /// </summary>
+/// <remarks>
+/// <para>
+/// These extension methods are primarily used with fabrics (<see cref="ProjectFabric"/>, <see cref="TypeFabric"/>, etc.)
+/// to add aspects programmatically to selected declarations. In a <see cref="ProjectFabric"/>, use
+/// the <c>amender</c> parameter's query methods to select declarations, then call these methods to add aspects:
+/// </para>
+/// <code>
+/// // In a ProjectFabric.AmendProject override
+/// amender.SelectMany(p => p.Types)
+///        .SelectMany(t => t.Methods.Where(m => m.Accessibility == Accessibility.Public))
+///        .AddAspectIfEligible&lt;LoggingAspect&gt;();
+/// </code>
+/// <para>
+/// They can also be used with <see cref="IAspectBuilder{T}.Outbound"/> to add child aspects from within
+/// the <see cref="IAspect{T}.BuildAspect"/> method:
+/// </para>
+/// <code>
+/// // In an aspect's BuildAspect method
+/// builder.Outbound.SelectMany(t => t.Methods).AddAspect&lt;LoggingAspect&gt;();
+/// </code>
+/// <para>
+/// <b>AddAspect vs AddAspectIfEligible:</b> <see cref="AddAspect{TAspect}(IQuery{IDeclaration})"/> throws an exception
+/// if the target is ineligible, while <see cref="AddAspectIfEligible{TAspect}(IQuery{IDeclaration}, EligibleScenarios)"/> silently skips ineligible targets.
+/// For bulk operations in fabrics, <see cref="AddAspectIfEligible{TAspect}(IQuery{IDeclaration}, EligibleScenarios)"/> is generally recommended.
+/// </para>
+/// <para>
+/// <b>AddAspect vs RequireAspect:</b> <see cref="AddAspect{TAspect}(IQuery{IDeclaration})"/> always creates a new aspect instance
+/// (existing instances become secondary). <see cref="RequireAspect{TAspect}"/> only adds an instance if the aspect doesn't already exist on the target.
+/// </para>
+/// <para>
+/// <b>Child aspect ordering:</b> When adding child aspects from an aspect, the child aspect class must be ordered <em>after</em> the parent aspect.
+/// The child must be listed <em>before</em> the parent in the <see cref="AspectOrderAttribute"/> definition.
+/// </para>
+/// <para>
+/// <b>Precedence:</b> Aspects added manually as custom attributes take precedence over aspects added programmatically.
+/// When the same aspect type is applied multiple times, the primary instance executes and secondary instances are available
+/// via <see cref="IAspectInstance.SecondaryInstances"/>.
+/// </para>
+/// </remarks>
+/// <seealso cref="ProjectFabric"/>
+/// <seealso cref="IAspectBuilder{T}.Outbound"/>
+/// <seealso cref="IAspectInstance.SecondaryInstances"/>
+/// <seealso cref="IAspectPredecessor.Predecessors"/>
+/// <seealso href="@fabrics-adding-aspects"/>
+/// <seealso href="@child-aspects"/>
+/// <seealso href="@ordering-aspects"/>
 [CompileTime]
 [PublicAPI]
 public static class AspectQueryExtensions
@@ -111,13 +158,23 @@ public static class AspectQueryExtensions
 
     /// <summary>
     /// Requires an instance of a specified aspect type to be present on a specified declaration. If the aspect
-    /// is not present, this method adds a new instance of the aspect by using the default aspect constructor. 
+    /// is not present, this method adds a new instance of the aspect using the default aspect constructor.
     /// </summary>
     /// <remarks>
-    /// <para>Calling this method causes the current aspect to be present in the <see cref="IAspectPredecessor.Predecessors"/> list
-    /// even if the required aspect was already present on the target declaration.</para>
+    /// <para>
+    /// This method differs from <see cref="AddAspect{TAspect}(IQuery{IDeclaration})"/> in that it does not create
+    /// a secondary aspect instance if the aspect already exists on the target. Instead, it simply registers the
+    /// current aspect as a predecessor of the existing aspect.
+    /// </para>
+    /// <para>
+    /// Calling this method causes the current aspect to be present in the <see cref="IAspectPredecessor.Predecessors"/> list
+    /// even if the required aspect was already present on the target declaration. This allows the required aspect
+    /// to access the requiring aspect's state if needed.
+    /// </para>
     /// </remarks>
-    /// <typeparam name="TAspect">Type of the aspect. The type must be ordered after the aspect type calling this method.</typeparam>
+    /// <typeparam name="TAspect">Type of the aspect. The type must have a default constructor and be ordered
+    /// <em>after</em> the aspect type calling this method.</typeparam>
+    /// <seealso href="@child-aspects"/>
     public static void RequireAspect<TAspect>( this IQuery<IDeclaration> query )
         where TAspect : class, IAspect, new()
         => query.Project.ServiceProvider.GetRequiredService<IAspectQueryService>().RequireAspect( query, typeof(TAspect) );

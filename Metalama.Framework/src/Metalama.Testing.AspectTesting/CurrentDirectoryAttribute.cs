@@ -5,6 +5,7 @@
 using JetBrains.Annotations;
 using Metalama.Testing.AspectTesting.Utilities;
 using Metalama.Testing.AspectTesting.XunitFramework;
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
@@ -36,8 +37,9 @@ namespace Metalama.Testing.AspectTesting
     /// </remarks>
     /// <seealso cref="AspectTestClass"/>
     /// <seealso cref="TestOptions"/>
-    /// <seealso href="@testing-aspects"/>
+    /// <seealso href="@aspect-testing"/>
     [PublicAPI]
+    [Obsolete( "This class is obsolete. Use the default aspect test project setup provided by Metalama.Testing.AspectTesting instead." )]
     public sealed class CurrentDirectoryAttribute : DataAttribute
     {
         /// <summary>

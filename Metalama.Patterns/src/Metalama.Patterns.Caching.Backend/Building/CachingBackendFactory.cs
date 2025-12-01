@@ -8,6 +8,12 @@ using Microsoft.Extensions.Caching.Memory;
 
 namespace Metalama.Patterns.Caching.Building;
 
+/// <summary>
+/// Extension methods for <see cref="CachingBackendBuilder"/> that create specific caching backend implementations.
+/// </summary>
+/// <seealso cref="CachingBackendBuilder"/>
+/// <seealso cref="ConcreteCachingBackendBuilder"/>
+/// <seealso cref="MemoryCachingBackendBuilder"/>
 [PublicAPI]
 public static class CachingBackendFactory
 {

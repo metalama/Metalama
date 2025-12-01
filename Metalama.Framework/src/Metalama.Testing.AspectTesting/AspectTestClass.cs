@@ -41,7 +41,8 @@ namespace Metalama.Testing.AspectTesting;
 /// </remarks>
 /// <seealso cref="TestOptions"/>
 /// <seealso cref="CurrentDirectoryAttribute"/>
-/// <seealso href="@testing-aspects"/>
+/// <seealso href="@aspect-testing"/>
+[Obsolete( "This class is obsolete. Use the default aspect test project setup provided by Metalama.Testing.AspectTesting instead." )]
 public abstract class AspectTestClass
 {
     static AspectTestClass()

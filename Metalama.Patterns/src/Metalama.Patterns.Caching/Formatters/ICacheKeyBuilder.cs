@@ -7,6 +7,13 @@ namespace Metalama.Patterns.Caching.Formatters;
 /// <summary>
 /// Builds cache item keys and dependency keys.
 /// </summary>
+/// <remarks>
+/// <para>The default implementation is <see cref="CacheKeyBuilder"/>. Custom implementations can be registered
+/// through <see cref="Building.ICachingServiceBuilder.WithKeyBuilder"/>.</para>
+/// </remarks>
+/// <seealso cref="CacheKeyBuilder"/>
+/// <seealso cref="Building.ICachingServiceBuilder.WithKeyBuilder"/>
+/// <seealso href="@caching-keys"/>
 public interface ICacheKeyBuilder
 {
     /// <summary>

@@ -20,17 +20,17 @@ namespace Metalama.Extensions.Multicast;
 /// <para>
 /// This class combines the method overriding capabilities of <see cref="OverrideMethodAspect"/> with the multicasting features
 /// provided by <see cref="MulticastAspect"/>. It can be applied to methods, properties, events, types, or assemblies, and will
-/// automatically apply to matching members based on the multicasting filter properties inherited from <see cref="IMulticastAttribute"/>.
+/// automatically apply to matching method accessors based on the multicasting filter properties inherited from <see cref="IMulticastAttribute"/>.
 /// </para>
 /// <para>
-/// Derived classes must implement the <see cref="OverrideMethod"/> template to define the new method implementation.
-/// Additional templates are available for async methods, iterators, and async iterators.
+/// For details on the template system, template selection, and best practices, see the documentation of <see cref="OverrideMethodAspect"/>.
 /// </para>
 /// </remarks>
 /// <seealso cref="OverrideMethodAspect"/>
 /// <seealso cref="MulticastAspect"/>
 /// <seealso cref="IMulticastAttribute"/>
-/// <seealso href="@multicast"/>
+/// <seealso cref="OverrideFieldOrPropertyMulticastAspect"/>
+/// <seealso href="@migrating-multicasting"/>
 [AttributeUsage(
     AttributeTargets.Method | AttributeTargets.Assembly | AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Property | AttributeTargets.Event,
     AllowMultiple = true )]
@@ -102,15 +102,14 @@ public abstract class OverrideMethodMulticastAspect : MulticastAspect, IAspect<I
     }
 
     /// <summary>
-    /// Gets a value indicating whether the <see cref="OverrideAsyncMethod"/> template must be applied to all methods returning an awaitable
-    /// type (including <c>IAsyncEnumerable</c> and <c>IAsyncEnumerator</c>), instead of only to methods that have the <c>async</c> modifier.
+    /// Gets or sets a value indicating whether enumerable templates should be selected based on return type rather than the <c>yield</c> modifier.
+    /// See <see cref="OverrideMethodAspect"/> for details.
     /// </summary>
     protected bool UseEnumerableTemplateForAnyEnumerable { get; init; }
 
     /// <summary>
-    /// Gets a value indicating whether the <see cref="OverrideEnumerableMethod"/>, <see cref="OverrideEnumeratorMethod"/>,
-    /// <c>OverrideAsyncEnumerableMethod"</c> or  <c>OverrideAsyncEnumeratorMethod"</c> template must be applied to all methods returning
-    /// a compatible return type, instead of only to methods using the <c>yield</c> statement.
+    /// Gets or sets a value indicating whether async templates should be selected based on return type rather than the <c>async</c> modifier.
+    /// See <see cref="OverrideMethodAspect"/> for details.
     /// </summary>
     protected bool UseAsyncTemplateForAnyAwaitable { get; init; }
 
@@ -120,27 +119,41 @@ public abstract class OverrideMethodMulticastAspect : MulticastAspect, IAspect<I
         builder.AddRule( EligibilityRuleFactory.GetAdviceEligibilityRule( AdviceKind.OverrideMethod ) );
     }
 
+    /// <summary>
+    /// Template for overriding asynchronous methods. See <see cref="OverrideMethodAspect.OverrideAsyncMethod"/> for details.
+    /// </summary>
     [Template( IsEmpty = true )]
     public virtual Task<dynamic?> OverrideAsyncMethod() => throw new NotSupportedException();
 
+    /// <summary>
+    /// Template for overriding methods returning <see cref="IEnumerable{T}"/>. See <see cref="OverrideMethodAspect.OverrideEnumerableMethod"/> for details.
+    /// </summary>
     [Template( IsEmpty = true )]
     public virtual IEnumerable<dynamic?> OverrideEnumerableMethod() => throw new NotSupportedException();
 
+    /// <summary>
+    /// Template for overriding methods returning <see cref="IEnumerator{T}"/>. See <see cref="OverrideMethodAspect.OverrideEnumeratorMethod"/> for details.
+    /// </summary>
     [Template( IsEmpty = true )]
     public virtual IEnumerator<dynamic?> OverrideEnumeratorMethod() => throw new NotSupportedException();
 
 #if NET5_0_OR_GREATER
+    /// <summary>
+    /// Template for overriding methods returning <see cref="IAsyncEnumerable{T}"/>. See <see cref="OverrideMethodAspect"/> for details.
+    /// </summary>
     [Template( IsEmpty = true )]
     public virtual IAsyncEnumerable<dynamic?> OverrideAsyncEnumerableMethod() => throw new NotSupportedException();
 
+    /// <summary>
+    /// Template for overriding methods returning <see cref="IAsyncEnumerator{T}"/>. See <see cref="OverrideMethodAspect"/> for details.
+    /// </summary>
     [Template( IsEmpty = true )]
     public virtual IAsyncEnumerator<dynamic?> OverrideAsyncEnumeratorMethod() => throw new NotSupportedException();
 #endif
 
     /// <summary>
-    /// Default template of the new method implementation.
+    /// The default template for overriding method implementations. See <see cref="OverrideMethodAspect.OverrideMethod"/> for details.
     /// </summary>
-    /// <returns></returns>
     [Template]
     public abstract dynamic? OverrideMethod();
 }

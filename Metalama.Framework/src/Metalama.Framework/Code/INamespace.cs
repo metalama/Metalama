@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Code.Collections;
+using Metalama.Framework.Fabrics;
 using System;
 
 namespace Metalama.Framework.Code
@@ -16,7 +17,7 @@ namespace Metalama.Framework.Code
     /// <seealso cref="INamespaceOrNamedType"/>
     /// <seealso cref="INamedType"/>
     /// <seealso cref="ICompilation"/>
-    /// <seealso cref="Fabrics.NamespaceFabric"/>
+    /// <seealso cref="NamespaceFabric"/>
     public interface INamespace : INamespaceOrNamedType
     {
         /// <summary>
@@ -47,6 +48,7 @@ namespace Metalama.Framework.Code
         [Obsolete( "Use ContainingNamespace." )]
         INamespace? ParentNamespace { get; }
 
+        /// <inheritdoc cref="IDeclaration.ToRef"/>
         new IRef<INamespace> ToRef();
     }
 }

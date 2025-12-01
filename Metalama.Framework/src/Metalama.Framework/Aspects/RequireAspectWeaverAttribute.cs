@@ -3,14 +3,39 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using JetBrains.Annotations;
+using Metalama.Framework.Eligibility;
 using System;
 
 namespace Metalama.Framework.Aspects;
 
 /// <summary>
-/// Custom attribute that, when applied an an aspect class, means that this aspect class is implemented by a low-level weaver built with Metalama SDK.
-/// When the <see cref="RequireAspectWeaverAttribute"/> is added to a type, the <see cref="IAspect{T}.BuildAspect"/> method is not invoked.
+/// Binds an aspect class to a low-level weaver implementation built with <c>Metalama.Framework.Sdk</c>.
+/// When this attribute is applied to an aspect class, the <see cref="IAspect{T}.BuildAspect"/> method is bypassed
+/// and the specified weaver handles all transformations instead.
 /// </summary>
+/// <remarks>
+/// <para>
+/// Use this attribute when you need to perform C# code transformations that are not possible with the standard
+/// <see cref="IAspectBuilder"/> advice API and require direct access to the Roslyn API.
+/// </para>
+/// <para>
+/// The weaver type must:
+/// </para>
+/// <list type="bullet">
+/// <item><description>Implement <c>IAspectWeaver</c> from the <c>Metalama.Framework.Engine.AspectWeavers</c> namespace.</description></item>
+/// <item><description>Be annotated with <c>[MetalamaPlugIn]</c>.</description></item>
+/// <item><description>Have a public parameterless constructor.</description></item>
+/// </list>
+/// <para>
+/// Although <see cref="IAspect{T}.BuildAspect"/> is not called, <see cref="IEligible{T}.BuildEligibility"/>
+/// is still invoked, allowing you to define eligibility rules as usual.
+/// </para>
+/// <para>
+/// <b>Warning:</b> Weaver-based aspects are significantly more complex to implement, have worse IDE integration,
+/// and have a significant performance impact. Prefer the standard aspect approach when possible.
+/// </para>
+/// </remarks>
+/// <seealso href="@aspect-weavers"/>
 [AttributeUsage( AttributeTargets.Class )]
 [CompileTime]
 [PublicAPI]

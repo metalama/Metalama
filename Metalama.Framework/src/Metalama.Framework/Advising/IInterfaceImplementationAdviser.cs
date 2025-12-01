@@ -8,8 +8,19 @@ using Metalama.Framework.Code;
 namespace Metalama.Framework.Advising;
 
 /// <summary>
-/// Allows to introduce explicit members when implementing an interface. For the main API, see <see cref="InterfaceImplementationAdviserExtensions"/>.
+/// Provides methods to introduce explicit interface member implementations.
 /// </summary>
+/// <remarks>
+/// <para>
+/// This interface is obtained from the <see cref="IImplementInterfaceAdviceResult.ExplicitMembers"/> property or
+/// <see cref="IInterfaceImplementationResult.ExplicitMembers"/> property after calling
+/// <see cref="AdviserExtensions.ImplementInterface(IAdviser{INamedType}, INamedType, OverrideStrategy, object?)"/>.
+/// </para>
+/// <para>
+/// Use the extension methods in <see cref="InterfaceImplementationAdviserExtensions"/> to introduce explicit
+/// interface member implementations such as methods, properties, events, and indexers.
+/// </para>
+/// </remarks>
 /// <seealso cref="InterfaceImplementationAdviserExtensions"/>
 /// <seealso cref="IImplementInterfaceAdviceResult"/>
 /// <seealso cref="IInterfaceImplementationResult"/>

@@ -13,9 +13,17 @@ using System.Windows.Input;
 namespace Metalama.Patterns.Wpf.Configuration;
 
 /// <summary>
-/// Arguments of the <see cref="CommandExtensions.ConfigureCommand(Metalama.Framework.Fabrics.IQuery{Metalama.Framework.Code.ICompilation},System.Action{Metalama.Patterns.Wpf.Configuration.CommandOptionsBuilder})"/>
-/// method.
+/// Builder for configuring the <see cref="CommandAttribute"/> aspect, allowing customization of naming conventions
+/// and <see cref="INotifyPropertyChanged"/> integration.
 /// </summary>
+/// <remarks>
+/// <para>Use this builder through the <see cref="CommandExtensions.ConfigureCommand(IQuery{ICompilation},Action{CommandOptionsBuilder})"/> method
+/// and its overloads to configure command options at the project, namespace, type, or method level.</para>
+/// </remarks>
+/// <seealso cref="CommandExtensions"/>
+/// <seealso cref="CommandNamingConvention"/>
+/// <seealso cref="CommandAttribute"/>
+/// <seealso href="@wpf-command"/>
 [PublicAPI]
 [CompileTime]
 public sealed class CommandOptionsBuilder

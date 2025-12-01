@@ -62,6 +62,7 @@ namespace Metalama.Framework.Code
         /// </summary>
         new IMember Definition { get; }
 
+        /// <inheritdoc cref="IDeclaration.ToRef"/>
         new IRef<IMember> ToRef();
 
         IMember? OverriddenMember { get; }

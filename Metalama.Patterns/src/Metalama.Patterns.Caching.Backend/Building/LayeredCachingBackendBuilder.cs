@@ -31,6 +31,11 @@ public sealed class LayeredCachingBackendBuilder : ConcreteCachingBackendBuilder
         this._configuration = configuration;
     }
 
+    /// <summary>
+    /// Specifies the <see cref="IMemoryCache"/> to use for the L1 layer.
+    /// </summary>
+    /// <param name="memoryCache">The memory cache instance.</param>
+    /// <returns>This builder for method chaining.</returns>
     public LayeredCachingBackendBuilder WithMemoryCache( IMemoryCache memoryCache )
     {
         this._memoryCache = memoryCache;
@@ -38,6 +43,12 @@ public sealed class LayeredCachingBackendBuilder : ConcreteCachingBackendBuilder
         return this;
     }
 
+    /// <summary>
+    /// Specifies the options for the <see cref="MemoryCache"/> used as the L1 layer.
+    /// This method is ignored if <see cref="WithMemoryCache"/> is called.
+    /// </summary>
+    /// <param name="memoryCacheOptions">The memory cache options.</param>
+    /// <returns>This builder for method chaining.</returns>
     public LayeredCachingBackendBuilder WithMemoryCacheOptions( MemoryCacheOptions memoryCacheOptions )
     {
         this._memoryCache = new MemoryCache( memoryCacheOptions );
@@ -45,6 +56,7 @@ public sealed class LayeredCachingBackendBuilder : ConcreteCachingBackendBuilder
         return this;
     }
 
+    /// <inheritdoc />
     public override CachingBackend CreateBackend( CreateBackendArgs args )
     {
         // ReSharper disable once WithExpressionModifiesAllMembers

@@ -8,12 +8,19 @@ using Metalama.Framework.Code;
 namespace Metalama.Framework.Advising
 {
     /// <summary>
-    /// Describes an interface type implemented by advice.
+    /// Describes an interface type implemented by advice, including the implementation outcome.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This result is available in the <see cref="IImplementInterfaceAdviceResult.Interfaces"/> collection and describes
+    /// each interface (including base interfaces) that was considered when implementing an interface.
+    /// </para>
+    /// </remarks>
     /// <seealso cref="AdviserExtensions.ImplementInterface(IAdviser{INamedType}, INamedType, OverrideStrategy, object?)"/>
     /// <seealso cref="IInterfaceImplementationAdviser"/>
     /// <seealso cref="InterfaceImplementationOutcome"/>
     /// <seealso cref="IImplementInterfaceAdviceResult"/>
+    /// <seealso href="@implementing-interfaces"/>
     [CompileTime]
     public interface IInterfaceImplementationResult
     {

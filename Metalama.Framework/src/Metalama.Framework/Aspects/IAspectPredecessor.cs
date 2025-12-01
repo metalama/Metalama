@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Code;
+using Metalama.Framework.Fabrics;
 using Metalama.Framework.Utilities;
 using System.Collections.Immutable;
 
@@ -14,7 +15,7 @@ namespace Metalama.Framework.Aspects
     /// </summary>
     /// <remarks>
     /// <para>
-    /// This interface is implemented by <see cref="IAspectInstance"/>, <see cref="Fabrics.IFabricInstance"/>, and <see cref="Code.IAttribute"/>,
+    /// This interface is implemented by <see cref="IAspectInstance"/>, <see cref="IFabricInstance"/>, and <see cref="IAttribute"/>,
     /// establishing a unified model for tracking what caused aspects to be added to declarations.
     /// </para>
     /// <para>
@@ -36,8 +37,8 @@ namespace Metalama.Framework.Aspects
     /// </remarks>
     /// <seealso cref="IAspectInstance"/>
     /// <seealso cref="IAspectState"/>
-    /// <seealso cref="Fabrics.IFabricInstance"/>
-    /// <seealso cref="Code.IAttribute"/>
+    /// <seealso cref="IFabricInstance"/>
+    /// <seealso cref="IAttribute"/>
     /// <seealso href="@child-aspects"/>
     /// <seealso href="@introspection"/>
     [CompileTime]

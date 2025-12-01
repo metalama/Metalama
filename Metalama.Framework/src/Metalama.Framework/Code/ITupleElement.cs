@@ -11,11 +11,13 @@ namespace Metalama.Framework.Code;
 /// Represents an element of a tuple type.
 /// </summary>
 /// <remarks>
-/// To access a tuple element as an expression, use the <see cref="IFieldOrPropertyInvoker.WithObject(Metalama.Framework.Code.IExpression?)"/> method.
+/// To access a tuple element's value in generated code, use the <see cref="IFieldOrPropertyInvoker.WithObject(IExpression?)"/> method,
+/// passing the tuple instance expression.
 /// </remarks>
 /// <seealso cref="ITupleType"/>
 /// <seealso cref="IField"/>
 /// <seealso cref="IFieldOrPropertyInvoker"/>
+/// <seealso href="@type-system"/>
 public interface ITupleElement : IField
 {
     /// <summary>

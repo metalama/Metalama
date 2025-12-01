@@ -1113,14 +1113,14 @@ public static class AdviserExtensions
     /// <summary>
     /// Makes a type implement a new interface specified as an <see cref="INamedType"/>.
     /// Interface members can be introduced declaratively by marking an aspect member with <see cref="InterfaceMemberAttribute"/> or
-    /// <see cref="Aspects.IntroduceAttribute"/>, or programmatically using introduction methods.
+    /// <see cref="IntroduceAttribute"/>, or programmatically using introduction methods.
     /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to implement the interface on a different type than the current one.
     /// </summary>
     /// <param name="adviser">An adviser for a named type.</param>
     /// <param name="interfaceType">The type of the implemented interface.</param>
     /// <param name="whenExists">Determines the implementation strategy when the interface is already implemented by the target type.
     ///     The default strategy is to fail with a compile-time error.</param>
-    /// <param name="tags">An optional object (typically of anonymous type) passed to <see cref="InterfaceMemberAttribute"/> templates and accessible via <c>meta.Tags</c>. This parameter does not affect members introduced using <see cref="Aspects.IntroduceAttribute"/> or programmatically. See <see href="@sharing-state-with-advice"/> for details.</param>
+    /// <param name="tags">An optional object (typically of anonymous type) passed to <see cref="InterfaceMemberAttribute"/> templates and accessible via <c>meta.Tags</c>. This parameter does not affect members introduced using <see cref="IntroduceAttribute"/> or programmatically. See <see href="@sharing-state-with-advice"/> for details.</param>
     /// <returns>An <see cref="IImplementInterfaceAdviceResult"/> exposing the implementation operation.</returns>
     /// <seealso href="@implementing-interfaces"/>
     /// <seealso href="@sharing-state-with-advice"/>
@@ -1138,14 +1138,14 @@ public static class AdviserExtensions
     /// <summary>
     /// Makes a type implement a new interface specified as a reflection <see cref="Type"/>.
     /// Interface members can be introduced declaratively by marking an aspect member with <see cref="InterfaceMemberAttribute"/>,
-    /// <see cref="Aspects.IntroduceAttribute"/> or programmatically using introduction methods.
+    /// <see cref="IntroduceAttribute"/> or programmatically using introduction methods.
     /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to implement the interface on a different type than the current one.
     /// </summary>
     /// <param name="adviser">An adviser for a named type.</param>
     /// <param name="interfaceType">The type of the implemented interface.</param>
     /// <param name="whenExists">Determines the implementation strategy when the interface is already implemented by the target type.
     ///     The default strategy is to fail with a compile-time error.</param>
-    /// <param name="tags">An optional object (typically of anonymous type) passed to <see cref="InterfaceMemberAttribute"/> templates and accessible via <c>meta.Tags</c>. This parameter does not affect members introduced using <see cref="Aspects.IntroduceAttribute"/> or programmatically. See <see href="@sharing-state-with-advice"/> for details.</param>
+    /// <param name="tags">An optional object (typically of anonymous type) passed to <see cref="InterfaceMemberAttribute"/> templates and accessible via <c>meta.Tags</c>. This parameter does not affect members introduced using <see cref="IntroduceAttribute"/> or programmatically. See <see href="@sharing-state-with-advice"/> for details.</param>
     /// <returns>An <see cref="IImplementInterfaceAdviceResult"/> exposing the implementation operation.</returns>
     /// <seealso href="@implementing-interfaces"/>
     /// <seealso href="@sharing-state-with-advice"/>
@@ -1354,12 +1354,19 @@ public static class AdviserExtensions
     /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to add the attribute to a different declaration than the current one.
     /// </summary>
     /// <param name="adviser">An adviser for a declaration.</param>
-    /// <param name="attribute">The custom attribute to be added. It can be an existing <see cref="IAttributeData"/>, or you can use <see cref="AttributeConstruction"/>
-    ///     to specify a new attribute.</param>
-    /// <param name="whenExists">Specifies the strategy to follow when an attribute of the same type already exists on the target declaration. <see cref="OverrideStrategy.Fail"/> fails the
-    ///     compilation with an error (default). <see cref="OverrideStrategy.Ignore"/> silently ignores the introduction. <see cref="OverrideStrategy.Override"/> removes
-    ///     all previous instances and replaces them with the new one. <see cref="OverrideStrategy.New"/> adds the new instance regardless.</param>
+    /// <param name="attribute">The custom attribute to be added. It can be an existing <see cref="IAttribute"/> from the code model
+    ///     (as it implements <see cref="IAttributeData"/>), or you can use <see cref="AttributeConstruction.Create(Type, System.Collections.Generic.IReadOnlyList{object?}?, System.Collections.Generic.IReadOnlyList{System.Collections.Generic.KeyValuePair{string, object?}}?)"/>
+    ///     to create a new attribute programmatically.</param>
+    /// <param name="whenExists">Specifies the strategy to follow when an attribute of the same type already exists on the target declaration:
+    ///     <see cref="OverrideStrategy.Fail"/> fails the compilation with an error (default);
+    ///     <see cref="OverrideStrategy.Ignore"/> silently skips the introduction;
+    ///     <see cref="OverrideStrategy.Override"/> removes all previous instances and replaces them with the new one;
+    ///     <see cref="OverrideStrategy.New"/> adds the new instance regardless of existing attributes.</param>
     /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> exposing the introduced <see cref="IAttribute"/>.</returns>
+    /// <seealso cref="RemoveAttributes(IAdviser{IDeclaration}, INamedType)"/>
+    /// <seealso cref="AttributeConstruction"/>
+    /// <seealso cref="IDeclaration.Attributes"/>
+    /// <seealso href="@adding-attributes"/>
     public static IIntroductionAdviceResult<IAttribute> IntroduceAttribute(
         this IAdviser<IDeclaration> adviser,
         IAttributeData attribute,
@@ -1374,8 +1381,17 @@ public static class AdviserExtensions
     /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to remove attributes from a different declaration than the current one.
     /// </summary>
     /// <param name="adviser">An adviser for a declaration.</param>
-    /// <param name="attributeType">The type of custom attributes to be removed.</param>
+    /// <param name="attributeType">The type of custom attributes to be removed. All attributes whose type is assignable to this type will be removed.</param>
     /// <returns>An <see cref="IRemoveAttributesAdviceResult"/> exposing the removal operation.</returns>
+    /// <remarks>
+    /// <para>
+    /// Note that custom attributes cannot be edited in place. To modify an attribute, remove it using this method
+    /// and add a new one using <see cref="IntroduceAttribute"/>.
+    /// </para>
+    /// </remarks>
+    /// <seealso cref="IntroduceAttribute"/>
+    /// <seealso cref="IDeclaration.Attributes"/>
+    /// <seealso href="@adding-attributes"/>
     public static IRemoveAttributesAdviceResult RemoveAttributes(
         this IAdviser<IDeclaration> adviser,
         INamedType attributeType )
@@ -1388,8 +1404,17 @@ public static class AdviserExtensions
     /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to remove attributes from a different declaration than the current one.
     /// </summary>
     /// <param name="adviser">An adviser for a declaration.</param>
-    /// <param name="attributeType">The type of custom attributes to be removed.</param>
+    /// <param name="attributeType">The type of custom attributes to be removed. All attributes whose type is assignable to this type will be removed.</param>
     /// <returns>An <see cref="IRemoveAttributesAdviceResult"/> exposing the removal operation.</returns>
+    /// <remarks>
+    /// <para>
+    /// Note that custom attributes cannot be edited in place. To modify an attribute, remove it using this method
+    /// and add a new one using <see cref="IntroduceAttribute"/>.
+    /// </para>
+    /// </remarks>
+    /// <seealso cref="IntroduceAttribute"/>
+    /// <seealso cref="IDeclaration.Attributes"/>
+    /// <seealso href="@adding-attributes"/>
     public static IRemoveAttributesAdviceResult RemoveAttributes(
         this IAdviser<IDeclaration> adviser,
         Type attributeType )
@@ -1655,16 +1680,49 @@ public static class AdviserExtensions
             name );
 
     /// <summary>
-    /// Adds a custom annotation to a declaration. An annotation is an arbitrary but serializable object that can then be retrieved
-    /// using the <see cref="DeclarationEnhancements{T}.GetAnnotations{TAnnotation}"/> method of the <see cref="DeclarationExtensions.Enhancements{T}"/> object.
-    /// Annotations are a way of communication between aspects or classes of aspects.
-    /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> method to add the annotation to a different declaration than the current one.
+    /// Adds a custom annotation to a declaration. Annotations enable communication between aspects by attaching
+    /// arbitrary serializable objects to declarations that other aspects can query.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Annotations are useful for:
+    /// </para>
+    /// <list type="bullet">
+    /// <item><description><b>Inter-aspect communication:</b> Pass information from one aspect to another without using aspect inheritance</description></item>
+    /// <item><description><b>Flagging declarations:</b> Mark declarations for special processing by later aspects</description></item>
+    /// <item><description><b>Storing computed data:</b> Attach data that other aspects need during code generation</description></item>
+    /// </list>
+    /// <para>
+    /// <b>Reading annotations:</b> Use <see cref="DeclarationEnhancements{T}.GetAnnotations{TAnnotation}"/> via
+    /// <see cref="DeclarationExtensions.Enhancements{T}(T)"/> to retrieve annotations from any declaration.
+    /// </para>
+    /// <para>
+    /// <b>Visibility:</b> By default, annotations are only visible within the current project. Set <paramref name="export"/>
+    /// to <c>true</c> to make them visible to projects that reference this one.
+    /// </para>
+    /// <para>
+    /// <b>Targeting other declarations:</b> Use <see cref="IAdviser.With{TNewDeclaration}"/> to add annotations to
+    /// declarations other than the current target.
+    /// </para>
+    /// <para>
+    /// <b>Annotations vs AspectState:</b> Use <see cref="IAspectBuilder.AspectState"/> to share state with child aspects
+    /// and inheriting aspects via the predecessor chain. Use annotations for peer-to-peer aspect communication.
+    /// </para>
+    /// <para>
+    /// <b>Design-time limitation:</b> At design time, Metalama performs partial compilations that only include the
+    /// inheritance closure of modified files. Aspects targeting declarations outside this scope do not execute,
+    /// so their annotations are unavailable. This does not affect full compile time.
+    /// </para>
+    /// </remarks>
     /// <param name="adviser">An adviser for a declaration.</param>
-    /// <param name="annotation">The annotation.</param>
+    /// <param name="annotation">The annotation to attach to the target declaration.</param>
     /// <param name="export">A value indicating whether the annotation should be exported and made visible to other projects.
     /// Unless this parameter is set to <c>true</c>, the annotation will only be visible to the current project.</param>
     /// <typeparam name="TDeclaration">The type of declaration.</typeparam>
+    /// <seealso cref="IAnnotation{T}"/>
+    /// <seealso cref="DeclarationEnhancements{T}.GetAnnotations{TAnnotation}"/>
+    /// <seealso cref="IAspectBuilder.AspectState"/>
+    /// <seealso href="@sharing-state-with-advice"/>
     public static void AddAnnotation<TDeclaration>(
         this IAdviser<TDeclaration> adviser,
         IAnnotation<TDeclaration> annotation,

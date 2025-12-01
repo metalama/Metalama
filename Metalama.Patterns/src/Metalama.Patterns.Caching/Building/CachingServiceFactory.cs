@@ -9,8 +9,11 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Metalama.Patterns.Caching.Building;
 
 /// <summary>
-/// Extension methods to <see cref="IServiceCollection"/>.
+/// Extension methods to <see cref="IServiceCollection"/> for configuring Metalama Caching with dependency injection.
 /// </summary>
+/// <seealso cref="ICachingServiceBuilder"/>
+/// <seealso cref="ICachingService"/>
+/// <seealso href="@caching-getting-started"/>
 [PublicAPI]
 public static class CachingServiceFactory
 {

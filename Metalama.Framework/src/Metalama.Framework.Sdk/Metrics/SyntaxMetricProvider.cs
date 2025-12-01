@@ -12,9 +12,33 @@ using System;
 namespace Metalama.Framework.Engine.Metrics
 {
     /// <summary>
-    /// An implementation of <see cref="IMetricProvider{T}"/> that is based on a <see cref="CSharpSyntaxVisitor"/>.
+    /// Base class for implementing custom metrics that analyze Roslyn syntax trees.
+    /// Derive from this class when your metric needs to examine the actual code structure (statements, expressions, etc.).
     /// </summary>
-    /// <typeparam name="T">Type of the metric.</typeparam>
+    /// <typeparam name="T">The metric type, which must be a struct implementing <see cref="IMetric"/>.</typeparam>
+    /// <remarks>
+    /// <para>
+    /// <see cref="SyntaxMetricProvider{T}"/> simplifies syntax-based metric implementation by:
+    /// </para>
+    /// <list type="bullet">
+    /// <item><description>Automatically locating syntax nodes from declarations using <see cref="ISymbol.DeclaringSyntaxReferences"/>.</description></item>
+    /// <item><description>Providing a <see cref="BaseVisitor"/> class that handles recursive aggregation by default.</description></item>
+    /// <item><description>Handling partial declarations by visiting and aggregating each part.</description></item>
+    /// </list>
+    /// <para>
+    /// To create a syntax-based metric:
+    /// </para>
+    /// <list type="number">
+    /// <item><description>Create a metric struct implementing <see cref="IMetric{TTarget}"/>.</description></item>
+    /// <item><description>Create a nested visitor class deriving from <see cref="BaseVisitor"/> and override <see cref="CSharpSyntaxVisitor{TResult}.Visit"/> methods.</description></item>
+    /// <item><description>Create a provider class deriving from <see cref="SyntaxMetricProvider{T}"/>, passing the visitor to the constructor.</description></item>
+    /// <item><description>Override <see cref="MetricProvider{T}.Aggregate"/> to combine values.</description></item>
+    /// <item><description>Annotate the provider class with <see cref="Metalama.Framework.Engine.MetalamaPlugInAttribute"/>.</description></item>
+    /// </list>
+    /// </remarks>
+    /// <seealso cref="MetricProvider{T}"/>
+    /// <seealso cref="BaseVisitor"/>
+    /// <seealso href="@custom-metrics"/>
     public abstract class SyntaxMetricProvider<T> : MetricProvider<T>
         where T : struct, IMetric
     {

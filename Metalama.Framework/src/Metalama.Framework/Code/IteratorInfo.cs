@@ -46,8 +46,8 @@ public readonly struct IteratorInfo
     }
 
     /// <summary>
-    /// Gets the kind of enumerable (<see cref="Code.EnumerableKind.IEnumerable"/>, <see cref="Code.EnumerableKind.IEnumerator"/>,
-    /// <see cref="Code.EnumerableKind.IAsyncEnumerable"/>, ...), regardless of whether the method is a yield-base iterator (see <see cref="IsIteratorMethod"/>).
+    /// Gets the kind of enumerable (<see cref="EnumerableKind.IEnumerable"/>, <see cref="EnumerableKind.IEnumerator"/>,
+    /// <see cref="EnumerableKind.IAsyncEnumerable"/>, ...), regardless of whether the method is a yield-base iterator (see <see cref="IsIteratorMethod"/>).
     /// </summary>
     public EnumerableKind EnumerableKind { get; }
 

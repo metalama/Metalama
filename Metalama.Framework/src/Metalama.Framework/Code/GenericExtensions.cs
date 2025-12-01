@@ -18,6 +18,7 @@ namespace Metalama.Framework.Code
     /// <seealso cref="ITypeParameter"/>
     /// <seealso cref="INamedType"/>
     /// <seealso cref="IMethod"/>
+    /// <seealso href="@type-system"/>
     [CompileTime]
     [PublicAPI]
     public static class GenericExtensions

@@ -16,16 +16,29 @@ namespace Metalama.Patterns.Contracts;
 /// throw an exception.
 /// </summary>
 /// <remarks>
-/// <para>Error message can use additional argument <value>{4}</value> to refer to the regular expression used.</para>
+/// <para>To create a reusable regular expression contract, derive from <see cref="RegularExpressionBaseAttribute"/>
+/// and override <see cref="RegularExpressionBaseAttribute.GetRegex"/>.</para>
 /// </remarks>
+/// <seealso cref="RegularExpressionBaseAttribute"/>
 /// <seealso href="@contract-types"/>
 [PublicAPI]
 public class RegularExpressionAttribute : RegularExpressionBaseAttribute
 {
+    /// <summary>
+    /// Gets the regular expression pattern to match against.
+    /// </summary>
     public string Pattern { get; }
 
+    /// <summary>
+    /// Gets the options that modify the regular expression.
+    /// </summary>
     public RegexOptions Options { get; }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="RegularExpressionAttribute"/> class.
+    /// </summary>
+    /// <param name="pattern">The regular expression pattern to match against.</param>
+    /// <param name="options">Options that modify the regular expression behavior.</param>
     public RegularExpressionAttribute( string pattern, RegexOptions options = RegexOptions.None )
     {
         this.Pattern = pattern;

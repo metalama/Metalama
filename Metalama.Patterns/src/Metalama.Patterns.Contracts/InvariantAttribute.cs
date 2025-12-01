@@ -25,6 +25,7 @@ namespace Metalama.Patterns.Contracts;
 /// <seealso href="@invariants"/>
 public sealed class InvariantAttribute : MethodAspect
 {
+    /// <inheritdoc />
     public override void BuildEligibility( IEligibilityBuilder<IMethod> builder )
     {
         builder.MustNotBeStatic();
@@ -42,6 +43,7 @@ public sealed class InvariantAttribute : MethodAspect
         invariantMethod.Invoke();
     }
 
+    /// <inheritdoc />
     public override void BuildAspect( IAspectBuilder<IMethod> builder )
     {
         if ( builder.Target.GetContractOptions().AreInvariantsEnabled == false )

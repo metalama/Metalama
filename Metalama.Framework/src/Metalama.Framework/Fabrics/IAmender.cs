@@ -4,6 +4,8 @@
 
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
+using Metalama.Framework.Diagnostics;
+using Metalama.Framework.Options;
 using Metalama.Framework.Project;
 using Metalama.Framework.Utilities;
 using System;
@@ -34,9 +36,9 @@ namespace Metalama.Framework.Fabrics
     /// Extension methods for this interface are provided by:
     /// </para>
     /// <list type="bullet">
-    /// <item><description><see cref="Aspects.AspectQueryExtensions"/> - for adding aspects to selected declarations</description></item>
-    /// <item><description><see cref="Options.OptionQueryExtensions"/> - for configuring options on selected declarations</description></item>
-    /// <item><description><see cref="Diagnostics.DiagnosticsQueryExtensions"/> - for reporting diagnostics and suppressions</description></item>
+    /// <item><description><see cref="AspectQueryExtensions"/> - for adding aspects to selected declarations</description></item>
+    /// <item><description><see cref="OptionQueryExtensions"/> - for configuring options on selected declarations</description></item>
+    /// <item><description><see cref="DiagnosticsQueryExtensions"/> - for reporting diagnostics and suppressions</description></item>
     /// <item><description><see cref="QueryExtensions"/> - for additional querying capabilities</description></item>
     /// <item><description><c>Metalama.Extensions.Architecture.Predicates.PredicateExtensions</c> - for architecture validation predicates</description></item>
     /// <item><description><c>Metalama.Extensions.Validation.ValidationQueryExtensions</c> - for validation rules</description></item>
@@ -50,9 +52,9 @@ namespace Metalama.Framework.Fabrics
     /// <seealso cref="IProjectAmender"/>
     /// <seealso cref="INamespaceAmender"/>
     /// <seealso cref="ITypeAmender"/>
-    /// <seealso cref="Aspects.AspectQueryExtensions"/>
-    /// <seealso cref="Options.OptionQueryExtensions"/>
-    /// <seealso cref="Diagnostics.DiagnosticsQueryExtensions"/>
+    /// <seealso cref="AspectQueryExtensions"/>
+    /// <seealso cref="OptionQueryExtensions"/>
+    /// <seealso cref="DiagnosticsQueryExtensions"/>
     /// <seealso cref="QueryExtensions"/>
     /// <seealso href="@fabrics"/>
     /// <seealso href="@fabrics-adding-aspects"/>

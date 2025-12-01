@@ -9,8 +9,15 @@ using Metalama.Patterns.Caching.Implementation;
 namespace Metalama.Patterns.Caching;
 
 /// <summary>
-/// Configuration of a <see cref="CacheItem"/>.
+/// Configuration of a <see cref="CacheItem"/>, specifying expiration, priority, and profile settings.
 /// </summary>
+/// <remarks>
+/// <para>This class represents run-time configuration for cache items. Compile-time configuration
+/// is specified through the <see cref="Aspects.CacheAttribute"/> or <see cref="Aspects.CachingConfigurationAttribute"/>.</para>
+/// </remarks>
+/// <seealso cref="Implementation.ICacheItemConfiguration"/>
+/// <seealso cref="CachingProfile"/>
+/// <seealso cref="Aspects.CachingBaseAttribute"/>
 [RunTimeOrCompileTime]
 [PublicAPI]
 public record CacheItemConfiguration : ICacheItemConfiguration

@@ -17,9 +17,32 @@ using Xunit.Abstractions;
 namespace Metalama.Testing.UnitTesting
 {
     /// <summary>
-    /// A base class for all Metalama unit tests that require Metalama services. Exposes a <see cref="CreateTestContext(IAdditionalServiceCollection,string?,string?)"/>
-    /// that creates a context with all services. The next step is typically to call one of the methods or properties of the returned <see cref="TestContext"/>.
+    /// A base class for xUnit tests that need to unit-test compile-time helper classes or query the Metalama code model.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This class provides the infrastructure for writing unit tests of compile-time logic used by aspects,
+    /// without executing the aspects themselves. Test methods should call <see cref="CreateTestContext(string?,string?)"/>
+    /// to obtain a <see cref="TestContext"/> that provides access to Metalama services.
+    /// </para>
+    /// <para>
+    /// A typical test workflow is:
+    /// <list type="number">
+    /// <item>Create a test context using <see cref="CreateTestContext(string?,string?)"/></item>
+    /// <item>Create a compilation using <see cref="TestContext.CreateCompilation(string,string?,bool,System.Collections.Generic.IEnumerable{Microsoft.CodeAnalysis.MetadataReference}?,string?,bool)"/></item>
+    /// <item>Optionally switch execution context using <see cref="TestContext.WithExecutionContext"/> if your code uses <see cref="Metalama.Framework.Code.SyntaxBuilders.ExpressionFactory"/></item>
+    /// <item>Query the code model or call your compile-time helper classes</item>
+    /// <item>Assert expected results</item>
+    /// </list>
+    /// </para>
+    /// <para>
+    /// The test context must be disposed at the end of each test method.
+    /// </para>
+    /// </remarks>
+    /// <seealso cref="TestContext"/>
+    /// <seealso cref="TestContextOptions"/>
+    /// <seealso href="@compile-time-testing"/>
+    [PublicAPI]
     public abstract class UnitTestClass : IDisposable
     {
         static UnitTestClass()

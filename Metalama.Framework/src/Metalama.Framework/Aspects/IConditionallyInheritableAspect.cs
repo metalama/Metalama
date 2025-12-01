@@ -24,6 +24,11 @@ namespace Metalama.Framework.Aspects;
 /// <item><description>Interface implementations (from an interface member)</description></item>
 /// </list>
 /// <para>
+/// <b>Cross-project inheritance:</b> When the base declaration is in a referenced assembly, the <see cref="IAspect"/>
+/// object itself and its <see cref="IAspectState"/> (if set) are serialized into that assembly and deserialized
+/// when compiling the derived project. Ensure your aspect class and any custom state are compile-time serializable.
+/// </para>
+/// <para>
 /// <b>Note:</b> When this interface is implemented, the IDE refactoring menu will always suggest adding the aspect
 /// to a declaration, even if the aspect is eligible for inheritance only on the target declaration.
 /// </para>

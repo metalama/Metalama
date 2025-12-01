@@ -14,13 +14,39 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Metalama.Patterns.Caching;
 
+/// <summary>
+/// Default implementation of the <see cref="ICachingService"/> interface, providing the run-time caching infrastructure.
+/// </summary>
+/// <remarks>
+/// <para>The <see cref="CachingService"/> class is the main run-time component of Metalama Caching. It manages
+/// caching profiles, backends, key builders, and value adapters.</para>
+/// <para>When using dependency injection, instances are created via <see cref="Building.CachingServiceFactory.AddMetalamaCaching"/>.
+/// When not using dependency injection, use the <see cref="Default"/> static property, initialized via the <see cref="Create"/> method.</para>
+/// </remarks>
+/// <seealso cref="ICachingService"/>
+/// <seealso cref="CachingProfile"/>
+/// <seealso cref="Building.CachingServiceFactory"/>
+/// <seealso href="@caching-getting-started"/>
 public sealed partial class CachingService : ICachingService
 {
     private readonly FormatterRepository _formatters;
     private readonly bool _ownsBackend;
 
+    /// <summary>
+    /// Gets or sets the default <see cref="CachingService"/> instance used when dependency injection is disabled.
+    /// </summary>
+    /// <remarks>
+    /// <para>This property should be initialized during application startup when not using dependency injection.
+    /// Use the <see cref="Create"/> method to create an instance.</para>
+    /// </remarks>
     public static CachingService Default { get; set; } = CreateUninitialized();
 
+    /// <summary>
+    /// Creates a new instance of the <see cref="CachingService"/> class with the specified configuration.
+    /// </summary>
+    /// <param name="build">An optional delegate to configure the service using <see cref="Building.ICachingServiceBuilder"/>.</param>
+    /// <param name="serviceProvider">An optional <see cref="IServiceProvider"/> for resolving dependencies.</param>
+    /// <returns>A configured <see cref="CachingService"/> instance.</returns>
     public static CachingService Create( Action<ICachingServiceBuilder>? build = null, IServiceProvider? serviceProvider = null )
     {
         var builder = new Builder( serviceProvider );

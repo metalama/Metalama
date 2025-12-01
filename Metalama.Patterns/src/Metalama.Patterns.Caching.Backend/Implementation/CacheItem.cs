@@ -9,11 +9,19 @@ using System.Collections.Immutable;
 namespace Metalama.Patterns.Caching.Implementation;
 
 /// <summary>
-/// Represents an item being added to the cache.
+/// Represents an item being added to the cache, including the cached value, its dependencies, and configuration.
 /// </summary>
+/// <seealso cref="ICacheItemConfiguration"/>
+/// <seealso cref="Backends.CachingBackend"/>
 [PublicAPI]
 public record CacheItem
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="CacheItem"/> class.
+    /// </summary>
+    /// <param name="value">The value to cache.</param>
+    /// <param name="dependencies">Optional dependencies for cache invalidation.</param>
+    /// <param name="configuration">Optional configuration for this cache item.</param>
     public CacheItem(
         object? value,
         ImmutableArray<string> dependencies = default,
@@ -106,10 +114,19 @@ public record CacheItem
         }
     }
 
+    /// <summary>
+    /// Gets or initializes the cached value.
+    /// </summary>
     public object? Value { get; init; }
 
+    /// <summary>
+    /// Gets or initializes the dependencies associated with this cache item.
+    /// </summary>
     public ImmutableArray<string> Dependencies { get; init; }
 
+    /// <summary>
+    /// Gets or initializes the configuration for this cache item.
+    /// </summary>
     public ICacheItemConfiguration? Configuration { get; init; }
 
     internal virtual void Serialize( BinaryWriter writer, ICachingSerializer serializer )

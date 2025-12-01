@@ -20,7 +20,7 @@ namespace Metalama.Testing.AspectTesting
     /// </para>
     /// </remarks>
     /// <seealso cref="TestOptions.TestScenario"/>
-    /// <seealso href="@testing-aspects"/>
+    /// <seealso href="@aspect-testing"/>
     [PublicAPI]
     public enum TestScenario
     {

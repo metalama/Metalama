@@ -36,6 +36,7 @@ namespace Metalama.Framework.Code;
 /// <seealso cref="IHierarchicalOptions{T}"/>
 /// <seealso cref="IAnnotation{T}"/>
 /// <seealso href="@exposing-options"/>
+/// <seealso href="@sharing-state-with-advice"/>
 [CompileTime]
 public readonly struct DeclarationEnhancements<T>
     where T : class, IDeclaration
@@ -115,8 +116,26 @@ public readonly struct DeclarationEnhancements<T>
     /// <summary>
     /// Gets the list of annotations of a given type on the current declaration.
     /// </summary>
-    /// <typeparam name="TAnnotation">The type of annotations.</typeparam>
+    /// <typeparam name="TAnnotation">The type of annotations to retrieve.</typeparam>
     /// <returns>The list of annotations of type <typeparamref name="TAnnotation"/> on the current declaration.</returns>
+    /// <remarks>
+    /// <para>
+    /// Annotations are added by aspects via <see cref="AdviserExtensions.AddAnnotation{TDeclaration}"/>
+    /// and can be used for inter-aspect communication within a project.
+    /// </para>
+    /// <para>
+    /// Only annotations added by aspects that have already executed are visible. Annotations from aspects
+    /// ordered after the current one are not accessible.
+    /// </para>
+    /// <para>
+    /// <b>Design-time limitation:</b> At design time, Metalama performs partial compilations that only include
+    /// the inheritance closure of modified files. Aspects targeting declarations outside this scope do not execute,
+    /// so their annotations are unavailable.
+    /// </para>
+    /// </remarks>
+    /// <seealso cref="IAnnotation{T}"/>
+    /// <seealso cref="AdviserExtensions.AddAnnotation{TDeclaration}"/>
+    /// <seealso href="@sharing-state-with-advice"/>
     public IEnumerable<TAnnotation> GetAnnotations<TAnnotation>()
         where TAnnotation : class, IAnnotation<T>
         => ((ICompilationInternal) this.Declaration.Compilation).GetAnnotations<TAnnotation>( this.Declaration );

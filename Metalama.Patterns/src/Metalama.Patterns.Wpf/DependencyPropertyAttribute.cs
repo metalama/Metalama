@@ -13,6 +13,22 @@ using System.Windows;
 
 namespace Metalama.Patterns.Wpf;
 
+/// <summary>
+/// Aspect that transforms a C# automatic property into a WPF dependency property. When applied to an automatic property
+/// in a class derived from <see cref="DependencyObject"/>, it generates the static <see cref="DependencyProperty"/> field
+/// and replaces the property accessors to use <see cref="DependencyObject.GetValue"/> and <see cref="DependencyObject.SetValue"/>.
+/// </summary>
+/// <remarks>
+/// <para>The aspect supports the following features:</para>
+/// <para>- <b>Default values</b>: Property initializers are used as the <see cref="PropertyMetadata.DefaultValue"/> for the dependency property.</para>
+/// <para>- <b>Read-only properties</b>: Properties with a private setter are registered as read-only dependency properties.</para>
+/// <para>- <b>Validation</b>: A <c>ValidateFoo</c> method (where <c>Foo</c> is the property name) is automatically detected and called to validate values.</para>
+/// <para>- <b>Property changed callbacks</b>: An <c>OnFooChanged</c> method is automatically detected and called after property changes.</para>
+/// <para>- <b>Contract integration</b>: Contracts from <c>Metalama.Patterns.Contracts</c> (like <c>[NotNull]</c>) are enforced on the property.</para>
+/// </remarks>
+/// <seealso cref="Configuration.DependencyPropertyExtensions"/>
+/// <seealso cref="Configuration.DependencyPropertyOptionsBuilder"/>
+/// <seealso href="@wpf-dependency-property"/>
 [PublicAPI]
 [AttributeUsage( AttributeTargets.Property )]
 public sealed class DependencyPropertyAttribute : Attribute, IAspect<IProperty>, IHierarchicalOptionsProvider

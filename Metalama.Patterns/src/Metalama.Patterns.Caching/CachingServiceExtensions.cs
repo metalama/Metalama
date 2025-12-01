@@ -14,13 +14,38 @@ using static Flashtrace.Messages.FormattedMessageBuilder;
 namespace Metalama.Patterns.Caching;
 
 /// <summary>
-/// Extension methods for the <see cref="ICachingService"/> interface.
+/// Extension methods for the <see cref="ICachingService"/> interface, providing methods for cache invalidation,
+/// dependency management, and cache refresh operations.
 /// </summary>
+/// <remarks>
+/// <para>This class provides the primary API for imperative cache operations at run time, including:</para>
+/// <list type="bullet">
+/// <item><description>Adding dependencies to the current caching context (<see cref="AddDependency(ICachingService, string)"/>).</description></item>
+/// <item><description>Invalidating cached items by dependency (<see cref="Invalidate(ICachingService, string)"/>).</description></item>
+/// <item><description>Invalidating specific cached method calls (<see cref="Invalidate{TReturn}(ICachingService, Func{TReturn})"/>).</description></item>
+/// <item><description>Refreshing cached values (<see cref="Refresh{TReturn}(ICachingService, Func{TReturn})"/>).</description></item>
+/// </list>
+/// </remarks>
+/// <seealso cref="ICachingService"/>
+/// <seealso cref="Dependencies.ICacheDependency"/>
+/// <seealso href="@caching-invalidation"/>
+/// <seealso href="@caching-dependencies"/>
 [PublicAPI]
 public static partial class CachingServiceExtensions
 {
+    /// <summary>
+    /// Adds a string dependency to the current caching context, so that the cached item will be invalidated
+    /// when this dependency is invalidated.
+    /// </summary>
+    /// <param name="cachingService">The <see cref="ICachingService"/>.</param>
+    /// <param name="key">The dependency key.</param>
     public static void AddDependency( this ICachingService cachingService, string key ) => CachingContext.Current.AddDependency( key );
 
+    /// <summary>
+    /// Adds multiple string dependencies to the current caching context.
+    /// </summary>
+    /// <param name="cachingService">The <see cref="ICachingService"/>.</param>
+    /// <param name="keys">The dependency keys.</param>
     public static void AddDependencies( this ICachingService cachingService, IEnumerable<string> keys ) => CachingContext.Current.AddDependencies( keys );
 
     /// <summary>
@@ -40,6 +65,12 @@ public static partial class CachingServiceExtensions
     /// </remarks>
     public static IDisposable SuspendDependencyPropagation( this ICachingService cachingService ) => CachingContext.OpenSuspendedCacheContext();
 
+    /// <summary>
+    /// Adds an <see cref="ICacheDependency"/> to the current caching context, so that the cached item will be invalidated
+    /// when this dependency is invalidated.
+    /// </summary>
+    /// <param name="cachingService">The <see cref="ICachingService"/>.</param>
+    /// <param name="dependency">The dependency to add.</param>
     public static void AddDependency( this ICachingService cachingService, ICacheDependency dependency )
     {
         cachingService.AddDependency( dependency.GetCacheKey( cachingService ) );
@@ -50,6 +81,11 @@ public static partial class CachingServiceExtensions
         }
     }
 
+    /// <summary>
+    /// Adds multiple <see cref="ICacheDependency"/> instances to the current caching context.
+    /// </summary>
+    /// <param name="cachingService">The <see cref="ICachingService"/>.</param>
+    /// <param name="dependencies">The dependencies to add.</param>
     public static void AddDependencies( this ICachingService cachingService, IEnumerable<ICacheDependency> dependencies )
     {
         cachingService.AddDependencies( dependencies.Select( d => d.GetCacheKey( cachingService ) ) );
@@ -86,6 +122,14 @@ public static partial class CachingServiceExtensions
         return allDependencies;
     }
 
+    /// <summary>
+    /// Adds an object dependency to the current caching context. The cache key is generated from the object
+    /// using the same mechanism as with method parameters (using the <c>CacheKeyAttribute</c> aspect or formatters).
+    /// </summary>
+    /// <param name="cachingService">The <see cref="ICachingService"/>.</param>
+    /// <param name="dependency">The object to use as a dependency. Must not be a <see cref="string"/> or <see cref="ICacheDependency"/>.</param>
+    /// <exception cref="ArgumentOutOfRangeException">When the dependency is a <see cref="string"/> or <see cref="ICacheDependency"/>.
+    /// Use the appropriate overload instead.</exception>
     public static void AddObjectDependency( this ICachingService cachingService, object dependency )
     {
         switch ( dependency )

@@ -9,6 +9,19 @@ using Metalama.Patterns.Caching.Implementation;
 
 namespace Metalama.Patterns.Caching.Aspects;
 
+/// <summary>
+/// Abstract base class for <see cref="CacheAttribute"/> and <see cref="CachingConfigurationAttribute"/>,
+/// providing common caching configuration properties.
+/// </summary>
+/// <remarks>
+/// <para>This class provides compile-time configuration properties that control caching behavior such as
+/// expiration times, priority, and cache key generation. Properties set on this attribute take precedence
+/// over run-time configuration specified through <see cref="CachingProfile"/>.</para>
+/// </remarks>
+/// <seealso cref="CacheAttribute"/>
+/// <seealso cref="CachingConfigurationAttribute"/>
+/// <seealso cref="CachingProfile"/>
+/// <seealso href="@caching-configuration"/>
 [RunTimeOrCompileTime]
 public abstract class CachingBaseAttribute : Attribute, IHierarchicalOptionsProvider
 {
@@ -72,6 +85,15 @@ public abstract class CachingBaseAttribute : Attribute, IHierarchicalOptionsProv
         set => this._options = this._options with { IgnoreThisParameter = value };
     }
 
+    /// <summary>
+    /// Gets or sets a value indicating whether the <see cref="ICachingService"/> should be obtained through dependency injection.
+    /// The default value is <c>true</c>. When set to <c>false</c>, the <see cref="CachingService.Default"/> static property is used instead.
+    /// </summary>
+    /// <remarks>
+    /// <para>When dependency injection is enabled, the aspect introduces a dependency to <see cref="ICachingService"/> into
+    /// the declaring type, which requires the type to be instantiated through a dependency injection container.</para>
+    /// <para>When dependency injection is disabled, static methods can also be cached.</para>
+    /// </remarks>
     public bool UseDependencyInjection
     {
         get => this._options.UseDependencyInjection ?? CachingOptions.DefaultCompileTimeOptions.UseDependencyInjection!.Value;

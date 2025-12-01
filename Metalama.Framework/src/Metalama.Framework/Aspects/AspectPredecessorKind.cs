@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Code;
+using Metalama.Framework.Fabrics;
 
 namespace Metalama.Framework.Aspects
 {
@@ -38,7 +39,7 @@ namespace Metalama.Framework.Aspects
         Inherited,
 
         /// <summary>
-        /// The aspect has been created by a fabric. <see cref="AspectPredecessor.Instance"/> is an <see cref="Fabrics.IFabricInstance"/>.
+        /// The aspect has been created by a fabric. <see cref="AspectPredecessor.Instance"/> is an <see cref="IFabricInstance"/>.
         /// </summary>
         Fabric,
 

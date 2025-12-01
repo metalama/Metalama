@@ -11,9 +11,34 @@ using System;
 namespace Metalama.Framework.Aspects;
 
 /// <summary>
-/// A base class for attributes that define declarative advice members.
+/// A base class for attributes that define declarative advice on aspect members. These attributes enable
+/// aspects to transform code without requiring explicit calls in <see cref="IAspect{T}.BuildAspect"/>.
 /// </summary>
+/// <remarks>
+/// <para>
+/// Declarative advice attributes allow you to mark members of an aspect class (methods, properties, fields, events)
+/// with attributes that automatically generate advice when the aspect is applied. This is in contrast to imperative
+/// advice, where transformations are explicitly added in the <see cref="IAspect{T}.BuildAspect"/> method via
+/// <see cref="AdviserExtensions"/>.
+/// </para>
+/// <para>
+/// Built-in declarative advice attributes include:
+/// <list type="bullet">
+/// <item><description><see cref="IntroduceAttribute"/>: Introduces the annotated member into the target type</description></item>
+/// <item><description><c>IntroduceDependencyAttribute</c> (in Metalama.Extensions.DependencyInjection): Introduces a dependency as a property or field</description></item>
+/// </list>
+/// Derived attributes can implement more complex advice patterns.
+/// </para>
+/// <para>
+/// Use the <see cref="Layer"/> property to control when the advice executes relative to other advice in the same aspect.
+/// This is useful when an aspect has multiple pieces of advice that must execute in a specific order.
+/// </para>
+/// </remarks>
 /// <seealso cref="IntroduceAttribute"/>
+/// <seealso cref="AdviserExtensions"/>
+/// <seealso cref="LayersAttribute"/>
+/// <seealso href="@advising-concepts"/>
+/// <seealso href="@introducing-members"/>
 [CompileTime]
 public abstract class DeclarativeAdviceAttribute : Attribute, IAdviceAttribute
 {

@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Aspects;
 using Metalama.Framework.Code.Collections;
 using Metalama.Framework.Code.Types;
 using System;
@@ -13,11 +14,30 @@ using System.Linq;
 namespace Metalama.Framework.Code.DeclarationBuilders
 {
     /// <summary>
-    /// Encapsulates the information necessary to create a custom attribute.
+    /// Encapsulates the information necessary to create a custom attribute programmatically.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Use this class to create custom attributes when introducing them to declarations via <see cref="AdviserExtensions.IntroduceAttribute"/>
+    /// or when adding them to introduced declarations via <see cref="IDeclarationBuilder.AddAttribute"/>.
+    /// </para>
+    /// <para>
+    /// The <see cref="Create(IConstructor, IReadOnlyList{TypedConstant}?, IReadOnlyList{KeyValuePair{string, TypedConstant}}?)"/> method
+    /// creates an attribute by specifying an explicit constructor and strongly-typed <see cref="TypedConstant"/> arguments.
+    /// The <see cref="Create(Type, IReadOnlyList{object?}?, IReadOnlyList{KeyValuePair{string, object?}}?)"/> and
+    /// <see cref="Create(INamedType, IReadOnlyList{object?}?, IReadOnlyList{KeyValuePair{string, object?}}?)"/> overloads
+    /// automatically find a suitable constructor based on the provided argument types.
+    /// </para>
+    /// <para>
+    /// To copy an existing attribute from the code model, use the <see cref="IAttribute"/> directly as it implements <see cref="IAttributeData"/>.
+    /// </para>
+    /// </remarks>
     /// <seealso cref="IAttribute"/>
-    /// <seealso cref="IDeclarationBuilder"/>
+    /// <seealso cref="IAttributeData"/>
+    /// <seealso cref="IDeclarationBuilder.AddAttribute"/>
+    /// <seealso cref="AdviserExtensions.IntroduceAttribute"/>
     /// <seealso cref="AttributeExtensions"/>
+    /// <seealso href="@adding-attributes"/>
     public sealed class AttributeConstruction : IAttributeData
     {
         /// <summary>

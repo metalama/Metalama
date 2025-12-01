@@ -21,6 +21,18 @@ namespace Metalama.Patterns.Wpf.Configuration;
 
 #pragma warning disable SA1623
 
+/// <summary>
+/// Defines a naming convention for the <see cref="DependencyPropertyAttribute"/> aspect, specifying how to derive
+/// the registration field name, property changed callback, and validation method from the target property name.
+/// </summary>
+/// <remarks>
+/// <para>Use <see cref="DependencyPropertyOptionsBuilder.AddNamingConvention"/> to register custom naming conventions.</para>
+/// <para>Patterns can use the <c>{PropertyName}</c> placeholder which is replaced with the property name extracted from the target.</para>
+/// </remarks>
+/// <seealso cref="DependencyPropertyOptionsBuilder"/>
+/// <seealso cref="DependencyPropertyExtensions"/>
+/// <seealso cref="DependencyPropertyAttribute"/>
+/// <seealso href="@wpf-dependency-property"/>
 [CompileTime]
 [PublicAPI]
 public sealed record DependencyPropertyNamingConvention : IDependencyPropertyNamingConvention
@@ -67,11 +79,18 @@ public sealed record DependencyPropertyNamingConvention : IDependencyPropertyNam
     [NonCompileTimeSerialized]
     private Regex? _matchNameRegex;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DependencyPropertyNamingConvention"/> class with the specified name.
+    /// </summary>
+    /// <param name="name">The unique name for this naming convention.</param>
     public DependencyPropertyNamingConvention( string name )
     {
         this.Name = name;
     }
 
+    /// <summary>
+    /// Gets the unique name of this naming convention.
+    /// </summary>
     public string Name { get; }
 
     DependencyPropertyNamingConventionMatch INamingConvention<IProperty, DependencyPropertyNamingConventionMatch>.Match( IProperty targetProperty )

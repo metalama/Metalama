@@ -19,7 +19,7 @@ public interface IHasTypeBuilder : IHasType
 
     /// <summary>
     /// Gets or sets the <see cref="Metalama.Framework.Code.RefKind"/> of the property, indexer or property
-    /// (i.e. <see cref="Code.RefKind.Ref"/>, <see cref="Code.RefKind.Out"/>, ...).
+    /// (i.e. <see cref="RefKind.Ref"/>, <see cref="RefKind.Out"/>, ...).
     /// </summary>
     new RefKind RefKind { get; set; }
 }

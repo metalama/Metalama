@@ -7,9 +7,21 @@ using JetBrains.Annotations;
 namespace Metalama.Patterns.Caching.Dependencies;
 
 /// <summary>
-/// Wraps an <see cref="object"/> into an <see cref="ObjectDependency"/>. The <see cref="GetCacheKey"/> method
+/// Wraps an <see cref="object"/> into an <see cref="ICacheDependency"/>. The <see cref="ICacheDependency.GetCacheKey"/> method
 /// relies on the <see cref="CachingService.KeyBuilder"/> to create the cache key of the wrapped object.
 /// </summary>
+/// <remarks>
+/// <para>Use this class when you have objects that already implement cache key generation (through
+/// the <c>CacheKeyAttribute</c> aspect or a custom formatter) and want to use them as dependencies.</para>
+/// <para>Alternatively, you can use the <see cref="CachingServiceExtensions.AddObjectDependency"/> and
+/// <see cref="CachingServiceExtensions.InvalidateObject"/> extension methods to avoid creating wrapper objects.</para>
+/// </remarks>
+/// <param name="Object">The object to wrap as a cache dependency.</param>
+/// <seealso cref="ICacheDependency"/>
+/// <seealso cref="StringDependency"/>
+/// <seealso cref="CachingServiceExtensions.AddObjectDependency"/>
+/// <seealso cref="CachingServiceExtensions.InvalidateObject"/>
+/// <seealso href="@caching-dependencies"/>
 [PublicAPI]
 public sealed record ObjectDependency( object Object ) : ICacheDependency
 {

@@ -9,12 +9,21 @@ namespace Metalama.Patterns.Caching.Building;
 /// <summary>
 /// A base class for a <see cref="CachingBackendBuilder"/> able to create an instance of the <see cref="CachingBackend"/> class.
 /// </summary>
+/// <seealso cref="CachingBackendBuilder"/>
+/// <seealso cref="MemoryCachingBackendBuilder"/>
+/// <seealso cref="OutOfProcessCachingBackendBuilder"/>
 public abstract class ConcreteCachingBackendBuilder : CachingBackendBuilder
 {
     /// <summary>
     /// Creates the <see cref="CachingBackend"/>.
     /// </summary>
+    /// <param name="args">Arguments containing context for backend creation.</param>
+    /// <returns>The created <see cref="CachingBackend"/>.</returns>
     public abstract CachingBackend CreateBackend( CreateBackendArgs args );
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ConcreteCachingBackendBuilder"/> class.
+    /// </summary>
+    /// <param name="serviceProvider">The service provider for resolving dependencies.</param>
     protected ConcreteCachingBackendBuilder( IServiceProvider? serviceProvider ) : base( serviceProvider ) { }
 }

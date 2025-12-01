@@ -10,6 +10,11 @@ namespace Metalama.Patterns.Caching.Backends;
 
 #pragma warning disable SA1623
 
+/// <summary>
+/// Configuration for the in-memory caching backend based on <see cref="IMemoryCache"/>.
+/// </summary>
+/// <seealso cref="CachingBackendConfiguration"/>
+/// <seealso cref="Building.MemoryCachingBackendBuilder"/>
 [PublicAPI]
 public sealed record MemoryCachingBackendConfiguration : CachingBackendConfiguration
 {

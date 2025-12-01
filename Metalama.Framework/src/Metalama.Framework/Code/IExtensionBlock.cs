@@ -20,6 +20,7 @@ public interface IExtensionBlock : INamedType
     /// </summary>
     IParameter ReceiverParameter { get; }
 
+    /// <inheritdoc cref="IDeclaration.ToRef"/>
     new IRef<IExtensionBlock> ToRef();
 
     /// <summary>

@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Aspects;
+using Metalama.Framework.Code;
 using Metalama.Framework.Utilities;
 using System;
 
@@ -12,7 +13,7 @@ namespace Metalama.Framework.Eligibility
     /// Encapsulates an arbitrary object (typically a declaration) along with its optional human-readable description,
     /// used when generating eligibility error messages.
     /// </summary>
-    /// <typeparam name="T">The type of object being described (typically a declaration type like <see cref="Code.IMethod"/> or <see cref="Code.IType"/>).</typeparam>
+    /// <typeparam name="T">The type of object being described (typically a declaration type like <see cref="IMethod"/> or <see cref="IType"/>).</typeparam>
     /// <remarks>
     /// <para>
     /// This interface is primarily used in eligibility justification methods, particularly in

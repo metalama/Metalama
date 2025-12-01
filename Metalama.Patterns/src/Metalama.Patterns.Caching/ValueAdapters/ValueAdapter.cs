@@ -10,6 +10,9 @@ namespace Metalama.Patterns.Caching.ValueAdapters;
 /// An abstract implementation of <see cref="IValueAdapter{T}"/>.
 /// </summary>
 /// <typeparam name="T">Type of the exposed value, i.e. typically return type of the cached method.</typeparam>
+/// <seealso cref="IValueAdapter{T}"/>
+/// <seealso cref="IValueAdapter"/>
+/// <seealso href="@caching-value-adapters"/>
 [PublicAPI]
 public abstract class ValueAdapter<T> : IValueAdapter<T>
 {

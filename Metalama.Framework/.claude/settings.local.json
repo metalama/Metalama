@@ -6,7 +6,9 @@
       "Bash(while read f)",
       "Bash(do head -c 3 $f)",
       "Bash(done)",
-      "Bash(findstr:*)"
+      "Bash(findstr:*)",
+      "Bash(dir /s /b X:srcMetalama-2026.0Metalama.Documentation)",
+      "Bash(dir /s /b X:srcMetalama-2026.0MetalamaMetalama.Frameworksrc)"
     ],
     "deny": [],
     "ask": []

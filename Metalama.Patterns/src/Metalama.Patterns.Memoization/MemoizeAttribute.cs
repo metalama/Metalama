@@ -13,10 +13,21 @@ using System.Runtime.CompilerServices;
 namespace Metalama.Patterns.Memoization;
 
 /// <summary>
-/// Custom attribute that, when added to a get-only property or non-void parameterless method, causes the result of this property or method
-/// to be indefinitely stored. All calls to the target property or method are guaranteed to return the same value or object reference.
-/// The underlying implementation of the property or method is not guaranteed to be executed only once. The cached result is stored in the type itself.
+/// An aspect that, when applied to a get-only property or parameterless non-void method, caches the result and returns
+/// the cached value on subsequent calls.
 /// </summary>
+/// <remarks>
+/// <para>The memoized result is stored in a field introduced by the aspect directly into the target type. The aspect
+/// uses <see cref="Interlocked.CompareExchange{T}"/> to ensure thread-safe initialization without locking.</para>
+/// <para>The underlying implementation of the property or method is <i>not</i> guaranteed to be executed only once.
+/// However, all invocations are guaranteed to return the same value or object reference.</para>
+/// <para>For nullable reference types and value types, the cached value is wrapped in a <see cref="StrongBox{T}"/>,
+/// adding minor memory allocation overhead when the memoized member is evaluated. This design minimizes memory usage
+/// when few or no memoized properties or methods are evaluated.</para>
+/// <para>Memoization serves as a simpler and higher-performance alternative to <see cref="Lazy{T}"/> for properties and
+/// parameterless methods that need to be computed only once.</para>
+/// </remarks>
+/// <seealso href="@memoization"/>
 [PublicAPI]
 [AttributeUsage( AttributeTargets.Property | AttributeTargets.Method )]
 public sealed class MemoizeAttribute : Attribute, IAspect<IMethod>, IAspect<IProperty>

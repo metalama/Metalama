@@ -29,6 +29,11 @@ namespace Metalama.Framework.Aspects
     /// <item><description><b>Customize IDE experience:</b> Control how the aspect appears in code refactoring menus</description></item>
     /// <item><description><b>Execute in layers:</b> Use <see cref="LayersAttribute"/> to split aspect implementation into multiple ordered execution phases</description></item>
     /// </list>
+    /// <para>
+    /// <b>Immutability:</b> Aspects must be designed as immutable classes. Never store target-specific state in aspect fields
+    /// because the same aspect instance may be reused across multiple target declarations in inheritance or cross-project scenarios.
+    /// See <see href="@aspect-design"/> for more details.
+    /// </para>
     /// </remarks>
     /// <seealso cref="IAspect{T}"/>
     /// <seealso cref="Aspect"/>
@@ -85,6 +90,13 @@ namespace Metalama.Framework.Aspects
         /// This method is called at compile time for each target declaration where the aspect is applied.
         /// Use the <paramref name="builder"/> to add code transformations via extension methods from <see cref="AdviserExtensions"/>
         /// such as <c>builder.Override()</c>, <c>builder.IntroduceMethod()</c>, and others.
+        /// </para>
+        /// <para>
+        /// <b>Immutability requirement:</b> Aspects must be designed as immutable classes. Never store target-specific state
+        /// in aspect fields from this method because, in scenarios involving inherited aspects or cross-project validators,
+        /// the same aspect instance is reused across multiple target declarations. To pass state to templates, use
+        /// <see cref="IAspectBuilder.Tags"/> or compile-time template parameters. See <see href="@sharing-state-with-advice"/>
+        /// for details.
         /// </para>
         /// <para>
         /// <b>Multiple invocations:</b> If the aspect class is annotated with <see cref="LayersAttribute"/>, this method

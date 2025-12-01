@@ -10,16 +10,27 @@ using System;
 namespace Metalama.Framework.Engine;
 
 /// <summary>
-/// Indicates that a class is a Metalama plug-in. When applied to a class, Metalama will create an instance
-/// of that class and expose it as a service through <see cref="IServiceProvider"/>.
+/// Marks a class as a Metalama plug-in that extends the compiler pipeline.
 /// </summary>
 /// <remarks>
 /// <para>
-/// This attribute is typically used to mark classes that implement <see cref="IAspectWeaver"/> or provide
-/// custom services for Metalama. Classes marked with this attribute must have a public parameterless constructor.
+/// Classes marked with this attribute are discovered and instantiated by Metalama during compilation.
+/// The class must have a public parameterless constructor.
+/// </para>
+/// <para>
+/// This attribute is used for:
+/// </para>
+/// <list type="bullet">
+/// <item><description><see cref="IAspectWeaver"/> implementations: Low-level aspect weavers that perform Roslyn-based transformations.</description></item>
+/// <item><description>Custom metric providers: Classes deriving from <c>MetricProvider&lt;T&gt;</c> or <c>SyntaxMetricProvider&lt;T&gt;</c>.</description></item>
+/// </list>
+/// <para>
+/// Plug-in classes must be in an assembly that references <c>Metalama.Framework.Sdk</c> with <c>PrivateAssets="all"</c>.
 /// </para>
 /// </remarks>
 /// <seealso cref="IAspectWeaver"/>
+/// <seealso href="@aspect-weavers"/>
+/// <seealso href="@custom-metrics"/>
 [AttributeUsage( AttributeTargets.Class )]
 [CompileTime]
 [PublicAPI]

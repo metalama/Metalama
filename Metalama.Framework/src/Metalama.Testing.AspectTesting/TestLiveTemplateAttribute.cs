@@ -8,10 +8,22 @@ using System;
 namespace Metalama.Testing.AspectTesting;
 
 /// <summary>
-/// A custom that must be used in the <see cref="TestScenario.LiveTemplate"/> and <see cref="TestScenario.LiveTemplatePreview"/>
-/// to mark the declaration to which the aspect must be applied. The presence of this attribute simulates the use of the refactoring
-/// context menu.
+/// An attribute used in <see cref="TestScenario.LiveTemplate"/> and <see cref="TestScenario.LiveTemplatePreview"/> tests
+/// to mark the declaration to which an aspect should be applied as a live template.
 /// </summary>
+/// <remarks>
+/// <para>
+/// In live template test scenarios, this attribute simulates the user selecting a declaration in the IDE's refactoring
+/// context menu and applying an aspect to it. The attribute specifies which aspect type should be applied.
+/// </para>
+/// <para>
+/// To use this attribute, set the <c>// @TestScenario(LiveTemplate)</c> or <c>// @TestScenario(LiveTemplatePreview)</c>
+/// comment in your test file, then apply this attribute to the target declaration.
+/// </para>
+/// </remarks>
+/// <seealso cref="TestScenario.LiveTemplate"/>
+/// <seealso cref="TestScenario.LiveTemplatePreview"/>
+/// <seealso href="@aspect-testing"/>
 [AttributeUsage( AttributeTargets.All )]
 [PublicAPI]
 public class TestLiveTemplateAttribute : Attribute

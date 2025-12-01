@@ -2,14 +2,31 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Advising;
+
 namespace Metalama.Framework.Aspects
 {
     /// <summary>
-    /// Conflict behavior of introduction advice.
+    /// Specifies how introduction advice should behave when a member with the same name or signature already exists
+    /// in the target type.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This enumeration controls the conflict resolution strategy when introducing members (methods, properties, fields, events)
+    /// or when implementing interfaces. The strategy determines whether to fail, skip, override, or hide the existing member.
+    /// </para>
+    /// <para>
+    /// The choice of strategy affects both compilation behavior and the <see cref="AdviceOutcome"/> returned by the advice result.
+    /// For example, <see cref="OverrideStrategy.Ignore"/> results in <see cref="AdviceOutcome.Ignore"/> when a conflict is detected, while
+    /// <see cref="OverrideStrategy.Override"/> results in <see cref="AdviceOutcome.Override"/>.
+    /// </para>
+    /// </remarks>
     /// <seealso cref="IntroduceAttribute"/>
     /// <seealso cref="AdviserExtensions"/>
+    /// <seealso cref="IAdviceFactory"/>
+    /// <seealso cref="AdviceOutcome"/>
     /// <seealso href="@introducing-members"/>
+    /// <seealso href="@implementing-interfaces"/>
     [CompileTime]
     public enum OverrideStrategy
     {

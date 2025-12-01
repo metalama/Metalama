@@ -5,6 +5,7 @@
 using Metalama.Framework.Advising.PullStrategies;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
+using Metalama.Framework.Code.SyntaxBuilders;
 
 namespace Metalama.Framework.Advising;
 
@@ -33,7 +34,7 @@ public static class PullStrategy
     /// Creates a pull strategy that passes a static expression value to the introduced parameter.
     /// </summary>
     /// <param name="expression">An expression that evaluates to the value to pass. Only static expressions are supported,
-    /// such as <see cref="TypedConstant"/>, static field/property access, or static method calls created via <see cref="Code.SyntaxBuilders.ExpressionFactory"/>.
+    /// such as <see cref="TypedConstant"/>, static field/property access, or static method calls created via <see cref="ExpressionFactory"/>.
     /// To forward an existing parameter, pass an <see cref="IParameter"/> directly.</param>
     /// <returns>A pull strategy that uses the specified expression to provide the parameter value.</returns>
     /// <remarks>

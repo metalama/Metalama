@@ -28,6 +28,12 @@ namespace Metalama.Extensions.Multicast;
 /// your multicast down to virtual elements, it will still apply to fields or types (which can't be virtual). 
 /// </para>
 /// </remarks>
+/// <seealso cref="IMulticastAttribute.AttributeTargetTypeAttributes"/>
+/// <seealso cref="IMulticastAttribute.AttributeTargetMemberAttributes"/>
+/// <seealso cref="IMulticastAttribute.AttributeTargetParameterAttributes"/>
+/// <seealso cref="MulticastTargets"/>
+/// <seealso cref="MulticastAspect"/>
+/// <seealso href="@migrating-multicasting"/>
 [Flags]
 [RunTimeOrCompileTime]
 [PublicAPI]

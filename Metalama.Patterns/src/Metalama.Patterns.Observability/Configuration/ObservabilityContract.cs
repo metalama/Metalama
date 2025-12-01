@@ -8,17 +8,32 @@ using Metalama.Framework.Serialization;
 namespace Metalama.Patterns.Observability.Configuration;
 
 /// <summary>
-/// Represents guarantees made by a method, field or property with regards to the <see cref="ObservableAttribute"/> aspect.
+/// Represents behavioral guarantees made by a method, field, or property with respect to the <see cref="ObservableAttribute"/> aspect.
 /// </summary>
+/// <remarks>
+/// <para>
+/// An observability contract allows you to inform the <see cref="ObservableAttribute"/> aspect about the behavior of
+/// methods it cannot analyze automatically. This prevents false positive warnings and enables correct dependency tracking.
+/// </para>
+/// </remarks>
+/// <seealso cref="ObservableAttribute"/>
+/// <seealso cref="ConstantAttribute"/>
+/// <seealso cref="ObservabilityTypeOptionsBuilder.ObservabilityContract"/>
+/// <seealso href="@observability"/>
 [CompileTime]
 public sealed class ObservabilityContract : ICompileTimeSerializable
 {
     private ObservabilityContract() { }
 
     /// <summary>
-    /// Gets an <see cref="ObservabilityContract"/> that guarantees that the outputs of the member (1) do depend on any non-constant
-    /// input (i.e. will always be identical given identical inputs) and (2) are themselves constant.
-    /// When applied to a type, the guarantee must hold for all methods and properties.
+    /// Gets an <see cref="ObservabilityContract"/> that guarantees that the outputs of a method depend only on its input
+    /// parameters (i.e., identical inputs will always produce identical outputs) and that the method has no side effects
+    /// on observable state.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// When applied to a type, the guarantee must hold for all methods and properties within that type.
+    /// </para>
+    /// </remarks>
     public static ObservabilityContract Constant { get; } = new();
 }

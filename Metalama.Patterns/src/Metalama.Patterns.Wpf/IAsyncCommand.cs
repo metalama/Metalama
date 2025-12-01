@@ -9,8 +9,17 @@ using System.Windows.Input;
 namespace Metalama.Patterns.Wpf;
 
 /// <summary>
-/// Represents an <see cref="ICommand"/> that is executed asynchronously.
+/// Represents an <see cref="ICommand"/> that executes asynchronously, providing properties to monitor execution state
+/// and methods to cancel running executions.
 /// </summary>
+/// <remarks>
+/// <para>This interface extends both <see cref="ICommand"/> and <see cref="INotifyPropertyChanged"/> to enable
+/// data binding to command state properties in WPF applications.</para>
+/// </remarks>
+/// <seealso cref="AsyncDelegateCommand"/>
+/// <seealso cref="AsyncDelegateCommand{T}"/>
+/// <seealso cref="DelegateCommandExecution"/>
+/// <seealso href="@wpf-command"/>
 [PublicAPI]
 public interface IAsyncCommand : ICommand, INotifyPropertyChanged
 {

@@ -8,8 +8,16 @@ using Metalama.Framework.Code;
 namespace Metalama.Framework.Advising;
 
 /// <summary>
-/// Represents the result of introduction advice methods.
+/// Represents the result of introduction advice methods such as <see cref="AdviserExtensions.IntroduceMethod"/>,
+/// <see cref="O:AdviserExtensions.IntroduceProperty">IntroduceProperty</see>,
+/// <see cref="O:AdviserExtensions.IntroduceField">IntroduceField</see>, or
+/// <see cref="O:AdviserExtensions.IntroduceEvent">IntroduceEvent</see>.
 /// </summary>
+/// <remarks>
+/// <para>
+/// This interface also implements <see cref="IAdviser{T}"/>, which allows chaining additional advice on the introduced declaration.
+/// </para>
+/// </remarks>
 /// <seealso cref="AdviceResultExtensions.TryGetDeclaration{T}"/>
 /// <seealso cref="IAdviceResult"/>
 /// <seealso cref="IAdviser{T}"/>

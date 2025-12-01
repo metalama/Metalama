@@ -24,6 +24,9 @@ public enum CachingBackendStatus
     /// </summary>
     Initialized,
 
+    /// <summary>
+    /// Initialization failed.
+    /// </summary>
     Failed,
 
     /// <summary>

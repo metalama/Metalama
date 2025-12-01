@@ -12,12 +12,23 @@ namespace Metalama.Patterns.Contracts;
 /// Represents the context in which a <see cref="ContractBaseAttribute"/> is used,
 /// i.e. its target declaration and <see cref="Options"/>.
 /// </summary>
+/// <seealso cref="ContractBaseAttribute"/>
+/// <seealso cref="ContractOptions"/>
 [CompileTime]
 [PublicAPI]
 public sealed class ContractContext
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ContractContext"/> class from the current template target.
+    /// </summary>
+    /// <param name="target">The value of <c>meta.Target</c> in a template.</param>
     public ContractContext( IMetaTarget target ) : this( target.Declaration, target.ContractDirection ) { }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ContractContext"/> class.
+    /// </summary>
+    /// <param name="target">The target declaration (parameter, field, property, or indexer).</param>
+    /// <param name="direction">The contract direction.</param>
     public ContractContext( IDeclaration target, ContractDirection direction )
     {
         this.TargetDeclaration = target;

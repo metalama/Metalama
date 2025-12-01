@@ -8,8 +8,21 @@ using System.Collections.Generic;
 namespace Metalama.Framework.Code.SyntaxBuilders;
 
 /// <summary>
-/// Extensions to the <see cref="IStatement"/> interface.
+/// Extension methods for the <see cref="IStatement"/> interface.
 /// </summary>
+/// <remarks>
+/// <para>
+/// These extension methods provide convenient ways to convert statements to statement lists and to unwrap block statements.
+/// Use <see cref="AsList(IStatement)"/> when you need to pass a single statement to an API that expects an <see cref="IStatementList"/>,
+/// and <see cref="UnwrapBlock"/> when you need to extract the contents of a block statement.
+/// </para>
+/// </remarks>
+/// <seealso cref="IStatement"/>
+/// <seealso cref="IStatementList"/>
+/// <seealso cref="StatementFactory"/>
+/// <seealso cref="StatementListBuilder"/>
+/// <seealso href="@run-time-statements"/>
+/// <seealso href="@templates"/>
 [CompileTime]
 public static class StatementExtensions
 {

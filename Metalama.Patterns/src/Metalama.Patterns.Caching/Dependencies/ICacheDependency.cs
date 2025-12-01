@@ -12,6 +12,19 @@ namespace Metalama.Patterns.Caching.Dependencies;
 /// Alternatively, custom classes may implement the <see cref="IFormattable{T}"/> interface or simply
 /// the <see cref="object.ToString"/> method.
 /// </summary>
+/// <remarks>
+/// <para>Cache dependencies provide an indirect way to invalidate cache items. Instead of directly invalidating
+/// a specific cached method, you can invalidate a dependency, which automatically invalidates all cache items
+/// that depend on it.</para>
+/// <para>Dependencies are added to the current caching context using the
+/// <see cref="CachingServiceExtensions.AddDependency(ICachingService,ICacheDependency)"/> method and invalidated using the
+/// <see cref="CachingServiceExtensions.Invalidate(ICachingService,ICacheDependency)"/> method.</para>
+/// </remarks>
+/// <seealso cref="StringDependency"/>
+/// <seealso cref="ObjectDependency"/>
+/// <seealso cref="CachingServiceExtensions.AddDependency(ICachingService, ICacheDependency)"/>
+/// <seealso cref="CachingServiceExtensions.Invalidate(ICachingService, ICacheDependency)"/>
+/// <seealso href="@caching-dependencies"/>
 public interface ICacheDependency
 {
     /// <summary>

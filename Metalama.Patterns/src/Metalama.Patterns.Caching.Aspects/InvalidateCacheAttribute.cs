@@ -20,9 +20,22 @@ using System.Reflection;
 namespace Metalama.Patterns.Caching.Aspects;
 
 /// <summary>
-/// Custom attribute that, when applied on a method, causes an invocation of this method to remove from
-/// the cache the result of invocations of other given methods with the same parameter values. 
+/// Aspect that, when applied to a method, causes an invocation of this method to remove from
+/// the cache the result of invocations of other given methods with the same parameter values.
 /// </summary>
+/// <remarks>
+/// <para>The <see cref="InvalidateCacheAttribute"/> aspect provides compile-time validation that the parameters of the
+/// invalidated and invalidating methods match. Parameters are matched by name and type, and a compile-time error
+/// is reported if any required parameter cannot be matched.</para>
+/// <para>By default, this aspect looks for the cached methods in the current type. To invalidate methods in a different type,
+/// use the constructor overload that accepts a <see cref="Type"/> parameter.</para>
+/// <para>For imperative invalidation without an aspect, use the <see cref="CachingServiceExtensions.Invalidate{TReturn,TParam1}"/>
+/// method or the <see cref="CachingServiceExtensions.InvalidateAsync{TReturn, TParam1}"/> method.</para>
+/// </remarks>
+/// <seealso cref="CacheAttribute"/>
+/// <seealso cref="NotCacheKeyAttribute"/>
+/// <seealso cref="CachingServiceExtensions.Invalidate{TReturn, TParam1}"/>
+/// <seealso href="@caching-invalidation"/>
 [PublicAPI]
 [AttributeUsage( AttributeTargets.Method, AllowMultiple = true )]
 public sealed class InvalidateCacheAttribute : MethodAspect

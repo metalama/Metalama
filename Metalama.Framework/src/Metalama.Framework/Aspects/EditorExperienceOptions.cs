@@ -5,14 +5,34 @@
 namespace Metalama.Framework.Aspects;
 
 /// <summary>
-/// Options controlling how an aspect is suggested in the IDE's code refactoring menu.
+/// Represents the compile-time options controlling how an aspect is suggested in the IDE's code refactoring menu.
 /// </summary>
-/// <param name="SuggestAsAddAttribute">Whether the aspect should be suggested when adding an attribute.</param>
-/// <param name="AddAttributeSuggestionTitle">The title for the "Add attribute" suggestion.</param>
-/// <param name="SuggestAsLiveTemplate">Whether the aspect should be suggested as a live template.</param>
-/// <param name="LiveTemplateSuggestionTitle">The title for the live template suggestion.</param>
+/// <remarks>
+/// <para>
+/// This record contains the resolved options that control IDE integration for aspects. While aspect authors
+/// typically use <see cref="EditorExperienceAttribute"/> to configure these options declaratively, this record
+/// represents the effective options that can be queried via <see cref="IAspectClass.EditorExperienceOptions"/>.
+/// </para>
+/// <para>
+/// The options support two modes of aspect application in the IDE:
+/// </para>
+/// <list type="bullet">
+/// <item><description><b>Live Template:</b> Applies the aspect by transforming the source code directly.</description></item>
+/// <item><description><b>Add Attribute:</b> Applies the aspect by adding a custom attribute to the declaration.</description></item>
+/// </list>
+/// </remarks>
+/// <param name="SuggestAsAddAttribute">Whether the aspect should be suggested as an "add attribute" code action. When <c>true</c>,
+/// the IDE will offer to apply the aspect by adding it as a custom attribute to the target declaration.</param>
+/// <param name="AddAttributeSuggestionTitle">The title for the "Add attribute" menu item. Use the vertical pipe (<c>|</c>)
+/// to create nested sub-menus. For example, <c>"Logging|Add Audit Logging"</c> creates a "Logging" submenu.</param>
+/// <param name="SuggestAsLiveTemplate">Whether the aspect should be suggested as a live template code action. When <c>true</c>,
+/// the IDE will offer to apply the aspect directly to the source code, transforming it in place.</param>
+/// <param name="LiveTemplateSuggestionTitle">The title for the live template menu item. Use the vertical pipe (<c>|</c>)
+/// to create nested sub-menus.</param>
 /// <seealso cref="EditorExperienceAttribute"/>
 /// <seealso cref="IAspectClass.EditorExperienceOptions"/>
+/// <seealso href="@live-template"/>
+/// <seealso href="@building-ide-interactions"/>
 [CompileTime]
 public sealed record EditorExperienceOptions(
     bool? SuggestAsAddAttribute = null,

@@ -8,8 +8,20 @@ using System.Windows.Input;
 namespace Metalama.Patterns.Wpf;
 
 /// <summary>
-/// A base class for delegate-based async commands.
+/// Base class for all asynchronous delegate-based implementations of <see cref="ICommand"/> in this package.
+/// Extends <see cref="BaseDelegateCommand"/> with support for task tracking, cancellation, and concurrent execution control.
 /// </summary>
+/// <remarks>
+/// <para>This class implements <see cref="IAsyncCommand"/> and <see cref="INotifyPropertyChanged"/>, exposing properties
+/// to monitor command execution state: <see cref="IsRunning"/>, <see cref="CanCancel"/>, <see cref="IsCancellationRequested"/>, and <see cref="ExecutionTask"/>.</para>
+/// <para>Each execution generates a <see cref="DelegateCommandExecution"/> that allows tracking and canceling individual command invocations.
+/// Subscribe to the <see cref="Executed"/> event to receive these tokens for concurrent execution scenarios.</para>
+/// </remarks>
+/// <seealso cref="AsyncDelegateCommand"/>
+/// <seealso cref="AsyncDelegateCommand{T}"/>
+/// <seealso cref="DelegateCommandExecution"/>
+/// <seealso cref="BaseDelegateCommand"/>
+/// <seealso href="@wpf-command"/>
 public abstract class BaseAsyncDelegateCommand : BaseDelegateCommand, IAsyncCommand
 {
     private readonly bool _supportsCancellation;
@@ -34,6 +46,7 @@ public abstract class BaseAsyncDelegateCommand : BaseDelegateCommand, IAsyncComm
         this._supportsConcurrentExecution = supportsConcurrentExecution;
     }
 
+    /// <inheritdoc />
     public event PropertyChangedEventHandler? PropertyChanged;
 
     /// <summary>
@@ -58,7 +71,8 @@ public abstract class BaseAsyncDelegateCommand : BaseDelegateCommand, IAsyncComm
     public Task? ExecutionTask { get; private set; }
 
     /// <summary>
-    /// Event raised when the <see cref="AsyncDelegateCommand{T}.Execute"/> method is called.
+    /// Event raised when the command begins executing. The <see cref="DelegateCommandExecution"/> provides
+    /// access to the execution's <see cref="Task"/> and allows cancellation of that specific invocation.
     /// </summary>
     public event Action<DelegateCommandExecution>? Executed;
 

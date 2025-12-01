@@ -68,6 +68,7 @@ namespace Metalama.Framework.Code
         /// <returns>An <see cref="EventInfo"/> that can be used only in run-time code.</returns>
         EventInfo ToEventInfo();
 
+        /// <inheritdoc cref="IDeclaration.ToRef"/>
         new IRef<IEvent> ToRef();
 
         /// <summary>

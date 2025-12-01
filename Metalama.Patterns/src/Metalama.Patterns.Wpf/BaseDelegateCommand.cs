@@ -8,8 +8,19 @@ using System.Windows.Input;
 namespace Metalama.Patterns.Wpf;
 
 /// <summary>
-/// A base class for all implementations of the <see cref="ICommand"/> interface in this package, based on delegates.
+/// Base class for all delegate-based implementations of <see cref="ICommand"/> in this package.
+/// Provides common functionality for command execution and <see cref="INotifyPropertyChanged"/> integration.
 /// </summary>
+/// <remarks>
+/// <para>This class handles the <see cref="CanExecuteChanged"/> event and integrates with <see cref="INotifyPropertyChanged"/>
+/// to automatically raise <see cref="CanExecuteChanged"/> when a bound <c>CanExecute</c> property changes.</para>
+/// <para>Notifications are dispatched through the <see cref="SynchronizationContext"/> captured at construction time
+/// to ensure thread-safe UI updates.</para>
+/// </remarks>
+/// <seealso cref="DelegateCommand"/>
+/// <seealso cref="DelegateCommand{T}"/>
+/// <seealso cref="BaseAsyncDelegateCommand"/>
+/// <seealso href="@wpf-command"/>
 public abstract class BaseDelegateCommand : ICommand
 {
     private readonly SynchronizationContext? _synchronizationContext;
@@ -24,6 +35,9 @@ public abstract class BaseDelegateCommand : ICommand
 
     private protected abstract void ExecuteCore( object? parameter );
 
+    /// <summary>
+    /// Occurs when the return value of <see cref="ICommand.CanExecute"/> may have changed.
+    /// </summary>
     public event EventHandler? CanExecuteChanged;
 
     private protected BaseDelegateCommand( INotifyPropertyChanged canExecutePropertyChangeNotifier, string canExecutePropertyName )

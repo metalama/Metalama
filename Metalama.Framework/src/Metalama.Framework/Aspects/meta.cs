@@ -19,10 +19,38 @@ using System.Threading.Tasks;
 namespace Metalama.Framework.Aspects
 {
     /// <summary>
-    /// The entry point for the meta model, which can be used in templates to inspect the target code or access other
-    /// features of the template language.
+    /// The entry point for the T# template language, providing compile-time APIs to inspect and transform target code.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The <c>meta</c> class is a pseudo-keyword that serves as the gateway to Metalama's meta-programming capabilities.
+    /// It can only be used within the context of a T# template method (methods marked with <see cref="TemplateAttribute"/>).
+    /// </para>
+    /// <para>
+    /// Key capabilities provided by <c>meta</c>:
+    /// <list type="bullet">
+    /// <item><description><b>Target access:</b> <see cref="Target"/> provides metadata about the declaration being overridden or introduced</description></item>
+    /// <item><description><b>Execution flow:</b> <see cref="Proceed"/> invokes the original implementation in override scenarios</description></item>
+    /// <item><description><b>Dynamic typing:</b> <see cref="This"/>, <see cref="Base"/>, <see cref="ThisType"/>, <see cref="BaseType"/> for accessing members dynamically</description></item>
+    /// <item><description><b>State sharing:</b> <see cref="Tags"/> to access data passed from <see cref="IAspect{T}.BuildAspect"/></description></item>
+    /// <item><description><b>Code generation:</b> <see cref="InsertStatement(IStatement)"/>, <see cref="InsertComment(string?[])"/>, <see cref="Return()"/> for injecting code</description></item>
+    /// <item><description><b>Type coercion:</b> <see cref="CompileTime{T}"/> and <see cref="RunTime{T}"/> to control compile-time/run-time interpretation</description></item>
+    /// <item><description><b>Template invocation:</b> <see cref="InvokeTemplate(string, ITemplateProvider?, object?)"/> for calling auxiliary templates</description></item>
+    /// </list>
+    /// </para>
+    /// <para>
+    /// In T# templates, expressions beginning with <c>meta.</c> are evaluated at compile-time to generate run-time code.
+    /// The T# compiler separates compile-time portions from run-time portions using inference rules, with <c>meta</c>
+    /// serving as the marker for compile-time expressions.
+    /// </para>
+    /// </remarks>
+    /// <seealso cref="IMetaTarget"/>
+    /// <seealso cref="TemplateAttribute"/>
     /// <seealso href="@templates"/>
+    /// <seealso href="@template-overview"/>
+    /// <seealso href="@template-compile-time"/>
+    /// <seealso href="@dynamic-typing"/>
+    /// <seealso href="@auxiliary-templates"/>
     [CompileTime]
     [TemplateKeyword]
 #pragma warning disable SA1300, IDE1006, CS8981 // Element should begin with upper-case letter
@@ -428,27 +456,117 @@ namespace Metalama.Framework.Aspects
         [TemplateKeyword]
         public static void Return( dynamic? value ) => throw CreateException();
 
+        /// <summary>
+        /// Programmatically defines a local variable in run-time code with a specified type but no initial value.
+        /// </summary>
+        /// <param name="nameHint">A hint for the variable name. Metalama automatically appends a numerical suffix to ensure uniqueness within the target lexical scope.</param>
+        /// <param name="type">The type of the variable.</param>
+        /// <returns>An <see cref="IExpression"/> that can be used to reference the local variable in run-time code.</returns>
+        /// <remarks>
+        /// <para>
+        /// Use this method when you need to programmatically define local variables, for example, within a compile-time <c>foreach</c> loop
+        /// where the number of variables is determined at compile-time. Unlike normal template variable declarations which are automatically
+        /// classified as run-time or compile-time, <see cref="DefineLocalVariable(string, IType)"/> always creates a run-time variable.
+        /// </para>
+        /// <para>
+        /// The returned <see cref="IExpression"/> can be used to read or write the variable value in subsequent template code.
+        /// </para>
+        /// </remarks>
+        /// <seealso href="@run-time-statements"/>
+        /// <seealso href="@templates"/>
         [CompileTime( isTemplateOnly: true )]
         public static IExpression DefineLocalVariable( string nameHint, IType type ) => throw CreateException();
 
+        /// <summary>
+        /// Programmatically defines a local variable in run-time code with a specified type and initial value expression.
+        /// </summary>
+        /// <param name="nameHint">A hint for the variable name. Metalama automatically appends a numerical suffix to ensure uniqueness within the target lexical scope.</param>
+        /// <param name="type">The type of the variable.</param>
+        /// <param name="value">An expression representing the initial value, or <c>null</c> for no initialization.</param>
+        /// <returns>An <see cref="IExpression"/> that can be used to reference the local variable in run-time code.</returns>
+        /// <remarks>
+        /// <para>
+        /// Use this method when you need to programmatically define local variables with compile-time determined initial values.
+        /// This is useful when generating code that saves and restores values, such as rolling back field changes upon exception.
+        /// </para>
+        /// </remarks>
+        /// <seealso href="@run-time-statements"/>
+        /// <seealso href="@templates"/>
         [CompileTime( isTemplateOnly: true )]
         public static IExpression DefineLocalVariable( string nameHint, IType type, IExpression? value ) => throw CreateException();
 
+        /// <summary>
+        /// Programmatically defines a local variable in run-time code with a specified type and initial value.
+        /// </summary>
+        /// <param name="nameHint">A hint for the variable name. Metalama automatically appends a numerical suffix to ensure uniqueness within the target lexical scope.</param>
+        /// <param name="type">The type of the variable.</param>
+        /// <param name="value">The initial value for the variable.</param>
+        /// <returns>An <see cref="IExpression"/> that can be used to reference the local variable in run-time code.</returns>
+        /// <seealso href="@run-time-statements"/>
+        /// <seealso href="@templates"/>
         [CompileTime( isTemplateOnly: true )]
         public static IExpression DefineLocalVariable( string nameHint, IType type, dynamic value ) => throw CreateException();
 
+        /// <summary>
+        /// Programmatically defines a local variable in run-time code with a specified reflection type but no initial value.
+        /// </summary>
+        /// <param name="nameHint">A hint for the variable name. Metalama automatically appends a numerical suffix to ensure uniqueness within the target lexical scope.</param>
+        /// <param name="type">The reflection type of the variable.</param>
+        /// <returns>An <see cref="IExpression"/> that can be used to reference the local variable in run-time code.</returns>
+        /// <seealso href="@run-time-statements"/>
+        /// <seealso href="@templates"/>
         [CompileTime( isTemplateOnly: true )]
         public static IExpression DefineLocalVariable( string nameHint, Type type ) => throw CreateException();
 
+        /// <summary>
+        /// Programmatically defines a local variable in run-time code with a specified reflection type and initial value expression.
+        /// </summary>
+        /// <param name="nameHint">A hint for the variable name. Metalama automatically appends a numerical suffix to ensure uniqueness within the target lexical scope.</param>
+        /// <param name="type">The reflection type of the variable.</param>
+        /// <param name="value">An expression representing the initial value, or <c>null</c> for no initialization.</param>
+        /// <returns>An <see cref="IExpression"/> that can be used to reference the local variable in run-time code.</returns>
+        /// <seealso href="@run-time-statements"/>
+        /// <seealso href="@templates"/>
         [CompileTime( isTemplateOnly: true )]
         public static IExpression DefineLocalVariable( string nameHint, Type type, IExpression? value ) => throw CreateException();
 
+        /// <summary>
+        /// Programmatically defines a local variable in run-time code with a specified reflection type and initial value.
+        /// </summary>
+        /// <param name="nameHint">A hint for the variable name. Metalama automatically appends a numerical suffix to ensure uniqueness within the target lexical scope.</param>
+        /// <param name="type">The reflection type of the variable.</param>
+        /// <param name="value">The initial value for the variable.</param>
+        /// <returns>An <see cref="IExpression"/> that can be used to reference the local variable in run-time code.</returns>
+        /// <seealso href="@run-time-statements"/>
+        /// <seealso href="@templates"/>
         [CompileTime( isTemplateOnly: true )]
         public static IExpression DefineLocalVariable( string nameHint, Type type, dynamic value ) => throw CreateException();
 
+        /// <summary>
+        /// Programmatically defines a local variable in run-time code with a type inferred from the initial value expression.
+        /// </summary>
+        /// <param name="nameHint">A hint for the variable name. Metalama automatically appends a numerical suffix to ensure uniqueness within the target lexical scope.</param>
+        /// <param name="value">An expression representing the initial value. The type is inferred from this expression.</param>
+        /// <returns>An <see cref="IExpression"/> that can be used to reference the local variable in run-time code.</returns>
+        /// <remarks>
+        /// This overload infers the variable type from the <paramref name="value"/> expression, similar to using <c>var</c> in C#.
+        /// </remarks>
+        /// <seealso href="@run-time-statements"/>
+        /// <seealso href="@templates"/>
         [CompileTime( isTemplateOnly: true )]
         public static IExpression DefineLocalVariable( string nameHint, IExpression value ) => throw CreateException();
 
+        /// <summary>
+        /// Programmatically defines a local variable in run-time code with a type inferred from the initial value.
+        /// </summary>
+        /// <param name="nameHint">A hint for the variable name. Metalama automatically appends a numerical suffix to ensure uniqueness within the target lexical scope.</param>
+        /// <param name="value">The initial value. The type is inferred from this value.</param>
+        /// <returns>An <see cref="IExpression"/> that can be used to reference the local variable in run-time code.</returns>
+        /// <remarks>
+        /// This overload infers the variable type from the <paramref name="value"/>, similar to using <c>var</c> in C#.
+        /// </remarks>
+        /// <seealso href="@run-time-statements"/>
+        /// <seealso href="@templates"/>
         [CompileTime( isTemplateOnly: true )]
         public static IExpression DefineLocalVariable( string nameHint, dynamic value ) => throw CreateException();
     }

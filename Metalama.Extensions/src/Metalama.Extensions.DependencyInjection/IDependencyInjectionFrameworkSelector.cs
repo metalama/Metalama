@@ -12,6 +12,20 @@ namespace Metalama.Extensions.DependencyInjection;
 /// <summary>
 /// Exposes a method <see cref="SelectFramework"/> that gets called when there are many candidate frameworks for a dependency.
 /// </summary>
+/// <remarks>
+/// <para>
+/// This interface allows customization of dependency injection framework selection when multiple frameworks
+/// are registered and eligible to handle a specific dependency. To provide a custom selector, set
+/// <see cref="DependencyInjectionOptionsBuilder.Selector"/> when configuring dependency injection options
+/// via <see cref="DependencyInjectionExtensions.ConfigureDependencyInjection(Framework.Fabrics.IQuery{Framework.Code.ICompilation}, System.Action{DependencyInjectionOptionsBuilder})"/>.
+/// </para>
+/// <para>
+/// By default, Metalama selects the framework with the lowest priority value among the eligible ones.
+/// </para>
+/// </remarks>
+/// <seealso cref="DependencyInjectionOptionsBuilder"/>
+/// <seealso cref="IDependencyInjectionFramework"/>
+/// <seealso href="@dependency-injection"/>
 [CompileTime]
 public interface IDependencyInjectionFrameworkSelector : ICompileTimeSerializable
 {

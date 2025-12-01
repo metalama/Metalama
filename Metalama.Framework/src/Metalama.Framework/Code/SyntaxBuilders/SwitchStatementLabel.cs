@@ -10,9 +10,28 @@ using System.Linq;
 namespace Metalama.Framework.Code.SyntaxBuilders;
 
 /// <summary>
-/// Represents the label of a <c>switch case</c> (i.e. the literal or tuple literal to which the expression is compared).
-/// Only single literals or tuple of literals can be represented. 
+/// Represents the label of a <c>switch case</c> (i.e., the literal or tuple literal to which the expression is compared).
 /// </summary>
+/// <remarks>
+/// <para>
+/// <see cref="SwitchStatementLabel"/> represents the case label in a switch statement's case section. It supports single literals
+/// (e.g., <c>case 1:</c>) and tuple literals (e.g., <c>case (1, "a"):</c>).
+/// </para>
+/// <para>
+/// Use the static <see cref="CreateLiteral(object[])"/> method to create labels from intrinsic values like <see cref="int"/>,
+/// <see cref="string"/>, or enum values. For more control over types, use <see cref="CreateLiteral(TypedConstant[])"/>
+/// with explicitly typed constants.
+/// </para>
+/// <para>
+/// <b>Limitation:</b> Only constant literals and tuple literals are supported. Advanced C# pattern matching syntax
+/// (such as type patterns, property patterns, relational patterns, or logical patterns) is not supported.
+/// For complex pattern matching, consider using <see cref="StatementBuilder"/> to construct the switch statement as text.
+/// </para>
+/// </remarks>
+/// <seealso cref="SwitchStatementBuilder"/>
+/// <seealso cref="TypedConstant"/>
+/// <seealso href="@run-time-statements"/>
+/// <seealso href="@templates"/>
 [CompileTime]
 public sealed class SwitchStatementLabel
 {

@@ -10,12 +10,39 @@ using System.Collections.Generic;
 namespace Metalama.Framework.Advising
 {
     /// <summary>
-    /// Specifies the templates that must be used for the <c>get</c> accessor by the <c>OverrideAccessors</c> advice.
+    /// Specifies which T# templates to use when overriding property or field getters, enabling automatic selection
+    /// of specialized templates for iterator getters.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// When overriding field or property accessors with <see cref="AdviserExtensions.OverrideAccessors(IAdviser{Code.IFieldOrProperty}, in GetterTemplateSelector, string?, object?, object?)"/>,
+    /// you can provide different templates for properties that return <see cref="IEnumerable{T}"/> or <see cref="IEnumerator{T}"/>.
+    /// Template selection depends on the <see cref="UseEnumerableTemplateForAnyEnumerable"/> flag.
+    /// </para>
+    /// <para>
+    /// <b>Default behavior</b> (<see cref="UseEnumerableTemplateForAnyEnumerable"/> is <c>false</c>): Templates are selected based
+    /// on how the getter is <i>implemented</i>:
+    /// <list type="bullet">
+    /// <item><description><see cref="EnumerableTemplate"/>/<see cref="EnumeratorTemplate"/>: Getters using <c>yield</c> statements</description></item>
+    /// <item><description><see cref="DefaultTemplate"/>: All other getters (required if you want to override)</description></item>
+    /// </list>
+    /// </para>
+    /// <para>
+    /// <b>When <see cref="UseEnumerableTemplateForAnyEnumerable"/> is <c>true</c></b>: Iterator templates are selected based on
+    /// the property's <i>return type</i> (e.g., <see cref="IEnumerable{T}"/>, <see cref="IEnumerator{T}"/>), regardless of whether
+    /// the getter uses <c>yield</c> statements.
+    /// </para>
+    /// <para>
+    /// This type has an implicit conversion from <see cref="string"/>, so if you only need a default template,
+    /// you can pass the template name directly without constructing a <see cref="GetterTemplateSelector"/>.
+    /// </para>
+    /// </remarks>
     /// <seealso cref="AdviserExtensions.OverrideAccessors(IAdviser{Code.IFieldOrProperty}, in GetterTemplateSelector, string?, object?, object?)"/>
     /// <seealso cref="MethodTemplateSelector"/>
     /// <seealso cref="TemplateAttribute"/>
+    /// <seealso cref="OverrideFieldOrPropertyAspect"/>
     /// <seealso href="@overriding-fields-or-properties"/>
+    /// <seealso href="@templates"/>
     [CompileTime]
     [PublicAPI]
     public readonly struct GetterTemplateSelector

@@ -4,15 +4,30 @@
 
 using JetBrains.Annotations;
 using Metalama.Testing.AspectTesting.XunitFramework;
+using System;
 using Xunit.Abstractions;
 using Xunit.Sdk;
 
 namespace Metalama.Testing.AspectTesting
 {
     /// <summary>
-    /// The base class for the test suite that is automatically included in user projects.
+    /// A base class for aspect test suites that automatically discover test files in the project's source directory.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This class is intended for use when an xUnit test assembly is set up via the <c>Metalama.Testing.AspectTesting</c>
+    /// package. It automatically discovers test files using the project directory configured in the assembly metadata.
+    /// </para>
+    /// <para>
+    /// For manual test file discovery or when using <see cref="CurrentDirectoryAttribute"/> to specify subdirectories,
+    /// derive from <see cref="AspectTestClass"/> instead.
+    /// </para>
+    /// </remarks>
+    /// <seealso cref="AspectTestClass"/>
+    /// <seealso cref="CurrentProjectAttribute"/>
+    /// <seealso href="@aspect-testing"/>
     [PublicAPI]
+    [Obsolete( "This class is obsolete. Use the default aspect test project setup provided by Metalama.Testing.AspectTesting instead." )]
     public abstract class DefaultAspectTestClass : AspectTestClass
     {
         protected DefaultAspectTestClass( ITestOutputHelper logger ) : base( logger ) { }

@@ -28,6 +28,9 @@ namespace Metalama.Patterns.Contracts;
 [PublicAPI]
 public class RangeAttribute : ContractBaseAttribute
 {
+    /// <summary>
+    /// Gets the numeric range used for validation.
+    /// </summary>
     protected NumericRange Range { get; }
 
     internal RangeAttribute(
@@ -291,6 +294,12 @@ public class RangeAttribute : ContractBaseAttribute
         }
     }
 
+    /// <summary>
+    /// Template method called when the contract validation fails. Override to customize the error behavior.
+    /// </summary>
+    /// <param name="value">The value that failed validation.</param>
+    /// <param name="range">The numeric range that was violated.</param>
+    /// <param name="context">The contract context.</param>
     [Template]
     protected virtual void OnContractViolated( dynamic? value, [CompileTime] NumericRange range, [CompileTime] ContractContext context )
     {

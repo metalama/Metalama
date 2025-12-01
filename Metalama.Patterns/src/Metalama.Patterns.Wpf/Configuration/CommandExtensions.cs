@@ -10,6 +10,13 @@ using Metalama.Framework.Options;
 
 namespace Metalama.Patterns.Wpf.Configuration;
 
+/// <summary>
+/// Provides extension methods for configuring the <see cref="CommandAttribute"/> aspect at various levels
+/// in the code hierarchy.
+/// </summary>
+/// <seealso cref="CommandOptionsBuilder"/>
+/// <seealso cref="CommandAttribute"/>
+/// <seealso href="@wpf-command"/>
 [PublicAPI]
 [CompileTime]
 public static class CommandExtensions

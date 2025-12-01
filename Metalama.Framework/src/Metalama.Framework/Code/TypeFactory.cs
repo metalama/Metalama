@@ -12,10 +12,25 @@ using System.Collections.Generic;
 namespace Metalama.Framework.Code;
 
 /// <summary>
-/// Exposes methods that return instances of the <see cref="IType"/> interface.
+/// Provides methods to obtain <see cref="IType"/> instances from reflection types, special types, or by constructing new types.
 /// </summary>
+/// <remarks>
+/// <para>
+/// Use <see cref="GetType(Type)"/> or <see cref="GetNamedType(Type)"/> to convert a <see langword="typeof"/> expression to
+/// <see cref="IType"/> or <see cref="INamedType"/>. Use <see cref="GetType(SpecialType)"/> for efficient access to well-known types
+/// like <c>string</c> or <c>int</c>.
+/// </para>
+/// <para>
+/// To create derived types from existing types, use methods on <see cref="IType"/> such as
+/// <see cref="IType.MakeArrayType"/>, <see cref="IType.MakePointerType"/>, and <see cref="IType.ToNullable"/>.
+/// </para>
+/// <para>
+/// To create tuple types, use <see cref="CreateTupleType(IEnumerable{IType})"/> or its overloads.
+/// </para>
+/// </remarks>
 /// <seealso cref="IType"/>
 /// <seealso cref="INamedType"/>
+/// <seealso cref="ITupleType"/>
 /// <seealso cref="IDeclarationFactory"/>
 /// <seealso cref="ExpressionFactory"/>
 /// <seealso href="@type-system"/>

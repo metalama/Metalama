@@ -12,9 +12,29 @@ using Metalama.Patterns.Immutability.Configuration;
 namespace Metalama.Patterns.Immutability;
 
 /// <summary>
-/// An aspect that marks the target type as immutable (shallowly or deeply) and reports warnings
-/// for mutable fields.
+/// An aspect that marks the target type as immutable and reports warnings when fields are not read-only
+/// or when automatic properties have setters.
 /// </summary>
+/// <remarks>
+/// <para>This aspect serves three purposes:</para>
+/// <list type="bullet">
+/// <item><description>It exposes the immutability of a type to other aspects, such as
+/// <c>ObservableAttribute</c> from <c>Metalama.Patterns.Observability</c>, to facilitate code analysis.</description></item>
+/// <item><description>It represents the design intent visibly, enhancing code readability by eliminating the need
+/// for readers to infer immutability from the type implementation.</description></item>
+/// <item><description>It reports warnings if a type marked as immutable contains mutable fields or auto-implemented
+/// properties with setters.</description></item>
+/// </list>
+/// <para>By default, the aspect represents <i>shallow</i> immutability, meaning all instance fields must be read-only
+/// and no automatic property may have a setter. To represent <i>deep</i> immutability, supply
+/// <see cref="ImmutabilityKind.Deep"/> to the constructor. Deep immutability requires, recursively, that all instance
+/// fields and automatic properties are of a deeply immutable type.</para>
+/// <para>This aspect is automatically inherited by derived types due to the <see cref="InheritableAttribute"/>.</para>
+/// </remarks>
+/// <seealso cref="ImmutabilityKind"/>
+/// <seealso cref="ImmutabilityExtensions.GetImmutabilityKind"/>
+/// <seealso cref="Configuration.ImmutabilityConfigurationExtensions.ConfigureImmutability(Metalama.Framework.Fabrics.IQuery{Metalama.Framework.Code.INamedType},ImmutabilityKind)"/>
+/// <seealso href="@immutability"/>
 [Inheritable]
 public class ImmutableAttribute : TypeAspect, IHierarchicalOptionsProvider
 {

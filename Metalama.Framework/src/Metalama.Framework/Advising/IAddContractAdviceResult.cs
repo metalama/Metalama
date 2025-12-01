@@ -14,7 +14,7 @@ namespace Metalama.Framework.Advising;
 /// <seealso cref="IAdviceResult"/>
 /// <seealso cref="AdviserExtensions.AddContract(IAdviser{IFieldOrPropertyOrIndexer}, string, ContractDirection, object?, object?)"/>
 /// <seealso cref="ContractDirection"/>
-/// <seealso cref="Aspects.ContractAspect"/>
+/// <seealso cref="ContractAspect"/>
 /// <seealso href="@contracts"/>
 public interface IAddContractAdviceResult<out T> : IAdviceResult
     where T : IDeclaration

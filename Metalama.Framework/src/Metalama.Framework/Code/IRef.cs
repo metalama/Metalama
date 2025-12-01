@@ -10,17 +10,48 @@ using System;
 namespace Metalama.Framework.Code
 {
     /// <summary>
-    /// Represents a reference to an <see cref="IDeclaration"/> or <see cref="IType"/>, which is valid across different compilation versions
-    /// (i.e. <see cref="ICompilation"/>) and, when serialized, across projects and processes.
-    /// References can be resolved using <see cref="RefExtensions.GetTarget{T}(Metalama.Framework.Code.IRef{T},Metalama.Framework.Code.ICompilation,Metalama.Framework.Code.IGenericContext?)"/>.
-    /// All objects implementing this interface also implement the stronly-typed <see cref="IRef{T}"/>.
+    /// Represents a reference to an <see cref="IDeclaration"/> or <see cref="IType"/> that remains valid across different
+    /// compilation versions (i.e., <see cref="ICompilation"/>) and, when serialized, across projects and processes.
+    /// All objects implementing this interface also implement the strongly-typed <see cref="IRef{T}"/>.
     /// </summary>
     /// <remarks>
-    /// <para>Use <see cref="RefEqualityComparer{T}"/> to compare instances of <see cref="IRef"/>.</para>
+    /// <para>
+    /// References are essential in Metalama because each <see cref="IDeclaration"/> or <see cref="IType"/> object is bound
+    /// to a specific <see cref="ICompilation"/>. As aspects execute, the compilation evolves through multiple immutable
+    /// versions at each pipeline step. References provide a stable way to identify the same declaration across these
+    /// compilation versions.
+    /// </para>
+    /// <para>
+    /// <b>Common use cases:</b>
+    /// </para>
+    /// <list type="bullet">
+    /// <item>
+    /// <description>Storing declaration references in aspect fields for use across compilation versions.</description>
+    /// </item>
+    /// <item>
+    /// <description>Serializing declaration references for cross-project scenarios (inheritable aspects,
+    /// reference validators).</description>
+    /// </item>
+    /// <item>
+    /// <description>Passing declaration references to child aspects or storing them in <see cref="IAspectState"/>.</description>
+    /// </item>
+    /// </list>
+    /// <para>
+    /// To obtain a reference, call <see cref="IDeclaration.ToRef"/> or <see cref="IType.ToRef"/>. To resolve a reference
+    /// back to the declaration in a specific compilation, use
+    /// <see cref="RefExtensions.GetTarget{T}(IRef{T},ICompilation,IGenericContext?)"/> or
+    /// <see cref="RefExtensions.GetTarget{T}(IRef{T})"/> (for the current execution context).
+    /// </para>
+    /// <para>
+    /// Use <see cref="RefEqualityComparer{T}"/> to compare instances of <see cref="IRef"/> in collections.
+    /// </para>
     /// </remarks>
     /// <seealso cref="IRef{T}"/>
     /// <seealso cref="RefExtensions"/>
     /// <seealso cref="RefEqualityComparer{T}"/>
+    /// <seealso cref="RefComparison"/>
+    /// <seealso cref="SerializableDeclarationId"/>
+    /// <seealso href="@aspect-serialization"/>
     [CompileTime]
     [InternalImplement]
     public interface IRef : IEquatable<IRef>
@@ -41,22 +72,60 @@ namespace Metalama.Framework.Code
             where TOut : class, ICompilationElement;
 
         /// <summary>
-        /// Gets a value indicating whether the reference can be kept in memory without keeping a reference to the state of the project.
-        /// Most references are bound to a specific state of the project. They are faster to resolve but prevent that specific project state to be garbage-collected.
-        /// Durable references are slower to resolve but not cause a memory leak if they stay in memory for a long time.
+        /// Gets a value indicating whether the reference stores only a string identifier rather than holding
+        /// a reference to the compilation state. This is an internal concept with no user-facing scenario;
+        /// there is no public API to create durable references.
         /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Non-durable references</b> (when <c>IsDurable</c> is <c>false</c>) are bound to a specific compilation
+        /// context. They are faster to resolve because they have direct access to the underlying symbol, but they
+        /// prevent that compilation from being garbage-collected as long as the reference is held in memory.
+        /// References returned by <see cref="IDeclaration.ToRef"/> are always non-durable.
+        /// </para>
+        /// <para>
+        /// <b>Durable references</b> (when <c>IsDurable</c> is <c>true</c>) store only a string-based identifier.
+        /// They are slower to resolve but do not hold any reference to the compilation. There is no public API
+        /// to create durable references; they are used internally at design time to persist references between
+        /// IDE compilation updates without causing memory leaks.
+        /// </para>
+        /// </remarks>
         bool IsDurable { get; }
 
+        /// <summary>
+        /// Compares this reference to another reference using the specified comparison strategy.
+        /// </summary>
+        /// <param name="other">The other reference to compare to.</param>
+        /// <param name="comparison">The comparison strategy to use. See <see cref="RefComparison"/> for available options.</param>
+        /// <returns><c>true</c> if the references are equal according to the specified comparison strategy; otherwise, <c>false</c>.</returns>
+        /// <seealso cref="RefComparison"/>
+        /// <seealso cref="RefEqualityComparer{T}"/>
         bool Equals( IRef? other, RefComparison comparison = RefComparison.Default );
 
+        /// <summary>
+        /// Returns a hash code for this reference using the specified comparison strategy.
+        /// </summary>
+        /// <param name="comparison">The comparison strategy to use. See <see cref="RefComparison"/> for available options.</param>
+        /// <returns>A hash code compatible with the specified comparison strategy.</returns>
+        /// <seealso cref="RefComparison"/>
+        /// <seealso cref="RefEqualityComparer{T}"/>
         int GetHashCode( RefComparison comparison );
 
         /// <summary>
-        /// Gets the target of the reference for a given compilation, and specify the type of the interface to be returned.
-        /// Normally, the extension methods <see cref="RefExtensions.GetTarget{T}(Metalama.Framework.Code.IRef{T},Metalama.Framework.Code.ICompilation,Metalama.Framework.Code.IGenericContext?)"/>
-        /// or <see cref="RefExtensions.GetTargetOrNull{T}(Metalama.Framework.Code.IRef{T},Metalama.Framework.Code.ICompilation,Metalama.Framework.Code.IGenericContext?)"/>
-        /// should be used instead of this one.
+        /// Gets the target of the reference for a given compilation, with control over the interface type and error handling.
+        /// Prefer the extension methods <see cref="RefExtensions.GetTarget{T}(IRef{T},ICompilation,IGenericContext?)"/>
+        /// or <see cref="RefExtensions.GetTargetOrNull{T}(IRef{T},ICompilation,IGenericContext?)"/> for typical usage.
         /// </summary>
+        /// <param name="compilation">The compilation in which to resolve the reference.</param>
+        /// <param name="interfaceType">The optional interface type to use for the target, or <c>null</c> to use the default.</param>
+        /// <param name="genericContext">The optional generic context for resolving generic instances.</param>
+        /// <param name="throwIfMissing">
+        /// If <c>true</c>, throws an exception when the reference cannot be resolved; if <c>false</c>, returns <c>null</c>.
+        /// </param>
+        /// <returns>
+        /// The resolved compilation element, or <c>null</c> if the reference cannot be resolved and
+        /// <paramref name="throwIfMissing"/> is <c>false</c>.
+        /// </returns>
         ICompilationElement? GetTargetInterface(
             ICompilation compilation,
             Type? interfaceType,

@@ -5,8 +5,14 @@
 namespace Metalama.Patterns.Caching.Serializers;
 
 /// <summary>
-/// Serializes an object into a byte array and deserializes the byte array back.
+/// Serializes and deserializes cached objects for storage in backends that require binary serialization.
 /// </summary>
+/// <remarks>
+/// <para>Serializers are typically used by distributed caching backends (such as Redis) to convert
+/// cached objects to and from a binary format for network transmission and storage.</para>
+/// <para>A default JSON serializer is available through <see cref="JsonCachingSerializer"/>.</para>
+/// </remarks>
+/// <seealso cref="JsonCachingSerializer"/>
 public interface ICachingSerializer
 {
     /// <summary>
