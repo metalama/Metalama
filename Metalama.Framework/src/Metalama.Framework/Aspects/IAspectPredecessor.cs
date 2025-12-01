@@ -41,6 +41,7 @@ namespace Metalama.Framework.Aspects
     /// <seealso cref="IAttribute"/>
     /// <seealso href="@child-aspects"/>
     /// <seealso href="@introspection"/>
+    /// <seealso href="@same-type-multiple-instances"/>
     [CompileTime]
     [InternalImplement]
     public interface IAspectPredecessor

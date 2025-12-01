@@ -25,6 +25,7 @@ namespace Metalama.Framework.Aspects;
 /// </para>
 /// </remarks>
 /// <seealso href="@aspect-inheritance"/>
+/// <seealso href="@same-type-multiple-instances"/>
 [AttributeUsage( AttributeTargets.All )]
 public sealed class ExcludeAspectAttribute : Attribute
 {

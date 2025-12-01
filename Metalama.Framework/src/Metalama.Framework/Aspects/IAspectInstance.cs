@@ -52,6 +52,8 @@ namespace Metalama.Framework.Aspects
     /// <seealso cref="IAspectPredecessor"/>
     /// <seealso href="@child-aspects"/>
     /// <seealso href="@aspect-design"/>
+    /// <seealso href="@same-type-multiple-instances"/>
+    /// <seealso href="@multiple-instances"/>
     [InternalImplement]
     [CompileTime]
     public interface IAspectInstance : IAspectPredecessor
@@ -99,6 +101,7 @@ namespace Metalama.Framework.Aspects
         /// their properties or state and incorporating that information into the primary instance's behavior.
         /// </para>
         /// </remarks>
+        /// <seealso href="@same-type-multiple-instances"/>
         /// <seealso href="@ordering-aspects"/>
         ImmutableArray<IAspectInstance> SecondaryInstances { get; }
 
