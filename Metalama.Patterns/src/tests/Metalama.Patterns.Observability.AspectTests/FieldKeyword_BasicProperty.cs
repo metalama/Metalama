@@ -18,5 +18,5 @@ public class FieldKeyword_BasicProperty
     {
         get => field;
         set => field = value?.Trim() ?? throw new ArgumentNullException( nameof( value ) );
-    }
+    } = "";
 }
