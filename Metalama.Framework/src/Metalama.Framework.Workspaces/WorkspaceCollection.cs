@@ -11,6 +11,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -66,6 +67,41 @@ namespace Metalama.Framework.Workspaces
         /// </summary>
         public ServiceBuilder ServiceBuilder { get; } = new();
 
+        /// <summary>
+        /// Configures additional services for this collection, resetting any previously registered services, and returns the current collection.
+        /// </summary>
+        /// <param name="configure">An action that configures services on the <see cref="ServiceBuilder"/>.</param>
+        /// <returns>The current <see cref="WorkspaceCollection"/> instance for method chaining.</returns>
+        /// <remarks>
+        /// <para>
+        /// <strong>Important:</strong> This method must be called <em>before</em> any call to <see cref="Load"/> or <see cref="LoadAsync(string[])"/>.
+        /// Services configured after loading have no effect on already-loaded workspaces.
+        /// </para>
+        /// <para>
+        /// This method first clears any previously registered services, then invokes the configure action
+        /// to register new services. Services are available for metric computations and other extensibility points.
+        /// </para>
+        /// <para>
+        /// Example usage with metrics:
+        /// </para>
+        /// <code>
+        /// WorkspaceCollection.Default
+        ///     .WithServices(s => s.AddMetrics())
+        ///     .Load("MySolution.sln")
+        ///     .SourceCode
+        ///     .Methods
+        ///     .Select(m => m.Metrics().Get&lt;SyntaxNodesCount&gt;())
+        /// </code>
+        /// </remarks>
+        /// <seealso cref="ServiceBuilder"/>
+        public WorkspaceCollection WithServices( Action<ServiceBuilder> configure )
+        {
+            this.ServiceBuilder.Clear();
+            configure( this.ServiceBuilder );
+
+            return this;
+        }
+
         internal GlobalServiceProvider ServiceProvider { get; }
 
         [Obsolete( "Errors are now always ignored." )]
@@ -105,6 +141,32 @@ namespace Metalama.Framework.Workspaces
             bool restore = true,
             CancellationToken cancellationToken = default )
         {
+            // Expand environment variables and validate paths.
+            var expandedPathsBuilder = ImmutableArray.CreateBuilder<string>( paths.Length );
+
+            for ( var i = 0; i < paths.Length; i++ )
+            {
+                var path = Environment.ExpandEnvironmentVariables( paths[i] );
+
+                if ( string.IsNullOrWhiteSpace( path ) )
+                {
+                    throw new ArgumentException(
+                        $"The path at index {i} is empty or whitespace.",
+                        nameof(paths) );
+                }
+
+                if ( !File.Exists( path ) )
+                {
+                    throw new FileNotFoundException(
+                        $"The project or solution file was not found: '{path}'",
+                        path );
+                }
+
+                expandedPathsBuilder.Add( path );
+            }
+
+            paths = expandedPathsBuilder.MoveToImmutable();
+
             properties ??= properties ?? ImmutableDictionary<string, string>.Empty;
             var key = GetWorkspaceKey( paths, properties );
 

@@ -102,6 +102,11 @@ public class ServiceProviderBuilder<TService>
     public void Add( Func<ServiceProvider<TService>, ServiceProvider<TService>> func ) => this._buildActions.Add( func );
 
     /// <summary>
+    /// Clears all registered build actions from the builder, resetting it to its initial empty state.
+    /// </summary>
+    public void Clear() => this._buildActions.Clear();
+
+    /// <summary>
     /// Builds a <see cref="ServiceProvider{TService}"/> by applying all registered build actions to an initial provider.
     /// </summary>
     /// <param name="initial">The initial service provider to build upon.</param>

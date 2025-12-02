@@ -16,8 +16,8 @@ namespace Metalama.Extensions.Metrics;
 public static class ServiceBuilderExtensions
 {
     /// <summary>
-    /// Registers the standard metric providers (<see cref="IMetricProvider{T}"/> for <see cref="SyntaxNodesCount"/>
-    /// and <see cref="StatementsCount"/>) with the service builder.
+    /// Registers the standard metric providers (<see cref="IMetricProvider{T}"/> for <see cref="SyntaxNodesCount"/>,
+    /// <see cref="StatementsCount"/>, and <see cref="LinesOfCode"/>) with the service builder.
     /// </summary>
     /// <param name="builder">The service builder to register the metric providers with.</param>
     /// <remarks>
@@ -30,9 +30,11 @@ public static class ServiceBuilderExtensions
     /// </remarks>
     /// <seealso cref="SyntaxNodesCount"/>
     /// <seealso cref="StatementsCount"/>
+    /// <seealso cref="LinesOfCode"/>
     public static void AddMetrics( this ServiceProviderBuilder<IProjectService> builder )
     {
         builder.Add<IMetricProvider<SyntaxNodesCount>>( _ => new SyntaxNodesCountMetricProvider() );
         builder.Add<IMetricProvider<StatementsCount>>( _ => new StatementsCountMetricProvider() );
+        builder.Add<IMetricProvider<LinesOfCode>>( _ => new LinesOfCodeMetricProvider() );
     }
 }

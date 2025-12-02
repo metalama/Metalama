@@ -11,18 +11,19 @@
   <Namespace>Metalama.Framework.Code.Collections</Namespace>
   <Namespace>Metalama.Framework.Introspection</Namespace>
   <Namespace>Metalama.Framework.Diagnostics</Namespace>
+  <Namespace>Metalama.Framework.Metrics</Namespace>
+  <Namespace>Metalama.Extensions.Metrics</Namespace>
   <Namespace>Metalama.LinqPad</Namespace>
 </Query>
 
-// Lists all public methods from public types, grouped by declaring type.
-// Useful for reviewing your API surface.
+// Lists the 50 most complex methods in your solution, ranked by syntax node count.
+// High complexity often correlates with harder-to-maintain code.
 
-WorkspaceCollection.Default.Load(@"%METALAMA_DEMO_SOLUTION%")
+WorkspaceCollection.Default
+    .WithServices(s => s.AddMetrics())  // Enable metrics computation
+    .Load(@"%METALAMA_DEMO_SOLUTION%")
     .SourceCode
-	.Methods
-	.Where( m => m.Accessibility ==  Metalama.Framework.Code.Accessibility.Public && m.DeclaringType.Accessibility == Metalama.Framework.Code.Accessibility.Public )
-	.GroupBy( m => m.DeclaringType.FullName )
-	.OrderBy( g => g.Key )
-	
-	
-
+    .Methods
+    .Select(m => new { Method = m, Complexity = m.Metrics().Get<SyntaxNodesCount>().Value })
+    .OrderByDescending(x => x.Complexity)
+    .Take(50)

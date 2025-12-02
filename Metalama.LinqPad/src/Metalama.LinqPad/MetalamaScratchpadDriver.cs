@@ -11,6 +11,7 @@ using Metalama.Backstage.Utilities;
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.Pipeline;
+using Metalama.Framework.Engine.Services;
 using Metalama.Extensions.Metrics;
 using Metalama.Framework.Introspection;
 using Metalama.Framework.Workspaces;
@@ -154,6 +155,9 @@ namespace {nameSpace}
 
             // Metalama.Extensions.Metrics
             assembliesToReference.Add( typeof(SyntaxNodesCount).Assembly.Location );
+
+            // Metalama.Framework.Sdk (for ServiceProviderBuilder<>)
+            assembliesToReference.Add( typeof(ServiceProviderBuilder<>).Assembly.Location );
 
             return assembliesToReference;
         }

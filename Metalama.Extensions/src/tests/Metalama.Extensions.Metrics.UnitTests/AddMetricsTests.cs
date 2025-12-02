@@ -69,6 +69,7 @@ class C
 
             Assert.Equal( 2, type.Metrics().Get<StatementsCount>().Value );
             Assert.True( type.Metrics().Get<SyntaxNodesCount>().Value > 0 );
+            Assert.True( type.Metrics().Get<LinesOfCode>().Logical > 0 );
         }
     }
 }

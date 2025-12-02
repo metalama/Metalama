@@ -1,4 +1,4 @@
-<Query Kind="Expression">
+<Query Kind="Statements">
   <Connection>
     <ID>615c0f52-0344-430e-bdb4-60068ec155aa</ID>
     <NamingServiceVersion>2</NamingServiceVersion>
@@ -14,15 +14,27 @@
   <Namespace>Metalama.LinqPad</Namespace>
 </Query>
 
-// Lists all public methods from public types, grouped by declaring type.
-// Useful for reviewing your API surface.
+// Finds classes with deep inheritance hierarchies.
+// Deep inheritance can indicate design complexity and may benefit from composition.
+
+int GetInheritanceDepth(INamedType type)
+{
+    int depth = 0;
+    var current = type.BaseType;
+    while (current != null && current.FullName != "System.Object")
+    {
+        depth++;
+        current = current.BaseType;
+    }
+    return depth;
+}
 
 WorkspaceCollection.Default.Load(@"%METALAMA_DEMO_SOLUTION%")
     .SourceCode
-	.Methods
-	.Where( m => m.Accessibility ==  Metalama.Framework.Code.Accessibility.Public && m.DeclaringType.Accessibility == Metalama.Framework.Code.Accessibility.Public )
-	.GroupBy( m => m.DeclaringType.FullName )
-	.OrderBy( g => g.Key )
-	
-	
-
+    .Types
+    .Where(t => t.TypeKind == TypeKind.Class)
+    .Select(t => new { Type = t, Depth = GetInheritanceDepth(t) })
+    .Where(x => x.Depth > 0)
+    .OrderByDescending(x => x.Depth)
+    .Take(50)
+    .Dump();

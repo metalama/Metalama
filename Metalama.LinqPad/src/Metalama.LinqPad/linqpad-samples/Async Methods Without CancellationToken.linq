@@ -14,15 +14,13 @@
   <Namespace>Metalama.LinqPad</Namespace>
 </Query>
 
-// Lists all public methods from public types, grouped by declaring type.
-// Useful for reviewing your API surface.
+// Finds async methods that don't accept a CancellationToken parameter.
+// These methods cannot be cancelled, which may cause issues in long-running operations.
 
 WorkspaceCollection.Default.Load(@"%METALAMA_DEMO_SOLUTION%")
     .SourceCode
-	.Methods
-	.Where( m => m.Accessibility ==  Metalama.Framework.Code.Accessibility.Public && m.DeclaringType.Accessibility == Metalama.Framework.Code.Accessibility.Public )
-	.GroupBy( m => m.DeclaringType.FullName )
-	.OrderBy( g => g.Key )
-	
-	
-
+    .Methods
+    .Where(m => m.IsAsync)
+    .Where(m => !m.Parameters.Any(p => p.Type.Equals(typeof(System.Threading.CancellationToken))))
+    .Select(m => new { Method = m, DeclaringType = m.DeclaringType.FullName })
+    .OrderBy(x => x.DeclaringType)
