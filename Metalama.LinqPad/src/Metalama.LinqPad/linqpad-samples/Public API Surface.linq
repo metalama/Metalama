@@ -14,15 +14,18 @@
   <Namespace>Metalama.LinqPad</Namespace>
 </Query>
 
-// Lists all public methods from public types, grouped by declaring type.
-// Useful for reviewing your API surface.
+// Summarizes your public API surface by namespace.
+// Shows public types, methods, and properties per namespace.
 
 WorkspaceCollection.Default.Load(@"%METALAMA_DEMO_SOLUTION%")
     .SourceCode
-	.Methods
-	.Where( m => m.Accessibility ==  Metalama.Framework.Code.Accessibility.Public && m.DeclaringType.Accessibility == Metalama.Framework.Code.Accessibility.Public )
-	.GroupBy( m => m.DeclaringType.FullName )
-	.OrderBy( g => g.Key )
-	
-	
-
+    .Types
+    .Where(t => t.Accessibility == Metalama.Framework.Code.Accessibility.Public)
+    .GroupBy(t => t.ContainingNamespace?.FullName ?? "(global)")
+    .Select(g => new {
+        Namespace = g.Key,
+        TypeCount = g.Count(),
+        PublicMethods = g.Sum(t => t.Methods.Count(m => m.Accessibility == Metalama.Framework.Code.Accessibility.Public)),
+        PublicProperties = g.Sum(t => t.Properties.Count(p => p.Accessibility == Metalama.Framework.Code.Accessibility.Public))
+    })
+    .OrderByDescending(x => x.TypeCount)

@@ -19,6 +19,7 @@
     
     <ItemGroup>
         <ProjectReference Include="..\..\Metalama.Extensions.Metrics\Metalama.Extensions.Metrics.csproj" />
+        <PackageReference Include="Metalama.Framework.Workspaces" />
         <PackageReference Include="Metalama.Testing.UnitTesting" />
     </ItemGroup>
     

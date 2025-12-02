@@ -334,17 +334,22 @@ public static class ToolInvocationHelper
                     }
 
                     // We will wait for a while for all output to be processed.
+                    // Note: We use sequential WaitOne instead of WaitAll because WaitAll is not supported on STA threads
+                    // (e.g., when running in LinqPad).
                     if ( !cancellationToken.HasValue )
                     {
-                        WaitHandle.WaitAll( new WaitHandle[] { stdErrorClosed, stdOutClosed }, 10000 );
+                        stdErrorClosed.WaitOne( 10000 );
+                        stdOutClosed.WaitOne( 10000 );
                     }
                     else
                     {
-                        var i = 0;
-
-                        while ( !WaitHandle.WaitAll( new WaitHandle[] { stdErrorClosed, stdOutClosed }, 100 ) &&
-                                i++ < 100 )
+                        for ( var i = 0; i < 100; i++ )
                         {
+                            if ( stdErrorClosed.WaitOne( 100 ) && stdOutClosed.WaitOne( 100 ) )
+                            {
+                                break;
+                            }
+
                             cancellationToken.Value.ThrowIfCancellationRequested();
                         }
                     }

@@ -14,15 +14,12 @@
   <Namespace>Metalama.LinqPad</Namespace>
 </Query>
 
-// Lists all public methods from public types, grouped by declaring type.
-// Useful for reviewing your API surface.
+// Shows how many times each aspect is applied in your solution.
+// Groups aspect instances by aspect class and shows sample targets.
+// Requires: Metalama aspects in your solution
 
 WorkspaceCollection.Default.Load(@"%METALAMA_DEMO_SOLUTION%")
-    .SourceCode
-	.Methods
-	.Where( m => m.Accessibility ==  Metalama.Framework.Code.Accessibility.Public && m.DeclaringType.Accessibility == Metalama.Framework.Code.Accessibility.Public )
-	.GroupBy( m => m.DeclaringType.FullName )
-	.OrderBy( g => g.Key )
-	
-	
-
+    .AspectInstances
+    .GroupBy(a => a.AspectClass.FullName)
+    .Select(g => new { Aspect = g.Key, Count = g.Count(), Targets = g.Select(a => a.TargetDeclaration.ToString()).Take(10) })
+    .OrderByDescending(x => x.Count)

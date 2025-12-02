@@ -79,15 +79,25 @@ namespace Metalama.Framework.Workspaces
         /// </summary>
         /// <param name="paths">A list of project or solution paths.</param>
         /// <returns>A <see cref="Workspace"/> where all specified project or solutions, and their dependencies, have been loaded.</returns>
+        /// <remarks>
+        /// Use <see cref="WorkspaceCollection.Default"/>.<see cref="WorkspaceCollection.Load(string[])"/> instead.
+        /// To configure services such as metrics, call <see cref="WorkspaceCollection.WithServices"/> before loading.
+        /// </remarks>
+        [Obsolete( "Use WorkspaceCollection.Default.Load() instead." )]
         public static Workspace Load( params string[] paths ) => WorkspaceCollection.Default.Load( paths );
 
         /// <summary>
         /// Asynchronously loads a set of projects of solutions into a <see cref="Workspace"/>, or returns an existing workspace
         /// if the method has been previously called with the exact same parameters.
-        /// This method creates the workspace in the default <see cref="WorkspaceCollection"/>. 
+        /// This method creates the workspace in the default <see cref="WorkspaceCollection"/>.
         /// </summary>
         /// <param name="paths">A list of project or solution paths.</param>
         /// <returns>A <see cref="Workspace"/> where all specified project or solutions, and their dependencies, have been loaded.</returns>
+        /// <remarks>
+        /// Use <see cref="WorkspaceCollection.Default"/>.<see cref="WorkspaceCollection.LoadAsync(string[])"/> instead.
+        /// To configure services such as metrics, call <see cref="WorkspaceCollection.WithServices"/> before loading.
+        /// </remarks>
+        [Obsolete( "Use WorkspaceCollection.Default.LoadAsync() instead." )]
         public static Task<Workspace> LoadAsync( params string[] paths ) => WorkspaceCollection.Default.LoadAsync( paths );
 
         private Workspace(
