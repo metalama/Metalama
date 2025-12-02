@@ -1,7 +1,7 @@
 [Observable]
 public class FieldKeyword_BasicProperty : INotifyPropertyChanged
 {
-  private string _name = default !;
+  private string _name = "";
   // Semi-automatic property with basic field keyword usage.
   public string Name
   {
@@ -18,7 +18,7 @@ public class FieldKeyword_BasicProperty : INotifyPropertyChanged
       }
     }
   }
-  private string Name_Source { get => field; set => field = value?.Trim() ?? throw new ArgumentNullException(nameof(value)); }
+  private string Name_Source { get => field; set => field = value?.Trim() ?? throw new ArgumentNullException(nameof(value)); } = "";
   protected virtual void OnPropertyChanged(string propertyName)
   {
     PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));

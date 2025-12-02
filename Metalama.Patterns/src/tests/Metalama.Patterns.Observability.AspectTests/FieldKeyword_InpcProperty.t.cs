@@ -1,9 +1,9 @@
 [Observable]
 public class FieldKeyword_InpcProperty : INotifyPropertyChanged
 {
-  private SimpleInpcByHand _child = default !;
+  private SimpleInpcByHand? _child;
   // Semi-automatic property with INPC type.
-  public SimpleInpcByHand Child
+  public SimpleInpcByHand? Child
   {
     get
     {
@@ -19,14 +19,14 @@ public class FieldKeyword_InpcProperty : INotifyPropertyChanged
           oldValue.PropertyChanged -= _handleChildPropertyChanged;
         }
         _child = value;
-        OnObservablePropertyChanged("Child", oldValue, (INotifyPropertyChanged? )value);
+        OnObservablePropertyChanged("Child", oldValue, value);
         OnPropertyChanged("ChildValue");
         OnPropertyChanged("Child");
         SubscribeToChild(value);
       }
     }
   }
-  private SimpleInpcByHand Child_Source { get => field; set => field = value ?? field; }
+  private SimpleInpcByHand? Child_Source { get => field; set => field = value ?? field; }
   // Computed property accessing the child's property.
   public int? ChildValue => this.Child?.A;
   private PropertyChangedEventHandler? _handleChildPropertyChanged;
@@ -42,7 +42,7 @@ public class FieldKeyword_InpcProperty : INotifyPropertyChanged
   {
     PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
   }
-  private void SubscribeToChild(SimpleInpcByHand value)
+  private void SubscribeToChild(SimpleInpcByHand? value)
   {
     if (value != null)
     {
