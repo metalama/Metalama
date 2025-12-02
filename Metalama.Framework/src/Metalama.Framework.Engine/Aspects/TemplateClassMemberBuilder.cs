@@ -244,7 +244,15 @@ internal sealed class TemplateClassMemberBuilder : ITemplateClassMemberBuilder
                 }
 
                 // Add or replace the template.
-                membersBuilder[memberKey] = aspectClassMember;
+
+                if ( attribute is ITemplateAttribute { Properties.Id: { } id } )
+                {
+                    membersBuilder[id] = aspectClassMember;
+                }
+                else
+                {
+                    membersBuilder[memberKey] = aspectClassMember;
+                }
             }
             else
             {
