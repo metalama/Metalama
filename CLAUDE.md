@@ -16,3 +16,13 @@
 ## Aspect tests
 
 - In aspect tests, Foo.t.cs is the result file of Foo.cs
+
+## Git branches
+
+- Branch naming convention: `topic/YYYY.N/XXXX-short-description` where `XXXX` is the issue number
+- For a branch named `topic/YYYY.N/*`, the merge branch is always `develop/YYYY.N` - do not use the default merge branch
+
+## Commits
+
+- Commit messages must include the issue number, e.g. `(#1212)`
+- Do not sign commits with "Generated with Claude Code"
