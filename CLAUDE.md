@@ -49,3 +49,5 @@ When you learn something important that can make save you time the next time, up
   - XML documentation with `<see>` tags and usage examples
   - Conceptual documentation in `../Metalama.Documentation/content`
   - Sample code in `../Metalama.Documentation/code`
+- Two build.ps1 builds can never run in parallel. the previous one must always complete
+- Do not run `Build.ps1 build` yourself, but ask the user to do it, because the timeout is too low and you will then retry the build
