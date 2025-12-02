@@ -11,18 +11,19 @@
   <Namespace>Metalama.Framework.Code.Collections</Namespace>
   <Namespace>Metalama.Framework.Introspection</Namespace>
   <Namespace>Metalama.Framework.Diagnostics</Namespace>
+  <Namespace>Metalama.Framework.Metrics</Namespace>
+  <Namespace>Metalama.Extensions.Metrics</Namespace>
   <Namespace>Metalama.LinqPad</Namespace>
 </Query>
 
-// Lists all public methods from public types, grouped by declaring type.
-// Useful for reviewing your API surface.
+// Lists the 50 largest types in your solution, ranked by statement count.
+// Useful for identifying classes that may benefit from refactoring.
 
-WorkspaceCollection.Default.Load(@"%METALAMA_DEMO_SOLUTION%")
+WorkspaceCollection.Default
+    .WithServices(s => s.AddMetrics())  // Enable metrics computation
+    .Load(@"%METALAMA_DEMO_SOLUTION%")
     .SourceCode
-	.Methods
-	.Where( m => m.Accessibility ==  Metalama.Framework.Code.Accessibility.Public && m.DeclaringType.Accessibility == Metalama.Framework.Code.Accessibility.Public )
-	.GroupBy( m => m.DeclaringType.FullName )
-	.OrderBy( g => g.Key )
-	
-	
-
+    .Types
+    .Select(t => new { Type = t, Statements = t.Metrics().Get<StatementsCount>().Value })
+    .OrderByDescending(x => x.Statements)
+    .Take(50)

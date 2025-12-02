@@ -14,15 +14,16 @@
   <Namespace>Metalama.LinqPad</Namespace>
 </Query>
 
-// Lists all public methods from public types, grouped by declaring type.
-// Useful for reviewing your API surface.
+// Shows code transformations performed by each aspect.
+// Useful for understanding how aspects modify your codebase.
+// Requires: Metalama aspects in your solution
 
 WorkspaceCollection.Default.Load(@"%METALAMA_DEMO_SOLUTION%")
-    .SourceCode
-	.Methods
-	.Where( m => m.Accessibility ==  Metalama.Framework.Code.Accessibility.Public && m.DeclaringType.Accessibility == Metalama.Framework.Code.Accessibility.Public )
-	.GroupBy( m => m.DeclaringType.FullName )
-	.OrderBy( g => g.Key )
-	
-	
-
+    .Transformations
+    .GroupBy(t => t.Advice.AspectInstance.AspectClass.ShortName)
+    .Select(g => new {
+        Aspect = g.Key,
+        TransformationCount = g.Count(),
+        TransformationTypes = g.GroupBy(t => t.TransformationKind).Select(t => new { Kind = t.Key, Count = t.Count() })
+    })
+    .OrderByDescending(x => x.TransformationCount)

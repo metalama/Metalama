@@ -18,9 +18,9 @@
     <RoslynApiMinVersion>4.8.0</RoslynApiMinVersion>
 
     <!-- RoslynApiMaxVersion is the maximum version of the Roslyn API we support. -->
-    <RoslynApiMaxVersion>5.0.0-2.final</RoslynApiMaxVersion>
+    <RoslynApiMaxVersion>5.0.0</RoslynApiMaxVersion>
     <!-- RoslynMaxVersion is the version of Roslyn that should be referenced by the Workspaces package. -->
-    <RoslynMaxVersion>5.0.0-2.final</RoslynMaxVersion>
+    <RoslynMaxVersion>5.0.0</RoslynMaxVersion>
 
     <!-- xUnitApiVersion is the version of xUnit against which we build the testing framework -->
     <xUnitApiVersion>2.9.3</xUnitApiVersion>
@@ -145,6 +145,7 @@
     <PackageVersion Include="Metalama.Testing.AspectTesting" Version="$(MetalamaVersion)" />
     <PackageVersion Include="Metalama.Testing.UnitTesting" Version="$(MetalamaVersion)" />
     <PackageVersion Include="Metalama.Extensions.DependencyInjection" Version="$(MetalamaVersion)" />
+    <PackageVersion Include="Metalama.Extensions.Metrics" Version="$(MetalamaVersion)" />
     <PackageVersion Include="Metalama.Extensions.Multicast" Version="$(MetalamaVersion)" />
 
 

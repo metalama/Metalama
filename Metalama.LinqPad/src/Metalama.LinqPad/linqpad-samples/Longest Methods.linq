@@ -11,18 +11,20 @@
   <Namespace>Metalama.Framework.Code.Collections</Namespace>
   <Namespace>Metalama.Framework.Introspection</Namespace>
   <Namespace>Metalama.Framework.Diagnostics</Namespace>
+  <Namespace>Metalama.Framework.Metrics</Namespace>
+  <Namespace>Metalama.Extensions.Metrics</Namespace>
   <Namespace>Metalama.LinqPad</Namespace>
 </Query>
 
-// Lists all public methods from public types, grouped by declaring type.
-// Useful for reviewing your API surface.
+// Lists the 50 longest methods in your solution, ranked by logical lines of code.
+// Logical lines exclude braces and comments, focusing on actual code.
 
-WorkspaceCollection.Default.Load(@"%METALAMA_DEMO_SOLUTION%")
+WorkspaceCollection.Default
+    .WithServices(s => s.AddMetrics())  // Enable metrics computation
+    .Load(@"%METALAMA_DEMO_SOLUTION%")
     .SourceCode
-	.Methods
-	.Where( m => m.Accessibility ==  Metalama.Framework.Code.Accessibility.Public && m.DeclaringType.Accessibility == Metalama.Framework.Code.Accessibility.Public )
-	.GroupBy( m => m.DeclaringType.FullName )
-	.OrderBy( g => g.Key )
-	
-	
-
+    .Methods
+    .Select(m => new { Method = m, Lines = m.Metrics().Get<LinesOfCode>() })
+    .OrderByDescending(x => x.Lines.Logical)
+    .Take(50)
+    .Select(x => new { x.Method, x.Lines.Logical, x.Lines.NonBlank, x.Lines.Total })

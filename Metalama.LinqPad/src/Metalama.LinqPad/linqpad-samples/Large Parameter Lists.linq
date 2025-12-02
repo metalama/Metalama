@@ -14,15 +14,17 @@
   <Namespace>Metalama.LinqPad</Namespace>
 </Query>
 
-// Lists all public methods from public types, grouped by declaring type.
-// Useful for reviewing your API surface.
+// Finds methods with more than 5 parameters.
+// Long parameter lists can indicate a method doing too much or a missing abstraction.
 
 WorkspaceCollection.Default.Load(@"%METALAMA_DEMO_SOLUTION%")
     .SourceCode
-	.Methods
-	.Where( m => m.Accessibility ==  Metalama.Framework.Code.Accessibility.Public && m.DeclaringType.Accessibility == Metalama.Framework.Code.Accessibility.Public )
-	.GroupBy( m => m.DeclaringType.FullName )
-	.OrderBy( g => g.Key )
-	
-	
-
+    .Methods
+    .Where(m => m.Parameters.Count > 5)
+    .Select(m => new {
+        Method = m,
+        ParameterCount = m.Parameters.Count,
+        Parameters = string.Join(", ", m.Parameters.Select(p => p.Type.ToDisplayString() + " " + p.Name))
+    })
+    .OrderByDescending(x => x.ParameterCount)
+    .Take(50)

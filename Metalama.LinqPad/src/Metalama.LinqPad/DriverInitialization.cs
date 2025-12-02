@@ -5,6 +5,7 @@
 using LINQPad;
 using Metalama.Backstage.Application;
 using Metalama.Backstage.Extensibility;
+using Metalama.Extensions.Metrics;
 using Metalama.Framework.Engine.Utilities.Diagnostics;
 using Metalama.Framework.Workspaces;
 
@@ -38,6 +39,9 @@ internal static class DriverInitialization
                 BackstageServiceFactoryInitializer.Initialize(
                     new BackstageInitializationOptions( new LinqPadApplicationInfo() ) { AddSupportServices = true } );
             }
+
+            // Register standard metric providers with the default workspace collection.
+            WorkspaceCollection.Default.ServiceBuilder.AddMetrics();
 
             DiagnosticReporter.ReportAction = diagnostics => diagnostics.Dump( "Error List" );
         }

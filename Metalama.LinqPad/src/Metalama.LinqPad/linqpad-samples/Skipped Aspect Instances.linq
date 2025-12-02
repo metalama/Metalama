@@ -14,15 +14,15 @@
   <Namespace>Metalama.LinqPad</Namespace>
 </Query>
 
-// Lists all public methods from public types, grouped by declaring type.
-// Useful for reviewing your API surface.
+// Shows aspects that were skipped due to errors or SkipAspect().
+// Useful for debugging aspect application issues.
+// Requires: Metalama aspects in your solution
 
 WorkspaceCollection.Default.Load(@"%METALAMA_DEMO_SOLUTION%")
-    .SourceCode
-	.Methods
-	.Where( m => m.Accessibility ==  Metalama.Framework.Code.Accessibility.Public && m.DeclaringType.Accessibility == Metalama.Framework.Code.Accessibility.Public )
-	.GroupBy( m => m.DeclaringType.FullName )
-	.OrderBy( g => g.Key )
-	
-	
-
+    .AspectInstances
+    .Where(a => a.IsSkipped)
+    .Select(a => new {
+        Aspect = a.AspectClass.ShortName,
+        Target = a.TargetDeclaration.ToString(),
+        Diagnostics = a.Diagnostics.Select(d => d.Id + ": " + d.Message)
+    })
