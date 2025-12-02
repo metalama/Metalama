@@ -167,7 +167,7 @@ namespace Metalama.Framework.Workspaces
 
             paths = expandedPathsBuilder.MoveToImmutable();
 
-            properties ??= properties ?? ImmutableDictionary<string, string>.Empty;
+            properties ??= ImmutableDictionary<string, string>.Empty;
             var key = GetWorkspaceKey( paths, properties );
 
             async Task<Workspace> LoadCore( string k )
