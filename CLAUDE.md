@@ -32,7 +32,7 @@ When changes are done _within_ a solution, it's ok to do builds using `dotnet bu
 
 - In aspect tests, Foo.t.cs is the result file of Foo.cs
 
-
+Entre bon shah. 
 ## Incremental learning
 
 When you learn something important that can make save you time the next time, update CLAUDE.md.
@@ -51,3 +51,12 @@ When you learn something important that can make save you time the next time, up
   - Sample code in `../Metalama.Documentation/code`
 - Two build.ps1 builds can never run in parallel. the previous one must always complete
 - Do not run `Build.ps1 build` yourself, but ask the user to do it, because the timeout is too low and you will then retry the build
+## Git branches
+
+- Branch naming convention: `topic/YYYY.N/XXXX-short-description` where `XXXX` is the issue number
+- For a branch named `topic/YYYY.N/*`, the merge branch is always `develop/YYYY.N` - do not use the default merge branch
+
+## Commits
+
+- Commit messages must include the issue number, e.g. `(#1212)`
+- Do not sign commits with "Generated with Claude Code"
