@@ -8,7 +8,6 @@ using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Services;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -23,16 +22,17 @@ internal sealed class TestExtensionLoader : ExtensionLoaderBase, IExtensionLoade
         this._testContextOptions = testContextOptions;
     }
 
-    public IEnumerable<Type> GetExtensionTypes(
+    public IEnumerable<ExportExtensionAttribute> GetExtensionTypes(
         IProjectOptions projectOptions,
         CompileTimeDomain domain,
-        ExtensionKind extensionKind,
+        ExtensionKinds extensionKinds,
         IDiagnosticAdder diagnosticAdder )
     {
-        var (extensionTypes, extensionAssemblies) = extensionKind == ExtensionKind.Default
+        var (extensionTypes, extensionAssemblies) = (extensionKinds & ExtensionKinds.Default) == ExtensionKinds.Default
             ? (this._testContextOptions.ExtensionTypes, this._testContextOptions.ExtensionAssemblies)
             : (this._testContextOptions.DesignTimeExtensionTypes, this._testContextOptions.DesignTimeExtensionAssemblies);
 
-        return extensionTypes.Concat( this.DiscoverExtensionTypes( domain, extensionKind, extensionAssemblies, NullDiagnosticAdder.Instance ) );
+        return extensionTypes.Select( t => new ExportExtensionAttribute( t, ExtensionKinds.Default ) )
+            .Concat( this.DiscoverExtensionTypes( domain, extensionKinds, extensionAssemblies, NullDiagnosticAdder.Instance ) );
     }
 }

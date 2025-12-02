@@ -23,6 +23,7 @@ namespace Metalama.Framework.Engine;
 /// <list type="bullet">
 /// <item><description><see cref="IAspectWeaver"/> implementations: Low-level aspect weavers that perform Roslyn-based transformations.</description></item>
 /// <item><description>Custom metric providers: Classes deriving from <c>MetricProvider&lt;T&gt;</c> or <c>SyntaxMetricProvider&lt;T&gt;</c>.</description></item>
+/// <item><description><see cref="Metalama.Framework.Services.IProjectService"/> implementations: Project-scoped services that are automatically added to the service collection.</description></item>
 /// </list>
 /// <para>
 /// Plug-in classes must be in an assembly that references <c>Metalama.Framework.Sdk</c> with <c>PrivateAssets="all"</c>.

@@ -13,9 +13,9 @@ namespace Metalama.Framework.Engine.Extensibility;
 
 public interface IExtensionLoader : IGlobalService
 {
-    IEnumerable<Type> GetExtensionTypes(
+    IEnumerable<ExportExtensionAttribute> GetExtensionTypes(
         IProjectOptions projectOptions,
         CompileTimeDomain domain,
-        ExtensionKind extensionKind,
+        ExtensionKinds extensionKinds,
         IDiagnosticAdder diagnosticAdder );
 }

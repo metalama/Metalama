@@ -35,20 +35,20 @@ public class ExtensionLoaderBase
             .Select( a => a.Path.AssertNotNull() );
     }
 
-    internal IEnumerable<Type> DiscoverExtensionTypes(
+    internal IEnumerable<ExportExtensionAttribute> DiscoverExtensionTypes(
         CompileTimeDomain domain,
-        ExtensionKind extensionKind,
+        ExtensionKinds extensionKinds,
         IReadOnlyCollection<TargetedAssemblyReference> assemblyReferences,
         bool avoidLockingAssemblies,
         IDiagnosticAdder diagnosticAdder )
     {
-        this._logger.Trace?.Log( $"Discovering extension types of kind '{extensionKind}' in assemblies: {string.Join( ", ", assemblyReferences )}." );
+        this._logger.Trace?.Log( $"Discovering extension types of kind '{extensionKinds}' in assemblies: {string.Join( ", ", assemblyReferences )}." );
 
         // First load assemblies, because we don't know their order and dependencies.
         var assemblies = this.LoadExtensionAssemblies( domain, assemblyReferences, avoidLockingAssemblies, diagnosticAdder );
 
         // Now we can load the types.
-        return this.DiscoverExtensionTypes( extensionKind, assemblies, diagnosticAdder );
+        return this.DiscoverExtensionTypes( extensionKinds, assemblies, diagnosticAdder );
     }
 
     private IEnumerable<Assembly> LoadExtensionAssemblies(
@@ -80,9 +80,9 @@ public class ExtensionLoaderBase
         return assemblies;
     }
 
-    public IEnumerable<Type> DiscoverExtensionTypes(
+    public IEnumerable<ExportExtensionAttribute> DiscoverExtensionTypes(
         CompileTimeDomain domain,
-        ExtensionKind extensionKind,
+        ExtensionKinds extensionKinds,
         IEnumerable<string> assemblyPaths,
         IDiagnosticAdder diagnosticAdder )
     {
@@ -104,23 +104,25 @@ public class ExtensionLoaderBase
             }
         }
 
-        return this.DiscoverExtensionTypes( extensionKind, assemblies, diagnosticAdder );
+        return this.DiscoverExtensionTypes( extensionKinds, assemblies, diagnosticAdder );
     }
 
-    private IEnumerable<Type> DiscoverExtensionTypes( ExtensionKind extensionKind, IEnumerable<Assembly> assemblies, IDiagnosticAdder diagnosticAdder )
+    private IEnumerable<ExportExtensionAttribute> DiscoverExtensionTypes(
+        ExtensionKinds extensionKinds,
+        IEnumerable<Assembly> assemblies,
+        IDiagnosticAdder diagnosticAdder )
     {
-        var extensionTypes = new List<Type>();
+        var extensionTypes = new List<ExportExtensionAttribute>();
 
         foreach ( var assembly in assemblies )
         {
             try
             {
-                this._logger.Trace?.Log( $"Discovering ExportExtensionAttribute with kind '{extensionKind}' in assembly '{assembly.FullName}'." );
+                this._logger.Trace?.Log( $"Discovering ExportExtensionAttribute with kind '{extensionKinds}' in assembly '{assembly.FullName}'." );
 
                 extensionTypes.AddRange(
                     assembly.GetCustomAttributes<ExportExtensionAttribute>()
-                        .Where( attribute => attribute.ExtensionKind == extensionKind )
-                        .Select( attribute => attribute.ExtensionType ) );
+                        .Where( attribute => (attribute.ExtensionKinds & extensionKinds) != 0 ) );
             }
             catch ( Exception e )
             {

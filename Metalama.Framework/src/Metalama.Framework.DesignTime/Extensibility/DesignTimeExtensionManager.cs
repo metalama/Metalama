@@ -63,11 +63,11 @@ public sealed class DesignTimeExtensionManager : IGlobalService
 
         lock ( this._extensions )
         {
-            var extensionTypes = this._extensionLoader.GetExtensionTypes( options, this._domain, ExtensionKind.DesignTime, NullDiagnosticAdder.Instance );
+            var extensions = this._extensionLoader.GetExtensionTypes( options, this._domain, ExtensionKinds.DesignTime, NullDiagnosticAdder.Instance );
 
-            foreach ( var extensionType in extensionTypes )
+            foreach ( var extensionType in extensions )
             {
-                if ( this._extensions.ContainsKey( extensionType ) )
+                if ( this._extensions.ContainsKey( extensionType.ExtensionType ) )
                 {
                     this._logger.Trace?.Log( $"The extension '{extensionType}' was already loaded." );
 
@@ -75,8 +75,8 @@ public sealed class DesignTimeExtensionManager : IGlobalService
                 }
 
                 this._logger.Trace?.Log( $"Loading extension '{extensionType}'." );
-                var extension = (IDesignTimeExtension) Activator.CreateInstance( extensionType, true ).AssertNotNull();
-                this._extensions.TryAdd( extensionType, extension );
+                var extension = (IDesignTimeExtension) Activator.CreateInstance( extensionType.ExtensionType, true ).AssertNotNull();
+                this._extensions.TryAdd( extensionType.ExtensionType, extension );
 
                 this.OnExtensionDiscovered( extension );
             }

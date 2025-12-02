@@ -165,12 +165,17 @@ public abstract class AspectPipeline : IDisposable
             .WithServices( plugIns.OfType<IProjectService>(), true );
 
         // Add extensions.
-        projectServiceProviderWithProject = projectServiceProviderWithProject.WithService( new PipelineExtensionProvider( extensions ) );
+        projectServiceProviderWithProject = projectServiceProviderWithProject.WithService( new PipelineExtensionProvider( extensions.Extensions ) );
+
+        projectServiceProviderWithProject = projectServiceProviderWithProject
+
+            // ReSharper disable once AccessToModifiedClosure
+            .WithServices( extensions.Services.SelectMany( x => x.CreateServices( projectServiceProviderWithProject ) ) );
 
         var extensionInitializationContext =
             new PipelineExtensionInitializationContext( this.ProjectOptions, diagnosticAdder, projectServiceProviderWithProject );
 
-        foreach ( var extension in extensions )
+        foreach ( var extension in extensions.Extensions )
         {
             this.Domain.AddAssembly( extension.GetType().Assembly );
 
@@ -285,7 +290,7 @@ public abstract class AspectPipeline : IDisposable
             fabricTypes,
             projectModel,
             projectServiceProviderWithProject.WithService( eligibilityService ),
-            extensions,
+            extensions.Extensions,
             diagnosticManifest );
 
         return true;
@@ -306,7 +311,7 @@ public abstract class AspectPipeline : IDisposable
         }
     }
 
-    private ImmutableArray<PipelineExtension> LoadExtensions(
+    private (ImmutableArray<PipelineExtension> Extensions, ImmutableArray<IProjectServiceFactory> Services) LoadExtensions(
         IDiagnosticAdder diagnosticAdder,
         Compilation compilation,
         ServiceProvider<IProjectService> serviceProvider )
@@ -316,27 +321,36 @@ public abstract class AspectPipeline : IDisposable
         // Load extensions.
         var extensionLoader = this.ServiceProvider.Global.GetService<IExtensionLoader>();
 
-        ImmutableArray<PipelineExtension> extensions;
+        var extensions = ImmutableArray.CreateBuilder<PipelineExtension>();
+        var services = ImmutableArray.CreateBuilder<IProjectServiceFactory>();
 
         if ( extensionLoader != null )
         {
-            var extensionTypes = extensionLoader.GetExtensionTypes( this.ProjectOptions, this.Domain, ExtensionKind.Default, diagnosticAdder );
+            var extensionTypes = extensionLoader.GetExtensionTypes( this.ProjectOptions, this.Domain, ExtensionKinds.Default, diagnosticAdder );
 
-            extensions = extensionTypes
-                .Select( type => CreateInstanceOfType( type, diagnosticAdder, compilation, serviceProvider, invoker ) )
-                .WhereNotNull()
-                .Cast<PipelineExtension>()
-                .ToImmutableArray();
-        }
-        else
-        {
-            extensions = ImmutableArray<PipelineExtension>.Empty;
+            foreach ( var extensionType in extensionTypes )
+            {
+                var extension = CreateInstanceOfType( extensionType.ExtensionType, diagnosticAdder, compilation, serviceProvider, invoker );
+
+                if ( extension != null )
+                {
+                    if ( (extensionType.ExtensionKinds & ExtensionKinds.Default) != 0 )
+                    {
+                        extensions.Add( (PipelineExtension) extension );
+                    }
+
+                    if ( (extensionType.ExtensionKinds & ExtensionKinds.ServiceFactory) != 0 )
+                    {
+                        services.Add( (IProjectServiceFactory) extension );
+                    }
+                }
+            }
         }
 
         // Add built-in extensions.
-        extensions = extensions.AddRange( new DiagnosticQueryPipelineExtension(), new TransitiveAspectPipelineExtension() );
+        extensions.AddRange( new DiagnosticQueryPipelineExtension(), new TransitiveAspectPipelineExtension() );
 
-        return extensions;
+        return (extensions.ToImmutable(), services.ToImmutable());
     }
 
     private ImmutableArray<object> LoadPlugIns(

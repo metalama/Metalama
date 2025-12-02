@@ -18,16 +18,16 @@ internal sealed class ExtensionLoader : ExtensionLoaderBase, IExtensionLoader
 {
     public ExtensionLoader( GlobalServiceProvider serviceProvider ) : base( serviceProvider ) { }
 
-    public IEnumerable<Type> GetExtensionTypes(
+    public IEnumerable<ExportExtensionAttribute> GetExtensionTypes(
         IProjectOptions projectOptions,
         CompileTimeDomain domain,
-        ExtensionKind extensionKind,
+        ExtensionKinds extensionKinds,
         IDiagnosticAdder diagnosticAdder )
     {
-        var assemblies = extensionKind == ExtensionKind.Default
+        var assemblies = (extensionKinds & (ExtensionKinds.Default | ExtensionKinds.ServiceFactory)) != 0
             ? projectOptions.ExtensionAssemblies
             : projectOptions.DesignTimeExtensionAssemblies;
 
-        return this.DiscoverExtensionTypes( domain, extensionKind, assemblies, projectOptions.AvoidLockingExtensionAssemblies, diagnosticAdder );
+        return this.DiscoverExtensionTypes( domain, extensionKinds, assemblies, projectOptions.AvoidLockingExtensionAssemblies, diagnosticAdder );
     }
 }
