@@ -177,7 +177,8 @@
     
     <PackageVersion Include="CommunityToolkit.Mvvm" Version="8.3.2" />
     <PackageVersion Include="AwesomeAssertions" Version="8.1.0" />
-    
+    <PackageVersion Include="CompiledBindings.WPF" Version="1.0.18" />
+
 
   </ItemGroup>
 </Project>
