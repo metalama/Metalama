@@ -18,7 +18,8 @@
       "Bash(git rev-parse:*)",
       "Bash(cd:*)",
       "Bash(gh pr view:*)",
-      "Bash(gh pr diff:*)"
+      "Bash(gh pr diff:*)",
+      "Bash(gh run view:*)"
     ],
     "deny": [],
     "ask": []
