@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Services;
 using System;
 
 namespace Metalama.Framework.Engine.Extensibility;
@@ -35,7 +36,7 @@ public enum ExtensionKinds
 
     /// <summary>
     /// A project service factory. The extension type must implement <see cref="IProjectServiceFactory"/>,
-    /// which creates <see cref="Services.IProjectService"/> instances that are added to the project's service provider.
+    /// which creates <see cref="IProjectService"/> instances that are added to the project's service provider.
     /// Use this to provide services that can be consumed by aspects at compile time.
     /// </summary>
     ServiceFactory = 4

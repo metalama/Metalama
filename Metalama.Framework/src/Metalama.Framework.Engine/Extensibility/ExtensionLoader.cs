@@ -6,7 +6,6 @@ using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Services;
-using System;
 using System.Collections.Generic;
 
 namespace Metalama.Framework.Engine.Extensibility;
