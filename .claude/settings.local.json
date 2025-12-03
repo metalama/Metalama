@@ -6,8 +6,15 @@
       "Bash(bc)",
       "Bash(git fetch:*)",
       "WebFetch(domain:raw.githubusercontent.com)",
-      "Bash(dir /B *.cs)",
-      "WebFetch(domain:github.com)"
+      "Bash(dir:cs)",
+      "WebFetch(domain:github.com)",
+      "Bash(gh issue view:*)",
+      "Bash(dir:*)",
+      "Bash(dotnet test:*)",
+      "Bash(dotnet build:*)",
+      "Bash(mkdir:*)",
+      "Bash(dotnet restore:*)",
+      "Bash(xargs cat:*)"
     ],
     "deny": [],
     "ask": []

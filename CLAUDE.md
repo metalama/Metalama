@@ -16,3 +16,4 @@
 ## Aspect tests
 
 - In aspect tests, Foo.t.cs is the result file of Foo.cs
+- It is never needed to clear global packages.
