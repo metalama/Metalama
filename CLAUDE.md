@@ -1,18 +1,98 @@
-## When writing XML documentation
+# Claude Instructions for Metalama
 
-- Use `<see>` tags where possible.
-- Use consistent lexicon, style and structure among classes and files that have the same suffix (belong to the same family).
-- Do not write long code examples.
-- Read the related conceptual documentation in project `../Metalama.Documentation/content` mentioned by DocFx uid in the `<seealso href="@..."/>` tags.
-- Complete the API doc with the conceptual documentation where relevant.
+## Critical Rules
 
-## Pre-PR checks and enhancements
+- **NEVER** run `Build.ps1 build` yourself - ask the user to run it (timeout too low, causes retries)
+- **NEVER** sign commits with "Generated with Claude Code"
+- **NEVER** clear global NuGet packages - it's never needed
+- **ALWAYS** include the issue number in commit messages: `Fix foo (#1212)`
+- Prefer `pwsh` (PowerShell 7), but never use the old `cmd` for commands.
 
-- Documentation
-    - Check and complete the documentation of all new or modified APIs.
-    - Look for relevant conceptual articles in `../Metalama.Documentation/content` using keyword search.
-    - Suggest changes in affected conceptual articles
+## Repository Structure
 
-## Aspect tests
+C# monorepo with layered "solutions" (first-level directories: `Metalama`, `Metalama.Extensions`, etc.). Solutions are defined in `eng/src/Program.cs`. Solution N depends on solution N-1 only via `PackageReference`, never `ProjectReference`.
 
-- In aspect tests, Foo.t.cs is the result file of Foo.cs
+Main solutions:
+
+- `Metalama.Backstage`: infrastructure concerns: licensing, logging, telemetry, ...
+- `Metalama.Framework`: core framework
+- `Metalama.Extensions`: extensions built on the core framework, but not usable aspects
+- `Metalama.Patterns`: specific aspects built on `Metalama.Framework` or `Metalama.Patterns`
+- `Metalama.LinqPad`: LinqPad driver
+- `Metalama.Migration`: PostSharp API annotated with documentation to upgrade to Metalama
+- `eng`: build orchestration, built on `PostSharp.Engineering` (not a solution)
+
+Other repos (hosted on https://github.com/postsharp or https://github.com/metalama, locally in `..` or `../..`):
+
+- `Metalama.Premium`: premium features built on `Metalama.Framework`, `Metalama.Extensions` or `Metalama.Patterns`
+- `PostSharp.Engineering`: build orchestration front-end
+- `Metalama.Documentation`: conceptual documentation
+- `Metalama.Samples`: vertical examples
+
+## Building
+
+| Scenario | Command |
+|----------|---------|
+| Changes within a single solution | `dotnet build` / `dotnet test` |
+| Cross-solution changes | Ask user to run `Build.ps1 build` |
+
+- When adding package references, also add `PackageVersion` to `Directory.Packages.props` (Central Package Management)
+- Two `Build.ps1 build` runs cannot run in parallel
+
+## Git Workflow
+
+- **Branch naming**: `topic/YYYY.N/XXXX-short-description` (XXXX = issue number)
+- **Merge target**: For `topic/YYYY.N/*`, always merge to `develop/YYYY.N` - ignore default branch
+
+## Testing
+
+| Type | Description | Project suffix | Output |
+|------|-------------|----------------|--------|
+| Aspect tests | Snapshot-based, runs `Foo.cs` through Metalama pipeline | `*AspectTests` | `Foo.t.cs` (actual: `obj/Debug/tfm/metalama/Foo.t.cs`) |
+| Unit tests | Classic xUnit | `*UnitTests` | - |
+| Standalone tests | Self-contained projects in `Metalama.Framework/src/tests/Standalone/*` | - | Optional `test.json` specifies expected output. Otherwise, expected output is success. |
+
+Docs: [Aspect testing](https://doc.metalama.net/conceptual/aspects/testing/aspect-testing), [Compile-time testing](https://doc.metalama.net/conceptual/aspects/testing/compile-time-testing)
+
+### Aspect Tests Capabilities
+
+Snapshot-based testing framework. Use for: code transformations, diagnostics/warnings, code fixes, live templates, design-time code generation, diff preview. Can execute `Program.Main` and compare output. Directives via `// @Directive` in `#if TESTRUNNER` - see `TestOptions.cs`.
+
+## Writing Documentation
+
+### XML Documentation Style
+
+- Use `<see>` tags for type/member references
+- Maintain consistent lexicon and structure within class families (same suffix)
+- Keep code examples short
+- Cross-reference conceptual docs via `<seealso href="@..."/>` tags
+
+### Pre-PR Documentation Checklist
+
+1. Document all new/modified public APIs
+2. Search `../Metalama.Documentation/content` for affected conceptual articles
+3. For conceptual doc changes, create issue at https://github.com/metalama/Metalama.Documentation
+
+## Key Paths
+
+| Path | Contents |
+|------|----------|
+| `../Metalama.Documentation/content` | Conceptual documentation |
+| `../Metalama.Documentation/code` | Sample code |
+| `eng/src/Program.cs` | Solution definitions |
+
+## Dependency Injection
+
+Custom immutable DI (not MEDI). Core types in `Metalama.Framework.Sdk/Services/`.
+
+**Scopes**: `IGlobalService` (singleton), `IProjectService` (per-compilation), `IBackstageService` (infrastructure)
+
+**Key rules**:
+- `WithService()` returns NEW provider (immutable) - use `WithServiceConditional` to avoid duplicates
+- No constructor injection - resolve manually: `serviceProvider.GetRequiredService<T>()`
+- `AddShared<T>()` for services cached across provider family; `Add<T>()` for isolated instances
+- Register in `ServiceProviderFactory`, test with `AdditionalServiceCollection`
+
+## Incremental Learning
+
+Update this file when you discover something that will save time in future sessions.

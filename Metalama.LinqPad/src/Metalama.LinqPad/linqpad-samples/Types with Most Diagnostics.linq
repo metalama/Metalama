@@ -14,7 +14,10 @@
   <Namespace>Metalama.LinqPad</Namespace>
 </Query>
 
-Workspace.Load(@"C:\src\metalama\Metalama.sln")
+// Shows which types have the most diagnostics (warnings and errors).
+// Helps prioritize which types need the most attention.
+
+WorkspaceCollection.Default.Load(@"%METALAMA_DEMO_SOLUTION%")
     .Diagnostics
 	.Where(d => d.Severity >= Metalama.Framework.Diagnostics.Severity.Warning)
 	.GroupBy(g => (g.Declaration switch

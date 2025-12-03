@@ -1,0 +1,8 @@
+<Window x:Class="CompiledBindingsWpf.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="MainWindow" Height="350" Width="525">
+    <Grid>
+        <TextBlock Text="{Binding Message}" />
+    </Grid>
+</Window>

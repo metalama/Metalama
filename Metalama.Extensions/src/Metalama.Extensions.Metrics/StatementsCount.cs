@@ -23,7 +23,7 @@ namespace Metalama.Extensions.Metrics
     /// <seealso cref="SyntaxNodesCount"/>
     /// <seealso cref="StatementsCountMetricProvider"/>
     /// <seealso href="@metrics"/>
-    public struct StatementsCount : IMetric<IMethodBase>, IMetric<INamedType>, IMetric<INamespace>, IMetric<ICompilation>
+    public struct StatementsCount : IMetric<IMemberOrNamedType>, IMetric<INamespace>, IMetric<ICompilation>
     {
         /// <summary>
         /// Gets the total number of statements.

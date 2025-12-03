@@ -14,7 +14,10 @@
   <Namespace>Metalama.LinqPad</Namespace>
 </Query>
 
-Workspace.Load(@"C:\src\metalama\Metalama.sln")
+// Shows the most frequently reported diagnostic IDs (warnings and errors).
+// Helps identify common issues across your codebase.
+
+WorkspaceCollection.Default.Load(@"%METALAMA_DEMO_SOLUTION%")
     .Diagnostics
 	.Where(d => d.Severity >= Metalama.Framework.Diagnostics.Severity.Warning)
 	.GroupBy(g => g.Id)
