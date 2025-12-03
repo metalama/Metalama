@@ -11,6 +11,8 @@ namespace Metalama.Framework.Engine.Extensibility;
 /// Specifies the kinds of extensions exported by an assembly using <see cref="ExportExtensionAttribute"/>.
 /// This is a flags enum, allowing an extension type to serve multiple purposes.
 /// </summary>
+/// <seealso cref="ExportExtensionAttribute"/>
+/// <seealso cref="Services.IProjectServiceFactory"/>
 [Flags]
 public enum ExtensionKinds
 {
