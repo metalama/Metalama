@@ -7,9 +7,24 @@
       "Bash(git fetch:*)",
       "WebFetch(domain:raw.githubusercontent.com)",
       "Bash(dir /B *.cs)",
-      "WebFetch(domain:github.com)"
+      "WebFetch(domain:github.com)",
+      "Bash(gh issue view:*)",
+      "Bash(dir:*)",
+      "Bash(dotnet test:*)",
+      "Bash(dotnet build:*)",
+      "Bash(mkdir:*)",
+      "Bash(dotnet restore:*)",
+      "Bash(xargs cat:*)",
+      "WebSearch",
+      "Bash(git rev-parse:*)",
+      "Bash(cd:*)",
+      "Bash(gh pr view:*)",
+      "Bash(gh pr diff:*)",
+      "Bash(gh run view:*)",
+      "Bash(git for-each-ref:*)"
     ],
     "deny": [],
     "ask": []
   }
 }
+
