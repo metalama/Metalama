@@ -82,6 +82,11 @@ internal sealed class TemplateClassMemberBuilder : ITemplateClassMemberBuilder
                 continue;
             }
 
+            if ( attribute is ITemplateAttribute { Properties.Id: { } id } )
+            {
+                memberKey = id;
+            }
+
             var templateParameters = ImmutableArray<TemplateClassMemberParameter>.Empty;
             var templateTypeParameters = ImmutableArray<TemplateClassMemberParameter>.Empty;
             var accessors = ImmutableDictionary<MethodKind, TemplateClassMember>.Empty;
@@ -244,15 +249,7 @@ internal sealed class TemplateClassMemberBuilder : ITemplateClassMemberBuilder
                 }
 
                 // Add or replace the template.
-
-                if ( attribute is ITemplateAttribute { Properties.Id: { } id } )
-                {
-                    membersBuilder[id] = aspectClassMember;
-                }
-                else
-                {
-                    membersBuilder[memberKey] = aspectClassMember;
-                }
+                membersBuilder[memberKey] = aspectClassMember;
             }
             else
             {
