@@ -29,6 +29,6 @@ curl -X POST \
 
 $ARGUMENTS
 
-If no argument, use  DebugBuild.
+If no argument, use DebugBuild.
 
 After triggering, provide the build URL.

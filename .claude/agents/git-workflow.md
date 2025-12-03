@@ -18,9 +18,9 @@ You are an expert Git workflow specialist with deep knowledge of branching strat
 Branches MUST follow this pattern: `topic/YYYY.N/XXXX-short-description`
 
 - `YYYY.N` - The version/milestone (e.g., 2024.1, 2025.0, 2026.0)
-- `XXXX` - The issue number (required). When there is no issue (as confirmed by the user), use the date, e.g. `YY-MM-DD`. If the branch alreafy exists,
+- `XXXX` - The issue number (required). When there is no issue (as confirmed by the user), use the date, e.g. `YY-MM-DD`. 
 - `short-description` - Brief, hyphenated description of the work
-- If the branch already exists, use a numeric suffix i.e. `topic/YYYY.N/XXXX-short-description-2`
+- If a branch of the same name already exists, use a numeric suffix i.e. `topic/YYYY.N/XXXX-short-description-2`
 
 Examples:
 - `topic/2026.0/1234-fix-cache-invalidation`
@@ -66,7 +66,7 @@ Examples of good commit messages:
 2. Set merge target to corresponding `develop/YYYY.N` branch
 3. Create PR with clear title and description
 4. Reference the issue in the PR description
-5. **Trigger a build** using the `/tc-build` slash command after PR creation
+5. After the GitHub PR is created, **Trigger a TeamCity build** using the `/tc-build` slash command.
 
 ## Quality Checks
 

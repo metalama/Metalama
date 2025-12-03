@@ -7,8 +7,6 @@
       "Bash(git fetch:*)",
       "WebFetch(domain:raw.githubusercontent.com)",
       "WebFetch(domain:github.com)",
-      "Bash(dir:cs)",
-      "WebFetch(domain:github.com)",
       "Bash(gh issue view:*)",
       "Bash(dir:*)",
       "Bash(dotnet test:*)",

@@ -6,7 +6,7 @@
 - **NEVER** sign commits with "Generated with Claude Code"
 - **NEVER** clear global NuGet packages - it's never needed
 - **ALWAYS** include the issue number in commit messages: `Fix foo (#1212)`
-- Use `pwsh` (PowerShel 7), never the old `cmd`.
+- Prefer `pwsh` (PowerShell 7), but never use the old `cmd` for commands.
 
 ## Repository Structure
 
