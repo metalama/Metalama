@@ -62,6 +62,7 @@ Examples of good commit messages:
 4. Confirm successful commit
 
 ### Creating Pull Requests
+0. Commit any remaining change.
 1. Identify the version from the current branch name
 2. Set merge target to corresponding `develop/YYYY.N` branch
 3. Create PR with clear title and description

@@ -21,7 +21,10 @@
       "Bash(gh pr view:*)",
       "Bash(gh pr diff:*)",
       "Bash(gh run view:*)",
-      "Bash(git for-each-ref:*)"
+      "Bash(git for-each-ref:*)",
+      "Bash(dotnet build-server:*)",
+      "Bash(dotnet clean:*)",
+      "Bash(dotnet run:*)"
     ],
     "deny": [],
     "ask": []
