@@ -6,6 +6,7 @@
       "Bash(bc)",
       "Bash(git fetch:*)",
       "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(dir /B *.cs)",
       "WebFetch(domain:github.com)",
       "Bash(gh issue view:*)",
       "Bash(dir:*)",
@@ -19,7 +20,15 @@
       "Bash(cd:*)",
       "Bash(gh pr view:*)",
       "Bash(gh pr diff:*)",
-      "Bash(gh run view:*)"
+      "Bash(gh run view:*)",
+      "Bash(git for-each-ref:*)",
+      "Bash(dotnet build-server:*)",
+      "Bash(dotnet clean:*)",
+      "Bash(dotnet run:*)",
+      "Bash(git add:*)",
+      "Bash(git remote:*)",
+      "SlashCommand(/tc-build)",
+      "WebFetch(domain:postsharp.teamcity.com)"
     ],
     "deny": [],
     "ask": []

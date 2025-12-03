@@ -50,6 +50,25 @@ namespace Metalama.Framework.Aspects
         internal static TemplateAttribute Default { get; } = new();
 
         /// <summary>
+        /// Gets or sets an identifier that can be used to reference this template from advising methods.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// When set, this identifier can be passed to advising methods such as <see cref="AdviserExtensions.IntroduceMethod"/>
+        /// and other methods that accept a template name parameter. This allows referencing templates by a stable identifier
+        /// instead of the member name, which is useful when templates are defined in a separate assembly from the code that uses them.
+        /// </para>
+        /// <para>
+        /// When not set, templates can only be referenced by their member name using <c>nameof(TemplateMember)</c>.
+        /// </para>
+        /// </remarks>
+        public string? Id
+        {
+            get => this._properties.Id;
+            set => this._properties = this._properties with { Id = value };
+        }
+
+        /// <summary>
         /// Gets or sets the name of the member introduced by this template.
         /// </summary>
         /// <remarks>

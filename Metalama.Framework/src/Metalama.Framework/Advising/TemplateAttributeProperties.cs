@@ -20,6 +20,9 @@ namespace Metalama.Framework.Advising;
 /// <param name="IsAbstract">A value indicating whether the introduced member is abstract. When <c>null</c>, the value is taken from the template member.</param>
 /// <param name="IsPartial">A value indicating whether the introduced member is partial. When <c>null</c>, the value is taken from the template member.</param>
 /// <param name="IsExtern">A value indicating whether the introduced member is extern. When <c>null</c>, the value is taken from the template member.</param>
+/// <param name="Id">An identifier that can be used to reference this template from advising methods. When set, this identifier can be passed
+/// to advising methods such as <see cref="AdviserExtensions.IntroduceMethod"/> instead of the member name. This allows referencing templates
+/// by a stable identifier, which is useful when templates are defined in a separate assembly from the code that uses them.</param>
 /// <remarks>
 /// This record is used by <see cref="ITemplateAttribute"/> to store configuration properties for template members.
 /// It supports progressive enhancement of template attributes in future versions by encapsulating all configuration
@@ -36,4 +39,5 @@ public sealed record TemplateAttributeProperties(
     bool? IsRequired = null,
     bool? IsAbstract = null,
     bool? IsPartial = null,
-    bool? IsExtern = null );
+    bool? IsExtern = null,
+    string? Id = null);

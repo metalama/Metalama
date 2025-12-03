@@ -6,16 +6,15 @@ using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Services;
-using System;
 using System.Collections.Generic;
 
 namespace Metalama.Framework.Engine.Extensibility;
 
 public interface IExtensionLoader : IGlobalService
 {
-    IEnumerable<Type> GetExtensionTypes(
+    IEnumerable<ExportExtensionAttribute> GetExtensionTypes(
         IProjectOptions projectOptions,
         CompileTimeDomain domain,
-        ExtensionKind extensionKind,
+        ExtensionKinds extensionKinds,
         IDiagnosticAdder diagnosticAdder );
 }

@@ -96,3 +96,24 @@ Custom immutable DI (not MEDI). Core types in `Metalama.Framework.Sdk/Services/`
 ## Incremental Learning
 
 Update this file when you discover something that will save time in future sessions.
+- Use `Build.ps1 tools kill` to kill processes.
+- Use CLAUDE-TODO.md to track the work list.
+- Before preparing a PR, check CLAUDE-TODO.md.
+
+## Lessons Learned
+
+### Debugging Build Issues
+
+1. **Check troubleshooting files**: When Metalama build fails, look at `%TEMP%\Metalama\CompileTimeTroubleshooting\...\errors.txt` for the actual error and the references list.
+
+2. **File locks are common**: After failed builds, assemblies get locked by compiler processes. Always run `Build.ps1 tools kill` before retrying.
+
+3. **Trace the data flow**: When MSBuild items don't work as expected, trace from `.csproj` → `.targets` file transformation → Engine code that reads the property. The bug with `MetalamaCompileTimeAssembly` was found by checking the targets file didn't resolve `%(FullPath)`.
+
+### General Efficiency
+
+1. **Ask before building**: When changes span multiple solutions, ask the user to run `Build.ps1 build` early rather than discovering issues incrementally.
+
+2. **Test incrementally**: Build and test each component before combining them. 
+
+3. **Create issues promptly**: When discovering a bug during development, create the issue immediately so it's tracked even if the fix is in the same PR.
