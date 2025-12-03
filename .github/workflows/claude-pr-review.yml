@@ -12,6 +12,10 @@ permissions:
   pull-requests: write
   issues: write
 
+concurrency:
+  group: claude-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   review:
     runs-on: ubuntu-latest
@@ -27,7 +31,7 @@ jobs:
           fetch-depth: 0
 
       - name: Claude PR Review
-        uses: anthropics/claude-code-action@v1
+        uses: anthropics/claude-code-action@6337623ebba10cf8c8214b507993f8062fd4ccfb # v1.0.22
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           prompt: |

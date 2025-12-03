@@ -53,7 +53,7 @@ You will search `../Metalama.Documentation/content` for articles that may need u
 - Identify articles that cover the feature area being changed
 - Check if new features require new conceptual documentation
 
-### 4. Create Issues for Conceptual Doc Changes
+### 5. Create Issues for Conceptual Doc Changes
 
 When you identify conceptual documentation that needs updates:
 

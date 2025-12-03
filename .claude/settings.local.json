@@ -16,7 +16,9 @@
       "Bash(xargs cat:*)",
       "WebSearch",
       "Bash(git rev-parse:*)",
-      "Bash(cd:*)"
+      "Bash(cd:*)",
+      "Bash(gh pr view:*)",
+      "Bash(gh pr diff:*)"
     ],
     "deny": [],
     "ask": []

@@ -21,6 +21,7 @@ Trigger a build on TeamCity for the current branch.
 curl -X POST \
   -H "Authorization: Bearer $TEAMCITY_CLOUD_TOKEN" \
   -H "Content-Type: application/json" \
+  -H "Accept: application/json" \
   -d '{"buildType":{"id":"<BuildTypeId>"},"branchName":"<branch>"}' \
   https://postsharp.teamcity.com/app/rest/buildQueue
 ```
