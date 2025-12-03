@@ -1,62 +1,98 @@
-# Claude Instructions
+# Claude Instructions for Metalama
 
-## Repository
+## Critical Rules
 
-This repo contains mostly C# projects.
+- **NEVER** run `Build.ps1 build` yourself - ask the user to run it (timeout too low, causes retries)
+- **NEVER** sign commits with "Generated with Claude Code"
+- **NEVER** clear global NuGet packages - it's never needed
+- **ALWAYS** include the issue number in commit messages: `Fix foo (#1212)`
+- Prefer `pwsh` (PowerShell 7), but never use the old `cmd` for commands.
 
-This repo is composed of different parts called "solutions", but one "solution" can contain different sln files. Each "solution" is a different first-level directory. E.g. `Metalama` and `Metalama.Extensions` are different solutions.
+## Repository Structure
 
-Solutions are defined in `eng/src/Program.cs`. Solutions are layered and ordered. A solution N can depend on a solution N-1 onlyu through PackageReference, never through ProjectReference.
+C# monorepo with layered "solutions" (first-level directories: `Metalama`, `Metalama.Extensions`, etc.). Solutions are defined in `eng/src/Program.cs`. Solution N depends on solution N-1 only via `PackageReference`, never `ProjectReference`.
 
-Solutions are build by `Build.ps1 build`, which is a front end to `eng/src/Program.cs`. `Build.ps1 build` is the only valid way to build the packages of a solution. However, `Build.ps1 build` is slow and should only be executed when truly needed.
+Main solutions:
 
-When changes are done _within_ a solution, it's ok to do builds using `dotnet build` or to run tests with `dotnet test`. When any change is done in a _lower_ solution (N-1), then `Build.ps1 build` is required.
+- `Metalama.Backstage`: infrastructure concerns: licensing, logging, telemetry, ...
+- `Metalama.Framework`: core framework
+- `Metalama.Extensions`: extensions built on the core framework, but not usable aspects
+- `Metalama.Patterns`: specific aspects built on `Metalama.Framework` or `Metalama.Patterns`
+- `Metalama.LinqPad`: LinqPad driver
+- `Metalama.Migration`: PostSharp API annotated with documentation to upgrade to Metalama
+- `eng`: build orchestration, built on `PostSharp.Engineering` (not a solution)
 
+Other repos (hosted on https://github.com/postsharp or https://github.com/metalama, locally in `..` or `../..`):
 
-## When writing XML documentation
+- `Metalama.Premium`: premium features built on `Metalama.Framework`, `Metalama.Extensions` or `Metalama.Patterns`
+- `PostSharp.Engineering`: build orchestration front-end
+- `Metalama.Documentation`: conceptual documentation
+- `Metalama.Samples`: vertical examples
 
-- Use `<see>` tags where possible.
-- Use consistent lexicon, style and structure among classes and files that have the same suffix (belong to the same family).
-- Do not write long code examples.
-- Read the related conceptual documentation in project `../Metalama.Documentation/content` mentioned by DocFx uid in the `<seealso href="@..."/>` tags.
-- Complete the API doc with the conceptual documentation where relevant.
+## Building
 
-## Pre-PR checks and enhancements
+| Scenario | Command |
+|----------|---------|
+| Changes within a single solution | `dotnet build` / `dotnet test` |
+| Cross-solution changes | Ask user to run `Build.ps1 build` |
 
-- Documentation
-    - Check and complete the documentation of all new or modified APIs.
-    - Look for relevant conceptual articles in `../Metalama.Documentation/content` using keyword search.
-    - Suggest changes in affected conceptual articles
+- When adding package references, also add `PackageVersion` to `Directory.Packages.props` (Central Package Management)
+- Two `Build.ps1 build` runs cannot run in parallel
 
-## Aspect tests
+## Git Workflow
 
-- In aspect tests, Foo.t.cs is the result file of Foo.cs
+- **Branch naming**: `topic/YYYY.N/XXXX-short-description` (XXXX = issue number)
+- **Merge target**: For `topic/YYYY.N/*`, always merge to `develop/YYYY.N` - ignore default branch
 
-Entre bon shah. 
-## Incremental learning
+## Testing
 
-When you learn something important that can make save you time the next time, update CLAUDE.md.
+| Type | Description | Project suffix | Output |
+|------|-------------|----------------|--------|
+| Aspect tests | Snapshot-based, runs `Foo.cs` through Metalama pipeline | `*AspectTests` | `Foo.t.cs` (actual: `obj/Debug/tfm/metalama/Foo.t.cs`) |
+| Unit tests | Classic xUnit | `*UnitTests` | - |
+| Standalone tests | Self-contained projects in `Metalama.Framework/src/tests/Standalone/*` | - | Optional `test.json` specifies expected output. Otherwise, expected output is success. |
 
-## Key learnings
+Docs: [Aspect testing](https://doc.metalama.net/conceptual/aspects/testing/aspect-testing), [Compile-time testing](https://doc.metalama.net/conceptual/aspects/testing/compile-time-testing)
 
-### Cross-solution builds
-- When changes span multiple solutions (e.g., Framework + Extensions + LinqPad), use `Build.ps1 build` - `dotnet build` will fail because packages from lower solutions aren't published yet.
-- When adding new package references, also add the `PackageVersion` to `Directory.Packages.props` (Central Package Management).
+### Aspect Tests Capabilities
 
+Snapshot-based testing framework. Use for: code transformations, diagnostics/warnings, code fixes, live templates, design-time code generation, diff preview. Can execute `Program.Main` and compare output. Directives via `// @Directive` in `#if TESTRUNNER` - see `TestOptions.cs`.
 
-### Documentation updates
-- When adding public APIs, also update:
-  - XML documentation with `<see>` tags and usage examples
-  - Conceptual documentation in `../Metalama.Documentation/content`
-  - Sample code in `../Metalama.Documentation/code`
-- Two build.ps1 builds can never run in parallel. the previous one must always complete
-- Do not run `Build.ps1 build` yourself, but ask the user to do it, because the timeout is too low and you will then retry the build
-## Git branches
+## Writing Documentation
 
-- Branch naming convention: `topic/YYYY.N/XXXX-short-description` where `XXXX` is the issue number
-- For a branch named `topic/YYYY.N/*`, the merge branch is always `develop/YYYY.N` - do not use the default merge branch
+### XML Documentation Style
 
-## Commits
+- Use `<see>` tags for type/member references
+- Maintain consistent lexicon and structure within class families (same suffix)
+- Keep code examples short
+- Cross-reference conceptual docs via `<seealso href="@..."/>` tags
 
-- Commit messages must include the issue number, e.g. `(#1212)`
-- Do not sign commits with "Generated with Claude Code"
+### Pre-PR Documentation Checklist
+
+1. Document all new/modified public APIs
+2. Search `../Metalama.Documentation/content` for affected conceptual articles
+3. For conceptual doc changes, create issue at https://github.com/metalama/Metalama.Documentation
+
+## Key Paths
+
+| Path | Contents |
+|------|----------|
+| `../Metalama.Documentation/content` | Conceptual documentation |
+| `../Metalama.Documentation/code` | Sample code |
+| `eng/src/Program.cs` | Solution definitions |
+
+## Dependency Injection
+
+Custom immutable DI (not MEDI). Core types in `Metalama.Framework.Sdk/Services/`.
+
+**Scopes**: `IGlobalService` (singleton), `IProjectService` (per-compilation), `IBackstageService` (infrastructure)
+
+**Key rules**:
+- `WithService()` returns NEW provider (immutable) - use `WithServiceConditional` to avoid duplicates
+- No constructor injection - resolve manually: `serviceProvider.GetRequiredService<T>()`
+- `AddShared<T>()` for services cached across provider family; `Add<T>()` for isolated instances
+- Register in `ServiceProviderFactory`, test with `AdditionalServiceCollection`
+
+## Incremental Learning
+
+Update this file when you discover something that will save time in future sessions.
