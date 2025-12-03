@@ -24,6 +24,16 @@ When reviewing code, focus on substantive issues only:
 - Any issue that would be caught by the C# compiler
 - Any issue that would be caught by code analyzers
 
+## Test Code Guidelines
+
+When reviewing test code, be lenient:
+- Do not suggest any nit
+- Do not require extensive assertions for every edge case
+- Do not require detailed test method documentation
+- Do not suggest additional test cases unless there's an obvious gap
+- Accept simple, focused tests that verify the main functionality
+- Do not enforce strict naming conventions for test methods
+
 ## General Guidelines
 
 - This is a C# monorepo with multiple solutions
