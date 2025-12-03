@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Metalama.Framework" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../ServiceFactory.Contracts/ServiceFactory.Contracts.csproj" />
+    <ProjectReference Include="../ServiceFactory.Extension/ServiceFactory.Extension.csproj" OutputItemType="None" />
+    <MetalamaCompileTimeAssembly Include="../ServiceFactory.Contracts/bin/$(Configuration)/netstandard2.0/ServiceFactory.Contracts.dll" />
+    <MetalamaExtensionAssembly Include="../ServiceFactory.Extension/bin/$(Configuration)/netstandard2.0/ServiceFactory.Extension.dll" />
+  </ItemGroup>
+
+</Project>

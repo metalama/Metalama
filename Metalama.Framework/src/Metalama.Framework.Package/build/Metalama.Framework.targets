@@ -20,7 +20,7 @@
         <!-- Convert items to properties -->
         <!-- We use ',' as a list item separator and '|' as a separator within a list. We don't use ';' because it means a comment in .editorconfig -->
         <MetalamaCompileTimePackages>@(MetalamaCompileTimePackage, ',')</MetalamaCompileTimePackages>
-        <MetalamaCompileTimeAssemblies>@(MetalamaCompileTimeAssembly, ',')</MetalamaCompileTimeAssemblies>
+        <MetalamaCompileTimeAssemblies>@(MetalamaCompileTimeAssembly -> '%(FullPath)', ',')</MetalamaCompileTimeAssemblies>
         <MetalamaSourceGeneratorAttributes>@(MetalamaSourceGeneratorAttribute, ',')</MetalamaSourceGeneratorAttributes>
         <MetalamaExtensionAssemblies>@(MetalamaExtensionAssembly -> '%(FullPath)|%(TargetFramework)|%(TargetRoslynVersion)', ',')</MetalamaExtensionAssemblies>
         <MetalamaDesignTimeExtensionAssemblies>@(MetalamaDesignTimeExtensionAssembly -> '%(FullPath)|%(TargetFramework)|%(TargetRoslynVersion)', ',')</MetalamaDesignTimeExtensionAssemblies>

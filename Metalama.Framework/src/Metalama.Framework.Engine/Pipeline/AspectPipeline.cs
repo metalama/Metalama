@@ -326,7 +326,7 @@ public abstract class AspectPipeline : IDisposable
 
         if ( extensionLoader != null )
         {
-            var extensionTypes = extensionLoader.GetExtensionTypes( this.ProjectOptions, this.Domain, ExtensionKinds.Default, diagnosticAdder );
+            var extensionTypes = extensionLoader.GetExtensionTypes( this.ProjectOptions, this.Domain, ExtensionKinds.Default | ExtensionKinds.ServiceFactory, diagnosticAdder );
 
             foreach ( var extensionType in extensionTypes )
             {
