@@ -28,7 +28,8 @@
       "Bash(git add:*)",
       "Bash(git remote:*)",
       "SlashCommand(/tc-build)",
-      "WebFetch(domain:postsharp.teamcity.com)"
+      "WebFetch(domain:postsharp.teamcity.com)",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": []
