@@ -33,7 +33,7 @@ internal sealed class MetricManager : IProjectService
     {
         var provider = this._metricProviders.GetOrAdd( typeof(T), static ( _, me ) => me.GetExtensionProvider<T>(), this )
                        ??
-                       throw new InvalidOperationException( $"No extension provider registered for {typeof(T).Name}" );
+                       throw new InvalidOperationException( $"No metric provider registered for {typeof(T).Name}" );
 
         return ((IMetricProvider<T>) provider).GetMetric( measurable );
     }

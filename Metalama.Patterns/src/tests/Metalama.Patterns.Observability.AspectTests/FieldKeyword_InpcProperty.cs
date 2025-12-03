@@ -18,7 +18,7 @@ namespace Metalama.Patterns.Observability.AspectTests.FieldKeyword_InpcProperty;
 public class FieldKeyword_InpcProperty
 {
     // Semi-automatic property with INPC type.
-    public SimpleInpcByHand Child
+    public SimpleInpcByHand? Child
     {
         get => field;
         set => field = value ?? field;

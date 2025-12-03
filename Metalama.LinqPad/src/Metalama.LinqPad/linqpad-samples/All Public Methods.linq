@@ -14,7 +14,10 @@
   <Namespace>Metalama.LinqPad</Namespace>
 </Query>
 
-Workspace.Load(@"C:\src\metalama\Metalama.sln")
+// Lists all public methods from public types, grouped by declaring type.
+// Useful for reviewing your API surface.
+
+WorkspaceCollection.Default.Load(@"%METALAMA_DEMO_SOLUTION%")
     .SourceCode
 	.Methods
 	.Where( m => m.Accessibility ==  Metalama.Framework.Code.Accessibility.Public && m.DeclaringType.Accessibility == Metalama.Framework.Code.Accessibility.Public )

@@ -11,7 +11,6 @@ using Microsoft.CodeAnalysis.Diagnostics;
 using System;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
-using System.IO;
 using System.Linq;
 
 // ReSharper disable ClassCanBeSealed.Global
@@ -173,19 +172,7 @@ public partial class MSBuildProjectOptions : DefaultProjectOptions
     [Memo]
     public override string? SdkVersion => this.GetSdkVersionCore();
 
-    private string? GetSdkVersionCore()
-    {
-        var propsFilePath = this.GetStringOption( MSBuildPropertyNames.NETCoreSdkBundledVersionsProps );
-
-        if ( propsFilePath == null )
-        {
-            return null;
-        }
-
-        var dotNetSdkDirectory = Path.GetFullPath( Path.GetDirectoryName( propsFilePath )! );
-
-        return Path.GetFileName( dotNetSdkDirectory );
-    }
+    private string? GetSdkVersionCore() => this.GetStringOption( MSBuildPropertyNames.NETCoreSdkVersion );
 
     [Memo]
     public override ImmutableArray<string> SourceGeneratorAttributes => this.GetListOption( MSBuildPropertyNames.MetalamaSourceGeneratorAttributes );
