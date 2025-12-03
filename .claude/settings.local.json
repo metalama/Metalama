@@ -15,7 +15,10 @@
       "Bash(dotnet build:*)",
       "Bash(mkdir:*)",
       "Bash(dotnet restore:*)",
-      "Bash(xargs cat:*)"
+      "Bash(xargs cat:*)",
+      "WebSearch",
+      "Bash(git rev-parse:*)",
+      "Bash(cd:*)"
     ],
     "deny": [],
     "ask": []
