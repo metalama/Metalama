@@ -366,5 +366,77 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
             return false;
 #endif
         }
+
+        /// <summary>
+        /// Gets the primary syntax reference for a symbol. For partial methods/properties/events,
+        /// returns the implementation part if available.
+        /// </summary>
+        public static SyntaxReference? GetPrimarySyntaxReference( this ISymbol? symbol )
+        {
+            if ( symbol == null )
+            {
+                return null;
+            }
+
+            static SyntaxReference? GetReferenceOfShortestPath( ISymbol s, Func<SyntaxReference, bool>? filter = null )
+            {
+                if ( s.DeclaringSyntaxReferences.IsDefaultOrEmpty )
+                {
+                    return null;
+                }
+                else
+                {
+                    // Find the lowest value.
+
+                    SyntaxReference? min = null;
+                    int? minLength = null;
+
+                    foreach ( var reference in s.DeclaringSyntaxReferences )
+                    {
+                        if ( filter != null && !filter( reference ) )
+                        {
+                            continue;
+                        }
+
+                        var length = reference.SyntaxTree.FilePath.Length;
+
+                        if ( min == null || length < minLength )
+                        {
+                            min = reference;
+                            minLength = length;
+                        }
+                    }
+
+                    return min;
+                }
+            }
+
+            switch ( symbol )
+            {
+                case IMethodSymbol { IsPartialDefinition: true, PartialImplementationPart: { } partialImplementationSymbol }:
+                    return GetReferenceOfShortestPath( partialImplementationSymbol );
+
+                case IMethodSymbol { AssociatedSymbol: { } associatedSymbol }:
+                    return GetReferenceOfShortestPath( symbol ) ?? GetReferenceOfShortestPath( associatedSymbol );
+
+#if ROSLYN_4_12_0_OR_GREATER
+                case IPropertySymbol { IsPartialDefinition: true, PartialImplementationPart: { } partialImplementationSymbol }:
+                    return GetReferenceOfShortestPath( partialImplementationSymbol );
+#endif
+
+#if ROSLYN_5_0_0_OR_GREATER
+                case IEventSymbol { IsPartialDefinition: true, PartialImplementationPart: { } partialImplementationSymbol }:
+                    return GetReferenceOfShortestPath( partialImplementationSymbol );
+#endif
+
+                default:
+                    return GetReferenceOfShortestPath( symbol );
+            }
+        }
+
+        /// <summary>
+        /// Gets the primary declaration syntax for a symbol.
+        /// </summary>
+        public static SyntaxNode? GetPrimaryDeclarationSyntax( this ISymbol symbol ) => symbol.GetPrimarySyntaxReference()?.GetSyntax();
     }
 }

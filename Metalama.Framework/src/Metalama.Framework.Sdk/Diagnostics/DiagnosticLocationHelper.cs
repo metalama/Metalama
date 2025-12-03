@@ -30,7 +30,7 @@ namespace Metalama.Framework.Engine.Diagnostics
                 throw new InvalidOperationException( $"Infinite recursion in getting the location for symbol '{symbol}'." );
             }
 
-            var bestDeclaration = symbol.GetPrimarySyntaxReference();
+            var bestDeclaration = MetalamaSdkExecutionContext.Current.RoslynExtensions.GetPrimarySyntaxReference( symbol );
 
             if ( bestDeclaration == null )
             {
