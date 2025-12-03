@@ -26,7 +26,9 @@
       "Bash(dotnet clean:*)",
       "Bash(dotnet run:*)",
       "Bash(git add:*)",
-      "Bash(git remote:*)"
+      "Bash(git remote:*)",
+      "SlashCommand(/tc-build)",
+      "WebFetch(domain:postsharp.teamcity.com)"
     ],
     "deny": [],
     "ask": []

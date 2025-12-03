@@ -15,7 +15,7 @@ namespace Metalama.Framework.IntegrationTests.Aspects.Introductions.Methods.Temp
         {
             // Reference templates by their Id instead of member name.
             builder.IntroduceMethod( "MyMethodTemplate", buildMethod: m => m.Name = "IntroducedByMethodId" );
-            builder.IntroduceMethod( "MyPropertyTemplate", buildMethod: m => m.Name = "IntroducedByPropertyId" );
+            builder.IntroduceProperty( "MyPropertyTemplate", buildProperty: p => p.Name = "IntroducedByPropertyId" );
         }
 
         [Template( Id = "MyMethodTemplate" )]
@@ -25,7 +25,14 @@ namespace Metalama.Framework.IntegrationTests.Aspects.Introductions.Methods.Temp
         }
 
         [Template( Id = "MyPropertyTemplate" )]
-        public int PropertyTemplateImpl => 42;
+        public int PropertyTemplateImpl
+        {
+            get => 42;
+            set
+            {
+                Console.WriteLine("Hey");
+            }
+        }
     }
 
     // <target>

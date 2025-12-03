@@ -84,7 +84,21 @@ internal sealed class TemplateClassMemberBuilder : ITemplateClassMemberBuilder
 
             if ( attribute is ITemplateAttribute { Properties.Id: { } id } )
             {
-                memberKey = id;
+                if ( memberSymbol is IMethodSymbol methodSymbol )
+                {
+                    memberKey = methodSymbol.MethodKind switch
+                    {
+                        MethodKind.PropertyGet => "get_" + id,
+                        MethodKind.PropertySet => "set_" + id,
+                        MethodKind.EventAdd => "add_" + id,
+                        MethodKind.EventRemove => "remove_" + id,
+                        _ => id
+                    };
+                }
+                else
+                {
+                    memberKey = id;
+                }
             }
 
             var templateParameters = ImmutableArray<TemplateClassMemberParameter>.Empty;
