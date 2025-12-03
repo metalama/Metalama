@@ -68,7 +68,9 @@ Examples of good commit messages:
 2. Set merge target to corresponding `develop/YYYY.N` branch
 3. Create PR with clear title and description
 4. Reference the issue in the PR description
+4b. Do not include a test plan.
 5. After the GitHub PR is created, **Trigger a TeamCity build** using the `/tc-build` slash command.
+6. Attach any issue addressed by the PR or in any commit in the "Development" section
 
 ## Quality Checks
 

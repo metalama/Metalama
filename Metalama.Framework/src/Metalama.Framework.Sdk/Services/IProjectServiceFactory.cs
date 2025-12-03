@@ -21,7 +21,7 @@ namespace Metalama.Framework.Engine.Services;
 /// {
 ///     public IEnumerable&lt;IProjectService&gt; CreateServices(in ProjectServiceProvider serviceProvider)
 ///     {
-///         yield return new MyCustomService(serviceProvider);
+///         return [new MyCustomService(serviceProvider)];
 ///     }
 /// }
 /// </code>
