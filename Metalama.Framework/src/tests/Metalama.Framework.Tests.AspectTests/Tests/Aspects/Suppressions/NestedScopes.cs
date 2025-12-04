@@ -6,6 +6,10 @@
 // @ClearIgnoredDiagnostics
 # endif
 
+#if !TESTRUNNER // Disable the warning in the main build, not during tests. (1)
+#pragma warning disable CS0219
+#endif
+
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Diagnostics;
@@ -21,9 +25,6 @@ namespace Metalama.Framework.Tests.AspectTests.Aspects.Suppressions.NestedScopes
         [Template]
         public dynamic? Override()
         {
-#if !TESTRUNNER // Disable the warning in the main build, not during tests. (1)
-#pragma warning disable CS0219
-#endif
             var a = 0;
 
             return meta.Proceed();
@@ -31,7 +32,7 @@ namespace Metalama.Framework.Tests.AspectTests.Aspects.Suppressions.NestedScopes
 
         public override void BuildAspect( IAspectBuilder<IMethod> builder )
         {
-            builder.Override( nameof(Override) );
+            builder.Override( nameof(this.Override) );
             builder.Diagnostics.Suppress( _suppression, builder.Target );
         }
     }
@@ -43,6 +44,8 @@ namespace Metalama.Framework.Tests.AspectTests.Aspects.Suppressions.NestedScopes
         private void M2( string m )
         {
 #pragma warning disable CS0219
+
+            // CS0219 not expected.
             var b = 0;
 #pragma warning restore CS0219
 
@@ -50,12 +53,15 @@ namespace Metalama.Framework.Tests.AspectTests.Aspects.Suppressions.NestedScopes
 #pragma warning disable CS0219
 #endif
 
+            // CS0219 not expected.
             var c = 0;
         }
 
         private void M1( string m )
         {
 #pragma warning disable CS0219
+
+            // CS0219 not expected.
             var d = 0;
 #pragma warning restore CS0219
 

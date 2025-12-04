@@ -115,7 +115,7 @@ namespace Metalama.Framework.Tests.AspectTests.Runners
             Assert.NotNull( testInput.ProjectDirectory );
             Assert.NotNull( testInput.RelativePath );
 
-            foreach ( var diagnostic in testResult.Diagnostics )
+            foreach ( var diagnostic in testResult.AllDiagnostics )
             {
                 this.Logger?.WriteLine( diagnostic.ToString() );
             }
@@ -162,7 +162,10 @@ namespace Metalama.Framework.Tests.AspectTests.Runners
         {
             this.Logger?.WriteLine( "Actual HTML: " + actualHtmlPath );
 
-            Assert.True( File.Exists( expectedHtmlPath ), $"The expected HTML file '{expectedHtmlPath}' does not exist." );
+            if ( !File.Exists( expectedHtmlPath ) )
+            {
+                File.WriteAllText( expectedHtmlPath, "TODO: Replace this file with the expected/accepted HTML." );
+            }
 
             this.Logger?.WriteLine( "Expected HTML: " + expectedHtmlPath );
 

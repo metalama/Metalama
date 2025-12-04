@@ -52,13 +52,14 @@ public sealed class HtmlCodeWriter : FormattedCodeWriter
         Document outputDocument,
         TextWriter inputTextWriter,
         TextWriter outputTextWriter,
-        IEnumerable<Diagnostic> inputDiagnostics,
+        IEnumerable<Diagnostic>? inputDiagnostics,
+        IEnumerable<Diagnostic>? outputDiagnostics,
         CancellationToken cancellationToken )
     {
         var oldSyntaxTree = await inputDocument.GetSyntaxTreeAsync( cancellationToken );
         var newSyntaxTree = await outputDocument.GetSyntaxTreeAsync( cancellationToken );
         await this.WriteAsync( inputDocument, inputTextWriter, inputDiagnostics, GetDiffInfo( oldSyntaxTree!, newSyntaxTree!, true ), cancellationToken );
-        await this.WriteAsync( outputDocument, outputTextWriter, null, GetDiffInfo( oldSyntaxTree!, newSyntaxTree!, false ), cancellationToken );
+        await this.WriteAsync( outputDocument, outputTextWriter, outputDiagnostics, GetDiffInfo( oldSyntaxTree!, newSyntaxTree!, false ), cancellationToken );
     }
 
     private async Task WriteAsync(

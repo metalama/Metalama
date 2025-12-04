@@ -222,7 +222,7 @@ namespace Metalama.AspectWorkbench.ViewModels
                         // Display the annotated syntax tree.
                         this.ColoredSourceCodeDocument = await syntaxColorizer.WriteSyntaxColoringAsync(
                             testResult.SyntaxTrees.First().InputDocument,
-                            diagnostics: testResult.Diagnostics );
+                            diagnostics: testResult.AllDiagnostics.Select( d => d.Diagnostic ) );
                     }
 
                     var transformedTemplateSyntax = testSyntaxTree.OutputCompileTimeSyntaxRoot;
@@ -337,14 +337,14 @@ namespace Metalama.AspectWorkbench.ViewModels
                     }
                 }
 
-                var errors = testResult.Diagnostics;
+                var errors = testResult.AllDiagnostics;
 
                 errorsDocument.Blocks.AddRange(
                     errors.Select(
                         e => new Paragraph(
                             new Run( e.ToString() )
                             {
-                                Foreground = e.Severity switch
+                                Foreground = e.Diagnostic.Severity switch
                                 {
                                     DiagnosticSeverity.Error => Brushes.Red,
                                     DiagnosticSeverity.Warning => Brushes.Chocolate,

@@ -56,7 +56,7 @@ public class TestOptions
     /// <summary>
     /// Gets or sets a value indicating whether the diagnostics of the compilation of the transformed target code should be included in the test result.
     /// This is useful when diagnostic suppression is being tested.
-    /// To enable this option in a test, add this comment to your test file: <c>// @ReportOutputWarnings</c>. 
+    /// To enable this option in a test, add this comment to your test file: <c>// @ReportOutputWarnings</c>.
     /// </summary>
     public bool? ReportOutputWarnings { get; set; }
 

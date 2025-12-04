@@ -7,6 +7,7 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Diagnostics;
+using Metalama.Compiler;
 using Metalama.Framework.Engine.Formatting;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Testing.UnitTesting;
@@ -23,6 +24,8 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace Metalama.Testing.AspectTesting;
+
+internal enum DiagnosticOrigin { InputCompilation, OutputCompilation, Pipeline };
 
 /// <summary>
 /// Represents the result of a test run.
@@ -46,48 +49,67 @@ internal class TestResult : IDisposable
 
     public IDiagnosticBag PipelineDiagnostics { get; } = new DiagnosticBag();
 
-    // We don't add the CompileTimeCompilationDiagnostics to Diagnostics because they are already in PipelineDiagnostics.
-    public IEnumerable<Diagnostic> Diagnostics
+    public bool ShouldDiagnosticBeReported( Diagnostic diagnostic ) => this.ShouldDiagnosticBeReported( diagnostic, this.DiagnosticSuppressions );
+
+    public bool ShouldDiagnosticBeReported( Diagnostic diagnostic, IEnumerable<ScopedSuppression> suppressions )
     {
-        get
+        // When IncludeAllSeverities is set, report all diagnostics regardless of severity.
+        if ( this.TestInput?.Options.IncludeAllSeverities != true )
         {
             var minimalSeverity = this.TestInput?.Options.ReportOutputWarnings == true ? DiagnosticSeverity.Warning : DiagnosticSeverity.Error;
 
-            var allDiagnostics = this.OutputCompilationDiagnostics.Where( d => d.Severity >= minimalSeverity )
-                .Concat( this.PipelineDiagnostics )
-                .Concat( this.InputCompilationDiagnostics );
-
-            return allDiagnostics.Where( MustBeReported );
-
-            bool MustBeReported( Diagnostic d )
+            if ( diagnostic.Severity < minimalSeverity )
             {
-                if ( d.Id == "CS1701" )
-                {
-                    // Ignore warning CS1701: Assuming assembly reference "Assembly Name #1" matches "Assembly Name #2", you may need to supply runtime policy.
-                    // This warning is ignored by MSBuild anyway.
-                    return false;
-                }
-
-                if ( this.TestInput?.ShouldIgnoreDiagnostic( d.Id ) == true )
-                {
-                    return false;
-                }
-
-                foreach ( var suppression in this.DiagnosticSuppressions )
-                {
-                    if ( suppression.Matches( d, this.InputCompilation!, filter => filter() ) )
-                    {
-                        return false;
-                    }
-
-                    if ( suppression.Matches( d, this.OutputCompilation!, filter => filter() ) )
-                    {
-                        return false;
-                    }
-                }
-
-                return true;
+                return false;
             }
+        }
+
+        if ( diagnostic.Id == "CS1701" )
+        {
+            // Ignore warning CS1701: Assuming assembly reference "Assembly Name #1" matches "Assembly Name #2", you may need to supply runtime policy.
+            // This warning is ignored by MSBuild anyway.
+            return false;
+        }
+
+        if ( this.TestInput?.ShouldIgnoreDiagnostic( diagnostic.Id ) == true )
+        {
+            return false;
+        }
+
+        foreach ( var suppression in suppressions )
+        {
+            if ( suppression.Matches( diagnostic, this.InputCompilation!, filter => filter() ) )
+            {
+                return false;
+            }
+
+            if ( suppression.Matches( diagnostic, this.OutputCompilation!, filter => filter() ) )
+            {
+                return false;
+            }
+        }
+
+        // Warnings in introduced code (see annotation) are always ignored.
+        if ( diagnostic.Severity < DiagnosticSeverity.Error && this.IsInGeneratedCode( diagnostic ) )
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    // We don't add the CompileTimeCompilationDiagnostics to Diagnostics because they are already in PipelineDiagnostics.
+    public IEnumerable<(Diagnostic Diagnostic, DiagnosticOrigin Origin)> AllDiagnostics
+    {
+        get
+        {
+            var allDiagnostics = this.OutputCompilationDiagnostics
+                .Select( d => (d, DiagnosticOrigin.OutputCompilation) )
+                .Concat( this.PipelineDiagnostics.Select( d => (d, DiagnosticOrigin.Pipeline) ) )
+                .Concat( this.InputCompilationDiagnostics.Select( d => (d, DiagnosticOrigin.InputCompilation) ) )
+                .Where( d => this.ShouldDiagnosticBeReported( d.Item1 ) );
+
+            return allDiagnostics;
         }
     }
 
@@ -335,6 +357,37 @@ internal class TestResult : IDisposable
         return default;
     }
 
+    private bool IsInGeneratedCode( Diagnostic diagnostic )
+    {
+        var syntaxTree = diagnostic.Location.SourceTree;
+
+        if ( syntaxTree == null )
+        {
+            return false;
+        }
+
+        var root = syntaxTree.GetRoot();
+        var node = root.FindNode( diagnostic.Location.SourceSpan, getInnermostNodeForTie: true );
+
+        // Walk up the tree looking for annotations.
+        for ( var n = node; n != null; n = n.Parent )
+        {
+            // If we hit a source code annotation, we're not in generated code.
+            if ( n.HasAnnotation( FormattingAnnotations.SourceCodeAnnotation ) )
+            {
+                return false;
+            }
+
+            // If we hit a generated code annotation, we're in generated code.
+            if ( n.HasAnnotations( MetalamaCompilerAnnotations.GeneratedCodeAnnotationKind ) )
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /// <summary>
     /// Gets the content of the <c>.t.cs</c> file, i.e. the output transformed code with comments
     /// for diagnostics.
@@ -384,9 +437,9 @@ internal class TestResult : IDisposable
         // Assign diagnostics to syntax trees.
         var diagnosticsBySyntaxTree = new Dictionary<TestSyntaxTree, List<Diagnostic>>();
 
-        foreach ( var diagnostic in this.Diagnostics )
+        foreach ( var diagnostic in this.AllDiagnostics )
         {
-            var diagnosticsSourceFilePath = diagnostic.Location.SourceTree?.FilePath;
+            var diagnosticsSourceFilePath = diagnostic.Diagnostic.Location.SourceTree?.FilePath;
 
             if ( diagnosticsSourceFilePath != null && outputTreesByFilePath.TryGetValue( diagnosticsSourceFilePath, out var diagnosticSourceSyntaxTree ) )
             {
@@ -396,7 +449,7 @@ internal class TestResult : IDisposable
                     diagnosticsBySyntaxTree.Add( diagnosticSourceSyntaxTree, diagnostics );
                 }
 
-                diagnostics.Add( diagnostic );
+                diagnostics.Add( diagnostic.Diagnostic );
             }
             else if ( primaryOutputTree != null )
             {
@@ -406,7 +459,7 @@ internal class TestResult : IDisposable
                     diagnosticsBySyntaxTree.Add( primaryOutputTree, diagnostics );
                 }
 
-                diagnostics.Add( diagnostic );
+                diagnostics.Add( diagnostic.Diagnostic );
             }
         }
 

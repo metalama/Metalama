@@ -160,7 +160,7 @@ public abstract partial class FormattedCodeWriter
             visitor.Visit( syntaxRoot );
         }
 
-        if ( diagnostics != null && document.FilePath != null )
+        if ( diagnostics != null )
         {
             AddDiagnostics( document, diagnostics, classifiedTextSpans );
         }
@@ -174,7 +174,7 @@ public abstract partial class FormattedCodeWriter
         {
             var position = diagnostic.Location.GetLineSpan();
 
-            if ( !position.IsValid || !position.Path.EndsWith( document.FilePath!, StringComparison.OrdinalIgnoreCase ) )
+            if ( !position.IsValid || !position.Path.EndsWith( document.Name, StringComparison.OrdinalIgnoreCase ) )
             {
                 // The diagnostic is not in the current document.
                 continue;
