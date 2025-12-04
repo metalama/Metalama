@@ -117,3 +117,15 @@ Update this file when you discover something that will save time in future sessi
 2. **Test incrementally**: Build and test each component before combining them. 
 
 3. **Create issues promptly**: When discovering a bug during development, create the issue immediately so it's tracked even if the fix is in the same PR.
+
+
+## Quick learnings
+
+- Never require a service as a method parameter, but report a complex problem to be studied by user
+- Instead of compiling the full Metalama.Framework.sln, build Metalama.Framework.LatestRoslyn.slnf (faster build) unless asked otherwise.
+- don't focus on solving cosmetic warnings before habing green tests
+- When I say I want to start to work a gitHub issue:
+
+* Read all details about this issue online and do your research
+* Check conceptual documentation under ../Metalama.Documentation/content to see how it's supposed to work
+* Create a branch for that issue (see git-workflow)
