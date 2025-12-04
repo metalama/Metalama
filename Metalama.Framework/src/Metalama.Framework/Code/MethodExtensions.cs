@@ -8,24 +8,46 @@ namespace Metalama.Framework.Code
 {
     /// <summary>
     /// Extension methods for the <see cref="IMethod"/> interface.
-    /// </summary> 
+    /// </summary>
+    /// <seealso cref="AsyncInfo"/>
+    /// <seealso cref="IteratorInfo"/>
+    /// <seealso cref="EnumerableKind"/>
     [CompileTime]
     public static class MethodExtensions
     {
         /// <summary>
-        /// Determines whether a method is a <c>yield</c>-based iterator and returns an <see cref="IteratorInfo"/> value
-        /// exposing details about the iterator.
+        /// Gets information about whether a method is a <c>yield</c>-based iterator and returns an <see cref="IteratorInfo"/> value
+        /// exposing details about the iterator, such as the <see cref="IteratorInfo.ItemType"/> and <see cref="IteratorInfo.EnumerableKind"/>.
         /// </summary>
-        /// <param name="method">The method to check.</param>
-        /// <returns>An <see cref="IteratorInfo"/> containing information about the iterator, or a default value if the method is not an iterator.</returns>
+        /// <param name="method">The method to inspect.</param>
+        /// <returns>An <see cref="IteratorInfo"/> containing information about the iterator. The <see cref="IteratorInfo.EnumerableKind"/>
+        /// property is set to <see cref="EnumerableKind.None"/> if the method does not return an enumerable or enumerator type.</returns>
+        /// <remarks>
+        /// <para>This method is useful for aspects that need to inspect iterator method properties at compile time, for example in <c>BuildAspect</c>.</para>
+        /// <para>Note that <see cref="IteratorInfo.IsIteratorMethod"/> indicates whether the method uses <c>yield return</c> or <c>yield break</c>,
+        /// while <see cref="IteratorInfo.EnumerableKind"/> indicates the return type regardless of the implementation.</para>
+        /// </remarks>
+        /// <seealso cref="IteratorInfo"/>
+        /// <seealso cref="EnumerableKind"/>
+        /// <seealso cref="GetAsyncInfo"/>
+        /// <seealso href="@overriding-methods#async-iterator-default-template"/>
         [CompileTime]
         public static IteratorInfo GetIteratorInfo( this IMethod method ) => ((ICompilationInternal) method.Compilation).Helpers.GetIteratorInfo( method );
 
         /// <summary>
-        /// Gets the <see cref="AsyncInfo"/> for a method.
+        /// Gets information about the async characteristics of a method, including whether it is awaitable and its result type.
         /// </summary>
-        /// <param name="method">The method to analyze.</param>
-        /// <returns>An <see cref="AsyncInfo"/> containing information about the async characteristics of the method.</returns>
+        /// <param name="method">The method to inspect.</param>
+        /// <returns>An <see cref="AsyncInfo"/> containing information about the async characteristics of the method,
+        /// including whether it has the <c>async</c> modifier, whether its return type is awaitable, and the unwrapped result type.</returns>
+        /// <remarks>
+        /// <para>This method is useful for aspects that need to inspect async method properties at compile time, for example in <c>BuildAspect</c>.</para>
+        /// <para>The <see cref="AsyncInfo.ResultType"/> property returns the unwrapped result type. For example, for a method returning
+        /// <c>Task&lt;string&gt;</c>, the <see cref="AsyncInfo.ResultType"/> is <c>string</c>.</para>
+        /// </remarks>
+        /// <seealso cref="AsyncInfo"/>
+        /// <seealso cref="GetIteratorInfo"/>
+        /// <seealso href="@overriding-methods#async-iterator-default-template"/>
         [CompileTime]
         public static AsyncInfo GetAsyncInfo( this IMethod method ) => ((ICompilationInternal) method.Compilation).Helpers.GetAsyncInfo( method );
 
