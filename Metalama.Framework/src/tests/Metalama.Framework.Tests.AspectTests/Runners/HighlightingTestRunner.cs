@@ -174,7 +174,7 @@ namespace Metalama.Framework.Tests.AspectTests.Runners
             var htmlPath = actualHtmlPath;
             var actualHighlightedSource = TestOutputNormalizer.NormalizeEndOfLines( File.ReadAllText( htmlPath ) );
 
-            var hasDifference = this.RunDiffToolIfDifferent( expectedHighlightedSource, expectedHtmlPath, actualHighlightedSource, htmlPath );
+            var hasDifference = this.CompareFiles( expectedHighlightedSource, expectedHtmlPath, actualHighlightedSource, htmlPath );
 
             if ( hasDifference )
             {

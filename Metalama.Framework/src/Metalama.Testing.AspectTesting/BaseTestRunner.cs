@@ -667,11 +667,12 @@ internal abstract partial class BaseTestRunner
                 continue;
             }
 
-            hasDifference |= this.RunDiffToolIfDifferent(
+            hasDifference |= this.CompareFiles(
                 syntaxTree.ExpectedTransformedCodeText!,
                 syntaxTree.ExpectedTransformedCodePath!,
                 syntaxTree.ActualTransformedNormalizedCodeText!,
-                syntaxTree.ActualTransformedCodePath! );
+                syntaxTree.ActualTransformedCodePath!,
+                testInput.Options );
 
             actuallyWrittenFiles.Add( syntaxTree.ExpectedTransformedCodePath! );
         }
@@ -706,9 +707,12 @@ internal abstract partial class BaseTestRunner
         }
     }
 
-    protected bool RunDiffToolIfDifferent( string expectedText, string expectedPath, string actualText, string actualPath )
+    protected bool CompareFiles( string expectedText, string expectedPath, string actualText, string actualPath, TestOptions testOptions )
+        => this.CompareFiles( expectedText, expectedPath, actualText, actualPath, testOptions.SkipDiffTool == true );
+
+    protected bool CompareFiles( string expectedText, string expectedPath, string actualText, string actualPath, bool skipDiffTool = false )
     {
-        var useDiff = this._testRunnerOptions.LaunchDiffTool && !DiffRunner.Disabled;
+        var useDiff = this._testRunnerOptions.LaunchDiffTool && !DiffRunner.Disabled && !skipDiffTool;
 
         if ( expectedText != actualText )
         {
@@ -869,7 +873,7 @@ internal abstract partial class BaseTestRunner
             outputDiagnostics =
                 testResult.OutputCompilationDiagnostics
                     .Concat( testResult.PipelineDiagnostics )
-                    .Where( d => d.Location.SourceTree?.FilePath == testSyntaxTree.InputSyntaxTree.AssertNotNull().FilePath )
+                    .Where( d =>d.Location is { IsInSource: true, SourceTree: not null } && d.Location.SourceTree?.FilePath == testSyntaxTree.InputSyntaxTree?.FilePath )
                     .Where( testResult.ShouldDiagnosticBeReported )
                     .ToList();
         }

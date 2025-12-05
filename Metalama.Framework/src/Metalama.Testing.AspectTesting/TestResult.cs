@@ -54,14 +54,11 @@ internal class TestResult : IDisposable
     public bool ShouldDiagnosticBeReported( Diagnostic diagnostic, IEnumerable<ScopedSuppression> suppressions )
     {
         // When IncludeAllSeverities is set, report all diagnostics regardless of severity.
-        if ( this.TestInput?.Options.IncludeAllSeverities != true )
-        {
-            var minimalSeverity = this.TestInput?.Options.ReportOutputWarnings == true ? DiagnosticSeverity.Warning : DiagnosticSeverity.Error;
+        var minimalSeverity = this.TestInput?.Options.IncludeAllSeverities == true ? DiagnosticSeverity.Hidden : DiagnosticSeverity.Warning;
 
-            if ( diagnostic.Severity < minimalSeverity )
-            {
-                return false;
-            }
+        if ( diagnostic.Severity < minimalSeverity )
+        {
+            return false;
         }
 
         if ( diagnostic.Id == "CS1701" )
@@ -90,7 +87,7 @@ internal class TestResult : IDisposable
         }
 
         // Warnings in introduced code (see annotation) are always ignored.
-        if ( diagnostic.Severity < DiagnosticSeverity.Error && this.IsInGeneratedCode( diagnostic ) )
+        if ( diagnostic.Severity < DiagnosticSeverity.Error && IsInGeneratedCode( diagnostic ) )
         {
             return false;
         }
@@ -357,7 +354,7 @@ internal class TestResult : IDisposable
         return default;
     }
 
-    private bool IsInGeneratedCode( Diagnostic diagnostic )
+    private static bool IsInGeneratedCode( Diagnostic diagnostic )
     {
         var syntaxTree = diagnostic.Location.SourceTree;
 

@@ -538,11 +538,12 @@ internal class AspectTestRunner : BaseTestRunner
         {
             var aspectTestResult = (AspectTestResult) testResult;
 
-            this.RunDiffToolIfDifferent(
+            this.CompareFiles(
                 aspectTestResult.ExpectedProgramOutputText!,
                 aspectTestResult.ExpectedProgramOutputPath!,
                 aspectTestResult.ActualProgramOutputText!,
-                aspectTestResult.ActualProgramOutputPath! );
+                aspectTestResult.ActualProgramOutputPath!,
+                testInput.Options );
         }
 
 #if DEBUG

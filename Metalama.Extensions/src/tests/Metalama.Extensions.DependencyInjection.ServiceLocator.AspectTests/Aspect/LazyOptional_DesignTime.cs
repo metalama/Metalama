@@ -4,7 +4,6 @@
 
 #if TEST_OPTIONS
 // @TestScenario(DesignTime)
-// @ReportOutputWarnings
 #endif
 
 namespace Metalama.Extensions.DependencyInjection.DotNet.Tests.Aspect.LazyOptional_DesignTime;
