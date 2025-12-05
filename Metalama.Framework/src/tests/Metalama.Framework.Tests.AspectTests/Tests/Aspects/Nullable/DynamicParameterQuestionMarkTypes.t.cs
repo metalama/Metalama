@@ -15,7 +15,7 @@ internal class TargetCode
     [Aspect]
     private void ReferenceType(string arg)
     {
-      arg.ToString();
+      arg?.ToString();
     }
     [Aspect]
     private void NullableReferenceType(string? arg)
@@ -36,7 +36,7 @@ internal class TargetCode
     private void NotNullGeneric<T>(T arg)
       where T : notnull
     {
-      arg.ToString();
+      arg?.ToString();
     }
     [Aspect]
     private void NullableNotNullGeneric<T>(T? arg)
@@ -60,7 +60,7 @@ internal class TargetCode
     private void ReferenceTypeGeneric<T>(T arg)
       where T : class
     {
-      arg.ToString();
+      arg?.ToString();
     }
     [Aspect]
     private void NullableReferenceTypeGeneric<T>(T? arg)
@@ -84,7 +84,7 @@ internal class TargetCode
     private void SpecificReferenceTypeGeneric<T>(T arg)
       where T : IComparable
     {
-      arg.ToString();
+      arg?.ToString();
     }
     [Aspect]
     private void SpecificNullableReferenceTypeGeneric<T>(T? arg)

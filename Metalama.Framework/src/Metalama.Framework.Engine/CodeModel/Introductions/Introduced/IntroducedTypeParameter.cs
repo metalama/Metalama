@@ -70,11 +70,21 @@ internal sealed class IntroducedTypeParameter : IntroducedDeclaration, ITypePara
     }
 
     public ITypeParameter ToNonNullable()
-        => this.IsNullable == false ? this : this.Compilation.Factory.GetTypeParameter( this._typeParameterBuilderData, this.GenericContext );
+    {
+        // For type parameters, we always strip annotations since C# cannot express non-nullability for type parameters.
+        return this.IsNullable == null ? this : this.Compilation.Factory.GetTypeParameter( this._typeParameterBuilderData, this.GenericContext, null );
+    }
+
+    public ITypeParameter StripNullabilityAnnotation()
+    {
+        return this.IsNullable == null ? this : this.Compilation.Factory.GetTypeParameter( this._typeParameterBuilderData, this.GenericContext, null );
+    }
 
     IType IType.ToNullable() => this.ToNullable();
 
     IType IType.ToNonNullable() => this.ToNonNullable();
+
+    IType IType.StripNullabilityAnnotation() => this.StripNullabilityAnnotation();
 
     ICompilation ICompilationElement.Compilation => this.Compilation;
 

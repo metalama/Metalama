@@ -34,6 +34,13 @@ namespace Metalama.Framework.Engine.Aspects
             AdviceFactory<T> adviceFactory,
             AspectPredecessor? aspectPredecessor = null )
         {
+            /*
+            // If we have a type, make sure it has the non-nullable annotation.
+            if ( target is IType type )
+            {
+                target = (T) type.ToNonNullable();
+            }
+            */
             this.Target = target;
             this._aspectBuilderState = aspectBuilderState;
             this.AdviceFactory = adviceFactory;

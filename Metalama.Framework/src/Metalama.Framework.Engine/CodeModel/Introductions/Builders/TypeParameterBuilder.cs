@@ -165,9 +165,13 @@ internal sealed class TypeParameterBuilder : NamedDeclarationBuilder, ITypeParam
 
     public ITypeParameter ToNonNullable() => throw new NotImplementedException();
 
+    public ITypeParameter StripNullabilityAnnotation() => throw new NotImplementedException();
+
     IType IType.ToNullable() => throw new NotImplementedException();
 
     IType IType.ToNonNullable() => this.ToNonNullable();
+
+    IType IType.StripNullabilityAnnotation() => this.StripNullabilityAnnotation();
 
     IRef<ITypeParameter> ITypeParameter.ToRef() => this._ref;
 

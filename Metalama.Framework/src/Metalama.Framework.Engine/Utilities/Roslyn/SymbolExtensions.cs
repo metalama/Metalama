@@ -51,6 +51,7 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
                 RoslynSpecialType.System_Collections_IEnumerator => SpecialType.IEnumerator,
                 RoslynSpecialType.System_Collections_Generic_IEnumerable_T => SpecialType.IEnumerable_T,
                 RoslynSpecialType.System_Collections_Generic_IEnumerator_T => SpecialType.IEnumerator_T,
+                RoslynSpecialType.System_Nullable_T => SpecialType.Nullable_T,
                 _ => SpecialType.None
             };
 
@@ -77,6 +78,7 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
                 SpecialType.IEnumerator => RoslynSpecialType.System_Collections_IEnumerator,
                 SpecialType.IEnumerable_T => RoslynSpecialType.System_Collections_Generic_IEnumerable_T,
                 SpecialType.IEnumerator_T => RoslynSpecialType.System_Collections_Generic_IEnumerator_T,
+                SpecialType.Nullable_T => RoslynSpecialType.System_Nullable_T,
 
                 // Note that we have special types that Roslyn does not have.
                 _ => RoslynSpecialType.None
@@ -438,5 +440,30 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
         /// Gets the primary declaration syntax for a symbol.
         /// </summary>
         public static SyntaxNode? GetPrimaryDeclarationSyntax( this ISymbol symbol ) => symbol.GetPrimarySyntaxReference()?.GetSyntax();
+
+        internal static T ApplyDefaultNullability<T>( this T type, bool? defaultNullability )
+            where T : ITypeSymbol
+        {
+            if ( defaultNullability != null && type.NullableAnnotation == NullableAnnotation.None )
+            {
+#if ROSLYN_5_0_0_OR_GREATER
+                if ( type.TypeKind == TypeKind.Extension )
+                {
+                    if ( defaultNullability == true )
+                    {
+                        throw new InvalidOperationException( $"Cannot get a nullable type for the extension block '{type}'." );
+                    }
+
+                    return type;
+                }
+#endif
+
+                return (T) type.WithNullableAnnotation( defaultNullability == true ? NullableAnnotation.Annotated : NullableAnnotation.NotAnnotated );
+            }
+            else
+            {
+                return type;
+            }
+        }
     }
 }

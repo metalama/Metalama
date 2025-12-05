@@ -61,7 +61,7 @@ namespace Metalama.Framework.Engine.CodeModel.Source
             };
 
         [Memo]
-        public IType Type => this.Compilation.Factory.GetIType( this._parameterSymbol.Type, this.GenericContextForSymbolMapping );
+        public IType Type => this.Compilation.Factory.GetIType( this._parameterSymbol.Type, this.GenericContextForSymbolMapping, defaultNullability: null );
 
         public string Name => this._parameterSymbol.Name;
 

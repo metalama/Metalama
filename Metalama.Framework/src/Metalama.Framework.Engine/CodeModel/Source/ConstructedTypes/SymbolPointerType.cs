@@ -22,7 +22,8 @@ namespace Metalama.Framework.Engine.CodeModel.Source.ConstructedTypes
         public override TypeKind TypeKind => TypeKind.Pointer;
 
         [Memo]
-        public IType PointedAtType => this.Compilation.Factory.GetIType( this.Symbol.PointedAtType, this.GenericContextForSymbolMapping );
+        public IType PointedAtType
+            => this.Compilation.Factory.GetIType( this.Symbol.PointedAtType, this.GenericContextForSymbolMapping, defaultNullability: null );
 
         public override IType Accept( TypeRewriter visitor ) => visitor.Visit( this );
 
@@ -36,7 +37,7 @@ namespace Metalama.Framework.Engine.CodeModel.Source.ConstructedTypes
             {
                 var symbol = this.Compilation.RoslynCompilation.CreatePointerTypeSymbol( typeSymbol );
 
-                return (ITypeImpl) this.Compilation.Factory.GetIType( symbol );
+                return (ITypeImpl) this.Compilation.Factory.GetIType( symbol, defaultNullability: null );
             }
             else
             {

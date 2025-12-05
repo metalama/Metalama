@@ -168,7 +168,8 @@ internal class IntroducePropertyTransformation : IntroduceMemberTransformation<P
                                     syntaxGenerator.DefaultExpression( finalProperty.Type ),
                                     finalProperty.Type.IsReferenceType == false
                                         ? finalProperty.Type
-                                        : finalProperty.Type.ToNullable() ),
+                                        : finalProperty.Type.ToNullable(),
+                                    finalProperty.Type ),
                                 Token( TriviaList(), SyntaxKind.SemicolonToken, context.SyntaxGenerationContext.OptionalElasticEndOfLineTriviaList ) ) ),
                     null,
                     hasNoBody ? Token( SyntaxKind.SemicolonToken ) : default );

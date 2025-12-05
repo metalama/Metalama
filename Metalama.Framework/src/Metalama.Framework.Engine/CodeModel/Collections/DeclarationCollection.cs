@@ -80,7 +80,7 @@ namespace Metalama.Framework.Engine.CodeModel.Collections
 
         // We allow resolving references to missing declarations because the collection may be a child collection of a missing declaration,
         // for instance the parameters of a method that has been introduced into the current compilation but is not included in the current compilation.
-        protected TDeclaration GetItem( TRef reference )
+        protected virtual TDeclaration GetItem( TRef reference )
         {
             var declaration = reference.GetTarget( this.Compilation, genericContext: this._genericContext );
 

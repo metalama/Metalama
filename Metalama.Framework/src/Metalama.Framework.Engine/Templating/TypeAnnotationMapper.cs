@@ -188,7 +188,8 @@ internal static class TypeAnnotationMapper
         if ( TryFindExpressionTypeFromAnnotation( node, compilationContext, out var symbol ) )
         {
             type = compilationModel.Factory.GetIType(
-                compilationContext.SymbolTranslator.Translate( symbol ).AssertNotNull( $"The symbol '{symbol}' could not be translated." ) );
+                compilationContext.SymbolTranslator.Translate( symbol ).AssertNotNull( $"The symbol '{symbol}' could not be translated." ),
+                defaultNullability: null );
 
             return true;
         }

@@ -150,9 +150,13 @@ internal class SourceNamedTypeImpl : SourceMemberOrNamedType, INamedTypeImpl
 
     INamedType INamedType.ToNullable() => throw new NotImplementedException();
 
+    INamedType INamedType.StripNullabilityAnnotation() => throw new NotImplementedException();
+
     IType IType.ToNullable() => throw new NotImplementedException();
 
     IType IType.ToNonNullable() => throw new NotImplementedException();
+
+    IType IType.StripNullabilityAnnotation() => throw new NotImplementedException();
 
     public override MemberInfo ToMemberInfo() => this.ToType();
 
@@ -366,7 +370,8 @@ internal class SourceNamedTypeImpl : SourceMemberOrNamedType, INamedTypeImpl
     [Memo]
     public IReadOnlyList<IType> TypeArguments
         => this.GenericContextForSymbolMapping.IsEmptyOrIdentity
-            ? this.NamedTypeSymbol.TypeArguments.SelectAsImmutableArray( a => this.Compilation.Factory.GetIType( a, this.GenericContextForSymbolMapping ) )
+            ? this.NamedTypeSymbol.TypeArguments.SelectAsImmutableArray(
+                a => this.Compilation.Factory.GetIType( a, this.GenericContextForSymbolMapping, defaultNullability: null ) )
             : this.GenericContextForSymbolMapping.TypeArguments.SelectAsImmutableArray( t => t.GetTarget( this.Compilation ) );
 
     [Memo]
@@ -689,7 +694,7 @@ internal class SourceNamedTypeImpl : SourceMemberOrNamedType, INamedTypeImpl
 
         if ( enumUnderlyingType != null )
         {
-            return this.Compilation.Factory.GetNamedType( enumUnderlyingType );
+            return this.Compilation.Factory.GetNamedType( enumUnderlyingType, defaultNullability: this.IsNullable );
         }
 
         var isNullable = this.IsNullable;
@@ -699,7 +704,9 @@ internal class SourceNamedTypeImpl : SourceMemberOrNamedType, INamedTypeImpl
             if ( this.IsReferenceType == true )
             {
                 // We have an annotated reference type, return the non-annotated type.
-                return this.Compilation.Factory.GetNamedType( (INamedTypeSymbol) this.NamedTypeSymbol.WithNullableAnnotation( NullableAnnotation.None ) );
+                return this.Compilation.Factory.GetNamedType(
+                    (INamedTypeSymbol) this.NamedTypeSymbol.WithNullableAnnotation( NullableAnnotation.None ),
+                    defaultNullability: null );
             }
         }
 

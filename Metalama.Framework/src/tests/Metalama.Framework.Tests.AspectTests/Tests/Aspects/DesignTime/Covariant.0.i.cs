@@ -14,7 +14,7 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.DesignTime.Covarian
     {
       get
       {
-        return default(global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.DesignTime.Covariant.B? )!;
+        return default(global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.DesignTime.Covariant.B? );
       }
     }
     public virtual global::System.String NonCovariantProperty

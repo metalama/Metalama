@@ -8,7 +8,7 @@ internal record Target : global::Metalama.Framework.Tests.AspectTests.Tests.Aspe
     {
       global::System.String? returnValue;
       global::System.Console.WriteLine("Introduced.");
-      returnValue = default(global::System.String? )!;
+      returnValue = default(global::System.String? );
       if (returnValue == null)
       {
         throw new global::System.ArgumentNullException("Metalama.Framework.Tests.AspectTests.Tests.Aspects.Contracts.Property_IntroducedInterface.I.M");

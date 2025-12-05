@@ -29,7 +29,7 @@ internal sealed class IntroducedNamedType : IntroducedMemberOrNamedType, INamedT
 {
     private readonly NamedTypeBuilderData _namedTypeBuilderData;
 
-    public IntroducedNamedType( NamedTypeBuilderData builderData, CompilationModel compilation, IGenericContext genericContext, bool isNullable ) : base(
+    public IntroducedNamedType( NamedTypeBuilderData builderData, CompilationModel compilation, IGenericContext genericContext, bool? isNullable ) : base(
         compilation,
         genericContext )
     {
@@ -234,7 +234,7 @@ internal sealed class IntroducedNamedType : IntroducedMemberOrNamedType, INamedT
         }
         else if ( this.IsReferenceType ?? true )
         {
-            return this.Compilation.Factory.GetNamedType( this._namedTypeBuilderData, this.GenericContext );
+            return this.Compilation.Factory.GetNamedType( this._namedTypeBuilderData, this.GenericContext, false );
         }
         else
         {
@@ -242,9 +242,23 @@ internal sealed class IntroducedNamedType : IntroducedMemberOrNamedType, INamedT
         }
     }
 
+    public INamedType StripNullabilityAnnotation()
+    {
+        if ( this.IsNullable == null )
+        {
+            return this;
+        }
+        else
+        {
+            return this.Compilation.Factory.GetNamedType( this._namedTypeBuilderData, this.GenericContext, null );
+        }
+    }
+
+    IType IType.StripNullabilityAnnotation() => this.StripNullabilityAnnotation();
+
     public INamedType ToNullable()
         => this.IsNullable == true ? this : this.Compilation.Factory.GetNamedType( this._namedTypeBuilderData, this.GenericContext, true );
-    
+
     public INamedType MakeGenericInstance( IReadOnlyList<IType> typeArguments )
     {
         var genericContext = new IntroducedGenericContext(

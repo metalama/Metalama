@@ -177,7 +177,7 @@ internal sealed partial class SymbolGenericContext : GenericContext
 
                         for ( var type = this.NamedTypeSymbol; type != null; type = type.ContainingType )
                         {
-                            if ( type.OriginalDefinition == requestedTypeDefinition )
+                            if ( type.OriginalDefinition.Equals( requestedTypeDefinition ) )
                             {
                                 var typeArgument = type.TypeArguments[typeParameter.Index];
 

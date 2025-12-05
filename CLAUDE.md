@@ -102,6 +102,7 @@ Update this file when you discover something that will save time in future sessi
 - Use `Build.ps1 tools kill` to kill processes.
 - Use CLAUDE-TODO.md to track the work list.
 - Before preparing a PR, check CLAUDE-TODO.md.
+- Read NOTES.md when it changes for important context about ongoing work and breaking changes.
 
 ## Lessons Learned
 

@@ -117,7 +117,7 @@ class C<T>
 
         if ( symbol != null )
         {
-            Roundtrip( compilation, symbol );
+            Roundtrip( compilation, symbol, symbol is not ITypeSymbol );
         }
     }
 
@@ -136,7 +136,7 @@ class C<T>
         }
         else
         {
-            Assert.Equal( symbol, symbolRoundtrip, SymbolEqualityComparer.Default );
+            Assert.Equal( symbol, symbolRoundtrip, SymbolEqualityComparer.IncludeNullability );
         }
 
         // Also test a Ref roundtrip.

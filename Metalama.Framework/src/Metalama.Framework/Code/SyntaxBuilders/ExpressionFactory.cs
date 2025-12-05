@@ -297,6 +297,28 @@ public static class ExpressionFactory
     public static IExpression WithNullability( this IExpression expression, bool isNullable )
         => expression.WithType( isNullable ? expression.Type.ToNullable() : expression.Type.ToNonNullable() );
 
+    /// <summary>
+    /// Returns an expression with the null-forgiving operator (<c>!</c>) applied, suppressing nullable warnings.
+    /// </summary>
+    /// <param name="expression">The expression to which the null-forgiving operator should be applied.</param>
+    /// <param name="force">
+    /// When <see langword="false"/> (the default), the operator is only added if the expression is nullable.
+    /// When <see langword="true"/>, the operator is always added regardless of the expression's nullability.
+    /// </param>
+    /// <returns>
+    /// An expression with the null-forgiving operator applied, or the original expression if the operator is not needed
+    /// and <paramref name="force"/> is <see langword="false"/>.
+    /// </returns>
+    /// <remarks>
+    /// <para>
+    /// The null-forgiving operator tells the compiler that an expression is not null, even if the compiler's
+    /// static analysis cannot determine this. Use this method when you know an expression will not be null
+    /// at run time but the compiler cannot verify this.
+    /// </para>
+    /// <para>
+    /// The operator is never added to value types (except <see cref="Nullable{T}"/>) since they cannot be null by definition.
+    /// </para>
+    /// </remarks>
     public static IExpression WithNullForgivingOperator( this IExpression expression, bool force = false )
         => SyntaxBuilder.CurrentImplementation.WithNullForgivingOperator( expression, force );
 }

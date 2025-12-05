@@ -58,7 +58,7 @@ public sealed partial class DeclarationFactory : IDeclarationFactory, ISdkDeclar
     {
         var symbol = this._compilationModel.CompilationContext.ReflectionMapper.GetNamedTypeSymbolByMetadataName( reflectionName, null );
 
-        return this.GetNamedType( (INamedTypeSymbol) symbol.WithNullableAnnotation( NullableAnnotation.NotAnnotated ) );
+        return this.GetNamedType( symbol );
     }
 
     public bool TryGetTypeByReflectionName( string reflectionName, [NotNullWhen( true )] out INamedType? namedType )
@@ -79,7 +79,7 @@ public sealed partial class DeclarationFactory : IDeclarationFactory, ISdkDeclar
         }
     }
 
-    public IType GetTypeByReflectionType( Type type ) => this.GetIType( this._compilationModel.CompilationContext.ReflectionMapper.GetTypeSymbol( type ).WithNullableAnnotation( NullableAnnotation.NotAnnotated ) );
+    public IType GetTypeByReflectionType( Type type ) => this.GetIType( this._compilationModel.CompilationContext.ReflectionMapper.GetTypeSymbol( type ) );
 
     public INamedType GetNamedTypeByReflectionType( Type type ) => (INamedType) this.GetTypeByReflectionType( type );
 
@@ -94,7 +94,7 @@ public sealed partial class DeclarationFactory : IDeclarationFactory, ISdkDeclar
 
         if ( roslynSpecialType != Microsoft.CodeAnalysis.SpecialType.None )
         {
-            return this.GetNamedType( (INamedTypeSymbol) this.RoslynCompilation.GetSpecialType( roslynSpecialType ).WithNullableAnnotation( NullableAnnotation.NotAnnotated ) );
+            return this.GetNamedType( this.RoslynCompilation.GetSpecialType( roslynSpecialType ) );
         }
         else
         {
@@ -105,6 +105,7 @@ public sealed partial class DeclarationFactory : IDeclarationFactory, ISdkDeclar
                     SpecialType.ValueTask => this.GetNamedTypeByReflectionType( typeof(ValueTask) ),
                     SpecialType.ValueTask_T => this.GetNamedTypeByReflectionType( typeof(ValueTask<>) ),
                     SpecialType.ValueTuple => this.GetNamedTypeByReflectionType( typeof(ValueTuple) ),
+                    SpecialType.Nullable_T => this.GetNamedTypeByReflectionType( typeof(Nullable<>) ),
                     SpecialType.Task => this.GetNamedTypeByReflectionType( typeof(Task) ),
                     SpecialType.Task_T => this.GetNamedTypeByReflectionType( typeof(Task<>) ),
                     SpecialType.Type => this.GetNamedTypeByReflectionType( typeof(Type) ),

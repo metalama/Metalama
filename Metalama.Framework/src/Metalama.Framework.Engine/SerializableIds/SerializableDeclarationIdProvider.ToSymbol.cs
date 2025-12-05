@@ -103,11 +103,22 @@ public static partial class SerializableDeclarationIdProvider
                 }
                 else
                 {
-                    return typeSymbol;
+                    // Make sure to return the non-nullable type.
+                    return typeSymbol.WithNullableAnnotation( NullableAnnotation.NotAnnotated );
                 }
             }
 
-            return DocumentationCommentId.GetFirstSymbolForDeclarationId( id.ToString(), compilation );
+            var symbol = DocumentationCommentId.GetFirstSymbolForDeclarationId( id.ToString(), compilation );
+
+            // Make sure to return the non-nullable type.
+            if ( symbol is ITypeSymbol { NullableAnnotation: NullableAnnotation.None } typeSymbol2 )
+            {
+                return typeSymbol2.WithNullableAnnotation( NullableAnnotation.NotAnnotated );
+            }
+            else
+            {
+                return symbol;
+            }
         }
     }
 }

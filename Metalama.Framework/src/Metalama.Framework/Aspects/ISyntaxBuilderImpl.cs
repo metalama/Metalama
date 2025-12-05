@@ -74,5 +74,6 @@ internal interface ISyntaxBuilderImpl
 
     IExpression ReceiverExpression( IDeclaration declaration );
 
+    /// <inheritdoc cref="ExpressionFactory.WithNullForgivingOperator"/>
     IExpression WithNullForgivingOperator( IExpression expression, bool force );
 }

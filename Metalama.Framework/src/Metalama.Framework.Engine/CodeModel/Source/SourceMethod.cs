@@ -45,7 +45,7 @@ internal sealed class SourceMethod : SourceMethodBase, IMethodImpl
     public IParameter ReturnParameter => new PseudoReturnParameter( this, this.MethodSymbol );
 
     [Memo]
-    public IType ReturnType => this.Compilation.Factory.GetIType( this.MethodSymbol.ReturnType, this.GenericContextForSymbolMapping );
+    public IType ReturnType => this.Compilation.Factory.GetIType( this.MethodSymbol.ReturnType, this.GenericContextForSymbolMapping, defaultNullability: null );
 
     [Memo]
     public ITypeParameterList TypeParameters

@@ -47,7 +47,8 @@ namespace Metalama.Framework.Engine.CodeModel.Source
         }
 
         [Memo]
-        public INamedType Type => (INamedType) this.Compilation.Factory.GetIType( this._symbol.Type, this.GenericContextForSymbolMapping );
+        public INamedType Type
+            => (INamedType) this.Compilation.Factory.GetIType( this._symbol.Type, this.GenericContextForSymbolMapping, defaultNullability: null );
 
         public RefKind RefKind => RefKind.None;
 

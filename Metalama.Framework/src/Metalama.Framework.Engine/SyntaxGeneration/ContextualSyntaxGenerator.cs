@@ -1048,7 +1048,12 @@ public sealed partial class ContextualSyntaxGenerator
         IType? targetType = null,
         bool force = false )
     {
-        var isSuppressionEnabled = force || (expressionType is { IsReferenceType: true, IsNullable: not false }
+        if ( !this.IsNullAware )
+        {
+            return expression;
+        }
+
+        var isSuppressionEnabled = force || (expressionType is null or { IsReferenceType: not false, IsNullable: not false }
                                              && targetType is not { IsReferenceType: true, IsNullable: true });
 
         return isSuppressionEnabled

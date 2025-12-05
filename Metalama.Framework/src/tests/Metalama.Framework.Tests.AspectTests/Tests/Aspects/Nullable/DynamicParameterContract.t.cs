@@ -12,7 +12,9 @@ internal class TargetCode
       }
       set
       {
+        // value?.ToString()
         value?.ToString();
+        // value!.ToString()
         value!.ToString();
         this._field = value;
       }
@@ -27,7 +29,9 @@ internal class TargetCode
       }
       set
       {
+        // value?.ToString()
         value?.ToString();
+        // value!.ToString()
         value!.ToString();
         this._property = value;
       }
@@ -39,7 +43,9 @@ internal class TargetCode
       {
         global::System.String? returnValue;
         returnValue = null;
+        // value?.ToString()
         returnValue?.ToString();
+        // value!.ToString()
         returnValue!.ToString();
         return returnValue;
       }
@@ -47,11 +53,15 @@ internal class TargetCode
     [return: Aspect]
     private string? Method([Aspect] string? arg)
     {
+      // value?.ToString()
       arg?.ToString();
+      // value!.ToString()
       arg!.ToString();
       global::System.String? returnValue;
       returnValue = arg;
+      // value?.ToString()
       returnValue?.ToString();
+      // value!.ToString()
       returnValue!.ToString();
       return returnValue;
     }
@@ -68,7 +78,9 @@ internal class TargetCode
       }
       set
       {
-        value.ToString();
+        // value?.ToString()
+        value?.ToString();
+        // value!.ToString()
         value.ToString();
         this._field = value;
       }
@@ -83,7 +95,9 @@ internal class TargetCode
       }
       set
       {
-        value.ToString();
+        // value?.ToString()
+        value?.ToString();
+        // value!.ToString()
         value.ToString();
         this._property = value;
       }
@@ -95,7 +109,9 @@ internal class TargetCode
       {
         global::System.String returnValue;
         returnValue = null !;
-        returnValue.ToString();
+        // value?.ToString()
+        returnValue?.ToString();
+        // value!.ToString()
         returnValue.ToString();
         return returnValue;
       }
@@ -103,11 +119,15 @@ internal class TargetCode
     [return: Aspect]
     private string Method([Aspect] string arg)
     {
-      arg.ToString();
+      // value?.ToString()
+      arg?.ToString();
+      // value!.ToString()
       arg.ToString();
       global::System.String returnValue;
       returnValue = arg;
-      returnValue.ToString();
+      // value?.ToString()
+      returnValue?.ToString();
+      // value!.ToString()
       returnValue.ToString();
       return returnValue;
     }
@@ -125,7 +145,9 @@ internal class TargetCode
       }
       set
       {
+        // value?.ToString()
         value?.ToString();
+        // value!.ToString()
         value.ToString();
         this._field = value;
       }
@@ -140,7 +162,9 @@ internal class TargetCode
       }
       set
       {
+        // value?.ToString()
         value?.ToString();
+        // value!.ToString()
         value.ToString();
         this._property = value;
       }
@@ -152,7 +176,9 @@ internal class TargetCode
       {
         global::System.String returnValue;
         returnValue = null;
+        // value?.ToString()
         returnValue?.ToString();
+        // value!.ToString()
         returnValue.ToString();
         return returnValue;
       }
@@ -160,11 +186,15 @@ internal class TargetCode
     [return: Aspect]
     private string Method([Aspect] string arg)
     {
+      // value?.ToString()
       arg?.ToString();
+      // value!.ToString()
       arg.ToString();
       global::System.String returnValue;
       returnValue = arg;
+      // value?.ToString()
       returnValue?.ToString();
+      // value!.ToString()
       returnValue.ToString();
       return returnValue;
     }

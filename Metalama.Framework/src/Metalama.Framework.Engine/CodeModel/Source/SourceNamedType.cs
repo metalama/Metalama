@@ -168,6 +168,10 @@ namespace Metalama.Framework.Engine.CodeModel.Source
 
         public IType ToNonNullable() => this.Compilation.Factory.MakeNullableType( this, false );
 
+        public INamedType StripNullabilityAnnotation() => (INamedType) this.Compilation.Factory.MakeNullableType( this, null );
+
+        IType IType.StripNullabilityAnnotation() => this.StripNullabilityAnnotation();
+
         public INamedType MakeGenericInstance( IReadOnlyList<IType> typeArguments )
         {
             this.OnUsingDeclaration();
@@ -594,7 +598,7 @@ namespace Metalama.Framework.Engine.CodeModel.Source
 
             var symbol = this.NamedTypeSymbol.ConstructedFrom.Construct( typeArgumentSymbols );
 
-            return (ITypeImpl) this.Compilation.Factory.GetIType( symbol );
+            return (ITypeImpl) this.Compilation.Factory.GetIType( symbol, defaultNullability: null );
         }
 
         public override IDeclaration ContainingDeclaration => this.Implementation.ContainingDeclaration;

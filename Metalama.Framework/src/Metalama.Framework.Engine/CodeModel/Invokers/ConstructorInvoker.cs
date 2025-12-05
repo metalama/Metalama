@@ -67,7 +67,7 @@ internal sealed class ConstructorInvoker : Invoker<IConstructor>, IConstructorIn
 
                 return CreateObjectCreationExpression( type, arguments, null );
             },
-            this.Member.DeclaringType );
+            this.Member.DeclaringType.ToNonNullable() );
     }
 
     public IObjectCreationExpression CreateInvokeExpression()
@@ -106,7 +106,7 @@ internal sealed class ConstructorInvoker : Invoker<IConstructor>, IConstructorIn
         private readonly IConstructor _constructor;
         private readonly Func<SyntaxSerializationContext, IEnumerable<ExpressionSyntax>> _argumentFactory;
 
-        public override IType Type => this._constructor.DeclaringType;
+        public override IType Type => this._constructor.DeclaringType.ToNonNullable();
 
         public ObjectCreationExpression( IConstructor constructor, Func<SyntaxSerializationContext, IEnumerable<ExpressionSyntax>> argumentFactory )
         {

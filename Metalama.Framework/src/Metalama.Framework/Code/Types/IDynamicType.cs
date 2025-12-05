@@ -27,5 +27,8 @@ namespace Metalama.Framework.Code.Types
 
         /// <inheritdoc cref="IType.ToNonNullable"/>
         new IDynamicType ToNonNullable();
+
+        /// <inheritdoc cref="IType.StripNullabilityAnnotation"/>
+        new IDynamicType StripNullabilityAnnotation();
     }
 }

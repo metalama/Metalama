@@ -37,5 +37,8 @@ namespace Metalama.Framework.Code.Types
 
         /// <inheritdoc cref="IType.ToNonNullable"/>
         new IArrayType ToNonNullable();
+
+        /// <inheritdoc cref="IType.StripNullabilityAnnotation"/>
+        new IArrayType StripNullabilityAnnotation();
     }
 }

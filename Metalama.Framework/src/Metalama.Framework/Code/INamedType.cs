@@ -231,6 +231,9 @@ namespace Metalama.Framework.Code
         /// <inheritdoc cref="IType.ToNullable"/>
         new INamedType ToNullable();
 
+        /// <inheritdoc cref="IType.StripNullabilityAnnotation"/>
+        new INamedType StripNullabilityAnnotation();
+
         // Note that ToNonNullable, when called with Nullable<T>, can return an ITypeParameter and therefore cannot be cast to INamedType.
 
         /// <summary>

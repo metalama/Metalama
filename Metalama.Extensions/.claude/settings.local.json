@@ -3,7 +3,10 @@
     "allow": [
       "Bash(pwsh -Command \"cd ''X:\\src\\Metalama-2026.0\\Metalama\\Metalama.Framework''; dotnet test src\\tests\\Metalama.Framework.Tests.AspectTests\\Metalama.Framework.Tests.AspectTests.csproj --filter ''FullyQualifiedName~SyntaxBuilders.NullForgivingOperator'' -f net8.0 2>&1\")",
       "Bash(pwsh -Command \"cd ''X:\\src\\Metalama-2026.0\\Metalama''; git status --short\")",
-      "Bash(pwsh -Command \"cd ''X:\\src\\Metalama-2026.0\\Metalama''; git diff --cached --stat\")"
+      "Bash(pwsh -Command \"cd ''X:\\src\\Metalama-2026.0\\Metalama''; git diff --cached --stat\")",
+      "Bash(dir:*)",
+      "Bash(pwsh -Command \"cd ''X:\\src\\Metalama-2026.0\\Metalama''; gh issue view 1232 --json body --jq ''.body''\")",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []

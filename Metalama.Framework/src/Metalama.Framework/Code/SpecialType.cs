@@ -174,6 +174,8 @@ namespace Metalama.Framework.Code
         /// </summary>
         ValueTuple,
 
+        Nullable_T,
+
         // Must be last.
 
         /// <summary>

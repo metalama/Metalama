@@ -4,6 +4,7 @@
 
 using System;
 using Metalama.Framework.Aspects;
+using Metalama.Framework.Code;
 
 #pragma warning disable CS8618, CS8602
 
@@ -13,7 +14,14 @@ internal class TrimAttribute : ContractAspect
 {
     public override void Validate( dynamic? value )
     {
-        value = value?.Trim();
+        if ( ((IHasType) meta.Target.Declaration).Type.IsNullable == true )
+        {
+            value = value?.Trim();
+        }
+        else
+        {
+            value = value.Trim();
+        }
     }
 }
 

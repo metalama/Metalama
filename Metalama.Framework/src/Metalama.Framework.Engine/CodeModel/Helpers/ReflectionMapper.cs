@@ -34,7 +34,7 @@ namespace Metalama.Framework.Engine.CodeModel.Helpers
         /// </summary>
         public INamedTypeSymbol GetNamedTypeSymbolByMetadataName( string metadataName, AssemblyName? assemblyName )
         {
-            var symbol = this._compilation.GetTypeByMetadataName( metadataName );
+            var symbol = (INamedTypeSymbol?) this._compilation.GetTypeByMetadataName( metadataName )?.WithNullableAnnotation( NullableAnnotation.NotAnnotated );
 
             if ( symbol == null )
             {
@@ -69,7 +69,7 @@ namespace Metalama.Framework.Engine.CodeModel.Helpers
                         assembly = assemblies.OrderByDescending( a => a.Identity.Version ).First();
                     }
 
-                    symbol = assembly.GetTypeByMetadataName( metadataName );
+                    symbol = (INamedTypeSymbol?) assembly.GetTypeByMetadataName( metadataName )?.WithNullableAnnotation( NullableAnnotation.NotAnnotated );
                 }
             }
 
@@ -118,7 +118,7 @@ namespace Metalama.Framework.Engine.CodeModel.Helpers
             {
                 var elementType = this.GetTypeSymbol( type.GetElementType()! );
 
-                return this._compilation.CreateArrayTypeSymbol( elementType, type.GetArrayRank() );
+                return this._compilation.CreateArrayTypeSymbol( elementType, type.GetArrayRank() ).WithNullableAnnotation( NullableAnnotation.NotAnnotated );
             }
 
             if ( type.IsPointer )
@@ -154,7 +154,8 @@ namespace Metalama.Framework.Engine.CodeModel.Helpers
 
                 if ( nestedTypeGenericArguments.Length > 0 )
                 {
-                    nestedSymbol = nestedSymbol.Construct( nestedTypeGenericArguments.SelectAsArray( this.GetTypeSymbol ) );
+                    nestedSymbol = (INamedTypeSymbol?) nestedSymbol.Construct( nestedTypeGenericArguments.SelectAsArray( this.GetTypeSymbol ) )
+                        .WithNullableAnnotation( NullableAnnotation.NotAnnotated );
                 }
 
                 return nestedSymbol;
@@ -167,7 +168,7 @@ namespace Metalama.Framework.Engine.CodeModel.Helpers
 
                 var genericArgumentSymbols = genericArguments.SelectAsArray( this.GetTypeSymbol );
 
-                return genericDefinition.Construct( genericArgumentSymbols );
+                return (INamedTypeSymbol?) genericDefinition.Construct( genericArgumentSymbols ).WithNullableAnnotation( NullableAnnotation.NotAnnotated );
             }
             else
             {

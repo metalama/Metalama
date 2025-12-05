@@ -10,7 +10,7 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.DesignTime.Covarian
     {
       get
       {
-        return default(global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.DesignTime.Covariant.D? )!;
+        return default(global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.DesignTime.Covariant.D? );
       }
     }
     public override global::Metalama.Framework.Tests.AspectTests.Tests.Aspects.DesignTime.Covariant.D? this[global::System.Int32 index]

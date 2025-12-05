@@ -114,28 +114,30 @@ public partial class DeclarationFactory
                     ? new ExternalAssembly( args.Symbol, args.Compilation )
                     : args.Compilation );
 
-    public IType GetIType( ITypeSymbol typeSymbol, GenericContext? genericContext = null )
-        => typeSymbol switch
+    public IType GetIType( ITypeSymbol typeSymbol, GenericContext? genericContext = null, bool? defaultNullability = false )
+    {
+        return typeSymbol switch
         {
             // TODO PERF: switch by SymbolKind.
-            INamedTypeSymbol namedType => this.GetNamedType( namedType, genericContext ),
-            IArrayTypeSymbol arrayType => this.GetArrayType( arrayType, genericContext ),
+            INamedTypeSymbol namedType => this.GetNamedType( namedType, genericContext, defaultNullability ),
+            IArrayTypeSymbol arrayType => this.GetArrayType( arrayType, genericContext, defaultNullability ),
             IPointerTypeSymbol pointerType => this.GetPointerType( pointerType, genericContext ),
             ITypeParameterSymbol typeParameter => this.GetTypeParameter( typeParameter, genericContext ).ResolvedType,
-            IDynamicTypeSymbol dynamicType => this.GetDynamicType( dynamicType ),
+            IDynamicTypeSymbol dynamicType => this.GetDynamicType( dynamicType, defaultNullability ),
             IFunctionPointerTypeSymbol functionPointerType => this.GetFunctionPointerType( functionPointerType, genericContext ),
             _ => throw new NotImplementedException( $"Types of kind {typeSymbol.Kind} are not implemented." )
         };
+    }
 
-    private IArrayType GetArrayType( IArrayTypeSymbol typeSymbol, GenericContext? genericContext = null )
+    private IArrayType GetArrayType( IArrayTypeSymbol typeSymbol, GenericContext? genericContext = null, bool? defaultNullability = false )
         => this.GetTypeFromSymbol<IArrayType, IArrayTypeSymbol>(
-            typeSymbol,
+            typeSymbol.ApplyDefaultNullability( defaultNullability ),
             genericContext,
             static ( in args ) => new SymbolArrayType( args.Symbol, args.Compilation, args.GenericContext ) );
 
-    internal IDynamicType GetDynamicType( IDynamicTypeSymbol typeSymbol )
+    internal IDynamicType GetDynamicType( IDynamicTypeSymbol typeSymbol, bool? defaultNullability = false )
         => this.GetTypeFromSymbol<IDynamicType, IDynamicTypeSymbol>(
-            typeSymbol,
+            typeSymbol.ApplyDefaultNullability( defaultNullability ),
             null,
             static ( in args ) => new DynamicType( args.Symbol, args.Compilation ) );
 
@@ -152,9 +154,11 @@ public partial class DeclarationFactory
             static ( in args )
                 => new SymbolFunctionPointerType( args.Symbol, args.Compilation, args.GenericContext ) );
 
-    public INamedType GetNamedType( INamedTypeSymbol typeSymbol, IGenericContext? genericContext = null )
+    public INamedType GetNamedType( INamedTypeSymbol typeSymbol, IGenericContext? genericContext = null, bool? defaultNullability = false )
     {
         Invariant.Assert( genericContext is not SymbolGenericContext );
+
+        typeSymbol = typeSymbol.ApplyDefaultNullability( defaultNullability );
 
         // Roslyn considers the type in e.g. typeof(List<>) to be different from e.g. List<T>.
         // That distinction makes things more complicated for us (e.g. it's not representable using Type), so get rid of it.
@@ -552,7 +556,7 @@ public partial class DeclarationFactory
     internal IPointerType MakePointerType( ITypeSymbol pointedType )
         => (IPointerType) this.GetIType( this.RoslynCompilation.CreatePointerTypeSymbol( pointedType ) );
 
-    internal IType MakeNullableType<T>( T type, bool isNullable )
+    internal IType MakeNullableType<T>( T type, bool? isNullable )
         where T : IType, ISymbolBasedCompilationElement
     {
         var typeSymbol = (ITypeSymbol) type.Symbol;
@@ -565,10 +569,10 @@ public partial class DeclarationFactory
 #if ROSLYN_5_0_0_OR_GREATER
         if ( typeSymbol is INamedTypeSymbol { IsExtension: true } )
         {
-            if ( isNullable )
+            if ( isNullable == true )
             {
                 throw new ArgumentOutOfRangeException(
-                    MetalamaStringFormatter.Format( $"The type '{type}' cannot be made nullable because it is an extension block." ) );
+                    MetalamaStringFormatter.Format( $"The type '{type}' cannot be annotated for nullability because it is an extension block." ) );
             }
 
             return type;
@@ -579,12 +583,18 @@ public partial class DeclarationFactory
 
         if ( type.IsReferenceType ?? true )
         {
-            newTypeSymbol = typeSymbol
-                .WithNullableAnnotation( isNullable ? NullableAnnotation.Annotated : NullableAnnotation.NotAnnotated );
+            var annotation = isNullable switch
+            {
+                true => NullableAnnotation.Annotated,
+                false => NullableAnnotation.NotAnnotated,
+                null => NullableAnnotation.None
+            };
+
+            newTypeSymbol = typeSymbol.WithNullableAnnotation( annotation );
         }
         else
         {
-            if ( isNullable )
+            if ( isNullable == true )
             {
                 newTypeSymbol = this._compilationModel.RoslynCompilation.GetSpecialType( RoslynSpecialType.System_Nullable_T )
                     .Construct( typeSymbol );
@@ -595,6 +605,6 @@ public partial class DeclarationFactory
             }
         }
 
-        return this.GetIType( newTypeSymbol );
+        return this.GetIType( newTypeSymbol, defaultNullability: null );
     }
 }

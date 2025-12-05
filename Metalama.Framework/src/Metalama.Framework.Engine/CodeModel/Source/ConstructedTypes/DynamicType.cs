@@ -21,6 +21,8 @@ namespace Metalama.Framework.Engine.CodeModel.Source.ConstructedTypes
 
         public new IDynamicType ToNonNullable() => (IDynamicType) this.Compilation.Factory.MakeNullableType( this, false );
 
+        public new IDynamicType StripNullabilityAnnotation() => (IDynamicType) this.Compilation.Factory.MakeNullableType( this, null );
+
         public override IType Accept( TypeRewriter visitor ) => visitor.Visit( this );
     }
 }

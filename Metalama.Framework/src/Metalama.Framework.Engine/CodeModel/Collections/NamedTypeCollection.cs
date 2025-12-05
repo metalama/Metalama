@@ -18,6 +18,20 @@ namespace Metalama.Framework.Engine.CodeModel.Collections
         public NamedTypeCollection( ICompilation declaringCompilation, IReadOnlyList<IFullRef<INamedType>> sourceItems, bool includeNestedTypes = false ) :
             base( declaringCompilation, IncludeNestedTypes( declaringCompilation, sourceItems, includeNestedTypes ) ) { }
 
+        protected override INamedType GetItem( IFullRef<INamedType> reference )
+        {
+            var namedType = base.GetItem( reference );
+
+            if ( namedType.IsReferenceType != false )
+            {
+                return (INamedType) namedType.ToNonNullable();
+            }
+            else
+            {
+                return namedType;
+            }
+        }
+
         public IEnumerable<INamedType> OfTypeDefinition( INamedType typeDefinition )
         {
             foreach ( var reference in this.Source )

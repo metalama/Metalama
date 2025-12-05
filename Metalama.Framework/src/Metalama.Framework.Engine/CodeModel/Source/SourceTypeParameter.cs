@@ -54,7 +54,7 @@ namespace Metalama.Framework.Engine.CodeModel.Source
 
         [Memo]
         public IReadOnlyList<IType> TypeConstraints
-            => this._typeParameterSymbol.ConstraintTypes.Select( t => this.Compilation.Factory.GetIType( t ) ).ToImmutableArray();
+            => this._typeParameterSymbol.ConstraintTypes.Select( t => this.Compilation.Factory.GetIType( t, defaultNullability: null ) ).ToImmutableArray();
 
         public TypeKindConstraint TypeKindConstraint
         {
@@ -148,9 +148,20 @@ namespace Metalama.Framework.Engine.CodeModel.Source
 
         public IType ToNullable() => this.Compilation.Factory.MakeNullableType( this, true );
 
-        public ITypeParameter ToNonNullable() => (ITypeParameter) this.Compilation.Factory.MakeNullableType( this, false );
+        public ITypeParameter ToNonNullable()
+        {
+            // For type parameters, we always strip annotations since C# cannot express non-nullability for type parameters.
+            return (ITypeParameter) this.Compilation.Factory.MakeNullableType( this, null );
+        }
+
+        public ITypeParameter StripNullabilityAnnotation()
+        {
+            return (ITypeParameter) this.Compilation.Factory.MakeNullableType( this, null );
+        }
 
         IType IType.ToNonNullable() => this.ToNonNullable();
+
+        IType IType.StripNullabilityAnnotation() => this.StripNullabilityAnnotation();
 
         public bool Equals( IType? other ) => this.Equals( other, TypeComparison.Default );
 
