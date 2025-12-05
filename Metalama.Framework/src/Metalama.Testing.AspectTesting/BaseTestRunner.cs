@@ -873,7 +873,9 @@ internal abstract partial class BaseTestRunner
             outputDiagnostics =
                 testResult.OutputCompilationDiagnostics
                     .Concat( testResult.PipelineDiagnostics )
-                    .Where( d =>d.Location is { IsInSource: true, SourceTree: not null } && d.Location.SourceTree?.FilePath == testSyntaxTree.InputSyntaxTree?.FilePath )
+                    .Where(
+                        d => d.Location is { IsInSource: true, SourceTree: not null }
+                             && d.Location.SourceTree?.FilePath == testSyntaxTree.InputSyntaxTree?.FilePath )
                     .Where( testResult.ShouldDiagnosticBeReported )
                     .ToList();
         }

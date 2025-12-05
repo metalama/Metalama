@@ -58,7 +58,7 @@ public sealed partial class DeclarationFactory : IDeclarationFactory, ISdkDeclar
     {
         var symbol = this._compilationModel.CompilationContext.ReflectionMapper.GetNamedTypeSymbolByMetadataName( reflectionName, null );
 
-        return this.GetNamedType( symbol );
+        return this.GetNamedType( (INamedTypeSymbol) symbol.WithNullableAnnotation( NullableAnnotation.NotAnnotated ) );
     }
 
     public bool TryGetTypeByReflectionName( string reflectionName, [NotNullWhen( true )] out INamedType? namedType )
@@ -79,7 +79,7 @@ public sealed partial class DeclarationFactory : IDeclarationFactory, ISdkDeclar
         }
     }
 
-    public IType GetTypeByReflectionType( Type type ) => this.GetIType( this._compilationModel.CompilationContext.ReflectionMapper.GetTypeSymbol( type ) );
+    public IType GetTypeByReflectionType( Type type ) => this.GetIType( this._compilationModel.CompilationContext.ReflectionMapper.GetTypeSymbol( type ).WithNullableAnnotation( NullableAnnotation.NotAnnotated ) );
 
     public INamedType GetNamedTypeByReflectionType( Type type ) => (INamedType) this.GetTypeByReflectionType( type );
 
@@ -94,7 +94,7 @@ public sealed partial class DeclarationFactory : IDeclarationFactory, ISdkDeclar
 
         if ( roslynSpecialType != Microsoft.CodeAnalysis.SpecialType.None )
         {
-            return this.GetNamedType( this.RoslynCompilation.GetSpecialType( roslynSpecialType ) );
+            return this.GetNamedType( (INamedTypeSymbol) this.RoslynCompilation.GetSpecialType( roslynSpecialType ).WithNullableAnnotation( NullableAnnotation.NotAnnotated ) );
         }
         else
         {

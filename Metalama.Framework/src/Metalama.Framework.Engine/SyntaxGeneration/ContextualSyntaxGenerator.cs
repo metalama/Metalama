@@ -1042,45 +1042,18 @@ public sealed partial class ContextualSyntaxGenerator
                         : s ) ),
             Token( this.SyntaxGenerationContext.OptionalElasticEndOfLineTriviaList, SyntaxKind.CloseBraceToken, default ) );
 
-    internal ExpressionSyntax SuppressNullableWarningExpression( ExpressionSyntax operand, IType? operandType )
+    internal ExpressionSyntax SuppressNullableWarningExpression(
+        ExpressionSyntax expression,
+        IType? expressionType,
+        IType? targetType = null,
+        bool force = false )
     {
-        var isSuppressionEnabled = false;
-
-        if ( this.IsNullAware )
-        {
-            isSuppressionEnabled = true;
-
-            if ( operandType != null )
-            {
-                if ( operand.Kind() is SyntaxKind.NullLiteralExpression or SyntaxKind.DefaultLiteralExpression )
-                {
-                    // ! is required when assigning null to a non-nullable.
-                    if ( operandType is { IsReferenceType: true, IsNullable: true } )
-                    {
-                        isSuppressionEnabled = false;
-                    }
-                }
-                else if ( operandType.IsReferenceType == false )
-                {
-                    // Value types, including nullable value types don't need suppression.
-                    isSuppressionEnabled = false;
-                }
-                else
-                {
-                    var nullable = operandType.IsNullable;
-
-                    if ( nullable == false || (nullable == null && operandType.TypeKind != TypeKind.TypeParameter) )
-                    {
-                        // Non-nullable and non-annotated types don't need suppression, except generic type parameters that are not explicitly marked as non nullable.
-                        isSuppressionEnabled = false;
-                    }
-                }
-            }
-        }
+        var isSuppressionEnabled = force || (expressionType is { IsReferenceType: true, IsNullable: not false }
+                                             && targetType is not { IsReferenceType: true, IsNullable: true });
 
         return isSuppressionEnabled
-            ? PostfixUnaryExpression( SyntaxKind.SuppressNullableWarningExpression, operand ).WithSimplifierAnnotation()
-            : operand;
+            ? PostfixUnaryExpression( SyntaxKind.SuppressNullableWarningExpression, expression ).WithSimplifierAnnotation()
+            : expression;
     }
 
     internal ExpressionSyntax TupleExpression( ITupleType tupleType, IReadOnlyList<ArgumentSyntax> values, bool qualifyElements = true )

@@ -244,7 +244,7 @@ internal sealed class IntroducedNamedType : IntroducedMemberOrNamedType, INamedT
 
     public INamedType ToNullable()
         => this.IsNullable == true ? this : this.Compilation.Factory.GetNamedType( this._namedTypeBuilderData, this.GenericContext, true );
-
+    
     public INamedType MakeGenericInstance( IReadOnlyList<IType> typeArguments )
     {
         var genericContext = new IntroducedGenericContext(

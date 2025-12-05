@@ -146,7 +146,7 @@ namespace Metalama.Framework.Code
         /// If the current type is a <see cref="Nullable{T}"/>, i.e. a nullable value type, returns the underlying type.
         /// </summary>
         /// <remarks>
-        /// Note that for non-value type type parameters, this method strips the nullable annotation, if any,
+        /// Note that for non-value type parameters, this method strips the nullable annotation, if any,
         /// which means it returns a type whose <see cref="IType.IsNullable"/> property returns <see langword="null" />.
         /// This is because C# has no way to express non-nullability for type parameters.
         /// </remarks>

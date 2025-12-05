@@ -166,6 +166,8 @@ namespace Metalama.Framework.Engine.CodeModel.Source
 
         public INamedType ToNullable() => (INamedType) this.Compilation.Factory.MakeNullableType( this, true );
 
+        public IType ToNonNullable() => this.Compilation.Factory.MakeNullableType( this, false );
+
         public INamedType MakeGenericInstance( IReadOnlyList<IType> typeArguments )
         {
             this.OnUsingDeclaration();
@@ -174,8 +176,6 @@ namespace Metalama.Framework.Engine.CodeModel.Source
         }
 
         IType IType.ToNullable() => this.ToNullable();
-
-        public IType ToNonNullable() => this.Compilation.Factory.MakeNullableType( this, false );
 
         public ITypeParameterList TypeParameters
         {

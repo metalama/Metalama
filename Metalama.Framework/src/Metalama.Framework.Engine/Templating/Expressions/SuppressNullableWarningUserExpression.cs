@@ -12,17 +12,19 @@ namespace Metalama.Framework.Engine.Templating.Expressions;
 internal sealed class SuppressNullableWarningUserExpression : UserExpression
 {
     private readonly IUserExpression _underlying;
+    private readonly bool _force;
 
-    public SuppressNullableWarningUserExpression( IUserExpression underlying )
+    public SuppressNullableWarningUserExpression( IUserExpression underlying, bool force = false )
     {
         this._underlying = underlying;
+        this._force = force;
     }
 
     protected override ExpressionSyntax ToSyntax( SyntaxSerializationContext syntaxSerializationContext, IType? targetType = null )
     {
         var underlyingSyntax = this._underlying.ToTypedExpressionSyntax( syntaxSerializationContext, targetType );
 
-        return syntaxSerializationContext.SyntaxGenerator.SuppressNullableWarningExpression( underlyingSyntax.Syntax, this._underlying.Type );
+        return syntaxSerializationContext.SyntaxGenerator.SuppressNullableWarningExpression( underlyingSyntax.Syntax, this._underlying.Type, targetType, this._force );
     }
 
     // We don't change the type to non-nullable because it would change the behavior of our null-conditional invokers, which rely

@@ -296,4 +296,7 @@ public static class ExpressionFactory
     /// </summary>
     public static IExpression WithNullability( this IExpression expression, bool isNullable )
         => expression.WithType( isNullable ? expression.Type.ToNullable() : expression.Type.ToNonNullable() );
+
+    public static IExpression WithNullForgivingOperator( this IExpression expression, bool force = false )
+        => SyntaxBuilder.CurrentImplementation.WithNullForgivingOperator( expression, force );
 }

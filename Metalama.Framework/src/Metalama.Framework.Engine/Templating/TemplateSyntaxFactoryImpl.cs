@@ -505,16 +505,16 @@ namespace Metalama.Framework.Engine.Templating
             }
         }
 
-        public ExpressionSyntax SuppressNullableWarningExpression( ExpressionSyntax operand, string? type )
+        public ExpressionSyntax SuppressNullableWarningExpression( ExpressionSyntax operand, string? operantType )
         {
             TypeAnnotationMapper.TryFindExpressionTypeFromAnnotation(
                 operand,
                 this.SyntaxSerializationContext.CompilationModel,
                 out var expressionType );
 
-            if ( expressionType == null && type != null )
+            if ( expressionType == null && operantType != null )
             {
-                expressionType = new SerializableTypeId( type ).Resolve(
+                expressionType = new SerializableTypeId( operantType ).Resolve(
                     this._templateExpansionContext.Compilation.AssertNotNull(),
                     this._templateExpansionContext.TemplateGenericArguments );
             }

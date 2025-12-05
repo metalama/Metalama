@@ -43,6 +43,9 @@ Other repos (hosted on https://github.com/postsharp or https://github.com/metala
 
 - **Branch naming**: `topic/YYYY.N/XXXX-short-description` (XXXX = issue number)
 - **Merge target**: For `topic/YYYY.N/*`, always merge to `develop/YYYY.N` - ignore default branch
+- **Breaking changes**: When the PR contains breaking changes in the public API:
+  1. Add a comment to the main issue describing the breaking change
+  2. Add the `breaking` label to the issue
 
 ## Testing
 
@@ -129,3 +132,4 @@ Update this file when you discover something that will save time in future sessi
 * Read all details about this issue online and do your research
 * Check conceptual documentation under ../Metalama.Documentation/content to see how it's supposed to work
 * Create a branch for that issue (see git-workflow)
+- You don't need to build the full solution to run a single test. It is VERY slow. Ask the user first if you thing you should.

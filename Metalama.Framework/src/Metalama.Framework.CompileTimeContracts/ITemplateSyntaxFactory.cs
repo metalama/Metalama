@@ -80,7 +80,7 @@ public interface ITemplateSyntaxFactory
 
     IUserExpression GetUserExpression( object expression );
 
-    ExpressionSyntax SuppressNullableWarningExpression( ExpressionSyntax operand, string? type = null );
+    ExpressionSyntax SuppressNullableWarningExpression( ExpressionSyntax operand, string? operantType = null );
 
     IUserExpression SuppressNullableWarningUserExpression( object operand, string? type = null );
 

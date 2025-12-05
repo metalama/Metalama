@@ -51,7 +51,7 @@ public sealed class ExpressionFactoryTests : UnitTestClass
         Assert.Equal( "null", expression.Syntax );
 
         // The expression should be untyped (target typed) but the Metalama model does not allow for it.
-        Assert.Equal( "object", expression.Type.AssertNotNull().ToString() );
+        Assert.Equal( "object?", expression.Type.AssertNotNull().ToString() );
     }
 
     [Fact]
@@ -71,7 +71,7 @@ public sealed class ExpressionFactoryTests : UnitTestClass
         Assert.Equal( "default", expression.Syntax );
 
         // The expression should be untyped (target typed) but the Metalama model does not allow for it.
-        Assert.Equal( "object", expression.Type.AssertNotNull().ToString() );
+        Assert.Equal( "object?", expression.Type.AssertNotNull().ToString() );
     }
 
     [Fact]

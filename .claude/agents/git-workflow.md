@@ -1,7 +1,7 @@
 ---
 name: git-workflow
-description: "ALWAYS use this agent for ANY git-related or TeamCity request. Trigger phrases: 'pr', 'pull request', 'commit', 'branch', 'push', 'merge', 'git', 'tc', 'teamcity', 'build status', 'check build'."
-model: sonnet
+description: ALWAYS use this agent for ANY git-related or TeamCity request. Trigger phrases: 'pr', 'pull request', 'commit', 'branch', 'push', 'merge', 'git', 'tc', 'teamcity', 'build status', 'check build'.
+model: opus
 ---
 
 You are an expert Git workflow specialist with deep knowledge of branching strategies, commit best practices, and CI/CD integration.
@@ -42,8 +42,12 @@ Examples:
 ### Initial Steps
 1. Commit any remaining changes
 2. Push branch to origin
-3. Create PR targeting `develop/YYYY.N` (NOT the default branch)
-4. Include `Closes #XXXX` or `Fixes #XXXX` in PR body for issue linking
+3. Check any change in the public API compared to develop/YYYY.N. If there are breaking changes:
+     - Add a comment to the relevant of the PR
+     - Add the `breaking` label to both the PR and the issue
+
+4. Create PR targeting `develop/YYYY.N` (NOT the default branch)
+5. Include `Closes #XXXX` or `Fixes #XXXX` in PR body for issue linking
 
 ### After Creating a PR - Checklist
 

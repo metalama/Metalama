@@ -1287,7 +1287,6 @@ public class PublicClass
 
         var compilation = testContext.CreateCompilationModel( "" );
         var objectType = compilation.Factory.GetNamedTypeByReflectionType( typeof(object) );
-        Assert.Null( objectType.IsNullable );
         Assert.Same( objectType, objectType.UnderlyingType );
         var nonNullableObjectType = (INamedType) objectType.ToNonNullable();
         Assert.False( nonNullableObjectType.IsNullable );

@@ -138,7 +138,7 @@ namespace Metalama.Framework.Tests.AspectTests.Runners
                         Path.GetDirectoryName( sourceAbsolutePath )!,
                         Path.GetFileNameWithoutExtension( sourceAbsolutePath ) + FileExtensions.InputHtml );
 
-                    this.CompareHtmlFiles( syntaxTree.HtmlInputPath!, expectedInputHtmlPath );
+                    this.CompareHtmlFiles( syntaxTree.HtmlInputPath!, expectedInputHtmlPath, testInput.Options );
                 }
             }
 
@@ -153,12 +153,12 @@ namespace Metalama.Framework.Tests.AspectTests.Runners
                         Path.GetDirectoryName( testInput.FullPath )!,
                         syntaxTree.ShortName + extension );
 
-                    this.CompareHtmlFiles( syntaxTree.HtmlOutputPath.AssertNotNull(), expectedOutputHtmlPath );
+                    this.CompareHtmlFiles( syntaxTree.HtmlOutputPath.AssertNotNull(), expectedOutputHtmlPath, testInput.Options );
                 }
             }
         }
 
-        private void CompareHtmlFiles( string actualHtmlPath, string expectedHtmlPath )
+        private void CompareHtmlFiles( string actualHtmlPath, string expectedHtmlPath, TestOptions testOptions )
         {
             this.Logger?.WriteLine( "Actual HTML: " + actualHtmlPath );
 
@@ -174,7 +174,7 @@ namespace Metalama.Framework.Tests.AspectTests.Runners
             var htmlPath = actualHtmlPath;
             var actualHighlightedSource = TestOutputNormalizer.NormalizeEndOfLines( File.ReadAllText( htmlPath ) );
 
-            var hasDifference = this.CompareFiles( expectedHighlightedSource, expectedHtmlPath, actualHighlightedSource, htmlPath );
+            var hasDifference = this.CompareFiles( expectedHighlightedSource, expectedHtmlPath, actualHighlightedSource, htmlPath, testOptions );
 
             if ( hasDifference )
             {
