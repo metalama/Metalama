@@ -9,21 +9,23 @@ using Metalama.Framework.Aspects;
 namespace Metalama.Framework.Code;
 
 /// <summary>
-/// Kinds of iterators.
+/// Specifies the kind of enumerable or enumerator type returned by a method.
 /// </summary>
 /// <remarks>
-/// To get the <see cref="EnumerableKind"/> of a method, use the <see cref="MethodExtensions.GetIteratorInfo"/> extension method,
-/// which returns an <see cref="IteratorInfo"/> struct. The <see cref="IteratorInfo.EnumerableKind"/> property contains the enumerable kind.
+/// <para>To get the <see cref="EnumerableKind"/> of a method, use the <see cref="MethodExtensions.GetIteratorInfo"/> extension method,
+/// which returns an <see cref="IteratorInfo"/> struct. The <see cref="IteratorInfo.EnumerableKind"/> property contains the enumerable kind.</para>
+/// <para>This enum distinguishes between generic and non-generic (untyped) variants, as well as between synchronous and async variants.</para>
 /// </remarks>
 /// <seealso cref="IMethod"/>
 /// <seealso cref="IteratorInfo"/>
 /// <seealso cref="MethodExtensions.GetIteratorInfo"/>
 /// <seealso cref="IFieldOrPropertyOrIndexer.GetMethod"/>
+/// <seealso href="@overriding-methods#async-iterator-default-template"/>
 [CompileTime]
 public enum EnumerableKind
 {
     /// <summary>
-    /// None. The method does not returns an enumerable or enumerator.
+    /// None. The method does not return an enumerable or enumerator.
     /// </summary>
     None,
 
