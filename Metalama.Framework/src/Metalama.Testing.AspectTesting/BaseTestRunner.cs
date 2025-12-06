@@ -351,18 +351,6 @@ internal abstract partial class BaseTestRunner
             testResult.InputCompilation = initialCompilation;
             testResult.TestContext = testContext;
 
-            if ( this.ShouldStopOnInvalidInput( testInput.Options ) )
-            {
-                var diagnostics = initialCompilation.GetDiagnostics();
-                var errors = diagnostics.Where( d => d.Severity == DiagnosticSeverity.Error ).ToArray();
-
-                if ( errors.Any() )
-                {
-                    testResult.InputCompilationDiagnostics.Report( errors );
-                    testResult.SetFailed( "The initial compilation failed." );
-                }
-            }
-
             async Task<Project> AddAdditionalDocumentsAsync( Project project, CSharpParseOptions parseOptions )
             {
                 if ( this._references.GlobalUsingsFile != null )
@@ -483,7 +471,7 @@ internal abstract partial class BaseTestRunner
         var compilation = (await project.GetCompilationAsync())!.WithAssemblyName( name );
 
         var pipelineResult = await pipeline.ExecuteAsync(
-            testResult.InputCompilationDiagnostics.Report,
+            testResult.DependencyDiagnostics.Report,
             null,
             compilation,
             default );
@@ -505,7 +493,7 @@ internal abstract partial class BaseTestRunner
 
         if ( !emitResult.Success )
         {
-            testResult.InputCompilationDiagnostics.Report( emitResult.Diagnostics );
+            testResult.DependencyDiagnostics.Report( emitResult.Diagnostics );
             testResult.SetFailed( "Compilation of the dependency failed." );
 
             return default;
@@ -733,8 +721,6 @@ internal abstract partial class BaseTestRunner
             return false;
         }
     }
-
-    private protected virtual bool ShouldStopOnInvalidInput( TestOptions testOptions ) => !testOptions.AcceptInvalidInput.GetValueOrDefault( true );
 
     /// <summary>
     /// Creates a new project that is used to compile the test source.

@@ -5,9 +5,6 @@
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Diagnostics;
-#if TEST_OPTIONS
-// @AcceptInvalidInput
-#endif
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Formatting.Diagnostics;
 

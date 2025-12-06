@@ -4,7 +4,6 @@
 
 #if TEST_OPTIONS
 // @LanguageVersion(10)
-// @AcceptInvalidInput
 #endif
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.LanguageVersion.Template_OldVersion;
@@ -13,8 +12,5 @@ internal class Target
 {
     // <target>
     [TheAspect]
-    private void M()
-    {
-
-    }
+    private void M() { }
 }

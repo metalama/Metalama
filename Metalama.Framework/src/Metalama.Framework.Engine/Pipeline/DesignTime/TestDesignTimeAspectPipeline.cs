@@ -6,10 +6,12 @@ using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Templating;
+using Metalama.Framework.Engine.Transformations;
 using Metalama.Framework.Engine.Utilities.Threading;
 using Microsoft.CodeAnalysis;
 using System.Collections.Immutable;
 using System.Threading.Tasks;
+using System.Linq;
 
 namespace Metalama.Framework.Engine.Pipeline.DesignTime;
 
@@ -61,11 +63,23 @@ public sealed class TestDesignTimeAspectPipeline : BaseDesignTimeAspectPipeline
                 ImmutableArray<IntroducedSyntaxTree>.Empty );
         }
 
+        // Generate design-time syntax trees. Make sure to capture warnings in case there is a missing `partial`. 
+        var userDiagnosticSink = new UserDiagnosticSink( configuration.ServiceProvider );
+
+        var designTimeSyntaxTrees = await DesignTimeSyntaxTreeGenerator.GenerateDesignTimeSyntaxTreesAsync(
+            configuration.ServiceProvider,
+            partialCompilation,
+            stageResult.Value.FirstCompilationModel.AssertNotNull(),
+            stageResult.Value.LastCompilationModel,
+            stageResult.Value.Transformations.OfType<ITransformation>(),
+            userDiagnosticSink,
+            TestableCancellationToken.None );
+
         return new TestDesignTimeAspectPipelineResult(
             true,
-            stageResult.Value.Diagnostics.ReportedDiagnostics,
+            stageResult.Value.Diagnostics.ReportedDiagnostics.AddRange( userDiagnosticSink.ToImmutable().ReportedDiagnostics ),
             stageResult.Value.Diagnostics.DiagnosticSuppressions,
-            stageResult.Value.AdditionalSyntaxTrees );
+            designTimeSyntaxTrees.SelectAsImmutableArray( t => new IntroducedSyntaxTree( t.Name, t.SourceSyntaxTree, t.GeneratedSyntaxTree ) ) );
     }
 
     private sealed class DependencyCollector : IDependencyCollector
