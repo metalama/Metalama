@@ -34,9 +34,9 @@ namespace Metalama.Framework.Aspects
     /// <b>Accessing Metadata:</b> In your <see cref="Validate"/> template, you can access the target context using:
     /// </para>
     /// <list type="bullet">
-    /// <item><description><c>meta.Target.Declaration</c> - Returns the target parameter, property, or field.</description></item>
+    /// <item><description><c>meta.Target.Expression</c> - Returns the target field, property, or parameter as a unified <see cref="IExpression"/>.</description></item>
     /// <item><description><c>meta.Target.FieldOrProperty</c> - Returns the target property or field (throws if applied to a parameter).</description></item>
-    /// <item><description><c>meta.Target.Parameter</c> - Returns the parameter including return value parameter (throws if applied to a field or property).</description></item>
+    /// <item><description><c>meta.Target.Parameter</c> - Returns the target parameter (throws if applied to a field or property).</description></item>
     /// <item><description><c>meta.Target.ContractDirection</c> - Returns <see cref="ContractDirection.Input"/> or <see cref="ContractDirection.Output"/> according to the data flow being validated.</description></item>
     /// </list>
     /// <para>
@@ -389,8 +389,8 @@ namespace Metalama.Framework.Aspects
         /// </para>
         /// <para>
         /// Within the template, use <c>meta.Target.ContractDirection</c> to determine whether you're validating input or output flow.
-        /// Access the target declaration through <c>meta.Target.Declaration</c>, <c>meta.Target.FieldOrProperty</c>, or
-        /// <c>meta.Target.Parameter</c> depending on the target type.
+        /// Access the target through <c>meta.Target.Expression</c> (unified access to field, property, or parameter),
+        /// or use <c>meta.Target.FieldOrProperty</c> / <c>meta.Target.Parameter</c> for specific access.
         /// </para>
         /// <para>
         /// To reject invalid values, throw an appropriate exception (typically <see cref="ArgumentException"/> for parameters,

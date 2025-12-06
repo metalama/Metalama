@@ -139,6 +139,13 @@ namespace Metalama.Framework.Code
         /// Creates a nullable type from the current <see cref="IType"/>. If the current type is already nullable, returns the current type.
         /// If the type is a value type, returns a <see cref="Nullable{T}"/> of this type.
         /// </summary>
+        /// <remarks>
+        /// <para>
+        /// For a value type <c>T</c>, this method returns <see cref="Nullable{T}"/>.
+        /// </para>
+        /// </remarks>
+        /// <seealso cref="ToNonNullable"/>
+        /// <seealso cref="StripNullabilityAnnotation"/>
         IType ToNullable();
 
         /// <summary>
@@ -146,10 +153,34 @@ namespace Metalama.Framework.Code
         /// If the current type is a <see cref="Nullable{T}"/>, i.e. a nullable value type, returns the underlying type.
         /// </summary>
         /// <remarks>
-        /// Note that for non-value type type parameters, this method strips the nullable annotation, if any,
-        /// which means it returns a type whose <see cref="IType.IsNullable"/> property returns <see langword="null" />.
-        /// This is because C# has no way to express non-nullability for type parameters.
+        /// <para>
+        /// For type parameters without a <c>class</c> or <c>struct</c> constraint, this method always strips the nullable annotation
+        /// because C# has no way to express non-nullability for such type parameters. To unconditionally strip nullability annotations for all types,
+        /// use <see cref="StripNullabilityAnnotation"/> instead.
+        /// </para>
+        /// <para>
+        /// For nullable value types, i.e. <see cref="Nullable{T}"/>, this method returns the underlying type <c>T</c>.
+        /// </para>
         /// </remarks>
+        /// <seealso cref="ToNullable"/>
+        /// <seealso cref="StripNullabilityAnnotation"/>
         IType ToNonNullable();
+
+        /// <summary>
+        /// Strips the nullability annotation from the current type, returning an unannotated version.
+        /// </summary>
+        /// <returns>
+        /// A type whose <see cref="IsNullable"/> property is <see langword="null"/>, meaning the type has no nullability annotation.
+        /// If the current type is a <see cref="Nullable{T}"/>, returns the underlying value type.
+        /// </returns>
+        /// <remarks>
+        /// <para>
+        /// Unlike <see cref="ToNonNullable"/>, which marks reference types as non-nullable (returning a type with <see cref="IsNullable"/>
+        /// set to <see langword="false"/>), this method returns an unannotated type (with <see cref="IsNullable"/> set to <see langword="null"/>).
+        /// </para>
+        /// </remarks>
+        /// <seealso cref="ToNullable"/>
+        /// <seealso cref="ToNonNullable"/>
+        IType StripNullabilityAnnotation();
     }
 }

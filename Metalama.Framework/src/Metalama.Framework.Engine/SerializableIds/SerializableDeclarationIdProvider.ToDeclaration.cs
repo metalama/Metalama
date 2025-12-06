@@ -64,7 +64,7 @@ public static partial class SerializableDeclarationIdProvider
             }
             else
             {
-                return compilation.Factory.GetIType( typeSymbol );
+                return compilation.Factory.GetIType( typeSymbol, defaultNullability: null );
             }
         }
         else

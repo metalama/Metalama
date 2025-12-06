@@ -67,4 +67,6 @@ internal sealed class ConstructedPointerType : ConstructedType, IPointerType
     protected override IType ToNullableCore() => throw new NotSupportedException();
 
     protected override IType ToNonNullableCore() => throw new NotSupportedException();
+
+    protected override IType StripNullabilityAnnotationCore() => throw new NotSupportedException();
 }

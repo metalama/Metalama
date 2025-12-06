@@ -4,22 +4,24 @@ internal class TargetCode
   {
     [Aspect]
     private void ReferenceType(Foo arg)
-    {
-      var s = arg.Nullable?.ToString();
-      s = arg.NonNullable?.ToString();
+    { // ?
+      var s = arg?.Nullable?.ToString();
+      s = arg?.NonNullable?.ToString();
+      var i = arg?[0]?[1];
+      // !
       s = arg.Nullable!.ToString();
       s = arg.NonNullable!.ToString();
-      var i = arg[0]?[1];
       i = arg[0]![1];
     }
     [Aspect]
     private void NullableReferenceType(Foo? arg)
-    {
+    { // ?
       var s = arg?.Nullable?.ToString();
       s = arg?.NonNullable?.ToString();
+      var i = arg?[0]?[1];
+      // !
       s = arg!.Nullable!.ToString();
       s = arg!.NonNullable!.ToString();
-      var i = arg?[0]?[1];
       i = arg![0]![1];
     }
   }
@@ -28,12 +30,13 @@ internal class TargetCode
   {
     [Aspect]
     private void ReferenceType(Foo arg)
-    {
+    { // ?
       var s = arg?.Nullable?.ToString();
       s = arg?.NonNullable?.ToString();
+      var i = arg?[0]?[1];
+      // !
       s = arg.Nullable.ToString();
       s = arg.NonNullable.ToString();
-      var i = arg?[0]?[1];
       i = arg[0][1];
     }
   }

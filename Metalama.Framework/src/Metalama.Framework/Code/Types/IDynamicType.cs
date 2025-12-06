@@ -22,8 +22,13 @@ namespace Metalama.Framework.Code.Types
     /// <seealso href="@type-system"/>
     public interface IDynamicType : IType
     {
+        /// <inheritdoc cref="IType.ToNullable"/>
         new IDynamicType ToNullable();
 
+        /// <inheritdoc cref="IType.ToNonNullable"/>
         new IDynamicType ToNonNullable();
+
+        /// <inheritdoc cref="IType.StripNullabilityAnnotation"/>
+        new IDynamicType StripNullabilityAnnotation();
     }
 }

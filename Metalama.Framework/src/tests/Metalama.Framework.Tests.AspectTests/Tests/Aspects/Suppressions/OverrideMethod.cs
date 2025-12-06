@@ -27,14 +27,18 @@ namespace Metalama.Framework.Tests.AspectTests.Aspects.Suppressions.OverrideMeth
         [Template]
         public dynamic? Override()
         {
+            meta.InsertComment( "CS0219 NOT expected because diagnostics from generated code should be suppressed." );
+#pragma warning disable CS0219 // This is to suppress the warning from the input compilation.
             var a = 0;
-
+#if TESTRUNNER
+            #pragma warning restore CS0219
+#endif
             return meta.Proceed();
         }
 
         public override void BuildAspect( IAspectBuilder<IMethod> builder )
         {
-            builder.Override( nameof(Override) );
+            builder.Override( nameof(this.Override) );
             builder.Diagnostics.Suppress( _suppression, builder.Target );
         }
     }

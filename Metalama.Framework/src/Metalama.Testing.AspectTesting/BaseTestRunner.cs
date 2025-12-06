@@ -633,7 +633,7 @@ internal abstract partial class BaseTestRunner
                 logger.WriteLine( "=====================" );
 
                 // Write all diagnostics to the logger.
-                foreach ( var diagnostic in testResult.Diagnostics )
+                foreach ( var diagnostic in testResult.AllDiagnostics )
                 {
                     logger.WriteLine( diagnostic.ToString() );
                 }
@@ -667,11 +667,12 @@ internal abstract partial class BaseTestRunner
                 continue;
             }
 
-            hasDifference |= this.RunDiffToolIfDifferent(
+            hasDifference |= this.CompareFiles(
                 syntaxTree.ExpectedTransformedCodeText!,
                 syntaxTree.ExpectedTransformedCodePath!,
                 syntaxTree.ActualTransformedNormalizedCodeText!,
-                syntaxTree.ActualTransformedCodePath! );
+                syntaxTree.ActualTransformedCodePath!,
+                testInput.Options );
 
             actuallyWrittenFiles.Add( syntaxTree.ExpectedTransformedCodePath! );
         }
@@ -706,9 +707,12 @@ internal abstract partial class BaseTestRunner
         }
     }
 
-    protected bool RunDiffToolIfDifferent( string expectedText, string expectedPath, string actualText, string actualPath )
+    protected bool CompareFiles( string expectedText, string expectedPath, string actualText, string actualPath, TestOptions testOptions )
+        => this.CompareFiles( expectedText, expectedPath, actualText, actualPath, testOptions.SkipDiffTool == true );
+
+    protected bool CompareFiles( string expectedText, string expectedPath, string actualText, string actualPath, bool skipDiffTool = false )
     {
-        var useDiff = this._testRunnerOptions.LaunchDiffTool && !DiffRunner.Disabled;
+        var useDiff = this._testRunnerOptions.LaunchDiffTool && !DiffRunner.Disabled && !skipDiffTool;
 
         if ( expectedText != actualText )
         {
@@ -821,12 +825,13 @@ internal abstract partial class BaseTestRunner
         string htmlDirectory,
         HtmlCodeWriter htmlCodeWriter,
         bool writeDiff,
-        ImmutableArray<ScopedSuppression> suppressions,
+        ImmutableArray<ScopedSuppression> designTimeSuppressions,
         CancellationToken cancellationToken )
     {
         StreamWriter? inputTextWriter = null;
         StreamWriter? outputTextWriter = null;
         List<Diagnostic>? inputDiagnostics = null;
+        List<Diagnostic>? outputDiagnostics = null;
 
         if ( testResult.TestInput!.Options.WriteInputHtml == true && testSyntaxTree.InputDocument != null )
         {
@@ -838,31 +843,14 @@ internal abstract partial class BaseTestRunner
 
             inputTextWriter = new StreamWriter( this._fileSystem.Open( testSyntaxTree.HtmlInputPath, FileMode.Create ) );
 
-            // Add diagnostics to the input tree.
-            inputDiagnostics = new List<Diagnostic>();
-
-            inputDiagnostics.AddRange(
-                testResult.Diagnostics.Where( d => d.Location.SourceTree?.FilePath == testSyntaxTree.InputSyntaxTree.AssertNotNull().FilePath ) );
-
-            var semanticModel = compilationWithDesignTimeTrees.AssertNotNull().GetSemanticModel( testSyntaxTree.InputSyntaxTree.AssertNotNull() );
-
-            foreach ( var diagnostic in semanticModel.GetDiagnostics().Where( d => !testResult.TestInput.ShouldIgnoreDiagnostic( d.Id ) ) )
-            {
-                // Check if any suppression applies to this diagnostic.
-                if ( suppressions.Any(
-                        s => s.Suppression.Definition.SuppressedDiagnosticId == diagnostic.Id
-                             && s.GetScopeSymbolOrNull( compilationWithDesignTimeTrees.GetCompilationContext() )
-                                 .DeclaringSyntaxReferences.Any(
-                                     r =>
-                                         r.SyntaxTree == diagnostic.Location.SourceTree &&
-                                         r.Span.Contains( diagnostic.Location.SourceSpan ) ) ) )
-                {
-                    return;
-                }
-
-                // Add the diagnostic.
-                inputDiagnostics.Add( diagnostic );
-            }
+            // We must render the input buffer including all design-time syntax trees and suppressions
+            // because it needs to look like what the user sees in the IDE.
+            inputDiagnostics =
+                compilationWithDesignTimeTrees.GetDiagnostics()
+                    .Concat( testResult.PipelineDiagnostics )
+                    .Where( d => d.Location.SourceTree?.FilePath == testSyntaxTree.InputSyntaxTree.AssertNotNull().FilePath )
+                    .Where( d => testResult.ShouldDiagnosticBeReported( d, designTimeSuppressions ) )
+                    .ToList();
         }
 
         if ( testResult.TestInput.Options.WriteOutputHtml == true && testResult.OutputProject != null )
@@ -881,6 +869,15 @@ internal abstract partial class BaseTestRunner
             this.Logger?.WriteLine( "HTML of output: " + testSyntaxTree.HtmlOutputPath );
 
             outputTextWriter = new StreamWriter( this._fileSystem.Open( testSyntaxTree.HtmlOutputPath, FileMode.Create ) );
+
+            outputDiagnostics =
+                testResult.OutputCompilationDiagnostics
+                    .Concat( testResult.PipelineDiagnostics )
+                    .Where(
+                        d => d.Location is { IsInSource: true, SourceTree: not null }
+                             && d.Location.SourceTree?.FilePath == testSyntaxTree.InputSyntaxTree?.FilePath )
+                    .Where( testResult.ShouldDiagnosticBeReported )
+                    .ToList();
         }
 
         if ( writeDiff && inputTextWriter != null && outputTextWriter != null && testSyntaxTree.InputDocument != null )
@@ -893,7 +890,8 @@ internal abstract partial class BaseTestRunner
                     testSyntaxTree.OutputDocument.AssertNotNull(),
                     inputTextWriter,
                     outputTextWriter,
-                    inputDiagnostics!,
+                    inputDiagnostics,
+                    outputDiagnostics,
                     cancellationToken );
             }
         }
@@ -918,7 +916,8 @@ internal abstract partial class BaseTestRunner
                     await htmlCodeWriter.WriteAsync(
                         testSyntaxTree.OutputDocument.AssertNotNull(),
                         outputTextWriter,
-                        cancellationToken: cancellationToken );
+                        outputDiagnostics,
+                        cancellationToken );
                 }
             }
         }

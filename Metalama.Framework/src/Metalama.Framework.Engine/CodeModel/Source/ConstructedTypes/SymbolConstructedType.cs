@@ -83,6 +83,8 @@ namespace Metalama.Framework.Engine.CodeModel.Source.ConstructedTypes
 
         public IType ToNonNullable() => this.Compilation.Factory.MakeNullableType( this, false );
 
+        public IType StripNullabilityAnnotation() => this.Compilation.Factory.MakeNullableType( this, null );
+
         ICompilation ICompilationElement.Compilation => this.Compilation;
 
         public bool Equals( IType? other ) => this.Equals( other, TypeComparison.Default );

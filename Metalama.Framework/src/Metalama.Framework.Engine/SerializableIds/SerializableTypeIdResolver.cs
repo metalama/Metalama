@@ -161,13 +161,13 @@ public abstract class SerializableTypeIdResolver<TType, TTypeOrNamespace>
         }
     }
 
-    protected abstract TType CreateArrayType( TType elementType, int rank );
+    protected abstract TType CreateArrayType( TType elementType, int rank, bool isNullOblivious );
 
     protected abstract TType CreatePointerType( TType pointedAtType );
 
     protected abstract TType CreateNullableType( TType elementType );
 
-    protected abstract TType CreateNonNullableReferenceType( TType referenceType );
+    protected abstract TType AddNonNullableAnnotation( TType referenceType );
 
     protected abstract TType ConstructGenericType( TType genericType, TType[] typeArguments );
 
@@ -235,7 +235,7 @@ public abstract class SerializableTypeIdResolver<TType, TTypeOrNamespace>
                 return elementTypeResult;
             }
 
-            return ResolverResult.Success( this._parent.CreateArrayType( elementTypeResult.Type, node.RankSpecifiers.Count ) );
+            return ResolverResult.Success( this._parent.CreateArrayType( elementTypeResult.Type, node.RankSpecifiers.Count, this._isNullOblivious ) );
         }
 
         public override ResolverResult VisitPointerType( PointerTypeSyntax node )
@@ -308,7 +308,7 @@ public abstract class SerializableTypeIdResolver<TType, TTypeOrNamespace>
             }
             else if ( !this._isNullOblivious )
             {
-                return ResolverResult.Success( this._parent.CreateNonNullableReferenceType( result.Type ) );
+                return ResolverResult.Success( this._parent.AddNonNullableAnnotation( result.Type ) );
             }
             else
             {
@@ -434,7 +434,7 @@ public abstract class SerializableTypeIdResolver<TType, TTypeOrNamespace>
 
             if ( !this._isNullOblivious && node.Keyword.Kind() is SyntaxKind.ObjectKeyword or SyntaxKind.StringKeyword )
             {
-                result = this._parent.CreateNonNullableReferenceType( result );
+                result = this._parent.AddNonNullableAnnotation( result );
             }
 
             return ResolverResult.Success( result );

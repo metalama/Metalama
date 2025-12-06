@@ -26,7 +26,7 @@ public partial class DeclarationFactory
         TBuilderData Builder,
         GenericContext GenericContext,
         DeclarationFactory Factory,
-        bool IsNullable )
+        bool? IsNullable )
     {
         public CompilationModel Compilation => this.Factory._compilationModel;
     }
@@ -37,7 +37,7 @@ public partial class DeclarationFactory
         TBuilderData builder,
         IGenericContext? genericContext,
         CreateFromBuilderDelegate<TDeclaration, TBuilderData> createBuiltDeclaration,
-        bool isNullable = false,
+        bool? isNullable = false,
         bool supportsRedirection = false )
         where TDeclaration : class, IDeclaration
         where TBuilderData : DeclarationBuilderData
@@ -86,7 +86,7 @@ public partial class DeclarationFactory
     internal ITypeParameter GetTypeParameter(
         TypeParameterBuilderData typeParameterBuilder,
         IGenericContext? genericContext = null,
-        bool isNullable = false )
+        bool? isNullable = false )
         => this.GetDeclarationFromBuilder<ITypeParameter, TypeParameterBuilderData>(
             typeParameterBuilder,
             genericContext,
@@ -157,7 +157,7 @@ public partial class DeclarationFactory
     internal INamedType GetNamedType(
         NamedTypeBuilderData namedTypeBuilder,
         IGenericContext? genericContext = null,
-        bool isNullable = false )
+        bool? isNullable = false )
         => this.GetDeclarationFromBuilder<INamedType, NamedTypeBuilderData>(
             namedTypeBuilder,
             genericContext,

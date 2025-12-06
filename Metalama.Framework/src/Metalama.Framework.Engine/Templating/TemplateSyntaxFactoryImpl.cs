@@ -505,16 +505,18 @@ namespace Metalama.Framework.Engine.Templating
             }
         }
 
-        public ExpressionSyntax SuppressNullableWarningExpression( ExpressionSyntax operand, string? type )
+        public ExpressionSyntax SuppressNullableWarningExpression( ExpressionSyntax operand, string? operandTypeId )
         {
+            // The annotation on `operand` takes precedence over the `operandTypeId` because it is more precise.
             TypeAnnotationMapper.TryFindExpressionTypeFromAnnotation(
                 operand,
                 this.SyntaxSerializationContext.CompilationModel,
                 out var expressionType );
 
-            if ( expressionType == null && type != null )
+            if ( operandTypeId == null && operandTypeId != null )
             {
-                expressionType = new SerializableTypeId( type ).Resolve(
+                // If we don't have a type annotation, take it from the `operandTypeId` parameter. 
+                expressionType = new SerializableTypeId( operandTypeId ).Resolve(
                     this._templateExpansionContext.Compilation.AssertNotNull(),
                     this._templateExpansionContext.TemplateGenericArguments );
             }
@@ -531,11 +533,15 @@ namespace Metalama.Framework.Engine.Templating
 
         public ExpressionSyntax ConditionalAccessExpression( ExpressionSyntax expression, ExpressionSyntax whenNotNullExpression )
         {
-            TypeAnnotationMapper.TryFindExpressionTypeFromAnnotation( expression, this.SyntaxSerializationContext.CompilationModel, out var type );
+            // We never remove the ?. for reference types or Nullable<T> because it changes the semantics.
+            // However, remove it for value types that are not Nullable<T>.
+            if ( TypeAnnotationMapper.TryFindExpressionTypeFromAnnotation( expression, this.SyntaxSerializationContext.CompilationModel, out var type )
+                 && type.IsReferenceType == false && type is not INamedType { IsGeneric: true, Definition.SpecialType: SpecialType.Nullable_T } )
+            {
+                return (ExpressionSyntax) new RemoveConditionalAccessRewriter( expression ).Visit( whenNotNullExpression )!;
+            }
 
-            return type?.IsNullable != false
-                ? SyntaxFactory.ConditionalAccessExpression( expression, whenNotNullExpression )
-                : (ExpressionSyntax) new RemoveConditionalAccessRewriter( expression ).Visit( whenNotNullExpression )!;
+            return SyntaxFactory.ConditionalAccessExpression( expression, whenNotNullExpression );
         }
 
         public ExpressionSyntax StringLiteralExpression( string? value ) => SyntaxFactoryEx.LiteralExpression( value );

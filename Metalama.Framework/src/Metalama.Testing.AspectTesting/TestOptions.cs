@@ -54,13 +54,6 @@ public class TestOptions
     public bool IsSkipped => this.SkipReason != null;
 
     /// <summary>
-    /// Gets or sets a value indicating whether the diagnostics of the compilation of the transformed target code should be included in the test result.
-    /// This is useful when diagnostic suppression is being tested.
-    /// To enable this option in a test, add this comment to your test file: <c>// @ReportOutputWarnings</c>. 
-    /// </summary>
-    public bool? ReportOutputWarnings { get; set; }
-
-    /// <summary>
     /// Gets or sets a value indicating whether the output file must be compiled into a binary (e.g. emitted).
     /// To enable this option in a test, add this comment to your test file: <c>// @OutputCompilationDisabled</c>.
     /// </summary>
@@ -164,7 +157,7 @@ public class TestOptions
     public bool? NullabilityDisabled { get; set; }
 
     /// <summary>
-    /// Gets a list of warnings that are not reported even if <see cref="ReportOutputWarnings"/> is set to <c>true</c>.
+    /// Gets a list of warnings that are not reported.
     /// To add an item into this collection from a test, add this comment to your test file: <c>// @IgnoredDiagnostic(id)</c>.
     /// </summary>
     public List<string> IgnoredDiagnostics { get; } = new();
@@ -375,9 +368,15 @@ public class TestOptions
 
     /// <summary>
     /// Gets or sets the seed for the random number generator. The default value is random when <see cref="Repeat"/> is <c>1</c>, or <c>0</c>
-    /// otherwise. To change this option in a test, add this comment to your test file: <c>// @RandomSeed(int)</c>. 
+    /// otherwise. To change this option in a test, add this comment to your test file: <c>// @RandomSeed(int)</c>.
     /// </summary>
     public int? RandomSeed { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the diff tool should be prevented from opening when test output differs from expected.
+    /// The default value is <c>false</c>. To enable this option in a test, add this comment to your test file: <c>// @SkipDiffTool</c>.
+    /// </summary>
+    public bool? SkipDiffTool { get; set; }
 
     internal void SetFullPaths( string directory )
     {
@@ -394,8 +393,6 @@ public class TestOptions
     internal virtual void ApplyBaseOptions( TestDirectoryOptions baseOptions )
     {
         this.SkipReason ??= baseOptions.SkipReason;
-
-        this.ReportOutputWarnings ??= baseOptions.ReportOutputWarnings;
 
         this.OutputCompilationDisabled ??= baseOptions.OutputCompilationDisabled;
 
@@ -481,6 +478,8 @@ public class TestOptions
         this.Repeat ??= baseOptions.Repeat;
 
         this.RandomSeed ??= baseOptions.RandomSeed;
+
+        this.SkipDiffTool ??= baseOptions.SkipDiffTool;
     }
 
     public IReadOnlyList<string> InvalidSourceOptions => this._invalidSourceOptions;
@@ -510,11 +509,6 @@ public class TestOptions
 
             switch ( optionName )
             {
-                case "ReportOutputWarnings":
-                    this.ReportOutputWarnings = true;
-
-                    break;
-
                 case "OutputCompilationDisabled":
                     this.OutputCompilationDisabled = true;
 
@@ -807,6 +801,11 @@ public class TestOptions
 
                 case "RandomSeed":
                     this.RandomSeed = int.Parse( optionArg, CultureInfo.InvariantCulture );
+
+                    break;
+
+                case "SkipDiffTool":
+                    this.SkipDiffTool = true;
 
                     break;
 

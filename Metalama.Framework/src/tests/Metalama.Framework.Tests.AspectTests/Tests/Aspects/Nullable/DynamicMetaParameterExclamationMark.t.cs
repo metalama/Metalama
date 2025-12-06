@@ -26,100 +26,102 @@ internal class TargetCode
       s!.ToString();
       return;
     }
+    // t1 has no nullability annotation and we cannot detect if ! is redundant
+    // without more complex analysis.
     [Aspect]
-    private void Generic<T>(T t)
+    private void Generic<T>(T t1)
     {
-      t!.ToString();
+      t1!.ToString();
       return;
     }
     [Aspect]
-    private void NullableGeneric<T>(T? t)
+    private void NullableGeneric<T>(T? t2)
     {
-      t!.ToString();
+      t2!.ToString();
       return;
     }
     [Aspect]
-    private void NotNullGeneric<T>(T t)
+    private void NotNullGeneric<T>(T t3)
       where T : notnull
     {
-      t.ToString();
+      t3.ToString();
       return;
     }
     [Aspect]
-    private void NullableNotNullGeneric<T>(T? t)
+    private void NullableNotNullGeneric<T>(T? t4)
       where T : notnull
     {
-      t!.ToString();
+      t4!.ToString();
       return;
     }
     [Aspect]
-    private void ValueTypeGeneric<T>(T t)
+    private void ValueTypeGeneric<T>(T t5)
       where T : struct
     {
-      t.ToString();
+      t5.ToString();
       return;
     }
     [Aspect]
-    private void NullableValueTypeGeneric<T>(T? t)
+    private void NullableValueTypeGeneric<T>(T? t6)
       where T : struct
     {
-      t.ToString();
+      t6.ToString();
       return;
     }
     [Aspect]
-    private void ReferenceTypeGeneric<T>(T t)
+    private void ReferenceTypeGeneric<T>(T t7)
       where T : class
     {
-      t.ToString();
+      t7.ToString();
       return;
     }
     [Aspect]
-    private void NullableReferenceTypeGeneric<T>(T? t)
+    private void NullableReferenceTypeGeneric<T>(T? t8)
       where T : class
     {
-      t!.ToString();
+      t8!.ToString();
       return;
     }
     [Aspect]
-    private void ReferenceTypeNullableGeneric<T>(T t)
+    private void ReferenceTypeNullableGeneric<T>(T t9)
       where T : class?
     {
-      t!.ToString();
+      t9!.ToString();
       return;
     }
     [Aspect]
-    private void NullableReferenceTypeNullableGeneric<T>(T? t)
+    private void NullableReferenceTypeNullableGeneric<T>(T? t10)
       where T : class?
     {
-      t!.ToString();
+      t10!.ToString();
       return;
     }
     [Aspect]
-    private void SpecificReferenceTypeGeneric<T>(T t)
+    private void SpecificReferenceTypeGeneric<T>(T t11)
       where T : IComparable
     {
-      t.ToString();
+      t11.ToString();
       return;
     }
     [Aspect]
-    private void SpecificNullableReferenceTypeGeneric<T>(T? t)
+    private void SpecificNullableReferenceTypeGeneric<T>(T? t12)
       where T : IComparable
     {
-      t!.ToString();
+      t12!.ToString();
       return;
     }
     [Aspect]
-    private void SpecificReferenceTypeNullableGeneric<T>(T t)
+    private void SpecificReferenceTypeNullableGeneric<T>(T t13)
       where T : IComparable?
     {
-      t!.ToString();
+      t13!.ToString();
       return;
     }
     [Aspect]
-    private void SpecificNullableReferenceTypeNullableGeneric<T>(T? t)
+    private void SpecificNullableReferenceTypeNullableGeneric<T>(T? t14)
       where T : IComparable?
     {
-      t!.ToString();
+      t14!.ToString();
       return;
     }
   }
@@ -145,37 +147,37 @@ internal class TargetCode
       return;
     }
     [Aspect]
-    private void Generic<T>(T t)
+    private void Generic<T>(T t15)
     {
-      t.ToString();
+      t15.ToString();
       return;
     }
     [Aspect]
-    private void ValueTypeGeneric<T>(T t)
+    private void ValueTypeGeneric<T>(T t16)
       where T : struct
     {
-      t.ToString();
+      t16.ToString();
       return;
     }
     [Aspect]
-    private void NullableValueTypeGeneric<T>(T? t)
+    private void NullableValueTypeGeneric<T>(T? t17)
       where T : struct
     {
-      t.ToString();
+      t17.ToString();
       return;
     }
     [Aspect]
-    private void ReferenceTypeGeneric<T>(T t)
+    private void ReferenceTypeGeneric<T>(T t18)
       where T : class
     {
-      t.ToString();
+      t18.ToString();
       return;
     }
     [Aspect]
-    private void SpecificReferenceTypeGeneric<T>(T t)
+    private void SpecificReferenceTypeGeneric<T>(T t19)
       where T : IComparable
     {
-      t.ToString();
+      t19.ToString();
       return;
     }
   }

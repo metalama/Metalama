@@ -158,7 +158,7 @@ internal class SyntaxBuilderImpl : ISyntaxBuilderImpl
             };
         }
 
-        INamedType type;
+        IType type;
 
         if ( value == null )
         {
@@ -171,7 +171,7 @@ internal class SyntaxBuilderImpl : ISyntaxBuilderImpl
         else
         {
             expression = this.GetLiteralImpl( value, specialType, stronglyTyped );
-            type = this.Compilation.Factory.GetSpecialType( specialType );
+            type = this.Compilation.Factory.GetSpecialType( specialType ).ToNonNullable();
         }
 
         return new SyntaxUserExpression( expression, type );
@@ -233,6 +233,16 @@ internal class SyntaxBuilderImpl : ISyntaxBuilderImpl
         return receiver.AssertNotNull();
     }
 
+    public IExpression WithNullForgivingOperator( IExpression expression, bool force )
+    {
+        if ( expression.Type.IsNullable == false && !force )
+        {
+            return expression;
+        }
+
+        return new SuppressNullableWarningUserExpression( expression.ToUserExpression(), force );
+    }
+
     public IExpression ToExpression( IFieldOrProperty fieldOrProperty, IExpression? instance )
     {
         if ( fieldOrProperty is { DeclarationKind: DeclarationKind.Field, IsImplicitlyDeclared: true } )
@@ -256,7 +266,7 @@ internal class SyntaxBuilderImpl : ISyntaxBuilderImpl
     public IStatement CreateBlock( IStatementList statements ) => new BlockStatement( statements );
 
     public IExpression NullExpression( IType? type )
-        => new SyntaxUserExpression( SyntaxFactoryEx.Null, type?.ToNullable() ?? this.Compilation.Factory.GetSpecialType( SpecialType.Object ) );
+        => new SyntaxUserExpression( SyntaxFactoryEx.Null, type?.ToNullable() ?? this.Compilation.Factory.GetSpecialType( SpecialType.Object ).ToNullable() );
 
     public IExpression DefaultExpression( IType? type )
     {
@@ -266,7 +276,7 @@ internal class SyntaxBuilderImpl : ISyntaxBuilderImpl
         }
         else
         {
-            return new SyntaxUserExpression( SyntaxFactoryEx.Default, this.Compilation.Factory.GetSpecialType( SpecialType.Object ) );
+            return new SyntaxUserExpression( SyntaxFactoryEx.Default, this.Compilation.Factory.GetSpecialType( SpecialType.Object ).ToNullable() );
         }
     }
 

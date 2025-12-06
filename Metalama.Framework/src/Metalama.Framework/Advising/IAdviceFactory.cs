@@ -836,7 +836,7 @@ namespace Metalama.Framework.Advising
         /// <param name="parameterName">The name of the parameter.</param>
         /// <param name="parameterType">The type of the parameter.</param>
         /// <param name="defaultValue">The default value of the parameter (required). It must be type-compatible with <paramref name="parameterType"/>.
-        ///     To specify <c>default</c> as the default value, use <see cref="TypedConstant.Default(Metalama.Framework.Code.IType)"/>.</param>
+        ///     To specify <c>default</c> as the default value, use <see cref="TypedConstant.Default(IType, bool)"/>.</param>
         /// <param name="pullAction">An optional delegate that returns a <see cref="PullAction"/> specifying how to pull the new parameter from other child constructors.
         ///     A <c>null</c> value is equivalent to <see cref="PullAction.None"/>, i.e. <paramref name="defaultValue"/> of the parameter will be used.
         /// </param>
@@ -857,7 +857,7 @@ namespace Metalama.Framework.Advising
         /// <param name="parameterName">The name of the parameter.</param>
         /// <param name="parameterType">The type of the parameter.</param>
         /// <param name="defaultValue">The default value of the parameter (required). It must be type-compatible with <paramref name="parameterType"/>.
-        ///     To specify <c>default</c> as the default value, use <see cref="TypedConstant.Default(Metalama.Framework.Code.IType)"/>.</param>
+        ///     To specify <c>default</c> as the default value, use <see cref="TypedConstant.Default(IType, bool)"/>.</param>
         /// <param name="pullStrategy">An optional <see cref="IPullStrategy"/> that returns a <see cref="PullAction"/> specifying how to pull the new parameter from other child constructors.
         ///     A <c>null</c> value is equivalent to <see cref="PullAction.None"/>, i.e. <paramref name="defaultValue"/> of the parameter will be used.
         /// </param>
@@ -877,7 +877,7 @@ namespace Metalama.Framework.Advising
         /// <param name="parameterName">The name of the parameter.</param>
         /// <param name="parameterType">The type of the parameter.</param>
         /// <param name="defaultValue">The default value of the parameter (required). It must be type-compatible with <paramref name="parameterType"/>.
-        ///     To specify <c>default</c> as the default value, use <see cref="TypedConstant.Default(Metalama.Framework.Code.IType)"/>.</param>
+        ///     To specify <c>default</c> as the default value, use <see cref="TypedConstant.Default(IType, bool)"/>.</param>
         /// <param name="pullAction">An optional delegate that returns a <see cref="PullAction"/> specifying how to pull the new parameter from other child constructors.
         ///     A <c>null</c> value is equivalent to <see cref="PullAction.None"/>, i.e. <paramref name="defaultValue"/> of the parameter will be used.
         /// </param>
@@ -898,7 +898,7 @@ namespace Metalama.Framework.Advising
         /// <param name="parameterName">The name of the parameter.</param>
         /// <param name="parameterType">The type of the parameter.</param>
         /// <param name="defaultValue">The default value of the parameter (required). It must be type-compatible with <paramref name="parameterType"/>.
-        ///     To specify <c>default</c> as the default value, use <see cref="TypedConstant.Default(Metalama.Framework.Code.IType)"/>.</param>
+        ///     To specify <c>default</c> as the default value, use <see cref="TypedConstant.Default(IType, bool)"/>.</param>
         /// <param name="pullStrategy">An optional <see cref="IPullStrategy"/> that returns a <see cref="PullAction"/> specifying how to pull the new parameter from other child constructors.
         ///     A <c>null</c> value is equivalent to <see cref="PullAction.None"/>, i.e. <paramref name="defaultValue"/> of the parameter will be used.
         /// </param>

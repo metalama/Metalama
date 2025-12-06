@@ -31,6 +31,13 @@ public sealed class TrimAttribute : ContractAspect
     public override void Validate( dynamic? value )
     {
         // ReSharper disable once RedundantAssignment
-        value = value?.Trim();
+        if ( meta.Target.Expression.Type.IsNullable == true )
+        {
+            value = value?.Trim();
+        }
+        else
+        {
+            value = value!.Trim();
+        }
     }
 }

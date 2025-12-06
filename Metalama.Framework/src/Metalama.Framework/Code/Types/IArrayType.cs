@@ -32,8 +32,13 @@ namespace Metalama.Framework.Code.Types
         /// </summary>
         int Rank { get; }
 
+        /// <inheritdoc cref="IType.ToNullable"/>
         new IArrayType ToNullable();
 
+        /// <inheritdoc cref="IType.ToNonNullable"/>
         new IArrayType ToNonNullable();
+
+        /// <inheritdoc cref="IType.StripNullabilityAnnotation"/>
+        new IArrayType StripNullabilityAnnotation();
     }
 }

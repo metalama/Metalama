@@ -46,13 +46,27 @@ public sealed class SerializableTypeIdResolverForIType : SerializableTypeIdResol
         return genericParameters;
     }
 
-    protected override IType CreateArrayType( IType elementType, int rank ) => elementType.MakeArrayType( rank );
+    protected override IType CreateArrayType( IType elementType, int rank, bool isNullOblivious )
+    {
+        var arrayType = elementType.MakeArrayType( rank );
+
+        if ( isNullOblivious )
+        {
+            return arrayType.StripNullabilityAnnotation();
+        }
+        else if ( arrayType.IsNullable != false )
+        {
+            throw new AssertionFailedException();
+        }
+
+        return arrayType;
+    }
 
     protected override IType CreatePointerType( IType pointedAtType ) => pointedAtType.MakePointerType();
 
     protected override IType CreateNullableType( IType elementType ) => elementType.ToNullable();
 
-    protected override IType CreateNonNullableReferenceType( IType referenceType ) => referenceType.ToNonNullable();
+    protected override IType AddNonNullableAnnotation( IType referenceType ) => referenceType.ToNonNullable();
 
     protected override IType ConstructGenericType( IType genericType, IType[] typeArguments )
         => genericType.AssertCast<INamedType>().WithTypeArguments( typeArguments );

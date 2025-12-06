@@ -251,6 +251,10 @@ internal sealed class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBui
 
     public IType ToNonNullable() => throw new NotImplementedException();
 
+    public INamedType StripNullabilityAnnotation() => throw new NotImplementedException();
+
+    IType IType.StripNullabilityAnnotation() => this.StripNullabilityAnnotation();
+
     public INamedType MakeGenericInstance( IReadOnlyList<IType> typeArguments ) => throw new NotImplementedException();
 
     IType IType.ToNullable() => this.ToNullable();

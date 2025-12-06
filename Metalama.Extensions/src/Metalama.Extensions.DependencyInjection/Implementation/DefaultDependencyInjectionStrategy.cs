@@ -178,7 +178,7 @@ public class DefaultDependencyInjectionStrategy
             existingParameter = adviser.IntroduceParameter(
                     newParameter.Name,
                     newParameter.Type,
-                    TypedConstant.Default( newParameter.Type ),
+                    TypedConstant.Default( newParameter.Type, newParameter.Type.IsNullable == false ),
                     pullStrategy,
                     newParameter.Attributes )
                 .Declaration;

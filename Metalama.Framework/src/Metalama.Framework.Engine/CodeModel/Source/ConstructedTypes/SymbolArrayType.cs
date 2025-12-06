@@ -52,13 +52,15 @@ namespace Metalama.Framework.Engine.CodeModel.Source.ConstructedTypes
         public override TypeKind TypeKind => TypeKind.Array;
 
         [Memo]
-        public IType ElementType => this.Compilation.Factory.GetIType( this.Symbol.ElementType, this.GenericContextForSymbolMapping );
+        public IType ElementType => this.Compilation.Factory.GetIType( this.Symbol.ElementType, this.GenericContextForSymbolMapping, defaultNullability: null );
 
         public int Rank => this.Symbol.Rank;
 
         public new IArrayType ToNullable() => (IArrayType) this.Compilation.Factory.MakeNullableType( this, true );
 
         public new IArrayType ToNonNullable() => (IArrayType) this.Compilation.Factory.MakeNullableType( this, false );
+
+        public new IArrayType StripNullabilityAnnotation() => (IArrayType) this.Compilation.Factory.MakeNullableType( this, null );
 
         public override IType Accept( TypeRewriter visitor ) => visitor.Visit( this );
     }

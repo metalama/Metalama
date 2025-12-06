@@ -55,7 +55,7 @@ namespace Metalama.Testing.AspectTesting
                                 .Select( ( x, i ) => x.GeneratedSyntaxTree.WithFilePath( $"{i}.cs" ) ) );
 
                     testResult.OutputCompilation = outputCompilation;
-                    testResult.OutputCompilationDiagnostics.Report( outputCompilation.GetDiagnostics().Where( d => d.Severity == DiagnosticSeverity.Error ) );
+                    testResult.OutputCompilationDiagnostics.Report( outputCompilation.GetDiagnostics() );
 
                     await testResult.SetOutputCompilationAsync( outputCompilation );
                 }

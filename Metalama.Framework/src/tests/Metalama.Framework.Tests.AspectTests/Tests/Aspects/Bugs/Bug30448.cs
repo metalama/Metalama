@@ -13,7 +13,14 @@ internal class TrimAttribute : ContractAspect
 {
     public override void Validate( dynamic? value )
     {
-        value = value?.Trim();
+        if ( meta.Target.Expression.Type.IsNullable == true )
+        {
+            value = value?.Trim();
+        }
+        else
+        {
+            value = value.Trim();
+        }
     }
 }
 

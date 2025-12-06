@@ -115,7 +115,7 @@ namespace Metalama.Framework.Tests.AspectTests.Runners
             Assert.NotNull( testInput.ProjectDirectory );
             Assert.NotNull( testInput.RelativePath );
 
-            foreach ( var diagnostic in testResult.Diagnostics )
+            foreach ( var diagnostic in testResult.AllDiagnostics )
             {
                 this.Logger?.WriteLine( diagnostic.ToString() );
             }
@@ -138,7 +138,7 @@ namespace Metalama.Framework.Tests.AspectTests.Runners
                         Path.GetDirectoryName( sourceAbsolutePath )!,
                         Path.GetFileNameWithoutExtension( sourceAbsolutePath ) + FileExtensions.InputHtml );
 
-                    this.CompareHtmlFiles( syntaxTree.HtmlInputPath!, expectedInputHtmlPath );
+                    this.CompareHtmlFiles( syntaxTree.HtmlInputPath!, expectedInputHtmlPath, testInput.Options );
                 }
             }
 
@@ -153,16 +153,19 @@ namespace Metalama.Framework.Tests.AspectTests.Runners
                         Path.GetDirectoryName( testInput.FullPath )!,
                         syntaxTree.ShortName + extension );
 
-                    this.CompareHtmlFiles( syntaxTree.HtmlOutputPath.AssertNotNull(), expectedOutputHtmlPath );
+                    this.CompareHtmlFiles( syntaxTree.HtmlOutputPath.AssertNotNull(), expectedOutputHtmlPath, testInput.Options );
                 }
             }
         }
 
-        private void CompareHtmlFiles( string actualHtmlPath, string expectedHtmlPath )
+        private void CompareHtmlFiles( string actualHtmlPath, string expectedHtmlPath, TestOptions testOptions )
         {
             this.Logger?.WriteLine( "Actual HTML: " + actualHtmlPath );
 
-            Assert.True( File.Exists( expectedHtmlPath ), $"The expected HTML file '{expectedHtmlPath}' does not exist." );
+            if ( !File.Exists( expectedHtmlPath ) )
+            {
+                File.WriteAllText( expectedHtmlPath, "TODO: Replace this file with the expected/accepted HTML." );
+            }
 
             this.Logger?.WriteLine( "Expected HTML: " + expectedHtmlPath );
 
@@ -171,7 +174,7 @@ namespace Metalama.Framework.Tests.AspectTests.Runners
             var htmlPath = actualHtmlPath;
             var actualHighlightedSource = TestOutputNormalizer.NormalizeEndOfLines( File.ReadAllText( htmlPath ) );
 
-            var hasDifference = this.RunDiffToolIfDifferent( expectedHighlightedSource, expectedHtmlPath, actualHighlightedSource, htmlPath );
+            var hasDifference = this.CompareFiles( expectedHighlightedSource, expectedHtmlPath, actualHighlightedSource, htmlPath, testOptions );
 
             if ( hasDifference )
             {

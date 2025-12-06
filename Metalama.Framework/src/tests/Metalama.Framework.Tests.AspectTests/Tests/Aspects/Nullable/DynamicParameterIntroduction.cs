@@ -9,7 +9,6 @@
 using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
-using System.Linq;
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Nullable.DynamicParameterIntroduction;
 
@@ -20,32 +19,41 @@ internal class Aspect : TypeAspect
         var objectType = TypeFactory.GetType( typeof(object) );
 
         builder.IntroduceMethod(
-            nameof(Template),
+            nameof(this.Template),
             buildMethod: methodBuilder =>
             {
                 methodBuilder.Name = "Nullable";
-                methodBuilder.Parameters.Single().Type = objectType.ToNullable();
+                methodBuilder.Parameters[0].Name = "nullableArg1";
+                methodBuilder.Parameters[0].Type = objectType.ToNullable();
+                methodBuilder.Parameters[1].Name = "nullableArg2";
+                methodBuilder.Parameters[1].Type = objectType.ToNullable();
             } );
 
         builder.IntroduceMethod(
-            nameof(Template),
+            nameof(this.Template),
             buildMethod: methodBuilder =>
             {
                 methodBuilder.Name = "NonNullable";
-                methodBuilder.Parameters.Single().Type = objectType.ToNonNullable();
+                methodBuilder.Parameters[0].Name = "nonNullableArg1";
+                methodBuilder.Parameters[0].Type = objectType.ToNonNullable();
+                methodBuilder.Parameters[1].Name = "nonNullableArg2";
+                methodBuilder.Parameters[1].Type = objectType.ToNonNullable();
             } );
 
         builder.IntroduceMethod(
-            nameof(Template),
+            nameof(this.Template),
             buildMethod: methodBuilder =>
             {
                 methodBuilder.Name = "Default";
-                methodBuilder.Parameters.Single().Type = objectType;
+                methodBuilder.Parameters[0].Name = "defaultArg1";
+                methodBuilder.Parameters[0].Type = objectType;
+                methodBuilder.Parameters[1].Name = "defaultArg2";
+                methodBuilder.Parameters[1].Type = objectType;
             } );
     }
 
     [Template]
-    private string Template( dynamic? arg ) => arg?.ToString() + arg!.ToString();
+    private string Template( dynamic? arg1, dynamic? arg2 ) => arg1?.ToString() + arg2!.ToString();
 }
 
 // <target>

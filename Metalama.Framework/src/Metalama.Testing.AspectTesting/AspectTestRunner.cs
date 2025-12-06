@@ -230,7 +230,7 @@ internal class AspectTestRunner : BaseTestRunner
             var peStream = new MemoryStream();
             var emitResult = resultCompilation.Emit( peStream );
 
-            testResult.OutputCompilationDiagnostics.Report( emitResult.Diagnostics.Where( d => d.Severity == DiagnosticSeverity.Error ) );
+            testResult.OutputCompilationDiagnostics.Report( emitResult.Diagnostics );
 
             if ( !emitResult.Success )
             {
@@ -255,7 +255,7 @@ internal class AspectTestRunner : BaseTestRunner
         }
         else
         {
-            testResult.OutputCompilationDiagnostics.Report( resultCompilation.GetDiagnostics().Where( d => d.Severity == DiagnosticSeverity.Error ) );
+            testResult.OutputCompilationDiagnostics.Report( resultCompilation.GetDiagnostics() );
         }
 
         return true;
@@ -538,11 +538,12 @@ internal class AspectTestRunner : BaseTestRunner
         {
             var aspectTestResult = (AspectTestResult) testResult;
 
-            this.RunDiffToolIfDifferent(
+            this.CompareFiles(
                 aspectTestResult.ExpectedProgramOutputText!,
                 aspectTestResult.ExpectedProgramOutputPath!,
                 aspectTestResult.ActualProgramOutputText!,
-                aspectTestResult.ActualProgramOutputPath! );
+                aspectTestResult.ActualProgramOutputPath!,
+                testInput.Options );
         }
 
 #if DEBUG

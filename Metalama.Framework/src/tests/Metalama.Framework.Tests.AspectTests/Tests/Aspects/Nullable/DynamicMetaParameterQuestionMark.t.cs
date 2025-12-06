@@ -17,7 +17,7 @@ internal class TargetCode
     [Aspect]
     private void ReferenceType(string s)
     {
-      s.ToString();
+      s?.ToString();
       return;
     }
     [Aspect]
@@ -42,7 +42,7 @@ internal class TargetCode
     private void NotNullGeneric<T>(T t)
       where T : notnull
     {
-      t.ToString();
+      t?.ToString();
       return;
     }
     [Aspect]
@@ -70,7 +70,7 @@ internal class TargetCode
     private void ReferenceTypeGeneric<T>(T t)
       where T : class
     {
-      t.ToString();
+      t?.ToString();
       return;
     }
     [Aspect]
@@ -98,7 +98,7 @@ internal class TargetCode
     private void SpecificReferenceTypeGeneric<T>(T t)
       where T : IComparable
     {
-      t.ToString();
+      t?.ToString();
       return;
     }
     [Aspect]

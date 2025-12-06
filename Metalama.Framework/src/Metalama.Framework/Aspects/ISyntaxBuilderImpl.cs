@@ -73,4 +73,7 @@ internal interface ISyntaxBuilderImpl
     bool TryConvertExpressionToTypedConstant( string expression, [NotNullWhen( true )] out TypedConstant? typedConstant );
 
     IExpression ReceiverExpression( IDeclaration declaration );
+
+    /// <inheritdoc cref="ExpressionFactory.WithNullForgivingOperator"/>
+    IExpression WithNullForgivingOperator( IExpression expression, bool force );
 }

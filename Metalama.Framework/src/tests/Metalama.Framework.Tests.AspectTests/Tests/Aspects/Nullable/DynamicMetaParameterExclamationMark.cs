@@ -33,47 +33,49 @@ internal class TargetCode
         [Aspect]
         private void NullableReferenceType( string? s ) { }
 
+        // t1 has no nullability annotation and we cannot detect if ! is redundant
+        // without more complex analysis.
         [Aspect]
-        private void Generic<T>( T t ) { }
+        private void Generic<T>( T t1 ) { }
 
         [Aspect]
-        private void NullableGeneric<T>( T? t ) { }
+        private void NullableGeneric<T>( T? t2 ) { }
 
         [Aspect]
-        private void NotNullGeneric<T>( T t ) where T : notnull { }
+        private void NotNullGeneric<T>( T t3 ) where T : notnull { }
 
         [Aspect]
-        private void NullableNotNullGeneric<T>( T? t ) where T : notnull { }
+        private void NullableNotNullGeneric<T>( T? t4 ) where T : notnull { }
 
         [Aspect]
-        private void ValueTypeGeneric<T>( T t ) where T : struct { }
+        private void ValueTypeGeneric<T>( T t5 ) where T : struct { }
 
         [Aspect]
-        private void NullableValueTypeGeneric<T>( T? t ) where T : struct { }
+        private void NullableValueTypeGeneric<T>( T? t6 ) where T : struct { }
 
         [Aspect]
-        private void ReferenceTypeGeneric<T>( T t ) where T : class { }
+        private void ReferenceTypeGeneric<T>( T t7 ) where T : class { }
 
         [Aspect]
-        private void NullableReferenceTypeGeneric<T>( T? t ) where T : class { }
+        private void NullableReferenceTypeGeneric<T>( T? t8 ) where T : class { }
 
         [Aspect]
-        private void ReferenceTypeNullableGeneric<T>( T t ) where T : class? { }
+        private void ReferenceTypeNullableGeneric<T>( T t9 ) where T : class? { }
 
         [Aspect]
-        private void NullableReferenceTypeNullableGeneric<T>( T? t ) where T : class? { }
+        private void NullableReferenceTypeNullableGeneric<T>( T? t10 ) where T : class? { }
 
         [Aspect]
-        private void SpecificReferenceTypeGeneric<T>( T t ) where T : IComparable { }
+        private void SpecificReferenceTypeGeneric<T>( T t11 ) where T : IComparable { }
 
         [Aspect]
-        private void SpecificNullableReferenceTypeGeneric<T>( T? t ) where T : IComparable { }
+        private void SpecificNullableReferenceTypeGeneric<T>( T? t12 ) where T : IComparable { }
 
         [Aspect]
-        private void SpecificReferenceTypeNullableGeneric<T>( T t ) where T : IComparable? { }
+        private void SpecificReferenceTypeNullableGeneric<T>( T t13 ) where T : IComparable? { }
 
         [Aspect]
-        private void SpecificNullableReferenceTypeNullableGeneric<T>( T? t ) where T : IComparable? { }
+        private void SpecificNullableReferenceTypeNullableGeneric<T>( T? t14 ) where T : IComparable? { }
     }
 
 #nullable disable
@@ -90,18 +92,18 @@ internal class TargetCode
         private void ReferenceType( string s ) { }
 
         [Aspect]
-        private void Generic<T>( T t ) { }
+        private void Generic<T>( T t15 ) { }
 
         [Aspect]
-        private void ValueTypeGeneric<T>( T t ) where T : struct { }
+        private void ValueTypeGeneric<T>( T t16 ) where T : struct { }
 
         [Aspect]
-        private void NullableValueTypeGeneric<T>( T? t ) where T : struct { }
+        private void NullableValueTypeGeneric<T>( T? t17 ) where T : struct { }
 
         [Aspect]
-        private void ReferenceTypeGeneric<T>( T t ) where T : class { }
+        private void ReferenceTypeGeneric<T>( T t18 ) where T : class { }
 
         [Aspect]
-        private void SpecificReferenceTypeGeneric<T>( T t ) where T : IComparable { }
+        private void SpecificReferenceTypeGeneric<T>( T t19 ) where T : IComparable { }
     }
 }

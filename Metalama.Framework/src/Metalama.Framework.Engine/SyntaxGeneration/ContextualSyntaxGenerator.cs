@@ -402,11 +402,35 @@ public sealed partial class ContextualSyntaxGenerator
         }
     }
 
+    private ExpressionSyntax FieldReference( IField field )
+    {
+        return
+            MemberAccessExpression(
+                    SyntaxKind.SimpleMemberAccessExpression,
+                    this.TypeSyntax( field.DeclaringType ),
+                    this.IdentifierName( field.Name ) )
+                .WithSimplifierAnnotationIfNecessary( this.SyntaxGenerationContext );
+    }
+
+    private ExpressionSyntax FieldReference( IFullRef<IField> fieldRef ) 
+        => this.FieldReference( fieldRef.Definition );
+
     internal ExpressionSyntax TypedConstant( in TypedConstant typedConstant )
     {
         if ( typedConstant.IsNullOrDefault )
         {
-            return this.DefaultExpression( typedConstant.Type );
+            var expression = this.DefaultExpression( typedConstant.Type );
+
+            if ( typedConstant.HasNullForgivingOperator )
+            {
+                expression = SyntaxFactory.PostfixUnaryExpression( SyntaxKind.SuppressNullableWarningExpression, expression );
+            }
+
+            return expression;
+        }
+        else if ( typedConstant.RawValue is IField field )
+        {
+            return this.FieldReference( field );
         }
         else if ( typedConstant.Type is INamedType { TypeKind: TypeKind.Enum } enumType )
         {
@@ -432,7 +456,18 @@ public sealed partial class ContextualSyntaxGenerator
 
         if ( typedConstant.RawValue == null )
         {
-            return this.DefaultExpression( type );
+            var expression = this.DefaultExpression( type );
+
+            if ( typedConstant.HasNullForgivingOperator )
+            {
+                expression = SyntaxFactory.PostfixUnaryExpression( SyntaxKind.SuppressNullableWarningExpression, expression );
+            }
+
+            return expression;
+        }
+        else if ( typedConstant.RawValue is IRef<IField> fieldRef )
+        {
+            return this.FieldReference( fieldRef.ToFullRef( refFactory ) );
         }
         else if ( type?.Definition is INamedType { TypeKind: TypeKind.Enum } enumType )
         {
@@ -1042,45 +1077,23 @@ public sealed partial class ContextualSyntaxGenerator
                         : s ) ),
             Token( this.SyntaxGenerationContext.OptionalElasticEndOfLineTriviaList, SyntaxKind.CloseBraceToken, default ) );
 
-    internal ExpressionSyntax SuppressNullableWarningExpression( ExpressionSyntax operand, IType? operandType )
+    internal ExpressionSyntax SuppressNullableWarningExpression(
+        ExpressionSyntax expression,
+        IType? expressionType,
+        IType? targetType = null,
+        bool force = false )
     {
-        var isSuppressionEnabled = false;
-
-        if ( this.IsNullAware )
+        if ( !this.IsNullAware )
         {
-            isSuppressionEnabled = true;
-
-            if ( operandType != null )
-            {
-                if ( operand.Kind() is SyntaxKind.NullLiteralExpression or SyntaxKind.DefaultLiteralExpression )
-                {
-                    // ! is required when assigning null to a non-nullable.
-                    if ( operandType is { IsReferenceType: true, IsNullable: true } )
-                    {
-                        isSuppressionEnabled = false;
-                    }
-                }
-                else if ( operandType.IsReferenceType == false )
-                {
-                    // Value types, including nullable value types don't need suppression.
-                    isSuppressionEnabled = false;
-                }
-                else
-                {
-                    var nullable = operandType.IsNullable;
-
-                    if ( nullable == false || (nullable == null && operandType.TypeKind != TypeKind.TypeParameter) )
-                    {
-                        // Non-nullable and non-annotated types don't need suppression, except generic type parameters that are not explicitly marked as non nullable.
-                        isSuppressionEnabled = false;
-                    }
-                }
-            }
+            return expression;
         }
 
+        var isSuppressionEnabled = force || (expressionType is null or { IsReferenceType: not false, IsNullable: not false }
+                                             && targetType is not { IsReferenceType: true, IsNullable: true });
+
         return isSuppressionEnabled
-            ? PostfixUnaryExpression( SyntaxKind.SuppressNullableWarningExpression, operand ).WithSimplifierAnnotation()
-            : operand;
+            ? PostfixUnaryExpression( SyntaxKind.SuppressNullableWarningExpression, expression ).WithSimplifierAnnotation()
+            : expression;
     }
 
     internal ExpressionSyntax TupleExpression( ITupleType tupleType, IReadOnlyList<ArgumentSyntax> values, bool qualifyElements = true )

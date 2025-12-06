@@ -1287,6 +1287,10 @@ public static class AdviserExtensions
     /// <returns>An <see cref="IAddContractAdviceResult{T}"/> exposing the added contract.</returns>
     /// <remarks>
     /// <para>
+    /// <b>Template Access:</b> Within the template, use <c>meta.Target.Expression</c> for unified access to the target as an <see cref="IExpression"/>,
+    /// <c>meta.Target.Parameter</c> for parameter-specific access, and <c>meta.Target.ContractDirection</c> to determine whether you're validating input or output.
+    /// </para>
+    /// <para>
     /// <b>Performance Note:</b> When possible, provide all contracts to the same method from a single aspect. This approach yields better compile-time performance than using several separate aspects.
     /// </para>
     /// <para>
@@ -1295,6 +1299,7 @@ public static class AdviserExtensions
     /// </para>
     /// </remarks>
     /// <seealso cref="ContractAspect"/>
+    /// <seealso cref="IMetaTarget.Expression"/>
     /// <seealso href="@contracts"/>
     /// <seealso href="@contract-patterns"/>
     /// <seealso href="@sharing-state-with-advice"/>
@@ -1325,6 +1330,10 @@ public static class AdviserExtensions
     /// <returns>An <see cref="IAddContractAdviceResult{T}"/> exposing the added contract.</returns>
     /// <remarks>
     /// <para>
+    /// <b>Template Access:</b> Within the template, use <c>meta.Target.Expression</c> for unified access to the target as an <see cref="IExpression"/>,
+    /// <c>meta.Target.FieldOrProperty</c> for field/property-specific access, and <c>meta.Target.ContractDirection</c> to determine whether you're validating input or output.
+    /// </para>
+    /// <para>
     /// <b>Performance Note:</b> When possible, provide all contracts to the same method from a single aspect. This approach yields better compile-time performance than using several separate aspects.
     /// </para>
     /// <para>
@@ -1333,6 +1342,7 @@ public static class AdviserExtensions
     /// </para>
     /// </remarks>
     /// <seealso cref="ContractAspect"/>
+    /// <seealso cref="IMetaTarget.Expression"/>
     /// <seealso href="@contracts"/>
     /// <seealso href="@contract-patterns"/>
     /// <seealso href="@sharing-state-with-advice"/>
@@ -1433,7 +1443,7 @@ public static class AdviserExtensions
     /// <param name="parameterName">The name of the parameter.</param>
     /// <param name="parameterType">The type of the parameter.</param>
     /// <param name="defaultValue">The default value of the parameter (required). It must be type-compatible with <paramref name="parameterType"/>.
-    ///     To specify <c>default</c> as the default value, use <see cref="TypedConstant.Default(Metalama.Framework.Code.IType)"/>.</param>
+    ///     To specify <c>default</c> as the default value, use <see cref="TypedConstant.Default(IType, bool)"/>.</param>
     /// <param name="pullAction">An optional delegate that returns a <see cref="PullAction"/> specifying how to pull the new parameter from other child constructors.
     ///     A <c>null</c> value is equivalent to <see cref="PullAction.None"/>, i.e. <paramref name="defaultValue"/> of the parameter will be used.</param>
     /// <param name="attributes">An optional list of custom attributes to add to the introduced parameter.</param>
@@ -1462,7 +1472,7 @@ public static class AdviserExtensions
     /// <param name="parameterName">The name of the parameter.</param>
     /// <param name="parameterType">The type of the parameter.</param>
     /// <param name="defaultValue">The default value of the parameter (required). It must be type-compatible with <paramref name="parameterType"/>.
-    ///     To specify <c>default</c> as the default value, use <see cref="TypedConstant.Default(Metalama.Framework.Code.IType)"/>.</param>
+    ///     To specify <c>default</c> as the default value, use <see cref="TypedConstant.Default(IType, bool)"/>.</param>
     /// <param name="pullStrategy">An optional <see cref="IPullStrategy"/> that returns a <see cref="PullAction"/> specifying how to pull the new parameter from other child constructors.
     ///     A <c>null</c> value is equivalent to <see cref="PullAction.None"/>, i.e. <paramref name="defaultValue"/> of the parameter will be used.</param>
     /// <param name="attributes">An optional list of custom attributes to add to the introduced parameter.</param>
@@ -1514,7 +1524,7 @@ public static class AdviserExtensions
     /// <param name="parameterName">The name of the parameter.</param>
     /// <param name="parameterType">The type of the parameter.</param>
     /// <param name="defaultValue">The default value of the parameter (required). It must be type-compatible with <paramref name="parameterType"/>.
-    ///     To specify <c>default</c> as the default value, use <see cref="TypedConstant.Default(Metalama.Framework.Code.IType)"/>.</param>
+    ///     To specify <c>default</c> as the default value, use <see cref="TypedConstant.Default(IType, bool)"/>.</param>
     /// <param name="pullAction">An optional delegate that returns a <see cref="PullAction"/> specifying how to pull the new parameter from other child constructors.
     ///     A <c>null</c> value is equivalent to <see cref="PullAction.None"/>, i.e. <paramref name="defaultValue"/> of the parameter will be used.</param>
     /// <param name="attributes">An optional list of custom attributes to add to the introduced parameter.</param>
@@ -1543,7 +1553,7 @@ public static class AdviserExtensions
     /// <param name="parameterName">The name of the parameter.</param>
     /// <param name="parameterType">The type of the parameter.</param>
     /// <param name="defaultValue">The default value of the parameter (required). It must be type-compatible with <paramref name="parameterType"/>.
-    ///     To specify <c>default</c> as the default value, use <see cref="TypedConstant.Default(Metalama.Framework.Code.IType)"/>.</param>
+    ///     To specify <c>default</c> as the default value, use <see cref="TypedConstant.Default(IType, bool)"/>.</param>
     /// <param name="pullStrategy">An optional <see cref="IPullStrategy"/> that returns a <see cref="PullAction"/> specifying how to pull the new parameter from other child constructors.
     ///     A <c>null</c> value is equivalent to <see cref="PullAction.None"/>, i.e. <paramref name="defaultValue"/> of the parameter will be used.</param>
     /// <param name="attributes">An optional list of custom attributes to add to the introduced parameter.</param>

@@ -9,6 +9,7 @@ using Metalama.Framework.Engine.CodeModel.References;
 using Microsoft.CodeAnalysis;
 using System;
 using SpecialType = Microsoft.CodeAnalysis.SpecialType;
+using TypeKind = Microsoft.CodeAnalysis.TypeKind;
 
 namespace Metalama.Framework.Engine.CodeModel
 {

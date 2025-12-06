@@ -157,6 +157,9 @@ public class Program
             var testRunner = new AspectTestRunner( serviceProvider, directory, testProjectReferences, testOutputHelper );
             var testInput = new TestInput.Factory( serviceProvider ).FromFile( testProjectProperties, testDirectoryOptionsReader, "Test.cs" );
             var testContextOptions = testInput.Options.ApplyToTestContextOptions( new TestContextOptions() );
+            testInput.Options.SkipDiffTool = true;
+            testInput.Options.IgnoredDiagnostics.Add( "CS8602" );
+            testInput.Options.IgnoredDiagnostics.Add( "CS8600" );
 
             // A task that will be started by the test.
             var insideTestTask = new Task( () => { } );

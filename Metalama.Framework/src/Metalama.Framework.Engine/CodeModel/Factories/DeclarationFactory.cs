@@ -105,6 +105,7 @@ public sealed partial class DeclarationFactory : IDeclarationFactory, ISdkDeclar
                     SpecialType.ValueTask => this.GetNamedTypeByReflectionType( typeof(ValueTask) ),
                     SpecialType.ValueTask_T => this.GetNamedTypeByReflectionType( typeof(ValueTask<>) ),
                     SpecialType.ValueTuple => this.GetNamedTypeByReflectionType( typeof(ValueTuple) ),
+                    SpecialType.Nullable_T => this.GetNamedTypeByReflectionType( typeof(Nullable<>) ),
                     SpecialType.Task => this.GetNamedTypeByReflectionType( typeof(Task) ),
                     SpecialType.Task_T => this.GetNamedTypeByReflectionType( typeof(Task<>) ),
                     SpecialType.Type => this.GetNamedTypeByReflectionType( typeof(Type) ),

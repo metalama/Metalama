@@ -44,7 +44,7 @@ namespace Metalama.Framework.Engine.CodeModel.Source
         }
 
         [Memo]
-        public IType Type => this.Compilation.Factory.GetIType( this.FieldSymbol.Type, this.GenericContextForSymbolMapping );
+        public IType Type => this.Compilation.Factory.GetIType( this.FieldSymbol.Type, this.GenericContextForSymbolMapping, defaultNullability: null );
 
         public RefKind RefKind => this.FieldSymbol.RefKind.ToOurRefKind();
 

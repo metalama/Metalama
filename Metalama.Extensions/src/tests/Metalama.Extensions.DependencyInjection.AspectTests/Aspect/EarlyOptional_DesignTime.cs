@@ -4,7 +4,6 @@
 
 #if TEST_OPTIONS
 // @TestScenario(DesignTime)
-// @ReportOutputWarnings
 #endif
 
 namespace Metalama.Extensions.DependencyInjection.AspectTests.Aspect.EarlyOptional_DesignTime;

@@ -68,7 +68,11 @@ public sealed class SerializableTypeIdResolverForSymbol : SerializableTypeIdReso
         return dictionary;
     }
 
-    protected override ITypeSymbol CreateArrayType( ITypeSymbol elementType, int rank ) => this.Compilation.CreateArrayTypeSymbol( elementType, rank );
+    protected override ITypeSymbol CreateArrayType( ITypeSymbol elementType, int rank, bool isNullOblivious )
+    {
+        return this.Compilation.CreateArrayTypeSymbol( elementType, rank )
+            .WithNullableAnnotation( isNullOblivious ? NullableAnnotation.None : NullableAnnotation.NotAnnotated );
+    }
 
     protected override ITypeSymbol CreatePointerType( ITypeSymbol pointedAtType ) => this.Compilation.CreatePointerTypeSymbol( pointedAtType );
 
@@ -77,7 +81,7 @@ public sealed class SerializableTypeIdResolverForSymbol : SerializableTypeIdReso
             ? this.Compilation.GetSpecialType( SpecialType.System_Nullable_T ).Construct( elementType )
             : elementType.WithNullableAnnotation( NullableAnnotation.Annotated );
 
-    protected override ITypeSymbol CreateNonNullableReferenceType( ITypeSymbol referenceType )
+    protected override ITypeSymbol AddNonNullableAnnotation( ITypeSymbol referenceType )
         => referenceType.WithNullableAnnotation( NullableAnnotation.NotAnnotated );
 
     protected override ITypeSymbol ConstructGenericType( ITypeSymbol genericType, ITypeSymbol[] typeArguments )

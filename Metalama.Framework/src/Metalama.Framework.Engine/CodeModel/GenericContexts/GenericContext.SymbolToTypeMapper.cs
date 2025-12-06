@@ -40,7 +40,9 @@ public partial class GenericContext
             }
             else
             {
-                namedType = this._compilation.Factory.GetNamedType( this._parent.TranslateSymbolIfNecessary( symbol.OriginalDefinition ) );
+                namedType = this._compilation.Factory.GetNamedType(
+                    this._parent.TranslateSymbolIfNecessary( symbol.OriginalDefinition ),
+                    defaultNullability: null );
             }
 
             if ( !namedType.IsGeneric )

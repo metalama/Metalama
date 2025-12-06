@@ -38,7 +38,7 @@ internal abstract class SourcePropertyOrIndexer : SourceMember, IPropertyOrIndex
     public override bool IsExplicitInterfaceImplementation => !this.PropertySymbol.ExplicitInterfaceImplementations.IsEmpty;
 
     [Memo]
-    public IType Type => this.Compilation.Factory.GetIType( this.PropertySymbol.Type, this.GenericContextForSymbolMapping );
+    public IType Type => this.Compilation.Factory.GetIType( this.PropertySymbol.Type, this.GenericContextForSymbolMapping, defaultNullability: null );
 
     [Memo]
     public IMethod? GetMethod

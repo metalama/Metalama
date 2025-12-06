@@ -4,7 +4,6 @@
 
 #if TEST_OPTIONS
 // @TestScenario(DesignTime)
-// @ReportOutputWarnings
 #endif
 
 using Metalama.Extensions.DependencyInjection;

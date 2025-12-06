@@ -73,9 +73,13 @@ internal abstract class ConstructedType : ITypeImpl
 
     public IType ToNonNullable() => this.ToNonNullableCore();
 
+    public IType StripNullabilityAnnotation() => this.StripNullabilityAnnotationCore();
+
     protected abstract IType ToNullableCore();
 
     protected abstract IType ToNonNullableCore();
+
+    protected abstract IType StripNullabilityAnnotationCore();
 
     public abstract int GetHashCode( TypeComparison refComparison );
 

@@ -15,19 +15,20 @@ internal class Aspect : MethodAspect
 {
     public override void BuildAspect( IAspectBuilder<IMethod> builder )
     {
-        builder.Override( nameof(Template) );
+        builder.Override( nameof(this.Template) );
     }
 
     [Template]
     private void Template( dynamic? arg )
     {
+        meta.InsertComment( "?" );
         var s = arg?.Nullable?.ToString();
         s = arg?.NonNullable?.ToString();
+        var i = arg?[0]?[1];
 
+        meta.InsertComment( "!" );
         s = arg!.Nullable!.ToString();
         s = arg!.NonNullable!.ToString();
-
-        var i = arg?[0]?[1];
         i = arg![0]![1];
     }
 }

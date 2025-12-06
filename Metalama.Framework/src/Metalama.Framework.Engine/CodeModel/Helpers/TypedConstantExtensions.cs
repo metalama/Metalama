@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Code;
 using Metalama.Framework.Engine.CodeModel.References;
 using Microsoft.CodeAnalysis;
 using System;
@@ -60,11 +61,15 @@ internal static class TypedConstantExtensions
         }
         else if ( constant.Value == null )
         {
-            return new TypedConstantRef( null, constant.Type.ToRef() );
+            return new TypedConstantRef( null, constant.Type.ToRef(), constant.HasNullForgivingOperator );
         }
         else if ( constant.IsArray )
         {
             return new TypedConstantRef( constant.Values.SelectAsImmutableArray( x => x.ToRef() ), constant.Type.ToRef() );
+        }
+        else if ( constant.RawValue is IField field )
+        {
+            return new TypedConstantRef( field.ToRef(), constant.Type.ToRef() );
         }
         else
         {

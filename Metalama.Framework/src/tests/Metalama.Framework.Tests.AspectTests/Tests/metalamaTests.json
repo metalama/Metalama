@@ -2,7 +2,28 @@
  "ReportErrorMessage": true,
  "FormatOutput": false,
  "ReportOutputWarnings": true,
- "IgnoredDiagnostics" : [ "CS8603", "CS0219", "CS0067", "CS8602", "CS8600", "CS8604", "CS0649", "CS8767", "CS0169", "CS8765", "CS8625", "CS8424", "CS8425" ],
+ // IgnoredDiagnostics: Warnings suppressed during aspect testing to focus on aspect behavior rather than general code quality.
+ "IgnoredDiagnostics" : [
+    "CS0067",  // Event is never used
+    "CS0162",  // Unreachable code detected
+    "CS0169",  // Field is never used
+    "CS0219",  // Variable is assigned but its value is never used
+    "CS0414",  // Field is assigned but its value is never used
+    "CS0420",  // A reference to a volatile field will not be treated as volatile
+    "CS0626",  // Method, operator, or accessor is marked external and has no attributes on it
+    "CS0649",  // Field is never assigned to (will always have default value)
+    "CS0659",  // Class overrides Object.Equals but does not override Object.GetHashCode
+    "CS8424",  // Iterator specifying non-nullable return type but code block returns null values
+    "CS8425",  // Async-iterator does not have the proper return type
+    "CS8600",  // Converting null literal or possible null value to non-nullable type
+    "CS8602",  // Dereference of a possibly null reference
+    "CS8603",  // Possible null reference return
+    "CS8604",  // Possible null reference argument
+    "CS8625",  // Cannot convert null literal to non-nullable reference type
+    "CS8631",  // Nullability of type argument doesn't match constraint type
+    "CS8765",  // Nullability of type of parameter doesn't match overridden member
+    "CS8767"   // Nullability of reference types in parameter doesn't match implicitly implemented member
+ ],
  "MainMethod": "TestMain",
  "CheckMemoryLeaks": true,
  "IgnoreUserProfileLicenses": true,

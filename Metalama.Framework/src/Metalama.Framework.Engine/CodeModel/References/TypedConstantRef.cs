@@ -21,7 +21,9 @@ internal readonly struct TypedConstantRef
     // It's not necesseraly a IFulLRef since it could be deserialized.
     public IRef<IType>? Type { get; }
 
-    public TypedConstantRef( object? value, IRef<IType>? type )
+    public bool HasNullForgivingOperator { get; }
+
+    public TypedConstantRef( object? value, IRef<IType>? type, bool hasNullForgivingOperator = false )
     {
         if ( value is Array )
         {
@@ -30,6 +32,7 @@ internal readonly struct TypedConstantRef
 
         this.RawValue = value;
         this.Type = type;
+        this.HasNullForgivingOperator = hasNullForgivingOperator;
     }
 
     public TypedConstant ToTypedConstant( CompilationModel compilation )
@@ -43,9 +46,10 @@ internal readonly struct TypedConstantRef
 
         return this.RawValue switch
         {
-            null => TypedConstant.Default( type! ),
+            null => TypedConstant.Default( type!, this.HasNullForgivingOperator ),
             ImmutableArray<TypedConstantRef> array => TypedConstant.Create( array.SelectAsImmutableArray( x => x.ToTypedConstant( compilation ) ), type! ),
             IRef<IType> valueAsType => TypedConstant.Create( valueAsType.GetTarget( compilation ), type! ),
+            IRef<IField> valueAsField => TypedConstant.Create( valueAsField.GetTarget( compilation ) ),
             _ => TypedConstant.Create( this.RawValue, type! )
         };
     }

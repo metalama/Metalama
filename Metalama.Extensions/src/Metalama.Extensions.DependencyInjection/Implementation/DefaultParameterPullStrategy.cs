@@ -100,7 +100,7 @@ public class DefaultParameterPullStrategy : IParameterPullStrategy
             return PullAction.IntroduceParameterAndPull(
                 newParameter.Name,
                 newParameter.Type,
-                TypedConstant.Default( newParameter.Type ),
+                TypedConstant.Default( newParameter.Type, newParameter.Type.IsNullable == false ),
                 newParameter.Attributes );
         }
     }

@@ -90,9 +90,15 @@ internal sealed class ConstructedArrayType : ConstructedType, IArrayType
 
     public new IArrayType ToNullable() => this.IsNullable == true ? this : new ConstructedArrayType( this.Compilation, this._elementType, this.Rank, true );
 
-    public new IArrayType ToNonNullable() => this.IsNullable == false ? this : new ConstructedArrayType( this.Compilation, this._elementType, this.Rank );
+    public new IArrayType ToNonNullable()
+        => this.IsNullable == false ? this : new ConstructedArrayType( this.Compilation, this._elementType, this.Rank, false );
+
+    public new IArrayType StripNullabilityAnnotation()
+        => this.IsNullable == null ? this : new ConstructedArrayType( this.Compilation, this._elementType, this.Rank, null );
 
     protected override IType ToNullableCore() => this.ToNullable();
 
     protected override IType ToNonNullableCore() => this.ToNonNullable();
+
+    protected override IType StripNullabilityAnnotationCore() => this.StripNullabilityAnnotation();
 }

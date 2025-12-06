@@ -75,7 +75,7 @@ public string Prop132
 {
     get
     {
-        return (global::System.String)this._prop132.ToUpper();
+        return (global::System.String)this._prop132?.ToUpper();
     }
 
     set

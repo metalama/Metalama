@@ -14,7 +14,9 @@ internal class Aspect : ContractAspect
 {
     public override void Validate( dynamic? value )
     {
+        meta.InsertComment( "value?.ToString()" );
         value?.ToString();
+        meta.InsertComment( "value!.ToString()" );
         value!.ToString();
     }
 }
