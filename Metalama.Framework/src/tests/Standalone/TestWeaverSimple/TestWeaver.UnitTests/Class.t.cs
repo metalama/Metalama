@@ -30,7 +30,7 @@ namespace Metalama.Open.Virtuosity.TestApp
     // Transformed (should not be sealed).
     public override string ToString()
     {
-      return null;
+      return null!;
     }
     // Not transformed.
     public override int GetHashCode()
