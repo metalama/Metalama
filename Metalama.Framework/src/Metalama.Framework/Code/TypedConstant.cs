@@ -43,6 +43,12 @@ namespace Metalama.Framework.Code
         public bool IsInitialized => this._type != null;
 
         /// <summary>
+        /// Gets a value indicating whether the null-forgiving operator (<c>!</c>) should be appended when this <see cref="TypedConstant"/>
+        /// is rendered to code. Only applicable when <see cref="IsNullOrDefault"/> is <c>true</c>.
+        /// </summary>
+        public bool HasNullForgivingOperator { get; }
+
+        /// <summary>
         /// Gets the type of the value. This is important if the type is an enum, because in this case, if the enum type is not compile-time,
         /// <see cref="Value"/> is set to the underlying integer value.
         /// </summary>
@@ -124,8 +130,11 @@ namespace Metalama.Framework.Code
         /// </summary>
         /// <param name="value">The value (even <c>null</c>).</param>
         /// <param name="type">The type of the value.</param>
-        private TypedConstant( object? value, IType type ) : this()
+        /// <param name="hasNullForgivingOperator"></param>
+        private TypedConstant( object? value, IType type, bool hasNullForgivingOperator = false ) : this()
         {
+            this.HasNullForgivingOperator = hasNullForgivingOperator;
+
             if ( value != null )
             {
                 var valueType = value.GetType();
@@ -305,9 +314,29 @@ namespace Metalama.Framework.Code
 
         private static Type FixRuntimeType( Type type ) => type is not ICompileTimeType && typeof(Type).IsAssignableFrom( type ) ? typeof(Type) : type;
 
-        public static TypedConstant Default( IType type ) => new( null, type );
+        /// <summary>
+        /// Creates a <see cref="TypedConstant"/> representing the default value for the specified type.
+        /// When rendered to code, this produces <c>default(T)</c> or <c>default(T)!</c> if <paramref name="hasNullForgivingOperator"/> is <c>true</c>.
+        /// </summary>
+        /// <param name="type">The type for which to create a default value.</param>
+        /// <param name="hasNullForgivingOperator">
+        /// If <c>true</c>, the null-forgiving operator (<c>!</c>) will be appended to the rendered expression.
+        /// </param>
+        /// <returns>A <see cref="TypedConstant"/> representing <c>default(T)</c> or <c>default(T)!</c>.</returns>
+        /// <seealso cref="HasNullForgivingOperator"/>
+        public static TypedConstant Default( IType type, bool hasNullForgivingOperator = false ) => new( null, type, hasNullForgivingOperator );
 
-        public static TypedConstant Default( Type type ) => new( null, GetIType( type ) );
+        /// <summary>
+        /// Creates a <see cref="TypedConstant"/> representing the default value for the specified type.
+        /// When rendered to code, this produces <c>default(T)</c> or <c>default(T)!</c> if <paramref name="hasNullForgivingOperator"/> is <c>true</c>.
+        /// </summary>
+        /// <param name="type">The reflection <see cref="Type"/> for which to create a default value.</param>
+        /// <param name="hasNullForgivingOperator">
+        /// If <c>true</c>, the null-forgiving operator (<c>!</c>) will be appended to the rendered expression.
+        /// </param>
+        /// <returns>A <see cref="TypedConstant"/> representing <c>default(T)</c> or <c>default(T)!</c>.</returns>
+        /// <seealso cref="HasNullForgivingOperator"/>
+        public static TypedConstant Default( Type type, bool hasNullForgivingOperator = false ) => new( null, GetIType( type ), hasNullForgivingOperator );
 
         private static Type GetValueType( object? value )
             => value switch
@@ -347,6 +376,23 @@ namespace Metalama.Framework.Code
         }
 
         public static TypedConstant CreateUnchecked( object? value, IType type ) => new( value, type );
+
+        /// <summary>
+        /// Creates a <see cref="TypedConstant"/> that references a constant field. When rendered to code,
+        /// this produces a reference to the field (e.g., <c>MyClass.MyConstField</c>) instead of the literal value.
+        /// </summary>
+        /// <param name="field">A constant field, i.e., <see cref="IField.ConstantValue"/> must not be <c>null</c>.</param>
+        /// <returns>A <see cref="TypedConstant"/> representing the field reference.</returns>
+        /// <exception cref="ArgumentException">Thrown when <paramref name="field"/> is not a constant field.</exception>
+        public static TypedConstant Create( IField field )
+        {
+            if ( field.ConstantValue == null )
+            {
+                throw new ArgumentException( $"The field '{field}' must be a const field.", nameof(field) );
+            }
+
+            return new TypedConstant( field, field.Type );
+        }
 
         internal static TypedConstant UnwrapOrCreate( object? value, IType type )
             => value is TypedConstant typedConstant ? typedConstant : new TypedConstant( value, type );
@@ -420,7 +466,9 @@ namespace Metalama.Framework.Code
             {
                 return this._value switch
                 {
+                    null => Default( this.Type.ForCompilation( compilation ), this.HasNullForgivingOperator ),
                     IType type => Create( type.ForCompilation( compilation ), this.Type.ForCompilation( compilation ) ),
+                    IField field => Create( field.ForCompilation( compilation ) ),
                     ImmutableArray<TypedConstant> array => Create(
                         array.Select( i => i.ForCompilation( compilation ) ).ToImmutableArray(),
                         this.Type.ForCompilation( compilation ) ),
@@ -483,6 +531,9 @@ namespace Metalama.Framework.Code
                 case IType type:
                     return other._value is IType otherType && type.Equals( otherType );
 
+                case IField field:
+                    return other._value is IField otherField && field.Equals( otherField );
+
                 default:
                     return this._value.Equals( other._value );
             }
@@ -514,6 +565,9 @@ namespace Metalama.Framework.Code
 
                 case IType type:
                     return type.GetHashCode();
+
+                case IField field:
+                    return field.GetHashCode();
 
                 default:
                     return this._value.GetHashCode();

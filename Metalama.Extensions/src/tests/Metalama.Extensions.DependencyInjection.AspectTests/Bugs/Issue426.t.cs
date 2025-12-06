@@ -1,4 +1,3 @@
-// Warning CS8625 on `default`: `Cannot convert null literal to non-nullable reference type.`
 public class ClientWeb
 {
   public ClientWeb(object appSettings, bool throwOnError = true, [AspectGenerated] ILogger<ClientWeb> logger = default)

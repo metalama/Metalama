@@ -402,11 +402,35 @@ public sealed partial class ContextualSyntaxGenerator
         }
     }
 
+    private ExpressionSyntax FieldReference( IField field )
+    {
+        return
+            MemberAccessExpression(
+                    SyntaxKind.SimpleMemberAccessExpression,
+                    this.TypeSyntax( field.DeclaringType ),
+                    this.IdentifierName( field.Name ) )
+                .WithSimplifierAnnotationIfNecessary( this.SyntaxGenerationContext );
+    }
+
+    private ExpressionSyntax FieldReference( IFullRef<IField> fieldRef ) 
+        => this.FieldReference( fieldRef.Definition );
+
     internal ExpressionSyntax TypedConstant( in TypedConstant typedConstant )
     {
         if ( typedConstant.IsNullOrDefault )
         {
-            return this.DefaultExpression( typedConstant.Type );
+            var expression = this.DefaultExpression( typedConstant.Type );
+
+            if ( typedConstant.HasNullForgivingOperator )
+            {
+                expression = SyntaxFactory.PostfixUnaryExpression( SyntaxKind.SuppressNullableWarningExpression, expression );
+            }
+
+            return expression;
+        }
+        else if ( typedConstant.RawValue is IField field )
+        {
+            return this.FieldReference( field );
         }
         else if ( typedConstant.Type is INamedType { TypeKind: TypeKind.Enum } enumType )
         {
@@ -432,7 +456,18 @@ public sealed partial class ContextualSyntaxGenerator
 
         if ( typedConstant.RawValue == null )
         {
-            return this.DefaultExpression( type );
+            var expression = this.DefaultExpression( type );
+
+            if ( typedConstant.HasNullForgivingOperator )
+            {
+                expression = SyntaxFactory.PostfixUnaryExpression( SyntaxKind.SuppressNullableWarningExpression, expression );
+            }
+
+            return expression;
+        }
+        else if ( typedConstant.RawValue is IRef<IField> fieldRef )
+        {
+            return this.FieldReference( fieldRef.ToFullRef( refFactory ) );
         }
         else if ( type?.Definition is INamedType { TypeKind: TypeKind.Enum } enumType )
         {
