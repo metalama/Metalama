@@ -1287,6 +1287,10 @@ public static class AdviserExtensions
     /// <returns>An <see cref="IAddContractAdviceResult{T}"/> exposing the added contract.</returns>
     /// <remarks>
     /// <para>
+    /// <b>Template Access:</b> Within the template, use <c>meta.Target.Expression</c> for unified access to the target as an <see cref="IExpression"/>,
+    /// <c>meta.Target.Parameter</c> for parameter-specific access, and <c>meta.Target.ContractDirection</c> to determine whether you're validating input or output.
+    /// </para>
+    /// <para>
     /// <b>Performance Note:</b> When possible, provide all contracts to the same method from a single aspect. This approach yields better compile-time performance than using several separate aspects.
     /// </para>
     /// <para>
@@ -1295,6 +1299,7 @@ public static class AdviserExtensions
     /// </para>
     /// </remarks>
     /// <seealso cref="ContractAspect"/>
+    /// <seealso cref="IMetaTarget.Expression"/>
     /// <seealso href="@contracts"/>
     /// <seealso href="@contract-patterns"/>
     /// <seealso href="@sharing-state-with-advice"/>
@@ -1325,6 +1330,10 @@ public static class AdviserExtensions
     /// <returns>An <see cref="IAddContractAdviceResult{T}"/> exposing the added contract.</returns>
     /// <remarks>
     /// <para>
+    /// <b>Template Access:</b> Within the template, use <c>meta.Target.Expression</c> for unified access to the target as an <see cref="IExpression"/>,
+    /// <c>meta.Target.FieldOrProperty</c> for field/property-specific access, and <c>meta.Target.ContractDirection</c> to determine whether you're validating input or output.
+    /// </para>
+    /// <para>
     /// <b>Performance Note:</b> When possible, provide all contracts to the same method from a single aspect. This approach yields better compile-time performance than using several separate aspects.
     /// </para>
     /// <para>
@@ -1333,6 +1342,7 @@ public static class AdviserExtensions
     /// </para>
     /// </remarks>
     /// <seealso cref="ContractAspect"/>
+    /// <seealso cref="IMetaTarget.Expression"/>
     /// <seealso href="@contracts"/>
     /// <seealso href="@contract-patterns"/>
     /// <seealso href="@sharing-state-with-advice"/>

@@ -79,6 +79,9 @@ namespace Metalama.Framework.Engine.Templating.MetaModel
 
         public IDeclaration Declaration { get; }
 
+        public IExpression Expression
+            => this.Declaration as IExpression ?? throw this.CreateInvalidOperationException( nameof(this.Expression) );
+
         public IDeclaration DiagnosticDeclaration
         {
             get

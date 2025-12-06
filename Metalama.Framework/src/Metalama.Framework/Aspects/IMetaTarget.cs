@@ -75,6 +75,21 @@ namespace Metalama.Framework.Aspects
         IDeclaration Declaration { get; }
 
         /// <summary>
+        /// Gets the target field, property, or parameter as a unified <see cref="IExpression"/>,
+        /// or throws an exception if the declaration does not implement <see cref="IExpression"/>.
+        /// </summary>
+        /// <remarks>
+        /// This property is useful when authoring contract templates because it provides unified access to <see cref="IField"/>, <see cref="IProperty"/>, and <see cref="IParameter"/>
+        /// as an <see cref="IExpression"/>.
+        /// </remarks>
+        /// <seealso cref="Field"/>
+        /// <seealso cref="FieldOrProperty"/>
+        /// <seealso cref="Parameter"/>
+        /// <seealso cref="IExpression"/>
+        /// <seealso href="@templates"/>
+        IExpression Expression { get; }
+
+        /// <summary>
         /// Gets the target member (method, constructor, field, property or event, but not a nested type), or
         /// throws an exception if the advice does not target a member.
         /// </summary>
