@@ -1,6 +1,6 @@
 public class ClientWeb
 {
-  public ClientWeb(object appSettings, bool throwOnError = true, [AspectGenerated] ILogger<ClientWeb> logger = default)
+  public ClientWeb(object appSettings, bool throwOnError = true, [AspectGenerated] ILogger<ClientWeb> logger = default !)
   {
     this._logger = logger ?? throw new System.ArgumentNullException(nameof(logger));
   }

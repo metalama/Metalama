@@ -536,7 +536,7 @@ namespace Metalama.Framework.Engine.Templating
             // We never remove the ?. for reference types or Nullable<T> because it changes the semantics.
             // However, remove it for value types that are not Nullable<T>.
             if ( TypeAnnotationMapper.TryFindExpressionTypeFromAnnotation( expression, this.SyntaxSerializationContext.CompilationModel, out var type )
-                 && (type.IsReferenceType == false && !(type is INamedType { IsGeneric: true, Definition.SpecialType: SpecialType.Nullable_T })) )
+                 && type.IsReferenceType == false && type is not INamedType { IsGeneric: true, Definition.SpecialType: SpecialType.Nullable_T } )
             {
                 return (ExpressionSyntax) new RemoveConditionalAccessRewriter( expression ).Visit( whenNotNullExpression )!;
             }
