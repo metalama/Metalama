@@ -47,7 +47,16 @@ Examples:
      - Add the `breaking` label to both the PR and the issue
 
 4. Create PR targeting `develop/YYYY.N` (NOT the default branch)
-5. Include `Closes #XXXX` or `Fixes #XXXX` in PR body for issue linking
+5. PR body format:
+   - Summary section with bullet points describing key changes
+   - Breaking Changes section (if applicable) listing new interface members or behavioral changes
+   - **NO test plan section** - tests are verified through CI
+   - Issues Fixed section: List ALL issues with one-line descriptions, e.g.:
+     ```
+     ## Issues Fixed
+     - #1226 - Test framework: WriteInputHtml produces empty file for some tests
+     - #1232 - Enhance nullability handling in type system API
+     ```
 
 ### After Creating a PR - Checklist
 

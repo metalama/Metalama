@@ -36,7 +36,9 @@
       "Bash(gh repo view:*)",
       "Bash(gh api:*)",
       "Bash(gh release view:*)",
-      "Bash(gh issue:*)"
+      "Bash(gh issue:*)",
+      "Bash(dotnet msbuild:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []

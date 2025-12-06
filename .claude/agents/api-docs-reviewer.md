@@ -94,6 +94,9 @@ Based on [Microsoft Style Guide for Developer Content](https://learn.microsoft.c
 - Use vague phrases like "This method does something"
 - Include internal implementation details
 - Write long code examples - keep them in conceptual docs instead
+- Explain concepts C# developers already know (e.g., what a null-forgiving operator does, what default values are)
+- Document benefits or use cases that are obvious from the API name and signature
+- Add verbose remarks explaining "when to use" for straightforward APIs
 
 ## Workflow
 
