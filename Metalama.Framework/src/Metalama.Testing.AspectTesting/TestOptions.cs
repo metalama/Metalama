@@ -193,12 +193,6 @@ public class TestOptions
     public string? OutputAssemblyType { get; set; }
 
     /// <summary>
-    /// Gets or sets a value indicating whether the test should be executed even if the input compilation has errors.
-    /// To enable this option in a test, add this comment to your test file: <c>// @AcceptInvalidInput</c>.
-    /// </summary>
-    public bool? AcceptInvalidInput { get; set; }
-
-    /// <summary>
     /// Gets the set of preprocessor symbols that are required for this test, otherwise the test would be skipped.
     /// To add an item into this collection from a test, add this comment to your test file: <c>// @RequiredConstant(constant)</c>.
     /// </summary>
@@ -422,8 +416,6 @@ public class TestOptions
 
         this.OutputAssemblyType ??= baseOptions.OutputAssemblyType;
 
-        this.AcceptInvalidInput ??= baseOptions.AcceptInvalidInput;
-
         this.TestScenario ??= baseOptions.TestScenario;
 
         this.TargetSyntaxTreeSuffix ??= baseOptions.TargetSyntaxTreeSuffix;
@@ -615,11 +607,6 @@ public class TestOptions
 
                 case "AllowCompileTimeDynamicCode":
                     this.AllowCompileTimeDynamicCode = true;
-
-                    break;
-
-                case "AcceptInvalidInput":
-                    this.AcceptInvalidInput = true;
 
                     break;
 

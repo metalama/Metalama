@@ -25,7 +25,7 @@ using System.Threading.Tasks;
 
 namespace Metalama.Testing.AspectTesting;
 
-internal enum DiagnosticOrigin { InputCompilation, OutputCompilation, Pipeline };
+internal enum DiagnosticOrigin { OutputCompilation, Pipeline, Dependency };
 
 /// <summary>
 /// Represents the result of a test run.
@@ -41,13 +41,13 @@ internal class TestResult : IDisposable
 
     public TestInput? TestInput { get; set; }
 
-    public IDiagnosticBag InputCompilationDiagnostics { get; } = new DiagnosticBag();
-
     public IDiagnosticBag OutputCompilationDiagnostics { get; } = new DiagnosticBag();
 
     public IDiagnosticBag CompileTimeCompilationDiagnostics { get; } = new DiagnosticBag();
 
     public IDiagnosticBag PipelineDiagnostics { get; } = new DiagnosticBag();
+
+    public IDiagnosticBag DependencyDiagnostics { get; } = new DiagnosticBag();
 
     public bool ShouldDiagnosticBeReported( Diagnostic diagnostic ) => this.ShouldDiagnosticBeReported( diagnostic, this.DiagnosticSuppressions );
 
@@ -103,8 +103,11 @@ internal class TestResult : IDisposable
             var allDiagnostics = this.OutputCompilationDiagnostics
                 .Select( d => (d, DiagnosticOrigin.OutputCompilation) )
                 .Concat( this.PipelineDiagnostics.Select( d => (d, DiagnosticOrigin.Pipeline) ) )
-                .Concat( this.InputCompilationDiagnostics.Select( d => (d, DiagnosticOrigin.InputCompilation) ) )
-                .Where( d => this.ShouldDiagnosticBeReported( d.Item1 ) );
+                .Concat( this.DependencyDiagnostics.Select( d => (d, DiagnosticOrigin.Dependency) ) )
+                .Where( d => this.ShouldDiagnosticBeReported( d.Item1 ) )
+                .GroupBy(
+                    d => (d.Item1.Id, d.Item1.GetMessage( CultureInfo.InvariantCulture ), d.Item1.Location.SourceTree?.FilePath, d.Item1.Location.SourceSpan) )
+                .Select( g => g.OrderBy( g => g.Item2 ).First() );
 
             return allDiagnostics;
         }
@@ -678,9 +681,9 @@ internal class TestResult : IDisposable
 
         // Diagnostics and suppressions may have reference to declarations, and must be collected too.
         this.PipelineDiagnostics.Clear();
-        this.InputCompilationDiagnostics.Clear();
         this.OutputCompilationDiagnostics.Clear();
         this.CompileTimeCompilationDiagnostics.Clear();
+        this.DependencyDiagnostics.Clear();
         this._diagnosticSuppressions = null!;
 
         this.TestContext?.Dispose();

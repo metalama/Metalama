@@ -1,5 +1,5 @@
 {
-  "TestRunnerFactoryType": "Metalama.Framework.Tests.AspectTests.Runners.HighlightingTestRunnerFactory",
+  "TestRunnerFactoryType": "Metalama.Testing.AspectTesting.HtmlGenerationTestRunnerFactory, Metalama.Testing.AspectTesting",
   "WriteInputHtml": false,
   "WriteOutputHtml": true
 }

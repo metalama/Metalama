@@ -49,10 +49,6 @@ internal class AspectTestRunner : BaseTestRunner
         ITestOutputHelper? logger = null )
         : base( serviceProvider, projectDirectory, references, logger ) { }
 
-    // We don't want the base class to report errors in the input compilation because the pipeline does.
-
-    private protected override bool ShouldStopOnInvalidInput( TestOptions testOptions ) => false;
-
     /// <summary>
     /// Runs the aspect test with the given name and source.
     /// </summary>
@@ -547,7 +543,7 @@ internal class AspectTestRunner : BaseTestRunner
         }
 
 #if DEBUG
-        if ( testInput.Options.AcceptInvalidInput != true && testResult.IntermediateLinkerCompilation != null )
+        if ( testResult.IntermediateLinkerCompilation != null )
         {
             // The following is useful when debugging weird linker problems.
             // Linker should never produce invalid compilation by itself, but usually recovers quite well.

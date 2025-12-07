@@ -200,7 +200,8 @@ public class CompileTimeAspectPipeline : AspectPipeline
                     this.ServiceProvider,
                     compilationWithDesignTimeTrees,
                     resultPartialCompilation,
-                    result.Value.Diagnostics.ReportedDiagnostics );
+                    result.Value.Diagnostics.ReportedDiagnostics,
+                    result.Value.Diagnostics.DiagnosticSuppressions );
             }
 
             // Add managed resources.

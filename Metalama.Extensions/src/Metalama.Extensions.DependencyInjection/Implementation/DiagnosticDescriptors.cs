@@ -44,5 +44,7 @@ internal static class DiagnosticDescriptors
 
     internal static readonly SuppressionDefinition FieldIsNeverUsed = new( "CS0169" );
 
+    internal static readonly SuppressionDefinition FieldIsNeverAssigned = new( "CS0649" );
+
     internal static readonly SuppressionDefinition PrivateMemberIsUnused = new( "IDE0051" );
 }
