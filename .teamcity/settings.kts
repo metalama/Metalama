@@ -82,6 +82,8 @@ object DebugBuild : BuildType({
                 token = "%env.GITHUB_TOKEN%"
             }
         }
+        perfmon {
+        }
     }
 pullRequests {
        vcsRootExtId = "Metalama_Metalama20260_Metalama"
@@ -182,6 +184,8 @@ object ReleaseBuild : BuildType({
                 token = "%env.GITHUB_TOKEN%"
             }
         }
+        perfmon {
+        }
     }
 pullRequests {
        vcsRootExtId = "Metalama_Metalama20260_Metalama"
@@ -270,6 +274,8 @@ object PublicBuild : BuildType({
             authType = personalToken {
                 token = "%env.GITHUB_TOKEN%"
             }
+        }
+        perfmon {
         }
     }
 pullRequests {
