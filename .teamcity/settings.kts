@@ -92,9 +92,9 @@ pullRequests {
            filterTargetBranch = "+:refs/heads/develop/2026.0"
            filterAuthorRole = PullRequests.GitHubRoleFilter.EVERYBODY
        }
+   }
        perfmon {
        }
-   }
 
 
     }
@@ -194,9 +194,9 @@ pullRequests {
            filterTargetBranch = "+:refs/heads/develop/2026.0"
            filterAuthorRole = PullRequests.GitHubRoleFilter.EVERYBODY
        }
+   }
        perfmon {
        }
-   }
 
 
     }
@@ -285,9 +285,9 @@ pullRequests {
            filterTargetBranch = "+:refs/heads/develop/2026.0"
            filterAuthorRole = PullRequests.GitHubRoleFilter.EVERYBODY
        }
+   }
        perfmon {
        }
-   }
 
 
     }
