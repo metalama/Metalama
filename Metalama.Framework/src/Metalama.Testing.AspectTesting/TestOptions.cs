@@ -18,7 +18,7 @@ using System.Text.RegularExpressions;
 namespace Metalama.Testing.AspectTesting;
 
 /// <summary>
-/// A set of test options that control how aspect tests are executed and validated.
+/// A set of test options that control how snapshot tests are executed and validated.
 /// </summary>
 /// <remarks>
 /// <para>

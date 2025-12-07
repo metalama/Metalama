@@ -14,7 +14,7 @@ using Xunit.Sdk;
 namespace Metalama.Testing.AspectTesting
 {
     /// <summary>
-    /// An xUnit data attribute that generates test cases from all aspect test files in the current project.
+    /// An xUnit data attribute that generates test cases from all snapshot test files in the current project.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -38,7 +38,7 @@ namespace Metalama.Testing.AspectTesting
     /// <seealso cref="TestOptions"/>
     /// <seealso href="@aspect-testing"/>
     [PublicAPI]
-    [Obsolete( "This class is obsolete. Use the default aspect test project setup provided by Metalama.Testing.AspectTesting instead." )]
+    [Obsolete( "This class is obsolete. Use the default snapshot test project setup provided by Metalama.Testing.AspectTesting instead." )]
     public sealed class CurrentProjectAttribute : DataAttribute
     {
         public override IEnumerable<object[]> GetData( MethodInfo testMethod )

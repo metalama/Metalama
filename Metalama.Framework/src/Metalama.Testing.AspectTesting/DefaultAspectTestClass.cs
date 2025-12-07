@@ -11,7 +11,7 @@ using Xunit.Sdk;
 namespace Metalama.Testing.AspectTesting
 {
     /// <summary>
-    /// A base class for aspect test suites that automatically discover test files in the project's source directory.
+    /// A base class for snapshot test suites that automatically discover test files in the project's source directory.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -27,7 +27,7 @@ namespace Metalama.Testing.AspectTesting
     /// <seealso cref="CurrentProjectAttribute"/>
     /// <seealso href="@aspect-testing"/>
     [PublicAPI]
-    [Obsolete( "This class is obsolete. Use the default aspect test project setup provided by Metalama.Testing.AspectTesting instead." )]
+    [Obsolete( "This class is obsolete. Use the default snapshot test project setup provided by Metalama.Testing.AspectTesting instead." )]
     public abstract class DefaultAspectTestClass : AspectTestClass
     {
         protected DefaultAspectTestClass( ITestOutputHelper logger ) : base( logger ) { }
