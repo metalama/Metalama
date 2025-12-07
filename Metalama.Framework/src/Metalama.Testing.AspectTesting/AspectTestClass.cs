@@ -23,11 +23,11 @@ using Xunit.Sdk;
 namespace Metalama.Testing.AspectTesting;
 
 /// <summary>
-/// A base class for xUnit test classes that test Metalama aspects.
+/// A base class for xUnit test classes that run snapshot tests of Metalama aspects.
 /// </summary>
 /// <remarks>
 /// <para>
-/// This class provides infrastructure for running aspect tests using xUnit. Test methods must follow these conventions:
+/// This class provides infrastructure for running snapshot tests using xUnit. Test methods must follow these conventions:
 /// <list type="bullet">
 /// <item>Annotate with both <c>[Theory]</c> and <see cref="CurrentDirectoryAttribute"/></item>
 /// <item>Have a single parameter accepting the relative path of the test file</item>
@@ -42,7 +42,7 @@ namespace Metalama.Testing.AspectTesting;
 /// <seealso cref="TestOptions"/>
 /// <seealso cref="CurrentDirectoryAttribute"/>
 /// <seealso href="@aspect-testing"/>
-[Obsolete( "This class is obsolete. Use the default aspect test project setup provided by Metalama.Testing.AspectTesting instead." )]
+[Obsolete( "This class is obsolete. Use the default snapshot test project setup provided by Metalama.Testing.AspectTesting instead." )]
 public abstract class AspectTestClass
 {
     static AspectTestClass()

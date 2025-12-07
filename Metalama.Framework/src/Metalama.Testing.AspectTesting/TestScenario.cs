@@ -7,7 +7,7 @@ using JetBrains.Annotations;
 namespace Metalama.Testing.AspectTesting
 {
     /// <summary>
-    /// Specifies the scenario to simulate when running an aspect test.
+    /// Specifies the scenario to simulate when running a snapshot test.
     /// </summary>
     /// <remarks>
     /// <para>

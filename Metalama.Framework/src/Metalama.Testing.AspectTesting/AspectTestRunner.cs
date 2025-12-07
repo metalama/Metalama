@@ -32,7 +32,7 @@ using SpecialType = Metalama.Framework.Code.SpecialType;
 namespace Metalama.Testing.AspectTesting;
 
 /// <summary>
-/// Executes aspect integration tests by running the full aspect pipeline on the input source file.
+/// Executes snapshot tests by running the full aspect pipeline on the input source file.
 /// </summary>
 internal class AspectTestRunner : BaseTestRunner
 {
@@ -50,7 +50,7 @@ internal class AspectTestRunner : BaseTestRunner
         : base( serviceProvider, projectDirectory, references, logger ) { }
 
     /// <summary>
-    /// Runs the aspect test with the given name and source.
+    /// Runs the snapshot test with the given name and source.
     /// </summary>
     /// <returns>The result of the test execution.</returns>
     protected override async Task RunAsync(
