@@ -302,7 +302,7 @@ namespace Metalama.Framework.Engine.Linking
                                 .AssertNotNull()
                                 .GetCanonicalDefinition();
 
-                        var delegateType = targetEvent.Type.AssertNotNull();
+                        var delegateType = targetEvent.Type.AssertNotNull().StripNullabilityAnnotation();
                         var invokeMethod = delegateType.Methods.OfName( "Invoke" ).Single();
 
                         var raiseMethodName =

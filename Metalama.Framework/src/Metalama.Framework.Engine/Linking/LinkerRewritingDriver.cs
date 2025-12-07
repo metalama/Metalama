@@ -817,7 +817,8 @@ internal sealed partial class LinkerRewritingDriver
                             VariableDeclarator(
                                 Identifier( staticDelegateField.FieldName ),
                                 null,
-                                EqualsValueClause( staticDelegateField.InitializeExpressionFunc( syntaxGenerationContext ) ) ) ) ) ) );
+                                EqualsValueClause( staticDelegateField.InitializeExpressionFunc( syntaxGenerationContext ) ) ) ) ) )
+                    .WithGeneratedCodeAnnotation( FormattingAnnotations.SystemGeneratedCodeAnnotation ) );
         }
 
         return sharedMembers;
