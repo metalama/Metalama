@@ -104,7 +104,10 @@ internal class TestResult : IDisposable
                 .Select( d => (d, DiagnosticOrigin.OutputCompilation) )
                 .Concat( this.PipelineDiagnostics.Select( d => (d, DiagnosticOrigin.Pipeline) ) )
                 .Concat( this.DependencyDiagnostics.Select( d => (d, DiagnosticOrigin.Dependency) ) )
-                .Where( d => this.ShouldDiagnosticBeReported( d.Item1 ) );
+                .Where( d => this.ShouldDiagnosticBeReported( d.Item1 ) )
+                .GroupBy(
+                    d => (d.Item1.Id, d.Item1.GetMessage( CultureInfo.InvariantCulture ), d.Item1.Location.SourceTree?.FilePath, d.Item1.Location.SourceSpan) )
+                .Select( g => g.OrderBy( g => g.Item2 ).First() );
 
             return allDiagnostics;
         }
