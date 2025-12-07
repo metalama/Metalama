@@ -93,6 +93,35 @@ function New-EnvJson
     return $jsonPath
 }
 
+# Function to convert Windows paths for Docker container mounting
+# Remaps any non-C drive (D-Z) to C:\mnt\<drive>
+function ConvertTo-ContainerPath
+{
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$HostPath
+    )
+
+    # Normalize path separators to backslash
+    $normalizedPath = $HostPath -replace '/', '\'
+
+    # Match any drive letter except C: (D-Z, case insensitive)
+    if ($normalizedPath -match '^([D-Zd-z]):\\(.*)$')
+    {
+        $driveLetter = $Matches[1].ToLower()
+        $pathWithoutDrive = $Matches[2]
+
+        # Remap to C:\mnt\<drive>\<path>
+        $containerPath = "C:\mnt\$driveLetter\$pathWithoutDrive"
+
+        Write-Host "Remapping container path: $HostPath -> $containerPath" -ForegroundColor DarkGray
+        return $containerPath
+    }
+
+    # C: drive remains unchanged
+    return $normalizedPath
+}
+
 if ($env:RUNNING_IN_DOCKER)
 {
     Write-Error "Already running in Docker."
@@ -263,6 +292,38 @@ if (Test-Path $dockerMountsScript)
 {
     Write-Host "Importing Docker mount points from $dockerMountsScript" -ForegroundColor Cyan
     . $dockerMountsScript
+}
+
+# Post-process volume mappings to remap non-C drives (Windows only)
+if ($env:OS -eq "Windows_NT")
+{
+    Write-Host "Post-processing volume mappings for drive remapping..." -ForegroundColor Cyan
+
+    # Process $VolumeMappings array - convert container-side paths
+    $VolumeMappings = $VolumeMappings | ForEach-Object {
+        if ($_ -eq "-v")
+        {
+            "-v"
+        }
+        elseif ($_ -match '^(.+?):(.+?)(:.*)?$')
+        {
+            # Parse "host:container" or "host:container:options"
+            $hostPath = $Matches[1]
+            $containerPath = $Matches[2]
+            $options = $Matches[3]
+            $convertedContainer = ConvertTo-ContainerPath -HostPath $containerPath
+            "${hostPath}:${convertedContainer}${options}"
+        }
+        else
+        {
+            $_
+        }
+    }
+
+    # Process $MountPoints, $GitDirectories, and working directory
+    $MountPoints = $MountPoints | ForEach-Object { ConvertTo-ContainerPath -HostPath $_ }
+    $GitDirectories = $GitDirectories | ForEach-Object { ConvertTo-ContainerPath -HostPath $_ }
+    $SourceDirName = ConvertTo-ContainerPath -HostPath $SourceDirName
 }
 
 $mountPointsAsString = $MountPoints -Join ";"
