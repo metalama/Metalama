@@ -82,8 +82,6 @@ object DebugBuild : BuildType({
                 token = "%env.GITHUB_TOKEN%"
             }
         }
-        perfmon {
-        }
     }
 pullRequests {
        vcsRootExtId = "Metalama_Metalama20260_Metalama"
@@ -93,6 +91,8 @@ pullRequests {
             }
            filterTargetBranch = "+:refs/heads/develop/2026.0"
            filterAuthorRole = PullRequests.GitHubRoleFilter.EVERYBODY
+       }
+       perfmon {
        }
    }
 
@@ -184,8 +184,6 @@ object ReleaseBuild : BuildType({
                 token = "%env.GITHUB_TOKEN%"
             }
         }
-        perfmon {
-        }
     }
 pullRequests {
        vcsRootExtId = "Metalama_Metalama20260_Metalama"
@@ -195,6 +193,8 @@ pullRequests {
             }
            filterTargetBranch = "+:refs/heads/develop/2026.0"
            filterAuthorRole = PullRequests.GitHubRoleFilter.EVERYBODY
+       }
+       perfmon {
        }
    }
 
@@ -275,8 +275,6 @@ object PublicBuild : BuildType({
                 token = "%env.GITHUB_TOKEN%"
             }
         }
-        perfmon {
-        }
     }
 pullRequests {
        vcsRootExtId = "Metalama_Metalama20260_Metalama"
@@ -286,6 +284,8 @@ pullRequests {
             }
            filterTargetBranch = "+:refs/heads/develop/2026.0"
            filterAuthorRole = PullRequests.GitHubRoleFilter.EVERYBODY
+       }
+       perfmon {
        }
    }
 
