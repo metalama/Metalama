@@ -305,9 +305,9 @@ if ($env:OS -eq "Windows_NT")
         {
             "-v"
         }
-        elseif ($_ -match '^(.+?):(.+?)(:.*)?$')
+        elseif ($_ -match '^([A-Za-z]:[^:]+):([A-Za-z]:[^:]+)(:.+)?$')
         {
-            # Parse "host:container" or "host:container:options"
+            # Parse "host:container" or "host:container:options" for Windows paths
             $hostPath = $Matches[1]
             $containerPath = $Matches[2]
             $options = $Matches[3]
