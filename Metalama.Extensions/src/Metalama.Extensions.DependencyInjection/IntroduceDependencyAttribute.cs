@@ -49,6 +49,7 @@ public class IntroduceDependencyAttribute : DeclarativeAdviceAttribute
     {
         // Suppress warnings on the aspect field.
         builder.Diagnostics.Suppress( DiagnosticDescriptors.NonNullableFieldMustContainValue, templateMember );
+        builder.Diagnostics.Suppress( DiagnosticDescriptors.FieldIsNeverAssigned, templateMember );
         builder.Diagnostics.Suppress( DiagnosticDescriptors.PrivateMemberIsUnused, templateMember );
 
         var templateFieldOrProperty = (IFieldOrProperty) templateMember;

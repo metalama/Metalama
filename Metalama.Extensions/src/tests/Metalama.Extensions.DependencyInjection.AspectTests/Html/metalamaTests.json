@@ -1,5 +1,6 @@
 {
   "TestRunnerFactoryType": "Metalama.Testing.AspectTesting.HtmlGenerationTestRunnerFactory, Metalama.Testing.AspectTesting",
   "WriteInputHtml": true,
-  "WriteOutputHtml": true
+  "WriteOutputHtml": false,
+  "FormatOutput": true
 }

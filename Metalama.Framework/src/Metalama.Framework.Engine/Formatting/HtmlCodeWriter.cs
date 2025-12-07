@@ -6,6 +6,7 @@ using DiffPlex.DiffBuilder;
 using DiffPlex.DiffBuilder.Model;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.Collections;
+using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities;
@@ -447,6 +448,7 @@ public sealed class HtmlCodeWriter : FormattedCodeWriter
         Func<string, FileDiffInfo?>? getDiffInfo = null,
         bool includeDiagnostics = false,
         IEnumerable<Diagnostic>? additionalDiagnostics = null,
+        ImmutableArray<ScopedSuppression> suppressions = default,
         CancellationToken cancellationToken = default )
     {
         var compilation = partialCompilation.Compilation;
@@ -457,13 +459,24 @@ public sealed class HtmlCodeWriter : FormattedCodeWriter
         {
             additionalDiagnostics ??= [];
 
-            diagnosticsBySyntaxTree = additionalDiagnostics.Concat( compilation.GetDiagnostics() )
+            var allDiagnostics = additionalDiagnostics.Concat( compilation.GetDiagnostics() );
+
+            // Filter out suppressed diagnostics.
+            if ( !suppressions.IsDefaultOrEmpty )
+            {
+                allDiagnostics = allDiagnostics.Where( d => !IsSuppressed( d, suppressions, compilation ) );
+            }
+
+            diagnosticsBySyntaxTree = allDiagnostics
                 .ToMultiValueDictionary( d => d.Location.SourceTree?.FilePath ?? "", d => d );
         }
         else
         {
             diagnosticsBySyntaxTree = null;
         }
+
+        static bool IsSuppressed( Diagnostic diagnostic, ImmutableArray<ScopedSuppression> suppressions, Compilation compilation )
+            => suppressions.Any( s => s.Matches( diagnostic, compilation, filter => filter() ) );
 
         var writer = new HtmlCodeWriter( serviceProvider, new HtmlCodeWriterOptions( true ) );
 
@@ -553,6 +566,7 @@ public sealed class HtmlCodeWriter : FormattedCodeWriter
         PartialCompilation inputCompilation,
         PartialCompilation outputCompilation,
         IEnumerable<Diagnostic>? additionalDiagnostics = null,
+        ImmutableArray<ScopedSuppression> suppressions = default,
         CancellationToken cancellationToken = default )
     {
         await WriteAllAsync(
@@ -563,6 +577,7 @@ public sealed class HtmlCodeWriter : FormattedCodeWriter
             p => GetDiffInfoForPath( p, true ),
             true,
             additionalDiagnostics,
+            suppressions,
             cancellationToken );
 
         await WriteAllAsync(

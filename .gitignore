@@ -63,4 +63,4 @@ nuget.config
 global.json
 **/.idea/workspace.xml
 **/.idea/copilot.data.*.xml
-CLAUDE-TODO.md
+*-TODO.md
