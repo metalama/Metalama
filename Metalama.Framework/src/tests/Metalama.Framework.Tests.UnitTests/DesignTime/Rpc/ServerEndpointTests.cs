@@ -4,11 +4,7 @@
 
 #pragma warning disable VSTHRD003 // Avoid awaiting foreign Tasks - acceptable in test code
 
-using Metalama.Framework.DesignTime.Rpc;
-using Metalama.Framework.DesignTime.VisualStudio.Rpc;
-using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities.Threading;
-using Metalama.Testing.UnitTesting;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -21,22 +17,9 @@ namespace Metalama.Framework.Tests.UnitTests.DesignTime.Rpc;
 /// Tests for <c>ServerEndpoint.AcceptNewClientAsync</c> and related functionality.
 /// These tests verify correct handling of multiple clients, disconnections, and disposal scenarios.
 /// </summary>
-public sealed partial class ServerEndpointTests : UnitTestClass
+public sealed partial class ServerEndpointTests : RpcUnitTestClass
 {
     public ServerEndpointTests( ITestOutputHelper logger ) : base( logger ) { }
-
-    private static IAdditionalServiceCollection CreateAdditionalServices( TestSynchronizationProvider? syncProvider = null )
-    {
-        var additionalServices = new AdditionalServiceCollection();
-        additionalServices.AddUntypedGlobalService( typeof(IJsonSerializationBinderProvider), new JsonSerializationBinderProvider() );
-
-        if ( syncProvider != null )
-        {
-            additionalServices.AddUntypedGlobalService( typeof(ITestSynchronizationProvider), syncProvider );
-        }
-
-        return additionalServices;
-    }
 
     /// <summary>
     /// Tests that multiple clients connecting simultaneously are all served correctly.
@@ -45,14 +28,12 @@ public sealed partial class ServerEndpointTests : UnitTestClass
     [Fact]
     public async Task AcceptNewClientAsync_MultipleClientsConnectSimultaneously_AllServed()
     {
-        using var testContext = this.CreateTestContext( CreateAdditionalServices() );
-
-        var serviceProvider = testContext.ServiceProvider.Global.Underlying;
+        using var testContext = this.CreateRpcTestContext();
 
         var pipeName = $"{nameof(ServerEndpointTests)}_{Guid.NewGuid()}";
 
         // Start the server.
-        using var serverEndpoint = new TestServerEndpoint( serviceProvider, pipeName );
+        using var serverEndpoint = new TestServerEndpoint( testContext.ServiceProvider, pipeName );
 
         // Track how many clients have connected on the server side.
         const int clientCount = 3;
@@ -77,7 +58,7 @@ public sealed partial class ServerEndpointTests : UnitTestClass
         {
             for ( var i = 0; i < clientCount; i++ )
             {
-                clients[i] = new TestClientEndpoint( serviceProvider, pipeName );
+                clients[i] = new TestClientEndpoint( testContext.ServiceProvider, pipeName );
                 connectTasks[i] = clients[i].ConnectAsync( testContext.CancellationToken );
             }
 
@@ -112,14 +93,12 @@ public sealed partial class ServerEndpointTests : UnitTestClass
     [Fact]
     public async Task AcceptNewClientAsync_ServiceDisposedDuringAccept_Handled()
     {
-        using var testContext = this.CreateTestContext( CreateAdditionalServices() );
-
-        var serviceProvider = testContext.ServiceProvider.Global.Underlying;
+        using var testContext = this.CreateRpcTestContext();
 
         var pipeName = $"{nameof(ServerEndpointTests)}_{Guid.NewGuid()}";
 
         // Start the server - but don't connect any clients.
-        var serverEndpoint = new TestServerEndpoint( serviceProvider, pipeName );
+        var serverEndpoint = new TestServerEndpoint( testContext.ServiceProvider, pipeName );
         serverEndpoint.Start();
 
         // Server is now waiting for a client connection.
@@ -140,13 +119,11 @@ public sealed partial class ServerEndpointTests : UnitTestClass
     [Fact]
     public async Task AcceptNewClientAsync_ClientConnects_ClientConnectedEventRaised()
     {
-        using var testContext = this.CreateTestContext( CreateAdditionalServices() );
-
-        var serviceProvider = testContext.ServiceProvider.Global.Underlying;
+        using var testContext = this.CreateRpcTestContext();
 
         var pipeName = $"{nameof(ServerEndpointTests)}_{Guid.NewGuid()}";
 
-        using var serverEndpoint = new TestServerEndpoint( serviceProvider, pipeName );
+        using var serverEndpoint = new TestServerEndpoint( testContext.ServiceProvider, pipeName );
 
         var eventRaised = new TaskCompletionSource<bool>();
         serverEndpoint.ClientConnected += () => eventRaised.TrySetResult( true );
@@ -154,7 +131,7 @@ public sealed partial class ServerEndpointTests : UnitTestClass
         serverEndpoint.Start();
 
         // Connect a client.
-        using var client = new TestClientEndpoint( serviceProvider, pipeName );
+        using var client = new TestClientEndpoint( testContext.ServiceProvider, pipeName );
         await client.ConnectAsync( testContext.CancellationToken );
 
         // Wait for the event to be raised.
@@ -170,13 +147,11 @@ public sealed partial class ServerEndpointTests : UnitTestClass
     [Fact]
     public async Task AcceptNewClientAsync_ClientDisconnects_PipeRemovedFromTracking()
     {
-        using var testContext = this.CreateTestContext( CreateAdditionalServices() );
-
-        var serviceProvider = testContext.ServiceProvider.Global.Underlying;
+        using var testContext = this.CreateRpcTestContext();
 
         var pipeName = $"{nameof(ServerEndpointTests)}_{Guid.NewGuid()}";
 
-        using var serverEndpoint = new TestServerEndpoint( serviceProvider, pipeName );
+        using var serverEndpoint = new TestServerEndpoint( testContext.ServiceProvider, pipeName );
 
         // Use TaskCompletionSource to wait for client connection on server side.
         var clientConnectedTcs = new TaskCompletionSource<bool>();
@@ -185,7 +160,7 @@ public sealed partial class ServerEndpointTests : UnitTestClass
         serverEndpoint.Start();
 
         // Connect a client.
-        var client = new TestClientEndpoint( serviceProvider, pipeName );
+        var client = new TestClientEndpoint( testContext.ServiceProvider, pipeName );
         await client.ConnectAsync( testContext.CancellationToken );
 
         // Wait for the server to fully process the connection.
@@ -226,63 +201,47 @@ public sealed partial class ServerEndpointTests : UnitTestClass
     [Fact]
     public async Task AcceptNewClientAsync_UsingSyncPoint_CanVerifyStateAfterAccept()
     {
-        using var testContext = this.CreateTestContext( CreateAdditionalServices() );
-
-        var syncProvider = new TestSynchronizationProvider();
-
-        // Use WithUntypedService to add sync provider to service provider chain.
-        var serviceProvider = testContext.ServiceProvider.Global.Underlying
-            .WithUntypedService( typeof(ITestSynchronizationProvider), syncProvider );
-
-        // ReSharper disable once UseAwaitUsing
-        using var cancellationRegistration = testContext.CancellationToken.Register( () => syncProvider.ReleaseAll() );
+        using var testContext = this.CreateRpcTestContext();
 
         var pipeName = $"{nameof(ServerEndpointTests)}_{Guid.NewGuid()}";
 
-        using var serverEndpoint = new TestServerEndpoint( serviceProvider, pipeName );
+        using var serverEndpoint = new TestServerEndpoint( testContext.ServiceProvider, pipeName );
 
-        try
+        // Enable the sync point BEFORE starting the server.
+        testContext.SyncProvider.EnableSyncPoint( $"ServerEndpoint.AfterGetsClient:{pipeName}" );
+
+        serverEndpoint.Start();
+
+        // Start client connection in background.
+        using var client = new TestClientEndpoint( testContext.ServiceProvider, pipeName );
+        var connectTask = client.ConnectAsync( testContext.CancellationToken );
+
+        // Wait for server to reach sync point (client accepted but not yet configured).
+        await testContext.SyncProvider.WaitForSyncPointReachedAsync(
+            $"ServerEndpoint.AfterGetsClient:{pipeName}",
+            testContext.CancellationToken );
+
+        // At this point, the client has been accepted but StartListening hasn't been called yet.
+        // We can verify server state here.
+
+        // Release the sync point.
+        testContext.SyncProvider.ReleaseSyncPoint( $"ServerEndpoint.AfterGetsClient:{pipeName}" );
+
+        // Wait for connection to complete.
+        await connectTask.WithCancellation( testContext.CancellationToken );
+
+        // Wait for server to finish processing (ClientConnected event).
+        var clientConnectedTcs = new TaskCompletionSource<bool>();
+        serverEndpoint.ClientConnected += () => clientConnectedTcs.TrySetResult( true );
+
+        // If already connected, check immediately; otherwise wait.
+        if ( serverEndpoint.ClientCount == 0 )
         {
-            // Enable the sync point BEFORE starting the server.
-            syncProvider.EnableSyncPoint( $"ServerEndpoint.AfterGetsClient:{pipeName}" );
-
-            serverEndpoint.Start();
-
-            // Start client connection in background.
-            using var client = new TestClientEndpoint( serviceProvider, pipeName );
-            var connectTask = client.ConnectAsync( testContext.CancellationToken );
-
-            // Wait for server to reach sync point (client accepted but not yet configured).
-            await syncProvider.WaitForSyncPointReachedAsync(
-                $"ServerEndpoint.AfterGetsClient:{pipeName}",
-                testContext.CancellationToken );
-
-            // At this point, the client has been accepted but StartListening hasn't been called yet.
-            // We can verify server state here.
-
-            // Release the sync point.
-            syncProvider.ReleaseSyncPoint( $"ServerEndpoint.AfterGetsClient:{pipeName}" );
-
-            // Wait for connection to complete.
-            await connectTask.WithCancellation( testContext.CancellationToken );
-
-            // Wait for server to finish processing (ClientConnected event).
-            var clientConnectedTcs = new TaskCompletionSource<bool>();
-            serverEndpoint.ClientConnected += () => clientConnectedTcs.TrySetResult( true );
-
-            // If already connected, check immediately; otherwise wait.
-            if ( serverEndpoint.ClientCount == 0 )
-            {
-                await clientConnectedTcs.Task.WithCancellation( testContext.CancellationToken );
-            }
-
-            // Verify final state.
-            Assert.Equal( 1, serverEndpoint.ClientCount );
+            await clientConnectedTcs.Task.WithCancellation( testContext.CancellationToken );
         }
-        finally
-        {
-            syncProvider.ReleaseAll();
-        }
+
+        // Verify final state.
+        Assert.Equal( 1, serverEndpoint.ClientCount );
     }
 
     /// <summary>
@@ -291,13 +250,11 @@ public sealed partial class ServerEndpointTests : UnitTestClass
     [Fact]
     public async Task AddServices_CreatesNewPipeWithCorrectName()
     {
-        using var testContext = this.CreateTestContext( CreateAdditionalServices() );
-
-        var serviceProvider = testContext.ServiceProvider.Global.Underlying;
+        using var testContext = this.CreateRpcTestContext();
 
         var pipeName = $"{nameof(ServerEndpointTests)}_{Guid.NewGuid()}";
 
-        using var serverEndpoint = new TestServerEndpointWithAddServices( serviceProvider, pipeName );
+        using var serverEndpoint = new TestServerEndpointWithAddServices( testContext.ServiceProvider, pipeName );
 
         // Track how many clients have connected on the server side.
         const int expectedClientCount = 2;
@@ -321,11 +278,11 @@ public sealed partial class ServerEndpointTests : UnitTestClass
         Assert.Equal( $"{pipeName}-2", newPipeName );
 
         // Connect to original pipe.
-        using var client1 = new TestClientEndpoint( serviceProvider, pipeName );
+        using var client1 = new TestClientEndpoint( testContext.ServiceProvider, pipeName );
         await client1.ConnectAsync( testContext.CancellationToken );
 
         // Connect to new pipe.
-        using var client2 = new TestClientEndpoint( serviceProvider, newPipeName );
+        using var client2 = new TestClientEndpoint( testContext.ServiceProvider, newPipeName );
         await client2.ConnectAsync( testContext.CancellationToken );
 
         // Wait for all server-side connections to complete.

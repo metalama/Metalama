@@ -4,11 +4,7 @@
 
 #pragma warning disable VSTHRD003 // Avoid awaiting foreign Tasks - acceptable in test code
 
-using Metalama.Framework.DesignTime.Rpc;
-using Metalama.Framework.DesignTime.VisualStudio.Rpc;
-using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities.Threading;
-using Metalama.Testing.UnitTesting;
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -22,17 +18,9 @@ namespace Metalama.Framework.Tests.UnitTests.DesignTime.Rpc;
 /// Tests for <c>RpcService.RaiseEventAsync</c> race conditions and edge cases.
 /// These tests verify correct handling of multiple clients, concurrent events, and disconnections.
 /// </summary>
-public sealed partial class RpcServiceRaiseEventTests : UnitTestClass
+public sealed partial class RpcServiceRaiseEventTests : RpcUnitTestClass
 {
     public RpcServiceRaiseEventTests( ITestOutputHelper logger ) : base( logger ) { }
-
-    private static IAdditionalServiceCollection CreateAdditionalServices()
-    {
-        var additionalServices = new AdditionalServiceCollection();
-        additionalServices.AddUntypedGlobalService( typeof(IJsonSerializationBinderProvider), new JsonSerializationBinderProvider() );
-
-        return additionalServices;
-    }
 
     /// <summary>
     /// Tests that RaiseEventAsync broadcasts events to all connected clients of the same service.
@@ -41,14 +29,12 @@ public sealed partial class RpcServiceRaiseEventTests : UnitTestClass
     [Fact]
     public async Task RaiseEventAsync_MultipleClients_AllReceiveEvent()
     {
-        using var testContext = this.CreateTestContext( CreateAdditionalServices() );
-
-        var serviceProvider = testContext.ServiceProvider.Global.Underlying;
+        using var testContext = this.CreateRpcTestContext();
 
         var pipeName = $"{nameof(RpcServiceRaiseEventTests)}_{Guid.NewGuid()}";
 
         // Start server.
-        using var serverEndpoint = new EventTestServerEndpoint( serviceProvider, pipeName );
+        using var serverEndpoint = new EventTestServerEndpoint( testContext.ServiceProvider, pipeName );
 
         var clientConnectedCount = 0;
         var allClientsConnectedTcs = new TaskCompletionSource<bool>();
@@ -71,7 +57,7 @@ public sealed partial class RpcServiceRaiseEventTests : UnitTestClass
 
         for ( var i = 0; i < clientCount; i++ )
         {
-            clients[i] = new EventTestClientEndpoint( serviceProvider, pipeName );
+            clients[i] = new EventTestClientEndpoint( testContext.ServiceProvider, pipeName );
             eventReceivedTcs[i] = new TaskCompletionSource<string>();
 
             await clients[i].ConnectAsync( testContext.CancellationToken );
@@ -115,20 +101,18 @@ public sealed partial class RpcServiceRaiseEventTests : UnitTestClass
     [Fact]
     public async Task RaiseEventAsync_ConcurrentCalls_AllEventsDelivered()
     {
-        using var testContext = this.CreateTestContext( CreateAdditionalServices() );
-
-        var serviceProvider = testContext.ServiceProvider.Global.Underlying;
+        using var testContext = this.CreateRpcTestContext();
 
         var pipeName = $"{nameof(RpcServiceRaiseEventTests)}_{Guid.NewGuid()}";
 
-        using var serverEndpoint = new EventTestServerEndpoint( serviceProvider, pipeName );
+        using var serverEndpoint = new EventTestServerEndpoint( testContext.ServiceProvider, pipeName );
 
         var clientConnectedTcs = new TaskCompletionSource<bool>();
         serverEndpoint.ClientConnected += () => clientConnectedTcs.TrySetResult( true );
 
         serverEndpoint.Start();
 
-        using var clientEndpoint = new EventTestClientEndpoint( serviceProvider, pipeName );
+        using var clientEndpoint = new EventTestClientEndpoint( testContext.ServiceProvider, pipeName );
         await clientEndpoint.ConnectAsync( testContext.CancellationToken );
 
         // Wait for server to register the client.
@@ -189,13 +173,11 @@ public sealed partial class RpcServiceRaiseEventTests : UnitTestClass
     [Fact]
     public async Task RaiseEventAsync_ClientDisconnectsDuringBroadcast_OtherClientsReceiveEvent()
     {
-        using var testContext = this.CreateTestContext( CreateAdditionalServices() );
-
-        var serviceProvider = testContext.ServiceProvider.Global.Underlying;
+        using var testContext = this.CreateRpcTestContext();
 
         var pipeName = $"{nameof(RpcServiceRaiseEventTests)}_{Guid.NewGuid()}";
 
-        using var serverEndpoint = new EventTestServerEndpoint( serviceProvider, pipeName );
+        using var serverEndpoint = new EventTestServerEndpoint( testContext.ServiceProvider, pipeName );
 
         var clientConnectedCount = 0;
         var allClientsConnectedTcs = new TaskCompletionSource<bool>();
@@ -212,8 +194,8 @@ public sealed partial class RpcServiceRaiseEventTests : UnitTestClass
         serverEndpoint.Start();
 
         // Connect two clients.
-        using var client1 = new EventTestClientEndpoint( serviceProvider, pipeName );
-        var client2 = new EventTestClientEndpoint( serviceProvider, pipeName );
+        using var client1 = new EventTestClientEndpoint( testContext.ServiceProvider, pipeName );
+        var client2 = new EventTestClientEndpoint( testContext.ServiceProvider, pipeName );
 
         await client1.ConnectAsync( testContext.CancellationToken );
         await client2.ConnectAsync( testContext.CancellationToken );
@@ -247,5 +229,4 @@ public sealed partial class RpcServiceRaiseEventTests : UnitTestClass
         var message = await eventReceivedByClient1.Task.WithCancellation( testContext.CancellationToken );
         Assert.Equal( "AfterDisconnect", message );
     }
-
 }

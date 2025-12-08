@@ -4,10 +4,7 @@
 
 #pragma warning disable VSTHRD003 // Avoid awaiting foreign Tasks - acceptable in test code
 
-using Metalama.Framework.DesignTime.Rpc;
-using Metalama.Framework.DesignTime.VisualStudio.Rpc;
 using Metalama.Framework.Engine.Utilities.Threading;
-using Metalama.Testing.UnitTesting;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -17,9 +14,9 @@ using Xunit.Abstractions;
 namespace Metalama.Framework.Tests.UnitTests.DesignTime.Rpc;
 
 /// <summary>
-/// Tests for <see cref="ClientEndpoint.ConnectAsync"/> and related functionality.
+/// Tests for client endpoint connection and related functionality.
 /// </summary>
-public sealed partial class ClientEndpointTests : UnitTestClass
+public sealed partial class ClientEndpointTests : RpcUnitTestClass
 {
     public ClientEndpointTests( ITestOutputHelper logger ) : base( logger ) { }
 
@@ -30,20 +27,16 @@ public sealed partial class ClientEndpointTests : UnitTestClass
     [Fact]
     public async Task ConnectAsync_ConcurrentConnectAttempts_OnlyOneSucceeds()
     {
-        using var testContext = this.CreateTestContext();
-
-        var serviceProvider = testContext.ServiceProvider.Global
-            .Underlying
-            .WithUntypedService( typeof(IJsonSerializationBinderProvider), new JsonSerializationBinderProvider() );
+        using var testContext = this.CreateRpcTestContext();
 
         var pipeName = $"{nameof(ClientEndpointTests)}_{Guid.NewGuid()}";
 
         // Start the server first.
-        using var serverEndpoint = new TestServerEndpoint( serviceProvider, pipeName );
+        using var serverEndpoint = new TestServerEndpoint( testContext.ServiceProvider, pipeName );
         serverEndpoint.Start();
 
         // Create client endpoint.
-        using var clientEndpoint = new TestClientEndpoint( serviceProvider, pipeName );
+        using var clientEndpoint = new TestClientEndpoint( testContext.ServiceProvider, pipeName );
 
         // Signal when tasks are ready to start.
         var startSignal = new TaskCompletionSource<bool>();
@@ -90,20 +83,16 @@ public sealed partial class ClientEndpointTests : UnitTestClass
     [Fact]
     public async Task ConnectAsync_LoserWaitsForWinner_BlocksUntilInitialized()
     {
-        using var testContext = this.CreateTestContext();
-
-        var serviceProvider = testContext.ServiceProvider.Global
-            .Underlying
-            .WithUntypedService( typeof(IJsonSerializationBinderProvider), new JsonSerializationBinderProvider() );
+        using var testContext = this.CreateRpcTestContext();
 
         var pipeName = $"{nameof(ClientEndpointTests)}_{Guid.NewGuid()}";
 
         // Start the server.
-        using var serverEndpoint = new TestServerEndpoint( serviceProvider, pipeName );
+        using var serverEndpoint = new TestServerEndpoint( testContext.ServiceProvider, pipeName );
         serverEndpoint.Start();
 
         // Create client endpoint.
-        using var clientEndpoint = new TestClientEndpoint( serviceProvider, pipeName );
+        using var clientEndpoint = new TestClientEndpoint( testContext.ServiceProvider, pipeName );
 
         // First connect call - this will win.
         var winnerTask = clientEndpoint.ConnectAsync( testContext.CancellationToken );
@@ -130,19 +119,15 @@ public sealed partial class ClientEndpointTests : UnitTestClass
     [Fact]
     public async Task ConnectAsync_Success_InitializedTaskCompleted()
     {
-        using var testContext = this.CreateTestContext();
-
-        var serviceProvider = testContext.ServiceProvider.Global
-            .Underlying
-            .WithUntypedService( typeof(IJsonSerializationBinderProvider), new JsonSerializationBinderProvider() );
+        using var testContext = this.CreateRpcTestContext();
 
         var pipeName = $"{nameof(ClientEndpointTests)}_{Guid.NewGuid()}";
 
         // Start the server.
-        using var serverEndpoint = new TestServerEndpoint( serviceProvider, pipeName );
+        using var serverEndpoint = new TestServerEndpoint( testContext.ServiceProvider, pipeName );
         serverEndpoint.Start();
 
-        using var clientEndpoint = new TestClientEndpoint( serviceProvider, pipeName );
+        using var clientEndpoint = new TestClientEndpoint( testContext.ServiceProvider, pipeName );
 
         // Before connecting, InitializedTask should not be completed.
         Assert.False( clientEndpoint.InitializedTask.Task.IsCompleted );
@@ -166,19 +151,15 @@ public sealed partial class ClientEndpointTests : UnitTestClass
     [Fact]
     public async Task ConnectAsync_MultipleLosers_AllWaitAndReturnFalse()
     {
-        using var testContext = this.CreateTestContext();
-
-        var serviceProvider = testContext.ServiceProvider.Global
-            .Underlying
-            .WithUntypedService( typeof(IJsonSerializationBinderProvider), new JsonSerializationBinderProvider() );
+        using var testContext = this.CreateRpcTestContext();
 
         var pipeName = $"{nameof(ClientEndpointTests)}_{Guid.NewGuid()}";
 
         // Start the server.
-        using var serverEndpoint = new TestServerEndpoint( serviceProvider, pipeName );
+        using var serverEndpoint = new TestServerEndpoint( testContext.ServiceProvider, pipeName );
         serverEndpoint.Start();
 
-        using var clientEndpoint = new TestClientEndpoint( serviceProvider, pipeName );
+        using var clientEndpoint = new TestClientEndpoint( testContext.ServiceProvider, pipeName );
 
         // Start 5 concurrent connection attempts.
         var startSignal = new TaskCompletionSource<bool>();

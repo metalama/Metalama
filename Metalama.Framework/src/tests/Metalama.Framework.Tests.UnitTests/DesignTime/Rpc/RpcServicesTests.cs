@@ -5,9 +5,7 @@
 #pragma warning disable VSTHRD003 // Avoid awaiting foreign Tasks - acceptable in test code
 
 using Metalama.Framework.DesignTime.Rpc;
-using Metalama.Framework.DesignTime.VisualStudio.Rpc;
 using Metalama.Framework.Engine.Utilities.Threading;
-using Metalama.Testing.UnitTesting;
 using System;
 using System.Threading.Tasks;
 using Xunit;
@@ -19,7 +17,7 @@ namespace Metalama.Framework.Tests.UnitTests.DesignTime.Rpc;
 /// Tests for RPC services dimension: multiple services, event dispatching, service lookup,
 /// and adding services after connection.
 /// </summary>
-public sealed partial class RpcServicesTests : UnitTestClass
+public sealed partial class RpcServicesTests : RpcUnitTestClass
 {
     public RpcServicesTests( ITestOutputHelper logger ) : base( logger ) { }
 
@@ -29,20 +27,16 @@ public sealed partial class RpcServicesTests : UnitTestClass
     [Fact]
     public async Task MultipleServices_AllAccessibleViaGetClient()
     {
-        using var testContext = this.CreateTestContext();
-
-        var serviceProvider = testContext.ServiceProvider.Global
-            .Underlying
-            .WithUntypedService( typeof(IJsonSerializationBinderProvider), new JsonSerializationBinderProvider() );
+        using var testContext = this.CreateRpcTestContext();
 
         var pipeName = $"{nameof(RpcServicesTests)}_{Guid.NewGuid()}";
 
         // Start server with two services.
-        using var serverEndpoint = new MultiServiceServerEndpoint( serviceProvider, pipeName );
+        using var serverEndpoint = new MultiServiceServerEndpoint( testContext.ServiceProvider, pipeName );
         serverEndpoint.Start();
 
         // Create client with two service clients.
-        using var clientEndpoint = new MultiServiceClientEndpoint( serviceProvider, pipeName );
+        using var clientEndpoint = new MultiServiceClientEndpoint( testContext.ServiceProvider, pipeName );
         await clientEndpoint.ConnectAsync( testContext.CancellationToken );
 
         // Both clients should be available.
@@ -62,20 +56,16 @@ public sealed partial class RpcServicesTests : UnitTestClass
     [Fact]
     public async Task GetClient_UnregisteredService_ReturnsNull()
     {
-        using var testContext = this.CreateTestContext();
-
-        var serviceProvider = testContext.ServiceProvider.Global
-            .Underlying
-            .WithUntypedService( typeof(IJsonSerializationBinderProvider), new JsonSerializationBinderProvider() );
+        using var testContext = this.CreateRpcTestContext();
 
         var pipeName = $"{nameof(RpcServicesTests)}_{Guid.NewGuid()}";
 
         // Start server with only service A.
-        using var serverEndpoint = new SingleServiceServerEndpoint( serviceProvider, pipeName );
+        using var serverEndpoint = new SingleServiceServerEndpoint( testContext.ServiceProvider, pipeName );
         serverEndpoint.Start();
 
         // Create client with only service A client.
-        using var clientEndpoint = new SingleServiceClientEndpoint( serviceProvider, pipeName );
+        using var clientEndpoint = new SingleServiceClientEndpoint( testContext.ServiceProvider, pipeName );
         await clientEndpoint.ConnectAsync( testContext.CancellationToken );
 
         // Service A should be available, service B should not.
@@ -92,18 +82,14 @@ public sealed partial class RpcServicesTests : UnitTestClass
     [Fact]
     public async Task GetOrWaitForClientAsync_ClientAlreadyAvailable_ReturnsImmediately()
     {
-        using var testContext = this.CreateTestContext();
-
-        var serviceProvider = testContext.ServiceProvider.Global
-            .Underlying
-            .WithUntypedService( typeof(IJsonSerializationBinderProvider), new JsonSerializationBinderProvider() );
+        using var testContext = this.CreateRpcTestContext();
 
         var pipeName = $"{nameof(RpcServicesTests)}_{Guid.NewGuid()}";
 
-        using var serverEndpoint = new SingleServiceServerEndpoint( serviceProvider, pipeName );
+        using var serverEndpoint = new SingleServiceServerEndpoint( testContext.ServiceProvider, pipeName );
         serverEndpoint.Start();
 
-        using var clientEndpoint = new SingleServiceClientEndpoint( serviceProvider, pipeName );
+        using var clientEndpoint = new SingleServiceClientEndpoint( testContext.ServiceProvider, pipeName );
         await clientEndpoint.ConnectAsync( testContext.CancellationToken );
 
         // Client is already connected, GetOrWaitForClientAsync should complete immediately.
@@ -120,18 +106,14 @@ public sealed partial class RpcServicesTests : UnitTestClass
     [Fact]
     public async Task ServiceApi_CallMethod_ReturnsExpectedResult()
     {
-        using var testContext = this.CreateTestContext();
-
-        var serviceProvider = testContext.ServiceProvider.Global
-            .Underlying
-            .WithUntypedService( typeof(IJsonSerializationBinderProvider), new JsonSerializationBinderProvider() );
+        using var testContext = this.CreateRpcTestContext();
 
         var pipeName = $"{nameof(RpcServicesTests)}_{Guid.NewGuid()}";
 
-        using var serverEndpoint = new SingleServiceServerEndpoint( serviceProvider, pipeName );
+        using var serverEndpoint = new SingleServiceServerEndpoint( testContext.ServiceProvider, pipeName );
         serverEndpoint.Start();
 
-        using var clientEndpoint = new SingleServiceClientEndpoint( serviceProvider, pipeName );
+        using var clientEndpoint = new SingleServiceClientEndpoint( testContext.ServiceProvider, pipeName );
         await clientEndpoint.ConnectAsync( testContext.CancellationToken );
 
         var client = clientEndpoint.GetRequiredClient<ServiceAClient>();
@@ -147,18 +129,14 @@ public sealed partial class RpcServicesTests : UnitTestClass
     [Fact]
     public async Task EventDispatching_EventSentToCorrectClient()
     {
-        using var testContext = this.CreateTestContext();
-
-        var serviceProvider = testContext.ServiceProvider.Global
-            .Underlying
-            .WithUntypedService( typeof(IJsonSerializationBinderProvider), new JsonSerializationBinderProvider() );
+        using var testContext = this.CreateRpcTestContext();
 
         var pipeName = $"{nameof(RpcServicesTests)}_{Guid.NewGuid()}";
 
-        using var serverEndpoint = new MultiServiceServerEndpoint( serviceProvider, pipeName );
+        using var serverEndpoint = new MultiServiceServerEndpoint( testContext.ServiceProvider, pipeName );
         serverEndpoint.Start();
 
-        using var clientEndpoint = new MultiServiceClientEndpoint( serviceProvider, pipeName );
+        using var clientEndpoint = new MultiServiceClientEndpoint( testContext.ServiceProvider, pipeName );
         await clientEndpoint.ConnectAsync( testContext.CancellationToken );
 
         var clientA = clientEndpoint.GetRequiredClient<ServiceAClient>();
@@ -189,18 +167,14 @@ public sealed partial class RpcServicesTests : UnitTestClass
     [Fact]
     public async Task EventDispatching_MultipleServices_EachReceivesOwnEvents()
     {
-        using var testContext = this.CreateTestContext();
-
-        var serviceProvider = testContext.ServiceProvider.Global
-            .Underlying
-            .WithUntypedService( typeof(IJsonSerializationBinderProvider), new JsonSerializationBinderProvider() );
+        using var testContext = this.CreateRpcTestContext();
 
         var pipeName = $"{nameof(RpcServicesTests)}_{Guid.NewGuid()}";
 
-        using var serverEndpoint = new MultiServiceServerEndpoint( serviceProvider, pipeName );
+        using var serverEndpoint = new MultiServiceServerEndpoint( testContext.ServiceProvider, pipeName );
         serverEndpoint.Start();
 
-        using var clientEndpoint = new MultiServiceClientEndpoint( serviceProvider, pipeName );
+        using var clientEndpoint = new MultiServiceClientEndpoint( testContext.ServiceProvider, pipeName );
         await clientEndpoint.ConnectAsync( testContext.CancellationToken );
 
         var clientA = clientEndpoint.GetRequiredClient<ServiceAClient>();
@@ -234,19 +208,15 @@ public sealed partial class RpcServicesTests : UnitTestClass
     [Fact]
     public async Task ConnectAsync_ClientConnectsBeforeServerStarts_Succeeds()
     {
-        using var testContext = this.CreateTestContext();
-
-        var serviceProvider = testContext.ServiceProvider.Global
-            .Underlying
-            .WithUntypedService( typeof(IJsonSerializationBinderProvider), new JsonSerializationBinderProvider() );
+        using var testContext = this.CreateRpcTestContext();
 
         var pipeName = $"{nameof(RpcServicesTests)}_{Guid.NewGuid()}";
 
         // Create server but DON'T start it yet.
-        using var serverEndpoint = new SingleServiceServerEndpoint( serviceProvider, pipeName );
+        using var serverEndpoint = new SingleServiceServerEndpoint( testContext.ServiceProvider, pipeName );
 
         // Create client endpoint.
-        using var clientEndpoint = new SingleServiceClientEndpoint( serviceProvider, pipeName );
+        using var clientEndpoint = new SingleServiceClientEndpoint( testContext.ServiceProvider, pipeName );
 
         // Start connecting BEFORE server starts - this should wait for server.
         var connectTask = clientEndpoint.ConnectAsync( testContext.CancellationToken );
@@ -272,20 +242,16 @@ public sealed partial class RpcServicesTests : UnitTestClass
     [Fact]
     public async Task GetOrWaitForClientAsync_ClientAddedDuringWait_ReturnsClient()
     {
-        using var testContext = this.CreateTestContext();
-
-        var serviceProvider = testContext.ServiceProvider.Global
-            .Underlying
-            .WithUntypedService( typeof(IJsonSerializationBinderProvider), new JsonSerializationBinderProvider() );
+        using var testContext = this.CreateRpcTestContext();
 
         var pipeName = $"{nameof(RpcServicesTests)}_{Guid.NewGuid()}";
 
         // Start the server.
-        using var serverEndpoint = new SingleServiceServerEndpoint( serviceProvider, pipeName );
+        using var serverEndpoint = new SingleServiceServerEndpoint( testContext.ServiceProvider, pipeName );
         serverEndpoint.Start();
 
         // Create client endpoint but don't connect yet.
-        using var clientEndpoint = new SingleServiceClientEndpoint( serviceProvider, pipeName );
+        using var clientEndpoint = new SingleServiceClientEndpoint( testContext.ServiceProvider, pipeName );
 
         // Start waiting for the client BEFORE connecting.
         // GetOrWaitForClientAsync returns a pending ValueTask immediately since the client doesn't exist.
@@ -311,20 +277,16 @@ public sealed partial class RpcServicesTests : UnitTestClass
     [Fact]
     public async Task GetOrWaitForClientAsync_MultipleWaiters_AllSignaled()
     {
-        using var testContext = this.CreateTestContext();
-
-        var serviceProvider = testContext.ServiceProvider.Global
-            .Underlying
-            .WithUntypedService( typeof(IJsonSerializationBinderProvider), new JsonSerializationBinderProvider() );
+        using var testContext = this.CreateRpcTestContext();
 
         var pipeName = $"{nameof(RpcServicesTests)}_{Guid.NewGuid()}";
 
         // Start the server.
-        using var serverEndpoint = new SingleServiceServerEndpoint( serviceProvider, pipeName );
+        using var serverEndpoint = new SingleServiceServerEndpoint( testContext.ServiceProvider, pipeName );
         serverEndpoint.Start();
 
         // Create client endpoint but don't connect yet.
-        using var clientEndpoint = new SingleServiceClientEndpoint( serviceProvider, pipeName );
+        using var clientEndpoint = new SingleServiceClientEndpoint( testContext.ServiceProvider, pipeName );
 
         // Start 3 waiters for the same client type BEFORE connecting.
         // GetOrWaitForClientAsync returns a pending ValueTask immediately since the client doesn't exist.

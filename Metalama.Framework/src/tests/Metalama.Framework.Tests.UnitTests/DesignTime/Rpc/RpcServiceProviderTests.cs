@@ -4,10 +4,8 @@
 
 using Metalama.Framework.DesignTime.Extensibility;
 using Metalama.Framework.DesignTime.Rpc;
-using Metalama.Framework.DesignTime.VisualStudio.Rpc;
 using Metalama.Framework.DesignTime.VisualStudio.ServiceProvider;
 using Metalama.Framework.Engine.Services;
-using Metalama.Testing.UnitTesting;
 using System;
 using System.Threading.Tasks;
 using Xunit;
@@ -15,7 +13,7 @@ using Xunit.Abstractions;
 
 namespace Metalama.Framework.Tests.UnitTests.DesignTime.Rpc;
 
-public sealed class RpcServiceProviderTests : UnitTestClass
+public sealed class RpcServiceProviderTests : RpcUnitTestClass
 {
     private const string _extensionName = "TheExtension";
 
@@ -34,66 +32,52 @@ public sealed class RpcServiceProviderTests : UnitTestClass
     [Fact( Skip = "WhenBackgroundTasksCompletedAsync doesn't capture tasks scheduled during completion of other tasks" )]
     public async Task RegisterServiceBeforeExtensionRegisteredInClient_RetryMechanismWorks()
     {
-        var syncProvider = new TestSynchronizationProvider();
-        var additionalServices = new AdditionalServiceCollection();
-        additionalServices.AddUntypedGlobalService( typeof(IJsonSerializationBinderProvider), new JsonSerializationBinderProvider() );
-        additionalServices.AddUntypedGlobalService( typeof(ITestSynchronizationProvider), syncProvider );
-
-        using var testContext = this.CreateTestContext( additionalServices );
+        using var testContext = this.CreateRpcTestContext();
 
         // ReSharper disable once UseAwaitUsing
-        using var cancellationRegistration = testContext.CancellationToken.Register( () => syncProvider.ReleaseAll() );
+        using var cancellationRegistration = testContext.CancellationToken.Register( () => testContext.SyncProvider.ReleaseAll() );
 
-        var serviceProvider = testContext.ServiceProvider.Global;
-
-        var clientExtensionManager = new DesignTimeExtensionManager( serviceProvider.Underlying );
+        var clientExtensionManager = new DesignTimeExtensionManager( testContext.Global.Underlying );
 
         var pipename = $"{nameof(RpcServiceProviderTests)}_{Guid.NewGuid()}";
 
         // Start the server.
-        using var serverEndpoint = new RpcServiceProviderServerEndpoint( serviceProvider, pipename, [] );
+        using var serverEndpoint = new RpcServiceProviderServerEndpoint( testContext.Global, pipename, [] );
         serverEndpoint.Start();
 
         // Start the client with sync provider.
-        using var clientEndpoint = new RpcServiceProviderClientEndpoint( serviceProvider.WithService( clientExtensionManager ), pipename );
+        using var clientEndpoint = new RpcServiceProviderClientEndpoint( testContext.Global.WithService( clientExtensionManager ), pipename );
         await clientEndpoint.ConnectAsync( testContext.CancellationToken );
         await clientEndpoint.WaitUntilInitializedAsync( testContext.CancellationToken );
 
-        try
-        {
-            // Enable the sync point BEFORE adding services so it will block.
-            syncProvider.EnableSyncPoint( $"RpcServiceProviderClientEndpoint.BeforeExtensionCheck:{_extensionName}" );
+        // Enable the sync point BEFORE adding services so it will block.
+        testContext.SyncProvider.EnableSyncPoint( $"RpcServiceProviderClientEndpoint.BeforeExtensionCheck:{_extensionName}" );
 
-            // Add services - client will block at sync point.
-            var extensionServiceFactory = new ExtensionServiceFactory();
-            serverEndpoint.AddServices( [extensionServiceFactory] );
+        // Add services - client will block at sync point.
+        var extensionServiceFactory = new ExtensionServiceFactory();
+        serverEndpoint.AddServices( [extensionServiceFactory] );
 
-            // Wait for client to reach the sync point.
-            await syncProvider.WaitForSyncPointReachedAsync(
-                $"RpcServiceProviderClientEndpoint.BeforeExtensionCheck:{_extensionName}",
-                testContext.CancellationToken );
+        // Wait for client to reach the sync point.
+        await testContext.SyncProvider.WaitForSyncPointReachedAsync(
+            $"RpcServiceProviderClientEndpoint.BeforeExtensionCheck:{_extensionName}",
+            testContext.CancellationToken );
 
-            // Release sync point WITHOUT registering extension first.
-            // This forces the retry path - client will see extension not loaded.
-            syncProvider.ReleaseSyncPoint( $"RpcServiceProviderClientEndpoint.BeforeExtensionCheck:{_extensionName}" );
+        // Release sync point WITHOUT registering extension first.
+        // This forces the retry path - client will see extension not loaded.
+        testContext.SyncProvider.ReleaseSyncPoint( $"RpcServiceProviderClientEndpoint.BeforeExtensionCheck:{_extensionName}" );
 
-            // Now register extension - retry task will complete.
-            clientExtensionManager.OnExtensionDiscovered( new Extension() );
+        // Now register extension - retry task will complete.
+        clientExtensionManager.OnExtensionDiscovered( new Extension() );
 
-            // Wait for all background tasks including the retry.
-            await clientEndpoint.WhenBackgroundTasksCompletedAsync( testContext.CancellationToken );
+        // Wait for all background tasks including the retry.
+        await clientEndpoint.WhenBackgroundTasksCompletedAsync( testContext.CancellationToken );
 
-            // Service should be available via the retry mechanism.
-            Assert.True( clientEndpoint.IsClientAvailable<ExtensionServiceClient>() );
+        // Service should be available via the retry mechanism.
+        Assert.True( clientEndpoint.IsClientAvailable<ExtensionServiceClient>() );
 
-            var api = await clientEndpoint.GetApiAsync<IExtensionService>( testContext.CancellationToken );
-            await api.HelloAsync();
-            Assert.True( extensionServiceFactory.IsHelloMethodCalled );
-        }
-        finally
-        {
-            syncProvider.ReleaseAll();
-        }
+        var api = await clientEndpoint.GetApiAsync<IExtensionService>( testContext.CancellationToken );
+        await api.HelloAsync();
+        Assert.True( extensionServiceFactory.IsHelloMethodCalled );
     }
 
     /// <summary>
@@ -103,65 +87,51 @@ public sealed class RpcServiceProviderTests : UnitTestClass
     [Fact]
     public async Task RegisterServiceBeforeExtensionRegisteredInClient_ExtensionLoadedBeforeCheck()
     {
-        var syncProvider = new TestSynchronizationProvider();
-        var additionalServices = new AdditionalServiceCollection();
-        additionalServices.AddUntypedGlobalService( typeof(IJsonSerializationBinderProvider), new JsonSerializationBinderProvider() );
-        additionalServices.AddUntypedGlobalService( typeof(ITestSynchronizationProvider), syncProvider );
-
-        using var testContext = this.CreateTestContext( additionalServices );
+        using var testContext = this.CreateRpcTestContext();
 
         // ReSharper disable once UseAwaitUsing
-        using var cancellationRegistration = testContext.CancellationToken.Register( () => syncProvider.ReleaseAll() );
+        using var cancellationRegistration = testContext.CancellationToken.Register( () => testContext.SyncProvider.ReleaseAll() );
 
-        var serviceProvider = testContext.ServiceProvider.Global;
-
-        var clientExtensionManager = new DesignTimeExtensionManager( serviceProvider.Underlying );
+        var clientExtensionManager = new DesignTimeExtensionManager( testContext.Global.Underlying );
 
         var pipename = $"{nameof(RpcServiceProviderTests)}_{Guid.NewGuid()}";
 
         // Start the server.
-        using var serverEndpoint = new RpcServiceProviderServerEndpoint( serviceProvider, pipename, [] );
+        using var serverEndpoint = new RpcServiceProviderServerEndpoint( testContext.Global, pipename, [] );
         serverEndpoint.Start();
 
         // Start the client with sync provider.
-        using var clientEndpoint = new RpcServiceProviderClientEndpoint( serviceProvider.WithService( clientExtensionManager ), pipename );
+        using var clientEndpoint = new RpcServiceProviderClientEndpoint( testContext.Global.WithService( clientExtensionManager ), pipename );
         await clientEndpoint.ConnectAsync( testContext.CancellationToken );
         await clientEndpoint.WaitUntilInitializedAsync( testContext.CancellationToken );
 
-        try
-        {
-            // Enable the sync point BEFORE adding services so it will block.
-            syncProvider.EnableSyncPoint( $"RpcServiceProviderClientEndpoint.BeforeExtensionCheck:{_extensionName}" );
+        // Enable the sync point BEFORE adding services so it will block.
+        testContext.SyncProvider.EnableSyncPoint( $"RpcServiceProviderClientEndpoint.BeforeExtensionCheck:{_extensionName}" );
 
-            // Add services - client will block at sync point before checking if extension is loaded.
-            var extensionServiceFactory = new ExtensionServiceFactory();
-            serverEndpoint.AddServices( [extensionServiceFactory] );
+        // Add services - client will block at sync point before checking if extension is loaded.
+        var extensionServiceFactory = new ExtensionServiceFactory();
+        serverEndpoint.AddServices( [extensionServiceFactory] );
 
-            // Wait for client to reach the sync point (about to check IsCompleted).
-            await syncProvider.WaitForSyncPointReachedAsync(
-                $"RpcServiceProviderClientEndpoint.BeforeExtensionCheck:{_extensionName}",
-                testContext.CancellationToken );
+        // Wait for client to reach the sync point (about to check IsCompleted).
+        await testContext.SyncProvider.WaitForSyncPointReachedAsync(
+            $"RpcServiceProviderClientEndpoint.BeforeExtensionCheck:{_extensionName}",
+            testContext.CancellationToken );
 
-            // Register extension WHILE client is paused at sync point.
-            // This ensures the extension IS loaded when the IsCompleted check happens.
-            clientExtensionManager.OnExtensionDiscovered( new Extension() );
+        // Register extension WHILE client is paused at sync point.
+        // This ensures the extension IS loaded when the IsCompleted check happens.
+        clientExtensionManager.OnExtensionDiscovered( new Extension() );
 
-            // Release the sync point - client will now see extension as loaded.
-            syncProvider.ReleaseSyncPoint( $"RpcServiceProviderClientEndpoint.BeforeExtensionCheck:{_extensionName}" );
+        // Release the sync point - client will now see extension as loaded.
+        testContext.SyncProvider.ReleaseSyncPoint( $"RpcServiceProviderClientEndpoint.BeforeExtensionCheck:{_extensionName}" );
 
-            await clientEndpoint.WhenBackgroundTasksCompletedAsync( testContext.CancellationToken );
+        await clientEndpoint.WhenBackgroundTasksCompletedAsync( testContext.CancellationToken );
 
-            // Service should be immediately available (no retry needed).
-            Assert.True( clientEndpoint.IsClientAvailable<ExtensionServiceClient>() );
+        // Service should be immediately available (no retry needed).
+        Assert.True( clientEndpoint.IsClientAvailable<ExtensionServiceClient>() );
 
-            var api = await clientEndpoint.GetApiAsync<IExtensionService>( testContext.CancellationToken );
-            await api.HelloAsync();
-            Assert.True( extensionServiceFactory.IsHelloMethodCalled );
-        }
-        finally
-        {
-            syncProvider.ReleaseAll();
-        }
+        var api = await clientEndpoint.GetApiAsync<IExtensionService>( testContext.CancellationToken );
+        await api.HelloAsync();
+        Assert.True( extensionServiceFactory.IsHelloMethodCalled );
     }
 
     private sealed class Extension : IDesignTimeExtension

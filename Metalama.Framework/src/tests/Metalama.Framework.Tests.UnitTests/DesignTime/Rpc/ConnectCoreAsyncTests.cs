@@ -5,9 +5,7 @@
 #pragma warning disable VSTHRD003 // Avoid awaiting foreign Tasks - acceptable in test code
 
 using Metalama.Framework.DesignTime.Rpc;
-using Metalama.Framework.DesignTime.VisualStudio.Rpc;
 using Metalama.Framework.Engine.Utilities.Threading;
-using Metalama.Testing.UnitTesting;
 using System;
 using System.Collections.Immutable;
 using System.Threading.Tasks;
@@ -20,7 +18,7 @@ namespace Metalama.Framework.Tests.UnitTests.DesignTime.Rpc;
 /// Tests for <see cref="ClientEndpoint"/> ConnectCoreAsync behavior,
 /// including duplicate client handling and awaiter signaling order.
 /// </summary>
-public sealed partial class ConnectCoreAsyncTests : UnitTestClass
+public sealed partial class ConnectCoreAsyncTests : RpcUnitTestClass
 {
     public ConnectCoreAsyncTests( ITestOutputHelper logger ) : base( logger ) { }
 
@@ -31,20 +29,16 @@ public sealed partial class ConnectCoreAsyncTests : UnitTestClass
     [Fact]
     public async Task AddServiceClientsAsync_DuplicateClient_Ignored()
     {
-        using var testContext = this.CreateTestContext();
-
-        var serviceProvider = testContext.ServiceProvider.Global
-            .Underlying
-            .WithUntypedService( typeof(IJsonSerializationBinderProvider), new JsonSerializationBinderProvider() );
+        using var testContext = this.CreateRpcTestContext();
 
         var pipeName = $"{nameof(ConnectCoreAsyncTests)}_{Guid.NewGuid()}";
 
         // Start server with dynamic service support.
-        using var serverEndpoint = new DynamicServerEndpoint( serviceProvider, pipeName );
+        using var serverEndpoint = new DynamicServerEndpoint( testContext.ServiceProvider, pipeName );
         serverEndpoint.Start();
 
         // Create client endpoint that allows adding service clients dynamically.
-        using var clientEndpoint = new DynamicClientEndpoint( serviceProvider, pipeName );
+        using var clientEndpoint = new DynamicClientEndpoint( testContext.ServiceProvider, pipeName );
         await clientEndpoint.ConnectAsync( testContext.CancellationToken );
 
         // Verify initial client is available.
@@ -70,20 +64,16 @@ public sealed partial class ConnectCoreAsyncTests : UnitTestClass
     [Fact]
     public async Task ConnectCoreAsync_AwaiterSignaledAfterCollectionUpdated()
     {
-        using var testContext = this.CreateTestContext();
-
-        var serviceProvider = testContext.ServiceProvider.Global
-            .Underlying
-            .WithUntypedService( typeof(IJsonSerializationBinderProvider), new JsonSerializationBinderProvider() );
+        using var testContext = this.CreateRpcTestContext();
 
         var pipeName = $"{nameof(ConnectCoreAsyncTests)}_{Guid.NewGuid()}";
 
         // Start server.
-        using var serverEndpoint = new DynamicServerEndpoint( serviceProvider, pipeName );
+        using var serverEndpoint = new DynamicServerEndpoint( testContext.ServiceProvider, pipeName );
         serverEndpoint.Start();
 
         // Create client endpoint but don't connect yet.
-        using var clientEndpoint = new DynamicClientEndpoint( serviceProvider, pipeName );
+        using var clientEndpoint = new DynamicClientEndpoint( testContext.ServiceProvider, pipeName );
 
         // Set up awaiter BEFORE connecting.
         // GetOrWaitForClientAsync returns a pending ValueTask immediately since the client doesn't exist.
@@ -110,20 +100,16 @@ public sealed partial class ConnectCoreAsyncTests : UnitTestClass
     [Fact]
     public async Task AddServiceClientsAsync_EmptyClients_ReturnsImmediately()
     {
-        using var testContext = this.CreateTestContext();
-
-        var serviceProvider = testContext.ServiceProvider.Global
-            .Underlying
-            .WithUntypedService( typeof(IJsonSerializationBinderProvider), new JsonSerializationBinderProvider() );
+        using var testContext = this.CreateRpcTestContext();
 
         var pipeName = $"{nameof(ConnectCoreAsyncTests)}_{Guid.NewGuid()}";
 
         // Start server.
-        using var serverEndpoint = new DynamicServerEndpoint( serviceProvider, pipeName );
+        using var serverEndpoint = new DynamicServerEndpoint( testContext.ServiceProvider, pipeName );
         serverEndpoint.Start();
 
         // Create and connect client.
-        using var clientEndpoint = new DynamicClientEndpoint( serviceProvider, pipeName );
+        using var clientEndpoint = new DynamicClientEndpoint( testContext.ServiceProvider, pipeName );
         await clientEndpoint.ConnectAsync( testContext.CancellationToken );
 
         // Try to add empty clients array - should return immediately without connecting a new pipe.
@@ -145,20 +131,16 @@ public sealed partial class ConnectCoreAsyncTests : UnitTestClass
     [Fact]
     public async Task AddServiceClientsAsync_NewClient_SuccessfullyAdded()
     {
-        using var testContext = this.CreateTestContext();
-
-        var serviceProvider = testContext.ServiceProvider.Global
-            .Underlying
-            .WithUntypedService( typeof(IJsonSerializationBinderProvider), new JsonSerializationBinderProvider() );
+        using var testContext = this.CreateRpcTestContext();
 
         var pipeName = $"{nameof(ConnectCoreAsyncTests)}_{Guid.NewGuid()}";
 
         // Start server with both services.
-        using var serverEndpoint = new DynamicServerEndpoint( serviceProvider, pipeName );
+        using var serverEndpoint = new DynamicServerEndpoint( testContext.ServiceProvider, pipeName );
         serverEndpoint.Start();
 
         // Create client endpoint with only TestServiceClient initially.
-        using var clientEndpoint = new DynamicClientEndpoint( serviceProvider, pipeName );
+        using var clientEndpoint = new DynamicClientEndpoint( testContext.ServiceProvider, pipeName );
         await clientEndpoint.ConnectAsync( testContext.CancellationToken );
 
         // Verify initial client is available, but second client is not.
@@ -191,61 +173,47 @@ public sealed partial class ConnectCoreAsyncTests : UnitTestClass
     [Fact]
     public async Task GetOrWaitForClientAsync_CalledWhileClientBeingAdded_FindsClientInCollection()
     {
-        using var testContext = this.CreateTestContext();
-
-        var syncProvider = new TestSynchronizationProvider();
-
-        var serviceProvider = testContext.ServiceProvider.Global
-            .Underlying
-            .WithUntypedService( typeof(IJsonSerializationBinderProvider), new JsonSerializationBinderProvider() )
-            .WithUntypedService( typeof(ITestSynchronizationProvider), syncProvider );
+        using var testContext = this.CreateRpcTestContext();
 
         var pipeName = $"{nameof(ConnectCoreAsyncTests)}_{Guid.NewGuid()}";
-        var syncPointName = $"ClientEndpoint.BeforeSignalingAwaiters:{pipeName}";
 
         // Start server.
-        using var serverEndpoint = new DynamicServerEndpoint( serviceProvider, pipeName );
+        using var serverEndpoint = new DynamicServerEndpoint( testContext.ServiceProvider, pipeName );
         serverEndpoint.Start();
 
         // Create client endpoint with sync provider.
-        using var clientEndpoint = new DynamicClientEndpoint( serviceProvider, pipeName );
+        using var clientEndpoint = new DynamicClientEndpoint( testContext.ServiceProvider, pipeName );
 
-        try
-        {
-            // Enable the sync point BEFORE starting the connection to ensure it will block.
-            syncProvider.EnableSyncPoint( syncPointName );
+        var syncPointName = $"ClientEndpoint.BeforeSignalingAwaiters:{pipeName}";
 
-            // Start connection in background - it will block at the sync point.
-            var connectTask = clientEndpoint.ConnectAsync( testContext.CancellationToken );
+        // Enable the sync point BEFORE starting the connection to ensure it will block.
+        testContext.SyncProvider.EnableSyncPoint( syncPointName );
 
-            // Wait for the sync point to be reached (collections are updated, awaiters not yet signaled).
-            this.TestOutput.WriteLine( "Waiting for sync point to be reached..." );
-            await syncProvider.WaitForSyncPointReachedAsync( syncPointName, testContext.CancellationToken );
-            this.TestOutput.WriteLine( "Sync point reached." );
+        // Start connection in background - it will block at the sync point.
+        var connectTask = clientEndpoint.ConnectAsync( testContext.CancellationToken );
 
-            // At this point, the client should be in collections but awaiters haven't been signaled yet.
-            // GetOrWaitForClientAsync should find the client directly in collections.
-            var clientFromWait = await clientEndpoint.GetOrWaitForClientAsync<TestServiceClient>( testContext.CancellationToken );
-            Assert.NotNull( clientFromWait );
-            this.TestOutput.WriteLine( "Got client from GetOrWaitForClientAsync while connection was paused." );
+        // Wait for the sync point to be reached (collections are updated, awaiters not yet signaled).
+        this.TestOutput.WriteLine( "Waiting for sync point to be reached..." );
+        await testContext.SyncProvider.WaitForSyncPointReachedAsync( syncPointName, testContext.CancellationToken );
+        this.TestOutput.WriteLine( "Sync point reached." );
 
-            // Also verify GetClient finds it.
-            var clientFromGet = clientEndpoint.GetClient<TestServiceClient>();
-            Assert.NotNull( clientFromGet );
-            Assert.Same( clientFromWait, clientFromGet );
-            this.TestOutput.WriteLine( "Client is in collections as expected." );
+        // At this point, the client should be in collections but awaiters haven't been signaled yet.
+        // GetOrWaitForClientAsync should find the client directly in collections.
+        var clientFromWait = await clientEndpoint.GetOrWaitForClientAsync<TestServiceClient>( testContext.CancellationToken );
+        Assert.NotNull( clientFromWait );
+        this.TestOutput.WriteLine( "Got client from GetOrWaitForClientAsync while connection was paused." );
 
-            // Release the sync point to let connection complete.
-            syncProvider.ReleaseSyncPoint( syncPointName );
+        // Also verify GetClient finds it.
+        var clientFromGet = clientEndpoint.GetClient<TestServiceClient>();
+        Assert.NotNull( clientFromGet );
+        Assert.Same( clientFromWait, clientFromGet );
+        this.TestOutput.WriteLine( "Client is in collections as expected." );
 
-            // Wait for connection to complete.
-            await connectTask.WithCancellation( testContext.CancellationToken );
-            this.TestOutput.WriteLine( "Connection completed." );
-        }
-        finally
-        {
-            // Always release all sync points to avoid deadlocks if the test fails.
-            syncProvider.ReleaseAll();
-        }
+        // Release the sync point to let connection complete.
+        testContext.SyncProvider.ReleaseSyncPoint( syncPointName );
+
+        // Wait for connection to complete.
+        await connectTask.WithCancellation( testContext.CancellationToken );
+        this.TestOutput.WriteLine( "Connection completed." );
     }
 }

@@ -5,9 +5,7 @@
 #pragma warning disable VSTHRD003 // Avoid awaiting foreign Tasks - acceptable in test code
 
 using Metalama.Framework.DesignTime.Rpc;
-using Metalama.Framework.DesignTime.VisualStudio.Rpc;
 using Metalama.Framework.Engine.Utilities.Threading;
-using Metalama.Testing.UnitTesting;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -20,7 +18,7 @@ namespace Metalama.Framework.Tests.UnitTests.DesignTime.Rpc;
 /// Tests for <see cref="BaseEndpoint.ExecuteBackgroundTask"/> and related functionality.
 /// These tests verify the race condition fix where fast-completing tasks are properly tracked.
 /// </summary>
-public sealed partial class BaseEndpointTests : UnitTestClass
+public sealed partial class BaseEndpointTests : RpcUnitTestClass
 {
     public BaseEndpointTests( ITestOutputHelper logger ) : base( logger ) { }
 
@@ -33,15 +31,11 @@ public sealed partial class BaseEndpointTests : UnitTestClass
     [Fact]
     public async Task ExecuteBackgroundTask_SynchronouslyCompletingTask_HandledCorrectly()
     {
-        using var testContext = this.CreateTestContext();
-
-        var serviceProvider = testContext.ServiceProvider.Global
-            .Underlying
-            .WithUntypedService( typeof(IJsonSerializationBinderProvider), new JsonSerializationBinderProvider() );
+        using var testContext = this.CreateRpcTestContext();
 
         var pipeName = $"{nameof(BaseEndpointTests)}_{Guid.NewGuid()}";
 
-        using var endpoint = new TestServerEndpoint( serviceProvider, pipeName );
+        using var endpoint = new TestServerEndpoint( testContext.ServiceProvider, pipeName );
 
         // Execute a task that completes synchronously (no await/yield).
         // This creates a race where the task may complete before TryAdd.
@@ -61,15 +55,11 @@ public sealed partial class BaseEndpointTests : UnitTestClass
     [Fact]
     public async Task ExecuteBackgroundTask_SlowCompletingTask_TrackedCorrectly()
     {
-        using var testContext = this.CreateTestContext();
-
-        var serviceProvider = testContext.ServiceProvider.Global
-            .Underlying
-            .WithUntypedService( typeof(IJsonSerializationBinderProvider), new JsonSerializationBinderProvider() );
+        using var testContext = this.CreateRpcTestContext();
 
         var pipeName = $"{nameof(BaseEndpointTests)}_{Guid.NewGuid()}";
 
-        using var endpoint = new TestServerEndpoint( serviceProvider, pipeName );
+        using var endpoint = new TestServerEndpoint( testContext.ServiceProvider, pipeName );
 
         // Use TaskCompletionSource to control when the task completes.
         var tcs = new TaskCompletionSource<bool>();
@@ -105,15 +95,11 @@ public sealed partial class BaseEndpointTests : UnitTestClass
     [Fact]
     public async Task ExecuteBackgroundTask_RegisterTaskFalse_NotTracked()
     {
-        using var testContext = this.CreateTestContext();
-
-        var serviceProvider = testContext.ServiceProvider.Global
-            .Underlying
-            .WithUntypedService( typeof(IJsonSerializationBinderProvider), new JsonSerializationBinderProvider() );
+        using var testContext = this.CreateRpcTestContext();
 
         var pipeName = $"{nameof(BaseEndpointTests)}_{Guid.NewGuid()}";
 
-        using var endpoint = new TestServerEndpoint( serviceProvider, pipeName );
+        using var endpoint = new TestServerEndpoint( testContext.ServiceProvider, pipeName );
 
         // Use TaskCompletionSource to control when the task completes.
         var taskBlocker = new TaskCompletionSource<bool>();
@@ -146,13 +132,11 @@ public sealed partial class BaseEndpointTests : UnitTestClass
     [Fact]
     public async Task ExecuteBackgroundTask_TaskThrowsException_HandledGracefully()
     {
-        using var testContext = this.CreateTestContext();
+        using var testContext = this.CreateRpcTestContext();
 
         var exceptionHandler = new TestExceptionHandler();
 
-        var serviceProvider = testContext.ServiceProvider.Global
-            .Underlying
-            .WithUntypedService( typeof(IJsonSerializationBinderProvider), new JsonSerializationBinderProvider() )
+        var serviceProvider = testContext.Global.Underlying
             .WithUntypedService( typeof(IRpcExceptionHandler), exceptionHandler );
 
         var pipeName = $"{nameof(BaseEndpointTests)}_{Guid.NewGuid()}";
@@ -186,15 +170,11 @@ public sealed partial class BaseEndpointTests : UnitTestClass
     [Fact]
     public async Task ExecuteBackgroundTask_DisposeWhileTaskRunning_TaskCancelled()
     {
-        using var testContext = this.CreateTestContext();
-
-        var serviceProvider = testContext.ServiceProvider.Global
-            .Underlying
-            .WithUntypedService( typeof(IJsonSerializationBinderProvider), new JsonSerializationBinderProvider() );
+        using var testContext = this.CreateRpcTestContext();
 
         var pipeName = $"{nameof(BaseEndpointTests)}_{Guid.NewGuid()}";
 
-        var endpoint = new TestServerEndpoint( serviceProvider, pipeName );
+        var endpoint = new TestServerEndpoint( testContext.ServiceProvider, pipeName );
 
         var taskStarted = new TaskCompletionSource<bool>();
         var taskCancelled = new TaskCompletionSource<bool>();
@@ -235,15 +215,11 @@ public sealed partial class BaseEndpointTests : UnitTestClass
     [Fact]
     public async Task ExecuteBackgroundTask_MultipleConcurrentTasks_AllTracked()
     {
-        using var testContext = this.CreateTestContext();
-
-        var serviceProvider = testContext.ServiceProvider.Global
-            .Underlying
-            .WithUntypedService( typeof(IJsonSerializationBinderProvider), new JsonSerializationBinderProvider() );
+        using var testContext = this.CreateRpcTestContext();
 
         var pipeName = $"{nameof(BaseEndpointTests)}_{Guid.NewGuid()}";
 
-        using var endpoint = new TestServerEndpoint( serviceProvider, pipeName );
+        using var endpoint = new TestServerEndpoint( testContext.ServiceProvider, pipeName );
 
         // Create blockers for 3 tasks.
         var blocker1 = new TaskCompletionSource<bool>();
