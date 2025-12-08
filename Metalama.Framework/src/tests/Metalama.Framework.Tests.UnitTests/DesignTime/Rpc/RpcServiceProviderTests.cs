@@ -25,12 +25,7 @@ public sealed partial class RpcServiceProviderTests : RpcUnitTestClass
     /// the IsCompleted check. This test previously failed due to a race condition in
     /// BaseEndpoint.ExecuteBackgroundTask where fast-completing tasks weren't tracked.
     /// </summary>
-    /// <remarks>
-    /// This test is skipped because it relies on <c>WhenBackgroundTasksCompletedAsync</c> capturing
-    /// tasks that are scheduled during the completion of other tasks. The current implementation
-    /// takes a snapshot of pending tasks, so newly scheduled retry tasks may not be waited for.
-    /// </remarks>
-    [Fact( Skip = "WhenBackgroundTasksCompletedAsync doesn't capture tasks scheduled during completion of other tasks" )]
+    [Fact]
     public async Task RegisterServiceBeforeExtensionRegisteredInClient_RetryMechanismWorks()
     {
         using var testContext = this.CreateRpcTestContext();

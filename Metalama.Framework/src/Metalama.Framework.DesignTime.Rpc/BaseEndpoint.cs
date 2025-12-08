@@ -195,13 +195,29 @@ public abstract class BaseEndpoint : IDisposable
     }
 
     // ReSharper disable InconsistentlySynchronizedField
-    public Task WhenBackgroundTasksCompletedAsync( CancellationToken cancellationToken )
-        => Task.WhenAll( this._backgroundTasks.Values.Select( t => t.Task ) )
-            .WithCancellation( cancellationToken )
-            .WarnIfLongAsync(
-                this.Logger,
-                $"Awaiting for background task(s):{string.Join( ", ", this._backgroundTasks.Values.Select( x => x.Description ) )}",
-                cancellationToken );
+    /// <summary>
+    /// Waits until all background tasks have completed. This method loops until no tasks remain,
+    /// ensuring that tasks scheduled during the completion of other tasks are also awaited.
+    /// </summary>
+    public async Task WhenBackgroundTasksCompletedAsync( CancellationToken cancellationToken )
+    {
+        while ( true )
+        {
+            var tasks = this._backgroundTasks.Values.ToArray();
+
+            if ( tasks.Length == 0 )
+            {
+                return;
+            }
+
+            await Task.WhenAll( tasks.Select( t => t.Task ) )
+                .WithCancellation( cancellationToken )
+                .WarnIfLongAsync(
+                    this.Logger,
+                    $"Awaiting for background task(s):{string.Join( ", ", tasks.Select( x => x.Description ) )}",
+                    cancellationToken );
+        }
+    }
 
     // ReSharper restore once InconsistentlySynchronizedField
 
