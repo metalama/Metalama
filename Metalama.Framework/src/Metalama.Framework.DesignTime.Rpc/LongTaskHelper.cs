@@ -8,11 +8,23 @@ using System.Diagnostics;
 
 namespace Metalama.Framework.DesignTime.Rpc;
 
+/// <summary>
+/// Provides extension methods for monitoring long-running tasks and logging warnings when they exceed a threshold.
+/// The threshold is 1000ms (1 second).
+/// </summary>
 [PublicAPI]
 public static class LongTaskHelper
 {
     private const int _threshold = 1000;
-    
+
+    /// <summary>
+    /// Wraps a task to log a warning if it takes longer than 1 second to complete.
+    /// </summary>
+    /// <param name="task">The task to monitor.</param>
+    /// <param name="logger">The logger to use for warnings.</param>
+    /// <param name="taskDescription">A description of the task for the log message.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The original task.</returns>
     public static Task WarnIfLongAsync( this Task task, ILogger? logger, string taskDescription, CancellationToken cancellationToken )
     {
         if ( task.IsCompleted || task.IsFaulted || task.IsCanceled )

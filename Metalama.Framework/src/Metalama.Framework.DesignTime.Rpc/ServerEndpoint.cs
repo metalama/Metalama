@@ -10,6 +10,18 @@ using System.IO.Pipes;
 
 namespace Metalama.Framework.DesignTime.Rpc;
 
+/// <summary>
+/// Abstract base class for RPC server endpoints. Server endpoints listen for client connections on named pipes,
+/// register RPC services, and can broadcast events to connected clients. Derive from this class to create
+/// a server that exposes specific RPC services.
+/// </summary>
+/// <remarks>
+/// <para>A server endpoint can accept multiple client connections simultaneously. Each client connection
+/// is handled independently, and services are registered on each connection.</para>
+/// <para>Services can be registered either at startup (via <see cref="CreateServices"/>) or dynamically
+/// (via <see cref="AddServices"/>). Dynamically added services create additional named pipes with the
+/// format <c>{PipeName}-{index}</c>.</para>
+/// </remarks>
 public abstract class ServerEndpoint : BaseEndpoint
 {
     private readonly ConcurrentDictionary<JsonRpc, NamedPipeServerStream> _pipes = new();
@@ -23,6 +35,13 @@ public abstract class ServerEndpoint : BaseEndpoint
         serviceProvider,
         pipeName ) { }
 
+    /// <summary>
+    /// Gets a registered service of the specified type after waiting for the endpoint to be initialized.
+    /// </summary>
+    /// <typeparam name="TService">The type of service to retrieve.</typeparam>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The registered service instance.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when the specified service type is not registered.</exception>
     public async ValueTask<TService> GetRequiredServiceAsync<TService>( CancellationToken cancellationToken )
         where TService : RpcService
     {
@@ -32,14 +51,24 @@ public abstract class ServerEndpoint : BaseEndpoint
                ?? throw new InvalidOperationException( $"Service '{typeof(TService).Name}' is not registered." );
     }
 
+    /// <summary>
+    /// Creates the initial set of RPC services to register on the endpoint. Override this method to provide
+    /// the services that will be available to clients immediately after calling <see cref="Start"/>.
+    /// </summary>
+    /// <returns>An enumerable of <see cref="RpcService"/> instances to register.</returns>
     protected abstract IEnumerable<RpcService> CreateServices();
 
+    /// <summary>
+    /// Gets the number of currently connected clients.
+    /// </summary>
     public int ClientCount => this._pipes.Count;
 
 #pragma warning disable VSTHRD100 // Avoid "async void".
     /// <summary>
-    /// Starts the RPC connection, but does not wait until a client connects.
+    /// Starts the server endpoint and begins listening for client connections. This method does not block
+    /// waiting for clients; connection handling is performed asynchronously in background tasks.
     /// </summary>
+    /// <exception cref="InvalidOperationException">Thrown if the endpoint has already been started.</exception>
     public void Start()
     {
         try
@@ -63,6 +92,12 @@ public abstract class ServerEndpoint : BaseEndpoint
     }
 #pragma warning restore VSTHRD100 // Avoid "async void".
 
+    /// <summary>
+    /// Adds additional services to the endpoint dynamically after startup. Creates a new named pipe
+    /// with the format <c>{PipeName}-{index}</c> for the new services.
+    /// </summary>
+    /// <param name="services">The services to add.</param>
+    /// <returns>The name of the newly created pipe for these services.</returns>
     protected string AddServices( ImmutableArray<RpcService> services )
     {
         var pipeId = Interlocked.Increment( ref this._nextPipeId );
@@ -74,10 +109,22 @@ public abstract class ServerEndpoint : BaseEndpoint
         return pipeName;
     }
 
+    /// <summary>
+    /// Occurs when a client has connected and services have been registered on the connection.
+    /// </summary>
     public event Action? ClientConnected;
 
+    /// <summary>
+    /// Occurs when a client has disconnected.
+    /// </summary>
     public event Action? ClientDisconnected;
 
+    /// <summary>
+    /// Called after the server pipe has been created but before waiting for client connections.
+    /// Override this method to perform additional setup.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
     protected virtual Task OnServerPipeCreatedAsync( CancellationToken cancellationToken ) => Task.CompletedTask;
 
     private void OnConnected( IEnumerable<RpcService> services )

@@ -1,5 +1,7 @@
 # RPC Tests Guide
 
+> **See also:** Main RPC infrastructure documentation at `Metalama.Framework.DesignTime.Rpc/CLAUDE.md`
+
 ## Architecture
 
 All RPC tests inherit from `RpcUnitTestClass` and use `RpcTestContext` for test setup.
@@ -205,3 +207,4 @@ await someTask.WithCancellation( testContext.CancellationToken );
 - **ConnectCoreAsyncTests** - Client-side connection, duplicate handling, awaiter signaling
 - **RpcServicesTests** - Multiple services, event dispatching, service lookup
 - **RpcServiceRaiseEventTests** - Event broadcasting races, concurrent events
+- **RpcServiceProviderTests** - Service provider integration, extension loading, retry mechanisms

@@ -4,7 +4,17 @@
 
 namespace Metalama.Framework.DesignTime.Rpc;
 
+/// <summary>
+/// Interface for sending events from server services to connected clients.
+/// Implementations are provided by <see cref="RpcService{TApi}"/> when creating API instances.
+/// </summary>
 public interface IRpcEventSender
 {
+    /// <summary>
+    /// Raises an event to be sent to the connected client.
+    /// </summary>
+    /// <param name="eventData">The event data to send.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
     Task RaiseEventAsync( RpcEventData eventData, CancellationToken cancellationToken );
 }
