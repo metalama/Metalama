@@ -1,11 +1,12 @@
-﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+#pragma warning disable VSTHRD003 // Avoid awaiting foreign Tasks - acceptable in test code
+
 using Metalama.Framework.DesignTime.Extensibility;
-using Metalama.Framework.DesignTime.Rpc;
 using Metalama.Framework.DesignTime.VisualStudio.ServiceProvider;
-using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Engine.Utilities.Threading;
 using System;
 using System.Threading.Tasks;
 using Xunit;
@@ -13,9 +14,9 @@ using Xunit.Abstractions;
 
 namespace Metalama.Framework.Tests.UnitTests.DesignTime.Rpc;
 
-public sealed class RpcServiceProviderTests : RpcUnitTestClass
+public sealed partial class RpcServiceProviderTests : RpcUnitTestClass
 {
-    private const string _extensionName = "TheExtension";
+    internal const string ExtensionName = "TheExtension";
 
     public RpcServiceProviderTests( ITestOutputHelper logger ) : base( logger ) { }
 
@@ -51,7 +52,7 @@ public sealed class RpcServiceProviderTests : RpcUnitTestClass
         await clientEndpoint.WaitUntilInitializedAsync( testContext.CancellationToken );
 
         // Enable the sync point BEFORE adding services so it will block.
-        testContext.SyncProvider.EnableSyncPoint( $"RpcServiceProviderClientEndpoint.BeforeExtensionCheck:{_extensionName}" );
+        testContext.SyncProvider.EnableSyncPoint( $"RpcServiceProviderClientEndpoint.BeforeExtensionCheck:{ExtensionName}" );
 
         // Add services - client will block at sync point.
         var extensionServiceFactory = new ExtensionServiceFactory();
@@ -59,12 +60,12 @@ public sealed class RpcServiceProviderTests : RpcUnitTestClass
 
         // Wait for client to reach the sync point.
         await testContext.SyncProvider.WaitForSyncPointReachedAsync(
-            $"RpcServiceProviderClientEndpoint.BeforeExtensionCheck:{_extensionName}",
+            $"RpcServiceProviderClientEndpoint.BeforeExtensionCheck:{ExtensionName}",
             testContext.CancellationToken );
 
         // Release sync point WITHOUT registering extension first.
         // This forces the retry path - client will see extension not loaded.
-        testContext.SyncProvider.ReleaseSyncPoint( $"RpcServiceProviderClientEndpoint.BeforeExtensionCheck:{_extensionName}" );
+        testContext.SyncProvider.ReleaseSyncPoint( $"RpcServiceProviderClientEndpoint.BeforeExtensionCheck:{ExtensionName}" );
 
         // Now register extension - retry task will complete.
         clientExtensionManager.OnExtensionDiscovered( new Extension() );
@@ -106,7 +107,7 @@ public sealed class RpcServiceProviderTests : RpcUnitTestClass
         await clientEndpoint.WaitUntilInitializedAsync( testContext.CancellationToken );
 
         // Enable the sync point BEFORE adding services so it will block.
-        testContext.SyncProvider.EnableSyncPoint( $"RpcServiceProviderClientEndpoint.BeforeExtensionCheck:{_extensionName}" );
+        testContext.SyncProvider.EnableSyncPoint( $"RpcServiceProviderClientEndpoint.BeforeExtensionCheck:{ExtensionName}" );
 
         // Add services - client will block at sync point before checking if extension is loaded.
         var extensionServiceFactory = new ExtensionServiceFactory();
@@ -114,7 +115,7 @@ public sealed class RpcServiceProviderTests : RpcUnitTestClass
 
         // Wait for client to reach the sync point (about to check IsCompleted).
         await testContext.SyncProvider.WaitForSyncPointReachedAsync(
-            $"RpcServiceProviderClientEndpoint.BeforeExtensionCheck:{_extensionName}",
+            $"RpcServiceProviderClientEndpoint.BeforeExtensionCheck:{ExtensionName}",
             testContext.CancellationToken );
 
         // Register extension WHILE client is paused at sync point.
@@ -122,7 +123,7 @@ public sealed class RpcServiceProviderTests : RpcUnitTestClass
         clientExtensionManager.OnExtensionDiscovered( new Extension() );
 
         // Release the sync point - client will now see extension as loaded.
-        testContext.SyncProvider.ReleaseSyncPoint( $"RpcServiceProviderClientEndpoint.BeforeExtensionCheck:{_extensionName}" );
+        testContext.SyncProvider.ReleaseSyncPoint( $"RpcServiceProviderClientEndpoint.BeforeExtensionCheck:{ExtensionName}" );
 
         await clientEndpoint.WhenBackgroundTasksCompletedAsync( testContext.CancellationToken );
 
@@ -134,65 +135,142 @@ public sealed class RpcServiceProviderTests : RpcUnitTestClass
         Assert.True( extensionServiceFactory.IsHelloMethodCalled );
     }
 
-    private sealed class Extension : IDesignTimeExtension
+    /// <summary>
+    /// Tests that services without extensions are available after being added dynamically.
+    /// </summary>
+    [Fact]
+    public async Task ServiceWithoutExtension_DynamicallyAdded_IsAvailable()
     {
-        public bool Initialize( DesignTimeInitializationContext context ) => true;
+        using var testContext = this.CreateRpcTestContext();
 
-        public string Name => _extensionName;
+        var pipename = $"{nameof(RpcServiceProviderTests)}_{Guid.NewGuid()}";
+
+        // Start the server with no initial services.
+        using var serverEndpoint = new RpcServiceProviderServerEndpoint( testContext.Global, pipename, [] );
+        serverEndpoint.Start();
+
+        // Start the client.
+        using var clientEndpoint = new RpcServiceProviderClientEndpoint( testContext.Global, pipename );
+        await clientEndpoint.ConnectAsync( testContext.CancellationToken );
+        await clientEndpoint.WaitUntilInitializedAsync( testContext.CancellationToken );
+
+        // Service should not be available yet.
+        Assert.False( clientEndpoint.IsClientAvailable<SimpleServiceClient>() );
+
+        // Add service dynamically.
+        var simpleServiceFactory = new SimpleServiceFactory();
+        serverEndpoint.AddServices( [simpleServiceFactory] );
+
+        // Wait for background tasks to complete.
+        await serverEndpoint.WhenBackgroundTasksCompletedAsync( testContext.CancellationToken );
+        await clientEndpoint.WhenBackgroundTasksCompletedAsync( testContext.CancellationToken );
+
+        // Service should now be available.
+        Assert.True( clientEndpoint.IsClientAvailable<SimpleServiceClient>() );
+
+        var api = await clientEndpoint.GetApiAsync<ISimpleService>( testContext.CancellationToken );
+        await api.PingAsync();
+        Assert.True( simpleServiceFactory.IsPingCalled );
     }
 
-    private interface IExtensionService : IRpcApi
+    /// <summary>
+    /// Tests that concurrent GetApiAsync calls all return the same API instance.
+    /// </summary>
+    [Fact]
+    public async Task GetApiAsync_ConcurrentCalls_AllReturnSameApiInstance()
     {
-        Task HelloAsync();
-    }
+        using var testContext = this.CreateRpcTestContext();
 
-    private sealed class ExtensionServiceImpl : RpcService<IExtensionService>
-    {
-        private readonly ExtensionServiceFactory _root;
+        var pipename = $"{nameof(RpcServiceProviderTests)}_{Guid.NewGuid()}";
 
-        public ExtensionServiceImpl( ServerEndpoint serverEndpoint, ExtensionServiceFactory root ) : base( serverEndpoint )
+        // Start the server with no initial services.
+        using var serverEndpoint = new RpcServiceProviderServerEndpoint( testContext.Global, pipename, [] );
+        serverEndpoint.Start();
+
+        // Start the client.
+        using var clientEndpoint = new RpcServiceProviderClientEndpoint( testContext.Global, pipename );
+        await clientEndpoint.ConnectAsync( testContext.CancellationToken );
+        await clientEndpoint.WaitUntilInitializedAsync( testContext.CancellationToken );
+
+        // Add service dynamically.
+        var simpleServiceFactory = new SimpleServiceFactory();
+        serverEndpoint.AddServices( [simpleServiceFactory] );
+
+        // Wait for background tasks to complete.
+        await serverEndpoint.WhenBackgroundTasksCompletedAsync( testContext.CancellationToken );
+        await clientEndpoint.WhenBackgroundTasksCompletedAsync( testContext.CancellationToken );
+
+        // Start 5 concurrent GetApiAsync calls.
+        var getApiTasks = new Task<ISimpleService>[5];
+
+        for ( var i = 0; i < 5; i++ )
         {
-            this._root = root;
+            getApiTasks[i] = clientEndpoint.GetApiAsync<ISimpleService>( testContext.CancellationToken ).AsTask();
         }
 
-        protected override IExtensionService CreateApi( IRpcEventSender eventSender ) => new Api( this._root );
+        // Wait for all to complete.
+        var results = await Task.WhenAll( getApiTasks ).WithCancellation( testContext.CancellationToken );
 
-        private sealed class Api : IExtensionService
+        // All should return the same instance.
+        var firstApi = results[0];
+
+        for ( var i = 1; i < results.Length; i++ )
         {
-            private readonly ExtensionServiceFactory _root;
+            Assert.Same( firstApi, results[i] );
+        }
+    }
 
-            public Api( ExtensionServiceFactory root )
+    /// <summary>
+    /// Tests that concurrent AddServices calls on the server work correctly.
+    /// </summary>
+    [Fact]
+    public async Task AddServices_ConcurrentCalls_AllServicesAdded()
+    {
+        using var testContext = this.CreateRpcTestContext();
+
+        var pipename = $"{nameof(RpcServiceProviderTests)}_{Guid.NewGuid()}";
+
+        // Start the server with no initial services.
+        using var serverEndpoint = new RpcServiceProviderServerEndpoint( testContext.Global, pipename, [] );
+        serverEndpoint.Start();
+
+        // Start the client.
+        using var clientEndpoint = new RpcServiceProviderClientEndpoint( testContext.Global, pipename );
+        await clientEndpoint.ConnectAsync( testContext.CancellationToken );
+        await clientEndpoint.WaitUntilInitializedAsync( testContext.CancellationToken );
+
+        // Create multiple service factories.
+        var simpleServiceFactory = new SimpleServiceFactory();
+        var simpleService2Factory = new SimpleService2Factory();
+
+        // Add services concurrently from different threads.
+        var startSignal = new TaskCompletionSource<bool>();
+
+        var addTask1 = Task.Run(
+            async () =>
             {
-                this._root = root;
-            }
+                await startSignal.Task.WithCancellation( testContext.CancellationToken );
+                serverEndpoint.AddServices( [simpleServiceFactory] );
+            } );
 
-            public Task HelloAsync()
+        var addTask2 = Task.Run(
+            async () =>
             {
-                this._root.OnHelloCalled();
+                await startSignal.Task.WithCancellation( testContext.CancellationToken );
+                serverEndpoint.AddServices( [simpleService2Factory] );
+            } );
 
-                return Task.CompletedTask;
-            }
-        }
-    }
+        // Release both tasks simultaneously.
+        startSignal.SetResult( true );
 
-    private sealed class ExtensionServiceClient : RpcClient<IExtensionService>
-    {
-        public ExtensionServiceClient( ClientEndpoint endpoint ) : base( endpoint ) { }
-    }
+        await Task.WhenAll( addTask1, addTask2 ).WithCancellation( testContext.CancellationToken );
 
-    private sealed class ExtensionServiceFactory : IRpcServiceFactory
-    {
-        public string ExtensionName => _extensionName;
+        // Wait for background tasks.
+        await serverEndpoint.WhenBackgroundTasksCompletedAsync( testContext.CancellationToken );
+        await clientEndpoint.WhenBackgroundTasksCompletedAsync( testContext.CancellationToken );
 
-        public RpcService CreateRpcService( GlobalServiceProvider serviceProvider, ServerEndpoint endpoint ) => new ExtensionServiceImpl( endpoint, this );
-
-        public RpcClient CreateRpcClient( GlobalServiceProvider serviceProvider, ClientEndpoint endpoint ) => new ExtensionServiceClient( endpoint );
-
-        public void OnHelloCalled()
-        {
-            this.IsHelloMethodCalled = true;
-        }
-
-        public bool IsHelloMethodCalled { get; private set; }
+        // Both services should be available.
+        Assert.True( clientEndpoint.IsClientAvailable<SimpleServiceClient>() );
+        Assert.True( clientEndpoint.IsClientAvailable<SimpleService2Client>() );
     }
 }
