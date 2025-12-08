@@ -30,7 +30,7 @@ public abstract class RpcUnitTestClass : UnitTestClass
     private protected RpcTestContext CreateRpcTestContext( [CallerFilePath] string? callerFile = null, [CallerMemberName] string? callerMemberName = null )
     {
         var jsonSerializationBinderProvider = new JsonSerializationBinderProvider();
-        var syncProvider = new TestSynchronizationProvider();
+        var syncProvider = new TestSynchronizationProvider( this.TestOutput );
 
         var additionalServices = new AdditionalServiceCollection();
         additionalServices.AddUntypedGlobalService( typeof(IJsonSerializationBinderProvider), jsonSerializationBinderProvider );

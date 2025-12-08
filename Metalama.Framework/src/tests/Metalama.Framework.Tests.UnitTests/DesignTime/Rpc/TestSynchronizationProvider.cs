@@ -6,6 +6,7 @@ using Metalama.Framework.DesignTime.Rpc;
 using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
+using Xunit.Abstractions;
 
 namespace Metalama.Framework.Tests.UnitTests.DesignTime.Rpc;
 
@@ -36,6 +37,17 @@ namespace Metalama.Framework.Tests.UnitTests.DesignTime.Rpc;
 internal sealed class TestSynchronizationProvider : ITestSynchronizationProvider
 {
     private readonly ConcurrentDictionary<string, SyncPoint> _syncPoints = new();
+    private readonly ITestOutputHelper? _testOutput;
+
+    public TestSynchronizationProvider( ITestOutputHelper? testOutput = null )
+    {
+        this._testOutput = testOutput;
+    }
+
+    private void Log( string message )
+    {
+        this._testOutput?.WriteLine( $"TestSyncProvider: {message}" );
+    }
 
     /// <summary>
     /// Called by code under test at a synchronization point.
@@ -49,11 +61,15 @@ internal sealed class TestSynchronizationProvider : ITestSynchronizationProvider
         if ( !this._syncPoints.TryGetValue( syncPointName, out var sp ) )
         {
             // No one is waiting for this sync point, skip it.
+            this.Log( $"SyncPointAsync '{syncPointName}': not enabled, skipping." );
+
             return;
         }
 
+        this.Log( $"SyncPointAsync '{syncPointName}': reached, signaling and waiting for release." );
         sp.ReachedSignal.Release();
         await sp.ReleaseSignal.WaitAsync( cancellationToken );
+        this.Log( $"SyncPointAsync '{syncPointName}': released, continuing." );
     }
 
     /// <summary>
@@ -63,6 +79,7 @@ internal sealed class TestSynchronizationProvider : ITestSynchronizationProvider
     /// <param name="syncPointName">The name of the sync point to enable.</param>
     public void EnableSyncPoint( string syncPointName )
     {
+        this.Log( $"EnableSyncPoint '{syncPointName}'." );
         this._syncPoints.GetOrAdd( syncPointName, _ => new SyncPoint() );
     }
 
@@ -74,9 +91,12 @@ internal sealed class TestSynchronizationProvider : ITestSynchronizationProvider
     /// <param name="cancellationToken">Cancellation token.</param>
     public async Task WaitForSyncPointReachedAsync( string syncPointName, CancellationToken cancellationToken )
     {
+        this.Log( $"WaitForSyncPointReachedAsync '{syncPointName}': waiting." );
+
         // GetOrAdd to register interest in this sync point.
         var sp = this._syncPoints.GetOrAdd( syncPointName, _ => new SyncPoint() );
         await sp.ReachedSignal.WaitAsync( cancellationToken );
+        this.Log( $"WaitForSyncPointReachedAsync '{syncPointName}': sync point reached." );
     }
 
     /// <summary>
@@ -85,6 +105,8 @@ internal sealed class TestSynchronizationProvider : ITestSynchronizationProvider
     /// <param name="syncPointName">The name of the sync point to release.</param>
     public void ReleaseSyncPoint( string syncPointName )
     {
+        this.Log( $"ReleaseSyncPoint '{syncPointName}'." );
+
         if ( this._syncPoints.TryGetValue( syncPointName, out var sp ) )
         {
             sp.ReleaseSignal.Release();
@@ -96,6 +118,8 @@ internal sealed class TestSynchronizationProvider : ITestSynchronizationProvider
     /// </summary>
     public void ReleaseAll()
     {
+        this.Log( $"ReleaseAll: releasing {this._syncPoints.Count} sync point(s)." );
+
         foreach ( var sp in this._syncPoints.Values )
         {
             // Release multiple times in case multiple threads are waiting.

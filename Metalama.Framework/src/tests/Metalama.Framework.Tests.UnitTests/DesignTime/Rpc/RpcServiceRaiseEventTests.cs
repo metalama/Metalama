@@ -181,6 +181,7 @@ public sealed partial class RpcServiceRaiseEventTests : RpcUnitTestClass
 
         var clientConnectedCount = 0;
         var allClientsConnectedTcs = new TaskCompletionSource<bool>();
+        var clientDisconnectedTcs = new TaskCompletionSource<bool>();
         const int clientCount = 2;
 
         serverEndpoint.ClientConnected += () =>
@@ -189,6 +190,11 @@ public sealed partial class RpcServiceRaiseEventTests : RpcUnitTestClass
             {
                 allClientsConnectedTcs.TrySetResult( true );
             }
+        };
+
+        serverEndpoint.ClientDisconnected += () =>
+        {
+            clientDisconnectedTcs.TrySetResult( true );
         };
 
         serverEndpoint.Start();
@@ -218,8 +224,8 @@ public sealed partial class RpcServiceRaiseEventTests : RpcUnitTestClass
         // Disconnect client2 BEFORE sending the event.
         client2.Dispose();
 
-        // Give server time to process the disconnection.
-        await serverEndpoint.WhenBackgroundTasksCompletedAsync( testContext.CancellationToken );
+        // Wait for server to process the disconnection.
+        await clientDisconnectedTcs.Task.WithCancellation( testContext.CancellationToken );
 
         // Send event - should not throw even though client2 disconnected.
         var service = await serverEndpoint.GetRequiredServiceAsync<EventTestService>( testContext.CancellationToken );

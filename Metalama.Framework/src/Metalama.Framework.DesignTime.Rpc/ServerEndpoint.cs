@@ -76,6 +76,8 @@ public abstract class ServerEndpoint : BaseEndpoint
 
     public event Action? ClientConnected;
 
+    public event Action? ClientDisconnected;
+
     protected virtual Task OnServerPipeCreatedAsync( CancellationToken cancellationToken ) => Task.CompletedTask;
 
     private void OnConnected( IEnumerable<RpcService> services )
@@ -157,6 +159,15 @@ public abstract class ServerEndpoint : BaseEndpoint
         if ( this._pipes.TryRemove( rpc, out var pipe ) )
         {
             pipe.Dispose();
+        }
+
+        try
+        {
+            this.ClientDisconnected?.Invoke();
+        }
+        catch ( Exception ex )
+        {
+            this.Logger.LogException( ex );
         }
     }
 

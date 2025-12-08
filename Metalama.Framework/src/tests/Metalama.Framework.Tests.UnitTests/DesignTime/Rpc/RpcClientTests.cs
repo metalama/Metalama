@@ -196,8 +196,7 @@ public sealed partial class RpcClientTests : RpcUnitTestClass
         // Start GetApiAsync in background (will wait on WaitUntilInitializedAsync).
         var getApiTask = client.GetApiAsync( cts.Token ).AsTask();
 
-        // Give it a moment to start waiting.
-        await Task.Delay( 50, testContext.CancellationToken );
+        // Task should NOT be completed synchronously since there's no server to initialize with.
         Assert.False( getApiTask.IsCompleted );
 
         // Cancel.

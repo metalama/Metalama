@@ -88,9 +88,9 @@ Available sync points:
 - `ServerEndpoint.AfterGetsClient:{pipeName}` - After server accepts client but before configuring RPC
 - `ClientEndpoint.BeforeSignalingAwaiters:{pipeName}` - After client updates collections but before signaling awaiters
 
-## Waiting for Server-Side Connection
+## Waiting for Server-Side Connection/Disconnection
 
-The client's `ConnectAsync` returns when the client side connects, but the server may not have finished processing. Use the `ClientConnected` event:
+The client's `ConnectAsync` returns when the client side connects, but the server may not have finished processing. Use the `ClientConnected` and `ClientDisconnected` events:
 
 ```csharp
 var clientConnectedTcs = new TaskCompletionSource<bool>();
@@ -115,6 +115,20 @@ serverEndpoint.ClientConnected += () =>
         allClientsConnectedTcs.TrySetResult( true );
     }
 };
+```
+
+For waiting on client disconnections (e.g., before testing event broadcast to remaining clients):
+```csharp
+var clientDisconnectedTcs = new TaskCompletionSource<bool>();
+serverEndpoint.ClientDisconnected += () => clientDisconnectedTcs.TrySetResult( true );
+
+// Disconnect the client
+client.Dispose();
+
+// Wait for server to process the disconnection
+await clientDisconnectedTcs.Task.WithCancellation( testContext.CancellationToken );
+
+// Now safe to check serverEndpoint.ClientCount or broadcast events
 ```
 
 ## Test Class Structure
