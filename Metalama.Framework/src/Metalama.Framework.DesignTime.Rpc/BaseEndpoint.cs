@@ -131,6 +131,8 @@ public abstract class BaseEndpoint : IDisposable
         var taskId = Interlocked.Increment( ref this._nextBackgroundTaskId );
 
         this.Logger.Trace?.Log( $"Scheduling background task {taskId}: '{description}'." );
+        
+        var backgroundTaskWillBeRemoved = true;
 
         var task = Task.Run(
             async () =>
@@ -152,6 +154,7 @@ public abstract class BaseEndpoint : IDisposable
                         lock ( this._backgroundTasks )
                         {
                             this._backgroundTasks.TryRemove( taskId, out _ );
+                            backgroundTaskWillBeRemoved = false;
                         }
                     }
                 }
@@ -160,9 +163,12 @@ public abstract class BaseEndpoint : IDisposable
 
         if ( registerTask )
         {
+            // Always add the task first. The finally block will remove it when complete.
+            // We must not check IsCompleted here because the task may complete between
+            // Task.Run and this point, causing WhenBackgroundTasksCompletedAsync to miss it.
             lock ( this._backgroundTasks )
             {
-                if ( task is { IsCompleted: false, IsCanceled: false, IsFaulted: false } )
+                if ( backgroundTaskWillBeRemoved )
                 {
                     this._backgroundTasks.TryAdd( taskId, (task, description) );
                 }

@@ -1,0 +1,339 @@
+// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+// SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
+// Refer to LICENSE.md in the repository root for complete details.
+
+using Metalama.Framework.DesignTime.Rpc;
+using Metalama.Framework.DesignTime.VisualStudio.Rpc;
+using Metalama.Framework.Engine.Utilities.Threading;
+using Metalama.Testing.UnitTesting;
+using System;
+using System.Threading;
+using System.Threading.Tasks;
+using Xunit;
+using Xunit.Abstractions;
+
+namespace Metalama.Framework.Tests.UnitTests.DesignTime;
+
+/// <summary>
+/// Tests for <see cref="BaseEndpoint.ExecuteBackgroundTask"/> and related functionality.
+/// These tests verify the race condition fix where fast-completing tasks are properly tracked.
+/// </summary>
+public sealed class BaseEndpointTests : UnitTestClass
+{
+    public BaseEndpointTests( ITestOutputHelper logger ) : base( logger ) { }
+
+    /// <summary>
+    /// Tests that a synchronously-completing task (no await/yield) is handled correctly.
+    /// This tests the race condition fix where a task that completes before TryAdd
+    /// should not leave a stale entry in the tracking dictionary.
+    /// The assertion is that WhenBackgroundTasksCompletedAsync completes (test would hang otherwise).
+    /// </summary>
+    [Fact]
+    public async Task ExecuteBackgroundTask_SynchronouslyCompletingTask_HandledCorrectly()
+    {
+        using var testContext = this.CreateTestContext();
+
+        var serviceProvider = testContext.ServiceProvider.Global
+            .Underlying
+            .WithUntypedService( typeof(IJsonSerializationBinderProvider), new JsonSerializationBinderProvider() );
+
+        var pipeName = $"{nameof(BaseEndpointTests)}_{Guid.NewGuid()}";
+
+        using var endpoint = new TestServerEndpoint( serviceProvider, pipeName );
+
+        // Execute a task that completes synchronously (no await/yield).
+        // This creates a race where the task may complete before TryAdd.
+        endpoint.ExecuteBackgroundTaskForTest(
+            _ => Task.CompletedTask,
+            "SynchronousTask" );
+
+        // WhenBackgroundTasksCompletedAsync must complete. If the race condition bug existed,
+        // a stale entry would remain in the dictionary and this would hang.
+        await endpoint.WhenBackgroundTasksCompletedAsync( testContext.CancellationToken );
+    }
+
+    /// <summary>
+    /// Tests that a slow task (blocked until released) is properly tracked and
+    /// WhenBackgroundTasksCompletedAsync waits for it.
+    /// </summary>
+    [Fact]
+    public async Task ExecuteBackgroundTask_SlowCompletingTask_TrackedCorrectly()
+    {
+        using var testContext = this.CreateTestContext();
+
+        var serviceProvider = testContext.ServiceProvider.Global
+            .Underlying
+            .WithUntypedService( typeof(IJsonSerializationBinderProvider), new JsonSerializationBinderProvider() );
+
+        var pipeName = $"{nameof(BaseEndpointTests)}_{Guid.NewGuid()}";
+
+        using var endpoint = new TestServerEndpoint( serviceProvider, pipeName );
+
+        // Use TaskCompletionSource to control when the task completes.
+        var tcs = new TaskCompletionSource<bool>();
+        var taskStarted = new TaskCompletionSource<bool>();
+
+        endpoint.ExecuteBackgroundTaskForTest(
+            async _ =>
+            {
+                taskStarted.SetResult( true );
+#pragma warning disable VSTHRD003 // Avoid awaiting foreign Tasks - acceptable in test code
+                await tcs.Task.WithCancellation( testContext.CancellationToken );
+#pragma warning restore VSTHRD003
+            },
+            "SlowCompletingTask" );
+
+        // Wait for the task to start.
+        await taskStarted.Task.WithCancellation( testContext.CancellationToken );
+
+        // WhenBackgroundTasksCompletedAsync should NOT be completed yet because task is blocked.
+        var waitTask = endpoint.WhenBackgroundTasksCompletedAsync( testContext.CancellationToken );
+
+        // Synchronously check that the wait task is not completed (task is still running).
+        Assert.False( waitTask.IsCompleted, "WhenBackgroundTasksCompletedAsync should NOT be completed while task is running" );
+
+        // Now release the task.
+        tcs.SetResult( true );
+
+        // WhenBackgroundTasksCompletedAsync should now complete.
+        await waitTask.WithCancellation( testContext.CancellationToken );
+    }
+
+    /// <summary>
+    /// Tests that a task with registerTask=false is NOT tracked by WhenBackgroundTasksCompletedAsync.
+    /// </summary>
+    [Fact]
+    public async Task ExecuteBackgroundTask_RegisterTaskFalse_NotTracked()
+    {
+        using var testContext = this.CreateTestContext();
+
+        var serviceProvider = testContext.ServiceProvider.Global
+            .Underlying
+            .WithUntypedService( typeof(IJsonSerializationBinderProvider), new JsonSerializationBinderProvider() );
+
+        var pipeName = $"{nameof(BaseEndpointTests)}_{Guid.NewGuid()}";
+
+        using var endpoint = new TestServerEndpoint( serviceProvider, pipeName );
+
+        // Use TaskCompletionSource to control when the task completes.
+        var taskBlocker = new TaskCompletionSource<bool>();
+        var taskStarted = new TaskCompletionSource<bool>();
+
+        // Execute with registerTask=false
+        endpoint.ExecuteBackgroundTaskForTest(
+            async _ =>
+            {
+                taskStarted.SetResult( true );
+#pragma warning disable VSTHRD003 // Avoid awaiting foreign Tasks - acceptable in test code
+                await taskBlocker.Task.WithCancellation( testContext.CancellationToken );
+#pragma warning restore VSTHRD003
+            },
+            "UnregisteredTask",
+            registerTask: false );
+
+        // Wait for the task to start.
+        await taskStarted.Task.WithCancellation( testContext.CancellationToken );
+
+        // WhenBackgroundTasksCompletedAsync should complete immediately because
+        // the task was not registered (even though the task is still running).
+        Assert.True( endpoint.WhenBackgroundTasksCompletedAsync( testContext.CancellationToken ).IsCompleted );
+
+        // Clean up - release the task.
+        taskBlocker.SetResult( true );
+    }
+
+    /// <summary>
+    /// Tests that a task which throws an exception is handled gracefully and removed from tracking.
+    /// </summary>
+    [Fact]
+    public async Task ExecuteBackgroundTask_TaskThrowsException_HandledGracefully()
+    {
+        using var testContext = this.CreateTestContext();
+
+        var exceptionHandler = new TestExceptionHandler();
+
+        var serviceProvider = testContext.ServiceProvider.Global
+            .Underlying
+            .WithUntypedService( typeof(IJsonSerializationBinderProvider), new JsonSerializationBinderProvider() )
+            .WithUntypedService( typeof(IRpcExceptionHandler), exceptionHandler );
+
+        var pipeName = $"{nameof(BaseEndpointTests)}_{Guid.NewGuid()}";
+
+        using var endpoint = new TestServerEndpoint( serviceProvider, pipeName );
+
+        var taskStarted = new TaskCompletionSource<bool>();
+
+        // Execute a task that throws an exception.
+        endpoint.ExecuteBackgroundTaskForTest(
+            _ =>
+            {
+                taskStarted.SetResult( true );
+                throw new InvalidOperationException( "Test exception" );
+            },
+            "ThrowingTask" );
+
+        // Wait for the task to start (and throw).
+        await taskStarted.Task.WithCancellation( testContext.CancellationToken );
+
+        // WhenBackgroundTasksCompletedAsync should complete (task removed from tracking after exception).
+        await endpoint.WhenBackgroundTasksCompletedAsync( testContext.CancellationToken );
+
+        // Verify exception was handled.
+        Assert.True( exceptionHandler.ExceptionWasHandled, "Exception should have been handled" );
+    }
+
+    /// <summary>
+    /// Tests that disposing the endpoint cancels running background tasks via DisposeCancellationToken.
+    /// </summary>
+    [Fact]
+    public async Task ExecuteBackgroundTask_DisposeWhileTaskRunning_TaskCancelled()
+    {
+        using var testContext = this.CreateTestContext();
+
+        var serviceProvider = testContext.ServiceProvider.Global
+            .Underlying
+            .WithUntypedService( typeof(IJsonSerializationBinderProvider), new JsonSerializationBinderProvider() );
+
+        var pipeName = $"{nameof(BaseEndpointTests)}_{Guid.NewGuid()}";
+
+        var endpoint = new TestServerEndpoint( serviceProvider, pipeName );
+
+        var taskStarted = new TaskCompletionSource<bool>();
+        var taskCancelled = new TaskCompletionSource<bool>();
+
+        // Execute a task that waits for cancellation.
+        endpoint.ExecuteBackgroundTaskForTest(
+            async ct =>
+            {
+                taskStarted.SetResult( true );
+
+                try
+                {
+                    // Wait indefinitely until cancelled.
+                    await Task.Delay( Timeout.Infinite, ct );
+                }
+                catch ( OperationCanceledException )
+                {
+                    taskCancelled.SetResult( true );
+
+                    throw;
+                }
+            },
+            "CancellableTask" );
+
+        // Wait for the task to start.
+        await taskStarted.Task.WithCancellation( testContext.CancellationToken );
+
+        // Dispose the endpoint - this should cancel the task.
+        endpoint.Dispose();
+
+        // Verify the task was cancelled.
+        await taskCancelled.Task.WithCancellation( testContext.CancellationToken );
+    }
+
+    /// <summary>
+    /// Tests that multiple concurrent tasks are all tracked and WhenBackgroundTasksCompletedAsync waits for all.
+    /// </summary>
+    [Fact]
+    public async Task ExecuteBackgroundTask_MultipleConcurrentTasks_AllTracked()
+    {
+        using var testContext = this.CreateTestContext();
+
+        var serviceProvider = testContext.ServiceProvider.Global
+            .Underlying
+            .WithUntypedService( typeof(IJsonSerializationBinderProvider), new JsonSerializationBinderProvider() );
+
+        var pipeName = $"{nameof(BaseEndpointTests)}_{Guid.NewGuid()}";
+
+        using var endpoint = new TestServerEndpoint( serviceProvider, pipeName );
+
+        // Create blockers for 3 tasks.
+        var blocker1 = new TaskCompletionSource<bool>();
+        var blocker2 = new TaskCompletionSource<bool>();
+        var blocker3 = new TaskCompletionSource<bool>();
+
+        var started1 = new TaskCompletionSource<bool>();
+        var started2 = new TaskCompletionSource<bool>();
+        var started3 = new TaskCompletionSource<bool>();
+
+        // Start 3 concurrent tasks.
+        endpoint.ExecuteBackgroundTaskForTest(
+            async _ =>
+            {
+                started1.SetResult( true );
+#pragma warning disable VSTHRD003
+                await blocker1.Task.WithCancellation( testContext.CancellationToken );
+#pragma warning restore VSTHRD003
+            },
+            "Task1" );
+
+        endpoint.ExecuteBackgroundTaskForTest(
+            async _ =>
+            {
+                started2.SetResult( true );
+#pragma warning disable VSTHRD003
+                await blocker2.Task.WithCancellation( testContext.CancellationToken );
+#pragma warning restore VSTHRD003
+            },
+            "Task2" );
+
+        endpoint.ExecuteBackgroundTaskForTest(
+            async _ =>
+            {
+                started3.SetResult( true );
+#pragma warning disable VSTHRD003
+                await blocker3.Task.WithCancellation( testContext.CancellationToken );
+#pragma warning restore VSTHRD003
+            },
+            "Task3" );
+
+        // Wait for all tasks to start.
+        await started1.Task.WithCancellation( testContext.CancellationToken );
+        await started2.Task.WithCancellation( testContext.CancellationToken );
+        await started3.Task.WithCancellation( testContext.CancellationToken );
+
+        // WhenBackgroundTasksCompletedAsync should NOT be completed (all 3 tasks running).
+        var waitTask = endpoint.WhenBackgroundTasksCompletedAsync( testContext.CancellationToken );
+        Assert.False( waitTask.IsCompleted, "Should be waiting for all 3 tasks" );
+
+        // Release task 1 - should still be waiting for tasks 2 and 3.
+        blocker1.SetResult( true );
+        Assert.False( waitTask.IsCompleted, "Should still be waiting for tasks 2 and 3" );
+
+        // Release task 2 - should still be waiting for task 3.
+        blocker2.SetResult( true );
+        Assert.False( waitTask.IsCompleted, "Should still be waiting for task 3" );
+
+        // Release task 3 - now should complete.
+        blocker3.SetResult( true );
+
+        await waitTask.WithCancellation( testContext.CancellationToken );
+    }
+
+    /// <summary>
+    /// Test exception handler that tracks whether an exception was handled.
+    /// </summary>
+    private sealed class TestExceptionHandler : IRpcExceptionHandler
+    {
+        public bool ExceptionWasHandled { get; private set; }
+
+        public void OnException( Exception exception, Backstage.Diagnostics.ILogger logger, bool isCancellation )
+        {
+            this.ExceptionWasHandled = true;
+        }
+    }
+
+    /// <summary>
+    /// Test endpoint that exposes the protected ExecuteBackgroundTask method for testing.
+    /// </summary>
+    private sealed class TestServerEndpoint : ServerEndpoint
+    {
+        public TestServerEndpoint( IServiceProvider serviceProvider, string pipeName )
+            : base( serviceProvider, pipeName ) { }
+
+        protected override System.Collections.Generic.IEnumerable<RpcService> CreateServices() => [];
+
+        public void ExecuteBackgroundTaskForTest( Func<CancellationToken, Task> action, string description, bool registerTask = true )
+            => this.ExecuteBackgroundTask( action, description, registerTask );
+    }
+}
