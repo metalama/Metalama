@@ -32,7 +32,7 @@ public sealed class RpcServiceProviderClientEndpoint : ClientEndpoint
     {
         this._serviceProvider = serviceProvider;
         this._extensionManager = serviceProvider.GetService<DesignTimeExtensionManager>();
-        this._testSyncProvider = serviceProvider.GetService<ITestSynchronizationProvider>();
+        this._testSyncProvider = serviceProvider.Underlying.GetService( typeof(ITestSynchronizationProvider) ) as ITestSynchronizationProvider;
         this._serviceProviderClient = new RpcServiceProviderClient( this );
     }
 

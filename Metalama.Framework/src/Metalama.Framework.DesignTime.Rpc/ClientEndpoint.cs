@@ -8,7 +8,6 @@ using StreamJsonRpc;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.IO.Pipes;
-
 namespace Metalama.Framework.DesignTime.Rpc;
 
 public abstract partial class ClientEndpoint : BaseEndpoint
@@ -182,10 +181,9 @@ public abstract partial class ClientEndpoint : BaseEndpoint
             var pipeStream = new NamedPipeClientStream( ".", pipeName, PipeDirection.InOut, PipeOptions.Asynchronous );
             await pipeStream.ConnectAsync( cancellationToken ).WarnIfLongAsync( this.Logger, "Connect to pipe stream.", cancellationToken );
 
-            if ( this.Observer != null )
+            if ( this.TestSyncProvider != null )
             {
-                // Allows tests to include a synchronization point to reproduce race conditions.
-                await this.Observer.AfterClientGetsServerAsync( this, cancellationToken );
+                await this.TestSyncProvider.SyncPointAsync( $"ClientEndpoint.AfterGetsServer:{pipeName}", cancellationToken );
             }
 
             this.Logger.Trace?.Log( $"Connected to the named pipe '{pipeName}'." );
@@ -214,14 +212,18 @@ public abstract partial class ClientEndpoint : BaseEndpoint
             this.Logger.Trace?.Log( $"Start listening to callback channel of the named pipe '{pipeName}'." );
             rpc.StartListening();
 
-            if ( this.Observer != null )
+            if ( this.TestSyncProvider != null )
             {
-                // Allows tests to include a synchronization point to reproduce race conditions.
-                await this.Observer.AfterClientStartsListeningToCallbackAsync( this, cancellationToken );
+                await this.TestSyncProvider.SyncPointAsync( $"ClientEndpoint.AfterStartsListening:{pipeName}", cancellationToken );
             }
 
             // Update collections.
             InterlockedHelper.Update( ref this._connectionByStream, x => x.Add( rpc, new Connection( pipeStream, rpc, newClients ) ) );
+
+            if ( this.TestSyncProvider != null )
+            {
+                await this.TestSyncProvider.SyncPointAsync( $"ClientEndpoint.BeforeSignalingAwaiters:{pipeName}", cancellationToken );
+            }
 
             // Signal waiters.
             // We must do this _after_ updating the client collections.

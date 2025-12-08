@@ -2,13 +2,12 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using JetBrains.Annotations;
-using Metalama.Framework.Engine.Services;
+using Metalama.Framework.DesignTime.Rpc;
 using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Metalama.Testing.UnitTesting;
+namespace Metalama.Framework.Tests.UnitTests.DesignTime.Rpc;
 
 /// <summary>
 /// Test implementation of <see cref="ITestSynchronizationProvider"/> that allows tests to control
@@ -17,10 +16,14 @@ namespace Metalama.Testing.UnitTesting;
 /// </summary>
 /// <remarks>
 /// <para>
+/// Sync points are only active (blocking) when the test has registered interest by calling
+/// <see cref="WaitForSyncPointReachedAsync"/>. Unregistered sync points are skipped without blocking.
+/// </para>
+/// <para>
 /// Usage pattern:
 /// <list type="number">
 /// <item>Register this provider with the service provider before starting the test.</item>
-/// <item>Start the operation being tested (it will block at sync points).</item>
+/// <item>Start the operation being tested in a background task.</item>
 /// <item>Call <see cref="WaitForSyncPointReachedAsync"/> to wait until the code reaches the sync point.</item>
 /// <item>Perform any setup needed (e.g., register an extension) while code is blocked.</item>
 /// <item>Call <see cref="ReleaseSyncPoint"/> to let the code continue.</item>
@@ -30,31 +33,48 @@ namespace Metalama.Testing.UnitTesting;
 /// Always call <see cref="ReleaseAll"/> in test cleanup to avoid deadlocks if a test fails.
 /// </para>
 /// </remarks>
-[PublicAPI]
-public sealed class TestSynchronizationProvider : ITestSynchronizationProvider
+internal sealed class TestSynchronizationProvider : ITestSynchronizationProvider
 {
     private readonly ConcurrentDictionary<string, SyncPoint> _syncPoints = new();
 
     /// <summary>
     /// Called by code under test at a synchronization point.
-    /// Signals that the sync point was reached and waits for the test to release it.
+    /// Only blocks if the test has registered interest by calling <see cref="WaitForSyncPointReachedAsync"/>.
     /// </summary>
     /// <param name="syncPointName">The name of the sync point.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     public async Task SyncPointAsync( string syncPointName, CancellationToken cancellationToken )
     {
-        var sp = this._syncPoints.GetOrAdd( syncPointName, _ => new SyncPoint() );
+        // Only block if the sync point exists (was registered by WaitForSyncPointReachedAsync).
+        if ( !this._syncPoints.TryGetValue( syncPointName, out var sp ) )
+        {
+            // No one is waiting for this sync point, skip it.
+            return;
+        }
+
         sp.ReachedSignal.Release();
         await sp.ReleaseSignal.WaitAsync( cancellationToken );
     }
 
     /// <summary>
+    /// Called by test code. Enables a sync point so that code under test will block when reaching it.
+    /// This must be called BEFORE starting the operation that will hit the sync point.
+    /// </summary>
+    /// <param name="syncPointName">The name of the sync point to enable.</param>
+    public void EnableSyncPoint( string syncPointName )
+    {
+        this._syncPoints.GetOrAdd( syncPointName, _ => new SyncPoint() );
+    }
+
+    /// <summary>
     /// Called by test code. Waits until the code under test reaches the named sync point.
+    /// Also enables the sync point if not already enabled.
     /// </summary>
     /// <param name="syncPointName">The name of the sync point to wait for.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     public async Task WaitForSyncPointReachedAsync( string syncPointName, CancellationToken cancellationToken )
     {
+        // GetOrAdd to register interest in this sync point.
         var sp = this._syncPoints.GetOrAdd( syncPointName, _ => new SyncPoint() );
         await sp.ReachedSignal.WaitAsync( cancellationToken );
     }

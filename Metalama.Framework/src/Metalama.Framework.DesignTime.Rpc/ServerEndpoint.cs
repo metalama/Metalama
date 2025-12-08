@@ -110,10 +110,9 @@ public abstract class ServerEndpoint : BaseEndpoint
 
         await pipe.WaitForConnectionAsync( cancellationToken );
 
-        if ( this.Observer != null )
+        if ( this.TestSyncProvider != null )
         {
-            // Allows tests to include a synchronization point to reproduce race conditions.
-            await this.Observer.AfterServerGetsClientAsync( this, cancellationToken );
+            await this.TestSyncProvider.SyncPointAsync( $"ServerEndpoint.AfterGetsClient:{pipeName}", cancellationToken );
         }
 
         this.Logger.Trace?.Log( $"Endpoint '{pipeName}': got a client (now has {this.ClientCount + 1})." );

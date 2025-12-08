@@ -2,6 +2,8 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+#pragma warning disable VSTHRD003 // Avoid awaiting foreign Tasks - acceptable in test code
+
 using Metalama.Framework.DesignTime.Rpc;
 using Metalama.Framework.DesignTime.VisualStudio.Rpc;
 using Metalama.Framework.Engine.Utilities.Threading;
@@ -12,13 +14,13 @@ using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace Metalama.Framework.Tests.UnitTests.DesignTime;
+namespace Metalama.Framework.Tests.UnitTests.DesignTime.Rpc;
 
 /// <summary>
 /// Tests for <see cref="BaseEndpoint.ExecuteBackgroundTask"/> and related functionality.
 /// These tests verify the race condition fix where fast-completing tasks are properly tracked.
 /// </summary>
-public sealed class BaseEndpointTests : UnitTestClass
+public sealed partial class BaseEndpointTests : UnitTestClass
 {
     public BaseEndpointTests( ITestOutputHelper logger ) : base( logger ) { }
 
@@ -77,9 +79,7 @@ public sealed class BaseEndpointTests : UnitTestClass
             async _ =>
             {
                 taskStarted.SetResult( true );
-#pragma warning disable VSTHRD003 // Avoid awaiting foreign Tasks - acceptable in test code
                 await tcs.Task.WithCancellation( testContext.CancellationToken );
-#pragma warning restore VSTHRD003
             },
             "SlowCompletingTask" );
 
@@ -124,9 +124,7 @@ public sealed class BaseEndpointTests : UnitTestClass
             async _ =>
             {
                 taskStarted.SetResult( true );
-#pragma warning disable VSTHRD003 // Avoid awaiting foreign Tasks - acceptable in test code
                 await taskBlocker.Task.WithCancellation( testContext.CancellationToken );
-#pragma warning restore VSTHRD003
             },
             "UnregisteredTask",
             registerTask: false );
@@ -261,9 +259,7 @@ public sealed class BaseEndpointTests : UnitTestClass
             async _ =>
             {
                 started1.SetResult( true );
-#pragma warning disable VSTHRD003
                 await blocker1.Task.WithCancellation( testContext.CancellationToken );
-#pragma warning restore VSTHRD003
             },
             "Task1" );
 
@@ -271,9 +267,7 @@ public sealed class BaseEndpointTests : UnitTestClass
             async _ =>
             {
                 started2.SetResult( true );
-#pragma warning disable VSTHRD003
                 await blocker2.Task.WithCancellation( testContext.CancellationToken );
-#pragma warning restore VSTHRD003
             },
             "Task2" );
 
@@ -281,9 +275,7 @@ public sealed class BaseEndpointTests : UnitTestClass
             async _ =>
             {
                 started3.SetResult( true );
-#pragma warning disable VSTHRD003
                 await blocker3.Task.WithCancellation( testContext.CancellationToken );
-#pragma warning restore VSTHRD003
             },
             "Task3" );
 
@@ -308,32 +300,5 @@ public sealed class BaseEndpointTests : UnitTestClass
         blocker3.SetResult( true );
 
         await waitTask.WithCancellation( testContext.CancellationToken );
-    }
-
-    /// <summary>
-    /// Test exception handler that tracks whether an exception was handled.
-    /// </summary>
-    private sealed class TestExceptionHandler : IRpcExceptionHandler
-    {
-        public bool ExceptionWasHandled { get; private set; }
-
-        public void OnException( Exception exception, Backstage.Diagnostics.ILogger logger, bool isCancellation )
-        {
-            this.ExceptionWasHandled = true;
-        }
-    }
-
-    /// <summary>
-    /// Test endpoint that exposes the protected ExecuteBackgroundTask method for testing.
-    /// </summary>
-    private sealed class TestServerEndpoint : ServerEndpoint
-    {
-        public TestServerEndpoint( IServiceProvider serviceProvider, string pipeName )
-            : base( serviceProvider, pipeName ) { }
-
-        protected override System.Collections.Generic.IEnumerable<RpcService> CreateServices() => [];
-
-        public void ExecuteBackgroundTaskForTest( Func<CancellationToken, Task> action, string description, bool registerTask = true )
-            => this.ExecuteBackgroundTask( action, description, registerTask );
     }
 }

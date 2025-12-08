@@ -2,18 +2,17 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using Metalama.Framework.Services;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Metalama.Framework.Engine.Services;
+namespace Metalama.Framework.DesignTime.Rpc;
 
 /// <summary>
 /// Provides synchronization points for deterministic testing of concurrent code.
 /// This service is optional and not registered in production. When not present,
 /// code should skip synchronization points entirely.
 /// </summary>
-public interface ITestSynchronizationProvider : IGlobalService
+public interface ITestSynchronizationProvider
 {
     /// <summary>
     /// Called at a synchronization point. Signals that the sync point was reached and waits for release.
