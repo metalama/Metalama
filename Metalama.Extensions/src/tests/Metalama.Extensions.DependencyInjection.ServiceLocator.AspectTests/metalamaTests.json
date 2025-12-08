@@ -1,3 +1,4 @@
 {
-  "FormatOutput": true
+  "FormatOutput": true,
+  "IncludedFiles": [ "_Fabric.cs" ]
 }
