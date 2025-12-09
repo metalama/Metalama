@@ -116,9 +116,14 @@ namespace Metalama.Framework.Engine.SyntaxGeneration
                     // Skip the annotation.
                     return this.Visit( node.ElementType );
                 }
+                else if ( this._type is ITypeParameterSymbol )
+                {
+                    // For unconstrained type parameters, strip the nullable annotation.
+                    return this.Visit( node.ElementType );
+                }
                 else
                 {
-                    // Keep it.
+                    // Keep it - this is Nullable<T> for a value type.
                     var type = (INamedTypeSymbol) this._type;
 
                     using ( this.WithType( type.TypeArguments.Single() ) )
@@ -224,9 +229,14 @@ namespace Metalama.Framework.Engine.SyntaxGeneration
                     // Skip the annotation.
                     return this.Visit( node.ElementType );
                 }
+                else if ( this._type is ITypeParameter )
+                {
+                    // For unconstrained type parameters, strip the nullable annotation.
+                    return this.Visit( node.ElementType );
+                }
                 else
                 {
-                    // Keep it.
+                    // Keep it - this is Nullable<T> for a value type.
                     var type = (INamedType) this._type;
 
                     using ( this.WithType( type.TypeArguments.Single() ) )
