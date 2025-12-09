@@ -4,7 +4,14 @@
 
 namespace Metalama.Framework.DesignTime.Rpc;
 
+/// <summary>
+/// Provides access to the <see cref="JsonSerializationBinder"/> used for RPC serialization.
+/// Register an implementation in the service provider.
+/// </summary>
 public interface IJsonSerializationBinderProvider
 {
+    /// <summary>
+    /// Gets the JSON serialization binder configured for RPC communication.
+    /// </summary>
     JsonSerializationBinder Binder { get; }
 }

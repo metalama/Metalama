@@ -8,6 +8,11 @@ using StreamJsonRpc;
 
 namespace Metalama.Framework.DesignTime.Rpc;
 
+/// <summary>
+/// Abstract base class for RPC client proxies. Client proxies provide access to remote services
+/// exposed by the server and receive events from those services. Derive from <see cref="RpcClient{TApi}"/>
+/// to create a typed client proxy for a specific API interface.
+/// </summary>
 public abstract class RpcClient
 {
     private readonly TaskCompletionSource<bool> _initialized = new();
@@ -35,8 +40,17 @@ public abstract class RpcClient
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// Occurs when an event is received from the server for this client's API.
+    /// </summary>
     public event Action<RpcEventData>? EventReceived;
 
+    /// <summary>
+    /// Called when an event is received from the server. Override to process events before raising <see cref="EventReceived"/>.
+    /// </summary>
+    /// <param name="eventData">The event data.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
     protected internal virtual Task OnEventReceivedAsync( RpcEventData eventData, CancellationToken cancellationToken )
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -50,6 +64,10 @@ public abstract class RpcClient
     internal void SetFailure( Exception exception ) => this._initialized.TrySetException( exception );
 }
 
+/// <summary>
+/// A typed RPC client proxy that provides access to a remote API of type <typeparamref name="TApi"/>.
+/// </summary>
+/// <typeparam name="TApi">The API interface type. Must implement <see cref="IRpcApi"/>.</typeparam>
 public abstract class RpcClient<TApi> : RpcClient
     where TApi : class, IRpcApi
 {
@@ -67,6 +85,12 @@ public abstract class RpcClient<TApi> : RpcClient
     /// <exception cref="InvalidOperationException"></exception>
     public TApi GetApiDangerous() => this._remoteApi ?? throw new InvalidOperationException();
 
+    /// <summary>
+    /// Gets the remote API after waiting for the client to be initialized.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The remote API proxy.</returns>
+    /// <exception cref="InvalidOperationException">Thrown if initialization failed.</exception>
     public async ValueTask<TApi> GetApiAsync( CancellationToken cancellationToken = default )
     {
         await this.WaitUntilInitializedAsync( cancellationToken );

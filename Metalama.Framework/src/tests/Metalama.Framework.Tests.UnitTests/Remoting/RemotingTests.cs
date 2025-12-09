@@ -89,15 +89,15 @@ public sealed class RemotingTests : UnitTestClass
     [Fact]
     public async Task PublishGeneratedSourceBeforeCallbackConnectedAsync()
     {
-        // Add an observer to inject synchronization point
-        var observer = new TestEndpointObserver( this.TestOutput );
+        // Add a sync provider to inject synchronization point
+        var syncProvider = new TestSynchronizationProvider();
         var additionalServices = new AdditionalServiceCollection();
-        additionalServices.AddUntypedGlobalService( typeof(IEndpointObserver), observer );
+        additionalServices.AddUntypedGlobalService( typeof(ITestSynchronizationProvider), syncProvider );
 
         using var testContext = this.CreateTestContext( additionalServices );
 
         // ReSharper disable once UseAwaitUsing
-        using var cancellationRegistration = testContext.CancellationToken.Register( () => observer.AfterServerGetsClientBlocker.SetCanceled() );
+        using var cancellationRegistration = testContext.CancellationToken.Register( () => syncProvider.ReleaseAll() );
 
         var serviceProvider = testContext.ServiceProvider;
         var cancellationToken = testContext.CancellationToken;
@@ -107,6 +107,9 @@ public sealed class RemotingTests : UnitTestClass
 
         // Start the server.
         var pipeName = $"Metalama_Test_{Guid.NewGuid()}";
+
+        // Enable the sync point BEFORE starting the server so it will block when client connects.
+        syncProvider.EnableSyncPoint( $"ServerEndpoint.AfterGetsClient:{pipeName}" );
 
         using var server = new RpcServiceProviderServerEndpoint(
             serviceProvider,
@@ -135,7 +138,7 @@ public sealed class RemotingTests : UnitTestClass
         Assert.False( publishGeneratedSourcesAsyncTask.IsCompleted );
 
         // Unblock _after_ PublishGeneratedSourcesAsync was called.
-        observer.AfterServerGetsClientBlocker.SetResult( true );
+        syncProvider.ReleaseSyncPoint( $"ServerEndpoint.AfterGetsClient:{pipeName}" );
 
         await publishGeneratedSourcesAsyncTask;
 
@@ -497,28 +500,4 @@ public sealed class RemotingTests : UnitTestClass
         }
     }
 
-    private sealed class TestEndpointObserver : IEndpointObserver
-    {
-        private readonly ITestOutputHelper _testOutput;
-
-        public TestEndpointObserver( ITestOutputHelper testOutput )
-        {
-            this._testOutput = testOutput;
-        }
-
-        public TaskCompletionSource<bool> AfterServerGetsClientBlocker { get; } = new();
-
-        public async Task AfterServerGetsClientAsync( ServerEndpoint serverEndpoint, CancellationToken cancellationToken )
-        {
-            this._testOutput.WriteLine( "OnServerHasClientAsync: Waiting for barrier." );
-#pragma warning disable VSTHRD003
-            await this.AfterServerGetsClientBlocker.Task;
-#pragma warning restore VSTHRD003
-            this._testOutput.WriteLine( "OnServerHasClientAsync: Completed waiting for barrier." );
-        }
-
-        public Task AfterClientGetsServerAsync( ClientEndpoint clientEndpoint, CancellationToken cancellationToken ) => Task.CompletedTask;
-
-        public Task AfterClientStartsListeningToCallbackAsync( ClientEndpoint clientEndpoint, CancellationToken cancellationToken ) => Task.CompletedTask;
-    }
 }

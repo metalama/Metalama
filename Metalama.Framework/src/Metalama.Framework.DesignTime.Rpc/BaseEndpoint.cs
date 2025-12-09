@@ -20,7 +20,7 @@ public abstract class BaseEndpoint : IDisposable
     private readonly CancellationTokenSource _disposeCancellationSource = new();
     private readonly ConcurrentDictionary<int, (Task Task, string Description)> _backgroundTasks = new();
 
-    protected IEndpointObserver? Observer { get; }
+    protected ITestSynchronizationProvider? TestSyncProvider { get; }
 
     private int _nextBackgroundTaskId;
 
@@ -51,7 +51,7 @@ public abstract class BaseEndpoint : IDisposable
                              ?? throw new InvalidOperationException( "Cannot get the IJsonSerializationBinderProvider" );
 
         this._binder = binderProvider.Binder;
-        this.Observer = serviceProvider.GetService( typeof(IEndpointObserver) ) as IEndpointObserver;
+        this.TestSyncProvider = serviceProvider.GetService( typeof(ITestSynchronizationProvider) ) as ITestSynchronizationProvider;
     }
 
     public async ValueTask WaitUntilInitializedAsync( CancellationToken cancellationToken = default )
@@ -131,6 +131,8 @@ public abstract class BaseEndpoint : IDisposable
         var taskId = Interlocked.Increment( ref this._nextBackgroundTaskId );
 
         this.Logger.Trace?.Log( $"Scheduling background task {taskId}: '{description}'." );
+        
+        var backgroundTaskWillBeRemoved = true;
 
         var task = Task.Run(
             async () =>
@@ -152,6 +154,7 @@ public abstract class BaseEndpoint : IDisposable
                         lock ( this._backgroundTasks )
                         {
                             this._backgroundTasks.TryRemove( taskId, out _ );
+                            backgroundTaskWillBeRemoved = false;
                         }
                     }
                 }
@@ -160,9 +163,12 @@ public abstract class BaseEndpoint : IDisposable
 
         if ( registerTask )
         {
+            // Always add the task first. The finally block will remove it when complete.
+            // We must not check IsCompleted here because the task may complete between
+            // Task.Run and this point, causing WhenBackgroundTasksCompletedAsync to miss it.
             lock ( this._backgroundTasks )
             {
-                if ( task is { IsCompleted: false, IsCanceled: false, IsFaulted: false } )
+                if ( backgroundTaskWillBeRemoved )
                 {
                     this._backgroundTasks.TryAdd( taskId, (task, description) );
                 }
@@ -189,13 +195,29 @@ public abstract class BaseEndpoint : IDisposable
     }
 
     // ReSharper disable InconsistentlySynchronizedField
-    public Task WhenBackgroundTasksCompletedAsync( CancellationToken cancellationToken )
-        => Task.WhenAll( this._backgroundTasks.Values.Select( t => t.Task ) )
-            .WithCancellation( cancellationToken )
-            .WarnIfLongAsync(
-                this.Logger,
-                $"Awaiting for background task(s):{string.Join( ", ", this._backgroundTasks.Values.Select( x => x.Description ) )}",
-                cancellationToken );
+    /// <summary>
+    /// Waits until all background tasks have completed. This method loops until no tasks remain,
+    /// ensuring that tasks scheduled during the completion of other tasks are also awaited.
+    /// </summary>
+    public async Task WhenBackgroundTasksCompletedAsync( CancellationToken cancellationToken )
+    {
+        while ( true )
+        {
+            var tasks = this._backgroundTasks.Values.ToArray();
+
+            if ( tasks.Length == 0 )
+            {
+                return;
+            }
+
+            await Task.WhenAll( tasks.Select( t => t.Task ) )
+                .WithCancellation( cancellationToken )
+                .WarnIfLongAsync(
+                    this.Logger,
+                    $"Awaiting for background task(s):{string.Join( ", ", tasks.Select( x => x.Description ) )}",
+                    cancellationToken );
+        }
+    }
 
     // ReSharper restore once InconsistentlySynchronizedField
 

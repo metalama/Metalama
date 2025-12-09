@@ -6,6 +6,10 @@ using Metalama.Backstage.Diagnostics;
 
 namespace Metalama.Framework.DesignTime.Rpc.Notifications;
 
+/// <summary>
+/// RPC client for the CodeLens process that subscribes to compilation and endpoint change events
+/// from the event hub.
+/// </summary>
 public sealed class CodeLensProcessRpcClient : RpcClient<IEventHubRpcApi>
 {
     private readonly ILogger _logger;
@@ -15,6 +19,11 @@ public sealed class CodeLensProcessRpcClient : RpcClient<IEventHubRpcApi>
         this._logger = serviceProvider.GetLoggerFactory().GetLogger( nameof(CodeLensProcessRpcClient) );
     }
 
+    /// <summary>
+    /// Called when the RPC connection is established. Subscribes to compilation and endpoint change events.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
     protected internal override async Task OnRpcConnectedAsync( CancellationToken cancellationToken )
     {
         this._logger.Trace?.Log( "Registering for notifications." );

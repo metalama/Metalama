@@ -4,9 +4,11 @@
 
 using Metalama.Framework.DesignTime.Extensibility;
 using Metalama.Framework.DesignTime.Pipeline;
+using Metalama.Framework.DesignTime.Rpc;
 using Metalama.Framework.DesignTime.Services;
 using Metalama.Framework.DesignTime.VisualStudio.ServiceHub;
 using Metalama.Framework.DesignTime.VisualStudio.ServiceProvider;
+using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities.Threading;
 using Metalama.Framework.Services;
@@ -34,6 +36,7 @@ public sealed class DistributedDesignTimeTestContext : TestContext
         additionalServices )
     {
         this.WorkspaceProvider = this.ServiceProvider.Global.GetRequiredService<TestWorkspaceProvider>();
+        this.SyncProvider = (TestSynchronizationProvider) this.ServiceProvider.Global.Underlying.GetService( typeof(ITestSynchronizationProvider) )!;
     }
 
     internal async Task InitializeAsync(
@@ -80,7 +83,7 @@ public sealed class DistributedDesignTimeTestContext : TestContext
             var connectAnalysisProcessTask =
                 this._analysisProcessServiceHubEndpoint.ConnectAsync( this.CancellationToken ); // Do not await so we get more randomness.
 
-            // Start the main services in the analysis process. It should call the service hub in the user process and call the user process 
+            // Start the main services in the analysis process. It should call the service hub in the user process and call the user process
             // to create the client.
             this._pipelineFactory = analysisProcessServiceProvider.GetRequiredService<TestDesignTimeAspectPipelineFactory>();
             this._analysisProcessEndpoint = analysisProcessServiceProvider.GetRequiredService<IRpcServiceProviderServerEndpointProvider>().Endpoint;
@@ -114,11 +117,27 @@ public sealed class DistributedDesignTimeTestContext : TestContext
 
     public GlobalServiceProvider UserProcessServiceProvider { get; private set; }
 
+    public TestSynchronizationProvider SyncProvider { get; }
+
     public ServiceHubServerEndpoint UserProcessServiceHubEndpoint => this._userProcessServiceHubEndpoint ?? throw new InvalidOperationException();
 
     public RpcServiceProviderServerEndpoint AnalysisProcessEndpoint => this._analysisProcessEndpoint ?? throw new InvalidOperationException();
 
     public TestDesignTimeAspectPipelineFactory PipelineFactory => this._pipelineFactory ?? throw new InvalidOperationException();
+
+    /// <summary>
+    /// Initializes the user process for a project by calling <see cref="DesignTimeExtensionManager.OnProjectDiscovered"/>.
+    /// This simulates what happens in production when code fix/refactoring providers discover extensions.
+    /// Must be called after the project is loaded in the workspace via <see cref="TestWorkspaceProvider.AddOrUpdateProject"/>.
+    /// </summary>
+    /// <param name="projectName">The name of the project in the workspace.</param>
+    public void InitializeUserProcessForProject( string projectName )
+    {
+        var userProcessExtensionManager = this.UserProcessServiceProvider.GetRequiredService<DesignTimeExtensionManager>();
+        var projectOptionsFactory = this.UserProcessServiceProvider.GetRequiredService<IProjectOptionsFactory>();
+        var projectOptions = projectOptionsFactory.GetProjectOptions( this.WorkspaceProvider.GetProject( projectName ) );
+        userProcessExtensionManager.OnProjectDiscovered( projectOptions );
+    }
 
     ~DistributedDesignTimeTestContext()
     {

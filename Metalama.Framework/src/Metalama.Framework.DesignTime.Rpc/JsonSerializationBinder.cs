@@ -12,12 +12,21 @@ namespace Metalama.Framework.DesignTime.Rpc;
 
 /// <summary>
 /// An implementation of <see cref="ISerializationBinder"/> that strips version numbers from non-Metalama assemblies.
+/// This allows multiple versions of assemblies to coexist in the same AppDomain while maintaining serialization compatibility.
 /// </summary>
+/// <remarks>
+/// <para>By default, the binder is configured with system assemblies (System.Collections.Immutable, StreamJsonRpc)
+/// and the RPC assembly itself. Additional assemblies can be added via the configuration callback.</para>
+/// </remarks>
 public sealed class JsonSerializationBinder : DefaultSerializationBinder
 {
     private readonly ConcurrentDictionary<string, Assembly> _assemblies = new();
     private readonly Dictionary<string, string> _assemblyNames = new();
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="JsonSerializationBinder"/> class.
+    /// </summary>
+    /// <param name="configure">Optional callback to configure additional assemblies.</param>
     public JsonSerializationBinder( Action<JsonSerializationBinderConfiguration>? configure = null )
     {
         var configuration = new JsonSerializationBinderConfiguration( this );

@@ -44,6 +44,8 @@ public class DistributedDesignTimeTestBase : UnitTestClass
         ServiceProviderBuilder<IGlobalService>? analysisProcessServices = null,
         TestContextOptions? options = null )
     {
+        var syncProvider = new TestSynchronizationProvider( this.TestOutput );
+
         var services = new AdditionalServiceCollection();
         services.AddGlobalService( provider => new TestWorkspaceProvider( provider ) );
         services.AddGlobalService( provider => new TransformationPreviewServiceImpl( provider ) );
@@ -51,6 +53,8 @@ public class DistributedDesignTimeTestBase : UnitTestClass
         services.AddGlobalService( provider => new AspectDatabase( provider ) );
 
         services.AddUntypedGlobalService( typeof(IJsonSerializationBinderProvider), new JsonSerializationBinderProvider() );
+        services.AddUntypedGlobalService( typeof(ITestSynchronizationProvider), syncProvider );
+
         var context = (DistributedDesignTimeTestContext) this.CreateTestContext( options, services );
         _ = context.InitializeAsync( userProcessServices, analysisProcessServices );
 
