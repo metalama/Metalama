@@ -58,9 +58,57 @@ C# monorepo with layered "solutions" (first-level directories). Solutions are de
 | Unit tests | Classic xUnit | `*UnitTests` | - |
 | Standalone tests | Self-contained projects | - | Optional `test.json` |
 
-Aspect tests support: code transformations, diagnostics, code fixes, live templates, design-time code generation, diff preview. Can execute `Program.Main` and compare output. Directives via `// @Directive` in `#if TESTRUNNER` - see `TestOptions.cs`.
+Aspect tests support: code transformations, diagnostics, code fixes, live templates, design-time code generation, diff preview. Can execute `Program.Main` and compare output.
 
 Docs: [Aspect testing](https://doc.metalama.net/conceptual/aspects/testing/aspect-testing)
+
+### Test Directives
+
+Test options can be specified in two ways:
+1. **In-source comments**: `// @OptionName` or `// @OptionName(value)` within `#if TEST_OPTIONS` blocks
+2. **Configuration file**: `metalamaTests.json` in test directory or parent directories
+
+Options in test files override options from configuration files.
+
+**Common directives:**
+
+| Directive | Description |
+|-----------|-------------|
+| `@Skipped(reason)` | Skip test with reason |
+| `@TestScenario(scenario)` | Set scenario: `Default`, `DesignTime`, `CodeFix`, `Preview`, `LiveTemplate` |
+| `@IgnoredDiagnostic(id)` | Suppress diagnostic (e.g., `CS0649`, `CS8618`) |
+| `@ClearIgnoredDiagnostics` | Clear inherited ignored diagnostics |
+| `@LanguageVersion(version)` | Set C# version |
+| `@RequiredConstant(name)` | Skip if constant not defined |
+| `@ForbiddenConstant(name)` | Skip if constant is defined |
+| `@DefinedConstant(name)` | Define preprocessor symbol |
+| `@RemoveOutputCode` | Output only diagnostics |
+| `@FormatOutput` | Format output code |
+
+
+**Example test file:**
+```csharp
+#if TEST_OPTIONS
+// @TestScenario(DesignTime)
+// @IgnoredDiagnostic(CS0649)
+#endif
+
+using Metalama.Framework.Aspects;
+
+[MyAspect]
+public class Target { }
+```
+
+**Example metalamaTests.json:**
+```json
+{
+  "WriteInputHtml": true,
+  "FormatOutput": true,
+  "IgnoredDiagnostics": ["CS0649", "CS8618"]
+}
+```
+
+See `Metalama.Testing.AspectTesting/TestOptions.cs` for full documentation.
 
 ## Writing Documentation
 
@@ -111,3 +159,11 @@ When starting work on a GitHub issue:
 2. **File locks**: After failed builds, run `Build.ps1 tools kill` before retrying
 3. **Trace data flow**: For MSBuild issues, trace from `.csproj` → `.targets` → Engine code
 4. **Cross-solution changes**: Ask user to run `Build.ps1 build` early rather than discovering issues incrementally
+- When working on an issue creat a file called <Isse-number>-TODO.md to track progress.
+- don't include *-TODO.md in commits
+- After the user does a full build sing `Build.ps1 build`, the msbuild binlogs are under artifacts/logs
+- when you start working on an issue, mark the status as In Progress and make sure it is assigned to me
+- in tests never use hardcoded delays, always use other sync mechanims such as barriers, taskcompletionsource, sync points
+- Never await without cancellation token - ever
+- Github comments and issues and PRs must be signed by CLaude - not commits. No ad link, just signature.
+- don't loose time solving cosmetic warnings (such as redundant usings) until the finalizing stage of a commit

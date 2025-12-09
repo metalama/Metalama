@@ -38,7 +38,17 @@
       "Bash(gh release view:*)",
       "Bash(gh issue:*)",
       "Bash(dotnet msbuild:*)",
-      "Bash(git commit:*)"
+      "Bash(git stash:*)",
+      "Bash(dotnet list:*)",
+      "Bash(git checkout:*)",
+      "Bash(git pull:*)",
+      "Bash(git merge:*)",
+      "Bash(grep:*)",
+      "Bash(for:*)",
+      "Bash(pwsh:*)",
+      "Bash(ls:*)",
+      "SlashCommand(/fix-binlog-warnings)",
+      "Bash(code:*)"
     ],
     "deny": [],
     "ask": []
