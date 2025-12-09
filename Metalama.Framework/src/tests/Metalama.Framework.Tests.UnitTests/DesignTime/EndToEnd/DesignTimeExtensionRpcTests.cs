@@ -9,6 +9,7 @@ using Metalama.Framework.DesignTime.VisualStudio.ServiceProvider;
 using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Pipeline.DesignTime;
 using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Services;
 using Metalama.Framework.Tests.UnitTestHelpers.TestClasses;
 using System;
 using System.Collections.Generic;
@@ -273,6 +274,12 @@ public sealed class TestDesignTimeExtension : IDesignTimeExtension
 
     public bool Initialize( DesignTimeInitializationContext context )
     {
+        // Configure shared services like Premium's CodeFixesDesignTimeExtension does.
+        // This might trigger earlier service resolution.
+        context.ConfigureSharedServices(
+            serviceProvider => serviceProvider.Underlying
+                .AddSharedService( _ => new TestSharedService() ) );
+
         // Only add RPC service in the analysis process (server side)
         if ( context.ProcessKind == DesignTimeProcessKind.VsAnalysisProcess )
         {
@@ -282,6 +289,11 @@ public sealed class TestDesignTimeExtension : IDesignTimeExtension
         return true;
     }
 }
+
+/// <summary>
+/// Test shared service to mimic Premium's CodeFixService.
+/// </summary>
+public sealed class TestSharedService : IGlobalService { }
 
 /// <summary>
 /// RPC API interface for the test extension service.

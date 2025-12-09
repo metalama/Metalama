@@ -3,12 +3,13 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.DesignTime.Rpc;
+using System;
 using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit.Abstractions;
 
-namespace Metalama.Framework.Tests.UnitTests.DesignTime.Rpc;
+namespace Metalama.Testing.UnitTesting;
 
 /// <summary>
 /// Test implementation of <see cref="ITestSynchronizationProvider"/> that allows tests to control
@@ -34,11 +35,17 @@ namespace Metalama.Framework.Tests.UnitTests.DesignTime.Rpc;
 /// Always call <see cref="ReleaseAll"/> in test cleanup to avoid deadlocks if a test fails.
 /// </para>
 /// </remarks>
-internal sealed class TestSynchronizationProvider : ITestSynchronizationProvider
+#pragma warning disable LAMA0821 // Cannot expose an internal Metalama API - Exceptionally because ITestSynchronizationProvider is defined in Rpc and we don't want to reference Sdk.
+public sealed class TestSynchronizationProvider : ITestSynchronizationProvider, IDisposable
+#pragma warning restore LAMA0821 // Cannot expose an internal Metalama API
 {
     private readonly ConcurrentDictionary<string, SyncPoint> _syncPoints = new();
     private readonly ITestOutputHelper? _testOutput;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="TestSynchronizationProvider"/> class.
+    /// </summary>
+    /// <param name="testOutput">Optional test output helper for logging sync point activity.</param>
     public TestSynchronizationProvider( ITestOutputHelper? testOutput = null )
     {
         this._testOutput = testOutput;
@@ -55,7 +62,7 @@ internal sealed class TestSynchronizationProvider : ITestSynchronizationProvider
     /// </summary>
     /// <param name="syncPointName">The name of the sync point.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
-    public async Task SyncPointAsync( string syncPointName, CancellationToken cancellationToken )
+    async Task ITestSynchronizationProvider.SyncPointAsync( string syncPointName, CancellationToken cancellationToken )
     {
         // Only block if the sync point exists (was registered by WaitForSyncPointReachedAsync).
         if ( !this._syncPoints.TryGetValue( syncPointName, out var sp ) )
@@ -128,6 +135,11 @@ internal sealed class TestSynchronizationProvider : ITestSynchronizationProvider
                 sp.ReleaseSignal.Release();
             }
         }
+    }
+
+    public void Dispose()
+    {
+        this.ReleaseAll();
     }
 
     private sealed class SyncPoint

@@ -216,6 +216,57 @@ public sealed partial class RpcServiceProviderTests : RpcUnitTestClass
     }
 
     /// <summary>
+    /// Demonstrates the race condition that causes GitHub issue #1242 and #27:
+    /// When an extension service is added to the server, the client starts a background task
+    /// that waits for the extension to be discovered via GetExtensionAsync. If the extension
+    /// is never discovered in the client's DesignTimeExtensionManager, the background task
+    /// never completes, causing WhenBackgroundTasksCompletedAsync to hang forever.
+    ///
+    /// This test is skipped because it would timeout - it demonstrates the bug rather than fixing it.
+    /// </summary>
+    [Fact( Skip = "Demonstrates bug #1242 - will timeout waiting for extension that is never discovered" )]
+    public async Task ExtensionNeverDiscovered_BackgroundTaskNeverCompletes()
+    {
+        using var testContext = this.CreateRpcTestContext();
+
+        // Create extension manager for client - but we'll never register the extension
+        var clientExtensionManager = new DesignTimeExtensionManager( testContext.Global.Underlying );
+
+        var pipename = $"{nameof(RpcServiceProviderTests)}_{Guid.NewGuid()}";
+
+        // Start the server
+        using var serverEndpoint = new RpcServiceProviderServerEndpoint( testContext.Global, pipename, [] );
+        serverEndpoint.Start();
+
+        // Start the client - it has an extension manager but the extension will never be discovered
+        using var clientEndpoint = new RpcServiceProviderClientEndpoint( testContext.Global.WithService( clientExtensionManager ), pipename );
+        await clientEndpoint.ConnectAsync( testContext.CancellationToken );
+        await clientEndpoint.WaitUntilInitializedAsync( testContext.CancellationToken );
+
+        // Add extension services to server - this will notify the client
+        var extensionServiceFactory = new ExtensionServiceFactory();
+        serverEndpoint.AddServices( [extensionServiceFactory] );
+
+        // Wait for server to process the AddServices
+        await serverEndpoint.WhenBackgroundTasksCompletedAsync( testContext.CancellationToken );
+
+        // The client started a background task that waits for the extension to be discovered.
+        // Since we never call clientExtensionManager.OnExtensionDiscovered(), the background
+        // task will never complete, and this will hang forever (or until CancellationToken fires).
+        //
+        // This demonstrates the bug - in production, this happens when:
+        // - Analysis process discovers extension and adds RPC services
+        // - User process client receives notification about new services
+        // - User process client starts background task waiting for extension
+        // - But user process never discovers the extension (OnProjectDiscovered is only called in analysis process)
+        // - Background task waits forever -> deadlock
+        await clientEndpoint.WhenBackgroundTasksCompletedAsync( testContext.CancellationToken );
+
+        // This line is never reached
+        Assert.True( clientEndpoint.IsClientAvailable<ExtensionServiceClient>() );
+    }
+
+    /// <summary>
     /// Tests that concurrent AddServices calls on the server work correctly.
     /// </summary>
     [Fact]

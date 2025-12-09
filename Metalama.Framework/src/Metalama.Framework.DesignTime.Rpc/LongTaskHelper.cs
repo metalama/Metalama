@@ -68,8 +68,16 @@ public static class LongTaskHelper
         {
             logger.Log( $"The task is taking a long time: '{taskDescription}'." );
 
-            await task;
-            
+            try
+            {
+                await task;
+            }
+            catch ( OperationCanceledException )
+            {
+                logger.Log( $"The task was cancelled: '{taskDescription}'." );
+                throw;
+            }
+
             logger.Log( $"The task '{taskDescription}' has completed after {stopwatch.Elapsed}." );
         }
     }
@@ -87,7 +95,15 @@ public static class LongTaskHelper
         {
             logger.Log( $"The task is taking a long time: '{taskDescription}'." );
 
-            await task;
+            try
+            {
+                await task;
+            }
+            catch ( OperationCanceledException )
+            {
+                logger.Log( $"The task was cancelled: '{taskDescription}'." );
+                throw;
+            }
             
             logger.Log( $"The task '{taskDescription}' has completed after {stopwatch.Elapsed}." );
         }
@@ -140,7 +156,17 @@ public static class LongTaskHelper
             isLong = true;
         }
 
-        var result = await task;
+        T? result;
+
+        try
+        {
+            result = await task;
+        }
+        catch ( OperationCanceledException )
+        {
+            logger.Log( $"The task was cancelled: '{taskDescription}'." );
+            throw;
+        }
 
         if ( isLong )
         {        
@@ -164,8 +190,18 @@ public static class LongTaskHelper
             logger.Log( $"The task is taking a long time: '{taskDescription}'." );
         }
 
-        var result = await task;
-        
+        T? result;
+
+        try
+        {
+            result = await task;
+        }
+        catch ( OperationCanceledException )
+        {
+            logger.Log( $"The task was cancelled: '{taskDescription}'." );
+            throw;
+        }
+
         logger.Log( $"The task '{taskDescription}' has completed after {stopwatch.Elapsed}." );
 
         return result;

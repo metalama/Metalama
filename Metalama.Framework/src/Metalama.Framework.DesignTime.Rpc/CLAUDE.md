@@ -10,7 +10,7 @@ This project provides bidirectional RPC (Remote Procedure Call) communication us
 
 ```
 ┌─────────────────────┐     Named Pipe      ┌─────────────────────┐
-│   ServerEndpoint    │◄──────────────────►│   ClientEndpoint    │
+│   ServerEndpoint    │◄───────────────────►│   ClientEndpoint    │
 │   (VS Host)         │                     │   (Analyzer)        │
 ├─────────────────────┤                     ├─────────────────────┤
 │   RpcService<T>     │ ◄── API calls ────  │   RpcClient<T>      │

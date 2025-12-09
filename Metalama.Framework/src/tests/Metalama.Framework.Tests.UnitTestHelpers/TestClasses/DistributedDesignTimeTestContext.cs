@@ -83,7 +83,7 @@ public sealed class DistributedDesignTimeTestContext : TestContext
             var connectAnalysisProcessTask =
                 this._analysisProcessServiceHubEndpoint.ConnectAsync( this.CancellationToken ); // Do not await so we get more randomness.
 
-            // Start the main services in the analysis process. It should call the service hub in the user process and call the user process 
+            // Start the main services in the analysis process. It should call the service hub in the user process and call the user process
             // to create the client.
             this._pipelineFactory = analysisProcessServiceProvider.GetRequiredService<TestDesignTimeAspectPipelineFactory>();
             this._analysisProcessEndpoint = analysisProcessServiceProvider.GetRequiredService<IRpcServiceProviderServerEndpointProvider>().Endpoint;

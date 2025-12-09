@@ -15,7 +15,6 @@ using Metalama.Framework.DesignTime.VisualStudio.SourceGenerating;
 using Metalama.Framework.Engine.DesignTime;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Tests.UnitTestHelpers.TestClasses;
-using Metalama.Framework.Tests.UnitTests.DesignTime.Rpc;
 using Metalama.Testing.UnitTesting;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.VisualStudio.Threading;

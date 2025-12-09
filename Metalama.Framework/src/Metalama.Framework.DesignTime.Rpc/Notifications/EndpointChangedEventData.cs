@@ -28,4 +28,5 @@ public class EndpointChangedEventData : RpcEventData
     }
 
     /// <inheritdoc />
+    public override string Category => "";
 }
