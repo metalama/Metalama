@@ -27,7 +27,8 @@ public abstract class ServerEndpoint : BaseEndpoint
     private readonly ConcurrentDictionary<JsonRpc, NamedPipeServerStream> _pipes = new();
 
     private int _nextPipeId = 1;
-    private ImmutableArray<RpcService> _services;
+    private ImmutableArray<RpcService> _services = ImmutableArray<RpcService>.Empty;
+    private int _started;
 
     protected ServerEndpoint(
         IServiceProvider serviceProvider,
@@ -73,14 +74,17 @@ public abstract class ServerEndpoint : BaseEndpoint
     {
         try
         {
-            if ( !this._services.IsDefault )
+            // State transitions: 0 (default) -> 1 (starting) -> 2 (started)
+            if ( Interlocked.CompareExchange( ref this._started, 1, 0 ) != 0 )
             {
                 throw new InvalidOperationException( $"The '{this}' endpoint has already been started." );
             }
 
             var services = this.CreateServices().ToImmutableArray();
-            this._services = services;
+            this._services = this._services.AddRange( services );
             this.ExecuteBackgroundTask( ct => this.AcceptNewClientAsync( this.PipeName, services, ct ), nameof(this.AcceptNewClientAsync), false );
+
+            Interlocked.Exchange( ref this._started, 2 );
             this.InitializedTask.SetResult( true );
         }
         catch ( Exception ex )
@@ -100,6 +104,14 @@ public abstract class ServerEndpoint : BaseEndpoint
     /// <returns>The name of the newly created pipe for these services.</returns>
     protected string AddServices( ImmutableArray<RpcService> services )
     {
+        // State must be 2 (started). States 0 (default) and 1 (starting) are not allowed.
+        if ( this._started != 2 )
+        {
+            throw new InvalidOperationException(
+                $"Cannot add services to endpoint '{this}' because Start() has not completed yet. " +
+                $"Ensure Start() is called before any code that may trigger extension discovery." );
+        }
+
         var pipeId = Interlocked.Increment( ref this._nextPipeId );
         var pipeName = this.PipeName + "-" + pipeId;
         this._services = this._services.AddRange( services );

@@ -245,6 +245,25 @@ public sealed partial class ServerEndpointTests : RpcUnitTestClass
     }
 
     /// <summary>
+    /// Tests that AddServices throws InvalidOperationException when called before Start().
+    /// This reproduces the bug from GitHub issue #1242 where extension discovery
+    /// during initialization can trigger AddServices before Start() is called.
+    /// </summary>
+    [Fact]
+    public void AddServices_BeforeStart_ThrowsInvalidOperationException()
+    {
+        using var testContext = this.CreateRpcTestContext();
+
+        var pipeName = $"{nameof(ServerEndpointTests)}_{Guid.NewGuid()}";
+
+        using var serverEndpoint = new TestServerEndpointWithAddServices( testContext.ServiceProvider, pipeName );
+
+        // AddServices should throw a clear InvalidOperationException explaining Start() must be called first.
+        var ex = Assert.Throws<InvalidOperationException>( () => serverEndpoint.AddServicesForTest() );
+        Assert.Contains( "Start", ex.Message, StringComparison.Ordinal );
+    }
+
+    /// <summary>
     /// Tests that AddServices creates a new pipe with the correct name suffix.
     /// </summary>
     [Fact]
