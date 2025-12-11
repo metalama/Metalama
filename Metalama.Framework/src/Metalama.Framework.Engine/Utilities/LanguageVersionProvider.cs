@@ -87,12 +87,25 @@ internal class LanguageVersionProvider : ILanguageVersionProvider
         }
 
         // Find Roslyn assembly in the MSBuild bin path to determine the version.
+        // The Roslyn folder can be in the bin path itself (e.g., ...\Bin\Roslyn) or in the parent directory
+        // when using the amd64 subfolder (e.g., ...\Bin\amd64 -> ...\Bin\Roslyn).
         var roslynDllPath = Path.Combine( msBuildBinPath, "Roslyn", "Microsoft.CodeAnalysis.CSharp.dll" );
 
         if ( !File.Exists( roslynDllPath ) )
         {
+            // Try parent directory (for amd64 subfolder case).
+            var parentPath = Path.GetDirectoryName( msBuildBinPath );
+
+            if ( parentPath != null )
+            {
+                roslynDllPath = Path.Combine( parentPath, "Roslyn", "Microsoft.CodeAnalysis.CSharp.dll" );
+            }
+        }
+
+        if ( !File.Exists( roslynDllPath ) )
+        {
             throw new InvalidOperationException(
-                $"Cannot determine the compile-time language version: could not find '{roslynDllPath}'." );
+                $"Cannot determine the compile-time language version: could not find Roslyn in '{msBuildBinPath}' or its parent directory." );
         }
 
         var roslynVersion = AssemblyName.GetAssemblyName( roslynDllPath ).Version;
