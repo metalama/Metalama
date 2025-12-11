@@ -70,6 +70,7 @@ internal sealed class CompileTimeAssemblyLocator
     private readonly int _restoreTimeout;
     private readonly ImmutableArray<string> _targetFrameworks;
     private readonly string? _sdkVersion;
+    private readonly string? _msBuildBinPath;
 
     /// <summary>
     /// This compilation is used by the <see cref="SymbolClassifier"/> to determine if an API is available
@@ -105,6 +106,7 @@ internal sealed class CompileTimeAssemblyLocator
     {
         this._logger = serviceProvider.GetLoggerFactory().GetLogger( nameof(CompileTimeAssemblyLocator) );
         this._sdkVersion = serviceProvider.GetRequiredService<IProjectOptions>().SdkVersion;
+        this._msBuildBinPath = serviceProvider.GetRequiredService<IProjectOptions>().MSBuildBinPath;
 
         this._dotNetTool = new DotNetTool( serviceProvider.Global );
 
@@ -163,6 +165,12 @@ internal sealed class CompileTimeAssemblyLocator
         {
             var nugetConfigContent = File.ReadAllText( nugetConfigFile );
             hashBuilder.Update( nugetConfigContent );
+        }
+
+        // Include optional salt for cache invalidation (useful for testing).
+        if ( !string.IsNullOrEmpty( projectOptions.AssemblyLocatorSalt ) )
+        {
+            hashBuilder.Update( projectOptions.AssemblyLocatorSalt );
         }
 
         var projectHash = hashBuilder.Digest().ToString( "x", CultureInfo.InvariantCulture );
@@ -520,20 +528,30 @@ internal sealed class CompileTimeAssemblyLocator
                 File.WriteAllText( nuGetConfigPath, nugetConfig );
             }
 
-            // We may consider executing msbuild.exe instead of dotnet.exe when the build itself runs using msbuild.exe.
-            // This way we wouldn't need to require a .NET SDK to be installed. Also, it seems that Rider requires the full path.
-            var arguments = $"build -bl:msbuild_{Guid.NewGuid():N}.binlog";
-
             this._logger.Trace?.Log( $"Building with restore timeout {this._restoreTimeout}." );
 
-            // Remove configuration environment variable to avoid having different output directory than Debug.
-            // Build scripts may rely on env var to set the configuration in MSBuild.
-            // Case insensitive comparison needed because MSBuild is case insensitive.
-            this._dotNetTool.Execute(
-                arguments,
-                this._cacheDirectory,
-                this._restoreTimeout,
-                envVar => !StringComparer.OrdinalIgnoreCase.Equals( envVar.Key, "configuration" ) );
+            // When NETCoreSdkVersion is not available (e.g., old-style .NET Framework projects built with msbuild.exe),
+            // use msbuild.exe directly instead of dotnet.exe.
+            if ( string.IsNullOrEmpty( this._sdkVersion ) && !string.IsNullOrEmpty( this._msBuildBinPath ) )
+            {
+                var msBuildTool = new MSBuildTool( this._msBuildBinPath );
+                var arguments = $"\"{projectFilePath}\" /t:Restore;Build /bl:msbuild_{Guid.NewGuid():N}.binlog";
+
+                msBuildTool.Execute( arguments, this._cacheDirectory, this._restoreTimeout );
+            }
+            else
+            {
+                // Remove configuration environment variable to avoid having different output directory than Debug.
+                // Build scripts may rely on env var to set the configuration in MSBuild.
+                // Case insensitive comparison needed because MSBuild is case insensitive.
+                var arguments = $"build -bl:msbuild_{Guid.NewGuid():N}.binlog";
+
+                this._dotNetTool.Execute(
+                    arguments,
+                    this._cacheDirectory,
+                    this._restoreTimeout,
+                    envVar => !StringComparer.OrdinalIgnoreCase.Equals( envVar.Key, "configuration" ) );
+            }
 
             var assemblies = File.ReadAllLines( assembliesListPath );
 

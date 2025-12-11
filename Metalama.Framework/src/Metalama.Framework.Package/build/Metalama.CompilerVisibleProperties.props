@@ -37,6 +37,8 @@
         <CompilerVisibleProperty Include="MetalamaAvoidLockingExtensionAssemblies"/>
         <CompilerVisibleProperty Include="LangVersion"/>
         <CompilerVisibleProperty Include="NETCoreSdkVersion"/>
+        <CompilerVisibleProperty Include="MSBuildBinPath"/>
+        <CompilerVisibleProperty Include="MetalamaAssemblyLocatorSalt"/>
     </ItemGroup>
 
     <!-- More properties are already exported by Metalama.Compiler and don't need to be exported a second time. -->

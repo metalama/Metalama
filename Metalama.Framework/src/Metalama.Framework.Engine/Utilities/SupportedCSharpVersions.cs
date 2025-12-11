@@ -95,4 +95,19 @@ public static class SupportedCSharpVersions
             RoslynApiVersion.V5_0_0 => new Version( 5, 0, 0 ),
             _ => throw new AssertionFailedException( $"Unexpected Roslyn version {roslynApiVersion}." )
         };
+
+    /// <summary>
+    /// Gets the maximum C# language version supported by a given Roslyn version.
+    /// </summary>
+    internal static LanguageVersion GetMaxLanguageVersion( Version roslynVersion )
+        => (roslynVersion.Major, roslynVersion.Minor) switch
+        {
+            (>= 5, _) => AllLanguageVersions.CSharp14,
+            (4, >= 12) => AllLanguageVersions.CSharp13,
+            (4, >= 8) => AllLanguageVersions.CSharp12,
+            (4, >= 4) => AllLanguageVersions.CSharp11,
+            (4, _) => AllLanguageVersions.CSharp10,
+            (3, _) => LanguageVersion.CSharp9,
+            _ => throw new PlatformNotSupportedException( $"Unsupported Roslyn version: {roslynVersion}." )
+        };
 }
