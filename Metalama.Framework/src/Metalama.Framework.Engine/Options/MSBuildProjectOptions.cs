@@ -175,6 +175,12 @@ public partial class MSBuildProjectOptions : DefaultProjectOptions
     private string? GetSdkVersionCore() => this.GetStringOption( MSBuildPropertyNames.NETCoreSdkVersion );
 
     [Memo]
+    public override string? MSBuildBinPath => this.GetStringOption( MSBuildPropertyNames.MSBuildBinPath );
+
+    [Memo]
+    public override string? AssemblyLocatorSalt => this.GetStringOption( MSBuildPropertyNames.MetalamaAssemblyLocatorSalt );
+
+    [Memo]
     public override ImmutableArray<string> SourceGeneratorAttributes => this.GetListOption( MSBuildPropertyNames.MetalamaSourceGeneratorAttributes );
 
     public override bool AvoidLockingExtensionAssemblies => this.GetBooleanOption( MSBuildPropertyNames.MetalamaAvoidLockingExtensionAssemblies );

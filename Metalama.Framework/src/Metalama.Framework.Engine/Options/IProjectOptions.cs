@@ -214,4 +214,19 @@ public interface IProjectOptions : IProjectService, IEquatable<IProjectOptions>
     LanguageVersion LanguageVersion { get; }
 
     string? SdkVersion { get; }
+
+    /// <summary>
+    /// Gets the path to the MSBuild bin directory. This is used to locate msbuild.exe
+    /// when building compile-time projects in environments where the .NET SDK is not available
+    /// (e.g., old-style .NET Framework projects built with msbuild.exe).
+    /// </summary>
+    string? MSBuildBinPath { get; }
+
+    /// <summary>
+    /// Gets a salt value used to invalidate the AssemblyLocator cache.
+    /// This property is primarily intended for testing scenarios where it is necessary to force cache invalidation
+    /// without manually clearing cache directories. When set to a non-null value, this salt is incorporated into the cache hash,
+    /// allowing tests to force cache misses. This property is not intended for use in production environments.
+    /// </summary>
+    string? AssemblyLocatorSalt { get; }
 }

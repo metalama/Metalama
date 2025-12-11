@@ -6,6 +6,8 @@ using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Services;
 using Microsoft.CodeAnalysis.CSharp;
 using System;
+using System.IO;
+using System.Reflection;
 
 namespace Metalama.Framework.Engine.Utilities;
 
@@ -28,13 +30,21 @@ internal class LanguageVersionProvider : ILanguageVersionProvider
 
     private LanguageVersion GetCompileTimeLanguageVersionCore()
     {
-        if ( this._projectOptions.SdkVersion == null )
+        // NETCoreSdkVersion can be null (property not defined) or empty (old-style .NET Framework projects
+        // built with msbuild.exe where Microsoft.NETCoreSdk.BundledVersions.props is not imported).
+        if ( string.IsNullOrEmpty( this._projectOptions.SdkVersion ) )
         {
-            throw new InvalidOperationException(
-                $"Cannot get the .NET SDK version: the {nameof(MSBuildPropertyNames.NETCoreSdkVersion)} MSBuild property is not defined for project '{this._projectOptions.ProjectName}'." );
+            // When building with msbuild.exe from Visual Studio (no .NET SDK), we use the project's
+            // language version constrained by what the MSBuild's bundled Roslyn version supports.
+            return this.GetLanguageVersionFromMSBuild();
         }
 
-        var mainVersion = this._projectOptions.SdkVersion.Split( '-' )[0];
+        return this.GetLanguageVersionFromDotNetSdk();
+    }
+
+    private LanguageVersion GetLanguageVersionFromDotNetSdk()
+    {
+        var mainVersion = this._projectOptions.SdkVersion!.Split( '-' )[0];
 
         if ( !Version.TryParse( mainVersion, out var version ) )
         {
@@ -62,6 +72,61 @@ internal class LanguageVersionProvider : ILanguageVersionProvider
         else
         {
             return sdkSupportedVersion;
+        }
+    }
+
+    private LanguageVersion GetLanguageVersionFromMSBuild()
+    {
+        var msBuildBinPath = this._projectOptions.MSBuildBinPath;
+
+        if ( string.IsNullOrEmpty( msBuildBinPath ) )
+        {
+            throw new InvalidOperationException(
+                $"Cannot determine the compile-time language version: neither {nameof(MSBuildPropertyNames.NETCoreSdkVersion)} nor " +
+                $"{nameof(MSBuildPropertyNames.MSBuildBinPath)} is defined for project '{this._projectOptions.ProjectName}'." );
+        }
+
+        // Find Roslyn assembly in the MSBuild bin path to determine the version.
+        // The Roslyn folder can be in the bin path itself (e.g., ...\Bin\Roslyn) or in the parent directory
+        // when using the amd64 subfolder (e.g., ...\Bin\amd64 -> ...\Bin\Roslyn).
+        var roslynDllPath = Path.Combine( msBuildBinPath, "Roslyn", "Microsoft.CodeAnalysis.CSharp.dll" );
+
+        if ( !File.Exists( roslynDllPath ) )
+        {
+            // Try parent directory (for amd64 subfolder case).
+            var parentPath = Path.GetDirectoryName( msBuildBinPath );
+
+            if ( parentPath != null )
+            {
+                roslynDllPath = Path.Combine( parentPath, "Roslyn", "Microsoft.CodeAnalysis.CSharp.dll" );
+            }
+        }
+
+        if ( !File.Exists( roslynDllPath ) )
+        {
+            throw new InvalidOperationException(
+                $"Cannot determine the compile-time language version: could not find Roslyn in '{msBuildBinPath}' or its parent directory." );
+        }
+
+        var roslynVersion = AssemblyName.GetAssemblyName( roslynDllPath ).Version;
+
+        if ( roslynVersion == null )
+        {
+            throw new InvalidOperationException(
+                $"Cannot determine the compile-time language version: could not read assembly version from '{roslynDllPath}'." );
+        }
+
+        var msBuildSupportedVersion = SupportedCSharpVersions.GetMaxLanguageVersion( roslynVersion );
+
+        var projectVersion = this._projectOptions.LanguageVersion;
+
+        if ( msBuildSupportedVersion >= projectVersion )
+        {
+            return projectVersion;
+        }
+        else
+        {
+            return msBuildSupportedVersion;
         }
     }
 }

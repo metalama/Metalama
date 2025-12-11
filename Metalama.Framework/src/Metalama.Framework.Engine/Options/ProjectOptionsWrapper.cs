@@ -108,6 +108,10 @@ public abstract class ProjectOptionsWrapper : IProjectOptions
 
     public string? SdkVersion => this.Wrapped.SdkVersion;
 
+    public string? MSBuildBinPath => this.Wrapped.MSBuildBinPath;
+
+    public string? AssemblyLocatorSalt => this.Wrapped.AssemblyLocatorSalt;
+
     public sealed override int GetHashCode() => throw new NotImplementedException();
 
     public sealed override bool Equals( object? obj ) => this.Equals( obj as IProjectOptions );

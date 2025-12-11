@@ -5,7 +5,6 @@
 using System;
 using System.Collections.Generic;
 using Metalama.Framework.Aspects;
-using Metalama.Framework.Code;
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Bugs.Bug1231;
 

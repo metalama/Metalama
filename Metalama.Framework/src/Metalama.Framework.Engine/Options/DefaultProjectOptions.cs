@@ -122,6 +122,10 @@ public class DefaultProjectOptions : IProjectOptions
 
     public virtual string? SdkVersion => null;
 
+    public virtual string? MSBuildBinPath => null;
+
+    public virtual string? AssemblyLocatorSalt => null;
+
     // IProjectOptions is currently not used as a dictionary key, so we can throw here.
     public sealed override int GetHashCode() => throw new NotImplementedException();
 
