@@ -47,10 +47,13 @@ public sealed class MSBuildTool
             RedirectStandardError = true
         };
 
-        // Remove configuration environment variable to avoid having different output directory than Debug.
-        // Build scripts may rely on env var to set the configuration in MSBuild.
-        // Case insensitive comparison needed because MSBuild is case insensitive.
-        foreach ( var key in startInfo.Environment.Keys.Where( k => k.Equals( "Configuration", StringComparison.OrdinalIgnoreCase ) ).ToArray() )
+        // Remove environment variables that can interfere with MSBuild execution.
+        // These variables may point to .NET SDK paths that conflict with Visual Studio's MSBuild.
+        var variablesToRemove = new[] { "DOTNET_ROOT_X64", "MSBUILD_EXE_PATH", "MSBuildSDKsPath", "Configuration" };
+
+        foreach ( var key in startInfo.Environment.Keys
+                     .Where( k => variablesToRemove.Any( v => k.Equals( v, StringComparison.OrdinalIgnoreCase ) ) )
+                     .ToArray() )
         {
             startInfo.Environment.Remove( key );
         }

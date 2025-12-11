@@ -9,7 +9,8 @@ using System;
 namespace ConsoleApp1
 {
     // This aspect is defined directly in the .NET Framework project to force compile-time compilation,
-    // which exercises the NETCoreSdkVersion code path in LanguageVersionProvider.
+    // which exercises the GetLanguageVersionFromMSBuild() code path in LanguageVersionProvider
+    // (i.e., when NETCoreSdkVersion is empty or not available).
     public class LogAttribute : OverrideMethodAspect
     {
         public override dynamic? OverrideMethod()
