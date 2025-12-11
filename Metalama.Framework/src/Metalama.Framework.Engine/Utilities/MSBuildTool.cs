@@ -69,7 +69,7 @@ public sealed class MSBuildTool
             }
         }
 
-        var process = new Process { StartInfo = startInfo };
+        using var process = new Process { StartInfo = startInfo };
 
         var lines = new List<string>();
 

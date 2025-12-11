@@ -224,8 +224,9 @@ public interface IProjectOptions : IProjectService, IEquatable<IProjectOptions>
 
     /// <summary>
     /// Gets a salt value used to invalidate the AssemblyLocator cache.
-    /// When set to a non-null value, this salt is incorporated into the cache hash,
-    /// allowing tests to force cache misses without manually clearing the cache directory.
+    /// This property is primarily intended for testing scenarios where it is necessary to force cache invalidation
+    /// without manually clearing cache directories. When set to a non-null value, this salt is incorporated into the cache hash,
+    /// allowing tests to force cache misses. This property is not intended for use in production environments.
     /// </summary>
     string? AssemblyLocatorSalt { get; }
 }
