@@ -48,7 +48,9 @@
       "Bash(pwsh:*)",
       "Bash(ls:*)",
       "SlashCommand(/fix-binlog-warnings)",
-      "Bash(code:*)"
+      "Bash(code:*)",
+      "Bash(git merge-base:*)",
+      "Bash(gh search:*)"
     ],
     "deny": [],
     "ask": []
