@@ -73,7 +73,8 @@ namespace Metalama.Framework.Engine.Linking
                         new InliningContextIdentifier( symbol.ToSemantic( semanticKind ) ) ) );
 
                 // Trivia processing:
-                //   * For block bodies methods, we preserve trivia of the opening/closing brace.
+                //   * For block bodies, we preserve only whitespace trivia (for indentation) from the opening/closing brace.
+                //     Non-whitespace trivia (comments, pragmas) is already preserved in the linkedBody through GetSubstitutedBody (issue #838).
                 //   * For expression bodied methods:
                 //       int Foo() <trivia_leading_equals_value> => <trivia_trailing_equals_value> <expression> <trivia_leading_semicolon> ; <trivia_trailing_semicolon>
                 //       int Foo() <trivia_leading_equals_value> { <trivia_trailing_equals_value> <linked_body> <trivia_leading_semicolon> } <trivia_trailing_semicolon>
@@ -82,7 +83,8 @@ namespace Metalama.Framework.Engine.Linking
                     operatorDeclaration switch
                     {
                         { Body: { OpenBraceToken: var openBraceToken, CloseBraceToken: var closeBraceToken } } =>
-                            (openBraceToken.LeadingTrivia, openBraceToken.TrailingTrivia, closeBraceToken.LeadingTrivia, closeBraceToken.TrailingTrivia),
+                            (FilterNonWhitespaceTrivia( openBraceToken.LeadingTrivia ), openBraceToken.TrailingTrivia,
+                             closeBraceToken.LeadingTrivia, FilterNonWhitespaceTrivia( closeBraceToken.TrailingTrivia )),
                         { ExpressionBody.ArrowToken: var arrowToken, SemicolonToken: var semicolonToken } =>
                             (arrowToken.LeadingTrivia.AddOptionalLineFeed( generationContext ),
                              arrowToken.TrailingTrivia.AddOptionalLineFeed( generationContext ),

@@ -544,6 +544,41 @@ internal sealed partial class LinkerRewritingDriver
 
     private bool ShouldGenerateSourceMember( ISymbol symbol ) => this.InjectionRegistry.IsOverrideTarget( symbol );
 
+    /// <summary>
+    /// Removes all non-whitespace trivia (comments, pragmas, etc.) from the trivia list, keeping only
+    /// whitespace for indentation. Used when trivia from the original declaration is already preserved
+    /// in the inlined body (issue #838).
+    /// </summary>
+    private static SyntaxTriviaList FilterNonWhitespaceTrivia( SyntaxTriviaList trivia )
+    {
+        List<SyntaxTrivia>? result = null;
+
+        for ( var i = 0; i < trivia.Count; i++ )
+        {
+            var t = trivia[i];
+
+            if ( t.IsKind( SyntaxKind.WhitespaceTrivia ) || t.IsKind( SyntaxKind.EndOfLineTrivia ) )
+            {
+                result?.Add( t );
+            }
+            else
+            {
+                // First non-whitespace trivia found - need to build a filtered list.
+                if ( result == null )
+                {
+                    result = new List<SyntaxTrivia>( trivia.Count );
+
+                    for ( var j = 0; j < i; j++ )
+                    {
+                        result.Add( trivia[j] );
+                    }
+                }
+            }
+        }
+
+        return result != null ? new SyntaxTriviaList( result ) : trivia;
+    }
+
     public static string GetOriginalImplMemberName( ISymbol symbol ) => GetSpecialMemberName( symbol, "Source" );
 
     public static string GetEmptyImplMemberName( ISymbol symbol ) => GetSpecialMemberName( symbol, "Empty" );
