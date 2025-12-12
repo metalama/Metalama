@@ -66,7 +66,7 @@ namespace Metalama.Framework.Engine.CodeModel.Source.Pseudo
 
         public override DeclarationKind DeclarationKind => DeclarationKind.Parameter;
 
-        public override bool IsImplicitlyDeclared => true;
+        public override bool IsImplicitlyDeclared => this.DeclaringAccessor.IsImplicitlyDeclared;
 
         public override CompilationModel Compilation => this.DeclaringAccessor.GetCompilationModel();
 
