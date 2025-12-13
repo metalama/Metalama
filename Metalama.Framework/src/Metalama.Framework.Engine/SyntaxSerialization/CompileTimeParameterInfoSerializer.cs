@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.ReflectionMocks;
+using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -44,7 +45,7 @@ internal sealed class CompileTimeParameterInfoSerializer : ObjectSerializer<Comp
 
         return ElementAccessExpression(
                 InvocationExpression(
-                    MemberAccessExpression( SyntaxKind.SimpleMemberAccessExpression, memberExpression, IdentifierName( getParametersMethodName ) ) ),
+                    MemberAccessExpression( SyntaxKind.SimpleMemberAccessExpression, memberExpression, SyntaxFactoryEx.WellKnownIdentifierName( getParametersMethodName ) ) ),
                 BracketedArgumentList(
                     SingletonSeparatedList( Argument( LiteralExpression( SyntaxKind.NumericLiteralExpression, Literal( parameter.Index ) ) ) ) ) )
             .NormalizeWhitespaceIfNecessary( serializationContext.SyntaxGenerationContext );

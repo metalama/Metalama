@@ -10,6 +10,7 @@ using Metalama.Framework.Engine.CodeModel.Collections;
 using Metalama.Framework.Engine.CodeModel.GenericContexts;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.References;
+using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.SyntaxSerialization;
 using Metalama.Framework.Engine.Templating.Expressions;
 using Metalama.Framework.Engine.Utilities;
@@ -123,9 +124,9 @@ namespace Metalama.Framework.Engine.CodeModel.Source.Pseudo
             => this._namePrefix != null
                 ? SyntaxFactory.MemberAccessExpression(
                     SyntaxKind.SimpleMemberAccessExpression,
-                    SyntaxFactory.IdentifierName( this._namePrefix ),
-                    SyntaxFactory.IdentifierName( this.Name ) )
-                : SyntaxFactory.IdentifierName( this.Name );
+                    SyntaxFactoryEx.SafeIdentifierName( this._namePrefix ),
+                    SyntaxFactoryEx.SafeIdentifierName( this.Name ) )
+                : SyntaxFactoryEx.SafeIdentifierName( this.Name );
 
         public override bool BelongsToCurrentProject => this.ContainingDeclaration.BelongsToCurrentProject;
 

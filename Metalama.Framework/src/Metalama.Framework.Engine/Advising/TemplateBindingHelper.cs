@@ -7,6 +7,7 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Code.Collections;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CodeModel.Helpers;
+using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.SyntaxSerialization;
 using Metalama.Framework.Engine.Templating;
 using Metalama.Framework.Engine.Utilities;
@@ -72,7 +73,7 @@ internal static class TemplateBindingHelper
             {
                 var templateParameter = template.TemplateMember.TemplateClassMember.RunTimeParameters[i];
                 var parameter = targetMethod.Parameters[i];
-                ExpressionSyntax parameterSyntax = IdentifierName( parameter.Name );
+                ExpressionSyntax parameterSyntax = SyntaxFactoryEx.SafeIdentifierName( parameter.Name );
                 parameterSyntax = TypeAnnotationMapper.AddExpressionTypeAnnotation( parameterSyntax, parameter.Type );
                 mappingBuilder.Add( templateParameter.Name, parameterSyntax );
             }
@@ -132,7 +133,7 @@ internal static class TemplateBindingHelper
             {
                 var templateParameter = template.TemplateMember.TemplateClassMember.RunTimeParameters[i];
                 var parameter = targetConstructor.Parameters[i];
-                ExpressionSyntax parameterSyntax = IdentifierName( parameter.Name );
+                ExpressionSyntax parameterSyntax = SyntaxFactoryEx.SafeIdentifierName( parameter.Name );
                 parameterSyntax = TypeAnnotationMapper.AddExpressionTypeAnnotation( parameterSyntax, parameter.Type );
                 mappingBuilder.Add( templateParameter.Name, parameterSyntax );
             }
@@ -273,7 +274,7 @@ internal static class TemplateBindingHelper
             }
             else
             {
-                parameterSyntax = IdentifierName( methodParameter.Name );
+                parameterSyntax = SyntaxFactoryEx.SafeIdentifierName( methodParameter.Name );
                 parameterSyntax = TypeAnnotationMapper.AddExpressionTypeAnnotation( parameterSyntax, methodParameter.Type );
             }
 
@@ -342,7 +343,7 @@ internal static class TemplateBindingHelper
 
         void AddParameter( IParameter methodParameter, IParameterSymbol templateParameter )
         {
-            ExpressionSyntax parameterSyntax = IdentifierName( methodParameter.Name );
+            ExpressionSyntax parameterSyntax = SyntaxFactoryEx.SafeIdentifierName( methodParameter.Name );
 
             parameterSyntax = TypeAnnotationMapper.AddExpressionTypeAnnotation( parameterSyntax, methodParameter.Type );
 
@@ -448,7 +449,7 @@ internal static class TemplateBindingHelper
                             ExpressionSyntax tupleAccessExpression = MemberAccessExpression(
                                 SyntaxKind.SimpleMemberAccessExpression,
                                 IdentifierName( "args" ),
-                                IdentifierName( delegateParameter.Name ) );
+                                SyntaxFactoryEx.SafeIdentifierName( delegateParameter.Name ) );
 
                             tupleAccessExpression = TypeAnnotationMapper.AddExpressionTypeAnnotation( tupleAccessExpression, delegateParameter.Type );
 
@@ -821,7 +822,7 @@ internal static class TemplateBindingHelper
             {
                 var expression = runTimeParameterMapping.TryGetValue( parameter.Name, out var mapped )
                     ? mapped
-                    : IdentifierName( parameter.Name );
+                    : SyntaxFactoryEx.SafeIdentifierName( parameter.Name );
 
                 if ( !parameter.HasDefaultValue )
                 {

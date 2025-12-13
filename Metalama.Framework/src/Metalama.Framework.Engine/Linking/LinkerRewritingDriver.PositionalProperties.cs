@@ -11,6 +11,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
+using static Metalama.Framework.Engine.SyntaxGeneration.SyntaxFactoryEx;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 // Properties with overrides have the following structure:
@@ -41,7 +42,7 @@ namespace Metalama.Framework.Engine.Linking
                     members.Add(
                         this.GetPropertyBackingField(
                             recordParameter.Type.AssertNotNull(),
-                            EqualsValueClause( IdentifierName( recordParameter.Identifier.ValueText ) ),
+                            EqualsValueClause( SafeIdentifierName( recordParameter.Identifier.ValueText ) ),
                             FilterAttributeListsForTarget( recordParameter.AttributeLists, SyntaxKind.FieldKeyword, false, false ),
                             symbol,
                             generationContext ) );
@@ -197,11 +198,11 @@ namespace Metalama.Framework.Engine.Linking
             {
                 if ( targetSymbol.IsStatic )
                 {
-                    return IdentifierName( targetSymbol.Name );
+                    return SyntaxFactoryEx.SafeIdentifierName( targetSymbol.Name );
                 }
                 else
                 {
-                    return MemberAccessExpression( SyntaxKind.SimpleMemberAccessExpression, ThisExpression(), IdentifierName( targetSymbol.Name ) )
+                    return MemberAccessExpression( SyntaxKind.SimpleMemberAccessExpression, ThisExpression(), SyntaxFactoryEx.SafeIdentifierName( targetSymbol.Name ) )
                         .WithSimplifierAnnotationIfNecessary( context );
                 }
             }

@@ -50,11 +50,13 @@ namespace Metalama.Framework.DesignTime.Refactoring
                 {
                     if ( newUnit.Usings.All( u => u.Name?.ToString() != ns ) )
                     {
+#pragma warning disable LAMA0850 // Namespace from user code
                         newRoot =
                             newUnit.AddUsings(
                                 SyntaxFactory.UsingDirective( SyntaxFactory.IdentifierName( ns ).WithLeadingTrivia( SyntaxFactory.ElasticSpace ) )
                                     .WithTrailingTrivia( context.OptionalElasticEndOfLineTriviaList )
                                     .WithAdditionalAnnotations( Formatter.Annotation ) );
+#pragma warning restore LAMA0850
                     }
                 }
             }
@@ -253,7 +255,9 @@ namespace Metalama.Framework.DesignTime.Refactoring
 
         private static AttributeListSyntax CreateAttributeSyntax( AttributeDescription attribute, bool forAssembly = false )
         {
+#pragma warning disable LAMA0850 // "assembly" is well-known
             var target = forAssembly ? SyntaxFactory.AttributeTargetSpecifier( SyntaxFactory.Identifier( "assembly" ) ) : null;
+#pragma warning restore LAMA0850
 
             AttributeArgumentListSyntax? argumentList = null;
 

@@ -9,9 +9,9 @@ using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel.Abstractions;
 using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 using Metalama.Framework.Engine.CodeModel.References;
+using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.SyntaxSerialization;
 using Metalama.Framework.Engine.Templating.Expressions;
-using Microsoft.CodeAnalysis.CSharp;
 using System.Reflection;
 
 namespace Metalama.Framework.Engine.CodeModel.Introductions.Builders;
@@ -49,12 +49,12 @@ internal abstract class BaseParameterBuilder : NamedDeclarationBuilder, IParamet
 
     bool IExpression.IsAssignable => true;
 
-    public ref object? Value => ref RefHelper.Wrap( new SyntaxUserExpression( SyntaxFactory.IdentifierName( this.Name ), this.Type, true ) );
+    public ref object? Value => ref RefHelper.Wrap( new SyntaxUserExpression( SyntaxFactoryEx.SafeIdentifierName( this.Name ), this.Type, true ) );
 
     public TypedExpressionSyntax ToTypedExpressionSyntax( ISyntaxGenerationContext syntaxGenerationContext, IType? targetType = null )
         => new(
             new TypedExpressionSyntaxImpl(
-                SyntaxFactory.IdentifierName( this.Name ),
+                SyntaxFactoryEx.SafeIdentifierName( this.Name ),
                 this.Type,
                 ((SyntaxSerializationContext) syntaxGenerationContext).CompilationModel,
                 true ) );

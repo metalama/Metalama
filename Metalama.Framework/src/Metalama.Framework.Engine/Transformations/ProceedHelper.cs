@@ -122,7 +122,7 @@ internal static class ProceedHelper
 
             if ( cancellationTokenParameter != null )
             {
-                arguments = arguments.AddArguments( Argument( IdentifierName( cancellationTokenParameter.Name ) ) );
+                arguments = arguments.AddArguments( Argument( SyntaxFactoryEx.SafeIdentifierName( cancellationTokenParameter.Name ) ) );
             }
 
             var bufferExpression =
@@ -207,12 +207,12 @@ internal static class ProceedHelper
         if ( targetMember is IGeneric { TypeParameters.Count: > 0 } generic )
         {
             memberName = GenericName(
-                Identifier( memberNameString ),
-                TypeArgumentList( SeparatedList( generic.TypeParameters.SelectAsReadOnlyList( p => (TypeSyntax) IdentifierName( p.Name ) ) ) ) );
+                SyntaxFactoryEx.SafeIdentifier( memberNameString ),
+                TypeArgumentList( SeparatedList( generic.TypeParameters.SelectAsReadOnlyList( p => (TypeSyntax) SyntaxFactoryEx.SafeIdentifierName( p.Name ) ) ) ) );
         }
         else
         {
-            memberName = IdentifierName( memberNameString );
+            memberName = SyntaxFactoryEx.SafeIdentifierName( memberNameString );
         }
 
         if ( !targetMember.IsStatic )
@@ -233,7 +233,7 @@ internal static class ProceedHelper
             {
                 expression = MemberAccessExpression(
                     SyntaxKind.SimpleMemberAccessExpression,
-                    IdentifierName( extensionBlock.ReceiverParameter.Name ),
+                    SyntaxFactoryEx.SafeIdentifierName( extensionBlock.ReceiverParameter.Name ),
                     memberName );
             }
             else

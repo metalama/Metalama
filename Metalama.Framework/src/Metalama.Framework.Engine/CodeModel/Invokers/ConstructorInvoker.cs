@@ -121,7 +121,7 @@ internal sealed class ConstructorInvoker : Invoker<IConstructor>, IConstructorIn
                     .Select(
                         ( e, i ) =>
                             Argument(
-                                NameColon( IdentifierName( this._constructor.Parameters[i].Name ) ),
+                                NameColon( SyntaxFactoryEx.SafeIdentifierName( this._constructor.Parameters[i].Name ) ),
                                 this._constructor.Parameters[i].RefKind.InvocationRefKindToken(),
                                 e ) ),
                 null );
@@ -161,7 +161,7 @@ internal sealed class ConstructorInvoker : Invoker<IConstructor>, IConstructorIn
                     .Select(
                         ( e, i ) =>
                             Argument(
-                                NameColon( IdentifierName( this._constructor.Parameters[i].Name ) ),
+                                NameColon( SyntaxFactoryEx.SafeIdentifierName( this._constructor.Parameters[i].Name ) ),
                                 this._constructor.Parameters[i].RefKind.InvocationRefKindToken(),
                                 e ) ),
                 InitializerExpression(
@@ -171,7 +171,7 @@ internal sealed class ConstructorInvoker : Invoker<IConstructor>, IConstructorIn
                             i =>
                                 AssignmentExpression(
                                     SyntaxKind.SimpleAssignmentExpression,
-                                    IdentifierName( i.FieldOrPropertyName ),
+                                    SyntaxFactoryEx.SafeIdentifierName( i.FieldOrPropertyName ),
                                     i.Value.ToExpressionSyntax( syntaxSerializationContext ) ) ) ) ) );
     }
 }

@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -48,11 +49,11 @@ internal sealed class AspectReferenceBackingFieldSubstitution : SyntaxNodeSubsti
 
                 if ( this._aspectReference.OriginalSymbol.IsExplicitInterfaceMemberImplementation() )
                 {
-                    return memberAccessExpression.PartialUpdate( ThisExpression(), name: IdentifierName( backingFieldName ) );
+                    return memberAccessExpression.PartialUpdate( ThisExpression(), name: SyntaxFactoryEx.WellKnownIdentifierName( backingFieldName ) );
                 }
                 else
                 {
-                    return memberAccessExpression.WithName( IdentifierName( backingFieldName ) );
+                    return memberAccessExpression.WithName( SyntaxFactoryEx.WellKnownIdentifierName( backingFieldName ) );
                 }
 
             default:

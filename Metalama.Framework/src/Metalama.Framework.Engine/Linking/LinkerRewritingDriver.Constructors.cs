@@ -42,7 +42,7 @@ internal sealed partial class LinkerRewritingDriver
                                 .WithOptionalTrailingTrivia( ElasticSpace, context.Options ),
                             SingletonSeparatedList(
                                 VariableDeclarator(
-                                    Identifier( TriviaList( ElasticSpace ), GetCleanPrimaryConstructorFieldName( primaryConstructorField ), default ) ) ) ),
+                                    WellKnownIdentifier( TriviaList( ElasticSpace ), GetCleanPrimaryConstructorFieldName( primaryConstructorField ), default ) ) ) ),
                         Token( SyntaxKind.SemicolonToken ).WithOptionalTrailingLineFeed( context ) ) );
             }
 
@@ -54,7 +54,7 @@ internal sealed partial class LinkerRewritingDriver
                         TokenList( TokenWithTrailingSpace( SyntaxKind.PublicKeyword ) ),
                         context.SyntaxGenerator.TypeSyntax( primaryConstructorProperty.Type ),
                         null,
-                        Identifier( TriviaList( ElasticSpace ), primaryConstructorProperty.Name, default ),
+                        SyntaxFactoryEx.SafeIdentifier( TriviaList( ElasticSpace ), primaryConstructorProperty.Name, default ),
                         AccessorList(
                             List(
                             [
@@ -107,11 +107,11 @@ internal sealed partial class LinkerRewritingDriver
                                     (StatementSyntax) ExpressionStatement(
                                         AssignmentExpression(
                                             SyntaxKind.SimpleAssignmentExpression,
-                                            IdentifierName( p.Identifier ),
+                                            SafeIdentifierName( p.Identifier.ValueText ),
                                             MemberAccessExpression(
                                                     SyntaxKind.SimpleMemberAccessExpression,
                                                     ThisExpression(),
-                                                    IdentifierName( p.Identifier ) )
+                                                    SafeIdentifierName( p.Identifier.ValueText ) )
                                                 .WithSimplifierAnnotationIfNecessary( context ) ) ) ) ),
                         null,
                         default ) );
@@ -219,8 +219,8 @@ internal sealed partial class LinkerRewritingDriver
                                     MemberAccessExpression(
                                         SyntaxKind.SimpleMemberAccessExpression,
                                         ThisExpression(),
-                                        IdentifierName( cleanName ) ),
-                                    IdentifierName( cleanName ) )
+                                        WellKnownIdentifierName( cleanName ) ),
+                                    WellKnownIdentifierName( cleanName ) )
                                 .WithSimplifierAnnotationIfNecessary( context ) ) );
                 }
 
@@ -265,7 +265,7 @@ internal sealed partial class LinkerRewritingDriver
 
                                 case ParameterSyntax parameterDeclaration:
                                     name = parameterDeclaration.Identifier.ValueText;
-                                    expression = IdentifierName( parameterDeclaration.Identifier.ValueText );
+                                    expression = SafeIdentifierName( parameterDeclaration.Identifier.ValueText );
 
                                     break;
 
@@ -286,7 +286,7 @@ internal sealed partial class LinkerRewritingDriver
                                 MemberAccessExpression(
                                         SyntaxKind.SimpleMemberAccessExpression,
                                         ThisExpression(),
-                                        IdentifierName( name ) )
+                                        SafeIdentifierName( name ) )
                                     .WithSimplifierAnnotationIfNecessary( context ),
                                 expression ) ) );
                 }

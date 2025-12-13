@@ -4,9 +4,9 @@
 
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
+using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.Templating;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
 using MethodKind = Microsoft.CodeAnalysis.MethodKind;
 
 namespace Metalama.Framework.Engine.Advising;
@@ -56,7 +56,7 @@ internal sealed class BoundTemplateMethod
             var parameter = signature.Parameters[index];
 
             newArguments[runTimeParameter.SourceIndex] = TypeAnnotationMapper.AddExpressionTypeAnnotation(
-                SyntaxFactory.IdentifierName( parameter.Name ),
+                SyntaxFactoryEx.SafeIdentifierName( parameter.Name ),
                 parameter.Type );
         }
 

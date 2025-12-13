@@ -6,6 +6,7 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
+using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.Transformations;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis.CSharp;
@@ -55,7 +56,7 @@ internal sealed class IntroduceNamedTypeTransformation : IntroduceDeclarationTra
                                     VarianceKind.Out => Token( SyntaxKind.OutKeyword ),
                                     _ => default
                                 },
-                                Identifier( tp.Name ) ) ) ) );
+                                SyntaxFactoryEx.SafeIdentifier( tp.Name ) ) ) ) );
 
         var type =
             (this.BuilderData.TypeKind switch
@@ -64,7 +65,7 @@ internal sealed class IntroduceNamedTypeTransformation : IntroduceDeclarationTra
                     (TypeDeclarationSyntax) ClassDeclaration(
                         AdviceSyntaxGenerator.GetAttributeLists( introducedType, context ),
                         introducedType.GetSyntaxModifierList(),
-                        Identifier( introducedType.Name ),
+                        SyntaxFactoryEx.SafeIdentifier( introducedType.Name ),
                         typeArgs,
                         baseList,
                         context.SyntaxGenerator.ConstraintClauses( introducedType ),
@@ -73,7 +74,7 @@ internal sealed class IntroduceNamedTypeTransformation : IntroduceDeclarationTra
                     StructDeclaration(
                         AdviceSyntaxGenerator.GetAttributeLists( introducedType, context ),
                         introducedType.GetSyntaxModifierList(),
-                        Identifier( introducedType.Name ),
+                        SyntaxFactoryEx.SafeIdentifier( introducedType.Name ),
                         typeArgs,
                         baseList,
                         context.SyntaxGenerator.ConstraintClauses( introducedType ),
@@ -82,7 +83,7 @@ internal sealed class IntroduceNamedTypeTransformation : IntroduceDeclarationTra
                     InterfaceDeclaration(
                         AdviceSyntaxGenerator.GetAttributeLists( introducedType, context ),
                         introducedType.GetSyntaxModifierList(),
-                        Identifier( introducedType.Name ),
+                        SyntaxFactoryEx.SafeIdentifier( introducedType.Name ),
                         typeArgs,
                         baseList,
                         context.SyntaxGenerator.ConstraintClauses( introducedType ),

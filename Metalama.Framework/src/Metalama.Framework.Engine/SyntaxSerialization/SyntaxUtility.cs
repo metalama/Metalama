@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Code;
+using Metalama.Framework.Engine.SyntaxGeneration;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Linq;
@@ -19,7 +20,7 @@ namespace Metalama.Framework.Engine.SyntaxSerialization
                     f => (ExpressionSyntax) SyntaxFactory.MemberAccessExpression(
                         SyntaxKind.SimpleMemberAccessExpression,
                         serializationContext.GetTypeSyntax( typeof(BindingFlags) ),
-                        SyntaxFactory.IdentifierName( f ) ) )
+                        SyntaxFactoryEx.WellKnownIdentifierName( f ) ) )
                 .Aggregate( ( l, r ) => SyntaxFactory.BinaryExpression( SyntaxKind.BitwiseOrExpression, l, r ) );
         }
     }

@@ -62,7 +62,7 @@ internal sealed class AspectReferenceBaseSubstitution : AspectReferenceRenamingS
     }
 
     protected override SyntaxNode SubstituteFinalizerMemberAccess( MemberAccessExpressionSyntax currentNode )
-        => IdentifierName( "__LINKER_TO_BE_REMOVED__" )
+        => SyntaxFactoryEx.WellKnownIdentifierName( "__LINKER_TO_BE_REMOVED__" )
             .WithLinkerGeneratedFlags( LinkerGeneratedFlags.NullAspectReferenceExpression )
             .WithTriviaFromIfNecessary( currentNode, this._syntaxGenerationOptions );
 

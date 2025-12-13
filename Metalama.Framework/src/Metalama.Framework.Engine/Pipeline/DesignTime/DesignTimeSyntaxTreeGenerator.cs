@@ -409,7 +409,7 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                     ConstructorDeclaration(
                         List<AttributeListSyntax>(),
                         finalConstructor.GetSyntaxModifierList(),
-                        Identifier( finalConstructor.DeclaringType.Name ),
+                        SyntaxFactoryEx.SafeIdentifier( finalConstructor.DeclaringType.Name ),
                         syntaxGenerationContext.SyntaxGenerator.ParameterList( finalParameters, initialCompilationModel ),
                         initialConstructor.IsImplicitlyDeclared
                             ? null
@@ -424,7 +424,7 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                                                         ? NameColon( p.Name )
                                                         : null,
                                                     GetArgumentRefToken( p ),
-                                                    IdentifierName( p.Name ) ) ) ) ) ),
+                                                    SyntaxFactoryEx.SafeIdentifierName( p.Name ) ) ) ) ) ),
                         Block() ) );
 
                 if ( initialConstructor.Parameters.Any( p => p.DefaultValue != null ) )
@@ -446,14 +446,14 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                             ConstructorDeclaration(
                                 List<AttributeListSyntax>(),
                                 initialConstructor.GetSyntaxModifierList(),
-                                Identifier( initialConstructor.DeclaringType.Name ),
+                                SyntaxFactoryEx.SafeIdentifier( initialConstructor.DeclaringType.Name ),
                                 syntaxGenerationContext.SyntaxGenerator.ParameterList( nonOptionalParameters, initialCompilationModel ),
                                 ConstructorInitializer(
                                     SyntaxKind.ThisConstructorInitializer,
                                     ArgumentList(
                                         SeparatedList(
                                                 nonOptionalParameters.SelectAsArray(
-                                                    p => Argument( null, GetArgumentRefToken( p ), IdentifierName( p.Name ) ) ) )
+                                                    p => Argument( null, GetArgumentRefToken( p ), SyntaxFactoryEx.SafeIdentifierName( p.Name ) ) ) )
                                             .AddRange(
                                                 optionalParameters.SelectAsArray(
                                                     p =>
@@ -519,7 +519,7 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                 TypeKind.Class when !type.IsRecord => ClassDeclaration(
                     attributeLists: default,
                     SyntaxTokenList.Create( Token( SyntaxKind.PartialKeyword ) ),
-                    Identifier( type.Name ),
+                    SyntaxFactoryEx.SafeIdentifier( type.Name ),
                     CreateTypeParameters( type ),
                     baseList,
                     constraintClauses: default,
@@ -530,7 +530,7 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                     SyntaxTokenList.Create( Token( SyntaxKind.PartialKeyword ) ),
                     keyword: Token( SyntaxKind.RecordKeyword ),
                     classOrStructKeyword: Token( SyntaxKind.ClassKeyword ),
-                    Identifier( type.Name ),
+                    SyntaxFactoryEx.SafeIdentifier( type.Name ),
                     CreateTypeParameters( type ),
                     parameterList: null,
                     baseList,
@@ -542,7 +542,7 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                 TypeKind.Struct when !type.IsRecord => StructDeclaration(
                     attributeLists: default,
                     SyntaxTokenList.Create( Token( SyntaxKind.PartialKeyword ) ),
-                    Identifier( type.Name ),
+                    SyntaxFactoryEx.SafeIdentifier( type.Name ),
                     CreateTypeParameters( type ),
                     baseList,
                     constraintClauses: default,
@@ -553,7 +553,7 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                     SyntaxTokenList.Create( Token( SyntaxKind.PartialKeyword ) ),
                     keyword: Token( SyntaxKind.RecordKeyword ),
                     classOrStructKeyword: Token( SyntaxKind.StructKeyword ),
-                    Identifier( type.Name ),
+                    SyntaxFactoryEx.SafeIdentifier( type.Name ),
                     CreateTypeParameters( type ),
                     parameterList: null,
                     baseList,
@@ -565,7 +565,7 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                 TypeKind.Interface => InterfaceDeclaration(
                     attributeLists: default,
                     SyntaxTokenList.Create( Token( SyntaxKind.PartialKeyword ) ),
-                    Identifier( type.Name ),
+                    SyntaxFactoryEx.SafeIdentifier( type.Name ),
                     CreateTypeParameters( type ),
                     baseList,
                     constraintClauses: default,

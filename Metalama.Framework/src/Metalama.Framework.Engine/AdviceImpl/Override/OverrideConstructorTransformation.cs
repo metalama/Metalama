@@ -86,7 +86,7 @@ internal sealed class OverrideConstructorTransformation : OverrideMemberTransfor
                     TokenList( modifiers ),
                     PredefinedType( Token( SyntaxKind.VoidKeyword ) ),
                     null,
-                    Identifier(
+                    SyntaxFactoryEx.SafeIdentifier(
                         context.InjectionNameProvider.GetOverrideName(
                             overriddenDeclaration.DeclaringType,
                             this.AspectLayerId,
@@ -99,11 +99,11 @@ internal sealed class OverrideConstructorTransformation : OverrideMemberTransfor
                 : ConstructorDeclaration(
                     List<AttributeListSyntax>(),
                     TokenList( Token( TriviaList(), SyntaxKind.PrivateKeyword, TriviaList( ElasticSpace ) ) ),
-                    Identifier( overriddenDeclaration.DeclaringType.Name ),
+                    SyntaxFactoryEx.SafeIdentifier( overriddenDeclaration.DeclaringType.Name ),
                     this.GetParameterList( context, overriddenDeclaration ),
                     ConstructorInitializer(
                         SyntaxKind.ThisConstructorInitializer,
-                        ArgumentList( SeparatedList( overriddenDeclaration.Parameters.SelectAsArray( x => Argument( IdentifierName( x.Name ) ) ) ) ) ),
+                        ArgumentList( SeparatedList( overriddenDeclaration.Parameters.SelectAsArray( x => Argument( SyntaxFactoryEx.SafeIdentifierName( x.Name ) ) ) ) ) ),
                     newMethodBody,
                     null );
 

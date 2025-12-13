@@ -4,7 +4,7 @@
 
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Aspects;
-using Microsoft.CodeAnalysis.CSharp;
+using Metalama.Framework.Engine.SyntaxGeneration;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Metalama.Framework.Engine.Templating.Expressions;
@@ -19,7 +19,7 @@ internal class ReceiverParameterUserReceiver : InstanceUserReceiver
         this._parameter = parameter;
     }
 
-    protected override ExpressionSyntax ToSyntax() => SyntaxFactory.IdentifierName( this._parameter.Name );
+    protected override ExpressionSyntax ToSyntax() => SyntaxFactoryEx.SafeIdentifierName( this._parameter.Name );
 
     public override IType Type => this._parameter.Type;
 

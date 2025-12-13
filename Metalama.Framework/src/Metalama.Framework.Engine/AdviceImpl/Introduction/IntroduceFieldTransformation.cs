@@ -63,7 +63,7 @@ internal sealed class IntroduceFieldTransformation : IntroduceMemberTransformati
                         .WithOptionalTrailingTrivia( ElasticSpace, context.SyntaxGenerationContext.Options ),
                     SingletonSeparatedList(
                         VariableDeclarator(
-                            Identifier( fieldBuilder.Name ),
+                            SyntaxFactoryEx.SafeIdentifier( fieldBuilder.Name ),
                             null,
                             initializerExpression != null
                                 ? EqualsValueClause( initializerExpression )

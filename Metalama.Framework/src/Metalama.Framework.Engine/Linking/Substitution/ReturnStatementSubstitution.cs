@@ -172,7 +172,7 @@ internal sealed class ReturnStatementSubstitution : SyntaxNodeSubstitution
 
             if ( this._returnVariableIdentifier != null )
             {
-                identifier = IdentifierName( this._returnVariableIdentifier );
+                identifier = SyntaxFactoryEx.SafeIdentifierName( this._returnVariableIdentifier );
             }
             else
             {
@@ -193,7 +193,7 @@ internal sealed class ReturnStatementSubstitution : SyntaxNodeSubstitution
                         SyntaxKind.GotoStatement,
                         SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.GotoKeyword ),
                         default,
-                        IdentifierName( this._returnLabelIdentifier.AssertNotNull() ),
+                        SyntaxFactoryEx.SafeIdentifierName( this._returnLabelIdentifier.AssertNotNull() ),
                         Token( default, SyntaxKind.SemicolonToken, substitutionContext.SyntaxGenerationContext.OptionalElasticEndOfLineTriviaList ) )
                     .WithGeneratedCodeAnnotation( FormattingAnnotations.SystemGeneratedCodeAnnotation );
         }

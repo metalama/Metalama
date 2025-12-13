@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Engine.SyntaxGeneration;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -44,7 +45,7 @@ internal sealed class RecordParameterSubstitution : SyntaxNodeSubstitution
                                 ExpressionStatement(
                                     AssignmentExpression(
                                         SyntaxKind.SimpleAssignmentExpression,
-                                        IdentifierName( this._returnVariableIdentifier ),
+                                        SyntaxFactoryEx.SafeIdentifierName( this._returnVariableIdentifier ),
                                         CreateFieldAccessExpression() ) ) )
                             .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock );
                 }
@@ -69,7 +70,7 @@ internal sealed class RecordParameterSubstitution : SyntaxNodeSubstitution
                                 AssignmentExpression(
                                     SyntaxKind.SimpleAssignmentExpression,
                                     CreateFieldAccessExpression(),
-                                    IdentifierName( "value" ) ) ) )
+                                    SyntaxFactoryEx.WellKnownIdentifierName( "value" ) ) ) )
                         .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock );
 
             default:
@@ -82,7 +83,7 @@ internal sealed class RecordParameterSubstitution : SyntaxNodeSubstitution
                 MemberAccessExpression(
                     SyntaxKind.SimpleMemberAccessExpression,
                     ThisExpression(),
-                    IdentifierName( LinkerRewritingDriver.GetBackingFieldName( (IPropertySymbol) this._targetAccessor.AssociatedSymbol.AssertNotNull() ) ) );
+                    SyntaxFactoryEx.WellKnownIdentifierName( LinkerRewritingDriver.GetBackingFieldName( (IPropertySymbol) this._targetAccessor.AssociatedSymbol.AssertNotNull() ) ) );
         }
     }
 }

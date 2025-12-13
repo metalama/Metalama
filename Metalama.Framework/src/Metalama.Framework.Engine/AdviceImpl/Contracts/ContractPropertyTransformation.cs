@@ -7,11 +7,11 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Advising;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel.References;
+using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.Transformations;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
-using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace Metalama.Framework.Engine.AdviceImpl.Contracts;
 
@@ -51,7 +51,7 @@ internal sealed class ContractPropertyTransformation : ContractBaseTransformatio
         {
             Invariant.Assert( targetProperty.SetMethod is not null );
 
-            inputResult = this.TryExecuteTemplate( context, IdentifierName( "value" ), targetProperty.Type, targetProperty.SetMethod, out inputContractBlock );
+            inputResult = this.TryExecuteTemplate( context, SyntaxFactoryEx.SafeIdentifierName( "value" ), targetProperty.Type, targetProperty.SetMethod, out inputContractBlock );
         }
         else
         {
@@ -67,7 +67,7 @@ internal sealed class ContractPropertyTransformation : ContractBaseTransformatio
 
             outputResult = this.TryExecuteTemplate(
                 context,
-                IdentifierName( returnVariableName ),
+                SyntaxFactoryEx.SafeIdentifierName( returnVariableName ),
                 targetProperty.Type,
                 targetProperty.GetMethod,
                 out outputContractBlock );

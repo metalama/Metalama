@@ -19,7 +19,6 @@ using Metalama.Framework.Engine.Templating.Expressions;
 using Metalama.Framework.Engine.Transformations;
 using Metalama.Framework.Engine.Utilities.UserCode;
 using Metalama.Framework.RunTime;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Generic;
 using System.Linq;
@@ -157,7 +156,7 @@ internal sealed class PullConstructorParameterAdviceImpl
 
                     case PullActionKind.AppendParameterAndPull:
                         // Create a new parameter.
-                        parameterValue = SyntaxFactory.IdentifierName( pullParameterAction.ParameterName.AssertNotNull() );
+                        parameterValue = SyntaxFactoryEx.SafeIdentifierName( pullParameterAction.ParameterName.AssertNotNull() );
 
                         TypedConstant? constant = null;
 

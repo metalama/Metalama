@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -111,13 +112,13 @@ internal abstract partial class AspectReferenceRenamingSubstitution : SyntaxNode
         => MemberAccessExpression(
             SyntaxKind.SimpleMemberAccessExpression,
             ThisExpression(),
-            IdentifierName( this.GetTargetMemberName() ) );
+            SyntaxFactoryEx.WellKnownIdentifierName( this.GetTargetMemberName() ) );
 
     private SyntaxNode SubstituteConstructorMemberAccess()
         => MemberAccessExpression(
             SyntaxKind.SimpleMemberAccessExpression,
             ThisExpression(),
-            IdentifierName( this.GetTargetMemberName() ) );
+            SyntaxFactoryEx.WellKnownIdentifierName( this.GetTargetMemberName() ) );
 
     private SyntaxNode SubstituteOperatorMemberAccess( SubstitutionContext substitutionContext )
     {
@@ -127,7 +128,7 @@ internal abstract partial class AspectReferenceRenamingSubstitution : SyntaxNode
             MemberAccessExpression(
                 SyntaxKind.SimpleMemberAccessExpression,
                 substitutionContext.SyntaxGenerationContext.SyntaxGenerator.TypeSyntax( targetSymbol.ContainingType ),
-                IdentifierName( this.GetTargetMemberName() ) );
+                SyntaxFactoryEx.WellKnownIdentifierName( this.GetTargetMemberName() ) );
 
         return memberAccess;
     }
@@ -139,7 +140,7 @@ internal abstract partial class AspectReferenceRenamingSubstitution : SyntaxNode
                 MemberAccessExpression(
                     SyntaxKind.SimpleMemberAccessExpression,
                     invocationExpression.ArgumentList.Arguments[0].Expression,
-                    IdentifierName( this.GetTargetMemberName() ) ),
+                    SyntaxFactoryEx.WellKnownIdentifierName( this.GetTargetMemberName() ) ),
                 ArgumentList( SeparatedList( invocationExpression.ArgumentList.Arguments.Skip( 1 ) ) ) );
 
         return memberAccess;
@@ -186,8 +187,8 @@ internal abstract partial class AspectReferenceRenamingSubstitution : SyntaxNode
     protected static SimpleNameSyntax RewriteName( SimpleNameSyntax name, string targetMemberName )
         => name switch
         {
-            GenericNameSyntax genericName => genericName.WithIdentifier( Identifier( targetMemberName.AssertNotNull() ) ),
-            IdentifierNameSyntax _ => name.WithIdentifier( Identifier( targetMemberName.AssertNotNull() ) ),
+            GenericNameSyntax genericName => genericName.WithIdentifier( SyntaxFactoryEx.WellKnownIdentifier( targetMemberName.AssertNotNull() ) ),
+            IdentifierNameSyntax _ => name.WithIdentifier( SyntaxFactoryEx.WellKnownIdentifier( targetMemberName.AssertNotNull() ) ),
             _ => throw new AssertionFailedException( $"Unsupported name: {name}" )
         };
 }

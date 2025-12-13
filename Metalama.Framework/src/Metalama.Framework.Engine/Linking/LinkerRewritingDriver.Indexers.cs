@@ -13,6 +13,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using static Metalama.Framework.Engine.SyntaxGeneration.SyntaxFactoryEx;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 // Properties with overrides have the following structure:
@@ -277,7 +278,7 @@ namespace Metalama.Framework.Engine.Linking
                                 symbol.IsStatic
                                     ? context.SyntaxGenerator.TypeSyntax( symbol.ContainingType )
                                     : ThisExpression(),
-                                IdentifierName( GetBackingFieldName( (IPropertySymbol) symbol.AssociatedSymbol.AssertNotNull() ) ) )
+                                WellKnownIdentifierName( GetBackingFieldName( (IPropertySymbol) symbol.AssociatedSymbol.AssertNotNull() ) ) )
                             .WithSimplifierAnnotationIfNecessary( context ),
                         Token( SyntaxKind.SemicolonToken ) ) )
                 .WithGeneratedCodeAnnotation( FormattingAnnotations.SystemGeneratedCodeAnnotation );
@@ -292,9 +293,9 @@ namespace Metalama.Framework.Engine.Linking
                                     symbol.IsStatic
                                         ? context.SyntaxGenerator.TypeSyntax( symbol.ContainingType )
                                         : ThisExpression(),
-                                    IdentifierName( GetBackingFieldName( (IPropertySymbol) symbol.AssociatedSymbol.AssertNotNull() ) ) )
+                                    WellKnownIdentifierName( GetBackingFieldName( (IPropertySymbol) symbol.AssociatedSymbol.AssertNotNull() ) ) )
                                 .WithSimplifierAnnotationIfNecessary( context ),
-                            IdentifierName( "value" ) ) ) )
+                            WellKnownIdentifierName( "value" ) ) ) )
                 .WithGeneratedCodeAnnotation( FormattingAnnotations.SystemGeneratedCodeAnnotation );
 
         private MemberDeclarationSyntax GetOriginalImplIndexer(
@@ -443,11 +444,11 @@ namespace Metalama.Framework.Engine.Linking
             {
                 if ( targetSymbol.IsStatic )
                 {
-                    return IdentifierName( targetSymbol.Name );
+                    return SyntaxFactoryEx.SafeIdentifierName( targetSymbol.Name );
                 }
                 else
                 {
-                    return MemberAccessExpression( SyntaxKind.SimpleMemberAccessExpression, ThisExpression(), IdentifierName( targetSymbol.Name ) )
+                    return MemberAccessExpression( SyntaxKind.SimpleMemberAccessExpression, ThisExpression(), SyntaxFactoryEx.SafeIdentifierName( targetSymbol.Name ) )
                         .WithSimplifierAnnotationIfNecessary( context );
                 }
             }

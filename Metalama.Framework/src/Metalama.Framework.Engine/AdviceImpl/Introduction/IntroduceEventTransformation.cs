@@ -80,7 +80,7 @@ internal sealed class IntroduceEventTransformation : IntroduceMemberTransformati
                         SeparatedList(
                         [
                             VariableDeclarator(
-                                Identifier( TriviaList(), finalEvent.Name, TriviaList( ElasticSpace ) ),
+                                SyntaxFactoryEx.SafeIdentifier( TriviaList(), finalEvent.Name, TriviaList( ElasticSpace ) ),
                                 null,
                                 initializerExpression != null
                                     ? EqualsValueClause( initializerExpression )
@@ -98,7 +98,7 @@ internal sealed class IntroduceEventTransformation : IntroduceMemberTransformati
                                 (NameSyntax) syntaxGenerator.TypeSyntax( finalEvent.ExplicitInterfaceImplementations.Single().DeclaringType ) )
                             .WithOptionalTrailingTrivia( ElasticSpace, context.SyntaxGenerationContext.Options )
                         : null,
-                    Identifier( finalEvent.GetCleanName() ),
+                    SyntaxFactoryEx.SafeIdentifier( finalEvent.GetCleanName() ),
                     GenerateAccessorList(),
                     default );
 

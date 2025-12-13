@@ -397,7 +397,7 @@ namespace Metalama.Framework.Engine.Linking
                                         Token( TriviaList(), SyntaxKind.RefKeyword, TriviaList( ElasticSpace ) ),
                                         EventBrokerSyntaxHelper.GetEventBrokerField( eventBrokerFieldName, targetEvent.IsStatic ) ) );
 
-                                fieldInitializationArguments.Add( Argument( IdentifierName( brokerCallbacksField.FieldName ) ) );
+                                fieldInitializationArguments.Add( Argument( SyntaxFactoryEx.SafeIdentifierName( brokerCallbacksField.FieldName ) ) );
 
                                 if ( !targetEvent.IsStatic )
                                 {
@@ -446,8 +446,8 @@ namespace Metalama.Framework.Engine.Linking
         {
             // We must use the invoke method to get the parameter names, and not the tuple type, because the element name is not available for 1-tuples.
             var invokeMethod = delegateType.Methods.OfName( "Invoke" ).Single();
-            var parameterList = SeparatedList( invokeMethod.Parameters.SelectAsArray( p => Parameter( Identifier( p.Name ) ) ) );
-            var argumentList = SeparatedList( invokeMethod.Parameters.SelectAsArray( p => Argument( IdentifierName( p.Name ) ) ) );
+            var parameterList = SeparatedList( invokeMethod.Parameters.SelectAsArray( p => Parameter( SyntaxFactoryEx.SafeIdentifier( p.Name ) ) ) );
+            var argumentList = SeparatedList( invokeMethod.Parameters.SelectAsArray( p => Argument( SyntaxFactoryEx.SafeIdentifierName( p.Name ) ) ) );
 
             return
                 SimpleLambdaExpression(
@@ -504,19 +504,19 @@ namespace Metalama.Framework.Engine.Linking
                 ] ) );
 
             ExpressionSyntax raiseMethod = isStatic
-                ? IdentifierName( raiseMethodName )
+                ? SyntaxFactoryEx.SafeIdentifierName( raiseMethodName )
                 : MemberAccessExpression(
                     SyntaxKind.SimpleMemberAccessExpression,
-                    IdentifierName( "me" ),
-                    IdentifierName( raiseMethodName ) );
+                    SyntaxFactoryEx.WellKnownIdentifierName( "me" ),
+                    SyntaxFactoryEx.SafeIdentifierName( raiseMethodName ) );
 
             var expression = InvocationExpression(
                 raiseMethod,
                 ArgumentList(
                     SeparatedList<ArgumentSyntax>(
                     [
-                        Argument( IdentifierName( "handler" ) ),
-                        Argument( null, Token( default, SyntaxKind.RefKeyword, SyntaxFactoryEx.ElasticSpaceTriviaList ), IdentifierName( "args" ) )
+                        Argument( SyntaxFactoryEx.WellKnownIdentifierName( "handler" ) ),
+                        Argument( null, Token( default, SyntaxKind.RefKeyword, SyntaxFactoryEx.ElasticSpaceTriviaList ), SyntaxFactoryEx.WellKnownIdentifierName( "args" ) )
                     ] ) ) );
 
             return
@@ -540,16 +540,16 @@ namespace Metalama.Framework.Engine.Linking
                 ] ) );
 
             ExpressionSyntax overrideMethod = isStatic
-                ? IdentifierName( overrideMethodName )
+                ? SyntaxFactoryEx.SafeIdentifierName( overrideMethodName )
                 : MemberAccessExpression(
                     SyntaxKind.SimpleMemberAccessExpression,
-                    IdentifierName( "me" ),
-                    IdentifierName( overrideMethodName ) );
+                    SyntaxFactoryEx.WellKnownIdentifierName( "me" ),
+                    SyntaxFactoryEx.SafeIdentifierName( overrideMethodName ) );
 
             var expression = AssignmentExpression(
                 operationKind,
                 overrideMethod,
-                IdentifierName( "handler" ) );
+                SyntaxFactoryEx.WellKnownIdentifierName( "handler" ) );
 
             return
                 ParenthesizedLambdaExpression(

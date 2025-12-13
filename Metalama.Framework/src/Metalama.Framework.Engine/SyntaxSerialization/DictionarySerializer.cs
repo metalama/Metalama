@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Engine.Diagnostics;
+using Metalama.Framework.Engine.SyntaxGeneration;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -91,7 +92,7 @@ internal sealed class DictionarySerializer : ObjectSerializer
                 var comparerExpression = MemberAccessExpression(
                     SyntaxKind.SimpleMemberAccessExpression,
                     serializationContext.GetTypeSyntax( typeof(StringComparer) ),
-                    IdentifierName( comparerName ) );
+                    SyntaxFactoryEx.WellKnownIdentifierName( comparerName ) );
 
                 creationExpression = creationExpression.AddArgumentListArguments( Argument( comparerExpression ) );
             }

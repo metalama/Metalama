@@ -131,7 +131,7 @@ namespace Metalama.Framework.Engine.Linking
                         SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.EventKeyword ),
                         eventFieldDeclaration.Declaration.Type.WithOptionalTrailingTrivia( ElasticSpace, this.SyntaxGenerationOptions ),
                         null,
-                        Identifier( symbol.Name ),
+                        SyntaxFactoryEx.SafeIdentifier( symbol.Name ),
                         AccessorList(
                             Token( context.OptionalElasticEndOfLineTriviaList, SyntaxKind.OpenBraceToken, context.OptionalElasticEndOfLineTriviaList ),
                             List( [transformedAdd, transformedRemove] ),
@@ -253,11 +253,11 @@ namespace Metalama.Framework.Engine.Linking
             {
                 if ( targetSymbol.IsStatic )
                 {
-                    return IdentifierName( targetSymbol.Name );
+                    return SyntaxFactoryEx.SafeIdentifierName( targetSymbol.Name );
                 }
                 else
                 {
-                    return MemberAccessExpression( SyntaxKind.SimpleMemberAccessExpression, ThisExpression(), IdentifierName( targetSymbol.Name ) )
+                    return MemberAccessExpression( SyntaxKind.SimpleMemberAccessExpression, ThisExpression(), SyntaxFactoryEx.SafeIdentifierName( targetSymbol.Name ) )
                         .WithSimplifierAnnotationIfNecessary( context );
                 }
             }

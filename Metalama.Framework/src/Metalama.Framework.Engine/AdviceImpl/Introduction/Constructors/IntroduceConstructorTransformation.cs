@@ -8,6 +8,7 @@ using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.Formatting;
+using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.SyntaxSerialization;
 using Metalama.Framework.Engine.Templating.Expressions;
 using Metalama.Framework.Engine.Transformations;
@@ -63,7 +64,7 @@ internal sealed class IntroduceConstructorTransformation
                         a =>
                             Argument(
                                 a.ParameterName != null
-                                    ? NameColon( IdentifierName( a.ParameterName ) )
+                                    ? NameColon( SyntaxFactoryEx.SafeIdentifierName( a.ParameterName ) )
                                     : null,
                                 default,
                                 a.Expression.ToExpressionSyntax( syntaxSerializationContext ) ) ) ) );
@@ -87,7 +88,7 @@ internal sealed class IntroduceConstructorTransformation
             ConstructorDeclaration(
                 AdviceSyntaxGenerator.GetAttributeLists( finalConstructor, context ),
                 finalConstructor.GetSyntaxModifierList(),
-                Identifier( finalConstructor.DeclaringType.Name ),
+                SyntaxFactoryEx.SafeIdentifier( finalConstructor.DeclaringType.Name ),
                 context.SyntaxGenerator.ParameterList( finalConstructor, context.FinalCompilation ),
                 initializer,
                 hasNoBody
