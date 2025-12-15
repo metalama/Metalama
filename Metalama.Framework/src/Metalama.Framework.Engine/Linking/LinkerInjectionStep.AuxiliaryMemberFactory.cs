@@ -102,7 +102,7 @@ internal sealed partial class LinkerInjectionStep
                                     Argument(
                                         null,
                                         p.Modifiers.FirstOrDefault( m => !m.IsKind( SyntaxKind.ParamsKeyword ) ),
-                                        SyntaxFactoryEx.SafeIdentifierName( p.Identifier.ValueText ) ) ) ) ) ),
+                                        SyntaxFactoryEx.WellKnownIdentifierName( p.Identifier ) ) ) ) ) ),
                 Block(),
                 null,
                 default );

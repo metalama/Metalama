@@ -157,7 +157,7 @@ namespace Metalama.Framework.Engine.Templating
                                         MemberAccessExpression(
                                                 SyntaxKind.SimpleMemberAccessExpression,
                                                 this._syntaxGenerator.TypeOrNamespace( symbol.ContainingType ),
-                                                SyntaxFactoryEx.SafeIdentifierName( node.Identifier.Text ) )
+                                                SyntaxFactoryEx.WellKnownIdentifierName( node.Identifier ) )
                                             .WithTriviaFrom( node ) );
                         }
                     }

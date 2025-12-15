@@ -107,11 +107,11 @@ internal sealed partial class LinkerRewritingDriver
                                     (StatementSyntax) ExpressionStatement(
                                         AssignmentExpression(
                                             SyntaxKind.SimpleAssignmentExpression,
-                                            SafeIdentifierName( p.Identifier.ValueText ),
+                                            WellKnownIdentifierName( p.Identifier ),
                                             MemberAccessExpression(
                                                     SyntaxKind.SimpleMemberAccessExpression,
                                                     ThisExpression(),
-                                                    SafeIdentifierName( p.Identifier.ValueText ) )
+                                                    WellKnownIdentifierName( p.Identifier ) )
                                                 .WithSimplifierAnnotationIfNecessary( context ) ) ) ) ),
                         null,
                         default ) );
@@ -265,7 +265,7 @@ internal sealed partial class LinkerRewritingDriver
 
                                 case ParameterSyntax parameterDeclaration:
                                     name = parameterDeclaration.Identifier.ValueText;
-                                    expression = SafeIdentifierName( parameterDeclaration.Identifier.ValueText );
+                                    expression = WellKnownIdentifierName( parameterDeclaration.Identifier );
 
                                     break;
 

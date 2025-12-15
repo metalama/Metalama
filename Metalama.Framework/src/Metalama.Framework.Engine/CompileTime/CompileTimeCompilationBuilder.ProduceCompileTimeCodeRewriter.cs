@@ -1659,7 +1659,7 @@ namespace Metalama.Framework.Engine.CompileTime
                                     return MemberAccessExpression(
                                             SyntaxKind.SimpleMemberAccessExpression,
                                             this.CreateTypeSyntax( symbol.ContainingType ),
-                                            SyntaxFactoryEx.SafeIdentifierName( node.Identifier.Text ) )
+                                            SyntaxFactoryEx.WellKnownIdentifierName( node.Identifier ) )
                                         .WithTriviaFrom( nodeWithoutPreprocessorDirectives );
                             }
 

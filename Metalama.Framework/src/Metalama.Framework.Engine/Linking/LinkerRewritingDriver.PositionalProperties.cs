@@ -42,7 +42,7 @@ namespace Metalama.Framework.Engine.Linking
                     members.Add(
                         this.GetPropertyBackingField(
                             recordParameter.Type.AssertNotNull(),
-                            EqualsValueClause( SafeIdentifierName( recordParameter.Identifier.ValueText ) ),
+                            EqualsValueClause( WellKnownIdentifierName( recordParameter.Identifier ) ),
                             FilterAttributeListsForTarget( recordParameter.AttributeLists, SyntaxKind.FieldKeyword, false, false ),
                             symbol,
                             generationContext ) );

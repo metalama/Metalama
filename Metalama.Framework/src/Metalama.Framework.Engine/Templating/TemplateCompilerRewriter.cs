@@ -151,7 +151,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
 
         this.DeclareMetaVariable( symbol.Name, metaVariableIdentifier );
 
-        return SyntaxFactoryEx.WellKnownIdentifierName( metaVariableIdentifier.Text );
+        return SyntaxFactoryEx.WellKnownIdentifierName( metaVariableIdentifier );
     }
 
     private IdentifierNameSyntax ReserveRunTimeVariableName( string name )
@@ -537,7 +537,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
                 // Some identifier names must be escaped when used in a different context than the template.
                 return this.MetaSyntaxFactory.IdentifierName(
                     InvocationExpression( this._templateMetaSyntaxFactory.TemplateSyntaxFactoryMember( nameof(ITemplateSyntaxFactory.EscapeIdentifier) ) )
-                        .AddArgumentListArguments( Argument( SyntaxFactoryEx.WellKnownIdentifierName( declaredSymbolNameLocal.Text ) ) ) );
+                        .AddArgumentListArguments( Argument( SyntaxFactoryEx.WellKnownIdentifierName( declaredSymbolNameLocal ) ) ) );
             }
             else if ( identifierSymbol is IParameterSymbol parameterSymbol
                       && SymbolEqualityComparer.Default.Equals( parameterSymbol.ContainingSymbol, this._rootTemplateSymbol ) )
@@ -1515,7 +1515,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
                         ExpressionStatement(
                             AssignmentExpression(
                                 SyntaxKind.CoalesceAssignmentExpression,
-                                SyntaxFactoryEx.WellKnownIdentifierName( parameter.Identifier.Text ),
+                                SyntaxFactoryEx.WellKnownIdentifierName( parameter.Identifier ),
                                 this.TransformExpression( parameter.Default.AssertNotNull().Value ) ) ) );
 
                     templateOptionalParameters.Add( templateParameter );

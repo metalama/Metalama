@@ -827,7 +827,7 @@ internal sealed partial class LinkerInjectionStep
                                                                         ExpressionStatement(
                                                                             AssignmentExpression(
                                                                                 SyntaxKind.SimpleAssignmentExpression,
-                                                                                SafeIdentifierName( declarator.Identifier.ValueText ),
+                                                                                WellKnownIdentifierName( declarator.Identifier ),
                                                                                 declarator.Initializer.AssertNotNull().Value ) ),
                                                                         s )
                                                                     .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock );

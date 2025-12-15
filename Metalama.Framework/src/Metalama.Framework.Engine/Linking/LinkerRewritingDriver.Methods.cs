@@ -317,7 +317,7 @@ namespace Metalama.Framework.Engine.Linking
                     InvocationExpression(
                         GetInvocationTarget(),
                         ArgumentList(
-                            SeparatedList( method.ParameterList.Parameters.SelectAsReadOnlyList( x => Argument( SafeIdentifierName( x.Identifier.ValueText ) ) ) ) ) );
+                            SeparatedList( method.ParameterList.Parameters.SelectAsReadOnlyList( x => Argument( WellKnownIdentifierName( x.Identifier ) ) ) ) ) );
 
                 if ( !targetSemantic.Symbol.ReturnsVoid )
                 {
