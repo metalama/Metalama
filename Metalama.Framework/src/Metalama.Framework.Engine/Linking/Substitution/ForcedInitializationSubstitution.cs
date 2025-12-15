@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.Utilities.Comparers;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -59,7 +60,7 @@ internal sealed class ForcedInitializationSubstitution : SyntaxNodeSubstitution
                             MemberAccessExpression(
                                 SyntaxKind.SimpleMemberAccessExpression,
                                 ThisExpression(),
-                                IdentifierName( LinkerRewritingDriver.GetBackingFieldName( symbol ) ) ),
+                                SyntaxFactoryEx.WellKnownIdentifierName( LinkerRewritingDriver.GetBackingFieldName( symbol ) ) ),
                             LiteralExpression(
                                 SyntaxKind.DefaultLiteralExpression,
                                 Token( SyntaxKind.DefaultKeyword ) ) ) );

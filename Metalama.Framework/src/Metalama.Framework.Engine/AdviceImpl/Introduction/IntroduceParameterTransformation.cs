@@ -43,7 +43,7 @@ internal sealed class IntroduceParameterTransformation : BaseSyntaxTreeTransform
             default,
             syntaxGenerationContext.SyntaxGenerator.TypeSyntax( this.Parameter.Type )
                 .WithOptionalTrailingTrivia( SyntaxFactory.ElasticSpace, syntaxGenerationContext.Options ),
-            SyntaxFactory.Identifier( this.Parameter.Name.AssertNotNull() ),
+            SyntaxFactoryEx.SafeIdentifier( this.Parameter.Name.AssertNotNull() ),
             null );
 
         if ( this.Parameter.DefaultValue != null )

@@ -120,7 +120,7 @@ internal sealed class EventInvoker : Invoker<IEvent>, IEventInvoker
         this.CheckInvocationOptionsAndTarget();
 
         var receiverInfo = this.GetReceiverInfo( syntaxSerializationContext );
-        var name = IdentifierName( this.GetCleanTargetMemberName() );
+        var name = SyntaxFactoryEx.SafeIdentifierName( this.GetCleanTargetMemberName() );
 
         var receiverSyntax = receiverInfo.GetReceiverSyntax( this.Member, syntaxSerializationContext );
 

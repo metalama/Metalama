@@ -12,6 +12,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using static Metalama.Framework.Engine.SyntaxGeneration.SyntaxFactoryEx;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace Metalama.Framework.Engine.Linking
@@ -230,9 +231,9 @@ namespace Metalama.Framework.Engine.Linking
                                 symbol.IsStatic
                                     ? context.SyntaxGenerator.TypeSyntax( symbol.ContainingType )
                                     : ThisExpression(),
-                                IdentifierName( GetBackingFieldName( (IEventSymbol) symbol.AssociatedSymbol.AssertNotNull() ) ) )
+                                WellKnownIdentifierName( GetBackingFieldName( (IEventSymbol) symbol.AssociatedSymbol.AssertNotNull() ) ) )
                             .WithSimplifierAnnotationIfNecessary( context ),
-                        IdentifierName( "value" ) ),
+                        WellKnownIdentifierName( "value" ) ),
                     Token( default, SyntaxKind.SemicolonToken, new SyntaxTriviaList( context.ElasticEndOfLineTrivia ) ) ) );
 
         private static BlockSyntax GetImplicitRemoverBody( IMethodSymbol symbol, SyntaxGenerationContext context )
@@ -245,9 +246,9 @@ namespace Metalama.Framework.Engine.Linking
                                 symbol.IsStatic
                                     ? context.SyntaxGenerator.TypeSyntax( symbol.ContainingType )
                                     : ThisExpression(),
-                                IdentifierName( GetBackingFieldName( (IEventSymbol) symbol.AssociatedSymbol.AssertNotNull() ) ) )
+                                WellKnownIdentifierName( GetBackingFieldName( (IEventSymbol) symbol.AssociatedSymbol.AssertNotNull() ) ) )
                             .WithSimplifierAnnotationIfNecessary( context ),
-                        IdentifierName( "value" ) ),
+                        WellKnownIdentifierName( "value" ) ),
                     Token( default, SyntaxKind.SemicolonToken, context.OptionalElasticEndOfLineTriviaList ) ) );
 
         private EventFieldDeclarationSyntax GetEventBackingField(
@@ -321,7 +322,7 @@ namespace Metalama.Framework.Engine.Linking
                             eventType.WithOptionalTrailingTrivia( ElasticSpace, this.SyntaxGenerationOptions ),
                             SingletonSeparatedList(
                                 VariableDeclarator(
-                                    Identifier( GetBackingFieldName( symbol ) ),
+                                    WellKnownIdentifier( GetBackingFieldName( symbol ) ),
                                     null,
                                     initializer ) ) ) )
                     .NormalizeWhitespaceIfNecessary( context )
@@ -423,7 +424,7 @@ namespace Metalama.Framework.Engine.Linking
                             : TokenList( SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.PrivateKeyword ) ),
                         eventType,
                         null,
-                        Identifier( name ),
+                        WellKnownIdentifier( name ),
                         cleanAccessorList )
                     .NormalizeWhitespaceIfNecessary( context )
                     .WithOptionalLeadingAndTrailingLineFeed( context )
@@ -491,11 +492,11 @@ namespace Metalama.Framework.Engine.Linking
             {
                 if ( targetSemantic.Kind is IntermediateSymbolSemanticKind.Base )
                 {
-                    return IdentifierName( GetOriginalImplMemberName( targetSemantic.Symbol ) );
+                    return WellKnownIdentifierName( GetOriginalImplMemberName( targetSemantic.Symbol ) );
                 }
                 else
                 {
-                    return IdentifierName( targetSemantic.Symbol.Name );
+                    return SafeIdentifierName( targetSemantic.Symbol.Name );
                 }
             }
         }
@@ -527,7 +528,7 @@ namespace Metalama.Framework.Engine.Linking
                                     eventBrokerTypeInfo.EventBrokerType.WithNullableAnnotation( NullableAnnotation.Annotated ) ),
                                 SingletonSeparatedList(
                                     VariableDeclarator(
-                                        Identifier( eventBrokerTransformationInfo.EventBrokerFieldName ),
+                                        WellKnownIdentifier( eventBrokerTransformationInfo.EventBrokerFieldName ),
                                         null,
                                         null ) ) ) )
                         .NormalizeWhitespaceIfNecessary( context )
@@ -572,7 +573,7 @@ namespace Metalama.Framework.Engine.Linking
                             : TokenList( SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.PublicKeyword ) ),
                         context.SyntaxGenerator.TypeSyntax( eventSymbol.Type ),
                         null,
-                        Identifier( eventBrokerInfo.BrokerProxyName ),
+                        WellKnownIdentifier( eventBrokerInfo.BrokerProxyName ),
                         AccessorList( List( [addAccessor, removeAccessor] ) ) )
                     .NormalizeWhitespaceIfNecessary( context )
                     .WithOptionalLeadingAndTrailingLineFeed( context )

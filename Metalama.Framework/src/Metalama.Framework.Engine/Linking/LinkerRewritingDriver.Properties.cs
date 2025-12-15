@@ -12,6 +12,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using static Metalama.Framework.Engine.SyntaxGeneration.SyntaxFactoryEx;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 // Properties with overrides have the following structure:
@@ -353,7 +354,7 @@ namespace Metalama.Framework.Engine.Linking
                         type.WithOptionalTrailingTrivia( ElasticSpace, this.SyntaxGenerationOptions ),
                         SingletonSeparatedList(
                             VariableDeclarator(
-                                Identifier( GetBackingFieldName( symbol ) ),
+                                WellKnownIdentifier( GetBackingFieldName( symbol ) ),
                                 null,
                                 initializer ) ) ) )
                 .WithOptionalTrivia(
@@ -372,7 +373,7 @@ namespace Metalama.Framework.Engine.Linking
                                 symbol.IsStatic
                                     ? generationContext.SyntaxGenerator.TypeSyntax( symbol.ContainingType )
                                     : ThisExpression(),
-                                IdentifierName( GetBackingFieldName( (IPropertySymbol) symbol.AssociatedSymbol.AssertNotNull() ) ) )
+                                WellKnownIdentifierName( GetBackingFieldName( (IPropertySymbol) symbol.AssociatedSymbol.AssertNotNull() ) ) )
                             .WithSimplifierAnnotationIfNecessary( generationContext ),
                         Token( SyntaxKind.SemicolonToken ) ) )
                 .WithGeneratedCodeAnnotation( FormattingAnnotations.SystemGeneratedCodeAnnotation );
@@ -387,9 +388,9 @@ namespace Metalama.Framework.Engine.Linking
                                     symbol.IsStatic
                                         ? generationContext.SyntaxGenerator.TypeSyntax( symbol.ContainingType )
                                         : ThisExpression(),
-                                    IdentifierName( GetBackingFieldName( (IPropertySymbol) symbol.AssociatedSymbol.AssertNotNull() ) ) )
+                                    WellKnownIdentifierName( GetBackingFieldName( (IPropertySymbol) symbol.AssociatedSymbol.AssertNotNull() ) ) )
                                 .WithSimplifierAnnotationIfNecessary( generationContext ),
-                            IdentifierName( "value" ) ) ) )
+                            WellKnownIdentifierName( "value" ) ) ) )
                 .WithGeneratedCodeAnnotation( FormattingAnnotations.SystemGeneratedCodeAnnotation );
 
         private MemberDeclarationSyntax GetOriginalImplProperty(
@@ -552,7 +553,7 @@ namespace Metalama.Framework.Engine.Linking
                             : TokenList( SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.PrivateKeyword ) ),
                         propertyType,
                         null,
-                        Identifier( name ),
+                        WellKnownIdentifier( name ),
                         cleanAccessorList?.WithOptionalTrailingLineFeed( context ),
                         expressionBody,
                         initializer.WithSourceCodeAnnotation(),
@@ -607,11 +608,11 @@ namespace Metalama.Framework.Engine.Linking
             {
                 if ( targetSymbol.Symbol.IsStatic )
                 {
-                    return IdentifierName( targetSymbol.Symbol.Name );
+                    return SyntaxFactoryEx.SafeIdentifierName( targetSymbol.Symbol.Name );
                 }
                 else
                 {
-                    return MemberAccessExpression( SyntaxKind.SimpleMemberAccessExpression, ThisExpression(), IdentifierName( targetSymbol.Symbol.Name ) )
+                    return MemberAccessExpression( SyntaxKind.SimpleMemberAccessExpression, ThisExpression(), SyntaxFactoryEx.SafeIdentifierName( targetSymbol.Symbol.Name ) )
                         .WithSimplifierAnnotationIfNecessary( context );
                 }
             }

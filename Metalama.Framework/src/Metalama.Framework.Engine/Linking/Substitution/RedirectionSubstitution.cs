@@ -3,10 +3,10 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Engine.SyntaxGeneration;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace Metalama.Framework.Engine.Linking.Substitution;
 
@@ -31,7 +31,7 @@ internal sealed class RedirectionSubstitution : SyntaxNodeSubstitution
         switch ( currentNode )
         {
             case SimpleNameSyntax name:
-                return name.WithIdentifier( Identifier( this._targetSemantic.Symbol.Name ) );
+                return name.WithIdentifier( SyntaxFactoryEx.SafeIdentifier( this._targetSemantic.Symbol.Name ) );
 
             case MemberAccessExpressionSyntax { RawKind: (int) SyntaxKind.SimpleMemberAccessExpression }:
                 return currentNode;

@@ -16,6 +16,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using static Metalama.Framework.Engine.SyntaxGeneration.SyntaxFactoryEx;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 // TODO: A lot methods here are called multiple times. Optimize.
@@ -553,22 +554,22 @@ internal sealed partial class LinkerRewritingDriver
             QualifiedName(
                 QualifiedName(
                     AliasQualifiedName(
-                        IdentifierName( Token( SyntaxKind.GlobalKeyword ) ),
-                        IdentifierName( "Metalama" ) ),
-                    IdentifierName( "Framework" ) ),
-                IdentifierName( "RunTime" ) ),
-            IdentifierName( "Source" ) );
+                        SyntaxFactoryEx.WellKnownIdentifierName( Token( SyntaxKind.GlobalKeyword ) ),
+                        SyntaxFactoryEx.WellKnownIdentifierName( "Metalama" ) ),
+                    SyntaxFactoryEx.WellKnownIdentifierName( "Framework" ) ),
+                SyntaxFactoryEx.WellKnownIdentifierName( "RunTime" ) ),
+            SyntaxFactoryEx.WellKnownIdentifierName( "Source" ) );
 
     private static TypeSyntax GetEmptyImplParameterType()
         => QualifiedName(
             QualifiedName(
                 QualifiedName(
                     AliasQualifiedName(
-                        IdentifierName( Token( SyntaxKind.GlobalKeyword ) ),
-                        IdentifierName( "Metalama" ) ),
-                    IdentifierName( "Framework" ) ),
-                IdentifierName( "RunTime" ) ),
-            IdentifierName( "Empty" ) );
+                        SyntaxFactoryEx.WellKnownIdentifierName( Token( SyntaxKind.GlobalKeyword ) ),
+                        SyntaxFactoryEx.WellKnownIdentifierName( "Metalama" ) ),
+                    SyntaxFactoryEx.WellKnownIdentifierName( "Framework" ) ),
+                SyntaxFactoryEx.WellKnownIdentifierName( "RunTime" ) ),
+            SyntaxFactoryEx.WellKnownIdentifierName( "Empty" ) );
 
     private static string GetSpecialMemberName( ISymbol symbol, string suffix )
     {
@@ -815,7 +816,7 @@ internal sealed partial class LinkerRewritingDriver
                         syntaxGenerationContext.SyntaxGenerator.TypeSyntax( staticDelegateField.FieldType ),
                         SingletonSeparatedList(
                             VariableDeclarator(
-                                Identifier( staticDelegateField.FieldName ),
+                                WellKnownIdentifier( staticDelegateField.FieldName ),
                                 null,
                                 EqualsValueClause( staticDelegateField.InitializeExpressionFunc( syntaxGenerationContext ) ) ) ) ) )
                     .WithGeneratedCodeAnnotation( FormattingAnnotations.SystemGeneratedCodeAnnotation ) );

@@ -5,6 +5,7 @@
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.Diagnostics;
+using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.SyntaxSerialization;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -27,7 +28,7 @@ namespace Metalama.Framework.Engine.Templating.Expressions
 
         public override TypedExpressionSyntaxImpl CreateMemberAccessExpression( string member )
             => new(
-                MemberAccessExpression( SyntaxKind.SimpleMemberAccessExpression, this.ToSyntax(), IdentifierName( Identifier( member ) ) )
+                MemberAccessExpression( SyntaxKind.SimpleMemberAccessExpression, this.ToSyntax(), SyntaxFactoryEx.SafeIdentifierName( member ) )
                     .WithAspectReferenceAnnotation( this.AspectReferenceSpecification ),
                 this.Type,
                 TemplateExpansionContext.CurrentSyntaxSerializationContext.CompilationModel,

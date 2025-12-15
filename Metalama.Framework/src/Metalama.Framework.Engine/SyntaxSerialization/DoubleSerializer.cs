@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Engine.SyntaxGeneration;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
@@ -16,7 +17,7 @@ namespace Metalama.Framework.Engine.SyntaxSerialization
                 return SyntaxFactory.MemberAccessExpression(
                     SyntaxKind.SimpleMemberAccessExpression,
                     SyntaxFactory.PredefinedType( SyntaxFactory.Token( SyntaxKind.DoubleKeyword ) ),
-                    SyntaxFactory.IdentifierName( "PositiveInfinity" ) );
+                    SyntaxFactoryEx.WellKnownIdentifierName( "PositiveInfinity" ) );
             }
 
             if ( double.IsNegativeInfinity( obj ) )
@@ -24,7 +25,7 @@ namespace Metalama.Framework.Engine.SyntaxSerialization
                 return SyntaxFactory.MemberAccessExpression(
                     SyntaxKind.SimpleMemberAccessExpression,
                     SyntaxFactory.PredefinedType( SyntaxFactory.Token( SyntaxKind.DoubleKeyword ) ),
-                    SyntaxFactory.IdentifierName( "NegativeInfinity" ) );
+                    SyntaxFactoryEx.WellKnownIdentifierName( "NegativeInfinity" ) );
             }
 
             if ( double.IsNaN( obj ) )
@@ -32,7 +33,7 @@ namespace Metalama.Framework.Engine.SyntaxSerialization
                 return SyntaxFactory.MemberAccessExpression(
                     SyntaxKind.SimpleMemberAccessExpression,
                     SyntaxFactory.PredefinedType( SyntaxFactory.Token( SyntaxKind.DoubleKeyword ) ),
-                    SyntaxFactory.IdentifierName( "NaN" ) );
+                    SyntaxFactoryEx.WellKnownIdentifierName( "NaN" ) );
             }
 
             return SyntaxFactory.LiteralExpression( SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal( obj ) );

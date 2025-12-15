@@ -10,6 +10,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Generic;
 using System.Linq;
+using static Metalama.Framework.Engine.SyntaxGeneration.SyntaxFactoryEx;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace Metalama.Framework.Engine.Linking
@@ -90,7 +91,7 @@ namespace Metalama.Framework.Engine.Linking
                             : TokenList( SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.PrivateKeyword ) ),
                         type,
                         null,
-                        Identifier( GetEmptyImplMemberName( symbol ) ),
+                        WellKnownIdentifier( GetEmptyImplMemberName( symbol ) ),
                         accessorList.WithOptionalTrailingLineFeed( context ),
                         null,
                         null )

@@ -3,8 +3,8 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Code;
+using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.SyntaxSerialization;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Metalama.Framework.Engine.Templating.Expressions;
@@ -19,7 +19,7 @@ internal sealed class ParameterExpression : UserExpression
     }
 
     protected override ExpressionSyntax ToSyntax( SyntaxSerializationContext syntaxSerializationContext, IType? targetType = null )
-        => SyntaxFactory.IdentifierName( this._parameter.Name );
+        => SyntaxFactoryEx.SafeIdentifierName( this._parameter.Name );
 
     public override IType Type => this._parameter.Type;
 }

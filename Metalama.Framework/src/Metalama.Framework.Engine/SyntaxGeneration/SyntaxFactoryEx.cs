@@ -51,6 +51,7 @@ public static partial class SyntaxFactoryEx
         => SyntaxFactory.ExpressionStatement(
             SyntaxFactory.AssignmentExpression( SyntaxKind.SimpleAssignmentExpression, DiscardIdentifierName(), discardedExpression ) );
 
+#pragma warning disable LAMA0850 // Intentional use of SyntaxFactory.Identifier/IdentifierName for special tokens
     internal static IdentifierNameSyntax DiscardIdentifierName() => SyntaxFactory.IdentifierName( DiscardIdentifier() );
 
     public static SyntaxToken DiscardIdentifier()
@@ -71,6 +72,126 @@ public static partial class SyntaxFactoryEx
                 "var",
                 "var",
                 SyntaxFactory.TriviaList( SyntaxFactory.ElasticSpace ) ) );
+#pragma warning restore LAMA0850
+
+    /// <summary>
+    /// Creates a safe identifier token from a name, escaping it with @ prefix if it's a C# keyword.
+    /// If the name already starts with @, it is returned as-is to prevent double escaping.
+    /// </summary>
+    /// <param name="name">The identifier name.</param>
+#pragma warning disable LAMA0850 // Intentional use of SyntaxFactory.Identifier
+    internal static SyntaxToken SafeIdentifier( string name )
+    {
+        // If the name already starts with @, return it as-is to prevent double escaping (@@).
+        if ( name.StartsWith( "@", StringComparison.Ordinal ) )
+        {
+            return SyntaxFactory.Identifier( name );
+        }
+
+        var keywordKind = SyntaxFacts.GetKeywordKind( name );
+
+        if ( keywordKind != SyntaxKind.None )
+        {
+            // The name is a C# keyword, so we need to escape it with @
+            return SyntaxFactory.Identifier(
+                SyntaxFactory.TriviaList(),
+                keywordKind,
+                "@" + name,
+                name,
+                SyntaxFactory.TriviaList() );
+        }
+
+        return SyntaxFactory.Identifier( name );
+    }
+
+    /// <summary>
+    /// Creates a safe identifier token from a name, escaping it with @ prefix if it's a C# keyword.
+    /// Preserves the specified leading and trailing trivia.
+    /// </summary>
+    /// <param name="leading">Leading trivia.</param>
+    /// <param name="name">The identifier name.</param>
+    /// <param name="trailing">Trailing trivia.</param>
+    internal static SyntaxToken SafeIdentifier( SyntaxTriviaList leading, string name, SyntaxTriviaList trailing )
+    {
+        // If the name already starts with @, return it as-is to prevent double escaping (@@).
+        if ( name.StartsWith( "@", StringComparison.Ordinal ) )
+        {
+            return SyntaxFactory.Identifier( leading, name, trailing );
+        }
+
+        var keywordKind = SyntaxFacts.GetKeywordKind( name );
+
+        if ( keywordKind != SyntaxKind.None )
+        {
+            // The name is a C# keyword, so we need to escape it with @
+            return SyntaxFactory.Identifier(
+                leading,
+                keywordKind,
+                "@" + name,
+                name,
+                trailing );
+        }
+
+        return SyntaxFactory.Identifier( leading, name, trailing );
+    }
+
+    /// <summary>
+    /// Creates an identifier token for a well-known name that is guaranteed not to be a C# keyword.
+    /// Use this for generated names with prefixes (e.g., "__aspectInstance"), type names, or namespace parts.
+    /// </summary>
+    /// <param name="name">The well-known identifier name.</param>
+    internal static SyntaxToken WellKnownIdentifier( string name ) => SyntaxFactory.Identifier( name );
+
+    /// <summary>
+    /// Creates an identifier token for a well-known name that is guaranteed not to be a C# keyword.
+    /// Preserves the specified leading and trailing trivia.
+    /// </summary>
+    /// <param name="leading">Leading trivia.</param>
+    /// <param name="name">The well-known identifier name.</param>
+    /// <param name="trailing">Trailing trivia.</param>
+    internal static SyntaxToken WellKnownIdentifier( SyntaxTriviaList leading, string name, SyntaxTriviaList trailing )
+        => SyntaxFactory.Identifier( leading, name, trailing );
+#pragma warning restore LAMA0850
+
+    /// <summary>
+    /// Creates a safe identifier name syntax from a name, escaping it with @ prefix if it's a C# keyword.
+    /// </summary>
+    /// <param name="name">The identifier name.</param>
+#pragma warning disable LAMA0850 // False positive: passing SyntaxToken from SafeIdentifier, not a string
+    internal static IdentifierNameSyntax SafeIdentifierName( string name )
+        => SyntaxFactory.IdentifierName( SafeIdentifier( name ) );
+#pragma warning restore LAMA0850
+
+    /// <summary>
+    /// Creates an identifier name syntax for a well-known name that is guaranteed not to be a C# keyword.
+    /// Use this for generated names with prefixes (e.g., "__aspectInstance"), type names, or namespace parts.
+    /// </summary>
+    /// <param name="name">The well-known identifier name.</param>
+#pragma warning disable LAMA0850 // False positive: passing SyntaxToken from WellKnownIdentifier, not a string
+    internal static IdentifierNameSyntax WellKnownIdentifierName( string name )
+        => SyntaxFactory.IdentifierName( WellKnownIdentifier( name ) );
+#pragma warning restore LAMA0850
+
+    /// <summary>
+    /// Creates an identifier name syntax for a well-known name that is guaranteed not to be a C# keyword.
+    /// Preserves the specified leading and trailing trivia.
+    /// </summary>
+    /// <param name="leading">Leading trivia.</param>
+    /// <param name="name">The well-known identifier name.</param>
+    /// <param name="trailing">Trailing trivia.</param>
+#pragma warning disable LAMA0850 // False positive: passing SyntaxToken from WellKnownIdentifier, not a string
+    internal static IdentifierNameSyntax WellKnownIdentifierName( SyntaxTriviaList leading, string name, SyntaxTriviaList trailing )
+        => SyntaxFactory.IdentifierName( WellKnownIdentifier( leading, name, trailing ) );
+#pragma warning restore LAMA0850
+
+    /// <summary>
+    /// Creates an identifier name syntax from a well-known token (e.g., GlobalKeyword).
+    /// </summary>
+    /// <param name="token">The well-known identifier token.</param>
+#pragma warning disable LAMA0850 // Intentional use for well-known tokens
+    internal static IdentifierNameSyntax WellKnownIdentifierName( SyntaxToken token )
+        => SyntaxFactory.IdentifierName( token );
+#pragma warning restore LAMA0850
 
     [PublicAPI]
     public static LiteralExpressionSyntax LiteralNonNullExpression( string s )
@@ -128,12 +249,12 @@ public static partial class SyntaxFactoryEx
             SyntaxFactory.QualifiedName(
                 SyntaxFactory.QualifiedName(
                     SyntaxFactory.AliasQualifiedName(
-                        SyntaxFactory.IdentifierName( SyntaxFactory.Token( SyntaxKind.GlobalKeyword ) ),
-                        SyntaxFactory.IdentifierName( "Microsoft" ) ),
-                    SyntaxFactory.IdentifierName( "CodeAnalysis" ) ),
-                SyntaxFactory.IdentifierName( "CSharp" ) ),
-            SyntaxFactory.IdentifierName( "Syntax" ) ),
-        SyntaxFactory.IdentifierName( "ExpressionSyntax" ) );
+                        WellKnownIdentifierName( SyntaxFactory.Token( SyntaxKind.GlobalKeyword ) ),
+                        WellKnownIdentifierName( "Microsoft" ) ),
+                    WellKnownIdentifierName( "CodeAnalysis" ) ),
+                WellKnownIdentifierName( "CSharp" ) ),
+            WellKnownIdentifierName( "Syntax" ) ),
+        WellKnownIdentifierName( "ExpressionSyntax" ) );
 
     internal static LiteralExpressionSyntax LiteralExpression( object literal, ObjectDisplayOptions options = ObjectDisplayOptions.None )
     {
@@ -202,7 +323,9 @@ public static partial class SyntaxFactoryEx
         return statement;
     }
 
+#pragma warning disable LAMA0850 // Intentional use for missing/empty tokens
     private static ExpressionSyntax EmptyExpression => SyntaxFactory.IdentifierName( SyntaxFactory.MissingToken( SyntaxKind.IdentifierToken ) );
+#pragma warning restore LAMA0850
 
     internal static StatementSyntax EmptyStatement
         => SyntaxFactory.ExpressionStatement( EmptyExpression, SyntaxFactory.MissingToken( SyntaxKind.SemicolonToken ) );

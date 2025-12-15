@@ -111,7 +111,7 @@ namespace Metalama.Framework.Engine.Linking.Substitution
                             {
                                 return syntaxGenerator.FormattedBlock(
                                         SyntaxFactoryEx.AssignmentStatement(
-                                            IdentifierName( this._returnVariableIdentifier ),
+                                            SyntaxFactoryEx.SafeIdentifierName( this._returnVariableIdentifier ),
                                             arrowExpressionClause.Expression,
                                             syntaxGenerator.SyntaxGenerationContext ) )
                                     .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock );

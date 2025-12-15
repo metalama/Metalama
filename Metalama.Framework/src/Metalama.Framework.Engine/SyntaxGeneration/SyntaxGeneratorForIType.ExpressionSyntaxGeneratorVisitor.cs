@@ -38,7 +38,7 @@ internal sealed partial class SyntaxGeneratorForIType
                     {
                         return this.AddTriviaAndAnnotations(
                             SyntaxFactory.AliasQualifiedName(
-                                SyntaxFactory.IdentifierName( SyntaxFactory.Token( SyntaxKind.GlobalKeyword ) ),
+                                SyntaxFactoryEx.WellKnownIdentifierName( SyntaxFactory.Token( SyntaxKind.GlobalKeyword ) ),
                                 simpleNameSyntax ),
                             namedType );
                     }
@@ -67,7 +67,7 @@ internal sealed partial class SyntaxGeneratorForIType
             {
                 return this.AddTriviaAndAnnotations(
                     SyntaxFactory.AliasQualifiedName(
-                        SyntaxFactory.IdentifierName( SyntaxFactory.Token( SyntaxKind.GlobalKeyword ) ),
+                        SyntaxFactoryEx.WellKnownIdentifierName( SyntaxFactory.Token( SyntaxKind.GlobalKeyword ) ),
                         syntax ),
                     ns );
             }

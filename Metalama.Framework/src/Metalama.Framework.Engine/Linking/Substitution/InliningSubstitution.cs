@@ -5,6 +5,7 @@
 using Metalama.Framework.Engine.Formatting;
 using Metalama.Framework.Engine.Linking.Inlining;
 using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -60,7 +61,7 @@ namespace Metalama.Framework.Engine.Linking.Substitution
             {
                 statements.Add(
                     LabeledStatement(
-                            Identifier( this._specification.ReturnLabelIdentifier.AssertNotNull() ),
+                            SyntaxFactoryEx.SafeIdentifier( this._specification.ReturnLabelIdentifier.AssertNotNull() ),
                             EmptyStatement() )
                         .WithOptionalTrailingLineFeed( context.SyntaxGenerationContext )
                         .WithGeneratedCodeAnnotation( FormattingAnnotations.SystemGeneratedCodeAnnotation )

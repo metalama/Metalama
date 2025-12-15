@@ -322,13 +322,13 @@ namespace Metalama.Framework.Engine.Templating
                 SyntaxFactory.MemberAccessExpression(
                         SyntaxKind.SimpleMemberAccessExpression,
                         expression,
-                        SyntaxFactory.IdentifierName( member ) )
+                        SyntaxFactoryEx.SafeIdentifierName( member ) )
                     .WithSimplifierAnnotationIfNecessary( this.SyntaxSerializationContext.SyntaxGenerationContext ),
                 this.SyntaxSerializationContext.CompilationModel );
         }
 
         public SyntaxToken GetUniqueIdentifier( string hint )
-            => SyntaxFactory.Identifier( this._templateExpansionContext.LexicalScope.GetUniqueIdentifier( hint ) );
+            => SyntaxFactoryEx.WellKnownIdentifier( this._templateExpansionContext.LexicalScope.GetUniqueIdentifier( hint ) );
 
         public ExpressionSyntax Serialize<T>( T o )
             => this._templateExpansionContext.SyntaxSerializationService.Serialize( o, this.SyntaxSerializationContext );
@@ -681,7 +681,7 @@ namespace Metalama.Framework.Engine.Templating
 
             statementList.Add( new StatementOrTrivia( variableDeclaration ) );
 
-            return new SyntaxUserExpression( SyntaxFactory.IdentifierName( localVariableName ), type, true, true );
+            return new SyntaxUserExpression( SyntaxFactoryEx.WellKnownIdentifierName( localVariableName ), type, true, true );
         }
 
         public IExpression DefineLocalVariable( List<StatementOrTrivia> statementList, string name, Type type, ExpressionSyntax? expression )
@@ -727,13 +727,13 @@ namespace Metalama.Framework.Engine.Templating
             var declarator = SyntaxFactory.VariableDeclarator( localVariableName )
                 .WithInitializer( SyntaxFactory.EqualsValueClause( expression ) );
 
+#pragma warning disable LAMA0850 // Intentional use: passing SyntaxToken from WellKnownIdentifier
             var varType = SyntaxFactory.IdentifierName(
-                SyntaxFactory.Identifier(
+                SyntaxFactoryEx.WellKnownIdentifier(
                     default,
-                    SyntaxKind.VarKeyword,
-                    "var",
                     "var",
                     default ) );
+#pragma warning restore LAMA0850
 
             var variableDeclaration = SyntaxFactory.LocalDeclarationStatement(
                 default,
@@ -744,7 +744,7 @@ namespace Metalama.Framework.Engine.Templating
 
             statementList.Add( new StatementOrTrivia( variableDeclaration ) );
 
-            return new SyntaxUserExpression( SyntaxFactory.IdentifierName( localVariableName ), expressionType, true, true );
+            return new SyntaxUserExpression( SyntaxFactoryEx.WellKnownIdentifierName( localVariableName ), expressionType, true, true );
         }
 
         public IExpression DefineLocalVariable( List<StatementOrTrivia> statementList, string name, IExpression expression )
@@ -758,7 +758,7 @@ namespace Metalama.Framework.Engine.Templating
                 : name;
         }
 
-        public SyntaxToken EscapeIdentifier( SyntaxToken token ) => SyntaxFactory.Identifier( this.EscapeIdentifier( token.Text ) );
+        public SyntaxToken EscapeIdentifier( SyntaxToken token ) => SyntaxFactoryEx.SafeIdentifier( this.EscapeIdentifier( token.Text ) );
 
         public ExpressionSyntax RewriteAssignmentExpression( AssignmentExpressionSyntax assignmentExpression )
         {

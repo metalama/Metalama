@@ -56,14 +56,14 @@ namespace Metalama.Framework.Engine.Templating
                 => SyntaxFactory.MemberAccessExpression(
                     SyntaxKind.SimpleMemberAccessExpression,
                     this.Type( typeof(SyntaxFactory) ),
-                    SyntaxFactory.IdentifierName( name ) );
+                    SyntaxFactoryEx.WellKnownIdentifierName( name ) );
 
             public MemberAccessExpressionSyntax GenericSyntaxFactoryMethod( string name, params TypeSyntax[] typeArguments )
                 => SyntaxFactory.MemberAccessExpression(
                     SyntaxKind.SimpleMemberAccessExpression,
                     this.Type( typeof(SyntaxFactory) ),
                     SyntaxFactory.GenericName(
-                        SyntaxFactory.Identifier( name ),
+                        SyntaxFactoryEx.WellKnownIdentifier( name ),
                         SyntaxFactory.TypeArgumentList( SyntaxFactory.SeparatedList( typeArguments ) ) ) );
 
             public ArrayTypeSyntax ArrayType<T>()
@@ -79,7 +79,7 @@ namespace Metalama.Framework.Engine.Templating
                 => SyntaxFactory.MemberAccessExpression(
                     SyntaxKind.SimpleMemberAccessExpression,
                     this.Type( typeof(SyntaxKind) ),
-                    SyntaxFactory.IdentifierName( kind.ToString() ) );
+                    SyntaxFactoryEx.WellKnownIdentifierName( kind.ToString() ) );
 
             public ExpressionSyntax Literal( ExpressionSyntax expression )
             {

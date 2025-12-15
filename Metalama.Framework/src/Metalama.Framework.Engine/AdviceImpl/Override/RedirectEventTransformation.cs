@@ -7,6 +7,7 @@ using Metalama.Framework.Code.Collections;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.References;
+using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.Transformations;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -45,7 +46,7 @@ internal sealed class RedirectEventTransformation : OverrideMemberTransformation
                     overriddenDeclaration.GetSyntaxModifierList(),
                     context.SyntaxGenerator.EventType( overriddenDeclaration ),
                     null,
-                    Identifier(
+                    SyntaxFactoryEx.SafeIdentifier(
                         context.InjectionNameProvider.GetOverrideName(
                             overriddenDeclaration.DeclaringType,
                             this.AspectLayerId,
@@ -83,18 +84,18 @@ internal sealed class RedirectEventTransformation : OverrideMemberTransformation
                         AssignmentExpression(
                             assignmentKind,
                             CreateAccessTargetExpression(),
-                            IdentifierName( "value" ) ) ) );
+                            SyntaxFactoryEx.WellKnownIdentifierName( "value" ) ) ) );
         }
 
         ExpressionSyntax CreateAccessTargetExpression()
         {
             return
                 this._targetEvent.Definition.IsStatic
-                    ? IdentifierName( this._targetEvent.Name.AssertNotNull() )
+                    ? SyntaxFactoryEx.SafeIdentifierName( this._targetEvent.Name.AssertNotNull() )
                     : MemberAccessExpression(
                             SyntaxKind.SimpleMemberAccessExpression,
                             ThisExpression(),
-                            IdentifierName( this._targetEvent.Name.AssertNotNull() ) )
+                            SyntaxFactoryEx.SafeIdentifierName( this._targetEvent.Name.AssertNotNull() ) )
                         .WithAspectReferenceAnnotation( this.AspectLayerId, AspectReferenceOrder.Previous );
         }
     }

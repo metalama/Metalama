@@ -8,11 +8,11 @@ using Metalama.Framework.Engine.CodeModel.Abstractions;
 using Metalama.Framework.Engine.CodeModel.GenericContexts;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.ReflectionMocks;
+using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.SyntaxSerialization;
 using Metalama.Framework.Engine.Templating.Expressions;
 using Metalama.Framework.Engine.Utilities;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -98,12 +98,12 @@ namespace Metalama.Framework.Engine.CodeModel.Source
 
         bool IExpression.IsAssignable => true;
 
-        public ref object? Value => ref RefHelper.Wrap( new SyntaxVariableExpression( SyntaxFactory.IdentifierName( this.Name ), this.Type, this.RefKind ) );
+        public ref object? Value => ref RefHelper.Wrap( new SyntaxVariableExpression( SyntaxFactoryEx.SafeIdentifierName( this.Name ), this.Type, this.RefKind ) );
 
         public TypedExpressionSyntax ToTypedExpressionSyntax( ISyntaxGenerationContext syntaxGenerationContext, IType? targetType = null )
             => new(
                 new TypedExpressionSyntaxImpl(
-                    SyntaxFactory.IdentifierName( this.Name ),
+                    SyntaxFactoryEx.SafeIdentifierName( this.Name ),
                     this.Type,
                     ((SyntaxSerializationContext) syntaxGenerationContext).CompilationModel,
                     true ) );

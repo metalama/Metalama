@@ -7,6 +7,7 @@ using Metalama.Framework.Code.Invokers;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.Diagnostics;
+using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.SyntaxSerialization;
 using Metalama.Framework.Engine.Templating.Expressions;
 using Metalama.Framework.Engine.Utilities.Roslyn;
@@ -123,12 +124,12 @@ internal sealed class MethodInvoker : Invoker<IMethod>, IMethodInvoker
                 if ( this.Member.IsGeneric )
                 {
                     name = GenericName(
-                        Identifier( this.GetCleanTargetMemberName() ),
+                        SyntaxFactoryEx.SafeIdentifier( this.GetCleanTargetMemberName() ),
                         TypeArgumentList( SeparatedList( this.Member.TypeArguments.SelectAsImmutableArray( t => context.SyntaxGenerator.TypeSyntax( t ) ) ) ) );
                 }
                 else
                 {
-                    name = IdentifierName( this.GetCleanTargetMemberName() );
+                    name = SyntaxFactoryEx.SafeIdentifierName( this.GetCleanTargetMemberName() );
                 }
 
                 var arguments = this.Member.GetArguments( this.Member.Parameters, args, context );

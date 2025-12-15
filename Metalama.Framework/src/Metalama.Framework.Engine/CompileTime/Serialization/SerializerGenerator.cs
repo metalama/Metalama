@@ -479,7 +479,7 @@ internal sealed class SerializerGenerator : ISerializerGenerator
                         Token( SyntaxKind.ReturnKeyword ).WithTrailingTrivia( Space ),
                         ObjectCreationExpression(
                             serializedTypeSyntax,
-                            ArgumentList( SingletonSeparatedList( Argument( IdentifierName( createInstanceMethod.Parameters[1].Name ) ) ) ),
+                            ArgumentList( SingletonSeparatedList( Argument( SyntaxFactoryEx.SafeIdentifierName( createInstanceMethod.Parameters[1].Name ) ) ) ),
                             null ),
                         Token( SyntaxKind.SemicolonToken ) ) );
         }
@@ -529,7 +529,7 @@ internal sealed class SerializerGenerator : ISerializerGenerator
         {
             var localVariableDeclaration = this.CreateTypedLocalVariable(
                 serializedTypeSyntax,
-                IdentifierName( baseSerializeMethod.Parameters[0].Name ),
+                SyntaxFactoryEx.SafeIdentifierName( baseSerializeMethod.Parameters[0].Name ),
                 out var localVariableName );
 
             var statements = new[]
@@ -538,9 +538,9 @@ internal sealed class SerializerGenerator : ISerializerGenerator
                 localVariableDeclaration,
                 this.CreateFieldSerializationStatements(
                     serializedType,
-                    IdentifierName( localVariableName ),
-                    IdentifierName( baseSerializeMethod.Parameters[1].Name ),
-                    IdentifierName( baseSerializeMethod.Parameters[2].Name ) )
+                    SyntaxFactoryEx.WellKnownIdentifierName( localVariableName ),
+                    SyntaxFactoryEx.SafeIdentifierName( baseSerializeMethod.Parameters[1].Name ),
+                    SyntaxFactoryEx.SafeIdentifierName( baseSerializeMethod.Parameters[2].Name ) )
             };
 
             body = Block( statements.WhereNotNull() );
@@ -569,7 +569,7 @@ internal sealed class SerializerGenerator : ISerializerGenerator
                                 SyntaxKind.SimpleMemberAccessExpression,
                                 BaseExpression(),
                                 IdentifierName( nameof(ReferenceTypeSerializer.SerializeObject) ) ),
-                            ArgumentList( SeparatedList( baseSerializeMethod.Parameters.Select( p => Argument( IdentifierName( p.Name ) ) ) ) ) ) );
+                            ArgumentList( SeparatedList( baseSerializeMethod.Parameters.Select( p => Argument( SyntaxFactoryEx.SafeIdentifierName( p.Name ) ) ) ) ) ) );
         }
     }
 
@@ -590,7 +590,7 @@ internal sealed class SerializerGenerator : ISerializerGenerator
         {
             var localVariableDeclaration = this.CreateTypedLocalVariable(
                 serializedTypeSyntax,
-                IdentifierName( baseDeserializeMethod.Parameters[0].Name ),
+                SyntaxFactoryEx.SafeIdentifierName( baseDeserializeMethod.Parameters[0].Name ),
                 out var localVariableName );
 
             var statements = new[]
@@ -599,8 +599,8 @@ internal sealed class SerializerGenerator : ISerializerGenerator
                 localVariableDeclaration,
                 this.CreateFieldDeserializationStatements(
                     serializedType,
-                    IdentifierName( localVariableName ),
-                    IdentifierName( baseDeserializeMethod.Parameters[1].Name ),
+                    SyntaxFactoryEx.WellKnownIdentifierName( localVariableName ),
+                    SyntaxFactoryEx.SafeIdentifierName( baseDeserializeMethod.Parameters[1].Name ),
                     this.SelectLateDeserializedFields,
                     static _ => Array.Empty<ISymbol>() )
             };
@@ -631,7 +631,7 @@ internal sealed class SerializerGenerator : ISerializerGenerator
                                 SyntaxKind.SimpleMemberAccessExpression,
                                 BaseExpression(),
                                 IdentifierName( nameof(ReferenceTypeSerializer.DeserializeFields) ) ),
-                            ArgumentList( SeparatedList( baseDeserializeMethod.Parameters.Select( p => Argument( IdentifierName( p.Name ) ) ) ) ) ) );
+                            ArgumentList( SeparatedList( baseDeserializeMethod.Parameters.Select( p => Argument( SyntaxFactoryEx.SafeIdentifierName( p.Name ) ) ) ) ) ) );
         }
     }
 
@@ -645,8 +645,8 @@ internal sealed class SerializerGenerator : ISerializerGenerator
 
         var body = this.CreateFieldSerializationStatements(
             serializedType,
-            IdentifierName( serializeMethod.Parameters[0].Name ),
-            IdentifierName( serializeMethod.Parameters[1].Name ),
+            SyntaxFactoryEx.SafeIdentifierName( serializeMethod.Parameters[0].Name ),
+            SyntaxFactoryEx.SafeIdentifierName( serializeMethod.Parameters[1].Name ),
             null );
 
         return this.CreateOverrideMethod(
@@ -668,7 +668,7 @@ internal sealed class SerializerGenerator : ISerializerGenerator
                     Token( SyntaxKind.ReturnKeyword ).WithTrailingTrivia( Space ),
                     ObjectCreationExpression(
                         serializedTypeSyntax,
-                        ArgumentList( SingletonSeparatedList( Argument( IdentifierName( deserializeMethod.Parameters[0].Name ) ) ) ),
+                        ArgumentList( SingletonSeparatedList( Argument( SyntaxFactoryEx.SafeIdentifierName( deserializeMethod.Parameters[0].Name ) ) ) ),
                         null ),
                     Token( SyntaxKind.SemicolonToken ) ) );
 
@@ -683,11 +683,11 @@ internal sealed class SerializerGenerator : ISerializerGenerator
             TokenList( Token( SyntaxKind.PublicKeyword ).WithTrailingTrivia( Space ), Token( SyntaxKind.OverrideKeyword ).WithTrailingTrivia( Space ) ),
             this._context.SyntaxGenerator.TypeSyntax( methodSymbol.ReturnType ).WithTrailingTrivia( Space ),
             null,
-            Identifier( methodSymbol.Name ),
+            SyntaxFactoryEx.WellKnownIdentifier( methodSymbol.Name ),
             null,
             ParameterList(
                 SeparatedList(
-                    methodSymbol.Parameters.Select( p => Parameter( Identifier( p.Name ) ).WithType( this._context.SyntaxGenerator.TypeSyntax( p.Type ) ) ) ) ),
+                    methodSymbol.Parameters.Select( p => Parameter( SyntaxFactoryEx.SafeIdentifier( p.Name ) ).WithType( this._context.SyntaxGenerator.TypeSyntax( p.Type ) ) ) ) ),
             List<TypeParameterConstraintClauseSyntax>(),
             body,
             null );
@@ -719,7 +719,7 @@ internal sealed class SerializerGenerator : ISerializerGenerator
                                     MemberAccessExpression(
                                         SyntaxKind.SimpleMemberAccessExpression,
                                         objectExpression,
-                                        IdentifierName( member.Name ) ) ),
+                                        SyntaxFactoryEx.SafeIdentifierName( member.Name ) ) ),
                                 Argument( LiteralExpression( SyntaxKind.StringLiteralExpression, Literal( serializedType.Type.Name ) ) )
                             ] ) ) ) ) );
         }
@@ -753,7 +753,7 @@ internal sealed class SerializerGenerator : ISerializerGenerator
                         MemberAccessExpression(
                             SyntaxKind.SimpleMemberAccessExpression,
                             targetExpression,
-                            IdentifierName( member.Name ) ),
+                            SyntaxFactoryEx.SafeIdentifierName( member.Name ) ),
                         InvocationExpression(
                             MemberAccessExpression(
                                 SyntaxKind.SimpleMemberAccessExpression,
@@ -778,7 +778,7 @@ internal sealed class SerializerGenerator : ISerializerGenerator
                         MemberAccessExpression(
                             SyntaxKind.SimpleMemberAccessExpression,
                             targetExpression,
-                            IdentifierName( member.Name ) ),
+                            SyntaxFactoryEx.SafeIdentifierName( member.Name ) ),
                         LiteralExpression( SyntaxKind.DefaultLiteralExpression ) ) ) );
         }
 

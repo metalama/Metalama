@@ -19,14 +19,14 @@ internal static class EventBrokerSyntaxHelper
     {
         if ( isStatic )
         {
-            return IdentifierName( eventBrokerFieldName );
+            return SyntaxFactoryEx.WellKnownIdentifierName( eventBrokerFieldName );
         }
         else
         {
             return MemberAccessExpression(
                 SyntaxKind.SimpleMemberAccessExpression,
                 ThisExpression(),
-                IdentifierName( eventBrokerFieldName ) );
+                SyntaxFactoryEx.WellKnownIdentifierName( eventBrokerFieldName ) );
         }
     }
 
@@ -48,8 +48,8 @@ internal static class EventBrokerSyntaxHelper
                         MemberAccessExpression(
                             SyntaxKind.SimpleMemberAccessExpression,
                             GetEventBrokerField( eventBrokerFieldName, isStatic ),
-                            IdentifierName( "AddHandler" ) ),
-                        ArgumentList( SingletonSeparatedList( Argument( IdentifierName( "value" ) ) ) ) ) )
+                            SyntaxFactoryEx.WellKnownIdentifierName( "AddHandler" ) ),
+                        ArgumentList( SingletonSeparatedList( Argument( SyntaxFactoryEx.WellKnownIdentifierName( "value" ) ) ) ) ) )
                     .WithGeneratedCodeAnnotation( FormattingAnnotations.SystemGeneratedCodeAnnotation ) );
     }
 
@@ -67,8 +67,8 @@ internal static class EventBrokerSyntaxHelper
                     ConditionalAccessExpression(
                         GetEventBrokerField( eventBrokerFieldName, isStatic ),
                         InvocationExpression(
-                            MemberBindingExpression( IdentifierName( "RemoveHandler" ) ),
-                            ArgumentList( SingletonSeparatedList( Argument( IdentifierName( "value" ) ) ) ) ) ) )
+                            MemberBindingExpression( SyntaxFactoryEx.WellKnownIdentifierName( "RemoveHandler" ) ),
+                            ArgumentList( SingletonSeparatedList( Argument( SyntaxFactoryEx.WellKnownIdentifierName( "value" ) ) ) ) ) ) )
                     .WithGeneratedCodeAnnotation( FormattingAnnotations.SystemGeneratedCodeAnnotation ) );
     }
 }

@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -40,7 +41,7 @@ internal sealed class EventBrokerProxySubstitution : SyntaxNodeSubstitution
                 var newMemberAccess = MemberAccessExpression(
                     SyntaxKind.SimpleMemberAccessExpression,
                     ThisExpression(),
-                    IdentifierName( this._brokerProxyName ) );
+                    SyntaxFactoryEx.WellKnownIdentifierName( this._brokerProxyName ) );
 
                 // Preserve trivia from the original member access
                 return newMemberAccess.WithTriviaFromIfNecessary( memberAccess, substitutionContext.SyntaxGenerationContext.Options );
@@ -50,7 +51,7 @@ internal sealed class EventBrokerProxySubstitution : SyntaxNodeSubstitution
                 var memberAccessExpression = MemberAccessExpression(
                     SyntaxKind.SimpleMemberAccessExpression,
                     ThisExpression(),
-                    IdentifierName( this._brokerProxyName ) );
+                    SyntaxFactoryEx.WellKnownIdentifierName( this._brokerProxyName ) );
 
                 // Preserve trivia from the original identifier
                 return memberAccessExpression.WithTriviaFromIfNecessary( identifierName, substitutionContext.SyntaxGenerationContext.Options );

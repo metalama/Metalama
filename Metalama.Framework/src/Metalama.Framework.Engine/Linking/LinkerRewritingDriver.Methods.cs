@@ -13,6 +13,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using static Metalama.Framework.Engine.SyntaxGeneration.SyntaxFactoryEx;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace Metalama.Framework.Engine.Linking
@@ -280,7 +281,7 @@ namespace Metalama.Framework.Engine.Linking
                         modifiers,
                         returnType.WithOptionalTrailingTrivia( ElasticSpace, generationContext.Options ),
                         null,
-                        Identifier( name ),
+                        WellKnownIdentifier( name ),
                         method.TypeParameterList != null ? this.FilterAttributesOnSpecialImpl( symbol.TypeParameters, method.TypeParameterList ) : null,
                         this.FilterAttributesOnSpecialImpl(
                             symbol.Parameters,
@@ -316,7 +317,7 @@ namespace Metalama.Framework.Engine.Linking
                     InvocationExpression(
                         GetInvocationTarget(),
                         ArgumentList(
-                            SeparatedList( method.ParameterList.Parameters.SelectAsReadOnlyList( x => Argument( IdentifierName( x.Identifier ) ) ) ) ) );
+                            SeparatedList( method.ParameterList.Parameters.SelectAsReadOnlyList( x => Argument( WellKnownIdentifierName( x.Identifier ) ) ) ) ) );
 
                 if ( !targetSemantic.Symbol.ReturnsVoid )
                 {
@@ -348,11 +349,11 @@ namespace Metalama.Framework.Engine.Linking
                 {
                     if ( targetSemantic.Kind is IntermediateSymbolSemanticKind.Base )
                     {
-                        return IdentifierName( GetOriginalImplMemberName( targetSemantic.Symbol ) );
+                        return WellKnownIdentifierName( GetOriginalImplMemberName( targetSemantic.Symbol ) );
                     }
                     else
                     {
-                        return IdentifierName( targetSemantic.Symbol.Name );
+                        return SafeIdentifierName( targetSemantic.Symbol.Name );
                     }
                 }
             }
