@@ -1,43 +1,38 @@
-internal class NotNullAttribute : ContractAspect
-{
-  public override void Validate(dynamic? value) => throw new System.NotSupportedException("Compile-time-only code cannot be called at run-time.");
-}
-internal class PositiveAttribute : ContractAspect
-{
-  public override void Validate(dynamic? value) => throw new System.NotSupportedException("Compile-time-only code cannot be called at run-time.");
-}
 internal class TargetClass
 {
-  public void MethodWithKeywordParam(string @class)
+  // Method with single keyword parameter name
+  public void MethodWithKeywordParam([NotNull] string @class)
   {
     if (@class == null)
     {
-      throw new ArgumentNullException();
+      throw new global::System.ArgumentNullException();
     }
     Console.WriteLine($"class = {@class}");
   }
-  public int MethodWithMultipleKeywordParams(int @int, string @string, bool @return)
+  // Method with multiple keyword parameter names
+  public int MethodWithMultipleKeywordParams([Positive] int @int, [NotNull] string @string, bool @return)
   {
     if (@int <= 0)
     {
-      throw new ArgumentOutOfRangeException();
+      throw new global::System.ArgumentOutOfRangeException();
     }
     if (@string == null)
     {
-      throw new ArgumentNullException();
+      throw new global::System.ArgumentNullException();
     }
     Console.WriteLine($"int = {@int}, string = {@string}, return = {@return}");
     return @int;
   }
-  public TargetClass(string @class, int @for)
+  // Constructor with keyword parameter names
+  public TargetClass([NotNull] string @class, [Positive] int @for)
   {
     if (@class == null)
     {
-      throw new ArgumentNullException();
+      throw new global::System.ArgumentNullException();
     }
     if (@for <= 0)
     {
-      throw new ArgumentOutOfRangeException();
+      throw new global::System.ArgumentOutOfRangeException();
     }
     Console.WriteLine($"class = {@class}, for = {@for}");
   }
