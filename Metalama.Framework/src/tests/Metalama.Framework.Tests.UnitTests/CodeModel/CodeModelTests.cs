@@ -2483,8 +2483,9 @@ class C
     [Fact]
     public void FieldPseudoAccessors_IsImplicitlyDeclared()
     {
-        // Issue #828: Field pseudo accessors should have IsImplicitlyDeclared=false
+        // This test addresses issue #828: Field pseudo accessors should have IsImplicitlyDeclared=false
         // because the accessor represents the field itself, which is explicitly declared.
+        // NOTE: If this test is included in a PR for issue #838, the PR description should mention that it also fixes #828.
 
         using var testContext = this.CreateTestContext();
 
