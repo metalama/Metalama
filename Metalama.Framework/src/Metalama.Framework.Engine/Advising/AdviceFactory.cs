@@ -382,6 +382,17 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         }
     }
 
+    private static void ValidateNotPseudoMember( IDeclaration declaration, AdviceKind adviceKind )
+    {
+        if ( declaration.ImplementationKind == DeclarationImplementationKind.Pseudo )
+        {
+            throw new InvalidOperationException(
+                $"The {adviceKind} advice cannot be applied to pseudo member '{declaration}'. " +
+                "Pseudo members (such as field pseudo-accessors and their parameters) are synthetic declarations that represent implementation details. " +
+                "To modify field access behavior, use Override advice instead of IntroduceAttribute." );
+        }
+    }
+
     private static void ValidateNotExtensionBlock( IDeclaration declaration, string introduced )
     {
         if ( declaration.DeclarationKind == DeclarationKind.ExtensionBlock )
@@ -1558,6 +1569,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
 
         ValidateNotExtensionBlock( targetDeclaration, "an attribute" );
         ValidateNotExtensionBlockReceiver( targetDeclaration, "an attribute" );
+        ValidateNotPseudoMember( targetDeclaration, AdviceKind.IntroduceAttribute );
 
         return new AddAttributeAdvice(
             this.GetAdviceConstructorParameters( targetDeclaration ),

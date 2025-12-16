@@ -94,7 +94,7 @@ namespace Metalama.Framework.Engine.CodeModel.Source.Pseudo
 
         public override IEnumerable<IDeclaration> GetDerivedDeclarations( DerivedTypesOptions options = default ) => throw new NotImplementedException();
 
-        internal override DeclarationImplementationKind ImplementationKind => DeclarationImplementationKind.Pseudo;
+        public override DeclarationImplementationKind ImplementationKind => DeclarationImplementationKind.Pseudo;
 
         public override IAssembly DeclaringAssembly => this.DeclaringMember.DeclaringAssembly;
 

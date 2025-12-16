@@ -588,6 +588,28 @@ public static partial class EligibilityExtensions
             m => $"{m} must be explicitly declared" );
 
     /// <summary>
+    /// Forbids the target declaration from being a pseudo declaration (Metalama abstraction without a Roslyn symbol).
+    /// </summary>
+    /// <param name="eligibilityBuilder">The eligibility builder for a declaration.</param>
+    /// <remarks>
+    /// <para>
+    /// Pseudo members are Metalama abstractions such as field pseudo-accessors (getter/setter methods for fields)
+    /// that don't exist as actual Roslyn symbols. This rule is typically used for advice kinds like
+    /// <see cref="AdviceKind.IntroduceAttribute"/> that require a real symbol to attach attributes to.
+    /// </para>
+    /// <para>
+    /// Note that implicitly declared members like auto-property backing fields are NOT pseudo members - they are
+    /// real Roslyn symbols (<see cref="DeclarationImplementationKind.Symbol"/>) and are allowed.
+    /// </para>
+    /// </remarks>
+    /// <seealso cref="IDeclaration.ImplementationKind"/>
+    /// <seealso cref="DeclarationImplementationKind"/>
+    public static void MustNotBePseudoMember( this IEligibilityBuilder<IDeclaration> eligibilityBuilder )
+        => eligibilityBuilder.MustSatisfy(
+            m => m.ImplementationKind != DeclarationImplementationKind.Pseudo,
+            m => $"{m} cannot be a pseudo member" );
+
+    /// <summary>
     /// Forbids the target field, property, or indexer from being <c>ref</c> or <c>ref readonly</c>.
     /// </summary>
     /// <param name="eligibilityBuilder">The eligibility builder for a field, property, or indexer.</param>

@@ -183,6 +183,12 @@ public static partial class EligibilityRuleFactory
                     } );
         } );
 
+    private static readonly IEligibilityRule<IDeclaration> _introduceAttributeRule = CreateRule<IDeclaration, IDeclaration>(
+        builder =>
+        {
+            builder.MustNotBePseudoMember();
+        } );
+
     /// <summary>
     /// Gets the default eligibility rules that apply to a specific advice kind.
     /// </summary>
@@ -219,6 +225,7 @@ public static partial class EligibilityRuleFactory
             AdviceKind.ImplementInterface => _implementInterfaceRule,
             AdviceKind.AddInitializer => _addInitializerRule,
             AdviceKind.IntroduceParameter => _introduceParameterRule,
+            AdviceKind.IntroduceAttribute => _introduceAttributeRule,
             _ => throw new ArgumentOutOfRangeException( nameof(adviceKind), $"Value not supported: {adviceKind}." )
         };
 

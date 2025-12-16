@@ -49,6 +49,9 @@
         <Compile Remove="$(MSBuildThisFileDirectory)/Tests/**/__*.cs" />
         <!-- But still show them in solution explorer -->
         <None Include="$(MSBuildThisFileDirectory)/Tests/**/__*.cs" />
+        <None Remove="Tests\Aspects\Bugs\.Bug828_OverrideFieldPseudoAccessors.t.cs.swp" />
+        <None Remove="Tests\Aspects\Bugs\.Bug828_IntroduceAttributeOnPseudoMember_Error.t.cs.swp" />
+        <None Remove="Tests\Aspects\Bugs\.Bug828_FieldPseudoAccessors.t.cs.swp" />
     </ItemGroup>
 
     <ItemGroup>

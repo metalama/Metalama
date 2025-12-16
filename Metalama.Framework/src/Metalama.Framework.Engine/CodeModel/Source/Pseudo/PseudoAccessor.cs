@@ -58,6 +58,8 @@ internal abstract class PseudoAccessor : IMethodImpl
     bool IDeclaration.IsImplicitlyDeclared => this.DeclaringMember.DeclarationKind != DeclarationKind.Field
         || this.DeclaringMember.IsImplicitlyDeclared;
 
+    public DeclarationImplementationKind ImplementationKind => DeclarationImplementationKind.Pseudo;
+
     public int Depth => this.GetDepthImpl();
 
     public bool IsGeneric => false;
@@ -200,9 +202,7 @@ internal abstract class PseudoAccessor : IMethodImpl
                 throw new NotSupportedException();
         }
     }
-
-    DeclarationImplementationKind IDeclarationImpl.ImplementationKind => DeclarationImplementationKind.Pseudo;
-
+    
     public ICompilationElement? Translate(
         CompilationModel newCompilation,
         IGenericContext? genericContext = null,
