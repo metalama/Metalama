@@ -545,38 +545,49 @@ internal sealed partial class LinkerRewritingDriver
     private bool ShouldGenerateSourceMember( ISymbol symbol ) => this.InjectionRegistry.IsOverrideTarget( symbol );
 
     /// <summary>
-    /// Removes all non-whitespace trivia (comments, pragmas, etc.) from the trivia list, keeping only
-    /// whitespace for indentation. Used when trivia from the original declaration is already preserved
-    /// in the inlined body (issue #838).
+    /// Gets only the indentation trivia (whitespace after the last line break) from a trivia list.
+    /// This ensures we preserve indentation without duplicating comments, pragmas, or line breaks
+    /// that are already in the inlined body (issue #838).
     /// </summary>
-    private static SyntaxTriviaList FilterNonWhitespaceTrivia( SyntaxTriviaList trivia )
+    private static SyntaxTriviaList GetIndentationTrivia( SyntaxTriviaList trivia )
     {
-        List<SyntaxTrivia>? result = null;
+        // Gets only the indentation trivia (whitespace after the last line break).
+        // This ensures we preserve indentation without duplicating comments, pragmas, or line breaks.
 
-        for ( var i = 0; i < trivia.Count; i++ )
+        // Find the last line break
+        int lastLineBreakIndex = -1;
+        for ( var i = trivia.Count - 1; i >= 0; i-- )
         {
-            var t = trivia[i];
-
-            if ( t.IsKind( SyntaxKind.WhitespaceTrivia ) || t.IsKind( SyntaxKind.EndOfLineTrivia ) )
+            if ( trivia[i].IsKind( SyntaxKind.EndOfLineTrivia ) )
             {
-                result?.Add( t );
-            }
-            else
-            {
-                // First non-whitespace trivia found - need to build a filtered list.
-                if ( result == null )
-                {
-                    result = new List<SyntaxTrivia>( trivia.Count );
-
-                    for ( var j = 0; j < i; j++ )
-                    {
-                        result.Add( trivia[j] );
-                    }
-                }
+                lastLineBreakIndex = i;
+                break;
             }
         }
 
-        return result != null ? new SyntaxTriviaList( result ) : trivia;
+        // If no line break found, there's no indentation to preserve
+        if ( lastLineBreakIndex == -1 )
+        {
+            return default(SyntaxTriviaList);
+        }
+
+        // Collect whitespace trivia after the last line break
+        var indentation = new List<SyntaxTrivia>();
+        for ( var i = lastLineBreakIndex + 1; i < trivia.Count; i++ )
+        {
+            var t = trivia[i];
+            if ( t.IsKind( SyntaxKind.WhitespaceTrivia ) )
+            {
+                indentation.Add( t );
+            }
+            else
+            {
+                // Stop at first non-whitespace
+                break;
+            }
+        }
+
+        return new SyntaxTriviaList( indentation );
     }
 
     public static string GetOriginalImplMemberName( ISymbol symbol ) => GetSpecialMemberName( symbol, "Source" );

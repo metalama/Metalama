@@ -201,8 +201,8 @@ namespace Metalama.Framework.Engine.Linking
                     accessorDeclaration switch
                     {
                         { Body: { OpenBraceToken: var openBraceToken, CloseBraceToken: var closeBraceToken } } =>
-                            (FilterNonWhitespaceTrivia( openBraceToken.LeadingTrivia ), openBraceToken.TrailingTrivia,
-                             closeBraceToken.LeadingTrivia, FilterNonWhitespaceTrivia( closeBraceToken.TrailingTrivia )),
+                            (GetIndentationTrivia( openBraceToken.LeadingTrivia ), openBraceToken.TrailingTrivia,
+                             closeBraceToken.LeadingTrivia, GetIndentationTrivia( closeBraceToken.TrailingTrivia )),
                         { ExpressionBody.ArrowToken: var arrowToken, SemicolonToken: var semicolonToken } =>
                             (arrowToken.LeadingTrivia.AddOptionalLineFeed( context ),
                              arrowToken.TrailingTrivia.AddOptionalLineFeed( context ),
