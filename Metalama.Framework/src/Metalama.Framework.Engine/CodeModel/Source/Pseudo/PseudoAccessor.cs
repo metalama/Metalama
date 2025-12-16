@@ -51,10 +51,13 @@ internal abstract class PseudoAccessor : IMethodImpl
     [Memo]
     public IReadOnlyList<IType> TypeArguments => ImmutableArray<IType>.Empty;
 
-    // Field pseudo accessors should NOT be implicitly declared because the accessor
-    // represents the field itself, which is explicitly declared. Property pseudo setters
-    // (for read-only auto-properties) ARE implicitly declared.
-    bool IDeclaration.IsImplicitlyDeclared => this.DeclaringMember.DeclarationKind != DeclarationKind.Field;
+    // Field pseudo accessors inherit IsImplicitlyDeclared from the field itself:
+    // - Explicit fields: false
+    // - Compiler-generated backing fields: true
+    // Property pseudo setters (for read-only auto-properties) ARE implicitly declared.
+    bool IDeclaration.IsImplicitlyDeclared => this.DeclaringMember.DeclarationKind == DeclarationKind.Field
+        ? this.DeclaringMember.IsImplicitlyDeclared
+        : true;
 
     public int Depth => this.GetDepthImpl();
 

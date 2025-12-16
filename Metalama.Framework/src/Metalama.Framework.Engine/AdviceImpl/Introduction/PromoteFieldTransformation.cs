@@ -52,7 +52,7 @@ internal sealed class PromoteFieldTransformation : IntroducePropertyTransformati
             IsStatic = replacedField.IsStatic,
             IsRequired = replacedField.IsRequired,
             IsNew = replacedField.IsNew,
-            HasNewKeyword = replacedFieldImpl.HasNewKeyword.AssertNotNull(),
+            HasNewKeyword = replacedFieldImpl.HasNewKeyword ?? false, // Null for pseudo accessors of compiler-generated members
             IsDesignTimeObservableOverride = false,
             OriginalField = replacedField,
             InitializerExpression = replacedField.InitializerExpression,

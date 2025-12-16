@@ -435,12 +435,15 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
         switch ( replacedDeclaration )
         {
             case ISymbolRef<IField> sourceField:
-                var fieldSyntaxReference =
-                    sourceField.Symbol.GetPrimarySyntaxReference()
-                    ?? throw new AssertionFailedException( $"The field '{sourceField}' does not have syntax." );
+                var fieldSyntaxReference = sourceField.Symbol.GetPrimarySyntaxReference();
 
-                var removedFieldSyntax = fieldSyntaxReference.GetSyntax();
-                transformationCollection.AddRemovedSyntax( removedFieldSyntax );
+                if ( fieldSyntaxReference != null )
+                {
+                    // Explicit fields have syntax that needs to be removed
+                    var removedFieldSyntax = fieldSyntaxReference.GetSyntax();
+                    transformationCollection.AddRemovedSyntax( removedFieldSyntax );
+                }
+                // else: Compiler-generated backing fields (e.g., for auto-properties) don't have syntax
 
                 break;
 

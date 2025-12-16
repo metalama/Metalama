@@ -17,7 +17,7 @@ internal abstract class MemberOrNamedTypeBuilderData : NamedDeclarationBuilderDa
         this.Accessibility = builder.Accessibility;
         this.IsSealed = builder.IsSealed;
         this.IsNew = builder.IsNew;
-        this.HasNewKeyword = builder.HasNewKeyword.AssertNotNull();
+        this.HasNewKeyword = builder.HasNewKeyword ?? false; // Null for pseudo accessors of compiler-generated members
         this.IsAbstract = builder.IsAbstract;
         this.IsStatic = builder.IsStatic;
         this.IsPartial = builder.IsPartial;
