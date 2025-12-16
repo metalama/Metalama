@@ -555,7 +555,7 @@ internal sealed partial class LinkerRewritingDriver
         // This ensures we preserve indentation without duplicating comments, pragmas, or line breaks.
 
         // Find the last line break
-        int lastLineBreakIndex = -1;
+        var lastLineBreakIndex = -1;
         for ( var i = trivia.Count - 1; i >= 0; i-- )
         {
             if ( trivia[i].IsKind( SyntaxKind.EndOfLineTrivia ) )
@@ -568,7 +568,7 @@ internal sealed partial class LinkerRewritingDriver
         // If no line break found, there's no indentation to preserve
         if ( lastLineBreakIndex == -1 )
         {
-            return default(SyntaxTriviaList);
+            return default;
         }
 
         // Collect whitespace trivia after the last line break
