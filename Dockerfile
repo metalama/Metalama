@@ -42,7 +42,6 @@ RUN Invoke-WebRequest -Uri https://github.com/PowerShell/PowerShell/releases/dow
     if ($process.ExitCode -ne 0) { exit $process.ExitCode }; `
     Remove-Item PowerShell.msi
 
-# Add PowerShell 7 to PATH using ENV directive (persists across shell switches)
 ENV PATH="C:\Program Files\PowerShell\7;${PATH}"
 
 
@@ -51,6 +50,8 @@ RUN Invoke-WebRequest -Uri https://aka.ms/installazurecliwindowsx64 -OutFile Azu
     $process = Start-Process msiexec.exe -Wait -PassThru -ArgumentList '/I AzureCLI.msi /quiet'; `
     if ($process.ExitCode -ne 0) { exit $process.ExitCode }; `
     Remove-Item AzureCLI.msi
+
+ENV PATH="C:\Program Files\Microsoft SDKs\Azure\CLI2\wbin;${PATH}"
 
 
 # Download .NET Installer

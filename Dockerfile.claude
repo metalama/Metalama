@@ -42,7 +42,6 @@ RUN Invoke-WebRequest -Uri https://github.com/PowerShell/PowerShell/releases/dow
     if ($process.ExitCode -ne 0) { exit $process.ExitCode }; `
     Remove-Item PowerShell.msi
 
-# Add PowerShell 7 to PATH using ENV directive (persists across shell switches)
 ENV PATH="C:\Program Files\PowerShell\7;${PATH}"
 
 
@@ -51,6 +50,8 @@ RUN Invoke-WebRequest -Uri https://aka.ms/installazurecliwindowsx64 -OutFile Azu
     $process = Start-Process msiexec.exe -Wait -PassThru -ArgumentList '/I AzureCLI.msi /quiet'; `
     if ($process.ExitCode -ne 0) { exit $process.ExitCode }; `
     Remove-Item AzureCLI.msi
+
+ENV PATH="C:\Program Files\Microsoft SDKs\Azure\CLI2\wbin;${PATH}"
 
 
 # Download .NET Installer
@@ -92,13 +93,11 @@ RUN New-Item -ItemType Directory -Path 'C:\Program Files (x86)\Microsoft Visual 
 
 
 # Install Node.js
-# Install Node.js 22.0.0 directly
 RUN Invoke-WebRequest -Uri "https://nodejs.org/dist/v22.0.0/node-v22.0.0-win-x64.zip" -OutFile node.zip; `
     Expand-Archive node.zip -DestinationPath C:\; `
     Rename-Item "C:\node-v22.0.0-win-x64" "C:\nodejs"; `
     Remove-Item node.zip
 
-# Add Node.js to PATH using ENV directive (persists across shell switches)
 ENV PATH="C:\nodejs;${PATH}"
 
 
@@ -108,7 +107,6 @@ RUN Invoke-WebRequest -Uri https://github.com/cli/cli/releases/download/v2.63.2/
     if ($process.ExitCode -ne 0) { exit $process.ExitCode }; `
     Remove-Item gh.msi
 
-# Add GitHub CLI to PATH using ENV directive (persists across shell switches)
 ENV PATH="C:\Program Files\GitHub CLI;${PATH}"
 
 
