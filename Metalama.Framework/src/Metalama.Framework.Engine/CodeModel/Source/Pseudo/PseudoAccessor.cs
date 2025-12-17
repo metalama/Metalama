@@ -55,8 +55,11 @@ internal abstract class PseudoAccessor : IMethodImpl
     // - Explicit fields: false
     // - Compiler-generated backing fields: true
     // Property pseudo setters (for read-only auto-properties) ARE implicitly declared.
-    bool IDeclaration.IsImplicitlyDeclared => this.DeclaringMember.DeclarationKind != DeclarationKind.Field
-        || this.DeclaringMember.IsImplicitlyDeclared;
+#pragma warning disable IDE0075 // Conditional expression is intentionally explicit for clarity
+    bool IDeclaration.IsImplicitlyDeclared => this.DeclaringMember.DeclarationKind == DeclarationKind.Field
+        ? this.DeclaringMember.IsImplicitlyDeclared
+        : true;
+#pragma warning restore IDE0075
 
     public DeclarationImplementationKind ImplementationKind => DeclarationImplementationKind.Pseudo;
 
