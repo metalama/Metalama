@@ -382,6 +382,32 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         }
     }
 
+    private static void ValidateAddAttributeTarget( IDeclaration declaration, AdviceKind adviceKind )
+    {
+        if ( declaration.ImplementationKind == DeclarationImplementationKind.Pseudo )
+        {
+            // Allow adding attributes to pseudo return parameters if the containing method is not pseudo.
+            // This is because return parameters are always pseudo, but they should be treated like regular
+            // parameters when the containing method is a real symbol.
+            if ( declaration is IParameter { IsReturnParameter: true } parameter )
+            {
+                var containingMethod = parameter.DeclaringMember;
+
+                if ( containingMethod?.ImplementationKind != DeclarationImplementationKind.Pseudo )
+                {
+                    // The return parameter is pseudo, but the containing method is not pseudo,
+                    // so we allow adding attributes.
+                    return;
+                }
+            }
+
+            throw new InvalidOperationException(
+                $"The {adviceKind} advice cannot be applied to pseudo member '{declaration}'. " +
+                "Pseudo members (such as field pseudo-accessors and their parameters) are synthetic declarations that represent implementation details. " +
+                "To modify field access behavior, use Override advice instead of IntroduceAttribute." );
+        }
+    }
+
     private static void ValidateNotExtensionBlock( IDeclaration declaration, string introduced )
     {
         if ( declaration.DeclarationKind == DeclarationKind.ExtensionBlock )
@@ -1558,6 +1584,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
 
         ValidateNotExtensionBlock( targetDeclaration, "an attribute" );
         ValidateNotExtensionBlockReceiver( targetDeclaration, "an attribute" );
+        ValidateAddAttributeTarget( targetDeclaration, AdviceKind.IntroduceAttribute );
 
         return new AddAttributeAdvice(
             this.GetAdviceConstructorParameters( targetDeclaration ),

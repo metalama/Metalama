@@ -50,9 +50,7 @@ internal sealed class DeserializedAttribute : IAttributeImpl
     SyntaxTree? IDeclarationImpl.PrimarySyntaxTree => null;
 
     IEnumerable<IDeclaration> IDeclarationImpl.GetDerivedDeclarations( DerivedTypesOptions options ) => [];
-
-    DeclarationImplementationKind IDeclarationImpl.ImplementationKind => DeclarationImplementationKind.DeserializedAttribute;
-
+    
     bool IEquatable<IDeclaration>.Equals( IDeclaration? other ) => throw new NotImplementedException();
 
     [Memo]
@@ -76,6 +74,8 @@ internal sealed class DeserializedAttribute : IAttributeImpl
     DeclarationKind ICompilationElement.DeclarationKind => DeclarationKind.Attribute;
 
     bool IDeclaration.IsImplicitlyDeclared => false;
+
+    DeclarationImplementationKind IDeclaration.ImplementationKind => DeclarationImplementationKind.DeserializedAttribute;
 
     int IDeclaration.Depth => this.ContainingDeclaration.Depth + 1;
 

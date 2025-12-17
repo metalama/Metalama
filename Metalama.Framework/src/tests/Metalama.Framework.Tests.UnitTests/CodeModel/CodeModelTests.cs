@@ -2479,4 +2479,69 @@ class C
             }
         }
     }
+
+    [Fact]
+    public void FieldPseudoAccessors_IsImplicitlyDeclared()
+    {
+        // This test addresses issue #828: Field pseudo accessors should have IsImplicitlyDeclared=false
+        // because the accessor represents the field itself, which is explicitly declared.
+        // NOTE: If this test is included in a PR for issue #838, the PR description should mention that it also fixes #828.
+
+        using var testContext = this.CreateTestContext();
+
+        const string code = """
+            class C
+            {
+                public int Field;
+                public readonly int ReadOnlyField;
+            }
+            """;
+
+        var compilation = testContext.CreateCompilationModel( code );
+        var type = compilation.Types.OfName( "C" ).Single();
+
+        // Field accessor should NOT be implicitly declared (they represent the field itself)
+        var field = type.Fields["Field"];
+        Assert.False( field.IsImplicitlyDeclared, "Field should not be implicitly declared" );
+        Assert.False( field.GetMethod!.IsImplicitlyDeclared, "Field getter should not be implicitly declared" );
+        Assert.False( field.SetMethod!.IsImplicitlyDeclared, "Field setter should not be implicitly declared" );
+
+        // ReadOnly field accessor should NOT be implicitly declared
+        var readOnlyField = type.Fields["ReadOnlyField"];
+        Assert.False( readOnlyField.IsImplicitlyDeclared, "ReadOnly field should not be implicitly declared" );
+        Assert.False( readOnlyField.GetMethod!.IsImplicitlyDeclared, "ReadOnly field getter should not be implicitly declared" );
+        Assert.False( readOnlyField.SetMethod!.IsImplicitlyDeclared, "ReadOnly field setter should not be implicitly declared" );
+    }
+
+    [Fact]
+    public void PropertyPseudoAccessors_IsImplicitlyDeclared()
+    {
+        // Contrast with field accessors: auto-property pseudo setters SHOULD be implicitly declared
+        // because they represent an accessor that the compiler generates, not the property itself.
+
+        using var testContext = this.CreateTestContext();
+
+        const string code = """
+            class C
+            {
+                public int Property { get; set; }
+                public int ReadOnlyAutoProperty { get; }
+            }
+            """;
+
+        var compilation = testContext.CreateCompilationModel( code );
+        var type = compilation.Types.OfName( "C" ).Single();
+
+        // Regular property accessors from source are not implicitly declared
+        var property = type.Properties["Property"];
+        Assert.False( property.IsImplicitlyDeclared, "Property should not be implicitly declared" );
+        Assert.False( property.GetMethod!.IsImplicitlyDeclared, "Property getter should not be implicitly declared" );
+        Assert.False( property.SetMethod!.IsImplicitlyDeclared, "Property setter should not be implicitly declared" );
+
+        // Read-only auto-property has a pseudo setter that IS implicitly declared
+        var readOnlyAutoProperty = type.Properties["ReadOnlyAutoProperty"];
+        Assert.False( readOnlyAutoProperty.IsImplicitlyDeclared, "ReadOnly auto-property should not be implicitly declared" );
+        Assert.False( readOnlyAutoProperty.GetMethod!.IsImplicitlyDeclared, "ReadOnly auto-property getter should not be implicitly declared" );
+        Assert.True( readOnlyAutoProperty.SetMethod!.IsImplicitlyDeclared, "ReadOnly auto-property pseudo setter SHOULD be implicitly declared" );
+    }
 }

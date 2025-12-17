@@ -98,7 +98,7 @@ internal sealed class PseudoReturnParameter : BaseDeclaration, IParameterImpl
 
     internal override GenericContext GenericContext => (GenericContext) this.ContainingDeclaration.GenericContext;
 
-    internal override DeclarationImplementationKind ImplementationKind => DeclarationImplementationKind.Pseudo;
+    public override DeclarationImplementationKind ImplementationKind => DeclarationImplementationKind.Pseudo;
 
     public IType Type => this._declaringMethod.ReturnType;
 

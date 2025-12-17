@@ -1,0 +1,11 @@
+{
+  "extraKnownMarketplaces": {
+    "postsharp-engineering": {
+      "source": "X:/src/PostSharp.Engineering.AISkills"
+    }
+  },
+  "enabledPlugins": [
+    "eng@postsharp-engineering",
+    "metalama-dev@postsharp-engineering"
+  ]
+}

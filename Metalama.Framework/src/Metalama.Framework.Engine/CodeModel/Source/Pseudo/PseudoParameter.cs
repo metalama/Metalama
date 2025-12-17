@@ -67,7 +67,7 @@ namespace Metalama.Framework.Engine.CodeModel.Source.Pseudo
 
         public override DeclarationKind DeclarationKind => DeclarationKind.Parameter;
 
-        public override bool IsImplicitlyDeclared => true;
+        public override bool IsImplicitlyDeclared => this.DeclaringAccessor.IsImplicitlyDeclared;
 
         public override CompilationModel Compilation => this.DeclaringAccessor.GetCompilationModel();
 
@@ -95,7 +95,7 @@ namespace Metalama.Framework.Engine.CodeModel.Source.Pseudo
 
         public override IEnumerable<IDeclaration> GetDerivedDeclarations( DerivedTypesOptions options = default ) => throw new NotImplementedException();
 
-        internal override DeclarationImplementationKind ImplementationKind => DeclarationImplementationKind.Pseudo;
+        public override DeclarationImplementationKind ImplementationKind => DeclarationImplementationKind.Pseudo;
 
         public override IAssembly DeclaringAssembly => this.DeclaringMember.DeclaringAssembly;
 

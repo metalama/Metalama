@@ -4,7 +4,6 @@
 
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.Collections;
-using Metalama.Framework.Engine.CodeModel.Abstractions;
 using Metalama.Framework.Engine.CodeModel.Collections;
 using Metalama.Framework.Engine.CodeModel.GenericContexts;
 using Metalama.Framework.Engine.CodeModel.Helpers;
@@ -140,5 +139,5 @@ internal abstract class IntroducedDeclaration : BaseDeclaration
         return this.BuilderData.ToFullRef().GetTarget( newCompilation, combinedGenericContext );
     }
 
-    internal sealed override DeclarationImplementationKind ImplementationKind => DeclarationImplementationKind.Introduced;
+    public sealed override DeclarationImplementationKind ImplementationKind => DeclarationImplementationKind.Introduced;
 }

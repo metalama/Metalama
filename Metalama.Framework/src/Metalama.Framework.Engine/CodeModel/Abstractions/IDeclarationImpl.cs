@@ -31,6 +31,4 @@ internal interface IDeclarationImpl : ISdkDeclaration, ICompilationElementImpl, 
     SyntaxTree? PrimarySyntaxTree { get; }
 
     IEnumerable<IDeclaration> GetDerivedDeclarations( DerivedTypesOptions options = default );
-
-    DeclarationImplementationKind ImplementationKind { get; }
 }
