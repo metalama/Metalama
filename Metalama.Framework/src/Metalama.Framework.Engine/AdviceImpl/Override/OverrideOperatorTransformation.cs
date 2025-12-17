@@ -89,7 +89,7 @@ internal sealed class OverrideOperatorTransformation : OverrideMemberTransformat
                 context.SyntaxGenerator.ReturnType( overriddenDeclaration )
                     .WithOptionalTrailingTrivia( ElasticSpace, context.SyntaxGenerationContext.Options ),
                 null,
-                Identifier(
+                SyntaxFactoryEx.SafeIdentifier(
                     context.InjectionNameProvider.GetOverrideName(
                         overriddenDeclaration.DeclaringType,
                         this.AspectLayerId,

@@ -116,11 +116,11 @@ internal sealed partial class SyntaxGeneratorForIType
             return SyntaxFactory.QualifiedName(
                 SyntaxFactory.AliasQualifiedName(
                     CreateGlobalIdentifier(),
-                    SyntaxFactory.IdentifierName( "System" ) ),
-                SyntaxFactory.IdentifierName( "Object" ) );
+                    SyntaxFactoryEx.WellKnownIdentifierName( "System" ) ),
+                SyntaxFactoryEx.WellKnownIdentifierName( "Object" ) );
         }
 
-        private static IdentifierNameSyntax CreateGlobalIdentifier() => SyntaxFactory.IdentifierName( SyntaxFactory.Token( SyntaxKind.GlobalKeyword ) );
+        private static IdentifierNameSyntax CreateGlobalIdentifier() => SyntaxFactoryEx.WellKnownIdentifierName( SyntaxFactory.Token( SyntaxKind.GlobalKeyword ) );
 
         private TypeSyntax? TryCreateSpecializedNamedTypeSyntax( INamedType type )
         {
@@ -210,7 +210,7 @@ internal sealed partial class SyntaxGeneratorForIType
 
                             if ( modelElement.HasFriendlyName )
                             {
-                                elementSyntax = SyntaxFactory.TupleElement( type, SyntaxFactory.Identifier( modelElement.Name ) )
+                                elementSyntax = SyntaxFactory.TupleElement( type, SyntaxFactoryEx.SafeIdentifier( modelElement.Name ) )
                                     .WithSimplifierAnnotationIfNecessary( this.SyntaxGenerator._generationOptions );
                             }
                             else

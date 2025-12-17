@@ -5,6 +5,7 @@
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.Invokers;
 using Metalama.Framework.CompileTimeContracts;
+using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.SyntaxSerialization;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -37,7 +38,7 @@ internal class TupleItemExpression : UserExpression
     protected override ExpressionSyntax ToSyntax( SyntaxSerializationContext syntaxSerializationContext, IType? targetType = null )
     {
         var instance = this._instance.ToTypedExpressionSyntax( syntaxSerializationContext );
-        var item = SyntaxFactory.IdentifierName( this._tupleType.TupleElements[this._index].Name );
+        var item = SyntaxFactoryEx.SafeIdentifierName( this._tupleType.TupleElements[this._index].Name );
 
         return (instance.ExpressionType?.IsNullable, this._options) switch
         {
@@ -52,7 +53,7 @@ internal class TupleItemExpression : UserExpression
                     SyntaxFactory.MemberAccessExpression(
                         SyntaxKind.SimpleMemberAccessExpression,
                         SyntaxFactory.PostfixUnaryExpression( SyntaxKind.SuppressNullableWarningExpression, instance.Syntax ),
-                        SyntaxFactory.IdentifierName( "Value" ) ),
+                        SyntaxFactoryEx.WellKnownIdentifierName( "Value" ) ),
                     item ),
 
             // Use instance.Value.Item
@@ -62,7 +63,7 @@ internal class TupleItemExpression : UserExpression
                     SyntaxFactory.MemberAccessExpression(
                         SyntaxKind.SimpleMemberAccessExpression,
                         instance.Syntax,
-                        SyntaxFactory.IdentifierName( "Value" ) ),
+                        SyntaxFactoryEx.WellKnownIdentifierName( "Value" ) ),
                     item ),
 
             // Default: use instance.Item

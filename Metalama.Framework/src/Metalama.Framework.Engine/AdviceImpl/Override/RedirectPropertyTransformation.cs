@@ -52,7 +52,7 @@ internal sealed class RedirectPropertyTransformation : OverrideMemberTransformat
                     context.SyntaxGenerator.PropertyType( overriddenDeclaration )
                         .WithOptionalTrailingTrivia( ElasticSpace, context.SyntaxGenerationContext.Options ),
                     null,
-                    Identifier(
+                    SyntaxFactoryEx.SafeIdentifier(
                         context.InjectionNameProvider.GetOverrideName(
                             overriddenDeclaration.DeclaringType,
                             this.AspectLayerId,
@@ -109,18 +109,18 @@ internal sealed class RedirectPropertyTransformation : OverrideMemberTransformat
                         AssignmentExpression(
                             SyntaxKind.SimpleAssignmentExpression,
                             CreateAccessTargetExpression(),
-                            IdentifierName( "value" ) ) ) );
+                            SyntaxFactoryEx.WellKnownIdentifierName( "value" ) ) ) );
         }
 
         ExpressionSyntax CreateAccessTargetExpression()
         {
             return
                 this._targetProperty.GetTarget( context.FinalCompilation ).IsStatic
-                    ? IdentifierName( this._targetProperty.Name.AssertNotNull() )
+                    ? SyntaxFactoryEx.SafeIdentifierName( this._targetProperty.Name.AssertNotNull() )
                     : MemberAccessExpression(
                             SyntaxKind.SimpleMemberAccessExpression,
                             ThisExpression(),
-                            IdentifierName( this._targetProperty.Name.AssertNotNull() ) )
+                            SyntaxFactoryEx.SafeIdentifierName( this._targetProperty.Name.AssertNotNull() ) )
                         .WithAspectReferenceAnnotation( this.AspectLayerId, AspectReferenceOrder.Previous );
         }
     }

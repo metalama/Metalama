@@ -50,7 +50,7 @@ internal abstract class EmptyPartialMemberSubstitution : SyntaxNodeSubstitution
         {
             return syntaxGenerator.FormattedBlock(
                     SyntaxFactoryEx.AssignmentStatement(
-                        IdentifierName( this._returnVariableIdentifier ),
+                        SyntaxFactoryEx.SafeIdentifierName( this._returnVariableIdentifier ),
                         SyntaxFactoryEx.Default,
                         substitutionContext.SyntaxGenerationContext ) )
                 .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock );

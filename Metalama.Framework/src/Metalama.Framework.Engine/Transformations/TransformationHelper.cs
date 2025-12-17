@@ -64,7 +64,7 @@ internal static class TransformationHelper
                 targetProperty,
                 AspectReferenceTargetKind.PropertySetAccessor,
                 syntaxGenerationContext.SyntaxGenerator ),
-            SyntaxFactory.IdentifierName( "value" ) );
+            SyntaxFactoryEx.WellKnownIdentifierName( "value" ) );
 
     public static ExpressionSyntax CreateIndexerProceedGetExpression(
         AspectReferenceSyntaxProvider aspectReferenceSyntaxProvider,
@@ -89,7 +89,7 @@ internal static class TransformationHelper
                 targetIndexer,
                 AspectReferenceTargetKind.PropertySetAccessor,
                 syntaxGenerationContext.SyntaxGenerator ),
-            SyntaxFactory.IdentifierName( "value" ) );
+            SyntaxFactoryEx.WellKnownIdentifierName( "value" ) );
 
     public static BracketedParameterListSyntax GetIndexerOverrideParameterList(
         CompilationModel compilation,

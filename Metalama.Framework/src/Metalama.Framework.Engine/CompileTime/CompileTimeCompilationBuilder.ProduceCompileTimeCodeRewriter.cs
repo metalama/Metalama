@@ -324,7 +324,7 @@ namespace Metalama.Framework.Engine.CompileTime
                                             // Rename the type and add [OriginalId].
 
                                             transformedChild = transformedChild
-                                                .WithIdentifier( Identifier( newName ) )
+                                                .WithIdentifier( SyntaxFactoryEx.WellKnownIdentifier( newName ) )
                                                 .WithModifiers( TokenList( Token( SyntaxKind.InternalKeyword ).WithTrailingTrivia( ElasticSpace ) ) )
                                                 .WithAttributeLists(
                                                     transformedChild.AttributeLists.Add( AttributeList( SingletonSeparatedList( originalNameAttribute ) ) ) );
@@ -569,7 +569,7 @@ namespace Metalama.Framework.Engine.CompileTime
                                         default,
                                         syntaxGenerator.TypeSyntax( method.ReturnType ),
                                         ExplicitInterfaceSpecifier( (NameSyntax) syntaxGenerator.TypeSyntax( implementedInterface ) ),
-                                        Identifier( method.Name ),
+                                        SyntaxFactoryEx.SafeIdentifier( method.Name ),
                                         default,
                                         ParameterList(
                                             SeparatedList(
@@ -578,7 +578,7 @@ namespace Metalama.Framework.Engine.CompileTime
                                                         default,
                                                         default,
                                                         syntaxGenerator.TypeSyntax( p.Type ),
-                                                        Identifier( p.Name ),
+                                                        SyntaxFactoryEx.SafeIdentifier( p.Name ),
                                                         default ) ) ) ),
                                         default,
                                         method.ReturnType.SpecialType == SpecialType.System_Void
@@ -1055,7 +1055,7 @@ namespace Metalama.Framework.Engine.CompileTime
                                                                     MemberAccessExpression(
                                                                         SyntaxKind.SimpleMemberAccessExpression,
                                                                         ThisExpression(),
-                                                                        IdentifierName( interfaceProperty.Name ) ) ),
+                                                                        SyntaxFactoryEx.SafeIdentifierName( interfaceProperty.Name ) ) ),
                                                                 Token( SyntaxKind.SemicolonToken ) )
                                                             : null,
                                                         AccessorDeclaration(
@@ -1070,8 +1070,8 @@ namespace Metalama.Framework.Engine.CompileTime
                                                                     MemberAccessExpression(
                                                                         SyntaxKind.SimpleMemberAccessExpression,
                                                                         ThisExpression(),
-                                                                        IdentifierName( interfaceProperty.Name ) ),
-                                                                    IdentifierName( "value" ) ) ),
+                                                                        SyntaxFactoryEx.SafeIdentifierName( interfaceProperty.Name ) ),
+                                                                    SyntaxFactoryEx.WellKnownIdentifierName( "value" ) ) ),
                                                             Token( SyntaxKind.SemicolonToken ) )
                                                     }.WhereNotNull() ) ) );
                                 }
@@ -1388,7 +1388,7 @@ namespace Metalama.Framework.Engine.CompileTime
 
                 if ( unnestedType != null && node.Identifier.Text == unnestedType.Name )
                 {
-                    return visitedConstructor.WithIdentifier( Identifier( this._currentContext.NestedTypeNewName! ) );
+                    return visitedConstructor.WithIdentifier( SyntaxFactoryEx.WellKnownIdentifier( this._currentContext.NestedTypeNewName! ) );
                 }
                 else
                 {
@@ -1561,13 +1561,13 @@ namespace Metalama.Framework.Engine.CompileTime
                 static NameSyntax RenameType( NameSyntax syntax, string newIdentifier, int nestingLevel )
                     => syntax switch
                     {
-                        AliasQualifiedNameSyntax aliasQualifiedNameSyntax => aliasQualifiedNameSyntax.WithName( IdentifierName( newIdentifier ) ),
+                        AliasQualifiedNameSyntax aliasQualifiedNameSyntax => aliasQualifiedNameSyntax.WithName( SyntaxFactoryEx.WellKnownIdentifierName( newIdentifier ) ),
                         QualifiedNameSyntax qualifiedNameSyntax when nestingLevel > 0 => RenameType(
                             qualifiedNameSyntax.Left,
                             newIdentifier,
                             nestingLevel - 1 ),
-                        QualifiedNameSyntax qualifiedNameSyntax when nestingLevel == 0 => qualifiedNameSyntax.WithRight( IdentifierName( newIdentifier ) ),
-                        SimpleNameSyntax => IdentifierName( newIdentifier ),
+                        QualifiedNameSyntax qualifiedNameSyntax when nestingLevel == 0 => qualifiedNameSyntax.WithRight( SyntaxFactoryEx.WellKnownIdentifierName( newIdentifier ) ),
+                        SimpleNameSyntax => SyntaxFactoryEx.WellKnownIdentifierName( newIdentifier ),
                         _ => throw new AssertionFailedException( $"Unexpected syntax kind {syntax.Kind()} at '{syntax.GetDiagnosticLocation()}'." )
                     };
 
@@ -1659,7 +1659,7 @@ namespace Metalama.Framework.Engine.CompileTime
                                     return MemberAccessExpression(
                                             SyntaxKind.SimpleMemberAccessExpression,
                                             this.CreateTypeSyntax( symbol.ContainingType ),
-                                            IdentifierName( node.Identifier.Text ) )
+                                            SyntaxFactoryEx.WellKnownIdentifierName( node.Identifier ) )
                                         .WithTriviaFrom( nodeWithoutPreprocessorDirectives );
                             }
 

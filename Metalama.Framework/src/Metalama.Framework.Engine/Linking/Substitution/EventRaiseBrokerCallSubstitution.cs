@@ -5,6 +5,8 @@
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Engine.SyntaxGeneration;
+using Metalama.Framework.Engine.Utilities.Roslyn;
 using Metalama.Framework.RunTime.Events;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -55,11 +57,12 @@ internal sealed class EventRaiseBrokerCallSubstitution : SyntaxNodeSubstitution
 
         var eventBrokerExpression =
             this._targetSemantic.Symbol.IsStatic
-                ? (ExpressionSyntax) IdentifierName( Identifier( TriviaList( leadingTrivia ), currentEventBrokerInfo.EventBrokerFieldName, TriviaList() ) )
+                ? (ExpressionSyntax) SyntaxFactoryEx.SafeIdentifierName( currentEventBrokerInfo.EventBrokerFieldName )
+                    .WithOptionalLeadingTrivia( leadingTrivia, substitutionContext.SyntaxGenerationContext )
                 : MemberAccessExpression(
                     SyntaxKind.SimpleMemberAccessExpression,
                     ThisExpression( Token( TriviaList( leadingTrivia ), SyntaxKind.ThisKeyword, TriviaList() ) ),
-                    IdentifierName( currentEventBrokerInfo.EventBrokerFieldName ) );
+                    SyntaxFactoryEx.SafeIdentifierName( currentEventBrokerInfo.EventBrokerFieldName ) );
 
         switch ( currentNode )
         {
@@ -89,7 +92,7 @@ internal sealed class EventRaiseBrokerCallSubstitution : SyntaxNodeSubstitution
                         MemberAccessExpression(
                             SyntaxKind.SimpleMemberAccessExpression,
                             eventBrokerExpression,
-                            IdentifierName( nameof(EventBroker<,,>.Invoke) ) ),
+                            SyntaxFactoryEx.SafeIdentifierName( nameof(EventBroker<,,>.Invoke) ) ),
                         ArgumentList(
                             Token( SyntaxKind.OpenParenToken ),
                             SingletonSeparatedList( Argument( TupleExpression( invokeArguments ) ) ),
@@ -106,7 +109,7 @@ internal sealed class EventRaiseBrokerCallSubstitution : SyntaxNodeSubstitution
                         MemberAccessExpression(
                             SyntaxKind.SimpleMemberAccessExpression,
                             eventBrokerExpression,
-                            IdentifierName( nameof(EventBroker<,,>.Invoke) ) ),
+                            SyntaxFactoryEx.SafeIdentifierName( nameof(EventBroker<,,>.Invoke) ) ),
                         ArgumentList(
                             Token( SyntaxKind.OpenParenToken ),
                             SingletonSeparatedList( Argument( TupleExpression( SeparatedList( arguments ) ) ) ),

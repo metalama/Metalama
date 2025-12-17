@@ -59,7 +59,7 @@ internal sealed class RedirectMethodTransformation : OverrideMemberTransformatio
                     context.SyntaxGenerator.ReturnType( overriddenDeclaration )
                         .WithOptionalTrailingTrivia( ElasticSpace, context.SyntaxGenerationContext.Options ),
                     null,
-                    Identifier(
+                    SyntaxFactoryEx.SafeIdentifier(
                         context.InjectionNameProvider.GetOverrideName(
                             overriddenDeclaration.DeclaringType,
                             this.AspectLayerId,
@@ -79,18 +79,18 @@ internal sealed class RedirectMethodTransformation : OverrideMemberTransformatio
             return
                 InvocationExpression(
                     GetInvocationTargetExpression(),
-                    ArgumentList( SeparatedList( overriddenDeclaration.Parameters.SelectAsReadOnlyList( p => Argument( IdentifierName( p.Name ) ) ) ) ) );
+                    ArgumentList( SeparatedList( overriddenDeclaration.Parameters.SelectAsReadOnlyList( p => Argument( SyntaxFactoryEx.SafeIdentifierName( p.Name ) ) ) ) ) );
         }
 
         ExpressionSyntax GetInvocationTargetExpression()
         {
             var expression =
                 overriddenDeclaration.IsStatic
-                    ? (ExpressionSyntax) IdentifierName( this._targetMethod.Name.AssertNotNull() )
+                    ? (ExpressionSyntax) SyntaxFactoryEx.SafeIdentifierName( this._targetMethod.Name.AssertNotNull() )
                     : MemberAccessExpression(
                         SyntaxKind.SimpleMemberAccessExpression,
                         ThisExpression(),
-                        IdentifierName( this._targetMethod.Name.AssertNotNull() ) );
+                        SyntaxFactoryEx.SafeIdentifierName( this._targetMethod.Name.AssertNotNull() ) );
 
             return expression
                 .WithAspectReferenceAnnotation( this.AspectLayerId, AspectReferenceOrder.Previous );

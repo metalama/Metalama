@@ -71,8 +71,9 @@ internal sealed class EventRaiseHandlerCallSubstitution : SyntaxNodeSubstitution
                         InvocationExpression(
                             MemberAccessExpression(
                                 SyntaxKind.SimpleMemberAccessExpression,
-                                IdentifierName( Identifier( TriviaList( leadingTrivia ), handlerName, TriviaList() ) ),
-                                IdentifierName( "Invoke" ) ),
+                                SyntaxFactoryEx.SafeIdentifierName( handlerName )
+                                    .WithOptionalLeadingTrivia( leadingTrivia, substitutionContext.SyntaxGenerationContext ),
+                                SyntaxFactoryEx.SafeIdentifierName( "Invoke" ) ),
                             ArgumentList(
                                 Token( SyntaxKind.OpenParenToken ),
                                 SeparatedList(
@@ -98,8 +99,8 @@ internal sealed class EventRaiseHandlerCallSubstitution : SyntaxNodeSubstitution
                                                 },
                                                 MemberAccessExpression(
                                                     SyntaxKind.SimpleMemberAccessExpression,
-                                                    IdentifierName( argsName ),
-                                                    IdentifierName( tupleElements[i].Name ) ) ) ) ),
+                                                    SyntaxFactoryEx.SafeIdentifierName( argsName ),
+                                                    SyntaxFactoryEx.SafeIdentifierName( tupleElements[i].Name ) ) ) ) ),
                                 Token( TriviaList(), SyntaxKind.CloseParenToken, TriviaList( trailingTrivia ) ) ) );
                 }
                 else
@@ -111,8 +112,9 @@ internal sealed class EventRaiseHandlerCallSubstitution : SyntaxNodeSubstitution
                         InvocationExpression(
                             MemberAccessExpression(
                                 SyntaxKind.SimpleMemberAccessExpression,
-                                IdentifierName( Identifier( TriviaList( leadingTrivia ), handlerName, TriviaList() ) ),
-                                IdentifierName( "Invoke" ) ),
+                                SyntaxFactoryEx.SafeIdentifierName( handlerName )
+                                    .WithOptionalLeadingTrivia( leadingTrivia, substitutionContext.SyntaxGenerationContext ),
+                                SyntaxFactoryEx.SafeIdentifierName( "Invoke" ) ),
                             ArgumentList(
                                 Token( SyntaxKind.OpenParenToken ),
                                 SeparatedList( invokeArguments ),

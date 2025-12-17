@@ -332,11 +332,11 @@ class TargetCode
                 AssertEx.DynamicEquals( property.Value, @"this.P" );
 
                 AssertEx.DynamicEquals(
-                    property.WithObject( SyntaxFactory.IdentifierName( "a" ) ).WithOptions( InvokerOptions.NullConditional ).Value,
+                    property.WithObject( SyntaxFactoryEx.SafeIdentifierName( "a" ) ).WithOptions( InvokerOptions.NullConditional ).Value,
                     @"((global::TargetCode)a)?.P" );
 
                 AssertEx.DynamicEquals(
-                    ((FieldOrPropertyInvoker) property.WithObject( SyntaxFactory.IdentifierName( "a" ) )).SetValue( SyntaxFactory.IdentifierName( "b" ) ),
+                    ((FieldOrPropertyInvoker) property.WithObject( SyntaxFactoryEx.SafeIdentifierName( "a" ) )).SetValue( SyntaxFactoryEx.SafeIdentifierName( "b" ) ),
                     @"((global::TargetCode)a).P = b" );
             }
         }
@@ -366,7 +366,7 @@ class TargetCode
                 AssertEx.DynamicEquals( property.Value, @"this.P" );
 
                 AssertEx.DynamicEquals(
-                    property.GetMethod!.WithObject( SyntaxFactory.IdentifierName( "a" ) ).WithOptions( InvokerOptions.NullConditional ).Invoke(),
+                    property.GetMethod!.WithObject( SyntaxFactoryEx.SafeIdentifierName( "a" ) ).WithOptions( InvokerOptions.NullConditional ).Invoke(),
                     @"((global::TargetCode)a)?.P" );
             }
         }
@@ -398,7 +398,7 @@ class TargetCode
                 var @event = type.Events.Single();
 
                 TypedExpressionSyntaxImpl parameterExpression = new(
-                    SyntaxFactory.IdentifierName( "value" ),
+                    SyntaxFactoryEx.SafeIdentifierName( "value" ),
                     syntaxSerializationContext.CompilationModel );
 
                 AssertEx.DynamicEquals( @event.Add( parameterExpression ), @"this.MyEvent += value" );
@@ -437,7 +437,7 @@ class TargetCode
                 var @event = type.Events.Single();
 
                 TypedExpressionSyntaxImpl parameterExpression = new(
-                    SyntaxFactory.IdentifierName( "value" ),
+                    SyntaxFactoryEx.SafeIdentifierName( "value" ),
                     syntaxSerializationContext.CompilationModel );
 
                 AssertEx.DynamicEquals(

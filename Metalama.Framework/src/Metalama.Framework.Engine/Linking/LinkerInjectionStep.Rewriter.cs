@@ -22,6 +22,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using static Metalama.Framework.Engine.SyntaxGeneration.SyntaxFactoryEx;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 using MethodKind = Metalama.Framework.Code.MethodKind;
 
@@ -826,7 +827,7 @@ internal sealed partial class LinkerInjectionStep
                                                                         ExpressionStatement(
                                                                             AssignmentExpression(
                                                                                 SyntaxKind.SimpleAssignmentExpression,
-                                                                                IdentifierName( declarator.Identifier.ValueText ),
+                                                                                WellKnownIdentifierName( declarator.Identifier ),
                                                                                 declarator.Initializer.AssertNotNull().Value ) ),
                                                                         s )
                                                                     .WithLinkerGeneratedFlags( LinkerGeneratedFlags.FlattenableBlock );

@@ -169,6 +169,10 @@ public static class SyntaxExtensions
         return node.WithLeadingTrivia( leadingTrivia );
     }
 
+    internal static TNode WithOptionalLeadingTrivia<TNode>( this TNode node, SyntaxTriviaList leadingTrivia, SyntaxGenerationContext context )
+        where TNode : SyntaxNode
+        => node.WithOptionalLeadingTrivia( leadingTrivia, context.Options );
+
     internal static TNode WithRequiredLeadingTrivia<TNode>( this TNode node, IEnumerable<SyntaxTrivia> leadingTrivia )
         where TNode : SyntaxNode
         => node.WithLeadingTrivia( TriviaList( leadingTrivia ) );
@@ -289,6 +293,10 @@ public static class SyntaxExtensions
         return node.WithTrailingTrivia( trailingTrivia );
     }
 
+    internal static TNode WithOptionalTrailingTrivia<TNode>( this TNode node, SyntaxTriviaList trailingTrivia, SyntaxGenerationContext context )
+        where TNode : SyntaxNode
+        => node.WithOptionalTrailingTrivia( trailingTrivia, context.Options );
+
     // Resharper disable once UnusedMember.Global
     internal static SyntaxToken WithOptionalTrailingTrivia( this SyntaxToken token, SyntaxTriviaList trailingTrivia, SyntaxGenerationOptions options )
     {
@@ -343,6 +351,10 @@ public static class SyntaxExtensions
     internal static TNode WithTriviaFromIfNecessary<TNode>( this TNode node, SyntaxNode fromNode, SyntaxGenerationOptions options )
         where TNode : SyntaxNode
         => node.WithOptionalTrivia( fromNode.GetLeadingTrivia(), fromNode.GetTrailingTrivia(), options );
+
+    internal static TNode WithTriviaFromIfNecessary<TNode>( this TNode node, SyntaxNode fromNode, SyntaxGenerationContext context )
+        where TNode : SyntaxNode
+        => node.WithTriviaFromIfNecessary( fromNode, context.Options );
 
     internal static bool ShouldBePreserved( this SyntaxTriviaList trivia, SyntaxGenerationOptions options )
         => options.TriviaMatters || trivia.ContainsDirectives();

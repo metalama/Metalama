@@ -179,7 +179,7 @@ internal static class AdviceSyntaxGenerator
 
             var initializerName = context.InjectionNameProvider.GetInitializerName( member.DeclaringType, aspectLayerInstance.AspectLayerId, member );
 
-            initializerExpressionSyntax = InvocationExpression( IdentifierName( initializerName ) );
+            initializerExpressionSyntax = InvocationExpression( SyntaxFactoryEx.SafeIdentifierName( initializerName ) );
 
             initializerMethodSyntax =
                 MethodDeclaration(
@@ -190,7 +190,7 @@ internal static class AdviceSyntaxGenerator
                     context.SyntaxGenerator.TypeSyntax( targetType )
                         .WithOptionalTrailingTrivia( ElasticSpace, context.SyntaxGenerationContext.Options ),
                     null,
-                    Identifier( initializerName ),
+                    SyntaxFactoryEx.SafeIdentifier( initializerName ),
                     null,
                     ParameterList(),
                     List<TypeParameterConstraintClauseSyntax>(),

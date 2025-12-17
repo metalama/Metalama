@@ -151,7 +151,7 @@ internal sealed class IntroduceMethodTransformation : IntroduceMemberTransformat
                             context.SyntaxGenerator.ReturnType( finalMethod )
                                 .WithOptionalTrailingTrivia( ElasticSpace, context.SyntaxGenerationContext.Options ),
                             explicitInterfaceSpecifier,
-                            Identifier( finalMethod.GetCleanName() ),
+                            SyntaxFactoryEx.SafeIdentifier( finalMethod.GetCleanName() ),
                             context.SyntaxGenerator.TypeParameterList( finalMethod, context.FinalCompilation ),
                             context.SyntaxGenerator.ParameterList( finalMethod, context.FinalCompilation ),
                             context.SyntaxGenerator.ConstraintClauses( finalMethod ),

@@ -104,7 +104,7 @@ namespace Metalama.Framework.Engine.Linking.Inlining
                     LocalDeclarationStatement(
                             VariableDeclaration(
                                 syntaxGenerationContext.SyntaxGenerator.TypeSyntax( specification.DestinationSemantic.Symbol.ReturnType ),
-                                SingletonSeparatedList( VariableDeclarator( Identifier( specification.ReturnVariableIdentifier.AssertNotNull() ) ) ) ) )
+                                SingletonSeparatedList( VariableDeclarator( SyntaxFactoryEx.SafeIdentifier( specification.ReturnVariableIdentifier.AssertNotNull() ) ) ) ) )
                         .NormalizeWhitespaceIfNecessary( syntaxGenerationContext )
                         .WithOptionalTrailingLineFeed( syntaxGenerationContext ),
                     linkedTargetBody )

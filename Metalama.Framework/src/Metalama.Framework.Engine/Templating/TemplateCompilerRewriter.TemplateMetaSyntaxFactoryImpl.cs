@@ -24,7 +24,7 @@ namespace Metalama.Framework.Engine.Templating
 
             public TemplateMetaSyntaxFactoryImpl( string templateSyntaxFactoryIdentifier )
             {
-                this._templateSyntaxFactoryIdentifier = SyntaxFactory.IdentifierName( templateSyntaxFactoryIdentifier );
+                this._templateSyntaxFactoryIdentifier = SyntaxFactoryEx.WellKnownIdentifierName( templateSyntaxFactoryIdentifier );
             }
 
             /// <summary>
@@ -37,13 +37,13 @@ namespace Metalama.Framework.Engine.Templating
                 => SyntaxFactory.MemberAccessExpression(
                     SyntaxKind.SimpleMemberAccessExpression,
                     this._templateSyntaxFactoryIdentifier,
-                    SyntaxFactory.IdentifierName( name ) );
+                    SyntaxFactoryEx.WellKnownIdentifierName( name ) );
 
             public MemberAccessExpressionSyntax GenericTemplateSyntaxFactoryMember( string name, params TypeSyntax[] genericParameters )
                 => SyntaxFactory.MemberAccessExpression(
                     SyntaxKind.SimpleMemberAccessExpression,
                     this._templateSyntaxFactoryIdentifier,
-                    SyntaxFactory.GenericName( SyntaxFactory.Identifier( name ) )
+                    SyntaxFactory.GenericName( SyntaxFactoryEx.WellKnownIdentifier( name ) )
                         .WithTypeArgumentList( SyntaxFactory.TypeArgumentList( SyntaxFactory.SeparatedList( genericParameters ) ) ) );
 
             /// <summary>

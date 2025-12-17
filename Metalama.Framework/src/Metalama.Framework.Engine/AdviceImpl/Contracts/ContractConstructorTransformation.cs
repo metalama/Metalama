@@ -7,11 +7,11 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Advising;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel.References;
+using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.Transformations;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
-using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace Metalama.Framework.Engine.AdviceImpl.Contracts;
 
@@ -48,7 +48,7 @@ internal sealed class ContractConstructorTransformation : ContractBaseTransforma
 
                     bool? inputResult, outputResult;
                     BlockSyntax? inputContractBlock, outputContractBlock;
-                    var valueSyntax = IdentifierName( param.Name );
+                    var valueSyntax = SyntaxFactoryEx.SafeIdentifierName( param.Name );
 
                     if ( this.ContractDirection is ContractDirection.Input or ContractDirection.Both )
                     {

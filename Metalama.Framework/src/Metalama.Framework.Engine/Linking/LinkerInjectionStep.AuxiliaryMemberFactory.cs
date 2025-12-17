@@ -81,7 +81,7 @@ internal sealed partial class LinkerInjectionStep
                         List<AttributeListSyntax>(),
                         TokenList(),
                         this._injectionNameProvider.GetSourceType(),
-                        Identifier( AspectReferenceSyntaxProvider.LinkerOverrideParamName ),
+                        WellKnownIdentifier( AspectReferenceSyntaxProvider.LinkerOverrideParamName ),
                         EqualsValueClause(
                             LiteralExpression(
                                 SyntaxKind.DefaultLiteralExpression,
@@ -91,7 +91,7 @@ internal sealed partial class LinkerInjectionStep
                 List<AttributeListSyntax>(),
                 constructor.Definition.GetSyntaxModifierList( ModifierCategories.Unsafe )
                     .Insert( 0, TokenWithTrailingSpace( SyntaxKind.PrivateKeyword ) ),
-                Identifier( constructor.DeclaringType.AssertNotNull().Name.AssertNotNull() ),
+                SyntaxFactoryEx.SafeIdentifier( constructor.DeclaringType.AssertNotNull().Name.AssertNotNull() ),
                 parameters,
                 ConstructorInitializer(
                     SyntaxKind.ThisConstructorInitializer,
@@ -102,7 +102,7 @@ internal sealed partial class LinkerInjectionStep
                                     Argument(
                                         null,
                                         p.Modifiers.FirstOrDefault( m => !m.IsKind( SyntaxKind.ParamsKeyword ) ),
-                                        IdentifierName( p.Identifier.ValueText ) ) ) ) ) ),
+                                        SyntaxFactoryEx.WellKnownIdentifierName( p.Identifier ) ) ) ) ) ),
                 Block(),
                 null,
                 default );
@@ -154,7 +154,7 @@ internal sealed partial class LinkerInjectionStep
                     ProceedHelper.CreateMemberAccessExpression( method, aspectLayerId, AspectReferenceTargetKind.Self, syntaxGenerationContext ),
                     ArgumentList(
                         SeparatedList(
-                            method.Parameters.SelectAsReadOnlyList( p => Argument( null, p.RefKind.InvocationRefKindToken(), IdentifierName( p.Name ) ) ) ) ) );
+                            method.Parameters.SelectAsReadOnlyList( p => Argument( null, p.RefKind.InvocationRefKindToken(), SyntaxFactoryEx.SafeIdentifierName( p.Name ) ) ) ) ) );
 
             var (useStateMachine, emulatedTemplateKind) = (returnVariableName != null, asyncInfo, iteratorInfo) switch
             {
@@ -216,7 +216,7 @@ internal sealed partial class LinkerInjectionStep
 
                     body = Block(
                         CreateLocalVariableDeclaration( returnVariableName ),
-                        CreateEnumerableEpilogue( returnItemName, IdentifierName( returnVariableName ) ) );
+                        CreateEnumerableEpilogue( returnItemName, SafeIdentifierName( returnVariableName ) ) );
                 }
                 else if ( iteratorInfo.EnumerableKind is EnumerableKind.IEnumerator or EnumerableKind.UntypedIEnumerator
                          or EnumerableKind.IAsyncEnumerator )
@@ -231,10 +231,10 @@ internal sealed partial class LinkerInjectionStep
                                 VarIdentifier(),
                                 SingletonSeparatedList(
                                     VariableDeclarator(
-                                        Identifier( returnVariableName ),
+                                        SafeIdentifier( returnVariableName ),
                                         null,
-                                        EqualsValueClause( IdentifierName( bufferedEnumeratorName ) ) ) ) ) ),
-                        CreateEnumeratorEpilogue( IdentifierName( bufferedEnumeratorName ) ) );
+                                        EqualsValueClause( SafeIdentifierName( bufferedEnumeratorName ) ) ) ) ) ),
+                        CreateEnumeratorEpilogue( SafeIdentifierName( bufferedEnumeratorName ) ) );
                 }
                 else
                 {
@@ -242,7 +242,7 @@ internal sealed partial class LinkerInjectionStep
                         CreateLocalVariableDeclaration( returnVariableName ),
                         ReturnStatement(
                             TokenWithTrailingSpace( SyntaxKind.ReturnKeyword ),
-                            IdentifierName( returnVariableName ),
+                            SafeIdentifierName( returnVariableName ),
                             Token( SyntaxKind.SemicolonToken ) ) );
                 }
 
@@ -253,7 +253,7 @@ internal sealed partial class LinkerInjectionStep
                             VarIdentifier(),
                             SingletonSeparatedList(
                                 VariableDeclarator(
-                                    Identifier( variableName ),
+                                    SafeIdentifier( variableName ),
                                     null,
                                     EqualsValueClause( proceedExpression ) ) ) ) );
                 }
@@ -278,7 +278,7 @@ internal sealed partial class LinkerInjectionStep
                 modifiers,
                 returnType.WithOptionalTrailingTrivia( ElasticSpace, syntaxGenerationContext.Options ),
                 null,
-                Identifier( this._injectionNameProvider.GetOverrideName( method.DeclaringType, aspectLayerId, method ) ),
+                SafeIdentifier( this._injectionNameProvider.GetOverrideName( method.DeclaringType, aspectLayerId, method ) ),
                 syntaxGenerationContext.SyntaxGenerator.TypeParameterList( method, this._finalCompilationModel ),
                 syntaxGenerationContext.SyntaxGenerator.ParameterList( method, this._finalCompilationModel, true ),
                 syntaxGenerationContext.SyntaxGenerator.ConstraintClauses( method ),
@@ -296,7 +296,7 @@ internal sealed partial class LinkerInjectionStep
                         Token( SyntaxKind.ForEachKeyword ),
                         Token( SyntaxKind.OpenParenToken ),
                         VarIdentifier(),
-                        Identifier( itemName ),
+                        SafeIdentifier( itemName ),
                         Token( TriviaList( ElasticSpace ), SyntaxKind.InKeyword, TriviaList( ElasticSpace ) ),
                         enumerableExpression,
                         Token( SyntaxKind.CloseParenToken ),
@@ -305,7 +305,7 @@ internal sealed partial class LinkerInjectionStep
                                 SyntaxKind.YieldReturnStatement,
                                 Token( TriviaList(), SyntaxKind.YieldKeyword, TriviaList( ElasticSpace ) ),
                                 Token( TriviaList(), SyntaxKind.ReturnKeyword, TriviaList( ElasticSpace ) ),
-                                IdentifierName( itemName ),
+                                SafeIdentifierName( itemName ),
                                 Token( SyntaxKind.SemicolonToken ) ) ) );
             }
 
@@ -371,7 +371,7 @@ internal sealed partial class LinkerInjectionStep
                                     VarIdentifier(),
                                     SingletonSeparatedList(
                                         VariableDeclarator(
-                                            Identifier( returnVariableName ),
+                                            SafeIdentifier( returnVariableName ),
                                             null,
                                             EqualsValueClause(
                                                 this._aspectReferenceSyntaxProvider.GetPropertyReference(
@@ -381,7 +381,7 @@ internal sealed partial class LinkerInjectionStep
                                                     syntaxGenerationContext.SyntaxGenerator ) ) ) ) ) ),
                             ReturnStatement(
                                 TokenWithTrailingSpace( SyntaxKind.ReturnKeyword ),
-                                IdentifierName( returnVariableName ),
+                                SafeIdentifierName( returnVariableName ),
                                 Token( SyntaxKind.SemicolonToken ) ) )
                         : Block(
                             ReturnStatement(
@@ -427,7 +427,7 @@ internal sealed partial class LinkerInjectionStep
                     syntaxGenerationContext.SyntaxGenerator.PropertyType( property )
                         .WithOptionalTrailingTrivia( ElasticSpace, syntaxGenerationContext.Options ),
                     null,
-                    Identifier( this._injectionNameProvider.GetOverrideName( property.DeclaringType, aspectLayerId, property ) ),
+                    SafeIdentifier( this._injectionNameProvider.GetOverrideName( property.DeclaringType, aspectLayerId, property ) ),
                     AccessorList(
                         List(
                             new[]
@@ -484,7 +484,7 @@ internal sealed partial class LinkerInjectionStep
                                     VarIdentifier(),
                                     SingletonSeparatedList(
                                         VariableDeclarator(
-                                            Identifier( returnVariableName ),
+                                            SafeIdentifier( returnVariableName ),
                                             null,
                                             EqualsValueClause(
                                                 this._aspectReferenceSyntaxProvider.GetIndexerReference(
@@ -494,7 +494,7 @@ internal sealed partial class LinkerInjectionStep
                                                     syntaxGenerationContext.SyntaxGenerator ) ) ) ) ) ),
                             ReturnStatement(
                                 TokenWithTrailingSpace( SyntaxKind.ReturnKeyword ),
-                                IdentifierName( returnVariableName ),
+                                SafeIdentifierName( returnVariableName ),
                                 Token( SyntaxKind.SemicolonToken ) ) )
                         : Block(
                             ReturnStatement(

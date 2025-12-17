@@ -11,6 +11,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Generic;
+using static Metalama.Framework.Engine.SyntaxGeneration.SyntaxFactoryEx;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace Metalama.Framework.Engine.Linking
@@ -164,7 +165,7 @@ namespace Metalama.Framework.Engine.Linking
                     modifiers,
                     @operator.Type.WithOptionalTrailingTrivia( ElasticSpace, this.SyntaxGenerationOptions ),
                     null,
-                    Identifier( name ),
+                    WellKnownIdentifier( name ),
                     null,
                     this.FilterAttributesOnSpecialImpl(
                         symbol.Parameters,
@@ -193,7 +194,7 @@ namespace Metalama.Framework.Engine.Linking
             {
                 var invocation =
                     InvocationExpression(
-                        IdentifierName( targetSymbol.Name ),
+                        SyntaxFactoryEx.SafeIdentifierName( targetSymbol.Name ),
                         ArgumentList() );
 
                 return context.SyntaxGenerator.FormattedBlock(

@@ -129,13 +129,13 @@ internal sealed class LinkerInjectionHelperProvider
 
         return MemberAccessExpression(
             SyntaxKind.SimpleMemberAccessExpression,
-            IdentifierName( HelperTypeName ),
+            SyntaxFactoryEx.WellKnownIdentifierName( HelperTypeName ),
             GenericName(
-                Identifier( operatorData.MemberName ),
+                SyntaxFactoryEx.SafeIdentifier( operatorData.MemberName ),
                 TypeArgumentList( SeparatedList( typeParameters ) ) ) );
     }
 
-    public TypeSyntax GetSourceType() => QualifiedName( IdentifierName( HelperTypeName ), IdentifierName( _sourceCodeTypeName ) );
+    public TypeSyntax GetSourceType() => QualifiedName( SyntaxFactoryEx.WellKnownIdentifierName( HelperTypeName ), SyntaxFactoryEx.WellKnownIdentifierName( _sourceCodeTypeName ) );
 
     public TypeSyntax GetOverriddenByType( SyntaxGenerationContext context, IAspectClass aspectType, int ordinal )
         => this.GetNumberedHelperType( context, _overriddenByTypeName, "override", aspectType, ordinal );
@@ -157,17 +157,17 @@ internal sealed class LinkerInjectionHelperProvider
             case 0:
                 return
                     QualifiedName(
-                        IdentifierName( HelperTypeName ),
+                        SyntaxFactoryEx.WellKnownIdentifierName( HelperTypeName ),
                         GenericName(
-                            Identifier( baseTypeName ),
+                            SyntaxFactoryEx.WellKnownIdentifier( baseTypeName ),
                             TypeArgumentList( SingletonSeparatedList( aspectTypeSyntax ) ) ) );
 
             default:
                 return
                     QualifiedName(
-                        IdentifierName( HelperTypeName ),
+                        SyntaxFactoryEx.WellKnownIdentifierName( HelperTypeName ),
                         GenericName(
-                            Identifier( baseTypeName ),
+                            SyntaxFactoryEx.WellKnownIdentifier( baseTypeName ),
                             TypeArgumentList( SeparatedList( [aspectTypeSyntax, GetOrdinalTypeArgument( aspectType.ShortName, description, ordinal )] ) ) ) );
         }
     }
@@ -182,25 +182,25 @@ internal sealed class LinkerInjectionHelperProvider
             case < 10:
                 return
                     QualifiedName(
-                        IdentifierName( HelperTypeName ),
-                        IdentifierName( _ordinalTypeName + ordinal ) );
+                        SyntaxFactoryEx.WellKnownIdentifierName( HelperTypeName ),
+                        SyntaxFactoryEx.WellKnownIdentifierName( _ordinalTypeName + ordinal ) );
 
             case < 100:
                 return
                     QualifiedName(
-                        IdentifierName( HelperTypeName ),
+                        SyntaxFactoryEx.WellKnownIdentifierName( HelperTypeName ),
                         GenericName(
-                            Identifier( _compositeOrdinalTypeName ),
+                            SyntaxFactoryEx.WellKnownIdentifier( _compositeOrdinalTypeName ),
                             TypeArgumentList(
                                 SeparatedList<TypeSyntax>(
                                     new[]
                                     {
                                         QualifiedName(
-                                            IdentifierName( HelperTypeName ),
-                                            IdentifierName( _ordinalTypeName + (ordinal / 10) ) ),
+                                            SyntaxFactoryEx.WellKnownIdentifierName( HelperTypeName ),
+                                            SyntaxFactoryEx.WellKnownIdentifierName( _ordinalTypeName + (ordinal / 10) ) ),
                                         QualifiedName(
-                                            IdentifierName( HelperTypeName ),
-                                            IdentifierName( _ordinalTypeName + (ordinal % 10) ) )
+                                            SyntaxFactoryEx.WellKnownIdentifierName( HelperTypeName ),
+                                            SyntaxFactoryEx.WellKnownIdentifierName( _ordinalTypeName + (ordinal % 10) ) )
                                     } ) ) ) );
 
             default:

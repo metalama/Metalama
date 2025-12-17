@@ -8,6 +8,7 @@ using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.Formatting;
+using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.Transformations;
 using Microsoft.CodeAnalysis.CSharp;
 using System;
@@ -33,7 +34,7 @@ internal sealed class IntroduceStaticConstructorTransformation : IntroduceMember
             ConstructorDeclaration(
                 AdviceSyntaxGenerator.GetAttributeLists( constructorBuilder, context ),
                 TokenList( Token( TriviaList(), SyntaxKind.StaticKeyword, TriviaList( Space ) ) ),
-                Identifier( constructorBuilder.DeclaringType.Name ),
+                SyntaxFactoryEx.SafeIdentifier( constructorBuilder.DeclaringType.Name ),
                 ParameterList(),
                 null,
                 context.SyntaxGenerator.FormattedBlock().WithGeneratedCodeAnnotation( this.AspectInstance.AspectClass.GeneratedCodeAnnotation ),

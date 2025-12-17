@@ -45,6 +45,6 @@ internal sealed partial class SyntaxGeneratorForIType
         }
 
         protected static IdentifierNameSyntax ToIdentifierName( string identifier )
-            => (IdentifierNameSyntax) RoslynSyntaxGenerator.IdentifierName( identifier );
+            => SyntaxFactoryEx.SafeIdentifierName( identifier );
     }
 }

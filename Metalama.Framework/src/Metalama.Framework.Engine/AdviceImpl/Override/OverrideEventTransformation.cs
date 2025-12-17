@@ -129,7 +129,7 @@ internal sealed class OverrideEventTransformation : OverrideMemberTransformation
                     context.SyntaxGenerator.EventType( overriddenDeclaration )
                         .WithOptionalTrailingTrivia( ElasticSpace, context.SyntaxGenerationContext.Options ),
                     null!,
-                    Identifier( eventName ),
+                    SyntaxFactoryEx.SafeIdentifier( eventName ),
                     AccessorList(
                         List(
                         [
@@ -161,7 +161,7 @@ internal sealed class OverrideEventTransformation : OverrideMemberTransformation
                         modifiers,
                         context.SyntaxGenerator.TypeSyntax( eventHandlerInvokeMethod.ReturnType ),
                         null,
-                        Identifier(
+                        SyntaxFactoryEx.SafeIdentifier(
                             TriviaList( ElasticSpace ),
                             context.InjectionNameProvider.GetRaiseOverrideName(
                                 overriddenDeclaration.DeclaringType,
@@ -176,13 +176,13 @@ internal sealed class OverrideEventTransformation : OverrideMemberTransformation
                                     List<AttributeListSyntax>(),
                                     TokenList(),
                                     context.SyntaxGenerator.TypeSyntax( overriddenDeclaration.Type ),
-                                    Identifier( TriviaList( ElasticSpace ), "handler", TriviaList() ),
+                                    SyntaxFactoryEx.WellKnownIdentifier( TriviaList( ElasticSpace ), "handler", TriviaList() ),
                                     null ),
                                 Parameter(
                                     List<AttributeListSyntax>(),
                                     TokenList( Token( default, SyntaxKind.RefKeyword, SyntaxFactoryEx.ElasticSpaceTriviaList ) ),
                                     context.SyntaxGenerator.TypeSyntax( argsType ),
-                                    Identifier( TriviaList( ElasticSpace ), "args", TriviaList() ),
+                                    SyntaxFactoryEx.WellKnownIdentifier( TriviaList( ElasticSpace ), "args", TriviaList() ),
                                     null )
                             ] ) ),
                         List<TypeParameterConstraintClauseSyntax>(),
@@ -309,13 +309,13 @@ internal sealed class OverrideEventTransformation : OverrideMemberTransformation
         => AssignmentExpression(
             SyntaxKind.AddAssignmentExpression,
             this.CreateMemberAccessExpression( AspectReferenceTargetKind.EventAddAccessor, context ),
-            IdentifierName( "value" ) );
+            SyntaxFactoryEx.WellKnownIdentifierName( "value" ) );
 
     private ExpressionSyntax CreateRemoveExpression( MemberInjectionContext context )
         => AssignmentExpression(
             SyntaxKind.SubtractAssignmentExpression,
             this.CreateMemberAccessExpression( AspectReferenceTargetKind.EventRemoveAccessor, context ),
-            IdentifierName( "value" ) );
+            SyntaxFactoryEx.WellKnownIdentifierName( "value" ) );
 
     private ExpressionSyntax CreateInvokeExpression( MemberInjectionContext context )
     {

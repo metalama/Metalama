@@ -57,9 +57,9 @@ internal sealed class LinkerAspectReferenceSyntaxProvider : AspectReferenceSynta
                                         .SelectAsArray(
                                             p =>
                                                 Argument(
-                                                    NameColon( IdentifierName( p.Name ) ),
+                                                    NameColon( SyntaxFactoryEx.SafeIdentifierName( p.Name ) ),
                                                     p.RefKind.InvocationRefKindToken(),
-                                                    IdentifierName( p.Name ) ) ) ) ),
+                                                    SyntaxFactoryEx.SafeIdentifierName( p.Name ) ) ) ) ),
                             null ) ) ) ) );
 
     public override ExpressionSyntax GetEventRaiseReference(
@@ -149,7 +149,7 @@ internal sealed class LinkerAspectReferenceSyntaxProvider : AspectReferenceSynta
                             p => Argument(
                                 null,
                                 p.RefKind.InvocationRefKindToken(),
-                                IdentifierName( p.Name ) ) ) ) ) )
+                                SyntaxFactoryEx.SafeIdentifierName( p.Name ) ) ) ) ) )
             .WithAspectReferenceAnnotation(
                 aspectLayer,
                 AspectReferenceOrder.Previous,
@@ -178,7 +178,7 @@ internal sealed class LinkerAspectReferenceSyntaxProvider : AspectReferenceSynta
             arguments.Add( Argument( ThisExpression() ) );
         }
 
-        arguments.AddRange( targetOperator.Parameters.SelectAsReadOnlyCollection( p => Argument( IdentifierName( p.Name ) ) ) );
+        arguments.AddRange( targetOperator.Parameters.SelectAsReadOnlyCollection( p => Argument( SyntaxFactoryEx.SafeIdentifierName( p.Name ) ) ) );
 
         var invocationExpression = InvocationExpression(
             helperMember,
@@ -231,11 +231,11 @@ internal sealed class LinkerAspectReferenceSyntaxProvider : AspectReferenceSynta
         {
             memberName = GenericName( memberNameString )
                 .WithTypeArgumentList(
-                    TypeArgumentList( SeparatedList( generic.TypeParameters.SelectAsReadOnlyList( p => (TypeSyntax) IdentifierName( p.Name ) ) ) ) );
+                    TypeArgumentList( SeparatedList( generic.TypeParameters.SelectAsReadOnlyList( p => (TypeSyntax) SyntaxFactoryEx.SafeIdentifierName( p.Name ) ) ) ) );
         }
         else
         {
-            memberName = IdentifierName( memberNameString );
+            memberName = SyntaxFactoryEx.SafeIdentifierName( memberNameString );
         }
 
         if ( !targetDeclaration.IsStatic )

@@ -440,13 +440,13 @@ internal sealed partial class TemplateExpansionContext : UserCodeExecutionContex
 
         var forEach = ForEachStatement(
                 SyntaxFactoryEx.VarIdentifier(),
-                Identifier( resultItem ),
+                SyntaxFactoryEx.WellKnownIdentifier( resultItem ),
                 returnExpression,
                 Block(
                     SingletonList<StatementSyntax>(
                         YieldStatement(
                             SyntaxKind.YieldReturnStatement,
-                            IdentifierName( resultItem ) ) ) ) )
+                            SyntaxFactoryEx.WellKnownIdentifierName( resultItem ) ) ) ) )
             .WithAwaitKeyword( Token( SyntaxKind.AwaitKeyword ) );
 
         return Block( forEach, CreateYieldBreakStatement() ).WithFlattenBlockAnnotation();
@@ -497,11 +497,11 @@ internal sealed partial class TemplateExpansionContext : UserCodeExecutionContex
             local = VariableDeclaration( SyntaxFactoryEx.VarIdentifier() )
                 .WithVariables(
                     SingletonSeparatedList(
-                        VariableDeclarator( Identifier( enumerator ) )
+                        VariableDeclarator( SyntaxFactoryEx.WellKnownIdentifier( enumerator ) )
                             .WithInitializer( EqualsValueClause( returnExpression ) ) ) );
 
             usingExpression = null;
-            enumeratorIdentifier = IdentifierName( enumerator );
+            enumeratorIdentifier = SyntaxFactoryEx.WellKnownIdentifierName( enumerator );
         }
 
         var whileStatement = WhileStatement(

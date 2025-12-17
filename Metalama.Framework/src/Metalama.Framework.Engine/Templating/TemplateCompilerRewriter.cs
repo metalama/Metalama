@@ -151,7 +151,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
 
         this.DeclareMetaVariable( symbol.Name, metaVariableIdentifier );
 
-        return IdentifierName( metaVariableIdentifier );
+        return SyntaxFactoryEx.WellKnownIdentifierName( metaVariableIdentifier );
     }
 
     private IdentifierNameSyntax ReserveRunTimeVariableName( string name )
@@ -160,7 +160,9 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
 
         this.DeclareMetaVariable( name, metaVariableIdentifier );
 
+#pragma warning disable LAMA0850 // Intentional use: metaVariableIdentifier is a well-known generated identifier
         return IdentifierName( metaVariableIdentifier.AddMetaVariableAnnotation() );
+#pragma warning restore LAMA0850
     }
 
     private void DeclareMetaVariable( string hint, SyntaxToken metaVariableIdentifier )
@@ -404,12 +406,16 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
                     this._currentMetaContext.AddRunTimeSymbolLocal( identifierSymbol!, declaredSymbolNameLocal );
                 }
 
+#pragma warning disable LAMA0850 // Intentional use: declaredSymbolNameLocal is a well-known generated identifier
                 return InvocationExpression( this._templateMetaSyntaxFactory.TemplateSyntaxFactoryMember( nameof(ITemplateSyntaxFactory.EscapeIdentifier) ) )
-                    .AddArgumentListArguments( Argument( IdentifierName( declaredSymbolNameLocal ) ) );
+                    .AddArgumentListArguments( Argument( IdentifierName( declaredSymbolNameLocal.Text ) ) );
+#pragma warning restore LAMA0850
             }
             else if ( token.HasMetaVariableAnnotation() )
             {
+#pragma warning disable LAMA0850 // Intentional use: passing SyntaxToken
                 return IdentifierName( token );
+#pragma warning restore LAMA0850
             }
             else
             {
@@ -490,6 +496,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
                 // In templates, T? turns into e.g. int?.
 
                 // T.Type.IsNullable == true
+#pragma warning disable LAMA0850 // Intentional use: identifier.Identifier is a SyntaxToken, nameof() is well-known
                 var isNullableType = BinaryExpression(
                     SyntaxKind.EqualsExpression,
                     MemberAccessExpression(
@@ -500,6 +507,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
                             IdentifierName( nameof(TemplateTypeArgument.Type) ) ),
                         IdentifierName( nameof(IType.IsNullable) ) ),
                     SyntaxFactoryEx.LiteralExpression( true ) );
+#pragma warning restore LAMA0850
 
                 return ConditionalExpression( isNullableType, this.Transform( node.ElementType ), base.TransformNullableType( node ) );
             }
@@ -529,7 +537,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
                 // Some identifier names must be escaped when used in a different context than the template.
                 return this.MetaSyntaxFactory.IdentifierName(
                     InvocationExpression( this._templateMetaSyntaxFactory.TemplateSyntaxFactoryMember( nameof(ITemplateSyntaxFactory.EscapeIdentifier) ) )
-                        .AddArgumentListArguments( Argument( IdentifierName( declaredSymbolNameLocal ) ) ) );
+                        .AddArgumentListArguments( Argument( SyntaxFactoryEx.WellKnownIdentifierName( declaredSymbolNameLocal ) ) ) );
             }
             else if ( identifierSymbol is IParameterSymbol parameterSymbol
                       && SymbolEqualityComparer.Default.Equals( parameterSymbol.ContainingSymbol, this._rootTemplateSymbol ) )
@@ -576,7 +584,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
                             MemberAccessExpression(
                                 SyntaxKind.SimpleMemberAccessExpression,
                                 transformedArgument,
-                                IdentifierName( "WithNameColon" ) ) )
+                                SyntaxFactoryEx.WellKnownIdentifierName( "WithNameColon" ) ) )
                         .WithArgumentList( ArgumentList( SingletonSeparatedList( Argument( transformedNameColon ) ) ) );
             }
 
@@ -697,7 +705,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
         }
         else if ( symbol is ITypeParameterSymbol typeParameter && this._templateMemberClassifier.IsCompileTimeTemplateTypeParameter( typeParameter ) )
         {
-            return MemberAccessExpression( SyntaxKind.SimpleMemberAccessExpression, expression, IdentifierName( nameof(TemplateTypeArgument.Syntax) ) );
+            return MemberAccessExpression( SyntaxKind.SimpleMemberAccessExpression, expression, SyntaxFactoryEx.WellKnownIdentifierName( nameof(TemplateTypeArgument.Syntax) ) );
         }
 
         // A local function that wraps the input `expression` into a LiteralExpression.
@@ -843,8 +851,8 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
                                                                 Literal( name ) ) ) ) ) ),
                                         MemberAccessExpression(
                                             SyntaxKind.SimpleMemberAccessExpression,
-                                            IdentifierName( name ),
-                                            IdentifierName( propertyName ) ) ) ) ) ) )
+                                            SyntaxFactoryEx.SafeIdentifierName( name ),
+                                            SyntaxFactoryEx.WellKnownIdentifierName( propertyName ) ) ) ) ) ) )
                 .NormalizeWhitespace();
         }
     }
@@ -1064,7 +1072,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
                 {
                     // since expression references a parameter, we can just call ToString() on it
                     return InvocationExpression(
-                        MemberAccessExpression( SyntaxKind.SimpleMemberAccessExpression, expression, IdentifierName( nameof(this.ToString) ) ) );
+                        MemberAccessExpression( SyntaxKind.SimpleMemberAccessExpression, expression, SyntaxFactoryEx.WellKnownIdentifierName( nameof(this.ToString) ) ) );
                 }
             }
 
@@ -1131,7 +1139,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
                 {
                     var arguments = new List<ArgumentSyntax>
                     {
-                        Argument( IdentifierName( this._currentMetaContext.AssertNotNull().StatementListVariableName ) )
+                        Argument( SyntaxFactoryEx.WellKnownIdentifierName( this._currentMetaContext.AssertNotNull().StatementListVariableName ) )
                     };
 
                     arguments.AddRange( node.ArgumentList.Arguments.SelectAsReadOnlyList( a => Argument( (ExpressionSyntax) this.Visit( a.Expression )! ) ) );
@@ -1232,7 +1240,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
 
                     this._currentMetaContext.Statements.Add( variableDeclaration );
 
-                    receiver = IdentifierName( variableIdentifier );
+                    receiver = SyntaxFactoryEx.WellKnownIdentifierName( variableIdentifier );
                 }
 
                 if ( name is GenericNameSyntax genericName )
@@ -1266,8 +1274,8 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
 
                 ExpressionSyntax compiledTemplateExpression =
                     receiver == null
-                        ? IdentifierName( compiledTemplateName )
-                        : MemberAccessExpression( SyntaxKind.SimpleMemberAccessExpression, receiver, IdentifierName( compiledTemplateName ) );
+                        ? SyntaxFactoryEx.WellKnownIdentifierName( compiledTemplateName )
+                        : MemberAccessExpression( SyntaxKind.SimpleMemberAccessExpression, receiver, SyntaxFactoryEx.WellKnownIdentifierName( compiledTemplateName ) );
 
                 var templateProviderExpression = symbol.IsStatic switch
                 {
@@ -1434,7 +1442,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
     {
         var addStatementStatement = ExpressionStatement(
             InvocationExpression( this._templateMetaSyntaxFactory.TemplateSyntaxFactoryMember( templateSyntaxFactoryMemberName ) )
-                .AddArgumentListArguments( Argument( IdentifierName( this._currentMetaContext!.StatementListVariableName ) ) )
+                .AddArgumentListArguments( Argument( SyntaxFactoryEx.WellKnownIdentifierName( this._currentMetaContext!.StatementListVariableName ) ) )
                 .AddArgumentListArguments( arguments ) );
 
         addStatementStatement = this.DeepIndent(
@@ -1461,7 +1469,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
     }
 
     private ParameterSyntax CreateTemplateSyntaxFactoryParameter()
-        => Parameter( default, default, this._templateSyntaxFactoryType, Identifier( _templateSyntaxFactoryParameterName ), null );
+        => Parameter( default, default, this._templateSyntaxFactoryType, SyntaxFactoryEx.WellKnownIdentifier( _templateSyntaxFactoryParameterName ), null );
 
     public override SyntaxNode VisitMethodDeclaration( MethodDeclarationSyntax node )
     {
@@ -1507,7 +1515,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
                         ExpressionStatement(
                             AssignmentExpression(
                                 SyntaxKind.CoalesceAssignmentExpression,
-                                IdentifierName( parameter.Identifier ),
+                                SyntaxFactoryEx.WellKnownIdentifierName( parameter.Identifier ),
                                 this.TransformExpression( parameter.Default.AssertNotNull().Value ) ) ) );
 
                     templateOptionalParameters.Add( templateParameter );
@@ -1621,7 +1629,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
             : new[]
             {
                 this.CreateTemplateSyntaxFactoryParameter(),
-                Parameter( default, default, SyntaxFactoryEx.ExpressionSyntaxType, Identifier( "value" ), null )
+                Parameter( default, default, SyntaxFactoryEx.ExpressionSyntaxType, SyntaxFactoryEx.WellKnownIdentifier( "value" ), null )
             };
 
         // Create the method.
@@ -1692,7 +1700,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
         SyntaxToken[]? accessibilityModifiers = null )
         => MethodDeclaration(
                 this.MetaSyntaxFactory.Type( typeof(SyntaxNode) ).WithTrailingTrivia( Space ),
-                Identifier( this._templateName ) )
+                SyntaxFactoryEx.WellKnownIdentifier( this._templateName ) )
             .AddParameterListParameters( parameters ?? [this.CreateTemplateSyntaxFactoryParameter()] )
             .WithModifiers( this.DetermineModifiers( accessibilityModifiers ) )
             .NormalizeWhitespace()
@@ -1886,7 +1894,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
                         VariableDeclaration( listType )
                             .WithVariables(
                                 SingletonSeparatedList(
-                                    VariableDeclarator( Identifier( this._currentMetaContext.StatementListVariableName ) )
+                                    VariableDeclarator( SyntaxFactoryEx.WellKnownIdentifier( this._currentMetaContext.StatementListVariableName ) )
                                         .WithInitializer( EqualsValueClause( ObjectCreationExpression( listType, ArgumentList(), default ) ) ) ) ) )
                     .NormalizeWhitespace()
                     .WithLeadingTrivia( this.GetIndentation() )
@@ -1907,7 +1915,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
                             VariableDeclaration( this._templateSyntaxFactoryType )
                                 .WithVariables(
                                     SingletonSeparatedList(
-                                        VariableDeclarator( Identifier( _templateSyntaxFactoryLocalName ) )
+                                        VariableDeclarator( SyntaxFactoryEx.WellKnownIdentifier( _templateSyntaxFactoryLocalName ) )
                                             .WithInitializer(
                                                 EqualsValueClause(
                                                     InvocationExpression(
@@ -1936,7 +1944,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
             // TemplateSyntaxFactory.ToStatementList( __s1 )
             var toArrayStatementExpression = InvocationExpression(
                 this._templateMetaSyntaxFactory.TemplateSyntaxFactoryMember( nameof(ITemplateSyntaxFactory.ToStatementList) ),
-                ArgumentList( SingletonSeparatedList( Argument( IdentifierName( this._currentMetaContext.StatementListVariableName ) ) ) ) );
+                ArgumentList( SingletonSeparatedList( Argument( SyntaxFactoryEx.WellKnownIdentifierName( this._currentMetaContext.StatementListVariableName ) ) ) ) );
 
             if ( generateExpression )
             {
@@ -2088,7 +2096,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
                                         ArgumentList(
                                             SeparatedList(
                                             [
-                                                Argument( IdentifierName( this._currentMetaContext!.StatementListVariableName ) ),
+                                                Argument( SyntaxFactoryEx.WellKnownIdentifierName( this._currentMetaContext!.StatementListVariableName ) ),
                                                 Argument( expressionSyntax )
                                             ] ) ) ) ) );
 
@@ -2536,10 +2544,12 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
                 // parameter.
                 else if ( this._templateCompileTimeTypeParameterNames.Contains( node.Identifier.ValueText ) )
                 {
+#pragma warning disable LAMA0850 // Intentional use: node.Identifier is a SyntaxToken, nameof() is well-known
                     return MemberAccessExpression(
                         SyntaxKind.SimpleMemberAccessExpression,
                         IdentifierName( node.Identifier ),
                         IdentifierName( nameof(TemplateTypeArgument.Syntax) ) );
+#pragma warning restore LAMA0850
                 }
             }
             else
@@ -2834,7 +2844,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
                     MemberAccessExpression(
                         SyntaxKind.SimpleMemberAccessExpression,
                         runtimeExpressionInvocation,
-                        IdentifierName( nameof(TypedExpressionSyntax.ToUserExpression) ) ),
+                        SyntaxFactoryEx.WellKnownIdentifierName( nameof(TypedExpressionSyntax.ToUserExpression) ) ),
                     ArgumentList(
                         SingletonSeparatedList(
                             Argument( this._templateMetaSyntaxFactory.TemplateSyntaxFactoryMember( nameof(ITemplateSyntaxFactory.Compilation) ) ) ) ) );

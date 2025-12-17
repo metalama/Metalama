@@ -11,6 +11,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Generic;
+using static Metalama.Framework.Engine.SyntaxGeneration.SyntaxFactoryEx;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace Metalama.Framework.Engine.Linking
@@ -165,7 +166,7 @@ namespace Metalama.Framework.Engine.Linking
                         modifiers,
                         PredefinedType( SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.VoidKeyword ) ),
                         null,
-                        Identifier( name ),
+                        WellKnownIdentifier( name ),
                         null,
                         destructor.ParameterList.WithOptionalTrailingTrivia( default(SyntaxTriviaList), this.SyntaxGenerationOptions ),
                         List<TypeParameterConstraintClauseSyntax>(),
@@ -191,7 +192,7 @@ namespace Metalama.Framework.Engine.Linking
             {
                 var invocation =
                     InvocationExpression(
-                        MemberAccessExpression( SyntaxKind.SimpleMemberAccessExpression, ThisExpression(), IdentifierName( targetSymbol.Name ) )
+                        MemberAccessExpression( SyntaxKind.SimpleMemberAccessExpression, ThisExpression(), SyntaxFactoryEx.SafeIdentifierName( targetSymbol.Name ) )
                             .WithSimplifierAnnotationIfNecessary( context ),
                         ArgumentList() );
 

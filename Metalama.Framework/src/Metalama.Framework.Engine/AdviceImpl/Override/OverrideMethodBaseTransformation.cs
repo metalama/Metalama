@@ -84,7 +84,7 @@ internal abstract class OverrideMethodBaseTransformation : OverrideMemberTransfo
             modifiers,
             returnType.WithOptionalTrailingTrivia( ElasticSpace, context.SyntaxGenerationContext.Options ),
             null,
-            Identifier(
+            SyntaxFactoryEx.SafeIdentifier(
                 context.InjectionNameProvider.GetOverrideName(
                     overriddenDeclaration.DeclaringType,
                     this.AspectLayerId,
@@ -118,7 +118,7 @@ internal abstract class OverrideMethodBaseTransformation : OverrideMemberTransfo
                     ArgumentList(
                         SeparatedList(
                             overriddenDeclaration.Parameters.SelectAsReadOnlyList(
-                                p => Argument( null, p.RefKind.InvocationRefKindToken(), IdentifierName( p.Name ) ) ) ) ) ),
+                                p => Argument( null, p.RefKind.InvocationRefKindToken(), SyntaxFactoryEx.SafeIdentifierName( p.Name ) ) ) ) ) ),
             MethodKind.Finalizer =>
                 context.AspectReferenceSyntaxProvider.AssertNotNull().GetFinalizerReference( this.AspectLayerId ),
             MethodKind.Operator =>

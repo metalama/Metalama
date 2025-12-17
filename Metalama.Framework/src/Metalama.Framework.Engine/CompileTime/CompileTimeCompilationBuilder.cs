@@ -684,11 +684,11 @@ internal sealed partial class CompileTimeCompilationBuilder
         static NameSyntax ParseNamespace( string ns )
         {
             var parts = ns.Split( '.' );
-            NameSyntax result = SyntaxFactory.IdentifierName( parts[0] );
+            NameSyntax result = SyntaxFactoryEx.SafeIdentifierName( parts[0] );
 
             for ( var i = 1; i < parts.Length; i++ )
             {
-                result = SyntaxFactory.QualifiedName( result, SyntaxFactory.IdentifierName( parts[i] ) );
+                result = SyntaxFactory.QualifiedName( result, SyntaxFactoryEx.SafeIdentifierName( parts[i] ) );
             }
 
             return result;

@@ -6,6 +6,7 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Code.Invokers;
 using Metalama.Framework.CompileTimeContracts;
 using Metalama.Framework.Engine.Aspects;
+using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.SyntaxSerialization;
 using Metalama.Framework.Engine.Templating.Expressions;
 using Metalama.Framework.Engine.Utilities.Roslyn;
@@ -32,7 +33,7 @@ internal class FieldOrPropertyInvoker : Invoker<IFieldOrProperty>, IFieldOrPrope
 
         var receiverInfo = this.GetReceiverInfo( context );
 
-        var name = IdentifierName( this.GetCleanTargetMemberName() );
+        var name = SyntaxFactoryEx.SafeIdentifierName( this.GetCleanTargetMemberName() );
 
         var receiverSyntax = receiverInfo.GetReceiverSyntax( this.Member, context );
 

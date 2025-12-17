@@ -5,10 +5,10 @@
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.Collections;
 using Metalama.Framework.Engine.CodeModel.Collections;
+using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.SyntaxSerialization;
 using Metalama.Framework.Engine.Templating.Expressions;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Linq;
 using SpecialType = Microsoft.CodeAnalysis.SpecialType;
@@ -33,7 +33,7 @@ internal sealed class ValueArrayExpression : UserExpression
             this._parent.SelectAsReadOnlyList(
                 p =>
                     p.RefKind.IsReadable()
-                        ? SyntaxFactory.IdentifierName( p.Name )
+                        ? SyntaxFactoryEx.SafeIdentifierName( p.Name )
                         : (SyntaxNode) syntaxGenerator.DefaultExpression( p.Type ) ) );
     }
 

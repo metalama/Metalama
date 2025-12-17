@@ -45,8 +45,8 @@ internal sealed class PropertyImplicitAccessorSubstitution : SyntaxNodeSubstitut
                             ExpressionStatement(
                                 AssignmentExpression(
                                     SyntaxKind.SimpleAssignmentExpression,
-                                    IdentifierName( targetName ),
-                                    IdentifierName( "value" ) ) ) )
+                                    SyntaxFactoryEx.WellKnownIdentifierName( targetName ),
+                                    SyntaxFactoryEx.WellKnownIdentifierName( "value" ) ) ) )
                         .WithTriviaFromIfNecessary( accessorDeclaration, substitutionContext.SyntaxGenerationContext.Options );
 
             case AccessorDeclarationSyntax { RawKind: (int) SyntaxKind.GetAccessorDeclaration, Body: null, ExpressionBody: null } accessorDeclaration:
@@ -55,7 +55,7 @@ internal sealed class PropertyImplicitAccessorSubstitution : SyntaxNodeSubstitut
                     Block(
                             ReturnStatement(
                                 SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.ReturnKeyword ),
-                                IdentifierName( targetName ),
+                                SyntaxFactoryEx.WellKnownIdentifierName( targetName ),
                                 Token( SyntaxKind.SemicolonToken ) ) )
                         .WithTriviaFromIfNecessary( accessorDeclaration, substitutionContext.SyntaxGenerationContext.Options );
 

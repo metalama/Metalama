@@ -42,3 +42,27 @@ Custom immutable DI (not MEDI). Core types in `Metalama.Framework.Sdk/Services/`
 - Never require a service as a method parameter - report complex problems for user to study
 - Register in `ServiceProviderFactory`, test with `AdditionalServiceCollection`
 
+## Working on GitHub Issues
+
+When starting work on a GitHub issue:
+1. Read all details about the issue online
+2. Check conceptual documentation under `../Metalama.Documentation/content`
+3. Create a branch: `topic/YYYY.N/XXXX-short-description`
+4. Check CLAUDE-TODO.md before preparing PR
+5. Create issues promptly when discovering bugs during development
+
+## Debugging Build Issues
+
+1. **Check troubleshooting files**: Look at `%TEMP%\Metalama\CompileTimeTroubleshooting\...\errors.txt` for actual errors
+2. **File locks**: After failed builds, run `Build.ps1 tools kill` before retrying
+3. **Trace data flow**: For MSBuild issues, trace from `.csproj` → `.targets` → Engine code
+4. **Cross-solution changes**: Ask user to run `Build.ps1 build` early rather than discovering issues incrementally
+- When working on an issue creat a file called <Isse-number>-TODO.md to track progress.
+- don't include *-TODO.md in commits
+- After the user does a full build sing `Build.ps1 build`, the msbuild binlogs are under artifacts/logs
+- when you start working on an issue, mark the status as In Progress and make sure it is assigned to me
+- in tests never use hardcoded delays, always use other sync mechanims such as barriers, taskcompletionsource, sync points
+- Never await without cancellation token - ever
+- Github comments and issues and PRs must be signed by CLaude - not commits. No ad link, just signature.
+- don't loose time solving cosmetic warnings (such as redundant usings) until the finalizing stage of a commit
+- `Build.ps1 build` does not build test projects, only packable projects.

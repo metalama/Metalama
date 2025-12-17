@@ -5,6 +5,7 @@
 #if ROSLYN_5_0_0_OR_GREATER
 
 using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Engine.SyntaxGeneration;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
@@ -36,8 +37,10 @@ internal sealed class PropertyBackingFieldReferenceSubstitution : SyntaxNodeSubs
         {
             case FieldExpressionSyntax fieldExpression:
                 // Replacing the direct invocation.
-                return IdentifierName(
-                    Identifier( TriviaList( fieldExpression.Token.LeadingTrivia ), targetName, TriviaList( fieldExpression.Token.TrailingTrivia ) ) );
+                return SyntaxFactoryEx.WellKnownIdentifierName(
+                    TriviaList( fieldExpression.Token.LeadingTrivia ),
+                    targetName,
+                    TriviaList( fieldExpression.Token.TrailingTrivia ) );
 
             default:
                 throw new AssertionFailedException( $"Unsupported syntax: {currentNode}" );

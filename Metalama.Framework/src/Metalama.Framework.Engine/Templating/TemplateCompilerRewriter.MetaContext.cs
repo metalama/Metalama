@@ -2,8 +2,8 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Engine.SyntaxGeneration;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -131,7 +131,7 @@ namespace Metalama.Framework.Engine.Templating
                 else
                 {
                     var name = this._templateUniqueNames.GetUniqueIdentifier( symbol.Name + "Name" );
-                    value = SyntaxFactory.Identifier( name );
+                    value = SyntaxFactoryEx.WellKnownIdentifier( name );
                     this._templateCodeSymbolNameLocals.Add( symbol, value );
 
                     return value;
@@ -142,14 +142,14 @@ namespace Metalama.Framework.Engine.Templating
             {
                 var name = this._templateUniqueNames.GetUniqueIdentifier( hint + "Name" );
 
-                return SyntaxFactory.Identifier( name );
+                return SyntaxFactoryEx.WellKnownIdentifier( name );
             }
 
             public SyntaxToken GetVariable( string hint )
             {
                 var name = this._templateUniqueNames.GetUniqueIdentifier( hint );
 
-                return SyntaxFactory.Identifier( name );
+                return SyntaxFactoryEx.WellKnownIdentifier( name );
             }
         }
     }

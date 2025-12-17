@@ -295,13 +295,13 @@ public sealed partial class ContextualSyntaxGenerator
 
                     constraints.Add(
                         TypeConstraint(
-                            SyntaxFactory.IdentifierName( Identifier( default, SyntaxKind.UnmanagedKeyword, "unmanaged", "unmanaged", default ) ) ) );
+                            SyntaxFactoryEx.WellKnownIdentifierName( "unmanaged" ) ) );
 
                     break;
 
                 case TypeKindConstraint.NotNull:
                     constraints ??= [];
-                    constraints.Add( TypeConstraint( SyntaxFactory.IdentifierName( "notnull" ) ) );
+                    constraints.Add( TypeConstraint( SyntaxFactoryEx.WellKnownIdentifierName( "notnull" ) ) );
 
                     break;
 
@@ -347,7 +347,7 @@ public sealed partial class ContextualSyntaxGenerator
                 clauses.Add(
                     TypeParameterConstraintClause(
                         TokenWithTrailingSpace( SyntaxKind.WhereKeyword ),
-                        SyntaxFactory.IdentifierName( genericParameter.Name ),
+                        SyntaxFactoryEx.SafeIdentifierName( genericParameter.Name ),
                         Token( SyntaxKind.ColonToken ),
                         SeparatedList( constraints ) ) );
             }
@@ -937,7 +937,7 @@ public sealed partial class ContextualSyntaxGenerator
             this.AttributesForDeclaration( parameter.ToFullRef(), compilation ),
             parameter.GetSyntaxModifierList(),
             this.TypeSyntax( parameter.Type ).WithOptionalTrailingTrivia( ElasticSpace, this.Options ),
-            Identifier( parameter.Name ),
+            SyntaxFactoryEx.SafeIdentifier( parameter.Name ),
             equalsValueClause );
     }
 
@@ -958,7 +958,7 @@ public sealed partial class ContextualSyntaxGenerator
 
             if ( parameter.HasNotNullConstraint )
             {
-                constraints = constraints.Add( TypeConstraint( SyntaxFactory.IdentifierName( "notnull" ) ) );
+                constraints = constraints.Add( TypeConstraint( SyntaxFactoryEx.WellKnownIdentifierName( "notnull" ) ) );
             }
             else if ( parameter.HasReferenceTypeConstraint )
             {
@@ -974,13 +974,7 @@ public sealed partial class ContextualSyntaxGenerator
                 {
                     constraints = constraints.Add(
                         TypeConstraint(
-                            SyntaxFactory.IdentifierName(
-                                Identifier(
-                                    default,
-                                    SyntaxKind.UnmanagedKeyword,
-                                    "unmanaged",
-                                    "unmanaged",
-                                    default ) ) ) );
+                            SyntaxFactoryEx.WellKnownIdentifierName( "unmanaged" ) ) );
                 }
                 else
                 {
@@ -1138,7 +1132,7 @@ public sealed partial class ContextualSyntaxGenerator
             return MemberAccessExpression(
                 SyntaxKind.SimpleMemberAccessExpression,
                 this.TypeSyntax( tupleType.Compilation.Factory.GetSpecialType( Code.SpecialType.ValueTuple ) ),
-                SyntaxFactory.IdentifierName( "Create" ) );
+                SyntaxFactoryEx.WellKnownIdentifierName( "Create" ) );
         }
 
         static string? GetRightMostIdentifier( ExpressionSyntax expression )

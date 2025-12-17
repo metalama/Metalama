@@ -3,6 +3,8 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Engine.SyntaxGeneration;
+using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -38,18 +40,17 @@ internal sealed class EventRaiseBackingFieldSubstitution : SyntaxNodeSubstitutio
         {
             case IdentifierNameSyntax identifierName:
                 // Replacing the direct invocation.
-                return IdentifierName(
-                    Identifier( TriviaList( identifierName.Identifier.LeadingTrivia ), targetName, TriviaList( identifierName.Identifier.TrailingTrivia ) ) );
+                return SyntaxFactoryEx.SafeIdentifierName( targetName )
+                    .WithOptionalLeadingTrivia( identifierName.Identifier.LeadingTrivia, substitutionContext.SyntaxGenerationContext )
+                    .WithOptionalTrailingTrivia( identifierName.Identifier.TrailingTrivia, substitutionContext.SyntaxGenerationContext );
 
             case MemberAccessExpressionSyntax { Expression: { }, Name: IdentifierNameSyntax identifierName } simpleMemberAccess:
                 // Replacing the this expression invocation.
                 return
                     simpleMemberAccess.WithName(
-                        IdentifierName(
-                            Identifier(
-                                TriviaList( identifierName.Identifier.LeadingTrivia ),
-                                targetName,
-                                TriviaList( identifierName.Identifier.TrailingTrivia ) ) ) );
+                        SyntaxFactoryEx.SafeIdentifierName( targetName )
+                            .WithOptionalLeadingTrivia( identifierName.Identifier.LeadingTrivia, substitutionContext.SyntaxGenerationContext )
+                            .WithOptionalTrailingTrivia( identifierName.Identifier.TrailingTrivia, substitutionContext.SyntaxGenerationContext ) );
 
             case InvocationExpressionSyntax
             {
@@ -74,14 +75,16 @@ internal sealed class EventRaiseBackingFieldSubstitution : SyntaxNodeSubstitutio
                 ArgumentList.CloseParenToken.TrailingTrivia: var trailingTrivia
             }:
                 // Replacing the linker expression.
-                var eventFieldAccess = eventMemberAccess.WithName( IdentifierName( Identifier( TriviaList( leadingTrivia ), targetName, TriviaList() ) ) );
+                var eventFieldAccess = eventMemberAccess.WithName(
+                    SyntaxFactoryEx.SafeIdentifierName( targetName )
+                        .WithOptionalLeadingTrivia( leadingTrivia, substitutionContext.SyntaxGenerationContext ) );
                 var invokeArguments = EventRaiseArgumentsHelper.ExtractInvokeArguments( arguments );
 
                 // backingField?.Invoke()
                 return ConditionalAccessExpression(
                     eventFieldAccess,
                     InvocationExpression(
-                        MemberBindingExpression( IdentifierName( "Invoke" ) ),
+                        MemberBindingExpression( SyntaxFactoryEx.SafeIdentifierName( "Invoke" ) ),
                         ArgumentList(
                             Token( SyntaxKind.OpenParenToken ),
                             invokeArguments,

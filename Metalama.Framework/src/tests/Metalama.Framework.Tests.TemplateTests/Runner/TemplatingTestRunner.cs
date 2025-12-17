@@ -381,11 +381,11 @@ namespace Metalama.Framework.Tests.TemplateTests.Runner
                 return
                     SyntaxFactory.InvocationExpression(
                         targetMethod.IsStatic
-                            ? SyntaxFactory.IdentifierName( targetMethod.Name )
+                            ? SyntaxFactoryEx.SafeIdentifierName( targetMethod.Name )
                             : SyntaxFactory.MemberAccessExpression(
                                 SyntaxKind.SimpleMemberAccessExpression,
                                 SyntaxFactory.ThisExpression(),
-                                SyntaxFactory.IdentifierName( targetMethod.Name ) ),
+                                SyntaxFactoryEx.SafeIdentifierName( targetMethod.Name ) ),
                         SyntaxFactory.ArgumentList(
                             SyntaxFactory.SeparatedList(
                                 targetMethod.Parameters.SelectAsImmutableArray(
@@ -400,7 +400,7 @@ namespace Metalama.Framework.Tests.TemplateTests.Runner
                                                 RefKind.Ref => SyntaxFactory.Token( SyntaxKind.RefKeyword ),
                                                 _ => throw new AssertionFailedException( $"Unexpected value for RefKind in {p}: {p.RefKind}." )
                                             },
-                                            SyntaxFactory.IdentifierName( p.Name ) ) ) ) ) );
+                                            SyntaxFactoryEx.SafeIdentifierName( p.Name ) ) ) ) ) );
             }
         }
 

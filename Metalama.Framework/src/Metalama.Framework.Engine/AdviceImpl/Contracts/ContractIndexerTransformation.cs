@@ -7,11 +7,11 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Advising;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel.References;
+using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.Transformations;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
-using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace Metalama.Framework.Engine.AdviceImpl.Contracts;
 
@@ -57,7 +57,7 @@ internal sealed class ContractIndexerTransformation : ContractBaseTransformation
 
                         inputResult = this.TryExecuteTemplate(
                             context,
-                            IdentifierName( "value" ),
+                            SyntaxFactoryEx.SafeIdentifierName( "value" ),
                             targetIndexer.Type,
                             targetIndexer.SetMethod,
                             out inputContractBlock );
@@ -76,7 +76,7 @@ internal sealed class ContractIndexerTransformation : ContractBaseTransformation
 
                         outputResult = this.TryExecuteTemplate(
                             context,
-                            IdentifierName( returnVariableName ),
+                            SyntaxFactoryEx.SafeIdentifierName( returnVariableName ),
                             targetIndexer.Type,
                             targetIndexer.GetMethod,
                             out outputContractBlock );
@@ -123,7 +123,7 @@ internal sealed class ContractIndexerTransformation : ContractBaseTransformation
 
                     bool? inputResult, outputResult;
                     BlockSyntax? inputContractBlock, outputContractBlock;
-                    var valueSyntax = IdentifierName( parameter.Name );
+                    var valueSyntax = SyntaxFactoryEx.SafeIdentifierName( parameter.Name );
 
                     if ( this.ContractDirection is ContractDirection.Input or ContractDirection.Both )
                     {

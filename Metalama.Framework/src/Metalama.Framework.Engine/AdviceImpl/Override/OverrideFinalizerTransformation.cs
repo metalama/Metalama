@@ -85,7 +85,7 @@ internal sealed class OverrideFinalizerTransformation : OverrideMemberTransforma
                 TokenList( modifiers ),
                 PredefinedType( SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.VoidKeyword ) ),
                 null,
-                Identifier(
+                SyntaxFactoryEx.SafeIdentifier(
                     context.InjectionNameProvider.GetOverrideName(
                         overriddenDeclaration.DeclaringType,
                         this.AspectLayerId,
