@@ -382,10 +382,25 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         }
     }
 
-    private static void ValidateNotPseudoMember( IDeclaration declaration, AdviceKind adviceKind )
+    private static void ValidateAddAttributeTarget( IDeclaration declaration, AdviceKind adviceKind )
     {
         if ( declaration.ImplementationKind == DeclarationImplementationKind.Pseudo )
         {
+            // Allow adding attributes to pseudo return parameters if the containing method is not pseudo.
+            // This is because return parameters are always pseudo, but they should be treated like regular
+            // parameters when the containing method is a real symbol.
+            if ( declaration is IParameter { IsReturnParameter: true } parameter )
+            {
+                var containingMethod = parameter.DeclaringMember;
+
+                if ( containingMethod?.ImplementationKind != DeclarationImplementationKind.Pseudo )
+                {
+                    // The return parameter is pseudo, but the containing method is not pseudo,
+                    // so we allow adding attributes.
+                    return;
+                }
+            }
+
             throw new InvalidOperationException(
                 $"The {adviceKind} advice cannot be applied to pseudo member '{declaration}'. " +
                 "Pseudo members (such as field pseudo-accessors and their parameters) are synthetic declarations that represent implementation details. " +
@@ -1569,7 +1584,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
 
         ValidateNotExtensionBlock( targetDeclaration, "an attribute" );
         ValidateNotExtensionBlockReceiver( targetDeclaration, "an attribute" );
-        ValidateNotPseudoMember( targetDeclaration, AdviceKind.IntroduceAttribute );
+        ValidateAddAttributeTarget( targetDeclaration, AdviceKind.IntroduceAttribute );
 
         return new AddAttributeAdvice(
             this.GetAdviceConstructorParameters( targetDeclaration ),

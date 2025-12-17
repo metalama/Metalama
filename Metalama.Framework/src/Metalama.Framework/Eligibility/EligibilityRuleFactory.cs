@@ -184,10 +184,9 @@ public static partial class EligibilityRuleFactory
         } );
 
     private static readonly IEligibilityRule<IDeclaration> _introduceAttributeRule = CreateRule<IDeclaration, IDeclaration>(
-        builder =>
-        {
-            builder.MustNotBePseudoMember();
-        } );
+        builder => builder.MustSatisfyAny(
+            b => b.MustNotBePseudoMember(),
+            b => b.Convert().To<IParameter>().DeclaringMember().MustNotBePseudoMember() ) );
 
     /// <summary>
     /// Gets the default eligibility rules that apply to a specific advice kind.

@@ -650,7 +650,7 @@ public static partial class EligibilityExtensions
         return type.Name;
     }
 
-    [Obsolete( "This method has been renamed IsInstanceOfType." )]
+    [Obsolete( "This method has been renamed MustBeInstanceOfType." )]
     public static void MustBeOfType<T>( this IEligibilityBuilder<T> eligibilityBuilder, Type type )
         where T : class
         => MustBeInstanceOfType( eligibilityBuilder, type );
