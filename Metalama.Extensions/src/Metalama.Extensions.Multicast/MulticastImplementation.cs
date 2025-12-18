@@ -367,7 +367,7 @@ public sealed class MulticastImplementation
                         .Where( t => FilterDeclaringType( t, attributeGroup, MulticastTargets.Method ) )
                         .SelectMany(
                             t => t.MethodsAndAccessors().Where( m => !m.IsImplicitlyDeclared && Filter( m, attributeGroup, MulticastTargets.Method ) ) )
-                        .SelectMany( m => m.Parameters.Where( p => Filter( p, attributeGroup, MulticastTargets.Method ) ) ) )
+                        .SelectMany( m => m.Parameters.Where( p => !p.IsImplicitlyDeclared && Filter( p, attributeGroup, MulticastTargets.Method ) ) ) )
                 .AddAspectIfEligible( attributeGroup.AspectClass.Type, attributeGroup.GetMatchingAspect );
         }
 
