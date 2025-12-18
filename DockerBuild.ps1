@@ -641,55 +641,68 @@ Write-Host "Volume mappings: " @VolumeMappings -ForegroundColor Gray
 Write-Host "Mount points: " $mountPointsAsString -ForegroundColor Gray
 Write-Host "Git directories: " $gitDirectoriesAsString -ForegroundColor Gray
 
-# Kill all containers
-docker ps -q --filter "ancestor=$ImageTag" | ForEach-Object {
-    Write-Host "Killing container $_"
-    docker kill $_
-}
+# Check if a container is already running with this image (only for interactive scenarios)
+$existingContainerId = $null
 
-# Building the image.
-if (-not $NoBuildImage)
+if ($Interactive)
 {
-    if ($Claude)
+    # Check for existing container
+    $existingContainerId = docker ps -q --filter "ancestor=$ImageTag" | Select-Object -First 1
+    if ($existingContainerId)
     {
-        # Build Claude image directly from standalone Dockerfile.claude
-        $ImageTag = "$ImageTag-claude"
-        Write-Host "Building the Claude image with tag: $ImageTag" -ForegroundColor Green
-
-        if (-not (Test-Path "Dockerfile.claude"))
-        {
-            Write-Error "Dockerfile.claude not found. Make sure generate-scripts was run with Claude support."
-            exit 1
-        }
-
-        Get-Content -Raw Dockerfile.claude | docker build -t $ImageTag --build-arg MOUNTPOINTS="$mountPointsAsString" -f - $dockerContextDirectory
-        if ($LASTEXITCODE -ne 0)
-        {
-            Write-Host "Docker build (Claude) failed with exit code $LASTEXITCODE" -ForegroundColor Red
-            exit $LASTEXITCODE
-        }
+        Write-Host "Found existing container $existingContainerId running with image $ImageTag" -ForegroundColor Cyan
+        Write-Host "Will reuse existing container instead of starting a new one." -ForegroundColor Cyan
+        $ImageTag = $searchImageTag
     }
     else
     {
-        # Build base image
-        Write-Host "Building the base image with tag: $ImageTag" -ForegroundColor Green
-        Get-Content -Raw Dockerfile | docker build -t $ImageTag --build-arg MOUNTPOINTS="$mountPointsAsString" -f - $dockerContextDirectory
-        if ($LASTEXITCODE -ne 0)
-        {
-            Write-Host "Docker build failed with exit code $LASTEXITCODE" -ForegroundColor Red
-            exit $LASTEXITCODE
-        }
+        Write-Host "No existing container for $ImageTag."
+    }
+}
+
+# If no existing container, kill any stopped containers with same image to avoid conflicts
+if (-not $existingContainerId)
+{
+    docker ps -q --filter "ancestor=$ImageTag" | ForEach-Object {
+        Write-Host "Killing container $_"
+        docker kill $_
+    }
+}
+
+# Building the image.
+if (-not $NoBuildImage -and -not $existingContainerId)
+{
+
+    if ($Claude)
+    {
+       $Dockerfile = "Dockerfile.claude"
+    }
+    else
+    {
+       $Dockerfile = "Dockerfile"
+    }
+        
+
+    Write-Host "Building the image with tag: $ImageTag" -ForegroundColor Green
+    Get-Content -Raw $Dockerfile | docker build -t $ImageTag --build-arg MOUNTPOINTS="$mountPointsAsString" -f - $dockerContextDirectory
+    if ($LASTEXITCODE -ne 0)
+    {
+        Write-Host "Docker build failed with exit code $LASTEXITCODE" -ForegroundColor Red
+        exit $LASTEXITCODE
     }
 }
 else
 {
-    Write-Host "Skipping image build (-NoBuildImage specified)." -ForegroundColor Yellow
-
-    # If Claude mode and skipping build, use the Claude image tag
-    if ($Claude)
+    if ($existingContainerId)
     {
-        $ImageTag = "$ImageTag-claude"
+        Write-Host "Skipping image build (reusing existing container $existingContainerId)." -ForegroundColor Yellow
     }
+    else
+    {
+        Write-Host "Skipping image build (-NoBuildImage specified)." -ForegroundColor Yellow
+    }
+
+
 }
 
 
@@ -867,10 +880,12 @@ if (-not $BuildImage)
             $envArgs += @("-e", "MCP_APPROVAL_SERVER_TOKEN=$mcpSecret")
         }
 
-        Write-Host "Executing: ``docker run --rm --memory=12g $dockerArgsAsString $VolumeMappingsAsString -e HOME=$containerUserProfile -e USERPROFILE=$containerUserProfile -w $ContainerSourceDir $ImageTag `"$pwshPath`" -Command `"$inlineScript`"" -ForegroundColor Cyan
-
         try {
+            # Start new container with docker run
+            Write-Host "Executing: docker run --rm --memory=12g $dockerArgsAsString $VolumeMappingsAsString -e HOME=$containerUserProfile -e USERPROFILE=$containerUserProfile -w $ContainerSourceDir $ImageTag `"$pwshPath`" -Command `"$inlineScript`"" -ForegroundColor Cyan
             docker run --rm --memory=12g $dockerArgs @volumeArgs @envArgs -w $ContainerSourceDir $ImageTag $pwshPath -Command $inlineScript
+        
+            & docker @dockerCmd
             $dockerExitCode = $LASTEXITCODE
         }
         finally {
@@ -967,12 +982,25 @@ if (-not $BuildImage)
         $inlineScript = "${substCommandsInline}& c:\Init.g.ps1; cd '$SourceDirName'; & .\$Script $buildArgsString; $pwshExitCommand"
 
         $pwshPath = 'C:\Program Files\PowerShell\7\pwsh.exe'
-        Write-Host "Executing: ``docker run --rm --memory=12g $dockerArgsAsString $VolumeMappingsAsString -w $ContainerSourceDir $ImageTag `"$pwshPath`" $pwshArgs -Command `"$inlineScript`"" -ForegroundColor Cyan
 
-        docker run --rm --memory=12g $dockerArgs @volumeArgs -w $ContainerSourceDir $ImageTag $pwshPath $pwshArgs -Command $inlineScript
+        # Build docker command arguments
+        if ($existingContainerId)
+        {
+            # Reuse existing container with docker exec
+            Write-Host "Executing: ``docker exec $existingContainerId $dockerArgsAsString -w $ContainerSourceDir $ImageTag `"$pwshPath`" $pwshArgs -Command `"$inlineScript`"" -ForegroundColor Cyan
+            docker exec $dockerArgs  -w $ContainerSourceDir $existingContainerId $pwshPath $pwshArgs -Command $inlineScript
+
+        }
+        else
+        {
+            # Start new container with docker run
+            Write-Host "Executing: ``docker run --rm --memory=12g $dockerArgsAsString $VolumeMappingsAsString -w $ContainerSourceDir $ImageTag `"$pwshPath`" $pwshArgs -Command `"$inlineScript`"" -ForegroundColor Cyan
+            docker run --rm --memory=12g $dockerArgs @volumeArgs -w $ContainerSourceDir $ImageTag $pwshPath $pwshArgs -Command $inlineScript
+        }
+
         if ($LASTEXITCODE -ne 0)
         {
-            Write-Host "Docker run (build) failed with exit code $LASTEXITCODE" -ForegroundColor Red
+            Write-Host "Container failed with exit code $LASTEXITCODE" -ForegroundColor Red
             exit $LASTEXITCODE
         }
     }
