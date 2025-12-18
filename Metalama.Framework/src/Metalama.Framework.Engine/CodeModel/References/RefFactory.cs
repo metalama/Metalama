@@ -4,7 +4,6 @@
 
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.DeclarationBuilders;
-using Metalama.Framework.Engine.CodeModel.Abstractions;
 using Metalama.Framework.Engine.CodeModel.GenericContexts;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
@@ -130,9 +129,9 @@ namespace Metalama.Framework.Engine.CodeModel.References
         {
             Invariant.Assert( pseudoParameter.GetRefFactory() == this );
 
-            var accessor = (IMethodImpl) pseudoParameter.DeclaringMember.AssertNotNull();
+            var accessor = (IMethod) pseudoParameter.DeclaringMember.AssertNotNull();
 
-            Invariant.Assert( accessor.ImplementationKind == DeclarationImplementationKind.Pseudo );
+            Invariant.Assert( accessor.IsImplicitlyDeclared );
 
             if ( accessor.ContainingDeclaration is not IHasAccessors )
             {

@@ -161,6 +161,6 @@ namespace Metalama.Framework.Engine.CodeModel.Source
             }
         }
 
-        public sealed override DeclarationImplementationKind ImplementationKind => DeclarationImplementationKind.Symbol;
+        internal sealed override DeclarationImplementationKind ImplementationKind => DeclarationImplementationKind.Symbol;
     }
 }

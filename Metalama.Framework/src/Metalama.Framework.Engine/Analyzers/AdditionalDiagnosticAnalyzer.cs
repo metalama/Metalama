@@ -18,6 +18,11 @@ namespace Metalama.Framework.Engine.Analyzers;
 /// </summary>
 public sealed class AdditionalDiagnosticAnalyzer : DiagnosticAnalyzer
 {
+    static AdditionalDiagnosticAnalyzer()
+    {
+        MetalamaEngineModuleInitializer.EnsureInitialized();
+    }
+
     public override void Initialize( AnalysisContext context )
     {
         context.EnableConcurrentExecution();

@@ -19,14 +19,14 @@ public class MyAspect : EventAspect
     {
         builder.IntroduceAttribute( AttributeConstruction.Create( typeof(MyAttribute) ) );
 
-        if (builder.Target.AddMethod != null)
+        if ( builder.Target.AddMethod is { IsImplicitlyDeclared: false } addMethod )
         {
-            builder.With( builder.Target.AddMethod ).IntroduceAttribute( AttributeConstruction.Create( typeof(MyAttribute) ) );
+            builder.With( addMethod ).IntroduceAttribute( AttributeConstruction.Create( typeof(MyAttribute) ) );
         }
 
-        if (builder.Target.RemoveMethod != null)
+        if ( builder.Target.RemoveMethod is { IsImplicitlyDeclared: false } removeMethod )
         {
-            builder.With( builder.Target.RemoveMethod ).IntroduceAttribute( AttributeConstruction.Create( typeof(MyAttribute) ) );
+            builder.With( removeMethod ).IntroduceAttribute( AttributeConstruction.Create( typeof(MyAttribute) ) );
         }
     }
 }

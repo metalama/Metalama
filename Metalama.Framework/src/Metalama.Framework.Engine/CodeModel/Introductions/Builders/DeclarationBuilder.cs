@@ -58,7 +58,7 @@ internal abstract class DeclarationBuilder : IDeclarationBuilderImpl
 
     public virtual bool IsImplicitlyDeclared => false;
 
-    public DeclarationImplementationKind ImplementationKind => DeclarationImplementationKind.Builder;
+    DeclarationImplementationKind IDeclarationImpl.ImplementationKind => DeclarationImplementationKind.Builder;
 
     int IDeclaration.Depth => this.GetDepthImpl();
 
@@ -159,7 +159,7 @@ internal abstract class DeclarationBuilder : IDeclarationBuilderImpl
     public virtual SyntaxTree? PrimarySyntaxTree => this.ContainingDeclaration.AssertNotNull().GetPrimarySyntaxTree();
 
     public IEnumerable<IDeclaration> GetDerivedDeclarations( DerivedTypesOptions options = default ) => throw new NotImplementedException();
-    
+
     public sealed override string ToString() => this.ToDisplayString( CodeDisplayFormat.ShortDiagnosticMessage );
 
     public IAssembly DeclaringAssembly => this.Compilation.DeclaringAssembly;

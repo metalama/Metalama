@@ -57,7 +57,9 @@ namespace Metalama.Framework.Engine.CodeModel
 
         public abstract IEnumerable<IDeclaration> GetDerivedDeclarations( DerivedTypesOptions options = default );
 
-        public abstract DeclarationImplementationKind ImplementationKind { get; }
+        DeclarationImplementationKind IDeclarationImpl.ImplementationKind => this.ImplementationKind;
+
+        internal abstract DeclarationImplementationKind ImplementationKind { get; }
 
         public abstract IAssembly DeclaringAssembly { get; }
 

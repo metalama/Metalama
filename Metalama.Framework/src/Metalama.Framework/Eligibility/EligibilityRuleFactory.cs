@@ -185,8 +185,30 @@ public static partial class EligibilityRuleFactory
 
     private static readonly IEligibilityRule<IDeclaration> _introduceAttributeRule = CreateRule<IDeclaration, IDeclaration>(
         builder => builder.MustSatisfyAny(
-            b => b.MustNotBePseudoMember(),
-            b => b.Convert().To<IParameter>().DeclaringMember().MustNotBePseudoMember() ) );
+
+            // Allow explicitly-declared declarations
+            b => b.MustBeExplicitlyDeclared(),
+
+            // Allow return value parameters of explicitly-declared members
+            b => b.Convert()
+                .To<IParameter>()
+                .MustSatisfy(
+                    p => p is { IsReturnParameter: true } or { DeclaringMember: { IsImplicitlyDeclared: false } or IMethod { MethodKind: MethodKind.PropertySet } },
+                    p => $"{p} must be a return parameter of an explicitly-declared member or the `value` parameter of a property setter" ),
+
+            // Allow default constructors (implicitly declared)
+            b => b.Convert()
+                .To<IConstructor>()
+                .MustSatisfy(
+                    c => c is { IsImplicitlyDeclared: true, Parameters.Count: 0 },
+                    c => $"{c} must be an implicit default constructor" ),
+
+            // Allow backing fields of auto-properties (implicitly declared)
+            b => b.Convert()
+                .To<IField>()
+                .MustSatisfy(
+                    f => f.IsAutoPropertyBackingField(),
+                    f => $"{f} must be an auto-property backing field" ) ) );
 
     /// <summary>
     /// Gets the default eligibility rules that apply to a specific advice kind.
