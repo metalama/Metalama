@@ -193,7 +193,7 @@ public static partial class EligibilityRuleFactory
             b => b.Convert()
                 .To<IParameter>()
                 .MustSatisfy(
-                    p => p is { IsReturnParameter: true, DeclaringMember: { IsImplicitlyDeclared: false } or IMethod { MethodKind: MethodKind.PropertySet } },
+                    p => p is { IsReturnParameter: true } or { DeclaringMember: { IsImplicitlyDeclared: false } or IMethod { MethodKind: MethodKind.PropertySet } },
                     p => $"{p} must be a return parameter of an explicitly-declared member or the `value` parameter of a property setter" ),
 
             // Allow default constructors (implicitly declared)

@@ -6,3 +6,4 @@
 # Wrapper script to call Build.ps1 with PowerShell
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 pwsh -File "$SCRIPT_DIR/Build.ps1" "$@"
+exit $?

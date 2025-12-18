@@ -39,6 +39,12 @@ if ($env:RUNNING_IN_DOCKER)
 
 if (-not $Interactive -or $BuildArgs)
 {
+    # The generate-scripts command implies -NoCache
+    if ($BuildArgs -contains 'generate-scripts')
+    {
+        $NoCache = $true
+    }
+
     # Change the working directory so we can use a global.json that is specific to eng.
     $previousLocation = Get-Location
 

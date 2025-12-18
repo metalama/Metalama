@@ -6,7 +6,7 @@ param(
     [switch]$Interactive, # Opens an interactive PowerShell session
     [switch]$BuildImage, # Only builds the image, but does not build the product.
     [switch]$NoBuildImage, # Does not build the image.
-    [switch]$NoClean, # Does not clean up.
+    [switch]$Clean, # Performs cleanup of bin and obj directories.
     [switch]$NoNuGetCache, # Does not mount the host nuget cache in the container.
     [switch]$KeepEnv, # Does not override the env.g.json file.
     [switch]$Claude, # Run Claude CLI instead of Build.ps1. Use -Claude for interactive, -Claude "prompt" for non-interactive.
@@ -50,6 +50,17 @@ function New-EnvJson
         {
             $envVariables[$envVarName] = $value
         }
+    }
+
+    # Add NUGET_PACKAGES with default if not set
+    if (-not $envVariables.ContainsKey("NUGET_PACKAGES"))
+    {
+        $nugetPackages = $env:NUGET_PACKAGES
+        if ([string]::IsNullOrEmpty($nugetPackages))
+        {
+            $nugetPackages = Join-Path $env:USERPROFILE ".nuget\packages"
+        }
+        $envVariables["NUGET_PACKAGES"] = $nugetPackages
     }
 
     # Add secrets from the PostSharpBuildEnv key vault, on our development machines.
@@ -139,6 +150,14 @@ function New-ClaudeEnvJson
     {
         $claudeEnv["GIT_USER_EMAIL"] = $gitUserEmail
     }
+
+    # Add NUGET_PACKAGES with default if not set
+    $nugetPackages = $env:NUGET_PACKAGES
+    if ([string]::IsNullOrEmpty($nugetPackages))
+    {
+        $nugetPackages = Join-Path $env:USERPROFILE ".nuget\packages"
+    }
+    $claudeEnv["NUGET_PACKAGES"] = $nugetPackages
 
     # Convert to JSON and save
     $jsonPath = Join-Path $dockerContextDirectory "env.g.json"
@@ -310,9 +329,9 @@ if ($Claude -and -not $NoMcp)
     }
 }
 
-# When building locally (as opposed as on the build agent), we must do a complete cleanup because
+# When building locally (as opposed as on the build agent), we can optionally do a complete cleanup because
 # obj files may point to the host filesystem.
-if (-not $env:IS_TEAMCITY_AGENT -and -not $NoClean)
+if ($Clean)
 {
     Write-Host "Cleaning up." -ForegroundColor Green
     Get-ChildItem "bin" -Recurse | Remove-Item -Force -Recurse -ErrorAction SilentlyContinue
@@ -388,7 +407,13 @@ if (Test-Path $gitSystemDir)
 # Mount the host NuGet cache in the container.
 if (-not $NoNuGetCache)
 {
-    $nugetCacheDir = Join-Path $env:USERPROFILE ".nuget\packages"
+    # Use NUGET_PACKAGES from environment or default to user profile
+    $nugetCacheDir = $env:NUGET_PACKAGES
+    if ([string]::IsNullOrEmpty($nugetCacheDir))
+    {
+        $nugetCacheDir = Join-Path $env:USERPROFILE ".nuget\packages"
+    }
+
     Write-Host "NuGet cache directory: $nugetCacheDir" -ForegroundColor Cyan
     if (-not (Test-Path $nugetCacheDir))
     {
@@ -396,7 +421,9 @@ if (-not $NoNuGetCache)
         New-Item -ItemType Directory -Force -Path $nugetCacheDir | Out-Null
     }
 
-    $VolumeMappings += "${nugetCacheDir}:c:\packages"
+    # Mount to the same path in the container (will be transformed by Get-ContainerPath later)
+    $VolumeMappings += "${nugetCacheDir}:${nugetCacheDir}"
+    $MountPoints += $nugetCacheDir
 }
 
 # Mount VS Remote Debugger

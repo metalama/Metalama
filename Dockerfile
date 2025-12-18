@@ -113,8 +113,5 @@ RUN c:\ReadEnvironmentVariables.ps1 c:\env.g.json
 # Copy Init.g.ps1 placeholder (drive mappings handled inline in docker run)
 COPY Init.g.ps1 c:\Init.g.ps1
 
-# Configure NuGet
-ENV NUGET_PACKAGES=c:\packages
-
 # Configure .NET SDK
 ENV DOTNET_NOLOGO=1

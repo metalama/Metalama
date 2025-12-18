@@ -391,9 +391,14 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         }
 
         // Allow return value parameters of explicitly-declared members or `value` parameter of property setters.
-        if ( declaration is IParameter { IsReturnParameter: true } parameter )
+        if ( declaration is IParameter { DeclaringMember.IsImplicitlyDeclared: false } parameter )
         {
-            if ( parameter.DeclaringMember is { IsImplicitlyDeclared: false } or IMethod { MethodKind: MethodKind.PropertySet } )
+            if ( parameter.IsReturnParameter )
+            {
+                return;
+            }
+            
+            if ( parameter.DeclaringMember is IMethod { MethodKind: MethodKind.PropertySet } )
             {
                 return;
             }
