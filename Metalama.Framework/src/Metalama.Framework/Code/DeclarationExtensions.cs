@@ -326,5 +326,26 @@ namespace Metalama.Framework.Code
         /// <remarks>The method does not descent into accessors, custom attributes, parameters, or type parameters.</remarks>
         public static IEnumerable<IDeclaration> ContainedDescendantsAndSelf( this IDeclaration declaration )
             => declaration.SelectManyRecursive( d => d.ContainedChildren(), true );
+
+        /// <summary>
+        /// Determines whether the specified field is a compiler-generated backing field for an auto-property.
+        /// </summary>
+        /// <param name="field">The field to check.</param>
+        /// <returns><c>true</c> if the field is an auto-property backing field; otherwise, <c>false</c>.</returns>
+        /// <remarks>
+        /// Compiler-generated backing fields follow the naming pattern <c>&lt;PropertyName&gt;k__BackingField</c>.
+        /// This method efficiently checks only the field name pattern.
+        /// </remarks>
+        public static bool IsAutoPropertyBackingField( this IField field )
+        {
+            if ( !field.IsImplicitlyDeclared )
+            {
+                return false;
+            }
+
+            // Check if the field name matches the backing field pattern: <PropertyName>k__BackingField
+            return field.Name.StartsWith( "<", StringComparison.Ordinal )
+                   && field.Name.EndsWith( ">k__BackingField", StringComparison.Ordinal );
+        }
     }
 }

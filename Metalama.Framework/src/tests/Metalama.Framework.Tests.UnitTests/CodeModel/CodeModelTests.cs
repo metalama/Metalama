@@ -970,8 +970,8 @@ public record R( int A, int B )
 ";
 
 #if !NET5_0_OR_GREATER
-            code +=
-                "namespace System.Runtime.CompilerServices { internal static class IsExternalInit {} }";
+        code +=
+            "namespace System.Runtime.CompilerServices { internal static class IsExternalInit {} }";
 #endif
 
         var compilation = testContext.CreateCompilationModel( code );
@@ -2002,7 +2002,7 @@ public partial class B
         using var testContext = this.CreateTestContext();
 
 #if !NET5_0_OR_GREATER
-            var code =
+        var code =
 #else
         const string code =
 #endif
@@ -2011,7 +2011,7 @@ public partial class B
             """;
 
 #if !NET5_0_OR_GREATER
-            code += "namespace System.Runtime.CompilerServices { internal static class IsExternalInit {} }";
+        code += "namespace System.Runtime.CompilerServices { internal static class IsExternalInit {} }";
 #endif
 
         var compilation = testContext.CreateCompilationModel( code );
@@ -2483,34 +2483,35 @@ class C
     [Fact]
     public void FieldPseudoAccessors_IsImplicitlyDeclared()
     {
-        // This test addresses issue #828: Field pseudo accessors should have IsImplicitlyDeclared=false
-        // because the accessor represents the field itself, which is explicitly declared.
-        // NOTE: If this test is included in a PR for issue #838, the PR description should mention that it also fixes #828.
+        // Issue #1253: Reverting #828 - Field pseudo accessors should have IsImplicitlyDeclared=true
+        // because they are pseudo declarations (Metalama abstractions without Roslyn symbols).
 
         using var testContext = this.CreateTestContext();
 
         const string code = """
-            class C
-            {
-                public int Field;
-                public readonly int ReadOnlyField;
-            }
-            """;
+                            class C
+                            {
+                                public int Field;
+                                public readonly int ReadOnlyField;
+                            }
+                            """;
 
         var compilation = testContext.CreateCompilationModel( code );
         var type = compilation.Types.OfName( "C" ).Single();
 
-        // Field accessor should NOT be implicitly declared (they represent the field itself)
+        // Fields themselves are explicitly declared
         var field = type.Fields["Field"];
         Assert.False( field.IsImplicitlyDeclared, "Field should not be implicitly declared" );
-        Assert.False( field.GetMethod!.IsImplicitlyDeclared, "Field getter should not be implicitly declared" );
-        Assert.False( field.SetMethod!.IsImplicitlyDeclared, "Field setter should not be implicitly declared" );
 
-        // ReadOnly field accessor should NOT be implicitly declared
+        // But field pseudo accessors ARE implicitly declared (they are pseudo members)
+        Assert.True( field.GetMethod!.IsImplicitlyDeclared, "Field getter should be implicitly declared" );
+        Assert.True( field.SetMethod!.IsImplicitlyDeclared, "Field setter should be implicitly declared" );
+
+        // Same for readonly fields
         var readOnlyField = type.Fields["ReadOnlyField"];
         Assert.False( readOnlyField.IsImplicitlyDeclared, "ReadOnly field should not be implicitly declared" );
-        Assert.False( readOnlyField.GetMethod!.IsImplicitlyDeclared, "ReadOnly field getter should not be implicitly declared" );
-        Assert.False( readOnlyField.SetMethod!.IsImplicitlyDeclared, "ReadOnly field setter should not be implicitly declared" );
+        Assert.True( readOnlyField.GetMethod!.IsImplicitlyDeclared, "ReadOnly field getter should be implicitly declared" );
+        Assert.True( readOnlyField.SetMethod!.IsImplicitlyDeclared, "ReadOnly field setter should be implicitly declared" );
     }
 
     [Fact]
@@ -2522,12 +2523,12 @@ class C
         using var testContext = this.CreateTestContext();
 
         const string code = """
-            class C
-            {
-                public int Property { get; set; }
-                public int ReadOnlyAutoProperty { get; }
-            }
-            """;
+                            class C
+                            {
+                                public int Property { get; set; }
+                                public int ReadOnlyAutoProperty { get; }
+                            }
+                            """;
 
         var compilation = testContext.CreateCompilationModel( code );
         var type = compilation.Types.OfName( "C" ).Single();

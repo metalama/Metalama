@@ -382,30 +382,39 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         }
     }
 
-    private static void ValidateAddAttributeTarget( IDeclaration declaration, AdviceKind adviceKind )
+    private static void ValidateIntroduceAttributeTarget( IDeclaration declaration )
     {
-        if ( declaration.ImplementationKind == DeclarationImplementationKind.Pseudo )
+        // Allow explicitly-declared declarations
+        if ( !declaration.IsImplicitlyDeclared )
         {
-            // Allow adding attributes to pseudo return parameters if the containing method is not pseudo.
-            // This is because return parameters are always pseudo, but they should be treated like regular
-            // parameters when the containing method is a real symbol.
-            if ( declaration is IParameter { IsReturnParameter: true } parameter )
-            {
-                var containingMethod = parameter.DeclaringMember;
-
-                if ( containingMethod?.ImplementationKind != DeclarationImplementationKind.Pseudo )
-                {
-                    // The return parameter is pseudo, but the containing method is not pseudo,
-                    // so we allow adding attributes.
-                    return;
-                }
-            }
-
-            throw new InvalidOperationException(
-                $"The {adviceKind} advice cannot be applied to pseudo member '{declaration}'. " +
-                "Pseudo members (such as field pseudo-accessors and their parameters) are synthetic declarations that represent implementation details. " +
-                "To modify field access behavior, use Override advice instead of IntroduceAttribute." );
+            return;
         }
+
+        // Allow return value parameters of explicitly-declared members or `value` parameter of property setters.
+        if ( declaration is IParameter { IsReturnParameter: true } parameter )
+        {
+            if ( parameter.DeclaringMember is { IsImplicitlyDeclared: false } or IMethod { MethodKind: MethodKind.PropertySet } )
+            {
+                return;
+            }
+        }
+
+        // Allow default constructors (implicitly declared)
+        if ( declaration is IConstructor { IsImplicitlyDeclared: true, Parameters.Count: 0 } )
+        {
+            return;
+        }
+
+        // Allow backing fields of auto-properties (implicitly declared)
+        if ( declaration is IField field && field.IsAutoPropertyBackingField() )
+        {
+            return;
+        }
+
+        // Reject all other implicitly-declared declarations (e.g., field pseudo-accessors)
+        throw new InvalidOperationException(
+            $"The IntroduceAttribute advice cannot be applied to '{declaration}' because it is implicitly declared and not in an allowed category. " +
+            "Attributes can only be introduced on: explicitly-declared declarations, return parameters of explicitly-declared members, default constructors, or auto-property backing fields." );
     }
 
     private static void ValidateNotExtensionBlock( IDeclaration declaration, string introduced )
@@ -1584,7 +1593,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
 
         ValidateNotExtensionBlock( targetDeclaration, "an attribute" );
         ValidateNotExtensionBlockReceiver( targetDeclaration, "an attribute" );
-        ValidateAddAttributeTarget( targetDeclaration, AdviceKind.IntroduceAttribute );
+        ValidateIntroduceAttributeTarget( targetDeclaration );
 
         return new AddAttributeAdvice(
             this.GetAdviceConstructorParameters( targetDeclaration ),

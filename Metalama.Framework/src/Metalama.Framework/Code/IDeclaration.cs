@@ -105,32 +105,7 @@ namespace Metalama.Framework.Code
         /// Gets a value indicating whether the member is implicitly declared, i.e. declared without being represented in source code.
         /// Returns <c>false</c> if it is explicitly declared in code.
         /// </summary>
-        /// <seealso cref="ImplementationKind"/>
         bool IsImplicitlyDeclared { get; }
-
-        /// <summary>
-        /// Gets the implementation kind of this declaration, indicating whether it is backed by a Roslyn symbol,
-        /// a pseudo member (Metalama abstraction), or introduced by an aspect.
-        /// </summary>
-        /// <remarks>
-        /// <para>
-        /// This property is useful for distinguishing between different kinds of declarations:
-        /// </para>
-        /// <list type="bullet">
-        /// <item><description><see cref="DeclarationImplementationKind.Symbol"/> - Real Roslyn symbols, including both explicitly declared members and implicitly declared members like auto-property backing fields.</description></item>
-        /// <item><description><see cref="DeclarationImplementationKind.Pseudo"/> - Metalama abstractions such as field pseudo-accessors that don't exist as Roslyn symbols.</description></item>
-        /// <item><description><see cref="DeclarationImplementationKind.Introduced"/> - Members introduced by aspects through advice.</description></item>
-        /// </list>
-        /// <para>
-        /// Note that implicitly declared members (like auto-property backing fields) have <see cref="IsImplicitlyDeclared"/> = <c>true</c>
-        /// but <see cref="ImplementationKind"/> = <see cref="DeclarationImplementationKind.Symbol"/> because they exist as real Roslyn symbols.
-        /// In contrast, pseudo members like field pseudo-accessors have <see cref="ImplementationKind"/> = <see cref="DeclarationImplementationKind.Pseudo"/>
-        /// and cannot have attributes introduced on them.
-        /// </para>
-        /// </remarks>
-        /// <seealso cref="IsImplicitlyDeclared"/>
-        /// <seealso cref="Origin"/>
-        DeclarationImplementationKind ImplementationKind { get; }
 
         /// <summary>
         /// Gets the depth of the current declaration in the code model. The value of the <see cref="Depth"/> property has no absolute meaning,

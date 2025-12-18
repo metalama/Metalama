@@ -66,7 +66,7 @@ internal sealed class SourceAttribute : IAttributeImpl
 
     bool IDeclaration.IsImplicitlyDeclared => false;
 
-    DeclarationImplementationKind IDeclaration.ImplementationKind => DeclarationImplementationKind.Symbol;
+    DeclarationImplementationKind IDeclarationImpl.ImplementationKind => DeclarationImplementationKind.Symbol;
 
     int IDeclaration.Depth => this.GetDepthImpl();
 
@@ -138,7 +138,7 @@ internal sealed class SourceAttribute : IAttributeImpl
     SyntaxTree? IDeclarationImpl.PrimarySyntaxTree => this.AttributeData.ApplicationSyntaxReference?.SyntaxTree;
 
     IEnumerable<IDeclaration> IDeclarationImpl.GetDerivedDeclarations( DerivedTypesOptions options ) => [];
-    
+
     public bool Equals( IDeclaration? other ) => other is SourceAttribute attribute && this.AttributeData == attribute.AttributeData;
 
     public override bool Equals( object? obj ) => obj is SourceAttribute attribute && this.Equals( attribute );

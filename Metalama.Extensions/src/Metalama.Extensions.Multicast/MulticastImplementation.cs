@@ -344,7 +344,7 @@ public sealed class MulticastImplementation
                 .SelectMany(
                     compilation => compilation.AllTypes
                         .Where( t => FilterDeclaringType( t, attributeGroup, MulticastTargets.InstanceConstructor ) )
-                        .SelectMany( t => t.Constructors.Where( constructor => Filter( constructor, attributeGroup, MulticastTargets.InstanceConstructor ) ) ) )
+                        .SelectMany( t => t.Constructors.Where( c => (!c.IsImplicitlyDeclared || c.Parameters.Count == 0) && Filter( c, attributeGroup, MulticastTargets.InstanceConstructor ) ) ) )
                 .AddAspectIfEligible( attributeGroup.AspectClass.Type, attributeGroup.GetMatchingAspect );
         }
 
@@ -355,7 +355,7 @@ public sealed class MulticastImplementation
                     c => c.AllTypes
                         .Where( t => FilterDeclaringType( t, attributeGroup, MulticastTargets.Method ) )
                         .SelectMany(
-                            t => t.MethodsAndAccessors().Where( m => !m.IsImplicitlyDeclared && m.ImplementationKind != DeclarationImplementationKind.Pseudo && Filter( m, attributeGroup, MulticastTargets.Method ) ) ) )
+                            t => t.MethodsAndAccessors().Where( m => !m.IsImplicitlyDeclared && Filter( m, attributeGroup, MulticastTargets.Method ) ) ) )
                 .AddAspectIfEligible( attributeGroup.AspectClass.Type, attributeGroup.GetMatchingAspect );
         }
 
@@ -366,7 +366,7 @@ public sealed class MulticastImplementation
                     c => c.AllTypes
                         .Where( t => FilterDeclaringType( t, attributeGroup, MulticastTargets.Method ) )
                         .SelectMany(
-                            t => t.MethodsAndAccessors().Where( m => !m.IsImplicitlyDeclared && m.ImplementationKind != DeclarationImplementationKind.Pseudo && Filter( m, attributeGroup, MulticastTargets.Method ) ) )
+                            t => t.MethodsAndAccessors().Where( m => !m.IsImplicitlyDeclared && Filter( m, attributeGroup, MulticastTargets.Method ) ) )
                         .SelectMany( m => m.Parameters.Where( p => Filter( p, attributeGroup, MulticastTargets.Method ) ) ) )
                 .AddAspectIfEligible( attributeGroup.AspectClass.Type, attributeGroup.GetMatchingAspect );
         }
@@ -380,7 +380,7 @@ public sealed class MulticastImplementation
                         .SelectMany(
                             t => t.MethodsAndAccessors()
                                 .Where(
-                                    m => !m.IsImplicitlyDeclared && m.ImplementationKind != DeclarationImplementationKind.Pseudo && Filter( m, attributeGroup, MulticastTargets.ReturnValue )
+                                    m => !m.IsImplicitlyDeclared && Filter( m, attributeGroup, MulticastTargets.ReturnValue )
                                                                  && !m.ReturnType.Equals( SpecialType.Void ) ) )
                         .Select( m => m.ReturnParameter ) )
                 .AddAspectIfEligible( attributeGroup.AspectClass.Type, attributeGroup.GetMatchingAspect );
@@ -420,14 +420,14 @@ public sealed class MulticastImplementation
         if ( attributeGroup.TargetsAnyDeclarationKind( MulticastTargets.StaticConstructor ) )
         {
             builder
-                .Outbound.SelectMany( t => t.StaticConstructor != null ? new[] { t.StaticConstructor } : Enumerable.Empty<IConstructor>() )
+                .Outbound.SelectMany( t => t.StaticConstructor != null ? [t.StaticConstructor] : Enumerable.Empty<IConstructor>() )
                 .AddAspectIfEligible( attributeGroup.AspectClass.Type, attributeGroup.GetMatchingAspect );
         }
 
         if ( attributeGroup.TargetsAnyDeclarationKind( MulticastTargets.InstanceConstructor ) )
         {
             builder
-                .Outbound.SelectMany( t => t.Constructors.Where( c => Filter( c, attributeGroup, MulticastTargets.InstanceConstructor ) ) )
+                .Outbound.SelectMany( t => t.Constructors.Where( c => (!c.IsImplicitlyDeclared || c.Parameters.Count == 0) && Filter( c, attributeGroup, MulticastTargets.InstanceConstructor ) ) )
                 .AddAspectIfEligible( attributeGroup.AspectClass.Type, attributeGroup.GetMatchingAspect );
         }
 
@@ -435,7 +435,7 @@ public sealed class MulticastImplementation
         {
             builder
                 .Outbound.SelectMany(
-                    t => t.MethodsAndAccessors().Where( m => !m.IsImplicitlyDeclared && m.ImplementationKind != DeclarationImplementationKind.Pseudo && Filter( m, attributeGroup, MulticastTargets.Method ) ) )
+                    t => t.MethodsAndAccessors().Where( m => !m.IsImplicitlyDeclared && Filter( m, attributeGroup, MulticastTargets.Method ) ) )
                 .AddAspectIfEligible( attributeGroup.AspectClass.Type, attributeGroup.GetMatchingAspect );
         }
 
@@ -444,8 +444,8 @@ public sealed class MulticastImplementation
             builder
                 .Outbound.SelectMany(
                     t => t.MethodsAndAccessors()
-                        .Where( m => !m.IsImplicitlyDeclared && m.ImplementationKind != DeclarationImplementationKind.Pseudo && Filter( m, attributeGroup, MulticastTargets.Parameter ) )
-                        .SelectMany( m => m.Parameters.Where( p => Filter( p, attributeGroup, MulticastTargets.Parameter ) ) ) )
+                        .Where( m => !m.IsImplicitlyDeclared && Filter( m, attributeGroup, MulticastTargets.Parameter ) )
+                        .SelectMany( m => m.Parameters.Where( p => !p.IsImplicitlyDeclared && Filter( p, attributeGroup, MulticastTargets.Parameter ) ) ) )
                 .AddAspectIfEligible( attributeGroup.AspectClass.Type, attributeGroup.GetMatchingAspect );
         }
 
@@ -455,7 +455,7 @@ public sealed class MulticastImplementation
                 .Outbound.SelectMany(
                     t => t.MethodsAndAccessors()
                         .Where(
-                            m => !m.IsImplicitlyDeclared && m.ImplementationKind != DeclarationImplementationKind.Pseudo && Filter( m, attributeGroup, MulticastTargets.ReturnValue )
+                            m => !m.IsImplicitlyDeclared && Filter( m, attributeGroup, MulticastTargets.ReturnValue )
                                                          && !m.ReturnType.Equals( SpecialType.Void ) )
                         .Select( m => m.ReturnParameter ) )
                 .AddAspectIfEligible( attributeGroup.AspectClass.Type, attributeGroup.GetMatchingAspect );
@@ -488,7 +488,7 @@ public sealed class MulticastImplementation
         if ( attributeGroup.TargetsAnyDeclarationKind( MulticastTargets.Method ) )
         {
             builder
-                .Outbound.SelectMany( t => t.Accessors.Where( m => !m.IsImplicitlyDeclared && m.ImplementationKind != DeclarationImplementationKind.Pseudo && Filter( m, attributeGroup, MulticastTargets.Method ) ) )
+                .Outbound.SelectMany( t => t.Accessors.Where( m => !m.IsImplicitlyDeclared && Filter( m, attributeGroup, MulticastTargets.Method ) ) )
                 .AddAspectIfEligible( attributeGroup.AspectClass.Type, attributeGroup.GetMatchingAspect );
         }
 
@@ -497,8 +497,8 @@ public sealed class MulticastImplementation
             builder
                 .Outbound.SelectMany(
                     t => t.Accessors
-                        .Where( m => !m.IsImplicitlyDeclared && m.ImplementationKind != DeclarationImplementationKind.Pseudo && Filter( m, attributeGroup, MulticastTargets.Parameter ) )
-                        .SelectMany( m => m.Parameters.Where( p => Filter( p, attributeGroup, MulticastTargets.Parameter ) ) ) )
+                        .Where( m => !m.IsImplicitlyDeclared && Filter( m, attributeGroup, MulticastTargets.Parameter ) )
+                        .SelectMany( m => m.Parameters.Where( p => !p.IsImplicitlyDeclared && Filter( p, attributeGroup, MulticastTargets.Parameter ) ) ) )
                 .AddAspectIfEligible( attributeGroup.AspectClass.Type, attributeGroup.GetMatchingAspect );
         }
 
@@ -508,7 +508,7 @@ public sealed class MulticastImplementation
                 .Outbound.SelectMany(
                     t => t.Accessors
                         .Where(
-                            m => !m.IsImplicitlyDeclared && m.ImplementationKind != DeclarationImplementationKind.Pseudo && Filter( m, attributeGroup, MulticastTargets.ReturnValue )
+                            m => !m.IsImplicitlyDeclared && Filter( m, attributeGroup, MulticastTargets.ReturnValue )
                                                          && !m.ReturnType.Equals( SpecialType.Void ) )
                         .Select( m => m.ReturnParameter ) )
                 .AddAspectIfEligible( attributeGroup.AspectClass.Type, attributeGroup.GetMatchingAspect );
@@ -520,14 +520,14 @@ public sealed class MulticastImplementation
         if ( attributeGroup.TargetsAnyDeclarationKind( MulticastTargets.Parameter ) )
         {
             builder
-                .Outbound.SelectMany( m => m.Parameters.Where( p => Filter( p, attributeGroup, MulticastTargets.Method ) ) )
+                .Outbound.SelectMany( m => m.Parameters.Where( p => !p.IsImplicitlyDeclared && Filter( p, attributeGroup, MulticastTargets.Method ) ) )
                 .AddAspectIfEligible( attributeGroup.AspectClass.Type, attributeGroup.GetMatchingAspect );
         }
 
         if ( attributeGroup.TargetsAnyDeclarationKind( MulticastTargets.ReturnValue ) )
         {
             builder
-                .Outbound.SelectMany( m => m.ReturnParameter.Type.Equals( SpecialType.Void ) ? Enumerable.Empty<IParameter>() : new[] { m.ReturnParameter } )
+                .Outbound.SelectMany( m => m.ReturnParameter.Type.Equals( SpecialType.Void ) ? Enumerable.Empty<IParameter>() : [m.ReturnParameter] )
                 .AddAspectIfEligible( attributeGroup.AspectClass.Type, attributeGroup.GetMatchingAspect );
         }
     }
