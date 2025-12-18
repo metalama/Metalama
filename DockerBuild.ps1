@@ -884,8 +884,6 @@ if (-not $BuildImage)
             # Start new container with docker run
             Write-Host "Executing: docker run --rm --memory=12g $dockerArgsAsString $VolumeMappingsAsString -e HOME=$containerUserProfile -e USERPROFILE=$containerUserProfile -w $ContainerSourceDir $ImageTag `"$pwshPath`" -Command `"$inlineScript`"" -ForegroundColor Cyan
             docker run --rm --memory=12g $dockerArgs @volumeArgs @envArgs -w $ContainerSourceDir $ImageTag $pwshPath -Command $inlineScript
-        
-            & docker @dockerCmd
             $dockerExitCode = $LASTEXITCODE
         }
         finally {
