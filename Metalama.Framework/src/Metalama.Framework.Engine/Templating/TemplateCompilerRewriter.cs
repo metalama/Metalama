@@ -65,6 +65,12 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
     private int _nextStatementListId;
     private ISymbol? _rootTemplateSymbol;
 
+    /// <summary>
+    /// Set to true by <see cref="VisitReturnStatement"/> when the return should terminate compile-time flow.
+    /// Callers should check this flag and generate an early template return if needed.
+    /// </summary>
+    private bool _shouldGenerateEarlyReturn;
+
     public TemplateCompilerRewriter(
         string templateName,
         TemplateCompilerSemantics syntaxKind,
@@ -1127,13 +1133,22 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
                 }
 
             case MetaMemberKind.Return:
-                var returnStatement = ReturnStatement( node.ArgumentList.Arguments.SingleOrDefault()?.Expression );
+                {
+                    var returnStatement = ReturnStatement( node.ArgumentList.Arguments.SingleOrDefault()?.Expression );
 
-                var transformedReturnStatement = (ExpressionSyntax) this.VisitReturnStatement( returnStatement );
+                    var transformedReturnStatement = (ExpressionSyntax) this.VisitReturnStatement( returnStatement );
 
-                this.AddAddStatementStatement( node, transformedReturnStatement );
+                    this.AddAddStatementStatement( node, transformedReturnStatement );
 
-                return null;
+                    // If the return should terminate compile-time flow, add an early return from the template.
+                    if ( this._shouldGenerateEarlyReturn )
+                    {
+                        this._currentMetaContext!.Statements.Add( this.GenerateEarlyTemplateReturn() );
+                        this._shouldGenerateEarlyReturn = false;
+                    }
+
+                    return null;
+                }
 
             case MetaMemberKind.DefineLocalVariable:
                 {
@@ -1999,16 +2014,22 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
     /// Transforms a list of <see cref="StatementSyntax"/> of the source template into a list of <see cref="StatementSyntax"/> for the compiled
     /// template.
     /// </summary>
-    private IEnumerable<StatementSyntax> ToMetaStatements( in SyntaxList<StatementSyntax> statements ) => statements.SelectMany( this.ToMetaStatements );
+    private IEnumerable<StatementSyntax> ToMetaStatements( in SyntaxList<StatementSyntax> statements )
+        => statements.SelectMany( s => this.ToMetaStatements( s ) );
 
     /// <summary>
     /// Transforms a <see cref="StatementSyntax"/> of the source template into a single <see cref="StatementSyntax"/> for the compiled template.
     /// This method is guaranteed to return a single <see cref="StatementSyntax"/>. If the source statement results in several compiled statements,
     /// they will be wrapped into a block.
     /// </summary>
-    private StatementSyntax ToMetaStatement( StatementSyntax statement )
+    /// <param name="statement">A statement of the source template.</param>
+    /// <param name="isConditionalBlock">
+    /// <c>true</c> if this statement is the body of a compile-time conditional (if/while/for/do);
+    /// <c>false</c> for regular statements.
+    /// </param>
+    private StatementSyntax ToMetaStatement( StatementSyntax statement, bool isConditionalBlock = false )
     {
-        var statements = this.ToMetaStatements( statement );
+        var statements = this.ToMetaStatements( statement, isConditionalBlock );
 
         // Declaration statements (for local variable or function) and labeled statements cannot be embedded in e.g. an if statement directly,
         // so enclose them in a block here, in case they're used that way.
@@ -2021,15 +2042,19 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
     /// Transforms a <see cref="StatementSyntax"/> of the source template into a list of <see cref="StatementSyntax"/> for the compiled template.
     /// </summary>
     /// <param name="statement">A statement of the source template.</param>
+    /// <param name="isConditionalBlock">
+    /// <c>true</c> if this statement is the body of a compile-time conditional (if/while/for/do);
+    /// <c>false</c> for regular statements.
+    /// </param>
     /// <returns>A list of statements for the compiled template.</returns>
-    private List<StatementSyntax> ToMetaStatements( StatementSyntax statement )
+    private List<StatementSyntax> ToMetaStatements( StatementSyntax statement, bool isConditionalBlock = false )
     {
         MetaContext newContext;
 
         if ( statement is BlockSyntax block )
         {
             // Push the compile-time template block.
-            newContext = MetaContext.CreateForCompileTimeBlock( this._currentMetaContext! );
+            newContext = MetaContext.CreateForCompileTimeBlock( this._currentMetaContext!, isConditionalBlock );
 
             using ( this.WithMetaContext( newContext ) )
             {
@@ -2101,6 +2126,14 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
                                             ] ) ) ) ) );
 
                         newContext.Statements.Add( add.WithLeadingTrivia( leadingTrivia ).WithTrailingTrivia( trailingTrivia ) );
+
+                        // If a return statement was processed and should terminate compile-time flow,
+                        // add an early return from the template.
+                        if ( this._shouldGenerateEarlyReturn )
+                        {
+                            newContext.Statements.Add( this.GenerateEarlyTemplateReturn() );
+                            this._shouldGenerateEarlyReturn = false;
+                        }
 
                         break;
                     }
@@ -2264,8 +2297,9 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
         }
         else
         {
-            var transformedStatement = this.ToMetaStatement( node.Statement );
-            var transformedElseStatement = node.Else != null ? this.ToMetaStatement( node.Else.Statement ) : null;
+            // Compile-time if: pass isConditionalBlock=true so returns inside terminate compile-time flow.
+            var transformedStatement = this.ToMetaStatement( node.Statement, isConditionalBlock: true );
+            var transformedElseStatement = node.Else != null ? this.ToMetaStatement( node.Else.Statement, isConditionalBlock: true ) : null;
 
             // The condition may contains constructs like typeof or nameof that need to be transformed.
             var condition = (ExpressionSyntax) this.Visit( node.Condition )!;
@@ -2336,7 +2370,8 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
         }
         else
         {
-            var transformedStatement = this.ToMetaStatement( node.Statement );
+            // Compile-time while: pass isConditionalBlock=true so returns inside terminate compile-time flow.
+            var transformedStatement = this.ToMetaStatement( node.Statement, isConditionalBlock: true );
 
             return WhileStatement(
                 node.AttributeLists,
@@ -2354,7 +2389,8 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
         }
         else
         {
-            var transformedStatement = this.ToMetaStatement( node.Statement );
+            // Compile-time do: pass isConditionalBlock=true so returns inside terminate compile-time flow.
+            var transformedStatement = this.ToMetaStatement( node.Statement, isConditionalBlock: true );
 
             return DoStatement(
                 node.AttributeLists,
@@ -2373,7 +2409,8 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
 
         this.Indent();
 
-        var statement = this.ToMetaStatement( node.Statement );
+        // Compile-time foreach: pass isConditionalBlock=true so returns inside terminate compile-time flow.
+        var statement = this.ToMetaStatement( node.Statement, isConditionalBlock: true );
 
         this.Unindent();
 
@@ -2449,7 +2486,38 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
                         Argument( LiteralExpression( awaitResult ? SyntaxKind.TrueLiteralExpression : SyntaxKind.FalseLiteralExpression ) ) );
         }
 
-        return this.WithCallToAddSimplifierAnnotation( invocationExpression );
+        var addReturnExpression = this.WithCallToAddSimplifierAnnotation( invocationExpression );
+
+        // If this return is NOT inside a run-time block AND is inside a compile-time conditional
+        // block (e.g., compile-time if/while/for), it should terminate compile-time flow.
+        // We only generate early return when inside a compile-time conditional to avoid skipping
+        // declarations (like local functions) that come after a top-level return.
+        // Bug 1125: return inside compile-time if should stop flow when condition is true.
+        // Bug 32744: return at top level should NOT skip local functions after it.
+        this._shouldGenerateEarlyReturn = !this._currentMetaContext!.IsInsideRunTimeBlock()
+                                          && this._currentMetaContext.IsInsideCompileTimeConditionalBlock();
+
+        return addReturnExpression;
+    }
+
+    /// <summary>
+    /// Generates a return statement that exits the template and returns the current statement list.
+    /// This is used after processing a return statement that should terminate compile-time flow.
+    /// </summary>
+    private StatementSyntax GenerateEarlyTemplateReturn()
+    {
+        // Generate: TemplateSyntaxFactory.ToStatementList( __s1 )
+        var toStatementListExpression = InvocationExpression(
+            this._templateMetaSyntaxFactory.TemplateSyntaxFactoryMember( nameof(ITemplateSyntaxFactory.ToStatementList) ),
+            ArgumentList( SingletonSeparatedList( Argument( SyntaxFactoryEx.WellKnownIdentifierName( this._currentMetaContext!.StatementListVariableName ) ) ) ) );
+
+        // Wrap in Block: MetaSyntaxFactory.Block( default, ToStatementList(...) )
+        // This matches the pattern used for normal template returns.
+        var blockExpression = this.MetaSyntaxFactory.Block( SyntaxFactoryEx.Default, toStatementListExpression );
+
+        return ReturnStatement( blockExpression )
+            .WithLeadingTrivia( this.GetIndentation() )
+            .NormalizeWhitespace();
     }
 
     private InvocationExpressionSyntax ConvertToUserExpression( ExpressionSyntax expression )

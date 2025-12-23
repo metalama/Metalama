@@ -35,13 +35,69 @@ namespace Metalama.Framework.Engine.Templating
                 string statementListVariableName,
                 Dictionary<ISymbol, SyntaxToken> generatedCodeSymbolNameLocals,
                 Dictionary<ISymbol, SyntaxToken> templateCodeSymbolNameLocals,
-                TemplateLexicalScope templateUniqueNames )
+                TemplateLexicalScope templateUniqueNames,
+                MetaContext? parent = null,
+                bool isRunTimeBlock = false,
+                bool isCompileTimeConditionalBlock = false )
             {
                 this.StatementListVariableName = statementListVariableName;
                 this._generatedCodeSymbolNameLocals = generatedCodeSymbolNameLocals;
                 this._templateCodeSymbolNameLocals = templateCodeSymbolNameLocals;
                 this._templateUniqueNames = templateUniqueNames;
                 this.Statements = new List<StatementSyntax>();
+                this.Parent = parent;
+                this.IsRunTimeBlock = isRunTimeBlock;
+                this.IsCompileTimeConditionalBlock = isCompileTimeConditionalBlock;
+            }
+
+            /// <summary>
+            /// Gets the parent context, or <c>null</c> if this is the root context.
+            /// </summary>
+            public MetaContext? Parent { get; }
+
+            /// <summary>
+            /// Gets a value indicating whether this context corresponds to a run-time block.
+            /// </summary>
+            public bool IsRunTimeBlock { get; }
+
+            /// <summary>
+            /// Gets a value indicating whether this context corresponds to a compile-time conditional block
+            /// (e.g., the body of a compile-time if/while/for statement).
+            /// </summary>
+            public bool IsCompileTimeConditionalBlock { get; }
+
+            /// <summary>
+            /// Determines whether this context or any of its ancestors is a run-time block.
+            /// A return statement inside a run-time block should not terminate compile-time flow.
+            /// </summary>
+            public bool IsInsideRunTimeBlock()
+            {
+                for ( var context = this; context != null; context = context.Parent )
+                {
+                    if ( context.IsRunTimeBlock )
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+
+            /// <summary>
+            /// Determines whether this context or any of its ancestors is a compile-time conditional block.
+            /// Only returns inside compile-time conditionals should terminate compile-time flow.
+            /// </summary>
+            public bool IsInsideCompileTimeConditionalBlock()
+            {
+                for ( var context = this; context != null; context = context.Parent )
+                {
+                    if ( context.IsCompileTimeConditionalBlock )
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
             }
 
             /// <summary>
@@ -59,7 +115,19 @@ namespace Metalama.Framework.Engine.Templating
 
                 var templateLexicalScope = parentContext?._templateUniqueNames ?? new TemplateLexicalScope( ImmutableHashSet<string>.Empty );
 
-                return new MetaContext( statementListVariableName, generatedCodeSymbolNameLocals, templateCodeSymbolNameLocals, templateLexicalScope );
+                // Only mark as a run-time block if there's a parent context.
+                // The root context (parentContext == null) is the template body itself and should not
+                // be considered a "run-time block" for the purpose of compile-time flow termination.
+                // A "run-time block" in this context means a block inside a run-time conditional
+                // (like if(runtime_condition)), where returns should not terminate compile-time flow.
+
+                return new MetaContext(
+                    statementListVariableName,
+                    generatedCodeSymbolNameLocals,
+                    templateCodeSymbolNameLocals,
+                    templateLexicalScope,
+                    parentContext,
+                    isRunTimeBlock: parentContext != null );
             }
 
             /// <summary>
@@ -72,14 +140,20 @@ namespace Metalama.Framework.Engine.Templating
                     parentContext.StatementListVariableName,
                     parentContext._generatedCodeSymbolNameLocals,
                     parentContext._templateCodeSymbolNameLocals,
-                    parentContext._templateUniqueNames );
+                    parentContext._templateUniqueNames,
+                    parentContext );
             }
 
             /// <summary>
             /// Creates a child <see cref="MetaContext"/> that corresponds to a new compile-time block (lexical scope).
             /// Symbols defined in the child scope are not defined in the parent scope.
             /// </summary>
-            public static MetaContext CreateForCompileTimeBlock( MetaContext parentContext )
+            /// <param name="parentContext">The parent context.</param>
+            /// <param name="isConditionalBlock">
+            /// <c>true</c> if this block is the body of a compile-time conditional (if/while/for/do);
+            /// <c>false</c> for regular lexical scopes like the template body.
+            /// </param>
+            public static MetaContext CreateForCompileTimeBlock( MetaContext parentContext, bool isConditionalBlock = false )
             {
                 // Compile-time blocks are currently without effect because the dictionary maps resolved symbols, and not symbol
                 // names. Two declaration of variables with the same name are still different symbols, so we don't strictly
@@ -92,7 +166,9 @@ namespace Metalama.Framework.Engine.Templating
                     parentContext.StatementListVariableName,
                     lexicalScope,
                     parentContext._templateCodeSymbolNameLocals,
-                    parentContext._templateUniqueNames );
+                    parentContext._templateUniqueNames,
+                    parentContext,
+                    isCompileTimeConditionalBlock: isConditionalBlock );
             }
 
             /// <summary>
