@@ -120,14 +120,14 @@ namespace Metalama.Framework.Code.DeclarationBuilders
             constructorArguments ??= ImmutableArray<object?>.Empty;
             namedArguments ??= ImmutableArray<KeyValuePair<string, object?>>.Empty;
 
-            // Translate provided IType - typed parameters to System.Type to get the correct constructor.
-            // Also translate CompileTimeType to System.Type, since CompileTimeType can't be translated to a symbol in the run-time assembly.
+            // Translate IType and System.Type arguments to System.Type to get the correct constructor.
+            // This handles IType implementations, CompileTimeType, RuntimeType, and other Type subclasses.
             var constructorArgumentTypes =
                 constructorArguments
                     .Select( x => x?.GetType() )
                     .Select(
                         x => x == null ? null :
-                            typeof(IType).IsAssignableFrom( x ) || x.FullName == "Metalama.Framework.Engine.ReflectionMocks.CompileTimeType" ? typeof(Type) :
+                            typeof(IType).IsAssignableFrom( x ) || typeof(Type).IsAssignableFrom( x ) ? typeof(Type) :
                             x )
                     .ToArray();
 
