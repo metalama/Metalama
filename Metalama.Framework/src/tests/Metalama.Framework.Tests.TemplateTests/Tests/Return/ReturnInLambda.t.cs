@@ -1,6 +1,6 @@
 private object? Method()
 {
-  global::System.Func<global::System.Object?, global::System.Object?> lambda = (object? input) =>
+  var lambda = (object? input) =>
   {
     if (input == null)
     {
