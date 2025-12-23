@@ -66,7 +66,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
     private ISymbol? _rootTemplateSymbol;
 
     /// <summary>
-    /// Set to true by <see cref="VisitReturnStatement"/> when the return should terminate compile-time flow.
+    /// Set to true by <see cref="VisitReturnStatement"/> or <see cref="VisitThrowStatement"/> when the statement should terminate compile-time flow.
     /// Callers should check this flag and generate an early template return if needed.
     /// </summary>
     private bool _shouldGenerateEarlyReturn;
