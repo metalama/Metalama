@@ -1140,12 +1140,10 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
 
                     this.AddAddStatementStatement( node, transformedReturnStatement );
 
-                    // If the return should terminate compile-time flow, add an early return from the template.
-                    if ( this._shouldGenerateEarlyReturn )
-                    {
-                        this._currentMetaContext!.Statements.Add( this.GenerateEarlyTemplateReturn() );
-                        this._shouldGenerateEarlyReturn = false;
-                    }
+                    // Note: meta.Return() emits a return statement to the run-time code but does NOT
+                    // terminate compile-time flow. Only actual 'return' statements in the template
+                    // should terminate compile-time flow.
+                    this._shouldGenerateEarlyReturn = false;
 
                     return null;
                 }
@@ -2014,8 +2012,13 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
     /// Transforms a list of <see cref="StatementSyntax"/> of the source template into a list of <see cref="StatementSyntax"/> for the compiled
     /// template.
     /// </summary>
-    private IEnumerable<StatementSyntax> ToMetaStatements( in SyntaxList<StatementSyntax> statements )
-        => statements.SelectMany( s => this.ToMetaStatements( s ) );
+    /// <param name="statements">The statements to transform.</param>
+    /// <param name="isConditionalBlock">
+    /// <c>true</c> if these statements are inside a compile-time conditional (if/while/for/do/switch case);
+    /// <c>false</c> for regular statements.
+    /// </param>
+    private IEnumerable<StatementSyntax> ToMetaStatements( in SyntaxList<StatementSyntax> statements, bool isConditionalBlock = false )
+        => statements.SelectMany( s => this.ToMetaStatements( s, isConditionalBlock ) );
 
     /// <summary>
     /// Transforms a <see cref="StatementSyntax"/> of the source template into a single <see cref="StatementSyntax"/> for the compiled template.
@@ -2069,9 +2072,12 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
         }
         else
         {
-            // Push a new MetaContext so statements got added to a new list of statements, but
-            // this MetaContext is neither a run-time nor a compile-time lexical scope. 
-            newContext = MetaContext.CreateHelperContext( this._currentMetaContext! );
+            // Push a new MetaContext so statements got added to a new list of statements.
+            // If isConditionalBlock is true, we still need to mark this as a conditional block
+            // even though it's not a lexical scope (e.g., statements in a switch case).
+            newContext = isConditionalBlock
+                ? MetaContext.CreateForCompileTimeBlock( this._currentMetaContext!, isConditionalBlock: true )
+                : MetaContext.CreateHelperContext( this._currentMetaContext! );
 
             using ( this.WithMetaContext( newContext ) )
             {
@@ -2127,19 +2133,20 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
 
                         newContext.Statements.Add( add.WithLeadingTrivia( leadingTrivia ).WithTrailingTrivia( trailingTrivia ) );
 
-                        // If a return statement was processed and should terminate compile-time flow,
-                        // add an early return from the template.
-                        if ( this._shouldGenerateEarlyReturn )
-                        {
-                            newContext.Statements.Add( this.GenerateEarlyTemplateReturn() );
-                            this._shouldGenerateEarlyReturn = false;
-                        }
-
                         break;
                     }
 
                 default:
                     throw new AssertionFailedException( $"Unexpected node kind {transformedNode.Kind()} at '{singleStatement.GetLocation()};." );
+            }
+
+            // If a return or throw statement was processed and should terminate compile-time flow,
+            // add an early return from the template. This is checked after the switch for clarity,
+            // though the flag can only be set when the statement was transformed to an ExpressionSyntax.
+            if ( this._shouldGenerateEarlyReturn )
+            {
+                newContext.Statements.Add( this.GenerateEarlyTemplateReturn() );
+                this._shouldGenerateEarlyReturn = false;
             }
         }
     }
@@ -2258,7 +2265,9 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
             for ( var i = 0; i < node.Sections.Count; i++ )
             {
                 var section = node.Sections[i];
-                var transformedStatements = this.ToMetaStatements( section.Statements ).ToMutableList();
+
+                // Compile-time switch: pass isConditionalBlock=true so returns/throws inside terminate compile-time flow.
+                var transformedStatements = this.ToMetaStatements( section.Statements, isConditionalBlock: true ).ToMutableList();
 
                 // If the last statement does not transfer control elsewhere, add a break statement.
                 // This happens when the transfer control statement in a template is run-time (e.g. a throw).
@@ -2518,6 +2527,36 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
         return ReturnStatement( blockExpression )
             .WithLeadingTrivia( this.GetIndentation() )
             .NormalizeWhitespace();
+    }
+
+    public override SyntaxNode VisitThrowStatement( ThrowStatementSyntax node )
+    {
+        // Transform the throw expression to create run-time syntax.
+        var transformedExpression = node.Expression != null ? this.Transform( node.Expression ) : null;
+
+        // Generate: SyntaxFactory.ThrowStatement( expression )
+        InvocationExpressionSyntax invocationExpression;
+
+        if ( transformedExpression != null )
+        {
+            invocationExpression = InvocationExpression( this.MetaSyntaxFactory.SyntaxFactoryMethod( nameof(ThrowStatement) ) )
+                .AddArgumentListArguments( Argument( transformedExpression ) );
+        }
+        else
+        {
+            // Rethrow: throw;
+            invocationExpression = InvocationExpression( this.MetaSyntaxFactory.SyntaxFactoryMethod( nameof(ThrowStatement) ) );
+        }
+
+        var addThrowExpression = this.WithCallToAddSimplifierAnnotation( invocationExpression );
+
+        // If this throw is NOT inside a run-time block AND is inside a compile-time conditional
+        // block (e.g., compile-time if/while/for), it should terminate compile-time flow.
+        // Same logic as return statements.
+        this._shouldGenerateEarlyReturn = !this._currentMetaContext!.IsInsideRunTimeBlock()
+                                          && this._currentMetaContext.IsInsideCompileTimeConditionalBlock();
+
+        return addThrowExpression;
     }
 
     private InvocationExpressionSyntax ConvertToUserExpression( ExpressionSyntax expression )
