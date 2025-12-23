@@ -16,10 +16,12 @@ if ($env:RUNNING_IN_DOCKER -ne "true")
 
 # Configure MCP approval server if port is specified
 $mcpConfigArg = ""
-if ($McpPort -gt 0) {
+if ($McpPort -gt 0)
+{
     # Get MCP secret from environment variable
     $mcpSecret = $env:MCP_APPROVAL_SERVER_TOKEN
-    if ([string]::IsNullOrEmpty($mcpSecret)) {
+    if ( [string]::IsNullOrEmpty($mcpSecret))
+    {
         Write-Error "MCP_APPROVAL_SERVER_TOKEN environment variable is not set. Cannot authenticate to MCP server."
         exit 1
     }

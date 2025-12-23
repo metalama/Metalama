@@ -127,7 +127,7 @@ if (-not $Interactive -or $BuildArgs)
                 throw "Build succeeded but output DLL '$outputDll' not found."
             }
         }
-      
+
         # Run the project using dotnet exec (faster than dotnet run)
         if (-not $outputDll -or -not (Test-Path $outputDll))
         {
@@ -149,6 +149,7 @@ if (-not $Interactive -or $BuildArgs)
     }
 }
 
-if ( $Interactive ) {
+if ($Interactive)
+{
     Write-Host "Entering interactive PowerShell." -ForegroundColor Green
 }
