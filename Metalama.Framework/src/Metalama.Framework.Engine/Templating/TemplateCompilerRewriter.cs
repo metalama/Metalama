@@ -2072,12 +2072,13 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
         }
         else
         {
-            // Push a new MetaContext so statements got added to a new list of statements.
-            // If isConditionalBlock is true, we still need to mark this as a conditional block
-            // even though it's not a lexical scope (e.g., statements in a switch case).
+            // Push a new MetaContext so statements get added to a new list of statements.
+            // Switch case statements are not wrapped in a block syntactically, but if they're inside
+            // a compile-time switch, return/throw should still terminate compile-time flow. We use
+            // CreateForCompileTimeBlock to mark the context as a conditional block in this case.
             newContext = isConditionalBlock
                 ? MetaContext.CreateForCompileTimeBlock( this._currentMetaContext!, isConditionalBlock: true )
-                : MetaContext.CreateHelperContext( this._currentMetaContext! );
+                : MetaContext.CreateStatementGroupContext( this._currentMetaContext! );
 
             using ( this.WithMetaContext( newContext ) )
             {

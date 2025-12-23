@@ -131,10 +131,11 @@ namespace Metalama.Framework.Engine.Templating
             }
 
             /// <summary>
-            /// Creates a child <see cref="MetaContext"/> copies everything from the parent context but has its own
-            /// list of statements.
+            /// Creates a child <see cref="MetaContext"/> that inherits all compile-time/run-time semantics from
+            /// the parent but has its own statement list. Used for local statement grouping without changing
+            /// flow control behavior (e.g., grouping statements before adding them to the parent).
             /// </summary>
-            public static MetaContext CreateHelperContext( MetaContext parentContext )
+            public static MetaContext CreateStatementGroupContext( MetaContext parentContext )
             {
                 return new MetaContext(
                     parentContext.StatementListVariableName,
