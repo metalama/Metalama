@@ -4,7 +4,7 @@
 
 #if TESTOPTIONS
 // @RequiredConstant(NET8_0_OR_GREATER)
-// @Skipped(#1069)
+// @Skipped(#1257 - Non-deterministic output ordering)
 #endif
 
 using Metalama.Framework.Aspects;

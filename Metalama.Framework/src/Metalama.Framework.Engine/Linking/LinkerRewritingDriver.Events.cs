@@ -509,7 +509,8 @@ namespace Metalama.Framework.Engine.Linking
         {
             var eventBrokerTypeInfo = this.AnalysisRegistry.GetEventBrokerTypeInfo( symbol ).AssertNotNull();
 
-            foreach ( var eventBrokerTransformationInfo in eventBrokerTypeInfo.Transformations.Values )
+            foreach ( var eventBrokerTransformationInfo in eventBrokerTypeInfo.Transformations.Values
+                         .OrderBy( t => t.EventBrokerFieldName, StringComparer.Ordinal ) )
             {
                 var modifiers = new List<SyntaxToken>( 4 );
                 modifiers.Add( Token( TriviaList(), SyntaxKind.PrivateKeyword, TriviaList( ElasticSpace ) ) );
