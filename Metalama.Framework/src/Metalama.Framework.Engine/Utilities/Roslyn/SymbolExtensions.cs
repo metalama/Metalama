@@ -388,10 +388,14 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
                 }
                 else
                 {
-                    // Find the lowest value.
+                    // Find the reference with the shortest file path. For deterministic ordering when
+                    // paths have equal length, we use the file path itself as a tie-breaker, and then
+                    // the span position (#1069).
 
                     SyntaxReference? min = null;
                     int? minLength = null;
+                    string? minPath = null;
+                    int? minSpan = null;
 
                     foreach ( var reference in s.DeclaringSyntaxReferences )
                     {
@@ -400,12 +404,22 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
                             continue;
                         }
 
-                        var length = reference.SyntaxTree.FilePath.Length;
+                        var path = reference.SyntaxTree.FilePath;
+                        var length = path.Length;
+                        var span = reference.Span.Start;
 
-                        if ( min == null || length < minLength )
+                        var isBetter = min == null
+                                       || length < minLength
+                                       || (length == minLength
+                                           && (StringComparer.Ordinal.Compare( path, minPath ) < 0
+                                               || (path == minPath && span < minSpan)));
+
+                        if ( isBetter )
                         {
                             min = reference;
                             minLength = length;
+                            minPath = path;
+                            minSpan = span;
                         }
                     }
 
