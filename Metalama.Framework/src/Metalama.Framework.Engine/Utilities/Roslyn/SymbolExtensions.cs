@@ -27,6 +27,23 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
 {
     public static class SymbolExtensions
     {
+        /// <summary>
+        /// Safely gets attributes from a symbol, handling Roslyn's NullReferenceException bug
+        /// that can occur when PE metadata is corrupted or incomplete.
+        /// </summary>
+        internal static ImmutableArray<AttributeData> GetAttributesSafe( this ISymbol symbol )
+        {
+            try
+            {
+                return symbol.GetAttributes();
+            }
+            catch ( NullReferenceException )
+            {
+                // Roslyn bug in PEModule.HasAttributeUsageAttribute when metadata is corrupted
+                return ImmutableArray<AttributeData>.Empty;
+            }
+        }
+
         // Coverage: ignore
         internal static SpecialType ToOurSpecialType( this RoslynSpecialType type )
             => type switch
