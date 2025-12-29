@@ -3,7 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 // TemplatingCodeValidator Benchmark
-// Validates the entire nopCommerce.Core project to measure validation performance.
+// Validates all projects in the nopCommerce solution to measure validation performance.
 //
 // Usage:
 //   dotnet run -c Release
@@ -13,18 +13,24 @@
 #pragma warning disable CA1822
 
 using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Configs;
+using BenchmarkDotNet.Jobs;
 using BenchmarkDotNet.Running;
+using BenchmarkDotNet.Toolchains.InProcess.Emit;
 using JetBrains.Profiler.Api;
 using Metalama.Backstage.Application;
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Licensing;
 using Metalama.Framework.Engine;
+using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Templating;
 using Metalama.Framework.Engine.Utilities.Diagnostics;
+using Metalama.Framework.Engine.Utilities.Threading;
 using Metalama.Testing.UnitTesting;
 using Microsoft.Build.Locator;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.MSBuild;
+using System.Collections.Immutable;
 using System.Diagnostics;
 
 // Register MSBuild before anything else
@@ -52,7 +58,8 @@ if ( args.Contains( "--test" ) )
         } );
 
     var benchmarks = new TemplatingCodeValidatorBenchmarks();
-    await benchmarks.Setup();
+    await benchmarks.GlobalSetup();
+    benchmarks.IterationSetup();
 
     if ( useDotTrace )
     {
@@ -73,11 +80,20 @@ if ( args.Contains( "--test" ) )
     }
 
     Console.WriteLine( $"Validation completed in {sw.ElapsedMilliseconds} ms, found {count} diagnostics" );
-    benchmarks.Cleanup();
+    benchmarks.IterationCleanup();
+    benchmarks.GlobalCleanup();
     return;
 }
 
-BenchmarkRunner.Run<TemplatingCodeValidatorBenchmarks>();
+// Use InProcessEmitToolchain to avoid BenchmarkDotNet's build issues with .NET SDK 10.0
+// (SDK 10.0 doesn't recognize /p: syntax that BenchmarkDotNet uses)
+// Configure for long-running benchmarks with 5% acceptable variance
+var config = DefaultConfig.Instance
+    .AddJob( Job.Default
+        .WithToolchain( new InProcessEmitToolchain( TimeSpan.FromMinutes( 30 ), logOutput: true ) )
+        .WithMaxRelativeError( 0.05 ) );
+
+BenchmarkRunner.Run<TemplatingCodeValidatorBenchmarks>( config );
 return;
 
 static string GetGitBranchName()
@@ -111,72 +127,154 @@ static string GetGitBranchName()
 [MemoryDiagnoser]
 public class TemplatingCodeValidatorBenchmarks
 {
-    private const string NopCommerceCoreProject = @"C:\src\Metalama-2026.0\Metalama.Tests.NopCommerce\src\Libraries\Nop.Core\Nop.Core.csproj";
+    private const string NopCommerceSolution = @"C:\src\Metalama-2026.0\nopCommerce-benchmark\src\NopCommerce.sln";
 
     private TestContext? _testContext;
-    private Compilation? _compilation;
+    private Compilation[]? _compilations;
     private MSBuildWorkspace? _workspace;
+    private bool _backstageInitialized;
 
     [GlobalSetup]
-    public async Task Setup()
+    public async Task GlobalSetup()
     {
-        Console.WriteLine( "Setting up benchmark..." );
+        Console.WriteLine( "Setting up benchmark (global)..." );
 
-        // Initialize Metalama services (must be done in spawned process)
-        BackstageServiceFactoryInitializer.Initialize(
-            new BackstageInitializationOptions( new BenchmarkApplicationInfo() )
-            {
-                AddSupportServices = true,
-                AddLicensing = false,
-                LicensingOptions = LicensingInitializationOptions.ForTest(
-                    license =>
-                    {
-                        license.Product = LicenseProduct.MetalamaProfessional;
-                        license.LicenseType = LicenseType.Test;
-                        license.SubscriptionEndDate = DateTime.MaxValue;
-                    } )
-            } );
+        // Initialize Metalama services (must be done once)
+        if ( !_backstageInitialized )
+        {
+            BackstageServiceFactoryInitializer.Initialize(
+                new BackstageInitializationOptions( new BenchmarkApplicationInfo() )
+                {
+                    AddSupportServices = true,
+                    AddLicensing = false,
+                    LicensingOptions = LicensingInitializationOptions.ForTest(
+                        license =>
+                        {
+                            license.Product = LicenseProduct.MetalamaProfessional;
+                            license.LicenseType = LicenseType.Test;
+                            license.SubscriptionEndDate = DateTime.MaxValue;
+                        } )
+                } );
 
-        // Create test context with Metalama services
-        _testContext = new TestContext( new TestContextOptions() );
+            _backstageInitialized = true;
+        }
 
-        // Load nopCommerce.Core project using MSBuildWorkspace
-        Console.WriteLine( $"Loading project: {NopCommerceCoreProject}" );
+        // Load nopCommerce solution using MSBuildWorkspace
+        Console.WriteLine( $"Loading solution: {NopCommerceSolution}" );
 
+        var workspaceFailures = new List<string>();
         _workspace = MSBuildWorkspace.Create();
         _workspace.WorkspaceFailed += ( sender, args ) =>
         {
             if ( args.Diagnostic.Kind == WorkspaceDiagnosticKind.Failure )
             {
+                workspaceFailures.Add( args.Diagnostic.Message );
                 Console.WriteLine( $"Workspace error: {args.Diagnostic.Message}" );
             }
         };
 
-        var project = await _workspace.OpenProjectAsync( NopCommerceCoreProject );
+        var solution = await _workspace.OpenSolutionAsync( NopCommerceSolution );
 
-        Console.WriteLine( $"Loaded project: {project.Name}" );
-        Console.WriteLine( $"Documents: {project.Documents.Count()}" );
-
-        var roslynCompilation = await project.GetCompilationAsync();
-
-        if ( roslynCompilation == null )
+        if ( workspaceFailures.Count > 0 )
         {
-            throw new InvalidOperationException( "Failed to get compilation" );
+            throw new InvalidOperationException(
+                $"Failed to load solution due to {workspaceFailures.Count} workspace error(s):\n" +
+                string.Join( "\n", workspaceFailures.Take( 5 ) ) +
+                (workspaceFailures.Count > 5 ? $"\n... and {workspaceFailures.Count - 5} more" : "") );
         }
 
-        // Add Metalama references to the compilation so TemplatingCodeValidator can find the types
-        var metalamaReferences = _testContext.GetMetadataReferences();
-        _compilation = roslynCompilation.AddReferences( metalamaReferences );
+        var projects = solution.Projects.ToArray();
+        Console.WriteLine( $"Loaded solution with {projects.Length} projects" );
 
-        Console.WriteLine( $"Created compilation with {_compilation.SyntaxTrees.Count()} trees and {_compilation.References.Count()} references" );
+        // Get Metalama references using a temporary TestContext
+        IReadOnlyList<PortableExecutableReference> metalamaReferences;
+
+        using ( var tempContext = new TestContext( new TestContextOptions() ) )
+        {
+            metalamaReferences = tempContext.GetMetadataReferences();
+        }
+        var compilations = new Compilation[projects.Length];
+        var errors = new Exception?[projects.Length];
+
+        // Load and validate all compilations in parallel
+        await Parallel.ForAsync(
+            0,
+            projects.Length,
+            async ( i, _ ) =>
+            {
+                var project = projects[i];
+                Console.WriteLine( $"  Loading project: {project.Name} ({project.Documents.Count()} documents)" );
+
+                try
+                {
+                    var roslynCompilation = await project.GetCompilationAsync();
+
+                    if ( roslynCompilation == null )
+                    {
+                        errors[i] = new InvalidOperationException( $"Failed to get compilation for project {project.Name}" );
+
+                        return;
+                    }
+
+                    // Check for compilation errors
+                    var compilationErrors = roslynCompilation.GetDiagnostics()
+                        .Where( d => d.Severity == DiagnosticSeverity.Error )
+                        .ToList();
+
+                    if ( compilationErrors.Count > 0 )
+                    {
+                        errors[i] = new InvalidOperationException(
+                            $"Project {project.Name} has {compilationErrors.Count} error(s):\n" +
+                            string.Join( "\n", compilationErrors.Take( 10 ).Select( d => d.ToString() ) ) +
+                            (compilationErrors.Count > 10 ? $"\n... and {compilationErrors.Count - 10} more" : "") );
+
+                        return;
+                    }
+
+                    // Add Metalama references - required by TemplatingCodeValidator to resolve Metalama types
+                    compilations[i] = roslynCompilation.AddReferences( metalamaReferences );
+                }
+                catch ( Exception ex )
+                {
+                    errors[i] = ex;
+                }
+            } );
+
+        // Check for errors
+        var firstError = errors.FirstOrDefault( e => e != null );
+
+        if ( firstError != null )
+        {
+            throw firstError;
+        }
+
+        _compilations = compilations;
+        var totalTrees = _compilations.Sum( c => c.SyntaxTrees.Count() );
+
+        Console.WriteLine( $"Created {_compilations.Length} compilations with {totalTrees} total syntax trees" );
         Console.WriteLine( "Setup complete!" );
     }
 
     [GlobalCleanup]
-    public void Cleanup()
+    public void GlobalCleanup()
     {
         _workspace?.Dispose();
+    }
+
+    [IterationSetup]
+    public void IterationSetup()
+    {
+        // Create fresh TestContext for each iteration to avoid caching effects
+        var additionalServices = new AdditionalServiceCollection();
+        additionalServices.ProjectServices.Add<IConcurrentTaskRunner>( _ => new ConcurrentTaskRunner() );
+        _testContext = new TestContext( new TestContextOptions(), additionalServices );
+    }
+
+    [IterationCleanup]
+    public void IterationCleanup()
+    {
         _testContext?.Dispose();
+        _testContext = null;
     }
 
     [Benchmark]
@@ -184,11 +282,16 @@ public class TemplatingCodeValidatorBenchmarks
     {
         var diagnosticCount = 0;
 
-        await TemplatingCodeValidator.ValidateAsync(
-            _testContext!.ServiceProvider,
-            _compilation!,
-            _ => Interlocked.Increment( ref diagnosticCount ),
-            CancellationToken.None );
+        await Parallel.ForEachAsync(
+            _compilations!,
+            async ( compilation, _ ) =>
+            {
+                await TemplatingCodeValidator.ValidateAsync(
+                    _testContext!.ServiceProvider,
+                    compilation,
+                    _ => Interlocked.Increment( ref diagnosticCount ),
+                    CancellationToken.None );
+            } );
 
         return diagnosticCount;
     }
