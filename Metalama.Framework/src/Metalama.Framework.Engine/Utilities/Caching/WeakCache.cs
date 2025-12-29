@@ -3,17 +3,83 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
 namespace Metalama.Framework.Engine.Utilities.Caching;
 
 /// <summary>
+/// Abstract base class for weak caches that supports invalidation of static instances.
+/// </summary>
+public abstract class WeakCache
+{
+    private static readonly object _lock = new();
+    private static readonly List<WeakReference<WeakCache>> _staticCaches = new();
+
+    /// <summary>
+    /// Invalidates all registered static caches by calling <see cref="Clear"/> on each.
+    /// </summary>
+    public static void Invalidate()
+    {
+        lock ( _lock )
+        {
+            for ( var i = _staticCaches.Count - 1; i >= 0; i-- )
+            {
+                if ( _staticCaches[i].TryGetTarget( out var cache ) )
+                {
+                    cache.Clear();
+                }
+                else
+                {
+                    // Remove dead references
+                    _staticCaches.RemoveAt( i );
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Registers this cache instance as a static cache that will be cleared when <see cref="Invalidate"/> is called.
+    /// </summary>
+    private protected void Register()
+    {
+        lock ( _lock )
+        {
+            _staticCaches.Add( new WeakReference<WeakCache>( this ) );
+        }
+    }
+
+    /// <summary>
+    /// Clears all entries in the cache.
+    /// </summary>
+    public abstract void Clear();
+}
+
+/// <summary>
 /// A cache based on <see cref="ConditionalWeakTable{TKey,TValue}"/>, which holds a weak reference to the key.
 /// </summary>
-public sealed class WeakCache<TKey, TValue> : ICache<TKey, TValue>
+public sealed class WeakCache<TKey, TValue> : WeakCache, ICache<TKey, TValue>
     where TKey : class
 {
-    private readonly ConditionalWeakTable<TKey, StrongBox<TValue>> _cache = new();
+    private ConditionalWeakTable<TKey, StrongBox<TValue>> _cache = new();
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="WeakCache{TKey, TValue}"/> class.
+    /// </summary>
+    /// <param name="isStaticCache">If <c>true</c>, the cache will be registered for invalidation via <see cref="WeakCache.Invalidate"/>.</param>
+    public WeakCache( bool isStaticCache = false )
+    {
+        if ( isStaticCache )
+        {
+            this.Register();
+        }
+    }
+
+    /// <inheritdoc />
+    public override void Clear()
+    {
+        this._cache = new ConditionalWeakTable<TKey, StrongBox<TValue>>();
+    }
 
     public bool TryGetValue( TKey key, out TValue value )
     {

@@ -9,7 +9,7 @@ namespace Metalama.Framework.Engine.Services
 {
     public static class CompilationContextFactory
     {
-        private static readonly WeakCache<Compilation, CompilationContext> _instances = new();
+        private static readonly WeakCache<Compilation, CompilationContext> _instances = new( isStaticCache: true );
 
         public static CompilationContext GetCompilationContext( this Compilation compilation )
             => _instances.GetOrAdd( compilation, c => new CompilationContext( c ) );

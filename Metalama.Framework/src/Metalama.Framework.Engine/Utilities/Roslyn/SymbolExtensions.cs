@@ -204,7 +204,7 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
 
         internal static bool IsExplicitInterfaceMemberImplementation( this ISymbol symbol ) => symbol.ExplicitInterfaceImplementations().Any();
 
-        private static readonly WeakCache<ISymbol, ImmutableArray<ISymbol>> _explicitOrImplicitInterfaceImplementations = new();
+        private static readonly WeakCache<ISymbol, ImmutableArray<ISymbol>> _explicitOrImplicitInterfaceImplementations = new( isStaticCache: true );
 
         // Based on https://github.com/dotnet/roslyn/blob/9846ce8ba/src/Workspaces/SharedUtilitiesAndExtensions/Compiler/Core/Extensions/ISymbolExtensions.cs#L145-L159
         internal static ImmutableArray<ISymbol> GetExplicitOrImplicitInterfaceImplementations( this ISymbol symbol )

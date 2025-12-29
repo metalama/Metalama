@@ -38,7 +38,7 @@ namespace Metalama.Framework.Engine.CodeModel.Helpers
         }
 
         // Caches the result type of an awaitable for a type, or null if the type is not awaitable.
-        private static readonly WeakCache<INamedTypeSymbol, AsyncInfoSymbol?> _cache = new();
+        private static readonly WeakCache<INamedTypeSymbol, AsyncInfoSymbol?> _cache = new( isStaticCache: true );
 
         /// <summary>
         /// Gets the type of the result of an awaitable.
