@@ -16,6 +16,17 @@ namespace Metalama.Framework.Engine.Templating
 {
     public static partial class TemplatingCodeValidator
     {
+        public static Task<bool> ValidateAsync(
+            ProjectServiceProvider serviceProvider,
+            Compilation compilation,
+            Action<Diagnostic> reportDiagnostic,
+            CancellationToken cancellationToken )
+        {
+            var compilationContext = serviceProvider.GetRequiredService<ClassifyingCompilationContextFactory>().GetInstance( compilation );
+
+            return ValidateAsync( serviceProvider, compilationContext, reportDiagnostic, null, cancellationToken );
+        }
+
         internal static async Task<bool> ValidateAsync(
             ProjectServiceProvider serviceProvider,
             ClassifyingCompilationContext compilationContext,
