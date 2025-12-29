@@ -100,6 +100,45 @@ RUN New-Item -ItemType Directory -Path 'C:\Program Files (x86)\Microsoft Visual 
     New-Item -ItemType Directory -Path 'C:\Program Files\dotnet\sdk\NuGetFallbackFolder' -Force | Out-Null
 
 
+# Install Node.js
+RUN Invoke-WebRequest -Uri "https://nodejs.org/dist/v22.0.0/node-v22.0.0-win-x64.zip" -OutFile node.zip; `
+    Expand-Archive node.zip -DestinationPath C:\; `
+    Rename-Item "C:\node-v22.0.0-win-x64" "C:\nodejs"; `
+    Remove-Item node.zip
+
+ENV PATH="C:\nodejs;${PATH}"
+
+
+# Install GitHub CLI
+RUN Invoke-WebRequest -Uri https://github.com/cli/cli/releases/download/v2.63.2/gh_2.63.2_windows_amd64.msi -OutFile gh.msi; `
+    $process = Start-Process msiexec.exe -Wait -PassThru -ArgumentList '/I gh.msi /quiet'; `
+    if ($process.ExitCode -ne 0) { exit $process.ExitCode }; `
+    Remove-Item gh.msi
+
+ENV PATH="C:\Program Files\GitHub CLI;${PATH}"
+
+
+# Install Claude CLI
+# Configure npm global directory to avoid Windows container path issues
+ENV NPM_CONFIG_PREFIX=C:\\npm
+ENV PATH="C:\\npm;${PATH}"
+
+# Install Claude CLI using cmd shell to avoid HCS issues with PowerShell
+SHELL ["cmd", "/S", "/C"]
+RUN C:\\nodejs\\npm.cmd install --global @anthropic-ai/claude-code
+
+# Set HOME/USERPROFILE so Claude CLI finds credentials during build
+ENV HOME=C:\\Users\\ContainerUser
+ENV USERPROFILE=C:\\Users\\ContainerUser
+ENV CLAUDE_CODE_SHELL=pwsh
+
+# Create Claude config directory (credentials are mounted at runtime)
+RUN mkdir C:\Users\ContainerUser\.claude
+
+# Restore PowerShell shell using full path
+SHELL ["C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe", "-Command"]
+
+
 # Epilogue
 # Create directories for mountpoints
 ARG MOUNTPOINTS
