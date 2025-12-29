@@ -8,11 +8,13 @@
 // Usage:
 //   dotnet run -c Release
 //   dotnet run -c Release -- --test  (for quick test without BenchmarkDotNet)
+//   dotnet run -c Release -- --test --dottrace  (run under dotTrace profiler with data collection)
 
 #pragma warning disable CA1822
 
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Running;
+using JetBrains.Profiler.Api;
 using Metalama.Backstage.Application;
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Licensing;
@@ -23,6 +25,7 @@ using Metalama.Testing.UnitTesting;
 using Microsoft.Build.Locator;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.MSBuild;
+using System.Diagnostics;
 
 // Register MSBuild before anything else
 MSBuildLocator.RegisterDefaults();
@@ -30,6 +33,8 @@ MSBuildLocator.RegisterDefaults();
 // Quick test mode: run with --test to verify setup works
 if ( args.Contains( "--test" ) )
 {
+    var useDotTrace = args.Contains( "--dottrace" );
+
     Console.WriteLine( "Running quick test mode..." );
 
     BackstageServiceFactoryInitializer.Initialize(
@@ -49,9 +54,23 @@ if ( args.Contains( "--test" ) )
     var benchmarks = new TemplatingCodeValidatorBenchmarks();
     await benchmarks.Setup();
 
+    if ( useDotTrace )
+    {
+        Console.WriteLine( "Starting dotTrace data collection..." );
+        MeasureProfiler.StartCollectingData();
+    }
+
     var sw = System.Diagnostics.Stopwatch.StartNew();
     var count = await benchmarks.ValidateAllSyntaxTrees();
     sw.Stop();
+
+    if ( useDotTrace )
+    {
+        var branchName = GetGitBranchName();
+        var snapshotName = $"TemplatingCodeValidator-{branchName}";
+        MeasureProfiler.SaveData( snapshotName );
+        Console.WriteLine( $"Saved dotTrace snapshot: {snapshotName}" );
+    }
 
     Console.WriteLine( $"Validation completed in {sw.ElapsedMilliseconds} ms, found {count} diagnostics" );
     benchmarks.Cleanup();
@@ -59,6 +78,35 @@ if ( args.Contains( "--test" ) )
 }
 
 BenchmarkRunner.Run<TemplatingCodeValidatorBenchmarks>();
+return;
+
+static string GetGitBranchName()
+{
+    try
+    {
+        var process = new Process
+        {
+            StartInfo = new ProcessStartInfo
+            {
+                FileName = "git",
+                Arguments = "rev-parse --abbrev-ref HEAD",
+                RedirectStandardOutput = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            }
+        };
+
+        process.Start();
+        var branchName = process.StandardOutput.ReadToEnd().Trim();
+        process.WaitForExit();
+
+        return string.IsNullOrEmpty( branchName ) ? "unknown" : branchName.Replace( "/", "-" );
+    }
+    catch
+    {
+        return "unknown";
+    }
+}
 
 [MemoryDiagnoser]
 public class TemplatingCodeValidatorBenchmarks
