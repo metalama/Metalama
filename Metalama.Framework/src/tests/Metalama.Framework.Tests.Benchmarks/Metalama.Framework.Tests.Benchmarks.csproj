@@ -9,10 +9,17 @@
 
     <ItemGroup>
       <PackageReference Include="BenchmarkDotNet" />
+      <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" />
+      <PackageReference Include="Microsoft.Build.Locator" />
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="../../Metalama.Framework.Engine/Metalama.Framework.Engine.csproj" />     
+      <ProjectReference Include="../../Metalama.Framework.Engine/Metalama.Framework.Engine.csproj" />
+      <ProjectReference Include="../../Metalama.Testing.UnitTesting/Metalama.Testing.UnitTesting.csproj" />
+
+       <!-- Override dependencies to avoid vulnarability warnings. -->
+       <PackageReference Include="System.Text.Json" VersionOverride="$(SystemTextJsonLatestVersion)" />
+
     </ItemGroup>
 
 </Project>
