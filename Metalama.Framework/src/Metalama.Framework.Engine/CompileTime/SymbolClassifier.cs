@@ -113,6 +113,7 @@ internal sealed class SymbolClassifier : ISymbolClassifier
     private readonly bool _roslynIsCompileTimeOnly;
     private readonly IEqualityComparer<ISymbol> _symbolEqualityComparer;
     private readonly CompilationContext _compilationContext;
+    private readonly ISymbolClassifierObserver? _observer;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SymbolClassifier"/> class.
@@ -144,6 +145,7 @@ internal sealed class SymbolClassifier : ISymbolClassifier
         this._cacheIsTemplateOnly = new ConcurrentDictionary<ISymbol, bool>( this._symbolEqualityComparer );
         this._attributeDeserializer = attributeDeserializer;
         this._logger = serviceProvider.GetLoggerFactory().GetLogger( "SymbolClassifier" );
+        this._observer = serviceProvider.Global.GetService<ISymbolClassifierObserver>();
 
         this._roslynIsCompileTimeOnly = serviceProvider.GetRequiredService<IProjectOptions>().RoslynIsCompileTimeOnly;
 
@@ -300,6 +302,8 @@ internal sealed class SymbolClassifier : ISymbolClassifier
     {
         symbol.ThrowIfBelongsToDifferentCompilationThan( this._compilationContext );
 
+        this._observer?.OnGetTemplatingScope( context );
+
         var options = context == SymbolClassificationContext.Default ? GetTemplatingScopeOptions.Default : GetTemplatingScopeOptions.Quick;
 
         var scope = this.GetTemplatingScopeCore( symbol, options, ImmutableLinkedList<ISymbol>.Empty, null )
@@ -432,8 +436,12 @@ internal sealed class SymbolClassifier : ISymbolClassifier
         {
             if ( this._cache.TryGetValue( cacheKey, out scope ) )
             {
+                this._observer?.OnCacheLookup( true );
+
                 return scope;
             }
+
+            this._observer?.OnCacheLookup( false );
         }
         else
         {
@@ -1081,6 +1089,7 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                 (TemplatingScope.CompileTimeOnlyReturningRuntimeOnly, TemplatingScope.RunTimeOrCompileTime or TemplatingScope.ForcedRunTimeOrCompileTime) =>
                     TemplatingScope.RunTimeOnly,
                 (TemplatingScope.RunTimeOnly, TemplatingScope.NotCompileTimeOnly) => TemplatingScope.RunTimeOnly,
+                (TemplatingScope.NotCompileTimeOnly, TemplatingScope.RunTimeOnly) => TemplatingScope.RunTimeOnly,
                 (TemplatingScope.ImplicitlyRunTimeOrCompileTime, TemplatingScope.RunTimeOrCompileTime) => TemplatingScope.RunTimeOrCompileTime,
                 (_, TemplatingScope.RunTimeOrCompileTime or TemplatingScope.ForcedRunTimeOrCompileTime
                     or TemplatingScope.ImplicitlyRunTimeOrCompileTime) => typeScope.Value.Scope,
@@ -1214,10 +1223,13 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                 {
                     if ( (options & GetTemplatingScopeOptions.Quick) != 0 )
                     {
+                        this._observer?.OnQuickModeSkip( nameof(CompileTimeAssemblyLocator.IsSymbolAvailable) );
                         scope = (TemplatingScope.NotCompileTimeOnly, TemplatingRule.WellKnown);
 
                         return true;
                     }
+
+                    this._observer?.OnExpensiveOperation( nameof(CompileTimeAssemblyLocator.IsSymbolAvailable) );
 
                     if ( this.IsSymbolAvailableAtCompileTime( namedType, options ) == true )
                     {
