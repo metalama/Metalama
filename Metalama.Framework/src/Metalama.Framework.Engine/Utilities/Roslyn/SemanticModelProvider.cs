@@ -10,7 +10,7 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn;
 
 public sealed class SemanticModelProvider
 {
-    private static readonly WeakCache<Compilation, SemanticModelProvider> _instances = new();
+    private static readonly WeakCache<Compilation, SemanticModelProvider> _instances = new( isStaticCache: true );
     private readonly Compilation _compilation;
     private readonly ConcurrentDictionary<SyntaxTree, Cached> _semanticModels = new();
 

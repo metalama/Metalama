@@ -16,7 +16,7 @@ namespace Metalama.Framework.Engine.Fabrics;
 
 public sealed class QueryExecutionContext
 {
-    private static readonly WeakCache<CompilationModel, ConcurrentDictionary<IQuery<IDeclaration>, Node>> _staticCache = new();
+    private static readonly WeakCache<CompilationModel, ConcurrentDictionary<IQuery<IDeclaration>, Node>> _staticCache = new( isStaticCache: true );
     private ConcurrentDictionary<IQuery<IDeclaration>, Node>? _selectionCache;
 
     internal CancellationToken CancellationToken { get; }

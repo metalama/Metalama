@@ -42,7 +42,7 @@ public abstract class AspectTestClass
         TestProjectProperties ProjectProperties,
         TestDirectoryOptionsReader OptionsReader );
 
-    private static readonly WeakCache<Assembly, AssemblyAssets> _cache = new();
+    private static readonly WeakCache<Assembly, AssemblyAssets> _cache = new( isStaticCache: true );
     private readonly IFileSystem _fileSystem;
 
     private static AssemblyAssets GetAssemblyAssets( GlobalServiceProvider serviceProvider, Assembly assembly )

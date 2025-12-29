@@ -24,6 +24,7 @@ using Metalama.Backstage.Licensing;
 using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Templating;
+using Metalama.Framework.Engine.Utilities.Caching;
 using Metalama.Framework.Engine.Utilities.Diagnostics;
 using Metalama.Framework.Engine.Utilities.Threading;
 using Metalama.Testing.UnitTesting;
@@ -58,7 +59,7 @@ if ( args.Contains( "--test" ) )
         } );
 
     var benchmarks = new TemplatingCodeValidatorBenchmarks();
-    await benchmarks.GlobalSetup();
+    benchmarks.GlobalSetup();
     benchmarks.IterationSetup();
 
     if ( useDotTrace )
@@ -127,7 +128,7 @@ static string GetGitBranchName()
 [MemoryDiagnoser]
 public class TemplatingCodeValidatorBenchmarks
 {
-    private const string NopCommerceSolution = @"C:\src\Metalama-2026.0\nopCommerce-benchmark\src\NopCommerce.sln";
+    private const string NopCommerceSolution = @"C:\src\Metalama-2025.1\nopCommerce-benchmark\src\NopCommerce.sln";
 
     private TestContext? _testContext;
     private Compilation[]? _compilations;
@@ -135,7 +136,7 @@ public class TemplatingCodeValidatorBenchmarks
     private bool _backstageInitialized;
 
     [GlobalSetup]
-    public async Task GlobalSetup()
+    public void GlobalSetup() { GlobalSetupAsync().GetAwaiter().GetResult(); } private async Task GlobalSetupAsync()
     {
         Console.WriteLine( "Setting up benchmark (global)..." );
 
@@ -264,6 +265,9 @@ public class TemplatingCodeValidatorBenchmarks
     [IterationSetup]
     public void IterationSetup()
     {
+        // Invalidate all static WeakCache instances to ensure consistent measurements
+        WeakCache.Invalidate();
+
         // Create fresh TestContext for each iteration to avoid caching effects
         var additionalServices = new AdditionalServiceCollection();
         additionalServices.ProjectServices.Add<IConcurrentTaskRunner>( _ => new ConcurrentTaskRunner() );

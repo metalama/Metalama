@@ -22,9 +22,9 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
             FullName
         }
 
-        private static readonly WeakCache<INamespaceOrTypeSymbol, string> _reflectionNameCache = new();
-        private static readonly WeakCache<INamespaceOrTypeSymbol, string> _reflectionFullNameCache = new();
-        private static readonly WeakCache<INamespaceOrTypeSymbol, string> _reflectionToStringNameCache = new();
+        private static readonly WeakCache<INamespaceOrTypeSymbol, string> _reflectionNameCache = new( isStaticCache: true );
+        private static readonly WeakCache<INamespaceOrTypeSymbol, string> _reflectionFullNameCache = new( isStaticCache: true );
+        private static readonly WeakCache<INamespaceOrTypeSymbol, string> _reflectionToStringNameCache = new( isStaticCache: true );
 
         internal static AssemblyName ToAssemblyName( this AssemblyIdentity assemblyIdentity ) => new( assemblyIdentity.ToString() );
 

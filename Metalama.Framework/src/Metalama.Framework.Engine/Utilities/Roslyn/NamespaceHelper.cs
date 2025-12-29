@@ -9,7 +9,7 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn;
 
 internal static class NamespaceHelper
 {
-    private static readonly WeakCache<INamespaceOrTypeSymbol, string?> _fullNameCache = new();
+    private static readonly WeakCache<INamespaceOrTypeSymbol, string?> _fullNameCache = new( isStaticCache: true );
 
     public static string? GetFullName( this INamespaceOrTypeSymbol? symbol ) => symbol == null ? null : _fullNameCache.GetOrAdd( symbol, GetFullNameImpl );
 

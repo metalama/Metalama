@@ -26,8 +26,8 @@ internal static class DeclarationHelper
         FullName
     }
 
-    private static readonly WeakCache<IType, string> _reflectionNameCache = new();
-    private static readonly WeakCache<IType, string> _reflectionFullNameCache = new();
+    private static readonly WeakCache<IType, string> _reflectionNameCache = new( isStaticCache: true );
+    private static readonly WeakCache<IType, string> _reflectionFullNameCache = new( isStaticCache: true );
 
     /// <summary>
     /// Gets a string that would be equal to <see cref="MemberInfo.Name"/>.
