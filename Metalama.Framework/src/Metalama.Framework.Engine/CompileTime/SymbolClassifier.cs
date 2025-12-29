@@ -181,8 +181,7 @@ internal sealed class SymbolClassifier : ISymbolClassifier
         }
 
         // Look for a [Template] attribute on the symbol.
-        var templateAttribute = symbol
-            .GetAttributes()
+        var templateAttribute = symbol.GetAttributesSafe()
             .FirstOrDefault( a => this.IsAttributeOfType( a, this._templateAttribute ) || this.IsAttributeOfType( a, this._declarativeAdviceAttribute ) );
 
         if ( templateAttribute != null )
@@ -328,7 +327,7 @@ internal sealed class SymbolClassifier : ISymbolClassifier
         }
 
         // Check whether the symbol is marked with [CompileTime(isTemplateOnly: true)].
-        var compileTimeAttribute = symbol.GetAttributes().FirstOrDefault( a => a.AttributeClass?.Name == nameof(CompileTimeAttribute) );
+        var compileTimeAttribute = symbol.GetAttributesSafe().FirstOrDefault( a => a.AttributeClass?.Name == nameof(CompileTimeAttribute) );
 
         if ( compileTimeAttribute is { ConstructorArguments: [{ Value: true }, ..] } )
         {
@@ -995,8 +994,7 @@ internal sealed class SymbolClassifier : ISymbolClassifier
             }
 
             // From attributes.
-            var scopeFromAttributes = symbol
-                .GetAttributes()
+            var scopeFromAttributes = symbol.GetAttributesSafe()
                 .Select( GetTemplatingScope )
                 .FirstOrDefault( s => s != null );
 
