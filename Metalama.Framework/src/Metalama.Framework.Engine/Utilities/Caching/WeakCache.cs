@@ -94,13 +94,13 @@ public sealed class WeakCache<TKey, TValue> : WeakCache, ICache<TKey, TValue>
     {
         if ( this.TryGetValueCore( key, out value ) )
         {
-            this._observer?.OnCacheHit( this._cacheName );
+            this._observer?.OnCacheHit( this._cacheName! );
 
             return true;
         }
         else
         {
-            this._observer?.OnCacheMiss( this._cacheName );
+            this._observer?.OnCacheMiss( this._cacheName! );
 
             return false;
         }
@@ -127,12 +127,12 @@ public sealed class WeakCache<TKey, TValue> : WeakCache, ICache<TKey, TValue>
     {
         if ( this.TryGetValueCore( key, out var value ) )
         {
-            this._observer?.OnCacheHit( this._cacheName );
+            this._observer?.OnCacheHit( this._cacheName! );
 
             return value;
         }
 
-        this._observer?.OnCacheMiss( this._cacheName );
+        this._observer?.OnCacheMiss( this._cacheName! );
 
         lock ( key )
         {
@@ -159,12 +159,12 @@ public sealed class WeakCache<TKey, TValue> : WeakCache, ICache<TKey, TValue>
     {
         if ( this.TryGetValueCore( key, out var value ) )
         {
-            this._observer?.OnCacheHit( this._cacheName );
+            this._observer?.OnCacheHit( this._cacheName! );
 
             return value;
         }
 
-        this._observer?.OnCacheMiss( this._cacheName );
+        this._observer?.OnCacheMiss( this._cacheName! );
 
         lock ( key )
         {
@@ -191,12 +191,12 @@ public sealed class WeakCache<TKey, TValue> : WeakCache, ICache<TKey, TValue>
     {
         if ( this.TryGetValueCore( key, out _ ) )
         {
-            this._observer?.OnCacheHit( this._cacheName );
+            this._observer?.OnCacheHit( this._cacheName! );
 
             return false;
         }
 
-        this._observer?.OnCacheMiss( this._cacheName );
+        this._observer?.OnCacheMiss( this._cacheName! );
 
         lock ( key )
         {

@@ -12,28 +12,16 @@
 
 #pragma warning disable CA1822
 
-using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Jobs;
 using BenchmarkDotNet.Running;
 using BenchmarkDotNet.Toolchains.InProcess.Emit;
 using JetBrains.Profiler.Api;
-using Metalama.Backstage.Application;
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Licensing;
-using Metalama.Framework.Engine;
-using Metalama.Framework.Engine.Observers;
-using Metalama.Framework.Engine.Services;
-using Metalama.Framework.Engine.Templating;
-using Metalama.Framework.Engine.Utilities.Caching;
 using Metalama.Framework.Engine.Utilities.Diagnostics;
-using Metalama.Framework.Engine.Utilities.Threading;
-using Metalama.Framework.Services;
-using Metalama.Testing.UnitTesting;
+using Metalama.Framework.Tests.Benchmarks;
 using Microsoft.Build.Locator;
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.MSBuild;
-using System.Collections.Immutable;
 using System.Diagnostics;
 
 // Register MSBuild before anything else
@@ -70,7 +58,7 @@ if ( args.Contains( "--test" ) )
         MeasureProfiler.StartCollectingData();
     }
 
-    var sw = System.Diagnostics.Stopwatch.StartNew();
+    var sw = Stopwatch.StartNew();
     var count = await benchmarks.ValidateAllSyntaxTrees();
     sw.Stop();
 
@@ -85,6 +73,7 @@ if ( args.Contains( "--test" ) )
     Console.WriteLine( $"Validation completed in {sw.ElapsedMilliseconds} ms, found {count} diagnostics" );
     benchmarks.IterationCleanup();
     benchmarks.GlobalCleanup();
+
     return;
 }
 
@@ -92,11 +81,13 @@ if ( args.Contains( "--test" ) )
 // (SDK 10.0 doesn't recognize /p: syntax that BenchmarkDotNet uses)
 // Configure for long-running benchmarks with 5% acceptable variance
 var config = DefaultConfig.Instance
-    .AddJob( Job.Default
-        .WithToolchain( new InProcessEmitToolchain( TimeSpan.FromMinutes( 30 ), logOutput: true ) )
-        .WithMaxRelativeError( 0.05 ) );
+    .AddJob(
+        Job.Default
+            .WithToolchain( new InProcessEmitToolchain( TimeSpan.FromMinutes( 30 ), logOutput: true ) )
+            .WithMaxRelativeError( 0.05 ) );
 
 BenchmarkRunner.Run<TemplatingCodeValidatorBenchmarks>( config );
+
 return;
 
 static string GetGitBranchName()
@@ -119,268 +110,10 @@ static string GetGitBranchName()
         var branchName = process.StandardOutput.ReadToEnd().Trim();
         process.WaitForExit();
 
-        return string.IsNullOrEmpty( branchName ) ? "unknown" : branchName.Replace( "/", "-" );
+        return string.IsNullOrEmpty( branchName ) ? "unknown" : branchName.Replace( "/", "-", StringComparison.Ordinal );
     }
     catch
     {
         return "unknown";
-    }
-}
-
-[MemoryDiagnoser]
-public class TemplatingCodeValidatorBenchmarks
-{
-    private const string NopCommerceSolution = @"C:\src\Metalama-2026.0\nopCommerce-benchmark\src\NopCommerce.sln";
-
-    private TestContext? _testContext;
-    private Compilation[]? _compilations;
-    private MSBuildWorkspace? _workspace;
-    private bool _backstageInitialized;
-    private TemplatingCodeValidatorObserver? _observer;
-
-    [GlobalSetup]
-    public void GlobalSetup() { GlobalSetupAsync().GetAwaiter().GetResult(); } private async Task GlobalSetupAsync()
-    {
-        Console.WriteLine( "Setting up benchmark (global)..." );
-
-        // Initialize Metalama services (must be done once)
-        if ( !_backstageInitialized )
-        {
-            BackstageServiceFactoryInitializer.Initialize(
-                new BackstageInitializationOptions( new BenchmarkApplicationInfo() )
-                {
-                    AddSupportServices = true,
-                    AddLicensing = false,
-                    LicensingOptions = LicensingInitializationOptions.ForTest(
-                        license =>
-                        {
-                            license.Product = LicenseProduct.MetalamaProfessional;
-                            license.LicenseType = LicenseType.Test;
-                            license.SubscriptionEndDate = DateTime.MaxValue;
-                        } )
-                } );
-
-            _backstageInitialized = true;
-        }
-
-        // Load nopCommerce solution using MSBuildWorkspace
-        Console.WriteLine( $"Loading solution: {NopCommerceSolution}" );
-
-        var workspaceFailures = new List<string>();
-        _workspace = MSBuildWorkspace.Create();
-        _workspace.WorkspaceFailed += ( sender, args ) =>
-        {
-            if ( args.Diagnostic.Kind == WorkspaceDiagnosticKind.Failure )
-            {
-                workspaceFailures.Add( args.Diagnostic.Message );
-                Console.WriteLine( $"Workspace error: {args.Diagnostic.Message}" );
-            }
-        };
-
-        var solution = await _workspace.OpenSolutionAsync( NopCommerceSolution );
-
-        if ( workspaceFailures.Count > 0 )
-        {
-            throw new InvalidOperationException(
-                $"Failed to load solution due to {workspaceFailures.Count} workspace error(s):\n" +
-                string.Join( "\n", workspaceFailures.Take( 5 ) ) +
-                (workspaceFailures.Count > 5 ? $"\n... and {workspaceFailures.Count - 5} more" : "") );
-        }
-
-        var projects = solution.Projects.ToArray();
-        Console.WriteLine( $"Loaded solution with {projects.Length} projects" );
-
-        // Get Metalama references using a temporary TestContext
-        IReadOnlyList<PortableExecutableReference> metalamaReferences;
-
-        using ( var tempContext = new TestContext( new TestContextOptions() ) )
-        {
-            metalamaReferences = tempContext.GetMetadataReferences();
-        }
-        var compilations = new Compilation[projects.Length];
-        var errors = new Exception?[projects.Length];
-
-        // Load and validate all compilations in parallel
-        await Parallel.ForAsync(
-            0,
-            projects.Length,
-            async ( i, _ ) =>
-            {
-                var project = projects[i];
-                Console.WriteLine( $"  Loading project: {project.Name} ({project.Documents.Count()} documents)" );
-
-                try
-                {
-                    var roslynCompilation = await project.GetCompilationAsync();
-
-                    if ( roslynCompilation == null )
-                    {
-                        errors[i] = new InvalidOperationException( $"Failed to get compilation for project {project.Name}" );
-
-                        return;
-                    }
-
-                    // Check for compilation errors
-                    var compilationErrors = roslynCompilation.GetDiagnostics()
-                        .Where( d => d.Severity == DiagnosticSeverity.Error )
-                        .ToList();
-
-                    if ( compilationErrors.Count > 0 )
-                    {
-                        errors[i] = new InvalidOperationException(
-                            $"Project {project.Name} has {compilationErrors.Count} error(s):\n" +
-                            string.Join( "\n", compilationErrors.Take( 10 ).Select( d => d.ToString() ) ) +
-                            (compilationErrors.Count > 10 ? $"\n... and {compilationErrors.Count - 10} more" : "") );
-
-                        return;
-                    }
-
-                    // Add Metalama references - required by TemplatingCodeValidator to resolve Metalama types
-                    compilations[i] = roslynCompilation.AddReferences( metalamaReferences );
-                }
-                catch ( Exception ex )
-                {
-                    errors[i] = ex;
-                }
-            } );
-
-        // Check for errors
-        var firstError = errors.FirstOrDefault( e => e != null );
-
-        if ( firstError != null )
-        {
-            throw firstError;
-        }
-
-        _compilations = compilations;
-        var totalTrees = _compilations.Sum( c => c.SyntaxTrees.Count() );
-
-        Console.WriteLine( $"Created {_compilations.Length} compilations with {totalTrees} total syntax trees" );
-        Console.WriteLine( "Setup complete!" );
-    }
-
-    [GlobalCleanup]
-    public void GlobalCleanup()
-    {
-        _workspace?.Dispose();
-    }
-
-    [IterationSetup]
-    public void IterationSetup()
-    {
-        // Invalidate all static WeakCache instances to ensure consistent measurements
-        WeakCache.Invalidate();
-
-        // Create and reset the observer
-        _observer = new TemplatingCodeValidatorObserver();
-
-        // Create fresh TestContext for each iteration to avoid caching effects
-        var additionalServices = new AdditionalServiceCollection();
-        additionalServices.ProjectServices.Add<IConcurrentTaskRunner>( _ => new ConcurrentTaskRunner() );
-        additionalServices.GlobalServices.Add<ITemplatingCodeValidatorObserver>( _ => _observer! );
-        _testContext = new TestContext( new TestContextOptions(), additionalServices );
-    }
-
-    [IterationCleanup]
-    public void IterationCleanup()
-    {
-        // Print observer metrics
-        _observer?.PrintMetrics();
-
-        _testContext?.Dispose();
-        _testContext = null;
-        _observer = null;
-    }
-
-    [Benchmark]
-    public async Task<int> ValidateAllSyntaxTrees()
-    {
-        var diagnosticCount = 0;
-
-        await Parallel.ForEachAsync(
-            _compilations!,
-            async ( compilation, _ ) =>
-            {
-                await TemplatingCodeValidator.ValidateAsync(
-                    _testContext!.ServiceProvider,
-                    compilation,
-                    _ => Interlocked.Increment( ref diagnosticCount ),
-                    CancellationToken.None );
-            } );
-
-        return diagnosticCount;
-    }
-}
-
-internal sealed class BenchmarkApplicationInfo : ApplicationInfoBase
-{
-    public BenchmarkApplicationInfo() : base( typeof(BenchmarkApplicationInfo).Assembly ) { }
-
-    public override string Name => "Metalama.Framework.Tests.Benchmarks";
-
-    public override bool ShouldCreateLocalCrashReports => false;
-}
-
-internal sealed class TemplatingCodeValidatorObserver : ITemplatingCodeValidatorObserver
-{
-    private int _semanticModelUsedCount;
-    private int _symbolClassifierUsedNormalCount;
-    private int _symbolClassifierUsedQuickCount;
-    private int _syntaxTreesValidatedCount;
-    private int _syntaxTreesSkippedCount;
-
-    public int SemanticModelUsedCount => _semanticModelUsedCount;
-
-    public int SymbolClassifierUsedCount => _symbolClassifierUsedNormalCount + _symbolClassifierUsedQuickCount;
-
-    public int SymbolClassifierUsedNormalCount => _symbolClassifierUsedNormalCount;
-
-    public int SymbolClassifierUsedQuickCount => _symbolClassifierUsedQuickCount;
-
-    public int SyntaxTreesValidatedCount => _syntaxTreesValidatedCount;
-
-    public int SyntaxTreesSkippedCount => _syntaxTreesSkippedCount;
-
-    public void OnSemanticModelUsed()
-    {
-        Interlocked.Increment( ref _semanticModelUsedCount );
-    }
-
-    public void OnSymbolClassifierUsed( bool isQuickMode )
-    {
-        if ( isQuickMode )
-        {
-            Interlocked.Increment( ref this._symbolClassifierUsedQuickCount );
-        }
-        else
-        {
-            Interlocked.Increment( ref this._symbolClassifierUsedNormalCount );
-        }
-    }
-
-    public void OnSyntaxTreeValidated()
-    {
-        Interlocked.Increment( ref _syntaxTreesValidatedCount );
-    }
-
-    public void OnSyntaxTreeSkipped()
-    {
-        Interlocked.Increment( ref _syntaxTreesSkippedCount );
-    }
-
-    public void Reset()
-    {
-        _semanticModelUsedCount = 0;
-        _symbolClassifierUsedNormalCount = 0;
-        _symbolClassifierUsedQuickCount = 0;
-        _syntaxTreesValidatedCount = 0;
-        _syntaxTreesSkippedCount = 0;
-    }
-
-    public void PrintMetrics()
-    {
-        Console.WriteLine( $"Syntax trees: {_syntaxTreesValidatedCount:N0} validated, {_syntaxTreesSkippedCount:N0} skipped" );
-        Console.WriteLine( $"Semantic model calls: {_semanticModelUsedCount:N0}" );
-        Console.WriteLine( $"Symbol classifier calls: {this.SymbolClassifierUsedCount:N0} (normal: {_symbolClassifierUsedNormalCount:N0}, quick: {_symbolClassifierUsedQuickCount:N0})" );
     }
 }

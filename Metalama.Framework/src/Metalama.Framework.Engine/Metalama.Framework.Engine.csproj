@@ -41,6 +41,7 @@
     <ItemGroup>
         <!-- By convention, we use InternalsVisibleTo only for test projects that must have access to internals.. -->
         <InternalsVisibleTo Include="Metalama.Framework.Tests.Benchmarks" />
+        <InternalsVisibleTo Include="Metalama.Framework.Tests.Benchmarks.$(ThisRoslynVersionNoPreview)" />
         <InternalsVisibleTo Include="Metalama.Framework.Tests.UnitTests.$(ThisRoslynVersionNoPreview)" />
         <InternalsVisibleTo Include="Metalama.Framework.Tests.UnitTestHelpers.$(ThisRoslynVersionNoPreview)" />
         <InternalsVisibleTo Include="Metalama.Framework.Tests.AspectTests.$(ThisRoslynVersionNoPreview)" />
