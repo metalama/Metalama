@@ -20,7 +20,8 @@ namespace Metalama.Framework.Engine.Observers
         /// <summary>
         /// Method invoked when the symbol classifier is used (e.g., GetTemplatingScope, GetTemplateInfo, IsTemplateOnly).
         /// </summary>
-        void OnSymbolClassifierUsed();
+        /// <param name="isQuickMode">True if running in quick mode (run-time only context), false for normal mode.</param>
+        void OnSymbolClassifierUsed( bool isQuickMode );
 
         /// <summary>
         /// Called when processing of a syntax tree is completed.

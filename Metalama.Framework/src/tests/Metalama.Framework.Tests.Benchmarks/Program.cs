@@ -324,13 +324,18 @@ internal sealed class BenchmarkApplicationInfo : ApplicationInfoBase
 internal sealed class TemplatingCodeValidatorObserver : ITemplatingCodeValidatorObserver
 {
     private int _semanticModelUsedCount;
-    private int _symbolClassifierUsedCount;
+    private int _symbolClassifierUsedNormalCount;
+    private int _symbolClassifierUsedQuickCount;
     private int _syntaxTreesValidatedCount;
     private int _syntaxTreesSkippedCount;
 
     public int SemanticModelUsedCount => _semanticModelUsedCount;
 
-    public int SymbolClassifierUsedCount => _symbolClassifierUsedCount;
+    public int SymbolClassifierUsedCount => _symbolClassifierUsedNormalCount + _symbolClassifierUsedQuickCount;
+
+    public int SymbolClassifierUsedNormalCount => _symbolClassifierUsedNormalCount;
+
+    public int SymbolClassifierUsedQuickCount => _symbolClassifierUsedQuickCount;
 
     public int SyntaxTreesValidatedCount => _syntaxTreesValidatedCount;
 
@@ -341,9 +346,16 @@ internal sealed class TemplatingCodeValidatorObserver : ITemplatingCodeValidator
         Interlocked.Increment( ref _semanticModelUsedCount );
     }
 
-    public void OnSymbolClassifierUsed()
+    public void OnSymbolClassifierUsed( bool isQuickMode )
     {
-        Interlocked.Increment( ref _symbolClassifierUsedCount );
+        if ( isQuickMode )
+        {
+            Interlocked.Increment( ref this._symbolClassifierUsedQuickCount );
+        }
+        else
+        {
+            Interlocked.Increment( ref this._symbolClassifierUsedNormalCount );
+        }
     }
 
     public void OnSyntaxTreeValidated()
@@ -359,7 +371,8 @@ internal sealed class TemplatingCodeValidatorObserver : ITemplatingCodeValidator
     public void Reset()
     {
         _semanticModelUsedCount = 0;
-        _symbolClassifierUsedCount = 0;
+        _symbolClassifierUsedNormalCount = 0;
+        _symbolClassifierUsedQuickCount = 0;
         _syntaxTreesValidatedCount = 0;
         _syntaxTreesSkippedCount = 0;
     }
@@ -368,6 +381,6 @@ internal sealed class TemplatingCodeValidatorObserver : ITemplatingCodeValidator
     {
         Console.WriteLine( $"Syntax trees: {_syntaxTreesValidatedCount:N0} validated, {_syntaxTreesSkippedCount:N0} skipped" );
         Console.WriteLine( $"Semantic model calls: {_semanticModelUsedCount:N0}" );
-        Console.WriteLine( $"Symbol classifier calls: {_symbolClassifierUsedCount:N0}" );
+        Console.WriteLine( $"Symbol classifier calls: {this.SymbolClassifierUsedCount:N0} (normal: {_symbolClassifierUsedNormalCount:N0}, quick: {_symbolClassifierUsedQuickCount:N0})" );
     }
 }

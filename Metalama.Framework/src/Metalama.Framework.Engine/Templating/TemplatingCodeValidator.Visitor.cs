@@ -130,14 +130,14 @@ namespace Metalama.Framework.Engine.Templating
 
                 if ( referencedSymbol is not null and not ITypeParameterSymbol )
                 {
-                    this._observer?.OnSymbolClassifierUsed();
+                    this._observer?.OnSymbolClassifierUsed( this._symbolClassificationContext == SymbolClassificationContext.RunTimeOnly );
                     var referencedScope = this._classifier.GetTemplatingScope( referencedSymbol, this._symbolClassificationContext );
 
                     if ( referencedScope.GetExpressionExecutionScope() == TemplatingScope.CompileTimeOnly )
                     {
                         if ( !this.IsInTemplate && !IsTypeOfOrNameOf() )
                         {
-                            this._observer?.OnSymbolClassifierUsed();
+                            this._observer?.OnSymbolClassifierUsed( this._symbolClassificationContext == SymbolClassificationContext.RunTimeOnly );
 
                             if ( this._classifier.IsTemplateOnly( referencedSymbol ) )
                             {
@@ -333,12 +333,12 @@ namespace Metalama.Framework.Engine.Templating
                             continue;
                         }
 
-                        this._observer?.OnSymbolClassifierUsed();
+                        this._observer?.OnSymbolClassifierUsed( this._symbolClassificationContext == SymbolClassificationContext.RunTimeOnly );
                         var baseTypeScope = this._classifier.GetTemplatingScope( baseType );
 
                         if ( baseTypeScope is TemplatingScope.Conflict )
                         {
-                            this._observer?.OnSymbolClassifierUsed();
+                            this._observer?.OnSymbolClassifierUsed( this._symbolClassificationContext == SymbolClassificationContext.RunTimeOnly );
                             this._classifier.ReportScopeError( baseTypeNode, baseType, this );
                         }
                         else
@@ -641,7 +641,7 @@ namespace Metalama.Framework.Engine.Templating
                     return default;
                 }
 
-                this._observer?.OnSymbolClassifierUsed();
+                this._observer?.OnSymbolClassifierUsed( this._symbolClassificationContext == SymbolClassificationContext.RunTimeOnly );
                 var (scope, rule) = this._classifier.GetTemplatingScopeAndRule( declaredSymbol, this._symbolClassificationContext );
 
                 // Report an error for TypeFabric nested in a compile-time type.
@@ -721,7 +721,7 @@ namespace Metalama.Framework.Engine.Templating
 
                 if ( templateInfo == null || templateInfo.IsNone )
                 {
-                    this._observer?.OnSymbolClassifierUsed();
+                    this._observer?.OnSymbolClassifierUsed( this._symbolClassificationContext == SymbolClassificationContext.RunTimeOnly );
                     templateInfo = this._classifier.GetTemplateInfo( declaredSymbol );
 
                     if ( !templateInfo.IsNone )
@@ -766,7 +766,7 @@ namespace Metalama.Framework.Engine.Templating
                 // Report error on conflict scope.
                 if ( scope == TemplatingScope.Conflict )
                 {
-                    this._observer?.OnSymbolClassifierUsed();
+                    this._observer?.OnSymbolClassifierUsed( this._symbolClassificationContext == SymbolClassificationContext.RunTimeOnly );
                     this._classifier.ReportScopeError( node, declaredSymbol, this );
                 }
 
