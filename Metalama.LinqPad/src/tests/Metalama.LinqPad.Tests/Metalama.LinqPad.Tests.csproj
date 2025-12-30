@@ -24,8 +24,9 @@
           <PrivateAssets>all</PrivateAssets>
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <!-- Must include explicitly because the package has content. -->
-        <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" />
+        <!-- Must include explicitly because the package has content.
+             Use RoslynMaxVersion to match Metalama.Framework.Workspaces dependency. -->
+        <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" VersionOverride="$(RoslynMaxVersion)" />
     </ItemGroup>
 
 </Project>
