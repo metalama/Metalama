@@ -12,12 +12,15 @@ namespace Metalama.Framework.Engine.CompileTime;
 
 internal sealed class ClassifyingCompilationContextFactory : IProjectService, IDisposable
 {
+    internal const string CacheName = nameof(ClassifyingCompilationContextFactory);
+
     private readonly ProjectServiceProvider _serviceProvider;
-    private readonly WeakCache<Compilation, ClassifyingCompilationContext> _instances = new();
+    private readonly WeakCache<Compilation, ClassifyingCompilationContext> _instances;
 
     public ClassifyingCompilationContextFactory( in ProjectServiceProvider serviceProvider )
     {
         this._serviceProvider = serviceProvider;
+        this._instances = new WeakCache<Compilation, ClassifyingCompilationContext>( serviceProvider.Global, CacheName );
     }
 
     public ClassifyingCompilationContext GetInstance( Compilation compilation ) => this._instances.GetOrAdd( compilation, this.GetInstanceCore );
