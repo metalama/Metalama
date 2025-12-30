@@ -8,6 +8,7 @@ using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.CompileTime.Serialization;
 using Metalama.Framework.Engine.Diagnostics;
+using Metalama.Framework.Engine.Observers;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.SyntaxSerialization;
 using Metalama.Framework.Engine.Utilities.Roslyn;
@@ -32,6 +33,7 @@ namespace Metalama.Framework.Engine.Templating
         private sealed class Visitor : SafeSyntaxWalker, IDiagnosticAdder
         {
             private readonly ISymbolClassifier _classifier;
+            private readonly ITemplatingCodeValidatorObserver? _observer;
             private readonly HashSet<ISymbol> _alreadyReportedDiagnostics = new( SymbolEqualityComparer.Default );
             private readonly bool _reportCompileTimeTreeOutdatedError;
             private readonly bool _isDesignTime;
@@ -71,6 +73,7 @@ namespace Metalama.Framework.Engine.Templating
                 this._reportDiagnostic = reportDiagnostic;
                 this._reportSuppression = reportSuppression;
                 this._classifier = compilationContext.SymbolClassifier;
+                this._observer = serviceProvider.Global.GetService<ITemplatingCodeValidatorObserver>();
                 this._reportCompileTimeTreeOutdatedError = reportCompileTimeTreeOutdatedError;
                 this._isDesignTime = isDesignTime;
                 this._cancellationToken = cancellationToken;
@@ -122,16 +125,20 @@ namespace Metalama.Framework.Engine.Templating
 
                 // Otherwise, we have to check references.
 
+                this._observer?.OnSemanticModelUsed();
                 var referencedSymbol = this._semanticModel.GetSymbolInfo( node ).Symbol;
 
                 if ( referencedSymbol is not null and not ITypeParameterSymbol )
                 {
+                    this._observer?.OnSymbolClassifierUsed();
                     var referencedScope = this._classifier.GetTemplatingScope( referencedSymbol, this._symbolClassificationContext );
 
                     if ( referencedScope.GetExpressionExecutionScope() == TemplatingScope.CompileTimeOnly )
                     {
                         if ( !this.IsInTemplate && !IsTypeOfOrNameOf() )
                         {
+                            this._observer?.OnSymbolClassifierUsed();
+
                             if ( this._classifier.IsTemplateOnly( referencedSymbol ) )
                             {
                                 // Cannot reference template-only symbol outside of a template, except in a nameof().
@@ -158,6 +165,7 @@ namespace Metalama.Framework.Engine.Templating
                                         case ("Metalama.Framework.Code.SyntaxBuilders.SyntaxBuilder", "AppendExpression"):
                                             if ( node.Parent?.Parent is InvocationExpressionSyntax { ArgumentList.Arguments: [var argument] } )
                                             {
+                                                this._observer?.OnSemanticModelUsed();
                                                 var argumentType = this._semanticModel.GetTypeInfo( argument.Expression ).Type;
 
                                                 if ( IsLiteralType( argumentType ) )
@@ -221,6 +229,7 @@ namespace Metalama.Framework.Engine.Templating
                     return;
                 }
 
+                this._observer?.OnSemanticModelUsed();
                 var attributeSymbol = (this._semanticModel.GetSymbolInfo( node ).Symbol as IMethodSymbol)?.ContainingType;
                 var iAspectSymbol = this._compilationContext.ReflectionMapper.GetTypeSymbol( typeof(IAspect) );
 
@@ -233,6 +242,7 @@ namespace Metalama.Framework.Engine.Templating
                         if ( argument.NameEquals != null )
                         {
                             // Check that we are not setting a template property or introduced field.
+                            this._observer?.OnSemanticModelUsed();
                             var memberSymbol = this._semanticModel.GetSymbolInfo( argument.NameEquals.Name ).Symbol;
                             var templateAttribute = this._compilationContext.ReflectionMapper.GetTypeSymbol( typeof(ITemplateAttribute) );
 
@@ -316,15 +326,19 @@ namespace Metalama.Framework.Engine.Templating
                 {
                     foreach ( var baseTypeNode in node.BaseList.Types )
                     {
+                        this._observer?.OnSemanticModelUsed();
+
                         if ( ModelExtensions.GetSymbolInfo( this._semanticModel, baseTypeNode.Type ).Symbol is not INamedTypeSymbol baseType )
                         {
                             continue;
                         }
 
+                        this._observer?.OnSymbolClassifierUsed();
                         var baseTypeScope = this._classifier.GetTemplatingScope( baseType );
 
                         if ( baseTypeScope is TemplatingScope.Conflict )
                         {
+                            this._observer?.OnSymbolClassifierUsed();
                             this._classifier.ReportScopeError( baseTypeNode, baseType, this );
                         }
                         else
@@ -354,6 +368,7 @@ namespace Metalama.Framework.Engine.Templating
                     }
                 }
 
+                this._observer?.OnSemanticModelUsed();
                 var symbol = this._semanticModel.GetDeclaredSymbol( node );
 
 #if ROSLYN_4_8_0_OR_GREATER
@@ -505,6 +520,7 @@ namespace Metalama.Framework.Engine.Templating
                 // so we have to handle it manually.
                 if ( node.Parent is PropertyDeclarationSyntax propertyDeclaration )
                 {
+                    this._observer?.OnSemanticModelUsed();
                     var getMethod = this._semanticModel.GetDeclaredSymbol( propertyDeclaration ).AssertSymbolNotNull().GetMethod;
                     this.VisitBaseMethodOrAccessor( node, default, base.VisitArrowExpressionClause, getMethod );
                 }
@@ -614,13 +630,18 @@ namespace Metalama.Framework.Engine.Templating
                 this._alreadyReportedDiagnostics.Clear();
 
                 // Get the scope.
-                declaredSymbol ??= this._semanticModel.GetDeclaredSymbol( node );
+                if ( declaredSymbol == null )
+                {
+                    this._observer?.OnSemanticModelUsed();
+                    declaredSymbol = this._semanticModel.GetDeclaredSymbol( node );
+                }
 
                 if ( declaredSymbol == null )
                 {
                     return default;
                 }
 
+                this._observer?.OnSymbolClassifierUsed();
                 var (scope, rule) = this._classifier.GetTemplatingScopeAndRule( declaredSymbol, this._symbolClassificationContext );
 
                 // Report an error for TypeFabric nested in a compile-time type.
@@ -700,6 +721,7 @@ namespace Metalama.Framework.Engine.Templating
 
                 if ( templateInfo == null || templateInfo.IsNone )
                 {
+                    this._observer?.OnSymbolClassifierUsed();
                     templateInfo = this._classifier.GetTemplateInfo( declaredSymbol );
 
                     if ( !templateInfo.IsNone )
@@ -744,6 +766,7 @@ namespace Metalama.Framework.Engine.Templating
                 // Report error on conflict scope.
                 if ( scope == TemplatingScope.Conflict )
                 {
+                    this._observer?.OnSymbolClassifierUsed();
                     this._classifier.ReportScopeError( node, declaredSymbol, this );
                 }
 

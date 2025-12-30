@@ -22,11 +22,13 @@ using Metalama.Backstage.Application;
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Licensing;
 using Metalama.Framework.Engine;
+using Metalama.Framework.Engine.Observers;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Templating;
 using Metalama.Framework.Engine.Utilities.Caching;
 using Metalama.Framework.Engine.Utilities.Diagnostics;
 using Metalama.Framework.Engine.Utilities.Threading;
+using Metalama.Framework.Services;
 using Metalama.Testing.UnitTesting;
 using Microsoft.Build.Locator;
 using Microsoft.CodeAnalysis;
@@ -128,12 +130,13 @@ static string GetGitBranchName()
 [MemoryDiagnoser]
 public class TemplatingCodeValidatorBenchmarks
 {
-    private const string NopCommerceSolution = @"C:\src\Metalama-2025.1\nopCommerce-benchmark\src\NopCommerce.sln";
+    private const string NopCommerceSolution = @"C:\src\Metalama-2026.0\nopCommerce-benchmark\src\NopCommerce.sln";
 
     private TestContext? _testContext;
     private Compilation[]? _compilations;
     private MSBuildWorkspace? _workspace;
     private bool _backstageInitialized;
+    private TemplatingCodeValidatorObserver? _observer;
 
     [GlobalSetup]
     public void GlobalSetup() { GlobalSetupAsync().GetAwaiter().GetResult(); } private async Task GlobalSetupAsync()
@@ -268,17 +271,25 @@ public class TemplatingCodeValidatorBenchmarks
         // Invalidate all static WeakCache instances to ensure consistent measurements
         WeakCache.Invalidate();
 
+        // Create and reset the observer
+        _observer = new TemplatingCodeValidatorObserver();
+
         // Create fresh TestContext for each iteration to avoid caching effects
         var additionalServices = new AdditionalServiceCollection();
         additionalServices.ProjectServices.Add<IConcurrentTaskRunner>( _ => new ConcurrentTaskRunner() );
+        additionalServices.GlobalServices.Add<ITemplatingCodeValidatorObserver>( _ => _observer! );
         _testContext = new TestContext( new TestContextOptions(), additionalServices );
     }
 
     [IterationCleanup]
     public void IterationCleanup()
     {
+        // Print observer metrics
+        _observer?.PrintMetrics();
+
         _testContext?.Dispose();
         _testContext = null;
+        _observer = null;
     }
 
     [Benchmark]
@@ -308,4 +319,55 @@ internal sealed class BenchmarkApplicationInfo : ApplicationInfoBase
     public override string Name => "Metalama.Framework.Tests.Benchmarks";
 
     public override bool ShouldCreateLocalCrashReports => false;
+}
+
+internal sealed class TemplatingCodeValidatorObserver : ITemplatingCodeValidatorObserver
+{
+    private int _semanticModelUsedCount;
+    private int _symbolClassifierUsedCount;
+    private int _syntaxTreesValidatedCount;
+    private int _syntaxTreesSkippedCount;
+
+    public int SemanticModelUsedCount => _semanticModelUsedCount;
+
+    public int SymbolClassifierUsedCount => _symbolClassifierUsedCount;
+
+    public int SyntaxTreesValidatedCount => _syntaxTreesValidatedCount;
+
+    public int SyntaxTreesSkippedCount => _syntaxTreesSkippedCount;
+
+    public void OnSemanticModelUsed()
+    {
+        Interlocked.Increment( ref _semanticModelUsedCount );
+    }
+
+    public void OnSymbolClassifierUsed()
+    {
+        Interlocked.Increment( ref _symbolClassifierUsedCount );
+    }
+
+    public void OnSyntaxTreeValidated()
+    {
+        Interlocked.Increment( ref _syntaxTreesValidatedCount );
+    }
+
+    public void OnSyntaxTreeSkipped()
+    {
+        Interlocked.Increment( ref _syntaxTreesSkippedCount );
+    }
+
+    public void Reset()
+    {
+        _semanticModelUsedCount = 0;
+        _symbolClassifierUsedCount = 0;
+        _syntaxTreesValidatedCount = 0;
+        _syntaxTreesSkippedCount = 0;
+    }
+
+    public void PrintMetrics()
+    {
+        Console.WriteLine( $"Syntax trees: {_syntaxTreesValidatedCount:N0} validated, {_syntaxTreesSkippedCount:N0} skipped" );
+        Console.WriteLine( $"Semantic model calls: {_semanticModelUsedCount:N0}" );
+        Console.WriteLine( $"Symbol classifier calls: {_symbolClassifierUsedCount:N0}" );
+    }
 }

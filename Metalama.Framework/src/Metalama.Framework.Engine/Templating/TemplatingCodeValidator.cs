@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Diagnostics;
+using Metalama.Framework.Engine.Observers;
 using Metalama.Framework.Engine.Pipeline;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities.Threading;
@@ -35,6 +36,7 @@ namespace Metalama.Framework.Engine.Templating
             CancellationToken cancellationToken )
         {
             var taskScheduler = serviceProvider.GetRequiredService<IConcurrentTaskRunner>();
+            var observer = serviceProvider.Global.GetService<ITemplatingCodeValidatorObserver>();
 
             var semanticModelProvider = compilationContext.SemanticModelProvider;
 
@@ -42,6 +44,16 @@ namespace Metalama.Framework.Engine.Templating
 
             void ValidateSyntaxTree( SyntaxTree syntaxTree )
             {
+                // Skip generated code files.
+                if ( syntaxTree.FilePath.EndsWith( ".g.cs", StringComparison.OrdinalIgnoreCase )
+                     || compilationContext.SourceCompilation.Options.SyntaxTreeOptionsProvider?.IsGenerated( syntaxTree, cancellationToken )
+                         == GeneratedKind.MarkedGenerated )
+                {
+                    observer?.OnSyntaxTreeSkipped();
+
+                    return;
+                }
+
                 var semanticModel = semanticModelProvider.GetSemanticModel( syntaxTree );
 
                 if ( !ValidateCore(
@@ -56,6 +68,8 @@ namespace Metalama.Framework.Engine.Templating
                 {
                     hasError = true;
                 }
+
+                observer?.OnSyntaxTreeValidated();
             }
 
             await taskScheduler.RunConcurrentlyAsync( compilationContext.SourceCompilation.SyntaxTrees, ValidateSyntaxTree, cancellationToken );
