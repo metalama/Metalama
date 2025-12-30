@@ -1030,13 +1030,6 @@ internal sealed class SymbolClassifier : ISymbolClassifier
                 .Select( GetTemplatingScope )
                 .FirstOrDefault( s => s != null );
 
-            scopeFromAttributes ??= GetScopeFromAttributes( tracer, symbol.GetOverriddenMember() );
-
-            scopeFromAttributes ??= symbol.GetExplicitOrImplicitInterfaceImplementations()
-                .Select( i => GetScopeFromAttributes( tracer, i ) )
-                .Where( s => s != null )
-                .Aggregate( (TemplatingScopeAndRule?) null, ( s1, s2 ) => (s1?.Scope.GetCombinedValueScope( s2!.Value.Scope )).AddRule() ?? s2 );
-
             if ( scopeFromAttributes != null )
             {
                 tracer?.CreateChild( symbol.OriginalDefinition ).SetResult( scopeFromAttributes );
