@@ -82,8 +82,14 @@ The benchmark uses:
 
 ## Path Configuration
 
-The benchmark expects nopCommerce at a path relative to the Metalama repo root. If your setup differs, update the path in `Program.cs`:
+Set the `METALAMA_BENCHMARK_NOPCOMMERCE_SOLUTION` environment variable to the path of the nopCommerce solution file:
 
-```csharp
-private const string NopCommerceSolution = @"C:\src\Metalama-2026.0\nopCommerce-benchmark\src\NopCommerce.sln";
+```bash
+# Windows (PowerShell)
+$env:METALAMA_BENCHMARK_NOPCOMMERCE_SOLUTION = "C:\src\Metalama-2026.0\nopCommerce-benchmark\src\NopCommerce.sln"
+
+# Windows (cmd)
+set METALAMA_BENCHMARK_NOPCOMMERCE_SOLUTION=C:\src\Metalama-2026.0\nopCommerce-benchmark\src\NopCommerce.sln
 ```
+
+The benchmark will fail with a clear error if this environment variable is not set or the file doesn't exist.
