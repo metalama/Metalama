@@ -64,3 +64,5 @@ global.json
 **/.idea/workspace.xml
 **/.idea/copilot.data.*.xml
 *-TODO.md
+Metalama.Framework/BenchmarkDotNet.Artifacts/results
+eng\docker-context\claude.json

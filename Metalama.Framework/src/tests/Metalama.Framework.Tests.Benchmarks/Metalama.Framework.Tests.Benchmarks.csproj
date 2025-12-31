@@ -5,14 +5,28 @@
         <TargetFramework>net8.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
+        <LangVersion>12.0</LangVersion>
+        <RoslynVersion Condition="'$(RoslynVersion)'==''">5.0</RoslynVersion>
     </PropertyGroup>
 
     <ItemGroup>
       <PackageReference Include="BenchmarkDotNet" />
+      <PackageReference Include="JetBrains.Profiler.Api" />
+      <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" VersionOverride="$(RoslynVersion)" />
+      <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.Common" VersionOverride="$(RoslynVersion)" />
+      <PackageReference Include="Microsoft.CodeAnalysis.CSharp" VersionOverride="$(RoslynVersion)" />
+      <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Features" VersionOverride="$(RoslynVersion)" />
+      <PackageReference Include="Microsoft.CodeAnalysis" VersionOverride="$(RoslynVersion)" />
+      <PackageReference Include="Microsoft.Build.Locator" />
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="../../Metalama.Framework.Engine/Metalama.Framework.Engine.csproj" />     
+      <ProjectReference Include="../../Metalama.Framework.Engine$(EngineProjectSuffix)/Metalama.Framework.Engine$(EngineProjectSuffix).csproj" />
+      <ProjectReference Include="../../Metalama.Testing.UnitTesting$(EngineProjectSuffix)/Metalama.Testing.UnitTesting$(EngineProjectSuffix).csproj" />
+
+       <!-- Override dependencies to avoid vulnerability warnings. -->
+       <PackageReference Include="System.Text.Json" VersionOverride="$(SystemTextJsonLatestVersion)" />
+
     </ItemGroup>
 
 </Project>

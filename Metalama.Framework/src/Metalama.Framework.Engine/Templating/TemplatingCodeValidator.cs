@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Diagnostics;
+using Metalama.Framework.Engine.Observers;
 using Metalama.Framework.Engine.Pipeline;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities.Threading;
@@ -16,6 +17,17 @@ namespace Metalama.Framework.Engine.Templating
 {
     public static partial class TemplatingCodeValidator
     {
+        public static Task<bool> ValidateAsync(
+            ProjectServiceProvider serviceProvider,
+            Compilation compilation,
+            Action<Diagnostic> reportDiagnostic,
+            CancellationToken cancellationToken )
+        {
+            var compilationContext = serviceProvider.GetRequiredService<ClassifyingCompilationContextFactory>().GetInstance( compilation );
+
+            return ValidateAsync( serviceProvider, compilationContext, reportDiagnostic, null, cancellationToken );
+        }
+
         internal static async Task<bool> ValidateAsync(
             ProjectServiceProvider serviceProvider,
             ClassifyingCompilationContext compilationContext,
@@ -24,6 +36,7 @@ namespace Metalama.Framework.Engine.Templating
             CancellationToken cancellationToken )
         {
             var taskScheduler = serviceProvider.GetRequiredService<IConcurrentTaskRunner>();
+            var observer = serviceProvider.Global.GetService<ITemplatingCodeValidatorObserver>();
 
             var semanticModelProvider = compilationContext.SemanticModelProvider;
 
@@ -31,6 +44,28 @@ namespace Metalama.Framework.Engine.Templating
 
             void ValidateSyntaxTree( SyntaxTree syntaxTree )
             {
+                // Skip generated code files.
+                var filePath = syntaxTree.FilePath;
+
+                var isGeneratedFile =
+                    !string.IsNullOrEmpty( filePath )
+                    && ( filePath.EndsWith( ".g.cs", StringComparison.OrdinalIgnoreCase )
+                         || filePath.EndsWith( ".designer.cs", StringComparison.OrdinalIgnoreCase )
+                         || filePath.EndsWith( ".generated.cs", StringComparison.OrdinalIgnoreCase )
+                         || filePath.IndexOf( "/obj/", StringComparison.OrdinalIgnoreCase ) >= 0
+                         || filePath.IndexOf( "\\obj\\", StringComparison.OrdinalIgnoreCase ) >= 0 );
+
+                var isGeneratedBySyntaxTreeOptions =
+                    compilationContext.SourceCompilation.Options.SyntaxTreeOptionsProvider?.IsGenerated( syntaxTree, cancellationToken )
+                    == GeneratedKind.MarkedGenerated;
+
+                if ( isGeneratedFile || isGeneratedBySyntaxTreeOptions )
+                {
+                    observer?.OnSyntaxTreeSkipped();
+
+                    return;
+                }
+
                 var semanticModel = semanticModelProvider.GetSemanticModel( syntaxTree );
 
                 if ( !ValidateCore(
@@ -45,6 +80,8 @@ namespace Metalama.Framework.Engine.Templating
                 {
                     hasError = true;
                 }
+
+                observer?.OnSyntaxTreeValidated();
             }
 
             await taskScheduler.RunConcurrentlyAsync( compilationContext.SourceCompilation.SyntaxTrees, ValidateSyntaxTree, cancellationToken );

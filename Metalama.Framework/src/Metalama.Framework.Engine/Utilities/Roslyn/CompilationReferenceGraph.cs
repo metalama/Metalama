@@ -15,7 +15,7 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
 {
     internal sealed class CompilationReferenceGraph
     {
-        private static readonly WeakCache<Compilation, CompilationReferenceGraph> _instances = new();
+        private static readonly WeakCache<Compilation, CompilationReferenceGraph> _instances = new( isStaticCache: true );
         private readonly Dictionary<IAssemblySymbol, (int Min, int Max)> _depth = new();
 
         public static CompilationReferenceGraph GetInstance( Compilation compilation )

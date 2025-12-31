@@ -576,6 +576,60 @@ class C  {
             }
         }
 
+        [Fact]
+        public void AnonymousTypeWithNotCompileTimeOnlyAndRunTimeOnlyProperties()
+        {
+            // Reproduces a bug where combining NotCompileTimeOnly with RunTimeOnly throws an exception.
+            // This can occur in Razor-generated code with anonymous objects containing mixed property types.
+            // See: https://github.com/metalama/Metalama/issues/1261
+
+            const string code = """
+                                using System;
+                                using System.Linq;
+                                using System.Collections.Generic;
+
+                                class Download { public Guid DownloadGuid { get; set; } }
+
+                                class C
+                                {
+                                    void M( List<Download> downloads )
+                                    {
+                                        // Anonymous type with:
+                                        // - Guid property (NotCompileTimeOnly - it's a System struct)
+                                        // - string property (RunTimeOnly in run-time context)
+                                        var result = downloads.Select( d => new { id = d.DownloadGuid, name = "test" } );
+                                    }
+                                }
+                                """;
+
+            using var testContext = this.CreateTestContext();
+            var compilation = testContext.CreateCompilationModel( code );
+
+            var classifier = testContext.ServiceProvider.GetRequiredService<ClassifyingCompilationContextFactory>()
+                .GetInstance( compilation.RoslynCompilation )
+                .SymbolClassifier;
+
+            var syntaxTree = compilation.RoslynCompilation.SyntaxTrees.First();
+            var semanticModel = compilation.RoslynCompilation.GetSemanticModel( syntaxTree );
+            var nodes = syntaxTree.GetRoot().DescendantNodes();
+
+            // This should not throw - it previously threw "Invalid combination: (NotCompileTimeOnly, RunTimeOnly)"
+            foreach ( var node in nodes )
+            {
+                var symbol = semanticModel.GetSymbolInfo( node ).Symbol;
+
+                if ( symbol != null )
+                {
+                    classifier.GetTemplatingScope( symbol, SymbolClassificationContext.RunTimeOnly );
+                }
+
+                if ( semanticModel.GetTypeInfo( node ).Type is { } type )
+                {
+                    classifier.GetTemplatingScope( type, SymbolClassificationContext.RunTimeOnly );
+                }
+            }
+        }
+
 #if NET7_0_OR_GREATER
         [Fact]
         public void NonStandardApiInStandardType()

@@ -2,30 +2,118 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-#pragma warning disable CA1822, CA1050
+// TemplatingCodeValidator Benchmark
+// Validates all projects in the nopCommerce solution to measure validation performance.
+//
+// Usage:
+//   dotnet run -c Release
+//   dotnet run -c Release -- --test  (for quick test without BenchmarkDotNet)
+//   dotnet run -c Release -- --test --dottrace  (run under dotTrace profiler with data collection)
 
-using BenchmarkDotNet.Attributes;
+#pragma warning disable CA1822
+
+using BenchmarkDotNet.Configs;
+using BenchmarkDotNet.Jobs;
 using BenchmarkDotNet.Running;
+using BenchmarkDotNet.Toolchains.InProcess.Emit;
+using JetBrains.Profiler.Api;
+using Metalama.Backstage.Extensibility;
+using Metalama.Backstage.Licensing;
+using Metalama.Framework.Engine.Utilities.Diagnostics;
+using Metalama.Framework.Tests.Benchmarks;
+using Microsoft.Build.Locator;
+using System.Diagnostics;
 
-BenchmarkRunner.Run<Benchmarks>();
+// Register MSBuild before anything else
+MSBuildLocator.RegisterDefaults();
 
-public sealed class Benchmarks
+// Quick test mode: run with --test to verify setup works
+if ( args.Contains( "--test" ) )
 {
-    [Benchmark]
-    public void NewObject()
+    var useDotTrace = args.Contains( "--dottrace" );
+
+    Console.WriteLine( "Running quick test mode..." );
+
+    BackstageServiceFactoryInitializer.Initialize(
+        new BackstageInitializationOptions( new BenchmarkApplicationInfo() )
+        {
+            AddSupportServices = true,
+            AddLicensing = false,
+            LicensingOptions = LicensingInitializationOptions.ForTest(
+                license =>
+                {
+                    license.Product = LicenseProduct.MetalamaProfessional;
+                    license.LicenseType = LicenseType.Test;
+                    license.SubscriptionEndDate = DateTime.MaxValue;
+                } )
+        } );
+
+    var benchmarks = new TemplatingCodeValidatorBenchmarks();
+    benchmarks.GlobalSetup();
+    benchmarks.IterationSetup();
+
+    if ( useDotTrace )
     {
-        var semaphore = new SemaphoreSlim( 1 );
-        semaphore.Wait();
-        semaphore.Release();
-        semaphore.Dispose();
+        Console.WriteLine( "Starting dotTrace data collection..." );
+        MeasureProfiler.StartCollectingData();
     }
 
-    [Benchmark]
-    public void Pooled()
+    var sw = Stopwatch.StartNew();
+    var count = await benchmarks.ValidateAllSyntaxTrees();
+    sw.Stop();
+
+    if ( useDotTrace )
     {
-        // using var handle = Pools.SemaphoreSlim.Allocate();
-        // var semaphore = handle.Value;
-        // semaphore.Wait();
-        // semaphore.Release();
+        var branchName = GetGitBranchName();
+        var snapshotName = $"TemplatingCodeValidator-{branchName}";
+        MeasureProfiler.SaveData( snapshotName );
+        Console.WriteLine( $"Saved dotTrace snapshot: {snapshotName}" );
+    }
+
+    Console.WriteLine( $"Validation completed in {sw.ElapsedMilliseconds} ms, found {count} diagnostics" );
+    benchmarks.IterationCleanup();
+    benchmarks.GlobalCleanup();
+
+    return;
+}
+
+// Use InProcessEmitToolchain to avoid BenchmarkDotNet's build issues with .NET SDK 10.0
+// (SDK 10.0 doesn't recognize /p: syntax that BenchmarkDotNet uses)
+// Configure for long-running benchmarks with 5% acceptable variance
+var config = DefaultConfig.Instance
+    .AddJob(
+        Job.Default
+            .WithToolchain( new InProcessEmitToolchain( TimeSpan.FromMinutes( 30 ), logOutput: true ) )
+            .WithMaxRelativeError( 0.05 ) );
+
+BenchmarkRunner.Run<TemplatingCodeValidatorBenchmarks>( config );
+
+return;
+
+static string GetGitBranchName()
+{
+    try
+    {
+        var process = new Process
+        {
+            StartInfo = new ProcessStartInfo
+            {
+                FileName = "git",
+                Arguments = "rev-parse --abbrev-ref HEAD",
+                RedirectStandardOutput = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            }
+        };
+
+        process.Start();
+        var branchName = process.StandardOutput.ReadToEnd().Trim();
+        process.WaitForExit();
+
+        return string.IsNullOrEmpty( branchName ) ? "unknown" : branchName.Replace( "/", "-", StringComparison.Ordinal );
+    }
+    catch
+    {
+        return "unknown";
     }
 }

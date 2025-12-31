@@ -22,9 +22,9 @@ namespace Metalama.Framework.DesignTime;
 /// </summary>
 public static class ProjectKeyFactory
 {
-    private static readonly WeakCache<Compilation, ProjectKey> _compilationCache = new();
-    private static readonly WeakCache<Microsoft.CodeAnalysis.Project, ProjectKey?> _projectCache = new();
-    private static readonly WeakCache<ParseOptions, StrongBox<ulong>> _preprocessorSymbolHashCodeCache = new();
+    private static readonly WeakCache<Compilation, ProjectKey> _compilationCache = new( isStaticCache: true );
+    private static readonly WeakCache<Microsoft.CodeAnalysis.Project, ProjectKey?> _projectCache = new( isStaticCache: true );
+    private static readonly WeakCache<ParseOptions, StrongBox<ulong>> _preprocessorSymbolHashCodeCache = new( isStaticCache: true );
 
     internal static ProjectKey Create( string assemblyName, ParseOptions? parseOptions )
     {

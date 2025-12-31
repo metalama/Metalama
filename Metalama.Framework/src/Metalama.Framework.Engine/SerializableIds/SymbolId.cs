@@ -19,7 +19,7 @@ namespace Metalama.Framework.Engine.SerializableIds
     [JsonObject]
     public readonly struct SymbolId : IEquatable<SymbolId>
     {
-        private static readonly WeakCache<Compilation, ConcurrentDictionary<SymbolId, ISymbol?>> _cache = new();
+        private static readonly WeakCache<Compilation, ConcurrentDictionary<SymbolId, ISymbol?>> _cache = new( isStaticCache: true );
 
         // ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable
         private static readonly Func<string, object> _newSymbolKeyFunc;
