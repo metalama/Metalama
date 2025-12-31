@@ -166,7 +166,7 @@
 
     <PackageVersion Include="Microsoft.CodeAnalysis.Common" Version="$(RoslynApiMinVersion)" />
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="$(RoslynApiMinVersion)" />
-    <PackageVersion Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" Version="$(RoslynApiMinVersion)" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" Version="$(RoslynApiMaxVersion)" />
     
   
     <!-- These are test-only dependencies for standalone projects. -->
