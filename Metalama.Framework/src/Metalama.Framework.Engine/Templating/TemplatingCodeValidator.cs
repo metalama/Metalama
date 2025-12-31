@@ -10,6 +10,7 @@ using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities.Threading;
 using Microsoft.CodeAnalysis;
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -35,58 +36,110 @@ namespace Metalama.Framework.Engine.Templating
             Action<ScopedSuppression>? reportSuppression,
             CancellationToken cancellationToken )
         {
+            // Use the two-phase API but await both phases.
+            using var twoPhase = ValidateTwoPhaseAsync( serviceProvider, compilationContext, reportDiagnostic, reportSuppression, cancellationToken );
+
+            var results = await Task.WhenAll( twoPhase.Phase1, twoPhase.Phase2 );
+
+            return results[0] && results[1];
+        }
+
+        /// <summary>
+        /// Validates the compilation in two phases. Phase 1 validates syntax trees that are recognized by
+        /// <see cref="CompileTimeCodeFastDetector"/> as containing compile-time code. Phase 2 validates the
+        /// remaining syntax trees. This allows phase 2 to run concurrently with other pipeline operations.
+        /// </summary>
+        /// <returns>
+        /// A <see cref="TwoPhaseValidationResult"/> containing the phase 1 task, phase 2 task, and a method
+        /// to cancel phase 2.
+        /// </returns>
+        internal static TwoPhaseValidationResult ValidateTwoPhaseAsync(
+            ProjectServiceProvider serviceProvider,
+            ClassifyingCompilationContext compilationContext,
+            Action<Diagnostic> reportDiagnostic,
+            Action<ScopedSuppression>? reportSuppression,
+            CancellationToken cancellationToken )
+        {
             var taskScheduler = serviceProvider.GetRequiredService<IConcurrentTaskRunner>();
             var observer = serviceProvider.Global.GetService<ITemplatingCodeValidatorObserver>();
-
             var semanticModelProvider = compilationContext.SemanticModelProvider;
 
-            var hasError = false;
+            // Partition syntax trees into two groups based on CompileTimeCodeFastDetector.
+            var phase1Trees = new List<SyntaxTree>();
+            var phase2Trees = new List<SyntaxTree>();
 
-            void ValidateSyntaxTree( SyntaxTree syntaxTree )
+            foreach ( var syntaxTree in compilationContext.SourceCompilation.SyntaxTrees )
             {
-                // Skip generated code files.
-                var filePath = syntaxTree.FilePath;
+                var root = syntaxTree.GetRoot( cancellationToken );
 
-                var isGeneratedFile =
-                    !string.IsNullOrEmpty( filePath )
-                    && ( filePath.EndsWith( ".g.cs", StringComparison.OrdinalIgnoreCase )
-                         || filePath.EndsWith( ".designer.cs", StringComparison.OrdinalIgnoreCase )
-                         || filePath.EndsWith( ".generated.cs", StringComparison.OrdinalIgnoreCase )
-                         || filePath.IndexOf( "/obj/", StringComparison.OrdinalIgnoreCase ) >= 0
-                         || filePath.IndexOf( "\\obj\\", StringComparison.OrdinalIgnoreCase ) >= 0 );
-
-                var isGeneratedBySyntaxTreeOptions =
-                    compilationContext.SourceCompilation.Options.SyntaxTreeOptionsProvider?.IsGenerated( syntaxTree, cancellationToken )
-                    == GeneratedKind.MarkedGenerated;
-
-                if ( isGeneratedFile || isGeneratedBySyntaxTreeOptions )
+                if ( CompileTimeCodeFastDetector.HasCompileTimeCode( root ) )
                 {
-                    observer?.OnSyntaxTreeSkipped();
-
-                    return;
+                    phase1Trees.Add( syntaxTree );
                 }
-
-                var semanticModel = semanticModelProvider.GetSemanticModel( syntaxTree );
-
-                if ( !ValidateCore(
-                        serviceProvider,
-                        semanticModel,
-                        compilationContext,
-                        reportDiagnostic,
-                        reportSuppression,
-                        false,
-                        false,
-                        cancellationToken ) )
+                else
                 {
-                    hasError = true;
+                    phase2Trees.Add( syntaxTree );
                 }
-
-                observer?.OnSyntaxTreeValidated();
             }
 
-            await taskScheduler.RunConcurrentlyAsync( compilationContext.SourceCompilation.SyntaxTrees, ValidateSyntaxTree, cancellationToken );
+            // Create a linked cancellation token source for phase 2 that can be cancelled independently.
+            var phase2Cts = CancellationTokenSource.CreateLinkedTokenSource( cancellationToken );
 
-            return !hasError;
+            var phase1Task = ValidateSyntaxTreesAsync( phase1Trees, cancellationToken );
+            var phase2Task = ValidateSyntaxTreesAsync( phase2Trees, phase2Cts.Token );
+
+            return new TwoPhaseValidationResult( phase1Task, phase2Task, phase2Cts );
+
+            async Task<bool> ValidateSyntaxTreesAsync( IEnumerable<SyntaxTree> syntaxTrees, CancellationToken ct )
+            {
+                var hasError = false;
+
+                void ValidateSyntaxTree( SyntaxTree syntaxTree )
+                {
+                    // Skip generated code files.
+                    var filePath = syntaxTree.FilePath;
+
+                    var isGeneratedFile =
+                        !string.IsNullOrEmpty( filePath )
+                        && ( filePath.EndsWith( ".g.cs", StringComparison.OrdinalIgnoreCase )
+                             || filePath.EndsWith( ".designer.cs", StringComparison.OrdinalIgnoreCase )
+                             || filePath.EndsWith( ".generated.cs", StringComparison.OrdinalIgnoreCase )
+                             || filePath.IndexOf( "/obj/", StringComparison.OrdinalIgnoreCase ) >= 0
+                             || filePath.IndexOf( "\\obj\\", StringComparison.OrdinalIgnoreCase ) >= 0 );
+
+                    var isGeneratedBySyntaxTreeOptions =
+                        compilationContext.SourceCompilation.Options.SyntaxTreeOptionsProvider?.IsGenerated( syntaxTree, ct )
+                        == GeneratedKind.MarkedGenerated;
+
+                    if ( isGeneratedFile || isGeneratedBySyntaxTreeOptions )
+                    {
+                        observer?.OnSyntaxTreeSkipped();
+
+                        return;
+                    }
+
+                    var semanticModel = semanticModelProvider.GetSemanticModel( syntaxTree );
+
+                    if ( !ValidateCore(
+                            serviceProvider,
+                            semanticModel,
+                            compilationContext,
+                            reportDiagnostic,
+                            reportSuppression,
+                            false,
+                            false,
+                            ct ) )
+                    {
+                        hasError = true;
+                    }
+
+                    observer?.OnSyntaxTreeValidated();
+                }
+
+                await taskScheduler.RunConcurrentlyAsync( syntaxTrees, ValidateSyntaxTree, ct );
+
+                return !hasError;
+            }
         }
 
         public static void Validate(
