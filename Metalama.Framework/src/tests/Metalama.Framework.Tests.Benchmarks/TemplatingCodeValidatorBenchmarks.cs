@@ -16,9 +16,10 @@ namespace Metalama.Framework.Tests.Benchmarks;
 [MemoryDiagnoser]
 public sealed class TemplatingCodeValidatorBenchmarks : IDisposable
 {
-    private const string _nopCommerceSolution = @"C:\src\Metalama-2026.0\nopCommerce-benchmark\src\NopCommerce.sln";
+    private const string _nopCommerceSolutionEnvVar = "METALAMA_BENCHMARK_NOPCOMMERCE_SOLUTION";
 
     private TestContext? _testContext;
+    private string? _nopCommerceSolution;
     private Compilation[]? _compilations;
     private MSBuildWorkspace? _workspace;
     private bool _backstageInitialized;
@@ -33,6 +34,23 @@ public sealed class TemplatingCodeValidatorBenchmarks : IDisposable
     private async Task GlobalSetupAsync()
     {
         Console.WriteLine( "Setting up benchmark (global)..." );
+
+        // Get solution path from environment variable
+        this._nopCommerceSolution = Environment.GetEnvironmentVariable( _nopCommerceSolutionEnvVar );
+
+        if ( string.IsNullOrEmpty( this._nopCommerceSolution ) )
+        {
+            throw new InvalidOperationException(
+                $"Environment variable '{_nopCommerceSolutionEnvVar}' is not defined. " +
+                "Set it to the path of the nopCommerce solution file (e.g., C:\\src\\nopCommerce\\src\\NopCommerce.sln)." );
+        }
+
+        if ( !File.Exists( this._nopCommerceSolution ) )
+        {
+            throw new InvalidOperationException(
+                $"Solution file '{this._nopCommerceSolution}' does not exist. " +
+                $"Check the value of the '{_nopCommerceSolutionEnvVar}' environment variable." );
+        }
 
         // Initialize Metalama services (must be done once)
         if ( !this._backstageInitialized )
@@ -55,7 +73,7 @@ public sealed class TemplatingCodeValidatorBenchmarks : IDisposable
         }
 
         // Load nopCommerce solution using MSBuildWorkspace
-        Console.WriteLine( $"Loading solution: {_nopCommerceSolution}" );
+        Console.WriteLine( $"Loading solution: {this._nopCommerceSolution}" );
 
         var workspaceFailures = new List<string>();
         this._workspace = MSBuildWorkspace.Create();
@@ -70,7 +88,7 @@ public sealed class TemplatingCodeValidatorBenchmarks : IDisposable
                 }
             } );
 
-        var solution = await this._workspace.OpenSolutionAsync( _nopCommerceSolution );
+        var solution = await this._workspace.OpenSolutionAsync( this._nopCommerceSolution );
 
         if ( workspaceFailures.Count > 0 )
         {
