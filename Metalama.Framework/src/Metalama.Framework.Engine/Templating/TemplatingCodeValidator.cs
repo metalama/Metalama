@@ -45,9 +45,21 @@ namespace Metalama.Framework.Engine.Templating
             void ValidateSyntaxTree( SyntaxTree syntaxTree )
             {
                 // Skip generated code files.
-                if ( syntaxTree.FilePath.EndsWith( ".g.cs", StringComparison.OrdinalIgnoreCase )
-                     || compilationContext.SourceCompilation.Options.SyntaxTreeOptionsProvider?.IsGenerated( syntaxTree, cancellationToken )
-                         == GeneratedKind.MarkedGenerated )
+                var filePath = syntaxTree.FilePath;
+
+                var isGeneratedFile =
+                    !string.IsNullOrEmpty( filePath )
+                    && ( filePath.EndsWith( ".g.cs", StringComparison.OrdinalIgnoreCase )
+                         || filePath.EndsWith( ".designer.cs", StringComparison.OrdinalIgnoreCase )
+                         || filePath.EndsWith( ".generated.cs", StringComparison.OrdinalIgnoreCase )
+                         || filePath.IndexOf( "/obj/", StringComparison.OrdinalIgnoreCase ) >= 0
+                         || filePath.IndexOf( "\\obj\\", StringComparison.OrdinalIgnoreCase ) >= 0 );
+
+                var isGeneratedBySyntaxTreeOptions =
+                    compilationContext.SourceCompilation.Options.SyntaxTreeOptionsProvider?.IsGenerated( syntaxTree, cancellationToken )
+                    == GeneratedKind.MarkedGenerated;
+
+                if ( isGeneratedFile || isGeneratedBySyntaxTreeOptions )
                 {
                     observer?.OnSyntaxTreeSkipped();
 
