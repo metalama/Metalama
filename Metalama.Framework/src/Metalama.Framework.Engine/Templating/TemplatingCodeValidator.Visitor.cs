@@ -67,6 +67,7 @@ namespace Metalama.Framework.Engine.Templating
                 Action<ScopedSuppression>? reportSuppression,
                 bool reportCompileTimeTreeOutdatedError,
                 bool isDesignTime,
+                bool? hasCompileTimeCodeFast,
                 CancellationToken cancellationToken )
             {
                 this._serviceProvider = serviceProvider;
@@ -79,7 +80,7 @@ namespace Metalama.Framework.Engine.Templating
                 this._reportCompileTimeTreeOutdatedError = reportCompileTimeTreeOutdatedError;
                 this._isDesignTime = isDesignTime;
                 this._cancellationToken = cancellationToken;
-                this._hasCompileTimeCodeFast = CompileTimeCodeFastDetector.HasCompileTimeCode( semanticModel.SyntaxTree.GetRoot() );
+                this._hasCompileTimeCodeFast = hasCompileTimeCodeFast ?? CompileTimeCodeFastDetector.HasCompileTimeCode( semanticModel.SyntaxTree.GetRoot() );
                 this._validateRunTimeCode = serviceProvider.GetService<IProjectOptions>()?.ValidateRunTimeCode ?? false;
                 this._typeFabricType = compilationContext.ReflectionMapper.GetTypeSymbol( typeof(TypeFabric) );
                 this._iAdviceAttributeType = compilationContext.ReflectionMapper.GetTypeSymbol( typeof(IAdviceAttribute) );

@@ -85,12 +85,12 @@ namespace Metalama.Framework.Engine.Templating
             // Create a linked cancellation token source for phase 2 that can be cancelled independently.
             var phase2Cts = CancellationTokenSource.CreateLinkedTokenSource( cancellationToken );
 
-            var phase1Task = ValidateSyntaxTreesAsync( phase1Trees, cancellationToken );
-            var phase2Task = ValidateSyntaxTreesAsync( phase2Trees, phase2Cts.Token );
+            var phase1Task = ValidateSyntaxTreesAsync( phase1Trees, hasCompileTimeCodeFast: true, cancellationToken );
+            var phase2Task = ValidateSyntaxTreesAsync( phase2Trees, hasCompileTimeCodeFast: false, phase2Cts.Token );
 
             return new TwoPhaseValidationResult( phase1Task, phase2Task, phase2Cts );
 
-            async Task<bool> ValidateSyntaxTreesAsync( IEnumerable<SyntaxTree> syntaxTrees, CancellationToken ct )
+            async Task<bool> ValidateSyntaxTreesAsync( IEnumerable<SyntaxTree> syntaxTrees, bool hasCompileTimeCodeFast, CancellationToken ct )
             {
                 var hasError = false;
 
@@ -128,6 +128,7 @@ namespace Metalama.Framework.Engine.Templating
                             reportSuppression,
                             false,
                             false,
+                            hasCompileTimeCodeFast,
                             ct ) )
                     {
                         hasError = true;
@@ -184,6 +185,7 @@ namespace Metalama.Framework.Engine.Templating
                     reportSuppression,
                     reportCompileTimeTreeOutdatedError,
                     isDesignTime,
+                    null,
                     cancellationToken );
             }
             catch ( Exception e )
@@ -212,6 +214,7 @@ namespace Metalama.Framework.Engine.Templating
             Action<ScopedSuppression>? reportSuppression,
             bool reportCompileTimeTreeOutdatedError,
             bool isDesignTime,
+            bool? hasCompileTimeCodeFast,
             CancellationToken cancellationToken )
         {
             Visitor visitor = new(
@@ -222,6 +225,7 @@ namespace Metalama.Framework.Engine.Templating
                 reportSuppression,
                 reportCompileTimeTreeOutdatedError,
                 isDesignTime,
+                hasCompileTimeCodeFast,
                 cancellationToken );
 
             visitor.Visit( semanticModel.SyntaxTree.GetRoot( cancellationToken ) );
