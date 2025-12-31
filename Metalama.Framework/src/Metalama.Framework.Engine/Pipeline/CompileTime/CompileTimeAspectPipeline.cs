@@ -155,6 +155,14 @@ public class CompileTimeAspectPipeline : AspectPipeline
             configuration,
             cancellationToken );
 
+        // If pipeline failed, cancel phase 2 and return early.
+        if ( !pipelineResult.IsSuccessful )
+        {
+            twoPhaseValidation.CancelPhase2();
+
+            return default;
+        }
+
         // Wait for phase 2 validation to complete.
         if ( !await twoPhaseValidation.Phase2 )
         {
