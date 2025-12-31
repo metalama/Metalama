@@ -110,16 +110,21 @@ public class CompileTimeAspectPipeline : AspectPipeline
             return default;
         }
 
-        // Validate the code (some validations are not done by the template compiler).
-        var isTemplatingCodeValidatorSuccessful = await TemplatingCodeValidator.ValidateAsync(
+        // Validate the code in two phases. Phase 1 validates syntax trees with compile-time code,
+        // phase 2 validates remaining trees and can run concurrently with pipeline execution.
+        using var twoPhaseValidation = TemplatingCodeValidator.ValidateTwoPhaseAsync(
             this.ServiceProvider,
             compilationContext,
             reportDiagnostic,
             reportSuppression,
             cancellationToken );
 
-        if ( !isTemplatingCodeValidatorSuccessful )
+        // Phase 1 must complete before we continue, as it validates compile-time code.
+        if ( !await twoPhaseValidation.Phase1 )
         {
+            // Cancel phase 2 since we're failing anyway.
+            twoPhaseValidation.CancelPhase2();
+
             return default;
         }
 
@@ -127,22 +132,44 @@ public class CompileTimeAspectPipeline : AspectPipeline
 
         if ( !this.VerifyLanguageVersion( compilation, diagnosticAdder ) )
         {
+            // Cancel phase 2 since we're failing anyway.
+            twoPhaseValidation.CancelPhase2();
+
             return default;
         }
 
         // Initialize the pipeline and generate the compile-time project.
         if ( !this.TryInitialize( diagnosticAdder, partialCompilation.Compilation, null, cancellationToken, out var configuration ) )
         {
+            // Cancel phase 2 since we're failing anyway.
+            twoPhaseValidation.CancelPhase2();
+
             return default;
         }
 
-        // Run the pipeline.
-        return await this.ExecuteCoreAsync(
+        // Run the pipeline. Phase 2 validation runs concurrently.
+        var pipelineResult = await this.ExecuteCoreAsync(
             diagnosticAdder,
             partialCompilation,
             resources,
             configuration,
             cancellationToken );
+
+        // If pipeline failed, cancel phase 2 and return early.
+        if ( !pipelineResult.IsSuccessful )
+        {
+            twoPhaseValidation.CancelPhase2();
+
+            return default;
+        }
+
+        // Wait for phase 2 validation to complete.
+        if ( !await twoPhaseValidation.Phase2 )
+        {
+            return default;
+        }
+
+        return pipelineResult;
     }
 
     private async Task<FallibleResult<CompileTimeAspectPipelineResult>> ExecuteCoreAsync(

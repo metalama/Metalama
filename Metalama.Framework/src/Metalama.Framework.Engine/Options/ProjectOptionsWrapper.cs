@@ -112,6 +112,8 @@ public abstract class ProjectOptionsWrapper : IProjectOptions
 
     public string? AssemblyLocatorSalt => this.Wrapped.AssemblyLocatorSalt;
 
+    public virtual bool ValidateRunTimeCode => this.Wrapped.ValidateRunTimeCode;
+
     public sealed override int GetHashCode() => throw new NotImplementedException();
 
     public sealed override bool Equals( object? obj ) => this.Equals( obj as IProjectOptions );

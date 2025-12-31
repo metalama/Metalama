@@ -113,6 +113,8 @@ internal sealed class TestProjectOptions : DefaultProjectOptions, IDisposable
 
     public override bool RoslynIsCompileTimeOnly => this.TestContextOptions.RoslynIsCompileTimeOnly;
 
+    public override bool ValidateRunTimeCode => this.TestContextOptions.ValidateRunTimeCode;
+
     public override ImmutableArray<TargetedAssemblyReference> CompileTimeAssemblies
         => this.TestContextOptions.CompileTimeAssemblies.Select( TargetedAssemblyReference.FromPath ).ToImmutableArray();
 

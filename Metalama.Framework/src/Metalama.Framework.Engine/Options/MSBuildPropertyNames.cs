@@ -53,6 +53,7 @@ public static class MSBuildPropertyNames
     public const string NETCoreSdkVersion = nameof(NETCoreSdkVersion);
     public const string MSBuildBinPath = nameof(MSBuildBinPath);
     public const string MetalamaAssemblyLocatorSalt = nameof(MetalamaAssemblyLocatorSalt);
+    public const string MetalamaValidateRunTimeCode = nameof(MetalamaValidateRunTimeCode);
 
     public static ImmutableArray<string> All { get; } = ImmutableArray.Create(
         MetalamaBuildTouchFile,
@@ -92,5 +93,6 @@ public static class MSBuildPropertyNames
         MetalamaAvoidLockingExtensionAssemblies,
         NETCoreSdkVersion,
         MSBuildBinPath,
-        MetalamaAssemblyLocatorSalt );
+        MetalamaAssemblyLocatorSalt,
+        MetalamaValidateRunTimeCode );
 }

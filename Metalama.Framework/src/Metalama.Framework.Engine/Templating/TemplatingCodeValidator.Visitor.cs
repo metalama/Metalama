@@ -9,6 +9,7 @@ using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.CompileTime.Serialization;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Observers;
+using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.SyntaxSerialization;
 using Metalama.Framework.Engine.Utilities.Roslyn;
@@ -44,6 +45,7 @@ namespace Metalama.Framework.Engine.Templating
             private readonly Action<ScopedSuppression>? _reportSuppression;
             private readonly CancellationToken _cancellationToken;
             private readonly bool _hasCompileTimeCodeFast;
+            private readonly bool _validateRunTimeCode;
             private readonly ITypeSymbol _typeFabricType;
             private readonly ITypeSymbol _iAdviceAttributeType;
             private readonly ITypeSymbol _iCompileTimeSerializableType;
@@ -65,6 +67,7 @@ namespace Metalama.Framework.Engine.Templating
                 Action<ScopedSuppression>? reportSuppression,
                 bool reportCompileTimeTreeOutdatedError,
                 bool isDesignTime,
+                bool? hasCompileTimeCodeFast,
                 CancellationToken cancellationToken )
             {
                 this._serviceProvider = serviceProvider;
@@ -77,7 +80,8 @@ namespace Metalama.Framework.Engine.Templating
                 this._reportCompileTimeTreeOutdatedError = reportCompileTimeTreeOutdatedError;
                 this._isDesignTime = isDesignTime;
                 this._cancellationToken = cancellationToken;
-                this._hasCompileTimeCodeFast = CompileTimeCodeFastDetector.HasCompileTimeCode( semanticModel.SyntaxTree.GetRoot() );
+                this._hasCompileTimeCodeFast = hasCompileTimeCodeFast ?? CompileTimeCodeFastDetector.HasCompileTimeCode( semanticModel.SyntaxTree.GetRoot() );
+                this._validateRunTimeCode = serviceProvider.GetService<IProjectOptions>()?.ValidateRunTimeCode ?? false;
                 this._typeFabricType = compilationContext.ReflectionMapper.GetTypeSymbol( typeof(TypeFabric) );
                 this._iAdviceAttributeType = compilationContext.ReflectionMapper.GetTypeSymbol( typeof(IAdviceAttribute) );
                 this._iCompileTimeSerializableType = compilationContext.ReflectionMapper.GetTypeSymbol( typeof(ICompileTimeSerializable) );
@@ -452,77 +456,161 @@ namespace Metalama.Framework.Engine.Templating
             }
 
             public override void VisitMethodDeclaration( MethodDeclarationSyntax node )
-                => this.VisitBaseMethodOrAccessor(
-                    node,
-                    node.Modifiers,
-                    base.VisitMethodDeclaration );
+            {
+                using var context = this.WithMethodOrAccessorDeclaration( node, node.Modifiers );
+
+                if ( this.IsInTemplate )
+                {
+                    return;
+                }
+
+                // Visit signature elements.
+                foreach ( var attributeList in node.AttributeLists )
+                {
+                    this.Visit( attributeList );
+                }
+
+                this.Visit( node.ReturnType );
+                this.Visit( node.TypeParameterList );
+                this.Visit( node.ParameterList );
+
+                foreach ( var constraint in node.ConstraintClauses )
+                {
+                    this.Visit( constraint );
+                }
+
+                // Visit implementation (body or expression body) unless skipped.
+                if ( !context.SkipImplementation )
+                {
+                    this.Visit( node.Body );
+                    this.Visit( node.ExpressionBody );
+                }
+            }
 
             public override void VisitAccessorDeclaration( AccessorDeclarationSyntax node )
-                => this.VisitBaseMethodOrAccessor(
-                    node,
-                    node.Modifiers,
-                    base.VisitAccessorDeclaration );
+            {
+                using var context = this.WithMethodOrAccessorDeclaration( node, node.Modifiers );
 
-            private void VisitBaseMethodOrAccessor<T>( T node, SyntaxTokenList modifiers, Action<T> visitBase, ISymbol? declaredSymbol = null )
+                if ( this.IsInTemplate )
+                {
+                    return;
+                }
+
+                // Visit signature elements.
+                foreach ( var attributeList in node.AttributeLists )
+                {
+                    this.Visit( attributeList );
+                }
+
+                // Visit implementation (body or expression body) unless skipped.
+                if ( !context.SkipImplementation )
+                {
+                    this.Visit( node.Body );
+                    this.Visit( node.ExpressionBody );
+                }
+            }
+
+            private Context WithMethodOrAccessorDeclaration<T>( T node, SyntaxTokenList modifiers, ISymbol? declaredSymbol = null )
                 where T : SyntaxNode
             {
-                using ( this.WithDeclaration( node, declaredSymbol ) )
+                var context = this.WithDeclaration( node, declaredSymbol );
+
+                this.VerifyModifiers( modifiers );
+
+                if ( this.IsInTemplate )
                 {
-                    this.VerifyModifiers( modifiers );
-
-                    if ( this.IsInTemplate )
+                    if ( this._isDesignTime && !node.IsKind( SyntaxKind.UnknownAccessorDeclaration ) )
                     {
-                        if ( this._isDesignTime && !node.IsKind( SyntaxKind.UnknownAccessorDeclaration ) )
+                        if ( this._templateCompiler == null )
                         {
-                            if ( this._templateCompiler == null )
-                            {
-                                this._templateCompiler = new TemplateCompiler( this._serviceProvider, this._compilationContext );
+                            this._templateCompiler = new TemplateCompiler( this._serviceProvider, this._compilationContext );
 
-                                // It does not matter if reading project options fails.
-                                this._templateCompiler.TryReadProjectOptions( this );
-                            }
+                            // It does not matter if reading project options fails.
+                            this._templateCompiler.TryReadProjectOptions( this );
+                        }
 
-                            _ = this._templateCompiler.TryAnnotate( node, this._semanticModel, this, this._cancellationToken, out _, out _ );
-                        }
-                        else
-                        {
-                            // The template compiler will be called by the main pipeline.
-                        }
+                        _ = this._templateCompiler.TryAnnotate( node, this._semanticModel, this, this._cancellationToken, out _, out _ );
                     }
                     else
                     {
-                        visitBase( node );
+                        // The template compiler will be called by the main pipeline.
                     }
                 }
+
+                return context;
             }
 
             public override void VisitPropertyDeclaration( PropertyDeclarationSyntax node )
             {
-                using ( this.WithDeclaration( node ) )
+                using var context = this.WithDeclaration( node );
+
+                this.VerifyModifiers( node.Modifiers );
+
+                // Visit signature elements.
+                foreach ( var attributeList in node.AttributeLists )
                 {
-                    this.VerifyModifiers( node.Modifiers );
-                    base.VisitPropertyDeclaration( node );
+                    this.Visit( attributeList );
+                }
+
+                this.Visit( node.Type );
+
+                // Visit accessors (they will handle their own SkipImplementation).
+                this.Visit( node.AccessorList );
+
+                // Visit implementation (initializer and expression body) unless skipped.
+                if ( !context.SkipImplementation )
+                {
+                    this.Visit( node.Initializer );
+                    this.Visit( node.ExpressionBody );
                 }
             }
 
             public override void VisitIndexerDeclaration( IndexerDeclarationSyntax node )
             {
-                using ( this.WithDeclaration( node ) )
+                using var context = this.WithDeclaration( node );
+
+                this.VerifyModifiers( node.Modifiers );
+
+                // Visit signature elements.
+                foreach ( var attributeList in node.AttributeLists )
                 {
-                    this.VerifyModifiers( node.Modifiers );
-                    base.VisitIndexerDeclaration( node );
+                    this.Visit( attributeList );
+                }
+
+                this.Visit( node.Type );
+                this.Visit( node.ParameterList );
+
+                // Visit accessors (they will handle their own SkipImplementation).
+                this.Visit( node.AccessorList );
+
+                // Visit implementation (expression body) unless skipped.
+                if ( !context.SkipImplementation )
+                {
+                    this.Visit( node.ExpressionBody );
                 }
             }
 
             public override void VisitArrowExpressionClause( ArrowExpressionClauseSyntax node )
             {
                 // For e.g. int P => 42;, there is no node that declares the getter,
-                // so we have to handle it manually.
+                // so we have to handle it manually to set up the context for the getter method.
                 if ( node.Parent is PropertyDeclarationSyntax propertyDeclaration )
                 {
                     this._observer?.OnSemanticModelUsed();
                     var getMethod = this._semanticModel.GetDeclaredSymbol( propertyDeclaration ).AssertSymbolNotNull().GetMethod;
-                    this.VisitBaseMethodOrAccessor( node, default, base.VisitArrowExpressionClause, getMethod );
+
+                    using var context = this.WithMethodOrAccessorDeclaration( node, default, getMethod );
+
+                    if ( this.IsInTemplate )
+                    {
+                        return;
+                    }
+
+                    // Visit the expression (the implementation).
+                    if ( !context.SkipImplementation )
+                    {
+                        this.Visit( node.Expression );
+                    }
                 }
                 else
                 {
@@ -532,66 +620,153 @@ namespace Metalama.Framework.Engine.Templating
 
             public override void VisitConstructorDeclaration( ConstructorDeclarationSyntax node )
             {
-                using ( this.WithDeclaration( node ) )
+                using var context = this.WithDeclaration( node );
+
+                this.VerifyModifiers( node.Modifiers );
+
+                // Visit signature elements.
+                foreach ( var attributeList in node.AttributeLists )
                 {
-                    this.VerifyModifiers( node.Modifiers );
-                    base.VisitConstructorDeclaration( node );
+                    this.Visit( attributeList );
+                }
+
+                this.Visit( node.ParameterList );
+
+                // Visit implementation (initializer, body, expression body) unless skipped.
+                if ( !context.SkipImplementation )
+                {
+                    this.Visit( node.Initializer );
+                    this.Visit( node.Body );
+                    this.Visit( node.ExpressionBody );
                 }
             }
 
             public override void VisitDestructorDeclaration( DestructorDeclarationSyntax node )
             {
-                using ( this.WithDeclaration( node ) )
+                using var context = this.WithDeclaration( node );
+
+                this.VerifyModifiers( node.Modifiers );
+
+                // Visit signature elements.
+                foreach ( var attributeList in node.AttributeLists )
                 {
-                    this.VerifyModifiers( node.Modifiers );
-                    base.VisitDestructorDeclaration( node );
+                    this.Visit( attributeList );
+                }
+
+                // Visit implementation (body, expression body) unless skipped.
+                if ( !context.SkipImplementation )
+                {
+                    this.Visit( node.Body );
+                    this.Visit( node.ExpressionBody );
                 }
             }
 
             public override void VisitOperatorDeclaration( OperatorDeclarationSyntax node )
             {
-                using ( this.WithDeclaration( node ) )
+                using var context = this.WithDeclaration( node );
+
+                this.VerifyModifiers( node.Modifiers );
+
+                // Visit signature elements.
+                foreach ( var attributeList in node.AttributeLists )
                 {
-                    this.VerifyModifiers( node.Modifiers );
-                    base.VisitOperatorDeclaration( node );
+                    this.Visit( attributeList );
+                }
+
+                this.Visit( node.ReturnType );
+                this.Visit( node.ParameterList );
+
+                // Visit implementation (body, expression body) unless skipped.
+                if ( !context.SkipImplementation )
+                {
+                    this.Visit( node.Body );
+                    this.Visit( node.ExpressionBody );
                 }
             }
 
             public override void VisitConversionOperatorDeclaration( ConversionOperatorDeclarationSyntax node )
             {
-                using ( this.WithDeclaration( node ) )
+                using var context = this.WithDeclaration( node );
+
+                this.VerifyModifiers( node.Modifiers );
+
+                // Visit signature elements.
+                foreach ( var attributeList in node.AttributeLists )
                 {
-                    this.VerifyModifiers( node.Modifiers );
-                    base.VisitConversionOperatorDeclaration( node );
+                    this.Visit( attributeList );
+                }
+
+                this.Visit( node.Type );
+                this.Visit( node.ParameterList );
+
+                // Visit implementation (body, expression body) unless skipped.
+                if ( !context.SkipImplementation )
+                {
+                    this.Visit( node.Body );
+                    this.Visit( node.ExpressionBody );
                 }
             }
 
             public override void VisitLocalFunctionStatement( LocalFunctionStatementSyntax node )
             {
-                using ( this.WithDeclaration( node ) )
+                using var context = this.WithDeclaration( node );
+
+                // Visit signature elements.
+                foreach ( var attributeList in node.AttributeLists )
                 {
-                    base.VisitLocalFunctionStatement( node );
+                    this.Visit( attributeList );
+                }
+
+                this.Visit( node.ReturnType );
+                this.Visit( node.TypeParameterList );
+                this.Visit( node.ParameterList );
+
+                foreach ( var constraint in node.ConstraintClauses )
+                {
+                    this.Visit( constraint );
+                }
+
+                // Visit implementation (body, expression body) unless skipped.
+                if ( !context.SkipImplementation )
+                {
+                    this.Visit( node.Body );
+                    this.Visit( node.ExpressionBody );
                 }
             }
 
             public override void VisitEventDeclaration( EventDeclarationSyntax node )
             {
-                using ( this.WithDeclaration( node ) )
+                using var context = this.WithDeclaration( node );
+
+                this.VerifyModifiers( node.Modifiers );
+
+                // Visit signature elements.
+                foreach ( var attributeList in node.AttributeLists )
                 {
-                    this.VerifyModifiers( node.Modifiers );
-                    base.VisitEventDeclaration( node );
+                    this.Visit( attributeList );
                 }
+
+                this.Visit( node.Type );
+
+                // Visit accessors (they will handle their own SkipImplementation).
+                this.Visit( node.AccessorList );
             }
 
             public override void VisitEventFieldDeclaration( EventFieldDeclarationSyntax node )
             {
                 foreach ( var f in node.Declaration.Variables )
                 {
-                    using ( this.WithDeclaration( f ) )
+                    using var context = this.WithDeclaration( f );
+
+                    this.VerifyModifiers( node.Modifiers );
+
+                    // Visit signature elements.
+                    this.Visit( node.Declaration.Type );
+
+                    // Visit implementation (initializer) unless skipped.
+                    if ( !context.SkipImplementation )
                     {
-                        this.VerifyModifiers( node.Modifiers );
-                        this.Visit( node.Declaration.Type );
-                        this.VisitVariableDeclarator( f );
+                        this.Visit( f.Initializer );
                     }
                 }
             }
@@ -600,11 +775,17 @@ namespace Metalama.Framework.Engine.Templating
             {
                 foreach ( var f in node.Declaration.Variables )
                 {
-                    using ( this.WithDeclaration( f ) )
+                    using var context = this.WithDeclaration( f );
+
+                    this.VerifyModifiers( node.Modifiers );
+
+                    // Visit signature elements.
+                    this.Visit( node.Declaration.Type );
+
+                    // Visit implementation (initializer) unless skipped.
+                    if ( !context.SkipImplementation )
                     {
-                        this.VerifyModifiers( node.Modifiers );
-                        this.Visit( node.Declaration.Type );
-                        this.VisitVariableDeclarator( f );
+                        this.Visit( f.Initializer );
                     }
                 }
             }
@@ -801,8 +982,15 @@ namespace Metalama.Framework.Engine.Templating
                     return default;
                 }
 
+                // Determine if we should skip visiting implementation (body, expression body, initializers).
+                // Skip when: run-time member, validation disabled, not a type, and not a template.
+                var skipImplementation = scope == TemplatingScope.RunTimeOnly
+                                         && !this._validateRunTimeCode
+                                         && declaredSymbol is not INamedTypeSymbol
+                                         && templateInfo.IsNone;
+
                 // Assign the new context.
-                var context = new Context( this, declaredSymbol );
+                var context = new Context( this, declaredSymbol, skipImplementation );
                 this._currentScope = scope;
                 this._currentTypeScope = typeScope;
                 this._currentDeclaration = declaredSymbol;
@@ -894,7 +1082,7 @@ namespace Metalama.Framework.Engine.Templating
                 private readonly TemplateInfo? _previousTemplateInfo;
                 private readonly ISymbol? _previousDeclaration;
 
-                public Context( Visitor parent, ISymbol? declaredSymbol )
+                public Context( Visitor parent, ISymbol? declaredSymbol, bool skipImplementation = false )
                 {
                     this._parent = parent;
                     this._previousTypeScope = parent._currentTypeScope;
@@ -902,9 +1090,17 @@ namespace Metalama.Framework.Engine.Templating
                     this._previousTemplateInfo = parent._currentTemplateInfo;
                     this._previousDeclaration = parent._currentDeclaration;
                     this.DeclaredSymbol = declaredSymbol;
+                    this.SkipImplementation = skipImplementation;
                 }
 
                 public ISymbol? DeclaredSymbol { get; }
+
+                /// <summary>
+                /// Gets a value indicating whether implementation (body, expression body, initializers) should be skipped.
+                /// This is true when the current member is run-time only and run-time validation is disabled.
+                /// Signatures (attributes, parameters, return types) are still visited.
+                /// </summary>
+                public bool SkipImplementation { get; }
 
                 public void Dispose()
                 {

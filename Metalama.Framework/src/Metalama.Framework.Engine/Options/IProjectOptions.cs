@@ -229,4 +229,11 @@ public interface IProjectOptions : IProjectService, IEquatable<IProjectOptions>
     /// allowing tests to force cache misses. This property is not intended for use in production environments.
     /// </summary>
     string? AssemblyLocatorSalt { get; }
+
+    /// <summary>
+    /// Gets a value indicating whether run-time code should be validated for references to compile-time-only code.
+    /// When <c>false</c> (the default), run-time members are not validated, improving performance.
+    /// When <c>true</c>, the validator checks that run-time code does not reference compile-time-only declarations.
+    /// </summary>
+    bool ValidateRunTimeCode { get; }
 }
