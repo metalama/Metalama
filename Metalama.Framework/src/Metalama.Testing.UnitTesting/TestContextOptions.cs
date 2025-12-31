@@ -92,6 +92,12 @@ public record TestContextOptions
     internal bool RoslynIsCompileTimeOnly { get; init; } = true;
 
     /// <summary>
+    /// Gets a value indicating whether run-time code should be validated for references to compile-time-only code.
+    /// Defaults to <c>true</c> for tests to maintain backward compatibility.
+    /// </summary>
+    internal bool ValidateRunTimeCode { get; init; } = true;
+
+    /// <summary>
     /// Gets the list of extension types given explicitly as types using <see cref="ITestExtensionCollector"/>,
     /// typically through the unit test framework.
     /// </summary>

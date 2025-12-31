@@ -181,6 +181,9 @@ public partial class MSBuildProjectOptions : DefaultProjectOptions
     public override string? AssemblyLocatorSalt => this.GetStringOption( MSBuildPropertyNames.MetalamaAssemblyLocatorSalt );
 
     [Memo]
+    public override bool ValidateRunTimeCode => this.GetBooleanOption( MSBuildPropertyNames.MetalamaValidateRunTimeCode );
+
+    [Memo]
     public override ImmutableArray<string> SourceGeneratorAttributes => this.GetListOption( MSBuildPropertyNames.MetalamaSourceGeneratorAttributes );
 
     public override bool AvoidLockingExtensionAssemblies => this.GetBooleanOption( MSBuildPropertyNames.MetalamaAvoidLockingExtensionAssemblies );
