@@ -24,7 +24,7 @@
       <ProjectReference Include="../../Metalama.Framework.Engine$(EngineProjectSuffix)/Metalama.Framework.Engine$(EngineProjectSuffix).csproj" />
       <ProjectReference Include="../../Metalama.Testing.UnitTesting$(EngineProjectSuffix)/Metalama.Testing.UnitTesting$(EngineProjectSuffix).csproj" />
 
-       <!-- Override dependencies to avoid vulnarability warnings. -->
+       <!-- Override dependencies to avoid vulnerability warnings. -->
        <PackageReference Include="System.Text.Json" VersionOverride="$(SystemTextJsonLatestVersion)" />
 
     </ItemGroup>
