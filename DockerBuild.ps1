@@ -17,7 +17,7 @@ param(
     [switch]$StartVsmon, # Enable the remote debugger.
     [string]$Script = 'Build.ps1', # The build script to be executed inside Docker.
     [string]$Isolation = 'process', # Docker isolation mode (process or hyperv).
-    [string]$Memory = '8g', # Docker memory limit.
+    [string]$Memory = '16g', # Docker memory limit.
     [int]$Cpus = [Environment]::ProcessorCount, # Docker CPU limit (defaults to host's CPU count).
     [Parameter(ValueFromRemainingArguments)]
     [string[]]$BuildArgs   # Arguments passed to `Build.ps1` within the container (or Claude prompt if -Claude is specified).
@@ -395,7 +395,7 @@ if (-not (Test-Path $dockerContextDirectory))
 
 # Prepare volume mappings (stored as mapping strings, "-v" flags added later)
 $VolumeMappings = @("${SourceDirName}:${SourceDirName}")
-$MountPoints = @($SourceDirName, "c:\packages")
+$MountPoints = @($SourceDirName)
 $GitDirectories = @($SourceDirName)
 
 # Define static Git system directory for mapping. This used by Teamcity as an LFS parent repo.
@@ -594,7 +594,7 @@ $GitDirectories = $expandedGitDirectories
 # Deduplicate again after transformations and expansions (case-insensitive for Windows paths)
 $VolumeMappings = $VolumeMappings | Group-Object { $_.ToLower() } | ForEach-Object { $_.Group[0] }
 $MountPoints = $MountPoints | Group-Object { $_.ToLower() } | ForEach-Object { $_.Group[0] }
-$GitDirectories = $GitDirectories | Group-Object { $_.ToLower() } | ForEach-Object { $_.Group[0] }
+$GitDirectories = $GitDirectories | Group-Object { "$_".ToLower() } | ForEach-Object { $_.Group[0] }
 
 # Build subst commands string for inline execution in docker run
 $substCommandsInline = ""
