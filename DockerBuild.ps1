@@ -12,7 +12,7 @@ param(
     [switch]$Claude, # Run Claude CLI instead of Build.ps1. Use -Claude for interactive, -Claude "prompt" for non-interactive.
     [switch]$NoMcp, # Do not start the MCP approval server (for -Claude mode).
     [string]$ImageName, # Image name (defaults to a name based on the directory).
-    [string]$BuildAgentPath = 'C:\BuildAgent',
+    [string]$BuildAgentPath = $(if ($env:TEAMCITY_JRE) { Split-Path $env:TEAMCITY_JRE -Parent } else { 'C:\BuildAgent' }),
     [switch]$LoadEnvFromKeyVault, # Forces loading environment variables form the key vault.
     [switch]$StartVsmon, # Enable the remote debugger.
     [string]$Script = 'Build.ps1', # The build script to be executed inside Docker.
