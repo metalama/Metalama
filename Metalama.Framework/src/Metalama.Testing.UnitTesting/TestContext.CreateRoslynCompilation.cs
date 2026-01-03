@@ -127,7 +127,24 @@ public partial class TestContext
 
         libraries.AddRange( assemblies.Select( a => a.Location ) );
 
-        return libraries.Distinct().Select( GetCachedMetadataReference ).ToReadOnlyList();
+        var references = libraries.Distinct()
+            .Select( GetCachedMetadataReference )
+            .ToDictionary( r => Path.GetFileNameWithoutExtension( r.FilePath )!, r => r );
+
+        if ( addMetalamaReferences )
+        {
+            foreach ( var reference in this.TestContextOptions.AdditionalMetadataReferences )
+            {
+                var assemblyName = Path.GetFileNameWithoutExtension( reference.FilePath )!;
+
+                if ( !references.ContainsKey( assemblyName ) )
+                {
+                    references.Add( assemblyName, reference );
+                }
+            }
+        }
+
+        return references.Values.ToReadOnlyList();
     }
 
     private static PortableExecutableReference GetCachedMetadataReference( string path )

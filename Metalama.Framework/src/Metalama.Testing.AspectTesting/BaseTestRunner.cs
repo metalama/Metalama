@@ -132,7 +132,7 @@ internal abstract partial class BaseTestRunner
 
             using var testResult = this.CreateTestResult();
             await this.RunAsync( testInput, testResult, testContext );
-            this.SaveResults( testInput, testResult );
+            await this.SaveResultsAsync( testInput, testResult, testContext );
             this.ExecuteAssertions( testInput, testResult );
         }
         catch ( Exception e ) when ( e.GetType().FullName == testInput.Options.ExpectedException
@@ -521,7 +521,7 @@ internal abstract partial class BaseTestRunner
     // Resharper disable once VirtualMemberNeverOverridden.Global
     protected virtual bool CompareTransformedCode => true;
 
-    private protected virtual void SaveResults( TestInput testInput, TestResult testResult )
+    private protected virtual async Task SaveResultsAsync( TestInput testInput, TestResult testResult, TestContext testContext )
     {
         if ( this.ProjectDirectory == null )
         {
@@ -551,7 +551,7 @@ internal abstract partial class BaseTestRunner
                 sourceDirectory!,
                 testFileName );
 
-            var actualTransformedNonNormalizedText = syntaxTreeForComparison.GetRoot().ToFullString();
+            var actualTransformedNonNormalizedText = (await syntaxTreeForComparison.GetRootAsync( testContext.CancellationToken )).ToFullString();
 
             var actualTransformedSourceTextForComparison =
                 TestOutputNormalizer.NormalizeTestOutput( actualTransformedNonNormalizedText, compareWhitespace, true );
@@ -634,6 +634,114 @@ internal abstract partial class BaseTestRunner
                 actualTransformedSourceTextForStorage,
                 actualTransformedPath );
         }
+
+        // Handle compiled template output if enabled.
+        if ( testInput.Options.WriteCompiledTemplate == true )
+        {
+            await this.SaveCompiledTemplateResultsAsync( testInput, testResult, testContext, sourceDirectory!, compareWhitespace );
+        }
+    }
+
+    private async Task SaveCompiledTemplateResultsAsync(
+        TestInput testInput,
+        TestResult testResult,
+        TestContext testContext,
+        string sourceDirectory,
+        bool compareWhitespace )
+    {
+        foreach ( var testSyntaxTree in testResult.SyntaxTrees.Where( t => t.OutputCompileTimeSyntaxRoot != null ) )
+        {
+            var compiledTemplateSyntax = testSyntaxTree.OutputCompileTimeSyntaxRoot!;
+            var testFileName = testSyntaxTree.ShortName + FileExtensions.CompiledTemplate;
+
+            var expectedCompiledTemplatePath = Path.Combine(
+                sourceDirectory,
+                testFileName );
+
+            // Format the compiled template using CodeFormatter.
+            var project = this.CreateProject( testContext, testInput.Options );
+
+            var document = project.AddDocument(
+                testSyntaxTree.OutputCompileTimePath ?? "CompiledTemplate.cs",
+                compiledTemplateSyntax,
+                filePath: testSyntaxTree.OutputCompileTimePath );
+
+            var codeFormatter = new CodeFormatter();
+
+            var formattedDocument = await codeFormatter.FormatAsync(
+                document,
+                testResult.CompileTimeCompilationDiagnostics.ToList(),
+                reformatAll: true );
+
+            var formattedSyntaxRoot = await formattedDocument.GetSyntaxRootAsync();
+            var actualCompiledTemplateNonNormalizedText = formattedSyntaxRoot?.ToFullString() ?? compiledTemplateSyntax.ToFullString();
+
+            var actualCompiledTemplateTextForComparison =
+                TestOutputNormalizer.NormalizeTestOutput( actualCompiledTemplateNonNormalizedText, compareWhitespace, true );
+
+            var actualCompiledTemplateTextForStorage =
+                TestOutputNormalizer.NormalizeTestOutput( actualCompiledTemplateNonNormalizedText, compareWhitespace, false );
+
+            // If the expectation file does not exist, create it with placeholder content.
+            if ( !this._fileSystem.FileExists( expectedCompiledTemplatePath ) )
+            {
+                this._fileSystem.WriteAllText(
+                    expectedCompiledTemplatePath,
+                    "// TODO: Replace this file with the correct compiled template. See the test output for the actual compiled template." );
+            }
+
+            // Read expectations from the file.
+            var expectedCompiledTemplateText = this._fileSystem.ReadAllText( expectedCompiledTemplatePath );
+            var expectedCompiledTemplateTextForComparison = TestOutputNormalizer.NormalizeTestOutput( expectedCompiledTemplateText, compareWhitespace, true );
+
+            // Update the file in obj/transformed if it is different.
+            var actualCompiledTemplatePath = Path.Combine(
+                this.ProjectDirectory!,
+                "obj",
+                "transformed",
+                testInput.ProjectProperties.TargetFramework,
+                Path.GetDirectoryName( testInput.RelativePath ) ?? "",
+                testFileName );
+
+            this._fileSystem.CreateDirectory( Path.GetDirectoryName( actualCompiledTemplatePath )! );
+
+            var storedCompiledTemplateText =
+                this._fileSystem.FileExists( actualCompiledTemplatePath ) ? this._fileSystem.ReadAllText( actualCompiledTemplatePath ) : null;
+
+            if ( expectedCompiledTemplateTextForComparison == actualCompiledTemplateTextForComparison )
+            {
+                if ( TestOutputNormalizer.NormalizeEndOfLines( expectedCompiledTemplateText )
+                     != TestOutputNormalizer.NormalizeEndOfLines( actualCompiledTemplateTextForStorage ) )
+                {
+                    this._fileSystem.WriteAllText( actualCompiledTemplatePath, actualCompiledTemplateTextForStorage ?? "" );
+                }
+                else if ( expectedCompiledTemplateText != storedCompiledTemplateText )
+                {
+                    this._fileSystem.WriteAllText( actualCompiledTemplatePath, expectedCompiledTemplateText );
+                }
+            }
+            else
+            {
+                this._fileSystem.WriteAllText( actualCompiledTemplatePath, actualCompiledTemplateTextForStorage ?? "" );
+            }
+
+            if ( this.Logger != null )
+            {
+                this.Logger.WriteLine( "Expected compiled template file: " + expectedCompiledTemplatePath );
+                this.Logger.WriteLine( "Actual compiled template file: " + actualCompiledTemplatePath );
+                this.Logger.WriteLine( "" );
+                this.Logger.WriteLine( "=== ACTUAL COMPILED TEMPLATE ===" );
+                this.Logger.WriteLine( actualCompiledTemplateTextForStorage );
+                this.Logger.WriteLine( "=====================" );
+            }
+
+            testSyntaxTree.SetCompiledTemplateSource(
+                expectedCompiledTemplateTextForComparison,
+                expectedCompiledTemplatePath,
+                actualCompiledTemplateTextForComparison,
+                actualCompiledTemplateTextForStorage,
+                actualCompiledTemplatePath );
+        }
     }
 
     protected virtual void ExecuteAssertions( TestInput testInput, TestResult testResult )
@@ -674,6 +782,39 @@ internal abstract partial class BaseTestRunner
             }
         }
 
+        // Compare compiled template files if enabled.
+        if ( testInput.Options.WriteCompiledTemplate == true )
+        {
+            foreach ( var syntaxTree in testResult.SyntaxTrees )
+            {
+                if ( syntaxTree.ExpectedCompiledTemplateText == null )
+                {
+                    continue;
+                }
+
+                hasDifference |= this.CompareFiles(
+                    syntaxTree.ExpectedCompiledTemplateText!,
+                    syntaxTree.ExpectedCompiledTemplatePath!,
+                    syntaxTree.ActualCompiledTemplateNormalizedText!,
+                    syntaxTree.ActualCompiledTemplatePath!,
+                    testInput.Options );
+
+                actuallyWrittenFiles.Add( syntaxTree.ExpectedCompiledTemplatePath! );
+            }
+
+            // Throw exceptions for compiled template differences.
+            if ( hasDifference )
+            {
+                foreach ( var syntaxTree in testResult.SyntaxTrees )
+                {
+                    if ( syntaxTree.ExpectedCompiledTemplateText != null )
+                    {
+                        Assert.Equal( syntaxTree.ExpectedCompiledTemplateText, syntaxTree.ActualCompiledTemplateNormalizedText );
+                    }
+                }
+            }
+        }
+
         // Verify that all expected files have been written.
         var directory = Path.GetDirectoryName( testInput.FullPath )!;
 
@@ -681,7 +822,9 @@ internal abstract partial class BaseTestRunner
         {
             foreach ( var file in Directory.EnumerateFiles( directory, testInput.TestName + ".*.cs" ) )
             {
-                if ( !(file.EndsWith( ".t.cs", StringComparison.Ordinal ) || file.EndsWith( ".i.cs", StringComparison.Ordinal )) )
+                if ( !(file.EndsWith( ".t.cs", StringComparison.Ordinal )
+                       || file.EndsWith( ".i.cs", StringComparison.Ordinal )
+                       || file.EndsWith( ".ct.cs", StringComparison.Ordinal )) )
                 {
                     continue;
                 }

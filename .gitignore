@@ -66,3 +66,4 @@ global.json
 *-TODO.md
 Metalama.Framework/BenchmarkDotNet.Artifacts/results
 eng\docker-context\claude.json
+*.swp

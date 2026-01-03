@@ -13,19 +13,24 @@
     
     <ItemGroup>
 
-        <!-- Exclude *.t.cs and *.i.cs from the main compilation, display them as text files instead, and fix file nesting -->
+        <!-- Exclude *.t.cs, *.i.cs, and *.ct.cs from the main compilation, display them as text files instead, and fix file nesting -->
         <Compile Remove="$(MSBuildProjectDirectory)/**/*.t.cs" />
         <None Include="$(MSBuildProjectDirectory)/**/*.t.cs">
             <DependentUpon>$([System.String]::Copy('%(Filename)').Replace('.t','')).cs</DependentUpon>
         </None>
         <Compile Remove="$(MSBuildProjectDirectory)/**/*.i.cs" />
-        <None Include="$(MSBuildProjectDirectory)/**/*.t.cs">
+        <None Include="$(MSBuildProjectDirectory)/**/*.i.cs">
             <DependentUpon>$([System.String]::Copy('%(Filename)').Replace('0.i','').Replace('1.i','').Replace('2.i','')).cs</DependentUpon>
             <SubType>Code</SubType>
+        </None>
+        <Compile Remove="$(MSBuildProjectDirectory)/**/*.ct.cs" />
+        <None Include="$(MSBuildProjectDirectory)/**/*.ct.cs">
+            <DependentUpon>$([System.String]::Copy('%(Filename)').Replace('.ct','')).cs</DependentUpon>
         </None>
 
         <None Remove="$(MSBuildProjectDirectory)/obj/**/*.t.cs" />
         <None Remove="$(MSBuildProjectDirectory)/obj/**/*.i.cs" />
+        <None Remove="$(MSBuildProjectDirectory)/obj/**/*.ct.cs" />
 
         <!-- Fix file nesting for *.Aspect.cs -->
         <Compile Update="$(MSBuildProjectDirectory)/**/*.*.cs">

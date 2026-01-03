@@ -63,11 +63,12 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
     private TemplateMetaSyntaxFactoryImpl _templateMetaSyntaxFactory;
     private MetaContext? _currentMetaContext;
     private int _nextStatementListId;
+    private int _nextLocalFunctionFactoryId;
     private ISymbol? _rootTemplateSymbol;
 
     /// <summary>
     /// Set to true by <see cref="VisitReturnStatement"/> or <see cref="VisitThrowStatement"/> when the statement should terminate compile-time flow.
-    /// Callers should check this flag and generate an early template return if needed.
+    /// Callers should check this flag and generate a skip flag assignment if needed.
     /// </summary>
     private bool _shouldGenerateEarlyReturn;
 
@@ -711,7 +712,10 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
         }
         else if ( symbol is ITypeParameterSymbol typeParameter && this._templateMemberClassifier.IsCompileTimeTemplateTypeParameter( typeParameter ) )
         {
-            return MemberAccessExpression( SyntaxKind.SimpleMemberAccessExpression, expression, SyntaxFactoryEx.WellKnownIdentifierName( nameof(TemplateTypeArgument.Syntax) ) );
+            return MemberAccessExpression(
+                SyntaxKind.SimpleMemberAccessExpression,
+                expression,
+                SyntaxFactoryEx.WellKnownIdentifierName( nameof(TemplateTypeArgument.Syntax) ) );
         }
 
         // A local function that wraps the input `expression` into a LiteralExpression.
@@ -1078,7 +1082,10 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
                 {
                     // since expression references a parameter, we can just call ToString() on it
                     return InvocationExpression(
-                        MemberAccessExpression( SyntaxKind.SimpleMemberAccessExpression, expression, SyntaxFactoryEx.WellKnownIdentifierName( nameof(this.ToString) ) ) );
+                        MemberAccessExpression(
+                            SyntaxKind.SimpleMemberAccessExpression,
+                            expression,
+                            SyntaxFactoryEx.WellKnownIdentifierName( nameof(this.ToString) ) ) );
                 }
             }
 
@@ -1288,7 +1295,10 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
                 ExpressionSyntax compiledTemplateExpression =
                     receiver == null
                         ? SyntaxFactoryEx.WellKnownIdentifierName( compiledTemplateName )
-                        : MemberAccessExpression( SyntaxKind.SimpleMemberAccessExpression, receiver, SyntaxFactoryEx.WellKnownIdentifierName( compiledTemplateName ) );
+                        : MemberAccessExpression(
+                            SyntaxKind.SimpleMemberAccessExpression,
+                            receiver,
+                            SyntaxFactoryEx.WellKnownIdentifierName( compiledTemplateName ) );
 
                 var templateProviderExpression = symbol.IsStatic switch
                 {
@@ -1897,7 +1907,9 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
         bool generateExpression,
         FunctionLikeRunTimeBlockInfo? localFunctionInfo = null )
     {
-        using ( this.WithMetaContext( MetaContext.CreateForRunTimeBlock( this._currentMetaContext, $"__s{++this._nextStatementListId}" ) ) )
+        var blockId = ++this._nextStatementListId;
+
+        using ( this.WithMetaContext( MetaContext.CreateForRunTimeBlock( this._currentMetaContext, $"__s{blockId}", $"__skip{blockId}" ) ) )
         {
             // List<StatementOrTrivia> statements = new List<StatementOrTrivia>();
             var listType = this.MetaSyntaxFactory.Type( typeof(List<StatementOrTrivia>) );
@@ -1913,12 +1925,18 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
                     .WithLeadingTrivia( this.GetIndentation() )
                     .WithTrailingTrivia( LineFeed ) );
 
+            // Declare the skip flag for this run-time block. This allows statements after an early
+            // return in a compile-time conditional to be skipped while still processing local functions.
+            this.DeclareSkipCompileTimeLogicFlag( this._currentMetaContext );
+
             var previousTemplateMetaSyntaxFactory = this._templateMetaSyntaxFactory;
 
-            // If we are in a local function, use a different TemplateMetaSyntaxFactory. 
+            // If we are in a local function, use a different TemplateMetaSyntaxFactory.
+            // Each local function gets a unique name to support nested local functions.
             if ( localFunctionInfo != null )
             {
-                this._templateMetaSyntaxFactory = new TemplateMetaSyntaxFactoryImpl( _templateSyntaxFactoryLocalName );
+                var localFactoryName = _templateSyntaxFactoryLocalName + (++this._nextLocalFunctionFactoryId);
+                this._templateMetaSyntaxFactory = new TemplateMetaSyntaxFactoryImpl( localFactoryName );
 
                 // var localSyntaxFactory = syntaxFactory.ForLocalFunction( "typeof(X)", map );
                 var map = this.CreateTypeParameterSubstitutionDictionary( nameof(TemplateTypeArgument.Type), this._dictionaryOfITypeType );
@@ -1928,7 +1946,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
                             VariableDeclaration( this._templateSyntaxFactoryType )
                                 .WithVariables(
                                     SingletonSeparatedList(
-                                        VariableDeclarator( SyntaxFactoryEx.WellKnownIdentifier( _templateSyntaxFactoryLocalName ) )
+                                        VariableDeclarator( SyntaxFactoryEx.WellKnownIdentifier( localFactoryName ) )
                                             .WithInitializer(
                                                 EqualsValueClause(
                                                     InvocationExpression(
@@ -1957,7 +1975,8 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
             // TemplateSyntaxFactory.ToStatementList( __s1 )
             var toArrayStatementExpression = InvocationExpression(
                 this._templateMetaSyntaxFactory.TemplateSyntaxFactoryMember( nameof(ITemplateSyntaxFactory.ToStatementList) ),
-                ArgumentList( SingletonSeparatedList( Argument( SyntaxFactoryEx.WellKnownIdentifierName( this._currentMetaContext.StatementListVariableName ) ) ) ) );
+                ArgumentList(
+                    SingletonSeparatedList( Argument( SyntaxFactoryEx.WellKnownIdentifierName( this._currentMetaContext.StatementListVariableName ) ) ) ) );
 
             if ( generateExpression )
             {
@@ -2086,11 +2105,26 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
             }
         }
 
+        // Propagate skip flag from child to parent context.
+        if ( newContext.SkipCompileTimeLogicWasSet )
+        {
+            this._currentMetaContext!.SkipCompileTimeLogicWasSet = true;
+        }
+
         // Returns the statements collected during this call.
         return newContext.Statements;
 
         void ProcessStatement( StatementSyntax singleStatement )
         {
+            var isLocalFunction = singleStatement is LocalFunctionStatementSyntax;
+
+            // Capture the skip flag BEFORE visiting the statement, so a compile-time conditional
+            // that triggers the skip flag won't affect itself - only subsequent statements.
+            // We check both current context (for statements in the same ToMetaStatements call)
+            // and parent context (for statements in sibling ToMetaStatements calls within the same block).
+            var skipFlagWasSetBeforeVisit = this._currentMetaContext!.SkipCompileTimeLogicWasSet
+                                            || (this._currentMetaContext!.Parent?.SkipCompileTimeLogicWasSet ?? false);
+
             var transformedNode = this.Visit( singleStatement );
 
             switch ( transformedNode )
@@ -2100,8 +2134,16 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
 
                 case StatementSyntax statementSyntax:
                     // The statement is already build-time code so there is nothing to transform.
+                    var stmtWithTrivia = statementSyntax.WithLeadingTrivia( this.GetIndentation() );
 
-                    newContext.Statements.Add( statementSyntax.WithLeadingTrivia( this.GetIndentation() ) );
+                    // If the skip flag was set and this is not a local function, wrap it in a condition.
+                    // Local functions must always be defined so they can be referenced.
+                    if ( skipFlagWasSetBeforeVisit && !isLocalFunction )
+                    {
+                        stmtWithTrivia = this.WrapInSkipCompileTimeLogicCheck( stmtWithTrivia );
+                    }
+
+                    newContext.Statements.Add( stmtWithTrivia );
 
                     break;
 
@@ -2120,7 +2162,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
                         var trailingTrivia = TriviaList( eol, eol );
 
                         // TemplateSyntaxFactory.Add( __s, expression )
-                        var add =
+                        StatementSyntax add =
                             this.DeepIndent(
                                 ExpressionStatement(
                                     InvocationExpression(
@@ -2132,7 +2174,16 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
                                                 Argument( expressionSyntax )
                                             ] ) ) ) ) );
 
-                        newContext.Statements.Add( add.WithLeadingTrivia( leadingTrivia ).WithTrailingTrivia( trailingTrivia ) );
+                        add = add.WithLeadingTrivia( leadingTrivia ).WithTrailingTrivia( trailingTrivia );
+
+                        // If the skip flag was set and this is not a local function, wrap it in a condition.
+                        // Local functions must always be defined so they can be referenced.
+                        if ( skipFlagWasSetBeforeVisit && !isLocalFunction )
+                        {
+                            add = this.WrapInSkipCompileTimeLogicCheck( add );
+                        }
+
+                        newContext.Statements.Add( add );
 
                         break;
                     }
@@ -2142,14 +2193,63 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
             }
 
             // If a return or throw statement was processed and should terminate compile-time flow,
-            // add an early return from the template. This is checked after the switch for clarity,
-            // though the flag can only be set when the statement was transformed to an ExpressionSyntax.
+            // set the skip flag instead of generating an early return. This allows local functions
+            // defined after the return to still be processed.
             if ( this._shouldGenerateEarlyReturn )
             {
-                newContext.Statements.Add( this.GenerateEarlyTemplateReturn() );
+                newContext.Statements.Add( this.GenerateSetSkipCompileTimeLogicFlag() );
+                this._currentMetaContext!.SkipCompileTimeLogicWasSet = true;
                 this._shouldGenerateEarlyReturn = false;
             }
         }
+    }
+
+    /// <summary>
+    /// Declares the skip compile-time logic flag at the start of a run-time block.
+    /// Generates: <c>bool __skipN = false;</c> where N is the block ID.
+    /// </summary>
+    private void DeclareSkipCompileTimeLogicFlag( MetaContext context )
+    {
+        var declaration = LocalDeclarationStatement(
+                VariableDeclaration( PredefinedType( Token( SyntaxKind.BoolKeyword ).WithTrailingTrivia( Space ) ) )
+                    .WithVariables(
+                        SingletonSeparatedList(
+                            VariableDeclarator( SyntaxFactoryEx.WellKnownIdentifier( context.SkipCompileTimeLogicVariableName ) )
+                                .WithInitializer( EqualsValueClause( LiteralExpression( SyntaxKind.FalseLiteralExpression ) ) ) ) ) )
+            .WithLeadingTrivia( this.GetIndentation() )
+            .WithTrailingTrivia( LineFeed );
+
+        context.Statements.Add( declaration );
+    }
+
+    /// <summary>
+    /// Generates a statement that sets the skip compile-time logic flag to true.
+    /// Generates: <c>__skipN = true;</c> where N is the block ID.
+    /// </summary>
+    private StatementSyntax GenerateSetSkipCompileTimeLogicFlag()
+    {
+        return ExpressionStatement(
+                AssignmentExpression(
+                    SyntaxKind.SimpleAssignmentExpression,
+                    SyntaxFactoryEx.WellKnownIdentifierName( this._currentMetaContext!.SkipCompileTimeLogicVariableName ),
+                    LiteralExpression( SyntaxKind.TrueLiteralExpression ) ) )
+            .WithLeadingTrivia( this.GetIndentation() )
+            .WithTrailingTrivia( LineFeed );
+    }
+
+    /// <summary>
+    /// Wraps a statement in a condition that checks if compile-time logic should be skipped.
+    /// Generates: <c>if (!__skipN) { statement }</c> where N is the block ID.
+    /// </summary>
+    private StatementSyntax WrapInSkipCompileTimeLogicCheck( StatementSyntax statement )
+    {
+        return IfStatement(
+                PrefixUnaryExpression(
+                    SyntaxKind.LogicalNotExpression,
+                    SyntaxFactoryEx.WellKnownIdentifierName( this._currentMetaContext!.SkipCompileTimeLogicVariableName ) ),
+                Block( statement ) )
+            .WithLeadingTrivia( this.GetIndentation() )
+            .NormalizeWhitespace();
     }
 
     protected override ExpressionSyntax TransformInterpolatedStringExpression( InterpolatedStringExpressionSyntax node )
@@ -2504,30 +2604,10 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
         // declarations (like local functions) that come after a top-level return.
         // Bug 1125: return inside compile-time if should stop flow when condition is true.
         // Bug 32744: return at top level should NOT skip local functions after it.
-        this._shouldGenerateEarlyReturn = !this._currentMetaContext!.IsInsideRunTimeBlock()
-                                          && this._currentMetaContext.IsInsideCompileTimeConditionalBlock();
+        // Bug 1269: return in compile-time if inside a run-time if should still trigger skip flag.
+        this._shouldGenerateEarlyReturn = this._currentMetaContext!.IsDirectlyInsideCompileTimeConditionalBlock();
 
         return addReturnExpression;
-    }
-
-    /// <summary>
-    /// Generates a return statement that exits the template and returns the current statement list.
-    /// This is used after processing a return statement that should terminate compile-time flow.
-    /// </summary>
-    private StatementSyntax GenerateEarlyTemplateReturn()
-    {
-        // Generate: TemplateSyntaxFactory.ToStatementList( __s1 )
-        var toStatementListExpression = InvocationExpression(
-            this._templateMetaSyntaxFactory.TemplateSyntaxFactoryMember( nameof(ITemplateSyntaxFactory.ToStatementList) ),
-            ArgumentList( SingletonSeparatedList( Argument( SyntaxFactoryEx.WellKnownIdentifierName( this._currentMetaContext!.StatementListVariableName ) ) ) ) );
-
-        // Wrap in Block: MetaSyntaxFactory.Block( default, ToStatementList(...) )
-        // This matches the pattern used for normal template returns.
-        var blockExpression = this.MetaSyntaxFactory.Block( SyntaxFactoryEx.Default, toStatementListExpression );
-
-        return ReturnStatement( blockExpression )
-            .WithLeadingTrivia( this.GetIndentation() )
-            .NormalizeWhitespace();
     }
 
     public override SyntaxNode VisitThrowStatement( ThrowStatementSyntax node )
@@ -2551,11 +2631,10 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
 
         var addThrowExpression = this.WithCallToAddSimplifierAnnotation( invocationExpression );
 
-        // If this throw is NOT inside a run-time block AND is inside a compile-time conditional
-        // block (e.g., compile-time if/while/for), it should terminate compile-time flow.
-        // Same logic as return statements.
-        this._shouldGenerateEarlyReturn = !this._currentMetaContext!.IsInsideRunTimeBlock()
-                                          && this._currentMetaContext.IsInsideCompileTimeConditionalBlock();
+        // If this throw is inside a compile-time conditional block (e.g., compile-time if/while/for),
+        // it should terminate compile-time flow. Same logic as return statements.
+        // Bug 1269: throw in compile-time if inside a run-time if should still trigger skip flag.
+        this._shouldGenerateEarlyReturn = this._currentMetaContext!.IsDirectlyInsideCompileTimeConditionalBlock();
 
         return addThrowExpression;
     }

@@ -61,7 +61,8 @@ namespace Metalama.Testing.AspectTesting
                 foreach ( var companionFile in fileSystem.EnumerateFiles( directory, Path.GetFileNameWithoutExtension( fullPath ) + ".*.cs" ) )
                 {
                     if ( !companionFile.EndsWith( FileExtensions.TransformedCode, StringComparison.OrdinalIgnoreCase ) &&
-                         !companionFile.EndsWith( FileExtensions.IntroducedCode, StringComparison.OrdinalIgnoreCase ) )
+                         !companionFile.EndsWith( FileExtensions.IntroducedCode, StringComparison.OrdinalIgnoreCase ) &&
+                         !companionFile.EndsWith( FileExtensions.CompiledTemplate, StringComparison.OrdinalIgnoreCase ) )
                     {
                         this.Options.IncludedFiles.Add( fileSystem.GetRelativePath( directory, companionFile ) );
                     }

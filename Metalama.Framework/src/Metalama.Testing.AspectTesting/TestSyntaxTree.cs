@@ -160,6 +160,16 @@ namespace Metalama.Testing.AspectTesting
 
         public string? ExpectedTransformedCodePath { get; private set; }
 
+        public string? ExpectedCompiledTemplateText { get; private set; }
+
+        public string? ActualCompiledTemplateNormalizedText { get; private set; }
+
+        public string? ActualCompiledTemplateTextForStorage { get; private set; }
+
+        public string? ActualCompiledTemplatePath { get; private set; }
+
+        public string? ExpectedCompiledTemplatePath { get; private set; }
+
         internal void SetCompileTimeCode( SyntaxNode? syntaxNode, string transformedTemplatePath )
         {
             if ( syntaxNode != null )
@@ -252,6 +262,20 @@ namespace Metalama.Testing.AspectTesting
             this.ActualTransformedNormalizedCodeText = actualTransformedNormalizedSourceText;
             this.ActualTransformedSourceTextForStorage = actualTransformedSourceTextForStorage;
             this.ActualTransformedCodePath = actualTransformedSourcePath;
+        }
+
+        internal void SetCompiledTemplateSource(
+            string? expectedCompiledTemplateText,
+            string? expectedCompiledTemplatePath,
+            string? actualCompiledTemplateNormalizedText,
+            string? actualCompiledTemplateTextForStorage,
+            string? actualCompiledTemplatePath )
+        {
+            this.ExpectedCompiledTemplateText = expectedCompiledTemplateText;
+            this.ExpectedCompiledTemplatePath = expectedCompiledTemplatePath;
+            this.ActualCompiledTemplateNormalizedText = actualCompiledTemplateNormalizedText;
+            this.ActualCompiledTemplateTextForStorage = actualCompiledTemplateTextForStorage;
+            this.ActualCompiledTemplatePath = actualCompiledTemplatePath;
         }
 
         public override string ToString() => this.FilePath;

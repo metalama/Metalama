@@ -457,9 +457,9 @@ internal class AspectTestRunner : BaseTestRunner
     }
 #endif
 
-    private protected override void SaveResults( TestInput testInput, TestResult testResult )
+    private protected override async Task SaveResultsAsync( TestInput testInput, TestResult testResult, TestContext testContext )
     {
-        base.SaveResults( testInput, testResult );
+        await base.SaveResultsAsync( testInput, testResult, testContext );
 
         var expectedProgramOutputPath = Path.Combine(
             Path.GetDirectoryName( testInput.FullPath )!,

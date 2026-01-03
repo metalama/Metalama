@@ -240,7 +240,11 @@ namespace Metalama.AspectWorkbench.ViewModels
                         if ( testInput.Options.FormatCompileTimeCode != false )
                         {
                             var codeFormatter = serviceProvider.GetRequiredService<CodeFormatter>();
-                            var formattedDocument3 = await codeFormatter.FormatAsync( document3, testResult.CompileTimeCompilationDiagnostics );
+
+                            var formattedDocument3 = await codeFormatter.FormatAsync(
+                                document3,
+                                testResult.CompileTimeCompilationDiagnostics,
+                                reformatAll: true );
 
                             this.CompiledTemplateDocument = await syntaxColorizer.WriteSyntaxColoringAsync( formattedDocument3, true );
                         }
