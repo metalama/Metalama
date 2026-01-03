@@ -33,6 +33,7 @@ namespace Metalama.Framework.Engine.Templating
 
             private MetaContext(
                 string statementListVariableName,
+                string skipCompileTimeLogicVariableName,
                 Dictionary<ISymbol, SyntaxToken> generatedCodeSymbolNameLocals,
                 Dictionary<ISymbol, SyntaxToken> templateCodeSymbolNameLocals,
                 TemplateLexicalScope templateUniqueNames,
@@ -41,6 +42,7 @@ namespace Metalama.Framework.Engine.Templating
                 bool isCompileTimeConditionalBlock = false )
             {
                 this.StatementListVariableName = statementListVariableName;
+                this.SkipCompileTimeLogicVariableName = skipCompileTimeLogicVariableName;
                 this._generatedCodeSymbolNameLocals = generatedCodeSymbolNameLocals;
                 this._templateCodeSymbolNameLocals = templateCodeSymbolNameLocals;
                 this._templateUniqueNames = templateUniqueNames;
@@ -65,6 +67,18 @@ namespace Metalama.Framework.Engine.Templating
             /// (e.g., the body of a compile-time if/while/for statement).
             /// </summary>
             public bool IsCompileTimeConditionalBlock { get; }
+
+            /// <summary>
+            /// Gets or sets a value indicating whether the skip compile-time logic flag has been set in this block.
+            /// When true, subsequent compile-time statements (except local functions) should be wrapped in
+            /// an if statement checking the skip flag.
+            /// </summary>
+            public bool SkipCompileTimeLogicWasSet { get; set; }
+
+            /// <summary>
+            /// Gets the name of the variable used to track whether compile-time logic should be skipped in this block.
+            /// </summary>
+            public string SkipCompileTimeLogicVariableName { get; }
 
             /// <summary>
             /// Determines whether this context or any of its ancestors is a run-time block.
@@ -101,11 +115,36 @@ namespace Metalama.Framework.Engine.Templating
             }
 
             /// <summary>
+            /// Determines whether the nearest conditional ancestor (compile-time or run-time) is a compile-time conditional.
+            /// This is used to determine if a return/throw statement should trigger the skip flag mechanism.
+            /// Returns true if we find a compile-time conditional block before finding a run-time block.
+            /// </summary>
+            public bool IsDirectlyInsideCompileTimeConditionalBlock()
+            {
+                for ( var context = this; context != null; context = context.Parent )
+                {
+                    if ( context.IsCompileTimeConditionalBlock )
+                    {
+                        return true; // Found compile-time conditional first
+                    }
+
+                    if ( context.IsRunTimeBlock )
+                    {
+                        return false; // Found run-time block first
+                    }
+                }
+
+                return false;
+            }
+
+            /// <summary>
             /// Creates a child <see cref="MetaContext"/> that corresponds to a run-time block, so it has its own
-            /// <see cref="StatementListVariableName"/>.
+            /// <see cref="StatementListVariableName"/> and <see cref="SkipCompileTimeLogicVariableName"/>.
             /// </summary>
             /// <param name="parentContext">The parent context, or <c>null</c> if we are building the root context.</param>
-            public static MetaContext CreateForRunTimeBlock( MetaContext? parentContext, string statementListVariableName )
+            /// <param name="statementListVariableName">The name of the statement list variable for this block.</param>
+            /// <param name="skipCompileTimeLogicVariableName">The name of the skip compile-time logic flag variable for this block.</param>
+            public static MetaContext CreateForRunTimeBlock( MetaContext? parentContext, string statementListVariableName, string skipCompileTimeLogicVariableName )
             {
                 var generatedCodeSymbolNameLocals = parentContext?._generatedCodeSymbolNameLocals
                                                     ?? new Dictionary<ISymbol, SyntaxToken>( SymbolEqualityComparer.Default );
@@ -123,6 +162,7 @@ namespace Metalama.Framework.Engine.Templating
 
                 return new MetaContext(
                     statementListVariableName,
+                    skipCompileTimeLogicVariableName,
                     generatedCodeSymbolNameLocals,
                     templateCodeSymbolNameLocals,
                     templateLexicalScope,
@@ -139,6 +179,7 @@ namespace Metalama.Framework.Engine.Templating
             {
                 return new MetaContext(
                     parentContext.StatementListVariableName,
+                    parentContext.SkipCompileTimeLogicVariableName,
                     parentContext._generatedCodeSymbolNameLocals,
                     parentContext._templateCodeSymbolNameLocals,
                     parentContext._templateUniqueNames,
@@ -165,6 +206,7 @@ namespace Metalama.Framework.Engine.Templating
 
                 return new MetaContext(
                     parentContext.StatementListVariableName,
+                    parentContext.SkipCompileTimeLogicVariableName,
                     lexicalScope,
                     parentContext._templateCodeSymbolNameLocals,
                     parentContext._templateUniqueNames,
