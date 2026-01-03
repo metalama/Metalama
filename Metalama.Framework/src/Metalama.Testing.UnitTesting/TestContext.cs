@@ -71,6 +71,8 @@ public partial class TestContext : ITempFileManager, IApplicationInfoProvider, I
 
     internal TestProjectOptions TestProjectOptions { get; }
 
+    internal TestContextOptions TestContextOptions { get; }
+
     private readonly CancellationTokenSource? _testCancellationTokenSource;
     private readonly CancellationTokenRegistration? _cancellationTokenRegistration;
 
@@ -132,6 +134,7 @@ public partial class TestContext : ITempFileManager, IApplicationInfoProvider, I
 
         this._isRoot = true;
 
+        this.TestContextOptions = contextOptions;
         this.TestProjectOptions = new TestProjectOptions( contextOptions );
 
         try
