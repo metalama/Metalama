@@ -4,10 +4,10 @@ private object? Method()
   {
     if (input == null)
     {
-      return (global::System.Object?)"default";
+      return (global::System.Object? )"default";
     }
-    return (global::System.Object?)input;
+    return (global::System.Object? )input;
   }
   var result = LocalFunc(this.Method());
-  return (global::System.Object?)result;
+  return (global::System.Object? )result;
 }

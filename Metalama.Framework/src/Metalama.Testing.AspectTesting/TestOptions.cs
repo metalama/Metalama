@@ -342,6 +342,13 @@ public class TestOptions
     public bool? FormatCompileTimeCode { get; set; }
 
     /// <summary>
+    /// Gets or sets a value indicating whether the compiled template code should be written to a <c>.ct.cs</c> file
+    /// and included in snapshot testing. The compiled template is formatted before writing.
+    /// To enable this option in a test, add this comment to your test file: <c>// @WriteCompiledTemplate</c>.
+    /// </summary>
+    public bool? WriteCompiledTemplate { get; set; }
+
+    /// <summary>
     /// Gets or sets the project of the test. By default, the test file name without extension is used.
     /// </summary>
     public string? ProjectName { get; set; }
@@ -460,6 +467,8 @@ public class TestOptions
         this.LaunchDebugger ??= baseOptions.LaunchDebugger;
 
         this.FormatCompileTimeCode ??= baseOptions.FormatCompileTimeCode;
+
+        this.WriteCompiledTemplate ??= baseOptions.WriteCompiledTemplate;
 
         this.CompareProgramOutput ??= baseOptions.CompareProgramOutput;
 
@@ -768,6 +777,11 @@ public class TestOptions
 
                 case "FormatCompileTimeCode":
                     this.FormatCompileTimeCode = bool.Parse( optionArg );
+
+                    break;
+
+                case "WriteCompiledTemplate":
+                    this.WriteCompiledTemplate = true;
 
                     break;
 

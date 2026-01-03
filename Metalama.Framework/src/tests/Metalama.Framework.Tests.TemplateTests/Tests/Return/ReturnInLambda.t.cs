@@ -9,5 +9,5 @@ private object? Method()
     return (global::System.Object)input;
   };
   var result = lambda(this.Method());
-  return (global::System.Object?)result;
+  return (global::System.Object? )result;
 }
