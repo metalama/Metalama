@@ -34,6 +34,11 @@ $dockerContextDirectory = "$EngPath/docker-context"
 
 Set-Location $PSScriptRoot
 
+if ($env:IS_TEAMCITY_AGENT)
+{
+    Write-Host "Running on TeamCity agent at '$BuildAgentPath'" -ForegroundColor Cyan
+}
+
 # Function to create secrets JSON file
 function New-EnvJson
 {
@@ -476,7 +481,8 @@ if (Test-Path $sourceDependenciesDir)
     $sourceDirectories = Get-ChildItem -Path $sourceDependenciesDir -Force | Where-Object { $_.LinkType -eq $null }
     foreach ($sourceDirectory in $sourceDirectories)
     {
-        $GitDirectories += $sourceDirectory
+        Write-Host "Mounting source-dependencies directory: $($sourceDirectory.FullName)" -ForegroundColor Cyan
+        $GitDirectories += $sourceDirectory.FullName    
     }
 }
 
