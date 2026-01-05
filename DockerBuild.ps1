@@ -96,6 +96,12 @@ function New-EnvJson
     # Convert to JSON and save
     $jsonPath = Join-Path $dockerContextDirectory "env.g.json"
 
+    # Ensure the directory exists
+    if (-not (Test-Path $dockerContextDirectory))
+    {
+        New-Item -ItemType Directory -Path $dockerContextDirectory -Force | Out-Null
+    }
+
     # Write a test JSON file with GUID first
     @{ guid = [System.Guid]::NewGuid().ToString() } | ConvertTo-Json | Set-Content -Path $jsonPath -Encoding UTF8
 
@@ -169,6 +175,12 @@ function New-ClaudeEnvJson
 
     # Convert to JSON and save
     $jsonPath = Join-Path $dockerContextDirectory "env.g.json"
+
+    # Ensure the directory exists
+    if (-not (Test-Path $dockerContextDirectory))
+    {
+        New-Item -ItemType Directory -Path $dockerContextDirectory -Force | Out-Null
+    }
 
     # Write a test JSON file with GUID first
     @{ guid = [System.Guid]::NewGuid().ToString() } | ConvertTo-Json | Set-Content -Path $jsonPath -Encoding UTF8
