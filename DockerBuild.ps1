@@ -12,7 +12,7 @@ param(
     [switch]$Claude, # Run Claude CLI instead of Build.ps1. Use -Claude for interactive, -Claude "prompt" for non-interactive.
     [switch]$NoMcp, # Do not start the MCP approval server (for -Claude mode).
     [string]$ImageName, # Image name (defaults to a name based on the directory).
-    [string]$BuildAgentPath = 'C:\BuildAgent',
+    [string]$BuildAgentPath = $(if ($env:TEAMCITY_JRE) { Split-Path $env:TEAMCITY_JRE -Parent } else { 'C:\BuildAgent' }),
     [switch]$LoadEnvFromKeyVault, # Forces loading environment variables form the key vault.
     [switch]$StartVsmon, # Enable the remote debugger.
     [string]$Script = 'Build.ps1', # The build script to be executed inside Docker.
@@ -33,6 +33,11 @@ $ErrorActionPreference = "Stop"
 $dockerContextDirectory = "$EngPath/docker-context"
 
 Set-Location $PSScriptRoot
+
+if ($env:IS_TEAMCITY_AGENT)
+{
+    Write-Host "Running on TeamCity agent at '$BuildAgentPath'" -ForegroundColor Cyan
+}
 
 # Function to create secrets JSON file
 function New-EnvJson
@@ -90,6 +95,12 @@ function New-EnvJson
 
     # Convert to JSON and save
     $jsonPath = Join-Path $dockerContextDirectory "env.g.json"
+
+    # Ensure the directory exists
+    if (-not (Test-Path $dockerContextDirectory))
+    {
+        New-Item -ItemType Directory -Path $dockerContextDirectory -Force | Out-Null
+    }
 
     # Write a test JSON file with GUID first
     @{ guid = [System.Guid]::NewGuid().ToString() } | ConvertTo-Json | Set-Content -Path $jsonPath -Encoding UTF8
@@ -164,6 +175,12 @@ function New-ClaudeEnvJson
 
     # Convert to JSON and save
     $jsonPath = Join-Path $dockerContextDirectory "env.g.json"
+
+    # Ensure the directory exists
+    if (-not (Test-Path $dockerContextDirectory))
+    {
+        New-Item -ItemType Directory -Path $dockerContextDirectory -Force | Out-Null
+    }
 
     # Write a test JSON file with GUID first
     @{ guid = [System.Guid]::NewGuid().ToString() } | ConvertTo-Json | Set-Content -Path $jsonPath -Encoding UTF8
@@ -476,7 +493,8 @@ if (Test-Path $sourceDependenciesDir)
     $sourceDirectories = Get-ChildItem -Path $sourceDependenciesDir -Force | Where-Object { $_.LinkType -eq $null }
     foreach ($sourceDirectory in $sourceDirectories)
     {
-        $GitDirectories += $sourceDirectory
+        Write-Host "Mounting source-dependencies directory: $($sourceDirectory.FullName)" -ForegroundColor Cyan
+        $GitDirectories += $sourceDirectory.FullName    
     }
 }
 
