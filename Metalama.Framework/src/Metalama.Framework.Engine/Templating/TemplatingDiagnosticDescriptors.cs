@@ -183,6 +183,15 @@ namespace Metalama.Framework.Engine.Templating
                     _category,
                     Error );
 
+        internal static readonly DiagnosticDefinition<string>
+            CannotUseDynamicWithTargetTypedExpression
+                = new(
+                    "LAMA0225",
+                    "Cannot initialize a dynamic-typed variable with a target-typed expression.",
+                    "The 'dynamic' keyword cannot be used in the local variable '{0}' because it is initialized with a target-typed expression (such as 'default' or 'null'). Use an explicit cast or a different initializer.",
+                    _category,
+                    Error );
+
         internal static readonly DiagnosticDefinition<(ISymbol Symbol, ISymbol RunTimeSymbol, ISymbol CompileTimeSymbol)> TemplatingScopeConflict
             = new(
                 "LAMA0226",

@@ -1,0 +1,8 @@
+// TestTemplateCompiler.TryCompile failed.
+// Error LAMA0225 on `x1`: `The 'dynamic' keyword cannot be used in the local variable 'x1' because it is initialized with a target-typed expression (such as 'default' or 'null'). Use an explicit cast or a different initializer.`
+// Error LAMA0225 on `x2`: `The 'dynamic' keyword cannot be used in the local variable 'x2' because it is initialized with a target-typed expression (such as 'default' or 'null'). Use an explicit cast or a different initializer.`
+// Error LAMA0225 on `x3`: `The 'dynamic' keyword cannot be used in the local variable 'x3' because it is initialized with a target-typed expression (such as 'default' or 'null'). Use an explicit cast or a different initializer.`
+// Error LAMA0225 on `x4`: `The 'dynamic' keyword cannot be used in the local variable 'x4' because it is initialized with a target-typed expression (such as 'default' or 'null'). Use an explicit cast or a different initializer.`
+// Error LAMA0225 on `x5`: `The 'dynamic' keyword cannot be used in the local variable 'x5' because it is initialized with a target-typed expression (such as 'default' or 'null'). Use an explicit cast or a different initializer.`
+// Error LAMA0225 on `x6`: `The 'dynamic' keyword cannot be used in the local variable 'x6' because it is initialized with a target-typed expression (such as 'default' or 'null'). Use an explicit cast or a different initializer.`
+// Error LAMA0225 on `x7`: `The 'dynamic' keyword cannot be used in the local variable 'x7' because it is initialized with a target-typed expression (such as 'default' or 'null'). Use an explicit cast or a different initializer.`
