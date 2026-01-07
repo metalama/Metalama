@@ -5,6 +5,8 @@
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Engine.Templating;
 
+#pragma warning disable CS0219 // Variable is assigned but its value is never used
+
 namespace Metalama.Framework.Tests.TemplateTests.Tests.Dynamic.DynamicNullableDefault;
 
 [CompileTime]
