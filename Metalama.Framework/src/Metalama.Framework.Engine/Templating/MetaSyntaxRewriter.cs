@@ -210,6 +210,10 @@ internal partial class MetaSyntaxRewriter : SafeSyntaxRewriter
     [UsedImplicitly]
     protected ExpressionSyntax Transform<T>( SyntaxList<T> list )
         where T : SyntaxNode
+        => this.TransformList( list );
+
+    private ExpressionSyntax TransformList<T>( SyntaxList<T> list )
+        where T : SyntaxNode
     {
         if ( list.Count == 0 )
         {
@@ -232,6 +236,9 @@ internal partial class MetaSyntaxRewriter : SafeSyntaxRewriter
                                     SyntaxKind.ArrayInitializerExpression,
                                     SeparatedList( list.SelectAsReadOnlyList( this.Transform ) ) ) ) ) ) ) );
     }
+
+    [UsedImplicitly]
+    protected virtual ExpressionSyntax Transform( SyntaxList<StatementSyntax> list ) => this.TransformList( list );
 
     protected virtual ExpressionSyntax Transform( SyntaxToken token )
     {
