@@ -152,13 +152,16 @@ namespace Metalama.Framework.Engine.Templating
                             case SymbolKind.Event:
                             case SymbolKind.Method:
                                 // We have an access to a field or method with a "using static", or a non-qualified static member access.
+                                // Move leading trivia from the identifier to the type qualifier to avoid splitting comments
                                 return
                                     node.CopyAnnotationsTo(
-                                        MemberAccessExpression(
+                                            MemberAccessExpression(
                                                 SyntaxKind.SimpleMemberAccessExpression,
                                                 this._syntaxGenerator.TypeOrNamespace( symbol.ContainingType ),
-                                                SyntaxFactoryEx.WellKnownIdentifierName( node.Identifier ) )
-                                            .WithTriviaFrom( node ) );
+                                                SyntaxFactoryEx.WellKnownIdentifierName( node.Identifier )
+                                                    .WithoutLeadingTrivia()
+                                                    .WithTrailingTrivia( node.GetTrailingTrivia() ) ) )
+                                        .WithLeadingTrivia( node.GetLeadingTrivia() );
                         }
                     }
                 }
