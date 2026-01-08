@@ -130,6 +130,8 @@ public class DefaultProjectOptions : IProjectOptions
 
     public virtual bool ValidateRunTimeCode => false;
 
+    public virtual bool VerifyOutputCode => false;
+
     // IProjectOptions is currently not used as a dictionary key, so we can throw here.
     public sealed override int GetHashCode() => throw new NotImplementedException();
 

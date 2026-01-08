@@ -187,6 +187,9 @@ public partial class MSBuildProjectOptions : DefaultProjectOptions
     public override bool ValidateRunTimeCode => this.GetBooleanOption( MSBuildPropertyNames.MetalamaValidateRunTimeCode );
 
     [Memo]
+    public override bool VerifyOutputCode => this.GetBooleanOption( MSBuildPropertyNames.MetalamaVerifyOutputCode );
+
+    [Memo]
     public override ImmutableArray<string> SourceGeneratorAttributes => this.GetListOption( MSBuildPropertyNames.MetalamaSourceGeneratorAttributes );
 
     public override bool AvoidLockingExtensionAssemblies => this.GetBooleanOption( MSBuildPropertyNames.MetalamaAvoidLockingExtensionAssemblies );
