@@ -17,13 +17,13 @@ internal class Aspect
   {
     List<StatementOrTrivia> __s1 = new List<StatementOrTrivia>();
     bool __skip1 = false;
-    // switch (meta.Target.Parameters["x"].Value) { case 42: var method = meta.Target.Method; method.Invoke(0); break; }
+    // switch ( meta.Target.Parameters["x"].Value ) { case 42: var method = meta.Target.Method; method.Invoke( 0 ); break; }
     templateSyntaxFactory.AddStatement(__s1, SyntaxFactory.SwitchStatement(default(SyntaxList<AttributeListSyntax>), SyntaxFactory.Token(SyntaxKind.SwitchKeyword), SyntaxFactory.Token(SyntaxKind.OpenParenToken), templateSyntaxFactory.GetDynamicSyntax(meta.Target.Parameters["x"].Value), SyntaxFactory.Token(SyntaxKind.CloseParenToken), SyntaxFactory.Token(SyntaxKind.OpenBraceToken), default(SyntaxList<SwitchSectionSyntax>).AddRange(new SwitchSectionSyntax[] { SyntaxFactory.SwitchSection(default(SyntaxList<SwitchLabelSyntax>).AddRange(new SwitchLabelSyntax[] { SyntaxFactory.CaseSwitchLabel(SyntaxFactory.Token(SyntaxKind.CaseKeyword), SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal("42", 42)), SyntaxFactory.Token(SyntaxKind.ColonToken)) }), new Func<SyntaxList<StatementSyntax>>(delegate
     {
       List<StatementOrTrivia> __s2 = new List<StatementOrTrivia>();
       bool __skip2 = false;
       var method = meta.Target.Method;
-      // method.Invoke(0);
+      // method.Invoke( 0 );
       templateSyntaxFactory.AddStatement(__s2, templateSyntaxFactory.ToStatement(templateSyntaxFactory.GetDynamicSyntax(method.Invoke(templateSyntaxFactory.RunTimeExpression(SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal("0", 0)), "Y:global::System.Int32!")))));
       // break;
       templateSyntaxFactory.AddStatement(__s2, SyntaxFactory.BreakStatement(default(SyntaxList<AttributeListSyntax>), SyntaxFactory.Token(SyntaxKind.BreakKeyword), SyntaxFactory.Token(SyntaxKind.SemicolonToken)));
