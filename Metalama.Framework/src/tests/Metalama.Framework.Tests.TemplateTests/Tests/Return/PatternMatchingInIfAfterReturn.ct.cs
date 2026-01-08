@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 using System.Collections.Generic;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.CompileTimeContracts;
@@ -36,8 +37,8 @@ namespace Metalama.Framework.Tests.TemplateTests.Return.PatternMatchingInIfAfter
         goto __next2;
       if (obj is string s)
       {
-        // return s.ToUpper();
-        templateSyntaxFactory.AddStatement(__s1, templateSyntaxFactory.AddSimplifierAnnotations(templateSyntaxFactory.ReturnStatement(templateSyntaxFactory.RunTimeExpression(templateSyntaxFactory.StringLiteralExpression(s.ToUpper()), "Y:global::System.String!"))));
+        // return s.ToUpper( CultureInfo.InvariantCulture );
+        templateSyntaxFactory.AddStatement(__s1, templateSyntaxFactory.AddSimplifierAnnotations(templateSyntaxFactory.ReturnStatement(templateSyntaxFactory.RunTimeExpression(templateSyntaxFactory.StringLiteralExpression(s.ToUpper(CultureInfo.InvariantCulture)), "Y:global::System.String!"))));
         __skip1 = true;
       }
       __next2:

@@ -6,6 +6,7 @@
 // @WriteCompiledTemplate
 #endif
 
+using System.Globalization;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Engine.Templating;
 
@@ -31,7 +32,7 @@ namespace Metalama.Framework.Tests.TemplateTests.Return.PatternMatchingInIfAfter
 
             if ( obj is string s )
             {
-                return s.ToUpper();
+                return s.ToUpper( CultureInfo.InvariantCulture );
             }
 
             return meta.Proceed();
