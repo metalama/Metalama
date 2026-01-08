@@ -8,6 +8,7 @@ using Metalama.Framework.Engine.Utilities.Threading;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using System;
+using System.IO;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -59,12 +60,13 @@ internal sealed class SyntaxTreeVerifier
     private static void VerifySyntaxTree( SyntaxTree syntaxTree, DiagnosticBag diagnostics )
     {
         SyntaxNode parsedFromText;
+        var sourceText = syntaxTree.GetRoot().ToString();
 
         try
         {
             // Parse the syntax tree's text representation back into a syntax tree
             parsedFromText = CSharpSyntaxTree.ParseText(
-                    syntaxTree.GetRoot().ToString(),
+                    sourceText,
                     path: syntaxTree.FilePath,
                     encoding: Encoding.UTF8,
                     options: (CSharpParseOptions) syntaxTree.Options )
@@ -72,11 +74,15 @@ internal sealed class SyntaxTreeVerifier
         }
         catch ( Exception ex )
         {
+            // Write source text to temp file for debugging
+            var tempFile = WriteTempFile( syntaxTree.FilePath, sourceText );
+
             // If parsing throws an exception, create a diagnostic with detailed information
             var message =
                 $"Failed to parse generated code for file '{syntaxTree.FilePath}'. " +
                 $"This indicates a code generation issue where the generated syntax tree produces invalid text. " +
-                $"Exception: {ex.GetType().Name}: {ex.Message}";
+                $"Exception: {ex.GetType().Name}: {ex.Message}. " +
+                $"Generated source written to: {tempFile}";
 
             var diagnostic = Diagnostic.Create(
                 new DiagnosticDescriptor(
@@ -94,6 +100,26 @@ internal sealed class SyntaxTreeVerifier
         }
 
         // Check for syntax errors in the parsed tree
+        var hasErrors = false;
+
+        foreach ( var diagnostic in parsedFromText.GetDiagnostics() )
+        {
+            if ( diagnostic.Severity == DiagnosticSeverity.Error )
+            {
+                hasErrors = true;
+                break;
+            }
+        }
+
+        // Write temp file only if there are errors
+        string? tempFilePath = null;
+
+        if ( hasErrors )
+        {
+            tempFilePath = WriteTempFile( syntaxTree.FilePath, sourceText );
+        }
+
+        // Report each error diagnostic
         foreach ( var diagnostic in parsedFromText.GetDiagnostics() )
         {
             if ( diagnostic.Severity == DiagnosticSeverity.Error )
@@ -108,12 +134,13 @@ internal sealed class SyntaxTreeVerifier
                     nodeText = nodeText.Substring( 0, 97 ) + "...";
                 }
 
-                // Create an enhanced diagnostic with context
+                // Create an enhanced diagnostic with context and temp file path
                 var enhancedMessage =
                     $"Syntax error in generated code for file '{syntaxTree.FilePath}': {diagnostic.GetMessage( System.Globalization.CultureInfo.InvariantCulture )}. " +
                     $"Location: Line {diagnostic.Location.GetLineSpan().StartLinePosition.Line + 1}, " +
                     $"Column {diagnostic.Location.GetLineSpan().StartLinePosition.Character + 1}. " +
-                    $"Problematic code: '{nodeText}'";
+                    $"Problematic code: '{nodeText}'. " +
+                    $"Generated source written to: {tempFilePath}";
 
                 var enhancedDiagnostic = Diagnostic.Create(
                     new DiagnosticDescriptor(
@@ -127,6 +154,32 @@ internal sealed class SyntaxTreeVerifier
 
                 diagnostics.Report( enhancedDiagnostic );
             }
+        }
+    }
+
+    private static string WriteTempFile( string originalFilePath, string sourceText )
+    {
+        try
+        {
+            // Create temp directory
+            var tempDir = Path.Combine( Path.GetTempPath(), "Metalama", "VerifyOutputCode" );
+            Directory.CreateDirectory( tempDir );
+
+            // Generate unique filename based on original file path
+            var fileName = Path.GetFileName( originalFilePath );
+            var timestamp = DateTime.Now.ToString( "yyyyMMdd-HHmmss", System.Globalization.CultureInfo.InvariantCulture );
+            var tempFileName = $"{Path.GetFileNameWithoutExtension( fileName )}_{timestamp}{Path.GetExtension( fileName )}";
+            var tempFilePath = Path.Combine( tempDir, tempFileName );
+
+            // Write source text to temp file
+            File.WriteAllText( tempFilePath, sourceText, Encoding.UTF8 );
+
+            return tempFilePath;
+        }
+        catch ( Exception ex )
+        {
+            // If we can't write the temp file, return error message instead
+            return $"<failed to write temp file: {ex.Message}>";
         }
     }
 }
