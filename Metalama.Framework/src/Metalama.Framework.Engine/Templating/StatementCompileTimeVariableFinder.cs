@@ -84,23 +84,55 @@ namespace Metalama.Framework.Engine.Templating
         public override void VisitSingleVariableDesignation( SingleVariableDesignationSyntax node )
         {
             // This handles 'out var' declarations and pattern matching
-            if ( node.Parent is DeclarationExpressionSyntax declarationExpression )
+            switch ( node.Parent )
             {
-                var scope = declarationExpression.GetScopeFromAnnotation();
+                case DeclarationExpressionSyntax declarationExpression:
+                    {
+                        var scope = declarationExpression.GetScopeFromAnnotation();
 
-                if ( scope == TemplatingScope.CompileTimeOnly )
-                {
-                    this.TryAddDeclaredSymbol( node );
-                }
-            }
-            else if ( node.Parent is DeclarationPatternSyntax declarationPattern )
-            {
-                var scope = declarationPattern.GetScopeFromAnnotation();
+                        if ( scope == TemplatingScope.CompileTimeOnly )
+                        {
+                            this.TryAddDeclaredSymbol( node );
+                        }
 
-                if ( scope == TemplatingScope.CompileTimeOnly )
-                {
-                    this.TryAddDeclaredSymbol( node );
-                }
+                        break;
+                    }
+
+                case ParenthesizedVariableDesignationSyntax parenthesizedDesignation:
+                    {
+                        // Handle tuple deconstruction: var (x, y) = tuple; or nested: var (a, (b, c)) = tuple;
+                        // Walk up the parent chain through ParenthesizedVariableDesignation nodes to find the DeclarationExpression
+                        var current = parenthesizedDesignation.Parent;
+
+                        while ( current is ParenthesizedVariableDesignationSyntax nestedParenthesized )
+                        {
+                            current = nestedParenthesized.Parent;
+                        }
+
+                        if ( current is DeclarationExpressionSyntax tupleDeclaration )
+                        {
+                            var scope = tupleDeclaration.GetScopeFromAnnotation();
+
+                            if ( scope == TemplatingScope.CompileTimeOnly )
+                            {
+                                this.TryAddDeclaredSymbol( node );
+                            }
+                        }
+
+                        break;
+                    }
+
+                case DeclarationPatternSyntax declarationPattern:
+                    {
+                        var scope = declarationPattern.GetScopeFromAnnotation();
+
+                        if ( scope == TemplatingScope.CompileTimeOnly )
+                        {
+                            this.TryAddDeclaredSymbol( node );
+                        }
+
+                        break;
+                    }
             }
 
             base.VisitSingleVariableDesignation( node );
