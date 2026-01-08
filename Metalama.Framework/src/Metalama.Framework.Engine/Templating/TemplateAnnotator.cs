@@ -1618,6 +1618,35 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
         return node.Update( transformedIdentifier, transformedArgumentList, transformedInitializer ).AddScopeAnnotation( localScope );
     }
 
+    /// <summary>
+    /// Determines if an expression is target-typed (i.e., requires type context to infer its type).
+    /// Target-typed expressions include: default, null, throw, stackalloc, etc.
+    /// This method skips parentheses to examine the underlying expression.
+    /// </summary>
+    private static bool IsTargetTypedExpression( ExpressionSyntax expression )
+    {
+        return expression switch
+        {
+            // Skip parentheses recursively
+            ParenthesizedExpressionSyntax parenthesized => IsTargetTypedExpression( parenthesized.Expression ),
+
+            // default literal
+            LiteralExpressionSyntax { RawKind: (int) SyntaxKind.DefaultLiteralExpression } => true,
+
+            // null literal
+            LiteralExpressionSyntax { RawKind: (int) SyntaxKind.NullLiteralExpression } => true,
+
+            // throw expression
+            ThrowExpressionSyntax => true,
+
+            // stackalloc (can be target-typed in some contexts)
+            StackAllocArrayCreationExpressionSyntax => true,
+            ImplicitStackAllocArrayCreationExpressionSyntax => true,
+
+            _ => false
+        };
+    }
+
     public override SyntaxNode VisitVariableDeclaration( VariableDeclarationSyntax node )
     {
         var transformedType = this.Visit( node.Type );
@@ -1635,7 +1664,15 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
                 }
                 else
                 {
-                    if ( !this._templateMemberClassifier.IsNodeOfDynamicType( variable.Initializer.Value ) )
+                    // Check if the initializer is a target-typed expression
+                    if ( IsTargetTypedExpression( variable.Initializer.Value ) )
+                    {
+                        this.ReportDiagnostic(
+                            TemplatingDiagnosticDescriptors.CannotUseDynamicWithTargetTypedExpression,
+                            variable.Identifier,
+                            variable.Identifier.Text );
+                    }
+                    else if ( !this._templateMemberClassifier.IsNodeOfDynamicType( variable.Initializer.Value ) )
                     {
                         this.ReportDiagnostic(
                             TemplatingDiagnosticDescriptors.DynamicVariableSetToNonDynamic,
