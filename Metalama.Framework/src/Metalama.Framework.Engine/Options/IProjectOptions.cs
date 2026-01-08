@@ -236,4 +236,11 @@ public interface IProjectOptions : IProjectService, IEquatable<IProjectOptions>
     /// When <c>true</c>, the validator checks that run-time code does not reference compile-time-only declarations.
     /// </summary>
     bool ValidateRunTimeCode { get; }
+
+    /// <summary>
+    /// Gets a value indicating whether generated output code should be verified for syntax correctness.
+    /// When <c>true</c>, the output code will be parsed as a syntax tree and checked for errors.
+    /// This helps detect issues like missing whitespace that can cause syntax errors.
+    /// </summary>
+    bool VerifyOutputCode { get; }
 }

@@ -115,6 +115,8 @@ internal sealed class TestProjectOptions : DefaultProjectOptions, IDisposable
 
     public override bool ValidateRunTimeCode => this.TestContextOptions.ValidateRunTimeCode;
 
+    public override bool VerifyOutputCode => this.TestContextOptions.VerifyOutputCode;
+
     public override ImmutableArray<TargetedAssemblyReference> CompileTimeAssemblies
         => this.TestContextOptions.CompileTimeAssemblies.Select( TargetedAssemblyReference.FromPath ).ToImmutableArray();
 
