@@ -128,6 +128,9 @@ internal sealed class SyntaxTreeVerifier
                 var node = parsedFromText.FindNode( diagnostic.Location.SourceSpan );
                 var nodeText = node.ToString();
 
+                // Replace line breaks with spaces for single-line error message
+                nodeText = nodeText.Replace( "\r\n", " " ).Replace( "\r", " " ).Replace( "\n", " " );
+
                 // Truncate the problematic code if too long
                 if ( nodeText.Length > 100 )
                 {
