@@ -47,18 +47,20 @@ namespace Metalama.Framework.Tests.TemplateTests.Return.NestedLocalFunctionWithC
             // return value;
             localTemplateSyntaxFactory2.AddStatement(__s3, localTemplateSyntaxFactory2.AddSimplifierAnnotations(localTemplateSyntaxFactory2.ReturnStatement(SyntaxFactory.IdentifierName(localTemplateSyntaxFactory2.EscapeIdentifier(valueName)))));
             __skip3 = true;
-            if (!__skip3)
-            {
-              // return null;
-              localTemplateSyntaxFactory2.AddStatement(__s3, localTemplateSyntaxFactory2.AddSimplifierAnnotations(localTemplateSyntaxFactory2.ReturnStatement(SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression, SyntaxFactory.Token(SyntaxKind.NullKeyword)))));
-            }
+            if (__skip3)
+              goto __next1;
+            // return null;
+            localTemplateSyntaxFactory2.AddStatement(__s3, localTemplateSyntaxFactory2.AddSimplifierAnnotations(localTemplateSyntaxFactory2.ReturnStatement(SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression, SyntaxFactory.Token(SyntaxKind.NullKeyword)))));
+            __next1:
+              ;
             __skip3 = true;
           }
-          if (!__skip3)
-          {
-            // return value;
-            localTemplateSyntaxFactory2.AddStatement(__s3, localTemplateSyntaxFactory2.AddSimplifierAnnotations(localTemplateSyntaxFactory2.ReturnStatement(SyntaxFactory.IdentifierName(localTemplateSyntaxFactory2.EscapeIdentifier(valueName)))));
-          }
+          if (__skip3)
+            goto __next2;
+          // return value;
+          localTemplateSyntaxFactory2.AddStatement(__s3, localTemplateSyntaxFactory2.AddSimplifierAnnotations(localTemplateSyntaxFactory2.ReturnStatement(SyntaxFactory.IdentifierName(localTemplateSyntaxFactory2.EscapeIdentifier(valueName)))));
+          __next2:
+            ;
           return localTemplateSyntaxFactory1.ToStatementList(__s3);
         })()), null, default(SyntaxToken)));
         return templateSyntaxFactory.ToStatementList(__s2);

@@ -39,11 +39,12 @@ namespace Metalama.Framework.Tests.TemplateTests.Return.LocalFunctionInsideRunTi
           // return LocalFunc( "null input" );
           templateSyntaxFactory.AddStatement(__s3, templateSyntaxFactory.AddSimplifierAnnotations(templateSyntaxFactory.ReturnStatement(templateSyntaxFactory.AddSimplifierAnnotations(SyntaxFactory.InvocationExpression(SyntaxFactory.IdentifierName(templateSyntaxFactory.EscapeIdentifier(LocalFuncName)), SyntaxFactory.ArgumentList(SyntaxFactory.SingletonSeparatedList<ArgumentSyntax>(SyntaxFactory.Argument(null, default, SyntaxFactory.LiteralExpression(SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal("\"null input\"", "null input"))))))))));
           __skip3 = true;
-          if (!__skip3)
-          {
-            // return null;
-            templateSyntaxFactory.AddStatement(__s3, templateSyntaxFactory.AddSimplifierAnnotations(templateSyntaxFactory.ReturnStatement(SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression, SyntaxFactory.Token(SyntaxKind.NullKeyword)))));
-          }
+          if (__skip3)
+            goto __next1;
+          // return null;
+          templateSyntaxFactory.AddStatement(__s3, templateSyntaxFactory.AddSimplifierAnnotations(templateSyntaxFactory.ReturnStatement(SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression, SyntaxFactory.Token(SyntaxKind.NullKeyword)))));
+          __next1:
+            ;
           __skip3 = true;
         }
         SyntaxToken inputName = templateSyntaxFactory.GetUniqueIdentifier("input");

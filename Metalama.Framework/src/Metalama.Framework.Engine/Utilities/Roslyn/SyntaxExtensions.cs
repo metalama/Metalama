@@ -393,4 +393,104 @@ public static class SyntaxExtensions
             PostfixUnaryExpressionSyntax postfix when postfix.IsKind( SyntaxKind.SuppressNullableWarningExpression ) => postfix.Operand,
             _ => expression
         };
+
+    /// <summary>
+    /// Finds a corresponding node in a different syntax tree based on its position in the child collection of parents.
+    /// This works by building a path from the source node to the source root, then navigating the same path
+    /// from the target root to find the equivalent node.
+    /// </summary>
+    /// <param name="sourceNode">The node to find an equivalent for in the target tree.</param>
+    /// <param name="sourceRoot">The root of the source tree (must be an ancestor of sourceNode).</param>
+    /// <param name="targetRoot">The root of the target tree to search in.</param>
+    /// <param name="targetNode">When this method returns, contains the equivalent node in the target tree if found; otherwise, null.</param>
+    /// <returns>True if the equivalent node was found; otherwise, false.</returns>
+    internal static bool TryFindNodeByPosition(
+        SyntaxNode sourceNode,
+        SyntaxNode sourceRoot,
+        SyntaxNode targetRoot,
+        out SyntaxNode? targetNode )
+    {
+        // Build a path from sourceNode to sourceRoot as a stack of (child index, syntax kind) pairs
+        var path = new Stack<(int ChildIndex, SyntaxKind Kind)>();
+        var current = sourceNode;
+
+        while ( current != sourceRoot )
+        {
+            var parent = current.Parent;
+
+            if ( parent == null )
+            {
+                // sourceNode is not a descendant of sourceRoot
+                targetNode = null;
+
+                return false;
+            }
+
+            // Find the index of current node in its parent's children
+            var children = parent.ChildNodesAndTokens();
+            var childIndex = -1;
+
+            for ( var i = 0; i < children.Count; i++ )
+            {
+                if ( children[i].AsNode() == current )
+                {
+                    childIndex = i;
+
+                    break;
+                }
+            }
+
+            if ( childIndex < 0 )
+            {
+                // This should never happen, but handle it gracefully
+                targetNode = null;
+
+                return false;
+            }
+
+            path.Push( (childIndex, current.Kind()) );
+            current = parent;
+        }
+
+        // Now navigate from targetRoot using the path in reverse order
+        current = targetRoot;
+
+        while ( path.Count > 0 )
+        {
+            var (childIndex, expectedKind) = path.Pop();
+            var children = current.ChildNodesAndTokens();
+
+            if ( childIndex >= children.Count )
+            {
+                // The target tree structure doesn't match
+                targetNode = null;
+
+                return false;
+            }
+
+            var childNodeOrToken = children[childIndex];
+
+            if ( !childNodeOrToken.IsNode )
+            {
+                // Expected a node but found a token
+                targetNode = null;
+
+                return false;
+            }
+
+            current = childNodeOrToken.AsNode()!;
+
+            if ( !current.IsKind( expectedKind ) )
+            {
+                // The syntax kind doesn't match - trees are structurally different
+                targetNode = null;
+
+                return false;
+            }
+        }
+
+        targetNode = current;
+
+        return true;
+    }
 }

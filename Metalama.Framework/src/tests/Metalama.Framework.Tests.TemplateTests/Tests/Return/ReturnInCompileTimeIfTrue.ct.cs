@@ -26,16 +26,17 @@ namespace Metalama.Framework.Tests.TemplateTests.Return.ReturnInCompileTimeIfTru
         templateSyntaxFactory.AddStatement(__s1, templateSyntaxFactory.AddSimplifierAnnotations(templateSyntaxFactory.ReturnStatement(SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression, SyntaxFactory.Token(SyntaxKind.NullKeyword)))));
         __skip1 = true;
       }
-      if (!__skip1)
-      {
-        Aspect. // This code should NOT be reached at compile time when the condition is true.
-        ThrowIfReached();
-      }
-      if (!__skip1)
-      {
-        // return meta.Proceed();
-        templateSyntaxFactory.AddStatement(__s1, templateSyntaxFactory.AddSimplifierAnnotations(templateSyntaxFactory.DynamicReturnStatement(templateSyntaxFactory.GetUserExpression(templateSyntaxFactory.Proceed("Proceed")), false)));
-      }
+      if (__skip1)
+        goto __next1;
+      Aspect.ThrowIfReached();
+      __next1:
+        ;
+      if (__skip1)
+        goto __next2;
+      // return meta.Proceed();
+      templateSyntaxFactory.AddStatement(__s1, templateSyntaxFactory.AddSimplifierAnnotations(templateSyntaxFactory.DynamicReturnStatement(templateSyntaxFactory.GetUserExpression(templateSyntaxFactory.Proceed("Proceed")), false)));
+      __next2:
+        ;
       return SyntaxFactory.Block(default, templateSyntaxFactory.ToStatementList(__s1));
     }
     [CompileTime]

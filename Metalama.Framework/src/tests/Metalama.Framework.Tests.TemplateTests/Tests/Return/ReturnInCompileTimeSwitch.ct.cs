@@ -28,22 +28,24 @@ namespace Metalama.Framework.Tests.TemplateTests.Return.ReturnInCompileTimeSwitc
           break;
         // Compile-time flow should stop here.
         default:
-          if (!__skip1)
-          {
-            break;
-          }
+          if (__skip1)
+            goto __next1;
+          break;
+          __next1:
+            ;
           break;
       }
-      if (!__skip1)
-      {
-        Aspect. // This code should NOT be reached when parameter count is 0.
-        ThrowIfReached();
-      }
-      if (!__skip1)
-      {
-        // return meta.Proceed();
-        templateSyntaxFactory.AddStatement(__s1, templateSyntaxFactory.AddSimplifierAnnotations(templateSyntaxFactory.DynamicReturnStatement(templateSyntaxFactory.GetUserExpression(templateSyntaxFactory.Proceed("Proceed")), false)));
-      }
+      if (__skip1)
+        goto __next2;
+      Aspect.ThrowIfReached();
+      __next2:
+        ;
+      if (__skip1)
+        goto __next3;
+      // return meta.Proceed();
+      templateSyntaxFactory.AddStatement(__s1, templateSyntaxFactory.AddSimplifierAnnotations(templateSyntaxFactory.DynamicReturnStatement(templateSyntaxFactory.GetUserExpression(templateSyntaxFactory.Proceed("Proceed")), false)));
+      __next3:
+        ;
       return SyntaxFactory.Block(default, templateSyntaxFactory.ToStatementList(__s1));
     }
     [CompileTime]

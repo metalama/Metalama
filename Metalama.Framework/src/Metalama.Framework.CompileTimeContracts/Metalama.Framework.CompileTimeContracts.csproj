@@ -10,7 +10,8 @@
 
     <ItemGroup>
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp" VersionOverride="$(RoslynApiMinVersion)" />
-      <ProjectReference Include="../Metalama.Framework/Metalama.Framework.csproj" />
+        <PackageReference Include="System.Runtime.CompilerServices.Unsafe" />
+        <ProjectReference Include="../Metalama.Framework/Metalama.Framework.csproj" />
     </ItemGroup>
     <ItemGroup>
         <InternalsVisibleTo Include="Metalama.Framework.Engine.4.8.0" />

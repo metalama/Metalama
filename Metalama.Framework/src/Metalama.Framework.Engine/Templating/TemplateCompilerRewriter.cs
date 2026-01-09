@@ -24,6 +24,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using System.Threading;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
@@ -59,13 +60,15 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
     private readonly TypeSyntax _dictionaryOfITypeType;
     private readonly TypeSyntax _dictionaryOfTypeSyntaxType;
     private readonly ITypeSymbol _iExpressionSymbol;
+    private readonly TypeSyntax _unsafeType;
 
     private TemplateMetaSyntaxFactoryImpl _templateMetaSyntaxFactory;
     private MetaContext? _currentMetaContext;
     private int _nextStatementListId;
     private int _nextLocalFunctionFactoryId;
+    private int _nextLabelId = 1;
     private ISymbol? _rootTemplateSymbol;
-
+    
     /// <summary>
     /// Set to true by <see cref="VisitReturnStatement"/> or <see cref="VisitThrowStatement"/> when the statement should terminate compile-time flow.
     /// Callers should check this flag and generate a skip flag assignment if needed.
@@ -115,6 +118,10 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
             syntaxGenerationContext.SyntaxGenerator.TypeSyntax( this.MetaSyntaxFactory.ReflectionMapper.GetTypeSymbol( typeof(Dictionary<string, IType>) ) );
 
         this._iExpressionSymbol = this._runTimeCompilation.GetTypeByMetadataName( typeof(IExpression).FullName! ).AssertSymbolNotNull();
+        
+        this._unsafeType =
+            syntaxGenerationContext.SyntaxGenerator.TypeSyntax(
+                this.MetaSyntaxFactory.ReflectionMapper.GetTypeSymbol( typeof(Unsafe) ) );
     }
 
     public bool Success { get; private set; } = true;
@@ -316,7 +323,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
     private TupleExpressionSyntax AddTupleNames( TupleExpressionSyntax node )
     {
         // Tuples can be initialized from variables and then items take names from variable name
-        // but variable name is not safe and could be renamed because of target variables 
+        // but variable name is not safe and could be renamed because of target variables
         // in this case we initialize tuple with explicit names.
         var tupleType = (INamedTypeSymbol?) this._syntaxTreeAnnotationMap.GetExpressionType( node );
 
@@ -335,8 +342,14 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
             var tupleElement = tupleType.TupleElements[i];
             ArgumentSyntax arg;
 
+            // Skip adding NameColon for DeclarationExpression (e.g., var first) because the name is already in the declaration.
+            // Tuple element names are not permitted on the left side of a deconstruction.
+            if ( node.Arguments[i].Expression is DeclarationExpressionSyntax )
+            {
+                arg = node.Arguments[i];
+            }
             // If the tuple element has a name (i.e. it's not just ItemX), set it explicitly.
-            if ( !tupleElement.Name.Equals( tupleElement.CorrespondingTupleField!.Name, StringComparison.Ordinal ) )
+            else if ( !tupleElement.Name.Equals( tupleElement.CorrespondingTupleField!.Name, StringComparison.Ordinal ) )
             {
                 arg = node.Arguments[i].WithNameColon( NameColon( tupleElement.Name ) );
             }
@@ -770,7 +783,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
                      expressionType.ContainingNamespace.ToDisplayString() == "System.Collections.Generic":
 
                 return InvocationExpression( this._templateMetaSyntaxFactory.TemplateSyntaxFactoryMember( nameof(ITemplateSyntaxFactory.GetDynamicSyntax) ) )
-                    .AddArgumentListArguments( Argument( expression ) );
+                    .AddArgumentListArguments( Argument( expression.WithoutTrivia() ) );
 
             case "String":
                 return CreateRunTimeExpressionForLiteralCreateExpressionFactory( SyntaxKind.StringLiteralExpression );
@@ -2141,16 +2154,18 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
 
                 case StatementSyntax statementSyntax:
                     // The statement is already build-time code so there is nothing to transform.
-                    var stmtWithTrivia = statementSyntax.WithLeadingTrivia( this.GetIndentation() );
+                    var statementWithTrivia = statementSyntax.WithLeadingTrivia( this.GetIndentation() );
 
                     // If the skip flag was set and this is not a local function, wrap it in a condition.
                     // Local functions must always be defined so they can be referenced.
                     if ( skipFlagWasSetBeforeVisit && !isLocalFunction )
                     {
-                        stmtWithTrivia = this.WrapInSkipCompileTimeLogicCheck( stmtWithTrivia );
+                        newContext.Statements.AddRange( this.WrapInSkipCompileTimeLogicCheck( statementWithTrivia, singleStatement ) );
                     }
-
-                    newContext.Statements.Add( stmtWithTrivia );
+                    else
+                    {
+                        newContext.Statements.Add( statementWithTrivia );
+                    }
 
                     break;
 
@@ -2186,10 +2201,12 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
                         // Local functions must always be defined so they can be referenced.
                         if ( skipFlagWasSetBeforeVisit && !isLocalFunction )
                         {
-                            add = this.WrapInSkipCompileTimeLogicCheck( add );
+                            newContext.Statements.AddRange( this.WrapInSkipCompileTimeLogicCheck( add, singleStatement ) );
                         }
-
-                        newContext.Statements.Add( add );
+                        else
+                        {
+                            newContext.Statements.Add( add );
+                        }
 
                         break;
                     }
@@ -2245,17 +2262,48 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
 
     /// <summary>
     /// Wraps a statement in a condition that checks if compile-time logic should be skipped.
-    /// Generates: <c>if (!__skipN) { statement }</c> where N is the block ID.
+    /// Generates: <c>if (__skipN) goto __nextN; statement; __nextN:; Unsafe.SkipInit(out variables);</c> where N is the block ID.
+    /// Compile-time variables declared in the statement are hoisted and fake-initialized with Unsafe.SkipInit after the label.
     /// </summary>
-    private StatementSyntax WrapInSkipCompileTimeLogicCheck( StatementSyntax statement )
+    private IEnumerable<StatementSyntax> WrapInSkipCompileTimeLogicCheck( StatementSyntax statement, StatementSyntax originalStatement )
     {
-        return IfStatement(
-                PrefixUnaryExpression(
-                    SyntaxKind.LogicalNotExpression,
-                    SyntaxFactoryEx.WellKnownIdentifierName( this._currentMetaContext!.SkipCompileTimeLogicVariableName ) ),
-                Block( statement ) )
+        var labelName = $"__next{this._nextLabelId++}";
+
+        // if (__skip) goto __next;
+        yield return IfStatement(
+                SyntaxFactoryEx.WellKnownIdentifierName( this._currentMetaContext!.SkipCompileTimeLogicVariableName ),
+                GotoStatement( SyntaxKind.GotoStatement, SyntaxFactoryEx.SafeIdentifierName( labelName ) ) )
             .WithLeadingTrivia( this.GetIndentation() )
             .NormalizeWhitespace();
+
+        // statement;
+        yield return statement;
+
+        // __next:;
+        yield return LabeledStatement( labelName, EmptyStatement() )
+            .WithLeadingTrivia( this.GetIndentation() )
+            .NormalizeWhitespace();
+
+        // Find compile-time variables declared in this statement that need Unsafe.SkipInit
+        var variableFinder = new StatementCompileTimeVariableFinder( this._syntaxTreeAnnotationMap, originalStatement );
+        variableFinder.Visit();
+
+        foreach ( var localSymbol in variableFinder.AssignedVariables )
+        {
+            // System.Runtime.CompilerServices.Unsafe.SkipInit(out variable);
+            yield return ExpressionStatement(
+                    InvocationExpression(
+                        MemberAccessExpression(
+                            SyntaxKind.SimpleMemberAccessExpression,
+                            this._unsafeType,
+                            SyntaxFactoryEx.WellKnownIdentifierName( "SkipInit" ) ),
+                        ArgumentList(
+                            SingletonSeparatedList(
+                                Argument( SyntaxFactoryEx.SafeIdentifierName( localSymbol.Name ) )
+                                    .WithRefOrOutKeyword( Token( SyntaxKind.OutKeyword ) ) ) ) ) )
+                .WithLeadingTrivia( this.GetIndentation() )
+                .NormalizeWhitespace();
+        }
     }
 
     protected override ExpressionSyntax TransformInterpolatedStringExpression( InterpolatedStringExpressionSyntax node )

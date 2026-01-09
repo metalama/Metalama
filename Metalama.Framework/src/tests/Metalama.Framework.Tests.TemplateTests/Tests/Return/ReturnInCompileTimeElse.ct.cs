@@ -28,23 +28,25 @@ namespace Metalama.Framework.Tests.TemplateTests.Return.ReturnInCompileTimeElse
       }
       else
       {
-        if (!__skip1)
-        {
-          // return null;
-          templateSyntaxFactory.AddStatement(__s1, templateSyntaxFactory.AddSimplifierAnnotations(templateSyntaxFactory.ReturnStatement(SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression, SyntaxFactory.Token(SyntaxKind.NullKeyword)))));
-        }
+        if (__skip1)
+          goto __next1;
+        // return null;
+        templateSyntaxFactory.AddStatement(__s1, templateSyntaxFactory.AddSimplifierAnnotations(templateSyntaxFactory.ReturnStatement(SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression, SyntaxFactory.Token(SyntaxKind.NullKeyword)))));
+        __next1:
+          ;
         __skip1 = true;
       }
-      if (!__skip1)
-      {
-        Aspect. // This code should NOT be reached at compile time.
-        ThrowIfReached();
-      }
-      if (!__skip1)
-      {
-        // return meta.Proceed();
-        templateSyntaxFactory.AddStatement(__s1, templateSyntaxFactory.AddSimplifierAnnotations(templateSyntaxFactory.DynamicReturnStatement(templateSyntaxFactory.GetUserExpression(templateSyntaxFactory.Proceed("Proceed")), false)));
-      }
+      if (__skip1)
+        goto __next2;
+      Aspect.ThrowIfReached();
+      __next2:
+        ;
+      if (__skip1)
+        goto __next3;
+      // return meta.Proceed();
+      templateSyntaxFactory.AddStatement(__s1, templateSyntaxFactory.AddSimplifierAnnotations(templateSyntaxFactory.DynamicReturnStatement(templateSyntaxFactory.GetUserExpression(templateSyntaxFactory.Proceed("Proceed")), false)));
+      __next3:
+        ;
       return SyntaxFactory.Block(default, templateSyntaxFactory.ToStatementList(__s1));
     }
     [CompileTime]
