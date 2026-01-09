@@ -4,8 +4,8 @@
 
 FROM mcr.microsoft.com/windows/servercore:ltsc2025
 
-# The initial shell is PowerShell Desktop.
-SHELL ["powershell", "-Command"]
+# The initial shell is Windows PowerShell (use full path to avoid HCS issues)
+SHELL ["C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe", "-Command"]
 
 # Prepare environment
 ENV PSExecutionPolicyPreference=Bypass
@@ -14,30 +14,35 @@ ENV TEMP=C:\Temp
 ENV TMP=C:\Temp
 ENV RUNNING_IN_DOCKER=TRUE
 
+# Add Windows PowerShell to PATH (pwsh added later by PowershellComponent)
+ENV PATH="C:\Windows\System32\WindowsPowerShell\v1.0;${PATH}"
+
 # Enable long path support
 RUN Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem' -Name 'LongPathsEnabled' -Value 1
 
 
 
 # Install Git
-RUN Invoke-WebRequest -Uri https://github.com/git-for-windows/git/releases/download/v2.50.0.windows.1/MinGit-2.50.0-64-bit.zip -OutFile MinGit.zip; `
-    Expand-Archive c:\\MinGit.zip -DestinationPath C:\\git; `
-    Remove-Item C:\\MinGit.zip; `
-    $pathsToAdd = @('C:\git\cmd', 'C:\git\bin', 'C:\git\usr\bin'); `
-    $newPath = [Environment]::GetEnvironmentVariable('PATH', 'Machine') + ';' + ($pathsToAdd -join ';'); `
-    [Environment]::SetEnvironmentVariable('PATH', $newPath, 'Machine');
-    
-RUN "C:\Git\cmd\git.exe" config --system core.longpaths true
+RUN Invoke-WebRequest -Uri https://github.com/git-for-windows/git/releases/download/v2.50.0.windows.1/PortableGit-2.50.0-64-bit.7z.exe -OutFile PortableGit.exe; `
+    Start-Process -FilePath .\PortableGit.exe -ArgumentList '-o"C:\git"', '-y' -Wait; `
+    Remove-Item PortableGit.exe
+
+# Add git to PATH using ENV directive (persists across shell switches)
+ENV PATH="C:\git\cmd;C:\git\bin;C:\git\usr\bin;${PATH}"
+
+RUN git config --system core.longpaths true
+
+# Set CLAUDE_CODE_GIT_BASH_PATH for Claude Code
+ENV CLAUDE_CODE_GIT_BASH_PATH=C:\git\bin\bash.exe
 
 
 # Install PowerShell 7
 RUN Invoke-WebRequest -Uri https://github.com/PowerShell/PowerShell/releases/download/v7.5.2/PowerShell-7.5.2-win-x64.msi -OutFile PowerShell.msi; `
     $process = Start-Process msiexec.exe -Wait -PassThru -ArgumentList '/I PowerShell.msi /quiet'; `
     if ($process.ExitCode -ne 0) { exit $process.ExitCode }; `
-    Remove-Item PowerShell.msi; `
-    $pathsToAdd = @('C:\Program Files\PowerShell\7'); `
-    $newPath = [Environment]::GetEnvironmentVariable('PATH', 'Machine') + ';' + ($pathsToAdd -join ';'); `
-    [Environment]::SetEnvironmentVariable('PATH', $newPath, 'Machine');
+    Remove-Item PowerShell.msi
+
+ENV PATH="C:\Program Files\PowerShell\7;${PATH}"
 
 
 # Install Azure CLI
@@ -46,32 +51,34 @@ RUN Invoke-WebRequest -Uri https://aka.ms/installazurecliwindowsx64 -OutFile Azu
     if ($process.ExitCode -ne 0) { exit $process.ExitCode }; `
     Remove-Item AzureCLI.msi
 
+ENV PATH="C:\Program Files\Microsoft SDKs\Azure\CLI2\wbin;${PATH}"
+
 
 # Download .NET Installer
-RUN Invoke-WebRequest -Uri https://dot.net/v1/dotnet-install.ps1 -OutFile dotnet-install.ps1; `
-    $pathsToAdd = @('C:\Program Files\dotnet'); `
-    $newPath = [Environment]::GetEnvironmentVariable('PATH', 'Machine') + ';' + ($pathsToAdd -join ';'); `
-    [Environment]::SetEnvironmentVariable('PATH', $newPath, 'Machine'); 
+RUN Invoke-WebRequest -Uri https://dot.net/v1/dotnet-install.ps1 -OutFile dotnet-install.ps1
+
+# Add .NET to PATH using ENV directive (persists across shell switches)
+ENV PATH="C:\Program Files\dotnet;${PATH}"
 
 
 # Install .NET AspNetCoreRuntime 6.0.36
-RUN powershell -ExecutionPolicy Bypass -File dotnet-install.ps1 -Version 6.0.36 -Runtime aspnetcore -InstallDir 'C:\Program Files\dotnet'; 
+RUN & .\dotnet-install.ps1 -Version 6.0.36 -Runtime aspnetcore -InstallDir 'C:\Program Files\dotnet'
 
 
 # Install .NET WindowsDesktopRuntime 6.0.36
-RUN powershell -ExecutionPolicy Bypass -File dotnet-install.ps1 -Version 6.0.36 -Runtime windowsdesktop -InstallDir 'C:\Program Files\dotnet'; 
+RUN & .\dotnet-install.ps1 -Version 6.0.36 -Runtime windowsdesktop -InstallDir 'C:\Program Files\dotnet'
 
 
 # Install .NET Sdk 8.0.414
-RUN powershell -ExecutionPolicy Bypass -File dotnet-install.ps1 -Version 8.0.414 -InstallDir 'C:\Program Files\dotnet'; 
+RUN & .\dotnet-install.ps1 -Version 8.0.414 -InstallDir 'C:\Program Files\dotnet'
 
 
 # Install .NET DotNetRuntime 9.0.9
-RUN powershell -ExecutionPolicy Bypass -File dotnet-install.ps1 -Version 9.0.9 -Runtime dotnet -InstallDir 'C:\Program Files\dotnet'; 
+RUN & .\dotnet-install.ps1 -Version 9.0.9 -Runtime dotnet -InstallDir 'C:\Program Files\dotnet'
 
 
 # Install .NET Sdk 9.0.205
-RUN powershell -ExecutionPolicy Bypass -File dotnet-install.ps1 -Version 9.0.205 -InstallDir 'C:\Program Files\dotnet'; 
+RUN & .\dotnet-install.ps1 -Version 9.0.205 -InstallDir 'C:\Program Files\dotnet'
 
 
 # Install VS Build Tools
@@ -94,6 +101,9 @@ RUN New-Item -ItemType Directory -Path 'C:\Program Files (x86)\Microsoft Visual 
 
 
 # Epilogue
+# Create docker-context directory for build scripts
+RUN New-Item -ItemType Directory -Path c:\docker-context -Force | Out-Null
+
 # Create directories for mountpoints
 ARG MOUNTPOINTS
 RUN if ($env:MOUNTPOINTS) { `
@@ -107,25 +117,12 @@ RUN if ($env:MOUNTPOINTS) { `
     }
 
 # Import environment variables
-COPY ReadEnvironmentVariables.ps1 c:\ReadEnvironmentVariables.ps1    
-COPY env.g.json c:\env.g.json
-RUN c:\ReadEnvironmentVariables.ps1 c:\env.g.json   
+COPY ReadEnvironmentVariables.ps1 c:\docker-context\ReadEnvironmentVariables.ps1
+COPY .g/env.g.json c:\docker-context\env.g.json
+RUN c:\docker-context\ReadEnvironmentVariables.ps1 c:\docker-context\env.g.json
 
-# Configure NuGet
-ENV NUGET_PACKAGES=c:\packages
+# Copy Init.g.ps1 placeholder (drive mappings handled inline in docker run)
+COPY .g/Init.g.ps1 c:\docker-context\Init.g.ps1
 
 # Configure .NET SDK
 ENV DOTNET_NOLOGO=1
-
-# Configure git
-ARG GITDIRS
-RUN if ($env:GITDIRS) { `
-        $gitdirs = $env:GITDIRS -split ';'; `
-        foreach ($dir in $gitdirs) { `
-            if ($dir) { `
-                git config --global --add safe.directory $dir/; `
-            } `
-        } `
-    }
-RUN if ( $env:GIT_USER_NAME ) { git config --global user.name $env:GIT_USER_NAME } `
-    if ( $env:GIT_USER_EMAIL ) { git config --global user.email $env:GIT_USER_EMAIL }
