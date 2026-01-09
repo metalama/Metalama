@@ -1964,16 +1964,58 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
                 // The rest of the analysis should be ok anyway.
             }
 
-            // The scope of a classical assignment is determined by the left side.
-            var transformedLeft = this.Visit( node.Left );
+            // Check if the left side is a tuple with var declarations
+            if ( node.Left is TupleExpressionSyntax tupleLeft )
+            {
+                var varStatus = CheckTupleVarDeclarations( tupleLeft );
 
-            var leftScope = this.GetAssignmentScope( transformedLeft );
-            ExpressionSyntax? transformedRight;
+                if ( varStatus == TupleVarStatus.AllVar )
+                {
+                    // All elements are var declarations, so the scope is determined by the right side
+                    // (similar to local variable declaration with assignment)
+                    var declarationTransformedRight = this.Visit( node.Right );
+                    var declarationRightScope = this.GetNodeScope( declarationTransformedRight ).GetExpressionValueScope( true ).ReplaceIndeterminate( RunTimeOnly );
+
+                    ExpressionSyntax declarationTransformedLeft;
+                    ScopeContext? declarationLeftNodeContext = null;
+
+                    if ( declarationRightScope == CompileTimeOnly )
+                    {
+                        // The right side is compile-time, so the variables should be compile-time
+                        declarationLeftNodeContext = this._currentScopeContext.CompileTimeOnly( "a tuple deconstruction from a compile-time expression" );
+                    }
+
+                    using ( this.WithScopeContext( declarationLeftNodeContext ) )
+                    {
+                        declarationTransformedLeft = this.Visit( node.Left );
+                    }
+
+                    // The assignment scope is determined by the right side when all are var declarations
+                    return node.Update( declarationTransformedLeft, node.OperatorToken, declarationTransformedRight ).AddScopeAnnotation( declarationRightScope );
+                }
+                else if ( varStatus == TupleVarStatus.Mixed )
+                {
+                    // Mixed var and non-var declarations are not supported
+                    this.ReportUnsupportedLanguageFeature( node.Left, "tuple deconstruction with a mix of var and non-var declarations" );
+
+                    // Fall through to default handling
+                }
+                else
+                {
+                    // For TupleVarStatus.None (no var declarations), fall through to classical assignment handling
+                }
+            }
+
+            // The scope of a classical assignment is determined by the left side.
+            var classicalTransformedLeft = this.Visit( node.Left );
+
+            var classicalLeftNodeScope = this.GetAssignmentScope( classicalTransformedLeft );
+            ExpressionSyntax? classicalTransformedRight;
 
             // If we are in a run-time-conditional block, we cannot assign compile-time variables.
-            ScopeContext? context = null;
+            ScopeContext? classicalRightNodeContext = null;
 
-            if ( leftScope.GetExpressionExecutionScope() == CompileTimeOnly )
+            if ( classicalLeftNodeScope.GetExpressionExecutionScope() == CompileTimeOnly )
             {
                 this.CheckForMutatingCompileTimeExpressionInRunTimeConditionalBlock( node.Left );
 
@@ -1985,24 +2027,96 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
                 else
                 {
                     // The right part must be compile-time.
-                    context = this._currentScopeContext.CompileTimeOnly( "the assignment of a compile-time expression" );
+                    classicalRightNodeContext = this._currentScopeContext.CompileTimeOnly( "the assignment of a compile-time expression" );
                 }
             }
 
-            using ( this.WithScopeContext( context ) )
+            using ( this.WithScopeContext( classicalRightNodeContext ) )
             {
-                transformedRight = this.Visit( node.Right );
+                classicalTransformedRight = this.Visit( node.Right );
             }
 
             // If we have a discard assignment, take the scope from the right.
-            if ( leftScope == RunTimeOrCompileTime
+            if ( classicalLeftNodeScope == RunTimeOrCompileTime
                  && this._syntaxTreeAnnotationMap.GetSymbol( node.Left ) is IDiscardSymbol )
             {
-                leftScope = this.GetNodeScope( transformedRight ).GetExpressionExecutionScope();
+                classicalLeftNodeScope = this.GetNodeScope( classicalTransformedRight ).GetExpressionExecutionScope();
             }
 
-            return node.Update( transformedLeft, node.OperatorToken, transformedRight ).AddScopeAnnotation( leftScope );
+            return node.Update( classicalTransformedLeft, node.OperatorToken, classicalTransformedRight ).AddScopeAnnotation( classicalLeftNodeScope );
         }
+    }
+
+    private enum TupleVarStatus
+    {
+        /// <summary>
+        /// No var declarations in the tuple.
+        /// </summary>
+        None,
+
+        /// <summary>
+        /// All elements are var declarations (possibly nested).
+        /// </summary>
+        AllVar,
+
+        /// <summary>
+        /// Mix of var and non-var declarations.
+        /// </summary>
+        Mixed
+    }
+
+    /// <summary>
+    /// Checks if a tuple expression contains var declarations and returns the status.
+    /// </summary>
+    private static TupleVarStatus CheckTupleVarDeclarations( TupleExpressionSyntax tuple )
+    {
+        var hasVar = false;
+        var hasNonVar = false;
+
+        foreach ( var argument in tuple.Arguments )
+        {
+            switch ( argument.Expression )
+            {
+                case DeclarationExpressionSyntax:
+                    hasVar = true;
+                    break;
+
+                case TupleExpressionSyntax nestedTuple:
+                    var nestedStatus = CheckTupleVarDeclarations( nestedTuple );
+
+                    if ( nestedStatus == TupleVarStatus.AllVar )
+                    {
+                        hasVar = true;
+                    }
+                    else if ( nestedStatus == TupleVarStatus.None )
+                    {
+                        hasNonVar = true;
+                    }
+                    else
+                    {
+                        // Nested tuple is mixed
+                        return TupleVarStatus.Mixed;
+                    }
+
+                    break;
+
+                default:
+                    hasNonVar = true;
+                    break;
+            }
+
+            if ( hasVar && hasNonVar )
+            {
+                return TupleVarStatus.Mixed;
+            }
+        }
+
+        if ( hasVar )
+        {
+            return TupleVarStatus.AllVar;
+        }
+
+        return TupleVarStatus.None;
     }
 
     private void CheckForMutatingCompileTimeExpressionInRunTimeConditionalBlock( ExpressionSyntax expression )

@@ -323,7 +323,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
     private TupleExpressionSyntax AddTupleNames( TupleExpressionSyntax node )
     {
         // Tuples can be initialized from variables and then items take names from variable name
-        // but variable name is not safe and could be renamed because of target variables 
+        // but variable name is not safe and could be renamed because of target variables
         // in this case we initialize tuple with explicit names.
         var tupleType = (INamedTypeSymbol?) this._syntaxTreeAnnotationMap.GetExpressionType( node );
 
@@ -342,8 +342,14 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
             var tupleElement = tupleType.TupleElements[i];
             ArgumentSyntax arg;
 
+            // Skip adding NameColon for DeclarationExpression (e.g., var first) because the name is already in the declaration.
+            // Tuple element names are not permitted on the left side of a deconstruction.
+            if ( node.Arguments[i].Expression is DeclarationExpressionSyntax )
+            {
+                arg = node.Arguments[i];
+            }
             // If the tuple element has a name (i.e. it's not just ItemX), set it explicitly.
-            if ( !tupleElement.Name.Equals( tupleElement.CorrespondingTupleField!.Name, StringComparison.Ordinal ) )
+            else if ( !tupleElement.Name.Equals( tupleElement.CorrespondingTupleField!.Name, StringComparison.Ordinal ) )
             {
                 arg = node.Arguments[i].WithNameColon( NameColon( tupleElement.Name ) );
             }
