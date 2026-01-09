@@ -16,7 +16,9 @@ namespace Metalama.Framework.Tests.TemplateTests.LocalVariables.TupleDeconstruct
         private dynamic? Template()
         {
             // The right-hand side is compile-time, types are explicit (run-time types)
+#pragma warning disable IDE0007 // Use 'var' instead of explicit type - explicit types are intentional in this test
             (string first, string second) = GetTuple();
+#pragma warning restore IDE0007
 
             Console.WriteLine( $"{first} {second}" );
 

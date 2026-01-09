@@ -17,7 +17,9 @@ namespace Metalama.Framework.Tests.TemplateTests.LocalVariables.TupleDeconstruct
         private dynamic? Template()
         {
             // The right-hand side is compile-time, types are explicit (compile-time types)
+#pragma warning disable IDE0007 // Use 'var' instead of explicit type - explicit types are intentional in this test
             (IMethod method, int paramCount) = GetMethodInfo();
+#pragma warning restore IDE0007
 
             Console.WriteLine( $"Method: {method.Name}, Parameters: {paramCount}" );
 

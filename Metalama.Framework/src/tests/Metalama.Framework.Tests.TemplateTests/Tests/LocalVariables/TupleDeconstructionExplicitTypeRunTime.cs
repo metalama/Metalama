@@ -16,7 +16,9 @@ namespace Metalama.Framework.Tests.TemplateTests.LocalVariables.TupleDeconstruct
         private dynamic? Template()
         {
             // The right-hand side is run-time (parameter values), types are explicit
+#pragma warning disable IDE0007 // Use 'var' instead of explicit type - explicit types are intentional in this test
             (int first, int second) = (meta.Target.Parameters[0].Value, meta.Target.Parameters[1].Value);
+#pragma warning restore IDE0007
 
             Console.WriteLine( $"a={first}, b={second}" );
 
