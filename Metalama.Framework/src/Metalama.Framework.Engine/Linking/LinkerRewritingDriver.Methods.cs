@@ -281,7 +281,7 @@ namespace Metalama.Framework.Engine.Linking
                 MethodDeclaration(
                         this.FilterAttributesOnSpecialImpl( symbol ),
                         modifiers,
-                        returnType.WithOptionalTrailingTrivia( ElasticSpace, generationContext.Options ),
+                        returnType.WithRequiredTrailingSpace(),
                         null,
                         WellKnownIdentifier( name ),
                         method.TypeParameterList != null ? this.FilterAttributesOnSpecialImpl( symbol.TypeParameters, method.TypeParameterList ) : null,

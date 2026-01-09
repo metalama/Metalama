@@ -57,7 +57,7 @@ public partial class MSBuildProjectOptions : DefaultProjectOptions
 
     private CodeFormattingOptions GetTextOutputOptionsCore()
     {
-        if ( this.WriteTransformedFiles == true || this.DebugTransformedCode == true )
+        if ( this.WriteTransformedFiles == true || this.DebugTransformedCode == true || this.VerifyOutputCode )
         {
             if ( this.GetBooleanOption( MSBuildPropertyNames.MetalamaFormatOutput ) )
             {

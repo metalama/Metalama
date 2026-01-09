@@ -111,7 +111,7 @@ namespace Metalama.Framework.Engine.Linking
                     PropertyDeclaration(
                         FilterAttributeListsForTarget( recordParameter.AttributeLists, SyntaxKind.PropertyKeyword, false, false ),
                         TokenList( SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.PublicKeyword ) ),
-                        recordParameter.Type.AssertNotNull().WithOptionalTrailingTrivia( ElasticSpace, this.SyntaxGenerationOptions ),
+                        recordParameter.Type.AssertNotNull().WithRequiredTrailingSpace(),
                         null,
                         recordParameter.Identifier,
                         AccessorList( List( generatedAccessors ) ),
@@ -186,7 +186,7 @@ namespace Metalama.Framework.Engine.Linking
                 PropertyDeclaration(
                     List<AttributeListSyntax>(),
                     TokenList( SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.PublicKeyword ) ),
-                    type.WithOptionalTrailingTrivia( ElasticSpace, this.SyntaxGenerationOptions ),
+                    type.WithRequiredTrailingSpace(),
                     null,
                     identifier,
                     AccessorList( List( [getAccessor, setAccessor] ) ),

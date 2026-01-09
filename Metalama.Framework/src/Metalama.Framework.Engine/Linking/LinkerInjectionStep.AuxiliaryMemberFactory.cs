@@ -276,7 +276,7 @@ internal sealed partial class LinkerInjectionStep
             return MethodDeclaration(
                 List<AttributeListSyntax>(),
                 modifiers,
-                returnType.WithOptionalTrailingTrivia( ElasticSpace, syntaxGenerationContext.Options ),
+                returnType.WithRequiredTrailingSpace(),
                 null,
                 SafeIdentifier( this._injectionNameProvider.GetOverrideName( method.DeclaringType, aspectLayerId, method ) ),
                 syntaxGenerationContext.SyntaxGenerator.TypeParameterList( method, this._finalCompilationModel ),
@@ -425,7 +425,7 @@ internal sealed partial class LinkerInjectionStep
                     List<AttributeListSyntax>(),
                     modifiers,
                     syntaxGenerationContext.SyntaxGenerator.PropertyType( property )
-                        .WithOptionalTrailingTrivia( ElasticSpace, syntaxGenerationContext.Options ),
+                        .WithRequiredTrailingSpace(),
                     null,
                     SafeIdentifier( this._injectionNameProvider.GetOverrideName( property.DeclaringType, aspectLayerId, property ) ),
                     AccessorList(
@@ -538,7 +538,7 @@ internal sealed partial class LinkerInjectionStep
                     List<AttributeListSyntax>(),
                     modifiers,
                     syntaxGenerationContext.SyntaxGenerator.IndexerType( indexer )
-                        .WithOptionalTrailingTrivia( ElasticSpace, syntaxGenerationContext.Options ),
+                        .WithRequiredTrailingSpace(),
                     null,
                     Token( SyntaxKind.ThisKeyword ),
                     TransformationHelper.GetIndexerOverrideParameterList(

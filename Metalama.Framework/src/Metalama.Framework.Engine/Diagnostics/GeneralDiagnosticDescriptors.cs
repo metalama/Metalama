@@ -349,6 +349,14 @@ namespace Metalama.Framework.Engine.Diagnostics
                 "Cannot load an extension assembly.",
                 _category );
 
+        internal static readonly DiagnosticDefinition<int>
+            VerifyOutputCodeCancelled = new(
+                "LAMA0071",
+                Warning,
+                "Output code verification cancelled after {0} errors. Additional errors may exist but were not reported.",
+                "Output code verification cancelled due to error limit.",
+                _category );
+
         // TODO: Use formattable string (C# does not seem to find extension methods).
         internal static readonly DiagnosticDefinition<string>
             UnsupportedFeature = new(

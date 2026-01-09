@@ -39,7 +39,7 @@ internal sealed partial class LinkerRewritingDriver
                         VariableDeclaration(
                             context.SyntaxGenerator
                                 .TypeSyntax( primaryConstructorField.Type )
-                                .WithOptionalTrailingTrivia( ElasticSpace, context.Options ),
+                                .WithRequiredTrailingSpace(),
                             SingletonSeparatedList(
                                 VariableDeclarator(
                                     WellKnownIdentifier( TriviaList( ElasticSpace ), GetCleanPrimaryConstructorFieldName( primaryConstructorField ), default ) ) ) ),

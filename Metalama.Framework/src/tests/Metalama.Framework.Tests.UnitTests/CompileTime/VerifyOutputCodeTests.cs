@@ -147,4 +147,62 @@ public sealed class VerifyOutputCodeTests : UnitTestClass
         // The pipeline should fail because the generated code has syntax errors
         Assert.False( result.IsSuccessful, "Pipeline should fail when generated code has syntax errors" );
     }
+
+    [Fact]
+    public async Task VerifyOutputCode_WithPreprocessorDirectiveMismatch_Fails()
+    {
+        // Regression test for issue found in NopCommerce where fabric wrapped in #if !BENCHMARK ... #endif
+        // loses the opening #if during code generation, leaving unmatched #endif.
+        // This test is currently skipped because the bug exists. Once fixed, remove the Skip attribute.
+        const string code = """
+            #if !BENCHMARK
+
+            using Metalama.Framework.Aspects;
+            using Metalama.Framework.Code;
+            using Metalama.Framework.Fabrics;
+            using System.Linq;
+
+            namespace TestNamespace;
+
+            public class TestFabric : TransitiveProjectFabric
+            {
+                public override void AmendProject(IProjectAmender amender)
+                {
+                    amender.SelectMany(p =>
+                            p.Types.SelectMany(t => t.Properties)
+                                .Where(it => it is { IsAbstract: false, IsImplicitlyDeclared: false }))
+                        .AddAspect<OverridePropertyAttribute>();
+                }
+            }
+
+            public class OverridePropertyAttribute : OverrideFieldOrPropertyAspect
+            {
+                public override dynamic? OverrideProperty
+                {
+                    get => meta.Proceed();
+                    set => meta.Proceed();
+                }
+            }
+
+            class TargetClass
+            {
+                public int TestProperty { get; set; }
+            }
+
+            #endif
+            """;
+
+        var testOptions = new TestContextOptions { VerifyOutputCode = true };
+        using var testContext = this.CreateTestContext( testOptions );
+
+        // Create compilation without BENCHMARK defined (normal case)
+        var compilation = testContext.CreateCSharpCompilation( code );
+        var pipeline = new CompileTimeAspectPipeline( testContext.ServiceProvider );
+
+        var diagnostics = new System.Collections.Generic.List<Diagnostic>();
+        var result = await pipeline.ExecuteAsync( d => diagnostics.Add( d ), null, compilation, default, default );
+
+        // The pipeline should succeed once the preprocessor directive bug is fixed
+        Assert.True( result.IsSuccessful, "Pipeline should succeed when preprocessor directives are correctly preserved" );
+    }
 }

@@ -9,6 +9,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using System;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -40,12 +41,44 @@ internal sealed class SyntaxTreeVerifier
         CancellationToken cancellationToken )
     {
         var diagnosticBag = new DiagnosticBag();
+        const int maxErrors = 10;
 
-        // Process all syntax trees in parallel
-        await this._concurrentTaskRunner.RunConcurrentlyAsync(
-            compilation.SyntaxTrees,
-            syntaxTree => VerifySyntaxTree( syntaxTree, diagnosticBag ),
-            cancellationToken );
+        // Create a cancellation token source that we can cancel when error limit is reached
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource( cancellationToken );
+
+        try
+        {
+            // Process all syntax trees in parallel, but stop early if error limit is reached
+            await this._concurrentTaskRunner.RunConcurrentlyAsync(
+                compilation.SyntaxTrees,
+                syntaxTree =>
+                {
+                    // Stop processing if cancellation was requested
+                    cts.Token.ThrowIfCancellationRequested();
+
+                    VerifySyntaxTree( syntaxTree, diagnosticBag );
+
+                    // Cancel remaining tasks if we've hit the limit
+                    if ( diagnosticBag.Count >= maxErrors )
+                    {
+                        cts.Cancel();
+                    }
+                },
+                cts.Token );
+        }
+        catch ( OperationCanceledException )
+        {
+            // Swallow cancellation - it's expected when error limit is reached
+        }
+
+        // Add a cancellation message if we hit the limit
+        if ( diagnosticBag.Count >= maxErrors )
+        {
+            diagnosticBag.Report(
+                GeneralDiagnosticDescriptors.VerifyOutputCodeCancelled.CreateRoslynDiagnostic(
+                    Location.None,
+                    maxErrors ) );
+        }
 
         if ( diagnosticBag.Count == 0 )
         {
@@ -60,22 +93,22 @@ internal sealed class SyntaxTreeVerifier
     private static void VerifySyntaxTree( SyntaxTree syntaxTree, DiagnosticBag diagnostics )
     {
         SyntaxNode parsedFromText;
-        var sourceText = syntaxTree.GetRoot().ToString();
+        var sourceText = syntaxTree.GetText();
 
         try
         {
             // Parse the syntax tree's text representation back into a syntax tree
+            // Use SourceText directly to avoid allocating a large string
             parsedFromText = CSharpSyntaxTree.ParseText(
                     sourceText,
-                    path: syntaxTree.FilePath,
-                    encoding: Encoding.UTF8,
-                    options: (CSharpParseOptions) syntaxTree.Options )
+                    (CSharpParseOptions) syntaxTree.Options,
+                    syntaxTree.FilePath )
                 .GetRoot();
         }
         catch ( Exception ex )
         {
             // Write source text to temp file for debugging
-            var tempFile = WriteTempFile( syntaxTree.FilePath, sourceText );
+            var tempFile = WriteTempFile( syntaxTree.FilePath, sourceText.ToString() );
 
             // If parsing throws an exception, create a diagnostic with detailed information
             var message =
@@ -116,7 +149,7 @@ internal sealed class SyntaxTreeVerifier
 
         if ( hasErrors )
         {
-            tempFilePath = WriteTempFile( syntaxTree.FilePath, sourceText );
+            tempFilePath = WriteTempFile( syntaxTree.FilePath, sourceText.ToString() );
         }
 
         // Report each error diagnostic

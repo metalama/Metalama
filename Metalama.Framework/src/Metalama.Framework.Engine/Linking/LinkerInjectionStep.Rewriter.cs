@@ -991,7 +991,7 @@ internal sealed partial class LinkerInjectionStep
                             existingParameters.Parameters.Count - 1,
                             newParameters.Select(
                                 x => x.ToSyntax( syntaxGenerationContext, this._compilation )
-                                    .WithOptionalTrailingTrivia( ElasticSpace, syntaxGenerationContext.Options ) ) ) );
+                                    .WithRequiredTrailingSpace() ) ) );
                 }
                 else
                 {
@@ -999,7 +999,7 @@ internal sealed partial class LinkerInjectionStep
                         existingParameters.Parameters.AddRange(
                             newParameters.Select(
                                 x => x.ToSyntax( syntaxGenerationContext, this._compilation )
-                                    .WithOptionalTrailingTrivia( ElasticSpace, syntaxGenerationContext.Options ) ) ) );
+                                    .WithRequiredTrailingSpace() ) ) );
                 }
             }
         }
@@ -1013,7 +1013,7 @@ internal sealed partial class LinkerInjectionStep
                 return initializerSyntax;
             }
 
-            var newArgumentsSyntax = newArguments.Select( a => a.ToSyntax().WithOptionalTrailingTrivia( ElasticSpace, this.SyntaxGenerationOptions ) );
+            var newArgumentsSyntax = newArguments.Select( a => a.ToSyntax().WithRequiredTrailingSpace() );
 
             if ( initializerSyntax == null )
             {
@@ -1047,7 +1047,9 @@ internal sealed partial class LinkerInjectionStep
                         continue;
                     }
 
-                    var declaration = VariableDeclaration( node.Declaration.Type, SingletonSeparatedList( variable ) );
+                    var declaration = VariableDeclaration(
+                        node.Declaration.Type.WithRequiredTrailingSpace(),
+                        SingletonSeparatedList( variable ) );
                     var attributes = this.RewriteDeclarationAttributeLists( variable, originalNode.AttributeLists, originalNode );
 
                     var fieldDeclaration = FieldDeclaration(
@@ -1394,7 +1396,9 @@ internal sealed partial class LinkerInjectionStep
                 // If we have changes in attributes and several members, we have to split them.
                 foreach ( var variable in originalNode.Declaration.Variables )
                 {
-                    var declaration = VariableDeclaration( node.Declaration.Type, SingletonSeparatedList( variable ) );
+                    var declaration = VariableDeclaration(
+                        node.Declaration.Type.WithRequiredTrailingSpace(),
+                        SingletonSeparatedList( variable ) );
 
                     var attributes = this.RewriteDeclarationAttributeLists( variable, originalNode.AttributeLists, node );
 

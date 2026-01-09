@@ -129,7 +129,7 @@ namespace Metalama.Framework.Engine.Linking
                         FilterAttributeListsForTarget( eventFieldDeclaration.AttributeLists, SyntaxKind.EventKeyword, true, true ),
                         eventFieldDeclaration.Modifiers,
                         SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.EventKeyword ),
-                        eventFieldDeclaration.Declaration.Type.WithOptionalTrailingTrivia( ElasticSpace, this.SyntaxGenerationOptions ),
+                        eventFieldDeclaration.Declaration.Type.WithRequiredTrailingSpace(),
                         null,
                         SyntaxFactoryEx.SafeIdentifier( symbol.Name ),
                         AccessorList(
@@ -222,7 +222,7 @@ namespace Metalama.Framework.Engine.Linking
                         List<AttributeListSyntax>(),
                         eventField.Modifiers,
                         SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.EventKeyword ),
-                        eventField.Declaration.Type.WithOptionalTrailingTrivia( ElasticSpace, this.SyntaxGenerationOptions ),
+                        eventField.Declaration.Type.WithRequiredTrailingSpace(),
                         null,
                         eventField.Declaration.Variables.Single().Identifier,
                         AccessorList(

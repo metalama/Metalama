@@ -353,7 +353,7 @@ namespace Metalama.Framework.Engine.Linking
                     attributes,
                     TokenList( modifiers ),
                     VariableDeclaration(
-                        type.WithOptionalTrailingTrivia( ElasticSpace, this.SyntaxGenerationOptions ),
+                        type.WithRequiredTrailingSpace(),
                         SingletonSeparatedList(
                             VariableDeclarator(
                                 WellKnownIdentifier( GetBackingFieldName( symbol ) ),

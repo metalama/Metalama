@@ -321,7 +321,7 @@ namespace Metalama.Framework.Engine.Linking
                                 SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.StaticKeyword ) )
                             : TokenList( SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.PrivateKeyword ) ),
                         VariableDeclaration(
-                            eventType.WithOptionalTrailingTrivia( ElasticSpace, this.SyntaxGenerationOptions ),
+                            eventType.WithRequiredTrailingSpace(),
                             SingletonSeparatedList(
                                 VariableDeclarator(
                                     WellKnownIdentifier( GetBackingFieldName( symbol ) ),

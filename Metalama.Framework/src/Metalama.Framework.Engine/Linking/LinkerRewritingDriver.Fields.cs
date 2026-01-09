@@ -89,9 +89,9 @@ namespace Metalama.Framework.Engine.Linking
                                 SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.PrivateKeyword ),
                                 SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.StaticKeyword ) )
                             : TokenList( SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.PrivateKeyword ) ),
-                        type,
+                        type.WithRequiredTrailingSpace(),
                         null,
-                        WellKnownIdentifier( GetEmptyImplMemberName( symbol ) ),
+                        WellKnownIdentifier( default, GetEmptyImplMemberName( symbol ), SyntaxFactoryEx.ElasticSpaceTriviaList ),
                         accessorList.WithOptionalTrailingLineFeed( context ),
                         null,
                         null )

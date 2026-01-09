@@ -65,6 +65,10 @@ ENV PATH="C:\Program Files\dotnet;${PATH}"
 RUN & .\dotnet-install.ps1 -Version 8.0.414 -InstallDir 'C:\Program Files\dotnet'
 
 
+# Install .NET DotNetRuntime 9.0.9
+RUN & .\dotnet-install.ps1 -Version 9.0.9 -Runtime dotnet -InstallDir 'C:\Program Files\dotnet'
+
+
 # Install .NET Sdk 10.0.100
 RUN & .\dotnet-install.ps1 -Version 10.0.100 -InstallDir 'C:\Program Files\dotnet'
 
