@@ -230,6 +230,8 @@ namespace Metalama.Framework.Engine.Templating
                 compileTimeCompilationContext,
                 this._serializableTypes,
                 usedApiVersion,
+                sourceSyntaxRoot,
+                annotatedSyntaxRoot,
                 cancellationToken );
 
             transformedSyntaxRoot = templateCompilerRewriter.Visit( annotatedSyntaxRoot );
