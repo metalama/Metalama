@@ -229,7 +229,7 @@ namespace Metalama.Framework.Engine.Templating
         /// <returns></returns>
         public ISymbol? GetDeclaredSymbol( SyntaxNode node )
         {
-            var annotation = this.GetDeclaredSymbolAnnotation( node );
+            var annotation = GetDeclaredSymbolAnnotation( node );
 
             if ( annotation is not null )
             {
@@ -239,7 +239,7 @@ namespace Metalama.Framework.Engine.Templating
             return null;
         }
 
-        public SyntaxAnnotation? GetDeclaredSymbolAnnotation( SyntaxNode node )
+        public static SyntaxAnnotation? GetDeclaredSymbolAnnotation( SyntaxNode node )
         {
             return node.GetAnnotations( _declaredSymbolAnnotationKind ).SingleOrDefault();
         }
