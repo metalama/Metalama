@@ -115,14 +115,17 @@ ENV PATH="C:\Program Files\GitHub CLI;${PATH}"
 ENV NPM_CONFIG_PREFIX=C:\\npm
 ENV PATH="C:\\npm;${PATH}"
 
+# Install Claude CLI using cmd shell to avoid HCS issues with PowerShell
+SHELL ["cmd", "/S", "/C"]
+RUN C:\\nodejs\\npm.cmd install --global @anthropic-ai/claude-code
+
 # Set HOME/USERPROFILE so Claude CLI finds credentials during build
 ENV HOME=C:\\Users\\ContainerUser
 ENV USERPROFILE=C:\\Users\\ContainerUser
 ENV CLAUDE_CODE_SHELL=pwsh
 
-# Install Claude CLI and configure plugins using cmd shell to avoid HCS issues with PowerShell
-SHELL ["cmd", "/S", "/C"]
-RUN C:\nodejs\npm.cmd install --global @anthropic-ai/claude-code && mkdir C:\Users\ContainerUser\.claude && echo {"hasCompletedOnboarding": true} > C:\Users\ContainerUser\.claude.json && C:\npm\claude plugin marketplace add https://github.com/metalama/Metalama.AI.Skills && C:\npm\claude plugin marketplace add https://github.com/postsharp/PostSharp.Engineering.AISkills && C:\npm\claude plugin install metalama && C:\npm\claude plugin install metalama-dev && C:\npm\claude plugin install eng
+# Create Claude config directory (credentials are mounted at runtime)
+RUN mkdir C:\Users\ContainerUser\.claude
 
 # Restore PowerShell shell using full path
 SHELL ["C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe", "-Command"]

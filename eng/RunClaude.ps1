@@ -28,18 +28,7 @@ if ($McpPort -gt 0)
 
     # URL-encode the secret for path segment
     $encodedSecret = [System.Web.HttpUtility]::UrlEncode($mcpSecret)
-
-    # On Windows containers, host.docker.internal doesn't resolve.
-    # Use the default gateway IP which points to the host.
-    $hostIp = (Get-NetRoute -DestinationPrefix '0.0.0.0/0' | Select-Object -First 1).NextHop
-    if ([string]::IsNullOrEmpty($hostIp))
-    {
-        Write-Error "Could not determine host IP from default gateway."
-        exit 1
-    }
-    Write-Host "Host IP (gateway): $hostIp" -ForegroundColor Cyan
-
-    $sseUrl = "http://${hostIp}:$McpPort/$encodedSecret/sse"
+    $sseUrl = "http://host.docker.internal:$McpPort/$encodedSecret/sse"
     Write-Host "Configuring MCP approval server (authenticated)" -ForegroundColor Cyan
 
     # Create temporary MCP config file
