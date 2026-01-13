@@ -65,5 +65,5 @@ global.json
 **/.idea/copilot.data.*.xml
 *-TODO.md
 Metalama.Framework/BenchmarkDotNet.Artifacts/results
-eng\docker-context\claude.json
+eng/docker-context/.g/
 *.swp
