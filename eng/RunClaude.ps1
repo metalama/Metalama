@@ -26,9 +26,6 @@ if ($McpPort -gt 0)
         exit 1
     }
 
-    # URL-encode the secret for path segment
-    $encodedSecret = [System.Web.HttpUtility]::UrlEncode($mcpSecret)
-
     # On Windows containers, host.docker.internal doesn't resolve.
     # Use the default gateway IP which points to the host.
     $hostIp = (Get-NetRoute -DestinationPrefix '0.0.0.0/0' | Select-Object -First 1).NextHop
@@ -39,16 +36,20 @@ if ($McpPort -gt 0)
     }
     Write-Host "Host IP (gateway): $hostIp" -ForegroundColor Cyan
 
-    $sseUrl = "http://${hostIp}:$McpPort/$encodedSecret/sse"
-    Write-Host "Configuring MCP approval server (authenticated)" -ForegroundColor Cyan
+    # Use HTTP Streamable transport (not SSE) with Bearer token authentication
+    $mcpUrl = "http://${hostIp}:$McpPort"
+    Write-Host "Configuring MCP approval server with Bearer token authentication" -ForegroundColor Cyan
 
-    # Create temporary MCP config file
+    # Create temporary MCP config file with Bearer token authentication
     $mcpConfigPath = "$env:TEMP\mcp-config.json"
     $mcpConfig = @{
         'mcpServers' = @{
             'host-approval' = @{
-                'type' = 'sse'
-                'url' = $sseUrl
+                'type' = 'http'
+                'url' = $mcpUrl
+                'headers' = @{
+                    'Authorization' = "Bearer $mcpSecret"
+                }
             }
         }
     }
@@ -62,15 +63,23 @@ Write-Host "Starting Claude CLI..." -ForegroundColor Green
 # Run Claude
 if ($Prompt)
 {
-    Write-Host "Running Claude with prompt: $Prompt" -ForegroundColor Cyan
-    $cmd = "claude --dangerously-skip-permissions $mcpConfigArg -p `"$Prompt`""
-    Invoke-Expression $cmd
+    # Write prompt to a temporary file to avoid command line length limits
+    $promptFile = "$env:TEMP\claude-prompt-$([System.Guid]::NewGuid().ToString('N').Substring(0, 8)).txt"
+    $Prompt | Set-Content -Path $promptFile -Encoding UTF8 -NoNewline
+    Write-Host "Running Claude with prompt from file: $promptFile" -ForegroundColor Cyan
+
+    # Use stdin redirection to pass the prompt, avoiding command line length issues
+    $cmd = "Get-Content -Path '$promptFile' -Raw | claude --dangerously-skip-permissions $mcpConfigArg"
+    $exitCode = Invoke-Expression $cmd
+
+    # Clean up prompt file
+    Remove-Item $promptFile -ErrorAction SilentlyContinue
+    exit $exitCode
 }
 else
 {
     Write-Host "Running Claude in interactive mode" -ForegroundColor Cyan
     $cmd = "claude --dangerously-skip-permissions $mcpConfigArg"
     Invoke-Expression $cmd
+    exit $LASTEXITCODE
 }
-
-exit $LASTEXITCODE
